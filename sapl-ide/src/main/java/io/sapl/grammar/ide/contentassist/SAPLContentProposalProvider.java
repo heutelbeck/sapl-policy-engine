@@ -146,7 +146,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		importStatement = importStatement.substring(IMPORT_KEYWORD.length());
 		// remove all new lines
 		importStatement = importStatement.replace('\n', ' ').trim();
-		// remove all spaces we're only interested in statement e.g. "clock.now"
+		// remove all spaces we're only interested in statement e.g. "time.now"
 		importStatement = importStatement.replace(" ", "");
 		// look up proposals
 		return pipAttributeFinder.getAvailableAttributes(importStatement);

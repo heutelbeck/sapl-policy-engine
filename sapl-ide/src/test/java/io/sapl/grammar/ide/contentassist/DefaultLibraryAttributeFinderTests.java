@@ -15,22 +15,7 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertAll;
-
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.aggregator.ArgumentsAccessor;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.ValueSource;
-
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
@@ -38,7 +23,21 @@ import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.pip.ClockPolicyInformationPoint;
+import io.sapl.pip.TimePolicyInformationPoint;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.aggregator.ArgumentsAccessor;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import java.time.Clock;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
 
 /**
  * Tests regarding the auto completion of libraries and functions
@@ -50,7 +49,7 @@ public class DefaultLibraryAttributeFinderTests {
 	@BeforeAll
 	public static void SetupLibraryAttributeFinder() throws InitializationException {
 		AnnotationAttributeContext attributeContext = new AnnotationAttributeContext();
-		attributeContext.loadPolicyInformationPoint(new ClockPolicyInformationPoint());
+		attributeContext.loadPolicyInformationPoint(new TimePolicyInformationPoint(Clock.systemUTC()));
 
 		AnnotationFunctionContext funtionContext = new AnnotationFunctionContext();
 		funtionContext.loadLibrary(new FilterFunctionLibrary());
@@ -65,14 +64,14 @@ public class DefaultLibraryAttributeFinderTests {
 	}
 
 	@ParameterizedTest
-	@ValueSource(strings = { "time", "filter", "standard", "clock" })
+	@ValueSource(strings = { "time", "filter", "standard", "time" })
 	public void getAvailableAttributes_WithEmptyString_ReturnsAllLibraries(String value) {
 		Collection<String> availableAttributes = attributeFinder.getAvailableAttributes("");
 		assertThat(availableAttributes.contains(value), is(true));
 	}
 
 	@ParameterizedTest
-	@CsvSource({ "time, ti", "clock, clo", "filter, filt", "standard, stand" })
+	@CsvSource({ "time, ti", "time, tim", "filter, filt", "standard, stand" })
 	public void getAvailableAttributes_WithNeedle_ReturnsMatchingLibaries(ArgumentsAccessor arguments) {
 		String needle = arguments.getString(1);
 		String expectedLibrary = arguments.getString(0);
@@ -84,7 +83,7 @@ public class DefaultLibraryAttributeFinderTests {
 	}
 
 	@ParameterizedTest
-	@CsvSource({ "clock., now", "clock., ticker" })
+	@CsvSource({ "time., now" })
 	public void getAvailableAttributes_WithLibraryQualifier_ReturnsAllFunctions(ArgumentsAccessor arguments) {
 		String needle = arguments.getString(0);
 		String expectedFunction = arguments.getString(1);
@@ -95,7 +94,7 @@ public class DefaultLibraryAttributeFinderTests {
 	}
 
 	@ParameterizedTest
-	@CsvSource({ "clock.n, now", "clock.tic, ticker" })
+	@CsvSource({ "time.now, now" })
 	public void getAvailableAttributes_WithLibraryQualifierAndFunctionNeedle_ReturnsMatchingFunctions(
 			ArgumentsAccessor arguments) {
 		String needle = arguments.getString(0);

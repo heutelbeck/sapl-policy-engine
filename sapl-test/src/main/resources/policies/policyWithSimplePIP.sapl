@@ -1,5 +1,3 @@
-import io.sapl.prp.embedded.TestPIP as test
-
 policy "policyWithSimplePIP"
 permit
     action == "read"

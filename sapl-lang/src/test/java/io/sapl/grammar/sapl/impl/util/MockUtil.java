@@ -29,7 +29,6 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.api.validation.Text;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.grammar.sapl.AttributeFinderStep;
 import io.sapl.grammar.sapl.Expression;
@@ -119,17 +118,22 @@ public class MockUtil {
 	public static class TestPolicyInformationPoint {
 
 		@Attribute
-		public Flux<Val> nilflux(Val value, Map<String, JsonNode> variables) {
+		public Flux<Val> nilflux(Map<String, JsonNode> variables) {
 			return Flux.just(Val.NULL);
 		}
 
 		@Attribute
-		public Flux<Val> numbers(Val value, Map<String, JsonNode> variables) {
+		public Flux<Val> numbers(Map<String, JsonNode> variables) {
+			return Flux.just(Val.of(0), Val.of(1), Val.of(2), Val.of(3), Val.of(4), Val.of(5));
+		}	
+		
+		@Attribute
+		public Flux<Val> numbers(Val leftHand, Map<String, JsonNode> variables) {
 			return Flux.just(Val.of(0), Val.of(1), Val.of(2), Val.of(3), Val.of(4), Val.of(5));
 		}
 
 		@Attribute
-		public Flux<Val> numbersWithError(@Text Val value, Map<String, JsonNode> variables) {
+		public Flux<Val> numbersWithError(Map<String, JsonNode> variables) {
 			return Flux.just(Val.of(0), Val.of(1), Val.error("INTENTIONAL ERROR IN SEQUENCE"), Val.of(3), Val.of(4),
 					Val.of(5));
 		}

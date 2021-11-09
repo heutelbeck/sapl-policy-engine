@@ -33,7 +33,7 @@ public class BasicEnvironmentAttributeImplCustom extends BasicEnvironmentAttribu
 		if (TargetExpressionUtil.isInTargetExpression(this)) {
 			return Val.errorFlux(EXTERNAL_ATTRIBUTE_IN_TARGET, fullyQualifiedName);
 		}
-		return ctx.getAttributeCtx().evaluate(fullyQualifiedName, Val.UNDEFINED, ctx, getArguments())
+		return ctx.getAttributeCtx().evaluateEnvironmentAttribute(fullyQualifiedName, ctx, getArguments())
 				.distinctUntilChanged();
 	}
 

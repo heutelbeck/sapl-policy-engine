@@ -33,7 +33,7 @@ public class BasicEnvironmentHeadAttributeImplCustom extends BasicEnvironmentHea
 		if (TargetExpressionUtil.isInTargetExpression(this)) {
 			return Val.errorFlux(EXTERNAL_ATTRIBUTE_IN_TARGET, fullyQualifiedName);
 		}
-		return ctx.getAttributeCtx().evaluate(fullyQualifiedName, Val.UNDEFINED, ctx, getArguments()).take(1);
+		return ctx.getAttributeCtx().evaluateEnvironmentAttribute(fullyQualifiedName, ctx, getArguments()).take(1);
 	}
 
 }

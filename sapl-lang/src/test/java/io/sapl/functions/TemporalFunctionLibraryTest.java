@@ -15,209 +15,241 @@
  */
 package io.sapl.functions;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.pip.ClockPolicyInformationPoint;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import reactor.test.StepVerifier;
-
-import java.math.BigDecimal;
-import java.time.DayOfWeek;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-
 import static io.sapl.hamcrest.Matchers.val;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-//TODO: tests für sämtliche neue funktionen schreiben
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+
+import org.junit.jupiter.api.Test;
+
+import io.sapl.api.interpreter.Val;
+
 class TemporalFunctionLibraryTest {
 
-	static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-	static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
-	static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
-	static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
-	static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
-	static final EvaluationContext PDP_EVALUATION_CONTEXT = new EvaluationContext(ATTRIBUTE_CTX, FUNCTION_CTX,
-			SYSTEM_VARIABLES);
-
-	static final String authzSubscription = "{ \"subject\": \"somebody\", \"action\": \"read\", \"resource\": {}, \"environment\": {}}";
-
-	static AuthorizationSubscription authzSubscriptionObj;
-
-	@BeforeAll
-	static void beforeClass() throws InitializationException, JsonProcessingException {
-		FUNCTION_CTX.loadLibrary(new StandardFunctionLibrary());
-		FUNCTION_CTX.loadLibrary(new TemporalFunctionLibrary());
-		ATTRIBUTE_CTX.loadPolicyInformationPoint(new ClockPolicyInformationPoint());
-		authzSubscriptionObj = MAPPER.readValue(authzSubscription, AuthorizationSubscription.class);
+	@Test
+	void instantiate() {
+		assertDoesNotThrow(() -> new TemporalFunctionLibrary());
 	}
 
 	@Test
-	void nowPlus10Nanos() {
-		var zoneId = Val.of("UTC");
-		var now = new ClockPolicyInformationPoint().now(zoneId, Collections.emptyMap()).blockFirst();
-		var plus10 = TemporalFunctionLibrary.plusNanos(now, Val.of(10L));
-		var expected = Instant.parse(now.get().asText()).plusNanos(10).toString();
-		assertThat(plus10, is(val(expected)));
+	void nowPlusNanos() {
+		var time = timeValOf("2021-11-08T13:00:00Z");
+		var added = TemporalFunctionLibrary.plusNanos(time, Val.of(10_000_000_000L));
+		assertThat(added, is(val("2021-11-08T13:00:10Z")));
 	}
 
 	@Test
-	void nowPlus10Millis() {
-		var zoneId = Val.of("UTC");
-		var now = new ClockPolicyInformationPoint().now(zoneId, Collections.emptyMap()).blockFirst();
-		var plus10 = TemporalFunctionLibrary.plusMillis(now, Val.of(10L));
-		var expected = Instant.parse(now.get().asText()).plusMillis(10).toString();
-		assertThat(plus10, is(val(expected)));
+	void nowPlusMillis() {
+		var time = timeValOf("2021-11-08T13:00:00Z");
+		var added = TemporalFunctionLibrary.plusMillis(time, Val.of(10_000L));
+		assertThat(added, is(val("2021-11-08T13:00:10Z")));
 	}
 
 	@Test
-	void nowPlus10Seconds() {
-		var zoneId = Val.of("UTC");
-		var now = new ClockPolicyInformationPoint().now(zoneId, Collections.emptyMap()).blockFirst();
-		var plus10 = TemporalFunctionLibrary.plusSeconds(now, Val.of(10L));
-		var expected = Instant.parse(now.get().asText()).plusSeconds(10).toString();
-		assertThat(plus10, is(val(expected)));
+	void nowPlusSeconds() {
+		var time = timeValOf("2021-11-08T13:00:00Z");
+		var added = TemporalFunctionLibrary.plusSeconds(time, Val.of(10L));
+		assertThat(added, is(val("2021-11-08T13:00:10Z")));
 	}
 
 	@Test
-	void nowMinus10Nanos() {
-		var zoneId = Val.of("UTC");
-		var now = new ClockPolicyInformationPoint().now(zoneId, Collections.emptyMap()).blockFirst();
-		var plus10 = TemporalFunctionLibrary.minusNanos(now, Val.of(10L));
-		var expected = Instant.parse(now.get().asText()).minusNanos(10).toString();
-		assertThat(plus10, is(val(expected)));
+	void nowMinusNanos() {
+		var time = timeValOf("2021-11-08T13:00:00Z");
+		var subtracted = TemporalFunctionLibrary.minusNanos(time, Val.of(10_000_000_000L));
+		assertThat(subtracted, is(val("2021-11-08T12:59:50Z")));
 	}
 
 	@Test
-	void nowMinus10Millis() {
-		var zoneId = Val.of("UTC");
-		var now = new ClockPolicyInformationPoint().now(zoneId, Collections.emptyMap()).blockFirst();
-		var plus10 = TemporalFunctionLibrary.minusMillis(now, Val.of(10L));
-		var expected = Instant.parse(now.get().asText()).minusMillis(10).toString();
-		assertThat(plus10, is(val(expected)));
+	void nowMinusMillis() {
+		var time = timeValOf("2021-11-08T13:00:00Z");
+		var subtracted = TemporalFunctionLibrary.minusMillis(time, Val.of(10_000L));
+		assertThat(subtracted, is(val("2021-11-08T12:59:50Z")));
 	}
 
 	@Test
-	void nowMinus10Seconds() {
-		var zoneId = Val.of("UTC");
-		var now = new ClockPolicyInformationPoint().now(zoneId, Collections.emptyMap()).blockFirst();
-		var plus10 = TemporalFunctionLibrary.minusSeconds(now, Val.of(10L));
-		var expected = Instant.parse(now.get().asText()).minusSeconds(10).toString();
-		assertThat(plus10, is(val(expected)));
+	void nowMinusSeconds() {
+		var time = timeValOf("2021-11-08T13:00:00Z");
+		var subtracted = TemporalFunctionLibrary.minusSeconds(time, Val.of(10L));
+		assertThat(subtracted, is(val("2021-11-08T12:59:50Z")));
 	}
 
 	@Test
-	void dayOfWeekFrom() {
-		var zoneId = Val.of("UTC");
-		var now = new ClockPolicyInformationPoint().now(zoneId, Collections.emptyMap()).blockFirst();
-		var dayOfWeek = TemporalFunctionLibrary.dayOfWeek(now);
-		var expected = DayOfWeek.from(Instant.now().atOffset(ZoneOffset.UTC)).toString();
-		assertThat(dayOfWeek, is(val(expected)));
+	void dayOfWeekTest() {
+		assertThat(TemporalFunctionLibrary.dayOfWeek(timeValOf("2021-11-08T13:00:00Z")), is(val("MONDAY")));
+	}
+
+	@Test
+	void dayOfYearTest() {
+		assertThat(TemporalFunctionLibrary.dayOfYear(timeValOf("2021-11-08T13:00:00Z")), is(val(312)));
+	}
+
+	@Test
+	void weekOfYearTest() {
+		assertThat(TemporalFunctionLibrary.weekOfYear(timeValOf("2021-11-08T13:00:00Z")), is(val(45)));
 	}
 
 	@Test
 	void betweenTest() {
-		var now = Instant.now();
-		var yesterday = now.minus(1, ChronoUnit.DAYS);
-		var tomorrow = now.plus(1, ChronoUnit.DAYS);
+		var today = timeValOf("2021-11-08T13:00:00Z");
+		var yesterday = timeValOf("2021-11-07T13:00:00Z");
+		var tomorrow = timeValOf("2021-11-09T13:00:00Z");
 
-		// yesterday < now < tomorrow
-		var isBetween = TemporalFunctionLibrary.between(Val.of(now.toString()), Val.of(yesterday.toString()),
-				Val.of(tomorrow.toString()));
-		assertThat(isBetween.getBoolean(), is(true));
-
-		isBetween = TemporalFunctionLibrary.between(Val.of(now.toString()), Val.of(now.toString()),
-				Val.of(now.toString()));
-		assertThat(isBetween.getBoolean(), is(true));
-
-		// yesterday = now < tomorrow
-		now = yesterday;
-		isBetween = TemporalFunctionLibrary.between(Val.of(now.toString()), Val.of(yesterday.toString()),
-				Val.of(tomorrow.toString()));
-		assertThat(isBetween.getBoolean(), is(true));
-
-		// yesterday = now = tomorrow
-		now = tomorrow;
-		isBetween = TemporalFunctionLibrary.between(Val.of(now.toString()), Val.of(yesterday.toString()),
-				Val.of(tomorrow.toString()));
-		assertThat(isBetween.getBoolean(), is(true));
-
-		// t < t_plus_1 < t_plus_2
-		var t = Instant.now();
-		var t_plus_1 = now.plus(1, ChronoUnit.DAYS);
-		var t_plus_2 = now.plus(2, ChronoUnit.DAYS);
-		isBetween = TemporalFunctionLibrary.between(Val.of(t.toString()), Val.of(t_plus_1.toString()),
-				Val.of(t_plus_2.toString()));
-		assertThat(isBetween.getBoolean(), is(false));
-
-		// t_plus_1 < t_plus_2 < t
-		t = now.plus(3, ChronoUnit.DAYS);
-		isBetween = TemporalFunctionLibrary.between(Val.of(t.toString()), Val.of(t_plus_1.toString()),
-				Val.of(t_plus_2.toString()));
-		assertThat(isBetween.getBoolean(), is(false));
+		assertThat(TemporalFunctionLibrary.between(today, yesterday, tomorrow), is(val(true)));
+		assertThat(TemporalFunctionLibrary.between(tomorrow, yesterday, today), is(val(false)));
+		assertThat(TemporalFunctionLibrary.between(today, today, today), is(val(true)));
+		assertThat(TemporalFunctionLibrary.between(yesterday, yesterday, tomorrow), is(val(true)));
+		assertThat(TemporalFunctionLibrary.between(yesterday, today, tomorrow), is(val(false)));
+		assertThat(TemporalFunctionLibrary.between(tomorrow, today, tomorrow), is(val(true)));
 	}
 
 	@Test
 	void timeBetweenTest() {
-		var now = Instant.now().truncatedTo(ChronoUnit.HOURS);
-		var yesterday = now.minus(1, ChronoUnit.DAYS);
-		var tomorrow = now.plus(1, ChronoUnit.DAYS);
+		var today = timeValOf("2021-11-08T13:00:00Z");
+		var tomorrow = timeValOf("2021-11-09T13:00:00Z");
 
-		var daysBetween = TemporalFunctionLibrary.timeBetween(Val.of(now.toString()), Val.of(tomorrow.toString()),
-				Val.of(ChronoUnit.DAYS.toString()));
-		var hoursBetween = TemporalFunctionLibrary.timeBetween(Val.of(now.toString()), Val.of(tomorrow.toString()),
-				Val.of(ChronoUnit.HOURS.toString()));
-		assertThat(daysBetween.get().asLong(), is(1L));
-		assertThat(hoursBetween.get().asLong(), is(24L));
+		assertThat(TemporalFunctionLibrary.timeBetween(today, tomorrow, Val.of("DAYS")), is(val(1L)));
+		assertThat(TemporalFunctionLibrary.timeBetween(today, tomorrow, Val.of("HOURS")), is(val(24L)));
+		assertThat(TemporalFunctionLibrary.timeBetween(tomorrow, today, Val.of("DAYS")), is(val(-1L)));
+		assertThat(TemporalFunctionLibrary.timeBetween(tomorrow, today, Val.of("HOURS")), is(val(-24L)));
+	}
 
-		daysBetween = TemporalFunctionLibrary.timeBetween(Val.of(tomorrow.toString()), Val.of(yesterday.toString()),
-				Val.of(ChronoUnit.DAYS.toString()));
-		hoursBetween = TemporalFunctionLibrary.timeBetween(Val.of(tomorrow.toString()), Val.of(yesterday.toString()),
-				Val.of(ChronoUnit.HOURS.toString()));
-		assertThat(daysBetween.get().asLong(), is(-2L));
-		assertThat(hoursBetween.get().asLong(), is(-48L));
+	@Test
+	void beforeTest() {
+		assertThat(TemporalFunctionLibrary.before(timeValOf("2021-11-08T13:00:00Z"), timeValOf("2021-11-08T13:00:01Z")),
+				is(val(true)));
+		assertThat(TemporalFunctionLibrary.before(timeValOf("2021-11-08T13:00:01Z"), timeValOf("2021-11-08T13:00:00Z")),
+				is(val(false)));
+	}
+
+	@Test
+	void afterTest() {
+		assertThat(TemporalFunctionLibrary.after(timeValOf("2021-11-08T13:00:00Z"), timeValOf("2021-11-08T13:00:01Z")),
+				is(val(false)));
+		assertThat(TemporalFunctionLibrary.after(timeValOf("2021-11-08T13:00:01Z"), timeValOf("2021-11-08T13:00:00Z")),
+				is(val(true)));
+	}
+
+	@Test
+	void localDateTimeTest() {
+		assertThat(TemporalFunctionLibrary.localDateTime(timeValOf("2021-11-08T13:00:00Z")),
+				is(val("2021-11-08T13:00")));
+	}
+
+	@Test
+	void localDateTest() {
+		assertThat(TemporalFunctionLibrary.localDate(timeValOf("2021-11-08T13:00:00Z")), is(val("2021-11-08")));
+	}
+
+	@Test
+	void localTimeTest() {
+		assertThat(TemporalFunctionLibrary.localTime(timeValOf("2021-11-08T13:00:00Z")), is(val("13:00")));
+	}
+
+	@Test
+	void localHourTest() {
+		assertThat(TemporalFunctionLibrary.localHour(timeValOf("2021-11-08T13:00:00Z")), is(val(13)));
+	}
+
+	@Test
+	void localMinuteTest() {
+		assertThat(TemporalFunctionLibrary.localMinute(timeValOf("2021-11-08T13:00:00Z")), is(val(0)));
+	}
+
+	@Test
+	void localSecondTest() {
+		assertThat(TemporalFunctionLibrary.localSecond(timeValOf("2021-11-08T13:00:23Z")), is(val(23)));
+	}
+
+	@Test
+	void epocSecondTest() {
+		assertThat(TemporalFunctionLibrary.epochSecond(timeValOf("2021-11-08T13:00:00Z")), is(val(1_636_376_400L)));
+	}
+
+	@Test
+	void ofEpocSecondTest() {
+		assertThat(TemporalFunctionLibrary.ofEpochSecond(Val.of(1_636_376_400L)), is(val("2021-11-08T13:00:00Z")));
+	}
+
+	@Test
+	void epocMilliTest() {
+		assertThat(TemporalFunctionLibrary.epochMilli(timeValOf("2021-11-08T13:00:00Z")), is(val(1_636_376_400_000L)));
+	}
+
+	@Test
+	void ofEpocMilliTest() {
+		assertThat(TemporalFunctionLibrary.ofEpochMilli(Val.of(1_636_376_400_000L)), is(val("2021-11-08T13:00:00Z")));
+	}
+
+	@Test
+	void durationOfSecondsTest() {
+		assertThat(TemporalFunctionLibrary.durationOfSeconds(Val.of(60)), is(val(60_000L)));
+	}
+
+	@Test
+	void durationOfMinutes() {
+		assertThat(TemporalFunctionLibrary.durationOfMinutes(Val.of(1)), is(val(60_000L)));
+	}
+
+	@Test
+	void durationOfHours() {
+		assertThat(TemporalFunctionLibrary.durationOfHours(Val.of(24)), is(val(86_400_000L)));
+	}
+
+	@Test
+	void durationOfDays() {
+		assertThat(TemporalFunctionLibrary.durationOfDays(Val.of(1)), is(val(86_400_000L)));
+	}
+
+	@Test
+	void validUtcTest() {
+		assertThat(TemporalFunctionLibrary.validUTC(Val.of("2021-11-08T13:00:00Z")), is(val(true)));
+		assertThat(TemporalFunctionLibrary.validUTC(Val.of("XXX")), is(val(false)));
+	}
+
+	@Test
+	void atZoneTest() {
+		assertThat(TemporalFunctionLibrary.atZone(Val.of("2021-11-08T13:00:00Z"), Val.of("BST")),
+				is(val("2021-11-08T19:00")));
+		assertThat(TemporalFunctionLibrary.atZone(Val.of("2021-11-08T03:00:00Z"), Val.of("CST")),
+				is(val("2021-11-07T21:00")));
+		assertThat(TemporalFunctionLibrary.atZone(Val.of("2021-11-08T03:00:00Z"), Val.of("system")), is(val()));
+		assertThat(TemporalFunctionLibrary.atZone(Val.of("2021-11-08T03:00:00Z"), Val.of("")), is(val()));
+		assertThat(TemporalFunctionLibrary.atZone(Val.of("2021-11-08T03:00:00Z"), Val.of("GMT")),
+				is(val("2021-11-08T03:00")));
+	}
+
+	@Test
+	void atOffsetTest() {
+		assertThat(TemporalFunctionLibrary.atOffset(Val.of("2021-11-08T13:00:00Z"), Val.of("-08:00")),
+				is(val("2021-11-08T05:00")));
+		assertThat(TemporalFunctionLibrary.atOffset(Val.of("2021-11-08T03:00:00Z"), Val.of("+04:00")),
+				is(val("2021-11-08T07:00")));
 	}
 
 	@Test
 	void should_return_error_for_invalid_time_arguments() {
-		assertErrorValIsReturnedTwoArgs(TemporalFunctionLibrary::before);
-		assertErrorValIsReturnedTwoArgs(TemporalFunctionLibrary::after);
-		assertErrorValIsReturnedTwoArgs(TemporalFunctionLibrary::plusNanos);
-		assertErrorValIsReturnedTwoArgs(TemporalFunctionLibrary::plusMillis);
-		assertErrorValIsReturnedTwoArgs(TemporalFunctionLibrary::plusSeconds);
-		assertErrorValIsReturnedTwoArgs(TemporalFunctionLibrary::minusNanos);
-		assertErrorValIsReturnedTwoArgs(TemporalFunctionLibrary::minusMillis);
-		assertErrorValIsReturnedTwoArgs(TemporalFunctionLibrary::minusSeconds);
+		assertThrowsForTwoArgs(TemporalFunctionLibrary::before);
+		assertThrowsForTwoArgs(TemporalFunctionLibrary::after);
+		assertThrowsForTwoArgs(TemporalFunctionLibrary::plusNanos);
+		assertThrowsForTwoArgs(TemporalFunctionLibrary::plusMillis);
+		assertThrowsForTwoArgs(TemporalFunctionLibrary::plusSeconds);
+		assertThrowsForTwoArgs(TemporalFunctionLibrary::minusNanos);
+		assertThrowsForTwoArgs(TemporalFunctionLibrary::minusMillis);
+		assertThrowsForTwoArgs(TemporalFunctionLibrary::minusSeconds);
 
-		assertErrorValIsReturnedTwoArgs(TemporalFunctionLibrary::atZone);
-		assertErrorValIsReturnedTwoArgs(TemporalFunctionLibrary::atOffset);
+		assertThrowsForTwoArgs(TemporalFunctionLibrary::atZone);
+		assertThrowsForTwoArgs(TemporalFunctionLibrary::atOffset);
 
-		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::atLocal);
-		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::toEpochSecond);
-		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::toEpochMillis);
-		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::ofEpochSeconds);
-		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::ofEpochMillis);
+		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::epochSecond);
+		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::epochMilli);
+		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::ofEpochSecond);
+		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::ofEpochMilli);
 
 		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::weekOfYear);
 		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::dayOfYear);
@@ -230,23 +262,19 @@ class TemporalFunctionLibraryTest {
 		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localMinute);
 		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localSecond);
 
-		assertThat(
-				TemporalFunctionLibrary.between(Val.NULL, Val.of((BigDecimal) null), Val.of((String) null)).isError(),
-				is(true));
-		assertThat(TemporalFunctionLibrary.between(Val.UNDEFINED, Val.UNDEFINED, Val.UNDEFINED).isError(), is(true));
-		assertThat(TemporalFunctionLibrary.between(Val.of("abc"), Val.of("def"), Val.of("ghi")).isError(), is(true));
+		assertThrows(Exception.class,
+				() -> TemporalFunctionLibrary.between(Val.NULL, Val.of((BigDecimal) null), Val.of((String) null)));
+		assertThrows(Exception.class,
+				() -> TemporalFunctionLibrary.between(Val.UNDEFINED, Val.UNDEFINED, Val.UNDEFINED));
+		assertThrows(Exception.class,
+				() -> TemporalFunctionLibrary.between(Val.of("abc"), Val.of("def"), Val.of("ghi")));
 
-		assertThat(TemporalFunctionLibrary.timeBetween(Val.NULL, Val.of((BigDecimal) null), Val.of((String) null))
-				.isError(), is(true));
-		assertThat(TemporalFunctionLibrary.timeBetween(Val.UNDEFINED, Val.UNDEFINED, Val.UNDEFINED).isError(),
-				is(true));
-		assertThat(TemporalFunctionLibrary.timeBetween(Val.of("abc"), Val.of("def"), Val.of("ghi")).isError(),
-				is(true));
-
-		assertThat(TemporalFunctionLibrary.validISO(Val.NULL).getBoolean(), is(false));
-		assertThat(TemporalFunctionLibrary.validISO(Val.of((String) null)).getBoolean(), is(false));
-		assertThat(TemporalFunctionLibrary.validISO(Val.UNDEFINED).getBoolean(), is(false));
-		assertThat(TemporalFunctionLibrary.validISO(Val.of("abc")).getBoolean(), is(false));
+		assertThrows(Exception.class,
+				() -> TemporalFunctionLibrary.timeBetween(Val.NULL, Val.of((BigDecimal) null), Val.of((String) null)));
+		assertThrows(Exception.class,
+				() -> TemporalFunctionLibrary.timeBetween(Val.UNDEFINED, Val.UNDEFINED, Val.UNDEFINED));
+		assertThrows(Exception.class,
+				() -> TemporalFunctionLibrary.timeBetween(Val.of("abc"), Val.of("def"), Val.of("ghi")));
 
 		assertThat(TemporalFunctionLibrary.validUTC(Val.NULL).getBoolean(), is(false));
 		assertThat(TemporalFunctionLibrary.validUTC(Val.of((String) null)).getBoolean(), is(false));
@@ -255,126 +283,19 @@ class TemporalFunctionLibraryTest {
 	}
 
 	private void assertErrorValIsReturnedOneArg(Function<Val, Val> function) {
-		assertThat(function.apply(Val.NULL).isError(), is(true));
-		assertThat(function.apply(Val.of((String) null)).isError(), is(true));
-		assertThat(function.apply(Val.UNDEFINED).isError(), is(true));
-		assertThat(function.apply(Val.of("abc")).isError(), is(true));
+		assertThrows(Exception.class, () -> function.apply(Val.NULL));
+		assertThrows(Exception.class, () -> function.apply(Val.of((String) null)));
+		assertThrows(Exception.class, () -> function.apply(Val.UNDEFINED));
+		assertThrows(Exception.class, () -> function.apply(Val.of("abc")));
 	}
 
-	private void assertErrorValIsReturnedTwoArgs(BiFunction<Val, Val, Val> function) {
-		assertThat(function.apply(Val.NULL, Val.of((String) null)).isError(), is(true));
-		assertThat(function.apply(Val.UNDEFINED, Val.UNDEFINED).isError(), is(true));
-		assertThat(function.apply(Val.of("abc"), Val.of("def")).isError(), is(true));
+	private void assertThrowsForTwoArgs(BiFunction<Val, Val, Val> function) {
+		assertThrows(Exception.class, () -> function.apply(Val.NULL, Val.of((String) null)));
+		assertThrows(Exception.class, () -> function.apply(Val.UNDEFINED, Val.UNDEFINED));
+		assertThrows(Exception.class, () -> function.apply(Val.of("abc"), Val.of("def")));
 	}
 
-	@Test
-	void policyWithMatchingTemporalBody() {
-		var policyDefinition = "policy \"test\" permit action == \"read\" where time.before(\"UTC\".<clock.now>, time.plusSeconds(\"UTC\".<clock.now>, 10));";
-		var expectedAuthzDecision = AuthorizationDecision.PERMIT;
-
-		assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
+	private static Val timeValOf(String utcIsoTime) {
+		return Val.of(Instant.parse(utcIsoTime).toString());
 	}
-
-	@Test
-	void policyWithNonMatchingTemporalBody() {
-		var policyDefinition = "policy \"test\" permit action == \"read\" where time.after(\"UTC\".<clock.now>, time.plusSeconds(\"UTC\".<clock.now>, 10));";
-		var expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE;
-		assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
-	}
-
-	@Test
-	void policyWithDayOfWeekBody() {
-		var policyDefinition = "policy \"test\" permit action == \"read\" where time.dayOfWeek(\"UTC\".<clock.now>) == \"SUNDAY\";";
-		AuthorizationDecision expectedAuthzDecision;
-		if (DayOfWeek.from(Instant.now().atOffset(ZoneOffset.UTC)) == DayOfWeek.SUNDAY) {
-			expectedAuthzDecision = AuthorizationDecision.PERMIT;
-		}
-		else {
-			expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE;
-		}
-		assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
-	}
-
-	@Test
-	void policyWithLocalDateTimeBody() {
-		var policyDefinition = "policy \"test\" permit action == \"read\" where standard.length(time.localDateTime(\"UTC\".<clock.now>)) in [16, 19];";
-		var expectedAuthzDecision = AuthorizationDecision.PERMIT;
-		assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
-	}
-
-	@Test
-	void policyWithLocalTimeBody() {
-		var policyDefinition = "policy \"test\" permit action == \"read\" where standard.length(time.localTime(\"UTC\".<clock.now>)) in [5, 8];";
-		var expectedAuthzDecision = AuthorizationDecision.PERMIT;
-		assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
-	}
-
-	@Test
-	void policyWithLocalHourBody() {
-		var policyDefinition = "policy \"test\" permit action == \"read\" where var hour = time.localHour(\"UTC\".<clock.now>); hour >= 0 && hour <= 23;";
-		var expectedAuthzDecision = AuthorizationDecision.PERMIT;
-		assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
-	}
-
-	@Test
-	void policyWithLocalMinuteBody() {
-		var policyDefinition = "policy \"test\" permit action == \"read\" where var minute = time.localMinute(\"UTC\".<clock.now>); minute >= 0 && minute <= 59;";
-		var expectedAuthzDecision = AuthorizationDecision.PERMIT;
-		assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
-	}
-
-	@Test
-	void policyWithLocalSecondBody() {
-		var policyDefinition = "policy \"test\" permit action == \"read\" where var second = time.localSecond(\"UTC\".<clock.now>); second >= 0 && second <= 59;";
-		var expectedAuthzDecision = AuthorizationDecision.PERMIT;
-		assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
-	}
-
-	@Test
-	void policyWithMillisBody() {
-		var policyDefinition = "policy \"test\" " + "   permit action == \"read\" " + "   where "
-				+ "       var millis = \"UTC\".<clock.millis>; " + "       var instant = time.ofEpochMillis(millis); "
-				+ "       time.validUTC(instant);";
-		var expectedAuthzDecision = AuthorizationDecision.PERMIT;
-		assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
-	}
-
-	@Test
-	void policyWithTimeZoneBody() {
-		var policyDefinition = "policy \"test\" " + "   permit action == \"read\" " + "   where "
-				+ "       var timeZone = \"system\".<clock.timeZone>; " + "       standard.length(timeZone) > 0; ";
-
-		var expectedAuthzDecision = AuthorizationDecision.PERMIT;
-		assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
-	}
-
-	@Test
-	void policyWithTimerBody() {
-		var policyDefinition = "policy \"test\" " + "   permit action == \"read\" " + "   where "
-				+ "      \"system\".<clock.timer(5)>; ";
-
-		StepVerifier
-				.withVirtualTime(
-						() -> INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT))
-				.expectSubscription()
-				.consumeNextWith(authzDecision -> assertThat(authzDecision, is(AuthorizationDecision.NOT_APPLICABLE)))
-				.expectNoEvent(Duration.ofSeconds(5)).thenAwait(Duration.ofSeconds(5))
-				.consumeNextWith(authzDecision -> assertThat(authzDecision, is(AuthorizationDecision.PERMIT)))
-				.expectComplete().verify();
-	}
-
-	@Test
-	void policyWithClockAfterBody() {
-		var policyDefinition = "policy \"test\" " + "   permit action == \"read\" " + "   where "
-				+ "       var after =\"system\".|<clock.after(\"00:00\")>; "
-				+ "       var before =\"system\".|<clock.before(\"23:59\")>; " + "       after && before;";
-		var expectedAuthzDecision = AuthorizationDecision.PERMIT;
-		assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
-	}
-
-	private void assertThatPolicyEvaluatesTo(String policyDefinition, AuthorizationDecision expectedAuthzDecision) {
-		StepVerifier.create(INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT))
-				.assertNext(authzDecision -> assertThat(authzDecision, is(expectedAuthzDecision))).verifyComplete();
-	}
-
 }

@@ -54,14 +54,14 @@ public class MockingAttributeContext implements AttributeContext {
 	private static final String NAME_DELIMITER = ".";
 
 	/**
-	 * Holds an AttributeContext implementation to delegate evaluations if this attribute
-	 * is not mocked
+	 * Holds an AttributeContext implementation to delegate evaluations if this
+	 * attribute is not mocked
 	 */
 	private final AttributeContext originalAttributeContext;
 
 	/**
-	 * Contains a Map of all registered mocks. Key is the String of the full name of the
-	 * attribute finder Value is the {@link Flux} to be returned
+	 * Contains a Map of all registered mocks. Key is the String of the full name of
+	 * the attribute finder Value is the {@link Flux} to be returned
 	 */
 	private final Map<String, AttributeMock> registeredMocks;
 
@@ -69,8 +69,9 @@ public class MockingAttributeContext implements AttributeContext {
 
 	/**
 	 * Constructor of MockingAttributeContext
-	 * @param originalAttributeContext original "normal" AttributeContext do delegate
-	 * original attribute calls
+	 * 
+	 * @param originalAttributeContext original "normal" AttributeContext do
+	 *                                 delegate original attribute calls
 	 */
 	public MockingAttributeContext(AttributeContext originalAttributeContext) {
 		this.originalAttributeContext = originalAttributeContext;
@@ -83,12 +84,10 @@ public class MockingAttributeContext implements AttributeContext {
 		if (this.registeredMocks.containsKey(function)) {
 			log.trace("Attribute \"{}\" is mocked", function);
 			return Boolean.TRUE;
-		}
-		else if (originalAttributeContext.isProvidedFunction(function)) {
+		} else if (originalAttributeContext.isProvidedFunction(function)) {
 			log.trace("Attribute \"{}\" is provided by original attribute context", function);
 			return Boolean.TRUE;
-		}
-		else {
+		} else {
 			log.trace("Attribute \"{}\" is NOT provided", function);
 			return Boolean.FALSE;
 		}
@@ -110,7 +109,7 @@ public class MockingAttributeContext implements AttributeContext {
 	}
 
 	@Override
-	public Flux<Val> evaluate(String attribute, Val value, EvaluationContext ctx, Arguments arguments) {
+	public Flux<Val> evaluateAttribute(String attribute, Val value, EvaluationContext ctx, Arguments arguments) {
 		AttributeMock mock = this.registeredMocks.get(attribute);
 		if (mock != null) {
 			log.debug("| | | | |-- Evaluate mocked attribute \"{}\"", attribute);
@@ -125,10 +124,9 @@ public class MockingAttributeContext implements AttributeContext {
 
 			return mock.evaluate(value, variables, args)
 					.doOnNext((val) -> log.trace("| | | | |-- AttributeMock returned: " + val.toString()));
-		}
-		else {
+		} else {
 			log.debug("| | | | |-- Delegate attribute \"{}\" to original attribute context", attribute);
-			return this.originalAttributeContext.evaluate(attribute, value, ctx, arguments);
+			return this.originalAttributeContext.evaluateAttribute(attribute, value, ctx, arguments);
 		}
 	}
 
@@ -139,8 +137,7 @@ public class MockingAttributeContext implements AttributeContext {
 
 	@Override
 	public Collection<PolicyInformationPointDocumentation> getDocumentation() {
-		Collection<PolicyInformationPointDocumentation> doc = new LinkedList<>(
-				this.pipDocumentations.values());
+		Collection<PolicyInformationPointDocumentation> doc = new LinkedList<>(this.pipDocumentations.values());
 		doc.addAll(this.originalAttributeContext.getDocumentation());
 		return Collections.unmodifiableCollection(doc);
 	}
@@ -150,8 +147,7 @@ public class MockingAttributeContext implements AttributeContext {
 
 		if (this.registeredMocks.containsKey(fullName)) {
 			throw new SaplTestException(String.format(ERROR_DUPLICATE_MOCK_REGISTRATION, fullName));
-		}
-		else {
+		} else {
 			AttributeMockPublisher mock = new AttributeMockPublisher(fullName);
 			this.registeredMocks.put(fullName, mock);
 
@@ -164,8 +160,7 @@ public class MockingAttributeContext implements AttributeContext {
 
 		if (mock instanceof AttributeMockPublisher) {
 			((AttributeMockPublisher) mock).mockEmit(returns);
-		}
-		else {
+		} else {
 			throw new SaplTestException(String.format(ERROR_NOT_MARKED_DYNAMIC_MOCK, fullName, fullName));
 		}
 	}
@@ -178,12 +173,10 @@ public class MockingAttributeContext implements AttributeContext {
 		if (mock != null) {
 			if (mock instanceof AttributeMockForParentValue) {
 				((AttributeMockForParentValue) mock).loadMockForParentValue(parentValueMatcher, returns);
-			}
-			else {
+			} else {
 				throw new SaplTestException(String.format(ERROR_DUPLICATE_MOCK_REGISTRATION, fullName));
 			}
-		}
-		else {
+		} else {
 			AttributeMockForParentValue newMock = new AttributeMockForParentValue(fullName);
 			newMock.loadMockForParentValue(parentValueMatcher, returns);
 			this.registeredMocks.put(fullName, newMock);
@@ -201,12 +194,10 @@ public class MockingAttributeContext implements AttributeContext {
 			if (mock instanceof AttributeMockForParentValueAndArguments) {
 				((AttributeMockForParentValueAndArguments) mock).loadMockForParentValueAndArguments(parameters,
 						returns);
-			}
-			else {
+			} else {
 				throw new SaplTestException(String.format(ERROR_DUPLICATE_MOCK_REGISTRATION, fullName));
 			}
-		}
-		else {
+		} else {
 			AttributeMockForParentValueAndArguments newMock = new AttributeMockForParentValueAndArguments(fullName);
 			newMock.loadMockForParentValueAndArguments(parameters, returns);
 			this.registeredMocks.put(fullName, newMock);
@@ -220,8 +211,7 @@ public class MockingAttributeContext implements AttributeContext {
 
 		if (this.registeredMocks.containsKey(fullName)) {
 			throw new SaplTestException(String.format(ERROR_DUPLICATE_MOCK_REGISTRATION, fullName));
-		}
-		else {
+		} else {
 			AttributeMockTiming mock = new AttributeMockTiming(fullName);
 			mock.loadAttributeMockWithTiming(timing, returns);
 			this.registeredMocks.put(fullName, mock);
@@ -249,8 +239,7 @@ public class MockingAttributeContext implements AttributeContext {
 		var existingDoc = this.pipDocumentations.get(pipName);
 		if (existingDoc != null) {
 			existingDoc.getDocumentation().put(attributeName, "Mocked Attribute");
-		}
-		else {
+		} else {
 			PolicyInformationPointDocumentation pipDocs = new PolicyInformationPointDocumentation(pipName,
 					"Mocked PIP " + pipName, mock);
 			pipDocs.getDocumentation().put(attributeName, "Mocked Attribute");
@@ -262,6 +251,29 @@ public class MockingAttributeContext implements AttributeContext {
 	@Override
 	public Collection<String> getAvailableLibraries() {
 		return registeredMocks.keySet();
+	}
+
+	@Override
+	public Flux<Val> evaluateEnvironmentAttribute(String attribute, EvaluationContext ctx, Arguments arguments) {
+		// FIXME Double Check semantics
+		AttributeMock mock = this.registeredMocks.get(attribute);
+		if (mock != null) {
+			log.debug("| | | | |-- Evaluate mocked attribute \"{}\"", attribute);
+
+			Map<String, JsonNode> variables = ctx.getVariableCtx().getVariables();
+			List<Flux<Val>> args = new LinkedList<>();
+			if (arguments != null) {
+				for (Expression argument : arguments.getArgs()) {
+					args.add(argument.evaluate(ctx, Val.UNDEFINED));
+				}
+			}
+			// TODO: Check is this semantically OK ?
+			return mock.evaluate(Val.UNDEFINED, variables, args)
+					.doOnNext((val) -> log.trace("| | | | |-- AttributeMock returned: " + val.toString()));
+		} else {
+			log.debug("| | | | |-- Delegate attribute \"{}\" to original attribute context", attribute);
+			return this.originalAttributeContext.evaluateEnvironmentAttribute(attribute, ctx, arguments);
+		}
 	}
 
 }

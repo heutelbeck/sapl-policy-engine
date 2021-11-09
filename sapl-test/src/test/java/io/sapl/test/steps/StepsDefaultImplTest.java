@@ -61,26 +61,20 @@ class StepsDefaultImplTest {
 			+ "    action == \"read\"\r\n" + "where\r\n"
 			+ "    time.dayOfWeek(\"2021-02-08T16:16:33.616Z\") =~ \"MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY\";";
 
-	private String Policy_Streaming_Permit = "import io.sapl.pip.ClockPolicyInformationPoint as clock\r\n"
-			+ "import io.sapl.functions.TemporalFunctionLibrary as time\r\n" + "\r\n" + "\r\n"
-			+ "policy \"policyStreaming\"\r\n" + "permit\r\n" + "  resource == \"heartBeatData\"\r\n" + "where\r\n"
-			+ "  subject == \"ROLE_DOCTOR\";\r\n" + "  var interval = 2;\r\n"
-			+ "  time.localSecond(<clock.ticker(interval)>) > 4;";
+	private String Policy_Streaming_Permit = "policy \"policyStreaming\"\r\n" + "permit\r\n"
+			+ "  resource == \"heartBeatData\"\r\n" + "where\r\n" + "  subject == \"ROLE_DOCTOR\";\r\n"
+			+ "  var interval = 2;\r\n" + "  time.localSecond(<time.now(interval)>) > 4;";
 
-	private String Policy_Streaming_Deny = "import io.sapl.pip.ClockPolicyInformationPoint as clock\r\n"
-			+ "import io.sapl.functions.TemporalFunctionLibrary as time\r\n" + "\r\n" + "\r\n"
-			+ "policy \"policyStreaming\"\r\n" + "deny\r\n" + "  resource == \"heartBeatData\"\r\n" + "where\r\n"
-			+ "  subject == \"ROLE_DOCTOR\";\r\n" + "  var interval = 2;\r\n"
-			+ "  time.localSecond(<clock.ticker(interval)>) > 4;";
+	private String Policy_Streaming_Deny = "policy \"policyStreaming\"\r\n" + "deny\r\n"
+			+ "  resource == \"heartBeatData\"\r\n" + "where\r\n" + "  subject == \"ROLE_DOCTOR\";\r\n"
+			+ "  var interval = 2;\r\n" + "  time.localSecond(<time.now(interval)>) > 4;";
 
 	private String Policy_Indeterminate = "policy \"policy division by zero\"\r\n" + "permit\r\n" + "where\r\n"
 			+ "    17 / 0;";
 
-	private String Policy_Streaming_Indeterminate = "import io.sapl.pip.ClockPolicyInformationPoint as clock\r\n"
-			+ "import io.sapl.functions.TemporalFunctionLibrary as time\r\n" + "\r\n" + "\r\n"
-			+ "policy \"policyStreaming\"\r\n" + "permit\r\n" + "  resource == \"heartBeatData\"\r\n" + "where\r\n"
-			+ "  subject == \"ROLE_DOCTOR\";\r\n" + "  var interval = 2;\r\n"
-			+ "  time.localSecond(<clock.ticker(interval)>) > 4;" + "  17 / 0;";
+	private String Policy_Streaming_Indeterminate = "policy \"policyStreaming\"\r\n" + "permit\r\n"
+			+ "  resource == \"heartBeatData\"\r\n" + "where\r\n" + "  subject == \"ROLE_DOCTOR\";\r\n"
+			+ "  var interval = 2;\r\n" + "  time.localSecond(<time.now(interval)>) > 4;" + "  17 / 0;";
 
 	@BeforeEach
 	void setUp() {
@@ -180,7 +174,7 @@ class StepsDefaultImplTest {
 	@Test
 	void test_expectNextPermit_XTimes_Greater1() {
 		StepsDefaultImpl steps = new StepsDefaultImplTestImpl(Policy_Streaming_Permit, attrCtx, funcCtx, variables);
-		steps.givenAttribute("clock.ticker", Val.of("value"), Val.of("doesn't"), Val.of("matter"))
+		steps.givenAttribute("time.now", Val.of("value"), Val.of("doesn't"), Val.of("matter"))
 				.givenFunctionOnce("time.localSecond", Val.of(5), Val.of(6), Val.of(7))
 				.when(AuthorizationSubscription.of("ROLE_DOCTOR", "read", "heartBeatData")).expectNextPermit(3)
 				.verify();
@@ -196,7 +190,7 @@ class StepsDefaultImplTest {
 	@Test
 	void test_expectNextDeny_XTimes_Greater1() {
 		StepsDefaultImpl steps = new StepsDefaultImplTestImpl(Policy_Streaming_Deny, attrCtx, funcCtx, variables);
-		steps.givenAttribute("clock.ticker", Val.of("value"), Val.of("doesn't"), Val.of("matter"))
+		steps.givenAttribute("time.now", Val.of("value"), Val.of("doesn't"), Val.of("matter"))
 				.givenFunctionOnce("time.localSecond", Val.of(5), Val.of(6), Val.of(7))
 				.when(AuthorizationSubscription.of("ROLE_DOCTOR", "read", "heartBeatData")).expectNextDeny(3).verify();
 	}
@@ -212,7 +206,7 @@ class StepsDefaultImplTest {
 	void test_expectNextIndeterminate_XTimes_Greater1() {
 		StepsDefaultImpl steps = new StepsDefaultImplTestImpl(Policy_Streaming_Indeterminate, attrCtx, funcCtx,
 				variables);
-		steps.givenAttribute("clock.ticker", Val.of("value"), Val.of("doesn't"), Val.of("matter"))
+		steps.givenAttribute("time.now", Val.of("value"), Val.of("doesn't"), Val.of("matter"))
 				.givenFunctionOnce("time.localSecond", Val.of(5), Val.of(6), Val.of(7))
 				.when(AuthorizationSubscription.of("ROLE_DOCTOR", "read", "heartBeatData")).expectNextIndeterminate(3)
 				.verify();

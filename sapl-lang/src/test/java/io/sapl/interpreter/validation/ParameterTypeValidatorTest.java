@@ -96,13 +96,7 @@ class ParameterTypeValidatorTest {
 	}
 
 	private boolean validationOfValue_IsSuccessfull(Val givenValue, Parameter givenParameter) {
-		try {
-			validateType(givenValue, givenParameter);
-			return true;
-		}
-		catch (Exception e) {
-			return false;
-		}
+		return !validateType(givenValue, givenParameter).isError();
 	}
 
 	private static Parameter mockParameter(Set<Class<?>> annotationClasses) {

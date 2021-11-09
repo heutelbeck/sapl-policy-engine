@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
@@ -41,7 +42,7 @@ import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
-import io.sapl.pip.ClockPolicyInformationPoint;
+import io.sapl.pip.TimePolicyInformationPoint;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.function.MockingFunctionContext;
 import io.sapl.test.unit.TestPIP;
@@ -66,7 +67,7 @@ public class MockingAttributeContextTest {
 	@Test
 	void test_dynamicMock() {
 		attrCtx.markAttributeMock("foo.bar");
-		StepVerifier.create(attrCtx.evaluate("foo.bar", null, this.ctx, null))
+		StepVerifier.create(attrCtx.evaluateAttribute("foo.bar", null, this.ctx, null))
 				.then(() -> attrCtx.mockEmit("foo.bar", Val.of(1))).expectNext(Val.of(1)).thenCancel().verify();
 	}
 
@@ -87,7 +88,7 @@ public class MockingAttributeContextTest {
 	@Test
 	void test_timingMock() {
 		attrCtx.loadAttributeMock("foo.bar", Duration.ofSeconds(10), Val.of(1), Val.of(2));
-		Assertions.assertThat(attrCtx.evaluate("foo.bar", null, this.ctx, null)).isNotNull();
+		Assertions.assertThat(attrCtx.evaluateAttribute("foo.bar", null, this.ctx, null)).isNotNull();
 	}
 
 	@Test
@@ -100,14 +101,14 @@ public class MockingAttributeContextTest {
 	@Test
 	void test_loadAttributeMockForParentValue() {
 		attrCtx.loadAttributeMockForParentValue("foo.bar", parentValue(val(1)), Val.of(2));
-		Assertions.assertThat(attrCtx.evaluate("foo.bar", Val.of(1), this.ctx, null)).isNotNull();
+		Assertions.assertThat(attrCtx.evaluateAttribute("foo.bar", Val.of(1), this.ctx, null)).isNotNull();
 	}
 
 	@Test
 	void test_loadAttributeMockForParentValue_duplicateRegistration() {
 		attrCtx.loadAttributeMockForParentValue("foo.bar", parentValue(val(1)), Val.of(2));
 		attrCtx.loadAttributeMockForParentValue("foo.bar", parentValue(val(2)), Val.of(3));
-		Assertions.assertThat(attrCtx.evaluate("foo.bar", Val.of(1), this.ctx, null)).isNotNull();
+		Assertions.assertThat(attrCtx.evaluateAttribute("foo.bar", Val.of(1), this.ctx, null)).isNotNull();
 	}
 
 	@Test
@@ -127,7 +128,7 @@ public class MockingAttributeContextTest {
 		Arguments arguments = Mockito.mock(Arguments.class);
 		Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<Expression>(List.of(expression)));
 
-		Assertions.assertThat(attrCtx.evaluate("foo.bar", Val.of(1), this.ctx, arguments)).isNotNull();
+		Assertions.assertThat(attrCtx.evaluateAttribute("foo.bar", Val.of(1), this.ctx, arguments)).isNotNull();
 	}
 
 	@Test
@@ -142,7 +143,7 @@ public class MockingAttributeContextTest {
 		Arguments arguments = Mockito.mock(Arguments.class);
 		Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<Expression>(List.of(expression)));
 
-		Assertions.assertThat(attrCtx.evaluate("foo.bar", Val.of(1), this.ctx, arguments)).isNotNull();
+		Assertions.assertThat(attrCtx.evaluateAttribute("foo.bar", Val.of(1), this.ctx, arguments)).isNotNull();
 	}
 
 	@Test
@@ -194,8 +195,8 @@ public class MockingAttributeContextTest {
 
 	@Test
 	void test_ReturnUnmockedEvaluation() {
-		when(unmockedCtx.evaluate(any(), any(), any(), any())).thenReturn(Val.fluxOf("abc"));
-		StepVerifier.create(this.attrCtx.evaluate("foo.bar", null, null, null)).expectNext(Val.of("abc"))
+		when(unmockedCtx.evaluateAttribute(any(), any(), any(), any())).thenReturn(Val.fluxOf("abc"));
+		StepVerifier.create(this.attrCtx.evaluateAttribute("foo.bar", null, null, null)).expectNext(Val.of("abc"))
 				.expectComplete().verify();
 	}
 
@@ -246,8 +247,8 @@ public class MockingAttributeContextTest {
 
 	@Test
 	void test_loadPolicyInformationPoint() {
-		Assertions.assertThatExceptionOfType(SaplTestException.class)
-				.isThrownBy(() -> this.attrCtx.loadPolicyInformationPoint(new ClockPolicyInformationPoint()));
+		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(
+				() -> this.attrCtx.loadPolicyInformationPoint(new TimePolicyInformationPoint(Clock.systemUTC())));
 	}
 
 }

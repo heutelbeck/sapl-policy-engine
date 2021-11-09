@@ -15,7 +15,6 @@
  */
 package io.sapl.interpreter.functions;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Collection;
@@ -27,10 +26,8 @@ import java.util.Map;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.validation.IllegalParameterType;
 import io.sapl.interpreter.validation.ParameterTypeValidator;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -65,6 +62,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 	/**
 	 * Create context from a list of function libraries.
+	 * 
 	 * @param libraries list of function libraries @ if loading libraries fails
 	 * @throws InitializationException if initialization fails
 	 */
@@ -92,24 +90,18 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 	private Val evaluateFixedParametersFunction(FunctionMetadata metadata, Parameter[] funParams, Val... parameters) {
 		for (int i = 0; i < parameters.length; i++) {
-			try {
-				ParameterTypeValidator.validateType(parameters[i], funParams[i]);
-			}
-			catch (IllegalParameterType e) {
-				return invocationExceptionToError(e, metadata, (Object[]) parameters);
-			}
+			var validationResult = ParameterTypeValidator.validateType(parameters[i], funParams[i]);
+			if (validationResult.isError())
+				return validationResult;
 		}
 		return invokeFunction(metadata, (Object[]) parameters);
 	}
 
 	private Val evaluateVarArgsFunction(FunctionMetadata metadata, Parameter[] funParams, Val... parameters) {
 		for (Val parameter : parameters) {
-			try {
-				ParameterTypeValidator.validateType(parameter, funParams[0]);
-			}
-			catch (IllegalParameterType e) {
-				return invocationExceptionToError(e, metadata, (Object[]) parameters);
-			}
+			var validationResult = ParameterTypeValidator.validateType(parameter, funParams[0]);
+			if (validationResult.isError())
+				return validationResult;
 		}
 		return invokeFunction(metadata, new Object[] { parameters });
 	}
@@ -117,13 +109,12 @@ public class AnnotationFunctionContext implements FunctionContext {
 	private Val invokeFunction(FunctionMetadata metadata, Object... parameters) {
 		try {
 			return (Val) metadata.getFunction().invoke(metadata.getLibrary(), parameters);
-		}
-		catch (PolicyEvaluationException | IllegalAccessException | InvocationTargetException e) {
+		} catch (Throwable e) {
 			return invocationExceptionToError(e, metadata, parameters);
 		}
 	}
 
-	private Val invocationExceptionToError(Exception e, FunctionMetadata metadata, Object... parameters) {
+	private Val invocationExceptionToError(Throwable e, FunctionMetadata metadata, Object... parameters) {
 		var params = new StringBuilder();
 		for (var i = 0; i < parameters.length; i++) {
 			params.append(parameters[i]);
@@ -176,8 +167,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 			if (parameters == 1 && parameterType.isArray()
 					&& Val.class.isAssignableFrom(parameterType.getComponentType())) {
 				parameters = VAR_ARGS;
-			}
-			else if (!Val.class.isAssignableFrom(parameterType)) {
+			} else if (!Val.class.isAssignableFrom(parameterType)) {
 				throw new InitializationException(ILLEGAL_PARAMETER_FOR_IMPORT, parameterType.getName());
 			}
 		}

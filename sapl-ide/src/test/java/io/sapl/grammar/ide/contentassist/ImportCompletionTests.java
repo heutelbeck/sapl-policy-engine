@@ -15,7 +15,7 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import io.sapl.pip.ClockPolicyInformationPoint;
+import io.sapl.pip.TimePolicyInformationPoint;
 import org.eclipse.xtext.testing.TestCompletionConfiguration;
 import org.junit.jupiter.api.Test;
 
@@ -37,7 +37,7 @@ public class ImportCompletionTests extends CompletionTests {
 			it.setModel(policy);
 			it.setColumn(policy.length());
 			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("clock", "filter", "standard", "time");
+				var expected = List.of("time", "filter", "standard", "time");
 				assertProposalsSimple(expected, completionList);
 			});
 		});
@@ -46,11 +46,11 @@ public class ImportCompletionTests extends CompletionTests {
 	@Test
 	public void testCompletion_WithPartialLibrary_ReturnsLibrary() {
 		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "import cl";
+			String policy = "import ti";
 			it.setModel(policy);
 			it.setColumn(policy.length());
 			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("clock");
+				var expected = List.of("time");
 				assertProposalsSimple(expected, completionList);
 			});
 		});
@@ -59,14 +59,13 @@ public class ImportCompletionTests extends CompletionTests {
 	@Test
 	public void testCompletion_WithFullLibrary_ReturnsFunction() {
 		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "import clock.";
+			String policy = "import time.";
 			it.setModel(policy);
 			it.setColumn(policy.length());
 			it.setAssertCompletionList(completionList -> {
-				var expected = Arrays.stream(ClockPolicyInformationPoint.class.getDeclaredMethods())
+				var expected = Arrays.stream(TimePolicyInformationPoint.class.getDeclaredMethods())
 						.filter(method -> Modifier.isPublic(method.getModifiers())).map(Method::getName)
 						.collect(Collectors.toList());
-				// var expected = List.of("millis", "now", "ticker");
 				assertProposalsSimple(expected, completionList);
 			});
 		});
@@ -75,11 +74,11 @@ public class ImportCompletionTests extends CompletionTests {
 	@Test
 	public void testCompletion_WithFullLibraryAndPartialFunction_ReturnsFunction() {
 		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "import clock.n";
+			String policy = "import time.n";
 			it.setModel(policy);
 			it.setColumn(policy.length());
 			it.setAssertCompletionList(completionList -> {
-				var expected = Arrays.stream(ClockPolicyInformationPoint.class.getDeclaredMethods())
+				var expected = Arrays.stream(TimePolicyInformationPoint.class.getDeclaredMethods())
 						.filter(method -> Modifier.isPublic(method.getModifiers())).map(Method::getName)
 						.filter(label -> label.startsWith("n")).collect(Collectors.toList());
 				// var expected = List.of("now");
@@ -91,7 +90,7 @@ public class ImportCompletionTests extends CompletionTests {
 	@Test
 	public void testCompletion_WithFullLibraryAndPartialFunctionAndNewLinesInBetween_ReturnsFunction() {
 		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "import\nclock.\nn";
+			String policy = "import\ntime.\nn";
 			it.setModel(policy);
 			it.setLine(2);
 			it.setColumn(1);
@@ -105,8 +104,8 @@ public class ImportCompletionTests extends CompletionTests {
 	@Test
 	public void testCompletion_WithPrecedingTextAndFullLibraryAndPartialFunction_ReturnsFunction() {
 		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "import clock.yesterday\nimport clock.n";
-			String cursor = "import clock.n";
+			String policy = "import time.yesterday\nimport time.n";
+			String cursor = "import time.n";
 			it.setModel(policy);
 			it.setLine(1);
 			it.setColumn(cursor.length());
@@ -120,8 +119,8 @@ public class ImportCompletionTests extends CompletionTests {
 	@Test
 	public void testCompletion_WithPrecedingAndSucceedingAndFullLibraryAndPartialFunction_ReturnsFunction() {
 		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "import clock.yesterday\nimport clock.n policy \"test policy\" deny";
-			String cursor = "import clock.n";
+			String policy = "import time.yesterday\nimport time.n policy \"test policy\" deny";
+			String cursor = "import time.n";
 			it.setModel(policy);
 			it.setLine(1);
 			it.setColumn(cursor.length());

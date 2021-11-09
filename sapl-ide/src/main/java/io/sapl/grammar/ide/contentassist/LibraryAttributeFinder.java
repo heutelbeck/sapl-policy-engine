@@ -27,7 +27,7 @@ public interface LibraryAttributeFinder {
 	 * Offers a list of matching libraries and functions on the basis of the provided
 	 * identifier.
 	 * @param identifier A string that is used as needle to look for partially matching
-	 * libraries and function, e.g. "clock.n"
+	 * libraries and function, e.g. "time.n"
 	 * @return Returns a list with libraries and functions that partially match the
 	 * needle.
 	 */
