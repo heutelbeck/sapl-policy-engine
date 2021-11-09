@@ -70,8 +70,8 @@ public class VariableCompletionTests extends CompletionTests {
 	@Test
 	public void testCompletion_SuggestVariableInBodyAfterSubject_NotSuggestOutOfScopeVariable() {
 		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "policy \"test\" permit where var foo = 5; subject.attribute == ; var bar = 6;";
-			String cursor = "policy \"test\" permit where var foo = 5; subject.attribute == ";
+			String policy = "policy \"test\" permit where var foo = 5; subject.attribute == abc; subject.attribute == ; var bar = 6;";
+			String cursor = "policy \"test\" permit where var foo = 5; subject.attribute == abc; subject.attribute == ";
 			it.setModel(policy);
 			it.setColumn(cursor.length());
 			it.setAssertCompletionList(completionList -> {
@@ -80,5 +80,4 @@ public class VariableCompletionTests extends CompletionTests {
 			});
 		});
 	}
-
 }

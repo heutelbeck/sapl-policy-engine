@@ -168,8 +168,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			EObject reference = null;
 			EObject model = context.getCurrentModel();
 			if (model.eContainer() instanceof ConditionImpl) {
-				reference = goToLastParent(model, ConditionImpl.class);
-				model = goToFirstParent(model, PolicyBodyImpl.class);
+				reference = TreeNavigationHelper.goToLastParent(model, ConditionImpl.class);
+				model = TreeNavigationHelper.goToFirstParent(model, PolicyBodyImpl.class);
 			}
 
 			// look up all defined variables in the policy
@@ -240,48 +240,4 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			acceptor.accept(entry, 0);
 		}
 	}
-
-	/**
-	 * Moves up the model tree and returns the closest parent that matches the given class
-	 * type.
-	 * @param <T> Class type of the searched-for parent.
-	 * @param object The current model from which the search starts.
-	 * @param classType Class type of the searched-for parent.
-	 * @return Returns the first parent for the given class type, or null if no match was
-	 * found.
-	 */
-	private <T> T goToFirstParent(EObject object, Class<T> classType) {
-		while (object != null) {
-			if (classType.isInstance(object))
-				return classType.cast(object);
-
-			object = object.eContainer();
-		}
-		return null;
-	}
-
-	/**
-	 * Moves up the model tree and returns the highest parent that matches the given class
-	 * type.
-	 * @param <T> Class type of the searched-for parent.
-	 * @param object The current model from which the search starts.
-	 * @param classType Class type of the searched-for parent.
-	 * @return Returns the first parent for the given class type, or null if no match was
-	 * found.
-	 */
-	private <T> T goToLastParent(EObject object, Class<T> classType) {
-		EObject parent = null;
-
-		while (object != null) {
-			if (classType.isInstance(object))
-				parent = object;
-
-			object = object.eContainer();
-		}
-
-		if (parent != null && classType.isInstance(parent))
-			return classType.cast(parent);
-		return null;
-	}
-
 }
