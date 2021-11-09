@@ -30,7 +30,6 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.validation.IllegalParameterType;
 import io.sapl.interpreter.validation.ParameterTypeValidator;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -92,24 +91,18 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 	private Val evaluateFixedParametersFunction(FunctionMetadata metadata, Parameter[] funParams, Val... parameters) {
 		for (int i = 0; i < parameters.length; i++) {
-			try {
-				ParameterTypeValidator.validateType(parameters[i], funParams[i]);
-			}
-			catch (IllegalParameterType e) {
-				return invocationExceptionToError(e, metadata, (Object[]) parameters);
-			}
+			var validationResult = ParameterTypeValidator.validateType(parameters[i], funParams[i]);
+			if(validationResult.isError())
+				return validationResult;
 		}
 		return invokeFunction(metadata, (Object[]) parameters);
 	}
 
 	private Val evaluateVarArgsFunction(FunctionMetadata metadata, Parameter[] funParams, Val... parameters) {
 		for (Val parameter : parameters) {
-			try {
-				ParameterTypeValidator.validateType(parameter, funParams[0]);
-			}
-			catch (IllegalParameterType e) {
-				return invocationExceptionToError(e, metadata, (Object[]) parameters);
-			}
+			var validationResult = ParameterTypeValidator.validateType(parameter, funParams[0]);
+			if(validationResult.isError())
+				return validationResult;
 		}
 		return invokeFunction(metadata, new Object[] { parameters });
 	}

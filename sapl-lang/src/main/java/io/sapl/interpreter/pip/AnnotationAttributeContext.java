@@ -15,17 +15,19 @@
  */
 package io.sapl.interpreter.pip;
 
+import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Set;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -37,7 +39,7 @@ import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.validation.IllegalParameterType;
+import io.sapl.interpreter.pip.AnnotationAttributeContext.AttributeFinderMetadata;
 import io.sapl.interpreter.validation.ParameterTypeValidator;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -54,268 +56,445 @@ import reactor.core.publisher.Flux;
 @NoArgsConstructor
 public class AnnotationAttributeContext implements AttributeContext {
 
-    private static final int REQUIRED_NUMBER_OF_PARAMETERS = 2;
-    private static final String NAME_DELIMITER = ".";
-    private static final String ATTRIBUTE_NAME_COLLISION_PIP_CONTAINS_MULTIPLE_ATTRIBUTE_METHODS_WITH_NAME = "Attribute name collision. PIP contains multiple attribute methods with name %s";
-    private static final String CLASS_HAS_NO_POLICY_INFORMATION_POINT_ANNOTATION = "Provided class has no @PolicyInformationPoint annotation.";
-    private static final String UNKNOWN_ATTRIBUTE = "Unknown attribute %s";
-    private static final String BAD_NUMBER_OF_PARAMETERS = "Bad number of parameters for attribute finder. Attribute finders are supposed to have at least one Val and one Map<String, JsonNode> as parameters. The method had %d parameters";
-    private static final String FIRST_PARAMETER_OF_METHOD_MUST_BE_A_VALUE = "First parameter of method must be a Value. Was: %s";
-    private static final String ADDITIONAL_PARAMETER_OF_METHOD_MUST_BE_A_FLUX_OF_VALUES = "Additional parameters of the method must be Flux<Val>. Was: %s.";
-    private static final String SECOND_PARAMETER_OF_METHOD_MUST_BE_A_MAP = "Second parameter of method must be a Map<String, JsonNode>. Was: %s";
-    private static final String RETURN_TYPE_MUST_BE_FLUX_OF_VALUES = "The return type of an attribute finder must be Flux<Val>. Was: %s";
+	private static final String NAME_DELIMITER = ".";
+	private static final String CLASS_HAS_NO_POLICY_INFORMATION_POINT_ANNOTATION = "Provided class has no @PolicyInformationPoint annotation.";
+	private static final String UNKNOWN_ATTRIBUTE = "Unknown attribute %s";
+	private static final String RETURN_TYPE_MUST_BE_FLUX_OF_VALUES = "The return type of an attribute finder must be Flux<Val>. Was: %s";
 
-    private final Map<String, Collection<String>> attributeNamesByPipName = new HashMap<>();
-    private final Map<String, AttributeFinderMetadata> attributeMetadataByAttributeName = new HashMap<>();
-    private final Collection<PolicyInformationPointDocumentation> pipDocumentations = new LinkedList<>();
+	private final Map<String, Set<String>> attributeNamesByPipName = new HashMap<>();
+	private final Map<String, Collection<AttributeFinderMetadata>> newAttributeMetadataByAttributeName = new HashMap<>();
+	private final Collection<PolicyInformationPointDocumentation> pipDocumentations = new LinkedList<>();
 
-    /**
-     * Create the attribute context from a list of PIPs
-     *
-     * @param policyInformationPoints a list of PIPs
-     * @throws InitializationException when loading the PIPs fails
-     */
-    public AnnotationAttributeContext(Object... policyInformationPoints) throws InitializationException {
-        for (Object pip : policyInformationPoints) {
-            loadPolicyInformationPoint(pip);
-        }
-    }
+	/**
+	 * Create the attribute context from a list of PIPs
+	 *
+	 * @param policyInformationPoints a list of PIPs
+	 * @throws InitializationException when loading the PIPs fails
+	 */
+	public AnnotationAttributeContext(Object... policyInformationPoints) throws InitializationException {
+		for (Object pip : policyInformationPoints) {
+			loadPolicyInformationPoint(pip);
+		}
+	}
 
-    @Override
-    @SuppressWarnings("unchecked")
-    public Flux<Val> evaluate(String attribute, Val value, EvaluationContext ctx, Arguments arguments) {
-        final AttributeFinderMetadata metadata = attributeMetadataByAttributeName.get(attribute);
-        if (metadata == null) {
-            return Flux.just(Val.error(UNKNOWN_ATTRIBUTE, attribute));
-        }
+	@Override
+	public Flux<Val> evaluateEnvironmentAttribute(String attributeName, EvaluationContext ctx, Arguments arguments) {
+		int numberOfParameters = numberOfArguments(arguments);
+		var attributeMetadata = lookupAttribute(attributeName, numberOfParameters, true);
 
-        final Object pip = metadata.getPolicyInformationPoint();
-        final Method method = metadata.getFunction();
-        boolean hasLeftHandValue = metadata.leftHandValue;
-        boolean hasVariableMap = metadata.variableMap;
-        int parameterCount = metadata.parameterCount;
+		log.info("found:" + attributeMetadata);
 
-        try {
-            if (parameterCount == 0) {
-                return (Flux<Val>) method.invoke(pip);
-            }
+		if (attributeMetadata == null)
+			return Flux.just(Val.error(UNKNOWN_ATTRIBUTE, attributeName));
 
-            int argumentSize = arguments == null ? 0 : arguments.getArgs().size();
-            int standardArgumentSize = 0;
-            if (hasLeftHandValue) standardArgumentSize++;
-            if (hasVariableMap) standardArgumentSize++;
+		try {
+			return evaluateEnvironmentAttribute(attributeMetadata, ctx, arguments);
+		} catch (InvocationTargetException | IllegalAccessException | IllegalArgumentException e) {
+			log.error(e.getMessage(), e);
+			return Flux.just(Val.error("Failed to evaluate attribute", new PolicyEvaluationException(e)));
+		}
+	}
 
-            Object[] argObjects = new Object[argumentSize + standardArgumentSize];
-            int i = 0;
+	@SuppressWarnings("unchecked")
+	private Flux<Val> evaluateEnvironmentAttribute(AttributeFinderMetadata attributeMetadata, EvaluationContext ctx,
+			Arguments arguments) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+		var pip = attributeMetadata.getPolicyInformationPoint();
+		var method = attributeMetadata.getFunction();
 
-            if (hasLeftHandValue) {
-                argObjects[i++] = value;
-                final Parameter firstParameter = method.getParameters()[0];
-                ParameterTypeValidator.validateType(value, firstParameter);
-            }
+		var numberOfArgumentsForMethodInvocation = calculateSizeOfArgumentsArrayForInvocationExcludingLeftHand(
+				attributeMetadata);
 
-            if (hasVariableMap)
-                argObjects[i++] = ctx.getVariableCtx().getVariables();
+		if (numberOfArgumentsForMethodInvocation == 0)
+			return (Flux<Val>) method.invoke(pip);
 
-            if (argumentSize > 0) {
-                for (Expression argument : arguments.getArgs()) {
-                    argObjects[i++] = argument.evaluate(ctx, Val.UNDEFINED);
-                }
-            }
+		var invocationArguments = constructArgumentArrayForInvocationWithoutLeftHand(attributeMetadata, ctx, arguments,
+				numberOfArgumentsForMethodInvocation);
 
-            return (Flux<Val>) method.invoke(pip, argObjects);
+		return (Flux<Val>) method.invoke(pip, invocationArguments);
 
-        } catch (PolicyEvaluationException | IllegalAccessException | IllegalArgumentException
-                | InvocationTargetException | IllegalParameterType e) {
-            e.printStackTrace();
-            log.error(e.getMessage());
-            return Flux.just(Val.error(e));
-        }
-    }
+	}
 
-    @Override
-    public final void loadPolicyInformationPoint(Object pip) throws InitializationException {
-        final Class<?> clazz = pip.getClass();
+	private Object[] constructArgumentArrayForInvocationWithoutLeftHand(AttributeFinderMetadata attributeMetadata,
+			EvaluationContext ctx, Arguments arguments, int numberOfArgumentsForMethodInvocation) {
+		var invocationArguments = new Object[numberOfArgumentsForMethodInvocation];
 
-        final PolicyInformationPoint pipAnnotation = clazz.getAnnotation(PolicyInformationPoint.class);
+		var argumentIndex = 0;
+		if (attributeMetadata.requiresVariables)
+			invocationArguments[argumentIndex++] = ctx.getVariableCtx().getVariables();
 
-        if (pipAnnotation == null) {
-            throw new InitializationException(CLASS_HAS_NO_POLICY_INFORMATION_POINT_ANNOTATION);
-        }
+		if (attributeMetadata.varArgsParameters) {
+			invocationArguments[argumentIndex] = buildVarArgsArrayFromArguments(arguments, ctx, attributeMetadata,
+					argumentIndex);
+		} else {
+			if (arguments != null) {
+				for (Expression argument : arguments.getArgs()) {
+					var parameter = attributeMetadata.function.getParameters()[argumentIndex];
+					invocationArguments[argumentIndex++] = ParameterTypeValidator
+							.validateType(argument.evaluate(ctx, Val.UNDEFINED), parameter);
+				}
+			}
+		}
+		return invocationArguments;
+	}
 
-        String pipName = pipAnnotation.name();
-        if (pipName.isEmpty()) {
-            pipName = clazz.getSimpleName();
-        }
-        attributeNamesByPipName.put(pipName, new HashSet<>());
-        PolicyInformationPointDocumentation pipDocs = new PolicyInformationPointDocumentation(pipName,
-                pipAnnotation.description(), pip);
+	private int calculateSizeOfArgumentsArrayForInvocationExcludingLeftHand(AttributeFinderMetadata attributeMetadata) {
+		var numberOfArgumentsForMethodInvocation = 0;
+		if (attributeMetadata.requiresVariables)
+			numberOfArgumentsForMethodInvocation++;
 
-        pipDocs.setName(pipName);
-        for (Method method : clazz.getDeclaredMethods()) {
-            if (method.isAnnotationPresent(Attribute.class)) {
-                importAttribute(pip, pipName, pipDocs, method);
-            }
-        }
-        pipDocumentations.add(pipDocs);
+		if (attributeMetadata.varArgsParameters)
+			numberOfArgumentsForMethodInvocation++;
+		else
+			numberOfArgumentsForMethodInvocation += attributeMetadata.getNumberOfParameters();
+		return numberOfArgumentsForMethodInvocation;
+	}
 
-    }
+	private Flux<Val>[] buildVarArgsArrayFromArguments(Arguments arguments, EvaluationContext ctx,
+			AttributeFinderMetadata attributeMetadata, int argumentIndex) {
+		int numberOfParameters = numberOfArguments(arguments);
 
-    private void importAttribute(Object policyInformationPoint, String pipName,
-                                 PolicyInformationPointDocumentation pipDocs, Method method) throws InitializationException {
+		@SuppressWarnings("unchecked")
+		Flux<Val>[] varArgsArray = new Flux[numberOfParameters];
 
-        final Attribute attAnnotation = method.getAnnotation(Attribute.class);
+		var parameter = attributeMetadata.function.getParameters()[argumentIndex];
 
-        String attName = attAnnotation.name();
-        if (attName.isEmpty()) {
-            attName = method.getName();
-        }
+		var i = 0;
+		if (arguments != null) {
+			for (Expression argument : arguments.getArgs()) {
+				varArgsArray[i++] = ParameterTypeValidator.validateType(argument.evaluate(ctx, Val.UNDEFINED),
+						parameter);
+			}
+		}
+		return varArgsArray;
+	}
 
+	private int numberOfArguments(Arguments arguments) {
+		return arguments == null ? 0 : arguments.getArgs().size();
+	}
 
-        int parameterCount = method.getParameterCount();
-        boolean hasLeftHandValue = false;
-        boolean hasVariableMap = false;
+	private AttributeFinderMetadata lookupAttribute(String attributeName, int numberOfParameters,
+			boolean environmentAttribute) {
+		var nameMatches = newAttributeMetadataByAttributeName.get(attributeName);
+		log.info("nameMatches=" + nameMatches);
+		log.info("numberOfParameters=" + numberOfParameters);
+		if (nameMatches == null)
+			return null;
+		AttributeFinderMetadata varArgsMatch = null;
+		for (var candidate : nameMatches) {
+			if (candidate.environmentAttribute != environmentAttribute)
+				continue;
+			if (candidate.varArgsParameters)
+				varArgsMatch = candidate;
+			else if (candidate.numberOfParameters == numberOfParameters)
+				return candidate;
+			log.info("***");
+		}
+		return varArgsMatch;
+	}
 
-        if (parameterCount != 0) {
-            int customArgumentStartNumber = 0;
+	@Override
+	public Flux<Val> evaluateAttribute(String attributeName, Val leftHandValue, EvaluationContext ctx,
+			Arguments arguments) {
+		int numberOfParameters = numberOfArguments(arguments);
+		var attributeMetadata = lookupAttribute(attributeName, numberOfParameters, false);
 
-            var firstParamIsLeftHandValue = isLeftHandValue(method, 0);
-            if (firstParamIsLeftHandValue) {  //environment attribute without left-hand value
-                hasLeftHandValue = true;
-                var secondParamIsVariableMap = isVariableMap(method, 1);
+		if (attributeMetadata == null)
+			return Flux.just(Val.error(UNKNOWN_ATTRIBUTE, attributeName));
 
-                if (secondParamIsVariableMap) {
-                    validateMapArgumentType(method, 1);
-                    hasVariableMap = true;
-                }
+		try {
+			return evaluateAttribute(attributeMetadata, leftHandValue, ctx, arguments);
+		} catch (InvocationTargetException | IllegalAccessException | IllegalArgumentException e) {
+			return Flux.just(Val.error("Failed to evaluate attribute", new PolicyEvaluationException(e)));
+		}
 
-                customArgumentStartNumber = secondParamIsVariableMap ? 2 : 1;
+	}
 
-            } else {
-                var firstParamIsVariableMap = isVariableMap(method, 0);
-                if (firstParamIsVariableMap) {
-                    validateMapArgumentType(method, 0);
-                    hasVariableMap = true;
-                }
+	@SuppressWarnings("unchecked")
+	private Flux<Val> evaluateAttribute(AttributeFinderMetadata attributeMetadata, Val leftHandValue,
+			EvaluationContext ctx, Arguments arguments)
+			throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+		var pip = attributeMetadata.getPolicyInformationPoint();
+		var method = attributeMetadata.getFunction();
 
+		var numberOfArgumentsForMethodInvocation = calculateSizeOfArgumentsArrayForInvocationExcludingLeftHand(
+				attributeMetadata) + 1;
 
-                customArgumentStartNumber = firstParamIsVariableMap ? 1 : 0;
-            }
+		var invocationArguments = constructArgumentArrayForInvocationWithLeftHand(attributeMetadata, leftHandValue, ctx,
+				arguments, numberOfArgumentsForMethodInvocation);
 
-            final Class<?>[] parameterTypes = method.getParameterTypes();
-            final Type[] genericTypes = method.getGenericParameterTypes();
+		return (Flux<Val>) method.invoke(pip, invocationArguments);
 
-            for (int i = customArgumentStartNumber; i < parameterTypes.length; i++) {
-                if (!Flux.class.isAssignableFrom(parameterTypes[i])) {
-                    throw new InitializationException(ADDITIONAL_PARAMETER_OF_METHOD_MUST_BE_A_FLUX_OF_VALUES,
-                            parameterTypes[i]);
-                }
-                final Type fluxContentType = ((ParameterizedType) genericTypes[i]).getActualTypeArguments()[0];
-                if (!Val.class.isAssignableFrom((Class<?>) fluxContentType)) {
-                    throw new InitializationException(ADDITIONAL_PARAMETER_OF_METHOD_MUST_BE_A_FLUX_OF_VALUES,
-                            genericTypes[i]);
-                }
-            }
-        }
+	}
 
-        validateReturnType(method);
+	private Object[] constructArgumentArrayForInvocationWithLeftHand(AttributeFinderMetadata attributeMetadata,
+			Val leftHandValue, EvaluationContext ctx, Arguments arguments, int numberOfArgumentsForMethodInvocation) {
+		var invocationArguments = new Object[numberOfArgumentsForMethodInvocation];
 
-        if (pipDocs.documentation.containsKey(attName)) {
-            throw new InitializationException(
-                    ATTRIBUTE_NAME_COLLISION_PIP_CONTAINS_MULTIPLE_ATTRIBUTE_METHODS_WITH_NAME, attName);
-        }
+		var argumentIndex = 0;
+		invocationArguments[argumentIndex++] = leftHandValue;
 
-        pipDocs.documentation.put(attName, attAnnotation.docs());
+		if (attributeMetadata.requiresVariables)
+			invocationArguments[argumentIndex++] = ctx.getVariableCtx().getVariables();
 
-        attributeMetadataByAttributeName.put(fullName(pipName, attName),
-                new AttributeFinderMetadata(policyInformationPoint, method, hasLeftHandValue, hasVariableMap, parameterCount));
+		if (attributeMetadata.varArgsParameters) {
+			invocationArguments[argumentIndex] = buildVarArgsArrayFromArguments(arguments, ctx, attributeMetadata,
+					argumentIndex);
+		} else {
+			if (arguments != null) {
+				for (Expression argument : arguments.getArgs()) {
+					var parameter = attributeMetadata.function.getParameters()[argumentIndex];
+					invocationArguments[argumentIndex++] = ParameterTypeValidator
+							.validateType(argument.evaluate(ctx, Val.UNDEFINED), parameter);
+				}
+			}
+		}
+		return invocationArguments;
+	}
 
-        attributeNamesByPipName.get(pipName).add(attName);
-    }
+	@Override
+	public final void loadPolicyInformationPoint(Object pip) throws InitializationException {
+		final Class<?> clazz = pip.getClass();
 
-    private void validateReturnType(Method method) throws InitializationException {
-        final Class<?> returnType = method.getReturnType();
-        final Type genericReturnType = method.getGenericReturnType();
-        if (!(genericReturnType instanceof ParameterizedType)) {
-            throw new InitializationException(RETURN_TYPE_MUST_BE_FLUX_OF_VALUES, returnType.getName());
-        }
+		final PolicyInformationPoint pipAnnotation = clazz.getAnnotation(PolicyInformationPoint.class);
 
-        final Class<?> returnTypeArgument = (Class<?>) ((ParameterizedType) genericReturnType)
-                .getActualTypeArguments()[0];
-        if (!Flux.class.isAssignableFrom(returnType) || !Val.class.isAssignableFrom(returnTypeArgument)) {
-            throw new InitializationException(RETURN_TYPE_MUST_BE_FLUX_OF_VALUES,
-                    returnType.getName() + "<" + returnTypeArgument.getName() + ">");
-        }
-    }
+		if (pipAnnotation == null)
+			throw new InitializationException(CLASS_HAS_NO_POLICY_INFORMATION_POINT_ANNOTATION);
 
+		var pipName = pipAnnotation.name();
+		if (pipName.isBlank())
+			pipName = clazz.getSimpleName();
 
-    private void validateMapArgumentType(Method method, int variableMapParameter) throws InitializationException {
-        final Class<?>[] parameterTypes = method.getParameterTypes();
-        final Type[] genericTypes = method.getGenericParameterTypes();
+		if (attributeNamesByPipName.containsKey(pipName))
+			throw new InitializationException("A PIP with the name '" + pipName + "' has already been registered.");
 
-        final Class<?> firstTypeArgument = (Class<?>) ((ParameterizedType) genericTypes[variableMapParameter]).getActualTypeArguments()[0];
-        final Class<?> secondTypeArgument = (Class<?>) ((ParameterizedType) genericTypes[variableMapParameter]).getActualTypeArguments()[1];
+		attributeNamesByPipName.put(pipName, new HashSet<>());
+		var pipDocumentation = new PolicyInformationPointDocumentation(pipName, pipAnnotation.description(), pip);
+		pipDocumentation.setName(pipName);
+		pipDocumentations.add(pipDocumentation);
 
-        if (!String.class.isAssignableFrom(firstTypeArgument) || !JsonNode.class.isAssignableFrom(secondTypeArgument)) {
-            throw new InitializationException(SECOND_PARAMETER_OF_METHOD_MUST_BE_A_MAP, parameterTypes[variableMapParameter].getName()
-                    + "<" + firstTypeArgument.getName() + "," + secondTypeArgument.getName() + ">");
-        }
-    }
+		var foundAtLeastOneSuppliedAttributeInPip = false;
+		for (Method method : clazz.getDeclaredMethods()) {
+			if (method.isAnnotationPresent(Attribute.class)) {
+				foundAtLeastOneSuppliedAttributeInPip = true;
+				importAttribute(pip, pipName, pipDocumentation, method);
+			}
+		}
 
-    private boolean isLeftHandValue(Method method, int parameterNumber) {
-        final Class<?>[] parameterTypes = method.getParameterTypes();
+		if (!foundAtLeastOneSuppliedAttributeInPip)
+			throw new InitializationException("The PIP with the name '" + pipName
+					+ "' does not declare any attributes. To declare an attribute, annotate a method with @Attribute.");
 
-        return Val.class.isAssignableFrom(parameterTypes[parameterNumber]);
-    }
+	}
 
-    private boolean isVariableMap(Method method, int parameterNumber) {
-        final Class<?>[] parameterTypes = method.getParameterTypes();
+	private void importAttribute(Object policyInformationPoint, String pipName,
+			PolicyInformationPointDocumentation pipDocs, Method method) throws InitializationException {
 
-        return Map.class.isAssignableFrom(parameterTypes[parameterNumber]);
-    }
+		var annotation = method.getAnnotation(Attribute.class);
 
-    private static String fullName(String packageName, String methodName) {
-        return packageName + NAME_DELIMITER + methodName;
-    }
+		String attributeName = annotation.name();
 
-    @Override
-    public Boolean isProvidedFunction(String attribute) {
-        return attributeMetadataByAttributeName.containsKey(attribute);
-    }
+		if (attributeName.isBlank())
+			attributeName = method.getName();
+		log.info("Importing..." + attributeName);
 
-    @Override
-    public Collection<PolicyInformationPointDocumentation> getDocumentation() {
-        return Collections.unmodifiableCollection(pipDocumentations);
-    }
+		var metadata = metadataOf(policyInformationPoint, method, attributeName);
+		log.info("meta=" + metadata);
+		var name = fullName(pipName, attributeName);
+		var attributesWithName = newAttributeMetadataByAttributeName.get(name);
+		if (attributesWithName == null) {
+			attributesWithName = new ArrayList<>();
+			newAttributeMetadataByAttributeName.put(name, attributesWithName);
+		}
+		assertNoCollision(attributesWithName, metadata);
+		attributesWithName.add(metadata);
+		attributeNamesByPipName.get(pipName).add(attributeName);
+	}
 
-    @Override
-    public Collection<String> providedFunctionsOfLibrary(String pipName) {
-        Collection<String> pips = attributeNamesByPipName.get(pipName);
-        if (pips != null)
-            return pips;
-        else
-            return new HashSet<>();
-    }
+	private void assertNoCollision(Collection<AttributeFinderMetadata> attributesWithName,
+			AttributeFinderMetadata newAttribute) throws InitializationException {
+		for (var existingAttribute : attributesWithName)
+			assertNoCollisiton(newAttribute, existingAttribute);
+	}
 
-    /**
-     * Metadata for attribute finders.
-     */
-    @Data
-    @AllArgsConstructor
-    public static class AttributeFinderMetadata {
-        @NonNull
-        Object policyInformationPoint;
-        @NonNull
-        Method function;
-        boolean leftHandValue;
-        boolean variableMap;
-        int parameterCount;
+	private void assertNoCollisiton(AttributeFinderMetadata newAttribute, AttributeFinderMetadata existingAttribute)
+			throws InitializationException {
 
-    }
+		if (existingAttribute.getName().equals(newAttribute.getName())
+				&& existingAttribute.environmentAttribute == newAttribute.environmentAttribute
+				&& (existingAttribute.varArgsParameters && newAttribute.varArgsParameters
+						|| existingAttribute.numberOfParameters == newAttribute.numberOfParameters))
+			throw new InitializationException("Cannot initialize PIPs. Attribute " + newAttribute.getName()
+					+ " has multiple defienitions which the PDP is not able not be able to disabmiguate both at runtime.");
+	}
 
-    @Override
-    public Collection<String> getAvailableLibraries() {
-        return this.attributeNamesByPipName.keySet();
-    }
+	private AttributeFinderMetadata metadataOf(Object policyInformationPoint, Method method, String attributeName)
+			throws InitializationException {
+		assertValidReturnType(method);
+
+		var parameterCount = method.getParameterCount();
+
+		if (parameterCount == 0)
+			return new AttributeFinderMetadata(policyInformationPoint, method, attributeName, true, false, false, 0);
+
+		var indexOfParameterInspect = 0;
+
+		assertFirstParameterIsOneOfTheLegalTypesForTheFirstElement(method);
+
+		var isEnvironmentAttribute = true;
+		if (firstParameterIsAVal(method)) {
+			isEnvironmentAttribute = false;
+			indexOfParameterInspect++;
+		}
+
+		if (indexOfParameterInspect == parameterCount)
+			return new AttributeFinderMetadata(policyInformationPoint, method, attributeName, isEnvironmentAttribute,
+					false, false, 0);
+
+		var requiresVariables = false;
+		if (isVariableMap(method, indexOfParameterInspect)) {
+			requiresVariables = true;
+			indexOfParameterInspect++;
+		}
+
+		if (indexOfParameterInspect == parameterCount)
+			return new AttributeFinderMetadata(policyInformationPoint, method, attributeName, isEnvironmentAttribute,
+					requiresVariables, false, 0);
+
+		if (isArrayOfFluxOfVal(method, indexOfParameterInspect)) {
+			if (indexOfParameterInspect + 1 == parameterCount)
+				return new AttributeFinderMetadata(policyInformationPoint, method, attributeName,
+						isEnvironmentAttribute, requiresVariables, true, 0);
+			else
+				throw new InitializationException("The method " + method.getName()
+						+ " has an array of Flux<Val> as a parameter, which indicates a variable number of arguments. However the array is followed by some other parameters. This is prohibited. The array must be the last parameter of the attribute declaration.");
+		}
+
+		var parameters = 0;
+		for (; indexOfParameterInspect < parameterCount; indexOfParameterInspect++) {
+			if (isFluxOfVal(method, indexOfParameterInspect)) {
+				parameters++;
+			} else {
+				throw new InitializationException(
+						"The method " + method.getName() + " declared a non Flux<Val> as a parameter");
+			}
+		}
+		return new AttributeFinderMetadata(policyInformationPoint, method, attributeName, isEnvironmentAttribute,
+				requiresVariables, false, parameters);
+	}
+
+	private void assertFirstParameterIsOneOfTheLegalTypesForTheFirstElement(Method method)
+			throws InitializationException {
+		if (firstParameterIsAVal(method) || isVariableMap(method, 0) || isFluxOfVal(method, 0)
+				|| isArrayOfFluxOfVal(method, 0))
+			return;
+
+		throw new InitializationException("First parameter of the method " + method.getName()
+				+ " has an unexpected type. Was expecting a Val, Map<String,JsonNode>, Flux<Val>, or Flux<Val>... but got "
+				+ method.getParameters()[0].getType().getSimpleName());
+	}
+
+	private void assertValidReturnType(Method method) throws InitializationException {
+		final Class<?> returnType = method.getReturnType();
+		final Type genericReturnType = method.getGenericReturnType();
+		if (!(genericReturnType instanceof ParameterizedType))
+			throw new InitializationException(RETURN_TYPE_MUST_BE_FLUX_OF_VALUES, returnType.getName());
+
+		final Class<?> returnTypeArgument = (Class<?>) ((ParameterizedType) genericReturnType)
+				.getActualTypeArguments()[0];
+		if (!Flux.class.isAssignableFrom(returnType) || !Val.class.isAssignableFrom(returnTypeArgument)) {
+			throw new InitializationException(RETURN_TYPE_MUST_BE_FLUX_OF_VALUES,
+					returnType.getName() + "<" + returnTypeArgument.getName() + ">");
+		}
+	}
+
+	private boolean firstParameterIsAVal(Method method) {
+		var parameterTypes = method.getParameterTypes();
+		return Val.class.isAssignableFrom(parameterTypes[0]);
+	}
+
+	private boolean isVariableMap(Method method, int indexOfParameter) {
+		var parameterTypes = method.getParameterTypes();
+		var genericTypes = method.getGenericParameterTypes();
+		if (!Map.class.isAssignableFrom(parameterTypes[indexOfParameter]))
+			return false;
+		var firstTypeArgument = (Class<?>) ((ParameterizedType) genericTypes[indexOfParameter])
+				.getActualTypeArguments()[0];
+		var secondTypeArgument = (Class<?>) ((ParameterizedType) genericTypes[indexOfParameter])
+				.getActualTypeArguments()[1];
+		return String.class.isAssignableFrom(firstTypeArgument) && JsonNode.class.isAssignableFrom(secondTypeArgument);
+	}
+
+	private boolean isFluxOfVal(Method method, int indexOfParameter) {
+		var parameterTypes = method.getParameterTypes();
+		var type = parameterTypes[indexOfParameter];
+		if (!Flux.class.isAssignableFrom(type))
+			return false;
+		var genericTypes = method.getGenericParameterTypes();
+		var firstTypeArgument = (Class<?>) ((ParameterizedType) genericTypes[indexOfParameter])
+				.getActualTypeArguments()[0];
+		return Val.class.isAssignableFrom(firstTypeArgument);
+	}
+
+	private boolean isArrayOfFluxOfVal(Method method, int indexOfParameter) {
+		var genericTypes = method.getGenericParameterTypes();
+		if (genericTypes.length < indexOfParameter)
+			return false;
+		var type = genericTypes[indexOfParameter];
+		if (!GenericArrayType.class.isAssignableFrom(type.getClass()))
+			return false;
+		var genericArray = (GenericArrayType) type;
+		var parameterizedType = (ParameterizedType) genericArray.getGenericComponentType();
+
+		if (!Flux.class.isAssignableFrom((Class<?>) parameterizedType.getRawType()))
+			return false;
+
+		var firstTypeArgument = (Class<?>) parameterizedType.getActualTypeArguments()[0];
+		return Val.class.isAssignableFrom(firstTypeArgument);
+	}
+
+	private static String fullName(String packageName, String methodName) {
+		return packageName + NAME_DELIMITER + methodName;
+	}
+
+	@Override
+	public Boolean isProvidedFunction(String attribute) {
+		return newAttributeMetadataByAttributeName.containsKey(attribute);
+	}
+
+	@Override
+	public Collection<PolicyInformationPointDocumentation> getDocumentation() {
+		return Collections.unmodifiableCollection(pipDocumentations);
+	}
+
+	@Override
+	public Collection<String> providedFunctionsOfLibrary(String pipName) {
+		Collection<String> pips = attributeNamesByPipName.get(pipName);
+		if (pips != null)
+			return pips;
+		else
+			return new HashSet<>();
+	}
+
+	/**
+	 * Metadata for attribute finders.
+	 */
+	@Data
+	@AllArgsConstructor
+	public static class AttributeFinderMetadata {
+		@NonNull
+		Object policyInformationPoint;
+		@NonNull
+		Method function;
+		String name;
+		boolean environmentAttribute;
+		boolean requiresVariables;
+		boolean varArgsParameters;
+		int numberOfParameters;
+	}
+
+	@Override
+	public Collection<String> getAvailableLibraries() {
+		return attributeNamesByPipName.keySet();
+	}
 
 }

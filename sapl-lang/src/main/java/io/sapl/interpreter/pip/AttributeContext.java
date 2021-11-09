@@ -25,7 +25,9 @@ import reactor.core.publisher.Flux;
 
 public interface AttributeContext extends LibraryFunctionProvider {
 
-	Flux<Val> evaluate(String attribute, Val value, EvaluationContext ctx, Arguments arguments);
+	Flux<Val> evaluateAttribute(String attribute, Val value, EvaluationContext ctx, Arguments arguments);
+
+	Flux<Val> evaluateEnvironmentAttribute(String attribute, EvaluationContext ctx, Arguments arguments);
 
 	void loadPolicyInformationPoint(Object pip) throws InitializationException;
 

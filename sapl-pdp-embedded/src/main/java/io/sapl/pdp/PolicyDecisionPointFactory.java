@@ -15,6 +15,7 @@
  */
 package io.sapl.pdp;
 
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collection;
 
@@ -121,7 +122,7 @@ public class PolicyDecisionPointFactory {
 	private static AttributeContext constructAttributeContext(Collection<Object> policyInformationPoints)
 			throws InitializationException {
 		var attributeCtx = new AnnotationAttributeContext();
-		attributeCtx.loadPolicyInformationPoint(new TimePolicyInformationPoint());
+		attributeCtx.loadPolicyInformationPoint(new TimePolicyInformationPoint(Clock.systemUTC()));
 		for (var pip : policyInformationPoints)
 			attributeCtx.loadPolicyInformationPoint(pip);
 		return attributeCtx;

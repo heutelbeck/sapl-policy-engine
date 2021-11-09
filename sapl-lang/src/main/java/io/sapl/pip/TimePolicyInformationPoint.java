@@ -15,246 +15,151 @@
  */
 package io.sapl.pip;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.pip.Periods.PeriodListener;
-import io.sapl.pip.Periods.PeriodProducer;
-import io.sapl.pip.Schedules.ScheduleListener;
-import io.sapl.pip.Schedules.ScheduleProducer;
-import lombok.NoArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import io.sapl.api.validation.Number;
+import io.sapl.api.validation.Text;
+import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink.OverflowStrategy;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
-import reactor.util.function.Tuple5;
+import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
-@Slf4j
-@NoArgsConstructor
+@RequiredArgsConstructor
 @PolicyInformationPoint(name = TimePolicyInformationPoint.NAME, description = TimePolicyInformationPoint.DESCRIPTION)
 public class TimePolicyInformationPoint {
 
-    public static final String NAME = "time";
+	public static final String NAME = "time";
 
-    public static final String DESCRIPTION = "Policy Information Point and attributes for retrieving current date and time information";
+	public static final String DESCRIPTION = "Policy Information Point and attributes for retrieving current date and time information";
 
-    private static final Flux<Val> SYSTEM_DEFAULT_TIMEZONE_FLUX = Flux.just(Val.of(ZoneId.systemDefault().toString()));
+	private static final Flux<Val> DEFAULT_UPDATE_INTERVAL_IN_MS = Flux.just(Val.of(1000L));
 
+	private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_DATE_TIME
+			.withZone(ZoneId.from(ZoneOffset.UTC));
 
-    @Attribute(docs = "Returns the current date and time in the systems default time zone as an  millisecond-based instant, measured from 1970-01-01T00:00Z (UTC).")
-    public Flux<Val> millisSystem() {
-        return millis(SYSTEM_DEFAULT_TIMEZONE_FLUX);
-    }
+	private final Clock clock;
 
-    @Attribute(docs = "Returns the current date and time in the given time zone (e.g. 'UTC', 'ECT', 'Europe/Berlin', 'system') as an  millisecond-based instant, measured from 1970-01-01T00:00Z (UTC).")
-    public Flux<Val> millis(Flux<Val> zone) {
-        return zone.switchMap(timeZone -> {
-            final ZoneId zoneId = convertToZoneId(timeZone);
-            return Flux.just(Val.of(Instant.now().atZone(zoneId).toInstant().toEpochMilli()));
-        });
-    }
+	@Attribute(docs = "Emits the current number of seconds passed since the epoc (1. Januar 1970, 00:00 Uhr UTC). The first value is emitted instantly the follwoing timestamps are sent once every second.")
+	public Flux<Val> secondsSinceEpoc() {
+		return secondsSinceEpoc(DEFAULT_UPDATE_INTERVAL_IN_MS);
+	}
 
-    @Attribute(docs = "Returns the system default time-zone.")
-    public Flux<Val> timeZone() {
-        return Val.fluxOf(ZoneId.systemDefault().toString());
-    }
+	@Attribute(docs = "Emits the current number of seconds passed since the epoc (1. Januar 1970, 00:00 Uhr UTC). The first value is emitted instantly the follwoing timestamps are sent once every time the number of provided milliseconds passed.")
+	public Flux<Val> secondsSinceEpoc(@Number Flux<Val> updateIntervalInMillis) {
+		return intstantNow(updateIntervalInMillis).map(Instant::getEpochSecond).map(Val::of);
+	}
 
+	@Attribute(docs = "Emits the current date and time as an ISO8601 String in UTC. The first time is emitted instantly. After that the time is updated once every second.")
+	public Flux<Val> now() {
+		return now(DEFAULT_UPDATE_INTERVAL_IN_MS);
+	}
 
-    @Attribute(docs = "Emits the current date and time every x milliseconds in the systems defaults time zone. x is the passed number value.")
-    public Flux<Val> nowSystem(Flux<Val> intervallInMillis) {
-        return now(intervallInMillis, SYSTEM_DEFAULT_TIMEZONE_FLUX);
-    }
+	@Attribute(docs = "Emits the current date and time as an ISO8601 String in UTC. The first time is emitted instantly. After that the time is updated once every second.")
+	public Flux<Val> now(@Number Flux<Val> updateIntervalInMillis) {
+		return intstantNow(updateIntervalInMillis).map(ISO_FORMATTER::format).map(Val::of);
+	}
 
-    @Attribute(docs = "Emits the current date and time every x milliseconds in the given time zone (e.g. 'UTC', 'ECT', 'Europe/Berlin', 'system') as an ISO-8601 string with offset. x is the passed number value.")
-    public Flux<Val> now(Flux<Val> intervallInMillis, Flux<Val> zone) {
-        return Flux.combineLatest(intervallInMillis, zone, Tuples::of)
-                .switchMap(intervallAndZoneTuple -> {
-                    var millis = intervallAndZoneTuple.getT1();
-                    var zoneId = convertToZoneId(intervallAndZoneTuple.getT2());
+	private Duration valMsToNonZeroDuration(Val val) {
+		var duration = Duration.ofMillis(val.get().asLong());
+		if (duration.isZero())
+			throw new PolicyEvaluationException("Time update interval must not be zero.");
+		return duration;
+	}
 
-                    if (!millis.isNumber())
-                        return Flux.error(new PolicyEvaluationException(
-                                String.format("now parameter not a number. Was: %s", millis.toString())));
+	private Flux<Instant> intstantNow(Flux<Val> pollIntervalInMillis) {
+		return pollIntervalInMillis.map(this::valMsToNonZeroDuration).switchMap(this::instantNow);
+	}
 
-                    var millisValue = millis.get().asLong();
+	private Flux<Instant> instantNow(Duration pollIntervalInMillis) {
+		var first = Flux.just(clock.instant());
+		var following = Flux.just(0).repeat().delayElements(pollIntervalInMillis).map(__ -> clock.instant());
+		return Flux.concat(first, following);
+	}
 
-                    if (millisValue == 0)
-                        return Flux.error(new PolicyEvaluationException("now parameter must not be zero"));
+	@Attribute(docs = "Returns the system default time-zone.")
+	public Flux<Val> systemTimeZone() {
+		return Val.fluxOf(ZoneId.systemDefault().toString());
+	}
 
-                    return Flux.<String>create(sink ->
-                            Schedulers.single().schedulePeriodically(
-                                    () -> sink.next(Instant.now().atZone(zoneId).toOffsetDateTime().toString()),
-                                    0L, millisValue, TimeUnit.MILLISECONDS));
-                }).map(Val::of);
-    }
+	@Attribute(docs = "")
+	public Flux<Val> nowIsAfter(@Text Flux<Val> time) {
+		return time.map(this::valToInstant).switchMap(this::nowIsAfter).map(Val::of);
+	}
 
-    @Attribute(docs = "Returns true if the local time is after the provided time in the systems default time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
-    public Flux<Val> nowIsAfterSystem(Flux<Val> time) {
-        return nowIsAfter(time, SYSTEM_DEFAULT_TIMEZONE_FLUX);
-    }
+	@Attribute(docs = "")
+	public Flux<Val> nowIsBefore(@Text Flux<Val> time) {
+		return time.map(this::valToInstant).switchMap(this::nowIsBefore).map(Val::of);
+	}
 
-    @Attribute(docs = "Returns true if the local time is after the provided time in the specified time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
-    public Flux<Val> nowIsAfter(Flux<Val> time, Flux<Val> zone) {
-        return Flux.combineLatest(time, zone, Tuples::of)
-                .switchMap(timeAndZoneTuple -> {
-                    var referenceTime = timeAndZoneTuple.getT1();
-                    var timeZone = timeAndZoneTuple.getT2();
+	private Instant valToInstant(Val val) {
+		return Instant.parse(val.getText());
+	}
 
-                    var referenceLocalTime = LocalTime.parse(referenceTime.getText());
-                    var localOffset = toOffset(ZoneId.systemDefault(), referenceLocalTime);
-                    var offset = toOffset(convertToZoneId(timeZone), referenceLocalTime);
-                    var adjustedReference = referenceLocalTime.atOffset(localOffset).withOffsetSameInstant(offset)
-                            .toLocalTime();
+	private Flux<Boolean> nowIsAfter(Instant anInstant) {
+		return isAfter(anInstant, clock.instant());
+	}
 
-                    return Flux.create(sink -> ScheduleProducer.builder()
-                            .referenceTime(adjustedReference)
-                            .currentTime(LocalTime.now())
-                            .listener(new ScheduleListener(sink))
-                            .build().startScheduling(), OverflowStrategy.LATEST);
-                });
-    }
+	private Flux<Boolean> nowIsBefore(Instant anInstant) {
+		return isAfter(clock.instant(), anInstant);
+	}
 
-    @Attribute(docs = "Returns true if the local time is before the provided time in the systems default time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
-    public Flux<Val> nowIsBeforeSystem(Flux<Val> time) {
-        return nowIsBefore(time, SYSTEM_DEFAULT_TIMEZONE_FLUX);
-    }
+	private Flux<Boolean> isAfter(Instant intstantA, Instant instantB) {
+		if (instantB.isAfter(intstantA))
+			return Flux.just(true);
+		var initial = Flux.just(false);
+		var eventual = Flux.just(true).delayElements(Duration.between(instantB, intstantA));
+		return Flux.concat(initial, eventual);
+	}
 
-    @Attribute(docs = "Returns true if the local time is before the provided time in the specified time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
-    public Flux<Val> nowIsBefore(Flux<Val> time, Flux<Val> zone) {
-        return nowIsAfter(time, zone)
-                .map(this::negateVal);
-    }
+	@Attribute(docs = "Returns true while the current time is between the two given times (ISO Strings). Will emit updates if the time changes and enters or exits the provided time interval.")
+	public Flux<Val> nowIsBetween(@Text Flux<Val> startTime, @Text Flux<Val> endTime) {
+		var startInstants = startTime.map(this::valToInstant);
+		var endInstants = endTime.map(this::valToInstant);
+		return Flux
+				.combineLatest(times -> Tuples.of((Instant) times[1], (Instant) times[2]), startInstants, endInstants)
+				.switchMap(this::nowIsBetween).map(Val::of);
+	}
 
-    @Attribute(docs = "Returns true if the local time is before the provided start time and before the end time in the systems default time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
-    public Flux<Val> nowIsBetweenSystem(Flux<Val> start, Flux<Val> end) {
-        return nowIsBetween(start, end, SYSTEM_DEFAULT_TIMEZONE_FLUX);
-    }
+	public Flux<Boolean> nowIsBetween(Tuple2<Instant, Instant> startAndEnd) {
+		return nowIsBetween(startAndEnd.getT1(), startAndEnd.getT2());
+	}
 
-    @Attribute(docs = "Returns true if the local time is before the provided start time and before the end time in the provided time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
-    public Flux<Val> nowIsBetween(Flux<Val> start, Flux<Val> end, Flux<Val> zone) {
-        Flux<Val> nowIsAfterFlux = nowIsAfter(start, zone);
-        Flux<Val> nowIsBeforeFlux = nowIsBefore(end, zone);
+	public Flux<Boolean> nowIsBetween(Instant start, Instant end) {
+		var now = clock.instant();
+		if (now.isAfter(end))
+			return Flux.just(false);
+		if (start.isAfter(now))
+			return isAfter(now, start);
 
-        return Flux.combineLatest(nowIsAfterFlux, nowIsBeforeFlux, this::combineBetween);
-    }
+		var initial = Flux.just(false);
+		var duringIsBetween = Flux.just(true).delayElements(Duration.between(now, start));
+		var eventual = Flux.just(false).delayElements(Duration.between(start, end));
 
-    private Val combineBetween(Val nowIsAfterVal, Val nowIsBeforeVal) {
-        if ((!nowIsAfterVal.isBoolean()) || (!nowIsBeforeVal.isBoolean())) throw new RuntimeException("values must be of type boolean");
+		return Flux.concat(initial, duringIsBetween, eventual);
+	}
 
-        var nowIsBetween = nowIsAfterVal.getBoolean() && nowIsBeforeVal.getBoolean();
+	@Attribute(docs = "A preiodically toggling signal. Will be true for the first duration (ms) and then false for the second duration (ms). This will repeat periodically. Note, that the cycle will completely reset if the durations are updated. The attribute will forget its stat ein this case.")
+	public Flux<Val> toggle(Flux<Val> trueDurationMs, Flux<Val> falseDurationMs) {
+		return Flux.combineLatest(durations -> Tuples.of((Duration) durations[1], (Duration) durations[2]),
+				trueDurationMs.map(this::valMsToNonZeroDuration), falseDurationMs.map(this::valMsToNonZeroDuration))
+				.switchMap(this::toggle).map(Val::of);
+	}
 
-        log.info("combining nowIsAfter({}) and nowIsBefore({}) to nowIsBetween({})", nowIsAfterVal.getBoolean(), nowIsBeforeVal.getBoolean(), nowIsBetween);
-
-        return Val.of(nowIsBetween);
-    }
-
-
-    @Attribute(docs = "Sets a timer for the provided number of milliseconds. Emits Val.FALSE when created and Val.TRUE after timer elapsed.")
-    public Flux<Val> trueIn(Flux<Val> timerMillis) {
-        return timerMillis.switchMap(millis -> {
-            if (!millis.isNumber())
-                return Flux.error(new PolicyEvaluationException(
-                        String.format("timer parameter not a number. Was: %s", millis)));
-
-            var millisValue = millis.get().asLong();
-            if (millisValue == 0)
-                return Flux.error(new PolicyEvaluationException("now parameter must not be zero"));
-
-            return Flux.concat(
-                    Mono.just(Val.FALSE),
-                    Mono.just(Val.TRUE).delayElement(Duration.ofMillis(millisValue))
-            );
-        });
-    }
-
-    @Attribute(docs = "Sets a timer for the provided number of milliseconds. Emits Val.TRUE when created and Val.FALSE after timer elapsed.")
-    public Flux<Val> trueFor(Flux<Val> timerMillis) {
-        return trueIn(timerMillis)
-                .map(this::negateVal);
-    }
-
-    @Attribute(docs = "Set-up a periodic toggle. The 'initialValue' is returned directly. After the defined 'authorizedTimeInMillis' the negated value is returned. " +
-            "After the given 'unauthorizedTimeInMillis', the original value is returned again. " +
-            "By providing a 'startTime', an initial offset can be specified." +
-            "All times are interpreted using the systems default time zone.")
-    public Flux<Val> periodicToggleSystem(Val leftHand, Map<String, JsonNode> variables, Flux<Val> initialValue, Flux<Val> authorizedTimeInMillis,
-                                          Flux<Val> unauthorizedTimeInMillis, Flux<Val> startTime) {
-        return periodicToggle(leftHand, variables, initialValue, authorizedTimeInMillis, unauthorizedTimeInMillis, startTime, SYSTEM_DEFAULT_TIMEZONE_FLUX);
-    }
-
-    @Attribute(docs = "Set-up a periodic toggle. The 'initialValue' is returned directly. After the defined 'authorizedTimeInMillis' the negated value is returned. " +
-            "After the given 'unauthorizedTimeInMillis', the original value is returned again. " +
-            "By providing a 'startTime', an initial offset can be specified." +
-            "'timeZone' is used to set the preferred time zone.")
-    public Flux<Val> periodicToggle(Val leftHand, Map<String, JsonNode> variables, Flux<Val> initialValue, Flux<Val> authorizedTimeInMillis,
-                                    Flux<Val> unauthorizedTimeInMillis, Flux<Val> startTime, Flux<Val> timeZone) {
-        enforceUndefinedLeftHand(leftHand);
-
-        return Flux.combineLatest(this::combinePeriodic, initialValue, authorizedTimeInMillis, unauthorizedTimeInMillis, startTime, timeZone)
-                .switchMap(tuple -> {
-                    var periodStartLocalTime = LocalTime.parse(tuple.getT4().getText());
-                    var localOffset = toOffset(ZoneId.systemDefault(), periodStartLocalTime);
-                    var offset = toOffset(convertToZoneId(tuple.getT5()), periodStartLocalTime);
-                    var adjustedPeriodStart = periodStartLocalTime.atOffset(localOffset).withOffsetSameInstant(offset)
-                            .toLocalTime();
-
-                    return Flux.create(sink -> PeriodProducer.builder()
-                            .initiallyAuthorized(tuple.getT1().getBoolean())
-                            .authorizedTimeInMillis(tuple.getT2().get().asLong())
-                            .unauthorizedTimeInMillis(tuple.getT3().get().asLong())
-                            .periodStartTime(adjustedPeriodStart)
-                            .currentTime(LocalTime.now())
-                            .listener(new PeriodListener(sink))
-                            .build().startScheduling(), OverflowStrategy.LATEST);
-                });
-    }
-
-    private Tuple5<Val, Val, Val, Val, Val> combinePeriodic(Object[] objects) {
-        if (objects.length != 5) throw new IllegalArgumentException("exactly 5 arguments must be provided");
-        for (Object object : objects) {
-            if (!(object instanceof Val)) throw new IllegalArgumentException("argument must be of type Val");
-        }
-
-        return Tuples.of((Val) objects[0], (Val) objects[1], (Val) objects[2], (Val) objects[3], (Val) objects[4]);
-    }
-
-    private void enforceUndefinedLeftHand(Val val) {
-        if (val.isDefined())
-            throw new IllegalArgumentException("left hand value must be undefined but is of type" + val.getValType());
-    }
-
-    private Val negateVal(Val val) {
-        return Val.of(!val.getBoolean());
-    }
-
-    private ZoneOffset toOffset(ZoneId zoneId, LocalTime localTime) {
-        return zoneId.getRules().getOffset(LocalDate.now().atTime(localTime));
-    }
-
-    private ZoneId convertToZoneId(Val value) {
-        if (value == null || value.isUndefined() || value.isNull() || !value.isTextual()) return ZoneId.systemDefault();
-
-        final String text = value.getText() == null ? "" : value.getText().trim();
-        final String zoneIdStr = text.length() == 0 ? "system" : text;
-        if ("system".equalsIgnoreCase(zoneIdStr)) {
-            return ZoneId.systemDefault();
-        } else if (ZoneId.SHORT_IDS.containsKey(zoneIdStr)) {
-            return ZoneId.of(zoneIdStr, ZoneId.SHORT_IDS);
-        }
-        return ZoneId.of(zoneIdStr);
-    }
+	private Flux<Boolean> toggle(Tuple2<Duration, Duration> durations) {
+		var initial = Flux.just(true);
+		var waitTillFalse = Flux.just(false).delayElements(durations.getT1());
+		var waitTillTrue = Flux.just(false).delayElements(durations.getT2());
+		var repeatingTail = Flux.concat(waitTillFalse, waitTillTrue).repeat();
+		return Flux.concat(initial, repeatingTail);
+	}
 
 }

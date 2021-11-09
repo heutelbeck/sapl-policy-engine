@@ -45,7 +45,7 @@ public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 		if (parentValue.isUndefined()) {
 			return Val.errorFlux(UNDEFINED_VALUE);
 		}
-		return ctx.getAttributeCtx().evaluate(fullyQualifiedName, parentValue, ctx, getArguments())
+		return ctx.getAttributeCtx().evaluateAttribute(fullyQualifiedName, parentValue, ctx, getArguments())
 				.distinctUntilChanged();
 	}
 

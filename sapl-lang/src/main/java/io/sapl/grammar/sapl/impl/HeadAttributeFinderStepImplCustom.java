@@ -42,7 +42,7 @@ public class HeadAttributeFinderStepImplCustom extends HeadAttributeFinderStepIm
 		if (parentValue.isUndefined()) {
 			return Val.errorFlux(UNDEFINED_VALUE);
 		}
-		return ctx.getAttributeCtx().evaluate(fullyQualifiedName, parentValue, ctx, getArguments()).take(1);
+		return ctx.getAttributeCtx().evaluateAttribute(fullyQualifiedName, parentValue, ctx, getArguments()).take(1);
 	}
 
 	@Override

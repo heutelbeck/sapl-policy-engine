@@ -45,8 +45,7 @@ public class SAPLImplCustom extends SAPLImpl {
 	public Mono<Val> matches(EvaluationContext subscriptionScopedEvaluationContext) {
 		try {
 			return getPolicyElement().matches(documentScopedEvaluationContext(subscriptionScopedEvaluationContext));
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return Mono.just(Val.error(e));
 		}
 	}
@@ -56,8 +55,7 @@ public class SAPLImplCustom extends SAPLImpl {
 		EvaluationContext documentScopedEvaluationContext;
 		try {
 			documentScopedEvaluationContext = documentScopedEvaluationContext(subscriptionScopedEvaluationContext);
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			log.debug("  |- INDETERMINATE. The imports evaluated with en error: {}", e.getMessage());
 			return Flux.just(AuthorizationDecision.INDETERMINATE);
 		}
@@ -80,17 +78,21 @@ public class SAPLImplCustom extends SAPLImpl {
 	private void addImport(Import anImport, Map<String, String> imports,
 			EvaluationContext subscriptionScopedEvaluationContext) {
 		var library = String.join(".", anImport.getLibSteps());
+
+		log.info("library = " + library);
 		if (anImport instanceof WildcardImport) {
+			log.info("is wild");
 			addWildcardImports(imports, library, subscriptionScopedEvaluationContext.getAttributeCtx());
 			addWildcardImports(imports, library, subscriptionScopedEvaluationContext.getFunctionCtx());
-		}
-		else if (anImport instanceof LibraryImport) {
+		} else if (anImport instanceof LibraryImport) {
+			log.info("is library");
 			var alias = ((LibraryImport) anImport).getLibAlias();
 			addLibraryImports(imports, library, alias, subscriptionScopedEvaluationContext.getAttributeCtx());
 			addLibraryImports(imports, library, alias, subscriptionScopedEvaluationContext.getFunctionCtx());
-		}
-		else
+		} else {
+			log.info("is basic");
 			addBasicImport(anImport, library, imports, subscriptionScopedEvaluationContext);
+		}
 	}
 
 	private void addBasicImport(Import anImport, String library, Map<String, String> imports,
@@ -116,8 +118,10 @@ public class SAPLImplCustom extends SAPLImpl {
 	private void addWildcardImports(Map<String, String> imports, String library,
 			LibraryFunctionProvider functionProvider) {
 		for (var name : functionProvider.providedFunctionsOfLibrary(library)) {
+			log.info("name="+name);
 			if (imports.put(name, String.join(".", library, name)) != null)
 				throw new PolicyEvaluationException(WILDCARD_IMPORT_EXISTS, library, name);
+			log.info("check");
 		}
 	}
 

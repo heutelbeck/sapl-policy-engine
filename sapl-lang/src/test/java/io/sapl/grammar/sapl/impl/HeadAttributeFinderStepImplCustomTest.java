@@ -95,7 +95,7 @@ class HeadAttributeFinderStepImplCustomTest {
 
 	private static EvaluationContext mockEvaluationContextWithAttributeStream(Flux<Val> stream) {
 		var attributeCtx = mock(AttributeContext.class);
-		when(attributeCtx.evaluate(eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any(), any())).thenReturn(stream);
+		when(attributeCtx.evaluateAttribute(eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any(), any())).thenReturn(stream);
 		var ctx = mock(EvaluationContext.class);
 		when(ctx.getAttributeCtx()).thenReturn(attributeCtx);
 		var imports = new HashMap<String, String>();

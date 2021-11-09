@@ -15,6 +15,7 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -48,7 +49,7 @@ public class DefaultLibraryAttributeFinder implements LibraryAttributeFinder {
 	 */
 	public DefaultLibraryAttributeFinder() throws InitializationException {
 		attributeContext = new AnnotationAttributeContext();
-		attributeContext.loadPolicyInformationPoint(new TimePolicyInformationPoint());
+		attributeContext.loadPolicyInformationPoint(new TimePolicyInformationPoint(Clock.systemUTC()));
 		functionContext = new AnnotationFunctionContext();
 		functionContext.loadLibrary(new FilterFunctionLibrary());
 		functionContext.loadLibrary(new StandardFunctionLibrary());

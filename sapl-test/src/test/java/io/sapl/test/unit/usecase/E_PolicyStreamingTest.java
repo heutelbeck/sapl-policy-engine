@@ -18,6 +18,7 @@ package io.sapl.test.unit.usecase;
 import static io.sapl.hamcrest.Matchers.anyDecision;
 import static io.sapl.test.Imports.times;
 
+import java.time.Clock;
 import java.time.Duration;
 
 import org.assertj.core.api.Assertions;
@@ -74,7 +75,7 @@ class E_PolicyStreamingTest {
 		// are not always compatible, as this can perform the time move BEFORE the
 		// interval schedules itself, resulting in the interval never playing out.
 
-		fixture.registerPIP(new TimePolicyInformationPoint()).constructTestCaseWithMocks().withVirtualTime()
+		fixture.registerPIP(new TimePolicyInformationPoint(Clock.systemUTC())).constructTestCaseWithMocks().withVirtualTime()
 				.when(AuthorizationSubscription.of("ROLE_DOCTOR", "read", "heartBeatData")).expectNext(anyDecision())
 				.expectNoEvent(Duration.ofSeconds(2)).expectNext(anyDecision()).expectNoEvent(Duration.ofSeconds(2))
 				.expectNext(anyDecision()).expectNoEvent(Duration.ofSeconds(2)).expectNext(anyDecision())
