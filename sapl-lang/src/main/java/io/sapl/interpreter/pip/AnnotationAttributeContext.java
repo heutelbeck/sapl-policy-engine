@@ -86,7 +86,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 		try {
 			return evaluateEnvironmentAttribute(attributeMetadata, ctx, arguments);
-		} catch (InvocationTargetException | IllegalAccessException | IllegalArgumentException e) {
+		} catch (Throwable e) {
 			log.error(e.getMessage(), e);
 			return Flux.just(Val.error("Failed to evaluate attribute", new PolicyEvaluationException(e)));
 		}
@@ -197,7 +197,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 		try {
 			return evaluateAttribute(attributeMetadata, leftHandValue, ctx, arguments);
-		} catch (InvocationTargetException | IllegalAccessException | IllegalArgumentException e) {
+		} catch (Throwable e) {
 			return Flux.just(Val.error("Failed to evaluate attribute", new PolicyEvaluationException(e)));
 		}
 
@@ -292,6 +292,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 		var metadata = metadataOf(policyInformationPoint, method, attributeName);
 		var name = fullName(pipName, attributeName);
+		log.info("name=" + name);
 		var attributesWithName = newAttributeMetadataByAttributeName.get(name);
 		if (attributesWithName == null) {
 			attributesWithName = new ArrayList<>();
@@ -326,16 +327,20 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 	private void assertNoCollision(Collection<AttributeFinderMetadata> attributesWithName,
 			AttributeFinderMetadata newAttribute) throws InitializationException {
+		log.info("!ne={}", newAttribute);
+		log.info("#" + attributesWithName.size());
 		for (var existingAttribute : attributesWithName)
 			assertNoCollisiton(newAttribute, existingAttribute);
 	}
 
 	private void assertNoCollisiton(AttributeFinderMetadata newAttribute, AttributeFinderMetadata existingAttribute)
 			throws InitializationException {
+		log.info("new={}", newAttribute);
+		log.info("old={}", existingAttribute);
+		if (existingAttribute.environmentAttribute == newAttribute.environmentAttribute
 
-		if (existingAttribute.getName().equals(newAttribute.getName())
-				&& existingAttribute.environmentAttribute == newAttribute.environmentAttribute
 				&& (existingAttribute.varArgsParameters && newAttribute.varArgsParameters
+
 						|| existingAttribute.numberOfParameters == newAttribute.numberOfParameters))
 			throw new InitializationException("Cannot initialize PIPs. Attribute " + newAttribute.getName()
 					+ " has multiple defienitions which the PDP is not able not be able to disabmiguate both at runtime.");
