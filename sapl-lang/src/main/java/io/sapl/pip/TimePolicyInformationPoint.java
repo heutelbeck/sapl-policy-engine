@@ -24,6 +24,7 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.Temporal;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
@@ -196,7 +197,7 @@ public class TimePolicyInformationPoint {
 		return Flux.concat(initialStates, repeated);
 	}
 
-	private Flux<Boolean> boolAfterTimeDifference(boolean val, LocalTime start, LocalTime end) {
+	private Flux<Boolean> boolAfterTimeDifference(boolean val, Temporal start, Temporal end) {
 		return Flux.just(val).delayElements(Duration.ofMillis(MILLIS.between(start, end)));
 	}
 

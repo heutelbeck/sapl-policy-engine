@@ -91,7 +91,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 	@SuppressWarnings("unchecked")
 	private Flux<Val> evaluateEnvironmentAttribute(AttributeFinderMetadata attributeMetadata, EvaluationContext ctx,
-			Arguments arguments) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+			Arguments arguments) throws IllegalAccessException, InvocationTargetException {
 		var pip = attributeMetadata.getPolicyInformationPoint();
 		var method = attributeMetadata.getFunction();
 
@@ -297,11 +297,11 @@ public class AnnotationAttributeContext implements AttributeContext {
 		assertNoCollision(attributesWithName, metadata);
 		attributesWithName.add(metadata);
 		attributeNamesByPipName.get(pipName).add(attributeName);
-		var longName = longName(annotation, pipName, metadata);
+		var longName = longName(pipName, metadata);
 		pipDocs.documentation.put(longName, annotation.docs());
 	}
 
-	private String longName(Attribute annotation, String pipName, AttributeFinderMetadata metadata) {
+	private String longName(String pipName, AttributeFinderMetadata metadata) {
 		var sb = new StringBuilder();
 		if (!metadata.isEnvironmentAttribute())
 			sb.append("value.");
