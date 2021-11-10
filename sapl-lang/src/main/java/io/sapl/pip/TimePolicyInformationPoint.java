@@ -104,19 +104,19 @@ public class TimePolicyInformationPoint {
 	private Flux<Boolean> localTimeIsAfter(LocalTime now, LocalTime checkpoint) {
 
 		if (checkpoint.equals(LocalTime.MIN))
-			return Flux.just(true);
+			return Flux.just(Boolean.TRUE);
 
 		if (checkpoint.equals(LocalTime.MAX))
-			return Flux.just(false);
+			return Flux.just(Boolean.FALSE);
 
 		if (now.isAfter(checkpoint)) {
-			var initial = Flux.just(true);
+			var initial = Flux.just(Boolean.TRUE);
 			var tillMidnight = boolAfterTimeDifference(false, now, LocalTime.MAX);
 			var initialDay = Flux.concat(initial, tillMidnight);
 			return Flux.concat(initialDay, afterCheckpointEventsFollowingDays(checkpoint));
 		}
 
-		var initial = Flux.just(false);
+		var initial = Flux.just(Boolean.FALSE);
 		var tillCheckpoint = boolAfterTimeDifference(true, now, checkpoint);
 		var tillMidnight = boolAfterTimeDifference(false, checkpoint, LocalTime.MAX);
 		var initialDay = Flux.concat(initial, tillCheckpoint, tillMidnight);
@@ -145,13 +145,13 @@ public class TimePolicyInformationPoint {
 	private Flux<Boolean> nowIsBetween(LocalTime t1, LocalTime t2) {
 
 		if (t1.equals(t2))
-			return Flux.just(false);
+			return Flux.just(Boolean.FALSE);
 
 		if (t1.equals(LocalTime.MIN) && t2.equals(LocalTime.MAX))
-			return Flux.just(true);
+			return Flux.just(Boolean.TRUE);
 
 		if (t1.equals(LocalTime.MAX) && t2.equals(LocalTime.MIN))
-			return Flux.just(true);
+			return Flux.just(Boolean.TRUE);
 
 		var intervalWrapsAroundMidnight = t1.isAfter(t2);
 
@@ -170,22 +170,22 @@ public class TimePolicyInformationPoint {
 
 		Flux<Boolean> initialStates;
 		if (now.isBefore(start)) {
-			var initial = Flux.just(false);
+			var initial = Flux.just(Boolean.FALSE);
 			var tillStart = boolAfterTimeDifference(true, now, start);
 			initialStates = Flux.concat(initial, tillStart);
 		} else if (now.isAfter(end)) {
-			var initial = Flux.just(false);
+			var initial = Flux.just(Boolean.FALSE);
 			var timeTillIntervalStarts = Duration
 					.ofMillis(MILLIS.between(now, LocalTime.MAX) + MILLIS.between(LocalTime.MIN, start));
-			var tillStart = Flux.just(true).delayElements(timeTillIntervalStarts);
+			var tillStart = Flux.just(Boolean.TRUE).delayElements(timeTillIntervalStarts);
 			initialStates = Flux.concat(initial, tillStart);
 		} else {
 			// starts inside of interval
-			var initial = Flux.just(true);
+			var initial = Flux.just(Boolean.TRUE);
 			var tillIntervalEnd = boolAfterTimeDifference(false, now, end);
 			var timeTillIntervalStarts = Duration
 					.ofMillis(MILLIS.between(end, LocalTime.MAX) + MILLIS.between(LocalTime.MIN, start));
-			var tillStart = Flux.just(true).delayElements(timeTillIntervalStarts);
+			var tillStart = Flux.just(Boolean.TRUE).delayElements(timeTillIntervalStarts);
 			initialStates = Flux.concat(initial, tillIntervalEnd, tillStart);
 		}
 
@@ -225,9 +225,9 @@ public class TimePolicyInformationPoint {
 
 	private Flux<Boolean> isAfter(Instant intstantA, Instant instantB) {
 		if (instantB.isAfter(intstantA))
-			return Flux.just(true);
-		var initial = Flux.just(false);
-		var eventual = Flux.just(true).delayElements(Duration.between(instantB, intstantA));
+			return Flux.just(Boolean.TRUE);
+		var initial = Flux.just(Boolean.FALSE);
+		var eventual = Flux.just(Boolean.TRUE).delayElements(Duration.between(instantB, intstantA));
 		return Flux.concat(initial, eventual);
 	}
 
@@ -247,17 +247,17 @@ public class TimePolicyInformationPoint {
 	public Flux<Boolean> nowIsBetween(Instant start, Instant end) {
 		var now = clock.instant();
 		if (now.isAfter(end))
-			return Flux.just(false);
+			return Flux.just(Boolean.FALSE);
 
 		if (now.isAfter(start)) {
-			var initial = Flux.just(true);
-			var eventual = Flux.just(false).delayElements(Duration.between(now, end));
+			var initial = Flux.just(Boolean.TRUE);
+			var eventual = Flux.just(Boolean.FALSE).delayElements(Duration.between(now, end));
 			return Flux.concat(initial, eventual);
 		}
 
-		var initial = Flux.just(false);
-		var duringIsBetween = Flux.just(true).delayElements(Duration.between(now, start));
-		var eventual = Flux.just(false).delayElements(Duration.between(start, end));
+		var initial = Flux.just(Boolean.FALSE);
+		var duringIsBetween = Flux.just(Boolean.TRUE).delayElements(Duration.between(now, start));
+		var eventual = Flux.just(Boolean.FALSE).delayElements(Duration.between(start, end));
 
 		return Flux.concat(initial, duringIsBetween, eventual);
 	}
@@ -270,9 +270,9 @@ public class TimePolicyInformationPoint {
 	}
 
 	private Flux<Boolean> toggle(Tuple2<Duration, Duration> durations) {
-		var initial = Flux.just(true);
-		var waitTillFalse = Flux.just(false).delayElements(durations.getT1());
-		var waitTillTrue = Flux.just(true).delayElements(durations.getT2());
+		var initial = Flux.just(Boolean.TRUE);
+		var waitTillFalse = Flux.just(Boolean.FALSE).delayElements(durations.getT1());
+		var waitTillTrue = Flux.just(Boolean.TRUE).delayElements(durations.getT2());
 		var repeatingTail = Flux.concat(waitTillFalse, waitTillTrue).repeat();
 		return Flux.concat(initial, repeatingTail);
 	}
