@@ -125,8 +125,8 @@ public class MockUtil {
 		@Attribute
 		public Flux<Val> numbers(Map<String, JsonNode> variables) {
 			return Flux.just(Val.of(0), Val.of(1), Val.of(2), Val.of(3), Val.of(4), Val.of(5));
-		}	
-		
+		}
+
 		@Attribute
 		public Flux<Val> numbers(Val leftHand, Map<String, JsonNode> variables) {
 			return Flux.just(Val.of(0), Val.of(1), Val.of(2), Val.of(3), Val.of(4), Val.of(5));

@@ -41,9 +41,10 @@ public class SaplUnitTestFixture extends SaplTestFixtureTemplate {
 	 * Fixture for constructing a unit test case
 	 * @param saplDocumentName path relative to your classpath to the sapl document. If
 	 * your policies are located at the root of the classpath or in the standard path
-	 * {@code "policies/"} in your {@code resources} folder you only have to specify the name of the
-	 * .sapl file. If your policies are located at some special place you have to
-	 * configure a relative path like {@code "yourSpecialDirectory/policies/myPolicy.sapl"}
+	 * {@code "policies/"} in your {@code resources} folder you only have to specify the
+	 * name of the .sapl file. If your policies are located at some special place you have
+	 * to configure a relative path like
+	 * {@code "yourSpecialDirectory/policies/myPolicy.sapl"}
 	 */
 	public SaplUnitTestFixture(String saplDocumentName) {
 		this.saplDocumentName = saplDocumentName;

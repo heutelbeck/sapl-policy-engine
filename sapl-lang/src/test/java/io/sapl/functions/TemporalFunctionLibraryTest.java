@@ -298,4 +298,5 @@ class TemporalFunctionLibraryTest {
 	private static Val timeValOf(String utcIsoTime) {
 		return Val.of(Instant.parse(utcIsoTime).toString());
 	}
+
 }

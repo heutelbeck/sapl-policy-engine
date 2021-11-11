@@ -240,4 +240,5 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			acceptor.accept(entry, 0);
 		}
 	}
+
 }

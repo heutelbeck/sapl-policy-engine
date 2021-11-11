@@ -42,7 +42,7 @@ import reactor.core.publisher.Flux;
 public class BasicExpressionImplCustom extends BasicExpressionImpl {
 
 	protected Function<? super Val, Publisher<? extends Val>> resolveStepsFiltersAndSubTemplates(EList<Step> steps,
-																								 EvaluationContext ctx, Val relativeNode) {
+			EvaluationContext ctx, Val relativeNode) {
 		return resolveSteps(steps, 0, ctx, relativeNode);
 	}
 

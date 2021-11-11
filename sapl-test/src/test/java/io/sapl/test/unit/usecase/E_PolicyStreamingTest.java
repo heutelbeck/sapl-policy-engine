@@ -75,11 +75,12 @@ class E_PolicyStreamingTest {
 		// are not always compatible, as this can perform the time move BEFORE the
 		// interval schedules itself, resulting in the interval never playing out.
 
-		fixture.registerPIP(new TimePolicyInformationPoint(Clock.systemUTC())).constructTestCaseWithMocks().withVirtualTime()
-				.when(AuthorizationSubscription.of("ROLE_DOCTOR", "read", "heartBeatData")).expectNext(anyDecision())
-				.expectNoEvent(Duration.ofSeconds(2)).expectNext(anyDecision()).expectNoEvent(Duration.ofSeconds(2))
+		fixture.registerPIP(new TimePolicyInformationPoint(Clock.systemUTC())).constructTestCaseWithMocks()
+				.withVirtualTime().when(AuthorizationSubscription.of("ROLE_DOCTOR", "read", "heartBeatData"))
 				.expectNext(anyDecision()).expectNoEvent(Duration.ofSeconds(2)).expectNext(anyDecision())
-				.expectNoEvent(Duration.ofSeconds(2)).thenAwait(Duration.ofSeconds(5)).verify();
+				.expectNoEvent(Duration.ofSeconds(2)).expectNext(anyDecision()).expectNoEvent(Duration.ofSeconds(2))
+				.expectNext(anyDecision()).expectNoEvent(Duration.ofSeconds(2)).thenAwait(Duration.ofSeconds(5))
+				.verify();
 	}
 
 	@Test
@@ -111,10 +112,9 @@ class E_PolicyStreamingTest {
 		var timestamp4 = Val.of("2021-02-08T16:16:05.000Z");
 		var timestamp5 = Val.of("2021-02-08T16:16:06.000Z");
 
-		Assertions.assertThatExceptionOfType(SaplTestException.class)
-				.isThrownBy(() -> fixture.constructTestCaseWithMocks().givenAttribute("time.now",
-						Duration.ofSeconds(10), timestamp0, timestamp1, timestamp2, timestamp3, timestamp4,
-						timestamp5));
+		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(
+				() -> fixture.constructTestCaseWithMocks().givenAttribute("time.now", Duration.ofSeconds(10),
+						timestamp0, timestamp1, timestamp2, timestamp3, timestamp4, timestamp5));
 
 	}
 

@@ -52,8 +52,7 @@ public class PRPAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public PolicyRetrievalPoint policyRetrievalPoint()
-			throws PolicyEvaluationException {
+	public PolicyRetrievalPoint policyRetrievalPoint() throws PolicyEvaluationException {
 		log.info("Using index type: {}", pdpProperties.getIndex());
 		ImmutableParsedDocumentIndex seedIndex;
 		if (pdpProperties.getIndex() == IndexType.NAIVE) {
@@ -61,7 +60,8 @@ public class PRPAutoConfiguration {
 		}
 		else {
 			// This index type has to normalize function calls based on import statements
-			// Variables do not need to be bound here. Thus, this hind of static PDP scoped
+			// Variables do not need to be bound here. Thus, this hind of static PDP
+			// scoped
 			// evaluation context is sufficient. Variables will be bound later in the
 			// subscription scoped EvaluationContext handed over for lookup.
 			seedIndex = new CanonicalImmutableParsedDocumentIndex(

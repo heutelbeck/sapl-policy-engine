@@ -210,7 +210,7 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 	}
 
 	private void failIfMoreThanOneContinuousEnforceAttributePresent(Collection<ConfigAttribute> attributes,
-																	Method method) {
+			Method method) {
 		var numberOfContinuousEnforceAttributes = 0;
 		if (hasAnyAttributeOfType(attributes, EnforceRecoverableIfDeniedAttribute.class))
 			numberOfContinuousEnforceAttributes++;

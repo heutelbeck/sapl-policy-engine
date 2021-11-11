@@ -39,44 +39,67 @@ import io.sapl.api.validation.Text;
 public class TemporalFunctionLibrary {
 
 	public static final String NAME = "time";
+
 	public static final String DESCRIPTION = "This library contains temporal functions.";
 
 	private static final String BEFORE_DOC = "Assumes, that TIME_A and TIME_B are strings representing UTC time in ISO 8601. Returns true, if TIME_A is before TIME_B.";
+
 	private static final String AFTER_DOC = "Assumes, that TIME_A and TIME_B are strings representing UTC time in ISO 8601. Returns true, if TIME_A is after TIME_B.";
+
 	private static final String BETWEEN_DOC = "between(TIME, TIME_A, TIME_B): Assumes, that TIME, TIME_A and TIME_B are strings representing UTC time in ISO 8601. Returns true, if TIME is between TIME_A and TIME_B.";
+
 	private static final String TIME_BETWEEN_DOC = "timeBetween(TIME_A, TIME_B, UNIT): Assumes, that TIME_A and TIME_B are strings representing UTC time in ISO 8601 and UNIT is a string containing a valid ChronoUnit. Returns the time, between TIME_A and TIME_B as number in the given unit.";
 
 	private static final String PLUS_NANOS_DOC = "plusNanos(TIME, NANOS): Assumes, that TIME is a string representing UTC time in ISO 8601, and NANOS is an long integer. Returns a new time by adding the given duration to TIME.";
+
 	private static final String PLUS_MILLIS_DOC = "plusMillis(TIME, MILLIS): Assumes, that TIME is a string representing UTC time in ISO 8601, and MILLIS is an long integer. Returns a new time by adding the given duration to TIME.";
+
 	private static final String PLUS_SECONDS_DOC = "plusSeconds(TIME, SECONDS): Assumes, that TIME is a string representing UTC time in ISO 8601, and SECONDS is an long integer. Returns a new time by adding the given duration to TIME.";
+
 	private static final String MINUS_NANOS_DOC = "minusNanos(TIME, NANOS): Assumes, that TIME is a string representing UTC time in ISO 8601, and NANOS is an long integer. Returns a new time by subtracting the given duration to TIME.";
+
 	private static final String MINUS_MILLIS_DOC = "minusMillis(TIME, MILLIS): Assumes, that TIME is a string representing UTC time in ISO 8601, and MILLIS is an long integer. Returns a new time by subtracting the given duration to TIME.";
+
 	private static final String MINUS_SECONDS_DOC = "minusSeconds(TIME, SECONDS): Assumes, that TIME is a string representing UTC time in ISO 8601, and SECONDS is an long integer. Returns a new time by subtracting the given duration to TIME.";
 
 	private static final String TO_EPOCH_SECONDS_DOC = "Assumes, that TIME is a string representing UTC time in ISO 8601. Returns the number of seconds from the epoch of 1970-01-01T00:00:00Z.";
+
 	private static final String TO_EPOCH_MILLIS_DOC = "Assumes, that TIME is a string representing UTC time in ISO 8601. Returns the number of milliseconds from the epoch of 1970-01-01T00:00:00Z.";
+
 	private static final String OF_EPOCH_SECONDS_DOC = "Assumes, that SECONDS is a long representing the seconds from the epoch of 1970-01-01T00:00:00Z. Returns UTC time as String in ISO 8601 using.";
+
 	private static final String OF_EPOCH_MILLIS_DOC = "Assumes, that MILLIS is a long representing the milliseconds from the epoch of 1970-01-01T00:00:00Z. Returns UTC time as String in ISO 8601 using.";
 
 	private static final String LOCAL_DATE_TIME_DOC = "Assumes, that TIME is a string representing time in ISO 8601. Returns TIME as LocalDateTime by dropping any offset. Example: '2007-12-03T10:15:30'";
+
 	private static final String LOCAL_DATE_DOC = "Assumes, that TIME is a string representing time in ISO 8601. Returns TIME as LocalDate by dropping any offset and time.  Example: '2007-12-03'";
+
 	private static final String LOCAL_TIME_DOC = "Assumes, that TIME is a string representing time in ISO 8601. Returns TIME as LocalTime by dropping any offset and offset. Example: '10:15:30'";
+
 	private static final String HOUR_OF_DAY = "Returns the hour of the given date time as a number. Assumes, that the given date time is a string representing time in ISO 8601";
+
 	private static final String MINUTE_OF_HOUR = "Returns the minute of the hour of the given date time as a number. Assumes, that the given date time is a string representing time in ISO 8601";
+
 	private static final String SECOND_OF_MINUTE = "Returns the second of the minute of the given date time as a number. Assumes, that the given date time is a string representing time in ISO 8601";
 
 	private static final String AT_ZONED_DT_DOC = "toZonedDateTime(TIME, ZONE_ID): Assumes, that TIME is a string representing time in ISO 8601 and ZONE a string representing a valid zone id from the IANA Time Zone Database. Returns a ZonedDateTime formed from TIME at the specified TIMEZONE, as string in ISO 8601";
+
 	private static final String AT_OFFSET_DT_DOC = "toOffsetDateTime(TIME, OFFSET_ID): Assumes, that TIME is a string representing time in ISO 8601 and OFFSET a ISO-8601 formatted string. Returns a OffsetDateTime formed from TIME at the specified OFFSET, as string in ISO 8601";
 
 	private static final String DAY_OF_YEAR = "Assumes, that TIME is a string representing UTC time in ISO 8601. Returns the day of the year. [1-366]";
+
 	private static final String WEEK_OF_YEAR = "Assumes, that TIME is a string representing UTC time in ISO 8601. Returns the week of the year. [1-52]";
+
 	private static final String DAY_OF_WEEK = "Assumes, that TIME is a string representing UTC time in ISO 8601. Returns the day of the week. [SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY]";
 
 	private static final String VALID_UTC_DOC = "validUTC(TIME): Returns true, if TIME is a string representing UTC time in ISO 8601 such as '2011-12-03T10:15:30Z'.";
 
 	private static final String DURATION_OF_SECONDS = "durationOfSeconds(SECONDS): Assumes, that SECONDS is a number. Returns the respective value in milliseconds";
+
 	private static final String DURATION_OF_MINUTES = "durationOfSeconds(MINUTES): Assumes, that MINUTES is a number. Returns the respective value in milliseconds";
+
 	private static final String DURATION_OF_HOURS = "durationOfSeconds(HOURS): Assumes, that HOURS is a number. Returns the respective value in milliseconds";
+
 	private static final String DURATION_OF_DAYS = "durationOfSeconds(DAYS): Assumes, that DAYS is a number. Returns the respective value in milliseconds";
 
 	/* ######## DURATION ######## */
@@ -215,7 +238,8 @@ public class TemporalFunctionLibrary {
 		try {
 			instantOf(utcDateTime);
 			return Val.TRUE;
-		} catch (DateTimeParseException e) {
+		}
+		catch (DateTimeParseException e) {
 			return Val.FALSE;
 		}
 	}
@@ -281,7 +305,8 @@ public class TemporalFunctionLibrary {
 		var zoneIdStr = text.isBlank() ? "system" : text;
 		if ("system".equals(zoneIdStr)) {
 			return ZoneId.systemDefault();
-		} else if (ZoneId.SHORT_IDS.containsKey(zoneIdStr)) {
+		}
+		else if (ZoneId.SHORT_IDS.containsKey(zoneIdStr)) {
 			return ZoneId.of(zoneIdStr, ZoneId.SHORT_IDS);
 		}
 		return ZoneId.of(zoneIdStr);

@@ -26,6 +26,7 @@ import io.sapl.grammar.sapl.impl.SAPLImpl;
 public class TreeNavigatorHelperTests {
 
 	public class TestEObject extends MinimalEObjectImpl.Container {
+
 	}
 
 	@Test
@@ -67,4 +68,5 @@ public class TreeNavigatorHelperTests {
 		Object result = TreeNavigationHelper.goToLastParent(new TestEObject(), SAPLImpl.class);
 		assertNull(result);
 	}
+
 }

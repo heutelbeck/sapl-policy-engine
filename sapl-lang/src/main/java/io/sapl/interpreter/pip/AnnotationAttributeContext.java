@@ -54,17 +54,21 @@ import reactor.core.publisher.Flux;
 public class AnnotationAttributeContext implements AttributeContext {
 
 	private static final String NAME_DELIMITER = ".";
+
 	private static final String CLASS_HAS_NO_POLICY_INFORMATION_POINT_ANNOTATION = "Provided class has no @PolicyInformationPoint annotation.";
+
 	private static final String UNKNOWN_ATTRIBUTE = "Unknown attribute %s";
+
 	private static final String RETURN_TYPE_MUST_BE_FLUX_OF_VALUES = "The return type of an attribute finder must be Flux<Val>. Was: %s";
 
 	private final Map<String, Set<String>> attributeNamesByPipName = new HashMap<>();
+
 	private final Map<String, Collection<AttributeFinderMetadata>> newAttributeMetadataByAttributeName = new HashMap<>();
+
 	private final Collection<PolicyInformationPointDocumentation> pipDocumentations = new LinkedList<>();
 
 	/**
 	 * Create the attribute context from a list of PIPs
-	 *
 	 * @param policyInformationPoints a list of PIPs
 	 * @throws InitializationException when loading the PIPs fails
 	 */
@@ -84,7 +88,8 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 		try {
 			return evaluateEnvironmentAttribute(attributeMetadata, ctx, arguments);
-		} catch (Throwable e) {
+		}
+		catch (Throwable e) {
 			return Flux.just(Val.error("Failed to evaluate attribute", new PolicyEvaluationException(e)));
 		}
 	}
@@ -119,7 +124,8 @@ public class AnnotationAttributeContext implements AttributeContext {
 		if (attributeMetadata.varArgsParameters) {
 			invocationArguments[argumentIndex] = buildVarArgsArrayFromArguments(arguments, ctx, attributeMetadata,
 					argumentIndex);
-		} else {
+		}
+		else {
 			if (arguments != null) {
 				for (Expression argument : arguments.getArgs()) {
 					var parameter = attributeMetadata.function.getParameters()[argumentIndex];
@@ -194,7 +200,8 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 		try {
 			return evaluateAttribute(attributeMetadata, leftHandValue, ctx, arguments);
-		} catch (Throwable e) {
+		}
+		catch (Throwable e) {
 			return Flux.just(Val.error("Failed to evaluate attribute", new PolicyEvaluationException(e)));
 		}
 
@@ -230,7 +237,8 @@ public class AnnotationAttributeContext implements AttributeContext {
 		if (attributeMetadata.varArgsParameters) {
 			invocationArguments[argumentIndex] = buildVarArgsArrayFromArguments(arguments, ctx, attributeMetadata,
 					argumentIndex);
-		} else {
+		}
+		else {
 			if (arguments != null) {
 				for (Expression argument : arguments.getArgs()) {
 					var parameter = attributeMetadata.function.getParameters()[argumentIndex];
@@ -384,7 +392,8 @@ public class AnnotationAttributeContext implements AttributeContext {
 		for (; indexOfParameterInspect < parameterCount; indexOfParameterInspect++) {
 			if (isFluxOfVal(method, indexOfParameterInspect)) {
 				parameters++;
-			} else {
+			}
+			else {
 				throw new InitializationException(
 						"The method " + method.getName() + " declared a non Flux<Val> as a parameter");
 			}
@@ -492,15 +501,23 @@ public class AnnotationAttributeContext implements AttributeContext {
 	@Data
 	@AllArgsConstructor
 	public static class AttributeFinderMetadata {
+
 		@NonNull
 		Object policyInformationPoint;
+
 		@NonNull
 		Method function;
+
 		String name;
+
 		boolean environmentAttribute;
+
 		boolean requiresVariables;
+
 		boolean varArgsParameters;
+
 		int numberOfParameters;
+
 	}
 
 	@Override

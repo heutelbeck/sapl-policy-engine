@@ -62,7 +62,6 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 	/**
 	 * Create context from a list of function libraries.
-	 * 
 	 * @param libraries list of function libraries @ if loading libraries fails
 	 * @throws InitializationException if initialization fails
 	 */
@@ -109,7 +108,8 @@ public class AnnotationFunctionContext implements FunctionContext {
 	private Val invokeFunction(FunctionMetadata metadata, Object... parameters) {
 		try {
 			return (Val) metadata.getFunction().invoke(metadata.getLibrary(), parameters);
-		} catch (Throwable e) {
+		}
+		catch (Throwable e) {
 			return invocationExceptionToError(e, metadata, parameters);
 		}
 	}
@@ -167,7 +167,8 @@ public class AnnotationFunctionContext implements FunctionContext {
 			if (parameters == 1 && parameterType.isArray()
 					&& Val.class.isAssignableFrom(parameterType.getComponentType())) {
 				parameters = VAR_ARGS;
-			} else if (!Val.class.isAssignableFrom(parameterType)) {
+			}
+			else if (!Val.class.isAssignableFrom(parameterType)) {
 				throw new InitializationException(ILLEGAL_PARAMETER_FOR_IMPORT, parameterType.getName());
 			}
 		}

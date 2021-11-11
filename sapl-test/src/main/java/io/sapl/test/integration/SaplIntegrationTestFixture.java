@@ -46,8 +46,8 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 	 * Fixture for constructing an integration test case
 	 * @param policyPath path relative to your class path (relative from
 	 * src/main/resources, ...) to the folder containing the SAPL documents. If your
-	 * policies are located at src/main/resources/yourSpecialDirectory you only have to specify
-	 * "yourSpecialDirectory".
+	 * policies are located at src/main/resources/yourSpecialDirectory you only have to
+	 * specify "yourSpecialDirectory".
 	 */
 	public SaplIntegrationTestFixture(String policyPath) {
 		this.pathToPoliciesFolder = policyPath;

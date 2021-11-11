@@ -101,8 +101,7 @@ public class Val {
 
 	public static Val error(Throwable throwable) {
 		return (throwable.getMessage() == null || throwable.getMessage().isBlank())
-				? new Val(throwable.getClass().getSimpleName())
-				: new Val(throwable.getMessage());
+				? new Val(throwable.getClass().getSimpleName()) : new Val(throwable.getMessage());
 	}
 
 	public static Flux<Val> errorFlux(String errorMessage, Object... args) {
@@ -222,7 +221,8 @@ public class Val {
 	public <X extends Throwable> JsonNode orElseThrow(Supplier<? extends X> exceptionSupplier) throws X {
 		if (isDefined()) {
 			return value;
-		} else {
+		}
+		else {
 			throw exceptionSupplier.get();
 		}
 	}
@@ -257,7 +257,8 @@ public class Val {
 		}
 		if (left.isNumber() && right.isNumber()) {
 			return left.decimalValue().compareTo(right.decimalValue()) != 0;
-		} else {
+		}
+		else {
 			return !left.get().equals(right.get());
 		}
 	}

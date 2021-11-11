@@ -119,8 +119,7 @@ public class MockingFunctionContext implements FunctionContext {
 
 	@Override
 	public Collection<LibraryDocumentation> getDocumentation() {
-		Collection<LibraryDocumentation> doc = new LinkedList<>(
-				this.functionDocumentations.values());
+		Collection<LibraryDocumentation> doc = new LinkedList<>(this.functionDocumentations.values());
 		doc.addAll(this.originalFunctionContext.getDocumentation());
 		return Collections.unmodifiableCollection(doc);
 	}

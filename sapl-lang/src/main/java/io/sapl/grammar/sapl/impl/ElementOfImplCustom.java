@@ -28,8 +28,8 @@ import reactor.core.publisher.Flux;
  * Implements the evaluation of the 'in-array' operation. It checks if a value is
  * contained in an array.
  *
- * Grammar: {@code Comparison returns Expression: Prefixed (({ElementOf.left=current} 'in')
- * right=Prefixed)? ;}
+ * Grammar: {@code Comparison returns Expression: Prefixed (({ElementOf.left=current}
+ * 'in') right=Prefixed)? ;}
  */
 public class ElementOfImplCustom extends ElementOfImpl {
 

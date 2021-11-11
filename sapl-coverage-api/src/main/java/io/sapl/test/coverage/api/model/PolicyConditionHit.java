@@ -53,20 +53,14 @@ public class PolicyConditionHit {
 
 	@Override
 	public String toString() {
-		String stringBuilder = policySetId +
-				CoverageHitConfig.DELIMITER +
-				policyId +
-				CoverageHitConfig.DELIMITER +
-				conditionStatementId +
-				CoverageHitConfig.DELIMITER +
-				conditionResult;
+		String stringBuilder = policySetId + CoverageHitConfig.DELIMITER + policyId + CoverageHitConfig.DELIMITER
+				+ conditionStatementId + CoverageHitConfig.DELIMITER + conditionResult;
 		return stringBuilder;
 	}
 
 	public static PolicyConditionHit fromString(String policyConditionToStringResult) {
 		String[] split = policyConditionToStringResult.split(CoverageHitConfig.DELIMITER_MATCH_REGEX);
-		return new PolicyConditionHit(split[0], split[1], Integer.parseInt(split[2]),
-				Boolean.parseBoolean(split[3]));
+		return new PolicyConditionHit(split[0], split[1], Integer.parseInt(split[2]), Boolean.parseBoolean(split[3]));
 	}
 
 }

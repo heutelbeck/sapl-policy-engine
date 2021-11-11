@@ -65,7 +65,8 @@ public class SaplFilterPolicyEnforcementPoint extends GenericFilterBean {
 			throw new AccessDeniedException("No decision from PDP.");
 
 		if (authzDecision.getResource().isPresent())
-			throw new AccessDeniedException("PDP requested resource replacement. This is not possible in the filter chain.");
+			throw new AccessDeniedException(
+					"PDP requested resource replacement. This is not possible in the filter chain.");
 
 		try {
 			constraintEnforcementService.bundleFor(authzDecision, Object.class).wrap(Flux.empty()).blockLast();

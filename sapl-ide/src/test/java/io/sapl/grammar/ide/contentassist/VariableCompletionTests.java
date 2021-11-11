@@ -80,4 +80,5 @@ public class VariableCompletionTests extends CompletionTests {
 			});
 		});
 	}
+
 }

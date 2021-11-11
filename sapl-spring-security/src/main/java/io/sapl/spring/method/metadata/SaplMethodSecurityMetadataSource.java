@@ -101,7 +101,7 @@ public class SaplMethodSecurityMetadataSource extends AbstractMethodSecurityMeta
 		// Check the class-level (note declaringClass, not targetClass, which may not
 		// actually implement the method)
 		annotation = AnnotationUtils.findAnnotation(specificMethod.getDeclaringClass(), annotationClass);
-        return annotation;
-    }
+		return annotation;
+	}
 
 }

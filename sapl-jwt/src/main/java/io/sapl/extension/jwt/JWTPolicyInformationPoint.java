@@ -78,18 +78,18 @@ public class JWTPolicyInformationPoint {
 	static final String WHITELIST_VARIABLES_KEY = "whitelist";
 
 	private static final String JWT_CONFIG_MISSING_ERROR = "The key 'jwt' with the configuration of public key server and key whitelist. All JWT tokens will be treated as if the signatures could not be validated.";
-	private static final String VALIDITY_DOCS = "The token's validity state";
 
+	private static final String VALIDITY_DOCS = "The token's validity state";
 
 	/**
 	 * Possible states of validity a JWT can have
 	 */
 	enum ValidityState {
 
-		 // the JWT is valid
+		// the JWT is valid
 		VALID
 
-		 // the JWT has expired
+		// the JWT has expired
 		, EXPIRED
 
 		// the JWT expires before it becomes valid, so it is never valid
@@ -99,18 +99,15 @@ public class JWTPolicyInformationPoint {
 		, IMMATURE
 
 		/*
-		 * the JWT's signature does not match
-		 * <p>
-		 * either the payload has been tampered with, the public key could not be
-		 * obtained, or the public key does not match the signature
+		 * the JWT's signature does not match <p> either the payload has been tampered
+		 * with, the public key could not be obtained, or the public key does not match
+		 * the signature
 		 */
 		, UNTRUSTED
 
 		/*
-		 * the JWT is incompatible
-		 * <p>
-		 * either an incompatible hashing algorithm has been used or required fields do
-		 * not have the correct format
+		 * the JWT is incompatible <p> either an incompatible hashing algorithm has been
+		 * used or required fields do not have the correct format
 		 */
 		, INCOMPATIBLE
 
@@ -118,7 +115,7 @@ public class JWTPolicyInformationPoint {
 		, INCOMPLETE
 
 		// the token is not a JWT
-		,MALFORMED
+		, MALFORMED
 
 	}
 
@@ -212,10 +209,8 @@ public class JWTPolicyInformationPoint {
 			publicKey = keyProvider.provide(keyId, jPublicKeyServer);
 		}
 
-		return publicKey.map(signatureOfTokenIsValid(signedJwt))
-				.defaultIfEmpty(Boolean.FALSE)
-				.zipWhen(cachePublicKeyIfSignatureValid(keyId, isFromWhitelist, publicKey))
-				.map(Tuple2::getT1);
+		return publicKey.map(signatureOfTokenIsValid(signedJwt)).defaultIfEmpty(Boolean.FALSE)
+				.zipWhen(cachePublicKeyIfSignatureValid(keyId, isFromWhitelist, publicKey)).map(Tuple2::getT1);
 	}
 
 	private Function<RSAPublicKey, Boolean> signatureOfTokenIsValid(SignedJWT signedJwt) {
@@ -233,7 +228,7 @@ public class JWTPolicyInformationPoint {
 
 	private Function<Boolean, Mono<? extends Boolean>> cachePublicKeyIfSignatureValid(String keyId,
 			boolean isFromWhitelist, Mono<RSAPublicKey> publicKeyMono) {
-		
+
 		return signatureValid -> {
 			if (signatureValid && !isFromWhitelist)
 				publicKeyMono.subscribe(publicKey -> {

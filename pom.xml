@@ -19,8 +19,8 @@
 <!-- 
 	Utility goals supported by the POM:
 	
-	* Update all project versions to the actual parent pom version:
-	  mvn versions:update-child-modules -N
+	* Update the version of all modules:
+	  mvn versions:set -DnewVersion=2.0.0-RC1 -DprocessAllModules -DgenerateBackupPoms=false
 	  
 	* Correct the license headers of all source files:
 	  mvn license:format

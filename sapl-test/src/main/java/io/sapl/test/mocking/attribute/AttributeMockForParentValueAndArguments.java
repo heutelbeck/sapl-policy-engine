@@ -84,7 +84,8 @@ public class AttributeMockForParentValueAndArguments implements AttributeMock {
 
 			// interpret a call to an AttributeMock as
 			// not when the evaluate method is called
-			// but for every combination of Val objects from parentValue and by argument flux
+			// but for every combination of Val objects from parentValue and by argument
+			// flux
 			// emitted
 			saveCall(parentValue, latestPublishedEventsPerArgument);
 

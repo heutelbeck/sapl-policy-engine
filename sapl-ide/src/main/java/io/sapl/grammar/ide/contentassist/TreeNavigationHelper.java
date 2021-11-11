@@ -23,14 +23,13 @@ import org.eclipse.emf.ecore.EObject;
 public class TreeNavigationHelper {
 
 	/**
-	 * Moves up the model tree and returns the closest parent that matches the given
-	 * class type.
-	 * 
-	 * @param <T>       Class type of the searched-for parent.
-	 * @param object    The current model from which the search starts.
+	 * Moves up the model tree and returns the closest parent that matches the given class
+	 * type.
+	 * @param <T> Class type of the searched-for parent.
+	 * @param object The current model from which the search starts.
 	 * @param classType Class type of the searched-for parent.
-	 * @return Returns the first parent for the given class type, or null if no
-	 *         match was found.
+	 * @return Returns the first parent for the given class type, or null if no match was
+	 * found.
 	 */
 	public static <T> T goToFirstParent(EObject object, Class<T> classType) {
 		if (object == null)
@@ -49,14 +48,13 @@ public class TreeNavigationHelper {
 	}
 
 	/**
-	 * Moves up the model tree and returns the highest parent that matches the given
-	 * class type.
-	 * 
-	 * @param <T>       Class type of the searched-for parent.
-	 * @param object    The current model from which the search starts.
+	 * Moves up the model tree and returns the highest parent that matches the given class
+	 * type.
+	 * @param <T> Class type of the searched-for parent.
+	 * @param object The current model from which the search starts.
 	 * @param classType Class type of the searched-for parent.
-	 * @return Returns the first parent for the given class type, or null if no
-	 *         match was found.
+	 * @return Returns the first parent for the given class type, or null if no match was
+	 * found.
 	 */
 	public static <T> T goToLastParent(EObject object, Class<T> classType) {
 		if (object == null)
@@ -78,4 +76,5 @@ public class TreeNavigationHelper {
 			return classType.cast(parent);
 		return null;
 	}
+
 }

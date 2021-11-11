@@ -70,7 +70,7 @@ public class PreEnforcePolicyEnforcementPoint extends AbstractPolicyEnforcementP
 			return false;
 		}
 
-        return authzDecision.getDecision() == Decision.PERMIT;
-    }
+		return authzDecision.getDecision() == Decision.PERMIT;
+	}
 
 }

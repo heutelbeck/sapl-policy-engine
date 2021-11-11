@@ -39,9 +39,7 @@ public class PolicyHit {
 
 	@Override
 	public String toString() {
-		String stringBuilder = policySetId +
-				CoverageHitConfig.DELIMITER +
-				policyId;
+		String stringBuilder = policySetId + CoverageHitConfig.DELIMITER + policyId;
 		return stringBuilder;
 	}
 

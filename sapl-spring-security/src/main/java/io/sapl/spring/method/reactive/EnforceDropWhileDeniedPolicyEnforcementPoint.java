@@ -85,8 +85,8 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
 	public static <V> Flux<V> of(Flux<AuthorizationDecision> decisions, Flux<V> resourceAccessPoint,
 			ConstraintEnforcementService constraintsService, Class<V> clazz) {
-		var pep = new EnforceDropWhileDeniedPolicyEnforcementPoint<>(decisions, resourceAccessPoint,
-				constraintsService, clazz);
+		var pep = new EnforceDropWhileDeniedPolicyEnforcementPoint<>(decisions, resourceAccessPoint, constraintsService,
+				clazz);
 		return pep.doOnTerminate(pep::handleOnTerminateConstraints)
 				.doAfterTerminate(pep::handleAfterTerminateConstraints).doOnCancel(pep::handleCancel).onErrorStop();
 	}

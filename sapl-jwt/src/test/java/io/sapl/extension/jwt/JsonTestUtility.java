@@ -51,7 +51,7 @@ public class JsonTestUtility {
 		// if that failed, convert source object to JsonNode
 		return MAPPER.valueToTree(source);
 	}
-	
+
 	/**
 	 * @param kid1 the ID of the first KeyPair
 	 * @param kid2 the ID of the second KeyPair
@@ -61,23 +61,24 @@ public class JsonTestUtility {
 	 * @throws NoSuchAlgorithmException
 	 * @throws IOException
 	 */
-	static Map<String, JsonNode> publicKeyWhitelistVariables(String kid1, KeyPair keyPair1, String kid2, KeyPair keyPair2)
-			throws NoSuchAlgorithmException, IOException {
-		
+	static Map<String, JsonNode> publicKeyWhitelistVariables(String kid1, KeyPair keyPair1, String kid2,
+			KeyPair keyPair2) throws NoSuchAlgorithmException, IOException {
+
 		ObjectNode keyNode = MAPPER.createObjectNode();
 		ObjectNode valueNode = MAPPER.createObjectNode();
-		
+
 		if (keyPair1 != null) {
 			String encodedFirstKey = Base64.getUrlEncoder().encodeToString(keyPair1.getPublic().getEncoded());
 			valueNode.put(kid1, encodedFirstKey);
 		}
-		else valueNode.putNull(kid1);
-		
+		else
+			valueNode.putNull(kid1);
+
 		String encodedSecondKey = "This is Bogus";
 		if (keyPair2 != null)
 			encodedSecondKey = Base64.getUrlEncoder().encodeToString(keyPair2.getPublic().getEncoded());
 		valueNode.put(kid2, encodedSecondKey);
-		
+
 		keyNode.set(JWTPolicyInformationPoint.WHITELIST_VARIABLES_KEY, valueNode);
 		return Map.of("jwt", keyNode);
 	}

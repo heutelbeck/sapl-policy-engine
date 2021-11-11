@@ -52,12 +52,14 @@ public class TimePolicyInformationPoint {
 
 	private final Clock clock;
 
-	@Attribute(docs = "Emits the current date and time as an ISO8601 String in UTC. The first time is emitted instantly. After that the time is updated once every second.")
+	@Attribute(
+			docs = "Emits the current date and time as an ISO8601 String in UTC. The first time is emitted instantly. After that the time is updated once every second.")
 	public Flux<Val> now() {
 		return now(DEFAULT_UPDATE_INTERVAL_IN_MS);
 	}
 
-	@Attribute(docs = "Emits the current date and time as an ISO8601 String in UTC. The first time is emitted instantly. After that the time is updated once every second.")
+	@Attribute(
+			docs = "Emits the current date and time as an ISO8601 String in UTC. The first time is emitted instantly. After that the time is updated once every second.")
 	public Flux<Val> now(@Number Flux<Val> updateIntervalInMillis) {
 		return intstantNow(updateIntervalInMillis).map(ISO_FORMATTER::format).map(Val::of);
 	}
@@ -84,12 +86,14 @@ public class TimePolicyInformationPoint {
 		return Val.fluxOf(ZoneId.systemDefault().toString());
 	}
 
-	@Attribute(docs = "Returns true, if the current time in ISO UTC is after the provided time parameter, also in ISO UTC.")
+	@Attribute(
+			docs = "Returns true, if the current time in ISO UTC is after the provided time parameter, also in ISO UTC.")
 	public Flux<Val> nowIsAfter(@Text Flux<Val> time) {
 		return time.map(this::valToInstant).switchMap(this::nowIsAfter).map(Val::of);
 	}
 
-	@Attribute(docs = "Returns true, if the current local time in UTC (e.g., \"17:00\") is before the providec checkpoint time.")
+	@Attribute(
+			docs = "Returns true, if the current local time in UTC (e.g., \"17:00\") is before the providec checkpoint time.")
 	public Flux<Val> localTimeIsAfter(@Text Flux<Val> checkpoint) {
 		return checkpoint.map(Val::getText).map(LocalTime::parse).switchMap(this::localTimeIsAfter).map(Val::of);
 	}
@@ -131,7 +135,8 @@ public class TimePolicyInformationPoint {
 		return Flux.concat(startOfDay, endOfDay).repeat();
 	}
 
-	@Attribute(docs = "Returns true, while the local UTC time (e.g., \"13:34:21\") is between the two provided times of the day. If the time of the first parameter is after the time of the second parameter, the intervall ist considered to be the one between the to times, crossing the midnight border of the days.")
+	@Attribute(
+			docs = "Returns true, while the local UTC time (e.g., \"13:34:21\") is between the two provided times of the day. If the time of the first parameter is after the time of the second parameter, the intervall ist considered to be the one between the to times, crossing the midnight border of the days.")
 	public Flux<Val> localTimeIsBetween(@Text Flux<Val> startTime, @Text Flux<Val> endTime) {
 		var startTimes = startTime.map(Val::getText).map(LocalTime::parse);
 		var endTimes = endTime.map(Val::getText).map(LocalTime::parse);
@@ -174,13 +179,15 @@ public class TimePolicyInformationPoint {
 			var initial = Flux.just(Boolean.FALSE);
 			var tillStart = boolAfterTimeDifference(true, now, start);
 			initialStates = Flux.concat(initial, tillStart);
-		} else if (now.isAfter(end)) {
+		}
+		else if (now.isAfter(end)) {
 			var initial = Flux.just(Boolean.FALSE);
 			var timeTillIntervalStarts = Duration
 					.ofMillis(MILLIS.between(now, LocalTime.MAX) + MILLIS.between(LocalTime.MIN, start));
 			var tillStart = Flux.just(Boolean.TRUE).delayElements(timeTillIntervalStarts);
 			initialStates = Flux.concat(initial, tillStart);
-		} else {
+		}
+		else {
 			// starts inside of interval
 			var initial = Flux.just(Boolean.TRUE);
 			var tillIntervalEnd = boolAfterTimeDifference(false, now, end);
@@ -232,7 +239,8 @@ public class TimePolicyInformationPoint {
 		return Flux.concat(initial, eventual);
 	}
 
-	@Attribute(docs = "Returns true while the current time is between the two given times (ISO Strings). Will emit updates if the time changes and enters or exits the provided time interval.")
+	@Attribute(
+			docs = "Returns true while the current time is between the two given times (ISO Strings). Will emit updates if the time changes and enters or exits the provided time interval.")
 	public Flux<Val> nowIsBetween(@Text Flux<Val> startTime, @Text Flux<Val> endTime) {
 		var startInstants = startTime.map(this::valToInstant);
 		var endInstants = endTime.map(this::valToInstant);
@@ -263,7 +271,8 @@ public class TimePolicyInformationPoint {
 		return Flux.concat(initial, duringIsBetween, eventual);
 	}
 
-	@Attribute(docs = "A preiodically toggling signal. Will be true for the first duration (ms) and then false for the second duration (ms). This will repeat periodically. Note, that the cycle will completely reset if the durations are updated. The attribute will forget its stat ein this case.")
+	@Attribute(
+			docs = "A preiodically toggling signal. Will be true for the first duration (ms) and then false for the second duration (ms). This will repeat periodically. Note, that the cycle will completely reset if the durations are updated. The attribute will forget its stat ein this case.")
 	public Flux<Val> toggle(Flux<Val> trueDurationMs, Flux<Val> falseDurationMs) {
 		return Flux.combineLatest(durations -> Tuples.of((Duration) durations[0], (Duration) durations[1]),
 				trueDurationMs.map(this::valMsToNonZeroDuration), falseDurationMs.map(this::valMsToNonZeroDuration))
