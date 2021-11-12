@@ -210,7 +210,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 	@SuppressWarnings("unchecked")
 	private Flux<Val> evaluateAttribute(AttributeFinderMetadata attributeMetadata, Val leftHandValue,
 			EvaluationContext ctx, Arguments arguments)
-			throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+			throws IllegalAccessException, InvocationTargetException {
 		var pip = attributeMetadata.getPolicyInformationPoint();
 		var method = attributeMetadata.getFunction();
 
