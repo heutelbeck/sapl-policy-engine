@@ -15,20 +15,22 @@
  */
 package io.sapl.functions;
 
+import io.sapl.api.interpreter.Val;
+import org.junit.jupiter.api.Test;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+
 import static io.sapl.hamcrest.Matchers.val;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-
-import org.junit.jupiter.api.Test;
-
-import io.sapl.api.interpreter.Val;
 
 class TemporalFunctionLibraryTest {
 
@@ -135,35 +137,30 @@ class TemporalFunctionLibraryTest {
 				is(val(true)));
 	}
 
-	@Test
-	void localDateTimeTest() {
-		assertThat(TemporalFunctionLibrary.localDateTime(timeValOf("2021-11-08T13:00:00Z")),
-				is(val("2021-11-08T13:00")));
-	}
 
 	@Test
 	void localDateTest() {
-		assertThat(TemporalFunctionLibrary.localDate(timeValOf("2021-11-08T13:00:00Z")), is(val("2021-11-08")));
+		assertThat(TemporalFunctionLibrary.dateOf(timeValOf("2021-11-08T13:00:00Z")), is(val("2021-11-08")));
 	}
 
 	@Test
 	void localTimeTest() {
-		assertThat(TemporalFunctionLibrary.localTime(timeValOf("2021-11-08T13:00:00Z")), is(val("13:00")));
+		assertThat(TemporalFunctionLibrary.timeOf(timeValOf("2021-11-08T13:00:00Z")), is(val("13:00")));
 	}
 
 	@Test
 	void localHourTest() {
-		assertThat(TemporalFunctionLibrary.localHour(timeValOf("2021-11-08T13:00:00Z")), is(val(13)));
+		assertThat(TemporalFunctionLibrary.hourOf(timeValOf("2021-11-08T13:00:00Z")), is(val(13)));
 	}
 
 	@Test
 	void localMinuteTest() {
-		assertThat(TemporalFunctionLibrary.localMinute(timeValOf("2021-11-08T13:00:00Z")), is(val(0)));
+		assertThat(TemporalFunctionLibrary.minuteOf(timeValOf("2021-11-08T13:00:00Z")), is(val(0)));
 	}
 
 	@Test
 	void localSecondTest() {
-		assertThat(TemporalFunctionLibrary.localSecond(timeValOf("2021-11-08T13:00:23Z")), is(val(23)));
+		assertThat(TemporalFunctionLibrary.secondOf(timeValOf("2021-11-08T13:00:23Z")), is(val(23)));
 	}
 
 	@Test
@@ -213,24 +210,65 @@ class TemporalFunctionLibraryTest {
 	}
 
 	@Test
-	void atZoneTest() {
-		assertThat(TemporalFunctionLibrary.atZone(Val.of("2021-11-08T13:00:00Z"), Val.of("BST")),
-				is(val("2021-11-08T19:00")));
-		assertThat(TemporalFunctionLibrary.atZone(Val.of("2021-11-08T03:00:00Z"), Val.of("CST")),
-				is(val("2021-11-07T21:00")));
-		assertThat(TemporalFunctionLibrary.atZone(Val.of("2021-11-08T03:00:00Z"), Val.of("system")), is(val()));
-		assertThat(TemporalFunctionLibrary.atZone(Val.of("2021-11-08T03:00:00Z"), Val.of("")), is(val()));
-		assertThat(TemporalFunctionLibrary.atZone(Val.of("2021-11-08T03:00:00Z"), Val.of("GMT")),
-				is(val("2021-11-08T03:00")));
+	void localToIsoTest() {
+		LocalDateTime ldt = LocalDateTime.of(2021, 11, 8, 13, 0, 0);
+		ZonedDateTime zdt = ZonedDateTime.of(ldt, ZoneId.systemDefault());
+
+		assertThat(TemporalFunctionLibrary.localIso(Val.of("2021-11-08T13:00:00")), is(val(zdt.toInstant().toString())));
 	}
 
 	@Test
-	void atOffsetTest() {
-		assertThat(TemporalFunctionLibrary.atOffset(Val.of("2021-11-08T13:00:00Z"), Val.of("-08:00")),
-				is(val("2021-11-08T05:00")));
-		assertThat(TemporalFunctionLibrary.atOffset(Val.of("2021-11-08T03:00:00Z"), Val.of("+04:00")),
-				is(val("2021-11-08T07:00")));
+	void dinToIsoTest() {
+		LocalDateTime ldt = LocalDateTime.of(2021, 11, 8, 13, 0, 0);
+		ZonedDateTime zdt = ZonedDateTime.of(ldt, ZoneId.systemDefault());
+
+		assertThat(TemporalFunctionLibrary.localDin(Val.of("08.11.2021 13:00:00")), is(val(zdt.toInstant().toString())));
 	}
+
+	@Test
+	void dateTimeAtOffsetTest() {
+		assertThat(TemporalFunctionLibrary.dateTimeAtOffset(Val.of("2021-11-08T13:12:35"), Val.of("+05:00")), is(val("2021-11-08T08:12:35Z")));
+	}
+
+	@Test
+	void dateTimeAtZoneTest() {
+		assertThat(TemporalFunctionLibrary.dateTimeAtZone(Val.of("2021-11-08T13:12:35"), Val.of("Europe/Berlin")), is(val("2021-11-08T12:12:35Z")));
+	}
+
+
+	@Test
+	void offsetDateTimeTest() {
+		assertThat(TemporalFunctionLibrary.offsetDateTime(Val.of("2021-11-08T13:12:35+05:00")), is(val("2021-11-08T08:12:35Z")));
+	}
+
+
+	@Test
+	void offsetTimeTest() {
+		assertThat(TemporalFunctionLibrary.offsetTime(Val.of("13:12:35+05:00")), is(val("08:12:35")));
+		assertThat(TemporalFunctionLibrary.offsetTime(Val.of("13:12:35-05:00")), is(val("18:12:35")));
+	}
+
+	@Test
+	void timeAtOffsetTest() {
+		assertThat(TemporalFunctionLibrary.timeAtOffset(Val.of("13:12:35"), Val.of("+05:00")), is(val("08:12:35")));
+		assertThat(TemporalFunctionLibrary.timeAtOffset(Val.of("13:12:35"), Val.of("-05:00")), is(val("18:12:35")));
+	}
+
+	@Test
+	void timeAtZoneTest() {
+		assertThat(TemporalFunctionLibrary.timeInZone(Val.of("13:12:35"), Val.of("US/Pacific")), is(val("21:12:35")));
+		assertThat(TemporalFunctionLibrary.timeInZone(Val.of("13:12:35"), Val.of("Europe/Samara")), is(val("09:12:35")));
+	}
+
+
+	@Test
+	void timeAMPMTest() {
+		assertThat(TemporalFunctionLibrary.timeAMPM(Val.of("08:12:35 am")), is(val("08:12:35")));
+		assertThat(TemporalFunctionLibrary.timeAMPM(Val.of("08:12:35 AM")), is(val("08:12:35")));
+		assertThat(TemporalFunctionLibrary.timeAMPM(Val.of("08:12:35 pm")), is(val("20:12:35")));
+		assertThat(TemporalFunctionLibrary.timeAMPM(Val.of("08:12:35 PM")), is(val("20:12:35")));
+	}
+
 
 	@Test
 	void should_return_error_for_invalid_time_arguments() {
@@ -243,8 +281,6 @@ class TemporalFunctionLibraryTest {
 		assertThrowsForTwoArgs(TemporalFunctionLibrary::minusMillis);
 		assertThrowsForTwoArgs(TemporalFunctionLibrary::minusSeconds);
 
-		assertThrowsForTwoArgs(TemporalFunctionLibrary::atZone);
-		assertThrowsForTwoArgs(TemporalFunctionLibrary::atOffset);
 
 		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::epochSecond);
 		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::epochMilli);
@@ -255,12 +291,11 @@ class TemporalFunctionLibraryTest {
 		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::dayOfYear);
 		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::dayOfWeek);
 
-		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localDateTime);
-		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localDate);
-		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localTime);
-		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localHour);
-		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localMinute);
-		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localSecond);
+		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::dateOf);
+		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::timeOf);
+		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::hourOf);
+		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::minuteOf);
+		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::secondOf);
 
 		assertThrows(Exception.class,
 				() -> TemporalFunctionLibrary.between(Val.NULL, Val.of((BigDecimal) null), Val.of((String) null)));
@@ -298,5 +333,4 @@ class TemporalFunctionLibraryTest {
 	private static Val timeValOf(String utcIsoTime) {
 		return Val.of(Instant.parse(utcIsoTime).toString());
 	}
-
 }

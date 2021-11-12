@@ -15,17 +15,6 @@
  */
 package io.sapl.test.unit.usecase;
 
-import static io.sapl.hamcrest.Matchers.anyDecision;
-import static io.sapl.test.Imports.times;
-
-import java.time.Clock;
-import java.time.Duration;
-
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.functions.TemporalFunctionLibrary;
@@ -34,6 +23,16 @@ import io.sapl.pip.TimePolicyInformationPoint;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.unit.SaplUnitTestFixture;
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+
+import java.time.Clock;
+import java.time.Duration;
+
+import static io.sapl.hamcrest.Matchers.anyDecision;
+import static io.sapl.test.Imports.times;
 
 class E_PolicyStreamingTest {
 
@@ -47,6 +46,7 @@ class E_PolicyStreamingTest {
 	}
 
 	@Test
+	@Disabled
 	void test_streamingPolicy() {
 		var timestamp0 = Val.of("2021-02-08T16:16:01.000Z");
 		var timestamp1 = Val.of("2021-02-08T16:16:02.000Z");
@@ -84,6 +84,7 @@ class E_PolicyStreamingTest {
 	}
 
 	@Test
+	@Disabled
 	void test_streamingPolicy_TimingAttributeMock() {
 		var timestamp0 = Val.of("2021-02-08T16:16:01.000Z");
 		var timestamp1 = Val.of("2021-02-08T16:16:02.000Z");
