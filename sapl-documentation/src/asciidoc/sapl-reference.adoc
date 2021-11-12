@@ -258,7 +258,7 @@ A PEP strongly depends on the application domain. SAPL comes with a default PEP 
 
 === Policy Decision Point (PDP)
 
-The PDP has to make an authorization decision based on an authorization subscription object and the access policies it receives from a *Policy Retrieval Point (PRP)* connected to a policy store. Beginning with the authorization subscription object, the PDP fetches policy sets and policies matching the authorization subscription, evaluates them, and combines the results to create and return an authorization decision object. There may be multiple matching policies that might evaluate to different results. To resolve these conflicts, the administrator or developer using a PDP must select a *combining algorithm* (e.g., `permit-overrides` stating that the decision will be `permit` if any applicable policy evaluates to `permit`).
+The PDP must make an authorization decision based on an authorization subscription object and the access policies it receives from a *Policy Retrieval Point (PRP)* connected to a policy store. Beginning with the authorization subscription object, the PDP fetches policy sets and policies matching the authorization subscription, evaluates them, and combines the results to create and return an authorization decision object. There may be multiple matching policies that might evaluate to different results. To resolve these conflicts, the administrator or developer using a PDP must select a *combining algorithm* (e.g., `permit-overrides` stating that the decision will be `permit` if any applicable policy evaluates to `permit`).
 
 A policy may refer to attributes not included in the authorization subscription object. It will have to obtain them from an external *Policy Information Point (PIP)*. The PDP fetches those attributes while evaluating the policy. To be able to access external PIPs, developers can extend the PDP by adding custom attribute finders. Policies might also contain functions not included in the default SAPL implementation. Developers may add custom functions by implementing *Function Libraries*.
 
@@ -385,7 +385,7 @@ A SAPL PDP must expose a publish-subscribe API for subscribing via the subscript
 
 === HTTP Server-Sent Events API
 
-A PDP to be used as a network service has to implement some HTTP endpoints. 
+A PDP to be used as a network service must implement some HTTP endpoints. 
 All of them accept `POST` requests and `application/json`. They produce `application/x-ndjson` as https://www.w3.org/TR/eventsource/[Server-Sent Events (SSE)]. A PDP server must be accessed over encrypted TLS connections. All connections should be authenticated. The means of authentications are left open for the organization deploying the PDP to decide or to be defined by a specific server implementation. All endpoints should be located under a shared base URL, e.g., `https://pdp.sapl.io/api/pdp/`.
 
 A PEP which is a client to the SSE PDP API encountering connectivity issues or errors, must interpret this as an INDETERMINATE decision and thus deny access during this time of uncertainty and take appropriate steps to reconnect with the PDP, using a matching back-off strategy to not overload the PDP. 
@@ -560,7 +560,7 @@ For Spring Security (https://spring.io/projects/spring-security), a full PEP imp
 == The SAPL Policy Language
 
 SAPL defines a feature-rich domain-specific language (DSL) for creating access policies. 
-Those access policies describe when access requests will be granted and when access will be denied. The underlying concept to describe these permissions is an attribute-based access control model (ABAC): A SAPL authorization subscription is a JSON object with the attributes `subject`, `action`, `resource` and `environment` each with an assigned JSON value. Each of these values may be a JSON object itself containing multiple attributes. Policies can use of boolean conditions referring to those attributes (e.g., `subject.username == "admin"`).
+Those access policies describe when access requests will be granted and when access will be denied. The underlying concept to describe these permissions is an attribute-based access control model (ABAC): A SAPL authorization subscription is a JSON object with the attributes `subject`, `action`, `resource` and `environment` each with an assigned JSON value. Each of these values may be a JSON object itself containing multiple attributes. Policies can use of Boolean conditions referring to those attributes (e.g., `subject.username == "admin"`).
 
 However, a role-based access control (RBAC) system in which permissions are assigned to a certain role and roles can be assigned to users can be created with SAPL as well. 
 
@@ -670,7 +670,7 @@ A SAPL policy starts with the keyword `policy`.
 
 ==== Name
 
-The keyword `policy` is followed by the policy name. The name is a string _identifying_ the policy. Therefore it must be unique. Accordingly, in systems with many policy sets and policies, it is recommended to use a schema to create names (e.g., `"policy:patientdata:permit-doctors-read"`).
+The keyword `policy` is followed by the policy name. The name is a string _identifying_ the policy. Therefore, it must be unique. Accordingly, in systems with many policy sets and policies, it is recommended to use a schema to create names (e.g., `"policy:patientdata:permit-doctors-read"`).
 
 ==== Entitlement
 
@@ -689,7 +689,7 @@ A matching policy whose conditions in the body evaluate to `true` is called _app
 
 Accordingly, there are two limitations regarding the elements allowed in the target:
 
-* As lazy evaluation deviates from boolean logic and prevents effective indexing, the logical operators `&&` and `||` may not be used. Instead, the target needs to use the operators `&` and `|`, for which eager evaluation is applied.
+* As lazy evaluation deviates from Boolean logic and prevents effective indexing, the logical operators `&&` and `||` may not be used. Instead, the target needs to use the operators `&` and `|`, for which eager evaluation is applied.
 * <<attribute-finders,Attribute finder steps>> that have access to environment variables and may contact external PIPs are not allowed in the target. Functions may be used because their output only depends on the arguments passed.
 
 ==== Body
@@ -728,7 +728,7 @@ The value assignment statement always evaluates to `true`.
 
 ===== Condition
 
-A condition statement simply consists of an expression that has to evaluate to `true` or `false`. 
+A condition statement simply consists of an expression that must evaluate to `true` or `false`. 
 
 The expression can use any element of the SAPL expression language, especially of attribute finder steps that are not allowed in the target expression. Conditions in the policy body are used to further limit the applicability of a policy. 
 
@@ -736,7 +736,7 @@ The expression can use any element of the SAPL expression language, especially o
 
 An *optional* obligation expression contains a task which the PEP must fulfill before granting or denying access. It consists of the keyword `obligation` followed by an expression. 
 
-A common situation in which obligations are useful is _Break the Glass Scenarios_. Assuming in case of an emergency, a doctor should also have access to medical records that she normally cannot read. However, this emergency access has to be logged to prevent abuse. In this situation, logging is a requirement for granting access and therefore must be commanded in an obligation.
+A common situation in which obligations are useful is _Break the Glass Scenarios_. Assuming in case of an emergency, a doctor should also have access to medical records that she normally cannot read. However, this emergency access must be logged to prevent abuse. In this situation, logging is a requirement for granting access and therefore must be commanded in an obligation.
 
 Obligations are only returned in the authorization decision if the decision is `PERMIT` or `DENY`. The PDP simply collects all obligations from policies evaluating to one of these entitlements. Depending on the final decision, the obligations and advice which belong to this decision are included in the authorization decision object. It does not matter if the obligation is described with a string (like `"create_emergency_access_log"`) or an object (like `{ "task" : "create_log", "content" : "emergency_access" }`) or another JSON value - only the PEP must be implemented in a way that it knows how to process these obligations.
 
@@ -750,7 +750,7 @@ If the final decision is `PERMIT` or `DENY`, advice from all policies evaluating
 
 An *optional* transformation statement is preluded with the keyword `transform` and followed by an expression. If a transformation statement is supplied and the policy evaluates to `permit`, the result of evaluating the expression will be returned as the `resource` in the authorization decision object.
 
-Accordingly, a transformation statement might be used to hide certain information (e.g., _a doctor can access patient data but should not see bank account details_). This can be reached by applying a filter to the original resource, which removes or blackens certain attributes. Thus SAPL allows for *fine-grained* or *field-level* access control without the need to treat each attribute as a resource and write a specific  policy for it.
+Accordingly, a transformation statement might be used to hide certain information (e.g., _a doctor can access patient data but should not see bank account details_). This can be reached by applying a filter to the original resource, which removes or blackens certain attributes. Thus, SAPL allows for *fine-grained* or *field-level* access control without the need to treat each attribute as a resource and write a specific  policy for it.
 
 The original resource is accessible via the identifier `resource` and can be filtered as follows:
 
@@ -779,7 +779,7 @@ A policy set definition starts with the keyword `set`.
 
 ==== Name
 
-The keyword `set` is followed by the policy set name. The name is a string _identifying_ the policy set. It has to be unique within all policy sets and policies.
+The keyword `set` is followed by the policy set name. The name is a string _identifying_ the policy set. It must be unique within all policy sets and policies.
 
 ==== Combining Algorithm
 
@@ -870,7 +870,7 @@ Remove before deployment! */
 
 [[expressions]]
 
-To ensure flexibility, various parts of a policy can be *expressions* that are evaluated at runtime. E.g., a policy's target has to be an expression evaluating to `true` or `false`. SAPL contains a uniform expression language that offers various useful features while still being easy to read and write. 
+To ensure flexibility, various parts of a policy can be *expressions* that are evaluated at runtime. E.g., a policy's target must be an expression evaluating to `true` or `false`. SAPL contains a uniform expression language that offers various useful features while still being easy to read and write. 
 
 Since JSON is the base data model, each expression evaluates to a JSON data type. These data types and the expression syntax are described in this section.
 
@@ -887,7 +887,7 @@ The types and their JSON notations are:
 ** *null*: Marks an empty value, `null`.
  
 * Structured Types
-** *Object*: An unordered set of name/value pairs. The name is a string. The value has to be one of the available data types. It can also be an object itself. The name/value pair is also called an attribute of the object. E.g.
+** *Object*: An unordered set of name/value pairs. The name is a string. The value must be one of the available data types. It can also be an object itself. The name/value pair is also called an attribute of the object. E.g.
 +
 ----
 {
@@ -928,7 +928,7 @@ Each of these basic expressions can contain one or more *selection steps* (e.g.,
 
 ===== Value Expressions
 
-A basic value expression is the most simple type. The value is denoted in the corresponding JSON format. 
+A basic value expression is the simplest type. The value is denoted in the corresponding JSON format. 
 
 `true`, `false`, and `null` are value expressions as well as `"a string"`, `'a string'`, or any number (like `6` or `100.51`).
 
@@ -1063,7 +1063,7 @@ The difference between `&&` and `&` (or `||` and `|`) is that for `&&` lazy eval
 
 The operators are already listed in descending order of their *precedence*, i.e., `!` has the highest precedence followed by `&&`/`&` and `||`/`|`. The order of evaluation can be changed by using parentheses.
 
-`&&` and `||` are left-associative, i.e., in case an expression contains multiple operators the leftmost operator is evaluated first. `!` is non-associative, i.e., `!!true` has to be replaced by `!(!true))`. 
+`&&` and `||` are left-associative, i.e., in case an expression contains multiple operators the leftmost operator is evaluated first. `!` is non-associative, i.e., `!!true` must be replaced by `!(!true))`. 
 
 ===== String Concatenation
 
@@ -1179,7 +1179,7 @@ Given that the following object is stored in the variable `object`:
 
 The basic access syntax is quite similar to accessing an object's attributes in JavaScript or Java: 
 
-* *Attributes of an object* can be accessed by their key (*key step*) using the _dot notation_ (`resource.key`) or the _bracket notation_ (`resource["key"]`,`resource['key']`). Both expressions return the value of the specified attribute. For using the dot notation, the specified key has to be an <<identifiers,identifier>>. Otherwise, the bracket notation with a string between square brackets is necessary, e.g., if the key contains whitespace characters (`resource['another key']`).
+* *Attributes of an object* can be accessed by their key (*key step*) using the _dot notation_ (`resource.key`) or the _bracket notation_ (`resource["key"]`,`resource['key']`). Both expressions return the value of the specified attribute. For using the dot notation, the specified key must be an <<identifiers,identifier>>. Otherwise, the bracket notation with a string between square brackets is necessary, e.g., if the key contains whitespace characters (`resource['another key']`).
 
 * *Indices of an array* may be accessed by putting the index between square brackets (*index step*, `array[3]`). The index can be a negative number `-n`, which evaluates to the `n`-th element from the end of the array, starting with -1 as the last element's index. `array[-2]` would return the second last element of the array `array`.
 
@@ -1340,7 +1340,7 @@ Removes a whole attribute (key and value pair) of an object or an item of an arr
 Replaces an attribute or an element by the result of evaluating the expression `replacement`.
 
 .filter.blacken(disclose\_left=0,disclose\_right=0,replacement="X")
-Replaces each char of an attribute or item (which has to be a string) by `replacement`, leaving `show\_left` chars from the beginning and `show\_right` chars from the end unchanged. By default, no chars are visible, and each char is replaced by `X`.
+Replaces each char of an attribute or item (which must be a string) by `replacement`, leaving `show\_left` chars from the beginning and `show\_right` chars from the end unchanged. By default, no chars are visible, and each char is replaced by `X`.
 
 [NOTE]
 `filter.blacken` could be used to reveal only the first digit of the credit card number and replace the other digits by `X`.
@@ -1437,7 +1437,7 @@ The syntax of a filter statement is:
 each TargetRelativeExpression : Function
 ----
 
-`each` is an optional keyword. If used, the `TargetRelativeExpression` has to evaluate to an array. In this case, `Function` is applied to each item of that array. 
+`each` is an optional keyword. If used, the `TargetRelativeExpression` must evaluate to an array. In this case, `Function` is applied to each item of that array. 
 
 `TargetRelativeExpression` contains a basic relative expression starting with `@`. The character `@` references the result of the evaluation of `Expression`, so attributes of the value to filter can be accessed easily. Bear in mind that attribute finder steps are not allowed at this place. The value of the attribute selected by the target expression is replaced by the result of the filter function.
 
@@ -1476,7 +1476,7 @@ The subtemplate is denoted after a double colon:
 Array {two-colons} Expression
 ----
 
-This `Expression` represents the replacement template. In this expression, basic relative expressions (starting with `@`) can be used to access the attributes of the current array item. `@` references the array item, which is currently being replaced. `Array` has to evaluate to an array. For each item of `Array`, `Expression` is evaluated, and the item is replaced by the result.
+This `Expression` represents the replacement template. In this expression, basic relative expressions (starting with `@`) can be used to access the attributes of the current array item. `@` references the array item, which is currently being replaced. `Array` must evaluate to an array. For each item of `Array`, `Expression` is evaluated, and the item is replaced by the result.
 
 ****
 *Example*
@@ -1584,7 +1584,7 @@ Finally, in case the decision is `PERMIT`, and there is a `transform` statement,
 There are two layers with possibly multiple decisions that finally need to be consolidated into a single decision:
 
 * A policy set might contain multiple policies evaluating to different decisions. There must be a final decision for the policy set (_Policy Combination_).
-* The PDP might know multiple policy sets and policies which may evaluate to different decisions. In the end, the PDP has to include a final decision in the SAPL authorization decision (_Document Combination_).
+* The PDP might know multiple policy sets and policies which may evaluate to different decisions. In the end, the PDP must include a final decision in the SAPL authorization decision (_Document Combination_).
 
 A combining algorithm describes how to come to the final decision. Both the PDP itself and each policy set must be configured with a combining algorithm.
 
@@ -1621,7 +1621,7 @@ It works as follows:
 
 ==== `only-one-applicable`
 
-This algorithm is used if policy sets and policies are constructed in a way that multiple policy documents with a matching target are considered an error. A `PERMIT` or `DENY` decision will only be returned if there is exactly one policy set or policy with matching target expression and if this policy document evaluates to `PERMIT` or `DENY`.
+This algorithm is used if policy sets, and policies are constructed in a way that multiple policy documents with a matching target are considered an error. A `PERMIT` or `DENY` decision will only be returned if there is exactly one policy set or policy with matching target expression and if this policy document evaluates to `PERMIT` or `DENY`.
 
 It works as follows:
 
@@ -1687,7 +1687,7 @@ On the two levels (PDP and policy set), collection of obligation and advice work
 
 * *Policy Set*: If the policy set evaluates to a certain decision (`PERMIT` or `DENY`), the obligation and advice from all contained policies evaluating to this decision are bundled as the obligation and advice of the policy set. 
 +
-(For the combining algorithm `first-applicable`, not all policies might be evaluated. A value `PERMIT` or `DENY` is only assigned to evaluated policies. Thus, the policy set's obligation and advice merely contains obligation and advice from evaluated policies.)
+(For the combining algorithm `first-applicable`, not all policies might be evaluated. A value `PERMIT` or `DENY` is only assigned to evaluated policies. Thus, the policy set's obligation and advice do only contain obligations and advice from evaluated policies.)
 
 * *PDP*: If the final decision is `PERMIT` or `DENY`, the obligation and advice from all top-level policy documents evaluating to this final decision are collected as the final decision's obligation and advice.
 
@@ -1710,7 +1710,7 @@ The standard functions can be extended by custom functions. Function libraries a
 
 SAPL functions must not perform any IO operations. Functions are to be used as "immediate" data transformation functions.
 
-- To be recognized as a function library, a class has to be annotated with `@FunctionLibrary`. The optional annotation attribute `name` contains the library's name as it will be available in SAPL policies. The attribute value has to be a string consisting of one or more identifiers separated by periods. If the attribute is missing, the name of the Java class is used. The optional annotation attribute `description` contains a string describing the library for documentation purposes.
+- To be recognized as a function library, a class must be annotated with `@FunctionLibrary`. The optional annotation attribute `name` contains the library's name as it will be available in SAPL policies. The attribute value must be a string consisting of one or more identifiers separated by periods. If the attribute is missing, the name of the Java class is used. The optional annotation attribute `description` contains a string describing the library for documentation purposes.
 +
 [source,java]
 @FunctionLibrary(name = "sample.functions", description = "a sample library")
@@ -1743,7 +1743,7 @@ Furthermore, attribute finders may be used without any leading value `<finder.na
 
 The way to read a statement with an attribute finder is as follows. For `subject.<groups.membership("studygroup")>` one would say "get the attribute `group.membership` with parameter `"studygroup"` of the subject".
 
-Attribute finders often receive information from external data sources such as files, databases, or HTTP requests which may take a certain amount of time. Therefore they must not be used in a target expression. Attribute finders can access environment variables.
+Attribute finders often receive information from external data sources such as files, databases, or HTTP requests which may take a certain amount of time. Therefore, they must not be used in a target expression. Attribute finders can access environment variables.
 
 === Custom Attribute Finders
 
@@ -1751,7 +1751,7 @@ For a more in-depth look at the process of creating a custom PIP, please refer t
 
 Attribute finders are functions that potentially take a left-hand argument (i.e., the Object of which the attribute is to be determined), a `Map` of variables defined in the current evaluation scope, and an optional list of incoming parameter streams. 
 
-In SAPL, a Policy Information Point is an instance of a class that supplies a set of such functions. To declare functions and classes to be attributes or PIPs, SAPL uses annotations. Each PIP class has to be known to the PDP. The embedded PDP provides an `AnnotationAttributeContext`,  which takes arbitrary Java classes as PIPs. To be recognized as a PIP, the class has to be annotated with `@PolicyInformationPoint`. The optional annotation attribute `name` contains the PIP's name as it will be available in SAPL policies. If the attribute is missing, the name of the Java class is used. The optional annotation attribute `description` contains a string describing the PIP for documentation purposes.
+In SAPL, a Policy Information Point is an instance of a class that supplies a set of such functions. To declare functions and classes to be attributes or PIPs, SAPL uses annotations. Each PIP class must be known to the PDP. The embedded PDP provides an `AnnotationAttributeContext`,  which takes arbitrary Java classes as PIPs. To be recognized as a PIP, the class must be annotated with `@PolicyInformationPoint`. The optional annotation attribute `name` contains the PIP's name as it will be available in SAPL policies. If the attribute is missing, the name of the Java class is used. The optional annotation attribute `description` contains a string describing the PIP for documentation purposes.
 
 
 [source,java]
@@ -1760,7 +1760,7 @@ public class SampleUserPIP {
 	...
 }
 
-The individual attributes supplied by the PIP are identified by adding the annotation `@Attribute`. An optional annotation attribute `name` can contain a name for the attribute. The attribute has to be a string containing an identifier. By default, the name of the function will be used. The annotation attribute `docs` can contain a string describing the attribute.
+The individual attributes supplied by the PIP are identified by adding the annotation `@Attribute`. An optional annotation attribute `name` can contain a name for the attribute. The attribute must be a string containing an identifier. By default, the name of the function will be used. The annotation attribute `docs` can contain a string describing the attribute.
 
 
 [source,java]
