@@ -15,22 +15,27 @@
  */
 package io.sapl.functions;
 
-import io.sapl.api.interpreter.Val;
-import org.junit.jupiter.api.Test;
-
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-
 import static io.sapl.hamcrest.Matchers.val;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.util.Locale;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+
+import org.junit.jupiter.api.Test;
+
+import io.sapl.api.interpreter.Val;
 
 class TemporalFunctionLibraryTest {
 

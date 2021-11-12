@@ -15,12 +15,6 @@
  */
 package io.sapl.functions;
 
-import io.sapl.api.functions.Function;
-import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.validation.Number;
-import io.sapl.api.validation.Text;
-
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -32,9 +26,17 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
+import java.util.Locale;
+
+import io.sapl.api.functions.Function;
+import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.interpreter.Val;
+import io.sapl.api.validation.Number;
+import io.sapl.api.validation.Text;
 
 @FunctionLibrary(name = TemporalFunctionLibrary.NAME, description = TemporalFunctionLibrary.DESCRIPTION)
 public class TemporalFunctionLibrary {
@@ -66,7 +68,6 @@ public class TemporalFunctionLibrary {
 	private static final String MINUTE_OF_HOUR = "Returns the minute of the hour of the given date time as a number. Assumes, that the given date time is a string representing time in ISO 8601";
 	private static final String SECOND_OF_MINUTE = "Returns the second of the minute of the given date time as a number. Assumes, that the given date time is a string representing time in ISO 8601";
 
-
 	private static final String DAY_OF_YEAR = "Assumes, that TIME is a string representing UTC time in ISO 8601. Returns the day of the year. [1-366]";
 	private static final String WEEK_OF_YEAR = "Assumes, that TIME is a string representing UTC time in ISO 8601. Returns the week of the year. [1-52]";
 	private static final String DAY_OF_WEEK = "Assumes, that TIME is a string representing UTC time in ISO 8601. Returns the day of the week. [SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY]";
@@ -78,10 +79,9 @@ public class TemporalFunctionLibrary {
 	private static final String DURATION_OF_HOURS = "durationOfSeconds(HOURS): Assumes, that HOURS is a number. Returns the respective value in milliseconds";
 	private static final String DURATION_OF_DAYS = "durationOfSeconds(DAYS): Assumes, that DAYS is a number. Returns the respective value in milliseconds";
 
-
 	private static final DateTimeFormatter DIN_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
-	private static final DateTimeFormatter US_TIME_FORMATTER = DateTimeFormatter.ofPattern("hh:mm:ss a");
-
+	private static final DateTimeFormatter US_TIME_FORMATTER = new DateTimeFormatterBuilder().parseCaseInsensitive()
+			.appendPattern("hh:mm:ss a").toFormatter(Locale.US);
 
 	/* ######## DURATION ######## */
 
@@ -228,12 +228,15 @@ public class TemporalFunctionLibrary {
 
 	@Function(docs = "Parses the given string as local date time (ISO) and converts it from system time zone to the respective time in UTC.")
 	public static Val localIso(@Text Val localDateTime) {
-		return Val.of(localDateTimeToInstant(parseLocalDateTime(localDateTime.getText(), DateTimeFormatter.ISO_LOCAL_DATE_TIME), ZoneId.systemDefault()).toString());
+		return Val.of(localDateTimeToInstant(
+				parseLocalDateTime(localDateTime.getText(), DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+				ZoneId.systemDefault()).toString());
 	}
 
 	@Function(docs = "Parses the given string as local date time (DIN) and converts it from system time zone to the respective time in UTC.")
 	public static Val localDin(@Text Val dinDateTime) {
-		return Val.of(localDateTimeToInstant(parseLocalDateTime(dinDateTime.getText(), DIN_DATE_TIME_FORMATTER), ZoneId.systemDefault()).toString());
+		return Val.of(localDateTimeToInstant(parseLocalDateTime(dinDateTime.getText(), DIN_DATE_TIME_FORMATTER),
+				ZoneId.systemDefault()).toString());
 	}
 
 	@Function(docs = "Parses the given string as local date time (ISO) and converts it from the given offset to the respective time in UTC.")
