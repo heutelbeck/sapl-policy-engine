@@ -73,8 +73,6 @@ public class TemporalFunctionLibrary {
 
 	private static final String OF_EPOCH_MILLIS_DOC = "Assumes, that MILLIS is a long representing the milliseconds from the epoch of 1970-01-01T00:00:00Z. Returns UTC time as String in ISO 8601 using.";
 
-	private static final String LOCAL_DATE_TIME_DOC = "Assumes, that TIME is a string representing time in ISO 8601. Returns TIME as LocalDateTime by dropping any offset. Example: '2007-12-03T10:15:30'";
-
 	private static final String LOCAL_DATE_DOC = "Assumes, that TIME is a string representing time in ISO 8601. Returns TIME as LocalDate by dropping any offset and time.  Example: '2007-12-03'";
 
 	private static final String LOCAL_TIME_DOC = "Assumes, that TIME is a string representing time in ISO 8601. Returns TIME as LocalTime by dropping any offset and offset. Example: '10:15:30'";
@@ -318,7 +316,7 @@ public class TemporalFunctionLibrary {
 	// "08:30am", "09:30pm"
 	@Function(docs = "Parses the given string as local time in AM/PM-format and converts it to 24-hour format.")
 	public static Val timeAMPM(@Text Val timeInAMPM) {
-		LocalTime lt = US_TIME_FORMATTER.parse(timeInAMPM.getText().toUpperCase(), LocalTime::from);
+		LocalTime lt = US_TIME_FORMATTER.parse(timeInAMPM.getText(), LocalTime::from);
 
 		return Val.of(lt.toString());
 	}
