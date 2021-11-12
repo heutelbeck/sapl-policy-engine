@@ -43,7 +43,7 @@ public class H_PolicyDocumentMultipleReferencesToSameAttributeTest {
 
 		fixture.constructTestCaseWithMocks()
 				.givenAttribute("time.now", Val.of(1), Val.of(2), Val.of(3), Val.of(4), Val.of(5), Val.of(6))
-				.givenFunctionOnce("time.localSecond", Val.of(1), Val.of(15), Val.of(25), Val.of(25), Val.of(35),
+				.givenFunctionOnce("time.secondOf", Val.of(1), Val.of(15), Val.of(25), Val.of(25), Val.of(35),
 						Val.of(35), Val.of(45), Val.of(45), Val.of(45), Val.of(55), Val.of(55), Val.of(55))
 				.when(AuthorizationSubscription.of("WILLI", "read", "something"))
 				.expectNext(allOf(isPermit(), hasObligation("A"))).expectNext(allOf(isPermit(), hasObligation("A")))
@@ -58,12 +58,12 @@ public class H_PolicyDocumentMultipleReferencesToSameAttributeTest {
 
 		fixture.constructTestCaseWithMocks()
 				.givenAttribute("time.now", Val.of(1), Val.of(2), Val.of(3), Val.of(4), Val.of(5), Val.of(6))
-				.givenFunction("time.localSecond", whenFunctionParams(val(1)), Val.of(1))
-				.givenFunction("time.localSecond", whenFunctionParams(val(2)), Val.of(15))
-				.givenFunction("time.localSecond", whenFunctionParams(val(3)), Val.of(25))
-				.givenFunction("time.localSecond", whenFunctionParams(val(4)), Val.of(35))
-				.givenFunction("time.localSecond", whenFunctionParams(val(5)), Val.of(45))
-				.givenFunction("time.localSecond", whenFunctionParams(val(6)), Val.of(55))
+				.givenFunction("time.secondOf", whenFunctionParams(val(1)), Val.of(1))
+				.givenFunction("time.secondOf", whenFunctionParams(val(2)), Val.of(15))
+				.givenFunction("time.secondOf", whenFunctionParams(val(3)), Val.of(25))
+				.givenFunction("time.secondOf", whenFunctionParams(val(4)), Val.of(35))
+				.givenFunction("time.secondOf", whenFunctionParams(val(5)), Val.of(45))
+				.givenFunction("time.secondOf", whenFunctionParams(val(6)), Val.of(55))
 				.when(AuthorizationSubscription.of("WILLI", "read", "something"))
 				.expectNext(allOf(isPermit(), hasObligation("A"))).expectNext(allOf(isPermit(), hasObligation("A")))
 				.expectNext(allOf(isPermit(), hasObligation("B"))).expectNext(allOf(isPermit(), hasObligation("B")))

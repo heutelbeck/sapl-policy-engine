@@ -4,4 +4,4 @@ permit
 where
   subject == "ROLE_DOCTOR";
   var interval = 2;
-  time.localSecond(<time.now(interval)>) > 4;
+  time.secondOf(<time.now(interval)>) > 4;

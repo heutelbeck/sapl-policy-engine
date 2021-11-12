@@ -126,7 +126,7 @@ class E_PolicyStreamingTest {
 		var timestamp1 = Val.of("2021-02-08T16:16:02.000Z");
 
 		fixture.constructTestCaseWithMocks().givenAttribute("time.now", timestamp0, timestamp1)
-				.givenFunctionOnce("time.localSecond", Val.of(4)).givenFunctionOnce("time.localSecond", Val.of(5))
+				.givenFunctionOnce("time.secondOf", Val.of(4)).givenFunctionOnce("time.secondOf", Val.of(5))
 				.when(AuthorizationSubscription.of("ROLE_DOCTOR", "read", "heartBeatData")).expectNextNotApplicable()
 				.expectNextPermit().verify(); // two times mock of function -> verify two
 												// times called
@@ -138,7 +138,7 @@ class E_PolicyStreamingTest {
 
 		fixture.constructTestCaseWithMocks()
 				.givenAttribute("time.now", Val.of("value"), Val.of("doesn't"), Val.of("matter"))
-				.givenFunctionOnce("time.localSecond", Val.of(3), Val.of(4), Val.of(5))
+				.givenFunctionOnce("time.secondOf", Val.of(3), Val.of(4), Val.of(5))
 				.when(AuthorizationSubscription.of("ROLE_DOCTOR", "read", "heartBeatData")).expectNextNotApplicable()
 				.expectNextNotApplicable().expectNextPermit().verify(); // three times
 																		// mock of
@@ -153,7 +153,7 @@ class E_PolicyStreamingTest {
 
 		fixture.constructTestCaseWithMocks()
 				.givenAttribute("time.now", Val.of("value"), Val.of("doesn't"), Val.of("matter"))
-				.givenFunction("time.localSecond", Val.of(5), times(3))
+				.givenFunction("time.secondOf", Val.of(5), times(3))
 				.when(AuthorizationSubscription.of("ROLE_DOCTOR", "read", "heartBeatData")).expectNextPermit(3)
 				.verify(); // three times mock of function -> three times called
 

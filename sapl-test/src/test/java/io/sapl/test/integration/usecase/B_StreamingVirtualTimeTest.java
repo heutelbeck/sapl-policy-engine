@@ -58,7 +58,7 @@ class B_StreamingVirtualTimeTest {
 
 		fixture.constructTestCaseWithMocks()
 				.givenAttribute("time.now", Val.of("value"), Val.of("doesn't"), Val.of("matter"))
-				.givenFunctionOnce("time.localSecond", Val.of(3), Val.of(4), Val.of(5))
+				.givenFunctionOnce("time.secondOf", Val.of(3), Val.of(4), Val.of(5))
 				.when(AuthorizationSubscription.of("WILLI", "read", "bar")).expectNextDeny().expectNextPermit()
 				.verify();
 
