@@ -16,6 +16,7 @@
 package io.sapl.interpreter.functions;
 
 import java.util.Collection;
+import java.util.List;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.InitializationException;
@@ -28,5 +29,7 @@ public interface FunctionContext extends LibraryFunctionProvider {
 	void loadLibrary(Object library) throws InitializationException;
 
 	Collection<LibraryDocumentation> getDocumentation();
+
+	List<String> getCodeTemplates();
 
 }

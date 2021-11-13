@@ -273,7 +273,7 @@ public class TimePolicyInformationPoint {
 
 	@Attribute(
 			docs = "A preiodically toggling signal. Will be true for the first duration (ms) and then false for the second duration (ms). This will repeat periodically. Note, that the cycle will completely reset if the durations are updated. The attribute will forget its stat ein this case.")
-	public Flux<Val> toggle(Flux<Val> trueDurationMs, Flux<Val> falseDurationMs) {
+	public Flux<Val> toggle(@Number Flux<Val> trueDurationMs, @Number Flux<Val> falseDurationMs) {
 		return Flux.combineLatest(durations -> Tuples.of((Duration) durations[0], (Duration) durations[1]),
 				trueDurationMs.map(this::valMsToNonZeroDuration), falseDurationMs.map(this::valMsToNonZeroDuration))
 				.switchMap(this::toggle).map(Val::of);

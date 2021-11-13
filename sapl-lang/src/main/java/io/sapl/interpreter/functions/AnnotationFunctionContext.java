@@ -22,17 +22,18 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.InitializationException;
+import io.sapl.interpreter.pip.LibraryEntryMetadata;
 import io.sapl.interpreter.validation.ParameterTypeValidator;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.NonNull;
 
 /**
  * Context to hold functions libraries during policy evaluation.
@@ -41,8 +42,6 @@ import lombok.NonNull;
 public class AnnotationFunctionContext implements FunctionContext {
 
 	private static final int VAR_ARGS = -1;
-
-	private static final String DOT = ".";
 
 	private static final String UNKNOWN_FUNCTION = "Unknown function %s";
 
@@ -60,8 +59,10 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 	private final Map<String, Collection<String>> libraries = new HashMap<>();
 
+	private List<String> codeTemplateCache;
 	/**
 	 * Create context from a list of function libraries.
+	 * 
 	 * @param libraries list of function libraries @ if loading libraries fails
 	 * @throws InitializationException if initialization fails
 	 */
@@ -108,8 +109,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 	private Val invokeFunction(FunctionMetadata metadata, Object... parameters) {
 		try {
 			return (Val) metadata.getFunction().invoke(metadata.getLibrary(), parameters);
-		}
-		catch (Throwable e) {
+		} catch (Throwable e) {
 			return invocationExceptionToError(e, metadata, parameters);
 		}
 	}
@@ -121,7 +121,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 			if (i < parameters.length - 2)
 				params.append(',');
 		}
-		return Val.error("Error during evaluation of function %s(%s): %s", metadata.getName(), params.toString(),
+		return Val.error("Error during evaluation of function %s(%s): %s", metadata.getFunctionName(), params.toString(),
 				e.getMessage());
 	}
 
@@ -167,16 +167,14 @@ public class AnnotationFunctionContext implements FunctionContext {
 			if (parameters == 1 && parameterType.isArray()
 					&& Val.class.isAssignableFrom(parameterType.getComponentType())) {
 				parameters = VAR_ARGS;
-			}
-			else if (!Val.class.isAssignableFrom(parameterType)) {
+			} else if (!Val.class.isAssignableFrom(parameterType)) {
 				throw new InitializationException(ILLEGAL_PARAMETER_FOR_IMPORT, parameterType.getName());
 			}
 		}
-		libMeta.documentation.put(funName, funAnnotation.docs());
 
-		var fullName = fullName(libName, funName);
-		FunctionMetadata funMeta = new FunctionMetadata(fullName, library, parameters, method);
-		functions.put(fullName, funMeta);
+		FunctionMetadata funMeta = new FunctionMetadata(libName, funName, library, parameters, method);
+		functions.put(funMeta.fullyQualifiedName(), funMeta);
+		libMeta.documentation.put(funMeta.getDocumentationCodeTemplate(), funAnnotation.docs());
 
 		libraries.get(libName).add(funName);
 	}
@@ -184,10 +182,6 @@ public class AnnotationFunctionContext implements FunctionContext {
 	@Override
 	public Boolean isProvidedFunction(String function) {
 		return functions.containsKey(function);
-	}
-
-	private static String fullName(String packageName, String methodName) {
-		return packageName + DOT + methodName;
 	}
 
 	@Override
@@ -209,21 +203,29 @@ public class AnnotationFunctionContext implements FunctionContext {
 	 */
 	@Data
 	@AllArgsConstructor
-	public static class FunctionMetadata {
+	public static class FunctionMetadata implements LibraryEntryMetadata {
+		String libraryName;
 
-		@NonNull
-		String name;
+		String functionName;
 
-		@NonNull
 		Object library;
 
 		int parameterCardinality;
 
-		@NonNull
 		Method function;
 
 		public boolean isVarArgs() {
 			return parameterCardinality == VAR_ARGS;
+		}
+
+		@Override
+		public String getCodeTemplate() {
+			return fullyQualifiedName();
+		}
+
+		@Override
+		public String getDocumentationCodeTemplate() {
+			return fullyQualifiedName();
 		}
 
 	}
@@ -231,6 +233,18 @@ public class AnnotationFunctionContext implements FunctionContext {
 	@Override
 	public Collection<String> getAvailableLibraries() {
 		return this.libraries.keySet();
+	}
+
+	@Override
+	public List<String> getCodeTemplates() {
+		if(codeTemplateCache == null) {
+			codeTemplateCache = new LinkedList<>();
+			for(var entry : functions.entrySet()) {
+				codeTemplateCache.add(entry.getValue().getCodeTemplate());
+			}
+			Collections.sort(codeTemplateCache);
+		}
+		return codeTemplateCache;
 	}
 
 }

@@ -15,6 +15,7 @@
  */
 package io.sapl.interpreter.pip;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -26,8 +27,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -35,6 +38,13 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
+import io.sapl.api.validation.Array;
+import io.sapl.api.validation.Bool;
+import io.sapl.api.validation.Int;
+import io.sapl.api.validation.JsonObject;
+import io.sapl.api.validation.Long;
+import io.sapl.api.validation.Number;
+import io.sapl.api.validation.Text;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.EvaluationContext;
@@ -43,7 +53,6 @@ import io.sapl.interpreter.validation.ParameterTypeValidator;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -53,8 +62,6 @@ import reactor.core.publisher.Flux;
 @NoArgsConstructor
 public class AnnotationAttributeContext implements AttributeContext {
 
-	private static final String NAME_DELIMITER = ".";
-
 	private static final String CLASS_HAS_NO_POLICY_INFORMATION_POINT_ANNOTATION = "Provided class has no @PolicyInformationPoint annotation.";
 
 	private static final String UNKNOWN_ATTRIBUTE = "Unknown attribute %s";
@@ -63,12 +70,13 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 	private final Map<String, Set<String>> attributeNamesByPipName = new HashMap<>();
 
-	private final Map<String, Collection<AttributeFinderMetadata>> newAttributeMetadataByAttributeName = new HashMap<>();
+	private final Map<String, Collection<AttributeFinderMetadata>> attributeMetadataByAttributeName = new HashMap<>();
 
 	private final Collection<PolicyInformationPointDocumentation> pipDocumentations = new LinkedList<>();
 
 	/**
 	 * Create the attribute context from a list of PIPs
+	 * 
 	 * @param policyInformationPoints a list of PIPs
 	 * @throws InitializationException when loading the PIPs fails
 	 */
@@ -88,8 +96,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 		try {
 			return evaluateEnvironmentAttribute(attributeMetadata, ctx, arguments);
-		}
-		catch (Throwable e) {
+		} catch (Throwable e) {
 			return Flux.just(Val.error("Failed to evaluate attribute", new PolicyEvaluationException(e)));
 		}
 	}
@@ -124,8 +131,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 		if (attributeMetadata.varArgsParameters) {
 			invocationArguments[argumentIndex] = buildVarArgsArrayFromArguments(arguments, ctx, attributeMetadata,
 					argumentIndex);
-		}
-		else {
+		} else {
 			if (arguments != null) {
 				for (Expression argument : arguments.getArgs()) {
 					var parameter = attributeMetadata.function.getParameters()[argumentIndex];
@@ -174,7 +180,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 	private AttributeFinderMetadata lookupAttribute(String attributeName, int numberOfParameters,
 			boolean environmentAttribute) {
-		var nameMatches = newAttributeMetadataByAttributeName.get(attributeName);
+		var nameMatches = attributeMetadataByAttributeName.get(attributeName);
 		if (nameMatches == null)
 			return null;
 		AttributeFinderMetadata varArgsMatch = null;
@@ -200,8 +206,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 		try {
 			return evaluateAttribute(attributeMetadata, leftHandValue, ctx, arguments);
-		}
-		catch (Throwable e) {
+		} catch (Throwable e) {
 			return Flux.just(Val.error("Failed to evaluate attribute", new PolicyEvaluationException(e)));
 		}
 
@@ -209,8 +214,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 	@SuppressWarnings("unchecked")
 	private Flux<Val> evaluateAttribute(AttributeFinderMetadata attributeMetadata, Val leftHandValue,
-			EvaluationContext ctx, Arguments arguments)
-			throws IllegalAccessException, InvocationTargetException {
+			EvaluationContext ctx, Arguments arguments) throws IllegalAccessException, InvocationTargetException {
 		var pip = attributeMetadata.getPolicyInformationPoint();
 		var method = attributeMetadata.getFunction();
 
@@ -237,8 +241,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 		if (attributeMetadata.varArgsParameters) {
 			invocationArguments[argumentIndex] = buildVarArgsArrayFromArguments(arguments, ctx, attributeMetadata,
 					argumentIndex);
-		}
-		else {
+		} else {
 			if (arguments != null) {
 				for (Expression argument : arguments.getArgs()) {
 					var parameter = attributeMetadata.function.getParameters()[argumentIndex];
@@ -295,38 +298,17 @@ public class AnnotationAttributeContext implements AttributeContext {
 		if (attributeName.isBlank())
 			attributeName = method.getName();
 
-		var metadata = metadataOf(policyInformationPoint, method, attributeName);
-		var name = fullName(pipName, attributeName);
-		var attributesWithName = newAttributeMetadataByAttributeName.get(name);
+		var metadata = metadataOf(policyInformationPoint, method, pipName, attributeName);
+		var name = metadata.fullyQualifiedName();
+		var attributesWithName = attributeMetadataByAttributeName.get(name);
 		if (attributesWithName == null) {
 			attributesWithName = new ArrayList<>();
-			newAttributeMetadataByAttributeName.put(name, attributesWithName);
+			attributeMetadataByAttributeName.put(name, attributesWithName);
 		}
 		assertNoCollision(attributesWithName, metadata);
 		attributesWithName.add(metadata);
 		attributeNamesByPipName.get(pipName).add(attributeName);
-		var longName = longName(pipName, metadata);
-		pipDocs.documentation.put(longName, annotation.docs());
-	}
-
-	private String longName(String pipName, AttributeFinderMetadata metadata) {
-		var sb = new StringBuilder();
-		if (!metadata.isEnvironmentAttribute())
-			sb.append("value.");
-		sb.append('<').append(pipName).append('.').append(metadata.getName());
-		if (metadata.isVarArgsParameters())
-			sb.append("(prarameters...)");
-		else if (metadata.numberOfParameters > 0) {
-			sb.append('(');
-			for (var i = 0; i < metadata.numberOfParameters; i++) {
-				sb.append("param").append(i);
-				if (i < metadata.numberOfParameters - 1)
-					sb.append(", ");
-			}
-			sb.append(')');
-		}
-		sb.append('>');
-		return sb.toString();
+		pipDocs.documentation.put(metadata.getDocumentationCodeTemplate(), annotation.docs());
 	}
 
 	private void assertNoCollision(Collection<AttributeFinderMetadata> attributesWithName,
@@ -342,18 +324,19 @@ public class AnnotationAttributeContext implements AttributeContext {
 				&& (existingAttribute.varArgsParameters && newAttribute.varArgsParameters
 
 						|| existingAttribute.numberOfParameters == newAttribute.numberOfParameters))
-			throw new InitializationException("Cannot initialize PIPs. Attribute " + newAttribute.getName()
+			throw new InitializationException("Cannot initialize PIPs. Attribute " + newAttribute.getLibraryName()
 					+ " has multiple defienitions which the PDP is not able not be able to disabmiguate both at runtime.");
 	}
 
-	private AttributeFinderMetadata metadataOf(Object policyInformationPoint, Method method, String attributeName)
-			throws InitializationException {
+	private AttributeFinderMetadata metadataOf(Object policyInformationPoint, Method method, String pipName,
+			String attributeName) throws InitializationException {
 		assertValidReturnType(method);
 
 		var parameterCount = method.getParameterCount();
 
 		if (parameterCount == 0)
-			return new AttributeFinderMetadata(policyInformationPoint, method, attributeName, true, false, false, 0);
+			return new AttributeFinderMetadata(policyInformationPoint, method, pipName, attributeName, true, false,
+					false, 0);
 
 		var indexOfParameterInspect = 0;
 
@@ -366,8 +349,8 @@ public class AnnotationAttributeContext implements AttributeContext {
 		}
 
 		if (indexOfParameterInspect == parameterCount)
-			return new AttributeFinderMetadata(policyInformationPoint, method, attributeName, isEnvironmentAttribute,
-					false, false, 0);
+			return new AttributeFinderMetadata(policyInformationPoint, method, pipName, attributeName,
+					isEnvironmentAttribute, false, false, 0);
 
 		var requiresVariables = false;
 		if (isVariableMap(method, indexOfParameterInspect)) {
@@ -376,12 +359,12 @@ public class AnnotationAttributeContext implements AttributeContext {
 		}
 
 		if (indexOfParameterInspect == parameterCount)
-			return new AttributeFinderMetadata(policyInformationPoint, method, attributeName, isEnvironmentAttribute,
-					requiresVariables, false, 0);
+			return new AttributeFinderMetadata(policyInformationPoint, method, pipName, attributeName,
+					isEnvironmentAttribute, requiresVariables, false, 0);
 
 		if (isArrayOfFluxOfVal(method, indexOfParameterInspect)) {
 			if (indexOfParameterInspect + 1 == parameterCount)
-				return new AttributeFinderMetadata(policyInformationPoint, method, attributeName,
+				return new AttributeFinderMetadata(policyInformationPoint, method, pipName, attributeName,
 						isEnvironmentAttribute, requiresVariables, true, 0);
 			else
 				throw new InitializationException("The method " + method.getName()
@@ -392,14 +375,13 @@ public class AnnotationAttributeContext implements AttributeContext {
 		for (; indexOfParameterInspect < parameterCount; indexOfParameterInspect++) {
 			if (isFluxOfVal(method, indexOfParameterInspect)) {
 				parameters++;
-			}
-			else {
+			} else {
 				throw new InitializationException(
 						"The method " + method.getName() + " declared a non Flux<Val> as a parameter");
 			}
 		}
-		return new AttributeFinderMetadata(policyInformationPoint, method, attributeName, isEnvironmentAttribute,
-				requiresVariables, false, parameters);
+		return new AttributeFinderMetadata(policyInformationPoint, method, pipName, attributeName,
+				isEnvironmentAttribute, requiresVariables, false, parameters);
 	}
 
 	private void assertFirstParameterIsOneOfTheLegalTypesForTheFirstElement(Method method)
@@ -423,7 +405,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 				.getActualTypeArguments()[0];
 		if (!Flux.class.isAssignableFrom(returnType) || !Val.class.isAssignableFrom(returnTypeArgument)) {
 			throw new InitializationException(RETURN_TYPE_MUST_BE_FLUX_OF_VALUES,
-					returnType.getName() + "<" + returnTypeArgument.getName() + ">");
+					returnType.getName() + '<' + returnTypeArgument.getName() + '>');
 		}
 	}
 
@@ -472,13 +454,9 @@ public class AnnotationAttributeContext implements AttributeContext {
 		return Val.class.isAssignableFrom(firstTypeArgument);
 	}
 
-	private static String fullName(String packageName, String methodName) {
-		return packageName + NAME_DELIMITER + methodName;
-	}
-
 	@Override
 	public Boolean isProvidedFunction(String attribute) {
-		return newAttributeMetadataByAttributeName.containsKey(attribute);
+		return attributeMetadataByAttributeName.containsKey(attribute);
 	}
 
 	@Override
@@ -500,15 +478,17 @@ public class AnnotationAttributeContext implements AttributeContext {
 	 */
 	@Data
 	@AllArgsConstructor
-	public static class AttributeFinderMetadata {
+	public static class AttributeFinderMetadata implements LibraryEntryMetadata {
 
-		@NonNull
+		private final static Class<?>[] VALIDATION_ANNOTATION_TYPES = { Number.class, Int.class, Long.class, Bool.class,
+				Text.class, Array.class, JsonObject.class };
 		Object policyInformationPoint;
 
-		@NonNull
 		Method function;
 
-		String name;
+		String libraryName;
+
+		String functionName;
 
 		boolean environmentAttribute;
 
@@ -518,6 +498,102 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 		int numberOfParameters;
 
+		private String getParameterName(int index, String defaultName) {
+			var parameter = function.getParameters()[index];
+			if (parameter.isNamePresent())
+				return parameter.getName();
+			return defaultName;
+		}
+
+		private List<Annotation> getValidationAnnoattionsOfParameter(int index) {
+			var annotations = function.getParameters()[index].getAnnotations();
+			var validationAnnotations = new ArrayList<Annotation>(annotations.length);
+			for (var annotation : annotations)
+				if (isValidationAnnotation(annotation))
+					validationAnnotations.add(annotation);
+			return validationAnnotations;
+		}
+
+		private boolean isValidationAnnotation(Annotation annotation) {
+			for (var saplType : VALIDATION_ANNOTATION_TYPES)
+				if (saplType.isAssignableFrom(annotation.getClass()))
+					return true;
+			return false;
+		}
+
+		private String describeParameterForDocumentation(int index, String defaultParameterName) {
+			return describeParameterForDocumentation(getParameterName(index, defaultParameterName),
+					getValidationAnnoattionsOfParameter(index));
+		}
+
+		private String describeParameterForDocumentation(String name, List<Annotation> types) {
+			if (types.isEmpty())
+				return name;
+			StringBuilder sb = new StringBuilder();
+			sb.append('(');
+			var numberOfTypes = types.size();
+			for (var i = 0; i < numberOfTypes; i++) {
+				sb.append(types.get(i).annotationType().getSimpleName());
+				if (i < numberOfTypes - 1)
+					sb.append('|');
+			}
+			sb.append(' ').append(name).append(')');
+			return sb.toString();
+		}
+
+		@Override
+		public String getDocumentationCodeTemplate() {
+			var sb = new StringBuilder();
+			var indexOfParameterBeingDescribed = 0;
+
+			if (!isEnvironmentAttribute())
+				sb.append(describeParameterForDocumentation(indexOfParameterBeingDescribed++, "jsonValue")).append('.');
+
+			if (requiresVariables)
+				indexOfParameterBeingDescribed++;
+
+			sb.append('<').append(fullyQualifiedName());
+
+			appendParameterList(sb, indexOfParameterBeingDescribed, this::describeParameterForDocumentation);
+
+			sb.append('>');
+			return sb.toString();
+		}
+
+		@Override
+		public String getCodeTemplate() {
+			var sb = new StringBuilder();
+			var indexOfParameterBeingDescribed = 0;
+
+			if (!isEnvironmentAttribute())
+				indexOfParameterBeingDescribed++;
+
+			if (requiresVariables)
+				indexOfParameterBeingDescribed++;
+
+			sb.append(fullyQualifiedName());
+
+			appendParameterList(sb, indexOfParameterBeingDescribed, this::getParameterName);
+
+			sb.append('>');
+			return sb.toString();
+		}
+
+		private void appendParameterList(StringBuilder sb, int parameterOffset,
+				BiFunction<Integer, String, String> parameterStringBuilder) {
+			if (isVarArgsParameters())
+				sb.append('(').append(parameterStringBuilder.apply(parameterOffset, "varArgsParameter")).append("...)");
+			else if (numberOfParameters > 0) {
+				sb.append('(');
+				for (var i = 0; i < numberOfParameters; i++) {
+					sb.append(parameterStringBuilder.apply(parameterOffset++, "para" + i));
+					if (i < numberOfParameters - 1)
+						sb.append(", ");
+				}
+				sb.append(')');
+			}
+		}
+
 	}
 
 	@Override
@@ -525,4 +601,14 @@ public class AnnotationAttributeContext implements AttributeContext {
 		return attributeNamesByPipName.keySet();
 	}
 
+	@Override
+	public List<String> getCodeTemplatesWithPrefix(String prefix, boolean isEnvirionmentAttribute) {
+		var templates = new LinkedList<String>();
+		for (var entry : attributeMetadataByAttributeName.entrySet())
+			for (var attribute : entry.getValue())
+				if (attribute.environmentAttribute == isEnvirionmentAttribute
+						&& attribute.fullyQualifiedName().startsWith(prefix))
+					templates.add(attribute.getCodeTemplate());
+		return templates;
+	}
 }

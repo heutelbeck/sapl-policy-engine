@@ -1835,6 +1835,8 @@ public Flux<Val> attribute(@Text Flux<Val>[] params) {
 
 The methods must not declare any further arguments. 
 
+*Note*: Developers must add  `-parameters` parameter to the compilation to ensure that the automatically generated documentation does contain the names of the parameters used in the methods.
+
 
 == Testing SAPL policies
 

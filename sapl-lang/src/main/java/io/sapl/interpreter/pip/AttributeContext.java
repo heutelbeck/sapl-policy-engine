@@ -16,6 +16,7 @@
 package io.sapl.interpreter.pip;
 
 import java.util.Collection;
+import java.util.List;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
@@ -32,5 +33,7 @@ public interface AttributeContext extends LibraryFunctionProvider {
 	void loadPolicyInformationPoint(Object pip) throws InitializationException;
 
 	Collection<PolicyInformationPointDocumentation> getDocumentation();
+
+	List<String> getCodeTemplatesWithPrefix(String prefix, boolean isEnvirionmentAttribute);
 
 }
