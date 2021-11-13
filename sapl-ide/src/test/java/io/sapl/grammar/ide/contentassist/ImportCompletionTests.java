@@ -18,6 +18,8 @@ package io.sapl.grammar.ide.contentassist;
 import io.sapl.pip.TimePolicyInformationPoint;
 import org.eclipse.xtext.testing.TestCompletionConfiguration;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ContextConfiguration;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -28,6 +30,8 @@ import java.util.stream.Collectors;
 /**
  * Tests regarding the auto completion of import statements
  */
+@SpringBootTest
+@ContextConfiguration(classes = SAPLIdeSpringTestConfiguration.class)
 public class ImportCompletionTests extends CompletionTests {
 
 	@Test

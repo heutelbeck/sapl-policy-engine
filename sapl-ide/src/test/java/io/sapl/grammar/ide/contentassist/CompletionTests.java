@@ -18,6 +18,7 @@ package io.sapl.grammar.ide.contentassist;
 import io.sapl.grammar.ide.AbstractSaplLanguageServerTest;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionList;
+import io.sapl.grammar.ide.AbstractSaplLanguageServerTest;
 import org.eclipse.xtext.testing.TestCompletionConfiguration;
 import org.junit.jupiter.api.Test;
 
@@ -34,7 +35,7 @@ import static org.junit.Assert.assertThat;
  * This class uses the xtext test classes to test auto completion results.
  */
 public class CompletionTests extends AbstractSaplLanguageServerTest {
-
+	
 	protected void assertProposalsSimple(final Collection<String> expectedProposals,
 			final CompletionList completionList) {
 		var actualMethods = completionList.getItems().stream().map(CompletionItem::getLabel)

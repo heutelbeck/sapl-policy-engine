@@ -23,27 +23,28 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import io.sapl.functions.FilterFunctionLibrary;
-import io.sapl.functions.StandardFunctionLibrary;
-import io.sapl.functions.TemporalFunctionLibrary;
-import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.functions.AnnotationFunctionContext;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import io.sapl.pip.TimePolicyInformationPoint;
 
 /**
  * This class is used to offer library and function proposals.
  */
+@Component
+@RequiredArgsConstructor
 public class DefaultLibraryAttributeFinder implements LibraryAttributeFinder {
 
-	private final AttributeContext attributeContext;
+	@Autowired @NonNull
+	private AttributeContext attributeContext;
+	@Autowired @NonNull
+	private FunctionContext funtionContext;
 
-	private final FunctionContext functionContext;
-
-	/**
+  /**
 	 * The default constructor registers the default libraries.
 	 * @throws InitializationException if library initialization fails
 	 */

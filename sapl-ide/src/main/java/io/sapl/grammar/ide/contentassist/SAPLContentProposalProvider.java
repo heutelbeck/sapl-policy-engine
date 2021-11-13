@@ -34,6 +34,9 @@ import org.eclipse.xtext.ide.editor.contentassist.ContentAssistEntry;
 import org.eclipse.xtext.ide.editor.contentassist.IIdeContentProposalAcceptor;
 import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
 
+import io.sapl.grammar.sapl.impl.ConditionImpl;
+import io.sapl.grammar.sapl.impl.PolicyBodyImpl;
+import io.sapl.grammar.sapl.impl.ValueDefinitionImpl;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
@@ -68,22 +71,13 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
 	private final Collection<String> allowedKeywords = Set.of("as");
 
-	private final Collection<String> authzSubProposals = Set.of("subject", "action", "resource", "environment");
-
-	private final LibraryAttributeFinder pipAttributeFinder;
-	private final AttributeContext attributeContext;
-	private final FunctionContext functionContext;
-
-	public SAPLContentProposalProvider() throws InitializationException {
-		super();
-		pipAttributeFinder = new DefaultLibraryAttributeFinder();
-		attributeContext = new AnnotationAttributeContext();
-		attributeContext.loadPolicyInformationPoint(new TimePolicyInformationPoint(Clock.systemUTC()));
-		functionContext = new AnnotationFunctionContext();
-		functionContext.loadLibrary(new FilterFunctionLibrary());
-		functionContext.loadLibrary(new StandardFunctionLibrary());
-		functionContext.loadLibrary(new TemporalFunctionLibrary());
-
+	private LibraryAttributeFinder libraryAttributeFinder;
+	
+	private LibraryAttributeFinder getLibraryAttributeFinder() {
+		if(libraryAttributeFinder == null) {
+			libraryAttributeFinder = SpringContext.getBean(LibraryAttributeFinder.class);
+		}
+		return libraryAttributeFinder;
 	}
 
 	@Override
@@ -181,7 +175,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		// remove all spaces we're only interested in statement e.g. "time.now"
 		importStatement = importStatement.replace(" ", "");
 		// look up proposals
-		return pipAttributeFinder.getAvailableAttributes(importStatement);
+		return getLibraryAttributeFinder().getAvailableAttributes(importStatement);
 	}
 
 	private List<String> constructAttributeProposalsForAvailableIdSteps(EList<String> idSteps,
