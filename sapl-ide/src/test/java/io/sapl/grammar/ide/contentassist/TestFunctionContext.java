@@ -2,6 +2,7 @@ package io.sapl.grammar.ide.contentassist;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -13,14 +14,14 @@ import io.sapl.interpreter.functions.LibraryDocumentation;
 public class TestFunctionContext implements FunctionContext {
 
 	private final Map<String, Set<String>> availableLibraries;
-	
+
 	public TestFunctionContext() {
 		availableLibraries = new HashMap<>();
 		availableLibraries.put("filter", Set.of("blacken", "remove", "replace"));
 		availableLibraries.put("standard", Set.of("length", "numberToString"));
 		availableLibraries.put("time", Set.of("after", "before", "between"));
 	}
-	
+
 	@Override
 	public Boolean isProvidedFunction(String function) {
 		throw new UnsupportedOperationException();
@@ -48,6 +49,11 @@ public class TestFunctionContext implements FunctionContext {
 
 	@Override
 	public Collection<LibraryDocumentation> getDocumentation() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public List<String> getCodeTemplates() {
 		throw new UnsupportedOperationException();
 	}
 

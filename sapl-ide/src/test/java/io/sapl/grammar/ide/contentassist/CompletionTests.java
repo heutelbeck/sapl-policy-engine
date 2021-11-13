@@ -15,21 +15,21 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import io.sapl.grammar.ide.AbstractSaplLanguageServerTest;
-import org.eclipse.lsp4j.CompletionItem;
-import org.eclipse.lsp4j.CompletionList;
-import io.sapl.grammar.ide.AbstractSaplLanguageServerTest;
-import org.eclipse.xtext.testing.TestCompletionConfiguration;
-import org.junit.jupiter.api.Test;
+import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertThat;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static org.hamcrest.CoreMatchers.hasItem;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertThat;
+import org.eclipse.lsp4j.CompletionItem;
+import org.eclipse.lsp4j.CompletionList;
+import org.eclipse.xtext.testing.TestCompletionConfiguration;
+import org.junit.jupiter.api.Test;
+
+import io.sapl.grammar.ide.AbstractSaplLanguageServerTest;
 
 /**
  * This class uses the xtext test classes to test auto completion results.

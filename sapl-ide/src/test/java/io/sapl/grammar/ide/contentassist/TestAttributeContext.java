@@ -3,6 +3,7 @@ package io.sapl.grammar.ide.contentassist;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -39,17 +40,27 @@ public class TestAttributeContext implements AttributeContext {
 	}
 
 	@Override
-	public Flux<Val> evaluate(String attribute, Val value, EvaluationContext ctx, Arguments arguments) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
 	public void loadPolicyInformationPoint(Object pip) throws InitializationException {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public Collection<PolicyInformationPointDocumentation> getDocumentation() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public Flux<Val> evaluateAttribute(String attribute, Val value, EvaluationContext ctx, Arguments arguments) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public Flux<Val> evaluateEnvironmentAttribute(String attribute, EvaluationContext ctx, Arguments arguments) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public List<String> getCodeTemplatesWithPrefix(String prefix, boolean isEnvirionmentAttribute) {
 		throw new UnsupportedOperationException();
 	}
 

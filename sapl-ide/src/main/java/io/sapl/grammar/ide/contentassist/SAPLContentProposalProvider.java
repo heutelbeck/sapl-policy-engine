@@ -15,7 +15,6 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,12 +33,6 @@ import org.eclipse.xtext.ide.editor.contentassist.ContentAssistEntry;
 import org.eclipse.xtext.ide.editor.contentassist.IIdeContentProposalAcceptor;
 import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
 
-import io.sapl.grammar.sapl.impl.ConditionImpl;
-import io.sapl.grammar.sapl.impl.PolicyBodyImpl;
-import io.sapl.grammar.sapl.impl.ValueDefinitionImpl;
-import io.sapl.functions.FilterFunctionLibrary;
-import io.sapl.functions.StandardFunctionLibrary;
-import io.sapl.functions.TemporalFunctionLibrary;
 import io.sapl.grammar.sapl.AttributeFinderStep;
 import io.sapl.grammar.sapl.BasicEnvironmentAttribute;
 import io.sapl.grammar.sapl.BasicEnvironmentHeadAttribute;
@@ -52,12 +45,8 @@ import io.sapl.grammar.sapl.WildcardImport;
 import io.sapl.grammar.sapl.impl.ConditionImpl;
 import io.sapl.grammar.sapl.impl.PolicyBodyImpl;
 import io.sapl.grammar.sapl.impl.ValueDefinitionImpl;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.pip.TimePolicyInformationPoint;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -68,21 +57,30 @@ import lombok.extern.slf4j.Slf4j;
 public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
 	private final Collection<String> unwantedKeywords = Set.of("null", "undefined", "true", "false");
-
 	private final Collection<String> allowedKeywords = Set.of("as");
+	private final Collection<String> authzSubProposals = Set.of("subject", "action", "resource", "environment");
 
+	private AttributeContext attributeContext;
+	private FunctionContext functionContext;
 	private LibraryAttributeFinder libraryAttributeFinder;
-	
-	private LibraryAttributeFinder getLibraryAttributeFinder() {
-		if(libraryAttributeFinder == null) {
+
+	private void lazyLoadDependencies() {
+		if (libraryAttributeFinder == null) {
 			libraryAttributeFinder = SpringContext.getBean(LibraryAttributeFinder.class);
 		}
-		return libraryAttributeFinder;
+		if (attributeContext == null) {
+			attributeContext = SpringContext.getBean(AttributeContext.class);
+		}
+		if (functionContext == null) {
+			functionContext = SpringContext.getBean(FunctionContext.class);
+		}
+
 	}
 
 	@Override
 	protected void _createProposals(Keyword keyword, ContentAssistContext context,
 			IIdeContentProposalAcceptor acceptor) {
+		lazyLoadDependencies();
 
 		String keyValue = keyword.getValue();
 
@@ -98,6 +96,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 	@Override
 	protected void _createProposals(final Assignment assignment, final ContentAssistContext context,
 			final IIdeContentProposalAcceptor acceptor) {
+		lazyLoadDependencies();
 
 		ParserRule parserRule = GrammarUtil.containingParserRule(assignment);
 		String parserRuleName = parserRule.getName().toLowerCase();
@@ -175,7 +174,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		// remove all spaces we're only interested in statement e.g. "time.now"
 		importStatement = importStatement.replace(" ", "");
 		// look up proposals
-		return getLibraryAttributeFinder().getAvailableAttributes(importStatement);
+		return libraryAttributeFinder.getAvailableAttributes(importStatement);
 	}
 
 	private List<String> constructAttributeProposalsForAvailableIdSteps(EList<String> idSteps,
@@ -310,7 +309,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 				addSimpleProposal(libImport.getLibAlias() + '.' + template.substring(prefix.length()), context,
 						acceptor);
 			else if (template.startsWith(shortPrefix)) // renaming of function
-				addSimpleProposal(libImport.getLibAlias() + template.substring(shortPrefix.length()), context, acceptor);
+				addSimpleProposal(libImport.getLibAlias() + template.substring(shortPrefix.length()), context,
+						acceptor);
 	}
 
 	private String importPrefixFromSteps(EList<String> steps) {
