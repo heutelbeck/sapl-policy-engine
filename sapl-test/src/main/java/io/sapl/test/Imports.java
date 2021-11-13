@@ -36,8 +36,8 @@ public class Imports {
 
 	/**
 	 * specify Matchers for the arguments of a function mock
-	 * @param matcher Varargs of {@link Matcher<Val>}
-	 * @return
+	 * @param matcher Varargs of {@link Matcher}
+	 * @return an {@link FunctionParameters} object required by the given step
 	 */
 	@SafeVarargs
 	public static FunctionParameters whenFunctionParams(Matcher<Val>... matcher) {
@@ -66,8 +66,8 @@ public class Imports {
 
 	/**
 	 * specify Matcher for the parent value of an attribute mock
-	 * @param argumentMatchers Matcher for the arguments. See {@link #arguments(Matcher[])}
-	 * @return an {@link AttributeParameters} object required by the given step
+	 * @param matcher Matcher for the parent value
+	 * @return an {@link AttributeParentValueMatcher} object required by the given step
 	 */
 	public static AttributeParentValueMatcher whenParentValue(Matcher<Val> matcher) {
 		return new AttributeParentValueMatcher(matcher);
@@ -76,7 +76,7 @@ public class Imports {
 	/**
 	 * specify a matcher for the parent value used in {@link #whenAttributeParams(AttributeParentValueMatcher, AttributeArgumentMatchers)}
 	 * @param matcher the matcher for the parent value
-	 * @return
+	 * @return an {@link AttributeParentValueMatcher} object required by the {@link #whenAttributeParams(AttributeParentValueMatcher, AttributeArgumentMatchers)} method
 	 */
 	public static AttributeParentValueMatcher parentValue(Matcher<Val> matcher) {
 		return new AttributeParentValueMatcher(matcher);
@@ -84,14 +84,19 @@ public class Imports {
 
 	/**
 	 * specify matchers for the arguments used in {@link #whenAttributeParams(AttributeParentValueMatcher, AttributeArgumentMatchers)}
-	 * @param matcher the matcher for the parent value
-	 * @return
+	 * @param argumentMatcher the matchers for the arguments
+	 * @return an {@link AttributeArgumentMatchers} object required by the {@link #whenAttributeParams(AttributeParentValueMatcher, AttributeArgumentMatchers)} method
 	 */
 	@SafeVarargs
 	public static AttributeArgumentMatchers arguments(Matcher<Val>... argumentMatcher) {
 		return new AttributeArgumentMatchers(argumentMatcher);
 	}
 
+	/**
+	 * convenience method to improve readability in complex mock definitions
+	 * @param val the {@link Val} to return
+	 * @return the unmodified passed {@link Val}
+	 */
 	public static Val thenReturn(Val val) {
 		return val;
 	}
