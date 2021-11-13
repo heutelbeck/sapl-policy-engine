@@ -26,8 +26,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.Expression;
@@ -37,6 +35,9 @@ import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.attribute.models.AttributeParameters;
 import io.sapl.test.mocking.attribute.models.AttributeParentValueMatcher;
+
+import com.fasterxml.jackson.databind.JsonNode;
+
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
@@ -129,6 +130,28 @@ public class MockingAttributeContext implements AttributeContext {
 		else {
 			log.debug("| | | | |-- Delegate attribute \"{}\" to original attribute context", attribute);
 			return this.originalAttributeContext.evaluateAttribute(attribute, value, ctx, arguments);
+		}
+	}
+	
+
+	@Override
+	public Flux<Val> evaluateEnvironmentAttribute(String attribute, EvaluationContext ctx, Arguments arguments) {
+		AttributeMock mock = this.registeredMocks.get(attribute);
+		if (mock != null) {
+			log.debug("| | | | |-- Evaluate mocked attribute \"{}\"", attribute);
+
+			Map<String, JsonNode> variables = ctx.getVariableCtx().getVariables();
+			List<Flux<Val>> args = new LinkedList<>();
+			if (arguments != null) {
+				for (Expression argument : arguments.getArgs()) {
+					args.add(argument.evaluate(ctx, Val.UNDEFINED));
+				}
+			}
+			return mock.evaluate(Val.UNDEFINED, variables, args)
+					.doOnNext((val) -> log.trace("| | | | |-- AttributeMock returned: " + val.toString()));
+		} else {
+			log.debug("| | | | |-- Delegate attribute \"{}\" to original attribute context", attribute);
+			return this.originalAttributeContext.evaluateEnvironmentAttribute(attribute, ctx, arguments);
 		}
 	}
 
@@ -262,29 +285,4 @@ public class MockingAttributeContext implements AttributeContext {
 	public Collection<String> getAvailableLibraries() {
 		return registeredMocks.keySet();
 	}
-
-	@Override
-	public Flux<Val> evaluateEnvironmentAttribute(String attribute, EvaluationContext ctx, Arguments arguments) {
-		// FIXME Double Check semantics
-		AttributeMock mock = this.registeredMocks.get(attribute);
-		if (mock != null) {
-			log.debug("| | | | |-- Evaluate mocked attribute \"{}\"", attribute);
-
-			Map<String, JsonNode> variables = ctx.getVariableCtx().getVariables();
-			List<Flux<Val>> args = new LinkedList<>();
-			if (arguments != null) {
-				for (Expression argument : arguments.getArgs()) {
-					args.add(argument.evaluate(ctx, Val.UNDEFINED));
-				}
-			}
-			// TODO: Check is this semantically OK ?
-			return mock.evaluate(Val.UNDEFINED, variables, args)
-					.doOnNext((val) -> log.trace("| | | | |-- AttributeMock returned: " + val.toString()));
-		}
-		else {
-			log.debug("| | | | |-- Delegate attribute \"{}\" to original attribute context", attribute);
-			return this.originalAttributeContext.evaluateEnvironmentAttribute(attribute, ctx, arguments);
-		}
-	}
-
 }
