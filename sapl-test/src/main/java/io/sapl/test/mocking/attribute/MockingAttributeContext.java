@@ -285,4 +285,9 @@ public class MockingAttributeContext implements AttributeContext {
 	public Collection<String> getAvailableLibraries() {
 		return registeredMocks.keySet();
 	}
+
+	@Override
+	public List<String> getCodeTemplatesWithPrefix(String prefix, boolean isEnvirionmentAttribute) {		
+		return List.of();
+	}
 }

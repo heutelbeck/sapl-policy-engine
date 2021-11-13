@@ -15,7 +15,6 @@
  */
 package io.sapl.test;
 
-import static io.sapl.hamcrest.Matchers.anyVal;
 import static io.sapl.hamcrest.Matchers.valUndefined;
 import static org.hamcrest.CoreMatchers.any;
 import static org.hamcrest.number.OrderingComparison.comparesEqualTo;
