@@ -34,6 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 public class PDPAutoConfiguration {
 
 	private final PolicyRetrievalPoint policyRetrievalPoint;
+
 	private final PDPConfigurationProvider configurationProvider;
 
 	@Bean

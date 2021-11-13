@@ -42,12 +42,12 @@ import reactor.core.publisher.Flux;
 public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
 	private final PDPConfigurationProvider configurationProvider;
+
 	private final PolicyRetrievalPoint policyRetrievalPoint;
 
 	@Override
 	public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
-		log.trace("|--------------------------------->");
-		log.trace("|-- PDP AuthorizationSubscription: {}", authzSubscription);
+		log.debug("- START DECISION: {}", authzSubscription);
 		return configurationProvider.pdpConfiguration().switchMap(decideSubscription(authzSubscription))
 				.distinctUntilChanged();
 	}
@@ -57,9 +57,10 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		return pdpConfiguration -> {
 			if (pdpConfiguration.isValid()) {
 				return Flux.just(pdpConfiguration.getPdpScopedEvaluationContext())
-						.map(createSubsctiptionScope(authzSubscription))
+						.map(createSubscriptionScope(authzSubscription))
 						.switchMap(retrieveAndCombineDocuments(pdpConfiguration));
-			} else {
+			}
+			else {
 				return Flux.just(AuthorizationDecision.INDETERMINATE);
 			}
 		};
@@ -78,13 +79,14 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 			if (policyRetrievalResult.isPrpValidState()) {
 				return pdpConfiguration.getDocumentsCombinator().combineMatchingDocuments(policyRetrievalResult,
 						subscriptionScopedEvaluationContext);
-			} else {
+			}
+			else {
 				return Flux.just(AuthorizationDecision.INDETERMINATE);
 			}
 		};
 	}
 
-	private Function<? super EvaluationContext, ? extends EvaluationContext> createSubsctiptionScope(
+	private Function<? super EvaluationContext, ? extends EvaluationContext> createSubscriptionScope(
 			AuthorizationSubscription authzSubscription) {
 		return pdpScopedEvaluationContext -> pdpScopedEvaluationContext.forAuthorizationSubscription(authzSubscription);
 	}

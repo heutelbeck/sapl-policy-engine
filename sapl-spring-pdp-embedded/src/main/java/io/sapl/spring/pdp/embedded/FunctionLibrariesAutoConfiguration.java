@@ -19,6 +19,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import io.sapl.functions.FilterFunctionLibrary;
+import io.sapl.functions.LoggingFunctionLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
 
@@ -39,4 +40,10 @@ public class FunctionLibrariesAutoConfiguration {
 	public TemporalFunctionLibrary temporalFunctionLibrary() {
 		return new TemporalFunctionLibrary();
 	}
+
+	@Bean
+	public LoggingFunctionLibrary loggingFunctionLibrary() {
+		return new LoggingFunctionLibrary();
+	}
+
 }

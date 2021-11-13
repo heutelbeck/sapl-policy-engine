@@ -38,8 +38,11 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 class BasicEnvironmentHeadAttributeImplTest {
+
 	private static final SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
+
 	private static final String ATTRIBUTE = "attribute";
+
 	private static final String FULLY_QUALIFIED_ATTRIBUTE = "mock." + ATTRIBUTE;
 
 	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
@@ -82,7 +85,8 @@ class BasicEnvironmentHeadAttributeImplTest {
 
 	private static EvaluationContext mockEvaluationContextWithAttributeStream(Flux<Val> stream) {
 		var attributeCtx = mock(AttributeContext.class);
-		when(attributeCtx.evaluate(eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any(), any())).thenReturn(stream);
+		when(attributeCtx.evaluateAttribute(eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any(), any())).thenReturn(stream);
+		when(attributeCtx.evaluateEnvironmentAttribute(eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any())).thenReturn(stream);
 		var ctx = mock(EvaluationContext.class);
 		when(ctx.getAttributeCtx()).thenReturn(attributeCtx);
 		var imports = new HashMap<String, String>();

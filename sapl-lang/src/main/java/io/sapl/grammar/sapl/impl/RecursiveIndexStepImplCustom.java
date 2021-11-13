@@ -31,10 +31,10 @@ import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
 /**
- * Implements the application of a recursive index step to a previous array
- * value, e.g. 'arr..[2]'.
+ * Implements the application of a recursive index step to a previous array value, e.g.
+ * {@code 'arr..[2]'}.
  *
- * Grammar: Step: '..' ({RecursiveIndexStep} '[' index=JSONNUMBER ']') ;
+ * Grammar: {@code Step: '..' ({RecursiveIndexStep} '[' index=JSONNUMBER ']') ;}
  */
 @Slf4j
 public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
@@ -56,10 +56,11 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 			if (node.has(idx)) {
 				results.add(node.get(idx));
 			}
-			for (var item : ((ArrayNode) node)) {
+			for (var item : node) {
 				collect(index, item, results);
 			}
-		} else if (node.isObject()) {
+		}
+		else if (node.isObject()) {
 			var iter = node.fields();
 			while (iter.hasNext()) {
 				var item = iter.next().getValue();
@@ -81,7 +82,7 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 	}
 
 	private static Flux<Val> doApplyFilterStatement(int index, Val parentValue, EvaluationContext ctx, Val relativeNode,
-													int stepId, FilterStatement statement) {
+			int stepId, FilterStatement statement) {
 		log.trace("apply index step [{}] to: {}", index, parentValue);
 		if (parentValue.isObject()) {
 			return applyFilterStatementToObject(index, parentValue.getObjectNode(), ctx, relativeNode, stepId,
@@ -106,14 +107,16 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 							FilterComponentImplCustom.applyFilterFunction(Val.of(element), statement.getArguments(),
 									FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx,
 									parentValue, statement.isEach()));
-				} else {
+				}
+				else {
 					// there are more steps. descent with them
 					log.trace("this step was successful. descent with next step...");
 					elementFluxes.add(statement.getTarget().getSteps().get(stepId + 1)
 							.applyFilterStatement(Val.of(element), ctx, relativeNode, stepId + 1, statement));
 				}
-			} else {
-				log.trace("array element not an object. Do recusive search for first match.");
+			}
+			else {
+				log.trace("array element not an object. Do recursive search for first match.");
 				elementFluxes.add(doApplyFilterStatement(index, Val.of(element), ctx, relativeNode, stepId, statement));
 			}
 		}
@@ -126,7 +129,7 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 		var fields = object.fields();
 		while (fields.hasNext()) {
 			var field = fields.next();
-			log.trace("recusion for field {}", field);
+			log.trace("recursion for field {}", field);
 			fieldFluxes.add(doApplyFilterStatement(idx, Val.of(field.getValue()), ctx, relativeNode, stepId, statement)
 					.map(val -> Tuples.of(field.getKey(), val)));
 		}

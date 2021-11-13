@@ -36,9 +36,12 @@ import io.sapl.interpreter.pip.AnnotationAttributeContext;
 class DenyUnlessPermitTest {
 
 	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
+
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+
 	private static final AuthorizationSubscription EMPTY_AUTH_SUBSCRIPTION = new AuthorizationSubscription(null, null,
 			null, null);
+
 	private static final AuthorizationSubscription AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE = new AuthorizationSubscription(
 			null, null, JSON.booleanNode(true), null);
 
@@ -208,7 +211,7 @@ class DenyUnlessPermitTest {
 		advice.add(JSON.textNode("advice2"));
 
 		assertEquals(Optional.of(advice), INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getAdvices());
+				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getAdvice());
 	}
 
 	@Test
@@ -241,7 +244,7 @@ class DenyUnlessPermitTest {
 		advice.add(JSON.textNode("advice2"));
 
 		assertEquals(Optional.of(advice), INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getAdvices());
+				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getAdvice());
 	}
 
 }

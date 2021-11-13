@@ -106,20 +106,16 @@
 				<artifactId>sapl-editor-for-vaadin</artifactId>
 				<version>${project.version}</version>
 			</dependency>
+			<dependency>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>sapl-jwt</artifactId>
+				<version>${project.version}</version>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 
-	<repositories>
-		<repository>
-			<id>ossrh</id>
-			<url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-		</repository>
-	</repositories>
-
 	<distributionManagement>
+		<!-- Maven Central Snapshot Repository -->
 		<snapshotRepository>
 			<id>ossrh</id>
 			<url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>

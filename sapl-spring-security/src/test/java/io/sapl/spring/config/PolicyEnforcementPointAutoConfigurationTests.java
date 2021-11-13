@@ -22,23 +22,24 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ConstraintHandlerService;
+import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.pep.PolicyEnforcementPoint;
 
 class PolicyEnforcementPointAutoConfigurationTests {
 
 	@Test
-	void whenRan_thenMapperIsAvailableAndModulesAreRegistered() {
-		var contextRunner = new ApplicationContextRunner()
-				.withConfiguration(AutoConfigurations.of(ObjectMapperAutoConfiguration.class,
-						PolicyEnforcementPointAutoConfiguration.class))
-				.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class));
-		contextRunner.run(context -> {
-			assertThat(context).hasNotFailed();
-			assertThat(context).hasSingleBean(ConstraintHandlerService.class);
-			assertThat(context).hasSingleBean(PolicyEnforcementPoint.class);
-		});
+	void whenRan_thenPDPIsAvailable() {
+		new ApplicationContextRunner()
+				.withConfiguration(AutoConfigurations.of(PolicyEnforcementPointAutoConfiguration.class))
+				.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
+				.withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
+				.withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
+					assertThat(context).hasNotFailed();
+					assertThat(context).hasSingleBean(PolicyEnforcementPoint.class);
+				});
 	}
 
 }

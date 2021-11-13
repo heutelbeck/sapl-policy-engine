@@ -36,6 +36,7 @@ class VariablesAndCombinatorSourceAutoConfigurationTest {
 
 	@TempDir
 	File tempDir;
+
 	String existingFolder;
 
 	@BeforeEach
@@ -45,10 +46,8 @@ class VariablesAndCombinatorSourceAutoConfigurationTest {
 
 	@Test
 	void whenFilesystemIsSet_thenFilesystemSourceIsDeployed() {
-		contextRunner.withPropertyValues(
-					"io.sapl.pdp.embedded.pdpConfigType=FILESYSTEM",
-					"io.sapl.pdp.embedded.configPath=" + tempDir
-				).run(context -> {
+		contextRunner.withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=FILESYSTEM",
+				"io.sapl.pdp.embedded.configPath=" + tempDir).run(context -> {
 					assertThat(context).hasNotFailed();
 					assertThat(context).hasSingleBean(VariablesAndCombinatorSource.class);
 					assertThat(context).hasSingleBean(FileSystemVariablesAndCombinatorSource.class);
@@ -57,13 +56,13 @@ class VariablesAndCombinatorSourceAutoConfigurationTest {
 
 	@Test
 	void whenResourcesIsSet_thenResourcesSourceIsDeployed() {
-		contextRunner.withPropertyValues(
-					"io.sapl.pdp.embedded.pdpConfigType=RESOURCES",
-					"io.sapl.pdp.embedded.configPath=/" 
-				).run(context -> {
+		contextRunner
+				.withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=RESOURCES", "io.sapl.pdp.embedded.configPath=/")
+				.run(context -> {
 					assertThat(context).hasNotFailed();
 					assertThat(context).hasSingleBean(VariablesAndCombinatorSource.class);
 					assertThat(context).hasSingleBean(ResourcesVariablesAndCombinatorSource.class);
 				});
 	}
+
 }

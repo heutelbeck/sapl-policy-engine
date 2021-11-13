@@ -31,8 +31,11 @@ import lombok.NonNull;
 public class EvaluationContext {
 
 	AttributeContext attributeCtx;
+
 	FunctionContext functionCtx;
+
 	VariableContext variableCtx;
+
 	Map<String, String> imports;
 
 	public EvaluationContext(@NonNull AttributeContext attributeCtx, @NonNull FunctionContext functionCtx,

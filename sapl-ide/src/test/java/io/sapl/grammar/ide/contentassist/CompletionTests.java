@@ -1,12 +1,12 @@
-/**
+/*
  * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,29 +15,32 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import static org.hamcrest.CoreMatchers.hasItem;
-import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertThat;
-
-import java.util.Collection;
-import java.util.stream.Collectors;
+import io.sapl.grammar.ide.AbstractSaplLanguageServerTest;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionList;
 import io.sapl.grammar.ide.AbstractSaplLanguageServerTest;
+import org.eclipse.xtext.testing.TestCompletionConfiguration;
+import org.junit.jupiter.api.Test;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertThat;
 
 /**
  * This class uses the xtext test classes to test auto completion results.
- * 
  */
 public class CompletionTests extends AbstractSaplLanguageServerTest {
 	
 	protected void assertProposalsSimple(final Collection<String> expectedProposals,
 			final CompletionList completionList) {
-		Collection<CompletionItem> completionItems = completionList.getItems();
-		String actualProposalStr = completionItems.stream().map(CompletionItem::getLabel)
-				.collect(Collectors.joining("\n"));
-		String expectedProposalStr = String.join("\n", expectedProposals);
-		assertEquals(expectedProposalStr, actualProposalStr);
+		var actualMethods = completionList.getItems().stream().map(CompletionItem::getLabel)
+				.collect(Collectors.toList());
+		assertThat(actualMethods.containsAll(expectedProposals), is(true));
 	}
 
 	protected void assertDoesNotContainProposals(final Collection<String> unwantedProposals,
@@ -50,4 +53,18 @@ public class CompletionTests extends AbstractSaplLanguageServerTest {
 			assertThat(availableProposals, not(hasItem(unwantedProposal)));
 		}
 	}
+
+	@Test
+	public void testCompletion_PolicyNameIsEmptyString() {
+		testCompletion((TestCompletionConfiguration it) -> {
+			String policy = "policy ";
+			it.setModel(policy);
+			it.setColumn(policy.length());
+			it.setAssertCompletionList(completionList -> {
+				var expected = List.of("\"\"");
+				assertProposalsSimple(expected, completionList);
+			});
+		});
+	}
+
 }

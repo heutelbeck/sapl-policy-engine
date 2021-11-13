@@ -22,6 +22,9 @@ import lombok.Data;
 @Data
 @ConfigurationProperties(prefix = "io.sapl.server-lt")
 public class SAPLServerLTProperties {
+
 	private String key = "";
+
 	private String secret = "";
+
 }

@@ -1,15 +1,33 @@
+#
+# Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 name: Build
 
 on:
+  workflow_dispatch:
+    branches: [master]
   push:
     branches: [master]
-    paths-ignore: ['sapl-documentation/**']
-
+    paths-ignore: ["sapl-documentation/**", ".github/build_documentation.yml"]
+  
 jobs:
   tests:
     strategy:
       matrix:
-        java: [ '11' , '16' ]
+        java: [ '11' , '17' ]
         os: [ubuntu-latest, windows-latest, macos-latest]
     name: JDK ${{ matrix.java }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -40,7 +58,7 @@ jobs:
           ${{ runner.os }}-maven-
 
     - name: Run tests
-      run: mvn -B package # package, as the maven plugin loads resources from the dependency packages
+      run: mvn -B package javadoc:jar # package, as the maven plugin loads resources from the dependency packages
 
   analyze:
     needs: [tests]
@@ -186,7 +204,7 @@ jobs:
         gpg --list-secret-keys --keyid-format LONG
 
     - name: Deploy Maven artefacts
-      run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -DskipTests deploy
+      run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -DskipTests package source:jar javadoc:jar deploy
     
     - name: Trigger CI build of downstream repositories
       run: |

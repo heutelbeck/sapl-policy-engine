@@ -16,6 +16,7 @@
 package io.sapl.interpreter.pip;
 
 import java.util.Collection;
+import java.util.List;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
@@ -25,10 +26,14 @@ import reactor.core.publisher.Flux;
 
 public interface AttributeContext extends LibraryFunctionProvider {
 
-	Flux<Val> evaluate(String attribute, Val value, EvaluationContext ctx, Arguments arguments);
+	Flux<Val> evaluateAttribute(String attribute, Val value, EvaluationContext ctx, Arguments arguments);
+
+	Flux<Val> evaluateEnvironmentAttribute(String attribute, EvaluationContext ctx, Arguments arguments);
 
 	void loadPolicyInformationPoint(Object pip) throws InitializationException;
 
 	Collection<PolicyInformationPointDocumentation> getDocumentation();
+
+	List<String> getCodeTemplatesWithPrefix(String prefix, boolean isEnvirionmentAttribute);
 
 }

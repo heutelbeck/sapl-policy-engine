@@ -62,4 +62,5 @@ class DocumentsCombinatorFactoryTest {
 		assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(DENY_UNLESS_PERMIT),
 				instanceOf(DenyUnlessPermitCombiningAlgorithmImplCustom.class));
 	}
+
 }

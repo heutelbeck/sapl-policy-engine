@@ -1,3 +1,18 @@
+/*
+ * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.prp.index.naive;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -45,7 +60,7 @@ class NaiveImmutableParsedDocumentIndexTest {
 		List<Update> updates = new ArrayList<>();
 		updates.add(new Update(Type.CONSISTENT, null, "null"));
 		updates.add(new Update(Type.PUBLISH, saplMock1, "SAPL1"));
-		updates.add(new Update(Type.UNPUBLISH, saplMock1, "SAPL1"));
+		updates.add(new Update(Type.WITHDRAW, saplMock1, "SAPL1"));
 		var event = new PrpUpdateEvent(updates);
 
 		var index2 = index.apply(event);
@@ -109,4 +124,5 @@ class NaiveImmutableParsedDocumentIndexTest {
 		var result = index2.retrievePolicies(null).block();
 		assertThat(result.getMatchingDocuments().isEmpty(), is(false));
 	}
+
 }

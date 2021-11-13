@@ -15,17 +15,16 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 class AttributeContextAutoConfigurationTests {
 
@@ -39,7 +38,7 @@ class AttributeContextAutoConfigurationTests {
 			assertThat(context).hasSingleBean(AttributeContext.class);
 		});
 	}
-	
+
 	@Test
 	void whenAttributeContextIsPresent_thenDoNotLoadANewOne() {
 		contextRunner.withBean(AttributeContext.class, () -> mock(AttributeContext.class)).run(context -> {
@@ -48,29 +47,32 @@ class AttributeContextAutoConfigurationTests {
 			assertThat(context).doesNotHaveBean(AnnotationAttributeContext.class);
 		});
 	}
-	
+
 	@Test
 	void whenDefaultLibrariesArePresent_thenAFunctionContextIsPresentAndLoadedThem() {
 		contextRunner.withConfiguration(AutoConfigurations.of(PolicyInformationPointsAutoConfiguration.class))
 				.run(context -> {
 					assertThat(context).hasNotFailed();
 					assertThat(context).hasSingleBean(AttributeContext.class);
-					assertThat(context.getBean(AttributeContext.class).isProvidedFunction("clock.now")).isTrue();
+					assertThat(context.getBean(AttributeContext.class).isProvidedFunction("time.now")).isTrue();
 				});
 	}
 
 	@Test
 	void whenBadLibraryIsPresent_thenContextFailsToLoad() {
-		contextRunner.withBean(BadPolicyInformationPointLibrary.class, BadPolicyInformationPointLibrary::new).run(context -> {
-			assertThat(context).hasFailed();
-		});
+		contextRunner.withBean(BadPolicyInformationPointLibrary.class, BadPolicyInformationPointLibrary::new)
+				.run(context -> {
+					assertThat(context).hasFailed();
+				});
 	}
 
 	@PolicyInformationPoint
 	protected static class BadPolicyInformationPointLibrary {
+
 		@Attribute
 		void iAmABadSignatureAttribute(Integer i, Float f) {
 		}
+
 	}
 
 }

@@ -32,6 +32,7 @@ import java.util.HashMap
 import java.util.Map
 import java.util.Optional
 import lombok.extern.slf4j.Slf4j
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -51,12 +52,16 @@ class SampleXACMLTest {
 
 	static AuthorizationSubscription authzSubscription_example_two;
 
-	@BeforeEach
-	def void setUp() {
+	@BeforeAll
+	def static void setUpClass() {
 		FUNCTION_CTX.loadLibrary(new MockXACMLStringFunctionLibrary());
 		FUNCTION_CTX.loadLibrary(new MockXACMLDateFunctionLibrary());
 		FUNCTION_CTX.loadLibrary(new FilterFunctionLibrary());
 		ATTRIBUTE_CTX.loadPolicyInformationPoint(new MockXACMLPatientProfilePIP());
+	}
+
+	@BeforeEach
+	def void setUp() {
 
 		SampleXACMLTest.authzSubscription_example_two = MAPPER.readValue('''
 			{

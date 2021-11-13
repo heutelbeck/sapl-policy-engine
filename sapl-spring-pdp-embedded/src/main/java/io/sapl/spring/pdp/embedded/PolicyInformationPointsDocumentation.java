@@ -23,5 +23,7 @@ import lombok.Value;
 
 @Value
 public class PolicyInformationPointsDocumentation implements Serializable {
+
 	Collection<PolicyInformationPointDocumentation> documentation;
+
 }

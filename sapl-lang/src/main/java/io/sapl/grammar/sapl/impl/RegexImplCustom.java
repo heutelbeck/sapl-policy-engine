@@ -26,8 +26,8 @@ import reactor.core.publisher.Flux;
 /**
  * Checks for a value matching a regular expression.
  *
- * Grammar: Comparison returns Expression: Prefixed (({Regex.left=current} '=~')
- * right=Prefixed)? ;
+ * Grammar: {@code Comparison returns Expression: Prefixed (({Regex.left=current} '=~')
+ * right=Prefixed)? ;}
  */
 public class RegexImplCustom extends RegexImpl {
 
@@ -52,7 +52,8 @@ public class RegexImplCustom extends RegexImpl {
 		}
 		try {
 			return Val.of(Pattern.matches(right.getText(), left.getText()));
-		} catch (PatternSyntaxException e) {
+		}
+		catch (PatternSyntaxException e) {
 			return Val.error(REGEX_SYNTAX_ERROR, right);
 		}
 	}

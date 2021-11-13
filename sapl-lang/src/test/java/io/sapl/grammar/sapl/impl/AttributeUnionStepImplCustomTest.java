@@ -67,4 +67,5 @@ class AttributeUnionStepImplCustomTest {
 		var expected = "{ \"key1\" : [1,2,null], \"key2\" : [1,2,3],  \"key3\" : [1,2,null] }";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
+
 }

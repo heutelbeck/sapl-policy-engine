@@ -27,13 +27,17 @@ import lombok.Data;
 @Validated
 @ConfigurationProperties(prefix = "io.sapl.pdp.remote")
 public class RemotePDPProperties {
+
 	@URL
 	@NotEmpty
 	private String host = "";
+
 	@NotEmpty
 	private String key = "";
+
 	@NotEmpty
 	private String secret = "";
-	
+
 	private boolean ignoreCertificates = false;
+
 }

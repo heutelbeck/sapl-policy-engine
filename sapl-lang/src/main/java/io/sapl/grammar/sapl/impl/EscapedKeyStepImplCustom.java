@@ -30,8 +30,7 @@ import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
 /**
- * Implements the application of a key step to a previous value, e.g
- * 'value.name'.
+ * Implements the application of a key step to a previous value, e.g 'value.name'.
  * <p>
  * Grammar: {EscapedKeyStep} id=STRING
  */
@@ -51,7 +50,8 @@ public class EscapedKeyStepImplCustom extends EscapedKeyStepImpl {
 		if (parentValue.isObject()) {
 			if (parentValue.get().has(id)) {
 				return Flux.just(Val.of(parentValue.get().get(id)));
-			} else {
+			}
+			else {
 				return Val.fluxOfUndefined();
 			}
 		}
@@ -104,14 +104,16 @@ public class EscapedKeyStepImplCustom extends EscapedKeyStepImpl {
 											FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx,
 											Val.of(object), statement.isEach())
 									.map(val -> Tuples.of(field.getKey(), val)));
-				} else {
+				}
+				else {
 					// there are more steps. descent with them
 					log.trace("this step was successful. descent with next step...");
 					fieldFluxes.add(statement.getTarget().getSteps().get(stepId + 1)
 							.applyFilterStatement(Val.of(field.getValue()), ctx, relativeNode, stepId + 1, statement)
 							.map(val -> Tuples.of(field.getKey(), val)));
 				}
-			} else {
+			}
+			else {
 				log.trace("field not matching. just return it as it will not be affected by filtering");
 				fieldFluxes.add(Flux.just(Tuples.of(field.getKey(), Val.of(field.getValue()))));
 			}
@@ -133,7 +135,8 @@ public class EscapedKeyStepImplCustom extends EscapedKeyStepImpl {
 				log.trace("array element is an object. apply this step to the object.");
 				elementFluxes.add(
 						applyFilterStatementToObject(id, (ObjectNode) element, ctx, Val.of(array), stepId, statement));
-			} else {
+			}
+			else {
 				log.trace("array element not an object. just return it as it will not be affected by filtering");
 				elementFluxes.add(Flux.just(Val.of(element)));
 			}

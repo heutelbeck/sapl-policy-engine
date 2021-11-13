@@ -50,11 +50,17 @@ import reactor.test.StepVerifier;
 class FilterFunctionLibraryTest {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+
 	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
+
 	private static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
+
 	private static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
+
 	private static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
+
 	private static final FilterFunctionLibrary LIBRARY = new FilterFunctionLibrary();
+
 	private static final EvaluationContext PDP_EVALUATION_CONTEXT = new EvaluationContext(ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES);
 
@@ -65,51 +71,43 @@ class FilterFunctionLibraryTest {
 
 	@Test
 	void blackenTooManyArguments() {
-		assertThrows(IllegalArgumentException.class, () -> {
-			FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(2), Val.of("x"), Val.of(2));
-		});
+		assertThrows(IllegalArgumentException.class,
+				() -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(2), Val.of("x"), Val.of(2)));
 	}
 
 	@Test
 	void blackenNoString() {
-		assertThrows(IllegalArgumentException.class, () -> {
-			FilterFunctionLibrary.blacken(Val.of(2));
-		});
+		assertThrows(IllegalArgumentException.class, () -> FilterFunctionLibrary.blacken(Val.of(2)));
 	}
 
 	@Test
 	void blackenReplacementNoString() {
-		assertThrows(IllegalArgumentException.class, () -> {
-			FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(2), Val.of(2));
-		});
+		assertThrows(IllegalArgumentException.class,
+				() -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(2), Val.of(2)));
 	}
 
 	@Test
 	void blackenReplacementNegativeRight() {
-		assertThrows(IllegalArgumentException.class, () -> {
-			FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(-2));
-		});
+		assertThrows(IllegalArgumentException.class,
+				() -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(-2)));
 	}
 
 	@Test
 	void blackenReplacementNegativeLeft() {
-		assertThrows(IllegalArgumentException.class, () -> {
-			FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(-2), Val.of(2));
-		});
+		assertThrows(IllegalArgumentException.class,
+				() -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(-2), Val.of(2)));
 	}
 
 	@Test
 	void blackenReplacementRightNoNumber() {
-		assertThrows(IllegalArgumentException.class, () -> {
-			FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.NULL);
-		});
+		assertThrows(IllegalArgumentException.class,
+				() -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.NULL));
 	}
 
 	@Test
 	void blackenReplacementLeftNoNumber() {
-		assertThrows(IllegalArgumentException.class, () -> {
-			FilterFunctionLibrary.blacken(Val.of("abcde"), Val.NULL, Val.of(2));
-		});
+		assertThrows(IllegalArgumentException.class,
+				() -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.NULL, Val.of(2)));
 	}
 
 	@Test
@@ -175,9 +173,7 @@ class FilterFunctionLibraryTest {
 				Optional.empty(), Optional.empty());
 
 		StepVerifier.create(INTERPRETER.evaluate(authzSubscription, policyDefinition, PDP_EVALUATION_CONTEXT))
-				.assertNext(authzDecision -> {
-					assertThat(authzDecision, is(expectedAuthzDecision));
-				}).verifyComplete();
+				.assertNext(authzDecision -> assertThat(authzDecision, is(expectedAuthzDecision))).verifyComplete();
 	}
 
 	@Test
@@ -196,8 +192,7 @@ class FilterFunctionLibraryTest {
 				Optional.empty(), Optional.empty());
 
 		StepVerifier.create(INTERPRETER.evaluate(authzSubscription, policyDefinition, PDP_EVALUATION_CONTEXT))
-				.assertNext(authzDecision -> {
-					assertThat(authzDecision, is(expectedAuthzDecision));
-				}).verifyComplete();
+				.assertNext(authzDecision -> assertThat(authzDecision, is(expectedAuthzDecision))).verifyComplete();
 	}
+
 }

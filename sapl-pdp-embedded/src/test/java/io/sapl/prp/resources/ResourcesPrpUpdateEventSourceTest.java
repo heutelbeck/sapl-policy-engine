@@ -1,3 +1,18 @@
+/*
+ * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.prp.resources;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -77,7 +92,7 @@ class ResourcesPrpUpdateEventSourceTest {
 	void ifExecutedInJar_thenLoadDocumentsFromJar() throws InitializationException, MalformedURLException {
 		var url = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/policies");
 		try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
-			mock.when(() -> JarUtil.inferUrlOfRecourcesPath(any(), any())).thenReturn(url);
+			mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);
 
 			var source = new ResourcesPrpUpdateEventSource("/policies", DEFAULT_SAPL_INTERPRETER);
 			var update = source.getUpdates().blockFirst();

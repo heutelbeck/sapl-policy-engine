@@ -21,8 +21,8 @@ import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
- * Implements a constant value of 'undefined'. The value of 'undefined' is
- * represented by Optional.empty().
+ * Implements a constant value of 'undefined'. The value of 'undefined' is represented by
+ * Optional.empty().
  *
  * Grammar: UndefinedLiteral returns Value: {UndefinedLiteral} 'undefined' ;
  */

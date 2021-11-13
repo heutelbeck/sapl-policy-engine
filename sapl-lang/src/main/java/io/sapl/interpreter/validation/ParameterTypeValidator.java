@@ -30,33 +30,41 @@ import io.sapl.api.validation.Long;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
 import lombok.experimental.UtilityClass;
+import reactor.core.publisher.Flux;
 
 @UtilityClass
 public class ParameterTypeValidator {
 
 	private static final String ILLEGAL_PARAMETER_TYPE = "Illegal parameter type. Got: %s Expected: %s";
+
 	private static final Set<Class<?>> VALIDATION_ANNOTATIONS = Set.of(Number.class, Int.class, Long.class, Bool.class,
 			Text.class, Array.class, JsonObject.class);
 
-	public static void validateType(Val parameterValue, Parameter parameterType) throws IllegalParameterType {
+	public static Val validateType(Val parameterValue, Parameter parameterType) {
 		if (!hasValidationAnnotations(parameterType))
-			return;
+			return parameterValue;
 
 		if (parameterValue.isUndefined())
-			throw new IllegalParameterType(String.format(ILLEGAL_PARAMETER_TYPE, "undefined",
-					listAllowedTypes(parameterType.getAnnotations())));
+			return Val.error(new IllegalParameterType(String.format(ILLEGAL_PARAMETER_TYPE, "undefined",
+					listAllowedTypes(parameterType.getAnnotations()))));
 
-		validateJsonNodeType(parameterValue.get(), parameterType);
+		return validateJsonNodeType(parameterValue.get(), parameterType);
 	}
 
-	private static void validateJsonNodeType(JsonNode node, Parameter parameterType) throws IllegalParameterType {
+	public static Flux<Val> validateType(Flux<Val> parameterFlux, Parameter parameterType) {
+		if (!hasValidationAnnotations(parameterType))
+			return parameterFlux;
+		return parameterFlux.map(parameterValue -> validateType(parameterValue, parameterType));
+	}
+
+	private static Val validateJsonNodeType(JsonNode node, Parameter parameterType) {
 		Annotation[] annotations = parameterType.getAnnotations();
 		for (Annotation annotation : annotations)
 			if (nodeContentsMatchesTypeGivenByAnnotation(node, annotation))
-				return;
+				return Val.of(node);
 
-		throw new IllegalParameterType(
-				String.format(ILLEGAL_PARAMETER_TYPE, node.getNodeType().toString(), listAllowedTypes(annotations)));
+		return Val.error(new IllegalParameterType(
+				String.format(ILLEGAL_PARAMETER_TYPE, node.getNodeType().toString(), listAllowedTypes(annotations))));
 	}
 
 	private static boolean nodeContentsMatchesTypeGivenByAnnotation(JsonNode node, Annotation annotation) {
@@ -89,7 +97,7 @@ public class ParameterTypeValidator {
 		var builder = new StringBuilder();
 		for (var annotation : annotations) {
 			if (isTypeValidationAnnotation(annotation))
-				builder.append(annotation.getClass().getSimpleName()).append(' ');
+				builder.append(annotation).append(' ');
 		}
 		return builder.toString();
 	}

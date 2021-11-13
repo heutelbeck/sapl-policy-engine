@@ -55,9 +55,13 @@ class ParameterTypeValidatorTest {
 
 	private static final Set<Class<?>> VALIDATION_ANNOTATIONS = Set.of(Number.class, Int.class, Long.class, Bool.class,
 			Text.class, Array.class, JsonObject.class);
+
 	private static final Set<Class<?>> UNRELATED_ANNOTATIONS = Set.of(Inject.class);
+
 	private static final Set<Class<?>> TEST_ANNOTATIONS = Sets.union(VALIDATION_ANNOTATIONS, UNRELATED_ANNOTATIONS);
+
 	private static final Set<Set<Class<?>>> ANOTATION_POWERSET = Sets.powerSet(TEST_ANNOTATIONS);
+
 	private static final Map<Val, Class<?>[]> TEST_CASES = Map.of(Val.of(123),
 			new Class<?>[] { Number.class, Int.class, Long.class }, Val.UNDEFINED, new Class<?>[] {},
 			Val.of(Double.MAX_VALUE), new Class<?>[] { Number.class }, Val.of(java.lang.Long.MAX_VALUE),
@@ -92,12 +96,7 @@ class ParameterTypeValidatorTest {
 	}
 
 	private boolean validationOfValue_IsSuccessfull(Val givenValue, Parameter givenParameter) {
-		try {
-			validateType(givenValue, givenParameter);
-			return true;
-		} catch (Exception e) {
-			return false;
-		}
+		return !validateType(givenValue, givenParameter).isError();
 	}
 
 	private static Parameter mockParameter(Set<Class<?>> annotationClasses) {
@@ -115,8 +114,13 @@ class ParameterTypeValidatorTest {
 	@Data
 	@AllArgsConstructor
 	static class ValidationTestSpecification {
+
 		Val givenValue;
+
 		Set<Class<?>> givenAnnotations;
+
 		boolean expectedToBeSuccessfullyValidated;
+
 	}
+
 }

@@ -38,18 +38,26 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-autoconfigure</artifactId>
 		</dependency>
-		
+
 		<!-- Validation -->
 		<dependency>
 			<groupId>org.hibernate.validator</groupId>
 			<artifactId>hibernate-validator</artifactId>
 		</dependency>
-		
+
 		<!-- The embedded PDP implementation -->
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>sapl-pdp-embedded</artifactId>
 			<version>${project.version}</version>
+		</dependency>
+
+		<!-- Optional JWT SAPL Extensions -->
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>sapl-jwt</artifactId>
+			<version>${project.version}</version>
+			<optional>true</optional>
 		</dependency>
 		
 		<!-- Utility -->
@@ -58,14 +66,14 @@
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
 		</dependency>
-		
+
 		<!-- Spring configuration handling -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-configuration-processor</artifactId>
 			<optional>true</optional>
 		</dependency>
-		
+
 		<!-- Testing -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

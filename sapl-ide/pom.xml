@@ -64,15 +64,20 @@
 			<scope>test</scope>
 		</dependency>		
 		<dependency>
-		    <groupId>junit</groupId>
-		    <artifactId>junit</artifactId>
-		    <scope>test</scope>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.xtext</groupId>
 			<artifactId>org.eclipse.xtext.testing</artifactId>
 			<version>${xtext.version}</version>
-            <scope>test</scope>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-nop</artifactId>
+			<scope>test</scope>
 		</dependency>
 
 		<!-- Utility -->

@@ -30,8 +30,7 @@ import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
 /**
- * Implements the application of a wildcard step to a previous value, e.g
- * 'value.*'.
+ * Implements the application of a wildcard step to a previous value, e.g 'value.*'.
  *
  * Grammar: Step: '.' ({WildcardStep} '*') ;
  */
@@ -92,7 +91,8 @@ public class WildcardStepImplCustom extends WildcardStepImpl {
 				fieldFluxes.add(FilterComponentImplCustom.applyFilterFunction(Val.of(field.getValue()),
 						statement.getArguments(), FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx),
 						ctx, Val.of(object), statement.isEach()).map(val -> Tuples.of(field.getKey(), val)));
-			} else {
+			}
+			else {
 				// there are more steps. descent with them
 				log.trace("this step was successful. descent with next step...");
 				fieldFluxes.add(statement.getTarget().getSteps().get(stepId + 1)
@@ -116,7 +116,8 @@ public class WildcardStepImplCustom extends WildcardStepImpl {
 				elementFluxes.add(FilterComponentImplCustom.applyFilterFunction(Val.of(element),
 						statement.getArguments(), FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx),
 						ctx, Val.of(array), statement.isEach()));
-			} else {
+			}
+			else {
 				// there are more steps. descent with them
 				log.trace("this step was successful. descent with next step...");
 				elementFluxes.add(statement.getTarget().getSteps().get(stepId + 1).applyFilterStatement(Val.of(element),

@@ -1,4 +1,4 @@
-import io.sapl.prp.embedded.TestPIP as test
+import test as test2
 
 set "testPolicies"
 deny-unless-permit
@@ -8,4 +8,5 @@ permit
     action == "read"
 where
     subject.<test.upper> == "WILLI";
-    time.dayOfWeekFrom("UTC".<clock.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
+    var test = 1;
+    time.dayOfWeekFrom(<time.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";

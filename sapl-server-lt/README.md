@@ -1,6 +1,6 @@
 # SAPL Server LT - Lightweight Authorization Server.
 
-This is a lightweight headless PDP server. The server monitors two directories for the PDP settings and SAPL documents, 
+This server is a lightweight headless PDP server. The server monitors two directories for the PDP settings and SAPL documents, 
 allowing for runtime updating of policies which will be reflected in decisions made for ongoing authorization 
 subscriptions.
 
@@ -8,8 +8,7 @@ The PDP configuration for combining algorithm and environment variables is expec
 All SAPL documents in the folder named `*.sapl` will be published to the PRP.
 
 The server can be run locally via maven or by executing the JAR. 
-Alternatively, a container image and configurations for deployment 
-on Docker and/or Kubernetes is available.
+Alternatively, a container image and configurations for deployment on Docker and/or Kubernetes is available.
 
 ## Local Execution
 
@@ -24,7 +23,7 @@ java -jar sapl-server-lt-2.0.0-SNAPSHOT.jar
 
 ### Running the Server from Source
 
-Disclaimer: It is likely that you only need to run the server from source, if you are a contributor to the policy engine project.
+Disclaimer: It is likely that you only need to run the server from the source if you are a contributor to the policy engine project.
 
 The source of the policy engine is found on the public [GitHub](https://github.com/) repository: <https://github.com/heutelbeck/sapl-policy-engine>.
 
@@ -34,17 +33,16 @@ First clone the repository:
 git clone https://github.com/heutelbeck/sapl-policy-engine.git
 ```
 
-Alternatively download the current version as a source ZIP file: <https://github.com/heutelbeck/sapl-policy-engine/archive/master.zip>.
+Alternatively, download the current version as a source ZIP file: <https://github.com/heutelbeck/sapl-policy-engine/archive/master.zip>.
 
-To run the server from source, first build the complete policy engine project from within the projects root folder
-(i.e., ```sapl-policy-engine```). The system requires maven and JDK 11 or later to be installed.
+To run the server from the source, first, build the complete policy engine project from within the project's root folder (i.e., ```sapl-policy-engine```). The system requires maven and JDK 11 or later to be installed.
 The build is triggered by issuing the command:
 
 ```shell
 mvn clean install
 ```
 
-Afterwards, change to the folder ```sapl-policy-engine/sapl-server-lt``` and run the application:
+Afterward, change to the folder ```sapl-policy-engine/sapl-server-lt``` and run the application:
 
 ```shell
 mvn spring-boot:run
@@ -53,7 +51,7 @@ mvn spring-boot:run
 ### Folder for Policies and PDP Configuration
 
 If the default configuration has not been changed, the server will inspect and monitor the folder ```/sapl/policies```
-in the current users home directory for the PDP configuration `pdp.json` and SAPL documents ending with `*.sapl`. 
+in the current user's home directory for the PDP configuration `pdp.json` and SAPL documents ending with `*.sapl`. 
 Changes will be directly reflected at runtime and for ongoing subscriptions.
 
 > #### Note: Building a Docker Image
@@ -80,7 +78,7 @@ server.ssl.key-alias=tomcat
 ```
 
 API access requires "Basic Auth". Only one set of client credentials is implemented. 
-The default client key (username) is: `YJidgyT2mfdkbmL` and the default client secret (password) is : `Fa4zvYQdiwHZVXh`.
+The default client key (username) is: `YJidgyT2mfdkbmL`, and the default client secret (password) is: `Fa4zvYQdiwHZVXh`.
 To override these settings, use the following properties:
 
 ```properties
@@ -88,7 +86,7 @@ io.sapl.server-lt.key=YJidgyT2mfdkbmL
 io.sapl.server-lt.secret=$2a$10$PhobF71xYb0MK8KubWLB7e0Dpl2AfMiEUi9dkKTbFR4kkWABrbiyO
 ```
 
-Please note, that the secret has to be BCrypt encoded. For testing, use something like: <https://bcrypt-generator.com/>
+Please note that the secret has to be BCrypt encoded. For testing, use something like: <https://bcrypt-generator.com/>
 
 The server is implemented using Spring Boot. Thus, there are a number of ways to configure the 
 application. 
@@ -208,14 +206,14 @@ then apply the yaml file
 kubectl apply -f sapl-server-lt-baremetal.yml -n sapl-server-lt
 ```
 
-Create the Secret with htpasswd, you will be asked to enter the password
+Create the secret with htpasswd, you will be asked to enter the password
 
 ```shell
 htpasswd -c auth Username
 kubectl create secret generic basic-auth --from-file=auth -n sapl-server-lt
 ```
 
-The Service should be reachable under the URL defined in the Ingress section of the sapl-server-lt-baremetal.yml <https://sapl.exampleurl.com/actuator/health>.
+The service should be reachable under the URL defined in the Ingress section of the sapl-server-lt-baremetal.yml <https://sapl.exampleurl.com/actuator/health>.
 
 #### Docker Desktop Kubernetes
 
@@ -234,26 +232,26 @@ The URL is sapl.lt.local and has to be added to the hosts file (which is located
 127.0.0.1       sapl.lt.local
 ```
 
-Create the Secret with htpasswd, you will be asked to enter the password
+Create the secret with htpasswd. You will be asked to enter the password.
 
 ```shell
 htpasswd -c auth Username
 kubectl create secret generic basic-auth --from-file=auth -n sapl-server-lt
 ```
 
-In the meantime the files are volatile but can be accessed with
+In the meantime, the files are volatile but can be accessed with
 
 ```shell
 kubectl exec sapl-server-lt-d5d65dd6b-fz29g --stdin --tty -- /bin/sh -n sapl-server-lt
 ```
 
-You have to use the actual podname which can be listed with the command:
+You have to use the actual pod name, which can be listed with the command:
 
 ```shell
 kubectl get pods -n sapl-server-lt
 ```
 
-A time of writing, Kubernetes on Docker Desktop has technical limitations mounting volumes via hostPath under WSL2: <https://github.com/docker/for-win/issues/5325>.  
+At the time of writing, Kubernetes on Docker Desktop has technical limitations mounting volumes via hostPath under WSL2: <https://github.com/docker/for-win/issues/5325>.  
 
 #### Kubernetes Troubleshooting
 
@@ -263,13 +261,13 @@ The service is defined as ClusterIP but can be changed to use NodePort for testi
 kubectl edit service sapl-server-lt -n sapl-server-lt
 ```
  
-If the Website can't be reached try installing the NGINX Ingress Controller using helm with the flag ```--set controller.hostNetwork=true,controller.kind=DaemonSet```
+If the Website can't be reached, try installing the NGINX Ingress Controller using helm with the flag ```--set controller.hostNetwork=true,controller.kind=DaemonSet```
 
 ## Custom Policy Information Points (PIPs) or Function Libraries
 
-To support new attributes and functions, the matching libraries have to be deployed alongside the server application. One way to do so is to create your own server project and add the libraries to the dependencies of the application via maven dependencies and to add the matching packages to the component scanning of Spring Boot and/or to provide matching configurations. Alternatively the SAPL Server LT supports side-loading of external JARs. 
+To support new attributes and functions, the matching libraries have to be deployed alongside the server application. One way to do so is to create your own server project and add the libraries to the dependencies of the application via Maven dependencies and to add the matching packages to the component scanning of Spring Boot and/or to provide matching configurations. Alternatively, the SAPL Server LT supports side-loading of external JARs. 
 
-To load a custom PIP, the PIP has to be built as a JAR and all dependencies not already provided by the server have to be provided as JARs as well. Alternatively the PIP can be packaged as a so-called "fat JAR" including all dependencies. This can be achieved using the (Maven Dependency Plugin)[https://maven.apache.org/plugins/maven-dependency-plugin/] and an example for this approach can be found here: <https://github.com/heutelbeck/sapl-policy-engine/tree/master/sapl-pip-http>.
+To load a custom PIP, the PIP has to be built as a JAR, and all dependencies not already provided by the server have to be provided as JARs as well. Alternatively, the PIP can be packaged as a so-called "fat JAR" including all dependencies. This can be achieved using the (Maven Dependency Plugin)[https://maven.apache.org/plugins/maven-dependency-plugin/], and an example for this approach can be found here: <https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-extension>.
 
 The SAPL Server LT will scan all packages below ```io.sapl.server``` for Spring beans or configurations providing PIPs or Function libraries at startup and load them automatically. Thus, the custom libraries must provide at least a matching spring configuration under this package.
 

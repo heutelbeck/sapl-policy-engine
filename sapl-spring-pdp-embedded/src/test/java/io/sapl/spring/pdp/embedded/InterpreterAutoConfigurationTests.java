@@ -31,9 +31,9 @@ class InterpreterAutoConfigurationTests {
 	@Test
 	void whenLoading_thenAnInterpreterIsInitialized() {
 		contextRunner.run(context -> {
-					assertThat(context).hasNotFailed();
-					assertThat(context).hasSingleBean(SAPLInterpreter.class);
-				});
+			assertThat(context).hasNotFailed();
+			assertThat(context).hasSingleBean(SAPLInterpreter.class);
+		});
 	}
 
 }

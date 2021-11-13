@@ -54,7 +54,7 @@ public class FunctionUtil {
 			Val leftHandArgument, Val... parameters) {
 		Val[] mergedParameters = new Val[parameters.length + 1];
 		mergedParameters[0] = leftHandArgument;
-        System.arraycopy(parameters, 0, mergedParameters, 1, parameters.length);
+		System.arraycopy(parameters, 0, mergedParameters, 1, parameters.length);
 		return evaluateFunctionMono(functionName, ctx, mergedParameters);
 	}
 
@@ -63,7 +63,7 @@ public class FunctionUtil {
 	}
 
 	private Stream<Flux<Val>> argumentFluxes(Arguments arguments, EvaluationContext ctx, Val relativeNode) {
-		return arguments.getArgs().stream().map(expression -> (Flux<Val>) expression.evaluate(ctx, relativeNode));
+		return arguments.getArgs().stream().map(expression -> expression.evaluate(ctx, relativeNode));
 	}
 
 	private Flux<Val[]> combine(Stream<Flux<Val>> argumentFluxes) {

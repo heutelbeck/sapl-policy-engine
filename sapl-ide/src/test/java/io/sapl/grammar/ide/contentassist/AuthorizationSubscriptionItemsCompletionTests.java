@@ -1,12 +1,12 @@
-/**
+/*
  * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,12 +23,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 
 /**
- * Tests regarding the auto completion of the keywords subject, resource,
- * action, environment
+ * Tests regarding the auto completion of the keywords subject, resource, action,
+ * environment
  */
 @SpringBootTest
 @ContextConfiguration(classes = SAPLIdeSpringTestConfiguration.class)
 public class AuthorizationSubscriptionItemsCompletionTests extends CompletionTests {
+
 	@Test
 	public void testCompletion_AuthorizationSubscriptionItemsInTargetExpression() {
 		testCompletion((TestCompletionConfiguration it) -> {
@@ -68,4 +69,5 @@ public class AuthorizationSubscriptionItemsCompletionTests extends CompletionTes
 			});
 		});
 	}
+
 }

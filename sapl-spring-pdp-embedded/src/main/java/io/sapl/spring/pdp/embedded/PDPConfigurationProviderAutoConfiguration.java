@@ -33,7 +33,9 @@ import lombok.extern.slf4j.Slf4j;
 public class PDPConfigurationProviderAutoConfiguration {
 
 	private final AttributeContext attributeCtx;
+
 	private final FunctionContext functionCtx;
+
 	private final VariablesAndCombinatorSource combinatorProvider;
 
 	@Bean
@@ -44,4 +46,5 @@ public class PDPConfigurationProviderAutoConfiguration {
 				attributeCtx, functionCtx, combinatorProvider);
 		return new FixedFunctionsAndAttributesPDPConfigurationProvider(attributeCtx, functionCtx, combinatorProvider);
 	}
+
 }

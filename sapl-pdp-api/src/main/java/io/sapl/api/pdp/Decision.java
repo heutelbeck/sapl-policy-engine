@@ -1,5 +1,5 @@
 /*
- * Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2021 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ package io.sapl.api.pdp;
  * PERMIT grants access to the resource, while respecting potential obligations, advises,
  * or resource transformation.
  *
- * DENY denies access the the resource.
+ * DENY denies access to the resource.
  *
  * INDETERMINATE means that an error occurred during the decision process. Access must be
  * denied in this case.

@@ -1,3 +1,18 @@
+/*
+ * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.test.utils;
 
 import java.net.URISyntaxException;
@@ -15,49 +30,52 @@ import reactor.core.Exceptions;
 public class ClasspathHelper {
 
 	private static final String DEFAULT_PATH = "policies/";
-	private static final String ERROR_MAIN_MESSAGE = "Error finding the specified resource on the classpath on paths %s and %s";
-	
-	public Path findPathOnClasspath(@NonNull Class<?> clazz, @NonNull String path) {
 
-		//try path as specified
-		URL url = clazz.getClassLoader().getResource(path);
-		if(url != null) {
+	private static final String ERROR_MAIN_MESSAGE = "Error finding %s or %s on the classpath!";
+
+	public static Path findPathOnClasspath(@NonNull ClassLoader loader, @NonNull String path) {
+
+		// try path as specified
+		URL url = loader.getResource(path);
+		if (url != null) {
 			return getResourcePath(url);
 		}
-		
-		//try DEFAULT_PATH + specified path
+
+		// try DEFAULT_PATH + specified path
 		String defaultPath = DEFAULT_PATH + path;
-		URL urlFromDefaultPath = clazz.getClassLoader().getResource(defaultPath);
-		if(urlFromDefaultPath != null) {
+		URL urlFromDefaultPath = loader.getResource(defaultPath);
+		if (urlFromDefaultPath != null) {
 			return getResourcePath(urlFromDefaultPath);
 		}
 
-		//nothing found -> throw useful exception
+		// nothing found -> throw useful exception
 		StringBuilder errorMessage = new StringBuilder(String.format(ERROR_MAIN_MESSAGE, path, defaultPath));
-		ClassLoader loader = clazz.getClassLoader();
-		if(loader instanceof URLClassLoader) {
-			errorMessage.append(System.lineSeparator() + System.lineSeparator() + "We tried the following paths: " + System.lineSeparator());
+		if (loader instanceof URLClassLoader) {
+			errorMessage.append(System.lineSeparator()).append(System.lineSeparator())
+					.append("We tried the following paths:").append(System.lineSeparator());
 			URL[] classpathElements = ((URLClassLoader) loader).getURLs();
-			for(URL classpathElement : classpathElements) {
-				errorMessage.append("  - " + classpathElement.toString());
+			for (URL classpathElement : classpathElements) {
+				errorMessage.append("    - ").append(classpathElement);
 			}
 		}
 		throw new SaplTestException(errorMessage.toString());
-		
+
 	}
-	
+
 	private static Path getResourcePath(URL url) {
 		if ("jar".equals(url.getProtocol())) {
-			throw new SaplTestException("Not supporting reading PDP configuration from jar during test execution");
+			throw new SaplTestException("Not supporting reading files from jar during test execution!");
 		}
-		
+
 		Path configDirectoryPath;
 		try {
 			configDirectoryPath = Paths.get(url.toURI());
-		} catch (URISyntaxException e) {
+		}
+		catch (URISyntaxException e) {
 			throw Exceptions.propagate(e);
 		}
-		
+
 		return configDirectoryPath;
 	}
+
 }

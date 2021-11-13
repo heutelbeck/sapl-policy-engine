@@ -66,4 +66,5 @@ class IndexUnionStepImplCustomTest {
 		var expected = "[[0,1,2,3],[0,1,2,null],[0,1,2,3],[0,1,2,null]]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
+
 }

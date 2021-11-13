@@ -23,9 +23,8 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the evaluation of functions.
  *
- * Grammar: {BasicFunction} fsteps+=ID ('.' fsteps+=ID)* arguments=Arguments
- * steps+=Step*; {Arguments} '(' (args+=Expression (',' args+=Expression)*)?
- * ')';
+ * Grammar: {BasicFunction} fsteps+=ID ('.' fsteps+=ID)* arguments=Arguments steps+=Step*;
+ * {Arguments} '(' (args+=Expression (',' args+=Expression)*)? ')';
  */
 public class BasicFunctionImplCustom extends BasicFunctionImpl {
 
@@ -33,7 +32,7 @@ public class BasicFunctionImplCustom extends BasicFunctionImpl {
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		return FunctionUtil.combineArgumentFluxes(arguments, ctx, relativeNode)
 				.concatMap(parameters -> FunctionUtil.evaluateFunctionMono(fsteps, ctx, parameters))
-				.switchMap(resolveStepsFiltersAndSubtemplates(steps, ctx, relativeNode));
+				.switchMap(resolveStepsFiltersAndSubTemplates(steps, ctx, relativeNode));
 	}
 
 }

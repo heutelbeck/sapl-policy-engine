@@ -22,11 +22,12 @@ import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
- * Implements the application of an head attribute finder step to a previous value.
+ * Implements the application of a head attribute finder step to a previous value.
  */
 public class HeadAttributeFinderStepImplCustom extends HeadAttributeFinderStepImpl {
 
 	private static final String UNDEFINED_VALUE = "Undefined value handed over as parameter to policy information point";
+
 	private static final String EXTERNAL_ATTRIBUTE_IN_TARGET = "Attribute resolution error. Attribute '%s' is not allowed in target.";
 
 	@Override
@@ -41,7 +42,7 @@ public class HeadAttributeFinderStepImplCustom extends HeadAttributeFinderStepIm
 		if (parentValue.isUndefined()) {
 			return Val.errorFlux(UNDEFINED_VALUE);
 		}
-		return ctx.getAttributeCtx().evaluate(fullyQualifiedName, parentValue, ctx, getArguments()).take(1);
+		return ctx.getAttributeCtx().evaluateAttribute(fullyQualifiedName, parentValue, ctx, getArguments()).take(1);
 	}
 
 	@Override

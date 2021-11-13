@@ -1,3 +1,19 @@
+#
+# Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 name: Test Pull Request
 on:
   pull_request:
@@ -30,7 +46,8 @@ jobs:
 
     - name: Publish Test Report
       # do not publish test results if PR is from a fork -> PRs from forks don't have access to the github token to access the checks api
-      if: ${{ github.event.pull_request.base.repo.url ==  github.event.pull_request.head.repo.url }}
+      # do not publish test results if PR is from dependabot -> PRs from dependabot are originated in the same repo but the GITHUB_TOKEN is read-only (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544)
+      if: ${{ github.event.pull_request.base.repo.url == github.event.pull_request.head.repo.url && github.actor != 'dependabot[bot]'}}
       uses: scacap/action-surefire-report@v1
 
     - name: Clean up local repository before caching

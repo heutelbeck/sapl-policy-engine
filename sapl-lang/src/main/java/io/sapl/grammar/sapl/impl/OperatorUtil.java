@@ -38,8 +38,7 @@ public class OperatorUtil {
 
 	public static Flux<Val> arithmeticOperator(BinaryOperator operator, BiFunction<Val, Val, Val> transformation,
 			EvaluationContext ctx, Val relativeNode) {
-		return operator(operator, Val::requireBigDecimal, Val::requireBigDecimal, transformation, ctx,
-				relativeNode);
+		return operator(operator, Val::requireBigDecimal, Val::requireBigDecimal, transformation, ctx, relativeNode);
 	}
 
 	public static Flux<Val> arithmeticOperator(UnaryOperator unarayOperator, Function<Val, Val> transformation,
@@ -80,4 +79,5 @@ public class OperatorUtil {
 			return transformation.apply(value);
 		};
 	}
+
 }

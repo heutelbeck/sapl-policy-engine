@@ -1,12 +1,12 @@
-/**
+/*
  * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,6 +15,7 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -29,6 +30,7 @@ import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import io.sapl.pip.TimePolicyInformationPoint;
 
 /**
  * This class is used to offer library and function proposals.
@@ -42,6 +44,29 @@ public class DefaultLibraryAttributeFinder implements LibraryAttributeFinder {
 	@Autowired @NonNull
 	private FunctionContext funtionContext;
 
+  /**
+	 * The default constructor registers the default libraries.
+	 * @throws InitializationException if library initialization fails
+	 */
+	public DefaultLibraryAttributeFinder() throws InitializationException {
+		attributeContext = new AnnotationAttributeContext();
+		attributeContext.loadPolicyInformationPoint(new TimePolicyInformationPoint(Clock.systemUTC()));
+		functionContext = new AnnotationFunctionContext();
+		functionContext.loadLibrary(new FilterFunctionLibrary());
+		functionContext.loadLibrary(new StandardFunctionLibrary());
+		functionContext.loadLibrary(new TemporalFunctionLibrary());
+	}
+
+	/**
+	 * Creates a new finder based on the libraries and functions that are registered in
+	 * the provided evaluation context.
+	 * @param evaluationContext the evaluation context
+	 */
+	public DefaultLibraryAttributeFinder(EvaluationContext evaluationContext) {
+		attributeContext = evaluationContext.getAttributeCtx();
+		functionContext = evaluationContext.getFunctionCtx();
+	}
+
 	@Override
 	public Collection<String> getAvailableAttributes(String identifier) {
 
@@ -50,20 +75,22 @@ public class DefaultLibraryAttributeFinder implements LibraryAttributeFinder {
 		List<String> steps;
 		if (identifier.isBlank()) {
 			steps = new ArrayList<>();
-		} else {
+		}
+		else {
 			steps = Arrays.asList(identifier.split("\\."));
 		}
 
-		Integer stepCount = steps.size();
+		int stepCount = steps.size();
 		if (stepCount > 0) {
 			String lastChar = identifier.substring(identifier.length() - 1);
-			if (lastChar.equals("."))
+			if (".".equals(lastChar))
 				stepCount++;
 		}
 
 		if (stepCount == 0) {
 			return getAvailableLibraries();
-		} else if (stepCount == 1) {
+		}
+		else if (stepCount == 1) {
 			Set<String> availableLibraries = new HashSet<>();
 			String needle = steps.get(0);
 			for (String library : getAvailableLibraries()) {
@@ -71,7 +98,8 @@ public class DefaultLibraryAttributeFinder implements LibraryAttributeFinder {
 					availableLibraries.add(library);
 			}
 			return availableLibraries;
-		} else {
+		}
+		else {
 			Set<String> availableFunctions = new HashSet<>();
 			String currentLibrary = steps.get(0);
 			String needle = "";
@@ -88,14 +116,15 @@ public class DefaultLibraryAttributeFinder implements LibraryAttributeFinder {
 	private Set<String> getAvailableLibraries() {
 		Set<String> availableLibraries = new HashSet<>();
 		availableLibraries.addAll(attributeContext.getAvailableLibraries());
-		availableLibraries.addAll(funtionContext.getAvailableLibraries());
+		availableLibraries.addAll(functionContext.getAvailableLibraries());
 		return availableLibraries;
 	}
 
 	private Set<String> getAvailableFunctions(final String library) {
 		Set<String> availableFunctions = new HashSet<>();
 		availableFunctions.addAll(attributeContext.providedFunctionsOfLibrary(library));
-		availableFunctions.addAll(funtionContext.providedFunctionsOfLibrary(library));
+		availableFunctions.addAll(functionContext.providedFunctionsOfLibrary(library));
 		return availableFunctions;
 	}
+
 }

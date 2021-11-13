@@ -86,14 +86,14 @@ class FirstApplicableTest {
 				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
-	@Test //**
+	@Test // **
 	void indeterminateTarget() {
 		String policySet = "set \"tests\" first-applicable" + " policy \"testp\" permit \"a\" < 5";
 
 		assertEquals(Decision.INDETERMINATE,
 				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
-	
+
 	@Test
 	void indeterminateCondition() {
 		String policySet = "set \"tests\" first-applicable" + " policy \"testp\" permit where \"a\" < 5;";
@@ -161,7 +161,7 @@ class FirstApplicableTest {
 		advice.add(JSON.textNode("advice1"));
 
 		assertEquals(Optional.of(advice), INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getAdvices());
+				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getAdvice());
 	}
 
 	@Test
@@ -188,8 +188,7 @@ class FirstApplicableTest {
 		advice.add(JSON.textNode("advice1"));
 
 		assertEquals(Optional.of(advice), INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getAdvices());
+				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getAdvice());
 	}
-	
 
 }

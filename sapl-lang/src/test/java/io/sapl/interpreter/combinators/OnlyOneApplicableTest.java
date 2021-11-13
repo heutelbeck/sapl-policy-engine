@@ -276,7 +276,7 @@ class OnlyOneApplicableTest {
 		advice.add(JSON.textNode("advice1"));
 
 		assertEquals(Optional.of(advice), INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getAdvices());
+				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getAdvice());
 	}
 
 	@Test
@@ -307,7 +307,7 @@ class OnlyOneApplicableTest {
 		advice.add(JSON.textNode("advice1"));
 
 		assertEquals(Optional.of(advice), INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getAdvices());
+				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getAdvice());
 	}
 
 }

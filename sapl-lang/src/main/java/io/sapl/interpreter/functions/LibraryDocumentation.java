@@ -28,11 +28,16 @@ import lombok.RequiredArgsConstructor;
 @NoArgsConstructor
 @RequiredArgsConstructor
 public class LibraryDocumentation implements Serializable {
+
 	@NonNull
 	String name;
+
 	@NonNull
 	String description;
+
 	@NonNull
 	Object library;
+
 	Map<String, String> documentation = new HashMap<>();
+
 }

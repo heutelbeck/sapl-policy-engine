@@ -38,23 +38,20 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 	private static final String STATEMENT_NOT_BOOLEAN = "Evaluation error: Statement must evaluate to a boolean value, but was: '%s'.";
 
 	/**
-	 * Evaluates all statements of this policy body within the given evaluation
-	 * context and returns a {@link Flux} of {@link Decision} objects.
-	 * 
+	 * Evaluates all statements of this policy body within the given evaluation context
+	 * and returns a {@link Flux} of {@link Decision} objects.
 	 * @param entitlement the entitlement of the enclosing policy.
-	 * @param ctx         the evaluation context in which the statements are
-	 *                    evaluated. It must contain
-	 *                    <ul>
-	 *                    <li>the attribute context</li>
-	 *                    <li>the function context</li>
-	 *                    <li>the variable context holding the four authorization
-	 *                    subscription variables 'subject', 'action', 'resource' and
-	 *                    'environment' combined with system variables from the PDP
-	 *                    configuration and other variables e.g. obtained from the
-	 *                    containing policy set</li>
-	 *                    <li>the import mapping for functions and attribute
-	 *                    finders</li>
-	 *                    </ul>
+	 * @param ctx the evaluation context in which the statements are evaluated. It must
+	 * contain
+	 * <ul>
+	 * <li>the attribute context</li>
+	 * <li>the function context</li>
+	 * <li>the variable context holding the four authorization subscription variables
+	 * 'subject', 'action', 'resource' and 'environment' combined with system variables
+	 * from the PDP configuration and other variables e.g. obtained from the containing
+	 * policy set</li>
+	 * <li>the import mapping for functions and attribute finders</li>
+	 * </ul>
 	 * @return A {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
 	@Override
@@ -84,7 +81,8 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 			EvaluationContext ctx) {
 		if (statement instanceof ValueDefinition) {
 			return evaluateValueDefinition(previousResult, (ValueDefinition) statement, ctx);
-		} else {
+		}
+		else {
 			return evaluateCondition(previousResult, (Condition) statement, ctx);
 		}
 	}
@@ -108,7 +106,8 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 				try {
 					var scopedCtx = ctx.withEnvironmentVariable(valueDefinition.getName(), evaluatedValue.get());
 					return Flux.just(Tuples.of(Val.TRUE, scopedCtx));
-				} catch (PolicyEvaluationException e) {
+				}
+				catch (PolicyEvaluationException e) {
 					return Flux.just(Tuples.of(Val.error(e), ctx));
 				}
 			}
@@ -124,7 +123,8 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 		return condition.getExpression().evaluate(ctx, Val.UNDEFINED).concatMap(statementResult -> {
 			if (statementResult.isBoolean()) {
 				return Flux.just(Tuples.of(statementResult, ctx));
-			} else {
+			}
+			else {
 				return Flux.just(Tuples.of(Val.error(STATEMENT_NOT_BOOLEAN, statementResult), ctx));
 			}
 		});

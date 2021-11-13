@@ -29,7 +29,6 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.api.validation.Text;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.grammar.sapl.AttributeFinderStep;
 import io.sapl.grammar.sapl.Expression;
@@ -43,6 +42,7 @@ import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import reactor.core.publisher.Flux;
 
 public class MockUtil {
+
 	private static final SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
 
 	public static void mockPolicyTargetExpressionContainerExpression(Expression expression) {
@@ -66,7 +66,8 @@ public class MockUtil {
 			functionCtx.loadLibrary(new SimpleFunctionLibrary());
 			functionCtx.loadLibrary(new FilterFunctionLibrary());
 			functionCtx.loadLibrary(new TestFunctionLibrary());
-		} catch (InitializationException e) {
+		}
+		catch (InitializationException e) {
 			fail("The loading of function libraries for the test environemnt failed: " + e.getMessage());
 		}
 		var variables = new HashMap<String, JsonNode>(1);
@@ -82,6 +83,7 @@ public class MockUtil {
 
 	@FunctionLibrary(name = "mock")
 	public static class TestFunctionLibrary {
+
 		@Function
 		public Val nil(Val... parameters) {
 			return Val.NULL;
@@ -109,23 +111,29 @@ public class MockUtil {
 				array.add(param.get());
 			return Val.of(array);
 		}
+
 	}
 
 	@PolicyInformationPoint(name = "test")
 	public static class TestPolicyInformationPoint {
 
 		@Attribute
-		public Flux<Val> nilflux(Val value, Map<String, JsonNode> variables) {
+		public Flux<Val> nilflux(Map<String, JsonNode> variables) {
 			return Flux.just(Val.NULL);
 		}
 
 		@Attribute
-		public Flux<Val> numbers(Val value, Map<String, JsonNode> variables) {
+		public Flux<Val> numbers(Map<String, JsonNode> variables) {
 			return Flux.just(Val.of(0), Val.of(1), Val.of(2), Val.of(3), Val.of(4), Val.of(5));
 		}
 
 		@Attribute
-		public Flux<Val> numbersWithError(@Text Val value, Map<String, JsonNode> variables) {
+		public Flux<Val> numbers(Val leftHand, Map<String, JsonNode> variables) {
+			return Flux.just(Val.of(0), Val.of(1), Val.of(2), Val.of(3), Val.of(4), Val.of(5));
+		}
+
+		@Attribute
+		public Flux<Val> numbersWithError(Map<String, JsonNode> variables) {
 			return Flux.just(Val.of(0), Val.of(1), Val.error("INTENTIONAL ERROR IN SEQUENCE"), Val.of(3), Val.of(4),
 					Val.of(5));
 		}
