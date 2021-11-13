@@ -16,10 +16,9 @@
 package io.sapl.test.mocking.attribute;
 
 import static io.sapl.hamcrest.Matchers.val;
-import static io.sapl.test.Imports.arguments;
-import static io.sapl.test.Imports.parentValue;
-import static io.sapl.test.Imports.whenAttributeParams;
+import static io.sapl.test.Imports.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.CoreMatchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -28,12 +27,6 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
-
-import org.assertj.core.api.Assertions;
-import org.eclipse.emf.common.util.BasicEList;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
@@ -46,6 +39,13 @@ import io.sapl.pip.TimePolicyInformationPoint;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.function.MockingFunctionContext;
 import io.sapl.test.unit.TestPIP;
+
+import org.assertj.core.api.Assertions;
+import org.eclipse.emf.common.util.BasicEList;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -86,9 +86,21 @@ public class MockingAttributeContextTest {
 	}
 
 	@Test
+	void test_dynamicMock_ForEnvironmentAttribute() {
+		attrCtx.markAttributeMock("foo.bar");
+		StepVerifier.create(attrCtx.evaluateEnvironmentAttribute("foo.bar", this.ctx, null))
+				.then(() -> attrCtx.mockEmit("foo.bar", Val.of(1))).expectNext(Val.of(1)).thenCancel().verify();
+	}
+
+	@Test
 	void test_timingMock() {
 		attrCtx.loadAttributeMock("foo.bar", Duration.ofSeconds(10), Val.of(1), Val.of(2));
-		Assertions.assertThat(attrCtx.evaluateAttribute("foo.bar", null, this.ctx, null)).isNotNull();
+		StepVerifier.withVirtualTime(() -> attrCtx.evaluateAttribute("foo.bar", null, this.ctx, null))
+			.thenAwait(Duration.ofSeconds(10))
+			.expectNext(Val.of(1))
+			.thenAwait(Duration.ofSeconds(10))
+			.expectNext(Val.of(2))
+			.verifyComplete();
 	}
 
 	@Test
@@ -99,16 +111,28 @@ public class MockingAttributeContextTest {
 	}
 
 	@Test
+	void test_timingMock_ForEnvironmentAttribute() {
+		attrCtx.loadAttributeMock("foo.bar", Duration.ofSeconds(10), Val.of(1), Val.of(2));
+		StepVerifier.withVirtualTime(() -> attrCtx.evaluateEnvironmentAttribute("foo.bar", this.ctx, null))
+			.thenAwait(Duration.ofSeconds(10))
+			.expectNext(Val.of(1))
+			.thenAwait(Duration.ofSeconds(10))
+			.expectNext(Val.of(2))
+			.verifyComplete();
+	}
+
+	@Test
 	void test_loadAttributeMockForParentValue() {
 		attrCtx.loadAttributeMockForParentValue("foo.bar", parentValue(val(1)), Val.of(2));
-		Assertions.assertThat(attrCtx.evaluateAttribute("foo.bar", Val.of(1), this.ctx, null)).isNotNull();
+		StepVerifier.create(attrCtx.evaluateAttribute("foo.bar", Val.of(1), this.ctx, null)).expectNext(Val.of(2)).verifyComplete();
 	}
 
 	@Test
 	void test_loadAttributeMockForParentValue_duplicateRegistration() {
 		attrCtx.loadAttributeMockForParentValue("foo.bar", parentValue(val(1)), Val.of(2));
 		attrCtx.loadAttributeMockForParentValue("foo.bar", parentValue(val(2)), Val.of(3));
-		Assertions.assertThat(attrCtx.evaluateAttribute("foo.bar", Val.of(1), this.ctx, null)).isNotNull();
+		StepVerifier.create(attrCtx.evaluateAttribute("foo.bar", Val.of(1), this.ctx, null)).expectNext(Val.of(2)).verifyComplete();
+		StepVerifier.create(attrCtx.evaluateAttribute("foo.bar", Val.of(2), this.ctx, null)).expectNext(Val.of(3)).verifyComplete();
 	}
 
 	@Test
@@ -116,6 +140,12 @@ public class MockingAttributeContextTest {
 		attrCtx.markAttributeMock("foo.bar");
 		Assertions.assertThatExceptionOfType(SaplTestException.class)
 				.isThrownBy(() -> attrCtx.loadAttributeMockForParentValue("foo.bar", parentValue(val(1)), Val.of(2)));
+	}
+
+	@Test
+	void test_ForParentValue_ForEnvironmentAttribute() {
+		attrCtx.loadAttributeMockForParentValue("foo.bar", parentValue(is(Val.UNDEFINED)), Val.of(2));
+		StepVerifier.create(attrCtx.evaluateEnvironmentAttribute("foo.bar", this.ctx, null)).expectNext(Val.of(2)).verifyComplete();
 	}
 
 	@Test
@@ -128,7 +158,7 @@ public class MockingAttributeContextTest {
 		Arguments arguments = Mockito.mock(Arguments.class);
 		Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<Expression>(List.of(expression)));
 
-		Assertions.assertThat(attrCtx.evaluateAttribute("foo.bar", Val.of(1), this.ctx, arguments)).isNotNull();
+		StepVerifier.create(attrCtx.evaluateAttribute("foo.bar", Val.of(1), this.ctx, arguments)).expectNext(Val.of(2)).verifyComplete();
 	}
 
 	@Test
@@ -143,7 +173,7 @@ public class MockingAttributeContextTest {
 		Arguments arguments = Mockito.mock(Arguments.class);
 		Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<Expression>(List.of(expression)));
 
-		Assertions.assertThat(attrCtx.evaluateAttribute("foo.bar", Val.of(1), this.ctx, arguments)).isNotNull();
+		StepVerifier.create(attrCtx.evaluateAttribute("foo.bar", Val.of(1), this.ctx, arguments)).expectNext(Val.of(0)).verifyComplete();
 	}
 
 	@Test
@@ -152,6 +182,19 @@ public class MockingAttributeContextTest {
 		Assertions.assertThatExceptionOfType(SaplTestException.class)
 				.isThrownBy(() -> attrCtx.loadAttributeMockForParentValueAndArguments("foo.bar",
 						whenAttributeParams(parentValue(val(1)), arguments(val(true))), Val.of(2)));
+	}
+
+	@Test
+	void test_ForParentValueAndArguments_ForEnvironmentAttribute() {
+		attrCtx.loadAttributeMockForParentValueAndArguments("foo.bar",
+				whenAttributeParams(parentValue(is(Val.UNDEFINED)), arguments(val(true))), Val.of(2));
+
+		Expression expression = Mockito.mock(Expression.class);
+		Mockito.when(expression.evaluate(any(), any())).thenReturn(Flux.just(Val.TRUE));
+		Arguments arguments = Mockito.mock(Arguments.class);
+		Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<Expression>(List.of(expression)));
+
+		StepVerifier.create(attrCtx.evaluateEnvironmentAttribute("foo.bar", this.ctx, arguments)).expectNext(Val.of(2)).verifyComplete();
 	}
 
 	@Test

@@ -1,0 +1,5 @@
+policy "policyWithEnvironmentAttribute"
+permit
+    action == "write"
+where
+    <org.emergencyLevel> == 0;

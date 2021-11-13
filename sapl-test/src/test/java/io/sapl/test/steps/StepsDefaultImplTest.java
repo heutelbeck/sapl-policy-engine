@@ -15,26 +15,11 @@
  */
 package io.sapl.test.steps;
 
-import static io.sapl.hamcrest.Matchers.anyVal;
-import static io.sapl.hamcrest.Matchers.val;
-import static io.sapl.test.Imports.arguments;
-import static io.sapl.test.Imports.parentValue;
-import static io.sapl.test.Imports.thenReturn;
-import static io.sapl.test.Imports.times;
-import static io.sapl.test.Imports.whenAttributeParams;
-import static io.sapl.test.Imports.whenFunctionParams;
+import static io.sapl.hamcrest.Matchers.*;
+import static io.sapl.test.Imports.*;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -48,6 +33,15 @@ import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.attribute.MockingAttributeContext;
 import io.sapl.test.mocking.function.MockingFunctionContext;
+
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 class StepsDefaultImplTest {
 
@@ -128,6 +122,31 @@ class StepsDefaultImplTest {
 						thenReturn(Val.of(false)))
 				.givenAttribute("pip.attributeWithParams",
 						whenAttributeParams(parentValue(val(true)), arguments(val(1), val(2))),
+						thenReturn(Val.of(false)))
+				.when(AuthorizationSubscription.of("willi", "read", "something"))
+				.thenAttribute("pip.attribute1", Val.of(1)).thenAttribute("pip.attribute2", Val.of(2))
+				.expectNextNotApplicable().thenAttribute("pip.attribute1", Val.of(2)).expectNextPermit()
+				.thenAttribute("pip.attribute2", Val.of(1)).expectNextNotApplicable().verify();
+	}
+	
+	private String Policy_EnvironmentAttribute_WithAttributeAsParentValueAndArguments = "policy \"policy\"\r\n" + "permit\r\n"
+			+ "where\r\n" + "  var parentValue = true;\r\n"
+			+ "  <pip.attributeWithParams(<pip.attribute1>, <pip.attribute2>)> == true;";
+
+	@Test
+	void test_mockAttribute_withParentValueAndArguments_ForEnvironmentAttribute() {
+		StepsDefaultImpl steps = new StepsDefaultImplTestImpl(Policy_EnvironmentAttribute_WithAttributeAsParentValueAndArguments,
+				attrCtx, funcCtx, variables);
+		steps.givenAttribute("pip.attribute1")
+				.givenAttribute("pip.attribute2")
+				.givenAttribute("pip.attributeWithParams",
+						whenEnvironmentAttributeParams(arguments(val(2), val(2))),
+						thenReturn(Val.of(true)))
+				.givenAttribute("pip.attributeWithParams",
+						whenEnvironmentAttributeParams(arguments(val(2), val(1))),
+						thenReturn(Val.of(false)))
+				.givenAttribute("pip.attributeWithParams",
+						whenEnvironmentAttributeParams(arguments(val(1), val(2))),
 						thenReturn(Val.of(false)))
 				.when(AuthorizationSubscription.of("willi", "read", "something"))
 				.thenAttribute("pip.attribute1", Val.of(1)).thenAttribute("pip.attribute2", Val.of(2))

@@ -15,10 +15,10 @@
  */
 package io.sapl.test;
 
+import static io.sapl.hamcrest.Matchers.anyVal;
+import static io.sapl.hamcrest.Matchers.valUndefined;
 import static org.hamcrest.CoreMatchers.any;
 import static org.hamcrest.number.OrderingComparison.comparesEqualTo;
-
-import org.hamcrest.Matcher;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.mocking.attribute.models.AttributeArgumentMatchers;
@@ -26,29 +26,67 @@ import io.sapl.test.mocking.attribute.models.AttributeParameters;
 import io.sapl.test.mocking.attribute.models.AttributeParentValueMatcher;
 import io.sapl.test.mocking.function.models.FunctionParameters;
 import io.sapl.test.verification.TimesCalledVerification;
+
+import org.hamcrest.Matcher;
+
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class Imports {
 
+	/**
+	 * specify Matchers for the arguments of a function mock
+	 * @param matcher Varargs of {@link Matcher<Val>}
+	 * @return
+	 */
 	@SafeVarargs
 	public static FunctionParameters whenFunctionParams(Matcher<Val>... matcher) {
 		return new FunctionParameters(matcher);
 	}
 
+	/**
+	 * specify Matchers for the parent value and all arguments of an attribute mock
+	 * @param parentValueMatcher Matcher for the parent value. See {@link #parentValue(Matcher)}
+	 * @param argumentMatchers Matcher for the arguments. See {@link #arguments(Matcher[])}
+	 * @return an {@link AttributeParameters} object required by the given step
+	 */
 	public static AttributeParameters whenAttributeParams(AttributeParentValueMatcher parentValueMatcher,
 			AttributeArgumentMatchers argumentMatchers) {
 		return new AttributeParameters(parentValueMatcher, argumentMatchers);
 	}
 
+	/**
+	 * specify Matchers for all arguments of an environment attribute mock
+	 * @param argumentMatchers Matcher for the arguments. See {@link #arguments(Matcher[])}
+	 * @return an {@link AttributeParameters} object required by the given step
+	 */
+	public static AttributeParameters whenEnvironmentAttributeParams(AttributeArgumentMatchers argumentMatchers) {
+		return new AttributeParameters(new AttributeParentValueMatcher(valUndefined()), argumentMatchers);
+	}
+
+	/**
+	 * specify Matcher for the parent value of an attribute mock
+	 * @param argumentMatchers Matcher for the arguments. See {@link #arguments(Matcher[])}
+	 * @return an {@link AttributeParameters} object required by the given step
+	 */
 	public static AttributeParentValueMatcher whenParentValue(Matcher<Val> matcher) {
 		return new AttributeParentValueMatcher(matcher);
 	}
 
+	/**
+	 * specify a matcher for the parent value used in {@link #whenAttributeParams(AttributeParentValueMatcher, AttributeArgumentMatchers)}
+	 * @param matcher the matcher for the parent value
+	 * @return
+	 */
 	public static AttributeParentValueMatcher parentValue(Matcher<Val> matcher) {
 		return new AttributeParentValueMatcher(matcher);
 	}
 
+	/**
+	 * specify matchers for the arguments used in {@link #whenAttributeParams(AttributeParentValueMatcher, AttributeArgumentMatchers)}
+	 * @param matcher the matcher for the parent value
+	 * @return
+	 */
 	@SafeVarargs
 	public static AttributeArgumentMatchers arguments(Matcher<Val>... argumentMatcher) {
 		return new AttributeArgumentMatchers(argumentMatcher);
