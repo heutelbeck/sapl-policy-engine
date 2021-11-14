@@ -80,13 +80,13 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 		var funParams = metadata.getFunction().getParameters();
 
-		if (metadata.isVarArgs()) {
+		if (metadata.isVarArgsParameters()) {
 			return evaluateVarArgsFunction(metadata, funParams, parameters);
 		}
-		if (metadata.getParameterCardinality() == parameters.length) {
+		if (metadata.getNumberOfParameters() == parameters.length) {
 			return evaluateFixedParametersFunction(metadata, funParams, parameters);
 		}
-		return Val.error(ILLEGAL_NUMBER_OF_PARAMETERS, metadata.getParameterCardinality(), parameters.length);
+		return Val.error(ILLEGAL_NUMBER_OF_PARAMETERS, metadata.getNumberOfParameters(), parameters.length);
 	}
 
 	private Val evaluateFixedParametersFunction(FunctionMetadata metadata, Parameter[] funParams, Val... parameters) {
@@ -115,7 +115,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 		}
 	}
 
-	private Val invocationExceptionToError(Throwable e, FunctionMetadata metadata, Object... parameters) {
+	private Val invocationExceptionToError(Throwable e, LibraryEntryMetadata metadata, Object... parameters) {
 		var params = new StringBuilder();
 		for (var i = 0; i < parameters.length; i++) {
 			params.append(parameters[i]);
@@ -210,22 +210,29 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 		Object library;
 
-		int parameterCardinality;
+		int numberOfParameters;
 
 		Method function;
 
-		public boolean isVarArgs() {
-			return parameterCardinality == VAR_ARGS;
+		@Override
+		public boolean isVarArgsParameters() {
+			return numberOfParameters == VAR_ARGS;
 		}
 
 		@Override
 		public String getCodeTemplate() {
-			return fullyQualifiedName();
+			var sb = new StringBuilder();
+			sb.append(fullyQualifiedName());
+			appendParameterList(sb, 0, this::getParameterName);
+			return sb.toString();
 		}
 
 		@Override
 		public String getDocumentationCodeTemplate() {
-			return fullyQualifiedName();
+			var sb = new StringBuilder();
+			sb.append(fullyQualifiedName());
+			appendParameterList(sb, 0, this::describeParameterForDocumentation);
+			return sb.toString();
 		}
 
 	}

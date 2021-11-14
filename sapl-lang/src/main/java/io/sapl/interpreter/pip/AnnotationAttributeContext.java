@@ -15,7 +15,6 @@
  */
 package io.sapl.interpreter.pip;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -30,7 +29,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -38,13 +36,6 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.api.validation.Array;
-import io.sapl.api.validation.Bool;
-import io.sapl.api.validation.Int;
-import io.sapl.api.validation.JsonObject;
-import io.sapl.api.validation.Long;
-import io.sapl.api.validation.Number;
-import io.sapl.api.validation.Text;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.EvaluationContext;
@@ -479,8 +470,6 @@ public class AnnotationAttributeContext implements AttributeContext {
 	@AllArgsConstructor
 	public static class AttributeFinderMetadata implements LibraryEntryMetadata {
 
-		private final static Class<?>[] VALIDATION_ANNOTATION_TYPES = { Number.class, Int.class, Long.class, Bool.class,
-				Text.class, Array.class, JsonObject.class };
 		Object policyInformationPoint;
 
 		Method function;
@@ -496,46 +485,6 @@ public class AnnotationAttributeContext implements AttributeContext {
 		boolean varArgsParameters;
 
 		int numberOfParameters;
-
-		private String getParameterName(int index) {
-			return function.getParameters()[index].getName();
-		}
-
-		private List<Annotation> getValidationAnnoattionsOfParameter(int index) {
-			var annotations = function.getParameters()[index].getAnnotations();
-			var validationAnnotations = new ArrayList<Annotation>(annotations.length);
-			for (var annotation : annotations)
-				if (isValidationAnnotation(annotation))
-					validationAnnotations.add(annotation);
-			return validationAnnotations;
-		}
-
-		private boolean isValidationAnnotation(Annotation annotation) {
-			for (var saplType : VALIDATION_ANNOTATION_TYPES)
-				if (saplType.isAssignableFrom(annotation.getClass()))
-					return true;
-			return false;
-		}
-
-		private String describeParameterForDocumentation(int index) {
-			return describeParameterForDocumentation(getParameterName(index),
-					getValidationAnnoattionsOfParameter(index));
-		}
-
-		private String describeParameterForDocumentation(String name, List<Annotation> types) {
-			if (types.isEmpty())
-				return name;
-			StringBuilder sb = new StringBuilder();
-			sb.append('(');
-			var numberOfTypes = types.size();
-			for (var i = 0; i < numberOfTypes; i++) {
-				sb.append(types.get(i).annotationType().getSimpleName());
-				if (i < numberOfTypes - 1)
-					sb.append('|');
-			}
-			sb.append(' ').append(name).append(')');
-			return sb.toString();
-		}
 
 		@Override
 		public String getDocumentationCodeTemplate() {
@@ -573,21 +522,6 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 			sb.append('>');
 			return sb.toString();
-		}
-
-		private void appendParameterList(StringBuilder sb, int parameterOffset,
-				Function<Integer, String> parameterStringBuilder) {
-			if (isVarArgsParameters())
-				sb.append('(').append(parameterStringBuilder.apply(parameterOffset)).append("...)");
-			else if (numberOfParameters > 0) {
-				sb.append('(');
-				for (var i = 0; i < numberOfParameters; i++) {
-					sb.append(parameterStringBuilder.apply(parameterOffset++));
-					if (i < numberOfParameters - 1)
-						sb.append(", ");
-				}
-				sb.append(')');
-			}
 		}
 
 	}
