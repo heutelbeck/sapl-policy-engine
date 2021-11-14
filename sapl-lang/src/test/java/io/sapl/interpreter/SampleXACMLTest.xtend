@@ -24,9 +24,7 @@ import io.sapl.api.pdp.AuthorizationSubscription
 import io.sapl.api.pdp.Decision
 import io.sapl.functions.FilterFunctionLibrary
 import io.sapl.interpreter.functions.AnnotationFunctionContext
-import io.sapl.interpreter.functions.FunctionContext
 import io.sapl.interpreter.pip.AnnotationAttributeContext
-import io.sapl.interpreter.pip.AttributeContext
 import java.util.Collections
 import java.util.HashMap
 import java.util.Map
@@ -44,8 +42,8 @@ class SampleXACMLTest {
 
 	static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 	static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
-	static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
-	static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
+	static final AnnotationAttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
+	static final AnnotationFunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
 	static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<String, JsonNode>());
 	static final EvaluationContext PDP_EVALUATION_CONTEXT = new EvaluationContext(ATTRIBUTE_CTX, FUNCTION_CTX,
 		SYSTEM_VARIABLES);

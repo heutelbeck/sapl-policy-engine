@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.Set;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.functions.LibraryDocumentation;
 
@@ -43,18 +42,20 @@ public class TestFunctionContext implements FunctionContext {
 	}
 
 	@Override
-	public void loadLibrary(Object library) throws InitializationException {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
 	public Collection<LibraryDocumentation> getDocumentation() {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public List<String> getCodeTemplates() {
-		throw new UnsupportedOperationException();
+		return List.of("filter.blacken", "filter.remove", "filter.replace", "standard.length",
+				"standard.numberToString", "time.after", "time.before", "time.between");
+	}
+
+	@Override
+	public Collection<String> getAllFullyQualifiedFunctions() {
+		return List.of("filter.blacken", "filter.remove", "filter.replace", "standard.length",
+				"standard.numberToString", "time.after", "time.before", "time.between");
 	}
 
 }

@@ -60,6 +60,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 	private final Map<String, Collection<String>> libraries = new HashMap<>();
 
 	private List<String> codeTemplateCache;
+
 	/**
 	 * Create context from a list of function libraries.
 	 * 
@@ -121,11 +122,10 @@ public class AnnotationFunctionContext implements FunctionContext {
 			if (i < parameters.length - 2)
 				params.append(',');
 		}
-		return Val.error("Error during evaluation of function %s(%s): %s", metadata.getFunctionName(), params.toString(),
-				e.getMessage());
+		return Val.error("Error during evaluation of function %s(%s): %s", metadata.getFunctionName(),
+				params.toString(), e.getMessage());
 	}
 
-	@Override
 	public final void loadLibrary(Object library) throws InitializationException {
 		Class<?> clazz = library.getClass();
 
@@ -237,14 +237,19 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 	@Override
 	public List<String> getCodeTemplates() {
-		if(codeTemplateCache == null) {
+		if (codeTemplateCache == null) {
 			codeTemplateCache = new LinkedList<>();
-			for(var entry : functions.entrySet()) {
+			for (var entry : functions.entrySet()) {
 				codeTemplateCache.add(entry.getValue().getCodeTemplate());
 			}
 			Collections.sort(codeTemplateCache);
 		}
 		return codeTemplateCache;
+	}
+
+	@Override
+	public Collection<String> getAllFullyQualifiedFunctions() {
+		return functions.keySet();
 	}
 
 }

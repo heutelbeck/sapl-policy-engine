@@ -15,7 +15,7 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.eclipse.emf.ecore.impl.MinimalEObjectImpl;

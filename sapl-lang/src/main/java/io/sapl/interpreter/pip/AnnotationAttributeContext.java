@@ -253,7 +253,6 @@ public class AnnotationAttributeContext implements AttributeContext {
 		return invocationArguments;
 	}
 
-	@Override
 	public final void loadPolicyInformationPoint(Object pip) throws InitializationException {
 		final Class<?> clazz = pip.getClass();
 
@@ -609,6 +608,15 @@ public class AnnotationAttributeContext implements AttributeContext {
 				if (attribute.environmentAttribute == isEnvirionmentAttribute
 						&& attribute.fullyQualifiedName().startsWith(prefix))
 					templates.add(attribute.getCodeTemplate());
+		return templates;
+	}
+
+	@Override
+	public Collection<String> getAllFullyQualifiedFunctions() {
+		var templates = new LinkedList<String>();
+		for (var entry : attributeMetadataByAttributeName.entrySet())
+			for (var attribute : entry.getValue())
+				templates.add(attribute.fullyQualifiedName());
 		return templates;
 	}
 }

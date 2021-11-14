@@ -15,11 +15,6 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import static org.hamcrest.CoreMatchers.hasItem;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertThat;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -28,19 +23,27 @@ import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionList;
 import org.eclipse.xtext.testing.TestCompletionConfiguration;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ContextConfiguration;
 
 import io.sapl.grammar.ide.AbstractSaplLanguageServerTest;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * This class uses the xtext test classes to test auto completion results.
  */
+@Slf4j
+@SpringBootTest
+@ContextConfiguration(classes = SAPLIdeSpringTestConfiguration.class)
 public class CompletionTests extends AbstractSaplLanguageServerTest {
-	
+
 	protected void assertProposalsSimple(final Collection<String> expectedProposals,
 			final CompletionList completionList) {
 		var actualMethods = completionList.getItems().stream().map(CompletionItem::getLabel)
 				.collect(Collectors.toList());
-		assertThat(actualMethods.containsAll(expectedProposals), is(true));
+		log.info("actual: {}", actualMethods);
+		if (!actualMethods.containsAll(expectedProposals))
+			throw new AssertionError("Expected: " + expectedProposals + " but got " + actualMethods);
 	}
 
 	protected void assertDoesNotContainProposals(final Collection<String> unwantedProposals,
@@ -50,7 +53,9 @@ public class CompletionTests extends AbstractSaplLanguageServerTest {
 				.collect(Collectors.toSet());
 
 		for (String unwantedProposal : unwantedProposals) {
-			assertThat(availableProposals, not(hasItem(unwantedProposal)));
+			if (availableProposals.contains(unwantedProposal))
+				throw new AssertionError(
+						"Expected not to find " + unwantedProposal + " but found it in " + availableProposals);
 		}
 	}
 
@@ -66,5 +71,4 @@ public class CompletionTests extends AbstractSaplLanguageServerTest {
 			});
 		});
 	}
-
 }

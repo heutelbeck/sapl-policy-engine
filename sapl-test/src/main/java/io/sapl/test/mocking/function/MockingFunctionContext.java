@@ -43,8 +43,6 @@ public class MockingFunctionContext implements FunctionContext {
 
 	private static final String ERROR_MOCK_INVALID_FULL_NAME = "Got invalid function reference containing more than one \".\" delimiter: \"%s\"";
 
-	private static final String ERROR_LOADING_LIB_NOT_SUPPORTED = "Loading a FunctionLibrary on a MockingFunctionContext is not supported";
-
 	private static final String NAME_DELIMITER = ".";
 
 	/**
@@ -109,11 +107,6 @@ public class MockingFunctionContext implements FunctionContext {
 			log.debug("| | | | |-- Delegate function \"{}\" to original function context", function);
 			return this.originalFunctionContext.evaluate(function, parameters);
 		}
-	}
-
-	@Override
-	public void loadLibrary(Object library) {
-		throw new SaplTestException(ERROR_LOADING_LIB_NOT_SUPPORTED);
 	}
 
 	@Override
@@ -246,6 +239,11 @@ public class MockingFunctionContext implements FunctionContext {
 
 	@Override
 	public List<String> getCodeTemplates() {
+		return List.of();
+	}
+
+	@Override
+	public Collection<String> getAllFullyQualifiedFunctions() {
 		return List.of();
 	}
 

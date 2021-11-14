@@ -31,7 +31,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.functions.TemporalFunctionLibrary;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.functions.LibraryDocumentation;
@@ -152,12 +151,6 @@ public class MockingFunctionContextTest {
 	void test_getAvailableLibraries_returnsAllAvailableLibraries() {
 		ctx.loadFunctionMockValueFromFunction("foo.bar", (call) -> Val.of("1"));
 		assertThat(this.ctx.getAvailableLibraries()).containsOnly("foo.bar");
-	}
-
-	@Test
-	void test_loadFunctionLibrary() {
-		Assertions.assertThatExceptionOfType(SaplTestException.class)
-				.isThrownBy(() -> this.ctx.loadLibrary(new TemporalFunctionLibrary()));
 	}
 
 }

@@ -10,7 +10,6 @@ import java.util.Set;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import reactor.core.publisher.Flux;
@@ -40,11 +39,6 @@ public class TestAttributeContext implements AttributeContext {
 	}
 
 	@Override
-	public void loadPolicyInformationPoint(Object pip) throws InitializationException {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
 	public Collection<PolicyInformationPointDocumentation> getDocumentation() {
 		throw new UnsupportedOperationException();
 	}
@@ -61,7 +55,12 @@ public class TestAttributeContext implements AttributeContext {
 
 	@Override
 	public List<String> getCodeTemplatesWithPrefix(String prefix, boolean isEnvirionmentAttribute) {
-		throw new UnsupportedOperationException();
+		return List.of("clock.now", "clock.millis", "clock.ticker");
+	}
+
+	@Override
+	public Collection<String> getAllFullyQualifiedFunctions() {
+		return List.of("clock.now", "clock.millis", "clock.ticker");
 	}
 
 }

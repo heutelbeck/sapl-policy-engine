@@ -15,17 +15,12 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import io.sapl.pip.TimePolicyInformationPoint;
+import java.util.List;
+
 import org.eclipse.xtext.testing.TestCompletionConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
-
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Tests regarding the auto completion of import statements
@@ -67,9 +62,9 @@ public class ImportCompletionTests extends CompletionTests {
 			it.setModel(policy);
 			it.setColumn(policy.length());
 			it.setAssertCompletionList(completionList -> {
-				var expected = Arrays.stream(TimePolicyInformationPoint.class.getDeclaredMethods())
-						.filter(method -> Modifier.isPublic(method.getModifiers())).map(Method::getName)
-						.collect(Collectors.toList());
+				var expected = List.of("clock", "clock.millis", "clock.now", "clock.ticker", "filter", "filter.blacken",
+						"filter.remove", "filter.replace", "standard", "standard.length", "standard.numberToString",
+						"time", "time.after", "time.before", "time.between");
 				assertProposalsSimple(expected, completionList);
 			});
 		});
@@ -82,10 +77,7 @@ public class ImportCompletionTests extends CompletionTests {
 			it.setModel(policy);
 			it.setColumn(policy.length());
 			it.setAssertCompletionList(completionList -> {
-				var expected = Arrays.stream(TimePolicyInformationPoint.class.getDeclaredMethods())
-						.filter(method -> Modifier.isPublic(method.getModifiers())).map(Method::getName)
-						.filter(label -> label.startsWith("n")).collect(Collectors.toList());
-				// var expected = List.of("now");
+				var expected = List.of("clock.now", "standard.numberToString");
 				assertProposalsSimple(expected, completionList);
 			});
 		});
@@ -99,7 +91,7 @@ public class ImportCompletionTests extends CompletionTests {
 			it.setLine(2);
 			it.setColumn(1);
 			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("now");
+				var expected = List.of("clock.now", "standard.numberToString");
 				assertProposalsSimple(expected, completionList);
 			});
 		});
@@ -114,7 +106,7 @@ public class ImportCompletionTests extends CompletionTests {
 			it.setLine(1);
 			it.setColumn(cursor.length());
 			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("now");
+				var expected = List.of("clock.now", "standard.numberToString");
 				assertProposalsSimple(expected, completionList);
 			});
 		});
@@ -129,7 +121,7 @@ public class ImportCompletionTests extends CompletionTests {
 			it.setLine(1);
 			it.setColumn(cursor.length());
 			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("now");
+				var expected = List.of("clock.now", "standard.numberToString");
 				assertProposalsSimple(expected, completionList);
 			});
 		});

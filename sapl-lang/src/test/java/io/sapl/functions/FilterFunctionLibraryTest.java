@@ -42,9 +42,7 @@ import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.interpreter.pip.AttributeContext;
 import reactor.test.StepVerifier;
 
 class FilterFunctionLibraryTest {
@@ -53,9 +51,9 @@ class FilterFunctionLibraryTest {
 
 	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
-	private static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
+	private static final AnnotationAttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
 
-	private static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
+	private static final AnnotationFunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
 
 	private static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
 

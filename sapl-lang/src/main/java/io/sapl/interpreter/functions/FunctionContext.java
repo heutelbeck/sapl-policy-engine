@@ -19,14 +19,11 @@ import java.util.Collection;
 import java.util.List;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.pip.LibraryFunctionProvider;
 
 public interface FunctionContext extends LibraryFunctionProvider {
 
 	Val evaluate(String function, Val... parameters);
-
-	void loadLibrary(Object library) throws InitializationException;
 
 	Collection<LibraryDocumentation> getDocumentation();
 

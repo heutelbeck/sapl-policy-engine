@@ -20,14 +20,11 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
-import lombok.extern.slf4j.Slf4j;
-
 /**
  * This class is used to capture a Spring ApplicationContext for xText managed
  * classes to resolve bean dependencies. This class is both created by Spring
  * and Guice and uses the static applicationContext to resolve dependencies.
  */
-@Slf4j
 @Component
 public class SpringContext implements ApplicationContextAware {
 
@@ -50,7 +47,6 @@ public class SpringContext implements ApplicationContextAware {
 
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-		log.debug("Spring ApplicationContext set");
 		SpringContext.applicationContext = applicationContext;
 	}
 }

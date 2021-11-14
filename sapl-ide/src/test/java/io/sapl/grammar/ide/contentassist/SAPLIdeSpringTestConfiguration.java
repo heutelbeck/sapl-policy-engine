@@ -15,9 +15,10 @@ public class SAPLIdeSpringTestConfiguration {
 	public FunctionContext functionContext() {
 		return new TestFunctionContext();
 	}
-	
+
 	@Bean
 	public AttributeContext attributeContext() {
 		return new TestAttributeContext();
 	}
+
 }
