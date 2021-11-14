@@ -17,13 +17,10 @@ package io.sapl.grammar.ide.contentassist;
 
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Collection;
-import java.util.List;
-
 import org.junit.jupiter.api.Test;
 
 public class TestFunctionContextTests {
