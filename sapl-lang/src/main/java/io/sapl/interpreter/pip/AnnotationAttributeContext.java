@@ -30,7 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -497,11 +497,8 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 		int numberOfParameters;
 
-		private String getParameterName(int index, String defaultName) {
-			var parameter = function.getParameters()[index];
-			if (parameter.isNamePresent())
-				return parameter.getName();
-			return defaultName;
+		private String getParameterName(int index) {
+			return function.getParameters()[index].getName();
 		}
 
 		private List<Annotation> getValidationAnnoattionsOfParameter(int index) {
@@ -520,8 +517,8 @@ public class AnnotationAttributeContext implements AttributeContext {
 			return false;
 		}
 
-		private String describeParameterForDocumentation(int index, String defaultParameterName) {
-			return describeParameterForDocumentation(getParameterName(index, defaultParameterName),
+		private String describeParameterForDocumentation(int index) {
+			return describeParameterForDocumentation(getParameterName(index),
 					getValidationAnnoattionsOfParameter(index));
 		}
 
@@ -546,7 +543,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 			var indexOfParameterBeingDescribed = 0;
 
 			if (!isEnvironmentAttribute())
-				sb.append(describeParameterForDocumentation(indexOfParameterBeingDescribed++, "jsonValue")).append('.');
+				sb.append(describeParameterForDocumentation(indexOfParameterBeingDescribed++)).append('.');
 
 			if (requiresVariables)
 				indexOfParameterBeingDescribed++;
@@ -579,13 +576,13 @@ public class AnnotationAttributeContext implements AttributeContext {
 		}
 
 		private void appendParameterList(StringBuilder sb, int parameterOffset,
-				BiFunction<Integer, String, String> parameterStringBuilder) {
+				Function<Integer, String> parameterStringBuilder) {
 			if (isVarArgsParameters())
-				sb.append('(').append(parameterStringBuilder.apply(parameterOffset, "varArgsParameter")).append("...)");
+				sb.append('(').append(parameterStringBuilder.apply(parameterOffset)).append("...)");
 			else if (numberOfParameters > 0) {
 				sb.append('(');
 				for (var i = 0; i < numberOfParameters; i++) {
-					sb.append(parameterStringBuilder.apply(parameterOffset++, "para" + i));
+					sb.append(parameterStringBuilder.apply(parameterOffset++));
 					if (i < numberOfParameters - 1)
 						sb.append(", ");
 				}
