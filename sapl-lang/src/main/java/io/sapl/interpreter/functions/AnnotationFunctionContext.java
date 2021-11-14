@@ -224,6 +224,8 @@ public class AnnotationFunctionContext implements FunctionContext {
 			var sb = new StringBuilder();
 			sb.append(fullyQualifiedName());
 			appendParameterList(sb, 0, this::getParameterName);
+			if (getNumberOfParameters() == 0)
+				sb.append("()");
 			return sb.toString();
 		}
 
@@ -232,6 +234,8 @@ public class AnnotationFunctionContext implements FunctionContext {
 			var sb = new StringBuilder();
 			sb.append(fullyQualifiedName());
 			appendParameterList(sb, 0, this::describeParameterForDocumentation);
+			if (getNumberOfParameters() == 0)
+				sb.append("()");
 			return sb.toString();
 		}
 

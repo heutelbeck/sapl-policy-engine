@@ -21,6 +21,7 @@ import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -151,6 +152,44 @@ class AnnotationFunctionContextTest {
 	void loadedLibrariesReturnEmptyListWhenNotLoaded() throws InitializationException {
 		AnnotationFunctionContext context = new AnnotationFunctionContext();
 		assertThat(context.getAvailableLibraries().size(), is(0));
+	}
+
+	@Test
+	void codeTemplatesAreGenerated() throws InitializationException {
+		@FunctionLibrary(name = "test")
+		class TestLib {
+			@Function
+			public Val hello() {
+				return Val.TRUE;
+			}
+
+			@Function
+			public Val helloVarArgs(Val... aVarArgs) {
+				return Val.TRUE;
+			}
+
+			@Function
+			public Val helloTwoArgs(Val arg1, Val arg2) {
+				return Val.TRUE;
+			}
+
+			@Function
+			public Val helloThreeArgs(Val arg1, Val arg2, Val arg3) {
+				throw new PolicyEvaluationException();
+			}
+
+		}
+		var context = new AnnotationFunctionContext(new TestLib());
+		var actualFullyQualified = context.getAllFullyQualifiedFunctions();
+		assertThat(actualFullyQualified,
+				containsInAnyOrder("test.helloThreeArgs", "test.helloVarArgs", "test.helloTwoArgs", "test.hello"));
+
+		var actualTemplates = context.getCodeTemplates();
+		assertThat(actualTemplates, containsInAnyOrder("test.hello()", "test.helloThreeArgs(arg1, arg2, arg3)",
+				"test.helloTwoArgs(arg1, arg2)", "test.helloVarArgs(aVarArgs...)"));
+		actualTemplates = context.getCodeTemplates();
+		assertThat(actualTemplates, containsInAnyOrder("test.hello()", "test.helloThreeArgs(arg1, arg2, arg3)",
+				"test.helloTwoArgs(arg1, arg2)", "test.helloVarArgs(aVarArgs...)"));
 	}
 
 	@FunctionLibrary(name = MockLibrary.LIBRARY_NAME, description = MockLibrary.LIBRARY_DOC)

@@ -429,8 +429,6 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 	private boolean isArrayOfFluxOfVal(Method method, int indexOfParameter) {
 		var genericTypes = method.getGenericParameterTypes();
-		if (genericTypes.length < indexOfParameter)
-			return false;
 		var type = genericTypes[indexOfParameter];
 		if (!GenericArrayType.class.isAssignableFrom(type.getClass()))
 			return false;
