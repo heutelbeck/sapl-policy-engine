@@ -30,6 +30,8 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import io.sapl.api.interpreter.Val;
 
@@ -270,6 +272,20 @@ class TemporalFunctionLibraryTest {
 		assertThat(TemporalFunctionLibrary.timeAMPM(Val.of("08:12:35 AM")), is(val("08:12:35")));
 		assertThat(TemporalFunctionLibrary.timeAMPM(Val.of("08:12:35 pm")), is(val("20:12:35")));
 		assertThat(TemporalFunctionLibrary.timeAMPM(Val.of("08:12:35 PM")), is(val("20:12:35")));
+	}
+
+	@Test
+	void zoneIdOfTest() {
+		var defaultZoneId = ZoneId.of("AET", ZoneId.SHORT_IDS);
+		try (MockedStatic<ZoneId> zoneIdMock = Mockito.mockStatic(ZoneId.class, Mockito.CALLS_REAL_METHODS)) {
+			zoneIdMock.when(() -> ZoneId.systemDefault()).thenReturn(defaultZoneId);
+			assertThat(TemporalFunctionLibrary.dateTimeAtZone(Val.of("2021-11-08T13:12:35"), Val.of("")),
+					is(val("2021-11-08T02:12:35Z")));
+		}
+		assertThat(TemporalFunctionLibrary.dateTimeAtZone(Val.of("2021-11-08T13:12:35"), Val.of("EST")),
+				is(val("2021-11-08T18:12:35Z")));
+		assertThat(TemporalFunctionLibrary.dateTimeAtZone(Val.of("2021-11-08T13:12:35"), Val.of("+06")),
+				is(val("2021-11-08T07:12:35Z")));
 	}
 
 	@Test
