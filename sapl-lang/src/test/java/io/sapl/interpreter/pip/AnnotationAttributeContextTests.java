@@ -17,6 +17,8 @@ package io.sapl.interpreter.pip;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -25,6 +27,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.validation.constraints.NotNull;
 
 import org.junit.jupiter.api.Test;
 
@@ -794,6 +798,73 @@ public class AnnotationAttributeContextTests {
 		var expression = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
 		StepVerifier.create(expression.evaluate(evalCtx, Val.UNDEFINED)).expectNextMatches(Val::isError)
 				.verifyComplete();
+	}
+
+	@Test
+	public void generatesCodeTemplates() throws InitializationException, IOException {
+
+		@PolicyInformationPoint(name = "test")
+		class PIP {
+
+			@Attribute
+			public Flux<Val> a(Map<String, JsonNode> variables,
+					@SuppressWarnings("unchecked") @Bool @Text Flux<Val>... varArgsParams) {
+				return varArgsParams[1];
+			}
+
+			@Attribute
+			public Flux<Val> a(@Bool @Text Flux<Val> a1, @Bool Flux<Val> a2) {
+				return a1;
+			}
+
+			@Attribute
+			public Flux<Val> a2(Flux<Val> a1, Flux<Val> a2) {
+				return a1;
+			}
+
+			@Attribute
+			public Flux<Val> a2() {
+				return Flux.empty();
+			}
+
+			@Attribute
+			public Flux<Val> x(Val leftHand, Map<String, JsonNode> variables,
+					@SuppressWarnings("unchecked") @Bool @Text Flux<Val>... varArgsParams) {
+				return varArgsParams[1];
+			}
+
+			@Attribute
+			public Flux<Val> x(Val leftHand, @NotNull @Bool @Text Flux<Val> a1, @Bool Flux<Val> a2) {
+				return a1;
+			}
+
+			@Attribute
+			public Flux<Val> x2(Val leftHand, Flux<Val> a1, Flux<Val> a2) {
+				return a1;
+			}
+
+		}
+
+		var pip = new PIP();
+		var sut = new AnnotationAttributeContext(pip);
+
+		var expectedEnvirionmentTemplates = new String[] { "test.a(a1, a2)>", "test.a(varArgsParams...)>",
+				"test.a2(a1, a2)>", "test.a2>" };
+		var actualEnvironmentTemplates = sut.getCodeTemplatesWithPrefix("t", true);
+		assertThat(actualEnvironmentTemplates, containsInAnyOrder(expectedEnvirionmentTemplates));
+
+		var actualEnvironmentTemplatesWithNonMatchingPrefix = sut.getCodeTemplatesWithPrefix("GGG", true);
+		assertThat(actualEnvironmentTemplatesWithNonMatchingPrefix, empty());
+
+		var expectedNonEnvirionmentTemplates = new String[] { "test.x2(a1, a2)>", "test.x(varArgsParams...)>",
+				"test.x(a1, a2)>" };
+		var actualNonEnvironmentTemplates = sut.getCodeTemplatesWithPrefix("", false);
+		assertThat(actualNonEnvironmentTemplates, containsInAnyOrder(expectedNonEnvirionmentTemplates));
+
+		assertThat(sut.getAvailableLibraries(), containsInAnyOrder("test"));
+		assertThat(sut.getAllFullyQualifiedFunctions().size(), is(7));
+		assertThat(sut.getAllFullyQualifiedFunctions(),
+				containsInAnyOrder("test.x2", "test.a", "test.a", "test.a2", "test.a2", "test.x", "test.x"));
 	}
 
 	@Test
