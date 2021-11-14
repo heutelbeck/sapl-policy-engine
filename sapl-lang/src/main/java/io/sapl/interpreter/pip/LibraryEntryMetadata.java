@@ -15,6 +15,8 @@ import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
 
 public interface LibraryEntryMetadata {
+	static Class<?>[] VALIDATION_ANNOTATION_TYPES = { Number.class, Int.class, Long.class, Bool.class, Text.class,
+			Array.class, JsonObject.class };
 
 	String getLibraryName();
 
@@ -48,9 +50,7 @@ public interface LibraryEntryMetadata {
 	}
 
 	default boolean isValidationAnnotation(Annotation annotation) {
-		final Class<?>[] validationAnnotationTypes = { Number.class, Int.class, Long.class, Bool.class, Text.class,
-				Array.class, JsonObject.class };
-		for (var saplType : validationAnnotationTypes)
+		for (var saplType : VALIDATION_ANNOTATION_TYPES)
 			if (saplType.isAssignableFrom(annotation.getClass()))
 				return true;
 		return false;
