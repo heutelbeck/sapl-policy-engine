@@ -302,6 +302,11 @@ class ValTest {
 	}
 
 	@Test
+	void fluxOfLong() {
+		StepVerifier.create(Val.fluxOf(123L)).expectNext(Val.of(123L)).verifyComplete();
+	}
+
+	@Test
 	void fluxOfText() {
 		StepVerifier.create(Val.fluxOf("")).expectNext(Val.of("")).verifyComplete();
 	}
@@ -396,6 +401,12 @@ class ValTest {
 	void getBoolean() {
 		assertAll(() -> assertEquals(true, Val.TRUE.getBoolean()),
 				() -> assertThrows(PolicyEvaluationException.class, () -> Val.of("").getBoolean()));
+	}
+
+	@Test
+	void getLong() {
+		assertAll(() -> assertEquals(123L, Val.of(123L).getLong()),
+				() -> assertThrows(PolicyEvaluationException.class, () -> Val.of("").getLong()));
 	}
 
 	@Test
