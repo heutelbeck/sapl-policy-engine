@@ -32,7 +32,6 @@ import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 /**
  * REST controller providing endpoints for a policy decision point. The endpoints can be
