@@ -96,17 +96,4 @@ public class PDPController {
 				.map(decision -> ServerSentEvent.<MultiAuthorizationDecision>builder().data(decision).build());
 	}
 
-	/**
-	 * Delegates to {@link PolicyDecisionPoint#decide(AuthorizationSubscription)}.
-	 * @param authzSubscription the authorization subscription to be processed by the PDP.
-	 * @return a flux emitting the current authorization decisions.
-	 * @see PolicyDecisionPoint#decide(AuthorizationSubscription)
-	 */
-	@PostMapping(value = "/decideOnce", produces = MediaType.APPLICATION_JSON_VALUE,
-			consumes = MediaType.APPLICATION_JSON_VALUE)
-	public Mono<AuthorizationDecision> decideOnce(@Valid @RequestBody AuthorizationSubscription authzSubscription) {
-		return pdp.decide(authzSubscription).onErrorResume(error -> Flux.just(AuthorizationDecision.INDETERMINATE))
-				.next();
-	}
-
 }
