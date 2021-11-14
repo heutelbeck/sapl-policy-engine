@@ -15,6 +15,7 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.xtext.testing.TestCompletionConfiguration;
@@ -43,6 +44,58 @@ public class IdeStepCompletionTests extends CompletionTests {
 			it.setColumn(policy.length());
 			it.setAssertCompletionList(completionList -> {
 				var expected = List.of("clock.now");
+				assertProposalsSimple(expected, completionList);
+			});
+		});
+	}
+	
+	@Test
+	public void testCompletion_AttributeStepWithNoMatchingPrefixReturnsNoMatchingFunction() {
+		testCompletion((TestCompletionConfiguration it) -> {
+			String policy = "policy \"test\" permit where subject.<foo";
+			it.setModel(policy);
+			it.setColumn(policy.length());
+			it.setAssertCompletionList(completionList -> {
+				var expected = new ArrayList<String>();
+				assertProposalsSimple(expected, completionList);
+			});
+		});
+	}
+	
+	@Test
+	public void testCompletion_HeadEmptyAttributeStepReturnsClockFunctions() {
+		testCompletion((TestCompletionConfiguration it) -> {
+			String policy = "policy \"test\" permit where subject.|<";
+			it.setModel(policy);
+			it.setColumn(policy.length());
+			it.setAssertCompletionList(completionList -> {
+				var expected = List.of("clock.millis", "clock.now", "clock.ticker");
+				assertProposalsSimple(expected, completionList);
+			});
+		});
+	}
+	
+	@Test
+	public void testCompletion_HeadAttributeStepWithPrefixReturnsMatchingClockFunction() {
+		testCompletion((TestCompletionConfiguration it) -> {
+			String policy = "policy \"test\" permit where subject.|<clock.n";
+			it.setModel(policy);
+			it.setColumn(policy.length());
+			it.setAssertCompletionList(completionList -> {
+				var expected = List.of("clock.now");
+				assertProposalsSimple(expected, completionList);
+			});
+		});
+	}
+	
+	@Test
+	public void testCompletion_HeadAttributeStepWithNoMatchingPrefixReturnsNoMatchingFunction() {
+		testCompletion((TestCompletionConfiguration it) -> {
+			String policy = "policy \"test\" permit where subject.|<";
+			it.setModel(policy);
+			it.setColumn(policy.length());
+			it.setAssertCompletionList(completionList -> {
+				var expected = new ArrayList<String>();
 				assertProposalsSimple(expected, completionList);
 			});
 		});
