@@ -20,8 +20,12 @@ import org.eclipse.emf.ecore.EObject;
 /**
  * Helper class that contains methods to navigate the ecore model.
  */
-public class TreeNavigationHelper {
+public final class TreeNavigationHelper {
 
+	private TreeNavigationHelper() {
+		
+	}
+	
 	/**
 	 * Moves up the model tree and returns the closest parent that matches the given class
 	 * type.
@@ -72,7 +76,7 @@ public class TreeNavigationHelper {
 			object = object.eContainer();
 		}
 
-		if (parent != null && classType.isInstance(parent))
+		if (parent != null)
 			return classType.cast(parent);
 		return null;
 	}
