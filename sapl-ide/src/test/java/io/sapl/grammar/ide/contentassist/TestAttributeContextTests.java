@@ -15,7 +15,9 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.junit.Assert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -36,9 +38,7 @@ public class TestAttributeContextTests {
 	public void providedFunctionsOfLibraryReturnsFunctionsForKnownPip() {
 		var context = new TestAttributeContext();
 		Collection<String> functions = context.providedFunctionsOfLibrary("clock");
-		assertTrue(functions.contains("now"));
-		assertTrue(functions.contains("millis"));
-		assertTrue(functions.contains("ticker"));
+		assertThat(functions, hasItems("now", "millis", "ticker"));
 	}
 
 	@Test
@@ -52,7 +52,7 @@ public class TestAttributeContextTests {
 	public void getAvailableLibrariesReturnsClockPip() {
 		var context = new TestAttributeContext();
 		Collection<String> libraries = context.getAvailableLibraries();
-		assertTrue(libraries.contains("clock"));
+		assertThat(libraries, hasItem("clock"));
 	}
 
 	@Test
@@ -83,18 +83,14 @@ public class TestAttributeContextTests {
 	public void getCodeTemplatesWithPrefixReturnsAllKnownFunctions() {
 		var context = new TestAttributeContext();
 		Collection<String> functions = context.getCodeTemplatesWithPrefix("", false);
-		assertTrue(functions.contains("clock.now"));
-		assertTrue(functions.contains("clock.millis"));
-		assertTrue(functions.contains("clock.ticker"));
+		assertThat(functions, hasItems("clock.now", "clock.millis", "clock.ticker"));
 	}
 
 	@Test
 	public void getAllFullyQualifiedFunctionsReturnsAllKnownFunctions() {
 		var context = new TestAttributeContext();
 		Collection<String> functions = context.getAllFullyQualifiedFunctions();
-		assertTrue(functions.contains("clock.now"));
-		assertTrue(functions.contains("clock.millis"));
-		assertTrue(functions.contains("clock.ticker"));
+		assertThat(functions, hasItems("clock.now", "clock.millis", "clock.ticker"));
 	}
 
 }
