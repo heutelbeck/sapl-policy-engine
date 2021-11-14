@@ -16,13 +16,10 @@
 package io.sapl.grammar.ide.contentassist;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.stream.Collectors;
 
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionList;
-import org.eclipse.xtext.testing.TestCompletionConfiguration;
-import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 
@@ -57,18 +54,5 @@ public class CompletionTests extends AbstractSaplLanguageServerTest {
 				throw new AssertionError(
 						"Expected not to find " + unwantedProposal + " but found it in " + availableProposals);
 		}
-	}
-
-	@Test
-	public void testCompletion_PolicyNameIsEmptyString() {
-		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "policy ";
-			it.setModel(policy);
-			it.setColumn(policy.length());
-			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("\"\"");
-				assertProposalsSimple(expected, completionList);
-			});
-		});
 	}
 }
