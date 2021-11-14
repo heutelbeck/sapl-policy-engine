@@ -16,14 +16,18 @@
 package io.sapl.spring.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import javax.servlet.http.HttpServletRequest;
 
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -49,6 +53,15 @@ import io.sapl.spring.serialization.ServerHttpRequestSerializer;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 
 class ReactiveSaplMethodSecurityConfigurationTests {
+
+	@Test
+	void setImportMetadataWithNullAnnotation_doesNotThrowNullpointer() {
+		var sut = new ReactiveSaplMethodSecurityConfiguration(mock(PolicyDecisionPoint.class),
+				mock(ConstraintEnforcementService.class), mock(ObjectMapper.class));
+		var mockMetadata = mock(AnnotationMetadata.class);
+		when(mockMetadata.getAnnotationAttributes(any())).thenReturn(null);
+		assertDoesNotThrow(() -> sut.setImportMetadata(mockMetadata));
+	}
 
 	@Test
 	void whenRan_thenBeansArePresent() {
