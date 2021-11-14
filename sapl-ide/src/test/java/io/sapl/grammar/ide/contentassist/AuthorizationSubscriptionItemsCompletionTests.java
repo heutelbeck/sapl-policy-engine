@@ -69,5 +69,31 @@ public class AuthorizationSubscriptionItemsCompletionTests extends CompletionTes
 			});
 		});
 	}
+	
+	@Test
+	public void testCompletion_SuggestAttributesForEnvironmentalAttribute() {
+		testCompletion((TestCompletionConfiguration it) -> {
+			String policy = "policy \"test\" permit where <";
+			it.setModel(policy);
+			it.setColumn(policy.length());
+			it.setAssertCompletionList(completionList -> {
+				var expectedProposals = List.of("clock.now", "clock.ticker", "clock.millis");
+				assertProposalsSimple(expectedProposals, completionList);
+			});
+		});
+	}
+	
+	@Test
+	public void testCompletion_SuggestAttributesForHeadEnvironmentalAttribute() {
+		testCompletion((TestCompletionConfiguration it) -> {
+			String policy = "policy \"test\" permit where |<";
+			it.setModel(policy);
+			it.setColumn(policy.length());
+			it.setAssertCompletionList(completionList -> {
+				var expectedProposals = List.of("clock.now", "clock.ticker", "clock.millis");
+				assertProposalsSimple(expectedProposals, completionList);
+			});
+		});
+	}
 
 }
