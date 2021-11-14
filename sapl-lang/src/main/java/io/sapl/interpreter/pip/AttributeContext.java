@@ -31,6 +31,8 @@ public interface AttributeContext extends LibraryFunctionProvider {
 
 	Collection<PolicyInformationPointDocumentation> getDocumentation();
 
-	List<String> getCodeTemplatesWithPrefix(String prefix, boolean isEnvirionmentAttribute);
+	List<String> getEnvironmentAttributeCodeTemplates();
+
+	List<String> getAttributeCodeTemplates();
 
 }

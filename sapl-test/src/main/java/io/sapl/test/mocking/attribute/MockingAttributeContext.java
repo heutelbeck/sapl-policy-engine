@@ -268,12 +268,17 @@ public class MockingAttributeContext implements AttributeContext {
 	}
 
 	@Override
-	public List<String> getCodeTemplatesWithPrefix(String prefix, boolean isEnvirionmentAttribute) {
+	public Collection<String> getAllFullyQualifiedFunctions() {
 		return List.of();
 	}
 
 	@Override
-	public Collection<String> getAllFullyQualifiedFunctions() {
+	public List<String> getEnvironmentAttributeCodeTemplates() {
+		return List.of();
+	}
+
+	@Override
+	public List<String> getAttributeCodeTemplates() {
 		return List.of();
 	}
 }

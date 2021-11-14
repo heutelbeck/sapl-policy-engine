@@ -69,12 +69,17 @@ public class TestAttributeContext implements AttributeContext {
 	}
 
 	@Override
-	public List<String> getCodeTemplatesWithPrefix(String prefix, boolean isEnvirionmentAttribute) {
+	public List<String> getEnvironmentAttributeCodeTemplates() {
 		return List.of("clock.now", "clock.millis", "clock.ticker");
 	}
 
 	@Override
 	public Collection<String> getAllFullyQualifiedFunctions() {
+		return List.of("clock.now", "clock.millis", "clock.ticker");
+	}
+
+	@Override
+	public List<String> getAttributeCodeTemplates() {
 		return List.of("clock.now", "clock.millis", "clock.ticker");
 	}
 

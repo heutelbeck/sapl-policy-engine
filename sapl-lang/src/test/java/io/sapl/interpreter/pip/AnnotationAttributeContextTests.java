@@ -18,7 +18,6 @@ package io.sapl.interpreter.pip;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.empty;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -850,15 +849,14 @@ public class AnnotationAttributeContextTests {
 
 		var expectedEnvirionmentTemplates = new String[] { "test.a(a1, a2)>", "test.a(varArgsParams...)>",
 				"test.a2(a1, a2)>", "test.a2>" };
-		var actualEnvironmentTemplates = sut.getCodeTemplatesWithPrefix("t", true);
+		var actualEnvironmentTemplates = sut.getEnvironmentAttributeCodeTemplates();
+		actualEnvironmentTemplates = sut.getEnvironmentAttributeCodeTemplates();
 		assertThat(actualEnvironmentTemplates, containsInAnyOrder(expectedEnvirionmentTemplates));
-
-		var actualEnvironmentTemplatesWithNonMatchingPrefix = sut.getCodeTemplatesWithPrefix("GGG", true);
-		assertThat(actualEnvironmentTemplatesWithNonMatchingPrefix, empty());
 
 		var expectedNonEnvirionmentTemplates = new String[] { "test.x2(a1, a2)>", "test.x(varArgsParams...)>",
 				"test.x(a1, a2)>" };
-		var actualNonEnvironmentTemplates = sut.getCodeTemplatesWithPrefix("", false);
+		var actualNonEnvironmentTemplates = sut.getAttributeCodeTemplates();
+		actualNonEnvironmentTemplates = sut.getAttributeCodeTemplates();
 		assertThat(actualNonEnvironmentTemplates, containsInAnyOrder(expectedNonEnvirionmentTemplates));
 
 		assertThat(sut.getAvailableLibraries(), containsInAnyOrder("test"));

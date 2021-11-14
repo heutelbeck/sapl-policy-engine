@@ -82,7 +82,7 @@ public class TestAttributeContextTests {
 	@Test
 	public void getCodeTemplatesWithPrefixReturnsAllKnownFunctions() {
 		var context = new TestAttributeContext();
-		Collection<String> functions = context.getCodeTemplatesWithPrefix("", false);
+		Collection<String> functions = context.getEnvironmentAttributeCodeTemplates();
 		assertThat(functions, hasItems("clock.now", "clock.millis", "clock.ticker"));
 	}
 

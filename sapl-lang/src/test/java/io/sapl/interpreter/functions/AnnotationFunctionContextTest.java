@@ -185,6 +185,7 @@ class AnnotationFunctionContextTest {
 				containsInAnyOrder("test.helloThreeArgs", "test.helloVarArgs", "test.helloTwoArgs", "test.hello"));
 
 		var actualTemplates = context.getCodeTemplates();
+		actualTemplates = context.getCodeTemplates();
 		assertThat(actualTemplates, containsInAnyOrder("test.hello()", "test.helloThreeArgs(arg1, arg2, arg3)",
 				"test.helloTwoArgs(arg1, arg2)", "test.helloVarArgs(aVarArgs...)"));
 		actualTemplates = context.getCodeTemplates();

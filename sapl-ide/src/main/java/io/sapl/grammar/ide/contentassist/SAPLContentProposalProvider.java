@@ -15,12 +15,11 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import org.eclipse.emf.common.util.EList;
@@ -34,13 +33,10 @@ import org.eclipse.xtext.ide.editor.contentassist.ContentAssistEntry;
 import org.eclipse.xtext.ide.editor.contentassist.IIdeContentProposalAcceptor;
 import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
 
-import io.sapl.grammar.sapl.AttributeFinderStep;
-import io.sapl.grammar.sapl.BasicEnvironmentAttribute;
-import io.sapl.grammar.sapl.BasicEnvironmentHeadAttribute;
-import io.sapl.grammar.sapl.HeadAttributeFinderStep;
 import io.sapl.grammar.sapl.Import;
 import io.sapl.grammar.sapl.LibraryImport;
 import io.sapl.grammar.sapl.SAPL;
+import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.SaplPackage;
 import io.sapl.grammar.sapl.WildcardImport;
 import io.sapl.grammar.sapl.impl.ConditionImpl;
@@ -153,21 +149,6 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		addSimpleProposals(proposals, context, acceptor);
 	}
 
-	private List<String> constructAttributeProposalsForAvailableIdSteps(EList<String> idSteps,
-			boolean isEnvirionmentAttribute) {
-		var prefix = constructPrefixStringForSearchFromSteps(idSteps);
-		var templates = attributeContext.getCodeTemplatesWithPrefix(prefix, isEnvirionmentAttribute);
-		var proposals = new ArrayList<String>(templates.size());
-		for (var template : templates)
-			proposals.add(template);
-		Collections.sort(proposals);
-		return proposals;
-	}
-
-	private String constructPrefixStringForSearchFromSteps(EList<String> steps) {
-		return String.join(".", steps);
-	}
-
 	private void handleBasicProposals(String feature, ContentAssistContext context,
 			IIdeContentProposalAcceptor acceptor) {
 
@@ -226,15 +207,11 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
 	private void addProposalsWithImportsForTemplates(Collection<String> templates, ContentAssistContext context,
 			IIdeContentProposalAcceptor acceptor) {
-		var sapl = TreeNavigationHelper.goToFirstParent(context.getCurrentModel(), SAPL.class);
+		var sapl = Objects.requireNonNullElse(
+				TreeNavigationHelper.goToFirstParent(context.getCurrentModel(), SAPL.class),
+				SaplFactory.eINSTANCE.createSAPL());
+		var imports = Objects.requireNonNullElse(sapl.getImports(), List.<Import>of());
 
-		if (sapl == null)
-			return;
-
-		var imports = sapl.getImports();
-
-		if (imports == null)
-			return;
 		for (var anImport : imports) {
 			if (SaplPackage.Literals.WILDCARD_IMPORT.isSuperTypeOf(anImport.eClass())) {
 				var wildCard = (WildcardImport) anImport;
@@ -291,44 +268,15 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
 	private void addProposalsForAttributeStepsIfPresent(ContentAssistContext context,
 			IIdeContentProposalAcceptor acceptor) {
-		var idSteps = extractIdStepsFromContextForAttributeSteps(context);
-		if (idSteps != null) {
-			var proposals = constructAttributeProposalsForAvailableIdSteps(idSteps, false);
-			addSimpleProposals(proposals, context, acceptor);
-		}
-	}
-
-	private EList<String> extractIdStepsFromContextForAttributeSteps(ContentAssistContext context) {
-		var model = context.getCurrentModel();
-		var attributeFinderStep = TreeNavigationHelper.goToLastParent(model, AttributeFinderStep.class);
-		if (attributeFinderStep != null)
-			return attributeFinderStep.getIdSteps();
-		var headAttributeFinderStep = TreeNavigationHelper.goToLastParent(model, HeadAttributeFinderStep.class);
-		if (headAttributeFinderStep != null)
-			return headAttributeFinderStep.getIdSteps();
-		return null;
+		var proposals = attributeContext.getAttributeCodeTemplates();
+		addSimpleProposals(proposals, context, acceptor);
 	}
 
 	private void addProposalsForBasicAttributesIfPresent(ContentAssistContext context,
 			IIdeContentProposalAcceptor acceptor) {
-		var idSteps = extractIdStepsFromContextForEnvirionmentAttributes(context);
-		if (idSteps != null) {
-			var proposals = constructAttributeProposalsForAvailableIdSteps(idSteps, true);
-			addSimpleProposals(proposals, context, acceptor);
-			addProposalsWithImportsForTemplates(proposals, context, acceptor);
-		}
-	}
-
-	private EList<String> extractIdStepsFromContextForEnvirionmentAttributes(ContentAssistContext context) {
-		var model = context.getCurrentModel();
-		var basicEnvironmentHeadAttribute = TreeNavigationHelper.goToLastParent(model,
-				BasicEnvironmentHeadAttribute.class);
-		if (basicEnvironmentHeadAttribute != null)
-			return basicEnvironmentHeadAttribute.getIdSteps();
-		var basicEnvironmentAttribute = TreeNavigationHelper.goToLastParent(model, BasicEnvironmentAttribute.class);
-		if (basicEnvironmentAttribute != null)
-			return basicEnvironmentAttribute.getIdSteps();
-		return null;
+		var proposals = attributeContext.getEnvironmentAttributeCodeTemplates();
+		addSimpleProposals(proposals, context, acceptor);
+		addProposalsWithImportsForTemplates(proposals, context, acceptor);
 	}
 
 	private boolean handlePolicyProposals(String feature, ContentAssistContext context,

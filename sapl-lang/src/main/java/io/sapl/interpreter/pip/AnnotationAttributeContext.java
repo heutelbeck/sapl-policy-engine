@@ -65,6 +65,10 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 	private final Collection<PolicyInformationPointDocumentation> pipDocumentations = new LinkedList<>();
 
+	private List<String> functionsCache;
+	private List<String> templatesCacheEnviroment;
+	private List<String> templatesCache;
+
 	/**
 	 * Create the attribute context from a list of PIPs
 	 * 
@@ -530,22 +534,43 @@ public class AnnotationAttributeContext implements AttributeContext {
 	}
 
 	@Override
-	public List<String> getCodeTemplatesWithPrefix(String prefix, boolean isEnvirionmentAttribute) {
-		var templates = new LinkedList<String>();
-		for (var entry : attributeMetadataByAttributeName.entrySet())
-			for (var attribute : entry.getValue())
-				if (attribute.environmentAttribute == isEnvirionmentAttribute
-						&& attribute.fullyQualifiedName().startsWith(prefix))
-					templates.add(attribute.getCodeTemplate());
-		return templates;
+	public List<String> getEnvironmentAttributeCodeTemplates() {
+		if (templatesCacheEnviroment == null) {
+			var templates = new LinkedList<String>();
+			for (var entry : attributeMetadataByAttributeName.entrySet())
+				for (var attribute : entry.getValue())
+					if (attribute.environmentAttribute)
+						templates.add(attribute.getCodeTemplate());
+			Collections.sort(templates);
+			templatesCacheEnviroment = Collections.unmodifiableList(templates);
+		}
+		return templatesCacheEnviroment;
+	}
+
+	@Override
+	public List<String> getAttributeCodeTemplates() {
+		if (templatesCache == null) {
+			var templates = new LinkedList<String>();
+			for (var entry : attributeMetadataByAttributeName.entrySet())
+				for (var attribute : entry.getValue())
+					if (!attribute.environmentAttribute)
+						templates.add(attribute.getCodeTemplate());
+			Collections.sort(templates);
+			templatesCache = Collections.unmodifiableList(templates);
+		}
+		return templatesCache;
 	}
 
 	@Override
 	public Collection<String> getAllFullyQualifiedFunctions() {
-		var templates = new LinkedList<String>();
-		for (var entry : attributeMetadataByAttributeName.entrySet())
-			for (var attribute : entry.getValue())
-				templates.add(attribute.fullyQualifiedName());
-		return templates;
+		if (functionsCache == null) {
+			var templates = new LinkedList<String>();
+			for (var entry : attributeMetadataByAttributeName.entrySet())
+				for (var attribute : entry.getValue())
+					templates.add(attribute.fullyQualifiedName());
+			Collections.sort(templates);
+			functionsCache = Collections.unmodifiableList(templates);
+		}
+		return functionsCache;
 	}
 }
