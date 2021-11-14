@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -49,6 +50,20 @@ class HasAdviceTest {
 		var matcher = hasAdvice(advice);
 
 		assertThat(dec, is(matcher));
+	}
+
+	@Test
+	public void testConvenienceMatchierAdviceString() {
+		ObjectMapper mapper = new ObjectMapper();
+		ObjectNode advice = mapper.createObjectNode();
+		advice.put("foo", "bar");
+		ArrayNode adviceArray = mapper.createArrayNode();
+		adviceArray.add(advice);
+		adviceArray.add(JsonNodeFactory.instance.textNode("food"));
+		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
+				Optional.of(adviceArray));
+
+		assertThat(dec, is(Matchers.hasAdvice("food")));
 	}
 
 	@Test

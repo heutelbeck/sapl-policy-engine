@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -50,6 +51,20 @@ class HasObligationMatchingTest {
 				Optional.of(obligations), Optional.empty());
 
 		assertThat(dec, is(matcher));
+	}
+
+	@Test
+	public void testConvenienceMatchierObligationString() {
+		ObjectMapper mapper = new ObjectMapper();
+		ObjectNode obligation = mapper.createObjectNode();
+		obligation.put("foo", "bar");
+		ArrayNode obligationArray = mapper.createArrayNode();
+		obligationArray.add(obligation);
+		obligationArray.add(JsonNodeFactory.instance.textNode("food"));
+		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
+				Optional.of(obligationArray), Optional.empty());
+
+		assertThat(dec, is(Matchers.hasObligation("food")));
 	}
 
 	@Test
