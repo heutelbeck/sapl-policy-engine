@@ -85,4 +85,63 @@ public class VariableCompletionTests extends CompletionTests {
 		});
 	}
 
+	@Test
+	public void testCompletion_SuggestFunctionsFromSimpleImport() {
+		testCompletion((TestCompletionConfiguration it) -> {
+			String policy = "import time.before\npolicy \"test policy\" deny where var foo = 5;";
+			String cursor = "policy \"test policy\" deny where var foo = 5;";
+			it.setModel(policy);
+			it.setLine(1);
+			it.setColumn(cursor.length());
+			it.setAssertCompletionList(completionList -> {
+				var expected = List.of("time.after", "time.before", "time.between");
+				assertProposalsSimple(expected, completionList);
+			});
+		});
+	}
+
+	@Test
+	public void testCompletion_SuggestFunctionsFromWildcardImport() {
+		testCompletion((TestCompletionConfiguration it) -> {
+			String policy = "import time.*\npolicy \"test policy\" deny where var foo = 5;";
+			String cursor = "policy \"test policy\" deny where var foo = 5;";
+			it.setModel(policy);
+			it.setLine(1);
+			it.setColumn(cursor.length());
+			it.setAssertCompletionList(completionList -> {
+				var expected = List.of("time.after", "time.before", "time.between");
+				assertProposalsSimple(expected, completionList);
+			});
+		});
+	}
+
+	@Test
+	public void testCompletion_SuggestFunctionsFromLibraryImport() {
+		testCompletion((TestCompletionConfiguration it) -> {
+			String policy = "import time as abc\npolicy \"test policy\" deny where var foo = 5;";
+			String cursor = "policy \"test policy\" deny where var foo = 5;";
+			it.setModel(policy);
+			it.setLine(1);
+			it.setColumn(cursor.length());
+			it.setAssertCompletionList(completionList -> {
+				var expected = List.of("abc.after", "abc.before", "abc.between");
+				assertProposalsSimple(expected, completionList);
+			});
+		});
+	}
+
+	@Test
+	public void testCompletion_SuggestRenameedFunctionFromLibraryImport() {
+		testCompletion((TestCompletionConfiguration it) -> {
+			String policy = "import time.before as abc\npolicy \"test policy\" deny where var foo = 5;";
+			String cursor = "policy \"test policy\" deny where var foo = 5;";
+			it.setModel(policy);
+			it.setLine(1);
+			it.setColumn(cursor.length());
+			it.setAssertCompletionList(completionList -> {
+				var expected = List.of("abc");
+				assertProposalsSimple(expected, completionList);
+			});
+		});
+	}
 }
