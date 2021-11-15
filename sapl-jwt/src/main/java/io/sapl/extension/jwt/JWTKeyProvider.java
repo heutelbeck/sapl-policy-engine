@@ -39,11 +39,19 @@ import reactor.core.publisher.Mono;
 public class JWTKeyProvider {
 
 	private static final String JWT_KEY_SERVER_HTTP_ERROR = "Error trying to retrieve a public key: ";
+	private static final String JWT_KEY_CACHING_ERROR = "The provided caching configuration was not understood: ";
 
 	static final String PUBLIC_KEY_URI_KEY = "uri";
 	static final String PUBLIC_KEY_METHOD_KEY = "method";
 	static final String KEY_CACHING_TTL_MILLIS = "keyCachingTTLmillis";
 	static final long DEFAULT_CACHING_TTL = 300000L;
+	
+	@SuppressWarnings("serial")
+	public static class CachingException extends Exception {
+		public CachingException(String message) {
+			super(message);
+		}
+	}
 
 	private final Map<String, RSAPublicKey> keyCache;
 
@@ -60,7 +68,7 @@ public class JWTKeyProvider {
 		cachingTimes = new ConcurrentLinkedQueue<>(); // PriorityQueue<CacheEntry>();
 	}
 
-	public Mono<RSAPublicKey> provide(String kid, JsonNode jPublicKeyServer) {
+	public Mono<RSAPublicKey> provide(String kid, JsonNode jPublicKeyServer) throws CachingException {
 
 		var jUri = jPublicKeyServer.get(PUBLIC_KEY_URI_KEY);
 		if (jUri == null)
@@ -74,8 +82,13 @@ public class JWTKeyProvider {
 		var sUri = jUri.textValue();
 		var lTTL = DEFAULT_CACHING_TTL;
 		var jTTL = jPublicKeyServer.get(KEY_CACHING_TTL_MILLIS);
-		if (jTTL != null && jTTL.canConvertToLong())
-			lTTL = jTTL.longValue();
+		// nested if-statemenst in order to cover all possible branches during testing
+		// (eg. null && canConvertToLong not possible)
+		if (jTTL != null)
+			if (jTTL.canConvertToLong())
+				lTTL = jTTL.longValue();
+			else 
+				throw new CachingException(JWT_KEY_CACHING_ERROR + jTTL.toString());
 
 		setTTLmillis(lTTL);
 		return fetchPublicKey(kid, sUri, sMethod);

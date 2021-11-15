@@ -34,6 +34,8 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.validation.Text;
+import io.sapl.extension.jwt.JWTKeyProvider.CachingException;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -55,8 +57,9 @@ import reactor.util.function.Tuple2;
  * 	"variables": {
  *				   "jwt": {
  *		                    "publicKeyServer": {
- *                                               "uri":    "http://authz-server:9000/public-key/{id}"
- *                                               "method": "POST"
+ *                                               "uri":    "http://authz-server:9000/public-key/{id}",
+ *                                               "method": "POST",
+ *                                               "keyCachingTTLmillis": 300000
  *                                             },
  *					        "whitelist" : {
  *								            "key id" : "public key"
@@ -119,6 +122,7 @@ public class JWTPolicyInformationPoint {
 
 	}
 
+	@Getter
 	private final JWTKeyProvider keyProvider;
 
 	/**
@@ -206,7 +210,12 @@ public class JWTPolicyInformationPoint {
 			if (jPublicKeyServer == null)
 				return Mono.just(Boolean.FALSE);
 
-			publicKey = keyProvider.provide(keyId, jPublicKeyServer);
+			try {
+				publicKey = keyProvider.provide(keyId, jPublicKeyServer);
+			} catch (CachingException e) {
+				log.error(e.getLocalizedMessage());
+				publicKey = Mono.empty();
+			}
 		}
 
 		return publicKey.map(signatureOfTokenIsValid(signedJwt)).defaultIfEmpty(Boolean.FALSE)
@@ -219,7 +228,7 @@ public class JWTPolicyInformationPoint {
 			try {
 				return signedJwt.verify(verifier);
 			}
-			catch (JOSEException | IllegalStateException | NullPointerException e) {
+			catch (JOSEException e) {
 				// erroneous signatures or data are treated same as failed verifications
 				return Boolean.FALSE;
 			}
@@ -322,9 +331,12 @@ public class JWTPolicyInformationPoint {
 		// verify absence of incompatible critical parameters
 		// critical parameters present, need to check for compatibility
 		// now: no critical parameters compatible, return false
-		return header.getCriticalParams() == null || header.getCriticalParams().isEmpty();
+		// done this way in order to cover all possible cases with tests (eg. null && isEmpty() not testable)
+		if (header.getCriticalParams() != null)
+			return false;
 
 		// all claims are compatible with requirements
+		return true;
 	}
 
 }

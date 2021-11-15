@@ -17,6 +17,7 @@ package io.sapl.extension.jwt;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
@@ -49,6 +50,13 @@ public class KeyTestUtility {
 			e.printStackTrace();
 		}
 		return keyPair;
+	}
+	
+	/**
+	 * @return an invalid RSA public key
+	 */
+	static RSAPublicKey generateInvalidRSAPublicKey() {
+		return new InvalidRSAPublicKey();
 	}
 
 	/**
@@ -151,6 +159,38 @@ public class KeyTestUtility {
 	 */
 	static String base64Bogus() {
 		return Base64.getUrlEncoder().encodeToString("ThisIsAVeryBogusPublicKey".getBytes()).toString();
+	}
+	
+	@SuppressWarnings("serial")
+	private static class InvalidRSAPublicKey implements RSAPublicKey {
+
+		@Override
+		public String getAlgorithm() {
+			return "NotRSA";
+		}
+
+		@Override
+		public String getFormat() {
+			//No encoding supported
+			return null;
+		}
+
+		@Override
+		public byte[] getEncoded() {
+			//No encoding supported
+			return null;
+		}
+
+		@Override
+		public BigInteger getModulus() {
+			return BigInteger.TEN;
+		}
+
+		@Override
+		public BigInteger getPublicExponent() {
+			return BigInteger.TEN;
+		}
+		
 	}
 
 }

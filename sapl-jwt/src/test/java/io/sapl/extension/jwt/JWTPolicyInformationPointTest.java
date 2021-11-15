@@ -85,6 +85,22 @@ public class JWTPolicyInformationPointTest {
 	}
 
 	/*
+	 * TEST INVALID KEY
+	 */
+
+	@Test
+	public void validity_withInvalidKey_shouldBeUntrusted() throws JOSEException {
+		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
+		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
+		var claims = new JWTClaimsSet.Builder().build();
+		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+		jwtPolicyInformationPoint.getKeyProvider().cache(kid, KeyTestUtility.generateInvalidRSAPublicKey());
+		var flux = jwtPolicyInformationPoint.validity(source, variables);
+		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString()))
+				.verifyComplete();
+	}
+
+	/*
 	 * TEST VALUE TYPES
 	 */
 
@@ -192,8 +208,24 @@ public class JWTPolicyInformationPointTest {
 		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
 		var claims = new JWTClaimsSet.Builder().build();
 		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-		var mono = jwtPolicyInformationPoint.validity(source, variables);
-		StepVerifier.create(mono).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString()))
+		var flux = jwtPolicyInformationPoint.validity(source, variables);
+		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString()))
+				.verifyComplete();
+	}
+	
+	@Test
+	public void validity_withUriEnvironmentAndInvalidCachingTTL_usingBase64Url_shouldBeUntrusted()
+			throws JOSEException {
+		
+		dispatcher.setDispatchMode(DispatchMode.True);
+		var jwtNode = JsonTestUtility.getMAPPER().createObjectNode().set(JWTPolicyInformationPoint.PUBLIC_KEY_VARIABLES_KEY, 
+				JsonTestUtility.serverNode(server, null, "invalid TTL format"));
+		var variables = Map.<String, JsonNode>of("jwt", jwtNode);
+		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
+		var claims = new JWTClaimsSet.Builder().build();
+		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+		var flux = jwtPolicyInformationPoint.validity(source, variables);
+		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString()))
 				.verifyComplete();
 	}
 

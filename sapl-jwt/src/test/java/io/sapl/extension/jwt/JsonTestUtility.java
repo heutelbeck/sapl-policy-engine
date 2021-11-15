@@ -98,7 +98,7 @@ public class JsonTestUtility {
 		return Map.of("jwt", keyNode);
 	}
 
-	static ObjectNode serverNode(MockWebServer server, String method, Long ttl) {
+	static ObjectNode serverNode(MockWebServer server, String method, Object ttl) {
 		ObjectNode valueNode = MAPPER.createObjectNode();
 
 		if (server != null) {
@@ -112,10 +112,17 @@ public class JsonTestUtility {
 				valueNode.put(JWTKeyProvider.PUBLIC_KEY_METHOD_KEY, method);
 			}
 		}
-		if (ttl != null) {
-			valueNode.put(JWTKeyProvider.KEY_CACHING_TTL_MILLIS, ttl.longValue());
-		}
+		putTTL(valueNode, ttl);
 		return valueNode;
+	}
+	
+	private static void putTTL(ObjectNode valueNode, Object ttl) {
+		if (ttl == null)
+			return;
+		if (ttl instanceof Long)
+			valueNode.put(JWTKeyProvider.KEY_CACHING_TTL_MILLIS, ((Long)ttl).longValue());
+		else
+			valueNode.put(JWTKeyProvider.KEY_CACHING_TTL_MILLIS, ttl.toString());
 	}
 
 }
