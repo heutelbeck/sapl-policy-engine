@@ -15,7 +15,11 @@
  */
 package io.sapl.test.utils;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 
@@ -78,6 +82,18 @@ class ClasspathHelperTest {
 		Assertions.assertThatExceptionOfType(SaplTestException.class)
 				.isThrownBy(() -> ClasspathHelper.findPathOnClasspath(classLoader, "test.sapl"))
 				.withMessage("Not supporting reading files from jar during test execution!");
+	}
+
+	@Test
+	void test_MalformedURI() throws URISyntaxException {
+		URLClassLoader classLoader = Mockito.mock(URLClassLoader.class);
+		var url = mock(URL.class);
+		when(url.toURI()).thenThrow(new URISyntaxException("XXX", "YYY"));
+		Mockito.when(classLoader.getResource(Mockito.any())).thenReturn(url);
+
+		Assertions.assertThatExceptionOfType(RuntimeException.class)
+				.isThrownBy(() -> ClasspathHelper.findPathOnClasspath(classLoader, "test.sapl"))
+				.withMessage("java.net.URISyntaxException: YYY: XXX");
 	}
 
 }

@@ -64,6 +64,13 @@ public class MockingAttributeContextTest {
 	}
 
 	@Test
+	void templatesEmpty() {
+		Assertions.assertThat(this.attrCtx.getAttributeCodeTemplates()).isEmpty();
+		Assertions.assertThat(this.attrCtx.getEnvironmentAttributeCodeTemplates()).isEmpty();
+		Assertions.assertThat(this.attrCtx.getAllFullyQualifiedFunctions()).isEmpty();
+	}
+
+	@Test
 	void test_dynamicMock() {
 		attrCtx.markAttributeMock("foo.bar");
 		StepVerifier.create(attrCtx.evaluateAttribute("foo.bar", null, this.ctx, null))

@@ -26,18 +26,18 @@ import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
+import reactor.core.publisher.Mono;
 
-public class StepBuilderTest {
+class StepBuilderTest {
+	private final static AuthorizationSubscription AUTHZ_SUB = AuthorizationSubscription.of("willi", "not_matching",
+			"something");
+	private final static DefaultSAPLInterpreter PARSER = new DefaultSAPLInterpreter();
 
 	@Test
 	void test_NotApplicableDecisionWhenNotMatchingPolicyInUnitTest() {
-		DefaultSAPLInterpreter interpreter = new DefaultSAPLInterpreter();
-		SAPL document = interpreter.parse("policy \"test\" permit action == \"read\"");
-
-		AuthorizationSubscription authzSub = AuthorizationSubscription.of("willi", "not_matching", "something");
-
+		SAPL document = PARSER.parse("policy \"test\" permit action == \"read\"");
 		StepBuilder.newBuilderAtWhenStep(document, new AnnotationAttributeContext(), new AnnotationFunctionContext(),
-				new HashMap<>()).when(authzSub).expectNotApplicable().verify();
+				new HashMap<>()).when(AUTHZ_SUB).expectNotApplicable().verify();
 
 	}
 
@@ -45,12 +45,40 @@ public class StepBuilderTest {
 	void test_matchResultNotBoolean() {
 		SAPL document = Mockito.mock(SAPL.class);
 		Mockito.when(document.matches(Mockito.any())).thenReturn(Val.errorMono("test"));
-
-		AuthorizationSubscription authzSub = AuthorizationSubscription.of("willi", "not_matching", "something");
-
 		StepBuilder.newBuilderAtWhenStep(document, new AnnotationAttributeContext(), new AnnotationFunctionContext(),
-				new HashMap<>()).when(authzSub).expectNotApplicable().verify();
+				new HashMap<>()).when(AUTHZ_SUB).expectNotApplicable().verify();
 
+	}
+
+	@Test
+	void test_matchEmpty() {
+		SAPL document = Mockito.mock(SAPL.class);
+		Mockito.when(document.matches(Mockito.any())).thenReturn(Mono.empty());
+		StepBuilder.newBuilderAtWhenStep(document, new AnnotationAttributeContext(), new AnnotationFunctionContext(),
+				new HashMap<>()).when(AUTHZ_SUB).expectNotApplicable().verify();
+	}
+
+	@Test
+	void test_matchVirtualTime() {
+		SAPL document = PARSER.parse("policy \"test\" permit");
+		StepBuilder.newBuilderAtGivenStep(document, new AnnotationAttributeContext(), new AnnotationFunctionContext(),
+				new HashMap<>()).withVirtualTime().when(AUTHZ_SUB).expectPermit().verify();
+	}
+
+	@Test
+	void test_match_with_attribute() {
+		SAPL document = PARSER.parse("policy \"test\" permit where |<foo.bar> == \"fizz\";");
+		StepBuilder
+				.newBuilderAtGivenStep(document, new AnnotationAttributeContext(), new AnnotationFunctionContext(),
+						new HashMap<>())
+				.givenAttribute("foo.bar", Val.of("fizz"), Val.of("buzz")).when(AUTHZ_SUB).expectPermit().verify();
+	}
+
+	@Test
+	void test_match() {
+		SAPL document = PARSER.parse("policy \"test\" permit");
+		StepBuilder.newBuilderAtWhenStep(document, new AnnotationAttributeContext(), new AnnotationFunctionContext(),
+				new HashMap<>()).when(AUTHZ_SUB).expectPermit().verify();
 	}
 
 }

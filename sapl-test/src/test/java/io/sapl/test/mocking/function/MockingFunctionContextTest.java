@@ -50,6 +50,12 @@ public class MockingFunctionContextTest {
 	}
 
 	@Test
+	void templatesEmpty() {
+		Assertions.assertThat(this.ctx.getCodeTemplates()).isEmpty();
+		Assertions.assertThat(this.ctx.getAllFullyQualifiedFunctions()).isEmpty();
+	}
+
+	@Test
 	void test_invalidFullname() {
 		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> ctx.checkImportName("foo"));
 		Assertions.assertThatExceptionOfType(SaplTestException.class)

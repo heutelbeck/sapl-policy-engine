@@ -30,7 +30,6 @@ import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.test.utils.ClasspathHelper;
-
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
@@ -58,8 +57,7 @@ public class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {
 				SAPL sapl = interpreter.parse(Files.newInputStream(filePath));
 				documents.put(sapl.getPolicyElement().getSaplName(), sapl);
 			}
-		}
-		catch (IOException | PolicyEvaluationException e) {
+		} catch (IOException | PolicyEvaluationException e) {
 			throw Exceptions.propagate(e);
 		}
 		return documents;
@@ -87,15 +85,10 @@ public class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {
 	private void logMatching(PolicyRetrievalResult result) {
 		if (result.getMatchingDocuments().isEmpty()) {
 			log.trace("|-- Matching documents: NONE");
-		}
-		else {
+		} else {
 			log.trace("|-- Matching documents:");
-			for (AuthorizationDecisionEvaluable doc : result.getMatchingDocuments()) {
-				log.trace("| |-- * {} ({})",
-						(doc instanceof SAPL) ? ((SAPL) doc).getPolicyElement().getSaplName() : doc.toString(),
-						(doc instanceof SAPL) ? ((SAPL) doc).getPolicyElement().getClass().getSimpleName()
-								: doc.toString());
-			}
+			for (AuthorizationDecisionEvaluable doc : result.getMatchingDocuments())
+				log.trace("| |-- * {} ", doc);
 		}
 		log.trace("|");
 	}

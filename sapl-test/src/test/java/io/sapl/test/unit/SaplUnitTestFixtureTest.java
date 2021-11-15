@@ -15,11 +15,21 @@
  */
 package io.sapl.test.unit;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
+import io.sapl.test.utils.ClasspathHelper;
 
 public class SaplUnitTestFixtureTest {
 
@@ -47,4 +57,16 @@ public class SaplUnitTestFixtureTest {
 		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks);
 	}
 
+	@Test
+	void test_fileErrorThrows() {
+		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
+			try (MockedStatic<ClasspathHelper> cpHelper = Mockito.mockStatic(ClasspathHelper.class)) {
+				cpHelper.when(() -> ClasspathHelper.findPathOnClasspath(any(), any())).thenReturn(mock(Path.class));
+				mockedFiles.when(() -> Files.readString(any())).thenThrow(new IOException());
+				SaplTestFixture fixture = new SaplUnitTestFixture("foo.sapl");
+				Assertions.assertThatExceptionOfType(RuntimeException.class)
+						.isThrownBy(fixture::constructTestCaseWithMocks);
+			}
+		}
+	}
 }
