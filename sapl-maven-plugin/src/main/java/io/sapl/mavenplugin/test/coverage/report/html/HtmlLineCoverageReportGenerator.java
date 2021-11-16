@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.sapl.mavenplugin.test.coverage.PathHelper;
+import io.sapl.mavenplugin.test.coverage.SaplTestException;
 import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInformation;
 
 import org.apache.maven.plugin.logging.Log;
@@ -234,6 +235,8 @@ public class HtmlLineCoverageReportGenerator {
 			case IRRELEVANT:
 				model.setCssClass("");
 				break;
+			default:
+				throw new SaplTestException("Unexpected enum value: " + line.getCoveredValue());
 			}
 			models.add(model);
 		}

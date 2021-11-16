@@ -17,18 +17,27 @@ package io.sapl.mavenplugin.test.coverage.helper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Collection;
 import java.util.List;
 
+import io.sapl.mavenplugin.test.coverage.SaplTestException;
+import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.testing.SilentLog;
 import org.apache.maven.plugin.testing.stubs.MavenProjectStub;
+import org.apache.maven.project.MavenProject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.mavenplugin.test.coverage.model.SaplDocument;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 public class SaplDocumentReaderTest {
 
@@ -41,7 +50,6 @@ public class SaplDocumentReaderTest {
 	@BeforeEach
 	public void setup() {
 		project = new MavenProjectStub();
-		// project.setTestClasspathElements(List.of("C:/Users/Nikolai/eclipse-sapl-workspace/sapl-test/sapl-maven-plugin/target/test-classes"));
 		project.setRuntimeClasspathElements(List.of("target/classes"));
 		reader = new SaplDocumentReader();
 	}
@@ -69,6 +77,23 @@ public class SaplDocumentReaderTest {
 		Collection<SaplDocument> documents = reader.retrievePolicyDocuments(new SilentLog(), project,
 				"." + File.separator + "policies");
 		assertEquals(2, documents.size());
+	}
+
+	@Test
+	public void test_File_IOException() {
+		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
+			mockedFiles.when(() -> Files.readString(Mockito.any())).thenThrow(IOException.class);
+			assertThrows(MojoExecutionException.class, () -> reader.retrievePolicyDocuments(new SilentLog(), project,
+					"." + File.separator + "policies"));
+		}
+	}
+
+	@Test
+	public void test_DependencyResolutionRequiredException () throws DependencyResolutionRequiredException {
+		var project = mock(MavenProject.class);
+		when(project.getRuntimeClasspathElements()).thenThrow(DependencyResolutionRequiredException.class);
+		assertThrows(MojoExecutionException.class, () -> reader.retrievePolicyDocuments(new SilentLog(), project,
+				"." + File.separator + "policies"));
 	}
 
 }

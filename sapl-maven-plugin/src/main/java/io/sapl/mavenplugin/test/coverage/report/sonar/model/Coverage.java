@@ -22,6 +22,8 @@ package io.sapl.mavenplugin.test.coverage.report.sonar.model;
 //Generated on: 2021.03.19 at 01:42:01 PM CET
 //
 
+import lombok.Generated;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -89,6 +91,7 @@ import javax.xml.bind.annotation.XmlType;
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(name = "", propOrder = { "file" })
 @XmlRootElement(name = "coverage")
+@Generated
 public class Coverage {
 
 	protected List<Coverage.File> file;
@@ -184,6 +187,7 @@ public class Coverage {
 	 */
 	@XmlAccessorType(XmlAccessType.FIELD)
 	@XmlType(name = "", propOrder = { "lineToCover" })
+	@Generated
 	public static class File {
 
 		protected List<Coverage.File.LineToCover> lineToCover;
@@ -266,6 +270,7 @@ public class Coverage {
 		 */
 		@XmlAccessorType(XmlAccessType.FIELD)
 		@XmlType(name = "")
+		@Generated
 		public static class LineToCover {
 
 			@XmlAttribute(name = "lineNumber", required = true)

@@ -60,12 +60,13 @@ public class PolicyBodyImplCustomCoverage extends PolicyBodyImplCustom {
 				String policySetId = "";
 				String policyId = "";
 				EObject eContainer1 = eContainer();
-				if (eContainer1.eClass().equals(SaplPackage.Literals.POLICY)) {
-					policyId = ((Policy) eContainer1).getSaplName();
-					EObject eContainer2 = eContainer1.eContainer();
-					if (eContainer2.eClass().equals(SaplPackage.Literals.POLICY_SET)) {
-						policySetId = ((PolicySet) eContainer2).getSaplName();
-					}
+				// A PolicyBody outside of a Policy is not allowed -> thus a pre-cast if statement like the following
+				//  if (eContainer1.eClass().equals(SaplPackage.Literals.POLICY)) {
+				// cannot be false -> cannot be tested
+				policyId = ((Policy) eContainer1).getSaplName();
+				EObject eContainer2 = eContainer1.eContainer();
+				if (eContainer2.eClass().equals(SaplPackage.Literals.POLICY_SET)) {
+					policySetId = ((PolicySet) eContainer2).getSaplName();
 				}
 				// because of implementation of super method and switchMap -> this is
 				// executed on the actual statementId-1

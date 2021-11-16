@@ -26,6 +26,7 @@ import java.util.List;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import io.sapl.mavenplugin.test.coverage.SaplTestException;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
@@ -68,6 +69,7 @@ public class SaplDocumentReader {
 				}
 				catch (IOException e) {
 					log.error("Error reading file " + file, e);
+					throw new MojoExecutionException("Error reading file", e);
 				}
 			}
 		}
@@ -94,7 +96,7 @@ public class SaplDocumentReader {
 			}
 		}
 		catch (DependencyResolutionRequiredException e) {
-			throw Exceptions.propagate(e);
+			throw new MojoExecutionException("Cannot get RuntimeClasspathElements from the current maven project", e);
 		}
 
 		if (result != null) {
