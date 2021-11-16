@@ -34,15 +34,15 @@ import org.eclipse.xtext.ide.editor.contentassist.IIdeContentProposalAcceptor;
 import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
+import io.sapl.grammar.sapl.Condition;
 import io.sapl.grammar.sapl.Import;
 import io.sapl.grammar.sapl.LibraryImport;
+import io.sapl.grammar.sapl.PolicyBody;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.SaplPackage;
+import io.sapl.grammar.sapl.ValueDefinition;
 import io.sapl.grammar.sapl.WildcardImport;
-import io.sapl.grammar.sapl.impl.ConditionImpl;
-import io.sapl.grammar.sapl.impl.PolicyBodyImpl;
-import io.sapl.grammar.sapl.impl.ValueDefinitionImpl;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 
@@ -58,7 +58,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
 	private AttributeContext attributeContext;
 	private FunctionContext functionContext;
-	
+
 	private void lazyLoadDependencies() {
 		if (attributeContext == null) {
 			attributeContext = SpringContext.getBean(AttributeContext.class);
@@ -171,32 +171,31 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			// try to resolve for available variables
 
 			// try to move up to the policy body
-			if (model.eContainer() instanceof ConditionImpl) {
-				model = TreeNavigationHelper.goToFirstParent(model, PolicyBodyImpl.class);
+			if (model.eContainer() instanceof Condition) {
+				model = TreeNavigationHelper.goToFirstParent(model, PolicyBody.class);
 			}
 
 			// look up all defined variables in the policy
-			if (model instanceof PolicyBodyImpl) {
-				var policyBody = (PolicyBodyImpl) model;
+			if (model instanceof PolicyBody) {
+				var policyBody = (PolicyBody) model;
 				Collection<String> definedValues = new HashSet<>();
 
 				Integer currentOffset = context.getOffset();
-				
+
 				// iterate through defined statements which are either conditions or
 				// variables
 				for (var statement : policyBody.getStatements()) {
 					// add any encountered valuable to the list of proposals
-					if (statement instanceof ValueDefinitionImpl) {
-						var valueDefinition = (ValueDefinitionImpl) statement;
-						
+					if (statement instanceof ValueDefinition) {
+						var valueDefinition = (ValueDefinition) statement;
+
 						// check if variable definition is happening after cursor
 						INode valueDefinitionNode = NodeModelUtils.getNode(valueDefinition);
 						Integer valueDefinitionOffset = valueDefinitionNode.getOffset();
-						
-						if(currentOffset > valueDefinitionOffset) {
+
+						if (currentOffset > valueDefinitionOffset) {
 							definedValues.add(valueDefinition.getName());
-						}
-						else {
+						} else {
 							break;
 						}
 					}
