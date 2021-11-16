@@ -59,14 +59,16 @@ public class VariableCompletionTests extends CompletionTests {
 	@Test
 	public void testCompletion_SuggestVariableInBody_NotSuggestOutOfScopeVariable() {
 		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "policy \"test\" permit where var foo = 5; ; var bar = 6;";
+			String policy = "policy \"test\" permit where var foo = 5; var bar = 6;";
 			String cursor = "policy \"test\" permit where var foo = 5; ";
 			it.setModel(policy);
 			it.setColumn(cursor.length());
 			it.setAssertCompletionList(completionList -> {
 				var expected = List.of("advice", "obligation", "transform", "var", "action", "environment", "foo",
 						"resource", "subject");
+				var unwanted = List.of("bar");
 				assertProposalsSimple(expected, completionList);
+				assertDoesNotContainProposals(unwanted, completionList);
 			});
 		});
 	}
@@ -74,13 +76,15 @@ public class VariableCompletionTests extends CompletionTests {
 	@Test
 	public void testCompletion_SuggestVariableInBodyAfterSubject_NotSuggestOutOfScopeVariable() {
 		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "policy \"test\" permit where var foo = 5; subject.attribute == abc; subject.attribute == ; var bar = 6;";
+			String policy = "policy \"test\" permit where var foo = 5; subject.attribute == abc; subject.attribute == var bar = 6;";
 			String cursor = "policy \"test\" permit where var foo = 5; subject.attribute == abc; subject.attribute == ";
 			it.setModel(policy);
 			it.setColumn(cursor.length());
 			it.setAssertCompletionList(completionList -> {
 				var expected = List.of("action", "environment", "foo", "resource", "subject");
+				var unwanted = List.of("bar");
 				assertProposalsSimple(expected, completionList);
+				assertDoesNotContainProposals(unwanted, completionList);
 			});
 		});
 	}

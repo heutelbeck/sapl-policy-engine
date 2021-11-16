@@ -32,7 +32,8 @@ import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistEntry;
 import org.eclipse.xtext.ide.editor.contentassist.IIdeContentProposalAcceptor;
 import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
-
+import org.eclipse.xtext.nodemodel.INode;
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import io.sapl.grammar.sapl.Import;
 import io.sapl.grammar.sapl.LibraryImport;
 import io.sapl.grammar.sapl.SAPL;
@@ -57,7 +58,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
 	private AttributeContext attributeContext;
 	private FunctionContext functionContext;
-
+	
 	private void lazyLoadDependencies() {
 		if (attributeContext == null) {
 			attributeContext = SpringContext.getBean(AttributeContext.class);
@@ -169,11 +170,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		if ("value".equals(feature)) {
 			// try to resolve for available variables
 
-			// try to move up to the policy body and
-			// keep outer condition object as reference
-			EObject reference = null;
+			// try to move up to the policy body
 			if (model.eContainer() instanceof ConditionImpl) {
-				reference = TreeNavigationHelper.goToLastParent(model, ConditionImpl.class);
 				model = TreeNavigationHelper.goToFirstParent(model, PolicyBodyImpl.class);
 			}
 
@@ -182,18 +180,25 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 				var policyBody = (PolicyBodyImpl) model;
 				Collection<String> definedValues = new HashSet<>();
 
+				Integer currentOffset = context.getOffset();
+				
 				// iterate through defined statements which are either conditions or
 				// variables
 				for (var statement : policyBody.getStatements()) {
-
-					// collect only variables defined above the given condition
-					if (statement == reference)
-						break;
-
 					// add any encountered valuable to the list of proposals
 					if (statement instanceof ValueDefinitionImpl) {
 						var valueDefinition = (ValueDefinitionImpl) statement;
-						definedValues.add(valueDefinition.getName());
+						
+						// check if variable definition is happening after cursor
+						INode valueDefinitionNode = NodeModelUtils.getNode(valueDefinition);
+						Integer valueDefinitionOffset = valueDefinitionNode.getOffset();
+						
+						if(currentOffset > valueDefinitionOffset) {
+							definedValues.add(valueDefinition.getName());
+						}
+						else {
+							break;
+						}
 					}
 				}
 
