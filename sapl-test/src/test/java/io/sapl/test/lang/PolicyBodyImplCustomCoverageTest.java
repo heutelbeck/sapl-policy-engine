@@ -32,6 +32,8 @@ import io.sapl.test.coverage.api.CoverageHitRecorder;
 import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import reactor.test.StepVerifier;
 
+import static org.mockito.ArgumentMatchers.any;
+
 public class PolicyBodyImplCustomCoverageTest {
 
 	CoverageHitRecorder recorder;
@@ -81,7 +83,6 @@ public class PolicyBodyImplCustomCoverageTest {
 				"set \"set\" deny-overrides policy \"p\" permit true where true == subject.<pip.attr>; true; true;");
 		var expected = AuthorizationDecision.INDETERMINATE;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
-		Mockito.verify(this.recorder, Mockito.never()).recordPolicyConditionHit(Mockito.any());
+		Mockito.verify(this.recorder, Mockito.never()).recordPolicyConditionHit(any());
 	}
-
 }

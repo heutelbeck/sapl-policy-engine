@@ -32,6 +32,7 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 
+import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 
 public class SonarLineCoverageReportGenerator {
@@ -39,28 +40,28 @@ public class SonarLineCoverageReportGenerator {
 	private final ObjectFactory FACTORY = new ObjectFactory();
 
 	public void generateSonarLineCoverageReport(Collection<SaplDocumentCoverageInformation> documents, Log log,
-			Path basedir, String policyPath, File mavenBaseDir) {
+			Path basedir, String policyPath, File mavenBaseDir) throws MojoExecutionException {
 		Coverage sonarCoverage = FACTORY.createCoverage();
 		sonarCoverage.setVersion(BigInteger.valueOf(1));
 		for (var doc : documents) {
 			addFile(sonarCoverage, doc, mavenBaseDir, policyPath);
+		}
+		Path filePath = basedir.resolve("sonar").resolve("sonar-generic-coverage.xml");
+		try {
+			PathHelper.createFile(filePath);
+		} catch (IOException e) {
+			throw new MojoExecutionException("Error writing Sonar geric coverage report to file", e);
 		}
 		JAXBContext context;
 		try {
 			context = JAXBContext.newInstance(Coverage.class, ObjectFactory.class);
 			Marshaller marshaller = context.createMarshaller();
 			marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
-			Path filePath = basedir.resolve("sonar").resolve("sonar-generic-coverage.xml");
-			if (!filePath.toFile().exists()) {
-				PathHelper.createFile(filePath);
-			}
 			marshaller.marshal(sonarCoverage, filePath.toFile());
 		}
 		catch (JAXBException e) {
 			log.error("Error unmarshalling Coverage information to Sonarqube generic coverage format", e);
-		}
-		catch (IOException e) {
-			log.error("Error writing file", e);
+			throw new MojoExecutionException("Error unmarshalling Coverage information to Sonarqube generic coverage format", e);
 		}
 	}
 

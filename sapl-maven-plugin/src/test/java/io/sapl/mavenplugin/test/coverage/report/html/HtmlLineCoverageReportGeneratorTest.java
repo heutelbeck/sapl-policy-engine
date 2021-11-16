@@ -33,18 +33,17 @@ import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInform
 public class HtmlLineCoverageReportGeneratorTest {
 
 	private Path base;
+	private float policySetHitRatio = 100;
+	private float policyHitRatio = 66.6f;
+	private float policyConditionHitRatio = 43.9f;
+	private HtmlLineCoverageReportGenerator generator;
+	private Collection<SaplDocumentCoverageInformation> documents;
 
 	@BeforeEach
 	void setup() {
 		base = Paths.get("target/sapl-coverage/html");
 		TestFileHelper.deleteDirectory(base.toFile());
-	}
 
-	@Test
-	public void test() {
-		var policySetHitRatio = 100;
-		var policyHitRatio = 66.6f;
-		var policyConditionHitRatio = 43.9f;
 		var document = new SaplDocumentCoverageInformation(Paths.get("target/classes/policies/policy_1.sapl"), 12);
 		document.markLine(1, LineCoveredValue.IRRELEVANT, 0, 0);
 		document.markLine(2, LineCoveredValue.IRRELEVANT, 0, 0);
@@ -58,8 +57,12 @@ public class HtmlLineCoverageReportGeneratorTest {
 		document.markLine(10, LineCoveredValue.PARTLY, 1, 2);
 		document.markLine(11, LineCoveredValue.NEVER, 0, 2);
 		document.markLine(12, LineCoveredValue.NEVER, 0, 2);
-		Collection<SaplDocumentCoverageInformation> documents = List.of(document);
-		HtmlLineCoverageReportGenerator generator = new HtmlLineCoverageReportGenerator();
+		documents = List.of(document);
+		generator = new HtmlLineCoverageReportGenerator();
+	}
+
+	@Test
+	public void test() {
 
 		generator.generateHtmlReport(documents, new SilentLog(), Paths.get("target/sapl-coverage"), policySetHitRatio,
 				policyHitRatio, policyConditionHitRatio);
@@ -70,5 +73,4 @@ public class HtmlLineCoverageReportGeneratorTest {
 		assertEquals(true, base.resolve("policies/policy_1.sapl.html").toFile().exists());
 		assertEquals(true, base.resolve("index.html").toFile().exists());
 	}
-
 }
