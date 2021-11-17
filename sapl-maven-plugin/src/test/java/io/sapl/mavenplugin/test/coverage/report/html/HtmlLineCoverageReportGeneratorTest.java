@@ -16,6 +16,10 @@
 package io.sapl.mavenplugin.test.coverage.report.html;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -25,10 +29,15 @@ import java.util.List;
 import org.apache.maven.plugin.testing.SilentLog;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
+import io.sapl.mavenplugin.test.coverage.SaplTestException;
 import io.sapl.mavenplugin.test.coverage.TestFileHelper;
 import io.sapl.mavenplugin.test.coverage.report.model.LineCoveredValue;
 import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInformation;
+import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentLineCoverageInformation;
 
 public class HtmlLineCoverageReportGeneratorTest {
 
@@ -73,4 +82,32 @@ public class HtmlLineCoverageReportGeneratorTest {
 		assertEquals(true, base.resolve("policies/policy_1.sapl.html").toFile().exists());
 		assertEquals(true, base.resolve("index.html").toFile().exists());
 	}
+
+	@Test
+	public void whenUnknownLineCoveredValue_testExceptionsAreThrown() {
+
+		try (MockedStatic<LineCoveredValue> x = mockStatic(LineCoveredValue.class)) {
+			LineCoveredValue badApple = mock(LineCoveredValue.class);
+			when(badApple.ordinal()).thenReturn(4);
+			when(LineCoveredValue.values()).thenReturn(new LineCoveredValue[] { LineCoveredValue.FULLY,
+					LineCoveredValue.PARTLY, LineCoveredValue.NEVER, LineCoveredValue.IRRELEVANT, badApple });
+
+			try (MockedConstruction<SaplDocumentLineCoverageInformation> mocked = Mockito
+					.mockConstruction(SaplDocumentLineCoverageInformation.class, (mock, context) -> {
+						when(mock.getCoveredValue()).thenReturn(badApple);
+					})) {
+				base = Paths.get("target/sapl-coverage/html");
+				TestFileHelper.deleteDirectory(base.toFile());
+
+				var document = new SaplDocumentCoverageInformation(Paths.get("target/classes/policies/policy_1.sapl"),
+						12);
+				document.markLine(1, LineCoveredValue.IRRELEVANT, 0, 0);
+				documents = List.of(document);
+				generator = new HtmlLineCoverageReportGenerator();
+				assertThrows(SaplTestException.class, () -> generator.generateHtmlReport(documents, new SilentLog(),
+						Paths.get("target/sapl-coverage"), policySetHitRatio, policyHitRatio, policyConditionHitRatio));
+			}
+		}
+	}
+
 }

@@ -32,6 +32,7 @@ import java.util.stream.Stream;
 
 import io.sapl.mavenplugin.test.coverage.PathHelper;
 import io.sapl.mavenplugin.test.coverage.SaplTestException;
+import io.sapl.mavenplugin.test.coverage.report.model.LineCoveredValue;
 import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInformation;
 
 import org.apache.maven.plugin.logging.Log;
@@ -220,7 +221,9 @@ public class HtmlLineCoverageReportGenerator {
 			var model = new HtmlPolicyLineModel();
 			model.setLineContent(lines.get(i));
 			var line = document.getLine(i + 1);
-			switch (line.getCoveredValue()) {
+			var coveredValue = line.getCoveredValue();
+			assertValidCoveredValue(coveredValue);
+			switch (coveredValue) {
 			case FULLY:
 				model.setCssClass("coverage-green");
 				break;
@@ -233,10 +236,9 @@ public class HtmlLineCoverageReportGenerator {
 						line.getBranchesToCover()));
 				break;
 			case IRRELEVANT:
+			default:
 				model.setCssClass("");
 				break;
-			default:
-				throw new SaplTestException("Unexpected enum value: " + line.getCoveredValue());
 			}
 			models.add(model);
 		}
@@ -369,6 +371,13 @@ public class HtmlLineCoverageReportGenerator {
 				.attr(new Attribute("crossorigin", "anonymous"));
 	}
 
+	private void assertValidCoveredValue(LineCoveredValue coveredValue) {
+		if (coveredValue == LineCoveredValue.FULLY || coveredValue == LineCoveredValue.PARTLY
+				|| coveredValue == LineCoveredValue.NEVER || coveredValue == LineCoveredValue.IRRELEVANT)
+			return;
+		throw new SaplTestException("Unexpected enum value: " + coveredValue);
+	}
+	
 	@Data
 	static class HtmlPolicyLineModel {
 

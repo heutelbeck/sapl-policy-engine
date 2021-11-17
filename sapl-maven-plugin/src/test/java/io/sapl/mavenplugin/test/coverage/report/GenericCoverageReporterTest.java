@@ -17,6 +17,9 @@ package io.sapl.mavenplugin.test.coverage.report;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -27,6 +30,8 @@ import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import io.sapl.grammar.sapl.PolicyElement;
@@ -38,6 +43,7 @@ import io.sapl.mavenplugin.test.coverage.model.CoverageTargets;
 import io.sapl.mavenplugin.test.coverage.model.SaplDocument;
 import io.sapl.mavenplugin.test.coverage.report.model.LineCoveredValue;
 import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInformation;
+import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentLineCoverageInformation;
 import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import io.sapl.test.coverage.api.model.PolicyHit;
 import io.sapl.test.coverage.api.model.PolicySetHit;
@@ -710,6 +716,32 @@ public class GenericCoverageReporterTest {
 		assertEquals(LineCoveredValue.NEVER, docs.get(0).getLine(4).getCoveredValue());
 		assertEquals(2, docs.get(0).getLine(4).getBranchesToCover());
 		assertEquals(0, docs.get(0).getLine(4).getCoveredBranches());
+	}
+
+	@Test
+	public void whenUnknownLineCoveredValue_testExceptionsAreThrown() {
+		// arrange
+		String sapl = "policy \"policy1\" \npermit\nwhere\ntrue;var id=1;";
+		Collection<SaplDocument> documents = List
+				.of(new SaplDocument(Paths.get("test.sapl"), 4, this.INTERPRETER.parse(sapl)));
+		PolicyHit policyHit = new PolicyHit("", "policy1");
+		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of());
+		GenericCoverageReporter reporter = new GenericCoverageReporter();
+
+		try (MockedStatic<LineCoveredValue> x = mockStatic(LineCoveredValue.class)) {
+			LineCoveredValue badApple = mock(LineCoveredValue.class);
+			when(badApple.ordinal()).thenReturn(4);
+			when(LineCoveredValue.values()).thenReturn(new LineCoveredValue[] { LineCoveredValue.FULLY,
+					LineCoveredValue.PARTLY, LineCoveredValue.NEVER, LineCoveredValue.IRRELEVANT, badApple });
+
+			try (MockedConstruction<SaplDocumentLineCoverageInformation> mocked = Mockito
+					.mockConstruction(SaplDocumentLineCoverageInformation.class, (mock, context) -> {
+						when(mock.getCoveredValue()).thenReturn(badApple);
+					})) {
+
+				assertThrows(SaplTestException.class, () -> reporter.calcDocumentCoverage(documents, hits));
+			}
+		}
 	}
 
 }

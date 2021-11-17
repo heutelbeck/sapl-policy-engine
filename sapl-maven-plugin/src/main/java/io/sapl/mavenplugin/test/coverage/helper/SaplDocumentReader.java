@@ -26,7 +26,6 @@ import java.util.List;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import io.sapl.mavenplugin.test.coverage.SaplTestException;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
@@ -34,7 +33,6 @@ import org.apache.maven.project.MavenProject;
 
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.mavenplugin.test.coverage.model.SaplDocument;
-import reactor.core.Exceptions;
 
 @Named
 @Singleton

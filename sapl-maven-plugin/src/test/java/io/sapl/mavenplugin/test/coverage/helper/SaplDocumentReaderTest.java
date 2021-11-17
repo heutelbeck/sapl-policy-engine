@@ -26,7 +26,6 @@ import java.nio.file.Files;
 import java.util.Collection;
 import java.util.List;
 
-import io.sapl.mavenplugin.test.coverage.SaplTestException;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.testing.SilentLog;
@@ -34,10 +33,10 @@ import org.apache.maven.plugin.testing.stubs.MavenProjectStub;
 import org.apache.maven.project.MavenProject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import io.sapl.mavenplugin.test.coverage.model.SaplDocument;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
+
+import io.sapl.mavenplugin.test.coverage.model.SaplDocument;
 
 public class SaplDocumentReaderTest {
 

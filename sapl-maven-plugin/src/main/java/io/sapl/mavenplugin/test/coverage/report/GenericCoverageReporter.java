@@ -21,6 +21,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.eclipse.xtext.nodemodel.INode;
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
+
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.grammar.sapl.PolicyElement;
@@ -35,9 +38,6 @@ import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInform
 import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import io.sapl.test.coverage.api.model.PolicyHit;
 import io.sapl.test.coverage.api.model.PolicySetHit;
-
-import org.eclipse.xtext.nodemodel.INode;
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 
 public class GenericCoverageReporter {
 
@@ -56,12 +56,10 @@ public class GenericCoverageReporter {
 			if (element.eClass().equals(SaplPackage.Literals.POLICY_SET)) {
 				PolicySet set = (PolicySet) element;
 				markLinesOfPolicySet(set, coveredDoc, hits);
-			}
-			else if (element.eClass().equals(SaplPackage.Literals.POLICY)) {
+			} else if (element.eClass().equals(SaplPackage.Literals.POLICY)) {
 				Policy policy = (Policy) element;
 				markLinesOfPolicy("", policy, coveredDoc, hits);
-			}
-			else {
+			} else {
 				throw new SaplTestException("Error: Unknown Subtype of " + PolicyElement.class);
 			}
 
@@ -109,8 +107,7 @@ public class GenericCoverageReporter {
 		// mark Lines
 		if (isSetHit) {
 			markLines(coverage, linesOfPolicySet, LineCoveredValue.FULLY, 1, 1);
-		}
-		else {
+		} else {
 			markLines(coverage, linesOfPolicySet, LineCoveredValue.NEVER, 0, 1);
 		}
 
@@ -143,8 +140,7 @@ public class GenericCoverageReporter {
 		// mark Lines
 		if (isPolicyHit) {
 			markLines(coverage, linesOfPolicy, LineCoveredValue.FULLY, 1, 1);
-		}
-		else {
+		} else {
 			markLines(coverage, linesOfPolicy, LineCoveredValue.NEVER, 0, 1);
 		}
 
@@ -183,27 +179,22 @@ public class GenericCoverageReporter {
 			if (isPositiveHit && isNegativeHit) {
 				markConditionFULLY(coverage, node.getStartLine(), node.getEndLine());
 				// if only one of both was hit -> partly covered
-			}
-			else if (isPositiveHit || isNegativeHit) {
+			} else if (isPositiveHit || isNegativeHit) {
 				markConditionPARTLY(coverage, node.getStartLine(), node.getEndLine());
 				// evaluation never reached this condition
-			}
-			else {
+			} else {
 				markConditionNEVER(coverage, node.getStartLine(), node.getEndLine());
 			}
 
 			// if this statement is of type VALUE_DEFINITION
-		}
-		else if (statement.eClass().equals(SaplPackage.Literals.VALUE_DEFINITION)) {
+		} else if (statement.eClass().equals(SaplPackage.Literals.VALUE_DEFINITION)) {
 			// mark a value definition if the previous statement evaluated to true
 			if (isLastStatementHit) {
 				markValueFULLY(coverage, node.getStartLine(), node.getEndLine());
-			}
-			else {
+			} else {
 				markValueNEVER(coverage, node.getStartLine(), node.getEndLine());
 			}
-		}
-		else {
+		} else {
 			throw new SaplTestException("Error: Unknown Subtype of " + Statement.class
 					+ ". Please consider reporting this bug to the authors!");
 		}
@@ -221,34 +212,35 @@ public class GenericCoverageReporter {
 	private void markConditionFULLY(SaplDocumentCoverageInformation coverage, int linesStart, int linesEnd) {
 		for (int i = linesStart; i <= linesEnd; i++) {
 			var line = coverage.getLine(i);
-			switch (line.getCoveredValue()) {
-				case FULLY:
-					// don't do anything. Already FULLY
-					coverage.markLine(i, LineCoveredValue.FULLY, line.getCoveredBranches() + 2,
-							line.getBranchesToCover() + 2);
-					break;
-				case PARTLY:
-					// don't change LineCoveredValue. If previous statement only PARTLY, then
-					// whole line partly.
-					// But mark this part of the line as fully covered by adding +2 to
-					// coveredBranches and branchesToCover
-					coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches() + 2,
-							line.getBranchesToCover() + 2);
-					break;
-				case NEVER:
-					// if this condition or the condition evaluated before on the same line
-					// was never hit, then this or the next condition cannot have been
-					// evaluated
-					// thus this change from NEVER -> FULLY cannot happen
-					throw new SaplTestException(String.format(ERROR_UNEXPECTED_ENUM_VALUE, line.getCoveredValue()));
-				case IRRELEVANT:
-					// mark this line as fully covered by adding +2 to coveredBranches and
-					// branchesToCover
-					coverage.markLine(i, LineCoveredValue.FULLY, line.getCoveredBranches() + 2,
-							line.getBranchesToCover() + 2);
-					break;
-				default:
-					throw new SaplTestException("Unexpected enum value: " + line.getCoveredValue());
+			var coveredValue = line.getCoveredValue();
+			assertValidCoveredValue(coveredValue);
+			switch (coveredValue) {
+			case FULLY:
+				// don't do anything. Already FULLY
+				coverage.markLine(i, LineCoveredValue.FULLY, line.getCoveredBranches() + 2,
+						line.getBranchesToCover() + 2);
+				break;
+			case PARTLY:
+				// don't change LineCoveredValue. If previous statement only PARTLY, then
+				// whole line partly.
+				// But mark this part of the line as fully covered by adding +2 to
+				// coveredBranches and branchesToCover
+				coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches() + 2,
+						line.getBranchesToCover() + 2);
+				break;
+			case NEVER:
+				// if this condition or the condition evaluated before on the same line
+				// was never hit, then this or the next condition cannot have been
+				// evaluated
+				// thus this change from NEVER -> FULLY cannot happen
+				throw new SaplTestException(String.format(ERROR_UNEXPECTED_ENUM_VALUE, line.getCoveredValue()));
+			case IRRELEVANT:
+			default:
+				// mark this line as fully covered by adding +2 to coveredBranches and
+				// branchesToCover
+				coverage.markLine(i, LineCoveredValue.FULLY, line.getCoveredBranches() + 2,
+						line.getBranchesToCover() + 2);
+				break;
 			}
 		}
 	}
@@ -256,27 +248,28 @@ public class GenericCoverageReporter {
 	private void markConditionPARTLY(SaplDocumentCoverageInformation coverage, int linesStart, int linesEnd) {
 		for (int i = linesStart; i <= linesEnd; i++) {
 			var line = coverage.getLine(i);
-			switch (coverage.getLine(i).getCoveredValue()) {
-				case FULLY:
-					coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches() + 1,
-							line.getBranchesToCover() + 2);
-					break;
-				case PARTLY:
-					// only add branches
-					coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches() + 1,
-							line.getBranchesToCover() + 2);
-					break;
-				case NEVER:
-					// if this condition or the condition evaluated before on the same line
-					// was never hit, then this or the next condition cannot be evaluated too
-					// thus this change from NEVER -> PARTLY cannot happen
-					throw new SaplTestException(String.format(ERROR_UNEXPECTED_ENUM_VALUE, line.getCoveredValue()));
-				case IRRELEVANT:
-					coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches() + 1,
-							line.getBranchesToCover() + 2);
-					break;
-				default:
-					throw new SaplTestException("Unexpected enum value: " + line.getCoveredValue());
+			var coveredValue = line.getCoveredValue();
+			assertValidCoveredValue(coveredValue);
+			switch (coveredValue) {
+			case FULLY:
+				coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches() + 1,
+						line.getBranchesToCover() + 2);
+				break;
+			case PARTLY:
+				// only add branches
+				coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches() + 1,
+						line.getBranchesToCover() + 2);
+				break;
+			case NEVER:
+				// if this condition or the condition evaluated before on the same line
+				// was never hit, then this or the next condition cannot be evaluated too
+				// thus this change from NEVER -> PARTLY cannot happen
+				throw new SaplTestException(String.format(ERROR_UNEXPECTED_ENUM_VALUE, line.getCoveredValue()));
+			case IRRELEVANT:
+			default:
+				coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches() + 1,
+						line.getBranchesToCover() + 2);
+				break;
 			}
 		}
 	}
@@ -284,23 +277,24 @@ public class GenericCoverageReporter {
 	private void markConditionNEVER(SaplDocumentCoverageInformation coverage, int linesStart, int linesEnd) {
 		for (int i = linesStart; i <= linesEnd; i++) {
 			var line = coverage.getLine(i);
-			switch (line.getCoveredValue()) {
-				case FULLY:
-					coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches(), line.getBranchesToCover() + 2);
-					break;
-				case PARTLY:
-					// only add branches
-					coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches(), line.getBranchesToCover() + 2);
-					break;
-				case NEVER:
-					// only add branches
-					coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches(), line.getBranchesToCover() + 2);
-					break;
-				case IRRELEVANT:
-					coverage.markLine(i, LineCoveredValue.NEVER, line.getCoveredBranches(), line.getBranchesToCover() + 2);
-					break;
-				default:
-					throw new SaplTestException("Unexpected enum value: " + line.getCoveredValue());
+			var coveredValue = line.getCoveredValue();
+			assertValidCoveredValue(coveredValue);
+			switch (coveredValue) {
+			case FULLY:
+				coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches(), line.getBranchesToCover() + 2);
+				break;
+			case PARTLY:
+				// only add branches
+				coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches(), line.getBranchesToCover() + 2);
+				break;
+			case NEVER:
+				// only add branches
+				coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches(), line.getBranchesToCover() + 2);
+				break;
+			case IRRELEVANT:
+			default:
+				coverage.markLine(i, LineCoveredValue.NEVER, line.getCoveredBranches(), line.getBranchesToCover() + 2);
+				break;
 			}
 		}
 	}
@@ -308,24 +302,25 @@ public class GenericCoverageReporter {
 	private void markValueFULLY(SaplDocumentCoverageInformation coverage, int linesStart, int linesEnd) {
 		for (int i = linesStart; i <= linesEnd; i++) {
 			var line = coverage.getLine(i);
-			switch (line.getCoveredValue()) {
-				case FULLY:
-					// nothing to do
-					break;
-				case PARTLY:
-					// nothing to do
-					break;
-				case NEVER:
-					// if this value definition or the value definition evaluated before on
-					// the same line was never hit, then this value definition cannot be
-					// evaluated too
-					// thus this change from NEVER -> FULLY cannot happen
-					throw new SaplTestException(String.format(ERROR_UNEXPECTED_ENUM_VALUE, line.getCoveredValue()));
-				case IRRELEVANT:
-					coverage.markLine(i, LineCoveredValue.FULLY, line.getCoveredBranches(), line.getBranchesToCover());
-					break;
-				default:
-					throw new SaplTestException("Unexpected enum value: " + line.getCoveredValue());
+			var coveredValue = line.getCoveredValue();
+			assertValidCoveredValue(coveredValue);
+			switch (coveredValue) {
+			case FULLY:
+				// nothing to do
+				break;
+			case PARTLY:
+				// nothing to do
+				break;
+			case NEVER:
+				// if this value definition or the value definition evaluated before on
+				// the same line was never hit, then this value definition cannot be
+				// evaluated too
+				// thus this change from NEVER -> FULLY cannot happen
+				throw new SaplTestException(String.format(ERROR_UNEXPECTED_ENUM_VALUE, line.getCoveredValue()));
+			case IRRELEVANT:
+			default:
+				coverage.markLine(i, LineCoveredValue.FULLY, line.getCoveredBranches(), line.getBranchesToCover());
+				break;
 			}
 		}
 	}
@@ -333,26 +328,34 @@ public class GenericCoverageReporter {
 	private void markValueNEVER(SaplDocumentCoverageInformation coverage, int linesStart, int linesEnd) {
 		for (int i = linesStart; i <= linesEnd; i++) {
 			var line = coverage.getLine(i);
-			switch (line.getCoveredValue()) {
-				case FULLY:
-					// when previous condition on this line is fully covered than this value
-					// definition must have been evaluated
-					throw new SaplTestException(String.format(ERROR_UNEXPECTED_ENUM_VALUE, line.getCoveredValue()));
-				case PARTLY:
-					// nothing to do
-					// if previous condition on the same line is partly hit (false hit) and
-					// this value definition is thus not evaluated -> PARTLY stays
-					break;
-				case NEVER:
-					// nothing to do
-					break;
-				case IRRELEVANT:
-					coverage.markLine(i, LineCoveredValue.NEVER, line.getCoveredBranches(), line.getBranchesToCover());
-					break;
-				default:
-					throw new SaplTestException("Unexpected enum value: " + line.getCoveredValue());
+			var coveredValue = line.getCoveredValue();
+			assertValidCoveredValue(coveredValue);
+			switch (coveredValue) {
+			case FULLY:
+				// when previous condition on this line is fully covered than this value
+				// definition must have been evaluated
+				throw new SaplTestException(String.format(ERROR_UNEXPECTED_ENUM_VALUE, line.getCoveredValue()));
+			case PARTLY:
+				// nothing to do
+				// if previous condition on the same line is partly hit (false hit) and
+				// this value definition is thus not evaluated -> PARTLY stays
+				break;
+			case NEVER:
+				// nothing to do
+				break;
+			case IRRELEVANT:
+			default:
+				coverage.markLine(i, LineCoveredValue.NEVER, line.getCoveredBranches(), line.getBranchesToCover());
+				break;
 			}
 		}
+	}
+
+	private void assertValidCoveredValue(LineCoveredValue coveredValue) {
+		if (coveredValue == LineCoveredValue.FULLY || coveredValue == LineCoveredValue.PARTLY
+				|| coveredValue == LineCoveredValue.NEVER || coveredValue == LineCoveredValue.IRRELEVANT)
+			return;
+		throw new SaplTestException("Unexpected enum value: " + coveredValue);
 	}
 
 }
