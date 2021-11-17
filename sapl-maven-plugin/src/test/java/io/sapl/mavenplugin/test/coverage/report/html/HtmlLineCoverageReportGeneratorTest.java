@@ -21,11 +21,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.testing.SilentLog;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -71,7 +75,7 @@ public class HtmlLineCoverageReportGeneratorTest {
 	}
 
 	@Test
-	public void test() {
+	public void test() throws MojoExecutionException {
 
 		generator.generateHtmlReport(documents, new SilentLog(), Paths.get("target/sapl-coverage"), policySetHitRatio,
 				policyHitRatio, policyConditionHitRatio);
@@ -110,4 +114,13 @@ public class HtmlLineCoverageReportGeneratorTest {
 		}
 	}
 
+
+	@Test
+	void test_readFileFromClasspath_IOException() {
+		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
+			mockedFiles.when(() -> Files.writeString(Mockito.any(), Mockito.any())).thenThrow(IOException.class);
+			assertThrows(MojoExecutionException.class, () -> generator.generateHtmlReport(documents, new SilentLog(), Paths.get("target/sapl-coverage"), policySetHitRatio,
+					policyHitRatio, policyConditionHitRatio));
+		}
+	}
 }
