@@ -69,13 +69,13 @@ public class GenericCoverageReporter {
 		return documentsWithCoveringInfo;
 	}
 
-	private void addLinesToSet(Set<Integer> lines, int startLineNumber, int endLineNumber) {
+	void addLinesToSet(Set<Integer> lines, int startLineNumber, int endLineNumber) {
 		for (int i = startLineNumber; i <= endLineNumber; i++) {
 			lines.add(i);
 		}
 	}
 
-	private void markLinesOfPolicySet(PolicySet set, SaplDocumentCoverageInformation coverage, CoverageTargets hits) {
+	void markLinesOfPolicySet(PolicySet set, SaplDocumentCoverageInformation coverage, CoverageTargets hits) {
 		// calculate lines of policy set to be marked
 		Set<Integer> linesOfPolicySet = new HashSet<>();
 
@@ -117,7 +117,7 @@ public class GenericCoverageReporter {
 		}
 	}
 
-	private void markLinesOfPolicy(String policySetName, Policy policy, SaplDocumentCoverageInformation coverage,
+	void markLinesOfPolicy(String policySetName, Policy policy, SaplDocumentCoverageInformation coverage,
 			CoverageTargets hits) {
 		// calculate lines of policy to be marked
 		Set<Integer> linesOfPolicy = new HashSet<>();
@@ -149,16 +149,16 @@ public class GenericCoverageReporter {
 			List<Statement> statements = policy.getBody().getStatements();
 			boolean isLastStatementHit = isPolicyHit;
 			for (int i = 0; i < statements.size(); i++) {
-				isLastStatementHit = markLinesOfPolicyCondition(policySetName, policy.getSaplName(), i,
+				isLastStatementHit = markLinesOfPolicyStatement(policySetName, policy.getSaplName(), i,
 						statements.get(i), isLastStatementHit, coverage, hits);
 			}
 		}
 
 	}
 
-	private boolean markLinesOfPolicyCondition(String policySetName, String policyName, int statementId,
-			Statement statement, boolean isLastStatementHit, SaplDocumentCoverageInformation coverage,
-			CoverageTargets hits) {
+	boolean markLinesOfPolicyStatement(String policySetName, String policyName, int statementId,
+		   Statement statement, boolean isLastStatementHit, SaplDocumentCoverageInformation coverage,
+		   CoverageTargets hits) {
 		boolean isThisStatementHit = true;
 		INode node = NodeModelUtils.getNode(statement);
 
@@ -202,14 +202,14 @@ public class GenericCoverageReporter {
 		return isThisStatementHit;
 	}
 
-	private void markLines(SaplDocumentCoverageInformation coverage, Set<Integer> lines, LineCoveredValue value,
+	void markLines(SaplDocumentCoverageInformation coverage, Set<Integer> lines, LineCoveredValue value,
 			int coveredBranches, int branchesToCover) {
 		for (Integer i : lines) {
 			coverage.markLine(i, value, coveredBranches, branchesToCover);
 		}
 	}
 
-	private void markConditionFULLY(SaplDocumentCoverageInformation coverage, int linesStart, int linesEnd) {
+	void markConditionFULLY(SaplDocumentCoverageInformation coverage, int linesStart, int linesEnd) {
 		for (int i = linesStart; i <= linesEnd; i++) {
 			var line = coverage.getLine(i);
 			var coveredValue = line.getCoveredValue();
@@ -245,7 +245,7 @@ public class GenericCoverageReporter {
 		}
 	}
 
-	private void markConditionPARTLY(SaplDocumentCoverageInformation coverage, int linesStart, int linesEnd) {
+	void markConditionPARTLY(SaplDocumentCoverageInformation coverage, int linesStart, int linesEnd) {
 		for (int i = linesStart; i <= linesEnd; i++) {
 			var line = coverage.getLine(i);
 			var coveredValue = line.getCoveredValue();
@@ -274,7 +274,7 @@ public class GenericCoverageReporter {
 		}
 	}
 
-	private void markConditionNEVER(SaplDocumentCoverageInformation coverage, int linesStart, int linesEnd) {
+	void markConditionNEVER(SaplDocumentCoverageInformation coverage, int linesStart, int linesEnd) {
 		for (int i = linesStart; i <= linesEnd; i++) {
 			var line = coverage.getLine(i);
 			var coveredValue = line.getCoveredValue();
@@ -299,7 +299,7 @@ public class GenericCoverageReporter {
 		}
 	}
 
-	private void markValueFULLY(SaplDocumentCoverageInformation coverage, int linesStart, int linesEnd) {
+	void markValueFULLY(SaplDocumentCoverageInformation coverage, int linesStart, int linesEnd) {
 		for (int i = linesStart; i <= linesEnd; i++) {
 			var line = coverage.getLine(i);
 			var coveredValue = line.getCoveredValue();
@@ -325,7 +325,7 @@ public class GenericCoverageReporter {
 		}
 	}
 
-	private void markValueNEVER(SaplDocumentCoverageInformation coverage, int linesStart, int linesEnd) {
+	void markValueNEVER(SaplDocumentCoverageInformation coverage, int linesStart, int linesEnd) {
 		for (int i = linesStart; i <= linesEnd; i++) {
 			var line = coverage.getLine(i);
 			var coveredValue = line.getCoveredValue();

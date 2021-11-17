@@ -28,6 +28,9 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 
+import io.sapl.grammar.sapl.Statement;
+import org.eclipse.emf.ecore.EClass;
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
@@ -51,9 +54,11 @@ import io.sapl.test.coverage.api.model.PolicySetHit;
 public class GenericCoverageReporterTest {
 
 	private DefaultSAPLInterpreter INTERPRETER;
+	private GenericCoverageReporter reporter;
 
 	@BeforeEach
 	public void setup() {
+		this.reporter = new GenericCoverageReporter();
 		this.INTERPRETER = new DefaultSAPLInterpreter();
 	}
 
@@ -70,7 +75,7 @@ public class GenericCoverageReporterTest {
 		PolicyConditionHit conditionHit2 = new PolicyConditionHit("testPolicies", "policy 1", 2, true);
 		CoverageTargets hits = new CoverageTargets(List.of(setHit), List.of(policyHit),
 				List.of(conditionHit1, conditionHit2));
-		GenericCoverageReporter reporter = new GenericCoverageReporter();
+
 
 		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
@@ -111,7 +116,6 @@ public class GenericCoverageReporterTest {
 		Collection<SaplDocument> documents = List
 				.of(new SaplDocument(Paths.get("test.sapl"), 4, this.INTERPRETER.parse(sapl)));
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(), List.of());
-		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
 		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
@@ -137,7 +141,6 @@ public class GenericCoverageReporterTest {
 				.of(new SaplDocument(Paths.get("test.sapl"), 5, this.INTERPRETER.parse(sapl)));
 		PolicySetHit setHit = new PolicySetHit("set");
 		CoverageTargets hits = new CoverageTargets(List.of(setHit), List.of(), List.of());
-		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
 		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
@@ -163,7 +166,6 @@ public class GenericCoverageReporterTest {
 		Collection<SaplDocument> documents = List.of(new SaplDocument(Paths.get("test.sapl"), 5, mockSAPL));
 		PolicySetHit setHit = new PolicySetHit("set");
 		CoverageTargets hits = new CoverageTargets(List.of(setHit), List.of(), List.of());
-		GenericCoverageReporter reporter = new GenericCoverageReporter();
 		PolicyElement mockPolicyElement = Mockito.mock(PolicyElement.class);
 
 		Mockito.when(mockSAPL.getPolicyElement()).thenReturn(mockPolicyElement);
@@ -183,7 +185,6 @@ public class GenericCoverageReporterTest {
 				.of(new SaplDocument(Paths.get("test.sapl"), 5, this.INTERPRETER.parse(sapl)));
 		PolicySetHit setHit = new PolicySetHit("set");
 		CoverageTargets hits = new CoverageTargets(List.of(setHit), List.of(), List.of());
-		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
 		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
@@ -214,7 +215,6 @@ public class GenericCoverageReporterTest {
 		PolicyConditionHit conditionHit2 = new PolicyConditionHit("", "policy1", 0, true);
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit),
 				List.of(conditionHit1, conditionHit2));
-		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
 		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
@@ -241,7 +241,6 @@ public class GenericCoverageReporterTest {
 		PolicyHit policyHit = new PolicyHit("", "policy1");
 		PolicyConditionHit conditionHit = new PolicyConditionHit("", "policy1", 0, false);
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of(conditionHit));
-		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
 		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
@@ -270,7 +269,6 @@ public class GenericCoverageReporterTest {
 		PolicyHit policyHit = new PolicyHit("", "policy1");
 		PolicyConditionHit conditionHit1 = new PolicyConditionHit("", "policy1", 0, false);
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of(conditionHit1));
-		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
 		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
@@ -299,7 +297,6 @@ public class GenericCoverageReporterTest {
 		PolicyHit policyHit = new PolicyHit("", "policy1");
 		PolicyConditionHit conditionHit1 = new PolicyConditionHit("", "policy1", 1, false);
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of(conditionHit1));
-		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
 		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
@@ -332,7 +329,6 @@ public class GenericCoverageReporterTest {
 		PolicyConditionHit conditionHit4 = new PolicyConditionHit("", "policy1", 1, true);
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit),
 				List.of(conditionHit1, conditionHit2, conditionHit3, conditionHit4));
-		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
 		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
@@ -366,7 +362,6 @@ public class GenericCoverageReporterTest {
 		PolicyConditionHit conditionHit3 = new PolicyConditionHit("", "policy1", 1, false);
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit),
 				List.of(conditionHit1, conditionHit2, conditionHit3));
-		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
 		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
@@ -399,7 +394,6 @@ public class GenericCoverageReporterTest {
 		PolicyConditionHit conditionHit2 = new PolicyConditionHit("", "policy1", 1, true);
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit),
 				List.of(conditionHit1, conditionHit2));
-		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
 		// act
 		// assert
@@ -451,7 +445,6 @@ public class GenericCoverageReporterTest {
 		PolicyConditionHit conditionHit2 = new PolicyConditionHit("", "policy1", 1, false);
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit),
 				List.of(conditionHit1, conditionHit2));
-		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
 		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
@@ -482,7 +475,6 @@ public class GenericCoverageReporterTest {
 		PolicyHit policyHit = new PolicyHit("", "policy1");
 		PolicyConditionHit conditionHit1 = new PolicyConditionHit("", "policy1", 1, true);
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of(conditionHit1));
-		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
 		// act
 		// assert
@@ -500,7 +492,6 @@ public class GenericCoverageReporterTest {
 		PolicyConditionHit conditionHit2 = new PolicyConditionHit("", "policy1", 0, true);
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit),
 				List.of(conditionHit1, conditionHit2));
-		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
 		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
@@ -531,7 +522,6 @@ public class GenericCoverageReporterTest {
 		PolicyHit policyHit = new PolicyHit("", "policy1");
 		PolicyConditionHit conditionHit1 = new PolicyConditionHit("", "policy1", 0, true);
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of(conditionHit1));
-		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
 		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
@@ -561,7 +551,6 @@ public class GenericCoverageReporterTest {
 				.of(new SaplDocument(Paths.get("test.sapl"), 4, this.INTERPRETER.parse(sapl)));
 		PolicyHit policyHit = new PolicyHit("", "policy1");
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of());
-		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
 		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
@@ -594,7 +583,6 @@ public class GenericCoverageReporterTest {
 		PolicyConditionHit conditionHit2 = new PolicyConditionHit("", "policy1", 0, false);
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit),
 				List.of(conditionHit1, conditionHit2));
-		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
 		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
@@ -625,7 +613,6 @@ public class GenericCoverageReporterTest {
 		PolicyHit policyHit = new PolicyHit("", "policy1");
 		PolicyConditionHit conditionHit1 = new PolicyConditionHit("", "policy1", 0, true);
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of(conditionHit1));
-		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
 		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
@@ -650,11 +637,19 @@ public class GenericCoverageReporterTest {
 	@Test
 	public void test_policyBodyMultipleStatementsPerLine_WithValue_markFullyWhenNever() {
 		// cannot be reached due to isLastStatementHit if clause
+
+		SaplDocumentCoverageInformation coverage = new SaplDocumentCoverageInformation(null, 1);
+		coverage.markLine(1, LineCoveredValue.NEVER, 1, 1);
+		assertThrows(SaplTestException.class, () -> this.reporter.markValueFULLY(coverage, 1, 1));
 	}
 
 	@Test
 	public void test_policyBodyMultipleStatementsPerLine_WithValue_markNeverWhenFully() {
-		// cannot be reached
+		// cannot normally be reached due to isLastStatementHit if clause
+
+		SaplDocumentCoverageInformation coverage = new SaplDocumentCoverageInformation(null, 1);
+		coverage.markLine(1, LineCoveredValue.FULLY, 1, 1);
+		assertThrows(SaplTestException.class, () -> this.reporter.markValueNEVER(coverage, 1, 1));
 	}
 
 	@Test
@@ -666,7 +661,6 @@ public class GenericCoverageReporterTest {
 		PolicyHit policyHit = new PolicyHit("", "policy1");
 		PolicyConditionHit conditionHit1 = new PolicyConditionHit("", "policy1", 0, false);
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of(conditionHit1));
-		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
 		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
@@ -696,7 +690,6 @@ public class GenericCoverageReporterTest {
 				.of(new SaplDocument(Paths.get("test.sapl"), 4, this.INTERPRETER.parse(sapl)));
 		PolicyHit policyHit = new PolicyHit("", "policy1");
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of());
-		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
 		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
@@ -726,7 +719,6 @@ public class GenericCoverageReporterTest {
 				.of(new SaplDocument(Paths.get("test.sapl"), 4, this.INTERPRETER.parse(sapl)));
 		PolicyHit policyHit = new PolicyHit("", "policy1");
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of());
-		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
 		try (MockedStatic<LineCoveredValue> x = mockStatic(LineCoveredValue.class)) {
 			LineCoveredValue badApple = mock(LineCoveredValue.class);
@@ -741,6 +733,18 @@ public class GenericCoverageReporterTest {
 
 				assertThrows(SaplTestException.class, () -> reporter.calcDocumentCoverage(documents, hits));
 			}
+		}
+	}
+
+	@Test
+	public void test_markLinesOfPolicyStatement_UnknwonStatementType() {
+		var mockStatement = Mockito.mock(Statement.class);
+		EClass unknwonNewStatementType = SaplPackage.Literals.ENTITLEMENT;
+		Mockito.when(mockStatement.eClass()).thenReturn(unknwonNewStatementType);
+		try (MockedStatic<NodeModelUtils> nodeModelUtilsMockedStatic = mockStatic(NodeModelUtils.class)) {
+			nodeModelUtilsMockedStatic.when(() -> NodeModelUtils.getNode(Mockito.any())).thenReturn(null);
+			assertThrows(SaplTestException.class, () -> this.reporter.markLinesOfPolicyStatement("set", "policy", 0,
+				mockStatement, true, null, null));
 		}
 	}
 
