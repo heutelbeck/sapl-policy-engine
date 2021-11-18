@@ -15,6 +15,7 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
+import static org.junit.Assert.assertSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -48,6 +49,13 @@ public class TreeNavigatorHelperTests {
 		Object result = TreeNavigationHelper.goToFirstParent(new TestEObject(), SAPLImpl.class);
 		assertNull(result);
 	}
+	
+	@Test
+	public void test_goToFirstParent_objectHasRequestedClass_returnsObject() {
+		var expectedObject = new TestEObject();
+		Object result = TreeNavigationHelper.goToFirstParent(expectedObject, TestEObject.class);
+		assertSame(expectedObject, result);
+	}
 
 	@Test
 	public void test_goToLastParent_objectIsNull_throwsIllegalArgumentException() {
@@ -67,6 +75,13 @@ public class TreeNavigatorHelperTests {
 	public void test_goToLastParent_objectIsWrongClassAndHasNoEContainer_returnsNull() {
 		Object result = TreeNavigationHelper.goToLastParent(new TestEObject(), SAPLImpl.class);
 		assertNull(result);
+	}
+	
+	@Test
+	public void test_goToLastParent_objectHasRequestedClass_returnsObject() {
+		var expectedObject = new TestEObject();
+		Object result = TreeNavigationHelper.goToLastParent(expectedObject, TestEObject.class);
+		assertSame(expectedObject, result);
 	}
 
 }
