@@ -43,7 +43,6 @@ import j2html.attributes.Attribute;
 import j2html.tags.ContainerTag;
 import j2html.tags.EmptyTag;
 import lombok.Data;
-import lombok.NonNull;
 
 public class HtmlLineCoverageReportGenerator {
 
@@ -111,10 +110,12 @@ public class HtmlLineCoverageReportGenerator {
 								div(
 									each(
 										documents,
-										document ->
-											a(document.getPathToDocument().getFileName().toString())
-												.withHref("policies/" + document.getPathToDocument().getFileName().toString() + ".html")
-												.withClass("list-group-item list-group-item-action")
+										document -> {
+											var filename = document.getPathToDocument().getFileName() != null ? document.getPathToDocument().getFileName().toString() : "";
+											return a(filename)
+													.withHref("policies/" + filename + ".html")
+													.withClass("list-group-item list-group-item-action");
+										}
 									)
 								).withClass("list-group")
 							).withClass("card-body")
@@ -148,13 +149,13 @@ public class HtmlLineCoverageReportGenerator {
 		List<HtmlPolicyLineModel> models = createHtmlPolicyLineModel(lines, document);
 
 		Path filename = document.getPathToDocument().getFileName();
-		ContainerTag policySite = createPolicySite_CodeMirror(filename, models);
+		ContainerTag policySite = createPolicySite_CodeMirror(filename != null ? filename.toString() : "", models);
 
 		Path policyPath = basedir.resolve("html").resolve("policies").resolve(filename + ".html");
 		createFile(policyPath, policySite.renderFormatted());
 	}
 
-	private ContainerTag createPolicySite_CodeMirror(Path filename, List<HtmlPolicyLineModel> models) throws IOException {
+	private ContainerTag createPolicySite_CodeMirror(String filename, List<HtmlPolicyLineModel> models) throws IOException {
 
 		StringBuilder wholeTextOfPolicy = new StringBuilder();
 		StringBuilder htmlReportCodeMirrorJSLineClassStatements = new StringBuilder("\n");
@@ -193,12 +194,12 @@ public class HtmlLineCoverageReportGenerator {
 									a("Home").withHref("../index.html")
 								).withClass("breadcrumb-item"),
     							li(
-									filename.toString()
+									filename
 								).withClass("breadcrumb-item active").attr(new Attribute("aria-current", "page"))
 							).withClass("breadcrumb")
     					).attr(new Attribute("aria-label", "breadcrumb")),
 			            div(
-		            		h1(filename.toString()).withStyle("margin-bottom: 2vw"),
+		            		h1(filename).withStyle("margin-bottom: 2vw"),
 		            		textarea(wholeTextOfPolicy.toString()).withId("policyTextArea")
 	            		).withClass("card-body").withStyle("height: 80%")
 			        ).withStyle("height: 100vh"),

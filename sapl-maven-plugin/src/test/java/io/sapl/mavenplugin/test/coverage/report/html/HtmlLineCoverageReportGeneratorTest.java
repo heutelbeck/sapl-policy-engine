@@ -15,8 +15,7 @@
  */
 package io.sapl.mavenplugin.test.coverage.report.html;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
@@ -31,6 +30,7 @@ import java.util.List;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.testing.SilentLog;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
@@ -71,7 +71,13 @@ public class HtmlLineCoverageReportGeneratorTest {
 		document.markLine(11, LineCoveredValue.NEVER, 0, 2);
 		document.markLine(12, LineCoveredValue.NEVER, 0, 2);
 		documents = List.of(document);
+
 		generator = new HtmlLineCoverageReportGenerator();
+	}
+
+	@AfterEach
+	void cleanUp() {
+		TestFileHelper.deleteDirectory(base.toFile());
 	}
 
 	@Test
@@ -120,6 +126,22 @@ public class HtmlLineCoverageReportGeneratorTest {
 		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
 			mockedFiles.when(() -> Files.writeString(Mockito.any(), Mockito.any())).thenThrow(IOException.class);
 			assertThrows(MojoExecutionException.class, () -> generator.generateHtmlReport(documents, new SilentLog(), Paths.get("target/sapl-coverage"), policySetHitRatio,
+					policyHitRatio, policyConditionHitRatio));
+		}
+	}
+
+	@Test
+	void test_fileWithInvalidPath() {
+		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
+			mockedFiles.when(() -> Files.writeString(Mockito.any(), Mockito.any())).thenReturn(Path.of(""));
+			mockedFiles.when(() -> Files.readAllLines(Mockito.any())).thenReturn(List.of(""));
+			mockedFiles.when(() -> Files.copy(Mockito.any(), Mockito.any())).thenReturn(0l);
+
+			Path mockedPath = Mockito.mock(Path.class);
+			Mockito.when(mockedPath.getFileName()).thenReturn(null);
+			var document = new SaplDocumentCoverageInformation(mockedPath, 1);
+			documents = List.of(document);
+			assertDoesNotThrow(() -> generator.generateHtmlReport(documents, new SilentLog(), Paths.get("target/sapl-coverage"), policySetHitRatio,
 					policyHitRatio, policyConditionHitRatio));
 		}
 	}
