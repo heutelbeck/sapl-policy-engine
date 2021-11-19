@@ -26,4 +26,5 @@ public interface LibraryFunctionProvider {
 	Collection<String> getAvailableLibraries();
 
 	Collection<String> getAllFullyQualifiedFunctions();
+
 }

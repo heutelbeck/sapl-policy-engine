@@ -51,7 +51,7 @@ public class KeyTestUtility {
 		}
 		return keyPair;
 	}
-	
+
 	/**
 	 * @return an invalid RSA public key
 	 */
@@ -160,7 +160,7 @@ public class KeyTestUtility {
 	static String base64Bogus() {
 		return Base64.getUrlEncoder().encodeToString("ThisIsAVeryBogusPublicKey".getBytes()).toString();
 	}
-	
+
 	@SuppressWarnings("serial")
 	private static class InvalidRSAPublicKey implements RSAPublicKey {
 
@@ -171,13 +171,13 @@ public class KeyTestUtility {
 
 		@Override
 		public String getFormat() {
-			//No encoding supported
+			// No encoding supported
 			return null;
 		}
 
 		@Override
 		public byte[] getEncoded() {
-			//No encoding supported
+			// No encoding supported
 			return null;
 		}
 
@@ -190,7 +190,7 @@ public class KeyTestUtility {
 		public BigInteger getPublicExponent() {
 			return BigInteger.TEN;
 		}
-		
+
 	}
 
 }

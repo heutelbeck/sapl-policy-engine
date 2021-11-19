@@ -69,7 +69,7 @@ public class AuthorizationSubscriptionItemsCompletionTests extends CompletionTes
 			});
 		});
 	}
-	
+
 	@Test
 	public void testCompletion_SuggestAttributesForEnvironmentalAttribute() {
 		testCompletion((TestCompletionConfiguration it) -> {
@@ -82,7 +82,7 @@ public class AuthorizationSubscriptionItemsCompletionTests extends CompletionTes
 			});
 		});
 	}
-	
+
 	@Test
 	public void testCompletion_SuggestAttributesForHeadEnvironmentalAttribute() {
 		testCompletion((TestCompletionConfiguration it) -> {

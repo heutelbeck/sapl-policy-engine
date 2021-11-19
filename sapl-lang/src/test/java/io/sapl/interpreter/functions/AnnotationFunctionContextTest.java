@@ -158,6 +158,7 @@ class AnnotationFunctionContextTest {
 	void codeTemplatesAreGenerated() throws InitializationException {
 		@FunctionLibrary(name = "test")
 		class TestLib {
+
 			@Function
 			public Val hello() {
 				return Val.TRUE;

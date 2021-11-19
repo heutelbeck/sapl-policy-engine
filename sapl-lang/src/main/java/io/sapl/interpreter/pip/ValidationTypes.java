@@ -26,6 +26,8 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class ValidationTypes {
+
 	static final Class<?>[] VALIDATION_ANNOTATION_TYPES = { Number.class, Int.class, Long.class, Bool.class, Text.class,
 			Array.class, JsonObject.class };
+
 }

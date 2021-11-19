@@ -52,13 +52,21 @@ import io.sapl.util.filemonitoring.FileCreatedEvent;
 import io.sapl.util.filemonitoring.FileDeletedEvent;
 
 public class ImmutableFileIndexTest {
+
 	private final static SAPLInterpreter INTERPERETER = new DefaultSAPLInterpreter();
+
 	private static final String POLICY_1 = "policy \"policy1\" permit";
+
 	private static final String POLICY_1_NAME = "policy1";
+
 	private static final SAPL SAPL_1 = INTERPERETER.parse(POLICY_1);
+
 	private static final String POLICY_2 = "policy \"policy2\" permit";
+
 	private static final String POLICY_2_NAME = "policy2";
+
 	private static final SAPL SAPL_2 = INTERPERETER.parse(POLICY_2);
+
 	private final static String PATH = "/";
 
 	@Test
@@ -378,7 +386,7 @@ public class ImmutableFileIndexTest {
 			// @formatter:on
 		}
 	}
-	
+
 	@Test
 	void when_initializingWithEmptyDirectory_and_updateAddAndAddNameCollisionAndRemoveNewColliding_then_Consistent() {
 		try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
@@ -435,7 +443,8 @@ public class ImmutableFileIndexTest {
 
 			// 1st event load invalid policy
 			var mockInterpreter = mock(SAPLInterpreter.class);
-			var mockFile = mockInvalidPolicyFile(POLICY_1_NAME, POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
+			var mockFile = mockInvalidPolicyFile(POLICY_1_NAME, POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles,
+					mockInterpreter);
 
 			var sut = new ImmutableFileIndex(PATH, mockInterpreter);
 
@@ -449,7 +458,7 @@ public class ImmutableFileIndexTest {
 							isUpdateType(PrpUpdateEvent.Type.INCONSISTENT)
 					));
 			// @formatter:on
-			
+
 			// remove initially added document
 			var event3 = mock(FileDeletedEvent.class);
 			when(event3.getFile()).thenReturn(mockFile);
@@ -507,8 +516,8 @@ public class ImmutableFileIndexTest {
 		return mockFile;
 	}
 
-	private File mockInvalidPolicyFile(String name, String document, SAPL sapl, String path, MockedStatic<Files> mockedFiles,
-			SAPLInterpreter mockInterpreter) {
+	private File mockInvalidPolicyFile(String name, String document, SAPL sapl, String path,
+			MockedStatic<Files> mockedFiles, SAPLInterpreter mockInterpreter) {
 		var mockPath = mock(Path.class);
 		when(mockPath.toAbsolutePath()).thenReturn(mockPath);
 		when(mockPath.toString()).thenReturn(path);
@@ -518,14 +527,14 @@ public class ImmutableFileIndexTest {
 		when(mockInterpreter.parse(eq(document))).thenThrow(new PolicyEvaluationException());
 		return mockFile;
 	}
-	
+
 	private IsPojo<Update> isUpdateWithName(PrpUpdateEvent.Type type, String name) {
 		// @formatter:off
 		return pojo(Update.class)
 			.withProperty("type", is(type))
-			.withProperty("document", 
+			.withProperty("document",
 				pojo(SAPL.class)
-					.withProperty("policyElement", 
+					.withProperty("policyElement",
 						pojo(PolicyElement.class)
 							.withProperty("saplName", is(name))										
 			    )
@@ -536,4 +545,5 @@ public class ImmutableFileIndexTest {
 	private IsPojo<Update> isUpdateType(PrpUpdateEvent.Type type) {
 		return pojo(Update.class).withProperty("type", is(type));
 	}
+
 }

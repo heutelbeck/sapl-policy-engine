@@ -49,7 +49,7 @@ public class TreeNavigatorHelperTests {
 		Object result = TreeNavigationHelper.goToFirstParent(new TestEObject(), SAPLImpl.class);
 		assertNull(result);
 	}
-	
+
 	@Test
 	public void test_goToFirstParent_objectHasRequestedClass_returnsObject() {
 		var expectedObject = new TestEObject();
@@ -76,7 +76,7 @@ public class TreeNavigatorHelperTests {
 		Object result = TreeNavigationHelper.goToLastParent(new TestEObject(), SAPLImpl.class);
 		assertNull(result);
 	}
-	
+
 	@Test
 	public void test_goToLastParent_objectHasRequestedClass_returnsObject() {
 		var expectedObject = new TestEObject();

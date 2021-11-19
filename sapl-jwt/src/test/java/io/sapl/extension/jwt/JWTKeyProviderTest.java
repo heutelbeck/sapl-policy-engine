@@ -155,7 +155,7 @@ public class JWTKeyProviderTest {
 		var mono = provider.provide(kid, serverNode);
 		StepVerifier.create(mono).expectNextMatches(KeyTestUtility.keyValidator(keyPair)).verifyComplete();
 	}
-	
+
 	@Test
 	public void provide_withUriEnvironmentAndInvalidCachingTTL_usingBase64Url_shouldThrowCachingException() {
 		dispatcher.setDispatchMode(DispatchMode.True);

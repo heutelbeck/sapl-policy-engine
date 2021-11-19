@@ -212,13 +212,14 @@ public class JWTPolicyInformationPointTest {
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString()))
 				.verifyComplete();
 	}
-	
+
 	@Test
 	public void validity_withUriEnvironmentAndInvalidCachingTTL_usingBase64Url_shouldBeUntrusted()
 			throws JOSEException {
-		
+
 		dispatcher.setDispatchMode(DispatchMode.True);
-		var jwtNode = JsonTestUtility.getMAPPER().createObjectNode().set(JWTPolicyInformationPoint.PUBLIC_KEY_VARIABLES_KEY, 
+		var jwtNode = JsonTestUtility.getMAPPER().createObjectNode().set(
+				JWTPolicyInformationPoint.PUBLIC_KEY_VARIABLES_KEY,
 				JsonTestUtility.serverNode(server, null, "invalid TTL format"));
 		var variables = Map.<String, JsonNode>of("jwt", jwtNode);
 		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();

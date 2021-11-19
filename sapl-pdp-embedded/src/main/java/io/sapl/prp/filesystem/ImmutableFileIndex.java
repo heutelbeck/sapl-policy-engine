@@ -73,7 +73,8 @@ class ImmutableFileIndex {
 				log.debug("loading SAPL document: {}", filePath);
 				load(filePath);
 			}
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			log.error("Unable to open the directory containing policies: {}", watchDir);
 			updates.add(new Update(Type.INCONSISTENT, null, null));
 			updateEvent = new PrpUpdateEvent(updates);
@@ -131,10 +132,12 @@ class ImmutableFileIndex {
 		if (event instanceof FileDeletedEvent) {
 			log.info("Unloading deleted SAPL document: {}", fileName);
 			newIndex.unload(path);
-		} else if (event instanceof FileCreatedEvent) {
+		}
+		else if (event instanceof FileCreatedEvent) {
 			log.info("Loading new SAPL document: {}", fileName);
 			newIndex.load(path);
-		} else { // FileChangedEvent
+		}
+		else { // FileChangedEvent
 			log.info("Loading updated SAPL document: {}", fileName);
 			newIndex.change(path);
 		}
@@ -154,8 +157,7 @@ class ImmutableFileIndex {
 	}
 
 	final boolean isConsistent() {
-		return numberOfInvalidDocuments == 0 
-				&& numberOfNameCollisions == 0;
+		return numberOfInvalidDocuments == 0 && numberOfNameCollisions == 0;
 	}
 
 	final boolean isInconsistent() {
@@ -163,13 +165,11 @@ class ImmutableFileIndex {
 	}
 
 	public boolean becameConsistentComparedTo(ImmutableFileIndex idx) {
-		return idx.isInconsistent()
-				&& isConsistent();
+		return idx.isInconsistent() && isConsistent();
 	}
 
 	public boolean becameInconsistentComparedTo(ImmutableFileIndex idx) {
-		return idx.isConsistent() 
-				&& isInconsistent();
+		return idx.isConsistent() && isInconsistent();
 	}
 
 	final void load(Path filePath) {
@@ -182,7 +182,8 @@ class ImmutableFileIndex {
 		List<Document> documentsWithName;
 		if (namesToDocuments.containsKey(newDocument.getDocumentName())) {
 			documentsWithName = namesToDocuments.get(newDocument.getDocumentName());
-		} else {
+		}
+		else {
 			documentsWithName = new LinkedList<>();
 			namesToDocuments.put(newDocument.getDocumentName(), documentsWithName);
 		}
@@ -191,7 +192,8 @@ class ImmutableFileIndex {
 			log.debug("The document has been parsed successfully. It will be published to the index.");
 			newDocument.setPublished(true);
 			updates.add(new Update(Type.PUBLISH, newDocument.getParsedDocument(), newDocument.getRawDocument()));
-		} else {
+		}
+		else {
 			log.warn(
 					"The document has been parsed successfully but it resulted in a name collision: '{}'. The document will not be published.",
 					newDocument.getDocumentName());
@@ -262,7 +264,8 @@ class ImmutableFileIndex {
 			this.path = path;
 			try {
 				rawDocument = Files.readString(path);
-			} catch (IOException e) {
+			}
+			catch (IOException e) {
 				log.debug("Error reading file '{}': {}. Will lead to inconsistent index.", path.toAbsolutePath(),
 						e.getMessage());
 			}
@@ -271,7 +274,8 @@ class ImmutableFileIndex {
 					parsedDocument = interpreter.parse(rawDocument);
 					documentName = parsedDocument.getPolicyElement().getSaplName();
 				}
-			} catch (PolicyEvaluationException e) {
+			}
+			catch (PolicyEvaluationException e) {
 				log.debug("Error in document '{}': {}. Will lead to inconsistent index.", path.toAbsolutePath(),
 						e.getMessage());
 			}

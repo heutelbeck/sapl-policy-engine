@@ -31,4 +31,5 @@ public class SaplServletTests {
 		var servlet = new SAPLServlet();
 		servlet.destroy();
 	}
+
 }

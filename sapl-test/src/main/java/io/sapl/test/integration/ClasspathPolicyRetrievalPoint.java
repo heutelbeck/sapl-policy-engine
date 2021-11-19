@@ -57,7 +57,8 @@ public class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {
 				SAPL sapl = interpreter.parse(Files.newInputStream(filePath));
 				documents.put(sapl.getPolicyElement().getSaplName(), sapl);
 			}
-		} catch (IOException | PolicyEvaluationException e) {
+		}
+		catch (IOException | PolicyEvaluationException e) {
 			throw Exceptions.propagate(e);
 		}
 		return documents;
@@ -85,7 +86,8 @@ public class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {
 	private void logMatching(PolicyRetrievalResult result) {
 		if (result.getMatchingDocuments().isEmpty()) {
 			log.trace("|-- Matching documents: NONE");
-		} else {
+		}
+		else {
 			log.trace("|-- Matching documents:");
 			for (AuthorizationDecisionEvaluable doc : result.getMatchingDocuments())
 				log.trace("| |-- * {} ", doc);

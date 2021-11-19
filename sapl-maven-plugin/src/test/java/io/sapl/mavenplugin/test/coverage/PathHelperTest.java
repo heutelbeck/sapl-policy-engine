@@ -138,4 +138,5 @@ class PathHelperTest {
 			mockedFiles.verify(() -> Files.createDirectories(any()), times(1));
 		}
 	}
+
 }

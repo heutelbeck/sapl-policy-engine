@@ -212,7 +212,8 @@ public class JWTPolicyInformationPoint {
 
 			try {
 				publicKey = keyProvider.provide(keyId, jPublicKeyServer);
-			} catch (CachingException e) {
+			}
+			catch (CachingException e) {
 				log.error(e.getLocalizedMessage());
 				publicKey = Mono.empty();
 			}
@@ -331,7 +332,8 @@ public class JWTPolicyInformationPoint {
 		// verify absence of incompatible critical parameters
 		// critical parameters present, need to check for compatibility
 		// now: no critical parameters compatible, return false
-		// done this way in order to cover all possible cases with tests (eg. null && isEmpty() not testable)
+		// done this way in order to cover all possible cases with tests (eg. null &&
+		// isEmpty() not testable)
 		if (header.getCriticalParams() != null)
 			return false;
 

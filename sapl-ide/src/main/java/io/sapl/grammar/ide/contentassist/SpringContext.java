@@ -21,9 +21,9 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
 /**
- * This class is used to capture a Spring ApplicationContext for xText managed
- * classes to resolve bean dependencies. This class is both created by Spring
- * and Guice and uses the static applicationContext to resolve dependencies.
+ * This class is used to capture a Spring ApplicationContext for xText managed classes to
+ * resolve bean dependencies. This class is both created by Spring and Guice and uses the
+ * static applicationContext to resolve dependencies.
  */
 @Component
 public class SpringContext implements ApplicationContextAware {
@@ -32,8 +32,7 @@ public class SpringContext implements ApplicationContextAware {
 
 	/**
 	 * Resolves a spring bean dependency in the current application context.
-	 * 
-	 * @param <T>   The type of the searched bean.
+	 * @param <T> The type of the searched bean.
 	 * @param clazz The class definition of the searched bean.
 	 * @return Returns a bean that matches the provided class type.
 	 */
@@ -49,8 +48,9 @@ public class SpringContext implements ApplicationContextAware {
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
 		SpringContext.applicationContext = applicationContext;
 	}
-	
+
 	public ApplicationContext getApplicationContext() {
 		return SpringContext.applicationContext;
 	}
+
 }

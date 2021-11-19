@@ -39,18 +39,21 @@ import reactor.core.publisher.Mono;
 public class JWTKeyProvider {
 
 	private static final String JWT_KEY_SERVER_HTTP_ERROR = "Error trying to retrieve a public key: ";
+
 	private static final String JWT_KEY_CACHING_ERROR = "The provided caching configuration was not understood: ";
 
 	static final String PUBLIC_KEY_URI_KEY = "uri";
 	static final String PUBLIC_KEY_METHOD_KEY = "method";
 	static final String KEY_CACHING_TTL_MILLIS = "keyCachingTTLmillis";
 	static final long DEFAULT_CACHING_TTL = 300000L;
-	
+
 	@SuppressWarnings("serial")
 	public static class CachingException extends Exception {
+
 		public CachingException(String message) {
 			super(message);
 		}
+
 	}
 
 	private final Map<String, RSAPublicKey> keyCache;
@@ -87,7 +90,7 @@ public class JWTKeyProvider {
 		if (jTTL != null)
 			if (jTTL.canConvertToLong())
 				lTTL = jTTL.longValue();
-			else 
+			else
 				throw new CachingException(JWT_KEY_CACHING_ERROR + jTTL.toString());
 
 		setTTLmillis(lTTL);

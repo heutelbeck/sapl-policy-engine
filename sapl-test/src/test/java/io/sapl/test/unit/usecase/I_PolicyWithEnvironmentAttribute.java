@@ -27,7 +27,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 
 public class I_PolicyWithEnvironmentAttribute {
-	
+
 	private SaplTestFixture fixture;
 
 	@BeforeEach
@@ -38,11 +38,8 @@ public class I_PolicyWithEnvironmentAttribute {
 	@Test
 	void test() throws JsonMappingException, JsonProcessingException {
 
-		fixture.constructTestCaseWithMocks()
-				.givenAttribute("org.emergencyLevel", Val.of(0))
-				.when(AuthorizationSubscription.of("WILLI", "write", "something"))
-				.expectPermit()
-				.verify();
+		fixture.constructTestCaseWithMocks().givenAttribute("org.emergencyLevel", Val.of(0))
+				.when(AuthorizationSubscription.of("WILLI", "write", "something")).expectPermit().verify();
 
 	}
 

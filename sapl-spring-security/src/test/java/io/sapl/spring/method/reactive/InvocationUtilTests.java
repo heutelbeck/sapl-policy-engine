@@ -33,4 +33,5 @@ public class InvocationUtilTests {
 		when(mock.proceed()).thenThrow(new IOException());
 		assertThrows(IOException.class, () -> InvocationUtil.proceed(mock));
 	}
+
 }

@@ -22,7 +22,7 @@ import org.eclipse.xtext.testing.TestCompletionConfiguration;
 import org.junit.jupiter.api.Test;
 
 public class IdeStepCompletionTests extends CompletionTests {
-	
+
 	@Test
 	public void testCompletion_EmptyAttributeStepReturnsClockFunctions() {
 		testCompletion((TestCompletionConfiguration it) -> {
@@ -35,7 +35,7 @@ public class IdeStepCompletionTests extends CompletionTests {
 			});
 		});
 	}
-	
+
 	@Test
 	public void testCompletion_AttributeStepWithPrefixReturnsMatchingClockFunction() {
 		testCompletion((TestCompletionConfiguration it) -> {
@@ -48,7 +48,7 @@ public class IdeStepCompletionTests extends CompletionTests {
 			});
 		});
 	}
-	
+
 	@Test
 	public void testCompletion_AttributeStepWithNoMatchingPrefixReturnsNoMatchingFunction() {
 		testCompletion((TestCompletionConfiguration it) -> {
@@ -61,7 +61,7 @@ public class IdeStepCompletionTests extends CompletionTests {
 			});
 		});
 	}
-	
+
 	@Test
 	public void testCompletion_HeadEmptyAttributeStepReturnsClockFunctions() {
 		testCompletion((TestCompletionConfiguration it) -> {
@@ -74,7 +74,7 @@ public class IdeStepCompletionTests extends CompletionTests {
 			});
 		});
 	}
-	
+
 	@Test
 	public void testCompletion_HeadAttributeStepWithPrefixReturnsMatchingClockFunction() {
 		testCompletion((TestCompletionConfiguration it) -> {
@@ -87,7 +87,7 @@ public class IdeStepCompletionTests extends CompletionTests {
 			});
 		});
 	}
-	
+
 	@Test
 	public void testCompletion_HeadAttributeStepWithNoMatchingPrefixReturnsNoMatchingFunction() {
 		testCompletion((TestCompletionConfiguration it) -> {
@@ -100,4 +100,5 @@ public class IdeStepCompletionTests extends CompletionTests {
 			});
 		});
 	}
+
 }

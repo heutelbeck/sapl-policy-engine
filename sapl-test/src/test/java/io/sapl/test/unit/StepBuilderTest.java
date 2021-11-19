@@ -29,8 +29,10 @@ import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import reactor.core.publisher.Mono;
 
 class StepBuilderTest {
+
 	private final static AuthorizationSubscription AUTHZ_SUB = AuthorizationSubscription.of("willi", "not_matching",
 			"something");
+
 	private final static DefaultSAPLInterpreter PARSER = new DefaultSAPLInterpreter();
 
 	@Test

@@ -46,15 +46,14 @@ public class MockingFunctionContext implements FunctionContext {
 	private static final String NAME_DELIMITER = ".";
 
 	/**
-	 * Holds an FunctionContext implementation to delegate evaluations if this
-	 * function is not mocked
+	 * Holds an FunctionContext implementation to delegate evaluations if this function is
+	 * not mocked
 	 */
 	private final FunctionContext originalFunctionContext;
 
 	/**
-	 * Contains a Map of all registered mocks. Key is the String of the full name of
-	 * the function Value is the {@link FunctionMock} deciding the {@link Val} to be
-	 * returned
+	 * Contains a Map of all registered mocks. Key is the String of the full name of the
+	 * function Value is the {@link FunctionMock} deciding the {@link Val} to be returned
 	 */
 	private final Map<String, FunctionMock> registeredMocks;
 
@@ -71,10 +70,12 @@ public class MockingFunctionContext implements FunctionContext {
 		if (this.registeredMocks.containsKey(function)) {
 			log.trace("Function \"{}\" is mocked", function);
 			return Boolean.TRUE;
-		} else if (originalFunctionContext.isProvidedFunction(function)) {
+		}
+		else if (originalFunctionContext.isProvidedFunction(function)) {
 			log.trace("Function \"{}\" is provided by original function context", function);
 			return Boolean.TRUE;
-		} else {
+		}
+		else {
 			log.trace("Function \"{}\" is NOT provided", function);
 			return Boolean.FALSE;
 		}
@@ -103,7 +104,8 @@ public class MockingFunctionContext implements FunctionContext {
 			var result = mock.evaluateFunctionCall(parameters);
 			log.trace("| | | | |-- FunctionMock returned: " + result.toString());
 			return result;
-		} else {
+		}
+		else {
 			log.debug("| | | | |-- Delegate function \"{}\" to original function context", function);
 			return this.originalFunctionContext.evaluate(function, parameters);
 		}
@@ -128,7 +130,8 @@ public class MockingFunctionContext implements FunctionContext {
 		FunctionMock mock = this.registeredMocks.get(fullName);
 		if (this.registeredMocks.containsKey(fullName)) {
 			throw new SaplTestException(mock.getErrorMessageForCurrentMode());
-		} else {
+		}
+		else {
 			FunctionMock newMock = new FunctionMockAlwaysSameValue(fullName, mockReturnValue, verification);
 			this.registeredMocks.put(fullName, newMock);
 
@@ -147,10 +150,12 @@ public class MockingFunctionContext implements FunctionContext {
 		if (mock != null) {
 			if (mock instanceof FunctionMockSequence) {
 				((FunctionMockSequence) mock).loadMockReturnValue(mockReturnValue);
-			} else {
+			}
+			else {
 				throw new SaplTestException(mock.getErrorMessageForCurrentMode());
 			}
-		} else {
+		}
+		else {
 			FunctionMockSequence newMock = new FunctionMockSequence(fullName);
 			newMock.loadMockReturnValue(mockReturnValue);
 			this.registeredMocks.put(fullName, newMock);
@@ -174,10 +179,12 @@ public class MockingFunctionContext implements FunctionContext {
 			if (mock instanceof FunctionMockAlwaysSameForParameters) {
 				((FunctionMockAlwaysSameForParameters) mock).loadParameterSpecificReturnValue(mockReturnValue,
 						parameter, verification);
-			} else {
+			}
+			else {
 				throw new SaplTestException(mock.getErrorMessageForCurrentMode());
 			}
-		} else {
+		}
+		else {
 			FunctionMockAlwaysSameForParameters newMock = new FunctionMockAlwaysSameForParameters(fullName);
 			newMock.loadParameterSpecificReturnValue(mockReturnValue, parameter, verification);
 			this.registeredMocks.put(fullName, newMock);
@@ -197,7 +204,8 @@ public class MockingFunctionContext implements FunctionContext {
 		FunctionMock mock = this.registeredMocks.get(fullName);
 		if (mock != null) {
 			throw new SaplTestException(mock.getErrorMessageForCurrentMode());
-		} else {
+		}
+		else {
 			FunctionMock newMock = new FunctionMockFunctionResult(fullName, returns, verification);
 			this.registeredMocks.put(fullName, newMock);
 
@@ -224,7 +232,8 @@ public class MockingFunctionContext implements FunctionContext {
 		var existingDoc = this.functionDocumentations.get(libName);
 		if (existingDoc != null) {
 			existingDoc.getDocumentation().put(functionName, "Mocked Function");
-		} else {
+		}
+		else {
 			LibraryDocumentation functionDocs = new LibraryDocumentation(libName, "Mocked Function Library: " + libName,
 					mock);
 			functionDocs.getDocumentation().put(functionName, "Mocked Function");

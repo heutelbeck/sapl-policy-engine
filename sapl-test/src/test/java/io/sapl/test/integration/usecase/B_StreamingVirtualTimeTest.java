@@ -44,17 +44,12 @@ class B_StreamingVirtualTimeTest {
 		var timestamp4 = Val.of("2021-02-08T16:16:05.000Z");
 		var timestamp5 = Val.of("2021-02-08T16:16:06.000Z");
 
-		fixture.constructTestCaseWithMocks()
-				.withVirtualTime()
+		fixture.constructTestCaseWithMocks().withVirtualTime()
 				.givenAttribute("time.now", Duration.ofSeconds(2), timestamp0, timestamp1, timestamp2, timestamp3,
 						timestamp4, timestamp5)
-				.when(AuthorizationSubscription.of("WILLI", "read", "bar"))
-				.thenAwait(Duration.ofSeconds(2))
-				.expectNextDeny()
-				.expectNoEvent(Duration.ofSeconds(8))
-				.expectNextPermit()
-				.expectNoEvent(Duration.ofSeconds(2))
-				.verify();
+				.when(AuthorizationSubscription.of("WILLI", "read", "bar")).thenAwait(Duration.ofSeconds(2))
+				.expectNextDeny().expectNoEvent(Duration.ofSeconds(8)).expectNextPermit()
+				.expectNoEvent(Duration.ofSeconds(2)).verify();
 	}
 
 	@Test

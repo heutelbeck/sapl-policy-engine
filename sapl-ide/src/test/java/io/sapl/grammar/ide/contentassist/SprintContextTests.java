@@ -21,16 +21,18 @@ import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationContext;
 
 public class SprintContextTests {
+
 	@Test
 	public void getBeanThrowsIllegalStateExceptionWhenApplicationContextIsNotSet() {
 		SpringContext springContext = new SpringContext();
 		ApplicationContext applicationContext = springContext.getApplicationContext();
 		springContext.setApplicationContext(null);
-		
+
 		assertThrows(IllegalStateException.class, () -> {
 			SpringContext.getBean(Object.class);
 		});
-		
+
 		springContext.setApplicationContext(applicationContext);
 	}
+
 }

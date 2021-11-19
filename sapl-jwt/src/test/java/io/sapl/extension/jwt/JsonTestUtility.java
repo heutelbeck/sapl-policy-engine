@@ -115,12 +115,12 @@ public class JsonTestUtility {
 		putTTL(valueNode, ttl);
 		return valueNode;
 	}
-	
+
 	private static void putTTL(ObjectNode valueNode, Object ttl) {
 		if (ttl == null)
 			return;
 		if (ttl instanceof Long)
-			valueNode.put(JWTKeyProvider.KEY_CACHING_TTL_MILLIS, ((Long)ttl).longValue());
+			valueNode.put(JWTKeyProvider.KEY_CACHING_TTL_MILLIS, ((Long) ttl).longValue());
 		else
 			valueNode.put(JWTKeyProvider.KEY_CACHING_TTL_MILLIS, ttl.toString());
 	}

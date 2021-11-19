@@ -47,7 +47,8 @@ import lombok.Data;
 public class HtmlLineCoverageReportGenerator {
 
 	public Path generateHtmlReport(Collection<SaplDocumentCoverageInformation> documents, Log log, Path basedir,
-			float policySetHitRatio, float policyHitRatio, float policyConditionHitRatio) throws MojoExecutionException {
+			float policySetHitRatio, float policyHitRatio, float policyConditionHitRatio)
+			throws MojoExecutionException {
 		Path index;
 		try {
 			index = generateMainSite(policySetHitRatio, policyHitRatio, policyConditionHitRatio, documents, basedir);
@@ -59,7 +60,8 @@ public class HtmlLineCoverageReportGenerator {
 			for (var doc : documents) {
 				generatePolicySite(doc, basedir);
 			}
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			throw new MojoExecutionException("Error while using the filesystem", e);
 		}
 		return index;
@@ -155,7 +157,8 @@ public class HtmlLineCoverageReportGenerator {
 		createFile(policyPath, policySite.renderFormatted());
 	}
 
-	private ContainerTag createPolicySite_CodeMirror(String filename, List<HtmlPolicyLineModel> models) throws IOException {
+	private ContainerTag createPolicySite_CodeMirror(String filename, List<HtmlPolicyLineModel> models)
+			throws IOException {
 
 		StringBuilder wholeTextOfPolicy = new StringBuilder();
 		StringBuilder htmlReportCodeMirrorJSLineClassStatements = new StringBuilder("\n");
@@ -332,7 +335,7 @@ public class HtmlLineCoverageReportGenerator {
 			return;
 		throw new SaplTestException("Unexpected enum value: " + coveredValue);
 	}
-	
+
 	@Data
 	static class HtmlPolicyLineModel {
 

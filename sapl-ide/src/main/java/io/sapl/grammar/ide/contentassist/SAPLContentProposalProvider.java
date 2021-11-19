@@ -47,16 +47,18 @@ import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 
 /**
- * This class enhances the auto-completion proposals that the language server
- * offers.
+ * This class enhances the auto-completion proposals that the language server offers.
  */
 public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
 	private final Collection<String> unwantedKeywords = Set.of("null", "undefined", "true", "false");
+
 	private final Collection<String> allowedKeywords = Set.of("as");
+
 	private final Collection<String> authzSubProposals = Set.of("subject", "action", "resource", "environment");
 
 	private AttributeContext attributeContext;
+
 	private FunctionContext functionContext;
 
 	private void lazyLoadDependencies() {
@@ -195,7 +197,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
 						if (currentOffset > valueDefinitionOffset) {
 							definedValues.add(valueDefinition.getName());
-						} else {
+						}
+						else {
 							break;
 						}
 					}
@@ -291,7 +294,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			entry.setDescription("policy name");
 			acceptor.accept(entry, 0);
 			return true;
-		} else if ("body".equals(feature)) {
+		}
+		else if ("body".equals(feature)) {
 			addSimpleProposals(authzSubProposals, context, acceptor);
 		}
 		return false;
@@ -319,4 +323,5 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		var entry = getProposalCreator().createProposal(proposal, context);
 		acceptor.accept(entry, 0);
 	}
+
 }

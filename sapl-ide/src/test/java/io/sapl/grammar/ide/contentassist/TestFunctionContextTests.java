@@ -85,4 +85,5 @@ public class TestFunctionContextTests {
 		assertThat(functions, hasItems("filter.blacken", "filter.remove", "filter.replace", "standard.length",
 				"standard.numberToString", "time.after", "time.before", "time.between"));
 	}
+
 }

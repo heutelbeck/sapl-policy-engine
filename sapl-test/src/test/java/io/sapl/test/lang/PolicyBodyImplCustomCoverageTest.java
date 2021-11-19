@@ -85,4 +85,5 @@ public class PolicyBodyImplCustomCoverageTest {
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 		Mockito.verify(this.recorder, Mockito.never()).recordPolicyConditionHit(any());
 	}
+
 }

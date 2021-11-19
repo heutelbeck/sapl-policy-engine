@@ -128,25 +128,21 @@ class StepsDefaultImplTest {
 				.expectNextNotApplicable().thenAttribute("pip.attribute1", Val.of(2)).expectNextPermit()
 				.thenAttribute("pip.attribute2", Val.of(1)).expectNextNotApplicable().verify();
 	}
-	
-	private String Policy_EnvironmentAttribute_WithAttributeAsParentValueAndArguments = "policy \"policy\"\r\n" + "permit\r\n"
-			+ "where\r\n" + "  var parentValue = true;\r\n"
+
+	private String Policy_EnvironmentAttribute_WithAttributeAsParentValueAndArguments = "policy \"policy\"\r\n"
+			+ "permit\r\n" + "where\r\n" + "  var parentValue = true;\r\n"
 			+ "  <pip.attributeWithParams(<pip.attribute1>, <pip.attribute2>)> == true;";
 
 	@Test
 	void test_mockAttribute_withParentValueAndArguments_ForEnvironmentAttribute() {
-		StepsDefaultImpl steps = new StepsDefaultImplTestImpl(Policy_EnvironmentAttribute_WithAttributeAsParentValueAndArguments,
-				attrCtx, funcCtx, variables);
-		steps.givenAttribute("pip.attribute1")
-				.givenAttribute("pip.attribute2")
-				.givenAttribute("pip.attributeWithParams",
-						whenEnvironmentAttributeParams(arguments(val(2), val(2))),
+		StepsDefaultImpl steps = new StepsDefaultImplTestImpl(
+				Policy_EnvironmentAttribute_WithAttributeAsParentValueAndArguments, attrCtx, funcCtx, variables);
+		steps.givenAttribute("pip.attribute1").givenAttribute("pip.attribute2")
+				.givenAttribute("pip.attributeWithParams", whenEnvironmentAttributeParams(arguments(val(2), val(2))),
 						thenReturn(Val.of(true)))
-				.givenAttribute("pip.attributeWithParams",
-						whenEnvironmentAttributeParams(arguments(val(2), val(1))),
+				.givenAttribute("pip.attributeWithParams", whenEnvironmentAttributeParams(arguments(val(2), val(1))),
 						thenReturn(Val.of(false)))
-				.givenAttribute("pip.attributeWithParams",
-						whenEnvironmentAttributeParams(arguments(val(1), val(2))),
+				.givenAttribute("pip.attributeWithParams", whenEnvironmentAttributeParams(arguments(val(1), val(2))),
 						thenReturn(Val.of(false)))
 				.when(AuthorizationSubscription.of("willi", "read", "something"))
 				.thenAttribute("pip.attribute1", Val.of(1)).thenAttribute("pip.attribute2", Val.of(2))

@@ -45,7 +45,6 @@ class StepBuilder {
 
 	/**
 	 * Create Builder starting at the Given-Step. Only for internal usage.
-	 * 
 	 * @param document containing the {@link SAPL} policy to evaluate
 	 * @return {@link GivenStep} to start constructing the test case.
 	 */
@@ -56,7 +55,6 @@ class StepBuilder {
 
 	/**
 	 * Create Builder starting at the When-Step. Only for internal usage.
-	 * 
 	 * @param document containing the {@link SAPL} policy to evaluate
 	 * @return {@link WhenStep} to start constructing the test case.
 	 */
@@ -94,7 +92,8 @@ class StepBuilder {
 			if (matchResult != null && matchResult.isBoolean() && matchResult.getBoolean()) {
 				if (this.withVirtualTime) {
 					this.steps = StepVerifier.withVirtualTime(() -> this.document.evaluate(ctx));
-				} else {
+				}
+				else {
 					this.steps = StepVerifier.create(this.document.evaluate(ctx));
 				}
 
@@ -104,7 +103,8 @@ class StepBuilder {
 						this.steps = this.steps.then(() -> this.mockingAttributeContext.mockEmit(fullName, val));
 					}
 				}
-			} else {
+			}
+			else {
 				this.steps = StepVerifier.create(Flux.just(AuthorizationDecision.NOT_APPLICABLE));
 			}
 		}

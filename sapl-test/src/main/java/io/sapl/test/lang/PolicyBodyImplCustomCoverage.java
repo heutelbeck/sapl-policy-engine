@@ -60,8 +60,9 @@ public class PolicyBodyImplCustomCoverage extends PolicyBodyImplCustom {
 				String policySetId = "";
 				String policyId = "";
 				EObject eContainer1 = eContainer();
-				// A PolicyBody outside of a Policy is not allowed -> thus a pre-cast if statement like the following
-				//  if (eContainer1.eClass().equals(SaplPackage.Literals.POLICY)) {
+				// A PolicyBody outside of a Policy is not allowed -> thus a pre-cast if
+				// statement like the following
+				// if (eContainer1.eClass().equals(SaplPackage.Literals.POLICY)) {
 				// cannot be false -> cannot be tested
 				policyId = ((Policy) eContainer1).getSaplName();
 				EObject eContainer2 = eContainer1.eContainer();

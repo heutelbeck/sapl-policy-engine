@@ -23,9 +23,9 @@ import org.eclipse.emf.ecore.EObject;
 public final class TreeNavigationHelper {
 
 	private TreeNavigationHelper() {
-		
+
 	}
-	
+
 	/**
 	 * Moves up the model tree and returns the closest parent that matches the given class
 	 * type.

@@ -66,12 +66,13 @@ public class AnnotationAttributeContext implements AttributeContext {
 	private final Collection<PolicyInformationPointDocumentation> pipDocumentations = new LinkedList<>();
 
 	private List<String> functionsCache;
+
 	private List<String> templatesCacheEnviroment;
+
 	private List<String> templatesCache;
 
 	/**
 	 * Create the attribute context from a list of PIPs
-	 * 
 	 * @param policyInformationPoints a list of PIPs
 	 * @throws InitializationException when loading the PIPs fails
 	 */
@@ -91,7 +92,8 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 		try {
 			return evaluateEnvironmentAttribute(attributeMetadata, ctx, arguments);
-		} catch (Throwable e) {
+		}
+		catch (Throwable e) {
 			return Flux.just(Val.error("Failed to evaluate attribute", new PolicyEvaluationException(e)));
 		}
 	}
@@ -126,7 +128,8 @@ public class AnnotationAttributeContext implements AttributeContext {
 		if (attributeMetadata.varArgsParameters) {
 			invocationArguments[argumentIndex] = buildVarArgsArrayFromArguments(arguments, ctx, attributeMetadata,
 					argumentIndex);
-		} else {
+		}
+		else {
 			if (arguments != null) {
 				for (Expression argument : arguments.getArgs()) {
 					var parameter = attributeMetadata.function.getParameters()[argumentIndex];
@@ -201,7 +204,8 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 		try {
 			return evaluateAttribute(attributeMetadata, leftHandValue, ctx, arguments);
-		} catch (Throwable e) {
+		}
+		catch (Throwable e) {
 			return Flux.just(Val.error("Failed to evaluate attribute", new PolicyEvaluationException(e)));
 		}
 
@@ -236,7 +240,8 @@ public class AnnotationAttributeContext implements AttributeContext {
 		if (attributeMetadata.varArgsParameters) {
 			invocationArguments[argumentIndex] = buildVarArgsArrayFromArguments(arguments, ctx, attributeMetadata,
 					argumentIndex);
-		} else {
+		}
+		else {
 			if (arguments != null) {
 				for (Expression argument : arguments.getArgs()) {
 					var parameter = attributeMetadata.function.getParameters()[argumentIndex];
@@ -369,7 +374,8 @@ public class AnnotationAttributeContext implements AttributeContext {
 		for (; indexOfParameterInspect < parameterCount; indexOfParameterInspect++) {
 			if (isFluxOfVal(method, indexOfParameterInspect)) {
 				parameters++;
-			} else {
+			}
+			else {
 				throw new InitializationException(
 						"The method " + method.getName() + " declared a non Flux<Val> as a parameter");
 			}
@@ -573,4 +579,5 @@ public class AnnotationAttributeContext implements AttributeContext {
 		}
 		return functionsCache;
 	}
+
 }

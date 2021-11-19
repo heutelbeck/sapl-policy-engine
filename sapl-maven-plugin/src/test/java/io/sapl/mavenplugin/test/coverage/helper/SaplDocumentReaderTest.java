@@ -82,17 +82,17 @@ public class SaplDocumentReaderTest {
 	public void test_File_IOException() {
 		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
 			mockedFiles.when(() -> Files.readString(Mockito.any())).thenThrow(IOException.class);
-			assertThrows(MojoExecutionException.class, () -> reader.retrievePolicyDocuments(new SilentLog(), project,
-					"." + File.separator + "policies"));
+			assertThrows(MojoExecutionException.class,
+					() -> reader.retrievePolicyDocuments(new SilentLog(), project, "." + File.separator + "policies"));
 		}
 	}
 
 	@Test
-	public void test_DependencyResolutionRequiredException () throws DependencyResolutionRequiredException {
+	public void test_DependencyResolutionRequiredException() throws DependencyResolutionRequiredException {
 		var project = mock(MavenProject.class);
 		when(project.getRuntimeClasspathElements()).thenThrow(DependencyResolutionRequiredException.class);
-		assertThrows(MojoExecutionException.class, () -> reader.retrievePolicyDocuments(new SilentLog(), project,
-				"." + File.separator + "policies"));
+		assertThrows(MojoExecutionException.class,
+				() -> reader.retrievePolicyDocuments(new SilentLog(), project, "." + File.separator + "policies"));
 	}
 
 }

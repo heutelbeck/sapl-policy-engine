@@ -46,10 +46,15 @@ import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentLineCoverageIn
 public class HtmlLineCoverageReportGeneratorTest {
 
 	private Path base;
+
 	private float policySetHitRatio = 100;
+
 	private float policyHitRatio = 66.6f;
+
 	private float policyConditionHitRatio = 43.9f;
+
 	private HtmlLineCoverageReportGenerator generator;
+
 	private Collection<SaplDocumentCoverageInformation> documents;
 
 	@BeforeEach
@@ -120,13 +125,12 @@ public class HtmlLineCoverageReportGeneratorTest {
 		}
 	}
 
-
 	@Test
 	void test_readFileFromClasspath_IOException() {
 		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
 			mockedFiles.when(() -> Files.writeString(Mockito.any(), Mockito.any())).thenThrow(IOException.class);
-			assertThrows(MojoExecutionException.class, () -> generator.generateHtmlReport(documents, new SilentLog(), Paths.get("target/sapl-coverage"), policySetHitRatio,
-					policyHitRatio, policyConditionHitRatio));
+			assertThrows(MojoExecutionException.class, () -> generator.generateHtmlReport(documents, new SilentLog(),
+					Paths.get("target/sapl-coverage"), policySetHitRatio, policyHitRatio, policyConditionHitRatio));
 		}
 	}
 
@@ -141,8 +145,9 @@ public class HtmlLineCoverageReportGeneratorTest {
 			Mockito.when(mockedPath.getFileName()).thenReturn(null);
 			var document = new SaplDocumentCoverageInformation(mockedPath, 1);
 			documents = List.of(document);
-			assertDoesNotThrow(() -> generator.generateHtmlReport(documents, new SilentLog(), Paths.get("target/sapl-coverage"), policySetHitRatio,
-					policyHitRatio, policyConditionHitRatio));
+			assertDoesNotThrow(() -> generator.generateHtmlReport(documents, new SilentLog(),
+					Paths.get("target/sapl-coverage"), policySetHitRatio, policyHitRatio, policyConditionHitRatio));
 		}
 	}
+
 }

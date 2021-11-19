@@ -55,4 +55,5 @@ public class CompletionTests extends AbstractSaplLanguageServerTest {
 						"Expected not to find " + unwantedProposal + " but found it in " + availableProposals);
 		}
 	}
+
 }

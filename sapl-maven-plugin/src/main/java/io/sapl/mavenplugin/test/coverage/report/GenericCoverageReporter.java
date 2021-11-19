@@ -56,10 +56,12 @@ public class GenericCoverageReporter {
 			if (element.eClass().equals(SaplPackage.Literals.POLICY_SET)) {
 				PolicySet set = (PolicySet) element;
 				markLinesOfPolicySet(set, coveredDoc, hits);
-			} else if (element.eClass().equals(SaplPackage.Literals.POLICY)) {
+			}
+			else if (element.eClass().equals(SaplPackage.Literals.POLICY)) {
 				Policy policy = (Policy) element;
 				markLinesOfPolicy("", policy, coveredDoc, hits);
-			} else {
+			}
+			else {
 				throw new SaplTestException("Error: Unknown Subtype of " + PolicyElement.class);
 			}
 
@@ -107,7 +109,8 @@ public class GenericCoverageReporter {
 		// mark Lines
 		if (isSetHit) {
 			markLines(coverage, linesOfPolicySet, LineCoveredValue.FULLY, 1, 1);
-		} else {
+		}
+		else {
 			markLines(coverage, linesOfPolicySet, LineCoveredValue.NEVER, 0, 1);
 		}
 
@@ -140,7 +143,8 @@ public class GenericCoverageReporter {
 		// mark Lines
 		if (isPolicyHit) {
 			markLines(coverage, linesOfPolicy, LineCoveredValue.FULLY, 1, 1);
-		} else {
+		}
+		else {
 			markLines(coverage, linesOfPolicy, LineCoveredValue.NEVER, 0, 1);
 		}
 
@@ -156,9 +160,8 @@ public class GenericCoverageReporter {
 
 	}
 
-	boolean markLinesOfPolicyStatement(String policySetName, String policyName, int statementId,
-		   Statement statement, boolean isLastStatementHit, SaplDocumentCoverageInformation coverage,
-		   CoverageTargets hits) {
+	boolean markLinesOfPolicyStatement(String policySetName, String policyName, int statementId, Statement statement,
+			boolean isLastStatementHit, SaplDocumentCoverageInformation coverage, CoverageTargets hits) {
 		boolean isThisStatementHit = true;
 		INode node = NodeModelUtils.getNode(statement);
 
@@ -179,22 +182,27 @@ public class GenericCoverageReporter {
 			if (isPositiveHit && isNegativeHit) {
 				markConditionFULLY(coverage, node.getStartLine(), node.getEndLine());
 				// if only one of both was hit -> partly covered
-			} else if (isPositiveHit || isNegativeHit) {
+			}
+			else if (isPositiveHit || isNegativeHit) {
 				markConditionPARTLY(coverage, node.getStartLine(), node.getEndLine());
 				// evaluation never reached this condition
-			} else {
+			}
+			else {
 				markConditionNEVER(coverage, node.getStartLine(), node.getEndLine());
 			}
 
 			// if this statement is of type VALUE_DEFINITION
-		} else if (statement.eClass().equals(SaplPackage.Literals.VALUE_DEFINITION)) {
+		}
+		else if (statement.eClass().equals(SaplPackage.Literals.VALUE_DEFINITION)) {
 			// mark a value definition if the previous statement evaluated to true
 			if (isLastStatementHit) {
 				markValueFULLY(coverage, node.getStartLine(), node.getEndLine());
-			} else {
+			}
+			else {
 				markValueNEVER(coverage, node.getStartLine(), node.getEndLine());
 			}
-		} else {
+		}
+		else {
 			throw new SaplTestException("Error: Unknown Subtype of " + Statement.class
 					+ ". Please consider reporting this bug to the authors!");
 		}

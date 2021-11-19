@@ -54,6 +54,7 @@ import io.sapl.test.coverage.api.model.PolicySetHit;
 public class GenericCoverageReporterTest {
 
 	private DefaultSAPLInterpreter INTERPRETER;
+
 	private GenericCoverageReporter reporter;
 
 	@BeforeEach
@@ -75,7 +76,6 @@ public class GenericCoverageReporterTest {
 		PolicyConditionHit conditionHit2 = new PolicyConditionHit("testPolicies", "policy 1", 2, true);
 		CoverageTargets hits = new CoverageTargets(List.of(setHit), List.of(policyHit),
 				List.of(conditionHit1, conditionHit2));
-
 
 		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
@@ -744,7 +744,7 @@ public class GenericCoverageReporterTest {
 		try (MockedStatic<NodeModelUtils> nodeModelUtilsMockedStatic = mockStatic(NodeModelUtils.class)) {
 			nodeModelUtilsMockedStatic.when(() -> NodeModelUtils.getNode(Mockito.any())).thenReturn(null);
 			assertThrows(SaplTestException.class, () -> this.reporter.markLinesOfPolicyStatement("set", "policy", 0,
-				mockStatement, true, null, null));
+					mockStatement, true, null, null));
 		}
 	}
 

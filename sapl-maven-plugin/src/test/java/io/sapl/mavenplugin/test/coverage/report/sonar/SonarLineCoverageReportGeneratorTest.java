@@ -45,7 +45,9 @@ import javax.xml.bind.JAXBException;
 public class SonarLineCoverageReportGeneratorTest {
 
 	private SonarLineCoverageReportGenerator generator;
+
 	private Collection<SaplDocumentCoverageInformation> documents;
+
 	private Path base = Paths.get("target/sapl-coverage/sonar");
 
 	@BeforeEach
@@ -99,21 +101,18 @@ public class SonarLineCoverageReportGeneratorTest {
 	public void test_IOException() {
 		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
 			mockedFiles.when(() -> Files.createFile(Mockito.any())).thenThrow(IOException.class);
-			assertThrows(MojoExecutionException.class, () -> generator.generateSonarLineCoverageReport(
-					documents, new SilentLog(), Paths.get("target/sapl-coverage"),
-					"policies", Paths.get(".").toFile())
-			);
+			assertThrows(MojoExecutionException.class, () -> generator.generateSonarLineCoverageReport(documents,
+					new SilentLog(), Paths.get("target/sapl-coverage"), "policies", Paths.get(".").toFile()));
 		}
 	}
 
 	@Test
 	public void test_JAXBException() {
 		try (MockedStatic<JAXBContext> jaxbContext = Mockito.mockStatic(JAXBContext.class)) {
-			jaxbContext.when(() -> JAXBContext.newInstance(Coverage.class, ObjectFactory.class)).thenThrow(JAXBException.class);
-			assertThrows(MojoExecutionException.class, () -> generator.generateSonarLineCoverageReport(
-					documents, new SilentLog(), Paths.get("target/sapl-coverage"),
-					"policies", Paths.get(".").toFile())
-			);
+			jaxbContext.when(() -> JAXBContext.newInstance(Coverage.class, ObjectFactory.class))
+					.thenThrow(JAXBException.class);
+			assertThrows(MojoExecutionException.class, () -> generator.generateSonarLineCoverageReport(documents,
+					new SilentLog(), Paths.get("target/sapl-coverage"), "policies", Paths.get(".").toFile()));
 		}
 	}
 

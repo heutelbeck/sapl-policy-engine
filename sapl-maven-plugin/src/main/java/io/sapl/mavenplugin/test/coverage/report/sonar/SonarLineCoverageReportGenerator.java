@@ -49,7 +49,8 @@ public class SonarLineCoverageReportGenerator {
 		Path filePath = basedir.resolve("sonar").resolve("sonar-generic-coverage.xml");
 		try {
 			PathHelper.createFile(filePath);
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			throw new MojoExecutionException("Error writing Sonar geric coverage report to file", e);
 		}
 		JAXBContext context;
@@ -61,7 +62,8 @@ public class SonarLineCoverageReportGenerator {
 		}
 		catch (JAXBException e) {
 			log.error("Error unmarshalling Coverage information to Sonarqube generic coverage format", e);
-			throw new MojoExecutionException("Error unmarshalling Coverage information to Sonarqube generic coverage format", e);
+			throw new MojoExecutionException(
+					"Error unmarshalling Coverage information to Sonarqube generic coverage format", e);
 		}
 	}
 
