@@ -48,9 +48,9 @@ class ImmutableFileIndex {
 
 	private final SAPLInterpreter interpreter;
 
-	private int invalidDocuments = 0;
+	private int numberOfInvalidDocuments = 0;
 
-	private int nameCollisions = 0;
+	private int numberOfNameCollisions = 0;
 
 	final List<Update> updates = new LinkedList<>();
 
@@ -92,8 +92,8 @@ class ImmutableFileIndex {
 		this.documentsByPath = Maps.newHashMapWithExpectedSize(oldIndex.documentsByPath.size());
 		this.namesToDocuments = Maps.newHashMapWithExpectedSize(oldIndex.namesToDocuments.size());
 		this.interpreter = oldIndex.interpreter;
-		this.invalidDocuments = oldIndex.invalidDocuments;
-		this.nameCollisions = oldIndex.nameCollisions;
+		this.numberOfInvalidDocuments = oldIndex.numberOfInvalidDocuments;
+		this.numberOfNameCollisions = oldIndex.numberOfNameCollisions;
 		for (var entry : oldIndex.documentsByPath.entrySet()) {
 			var documentCopy = new Document(entry.getValue());
 			this.documentsByPath.put(entry.getKey(), documentCopy);
@@ -122,14 +122,6 @@ class ImmutableFileIndex {
 	void addWithdrawUpdate(Document oldDocument) {
 		log.info("The document was previously published. It will withdrawn from the index.");
 		updates.add(new Update(Type.WITHDRAW, oldDocument.getParsedDocument(), oldDocument.getRawDocument()));
-	}
-
-	void decrementInvalidDocumentCount() {
-		invalidDocuments--;
-	}
-
-	void decrementNameCollisions() {
-		nameCollisions--;
 	}
 
 	public ImmutableFileIndex afterFileEvent(FileEvent event) {
@@ -162,7 +154,8 @@ class ImmutableFileIndex {
 	}
 
 	final boolean isConsistent() {
-		return invalidDocuments == 0 && nameCollisions == 0;
+		return numberOfInvalidDocuments == 0 
+				&& numberOfNameCollisions == 0;
 	}
 
 	final boolean isInconsistent() {
@@ -170,18 +163,20 @@ class ImmutableFileIndex {
 	}
 
 	public boolean becameConsistentComparedTo(ImmutableFileIndex idx) {
-		return idx.isInconsistent() && isConsistent();
+		return idx.isInconsistent()
+				&& isConsistent();
 	}
 
 	public boolean becameInconsistentComparedTo(ImmutableFileIndex idx) {
-		return idx.isConsistent() && isInconsistent();
+		return idx.isConsistent() 
+				&& isInconsistent();
 	}
 
 	final void load(Path filePath) {
 		var newDocument = new Document(filePath, interpreter);
 		documentsByPath.put(newDocument.getAbsolutePath(), newDocument);
 		if (!newDocument.isValid()) {
-			invalidDocuments++;
+			numberOfInvalidDocuments++;
 			return;
 		}
 		List<Document> documentsWithName;
@@ -200,7 +195,7 @@ class ImmutableFileIndex {
 			log.warn(
 					"The document has been parsed successfully but it resulted in a name collision: '{}'. The document will not be published.",
 					newDocument.getDocumentName());
-			nameCollisions++;
+			numberOfNameCollisions++;
 		}
 	}
 
@@ -224,13 +219,13 @@ class ImmutableFileIndex {
 			addWithdrawUpdate(oldDocument);
 
 		if (!oldDocument.isValid()) {
-			decrementInvalidDocumentCount();
+			numberOfInvalidDocuments--;
 			return;
 		}
 
 		var documentsWithOriginalName = getDocumentByName(oldDocument.getDocumentName());
 		if (documentsWithOriginalName.size() > 1)
-			decrementNameCollisions();
+			numberOfNameCollisions--;
 
 		documentsWithOriginalName.remove(oldDocument);
 
