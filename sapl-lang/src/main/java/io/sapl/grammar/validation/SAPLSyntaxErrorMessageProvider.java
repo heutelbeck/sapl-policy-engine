@@ -54,65 +54,92 @@ public class SAPLSyntaxErrorMessageProvider extends SyntaxErrorMessageProvider {
 	public static final String INCOMPLETE_VARIABLE_NAME = "Incomplete variable definition, expected a variable name";
 	public static final String INCOMPLETE_VARIABLE_VALUE = "Incomplete variable definition, expected an assignment, e.g. ' = VALUE;'";
 	public static final String INCOMPLETE_VARIABLE_CLOSE = "Incomplete variable definition, expected ';'";
-
+	
 	@Override
 	public SyntaxErrorMessage getSyntaxErrorMessage(IParserErrorContext context) {
 
-		RecognitionException re = context.getRecognitionException();
+		RecognitionException exception = context.getRecognitionException();
+
+		SyntaxErrorMessage message = null;
+		if (exception instanceof MismatchedTokenException) {
+			message = handleMismatchedTokenException(context, (MismatchedTokenException) exception);
+		} else if (exception instanceof NoViableAltException) {
+			message = handleNoViableAltException(context, (NoViableAltException) exception);
+		} else if (exception instanceof EarlyExitException) {
+			message = handleEarlyExitException(context, (EarlyExitException) exception);
+		}
+
+		if (message != null) {
+			return message;
+		}
+		return super.getSyntaxErrorMessage(context);
+	}
+
+	public SyntaxErrorMessage handleMismatchedTokenException(IParserErrorContext context,
+			MismatchedTokenException exception) {
 		EObject currentContext = context.getCurrentContext();
 		INode node = context.getCurrentNode();
 		String tokentext = NodeModelUtils.getTokenText(node).toLowerCase();
 
-		if (re instanceof MismatchedTokenException) {
-			MismatchedTokenException mte = (MismatchedTokenException) re;
-			if (currentContext instanceof PolicySet) {
-				return new SyntaxErrorMessage(INCOMPLETE_SET_NAME, Diagnostic.SYNTAX_DIAGNOSTIC);
-			} else if (currentContext instanceof Policy) {
-				if (VAR_ID.equals(tokentext)) {
-					return new SyntaxErrorMessage(INCOMPLETE_VARIABLE_NAME, Diagnostic.SYNTAX_DIAGNOSTIC);
-				} else if (mte.token == Token.EOF_TOKEN) {
-					return new SyntaxErrorMessage(INCOMPLETE_POLICY_NAME, Diagnostic.SYNTAX_DIAGNOSTIC);
-				}
-			} else if (currentContext instanceof PolicyBody) {
-				if (tokentext.contains(VAR_ID) && !tokentext.contains(SEMICOLON_ID)) {
-					return new SyntaxErrorMessage(INCOMPLETE_VARIABLE_CLOSE, Diagnostic.SYNTAX_DIAGNOSTIC);
-				} else {
-					return new SyntaxErrorMessage(INCOMPLETE_DOCUMENT, Diagnostic.SYNTAX_DIAGNOSTIC);
-				}
-			} else if (currentContext instanceof ValueDefinition) {
-				return new SyntaxErrorMessage(INCOMPLETE_VARIABLE_VALUE, Diagnostic.SYNTAX_DIAGNOSTIC);
+		if (currentContext instanceof PolicySet) {
+			return new SyntaxErrorMessage(INCOMPLETE_SET_NAME, Diagnostic.SYNTAX_DIAGNOSTIC);
+		} else if (currentContext instanceof Policy) {
+			if (VAR_ID.equals(tokentext)) {
+				return new SyntaxErrorMessage(INCOMPLETE_VARIABLE_NAME, Diagnostic.SYNTAX_DIAGNOSTIC);
+			} else if (exception.token == Token.EOF_TOKEN) {
+				return new SyntaxErrorMessage(INCOMPLETE_POLICY_NAME, Diagnostic.SYNTAX_DIAGNOSTIC);
 			}
-		} else if (re instanceof NoViableAltException) {
-			if (currentContext instanceof SAPL) {
-				return new SyntaxErrorMessage(INCOMPLETE_IMPORT_ALIAS_SET_POLICY, Diagnostic.SYNTAX_DIAGNOSTIC);
-			} else if (currentContext instanceof PolicySet) {
-				return new SyntaxErrorMessage(INCOMPLETE_SET_ENTITLEMENT, Diagnostic.SYNTAX_DIAGNOSTIC);
-			} else if (currentContext instanceof Policy) {
-				return new SyntaxErrorMessage(INCOMPLETE_POLICY_ENTITLEMENT, Diagnostic.SYNTAX_DIAGNOSTIC);
-			} else if (currentContext instanceof ValueDefinition) {
-				return new SyntaxErrorMessage(INCOMPLETE_VARIABLE_VALUE, Diagnostic.SYNTAX_DIAGNOSTIC);
-			}
-
-			EObject grammarElement = node.getGrammarElement();
-			if (grammarElement instanceof RuleCall) {
-				RuleCall ruleCall = (RuleCall) grammarElement;
-				EObject container = ruleCall.eContainer();
-				if (container instanceof Assignment) {
-					Assignment assignment = (Assignment) container;
-					String feature = assignment.getFeature();
-					if ("imports".equals(feature)) {
-						return new SyntaxErrorMessage(INCOMPLETE_IMPORT, Diagnostic.SYNTAX_DIAGNOSTIC);
-					}
-				}
-			}
-
-			return new SyntaxErrorMessage(INCOMPLETE_DOCUMENT, Diagnostic.SYNTAX_DIAGNOSTIC);
-		} else if (re instanceof EarlyExitException) {
-			if (currentContext instanceof PolicySet) {
+		} else if (currentContext instanceof PolicyBody) {
+			if (tokentext.contains(VAR_ID) && !tokentext.contains(SEMICOLON_ID)) {
+				return new SyntaxErrorMessage(INCOMPLETE_VARIABLE_CLOSE, Diagnostic.SYNTAX_DIAGNOSTIC);
+			} else {
 				return new SyntaxErrorMessage(INCOMPLETE_DOCUMENT, Diagnostic.SYNTAX_DIAGNOSTIC);
 			}
+		} else if (currentContext instanceof ValueDefinition) {
+			return new SyntaxErrorMessage(INCOMPLETE_VARIABLE_VALUE, Diagnostic.SYNTAX_DIAGNOSTIC);
 		}
-		return super.getSyntaxErrorMessage(context);
+
+		return null;
+	}
+
+	public SyntaxErrorMessage handleNoViableAltException(IParserErrorContext context, NoViableAltException exception) {
+		EObject currentContext = context.getCurrentContext();
+		INode node = context.getCurrentNode();
+
+		if (currentContext instanceof SAPL) {
+			return new SyntaxErrorMessage(INCOMPLETE_IMPORT_ALIAS_SET_POLICY, Diagnostic.SYNTAX_DIAGNOSTIC);
+		} else if (currentContext instanceof PolicySet) {
+			return new SyntaxErrorMessage(INCOMPLETE_SET_ENTITLEMENT, Diagnostic.SYNTAX_DIAGNOSTIC);
+		} else if (currentContext instanceof Policy) {
+			return new SyntaxErrorMessage(INCOMPLETE_POLICY_ENTITLEMENT, Diagnostic.SYNTAX_DIAGNOSTIC);
+		} else if (currentContext instanceof ValueDefinition) {
+			return new SyntaxErrorMessage(INCOMPLETE_VARIABLE_VALUE, Diagnostic.SYNTAX_DIAGNOSTIC);
+		}
+
+		EObject grammarElement = node.getGrammarElement();
+		if (grammarElement instanceof RuleCall) {
+			RuleCall ruleCall = (RuleCall) grammarElement;
+			EObject container = ruleCall.eContainer();
+			if (container instanceof Assignment) {
+				Assignment assignment = (Assignment) container;
+				String feature = assignment.getFeature();
+				if ("imports".equals(feature)) {
+					return new SyntaxErrorMessage(INCOMPLETE_IMPORT, Diagnostic.SYNTAX_DIAGNOSTIC);
+				}
+			}
+		}
+
+		return new SyntaxErrorMessage(INCOMPLETE_DOCUMENT, Diagnostic.SYNTAX_DIAGNOSTIC);
+	}
+
+	public SyntaxErrorMessage handleEarlyExitException(IParserErrorContext context, EarlyExitException exception) {
+		EObject currentContext = context.getCurrentContext();
+
+		if (currentContext instanceof PolicySet) {
+			return new SyntaxErrorMessage(INCOMPLETE_DOCUMENT, Diagnostic.SYNTAX_DIAGNOSTIC);
+		}
+
+		return null;
 	}
 
 }

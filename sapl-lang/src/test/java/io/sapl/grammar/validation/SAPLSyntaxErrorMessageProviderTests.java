@@ -15,7 +15,18 @@
  */
 package io.sapl.grammar.validation;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.Mockito.when;
+
+import org.antlr.runtime.MismatchedTokenException;
+import org.antlr.runtime.NoViableAltException;
+import org.eclipse.emf.ecore.EObject;
+import org.eclipse.xtext.RuleCall;
 import org.eclipse.xtext.diagnostics.Diagnostic;
+import org.eclipse.xtext.nodemodel.INode;
+import org.eclipse.xtext.nodemodel.SyntaxErrorMessage;
+import org.eclipse.xtext.parser.antlr.ISyntaxErrorMessageProvider.IParserErrorContext;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.eclipse.xtext.testing.util.ParseHelper;
@@ -23,9 +34,12 @@ import org.eclipse.xtext.testing.validation.ValidationTestHelper;
 import org.eclipse.xtext.xbase.lib.Extension;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mockito;
 
 import com.google.inject.Inject;
 
+import io.sapl.grammar.sapl.Policy;
+import io.sapl.grammar.sapl.PolicyBody;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.grammar.sapl.SaplPackage;
 import io.sapl.grammar.tests.SAPLInjectorProvider;
@@ -33,7 +47,7 @@ import io.sapl.grammar.tests.SAPLInjectorProvider;
 @ExtendWith(InjectionExtension.class)
 @InjectWith(SAPLInjectorProvider.class)
 public class SAPLSyntaxErrorMessageProviderTests {
-
+	
 	@Inject
 	@Extension
 	private ParseHelper<SAPL> parseHelper;
@@ -192,5 +206,97 @@ public class SAPLSyntaxErrorMessageProviderTests {
 		SAPL policy = this.parseHelper.parse(testPolicy);
 		this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
 				SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_CLOSE);
+	}
+	
+	@Test
+	public void getSyntaxErrorMessage_NoRecognizedExceptionTypeReturnsDefaultMessage() {
+		String defaultMessage = "Test Error";
+		SAPLSyntaxErrorMessageProvider provider = new SAPLSyntaxErrorMessageProvider();
+		
+		IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
+		when(context.getDefaultMessage()).thenReturn(defaultMessage);
+
+		SyntaxErrorMessage message = provider.getSyntaxErrorMessage(context);
+		assertEquals(defaultMessage, message.getMessage());
+	}
+	
+	@Test
+	public void handleMismatchedTokenException_ContextIsPolicy_NoMatchingOptionReturnsNull() {
+		SAPLSyntaxErrorMessageProvider provider = new SAPLSyntaxErrorMessageProvider();
+		MismatchedTokenException exception = new MismatchedTokenException();
+		
+		IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
+		when(context.getRecognitionException()).thenReturn(exception);
+		when(context.getCurrentContext()).thenReturn(Mockito.mock(Policy.class));
+		when(context.getCurrentNode()).thenReturn(Mockito.mock(INode.class));
+		
+		SyntaxErrorMessage message = provider.handleMismatchedTokenException(context, exception);
+		assertNull(message);
+	}
+	
+	@Test
+	public void handleMismatchedTokenException_ContextIsPolicyBody_TokenTextContainsOnlySemicolon_ReturnsIncompleteDocument() {
+		SAPLSyntaxErrorMessageProvider provider = new SAPLSyntaxErrorMessageProvider();
+		MismatchedTokenException exception = new MismatchedTokenException();
+
+		INode node = Mockito.mock(INode.class);
+		when(node.getText()).thenReturn("abc;");
+		
+		IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
+		when(context.getRecognitionException()).thenReturn(exception);
+		when(context.getCurrentContext()).thenReturn(Mockito.mock(PolicyBody.class));
+		when(context.getCurrentNode()).thenReturn(node);
+		
+		SyntaxErrorMessage message = provider.handleMismatchedTokenException(context, exception);
+		assertEquals(SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT, message.getMessage());
+	}
+	
+	@Test
+	public void handleMismatchedTokenException_ContextIsUnknown_ReturnsNull() {
+		SAPLSyntaxErrorMessageProvider provider = new SAPLSyntaxErrorMessageProvider();
+		MismatchedTokenException exception = new MismatchedTokenException();
+
+		IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
+		when(context.getRecognitionException()).thenReturn(exception);
+		when(context.getCurrentContext()).thenReturn(Mockito.mock(SAPL.class));
+		when(context.getCurrentNode()).thenReturn(Mockito.mock(INode.class));
+		
+		SyntaxErrorMessage message = provider.handleMismatchedTokenException(context, exception);
+		assertNull(message);
+	}
+	
+	@Test
+	public void handleNoViableAltException_GrammarElementIsNotRuleCall_ReturnsIncompleteDocument() {
+		SAPLSyntaxErrorMessageProvider provider = new SAPLSyntaxErrorMessageProvider();
+		NoViableAltException exception = new NoViableAltException();
+		
+		INode node = Mockito.mock(INode.class);
+		when(node.getGrammarElement()).thenReturn(Mockito.mock(EObject.class));
+
+		IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
+		when(context.getRecognitionException()).thenReturn(exception);
+		when(context.getCurrentNode()).thenReturn(node);
+		
+		SyntaxErrorMessage message = provider.handleNoViableAltException(context, exception);
+		assertEquals(SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT, message.getMessage());
+	}
+	
+	@Test
+	public void handleNoViableAltException_RuleCallContainerIsNotAssignment_ReturnsIncompleteDocument() {
+		SAPLSyntaxErrorMessageProvider provider = new SAPLSyntaxErrorMessageProvider();
+		NoViableAltException exception = new NoViableAltException();
+		
+		RuleCall ruleCall = Mockito.mock(RuleCall.class);
+		when(ruleCall.eContainer()).thenReturn(Mockito.mock(EObject.class));
+		
+		INode node = Mockito.mock(INode.class);
+		when(node.getGrammarElement()).thenReturn(ruleCall);
+
+		IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
+		when(context.getRecognitionException()).thenReturn(exception);
+		when(context.getCurrentNode()).thenReturn(node);
+		
+		SyntaxErrorMessage message = provider.handleNoViableAltException(context, exception);
+		assertEquals(SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT, message.getMessage());
 	}
 }
