@@ -72,5 +72,7 @@ class JWTEncodingDecodingUtils {
 			return Optional.empty();
 		}
 	}
+	
+	private JWTEncodingDecodingUtils() { }
 
 }
