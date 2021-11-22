@@ -103,7 +103,7 @@ public class SAPLValidatorTest {
 		String policyText = "defect";
 		SAPL policy = this.parseHelper.parse(policyText);
 		this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				"no viable alternative at input \'defect\'");
+				SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT);
 	}
 
 }
