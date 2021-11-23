@@ -98,7 +98,10 @@ public class SAPLSyntaxErrorMessageProvider extends SyntaxErrorMessageProvider {
 		} else if (currentContext instanceof ValueDefinition) {
 			return new SyntaxErrorMessage(INCOMPLETE_VARIABLE_VALUE, Diagnostic.SYNTAX_DIAGNOSTIC);
 		}
-
+		
+		if(exception.token == Token.EOF_TOKEN) {
+			return new SyntaxErrorMessage(INCOMPLETE_DOCUMENT, Diagnostic.SYNTAX_DIAGNOSTIC);
+		}
 		return null;
 	}
 
@@ -129,13 +132,20 @@ public class SAPLSyntaxErrorMessageProvider extends SyntaxErrorMessageProvider {
 			}
 		}
 
-		return new SyntaxErrorMessage(INCOMPLETE_DOCUMENT, Diagnostic.SYNTAX_DIAGNOSTIC);
+		if(exception.token == Token.EOF_TOKEN) {
+			return new SyntaxErrorMessage(INCOMPLETE_DOCUMENT, Diagnostic.SYNTAX_DIAGNOSTIC);
+		}
+		return null;
 	}
 
 	public SyntaxErrorMessage handleEarlyExitException(IParserErrorContext context, EarlyExitException exception) {
 		EObject currentContext = context.getCurrentContext();
 
 		if (currentContext instanceof PolicySet) {
+			return new SyntaxErrorMessage(INCOMPLETE_DOCUMENT, Diagnostic.SYNTAX_DIAGNOSTIC);
+		}
+		
+		if(exception.token == Token.EOF_TOKEN) {
 			return new SyntaxErrorMessage(INCOMPLETE_DOCUMENT, Diagnostic.SYNTAX_DIAGNOSTIC);
 		}
 
