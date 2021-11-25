@@ -90,7 +90,7 @@
 		<vaadin.version>14.7.3</vaadin.version>
 		<guice.version>5.0.1</guice.version>
 
-		<license-maven-plugin.version>3.0</license-maven-plugin.version>
+		<license-maven-plugin.version>4.1</license-maven-plugin.version>
 		<maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
 
 		<dockerfile-maven-plugin.version>1.4.13</dockerfile-maven-plugin.version>
@@ -295,7 +295,7 @@
 				<plugin>
 					<groupId>io.spring.javaformat</groupId>
 					<artifactId>spring-javaformat-maven-plugin</artifactId>
-					<version>0.0.28</version>
+					<version>0.0.29</version>
 				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
