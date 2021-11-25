@@ -85,13 +85,13 @@ public class JWTKeyProvider {
 		var sUri = jUri.textValue();
 		var lTTL = DEFAULT_CACHING_TTL;
 		var jTTL = jPublicKeyServer.get(KEY_CACHING_TTL_MILLIS);
-		// nested if-statemenst in order to cover all possible branches during testing
+		// nested if-statement in order to cover all possible branches during testing
 		// (eg. null && canConvertToLong not possible)
 		if (jTTL != null)
 			if (jTTL.canConvertToLong())
 				lTTL = jTTL.longValue();
 			else
-				throw new CachingException(JWT_KEY_CACHING_ERROR + jTTL.toString());
+				throw new CachingException(JWT_KEY_CACHING_ERROR + jTTL);
 
 		setTTLmillis(lTTL);
 		return fetchPublicKey(kid, sUri, sMethod);

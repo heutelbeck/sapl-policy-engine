@@ -132,17 +132,14 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			IIdeContentProposalAcceptor acceptor) {
 
 		Collection<String> proposals;
-		switch (feature) {
-		case "libsteps":
+		if ("libsteps".equals(feature)) {
 			proposals = new LinkedList<>(attributeContext.getAllFullyQualifiedFunctions());
 			proposals.addAll(attributeContext.getAvailableLibraries());
 			proposals.addAll(functionContext.getAllFullyQualifiedFunctions());
 			proposals.addAll(functionContext.getAvailableLibraries());
-			break;
-
-		default:
+		}
+		else {
 			proposals = Set.of();
-			break;
 		}
 
 		if (proposals.isEmpty())
@@ -182,7 +179,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 				var policyBody = (PolicyBody) model;
 				Collection<String> definedValues = new HashSet<>();
 
-				Integer currentOffset = context.getOffset();
+				int currentOffset = context.getOffset();
 
 				// iterate through defined statements which are either conditions or
 				// variables
@@ -193,7 +190,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
 						// check if variable definition is happening after cursor
 						INode valueDefinitionNode = NodeModelUtils.getNode(valueDefinition);
-						Integer valueDefinitionOffset = valueDefinitionNode.getOffset();
+						int valueDefinitionOffset = valueDefinitionNode.getOffset();
 
 						if (currentOffset > valueDefinitionOffset) {
 							definedValues.add(valueDefinition.getName());
@@ -286,19 +283,17 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		addProposalsWithImportsForTemplates(proposals, context, acceptor);
 	}
 
-	private boolean handlePolicyProposals(String feature, ContentAssistContext context,
+	private void handlePolicyProposals(String feature, ContentAssistContext context,
 			IIdeContentProposalAcceptor acceptor) {
 		if ("saplname".equals(feature)) {
 			var entry = getProposalCreator().createProposal("\"\"", context);
 			entry.setKind(ContentAssistEntry.KIND_TEXT);
 			entry.setDescription("policy name");
 			acceptor.accept(entry, 0);
-			return true;
 		}
 		else if ("body".equals(feature)) {
 			addSimpleProposals(authzSubProposals, context, acceptor);
 		}
-		return false;
 	}
 
 	@Override

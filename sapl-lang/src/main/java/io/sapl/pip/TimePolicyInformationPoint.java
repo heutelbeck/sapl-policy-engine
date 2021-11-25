@@ -61,7 +61,7 @@ public class TimePolicyInformationPoint {
 	@Attribute(
 			docs = "Emits the current date and time as an ISO8601 String in UTC. The first time is emitted instantly. After that the time is updated once every second.")
 	public Flux<Val> now(@Number Flux<Val> updateIntervalInMillis) {
-		return intstantNow(updateIntervalInMillis).map(ISO_FORMATTER::format).map(Val::of);
+		return instantNow(updateIntervalInMillis).map(ISO_FORMATTER::format).map(Val::of);
 	}
 
 	private Duration valMsToNonZeroDuration(Val val) {
@@ -71,7 +71,7 @@ public class TimePolicyInformationPoint {
 		return duration;
 	}
 
-	private Flux<Instant> intstantNow(Flux<Val> pollIntervalInMillis) {
+	private Flux<Instant> instantNow(Flux<Val> pollIntervalInMillis) {
 		return pollIntervalInMillis.map(this::valMsToNonZeroDuration).switchMap(this::instantNow);
 	}
 
@@ -93,7 +93,7 @@ public class TimePolicyInformationPoint {
 	}
 
 	@Attribute(
-			docs = "Returns true, if the current local time in UTC (e.g., \"17:00\") is before the providec checkpoint time.")
+			docs = "Returns true, if the current local time in UTC (e.g., \"17:00\") is before the provided checkpoint time.")
 	public Flux<Val> localTimeIsAfter(@Text Flux<Val> checkpoint) {
 		return checkpoint.map(Val::getText).map(LocalTime::parse).switchMap(this::localTimeIsAfter).map(Val::of);
 	}
@@ -136,7 +136,7 @@ public class TimePolicyInformationPoint {
 	}
 
 	@Attribute(
-			docs = "Returns true, while the local UTC time (e.g., \"13:34:21\") is between the two provided times of the day. If the time of the first parameter is after the time of the second parameter, the intervall ist considered to be the one between the to times, crossing the midnight border of the days.")
+			docs = "Returns true, while the local UTC time (e.g., \"13:34:21\") is between the two provided times of the day. If the time of the first parameter is after the time of the second parameter, the interval ist considered to be the one between the to times, crossing the midnight border of the days.")
 	public Flux<Val> localTimeIsBetween(@Text Flux<Val> startTime, @Text Flux<Val> endTime) {
 		var startTimes = startTime.map(Val::getText).map(LocalTime::parse);
 		var endTimes = endTime.map(Val::getText).map(LocalTime::parse);
@@ -208,7 +208,7 @@ public class TimePolicyInformationPoint {
 		return Flux.just(val).delayElements(Duration.ofMillis(MILLIS.between(start, end)));
 	}
 
-	@Attribute(docs = "Returns true while the current local time in UTC is before the providec checkpoint time.")
+	@Attribute(docs = "Returns true while the current local time in UTC is before the provided checkpoint time.")
 	public Flux<Val> localTimeIsBefore(@Text Flux<Val> checkpoint) {
 		return checkpoint.map(Val::getText).map(LocalTime::parse).switchMap(this::localTimeIsAfter).map(this::negate)
 				.map(Val::of);
@@ -231,11 +231,11 @@ public class TimePolicyInformationPoint {
 		return isAfter(anInstant, clock.instant()).map(this::negate);
 	}
 
-	private Flux<Boolean> isAfter(Instant intstantA, Instant instantB) {
-		if (instantB.isAfter(intstantA))
+	private Flux<Boolean> isAfter(Instant instantA, Instant instantB) {
+		if (instantB.isAfter(instantA))
 			return Flux.just(Boolean.TRUE);
 		var initial = Flux.just(Boolean.FALSE);
-		var eventual = Flux.just(Boolean.TRUE).delayElements(Duration.between(instantB, intstantA));
+		var eventual = Flux.just(Boolean.TRUE).delayElements(Duration.between(instantB, instantA));
 		return Flux.concat(initial, eventual);
 	}
 
@@ -272,7 +272,7 @@ public class TimePolicyInformationPoint {
 	}
 
 	@Attribute(
-			docs = "A preiodically toggling signal. Will be true for the first duration (ms) and then false for the second duration (ms). This will repeat periodically. Note, that the cycle will completely reset if the durations are updated. The attribute will forget its stat ein this case.")
+			docs = "A periodically toggling signal. Will be true for the first duration (ms) and then false for the second duration (ms). This will repeat periodically. Note, that the cycle will completely reset if the durations are updated. The attribute will forget its stat ein this case.")
 	public Flux<Val> toggle(@Number Flux<Val> trueDurationMs, @Number Flux<Val> falseDurationMs) {
 		return Flux.combineLatest(durations -> Tuples.of((Duration) durations[0], (Duration) durations[1]),
 				trueDurationMs.map(this::valMsToNonZeroDuration), falseDurationMs.map(this::valMsToNonZeroDuration))

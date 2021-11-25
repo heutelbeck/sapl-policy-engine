@@ -51,7 +51,7 @@ public class SonarLineCoverageReportGenerator {
 			PathHelper.createFile(filePath);
 		}
 		catch (IOException e) {
-			throw new MojoExecutionException("Error writing Sonar geric coverage report to file", e);
+			throw new MojoExecutionException("Error writing Sonar generic coverage report to file", e);
 		}
 		JAXBContext context;
 		try {

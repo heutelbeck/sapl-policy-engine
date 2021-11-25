@@ -241,9 +241,7 @@ public class JWTPolicyInformationPoint {
 
 		return signatureValid -> {
 			if (signatureValid && !isFromWhitelist)
-				publicKeyMono.subscribe(publicKey -> {
-					keyProvider.cache(keyId, publicKey);
-				});
+				publicKeyMono.subscribe(publicKey -> keyProvider.cache(keyId, publicKey));
 			return Mono.just(signatureValid);
 		};
 	}
@@ -329,16 +327,14 @@ public class JWTPolicyInformationPoint {
 		if (!"RS256".equalsIgnoreCase(header.getAlgorithm().getName()))
 			return false;
 
-		// verify absence of incompatible critical parameters
+		// verify absence of incompatible
 		// critical parameters present, need to check for compatibility
 		// now: no critical parameters compatible, return false
 		// done this way in order to cover all possible cases with tests (eg. null &&
 		// isEmpty() not testable)
-		if (header.getCriticalParams() != null)
-			return false;
+		return header.getCriticalParams() == null;
 
 		// all claims are compatible with requirements
-		return true;
 	}
 
 }

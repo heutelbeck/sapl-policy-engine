@@ -279,7 +279,7 @@ public class HtmlLineCoverageReportGenerator {
 
 	private String readFileFromClasspath(String filename) throws IOException {
 		var stream = getClass().getClassLoader().getResourceAsStream((filename));
-		String fileContent = "";
+		String fileContent;
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
 			fileContent = reader.lines().collect(Collectors.joining("\n"));
 		}

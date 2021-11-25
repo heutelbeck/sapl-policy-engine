@@ -45,7 +45,7 @@ public class Val {
 	static final String OBJECT_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Expected an object, but got %s.";
 	static final String ARRAY_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Expected an array, but got %s.";
 	static final String BOOLEAN_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Boolean operation expects boolean values, but got: '%s'.";
-	static final String NUMBER_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Number operation expects nummber values, but got: '%s'.";
+	static final String NUMBER_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Number operation expects number values, but got: '%s'.";
 	static final String TEXT_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Text operation expects text values, but got: '%s'.";
 	static final String ARITHMETIC_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Number operation expects number values, but got: '%s'.";
 

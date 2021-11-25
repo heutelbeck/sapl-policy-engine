@@ -45,7 +45,7 @@ public interface LibraryEntryMetadata {
 		return getFunction().getParameters()[index].getName();
 	}
 
-	default List<Annotation> getValidationAnnoattionsOfParameter(int index) {
+	default List<Annotation> getValidationAnnotationsOfParameter(int index) {
 		var annotations = getFunction().getParameters()[index].getAnnotations();
 		var validationAnnotations = new ArrayList<Annotation>(annotations.length);
 		for (var annotation : annotations)
@@ -62,7 +62,7 @@ public interface LibraryEntryMetadata {
 	}
 
 	default String describeParameterForDocumentation(int index) {
-		return describeParameterForDocumentation(getParameterName(index), getValidationAnnoattionsOfParameter(index));
+		return describeParameterForDocumentation(getParameterName(index), getValidationAnnotationsOfParameter(index));
 	}
 
 	default String describeParameterForDocumentation(String name, List<Annotation> types) {

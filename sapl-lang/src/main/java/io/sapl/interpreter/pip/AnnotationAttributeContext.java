@@ -67,7 +67,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 	private List<String> functionsCache;
 
-	private List<String> templatesCacheEnviroment;
+	private List<String> templatesCacheEnvironment;
 
 	private List<String> templatesCache;
 
@@ -299,11 +299,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 		var metadata = metadataOf(policyInformationPoint, method, pipName, attributeName);
 		var name = metadata.fullyQualifiedName();
-		var attributesWithName = attributeMetadataByAttributeName.get(name);
-		if (attributesWithName == null) {
-			attributesWithName = new ArrayList<>();
-			attributeMetadataByAttributeName.put(name, attributesWithName);
-		}
+		var attributesWithName = attributeMetadataByAttributeName.computeIfAbsent(name, k -> new ArrayList<>());
 		assertNoCollision(attributesWithName, metadata);
 		attributesWithName.add(metadata);
 		attributeNamesByPipName.get(pipName).add(attributeName);
@@ -313,10 +309,10 @@ public class AnnotationAttributeContext implements AttributeContext {
 	private void assertNoCollision(Collection<AttributeFinderMetadata> attributesWithName,
 			AttributeFinderMetadata newAttribute) throws InitializationException {
 		for (var existingAttribute : attributesWithName)
-			assertNoCollisiton(newAttribute, existingAttribute);
+			assertNoCollision(newAttribute, existingAttribute);
 	}
 
-	private void assertNoCollisiton(AttributeFinderMetadata newAttribute, AttributeFinderMetadata existingAttribute)
+	private void assertNoCollision(AttributeFinderMetadata newAttribute, AttributeFinderMetadata existingAttribute)
 			throws InitializationException {
 		if (existingAttribute.environmentAttribute == newAttribute.environmentAttribute
 
@@ -324,7 +320,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 						|| existingAttribute.numberOfParameters == newAttribute.numberOfParameters))
 			throw new InitializationException("Cannot initialize PIPs. Attribute " + newAttribute.getLibraryName()
-					+ " has multiple defienitions which the PDP is not able not be able to disabmiguate both at runtime.");
+					+ " has multiple definitions which the PDP is not able not be able to disambiguate both at runtime.");
 	}
 
 	private AttributeFinderMetadata metadataOf(Object policyInformationPoint, Method method, String pipName,
@@ -541,16 +537,16 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 	@Override
 	public List<String> getEnvironmentAttributeCodeTemplates() {
-		if (templatesCacheEnviroment == null) {
+		if (templatesCacheEnvironment == null) {
 			var templates = new LinkedList<String>();
 			for (var entry : attributeMetadataByAttributeName.entrySet())
 				for (var attribute : entry.getValue())
 					if (attribute.environmentAttribute)
 						templates.add(attribute.getCodeTemplate());
 			Collections.sort(templates);
-			templatesCacheEnviroment = Collections.unmodifiableList(templates);
+			templatesCacheEnvironment = Collections.unmodifiableList(templates);
 		}
-		return templatesCacheEnviroment;
+		return templatesCacheEnvironment;
 	}
 
 	@Override

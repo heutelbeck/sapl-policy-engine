@@ -87,13 +87,13 @@ public class SAPLSyntaxErrorMessageProvider extends SyntaxErrorMessageProvider {
 			MismatchedTokenException exception) {
 		EObject currentContext = context.getCurrentContext();
 		INode node = context.getCurrentNode();
-		String tokentext = NodeModelUtils.getTokenText(node).toLowerCase();
+		String tokenText = NodeModelUtils.getTokenText(node).toLowerCase();
 
 		if (currentContext instanceof PolicySet) {
 			return new SyntaxErrorMessage(INCOMPLETE_SET_NAME, Diagnostic.SYNTAX_DIAGNOSTIC);
 		}
 		else if (currentContext instanceof Policy) {
-			if (VAR_ID.equals(tokentext)) {
+			if (VAR_ID.equals(tokenText)) {
 				return new SyntaxErrorMessage(INCOMPLETE_VARIABLE_NAME, Diagnostic.SYNTAX_DIAGNOSTIC);
 			}
 			else if (exception.token == Token.EOF_TOKEN) {
@@ -101,7 +101,7 @@ public class SAPLSyntaxErrorMessageProvider extends SyntaxErrorMessageProvider {
 			}
 		}
 		else if (currentContext instanceof PolicyBody) {
-			if (tokentext.contains(VAR_ID) && !tokentext.contains(SEMICOLON_ID)) {
+			if (tokenText.contains(VAR_ID) && !tokenText.contains(SEMICOLON_ID)) {
 				return new SyntaxErrorMessage(INCOMPLETE_VARIABLE_CLOSE, Diagnostic.SYNTAX_DIAGNOSTIC);
 			}
 			else {
