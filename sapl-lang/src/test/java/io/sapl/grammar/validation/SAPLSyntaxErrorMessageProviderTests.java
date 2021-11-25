@@ -49,7 +49,7 @@ import io.sapl.grammar.tests.SAPLInjectorProvider;
 @ExtendWith(InjectionExtension.class)
 @InjectWith(SAPLInjectorProvider.class)
 public class SAPLSyntaxErrorMessageProviderTests {
-	
+
 	@Inject
 	@Extension
 	private ParseHelper<SAPL> parseHelper;
@@ -201,33 +201,33 @@ public class SAPLSyntaxErrorMessageProviderTests {
 		this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
 				SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_CLOSE);
 	}
-	
+
 	@Test
 	public void getSyntaxErrorMessage_NoRecognizedExceptionTypeReturnsDefaultMessage() {
 		String defaultMessage = "Test Error";
 		SAPLSyntaxErrorMessageProvider provider = new SAPLSyntaxErrorMessageProvider();
-		
+
 		IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
 		when(context.getDefaultMessage()).thenReturn(defaultMessage);
 
 		SyntaxErrorMessage message = provider.getSyntaxErrorMessage(context);
 		assertEquals(defaultMessage, message.getMessage());
 	}
-	
+
 	@Test
 	public void handleMismatchedTokenException_ContextIsPolicy_NoMatchingOptionReturnsNull() {
 		SAPLSyntaxErrorMessageProvider provider = new SAPLSyntaxErrorMessageProvider();
 		MismatchedTokenException exception = new MismatchedTokenException();
-		
+
 		IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
 		when(context.getRecognitionException()).thenReturn(exception);
 		when(context.getCurrentContext()).thenReturn(Mockito.mock(Policy.class));
 		when(context.getCurrentNode()).thenReturn(Mockito.mock(INode.class));
-		
+
 		SyntaxErrorMessage message = provider.handleMismatchedTokenException(context, exception);
 		assertNull(message);
 	}
-	
+
 	@Test
 	public void handleMismatchedTokenException_ContextIsPolicyBody_TokenTextContainsOnlySemicolon_ReturnsIncompleteDocument() {
 		SAPLSyntaxErrorMessageProvider provider = new SAPLSyntaxErrorMessageProvider();
@@ -235,16 +235,16 @@ public class SAPLSyntaxErrorMessageProviderTests {
 
 		INode node = Mockito.mock(INode.class);
 		when(node.getText()).thenReturn("abc;");
-		
+
 		IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
 		when(context.getRecognitionException()).thenReturn(exception);
 		when(context.getCurrentContext()).thenReturn(Mockito.mock(PolicyBody.class));
 		when(context.getCurrentNode()).thenReturn(node);
-		
+
 		SyntaxErrorMessage message = provider.handleMismatchedTokenException(context, exception);
 		assertEquals(SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT, message.getMessage());
 	}
-	
+
 	@Test
 	public void handleMismatchedTokenException_ContextIsUnknown_ReturnsNull() {
 		SAPLSyntaxErrorMessageProvider provider = new SAPLSyntaxErrorMessageProvider();
@@ -254,11 +254,11 @@ public class SAPLSyntaxErrorMessageProviderTests {
 		when(context.getRecognitionException()).thenReturn(exception);
 		when(context.getCurrentContext()).thenReturn(Mockito.mock(SAPL.class));
 		when(context.getCurrentNode()).thenReturn(Mockito.mock(INode.class));
-		
+
 		SyntaxErrorMessage message = provider.handleMismatchedTokenException(context, exception);
 		assertNull(message);
 	}
-	
+
 	@Test
 	public void handleMismatchedTokenException_TokenIsEOF_ReturnsIncompleteDocument() {
 		SAPLSyntaxErrorMessageProvider provider = new SAPLSyntaxErrorMessageProvider();
@@ -269,68 +269,69 @@ public class SAPLSyntaxErrorMessageProviderTests {
 		when(context.getRecognitionException()).thenReturn(exception);
 		when(context.getCurrentContext()).thenReturn(Mockito.mock(SAPL.class));
 		when(context.getCurrentNode()).thenReturn(Mockito.mock(INode.class));
-		
+
 		SyntaxErrorMessage message = provider.handleMismatchedTokenException(context, exception);
 		assertEquals(SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT, message.getMessage());
 	}
-	
+
 	@Test
 	public void handleNoViableAltException_GrammarElementIsNotRuleCall_ReturnsNull() {
 		SAPLSyntaxErrorMessageProvider provider = new SAPLSyntaxErrorMessageProvider();
 		NoViableAltException exception = new NoViableAltException();
-		
+
 		INode node = Mockito.mock(INode.class);
 		when(node.getGrammarElement()).thenReturn(Mockito.mock(EObject.class));
 
 		IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
 		when(context.getRecognitionException()).thenReturn(exception);
 		when(context.getCurrentNode()).thenReturn(node);
-		
+
 		SyntaxErrorMessage message = provider.handleNoViableAltException(context, exception);
 		assertNull(message);
 	}
-	
+
 	@Test
 	public void handleNoViableAltException_RuleCallContainerIsNotAssignment_ReturnsNull() {
 		SAPLSyntaxErrorMessageProvider provider = new SAPLSyntaxErrorMessageProvider();
 		NoViableAltException exception = new NoViableAltException();
-		
+
 		RuleCall ruleCall = Mockito.mock(RuleCall.class);
 		when(ruleCall.eContainer()).thenReturn(Mockito.mock(EObject.class));
-		
+
 		INode node = Mockito.mock(INode.class);
 		when(node.getGrammarElement()).thenReturn(ruleCall);
 
 		IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
 		when(context.getRecognitionException()).thenReturn(exception);
 		when(context.getCurrentNode()).thenReturn(node);
-		
+
 		SyntaxErrorMessage message = provider.handleNoViableAltException(context, exception);
 		assertNull(message);
 	}
-	
+
 	@Test
 	public void handleEarlyExitException_TokenIsEOF_ReturnsIncompleteDocument() {
 		SAPLSyntaxErrorMessageProvider provider = new SAPLSyntaxErrorMessageProvider();
 		EarlyExitException exception = new EarlyExitException();
 		exception.token = Token.EOF_TOKEN;
-		
+
 		IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
 		when(context.getRecognitionException()).thenReturn(exception);
-		
+
 		SyntaxErrorMessage message = provider.handleEarlyExitException(context, exception);
 		assertEquals(SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT, message.getMessage());
 	}
-	
+
 	@Test
 	public void handleEarlyExitException_UnknownContext_ReturnsNull() {
 		SAPLSyntaxErrorMessageProvider provider = new SAPLSyntaxErrorMessageProvider();
 		EarlyExitException exception = new EarlyExitException();
-		
+
 		IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
 		when(context.getRecognitionException()).thenReturn(exception);
-		
+
 		SyntaxErrorMessage message = provider.handleEarlyExitException(context, exception);
 		assertNull(message);
 	}
+
 }
