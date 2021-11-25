@@ -47,7 +47,6 @@ public class JWTKeyProvider {
 	static final String KEY_CACHING_TTL_MILLIS = "keyCachingTTLmillis";
 	static final long DEFAULT_CACHING_TTL = 300000L;
 
-	@SuppressWarnings("serial")
 	public static class CachingException extends Exception {
 
 		public CachingException(String message) {

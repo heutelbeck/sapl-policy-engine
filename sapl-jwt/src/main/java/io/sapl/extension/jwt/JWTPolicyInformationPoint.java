@@ -39,7 +39,6 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuple2;
 
 /**
  * Attributes obtained from JSON Web Tokens (JWT)
@@ -219,30 +218,23 @@ public class JWTPolicyInformationPoint {
 			}
 		}
 
-		return publicKey.map(signatureOfTokenIsValid(signedJwt)).defaultIfEmpty(Boolean.FALSE)
-				.zipWhen(cachePublicKeyIfSignatureValid(keyId, isFromWhitelist, publicKey)).map(Tuple2::getT1);
+		return publicKey.map(signatureOfTokenIsValid(keyId, signedJwt, isFromWhitelist)).defaultIfEmpty(Boolean.FALSE);
 	}
 
-	private Function<RSAPublicKey, Boolean> signatureOfTokenIsValid(SignedJWT signedJwt) {
+	private Function<RSAPublicKey, Boolean> signatureOfTokenIsValid(String keyId, SignedJWT signedJwt,
+			boolean isFromWhitelist) {
 		return publicKey -> {
 			JWSVerifier verifier = new RSASSAVerifier(publicKey);
 			try {
-				return signedJwt.verify(verifier);
+				var isValid = signedJwt.verify(verifier);
+				if (isValid && !isFromWhitelist)
+					keyProvider.cache(keyId, publicKey);
+				return isValid;
 			}
 			catch (JOSEException e) {
 				// erroneous signatures or data are treated same as failed verifications
 				return Boolean.FALSE;
 			}
-		};
-	}
-
-	private Function<Boolean, Mono<? extends Boolean>> cachePublicKeyIfSignatureValid(String keyId,
-			boolean isFromWhitelist, Mono<RSAPublicKey> publicKeyMono) {
-
-		return signatureValid -> {
-			if (signatureValid && !isFromWhitelist)
-				publicKeyMono.subscribe(publicKey -> keyProvider.cache(keyId, publicKey));
-			return Mono.just(signatureValid);
 		};
 	}
 
