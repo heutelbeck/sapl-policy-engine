@@ -18,7 +18,7 @@ Download the latest build from [here](https://s01.oss.sonatype.org/content/repos
 To run the server, you need JRE 11 or later installed. Run the server:
 
 ```
-java -jar sapl-server-lt-2.0.0-SNAPSHOT.jar
+java -jar sapl-server-lt-2.0.0.jar
 ```
 
 ### Running the Server from Source
@@ -119,13 +119,13 @@ infrastructure, e.g., a matching Kubernetes Ingress.
 In order to run the server locally for testing in an environment like Docker Desktop, you can run the current image as follows:
 
 ```shell
-docker run -d --name sapl-server-lt -p 8080:8080 --mount source=sapl-server-lt,target=/pdp/data ghcr.io/heutelbeck/sapl-server-lt:2.0.0-snapshot
+docker run -d --name sapl-server-lt -p 8080:8080 --mount source=sapl-server-lt,target=/pdp/data ghcr.io/heutelbeck/sapl-server-lt:2.0.0
 ```
 
 Alternatively the container can be run without Docker Volume which gives you easier access to the folder although Docker Desktop may warn you that this may not be as performative (Of course you can change the path):
 
 ```shell
-docker run -d --name sapl-server-lt -p 8080:8080 -v c:\sapl\policies:/pdp/data ghcr.io/heutelbeck/sapl-server-lt:2.0.0-snapshot
+docker run -d --name sapl-server-lt -p 8080:8080 -v c:\sapl\policies:/pdp/data ghcr.io/heutelbeck/sapl-server-lt:2.0.0
 ```
 
 Afterwards you can check if the service is online under: http://localhost:8080/actuator/health.
