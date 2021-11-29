@@ -99,7 +99,7 @@ jobs:
       run: rm -rf ~/.m2/repository/io/sapl
 
   dockerize:
-    needs: [tests]
+    needs: [analyze]
     name: Deliver server images
     runs-on: ubuntu-latest
     steps:
@@ -151,7 +151,7 @@ jobs:
       run: rm -rf ~/.m2/repository/io/sapl
 
   deploy:
-    needs: [tests]
+    needs: [analyze]
     name: Deploy to central
     runs-on: ubuntu-latest
     steps:
@@ -204,7 +204,7 @@ jobs:
         gpg --list-secret-keys --keyid-format LONG
 
     - name: Deploy Maven artefacts
-      run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -DskipTests package source:jar javadoc:jar deploy
+      run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -DskipTests package source:jar javadoc:jar deploy -P release
     
     - name: Trigger CI build of downstream repositories
       run: |
