@@ -85,7 +85,7 @@
 		<lombok.version>1.18.22</lombok.version>
 		<hamcrest.version>2.2</hamcrest.version>
 		<spotify.hamcrest.version>1.2.0</spotify.hamcrest.version>
-		<springboot.version>2.5.6</springboot.version>
+		<springboot.version>2.5.7</springboot.version>
 		<mockito.version>3.12.4</mockito.version>
 		<vaadin.version>14.7.3</vaadin.version>
 		<guice.version>5.0.1</guice.version>

@@ -6,7 +6,7 @@
 
 ## Maven Dependencies
 
-### Add the Maven Central snapshot repository to your `pom.xml`:
+### Add the Maven Central snapshot repository to your `pom.xml`, if you want to use SNAPSHOT versions of the engine:
 
 ```xml
   <repositories>

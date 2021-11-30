@@ -161,7 +161,6 @@ public class KeyTestUtility {
 		return Base64.getUrlEncoder().encodeToString("ThisIsAVeryBogusPublicKey".getBytes()).toString();
 	}
 
-	@SuppressWarnings("serial")
 	private static class InvalidRSAPublicKey implements RSAPublicKey {
 
 		@Override

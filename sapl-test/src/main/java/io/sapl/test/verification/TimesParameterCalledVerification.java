@@ -97,7 +97,7 @@ public class TimesParameterCalledVerification implements MockingVerification {
 
 	private boolean areAllCallArgumentsMatchingTheArgumentMatcher(CallWithMetadata call) {
 		return listCombiner(this.wantedArgs, call.getCall().getListOfArguments(), Matcher::matches).stream()
-				.allMatch(b -> b);
+				.allMatch(Boolean::booleanValue);
 	}
 
 	private List<Boolean> listCombiner(List<Matcher<Val>> list1, List<Val> list2,

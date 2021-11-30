@@ -49,10 +49,22 @@
 		</dependency>
 
 		<!-- XText -->
+		<!-- 
+			XText introduces transitive dependencies on log4j 1.2.x 
+			these introduce CVE-2019-17571. Therefore log4j is excluded 
+			as a transitive dependency and log4j 2 is explicitly added to
+			provide the functionality. 
+		-->
 		<dependency>
 			<groupId>org.eclipse.xtext</groupId>
 			<artifactId>org.eclipse.xtext</artifactId>
 			<version>${xtext.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>log4j</groupId>
+					<artifactId>log4j</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.xtext</groupId>
@@ -69,19 +81,39 @@
 			<groupId>org.eclipse.emf</groupId>
 			<artifactId>org.eclipse.emf.mwe2.launch</artifactId>
 			<optional>true</optional>
+			<exclusions>
+				<exclusion>
+					<groupId>log4j</groupId>
+					<artifactId>log4j</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.xtext</groupId>
 			<artifactId>xtext-antlr-generator</artifactId>
 			<optional>true</optional>
+			<exclusions>
+				<exclusion>
+					<groupId>log4j</groupId>
+					<artifactId>log4j</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		
 		<!-- Logging -->
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
+		</dependency><!-- Replacement APIs for logging to remove vulnerable dependencies -->
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-core</artifactId>
 		</dependency>
-
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-1.2-api</artifactId>
+		</dependency>		
+		
 		<!-- Utility -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
