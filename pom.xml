@@ -82,6 +82,7 @@
 
 		<xtext.version>2.25.0</xtext.version>
 		<junit.version>5.7.2</junit.version>
+		<junit4.version>4.13.2</junit4.version>
 		<lombok.version>1.18.22</lombok.version>
 		<hamcrest.version>2.2</hamcrest.version>
 		<spotify.hamcrest.version>1.2.0</spotify.hamcrest.version>
@@ -149,6 +150,13 @@
 				<version>${junit.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
+			</dependency>
+			<dependency>
+		<!-- explicitly override transient junit 4 dependencies to fix CVE-2020-15250 -->
+				<groupId>junit</groupId>
+				<artifactId>junit</artifactId>
+				<version>${junit4.version}</version>
+				<scope>test</scope>
 			</dependency>
 			<dependency>
 				<groupId>org.mockito</groupId>
