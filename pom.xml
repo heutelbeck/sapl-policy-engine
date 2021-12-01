@@ -102,7 +102,7 @@
 		<module>sapl-pdp-api</module>
 		<module>sapl-extensions-api</module>
 		<module>sapl-hamcrest</module>
-	 	<module>sapl-generator</module>
+		<module>sapl-generator</module>
 		<module>sapl-lang</module>
 		<module>sapl-ide</module>
 		<module>sapl-web</module>
@@ -434,6 +434,13 @@
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-deploy-plugin</artifactId>
+						<configuration>
+							<skip>true</skip>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-source-plugin</artifactId>
 						<version>3.2.1</version>
 						<executions>
@@ -488,6 +495,15 @@
 						<artifactId>nexus-staging-maven-plugin</artifactId>
 						<version>1.6.8</version>
 						<extensions>true</extensions>
+						<executions>
+							<execution>
+								<id>default-deploy</id>
+								<phase>deploy</phase>
+								<goals>
+									<goal>deploy</goal>
+								</goals>
+							</execution>
+						</executions>
 						<configuration>
 							<serverId>ossrh</serverId>
 							<nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
