@@ -257,12 +257,16 @@
 					<dependency>
 						<groupId>org.slf4j</groupId>
 						<artifactId>slf4j-api</artifactId>
-						<version>1.7.31</version>
+						<version>1.7.32</version>
 					</dependency>
 				</dependencies>
 				<executions>
 					<execution>
-                        <?m2e ignore?>
+						<!-- 
+							Attention: the ?m2e annotations may break validation of release packages 
+							being pushed to maven central.
+						-->
+                        <!-- <?m2e ignore?> -->
 						<id>mwe2GenerateEMFClasses</id>
 						<phase>generate-sources</phase>
 						<goals>
@@ -271,10 +275,10 @@
 						<configuration>
 							<mainClass>org.eclipse.emf.mwe2.launch.runtime.Mwe2Launcher</mainClass>
 							<arguments>
-								<argument>file:///${project.basedir}/src/main/java/io/sapl/grammar/GenerateSAPLModel.mwe2
+								<argument>/${project.basedir}/src/main/java/io/sapl/grammar/GenerateSAPLModel.mwe2
 								</argument>
 								<argument>-p</argument>
-								<argument>rootPath=${project.basedir}/..</argument>
+								<argument>rootPath=/${project.basedir}/..</argument>
 							</arguments>
 							<classpathScope>compile</classpathScope>
 							<includePluginDependencies>true</includePluginDependencies>
@@ -292,7 +296,7 @@
 						</configuration>
 					</execution>
 					<execution>
-                        <?m2e ignore?>
+                        <!-- <?m2e ignore?> -->
 						<id>mwe2Launcher</id>
 						<phase>generate-sources</phase>
 						<goals>
@@ -301,9 +305,9 @@
 						<configuration>
 							<mainClass>org.eclipse.emf.mwe2.launch.runtime.Mwe2Launcher</mainClass>
 							<arguments>
-								<argument>file:///${project.basedir}/src/main/java/io/sapl/grammar/GenerateSAPL.mwe2</argument>
+								<argument>/${project.basedir}/src/main/java/io/sapl/grammar/GenerateSAPL.mwe2</argument>
 								<argument>-p</argument>
-								<argument>rootPath=${project.basedir}/..</argument>
+								<argument>rootPath=/${project.basedir}/..</argument>
 							</arguments>
 							<classpathScope>compile</classpathScope>
 							<includePluginDependencies>true</includePluginDependencies>
@@ -364,7 +368,7 @@
 				<version>1.9.1</version>
 				<executions>
 					<execution>
-                        <?m2e execute onConfiguration,onIncremental?>
+                      	<!-- <?m2e execute onConfiguration,onIncremental?>  -->
 						<id>add-source</id>
 						<phase>initialize</phase>
 						<goals>
@@ -389,7 +393,7 @@
 						</configuration>
 					</execution>
 					<execution>
-                        <?m2e execute onConfiguration,onIncremental?>
+                        <!-- <?m2e execute onConfiguration,onIncremental?> -->
 						<id>add-test-source</id>
 						<phase>initialize</phase>
 						<goals>
