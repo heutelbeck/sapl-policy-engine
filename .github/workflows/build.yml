@@ -151,7 +151,7 @@ jobs:
       run: rm -rf ~/.m2/repository/io/sapl
 
   deploy:
-    needs: [analyze]
+    #needs: [analyze]
     name: Deploy to central
     runs-on: ubuntu-latest
     steps:
@@ -204,7 +204,8 @@ jobs:
         gpg --list-secret-keys --keyid-format LONG
 
     - name: Deploy Maven artefacts
-      run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -pl !sapl-server-lt,!sapl-documentation -Ppublish -DskipTests clean package source:jar javadoc:jar deploy
+      # run: mvn -X -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -pl !sapl-server-lt,!sapl-documentation -Ppublish -DskipTests clean package source:jar javadoc:jar deploy
+      run: mvn -X -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -pl !sapl-server-lt,!sapl-documentation -DskipTests clean package source:jar javadoc:jar deploy
     
     - name: Trigger CI build of downstream repositories
       run: |
