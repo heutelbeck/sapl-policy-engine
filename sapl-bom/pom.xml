@@ -28,7 +28,35 @@
 	<packaging>pom</packaging>
 
 	<name>SAPL Bill of Materials</name>
+	<url>https://sapl.io</url>
 
+	<developers>
+		<developer>
+			<name>Dominic Heutelbeck</name>
+			<email>dominic@heutelbeck.com</email>
+			<roles>
+				<role>Project Owner</role>
+			</roles>
+			<url>https://github.com/heutelbeck</url>
+			<id>heutelbeck</id>
+		</developer>
+	</developers>
+
+	<inceptionYear>2017-2021</inceptionYear>
+
+	<licenses>
+		<license>
+			<name>Apache 2.0</name>
+			<url>https://www.apache.org/licenses/LICENSE-2.0</url>
+		</license>
+	</licenses>
+
+	<scm>
+		<connection>scm:git:git://github.com/heutelbeck/sapl-policy-engine.git</connection>
+		<developerConnection>scm:git:git@github.com:heutelbeck/sapl-policy-engine.git</developerConnection>
+		<url>https://github.com/heutelbeck/sapl-policy-engine</url>
+	</scm>
+	
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
@@ -127,4 +155,62 @@
 		</repository>
 	</distributionManagement>
 
+	<profiles>
+		<profile>
+			<id>publish</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-deploy-plugin</artifactId>
+						<configuration>
+							<skip>true</skip>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.sonatype.plugins</groupId>
+						<artifactId>nexus-staging-maven-plugin</artifactId>
+						<version>1.6.8</version>
+						<extensions>true</extensions>
+						<executions>
+							<execution>
+								<id>default-deploy</id>
+								<phase>deploy</phase>
+								<goals>
+									<goal>deploy</goal>
+								</goals>
+							</execution>
+						</executions>
+						<configuration>
+							<serverId>ossrh</serverId>
+							<nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
+							<autoReleaseAfterClose>true</autoReleaseAfterClose>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-gpg-plugin</artifactId>
+						<version>1.6</version>
+						<configuration>
+							<!-- prevent gpg from using PIN entry programs -->
+							<gpgArguments>
+								<arg>--pinentry-mode</arg>
+								<arg>loopback</arg>
+							</gpgArguments>
+						</configuration>
+						<executions>
+							<execution>
+								<id>sign-artifacts</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>sign</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+	
 </project>
