@@ -18,9 +18,9 @@ name: Build
 
 on:
   workflow_dispatch:
-    branches: [master]
+    branches: [master, 2.0.x]
   push:
-    branches: [master]
+    branches: [master, 2.0.x]
     paths-ignore: ["sapl-documentation/**", ".github/build_documentation.yml"]
   
 jobs:
