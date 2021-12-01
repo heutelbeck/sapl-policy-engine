@@ -104,6 +104,7 @@
 		<module>sapl-hamcrest</module>
 	 	<module>sapl-generator</module>
 		<module>sapl-lang</module>
+		<!-- 
 		<module>sapl-ide</module>
 		<module>sapl-web</module>
 		<module>sapl-test</module>
@@ -119,6 +120,7 @@
 		<module>sapl-documentation</module>
 		<module>sapl-server-lt</module>
 		<module>sapl-bom</module>
+		 -->
 	</modules>
 
 	<dependencyManagement>
