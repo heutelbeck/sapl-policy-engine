@@ -11,7 +11,7 @@ How to use the BOM:
 			<dependency>
 				<groupId>io.sapl</groupId>
 				<artifactId>sapl-bom</artifactId>
-				<version>2.0.0</version>
+				<version>2.1.0-SNAPSHOT</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
