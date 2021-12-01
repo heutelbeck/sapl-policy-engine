@@ -204,7 +204,7 @@ jobs:
         gpg --list-secret-keys --keyid-format LONG
 
     - name: Deploy Maven artefacts
-      run: mvn -X -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -pl !sapl-server-lt -Ppublish -DskipTests clean package source:jar javadoc:jar deploy
+      run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -pl !sapl-server-lt,!sapl-documentation -Ppublish -DskipTests clean package source:jar javadoc:jar deploy
     
     - name: Trigger CI build of downstream repositories
       run: |
