@@ -103,8 +103,8 @@
 		<module>sapl-extensions-api</module>
 		<module>sapl-hamcrest</module>
 	 	<module>sapl-generator</module>
-		<!-- 
 		<module>sapl-lang</module>
+		<!-- 
 		<module>sapl-ide</module>
 		<module>sapl-web</module>
 		<module>sapl-test</module>
