@@ -113,7 +113,7 @@ public class AuthorizationSubscription {
 	public static AuthorizationSubscription of(Object subject, Object action, Object resource, Object environment,
 			ObjectMapper mapper) {
 		return new AuthorizationSubscription(mapper.valueToTree(subject), mapper.valueToTree(action),
-				mapper.valueToTree(resource), mapper.valueToTree(environment));
+				mapper.valueToTree(resource), environment==null?null:mapper.valueToTree(environment));
 	}
 
 }

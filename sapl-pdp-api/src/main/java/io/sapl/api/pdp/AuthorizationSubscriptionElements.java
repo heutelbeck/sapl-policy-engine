@@ -44,7 +44,6 @@ public class AuthorizationSubscriptionElements {
 	@NotNull
 	Integer resourceId;
 
-	@NotNull
 	Integer environmentId;
 
 }
