@@ -209,7 +209,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 		final Object subject = subjects.get(subscriptionElements.getSubjectId());
 		final Object action = actions.get(subscriptionElements.getActionId());
 		final Object resource = resources.get(subscriptionElements.getResourceId());
-		final Object environment =subscriptionElements.getEnvironmentId() == null?null:environments.get(subscriptionElements.getEnvironmentId());
+		final Object environment = subscriptionElements.getEnvironmentId() == null?null:environments.get(subscriptionElements.getEnvironmentId());
 		return new AuthorizationSubscription(MAPPER.valueToTree(subject), MAPPER.valueToTree(action),
 				MAPPER.valueToTree(resource), environment==null?null:MAPPER.valueToTree(environment));
 	}

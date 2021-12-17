@@ -49,6 +49,8 @@ class MultiAuthorizationSubscriptionTest {
 	private static final String ACTION = "ACTION";
 
 	private static final String SUBJECT = "SUBJECT";
+	
+	private static final String ENVIRONMENT = "ENVIRONMENT";
 
 	@Test
 	void defaultConstructorTest() {
@@ -77,6 +79,12 @@ class MultiAuthorizationSubscriptionTest {
 	void addNullIdFailsTest() {
 		assertThrows(NullPointerException.class, () -> new MultiAuthorizationSubscription()
 				.addAuthorizationSubscription(null, SUBJECT, ACTION, RESOURCE));
+		assertThrows(NullPointerException.class, () -> new MultiAuthorizationSubscription()
+				.addAuthorizationSubscription(ID, null, ACTION, RESOURCE));
+		assertThrows(NullPointerException.class, () -> new MultiAuthorizationSubscription()
+				.addAuthorizationSubscription(ID, SUBJECT, null, RESOURCE));
+		assertThrows(NullPointerException.class, () -> new MultiAuthorizationSubscription()
+				.addAuthorizationSubscription(ID, SUBJECT, ACTION, null));
 	}
 
 	@Test
@@ -118,6 +126,24 @@ class MultiAuthorizationSubscriptionTest {
 				() -> assertThat(subscription.getAuthorizationSubscriptionWithId(ID2), notNullValue()),
 				() -> assertThat(subscription.getAuthorizationSubscriptionWithId(ID2).getResource(),
 						is(jsonText(RESOURCE2))));
+	}
+
+	@Test
+	void addTwoSubscriptionsViaBasicSubscriptionWithNonNullEnvironmentTest() {
+		var subscription = new MultiAuthorizationSubscription()
+				.addAuthorizationSubscription(ID, AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE, ENVIRONMENT))
+				.addAuthorizationSubscription(ID2, AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE2, ENVIRONMENT));
+		assertAll(() -> assertThat(subscription.getAuthorizationSubscriptionWithId(ID), notNullValue()),
+				() -> assertThat(subscription.getAuthorizationSubscriptionWithId(ID).getResource(),
+						is(jsonText(RESOURCE))),
+				() -> assertThat(subscription.getAuthorizationSubscriptionWithId(ID2), notNullValue()),
+				() -> assertThat(subscription.getAuthorizationSubscriptionWithId(ID2).getResource(),
+						is(jsonText(RESOURCE2))),
+				() -> assertThat(subscription.getAuthorizationSubscriptionWithId(ID).getEnvironment(),
+						is(jsonText(ENVIRONMENT))),
+				() -> assertThat(subscription.getAuthorizationSubscriptionWithId(ID2).getEnvironment(),
+						is(jsonText(ENVIRONMENT)))	
+				);
 	}
 
 	@Test
