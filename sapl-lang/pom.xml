@@ -51,9 +51,9 @@
 		<!-- XText -->
 		<!-- 
 			XText introduces transitive dependencies on log4j 1.2.x 
-			these introduce CVE-2019-17571. Therefore log4j is excluded 
-			as a transitive dependency and log4j 2 is explicitly added to
-			provide the functionality. 
+			these introduce CVE-2019-17571. Replace with log4j to slf4j 
+			bridge eliminating log4j completely. Also no dependency 
+			to log4j2 vulnerable to log4shell class of attacks.
 		-->
 		<dependency>
 			<groupId>org.eclipse.xtext</groupId>
@@ -102,18 +102,17 @@
 		
 		<!-- Logging -->
 		<dependency>
+			<!-- map log4j API to slf4j API -->
 			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-api</artifactId>
-		</dependency><!-- Replacement APIs for logging to remove vulnerable dependencies -->
-		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-core</artifactId>
+			<artifactId>log4j-over-slf4j</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-1.2-api</artifactId>
-		</dependency>		
-		
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-simple</artifactId>
+			<!-- optional, as this is only required by the plugins at build time -->
+			<optional>true</optional>
+		</dependency>
+
 		<!-- Utility -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
@@ -193,11 +192,6 @@
 			<groupId>org.reflections</groupId>
 			<artifactId>reflections</artifactId>
 			<version>0.10.2</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-simple</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
