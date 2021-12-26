@@ -260,7 +260,7 @@
 							Attention: the ?m2e annotations may break validation of release packages
 							being pushed to maven central.
 						-->
-                        <?m2e ignore?>
+                        <!-- <?m2e ignore?> -->
 						<id>mwe2GenerateEMFClasses</id>
 						<phase>generate-sources</phase>
 						<goals>
@@ -290,7 +290,7 @@
 						</configuration>
 					</execution>
 					<execution>
-                        <?m2e ignore?>
+                        <!-- <?m2e ignore?> -->
 						<id>mwe2Launcher</id>
 						<phase>generate-sources</phase>
 						<goals>
@@ -362,7 +362,7 @@
 				<version>1.9.1</version>
 				<executions>
 					<execution>
-                      	<?m2e execute onConfiguration,onIncremental?>
+                      	<!-- <?m2e execute onConfiguration,onIncremental?> -->
 						<id>add-source</id>
 						<phase>initialize</phase>
 						<goals>
@@ -387,7 +387,7 @@
 						</configuration>
 					</execution>
 					<execution>
-                        <?m2e execute onConfiguration,onIncremental?>
+                        <!-- <?m2e execute onConfiguration,onIncremental?> -->
 						<id>add-test-source</id>
 						<phase>initialize</phase>
 						<goals>
