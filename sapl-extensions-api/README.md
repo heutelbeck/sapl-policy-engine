@@ -1,6 +1,6 @@
 # SAPL Extension API
 
-This module contains the interfaces and classes required to write custom Policy Information Points (PIPs) or function libraries. 
+This module contains the interfaces and classes required to write custom Policy Information Points (PIPs) or function libraries.
 
 A demo project with more documentation is available: <https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-extension>.
 
@@ -11,7 +11,7 @@ The internal data model of the SAPL engine uses the `Val` class. `Val` is a mona
 ```java
 		Val undefined = Val.UNDEFINED;
 		Val textValue = Val.of("Some Text");
-		
+
 		if(textValue.isDefined()) {
 			JsonNode jsonNode = textValue.get();
 		}
@@ -19,7 +19,7 @@ The internal data model of the SAPL engine uses the `Val` class. `Val` is a mona
 		if(textValue.isTextual()) {
 			String text = textValue.getText();
 		}
-		
+
 		if(undefined.isUndefined()) {
 			// handle undefined value
 		}
@@ -27,13 +27,13 @@ The internal data model of the SAPL engine uses the `Val` class. `Val` is a mona
 		if(undefined.isDefined()) {
 			// handle defined value
 		}
-		
+
 		Val error = Val.error("Well formulated error message");
-		
+
 		if(error.isError()) {
 			String message = error.getMessage();
 		}
-		
+
 		Flux<Val> fluxOnlyContainingOneFalse = Val.fluxOfFalse();
 ```
 
@@ -83,7 +83,7 @@ Attribute finders are used to receive attributes that are not included in the au
 
 Attribute finders are organized in libraries as well and follow the same naming conventions as functions, including the use of imports. An attribute finder library constitutes a PIP (e.g., `user`) and can contain any number of attributes (e.g., `age`). They are called by a selection step applied to any value, e.g., `subject.<user.age>`. The attribute finder step receives the previous selection result (in the example: `subject`) and returns the requested attribute.
 
-The concept of attribute finders can be used in a flexible manner: There may be finders that take an object (like in the example above, `subject.<user.age>`) as well as attribute finders which expect a primitive value (e.g., `subject.id.<user.age>` with `id` being a number). In addition, attribute finders may also return an object which can be traversed in subsequent selection steps (e.g., `subject.<user.profile>.age`). It is even possible to join multiple attribute finder steps in one expression (e.g., `subject.<user.profile>.supervisor.<user.profile>.age`). 
+The concept of attribute finders can be used in a flexible manner: There may be finders that take an object (like in the example above, `subject.<user.age>`) as well as attribute finders which expect a primitive value (e.g., `subject.id.<user.age>` with `id` being a number). In addition, attribute finders may also return an object which can be traversed in subsequent selection steps (e.g., `subject.<user.profile>.age`). It is even possible to join multiple attribute finder steps in one expression (e.g., `subject.<user.profile>.supervisor.<user.profile>.age`).
 
 Optionally, an attribute finder may be supplied with a list of parameters: `x.<finder.name(p1,p2,...)>`. Also, here nesting is possible. Thus `x.<finder.name(p1.<finder.name2>,p2,...)>` is a working construct.
 
@@ -97,7 +97,7 @@ Attribute finders often receive information from external data sources such as f
 
 For a more in-depth look at the process of creating a custom PIP, please refer to the demo project. It provides a walkthrough of the entire process and contains extensive examples: <https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-extension>.
 
-*Attribute finders* are functions that potentially take a left-hand argument (i.e., the object of which the attribute is to be determined), a `Map` of variables defined in the current evaluation scope, and an optional list of incoming parameter streams. 
+*Attribute finders* are functions that potentially take a left-hand argument (i.e., the object of which the attribute is to be determined), a `Map` of variables defined in the current evaluation scope, and an optional list of incoming parameter streams.
 
 In SAPL, a Policy Information Point is an instance of a class that supplies a set of such functions. To declare functions and classes to be attributes or PIPs, SAPL uses annotations. Each PIP class must be known to the PDP. The embedded PDP provides an `AnnotationAttributeContext`,  which takes arbitrary Java objects as PIPs. To be recognized as a PIP, the respective class must be annotated with `@PolicyInformationPoint`. The optional annotation attribute `name` contains the PIP's name as it will be available in SAPL policies. If the attribute is missing, the name of the Java class is used. The optional annotation attribute `description` contains a string describing the PIP for documentation purposes.
 
@@ -159,7 +159,7 @@ public Flux<Val> attribute(Map<String,JsonNode> variables) {
 
 A unique feature of SAPL is the possibility to parameterize attribute finders in polices. E.g., `subject.<employees.qualificationOfType("IT")>` could return all qualifications of the subject in the domain of `"IT"`. Syntactically, SAPL also allows for the concatenation (`subject.<pip1.attr1>.<pip2.attr2>`) and nesting of attribute (`subject.<pip1.attr1(resource.<pip2.attr2>,<pip3.attr3>)>`).
 
-Regardless of if the attribute is an environment attribute or not, the parameters in brackets are declared as parameters of the method with the type `Flux<Val>`. 
+Regardless of if the attribute is an environment attribute or not, the parameters in brackets are declared as parameters of the method with the type `Flux<Val>`.
 
 ```java
 /* subject.<user.attribute("param1",123)> */
@@ -189,7 +189,7 @@ public Flux<Val> attribute(@Text Flux<Val>[] params) {
 }
 ```
 
-The methods must not declare any further arguments. 
+The methods must not declare any further arguments.
 
 ## Parameter Validation
 
@@ -259,9 +259,9 @@ Example POM for a SAPL extension:
 		</dependency>
 		<!-- Add extension specific dependencies -->
 	</dependencies>
-	
+
 	<repositories>
-		<!-- The SAPL dependencies are hosted on GitHub packages. A matching server 
+		<!-- The SAPL dependencies are hosted on GitHub packages. A matching server
 			entry has to be set in the settings.xml using a GitHub personal access token.
 			Also refer to: https://github.com/heutelbeck/packages -->
 		<repository>
@@ -274,15 +274,15 @@ Example POM for a SAPL extension:
 			</snapshots>
 		</repository>
 	</repositories>
-	
-	<!-- 
-	
-		In case the resulting JAR should not be used as a dependency but as a fat 
-		JAR to be deployed with a PDP Server, the maven-assembly-plugin can be used 
+
+	<!--
+
+		In case the resulting JAR should not be used as a dependency but as a fat
+		JAR to be deployed with a PDP Server, the maven-assembly-plugin can be used
 		to package all dependencies into a single JAR.
-		It is recommended to declare all dependencies expected to be already present 
+		It is recommended to declare all dependencies expected to be already present
 		with the Server as <scope>provided</scope>.
-	
+
 	-->
 	<build>
 		<plugins>

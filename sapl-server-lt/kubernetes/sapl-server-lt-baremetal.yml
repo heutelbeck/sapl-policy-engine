@@ -88,5 +88,5 @@ spec:
         paths:
           - path: /
             backend:
-              serviceName: sapl-server-lt 
+              serviceName: sapl-server-lt
               servicePort: 8080

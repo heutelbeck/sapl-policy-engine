@@ -39,7 +39,7 @@
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
 		</dependency>
-				
+
 		<!-- Testing -->
 		<dependency>
 			<groupId>org.assertj</groupId>

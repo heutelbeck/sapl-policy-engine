@@ -22,7 +22,7 @@ on:
   push:
     branches: [master, 2.0.x]
     paths-ignore: ["sapl-documentation/**", ".github/build_documentation.yml"]
-  
+
 jobs:
   tests:
     strategy:
@@ -96,7 +96,7 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: mvn -B org.jacoco:jacoco-maven-plugin:0.8.7:prepare-agent verify org.jacoco:jacoco-maven-plugin:0.8.7:report org.sonarsource.scanner.maven:sonar-maven-plugin:RELEASE:sonar -Dsonar.host.url=https://sonar.ftk.de -Dsonar.login=${SONAR_TOKEN} -Dsonar.exclusions=**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/*
 
-    - name: Clean up local repository before caching 
+    - name: Clean up local repository before caching
       run: rm -rf ~/.m2/repository/io/sapl
 
   dockerize:
@@ -148,7 +148,7 @@ jobs:
     - name: Push image
       run: mvn -B dockerfile:push -pl sapl-server-lt -P docker -DskipTests
 
-    - name: Clean up local repository before caching 
+    - name: Clean up local repository before caching
       run: rm -rf ~/.m2/repository/io/sapl
 
   deploy:
@@ -213,7 +213,6 @@ jobs:
         curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-server/dispatches --data '{"event_type": "build_application"}'
         curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-extensions/dispatches --data '{"event_type": "build_application"}'
         curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-benchmark/dispatches --data '{"event_type": "build_application"}'
-    
-    - name: Clean up local repository before caching 
+
+    - name: Clean up local repository before caching
       run: rm -rf ~/.m2/repository/io/sapl
-        

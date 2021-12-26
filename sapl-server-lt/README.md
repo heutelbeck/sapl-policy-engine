@@ -1,13 +1,13 @@
 # SAPL Server LT - Lightweight Authorization Server.
 
-This server is a lightweight headless PDP server. The server monitors two directories for the PDP settings and SAPL documents, 
-allowing for runtime updating of policies which will be reflected in decisions made for ongoing authorization 
+This server is a lightweight headless PDP server. The server monitors two directories for the PDP settings and SAPL documents,
+allowing for runtime updating of policies which will be reflected in decisions made for ongoing authorization
 subscriptions.
 
-The PDP configuration for combining algorithm and environment variables is expected in a file `pdp.json`. 
+The PDP configuration for combining algorithm and environment variables is expected in a file `pdp.json`.
 All SAPL documents in the folder named `*.sapl` will be published to the PRP.
 
-The server can be run locally via maven or by executing the JAR. 
+The server can be run locally via maven or by executing the JAR.
 Alternatively, a container image and configurations for deployment on Docker and/or Kubernetes is available.
 
 ## Local Execution
@@ -51,11 +51,11 @@ mvn spring-boot:run
 ### Folder for Policies and PDP Configuration
 
 If the default configuration has not been changed, the server will inspect and monitor the folder ```/sapl/policies```
-in the current user's home directory for the PDP configuration `pdp.json` and SAPL documents ending with `*.sapl`. 
+in the current user's home directory for the PDP configuration `pdp.json` and SAPL documents ending with `*.sapl`.
 Changes will be directly reflected at runtime and for ongoing subscriptions.
 
 > #### Note: Building a Docker Image
-> 
+>
 > To build the docker image of the server application locally, you need to have docker installed on the build machine.
 > The image build is triggered by activating the docker maven profile of the project. This should result with the image installed in your local docker repository. Example:
 >
@@ -77,7 +77,7 @@ server.ssl.key-store-password=localhostpassword
 server.ssl.key-alias=tomcat
 ```
 
-API access requires "Basic Auth". Only one set of client credentials is implemented. 
+API access requires "Basic Auth". Only one set of client credentials is implemented.
 The default client key (username) is: `YJidgyT2mfdkbmL`, and the default client secret (password) is: `Fa4zvYQdiwHZVXh`.
 To override these settings, use the following properties:
 
@@ -88,8 +88,8 @@ io.sapl.server-lt.secret=$2a$10$PhobF71xYb0MK8KubWLB7e0Dpl2AfMiEUi9dkKTbFR4kkWAB
 
 Please note that the secret has to be BCrypt encoded. For testing, use something like: <https://bcrypt-generator.com/>
 
-The server is implemented using Spring Boot. Thus, there are a number of ways to configure the 
-application. 
+The server is implemented using Spring Boot. Thus, there are a number of ways to configure the
+application.
 Please consult the matching chapter of the [Spring Boot documentation](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#boot-features-external-config).
 
 ## Testing the Server
@@ -110,8 +110,8 @@ mkcert -pkcs12 -p12-file self-signed-cert.p12 localhost 127.0.0.1 ::1
 
 ## Containerized Cloud Deployment
 
-The server application is available as container image. Here, the server is not configured with any TLS 
-security or authentication. It is expected that in deployment this responsibility is delegated to the 
+The server application is available as container image. Here, the server is not configured with any TLS
+security or authentication. It is expected that in deployment this responsibility is delegated to the
 infrastructure, e.g., a matching Kubernetes Ingress.
 
 ### Running Directly as a Docker Container
@@ -141,12 +141,12 @@ Depending on your host OS and virtualisation environment, these volumes may be l
 
 ### Running on Kubernetes
 
-This section will describe the deployment on a baremetal Kubernetes installation which has Port 80 and 443 exposed to the Internet 
+This section will describe the deployment on a baremetal Kubernetes installation which has Port 80 and 443 exposed to the Internet
 as well as Desktop Docker on Windows and will use the Kubernetes nginx-ingress-controller as well as cert-manager to manage the Let's Encrypt certificates (Only if Ports are exposed to the Internet so Let's Encrypt can access the URL)
 
 #### Prerequisites
 
-Installed Kubernetes v1.18+ 
+Installed Kubernetes v1.18+
 Install NGINX Ingress Controller according to https://kubernetes.github.io/ingress-nginx/deploy/
 
 ```shell
@@ -176,20 +176,20 @@ kubectl apply -f clusterissuer.yml -n your-namespace
 
 This section assumes that the Kubernetes is installed on a Linux OS i.e. Ubuntu
 
-First apply the Persistent Volume yaml 
+First apply the Persistent Volume yaml
 
 ```shell
 kubectl create namespace sapl-server-lt
 kubectl apply -f https://raw.githubusercontent.com/heutelbeck/sapl-policy-engine/master/sapl-server-lt/kubernetes/sapl-server-lt-pv.yml -n sapl-server-lt
 ```
 
-Then download the Baremetal yaml file 
+Then download the Baremetal yaml file
 
 ```shell
 wget https://raw.githubusercontent.com/heutelbeck/sapl-policy-engine/master/sapl-server-lt/kubernetes/sapl-server-lt-baremetal.yml
 ```
 
-change the URL in the Ingress section 
+change the URL in the Ingress section
 
 ```
   tls:
@@ -217,16 +217,16 @@ The service should be reachable under the URL defined in the Ingress section of 
 
 #### Docker Desktop Kubernetes
 
-We are still working on the persistent volume solution for the Docker Desktop Kubernetes installation with WSL2 on Windows. 
+We are still working on the persistent volume solution for the Docker Desktop Kubernetes installation with WSL2 on Windows.
 
-Apply the sapl.server-lt.yml file 
+Apply the sapl.server-lt.yml file
 
 ```shell
 kubectl create namespace sapl-server-lt
 kubectl apply -f https://raw.githubusercontent.com/heutelbeck/sapl-policy-engine/master/sapl-server-lt/kubernetes/sapl-server-lt.yml -n sapl-server-lt
 ```
 
-The URL is sapl.lt.local and has to be added to the hosts file (which is located in ```%windir%\system32\drivers\etc```) add the Line 
+The URL is sapl.lt.local and has to be added to the hosts file (which is located in ```%windir%\system32\drivers\etc```) add the Line
 
 ```
 127.0.0.1       sapl.lt.local
@@ -260,12 +260,12 @@ The service is defined as ClusterIP but can be changed to use NodePort for testi
 ```shell
 kubectl edit service sapl-server-lt -n sapl-server-lt
 ```
- 
+
 If the Website can't be reached, try installing the NGINX Ingress Controller using helm with the flag ```--set controller.hostNetwork=true,controller.kind=DaemonSet```
 
 ## Custom Policy Information Points (PIPs) or Function Libraries
 
-To support new attributes and functions, the matching libraries have to be deployed alongside the server application. One way to do so is to create your own server project and add the libraries to the dependencies of the application via Maven dependencies and to add the matching packages to the component scanning of Spring Boot and/or to provide matching configurations. Alternatively, the SAPL Server LT supports side-loading of external JARs. 
+To support new attributes and functions, the matching libraries have to be deployed alongside the server application. One way to do so is to create your own server project and add the libraries to the dependencies of the application via Maven dependencies and to add the matching packages to the component scanning of Spring Boot and/or to provide matching configurations. Alternatively, the SAPL Server LT supports side-loading of external JARs.
 
 To load a custom PIP, the PIP has to be built as a JAR, and all dependencies not already provided by the server have to be provided as JARs as well. Alternatively, the PIP can be packaged as a so-called "fat JAR" including all dependencies. This can be achieved using the (Maven Dependency Plugin)[https://maven.apache.org/plugins/maven-dependency-plugin/], and an example for this approach can be found here: <https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-extension>.
 

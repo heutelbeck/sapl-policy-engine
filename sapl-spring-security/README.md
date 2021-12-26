@@ -30,12 +30,12 @@ implementation has to be selected.
     <artifactId>sapl-spring-security</artifactId>
 </dependency>
 
-<!-- Select a Policy Decision Point (PDP) implementation. Select either an embedded or a remote PDP. 
+<!-- Select a Policy Decision Point (PDP) implementation. Select either an embedded or a remote PDP.
      You must not declare both dependencies at the same time. -->
 <dependency>
-    <!-- Select this package to bundle an embedded PDP with you application, loading policies 
-         from the file-system, or from the resources packaged with your application. 
-         This is a good PDP to start with for your first SAPL application as it does not 
+    <!-- Select this package to bundle an embedded PDP with you application, loading policies
+         from the file-system, or from the resources packaged with your application.
+         This is a good PDP to start with for your first SAPL application as it does not
          require a dedicated PDP server running in the infrastructure -->
     <groupId>io.sapl</groupId>
     <artifactId>sapl-spring-pdp-embedded</artifactId>
@@ -144,7 +144,7 @@ The `@PreEnforce` annotation wraps the `Mono<>` or `Flux<>` returned by the meth
 a Policy Enforcement Point.
 
 The access control only starts when a subscriber subscribes to the wrapped `Publisher<>`, not at the construction time of the `Publisher<>` object.
- 
+
 Before allowing the subscriber to access the original `Publisher<>`, the PEP
 constructs an AuthorizationSubscription and sends it to the PDP deployed in
 the infrastructure. The PEP consumes exactly one decision and then cancels
@@ -167,7 +167,7 @@ The `@PreEnforce` annotation can be combined with a @PostEnforce annotation, onl
 
 The `@PostEnforce` annotation is typically used if the return object of a
 a protected method is required to make the decision, or if the return object can be modified via a transformation statement in a policy.
- 
+
 As an AuthorizationSubscription has to be constructed supplying the resource to be modified, and this value has to be well-defined, this annotation is only applicable to methods returning a `Mono<>`.
 
 By adding the SpEL expression `resource="returnObject"` to the
@@ -228,7 +228,7 @@ date resumes on receiving a new `PERMIT` decision.
 The `@EnforceDropWhileDenied` annotation cannot be combined with any other
 enforcement annotation.
 
-## `EnforceRecoverableIfDenied` 
+## `EnforceRecoverableIfDenied`
 
 The `@EnforceRecoverableIfDenied` annotation wraps the `Flux<>` in a PEP.
 
@@ -252,7 +252,3 @@ the subscriber can explicitly handle the event that access is denied and
 choose to stay subscribed or not.
 
 The `@EnforceRecoverableIfDenied` annotation cannot be combined with any other enforcement annotation.
-
-
-
-

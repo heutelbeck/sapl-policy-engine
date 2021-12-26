@@ -8,7 +8,7 @@
 	<artifactId>sapl-demo-testing</artifactId>
 	<name>SAPL Testing</name>
 	<description>Example for testing your SAPL policies</description>
-	
+
   <dependencies>
 		<dependency>
 			<groupId>io.sapl</groupId>
@@ -21,7 +21,7 @@
 			<scope>test</scope>
 			<!-- compile -->
 		</dependency>
-		
+
 		<!-- Logging -->
 		<dependency>
 			<groupId>org.slf4j</groupId>
@@ -44,8 +44,8 @@
    				<configuration>
 	          		<!-- Set Parameters explicitly as default values via annotations aren't applied by maven-plugin-testing-harness -->
 		       	  	<coverageEnabled>false</coverageEnabled>
-		       
-		       
+
+
 					<!--<policyPath>policies</policyPath> -->
 					<!--<outputDir>something/special/</outputDir> -->
 				</configuration>

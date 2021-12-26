@@ -61,7 +61,6 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 	@NotEmpty
 	List<Object> resources = new ArrayList<>();
 
-	@NotEmpty
 	List<Object> environments = new ArrayList<>();
 
 	@NotEmpty
@@ -114,8 +113,8 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 	 * @return this {@code MultiAuthorizationSubscription} instance to support chaining of
 	 * multiple calls to {@code addAuthorizationSubscription}.
 	 */
-	public MultiAuthorizationSubscription addAuthorizationSubscription(@NonNull String subscriptionId, Object subject,
-			Object action, Object resource, Object environment) {
+	public MultiAuthorizationSubscription addAuthorizationSubscription(@NonNull String subscriptionId, @NonNull Object subject,
+			@NonNull Object action, @NonNull Object resource, Object environment) {
 
 		if (authorizationSubscriptions.containsKey(subscriptionId))
 			throw new IllegalArgumentException("Cannot add two subscriptions with the same ID: " + subscriptionId);
@@ -130,7 +129,10 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 		return this;
 	}
 
-	private int ensureIsElementOfListAndReturnIndex(Object element, List<Object> list) {
+	private Integer ensureIsElementOfListAndReturnIndex(Object element, List<Object> list) {
+		if(element == null) 
+			return null;
+		
 		int index = list.indexOf(element);
 		if (index == -1) {
 			index = list.size();
@@ -207,9 +209,9 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 		final Object subject = subjects.get(subscriptionElements.getSubjectId());
 		final Object action = actions.get(subscriptionElements.getActionId());
 		final Object resource = resources.get(subscriptionElements.getResourceId());
-		final Object environment = environments.get(subscriptionElements.getEnvironmentId());
+		final Object environment = subscriptionElements.getEnvironmentId() == null?null:environments.get(subscriptionElements.getEnvironmentId());
 		return new AuthorizationSubscription(MAPPER.valueToTree(subject), MAPPER.valueToTree(action),
-				MAPPER.valueToTree(resource), MAPPER.valueToTree(environment));
+				MAPPER.valueToTree(resource), environment==null?null:MAPPER.valueToTree(environment));
 	}
 
 }

@@ -59,7 +59,7 @@
 			<version>${project.version}</version>
 			<optional>true</optional>
 		</dependency>
-		
+
 		<!-- Utility -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
