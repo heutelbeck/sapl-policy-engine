@@ -99,7 +99,6 @@
 				<version>1.9.1</version>
 				<executions>
 					<execution>
-						<!-- <?m2e execute onConfiguration,onIncremental?> -->
 						<id>add-source</id>
 						<phase>initialize</phase>
 						<goals>
