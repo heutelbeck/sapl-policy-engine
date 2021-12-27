@@ -101,7 +101,7 @@ jobs:
 
   dockerize:
     needs: [tests]
-    name: Deliver server images
+    name: Deliver server images  
     runs-on: ubuntu-latest
     steps:
     - name: Check out
@@ -208,6 +208,7 @@ jobs:
       run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -pl !sapl-server-lt,!sapl-documentation -Ppublish -DskipTests clean package deploy
 
     - name: Trigger CI build of downstream repositories
+      if: ${{ false }}  # disable for branch
       run: |
         curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-demos/dispatches --data '{"event_type": "build_application"}'
         curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-server/dispatches --data '{"event_type": "build_application"}'
