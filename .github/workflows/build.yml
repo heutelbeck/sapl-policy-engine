@@ -154,7 +154,6 @@ jobs:
   deploy:
     needs: [tests]
     name: Deploy to central
-    if: ${{ false }}  # disable
     runs-on: ubuntu-latest
     steps:
     - name: Check out
