@@ -36,7 +36,7 @@
   <dependency>
     <groupId>io.sapl</groupId>
     <artifactId>sapl-pdp-embedded</artifactId>
-    <version>2.0.1-SNAPSHOT</version>
+    <version>2.0.1</version>
   </dependency>
 ```
 
@@ -48,7 +48,7 @@
       <dependency>
         <groupId>io.sapl</groupId>
         <artifactId>sapl-bom</artifactId>
-        <version>2.0.1-SNAPSHOT</version>
+        <version>2.0.1</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
