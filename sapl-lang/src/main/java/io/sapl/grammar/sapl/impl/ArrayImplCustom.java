@@ -20,7 +20,6 @@ import java.util.List;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Expression;
-import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
@@ -43,7 +42,7 @@ public class ArrayImplCustom extends ArrayImpl {
 	 * value.
 	 */
 	@Override
-	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
+	public Flux<Val> evaluate( @NonNull Val relativeNode) {
 		// handle the empty array
 		if (getItems().size() == 0) {
 			return Flux.just(Val.of(Val.JSON.arrayNode()));
@@ -51,7 +50,7 @@ public class ArrayImplCustom extends ArrayImpl {
 		// aggregate child fluxes into a flux of a JSON array
 		final List<Flux<Val>> itemFluxes = new ArrayList<>(getItems().size());
 		for (Expression item : getItems()) {
-			itemFluxes.add(item.evaluate(ctx, relativeNode));
+			itemFluxes.add(item.evaluate(relativeNode));
 		}
 		return Flux.combineLatest(itemFluxes, this::collectValuesToArrayNode);
 	}

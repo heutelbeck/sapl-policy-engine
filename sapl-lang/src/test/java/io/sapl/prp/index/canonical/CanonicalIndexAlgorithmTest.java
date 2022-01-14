@@ -15,24 +15,6 @@
  */
 package io.sapl.prp.index.canonical;
 
-import com.google.common.collect.ImmutableList;
-import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.MockedConstruction;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -54,16 +36,21 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+
+import com.google.common.collect.ImmutableList;
+
 class CanonicalIndexAlgorithmTest {
-
-	private EvaluationContext subscriptionScopedEvaluationContext;
-
-	@BeforeEach
-	void setUp() {
-		subscriptionScopedEvaluationContext = new EvaluationContext(new AnnotationAttributeContext(),
-				new AnnotationFunctionContext(), new HashMap<>());
-
-	}
 
 	@Test
 	void return_matching_context_when_predicate_is_referenced_in_candidates() {
@@ -75,7 +62,7 @@ class CanonicalIndexAlgorithmTest {
 		var dataContainer = mock(CanonicalIndexDataContainer.class);
 		when(dataContainer.getPredicateOrder()).thenReturn(ImmutableList.copyOf(Collections.singletonList(predicate)));
 
-		var result = CanonicalIndexAlgorithm.match(mock(EvaluationContext.class), dataContainer).block();
+		var result = CanonicalIndexAlgorithm.match(dataContainer).block();
 
 		assertThat(result, notNullValue());
 	}
@@ -100,7 +87,7 @@ class CanonicalIndexAlgorithmTest {
 							.thenAnswer(invocation -> matchingCtx
 									.isPredicateReferencedInCandidates(invocation.getArgument(0, Predicate.class))))) {
 
-				var result = CanonicalIndexAlgorithm.match(mock(EvaluationContext.class), dataContainer).block();
+				var result = CanonicalIndexAlgorithm.match(dataContainer).block();
 
 				assertThat(result, notNullValue());
 
@@ -133,10 +120,10 @@ class CanonicalIndexAlgorithmTest {
 
 	@Test
 	void test_find_unsatisfiable_candidates() {
-		var predicate = new Predicate(new Bool(true));
+		var predicate  = new Predicate(new Bool(true));
 		var candidates = new Bitmask();
 
-		var matchingCtx = new CanonicalIndexMatchingContext(0, subscriptionScopedEvaluationContext);
+		var matchingCtx = new CanonicalIndexMatchingContext(0);
 
 		assertEquals(0,
 				CanonicalIndexAlgorithm.findUnsatisfiableCandidates(matchingCtx, predicate, true).numberOfBitsSet());
@@ -167,12 +154,12 @@ class CanonicalIndexAlgorithmTest {
 
 	@Test
 	void test_eliminate_candidates() {
-		var candidates = new Bitmask();
-		var satisfiableCandidates = new Bitmask();
+		var candidates              = new Bitmask();
+		var satisfiableCandidates   = new Bitmask();
 		var unsatisfiableCandidates = new Bitmask();
-		var orphanedCandidates = new Bitmask();
+		var orphanedCandidates      = new Bitmask();
 
-		var matchingCtx = new CanonicalIndexMatchingContext(0, subscriptionScopedEvaluationContext);
+		var matchingCtx = new CanonicalIndexMatchingContext(0);
 
 		CanonicalIndexAlgorithm.reduceCandidates(matchingCtx, unsatisfiableCandidates, satisfiableCandidates,
 				orphanedCandidates);
@@ -212,9 +199,9 @@ class CanonicalIndexAlgorithmTest {
 
 	@Test
 	void test_remove_candidates_related_to_predicate() {
-		var predicate = new Predicate(new Bool(true));
-		var matchingCtx = new CanonicalIndexMatchingContext(0, subscriptionScopedEvaluationContext);
-		var candidates = new Bitmask();
+		var predicate   = new Predicate(new Bool(true));
+		var matchingCtx = new CanonicalIndexMatchingContext(0);
+		var candidates  = new Bitmask();
 		candidates.set(0, 5);
 		matchingCtx.addCandidates(candidates);
 
@@ -231,9 +218,9 @@ class CanonicalIndexAlgorithmTest {
 
 	@Test
 	void test_fetch_formulas() {
-		var satisfiableCandidates = new Bitmask();
-		List<Set<DisjunctiveFormula>> relatedFormulas = new ArrayList<>();
-		var dataContainer = createEmptyContainer();
+		var                           satisfiableCandidates = new Bitmask();
+		List<Set<DisjunctiveFormula>> relatedFormulas       = new ArrayList<>();
+		var                           dataContainer         = createEmptyContainer();
 
 		assertThat(CanonicalIndexAlgorithm.fetchFormulas(satisfiableCandidates, dataContainer), empty());
 
@@ -269,11 +256,11 @@ class CanonicalIndexAlgorithmTest {
 
 	@Test
 	void test_find_satisfiable_candidates() {
-		var candidates = new Bitmask();
-		var predicate = new Predicate(new Bool(true));
+		var   candidates                    = new Bitmask();
+		var   predicate                     = new Predicate(new Bool(true));
 		int[] numberOfLiteralsInConjunction = new int[] { 1, 1, 2 };
 
-		var matchingCtx = new CanonicalIndexMatchingContext(3, subscriptionScopedEvaluationContext);
+		var matchingCtx   = new CanonicalIndexMatchingContext(3);
 		var dataContainer = createEmptyContainerWithNUmberOfLiteralsInConjunction(numberOfLiteralsInConjunction);
 
 		assertEquals(0, CanonicalIndexAlgorithm.findSatisfiableCandidates(predicate, false, matchingCtx, dataContainer)
@@ -310,7 +297,7 @@ class CanonicalIndexAlgorithmTest {
 		var satisfiableCandidates = new Bitmask();
 
 		CanonicalIndexDataContainer dataContainer = createEmptyContainer();
-		var matchingCtx = new CanonicalIndexMatchingContext(0, subscriptionScopedEvaluationContext);
+		var                         matchingCtx   = new CanonicalIndexMatchingContext(0);
 
 		assertEquals(0, CanonicalIndexAlgorithm
 				.findOrphanedCandidates(satisfiableCandidates, matchingCtx, dataContainer).numberOfBitsSet());

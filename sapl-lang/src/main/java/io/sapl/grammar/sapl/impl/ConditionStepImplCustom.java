@@ -25,7 +25,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
-import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -36,19 +35,21 @@ import reactor.util.function.Tuples;
  * Implements the conditional subscript of an array (or object), written as
  * '[?(Condition)]'.
  *
- * [?(Condition)] returns an array containing all array items (or attribute values) for
- * which Condition evaluates to true. Can be applied to both an array (then it checks each
- * item) and an object (then it checks each attribute value). Condition must be an
- * expression, in which relative expressions starting with @ can be used.
+ * [?(Condition)] returns an array containing all array items (or attribute
+ * values) for which Condition evaluates to true. Can be applied to both an
+ * array (then it checks each item) and an object (then it checks each attribute
+ * value). Condition must be an expression, in which relative expressions
+ * starting with @ can be used.
  *
- * {@literal @} evaluates to the current array item or attribute value for which the
- * condition is evaluated and can be followed by further selection steps.
+ * {@literal @} evaluates to the current array item or attribute value for which
+ * the condition is evaluated and can be followed by further selection steps.
  *
- * As attributes have no order, the sorting of the result array of a condition step
- * applied to an object is not specified.
+ * As attributes have no order, the sorting of the result array of a condition
+ * step applied to an object is not specified.
  *
- * Example: Applied to the array [1, 2, 3, 4, 5], the selection step [?({@literal @} &gt;
- * 2)] returns the array [3, 4, 5] (containing all values that are greater than 2).
+ * Example: Applied to the array [1, 2, 3, 4, 5], the selection step
+ * [?({@literal @} &gt; 2)] returns the array [3, 4, 5] (containing all values
+ * that are greater than 2).
  *
  * Grammar: Step: ... | '[' Subscript ']' | ... Subscript returns Step: ... |
  * {ConditionStep} '?' '(' expression=Expression ')' | ...
@@ -59,36 +60,36 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 	private static final String CONDITION_ACCESS_TYPE_MISMATCH = "Type mismatch. Condition access is only possible for array or object, but got '%s'.";
 
 	@Override
-	public Flux<Val> apply(@NonNull Val parentValue, @NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
+	public Flux<Val> apply(@NonNull Val parentValue, @NonNull Val relativeNode) {
 		if (parentValue.isError()) {
 			return Flux.just(parentValue);
 		}
 		if (parentValue.isArray()) {
-			return applyToArray(parentValue.getArrayNode(), ctx);
+			return applyToArray(parentValue.getArrayNode());
 		}
 		if (parentValue.isObject()) {
-			return applyToObject(parentValue.getObjectNode(), ctx);
+			return applyToObject(parentValue.getObjectNode());
 		}
 		return Val.errorFlux(CONDITION_ACCESS_TYPE_MISMATCH, parentValue);
 	}
 
-	private Flux<Val> applyToObject(ObjectNode object, EvaluationContext ctx) {
+	private Flux<Val> applyToObject(ObjectNode object) {
 		// handle the empty object
 		if (object.isEmpty()) {
 			return Flux.just(Val.ofEmptyArray());
 		}
 		// collect the fluxes providing the evaluated conditions for the array elements
 		final List<Flux<Tuple2<JsonNode, Val>>> itemFluxes = new ArrayList<>(object.size());
-		var iter = object.fields();
+		var                                     iter       = object.fields();
 		while (iter.hasNext()) {
 			var field = iter.next();
-			itemFluxes.add(getExpression().evaluate(ctx, Val.of(field.getValue()))
+			itemFluxes.add(getExpression().evaluate(Val.of(field.getValue()))
 					.map(expressionResult -> Tuples.of(field.getValue(), expressionResult)));
 		}
 		return packageResultsInArray(itemFluxes);
 	}
 
-	private Flux<Val> applyToArray(ArrayNode arrayNode, EvaluationContext ctx) {
+	private Flux<Val> applyToArray(ArrayNode arrayNode) {
 		// handle the empty array
 		if (arrayNode.isEmpty()) {
 			return Flux.just(Val.ofEmptyArray());
@@ -96,7 +97,7 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 		// collect the fluxes providing the evaluated conditions for the array elements
 		final List<Flux<Tuple2<JsonNode, Val>>> itemFluxes = new ArrayList<>(arrayNode.size());
 		for (var value : arrayNode) {
-			itemFluxes.add(getExpression().evaluate(ctx, Val.of(value))
+			itemFluxes.add(getExpression().evaluate(Val.of(value))
 					.map(expressionResult -> Tuples.of(value, expressionResult)));
 		}
 		return packageResultsInArray(itemFluxes);
@@ -107,7 +108,7 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 			var resultArray = Val.JSON.arrayNode();
 			for (var itemResultObject : itemResults) {
 				@SuppressWarnings("unchecked")
-				var itemResult = (Tuple2<JsonNode, Val>) itemResultObject;
+				var itemResult      = (Tuple2<JsonNode, Val>) itemResultObject;
 				var conditionResult = itemResult.getT2();
 				if (conditionResult.isError()) {
 					return conditionResult;
@@ -121,30 +122,36 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 	}
 
 	@Override
-	public Flux<Val> applyFilterStatement(@NonNull Val parentValue, @NonNull EvaluationContext ctx,
-			@NonNull Val relativeNode, int stepId, @NonNull FilterStatement statement) {
+	public Flux<Val> applyFilterStatement(
+			@NonNull Val parentValue,
+			@NonNull Val relativeNode,
+			int stepId,
+			@NonNull FilterStatement statement) {
 		if (!parentValue.isObject() && !parentValue.isArray()) {
 			return Flux.just(parentValue);
 		}
 		if (parentValue.isArray()) {
-			return applyFilterStatementToArray(parentValue.getArrayNode(), ctx, relativeNode, stepId, statement);
+			return applyFilterStatementToArray(parentValue.getArrayNode(), relativeNode, stepId, statement);
 		}
-		return applyFilterStatementToObject(parentValue.getObjectNode(), ctx, relativeNode, stepId, statement);
+		return applyFilterStatementToObject(parentValue.getObjectNode(), relativeNode, stepId, statement);
 	}
 
-	private Flux<Val> applyFilterStatementToObject(ObjectNode object, EvaluationContext ctx, Val relativeNode,
-			int stepId, FilterStatement statement) {
+	private Flux<Val> applyFilterStatementToObject(
+			ObjectNode object,
+			Val relativeNode,
+			int stepId,
+			FilterStatement statement) {
 		// handle the empty object
 		if (object.isEmpty()) {
 			return Flux.just(Val.ofEmptyObject());
 		}
 		// collect the fluxes providing the evaluated conditions for the array elements
 		final List<Flux<Tuple2<String, Val>>> fieldFluxes = new ArrayList<>(object.size());
-		var iter = object.fields();
+		var                                   iter        = object.fields();
 		while (iter.hasNext()) {
 			var field = iter.next();
 			log.trace("inspect field {}", field);
-			fieldFluxes.add(getExpression().evaluate(ctx, Val.of(field.getValue())).concatMap(expressionResult -> {
+			fieldFluxes.add(getExpression().evaluate(Val.of(field.getValue())).concatMap(expressionResult -> {
 				if (expressionResult.isError()) {
 					return Flux.just(expressionResult);
 				}
@@ -158,18 +165,15 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 						// this was the final step. apply filter
 						log.trace("final step. select and filter!");
 						return FilterComponentImplCustom.applyFilterFunction(Val.of(field.getValue()),
-								statement.getArguments(),
-								FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx,
+								statement.getArguments(), statement.getFsteps(),
 								Val.of(object), statement.isEach());
-					}
-					else {
+					} else {
 						// there are more steps. descent with them
 						log.trace("this step was successful. descent with next step...");
 						return statement.getTarget().getSteps().get(stepId + 1).applyFilterStatement(
-								Val.of(field.getValue()), ctx, relativeNode, stepId + 1, statement);
+								Val.of(field.getValue()), relativeNode, stepId + 1, statement);
 					}
-				}
-				else {
+				} else {
 					return Flux.just(Val.of(field.getValue()));
 				}
 			}).map(expressionResult -> Tuples.of(field.getKey(), expressionResult)));
@@ -177,7 +181,10 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 		return Flux.combineLatest(fieldFluxes, RepackageUtil::recombineObject);
 	}
 
-	private Flux<Val> applyFilterStatementToArray(ArrayNode array, EvaluationContext ctx, Val relativeNode, int stepId,
+	private Flux<Val> applyFilterStatementToArray(
+			ArrayNode array,
+			Val relativeNode,
+			int stepId,
 			FilterStatement statement) {
 		// handle the empty object
 		if (array.isEmpty()) {
@@ -185,11 +192,11 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 		}
 		// collect the fluxes providing the evaluated conditions for the array elements
 		final List<Flux<Val>> elementFluxes = new ArrayList<>(array.size());
-		var iter = array.elements();
+		var                   iter          = array.elements();
 		while (iter.hasNext()) {
 			var element = iter.next();
 			log.trace("inspect element {}", element);
-			elementFluxes.add(getExpression().evaluate(ctx, Val.of(element)).concatMap(expressionResult -> {
+			elementFluxes.add(getExpression().evaluate(Val.of(element)).concatMap(expressionResult -> {
 				if (expressionResult.isError()) {
 					return Flux.just(expressionResult);
 				}
@@ -203,17 +210,14 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 						// this was the final step. apply filter
 						log.trace("final step. select and filter!");
 						return FilterComponentImplCustom.applyFilterFunction(Val.of(element), statement.getArguments(),
-								FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx,
-								Val.of(array), statement.isEach());
-					}
-					else {
+								statement.getFsteps(), Val.of(array), statement.isEach());
+					} else {
 						// there are more steps. descent with them
 						log.trace("this step was successful. descent with next step...");
 						return statement.getTarget().getSteps().get(stepId + 1).applyFilterStatement(Val.of(element),
-								ctx, relativeNode, stepId + 1, statement);
+								relativeNode, stepId + 1, statement);
 					}
-				}
-				else {
+				} else {
 					return Flux.just(Val.of(element));
 				}
 			}));

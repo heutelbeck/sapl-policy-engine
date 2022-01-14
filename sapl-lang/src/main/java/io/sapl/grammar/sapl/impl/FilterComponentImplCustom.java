@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
-import io.sapl.interpreter.EvaluationContext;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -34,9 +33,13 @@ public class FilterComponentImplCustom extends FilterComponentImpl {
 
 	private static final String TYPE_MISMATCH = "Type mismatch error. Cannot use 'each' keyword with non-array values. Value type was: ";
 
-	public static Flux<Val> applyFilterFunction(Val unfilteredValue, Arguments arguments, String functionName,
-			EvaluationContext ctx, Val relativeNode, boolean each) {
-		log.trace("apply filter '{}' to {}", functionName, unfilteredValue);
+	public static Flux<Val> applyFilterFunction(
+			Val unfilteredValue,
+			Arguments arguments,
+			Iterable<String> fsteps,
+			Val relativeNode,
+			boolean each) {
+		log.trace("apply filter '{}' to {}", fsteps, unfilteredValue);
 		if (unfilteredValue.isError()) {
 			return Flux.just(unfilteredValue);
 		}
@@ -45,8 +48,8 @@ public class FilterComponentImplCustom extends FilterComponentImpl {
 		}
 
 		if (!each) {
-			return FunctionUtil.combineArgumentFluxes(arguments, ctx, relativeNode).concatMap(parameters -> FunctionUtil
-					.evaluateFunctionWithLeftHandArgumentMono(functionName, ctx, unfilteredValue, parameters));
+			return FunctionUtil.combineArgumentFluxes(arguments, relativeNode).concatMap(parameters -> FunctionUtil
+					.evaluateFunctionWithLeftHandArgumentMono(fsteps, unfilteredValue, parameters));
 		}
 
 		// "|- each" may only applied to arrays
@@ -54,12 +57,12 @@ public class FilterComponentImplCustom extends FilterComponentImpl {
 			return Val.errorFlux(TYPE_MISMATCH + unfilteredValue.getValType());
 		}
 
-		var rootArray = (ArrayNode) unfilteredValue.get();
-		var argumentFluxes = FunctionUtil.combineArgumentFluxes(arguments, ctx, relativeNode);
+		var rootArray      = (ArrayNode) unfilteredValue.get();
+		var argumentFluxes = FunctionUtil.combineArgumentFluxes(arguments, relativeNode);
 		return argumentFluxes.concatMap(parameters -> {
 			var elementsEvaluations = new ArrayList<Mono<Val>>(rootArray.size());
 			for (var element : rootArray) {
-				elementsEvaluations.add(FunctionUtil.evaluateFunctionWithLeftHandArgumentMono(functionName, ctx,
+				elementsEvaluations.add(FunctionUtil.evaluateFunctionWithLeftHandArgumentMono(fsteps, 
 						Val.of(element), parameters));
 			}
 			return Flux.combineLatest(elementsEvaluations, e -> Arrays.copyOf(e, e.length, Val[].class))

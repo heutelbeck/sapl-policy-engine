@@ -26,49 +26,48 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.impl.util.ArrayUtil;
 import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.grammar.sapl.impl.util.ParserUtil;
-import io.sapl.interpreter.EvaluationContext;
 import reactor.test.StepVerifier;
 
 class ApplyStepsRecursiveWildcardTest {
 
-	private static final EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
-
 	@Test
 	void stepPropagatesErrors() {
-		expressionErrors(CTX, "(10/0)..*");
+		expressionErrors("(10/0)..*");
 	}
 
 	@Test
 	void stepOnUndefinedEmpty() {
-		expressionErrors(CTX, "undefined..*");
+		expressionErrors("undefined..*");
 	}
 
 	@Test
 	void apptlyToNull() {
-		expressionEvaluatesTo(CTX, "null..*", "[]");
+		expressionEvaluatesTo("null..*", "[]");
 	}
 
 	@Test
 	void applyToArray() {
 		var expression = "[1,2,[3,4,5], { \"key\" : [6,7,8], \"key2\": { \"key3\" : 9 } }]..*";
-		var expected = "[1,2,[3,4,5],3,4,5,{\"key\":[6,7,8],\"key2\":{\"key3\":9}},[6,7,8],6,7,8,{\"key3\":9},9]";
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = "[1,2,[3,4,5],3,4,5,{\"key\":[6,7,8],\"key2\":{\"key3\":9}},[6,7,8],6,7,8,{\"key3\":9},9]";
+		expressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void filterArray() {
 		var expression = "[1,2,[3,4,5], { \"key\" : [6,7,8], \"key2\": { \"key3\" : 9 } }] |- { @..* : mock.nil }";
-		var expected = "[null,null,null,null]";
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = "[null,null,null,null]";
+		expressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void applyToObject() throws IOException {
 		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}..*";
-		var expected = Val.ofJson(
+		var expected   = Val.ofJson(
 				"[1,2,3,4,5,\"value1\",[{\"key\":\"value2\"},{\"key\":\"value3\"}],{\"key\":\"value2\"},\"value2\",{\"key\":\"value3\"},\"value3\",[1,2,3,4,5]]");
-		expressionEvaluatesTo(CTX, "null..*", "[]");
-		StepVerifier.create(ParserUtil.expression(expression).evaluate(CTX, Val.UNDEFINED))
+		expressionEvaluatesTo("null..*", "[]");
+		StepVerifier
+				.create(ParserUtil.expression(expression).evaluate(Val.UNDEFINED)
+						.contextWrite(MockUtil::setUpAuthorizationContext))
 				.expectNextMatches(result -> ArrayUtil.arraysMatchWithSetSemantics(result, expected)).verifyComplete();
 	}
 

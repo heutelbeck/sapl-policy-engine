@@ -15,7 +15,6 @@
  */
 package io.sapl.interpreter.combinators;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -39,7 +38,7 @@ class CombinatorMockUtil {
 
 	public static AuthorizationDecisionEvaluable mockDocumentEvaluatingTo(AuthorizationDecision authzDecison) {
 		var document = mock(AuthorizationDecisionEvaluable.class);
-		when(document.evaluate(any())).thenReturn(Flux.just(authzDecison));
+		when(document.evaluate()).thenReturn(Flux.just(authzDecison));
 		return document;
 	}
 

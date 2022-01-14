@@ -17,20 +17,15 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.function.Function;
 
-import org.reactivestreams.Publisher;
-
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.grammar.sapl.Condition;
-import io.sapl.grammar.sapl.Statement;
 import io.sapl.grammar.sapl.ValueDefinition;
-import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
-import reactor.util.function.Tuple2;
-import reactor.util.function.Tuples;
+import reactor.util.context.Context;
 
 @Slf4j
 public class PolicyBodyImplCustom extends PolicyBodyImpl {
@@ -38,96 +33,69 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 	private static final String STATEMENT_NOT_BOOLEAN = "Evaluation error: Statement must evaluate to a boolean value, but was: '%s'.";
 
 	/**
-	 * Evaluates all statements of this policy body within the given evaluation context
-	 * and returns a {@link Flux} of {@link Decision} objects.
+	 * Evaluates all statements of this policy body within the given evaluation
+	 * context and returns a {@link Flux} of {@link Decision} objects.
+	 * 
 	 * @param entitlement the entitlement of the enclosing policy.
-	 * @param ctx the evaluation context in which the statements are evaluated. It must
-	 * contain
-	 * <ul>
-	 * <li>the attribute context</li>
-	 * <li>the function context</li>
-	 * <li>the variable context holding the four authorization subscription variables
-	 * 'subject', 'action', 'resource' and 'environment' combined with system variables
-	 * from the PDP configuration and other variables e.g. obtained from the containing
-	 * policy set</li>
-	 * <li>the import mapping for functions and attribute finders</li>
-	 * </ul>
 	 * @return A {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
 	@Override
-	public Flux<Decision> evaluate(Decision entitlement, EvaluationContext ctx) {
-		return Flux.just(Tuples.of(Val.TRUE, ctx)).concatMap(evaluateStatements(0)).map(Tuple2::getT1).map(val -> {
+	public Flux<Decision> evaluate(Decision entitlement) {
+		return evaluateStatements(Val.TRUE, 0).map(toDecision(entitlement))
+				.onErrorReturn(Decision.INDETERMINATE);
+	}
+
+	private Function<? super Val, Decision> toDecision(Decision entitlement) {
+		return val -> {
 			if (val.isError()) {
-				log.debug("Error evaluation statements: {}", val.getMessage());
+				log.trace("Error evaluating statements: {}", val.getMessage());
 				return Decision.INDETERMINATE;
 			}
-			if (val.getBoolean()) {
+
+			if (val.getBoolean())
 				return entitlement;
-			}
+
 			return Decision.NOT_APPLICABLE;
-		});
-	}
-
-	protected Function<? super Tuple2<Val, EvaluationContext>, Publisher<? extends Tuple2<Val, EvaluationContext>>> evaluateStatements(
-			int statementId) {
-		if (statementId == statements.size()) {
-			return Flux::just;
-		}
-		return previousAndContext -> evalStatement(previousAndContext.getT1(), statements.get(statementId),
-				previousAndContext.getT2()).switchMap(evaluateStatements(statementId + 1));
-	}
-
-	private Flux<Tuple2<Val, EvaluationContext>> evalStatement(Val previousResult, Statement statement,
-			EvaluationContext ctx) {
-		if (statement instanceof ValueDefinition) {
-			return evaluateValueDefinition(previousResult, (ValueDefinition) statement, ctx);
-		}
-		else {
-			return evaluateCondition(previousResult, (Condition) statement, ctx);
-		}
-	}
-
-	private Flux<Tuple2<Val, EvaluationContext>> evaluateValueDefinition(Val previousResult,
-			ValueDefinition valueDefinition, EvaluationContext ctx) {
-		if (previousResult.isError() || !previousResult.getBoolean()) {
-			return Flux.just(Tuples.of(previousResult, ctx));
-		}
-		return valueDefinition.getEval().evaluate(ctx, Val.UNDEFINED)
-				.concatMap(derivePolicyBodyScopeEvaluationContext(valueDefinition, ctx));
-	}
-
-	private Function<? super Val, ? extends Publisher<? extends Tuple2<Val, EvaluationContext>>> derivePolicyBodyScopeEvaluationContext(
-			ValueDefinition valueDefinition, EvaluationContext ctx) {
-		return evaluatedValue -> {
-			if (evaluatedValue.isError()) {
-				return Flux.just(Tuples.of(evaluatedValue, ctx));
-			}
-			if (evaluatedValue.isDefined()) {
-				try {
-					var scopedCtx = ctx.withEnvironmentVariable(valueDefinition.getName(), evaluatedValue.get());
-					return Flux.just(Tuples.of(Val.TRUE, scopedCtx));
-				}
-				catch (PolicyEvaluationException e) {
-					return Flux.just(Tuples.of(Val.error(e), ctx));
-				}
-			}
-			return Flux.just(Tuples.of(Val.TRUE, ctx));
 		};
 	}
 
-	protected Flux<Tuple2<Val, EvaluationContext>> evaluateCondition(Val previousResult, Condition condition,
-			EvaluationContext ctx) {
-		if (previousResult.isError() || !previousResult.getBoolean()) {
-			return Flux.just(Tuples.of(previousResult, ctx));
-		}
-		return condition.getExpression().evaluate(ctx, Val.UNDEFINED).concatMap(statementResult -> {
-			if (statementResult.isBoolean()) {
-				return Flux.just(Tuples.of(statementResult, ctx));
-			}
-			else {
-				return Flux.just(Tuples.of(Val.error(STATEMENT_NOT_BOOLEAN, statementResult), ctx));
-			}
-		});
+	protected Flux<Val> evaluateStatements(
+			Val previousResult,
+			int statementId) {
+		if (previousResult.isError() || !previousResult.getBoolean() || statementId == statements.size())
+			return Flux.just(previousResult);
+
+		var statement = statements.get(statementId);
+
+		if (statement instanceof ValueDefinition)
+			return evaluateValueStatement(previousResult, statementId, (ValueDefinition) statement);
+
+		return evaluateCondition(previousResult, (Condition) statement)
+				.switchMap(newResult -> evaluateStatements(newResult, statementId + 1));
+	}
+
+	private Flux<Val> evaluateValueStatement(Val previousResult, int statementId, ValueDefinition valueDefinition) {
+		var valueStream = valueDefinition.getEval().evaluate(Val.UNDEFINED);
+		return valueStream.switchMap(value -> evaluateStatements(previousResult, statementId + 1)
+				.contextWrite(setVariable(valueDefinition.getName(), value)));
+	}
+
+	private Function<Context, Context> setVariable(String name, Val value) {
+		return ctx -> AuthorizationContext.setVariable(ctx, name, value);
+	}
+
+	// protected to provide hook for test coverage calculations
+	protected Flux<Val> evaluateCondition(
+			Val previousResult,
+			Condition condition) {
+		return condition.getExpression().evaluate(Val.UNDEFINED).map(this::assertConditionResultIsBooleanOrError);
+	}
+
+	private Val assertConditionResultIsBooleanOrError(Val conditionResult) {
+		if (conditionResult.isBoolean() || conditionResult.isError())
+			return conditionResult;
+
+		return Val.error(STATEMENT_NOT_BOOLEAN, conditionResult);
 	}
 
 }

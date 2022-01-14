@@ -15,15 +15,6 @@
  */
 package io.sapl.prp.index.canonical;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.interpreter.EvaluationContext;
-import io.sapl.prp.PolicyRetrievalResult;
-import lombok.NonNull;
-import lombok.experimental.UtilityClass;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -31,25 +22,29 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.SAPL;
+import io.sapl.prp.PolicyRetrievalResult;
+import lombok.NonNull;
+import lombok.experimental.UtilityClass;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 @UtilityClass
 public class CanonicalIndexAlgorithm {
 
-	public Mono<PolicyRetrievalResult> match(EvaluationContext subscriptionScopedEvaluationCtx,
-			CanonicalIndexDataContainer dataContainer) {
-		return matchCollectorNewest(subscriptionScopedEvaluationCtx, dataContainer);
+	public Mono<PolicyRetrievalResult> match(CanonicalIndexDataContainer dataContainer) {
+		return matchCollectorNewest(dataContainer);
 	}
 
-	public Mono<PolicyRetrievalResult> matchCollectorNewest(EvaluationContext subscriptionScopedEvaluationCtx,
-			CanonicalIndexDataContainer dataContainer) {
+	public Mono<PolicyRetrievalResult> matchCollectorNewest(CanonicalIndexDataContainer dataContainer) {
 		var matchingCtxMono = Flux.fromIterable(dataContainer.getPredicateOrder())
-				.reduce(Mono.just(new CanonicalIndexMatchingContext(dataContainer.getNumberOfConjunctions(),
-						subscriptionScopedEvaluationCtx)),
+				.reduce(Mono.just(new CanonicalIndexMatchingContext(dataContainer.getNumberOfConjunctions())),
 						(previousCtxMono, predicate) -> previousCtxMono
 								.flatMap(previousCtx -> previousCtx.isPredicateReferencedInCandidates(predicate)
 										// if referenced by an active candidate ->
 										// evaluate predicate
-										? evaluatePredicate(subscriptionScopedEvaluationCtx, dataContainer, predicate,
-												previousCtx)
+										? evaluatePredicate(dataContainer, predicate, previousCtx)
 										// else -> just return context
 										: skipPredicate(previousCtx)) // result is updated
 																		// ctx (candidates
@@ -72,18 +67,22 @@ public class CanonicalIndexAlgorithm {
 		return Mono.just(previousCtx);
 	}
 
-	Mono<CanonicalIndexMatchingContext> evaluatePredicate(EvaluationContext subscriptionScopedEvaluationCtx,
-			CanonicalIndexDataContainer dataContainer, Predicate predicate, CanonicalIndexMatchingContext ctx) {
-		return predicate.evaluate(subscriptionScopedEvaluationCtx)
+	Mono<CanonicalIndexMatchingContext> evaluatePredicate(
+			CanonicalIndexDataContainer dataContainer,
+			Predicate predicate,
+			CanonicalIndexMatchingContext ctx) {
+		return predicate.evaluate()
 				.map(evaluationResult -> handleEvaluationResult(dataContainer, predicate, ctx, evaluationResult));
 	}
 
-	CanonicalIndexMatchingContext handleEvaluationResult(CanonicalIndexDataContainer dataContainer, Predicate predicate,
-			CanonicalIndexMatchingContext ctx, Val evaluationResult) {
+	CanonicalIndexMatchingContext handleEvaluationResult(
+			CanonicalIndexDataContainer dataContainer,
+			Predicate predicate,
+			CanonicalIndexMatchingContext ctx,
+			Val evaluationResult) {
 		if (evaluationResult.isError()) {
 			handleErrorEvaluationResult(predicate, ctx);
-		}
-		else {
+		} else {
 			updateCandidatesInMatchingContext(predicate, evaluationResult.getBoolean(), ctx, dataContainer);
 		}
 		return ctx;
@@ -95,8 +94,11 @@ public class CanonicalIndexAlgorithm {
 		return result;
 	}
 
-	private void updateCandidatesInMatchingContext(Predicate predicate, Boolean evaluationResult,
-			CanonicalIndexMatchingContext matchingCtx, CanonicalIndexDataContainer dataContainer) {
+	private void updateCandidatesInMatchingContext(
+			Predicate predicate,
+			Boolean evaluationResult,
+			CanonicalIndexMatchingContext matchingCtx,
+			CanonicalIndexDataContainer dataContainer) {
 
 		var satisfiedCandidates = findSatisfiableCandidates(predicate, evaluationResult, matchingCtx, dataContainer);
 		// add satisfied candidates to mask of matching candidates
@@ -115,7 +117,9 @@ public class CanonicalIndexAlgorithm {
 		matchingCtx.removeCandidates(predicate.getConjunctions());
 	}
 
-	Bitmask findOrphanedCandidates(final Bitmask satisfiableCandidates, CanonicalIndexMatchingContext matchingCtx,
+	Bitmask findOrphanedCandidates(
+			final Bitmask satisfiableCandidates,
+			CanonicalIndexMatchingContext matchingCtx,
 			CanonicalIndexDataContainer dataContainer) {
 		var result = new Bitmask();
 
@@ -139,22 +143,29 @@ public class CanonicalIndexAlgorithm {
 		return result;
 	}
 
-	void reduceCandidates(final CanonicalIndexMatchingContext matchingCtx, final Bitmask unsatisfiedCandidates,
-			final Bitmask satisfiedCandidates, final Bitmask orphanedCandidates) {
+	void reduceCandidates(
+			final CanonicalIndexMatchingContext matchingCtx,
+			final Bitmask unsatisfiedCandidates,
+			final Bitmask satisfiedCandidates,
+			final Bitmask orphanedCandidates) {
 		matchingCtx.removeCandidates(unsatisfiedCandidates);
 		matchingCtx.removeCandidates(satisfiedCandidates);
 		matchingCtx.removeCandidates(orphanedCandidates);
 	}
 
-	Set<DisjunctiveFormula> fetchFormulas(final Bitmask satisfiableCandidates,
+	Set<DisjunctiveFormula> fetchFormulas(
+			final Bitmask satisfiableCandidates,
 			CanonicalIndexDataContainer dataContainer) {
 		final Set<DisjunctiveFormula> result = new HashSet<>();
 		satisfiableCandidates.forEachSetBit(index -> result.addAll(dataContainer.getRelatedFormulas(index)));
 		return result;
 	}
 
-	Bitmask findSatisfiableCandidates(final Predicate predicate, final boolean evaluationResult,
-			CanonicalIndexMatchingContext matchingCtx, CanonicalIndexDataContainer dataContainer) {
+	Bitmask findSatisfiableCandidates(
+			final Predicate predicate,
+			final boolean evaluationResult,
+			CanonicalIndexMatchingContext matchingCtx,
+			CanonicalIndexDataContainer dataContainer) {
 		var result = new Bitmask();
 		// calling method with negated evaluation result will return satisfied clauses
 		var satisfiableCandidates = findUnsatisfiableCandidates(matchingCtx, predicate, !evaluationResult);
@@ -176,7 +187,9 @@ public class CanonicalIndexAlgorithm {
 				.flatMap(Collection::parallelStream).collect(Collectors.toSet());
 	}
 
-	Bitmask findUnsatisfiableCandidates(final CanonicalIndexMatchingContext matchingCtx, final Predicate predicate,
+	Bitmask findUnsatisfiableCandidates(
+			final CanonicalIndexMatchingContext matchingCtx,
+			final Predicate predicate,
 			final boolean predicateEvaluationResult) {
 		var result = matchingCtx.getCopyOfCandidates();
 

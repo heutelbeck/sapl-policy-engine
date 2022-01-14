@@ -20,52 +20,47 @@ import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 
 import org.junit.jupiter.api.Test;
 
-import io.sapl.grammar.sapl.impl.util.MockUtil;
-import io.sapl.interpreter.EvaluationContext;
-
 class AttributeUnionStepImplCustomTest {
-
-	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 
 	@Test
 	void applySlicingToNonObject() {
 		var expression = "\"Otto\"['key1','key2']";
-		expressionErrors(CTX, expression);
+		expressionErrors(expression);
 	}
 
 	@Test
 	void applyToEmptyObject() {
 		var expression = "{}['key1','key2']";
-		var expected = "[]";
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = "[]";
+		expressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void applyToObject() {
 		var expression = "{ \"key1\" : null, \"key2\" : true,  \"key3\" : false }['key3','key2']";
-		var expected = "[ true, false ]";
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = "[ true, false ]";
+		expressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void applyFilterToNonObject() {
 		var expression = "\"Otto\" |- { @['key1','key2'] : mock.nil }";
-		var expected = "\"Otto\"";
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = "\"Otto\"";
+		expressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void filterElementsInObject() {
 		var expression = "{ \"key1\" : 1, \"key2\" : 2,  \"key3\" : 3 } |- { @['key3','key1'] : mock.nil }";
-		var expected = "{ \"key1\" : null, \"key2\" : 2,  \"key3\" : null }";
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = "{ \"key1\" : null, \"key2\" : 2,  \"key3\" : null }";
+		expressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void filterElementsInDescend() {
 		var expression = "{ \"key1\" : [1,2,3], \"key2\" : [1,2,3],  \"key3\" : [1,2,3] } |- { @['key3','key1'][2] : mock.nil }";
-		var expected = "{ \"key1\" : [1,2,null], \"key2\" : [1,2,3],  \"key3\" : [1,2,null] }";
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = "{ \"key1\" : [1,2,null], \"key2\" : [1,2,3],  \"key3\" : [1,2,null] }";
+		expressionEvaluatesTo(expression, expected);
 	}
 
 }

@@ -23,12 +23,16 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.Import;
 import io.sapl.grammar.sapl.LibraryImport;
+import io.sapl.grammar.sapl.SAPL;
 import io.sapl.grammar.sapl.WildcardImport;
-import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.context.AuthorizationContext;
+import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.pip.LibraryFunctionProvider;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.context.Context;
 
 @Slf4j
 public class SAPLImplCustom extends SAPLImpl {
@@ -42,84 +46,82 @@ public class SAPLImplCustom extends SAPLImpl {
 	private static final String LIBRARY_IMPORT_EXISTS = "Library import of '%s' not possible as an import for name '%s' already exists.";
 
 	@Override
-	public Mono<Val> matches(EvaluationContext subscriptionScopedEvaluationContext) {
-		try {
-			return getPolicyElement().matches(documentScopedEvaluationContext(subscriptionScopedEvaluationContext));
-		}
-		catch (PolicyEvaluationException e) {
-			return Mono.just(Val.error(e));
-		}
+	public Mono<Val> matches() {
+		return getPolicyElement().matches().contextWrite(this::loadImportsIntoContext)
+				.onErrorResume(error -> Mono.just(Val.error(error)));
 	}
 
 	@Override
-	public Flux<AuthorizationDecision> evaluate(EvaluationContext subscriptionScopedEvaluationContext) {
-		EvaluationContext documentScopedEvaluationContext;
-		try {
-			documentScopedEvaluationContext = documentScopedEvaluationContext(subscriptionScopedEvaluationContext);
-		}
-		catch (PolicyEvaluationException e) {
-			log.debug("  |- INDETERMINATE. The imports evaluated with en error: {}", e.getMessage());
-			return Flux.just(AuthorizationDecision.INDETERMINATE);
-		}
-		return getPolicyElement().evaluate(documentScopedEvaluationContext);
+	public Flux<AuthorizationDecision> evaluate() {
+		return getPolicyElement().evaluate().contextWrite(this::loadImportsIntoContext)
+				.doOnError(error -> log.debug("  |- INDETERMINATE. The imports evaluated with en error: {}",
+						error.getMessage()))
+				.onErrorReturn(AuthorizationDecision.INDETERMINATE);
 	}
 
-	@Override
-	public EvaluationContext documentScopedEvaluationContext(EvaluationContext subscriptionScopedEvaluationContext) {
-		return subscriptionScopedEvaluationContext.withImports(fetchImports(subscriptionScopedEvaluationContext));
+	private Context loadImportsIntoContext(Context ctx) {
+		var imports = fetchImports(this, AuthorizationContext.getAttributeContext(ctx),
+				AuthorizationContext.functionContext(ctx));
+		return AuthorizationContext.setImports(ctx, imports);
 	}
 
-	private Map<String, String> fetchImports(EvaluationContext subscriptionScopedEvaluationContext) {
+	public static Map<String, String>
+			fetchImports(SAPL sapl, AttributeContext attributeContext, FunctionContext functionContext) {
 		var imports = new HashMap<String, String>();
-		for (var anImport : getImports()) {
-			addImport(anImport, imports, subscriptionScopedEvaluationContext);
+		for (var anImport : sapl.getImports()) {
+			addImport(anImport, imports, attributeContext, functionContext);
 		}
 		return imports;
 	}
 
-	private void addImport(Import anImport, Map<String, String> imports,
-			EvaluationContext subscriptionScopedEvaluationContext) {
+	private static void addImport(
+			Import anImport,
+			Map<String, String> imports,
+			AttributeContext attributeContext,
+			FunctionContext functionContext) {
 		var library = String.join(".", anImport.getLibSteps());
 
-		log.info("library = " + library);
 		if (anImport instanceof WildcardImport) {
-			log.info("is wild");
-			addWildcardImports(imports, library, subscriptionScopedEvaluationContext.getAttributeCtx());
-			addWildcardImports(imports, library, subscriptionScopedEvaluationContext.getFunctionCtx());
-		}
-		else if (anImport instanceof LibraryImport) {
-			log.info("is library");
+			addWildcardImports(imports, library, attributeContext);
+			addWildcardImports(imports, library, functionContext);
+		} else if (anImport instanceof LibraryImport) {
 			var alias = ((LibraryImport) anImport).getLibAlias();
-			addLibraryImports(imports, library, alias, subscriptionScopedEvaluationContext.getAttributeCtx());
-			addLibraryImports(imports, library, alias, subscriptionScopedEvaluationContext.getFunctionCtx());
-		}
-		else {
-			log.info("is basic");
-			addBasicImport(anImport, library, imports, subscriptionScopedEvaluationContext);
+			addLibraryImports(imports, library, alias, attributeContext);
+			addLibraryImports(imports, library, alias, functionContext);
+		} else {
+			addBasicImport(anImport, library, imports, attributeContext, functionContext);
 		}
 	}
 
-	private void addBasicImport(Import anImport, String library, Map<String, String> imports,
-			EvaluationContext subscriptionScopedEvaluationContext) {
-		var functionName = anImport.getFunctionName();
+	private static void addBasicImport(
+			Import anImport,
+			String library,
+			Map<String, String> imports,
+			AttributeContext attributeContext,
+			FunctionContext functionContext) {
+		var functionName               = anImport.getFunctionName();
 		var fullyQualifiedFunctionName = String.join(".", library, functionName);
 
 		if (imports.containsKey(functionName))
 			throw new PolicyEvaluationException(IMPORT_EXISTS, fullyQualifiedFunctionName);
 
-		if (evaluationContextProvidesFunction(subscriptionScopedEvaluationContext, fullyQualifiedFunctionName))
+		if (evaluationContextProvidesFunction(attributeContext, functionContext, fullyQualifiedFunctionName))
 			imports.put(functionName, fullyQualifiedFunctionName);
 		else
 			throw new PolicyEvaluationException(IMPORT_NOT_FOUND, fullyQualifiedFunctionName);
 	}
 
-	private boolean evaluationContextProvidesFunction(EvaluationContext subscriptionScopedEvaluationContext,
+	private static boolean evaluationContextProvidesFunction(
+			AttributeContext attributeContext,
+			FunctionContext functionContext,
 			String fullyQualifiedFunctionName) {
-		return subscriptionScopedEvaluationContext.getFunctionCtx().isProvidedFunction(fullyQualifiedFunctionName)
-				|| subscriptionScopedEvaluationContext.getAttributeCtx().isProvidedFunction(fullyQualifiedFunctionName);
+		return functionContext.isProvidedFunction(fullyQualifiedFunctionName)
+				|| attributeContext.isProvidedFunction(fullyQualifiedFunctionName);
 	}
 
-	private void addWildcardImports(Map<String, String> imports, String library,
+	private static void addWildcardImports(
+			Map<String, String> imports,
+			String library,
 			LibraryFunctionProvider functionProvider) {
 		for (var name : functionProvider.providedFunctionsOfLibrary(library)) {
 			log.info("name=" + name);
@@ -129,7 +131,10 @@ public class SAPLImplCustom extends SAPLImpl {
 		}
 	}
 
-	private void addLibraryImports(Map<String, String> imports, String library, String alias,
+	private static void addLibraryImports(
+			Map<String, String> imports,
+			String library,
+			String alias,
 			LibraryFunctionProvider functionProvider) {
 		for (var name : functionProvider.providedFunctionsOfLibrary(library)) {
 			var key = String.join(".", alias, name);

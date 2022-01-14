@@ -1,28 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-
-    Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
-
--->
 <ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" name="sapl" nsURI="http://sapl.io/sapl/SAPL" nsPrefix="sapl">
   <eClassifiers xsi:type="ecore:EClass" name="SAPL" eSuperTypes="#//Matchable #//AuthorizationDecisionEvaluable">
-    <eOperations name="documentScopedEvaluationContext" eType="#//EvaluationContext">
-      <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel"/>
-      <eParameters name="functionCtx" eType="#//EvaluationContext"/>
-    </eOperations>
     <eStructuralFeatures xsi:type="ecore:EReference" name="imports" upperBound="-1"
         eType="#//Import" containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="policyElement" eType="#//PolicyElement"
@@ -71,7 +50,6 @@
     <eOperations name="evaluate" eType="#//DecisionFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel"/>
       <eParameters name="entitlement" eType="#//Decision"/>
-      <eParameters name="ctx" eType="#//EvaluationContext"/>
     </eOperations>
     <eStructuralFeatures xsi:type="ecore:EReference" name="statements" upperBound="-1"
         eType="#//Statement" containment="true"/>
@@ -103,7 +81,6 @@
         <details key="documentation" value=""/>
       </eAnnotations>
       <eParameters name="parentValue" eType="#//Val"/>
-      <eParameters name="ctx" eType="#//EvaluationContext"/>
       <eParameters name="relativeNode" eType="#//Val"/>
     </eOperations>
     <eOperations name="applyFilterStatement" lowerBound="1" eType="#//ValFlux">
@@ -111,7 +88,6 @@
         <details key="documentation" value=""/>
       </eAnnotations>
       <eParameters name="parentValue" eType="#//Val"/>
-      <eParameters name="ctx" eType="#//EvaluationContext"/>
       <eParameters name="relativeNode" eType="#//Val"/>
       <eParameters name="stepId" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
       <eParameters name="statement" eType="#//FilterStatement"/>
@@ -130,7 +106,6 @@
         <details key="documentation" value=""/>
       </eAnnotations>
       <eParameters name="unfilteredRootNode" eType="#//Val"/>
-      <eParameters name="ctx" eType="#//EvaluationContext"/>
       <eParameters name="relativeNode" eType="#//Val"/>
     </eOperations>
   </eClassifiers>
@@ -307,7 +282,6 @@
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
         <details key="documentation" value=""/>
       </eAnnotations>
-      <eParameters name="ctx" eType="#//EvaluationContext"/>
       <eParameters name="relativeNode" eType="#//Val"/>
     </eOperations>
   </eClassifiers>
@@ -316,7 +290,6 @@
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
         <details key="documentation" value=""/>
       </eAnnotations>
-      <eParameters name="ctx" eType="#//EvaluationContext"/>
     </eOperations>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="AuthorizationDecisionEvaluable" abstract="true"
@@ -325,10 +298,8 @@
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
         <details key="documentation" value=""/>
       </eAnnotations>
-      <eParameters name="ctx" eType="#//EvaluationContext"/>
     </eOperations>
   </eClassifiers>
-  <eClassifiers xsi:type="ecore:EDataType" name="EvaluationContext" instanceClassName="io.sapl.interpreter.EvaluationContext"/>
   <eClassifiers xsi:type="ecore:EDataType" name="JsonNode" instanceClassName="com.fasterxml.jackson.databind.JsonNode"/>
   <eClassifiers xsi:type="ecore:EDataType" name="JsonNodeFlux" instanceTypeName="reactor.core.publisher.Flux&lt;com.fasterxml.jackson.databind.JsonNode>"
       serializable="false"/>
@@ -353,17 +324,15 @@
   <eClassifiers xsi:type="ecore:EClass" name="CombiningAlgorithm" abstract="true">
     <eOperations name="combinePolicies" lowerBound="1" eType="#//AuthorizationDecisionFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
-        <details key="documentation" value="Method which evaluates multiple policies within a policy set against an authorization subscription object, combines the results and creates and returns a corresponding authorization decision object. The method is supposed to be used to determine an authorization decision for the SAPL documents known to the PDP. Imports are obtained from the SAPL document.&#10;@param policies policies of the set currently matching the ongoing authorization subscription.&#10;@param ctx The current evaluation context.&#10;@return a {@link Flux} of {@link AuthorizationDecision} objects containing the combined decision, the combined obligation and advice and a transformed resource if applicable. A new authorization decision object is only pushed if it is different from the previous one."/>
+        <details key="documentation" value="Method which evaluates multiple policies within a policy set against an authorization subscription object, combines the results and creates and returns a corresponding authorization decision object. The method is supposed to be used to determine an authorization decision for the SAPL documents known to the PDP. Imports are obtained from the SAPL document.&#xA;@param policies policies of the set currently matching the ongoing authorization subscription.&#xA;@param ctx The current evaluation context.&#xA;@return a {@link Flux} of {@link AuthorizationDecision} objects containing the combined decision, the combined obligation and advice and a transformed resource if applicable. A new authorization decision object is only pushed if it is different from the previous one."/>
       </eAnnotations>
       <eParameters name="policies" eType="#//PolicyList"/>
-      <eParameters name="ctx" eType="#//EvaluationContext"/>
     </eOperations>
     <eOperations name="combineMatchingDocuments" lowerBound="1" eType="#//AuthorizationDecisionFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
-        <details key="documentation" value="Method which evaluates multiple SAPL documents (containing a policy set or a policy) against an authorization subscription object, combines the results and creates and returns a corresponding authorization decision object. The method is supposed to be used to determine an authorization decision for the SAPL documents known to the PDP. Imports are obtained from the SAPL document.&#10;@param policyRetrievalResult The SAPL documents currently matching the ongoing authorization subscription.&#10;@param subscriptionScopedEvaluationContext The current evaluation context.&#10;@return a {@link Flux} of {@link AuthorizationDecision} objects containing the combined decision, the combined obligation and advice and a transformed resource if applicable. A new authorization decision object is only pushed if it is different from the previous one."/>
+        <details key="documentation" value="Method which evaluates multiple SAPL documents (containing a policy set or a policy) against an authorization subscription object, combines the results and creates and returns a corresponding authorization decision object. The method is supposed to be used to determine an authorization decision for the SAPL documents known to the PDP. Imports are obtained from the SAPL document.&#xA;@param policyRetrievalResult The SAPL documents currently matching the ongoing authorization subscription.&#xA;@param subscriptionScopedEvaluationContext The current evaluation context.&#xA;@return a {@link Flux} of {@link AuthorizationDecision} objects containing the combined decision, the combined obligation and advice and a transformed resource if applicable. A new authorization decision object is only pushed if it is different from the previous one."/>
       </eAnnotations>
       <eParameters name="policyRetrievalResult" eType="#//PolicyRetrievalResult"/>
-      <eParameters name="subscriptionScopedEvaluationContext" eType="#//EvaluationContext"/>
     </eOperations>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="DenyOverridesCombiningAlgorithm" eSuperTypes="#//CombiningAlgorithm"/>

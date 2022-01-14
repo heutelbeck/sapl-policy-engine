@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import io.sapl.grammar.sapl.SAPL;
-import io.sapl.interpreter.EvaluationContext;
 import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEvent.Type;
@@ -32,8 +31,8 @@ import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
 /**
- * The Index Object has to be immutable to avoid race conditions. SAPL Objects are assumed
- * to be immutable.
+ * The Index Object has to be immutable to avoid race conditions. SAPL Objects
+ * are assumed to be immutable.
  */
 @Slf4j
 @ToString
@@ -45,26 +44,25 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
 
 	public NaiveImmutableParsedDocumentIndex() {
 		documentsByName = new HashMap<>();
-		consistent = true;
+		consistent      = true;
 	}
 
 	private NaiveImmutableParsedDocumentIndex(Map<String, SAPL> documentsByName, boolean consistent) {
 		this.documentsByName = documentsByName;
-		this.consistent = consistent;
+		this.consistent      = consistent;
 	}
 
 	@Override
-	public Mono<PolicyRetrievalResult> retrievePolicies(EvaluationContext subscriptionScopedEvaluationContext) {
-		return retrievePoliciesCollector(subscriptionScopedEvaluationContext);
+	public Mono<PolicyRetrievalResult> retrievePolicies() {
+		return retrievePoliciesCollector();
 	}
 
-	public Mono<PolicyRetrievalResult> retrievePoliciesCollector(
-			EvaluationContext subscriptionScopedEvaluationContext) {
+	public Mono<PolicyRetrievalResult> retrievePoliciesCollector() {
 		if (!consistent)
 			return Mono.just(new PolicyRetrievalResult().withInvalidState());
 
 		var documentsWithMatchingInformation = Flux.merge(documentsByName.values().stream().map(
-				document -> document.matches(subscriptionScopedEvaluationContext).map(val -> Tuples.of(document, val)))
+				document -> document.matches().map(val -> Tuples.of(document, val)))
 				.collect(Collectors.toList()));
 
 		// refactor inner lambda to function
@@ -87,16 +85,14 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
 	@Override
 	public ImmutableParsedDocumentIndex apply(PrpUpdateEvent event) {
 		// Do a shallow copy. String is immutable, and SAPL is assumed to be too.
-		var newDocuments = new HashMap<>(documentsByName);
+		var newDocuments        = new HashMap<>(documentsByName);
 		var newConsistencyState = consistent;
 		for (var update : event.getUpdates()) {
 			if (update.getType() == Type.CONSISTENT) {
 				newConsistencyState = true;
-			}
-			else if (update.getType() == Type.INCONSISTENT) {
+			} else if (update.getType() == Type.INCONSISTENT) {
 				newConsistencyState = false;
-			}
-			else {
+			} else {
 				applyUpdate(newDocuments, update);
 			}
 		}
@@ -108,8 +104,7 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
 		var name = update.getDocument().getPolicyElement().getSaplName();
 		if (update.getType() == Type.WITHDRAW) {
 			newDocuments.remove(name);
-		}
-		else {
+		} else {
 			newDocuments.put(name, update.getDocument());
 		}
 	}

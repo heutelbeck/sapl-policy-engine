@@ -20,32 +20,16 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.HashMap;
-
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
-
 class CanonicalMatchingContextTest {
-
-	private EvaluationContext subscriptionScopedEvaluationContext;
-
-	@BeforeEach
-	void setUp() {
-		subscriptionScopedEvaluationContext = new EvaluationContext(new AnnotationAttributeContext(),
-				new AnnotationFunctionContext(), new HashMap<>());
-
-	}
 
 	@Test
 	void test_is_referenced() {
 		var candidates = new Bitmask();
-		var predicate = new Predicate(new Bool(true));
+		var predicate  = new Predicate(new Bool(true));
 
-		var matchingCtx = new CanonicalIndexMatchingContext(0, subscriptionScopedEvaluationContext);
+		var matchingCtx = new CanonicalIndexMatchingContext(0);
 
 		assertFalse(matchingCtx.isPredicateReferencedInCandidates(predicate));
 
@@ -59,7 +43,7 @@ class CanonicalMatchingContextTest {
 
 	@Test
 	void testAreAllFunctionsEliminated() {
-		var matchingCtx = new CanonicalIndexMatchingContext(2, subscriptionScopedEvaluationContext);
+		var matchingCtx = new CanonicalIndexMatchingContext(2);
 
 		matchingCtx.increaseNumberOfEliminatedFormulasForConjunction(0, 42);
 		assertThat(matchingCtx.areAllFunctionsEliminated(0, 42), is(true));

@@ -15,15 +15,12 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import java.util.HashMap;
-
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
@@ -57,15 +54,13 @@ public class PRPAutoConfiguration {
 		ImmutableParsedDocumentIndex seedIndex;
 		if (pdpProperties.getIndex() == IndexType.NAIVE) {
 			seedIndex = new NaiveImmutableParsedDocumentIndex();
-		}
-		else {
+		} else {
 			// This index type has to normalize function calls based on import statements
 			// Variables do not need to be bound here. Thus, this hind of static PDP
 			// scoped
 			// evaluation context is sufficient. Variables will be bound later in the
 			// subscription scoped EvaluationContext handed over for lookup.
-			seedIndex = new CanonicalImmutableParsedDocumentIndex(
-					new EvaluationContext(attributeContext, functionContext, new HashMap<>()));
+			seedIndex = new CanonicalImmutableParsedDocumentIndex(attributeContext, functionContext);
 		}
 		return new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, eventSource);
 	}

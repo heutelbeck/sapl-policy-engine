@@ -21,44 +21,57 @@ import java.util.function.Function;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.BinaryOperator;
 import io.sapl.grammar.sapl.UnaryOperator;
-import io.sapl.interpreter.EvaluationContext;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 
 @UtilityClass
 public class OperatorUtil {
 
-	public static Flux<Val> operator(BinaryOperator operator, Function<Val, Val> leftTypeRequirement,
-			Function<Val, Val> rightTypeRequirement, BiFunction<Val, Val, Val> transformation, EvaluationContext ctx,
+	public static Flux<Val> operator(
+			BinaryOperator operator,
+			Function<Val, Val> leftTypeRequirement,
+			Function<Val, Val> rightTypeRequirement,
+			BiFunction<Val, Val, Val> transformation,
 			Val relativeNode) {
-		var left = operator.getLeft().evaluate(ctx, relativeNode).map(leftTypeRequirement);
-		var right = operator.getRight().evaluate(ctx, relativeNode).map(rightTypeRequirement);
+		var left  = operator.getLeft().evaluate(relativeNode).map(leftTypeRequirement);
+		var right = operator.getRight().evaluate(relativeNode).map(rightTypeRequirement);
 		return Flux.combineLatest(left, right, errorOrDo(transformation));
 	}
 
-	public static Flux<Val> arithmeticOperator(BinaryOperator operator, BiFunction<Val, Val, Val> transformation,
-			EvaluationContext ctx, Val relativeNode) {
-		return operator(operator, Val::requireBigDecimal, Val::requireBigDecimal, transformation, ctx, relativeNode);
+	public static Flux<Val> arithmeticOperator(
+			BinaryOperator operator,
+			BiFunction<Val, Val, Val> transformation,
+			Val relativeNode) {
+		return operator(operator, Val::requireBigDecimal, Val::requireBigDecimal, transformation, relativeNode);
 	}
 
-	public static Flux<Val> arithmeticOperator(UnaryOperator unarayOperator, Function<Val, Val> transformation,
-			EvaluationContext ctx, Val relativeNode) {
-		return operator(unarayOperator, Val::requireBigDecimal, transformation, ctx, relativeNode);
+	public static Flux<Val> arithmeticOperator(
+			UnaryOperator unarayOperator,
+			Function<Val, Val> transformation,
+			Val relativeNode) {
+		return operator(unarayOperator, Val::requireBigDecimal, transformation, relativeNode);
 	}
 
-	public static Flux<Val> booleanOperator(BinaryOperator operator, BiFunction<Val, Val, Val> transformation,
-			EvaluationContext ctx, Val relativeNode) {
-		return operator(operator, Val::requireBoolean, Val::requireBoolean, transformation, ctx, relativeNode);
+	public static Flux<Val> booleanOperator(
+			BinaryOperator operator,
+			BiFunction<Val, Val, Val> transformation,
+			Val relativeNode) {
+		return operator(operator, Val::requireBoolean, Val::requireBoolean, transformation, relativeNode);
 	}
 
-	public static Flux<Val> operator(BinaryOperator operator, BiFunction<Val, Val, Val> transformation,
-			EvaluationContext ctx, Val relativeNode) {
-		return operator(operator, Function.identity(), Function.identity(), transformation, ctx, relativeNode);
+	public static Flux<Val> operator(
+			BinaryOperator operator,
+			BiFunction<Val, Val, Val> transformation,
+			Val relativeNode) {
+		return operator(operator, Function.identity(), Function.identity(), transformation, relativeNode);
 	}
 
-	public static Flux<Val> operator(UnaryOperator unarayOperator, Function<Val, Val> typeRequirement,
-			Function<Val, Val> transformation, EvaluationContext ctx, Val relativeNode) {
-		return unarayOperator.getExpression().evaluate(ctx, relativeNode).map(typeRequirement)
+	public static Flux<Val> operator(
+			UnaryOperator unarayOperator,
+			Function<Val, Val> typeRequirement,
+			Function<Val, Val> transformation,
+			Val relativeNode) {
+		return unarayOperator.getExpression().evaluate(relativeNode).map(typeRequirement)
 				.map(errorOrDo(transformation));
 	}
 

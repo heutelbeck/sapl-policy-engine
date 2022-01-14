@@ -21,7 +21,6 @@ import java.util.Optional;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.grammar.sapl.CombiningAlgorithm;
-import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import lombok.RequiredArgsConstructor;
@@ -42,12 +41,10 @@ public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPC
 				variablesAndCombinatorSource.getVariables(), this::createConfiguration);
 	}
 
-	private PDPConfiguration createConfiguration(Optional<CombiningAlgorithm> combinator,
+	private PDPConfiguration createConfiguration(
+			Optional<CombiningAlgorithm> combinator,
 			Optional<Map<String, JsonNode>> variables) {
-		return new PDPConfiguration(
-				variables.map(stringJsonNodeMap -> new EvaluationContext(attributeCtx, functionCtx, stringJsonNodeMap))
-						.orElse(null),
-				combinator.orElse(null));
+		return new PDPConfiguration(attributeCtx, functionCtx, variables.orElse(null), combinator.orElse(null));
 	}
 
 	@Override

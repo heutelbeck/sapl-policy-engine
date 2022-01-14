@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
-import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -29,10 +28,11 @@ import reactor.core.publisher.Flux;
  * Implements the expression subscript of an array (or object), written as
  * '[(Expression)]'.
  *
- * Returns the value of an attribute with a key or an array item with an index specified
- * by an expression. Expression must evaluate to a string or a number. If Expression
- * evaluates to a string, the selection can only be applied to an object. If Expression
- * evaluates to a number, the selection can only be applied to an array.
+ * Returns the value of an attribute with a key or an array item with an index
+ * specified by an expression. Expression must evaluate to a string or a number.
+ * If Expression evaluates to a string, the selection can only be applied to an
+ * object. If Expression evaluates to a number, the selection can only be
+ * applied to an array.
  *
  * Example: The expression step can be used to refer to custom variables
  * (object.array[(anIndex+2)]) or apply custom functions
@@ -53,43 +53,50 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 	private static final String EXPRESSIONS_STEP_ONLY_APPLICABLE_TO_ARRAY_OR_OBJECT_WAS_S = "Expressions step only applicable to Array or Object. was: %s";
 
 	@Override
-	public Flux<Val> apply(@NonNull Val parentValue, @NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
+	public Flux<Val> apply(@NonNull Val parentValue, @NonNull Val relativeNode) {
 		if (parentValue.isError()) {
 			return Flux.just(parentValue);
 		}
 		if (parentValue.isArray()) {
-			return expression.evaluate(ctx, relativeNode)
+			return expression.evaluate(relativeNode)
 					.map(index -> extractValueAt(parentValue.getArrayNode(), index));
 		}
 		if (parentValue.isObject()) {
-			return expression.evaluate(ctx, relativeNode).map(index -> extractKey(parentValue.get(), index));
+			return expression.evaluate(relativeNode).map(index -> extractKey(parentValue.get(), index));
 		}
 		return Val.errorFlux(EXPRESSIONS_STEP_ONLY_APPLICABLE_TO_ARRAY_OR_OBJECT_WAS_S, parentValue);
 	}
 
 	@Override
-	public Flux<Val> applyFilterStatement(@NonNull Val parentValue, @NonNull EvaluationContext ctx,
-			@NonNull Val relativeNode, int stepId, @NonNull FilterStatement statement) {
+	public Flux<Val> applyFilterStatement(
+			@NonNull Val parentValue,
+			@NonNull Val relativeNode,
+			int stepId,
+			@NonNull FilterStatement statement) {
 		log.trace("apply expression step to: {}", parentValue);
 		if (!parentValue.isArray() && !parentValue.isObject()) {
 			// this means the element does not get selected does not get filtered
 			return Flux.just(parentValue);
 		}
-		return expression.evaluate(ctx, relativeNode)
-				.concatMap(key -> applyFilterStatement(key, parentValue, ctx, relativeNode, stepId, statement));
+		return expression.evaluate(relativeNode)
+				.concatMap(key -> applyFilterStatement(key, parentValue, relativeNode, stepId, statement));
 	}
 
-	private Flux<Val> applyFilterStatement(Val key, Val parentValue, EvaluationContext ctx, Val relativeNode,
-			int stepId, FilterStatement statement) {
+	private Flux<Val> applyFilterStatement(
+			Val key,
+			Val parentValue,
+			Val relativeNode,
+			int stepId,
+			FilterStatement statement) {
 		log.trace("apply expression result '{}'to: {}", key, parentValue);
 		if (key.isTextual() && parentValue.isObject()) {
 			// This is a KeyStep equivalent
-			return KeyStepImplCustom.applyKeyStepFilterStatement(key.getText(), parentValue, ctx, relativeNode, stepId,
+			return KeyStepImplCustom.applyKeyStepFilterStatement(key.getText(), parentValue, relativeNode, stepId,
 					statement);
 		}
 		if (key.isNumber() && parentValue.isArray()) {
 			// This is an IndexStep equivalent
-			return IndexStepImplCustom.doApplyFilterStatement(key.decimalValue(), parentValue, ctx, relativeNode,
+			return IndexStepImplCustom.doApplyFilterStatement(key.decimalValue(), parentValue, relativeNode,
 					stepId, statement);
 		}
 		return Val.errorFlux("Type mismatch. Tried to access {} with {}", parentValue.getValType(), key.getValType());

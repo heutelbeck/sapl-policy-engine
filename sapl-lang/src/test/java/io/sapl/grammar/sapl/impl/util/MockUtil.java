@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.functions.FilterFunctionLibrary;
@@ -34,51 +35,54 @@ import io.sapl.grammar.sapl.AttributeFinderStep;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
-import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.SimpleFunctionLibrary;
+import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import reactor.core.publisher.Flux;
+import reactor.util.context.Context;
 
 public class MockUtil {
 
 	private static final SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
 
 	public static void mockPolicyTargetExpressionContainerExpression(Expression expression) {
-		var policy = FACTORY.createPolicy();
+		var policy                  = FACTORY.createPolicy();
 		var targetExpressionFeature = policy.eClass().getEStructuralFeature("targetExpression");
 		policy.eSet(targetExpressionFeature, expression);
 	}
 
 	public static void mockPolicySetTargetExpressionContainerExpression(Expression expression) {
-		var policySet = FACTORY.createPolicySet();
+		var policySet               = FACTORY.createPolicySet();
 		var targetExpressionFeature = policySet.eClass().getEStructuralFeature("targetExpression");
 		policySet.eSet(targetExpressionFeature, expression);
 	}
 
-	public static EvaluationContext constructTestEnvironmentPdpScopedEvaluationContext() {
-
+	public static Context setUpAuthorizationContext(Context ctx) {
 		var attributeCtx = new AnnotationAttributeContext();
-		var functionCtx = new AnnotationFunctionContext();
+		var functionCtx  = new AnnotationFunctionContext();
 		try {
 			attributeCtx.loadPolicyInformationPoint(new TestPolicyInformationPoint());
 			functionCtx.loadLibrary(new SimpleFunctionLibrary());
 			functionCtx.loadLibrary(new FilterFunctionLibrary());
 			functionCtx.loadLibrary(new TestFunctionLibrary());
-		}
-		catch (InitializationException e) {
+		} catch (InitializationException e) {
 			fail("The loading of function libraries for the test environemnt failed: " + e.getMessage());
 		}
-		var variables = new HashMap<String, JsonNode>(1);
-		variables.put("nullVariable", Val.JSON.nullNode());
 
-		var evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, variables);
-		var imports = new HashMap<String, String>();
+		ctx = AuthorizationContext.setAttributeContext(ctx, attributeCtx);
+		ctx = AuthorizationContext.setFunctionContext(ctx, functionCtx);
+		ctx = AuthorizationContext.setVariable(ctx, "nullVariable", Val.NULL);
+		ctx = AuthorizationContext.setImports(ctx, new HashMap<String, String>());
 
-		evaluationCtx = evaluationCtx.withImports(imports);
+		return ctx;
+	}
 
-		return evaluationCtx;
+	public static Context setUpAuthorizationContext(Context ctx, AuthorizationSubscription authzSubscription) {
+		ctx = setUpAuthorizationContext(ctx);
+		ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription);
+		return ctx;
 	}
 
 	@FunctionLibrary(name = "mock")
@@ -145,7 +149,7 @@ public class MockUtil {
 			AttributeFinderStep expression) {
 		var basicIdentifier = FACTORY.createBasicIdentifier();
 		mockPolicyTargetExpressionContainerExpression(basicIdentifier);
-		var stepsFeature = basicIdentifier.eClass().getEStructuralFeature("steps");
+		var stepsFeature  = basicIdentifier.eClass().getEStructuralFeature("steps");
 		var stepsInstance = (EList<Object>) basicIdentifier.eGet(stepsFeature, true);
 		stepsInstance.add(expression);
 	}
@@ -155,7 +159,7 @@ public class MockUtil {
 			AttributeFinderStep expression) {
 		var basicIdentifier = FACTORY.createBasicIdentifier();
 		mockPolicySetTargetExpressionContainerExpression(basicIdentifier);
-		var stepsFeature = basicIdentifier.eClass().getEStructuralFeature("steps");
+		var stepsFeature  = basicIdentifier.eClass().getEStructuralFeature("steps");
 		var stepsInstance = (EList<Object>) basicIdentifier.eGet(stepsFeature, true);
 		stepsInstance.add(expression);
 	}

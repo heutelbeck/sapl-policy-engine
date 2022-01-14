@@ -33,10 +33,8 @@ public class A_PolicySimpleTest {
 
 	@Test
 	void test_simplePolicy() {
-
 		fixture.constructTestCase().when(AuthorizationSubscription.of("willi", "read", "something")).expectPermit()
 				.verify();
-
 	}
 
 }

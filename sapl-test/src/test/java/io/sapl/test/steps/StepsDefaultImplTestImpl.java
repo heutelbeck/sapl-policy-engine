@@ -25,7 +25,7 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.test.mocking.attribute.MockingAttributeContext;
@@ -39,23 +39,33 @@ public class StepsDefaultImplTestImpl extends StepsDefaultImpl {
 
 	StepsDefaultImplTestImpl(String document, AttributeContext attrCtx, FunctionContext funcCtx,
 			Map<String, JsonNode> variables) {
-		this.document = new DefaultSAPLInterpreter().parse(document);
-		this.mockingFunctionContext = new MockingFunctionContext(funcCtx);
+		this.document                = new DefaultSAPLInterpreter().parse(document);
+		this.mockingFunctionContext  = new MockingFunctionContext(funcCtx);
 		this.mockingAttributeContext = new MockingAttributeContext(attrCtx);
-		this.variables = variables;
-		this.mockedAttributeValues = new LinkedList<>();
+		this.variables               = variables;
+		this.mockedAttributeValues   = new LinkedList<>();
 	}
 
 	@Override
 	protected void createStepVerifier(AuthorizationSubscription authzSub) {
-		EvaluationContext ctx = new EvaluationContext(this.mockingAttributeContext, this.mockingFunctionContext,
-				this.variables).forAuthorizationSubscription(authzSub);
 
-		Val matchResult = this.document.matches(ctx).block();
+		Val matchResult = this.document.matches().contextWrite(ctx -> {
+			ctx = AuthorizationContext.setAttributeContext(ctx, this.mockingAttributeContext);
+			ctx = AuthorizationContext.setFunctionContext(ctx, this.mockingFunctionContext);
+			ctx = AuthorizationContext.setVariables(ctx, this.variables);
+			ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSub);
+			return ctx;
+		}).block();
 
 		if (matchResult.isBoolean() && matchResult.getBoolean()) {
 
-			this.steps = StepVerifier.create(this.document.evaluate(ctx));
+			this.steps = StepVerifier.create(this.document.evaluate().contextWrite(ctx -> {
+				ctx = AuthorizationContext.setAttributeContext(ctx, this.mockingAttributeContext);
+				ctx = AuthorizationContext.setFunctionContext(ctx, this.mockingFunctionContext);
+				ctx = AuthorizationContext.setVariables(ctx, this.variables);
+				ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSub);
+				return ctx;
+			}));
 
 			for (AttributeMockReturnValues mock : this.mockedAttributeValues) {
 				String fullname = mock.getFullName();
@@ -63,8 +73,7 @@ public class StepsDefaultImplTestImpl extends StepsDefaultImpl {
 					this.steps = this.steps.then(() -> this.mockingAttributeContext.mockEmit(fullname, val));
 				}
 			}
-		}
-		else {
+		} else {
 			this.steps = StepVerifier.create(Flux.just(AuthorizationDecision.NOT_APPLICABLE));
 		}
 	}

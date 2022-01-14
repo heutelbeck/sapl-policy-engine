@@ -15,7 +15,6 @@
  */
 package io.sapl.functions;
 
-import static io.sapl.grammar.sapl.impl.util.MockUtil.constructTestEnvironmentPdpScopedEvaluationContext;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.comparesEqualTo;
 
@@ -25,6 +24,7 @@ import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.grammar.sapl.impl.util.ParserUtil;
 
 class ArtihmeticExpressionsTest {
@@ -76,7 +76,7 @@ class ArtihmeticExpressionsTest {
 
 	private void assertEvaluatesTo(String given, double expected) throws IOException {
 		var expression = ParserUtil.expression(given);
-		var actual = expression.evaluate(constructTestEnvironmentPdpScopedEvaluationContext(), Val.UNDEFINED)
+		var actual     = expression.evaluate(Val.UNDEFINED).contextWrite(MockUtil::setUpAuthorizationContext)
 				.blockFirst();
 		assertThat(actual.decimalValue(), comparesEqualTo(BigDecimal.valueOf(expected)));
 	}

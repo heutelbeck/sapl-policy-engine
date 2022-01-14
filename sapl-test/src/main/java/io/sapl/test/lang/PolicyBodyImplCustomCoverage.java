@@ -15,7 +15,7 @@
  */
 package io.sapl.test.lang;
 
-import java.util.function.Function;
+import org.eclipse.emf.ecore.EObject;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Condition;
@@ -23,16 +23,10 @@ import io.sapl.grammar.sapl.Policy;
 import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.grammar.sapl.SaplPackage;
 import io.sapl.grammar.sapl.impl.PolicyBodyImplCustom;
-import io.sapl.interpreter.EvaluationContext;
 import io.sapl.test.coverage.api.CoverageHitRecorder;
 import io.sapl.test.coverage.api.model.PolicyConditionHit;
-
-import org.eclipse.emf.ecore.EObject;
-import org.reactivestreams.Publisher;
-
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
-import reactor.util.function.Tuple2;
 
 @Slf4j
 public class PolicyBodyImplCustomCoverage extends PolicyBodyImplCustom {
@@ -46,19 +40,20 @@ public class PolicyBodyImplCustomCoverage extends PolicyBodyImplCustom {
 	}
 
 	@Override
-	protected Function<? super Tuple2<Val, EvaluationContext>, Publisher<? extends Tuple2<Val, EvaluationContext>>> evaluateStatements(
+
+	protected Flux<Val> evaluateStatements(
+			Val previousResult,
 			int statementId) {
 		this.currentStatementId = statementId;
-		return super.evaluateStatements(statementId);
+		return super.evaluateStatements(previousResult, statementId);
 	}
 
 	@Override
-	protected Flux<Tuple2<Val, EvaluationContext>> evaluateCondition(Val previousResult, Condition condition,
-			EvaluationContext ctx) {
-		return super.evaluateCondition(previousResult, condition, ctx).doOnNext(result -> {
-			if (result.getT1().isBoolean()) {
-				String policySetId = "";
-				String policyId;
+	protected Flux<Val> evaluateCondition(Val previousResult, Condition condition) {
+		return super.evaluateCondition(previousResult, condition).doOnNext(result -> {
+			if (result.isBoolean()) {
+				String  policySetId = "";
+				String  policyId;
 				EObject eContainer1 = eContainer();
 				// A PolicyBody outside a Policy is not allowed -> thus a pre-cast if
 				// statement like the following
@@ -69,11 +64,8 @@ public class PolicyBodyImplCustomCoverage extends PolicyBodyImplCustom {
 				if (eContainer2.eClass().equals(SaplPackage.Literals.POLICY_SET)) {
 					policySetId = ((PolicySet) eContainer2).getSaplName();
 				}
-				// because of implementation of super method and switchMap -> this is
-				// executed on the actual statementId-1
-				int actualStatementId = this.currentStatementId - 1;
-				PolicyConditionHit hit = new PolicyConditionHit(policySetId, policyId, actualStatementId,
-						result.getT1().getBoolean());
+				PolicyConditionHit hit               = new PolicyConditionHit(policySetId, policyId, currentStatementId,
+						result.getBoolean());
 				log.trace("| | | | |-- Hit PolicyCondition: " + hit);
 				this.hitRecorder.recordPolicyConditionHit(hit);
 			}

@@ -46,8 +46,6 @@ class SampleOurPuppetTest {
 	static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
 	static final AnnotationFunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
 	static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<String, JsonNode>());
-	static final EvaluationContext PDP_EVALUATION_CONTEXT = new EvaluationContext(ATTRIBUTE_CTX, FUNCTION_CTX,
-		SYSTEM_VARIABLES);
 
 	@BeforeEach
 	def void setUp() {
@@ -132,8 +130,8 @@ class SampleOurPuppetTest {
 			Optional.empty(), Optional.empty())
 
 		assertThat("anonymizing patient data for annotators not working as expected",
-			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
-			equalTo(expectedAuthzDecision));
+			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+				SYSTEM_VARIABLES).blockFirst(), equalTo(expectedAuthzDecision));
 	}
 
 	@Test
@@ -198,7 +196,8 @@ class SampleOurPuppetTest {
 		''', JsonNode);
 
 		assertThat("anonymizing patient data for doctors not working as expected",
-			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
+			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+				SYSTEM_VARIABLES).blockFirst(),
 			equalTo(
 				new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(),
 					Optional.empty())));
@@ -307,7 +306,8 @@ class SampleOurPuppetTest {
 		''', JsonNode);
 
 		assertThat("truncating detected situations for familymembers not working as expected",
-			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
+			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+				SYSTEM_VARIABLES).blockFirst(),
 			equalTo(
 				new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(),
 					Optional.empty())));
@@ -406,7 +406,8 @@ class SampleOurPuppetTest {
 		''', JsonNode);
 
 		assertThat("truncating detected situations for professional caregivers not working as expected",
-			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
+			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+				SYSTEM_VARIABLES).blockFirst(),
 			equalTo(
 				new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(),
 					Optional.empty())));
@@ -503,7 +504,8 @@ class SampleOurPuppetTest {
 
 		Hooks.onOperatorDebug()
 		assertThat("truncating detected situations for puppetintroducers not working as expected",
-			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
+			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+				SYSTEM_VARIABLES).blockFirst(),
 			equalTo(
 				new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(),
 					Optional.empty())));

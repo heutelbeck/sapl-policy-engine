@@ -21,13 +21,12 @@ import org.reactivestreams.Publisher;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
-import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
 public class FilterExtendedImplCustom extends FilterExtendedImpl {
 
 	@Override
-	public Flux<Val> apply(Val unfilteredValue, EvaluationContext ctx, Val relativeNode) {
+	public Flux<Val> apply(Val unfilteredValue, Val relativeNode) {
 		if (unfilteredValue.isError()) {
 			return Flux.just(unfilteredValue);
 		}
@@ -37,34 +36,29 @@ public class FilterExtendedImplCustom extends FilterExtendedImpl {
 		if (statements == null) {
 			return Flux.just(unfilteredValue);
 		}
-		return Flux.just(unfilteredValue).switchMap(applyFilterStatements(ctx, relativeNode));
+		return Flux.just(unfilteredValue).switchMap(applyFilterStatements(relativeNode));
 	}
 
-	private Function<? super Val, Publisher<? extends Val>> applyFilterStatements(EvaluationContext ctx,
-			Val relativeNode) {
-		return applyFilterStatements(0, ctx, relativeNode);
+	private Function<? super Val, Publisher<? extends Val>> applyFilterStatements(Val relativeNode) {
+		return applyFilterStatements(0, relativeNode);
 	}
 
-	private Function<? super Val, Publisher<? extends Val>> applyFilterStatements(int statementId,
-			EvaluationContext ctx, Val relativeNode) {
+	private Function<? super Val, Publisher<? extends Val>> applyFilterStatements(int statementId, Val relativeNode) {
 		if (statementId == statements.size()) {
 			return Flux::just;
 		}
-		return value -> applyFilterStatement(value, statements.get(statementId), ctx, relativeNode)
-				.switchMap(applyFilterStatements(statementId + 1, ctx, relativeNode));
+		return value -> applyFilterStatement(value, statements.get(statementId), relativeNode)
+				.switchMap(applyFilterStatements(statementId + 1, relativeNode));
 	}
 
-	private Flux<Val> applyFilterStatement(Val unfilteredValue, FilterStatement statement, EvaluationContext ctx,
-			Val relativeNode) {
+	private Flux<Val> applyFilterStatement(Val unfilteredValue, FilterStatement statement, Val relativeNode) {
 		if (statement.getTarget().getSteps().size() == 0) {
 			// the expression has no steps. apply filter to unfiltered node directly
 			return applyFilterFunction(unfilteredValue, statement.getArguments(),
-					FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx, relativeNode,
-					statement.isEach());
-		}
-		else {
+					statement.getFsteps(), relativeNode, statement.isEach());
+		} else {
 			// descent with steps
-			return statement.getTarget().getSteps().get(0).applyFilterStatement(unfilteredValue, ctx, relativeNode, 0,
+			return statement.getTarget().getSteps().get(0).applyFilterStatement(unfilteredValue, relativeNode, 0,
 					statement);
 		}
 	}

@@ -15,7 +15,6 @@
  */
 package io.sapl.prp.index.canonical;
 
-import io.sapl.interpreter.EvaluationContext;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -31,24 +30,17 @@ public class CanonicalIndexMatchingContext {
 	private final int[] eliminatedFormulasWithConjunction;
 
 	@Getter
-	private final EvaluationContext subscriptionScopedEvaluationContext;
-
-	@Getter
 	@Setter
 	private boolean errorsInTargets = false;
 
-	public CanonicalIndexMatchingContext(int numberOfConjunctions,
-			EvaluationContext subscriptionScopedEvaluationContext) {
-
+	public CanonicalIndexMatchingContext(int numberOfConjunctions) {
 		candidatesMask = new Bitmask();
 		candidatesMask.set(0, numberOfConjunctions);
 
 		matchingCandidatesMask = new Bitmask();
 
-		trueLiteralsOfConjunction = new int[numberOfConjunctions];
+		trueLiteralsOfConjunction         = new int[numberOfConjunctions];
 		eliminatedFormulasWithConjunction = new int[numberOfConjunctions];
-
-		this.subscriptionScopedEvaluationContext = subscriptionScopedEvaluationContext;
 	}
 
 	Bitmask getCopyOfCandidates() {

@@ -25,7 +25,6 @@ import java.util.Map;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.AuthorizationDecisionEvaluable;
 import io.sapl.grammar.sapl.SAPL;
-import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
@@ -47,8 +46,8 @@ public class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {
 	}
 
 	private Map<String, SAPL> readPoliciesFromDirectory(String path, SAPLInterpreter interpreter) {
-		Map<String, SAPL> documents = new HashMap<>();
-		Path policyDirectoryPath = ClasspathHelper.findPathOnClasspath(getClass().getClassLoader(), path);
+		Map<String, SAPL> documents           = new HashMap<>();
+		Path              policyDirectoryPath = ClasspathHelper.findPathOnClasspath(getClass().getClassLoader(), path);
 		log.debug("reading policies from directory {}", policyDirectoryPath);
 
 		try (DirectoryStream<Path> stream = Files.newDirectoryStream(policyDirectoryPath, POLICIES_FILE_GLOB_PATTERN)) {
@@ -57,19 +56,18 @@ public class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {
 				SAPL sapl = interpreter.parse(Files.newInputStream(filePath));
 				documents.put(sapl.getPolicyElement().getSaplName(), sapl);
 			}
-		}
-		catch (IOException | PolicyEvaluationException e) {
+		} catch (IOException | PolicyEvaluationException e) {
 			throw Exceptions.propagate(e);
 		}
 		return documents;
 	}
 
 	@Override
-	public Flux<PolicyRetrievalResult> retrievePolicies(EvaluationContext subscriptionScopedEvaluationContext) {
+	public Flux<PolicyRetrievalResult> retrievePolicies() {
 		var retrieval = Mono.just(new PolicyRetrievalResult());
 		for (SAPL document : documents.values()) {
 			retrieval = retrieval
-					.flatMap(retrievalResult -> document.matches(subscriptionScopedEvaluationContext).map(match -> {
+					.flatMap(retrievalResult -> document.matches().map(match -> {
 						if (match.isError()) {
 							return retrievalResult.withError();
 						}
@@ -86,8 +84,7 @@ public class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {
 	private void logMatching(PolicyRetrievalResult result) {
 		if (result.getMatchingDocuments().isEmpty()) {
 			log.trace("|-- Matching documents: NONE");
-		}
-		else {
+		} else {
 			log.trace("|-- Matching documents:");
 			for (AuthorizationDecisionEvaluable doc : result.getMatchingDocuments())
 				log.trace("| |-- * {} ", doc);

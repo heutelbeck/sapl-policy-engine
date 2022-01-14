@@ -17,12 +17,13 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
-import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -30,40 +31,47 @@ import reactor.core.publisher.Mono;
 @UtilityClass
 public class FunctionUtil {
 
-	public Flux<Val[]> combineArgumentFluxes(Arguments arguments, EvaluationContext ctx, Val relativeNode) {
-		if (arguments == null || arguments.getArgs().size() == 0) {
+	public Flux<Val[]> combineArgumentFluxes(Arguments arguments, Val relativeNode) {
+		if (arguments == null || arguments.getArgs().size() == 0)
 			return Mono.just(new Val[0]).flux();
-		}
-		return combine(argumentFluxes(arguments, ctx, relativeNode));
+
+		return combine(argumentFluxes(arguments, relativeNode));
 	}
 
-	public String resolveAbsoluteFunctionName(Iterable<String> steps, EvaluationContext ctx) {
+	public Mono<String> resolveAbsoluteFunctionName(Iterable<String> steps) {
+		return Mono.deferContextual(ctx -> Mono.just(resolveAbsoluteFunctionName(steps, AuthorizationContext.getImports(ctx))));
+	}
+
+	public String resolveAbsoluteFunctionName(Iterable<String> steps, Map<String, String> imports) {
 		var functionName = mergeStepsToName(steps);
-		return ctx.getImports().getOrDefault(functionName, functionName);
+		return imports.getOrDefault(functionName, functionName);
 	}
 
-	public Mono<Val> evaluateFunctionMono(Iterable<String> fsteps, EvaluationContext ctx, Val... parameters) {
-		return evaluateFunctionMono(mergeStepsToName(fsteps), ctx, parameters);
+	public String resolveAbsoluteFunctionName(String unresolvedFunctionName, Map<String, String> imports) {
+		return imports.getOrDefault(unresolvedFunctionName, unresolvedFunctionName);
 	}
 
-	public Mono<Val> evaluateFunctionMono(String functionName, EvaluationContext ctx, Val... parameters) {
-		return Mono.just(evaluateFunction(functionName, ctx, parameters));
+	public Mono<Val> evaluateFunctionMono(Iterable<String> fsteps, Val... parameters) {
+		return evaluateFunctionMono(mergeStepsToName(fsteps), parameters);
 	}
 
-	public Mono<Val> evaluateFunctionWithLeftHandArgumentMono(String functionName, EvaluationContext ctx,
-			Val leftHandArgument, Val... parameters) {
+	public Mono<Val> evaluateFunctionMono(String unresolvedFunctionName, Val... parameters) {
+		return Mono.deferContextual(ctx -> Mono.just(AuthorizationContext.functionContext(ctx)
+				.evaluate(resolveAbsoluteFunctionName(unresolvedFunctionName, AuthorizationContext.getImports(ctx)), parameters)));
+	}
+
+	public Mono<Val> evaluateFunctionWithLeftHandArgumentMono(
+			Iterable<String> fsteps,
+			Val leftHandArgument,
+			Val... parameters) {
 		Val[] mergedParameters = new Val[parameters.length + 1];
 		mergedParameters[0] = leftHandArgument;
 		System.arraycopy(parameters, 0, mergedParameters, 1, parameters.length);
-		return evaluateFunctionMono(functionName, ctx, mergedParameters);
+		return evaluateFunctionMono(fsteps, mergedParameters);
 	}
 
-	private Val evaluateFunction(String functionName, EvaluationContext ctx, Val... parameters) {
-		return ctx.getFunctionCtx().evaluate(resolveAbsoluteFunctionName(functionName, ctx), parameters);
-	}
-
-	private Stream<Flux<Val>> argumentFluxes(Arguments arguments, EvaluationContext ctx, Val relativeNode) {
-		return arguments.getArgs().stream().map(expression -> expression.evaluate(ctx, relativeNode));
+	private Stream<Flux<Val>> argumentFluxes(Arguments arguments, Val relativeNode) {
+		return arguments.getArgs().stream().map(expression -> expression.evaluate(relativeNode));
 	}
 
 	private Flux<Val[]> combine(Stream<Flux<Val>> argumentFluxes) {
@@ -73,10 +81,6 @@ public class FunctionUtil {
 
 	private String mergeStepsToName(Iterable<String> steps) {
 		return String.join(".", steps);
-	}
-
-	private String resolveAbsoluteFunctionName(String functionName, EvaluationContext ctx) {
-		return ctx.getImports().getOrDefault(functionName, functionName);
 	}
 
 }

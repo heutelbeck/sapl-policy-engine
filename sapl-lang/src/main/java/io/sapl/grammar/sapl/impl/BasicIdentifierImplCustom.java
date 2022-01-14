@@ -16,7 +16,7 @@
 package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
@@ -28,9 +28,11 @@ import reactor.core.publisher.Flux;
 public class BasicIdentifierImplCustom extends BasicIdentifierImpl {
 
 	@Override
-	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		var identifierFlux = Flux.just(ctx.getVariableCtx().get(getIdentifier()));
-		return identifierFlux.switchMap(resolveStepsFiltersAndSubTemplates(steps, ctx, relativeNode));
+	public Flux<Val> evaluate(@NonNull Val relativeNode) {
+		return Flux.deferContextual(ctx -> {
+			var identifierFlux = Flux.just(AuthorizationContext.getVariable(ctx, getIdentifier()));
+			return identifierFlux.switchMap(resolveStepsFiltersAndSubTemplates(steps, relativeNode));
+		});
 	}
 
 }

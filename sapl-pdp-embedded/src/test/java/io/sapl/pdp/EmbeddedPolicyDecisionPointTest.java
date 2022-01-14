@@ -15,7 +15,19 @@
  */
 package io.sapl.pdp;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
@@ -31,19 +43,8 @@ import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSource;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 class EmbeddedPolicyDecisionPointTest {
 
@@ -58,10 +59,10 @@ class EmbeddedPolicyDecisionPointTest {
 
 	@Test
 	void decide_withInvalidConfig_shouldReturnIntermediate() {
-		var configMock = mock(PDPConfiguration.class);
+		var configMock   = mock(PDPConfiguration.class);
 		var providerMock = mock(PDPConfigurationProvider.class);
-		var prpMock = mock(PolicyRetrievalPoint.class);
-		var embeddedPdp = new EmbeddedPolicyDecisionPoint(providerMock, prpMock);
+		var prpMock      = mock(PolicyRetrievalPoint.class);
+		var embeddedPdp  = new EmbeddedPolicyDecisionPoint(providerMock, prpMock);
 
 		when(providerMock.pdpConfiguration()).thenReturn(Flux.just(configMock));
 		when(configMock.isValid()).thenReturn(false);
@@ -80,40 +81,42 @@ class EmbeddedPolicyDecisionPointTest {
 
 	@Test
 	void decide_withEmptyRequest_shouldReturnDeny() {
-		AuthorizationSubscription emptyAuthzSubscription = new AuthorizationSubscription(JSON.nullNode(),
+		AuthorizationSubscription         emptyAuthzSubscription = new AuthorizationSubscription(JSON.nullNode(),
 				JSON.nullNode(), JSON.nullNode(), JSON.nullNode());
-		final Flux<AuthorizationDecision> authzDecisionFlux = pdp.decide(emptyAuthzSubscription);
+		final Flux<AuthorizationDecision> authzDecisionFlux      = pdp.decide(emptyAuthzSubscription);
 		StepVerifier.create(authzDecisionFlux)
 				.expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.DENY).thenCancel().verify();
 	}
 
 	@Test
 	void decide_withAllowedAction_shouldReturnPermit() {
-		AuthorizationSubscription simpleAuthzSubscription = new AuthorizationSubscription(JSON.textNode("willi"),
+		AuthorizationSubscription         simpleAuthzSubscription = new AuthorizationSubscription(
+				JSON.textNode("willi"),
 				JSON.textNode("read"), JSON.textNode("something"), JSON.nullNode());
-		final Flux<AuthorizationDecision> authzDecisionFlux = pdp.decide(simpleAuthzSubscription);
+		final Flux<AuthorizationDecision> authzDecisionFlux       = pdp.decide(simpleAuthzSubscription);
 		StepVerifier.create(authzDecisionFlux)
 				.expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.DENY).thenCancel().verify();
 	}
 
 	@Test
 	void decide_withInvalidPrpState_shouldReturnIntermediate() {
-		var prpMock = mock(PolicyRetrievalPoint.class);
+		var prpMock   = mock(PolicyRetrievalPoint.class);
 		var prpResult = mock(PolicyRetrievalResult.class);
 
-		var source = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
-		var attrCtx = new AnnotationAttributeContext();
-		var funcCtx = new AnnotationFunctionContext();
+		var source   = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
+		var attrCtx  = new AnnotationAttributeContext();
+		var funcCtx  = new AnnotationFunctionContext();
 		var provider = new FixedFunctionsAndAttributesPDPConfigurationProvider(attrCtx, funcCtx, source);
 
 		var embeddedPdp = new EmbeddedPolicyDecisionPoint(provider, prpMock);
 
-		when(prpMock.retrievePolicies(any())).thenReturn(Flux.just(prpResult));
+		when(prpMock.retrievePolicies()).thenReturn(Flux.just(prpResult));
 		when(prpResult.isPrpValidState()).thenReturn(false);
 
-		AuthorizationSubscription simpleAuthzSubscription = new AuthorizationSubscription(JSON.textNode("willi"),
+		AuthorizationSubscription         simpleAuthzSubscription = new AuthorizationSubscription(
+				JSON.textNode("willi"),
 				JSON.textNode("read"), JSON.textNode("something"), JSON.nullNode());
-		final Flux<AuthorizationDecision> authzDecisionFlux = embeddedPdp.decide(simpleAuthzSubscription);
+		final Flux<AuthorizationDecision> authzDecisionFlux       = embeddedPdp.decide(simpleAuthzSubscription);
 		StepVerifier.create(authzDecisionFlux)
 				.expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.INDETERMINATE).thenCancel()
 				.verify();
@@ -121,9 +124,10 @@ class EmbeddedPolicyDecisionPointTest {
 
 	@Test
 	void decide_withForbiddenAction_shouldReturnDeny() {
-		AuthorizationSubscription simpleAuthzSubscription = new AuthorizationSubscription(JSON.textNode("willi"),
+		AuthorizationSubscription         simpleAuthzSubscription = new AuthorizationSubscription(
+				JSON.textNode("willi"),
 				JSON.textNode("write"), JSON.textNode("something"), JSON.nullNode());
-		final Flux<AuthorizationDecision> authzDecisionFlux = pdp.decide(simpleAuthzSubscription);
+		final Flux<AuthorizationDecision> authzDecisionFlux       = pdp.decide(simpleAuthzSubscription);
 		StepVerifier.create(authzDecisionFlux)
 				.expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.DENY).thenCancel().verify();
 	}
@@ -168,21 +172,17 @@ class EmbeddedPolicyDecisionPointTest {
 		StepVerifier.create(flux).expectNextMatches(iad -> {
 			if (iad.getAuthorizationSubscriptionId().equals("id1")) {
 				return iad.getAuthorizationDecision().equals(AuthorizationDecision.PERMIT);
-			}
-			else if (iad.getAuthorizationSubscriptionId().equals("id2")) {
+			} else if (iad.getAuthorizationSubscriptionId().equals("id2")) {
 				return iad.getAuthorizationDecision().equals(AuthorizationDecision.DENY);
-			}
-			else {
+			} else {
 				throw new IllegalStateException("Invalid subscription id: " + iad.getAuthorizationSubscriptionId());
 			}
 		}).expectNextMatches(iad -> {
 			if (iad.getAuthorizationSubscriptionId().equals("id1")) {
 				return iad.getAuthorizationDecision().equals(AuthorizationDecision.DENY);
-			}
-			else if (iad.getAuthorizationSubscriptionId().equals("id2")) {
+			} else if (iad.getAuthorizationSubscriptionId().equals("id2")) {
 				return iad.getAuthorizationDecision().equals(AuthorizationDecision.DENY);
-			}
-			else {
+			} else {
 				throw new IllegalStateException("Invalid subscription id: " + iad.getAuthorizationSubscriptionId());
 			}
 		}).thenCancel().verify();

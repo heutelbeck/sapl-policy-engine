@@ -58,8 +58,8 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.SAPLInterpreter;
+import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.prp.PolicyRetrievalResult;
@@ -82,12 +82,10 @@ class CanonicalImmutableParsedDocumentIndexTest {
 
 	private Map<String, JsonNode> variables;
 
-	private EvaluationContext evaluationContext;
-
 	@BeforeAll
 	static void beforeClass() {
 		interpreter = new DefaultSAPLInterpreter();
-		json = JsonNodeFactory.instance;
+		json        = JsonNodeFactory.instance;
 	}
 
 	@BeforeEach
@@ -97,17 +95,16 @@ class CanonicalImmutableParsedDocumentIndexTest {
 			bindings.put(variable, null);
 		}
 
-		evaluationContext = new EvaluationContext(new AnnotationAttributeContext(), new AnnotationFunctionContext(),
-				new HashMap<>());
-		emptyIndex = new CanonicalImmutableParsedDocumentIndex(evaluationContext);
-		variables = new HashMap<>();
+		emptyIndex = new CanonicalImmutableParsedDocumentIndex(new AnnotationAttributeContext(),
+				new AnnotationFunctionContext());
+		variables  = new HashMap<>();
 	}
 
 	@Test
 	void return_empty_result_on_policy_evaluation_exception() {
 		try (MockedStatic<CanonicalIndexAlgorithm> mock = mockStatic(CanonicalIndexAlgorithm.class)) {
-			mock.when(() -> CanonicalIndexAlgorithm.match(any(), any())).thenThrow(new PolicyEvaluationException());
-			var result = emptyIndex.retrievePolicies(null).block();
+			mock.when(() -> CanonicalIndexAlgorithm.match(any())).thenThrow(new PolicyEvaluationException());
+			var result = emptyIndex.retrievePolicies().block();
 
 			assertNotNull(result);
 			assertTrue(result.getMatchingDocuments().isEmpty());
@@ -131,16 +128,16 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		/* WITHDRAW + INCONSISTENT */
 		prpUpdateEvent = new PrpUpdateEvent(update(Type.WITHDRAW, "p1"), update(Type.WITHDRAW, "p2"),
 				update(Type.INCONSISTENT, null));
-		updatedIndex = spyIndex.apply(prpUpdateEvent);
+		updatedIndex   = spyIndex.apply(prpUpdateEvent);
 		verify(spyIndex, times(2)).applyUpdate(any(), argThat(e -> e.getType() == Type.WITHDRAW));
 		verify(spyIndex, times(1)).recreateIndex(argThat(Map::isEmpty), eq(false));
 		spyIndex = (CanonicalImmutableParsedDocumentIndex) spy(updatedIndex);
 
-		assertFalse(updatedIndex.retrievePolicies(evaluationContext).block().isPrpValidState());
+		assertFalse(updatedIndex.retrievePolicies().block().isPrpValidState());
 
 		/* EMPTY */
 		prpUpdateEvent = new PrpUpdateEvent();
-		updatedIndex = spyIndex.apply(prpUpdateEvent);
+		updatedIndex   = spyIndex.apply(prpUpdateEvent);
 		verify(spyIndex, times(0)).applyUpdate(any(), any());
 		verify(spyIndex, times(1)).recreateIndex(argThat(Map::isEmpty), eq(false));
 	}
@@ -155,22 +152,24 @@ class CanonicalImmutableParsedDocumentIndexTest {
 	void test_return_empty_result_when_error_occurs() throws Exception {
 		InputStream resourceAsStream = getClass().getClassLoader()
 				.getResourceAsStream("it/error/policy_with_error.sapl");
-		SAPL withError = interpreter.parse(resourceAsStream);
+		SAPL        withError        = interpreter.parse(resourceAsStream);
 
 		List<Update> updates = new ArrayList<>(3);
 
 		updates.add(new Update(Type.PUBLISH, withError, withError.toString()));
 
-		PrpUpdateEvent prpUpdateEvent = new PrpUpdateEvent(updates);
-		ImmutableParsedDocumentIndex updatedIndex = emptyIndex.apply(prpUpdateEvent);
+		PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
+		ImmutableParsedDocumentIndex updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
-		AuthorizationSubscription authzSubscription = createRequestObject();
-		var subscriptionScopedEvaluationCtx = new EvaluationContext(new AnnotationAttributeContext(),
-				new AnnotationFunctionContext(), variables);
-		subscriptionScopedEvaluationCtx = subscriptionScopedEvaluationCtx
-				.forAuthorizationSubscription(authzSubscription);
 		// when
-		PolicyRetrievalResult result = updatedIndex.retrievePolicies(subscriptionScopedEvaluationCtx).block();
+		PolicyRetrievalResult result = updatedIndex.retrievePolicies()
+				.contextWrite(ctx -> {
+					ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+					ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+					ctx = AuthorizationContext.setVariables(ctx, variables);
+					ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
+					return ctx;
+				}).block();
 
 		// then
 		assertNotNull(result);
@@ -183,38 +182,38 @@ class CanonicalImmutableParsedDocumentIndexTest {
 	@Test
 	void test_orphaned() {
 		// given
-		EvaluationContext evaluationContext = new EvaluationContext(new AnnotationAttributeContext(),
-				new AnnotationFunctionContext(), new HashMap<>());
-		emptyIndex = new CanonicalImmutableParsedDocumentIndex(new NoPredicateOrderStrategy(), evaluationContext);
+		emptyIndex = new CanonicalImmutableParsedDocumentIndex(new NoPredicateOrderStrategy(),
+				new AnnotationAttributeContext(), new AnnotationFunctionContext());
 		List<Update> updates = new ArrayList<>(3);
 
 		String def1 = "policy \"p_0\" permit !resource.x1";
-		SAPL doc1 = interpreter.parse(def1);
+		SAPL   doc1 = interpreter.parse(def1);
 		updates.add(new Update(Type.PUBLISH, doc1, def1));
 
 		String def2 = "policy \"p_1\" permit !(resource.x0 | resource.x1)";
-		SAPL doc2 = interpreter.parse(def2);
+		SAPL   doc2 = interpreter.parse(def2);
 		updates.add(new Update(Type.PUBLISH, doc2, def2));
 
 		String def3 = "policy \"p_2\" permit (resource.x1 | resource.x2)";
-		SAPL doc3 = interpreter.parse(def3);
+		SAPL   doc3 = interpreter.parse(def3);
 		updates.add(new Update(Type.PUBLISH, doc3, def3));
 
-		PrpUpdateEvent prpUpdateEvent = new PrpUpdateEvent(updates);
-		ImmutableParsedDocumentIndex updatedIndex = emptyIndex.apply(prpUpdateEvent);
+		PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
+		ImmutableParsedDocumentIndex updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
 		bindings.put("x0", false);
 		bindings.put("x1", false);
 		bindings.put("x2", true);
 
-		AuthorizationSubscription authzSubscription = createRequestObject();
-		var subscriptionScopedEvaluationCtx = new EvaluationContext(new AnnotationAttributeContext(),
-				new AnnotationFunctionContext(), variables);
-		subscriptionScopedEvaluationCtx = subscriptionScopedEvaluationCtx
-				.forAuthorizationSubscription(authzSubscription);
-
 		// when
-		PolicyRetrievalResult result = updatedIndex.retrievePolicies(subscriptionScopedEvaluationCtx).block();
+		PolicyRetrievalResult result = updatedIndex.retrievePolicies()
+				.contextWrite(ctx -> {
+					ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+					ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+					ctx = AuthorizationContext.setVariables(ctx, variables);
+					ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
+					return ctx;
+				}).block();
 
 		// then
 		assertNotNull(result);
@@ -230,18 +229,21 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		List<Update> updates = new ArrayList<>(3);
 
 		String definition = "policy \"p_0\" permit true";
-		SAPL document = interpreter.parse(definition);
+		SAPL   document   = interpreter.parse(definition);
 		updates.add(new Update(Type.PUBLISH, document, definition));
 
-		PrpUpdateEvent prpUpdateEvent = new PrpUpdateEvent(updates);
-		ImmutableParsedDocumentIndex updatedIndex = emptyIndex.apply(prpUpdateEvent);
-
-		AuthorizationSubscription authzSubscription = createRequestObject();
-		var subscriptionScopedEvaluationCtx = new EvaluationContext(new AnnotationAttributeContext(),
-				new AnnotationFunctionContext(), variables).forAuthorizationSubscription(authzSubscription);
+		PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
+		ImmutableParsedDocumentIndex updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
 		// when
-		PolicyRetrievalResult result = updatedIndex.retrievePolicies(subscriptionScopedEvaluationCtx).block();
+		PolicyRetrievalResult result = updatedIndex.retrievePolicies()
+				.contextWrite(ctx -> {
+					ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+					ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+					ctx = AuthorizationContext.setVariables(ctx, variables);
+					ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
+					return ctx;
+				}).block();
 
 		// then
 		assertNotNull(result);
@@ -256,20 +258,24 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		List<Update> updates = new ArrayList<>(3);
 
 		String definition = "policy \"p_0\" permit !(resource.x0 | resource.x1)";
-		SAPL document = interpreter.parse(definition);
+		SAPL   document   = interpreter.parse(definition);
 		updates.add(new Update(Type.PUBLISH, document, definition));
 
-		PrpUpdateEvent prpUpdateEvent = new PrpUpdateEvent(updates);
-		ImmutableParsedDocumentIndex updatedIndex = emptyIndex.apply(prpUpdateEvent);
+		PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
+		ImmutableParsedDocumentIndex updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
 		bindings.put("x0", false);
 		bindings.put("x1", false);
-		AuthorizationSubscription authzSubscription = createRequestObject();
-		var subscriptionScopedEvaluationCtx = new EvaluationContext(new AnnotationAttributeContext(),
-				new AnnotationFunctionContext(), variables).forAuthorizationSubscription(authzSubscription);
 
 		// when
-		PolicyRetrievalResult result = updatedIndex.retrievePolicies(subscriptionScopedEvaluationCtx).block();
+		PolicyRetrievalResult result = updatedIndex.retrievePolicies()
+				.contextWrite(ctx -> {
+					ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+					ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+					ctx = AuthorizationContext.setVariables(ctx, variables);
+					ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
+					return ctx;
+				}).block();
 
 		// then
 		assertNotNull(result);
@@ -284,12 +290,12 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		List<Update> updates = new ArrayList<>(3);
 
 		String definition = "policy \"p_0\" permit resource.x0 & resource.x1";
-		SAPL document = interpreter.parse(definition);
+		SAPL   document   = interpreter.parse(definition);
 		// prp.updateFunctionContext(functionCtx);
 		updates.add(new Update(Type.PUBLISH, document, definition));
 
-		PrpUpdateEvent prpUpdateEvent = new PrpUpdateEvent(updates);
-		ImmutableParsedDocumentIndex updatedIndex = emptyIndex.apply(prpUpdateEvent);
+		PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
+		ImmutableParsedDocumentIndex updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
 		bindings.put("x0", true);
 		bindings.put("x1", true);
@@ -298,17 +304,18 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		updates.add(new Update(Type.WITHDRAW, document, definition));
 
 		prpUpdateEvent = new PrpUpdateEvent(updates);
-		updatedIndex = updatedIndex.apply(prpUpdateEvent);
-
-		AuthorizationSubscription authzSubscription = createRequestObject();
-
-		var subscriptionScopedEvaluationCtx = new EvaluationContext(new AnnotationAttributeContext(),
-				new AnnotationFunctionContext(), variables);
-		subscriptionScopedEvaluationCtx = subscriptionScopedEvaluationCtx
-				.forAuthorizationSubscription(authzSubscription);
+		updatedIndex   = updatedIndex.apply(prpUpdateEvent);
 
 		// when
-		PolicyRetrievalResult result = updatedIndex.retrievePolicies(subscriptionScopedEvaluationCtx).block();
+		PolicyRetrievalResult result = updatedIndex.retrievePolicies()
+				.contextWrite(ctx -> {
+					ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+					ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+					ctx = AuthorizationContext.setVariables(ctx, variables);
+					ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
+					return ctx;
+				}).block();
+
 		// then
 		assertNotNull(result);
 		assertFalse(result.isErrorsInTarget());
@@ -321,21 +328,24 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		List<Update> updates = new ArrayList<>();
 
 		String definition = "policy \"p_0\" permit !resource.x0";
-		SAPL document = interpreter.parse(definition);
+		SAPL   document   = interpreter.parse(definition);
 		updates.add(new Update(Type.PUBLISH, document, definition));
 
-		PrpUpdateEvent prpUpdateEvent = new PrpUpdateEvent(updates);
-		ImmutableParsedDocumentIndex updatedIndex = emptyIndex.apply(prpUpdateEvent);
+		PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
+		ImmutableParsedDocumentIndex updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
 		bindings.put("x0", false);
-		AuthorizationSubscription authzSubscription = createRequestObject();
-		var subscriptionScopedEvaluationCtx = new EvaluationContext(new AnnotationAttributeContext(),
-				new AnnotationFunctionContext(), variables);
-		subscriptionScopedEvaluationCtx = subscriptionScopedEvaluationCtx
-				.forAuthorizationSubscription(authzSubscription);
 
 		// when
-		PolicyRetrievalResult result = updatedIndex.retrievePolicies(subscriptionScopedEvaluationCtx).block();
+		PolicyRetrievalResult result = updatedIndex.retrievePolicies()
+				.contextWrite(ctx -> {
+					ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+					ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+					ctx = AuthorizationContext.setVariables(ctx, variables);
+					ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
+					return ctx;
+				}).block();
+
 		// then
 		assertNotNull(result);
 		assertFalse(result.isErrorsInTarget());

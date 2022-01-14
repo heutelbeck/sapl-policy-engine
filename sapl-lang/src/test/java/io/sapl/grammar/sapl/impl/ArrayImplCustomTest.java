@@ -20,35 +20,30 @@ import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 
 import org.junit.jupiter.api.Test;
 
-import io.sapl.grammar.sapl.impl.util.MockUtil;
-import io.sapl.interpreter.EvaluationContext;
-
 class ArrayImplCustomTest {
-
-	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 
 	@Test
 	void simpleArrayToVal() {
 		var expression = "[true,false]";
-		var expected = "[true,false]";
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = "[true,false]";
+		expressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void arrayPropagatesErrors() {
-		expressionErrors(CTX, "[true,(1/0)]");
+		expressionErrors("[true,(1/0)]");
 	}
 
 	@Test
 	void emptyArray() {
-		expressionEvaluatesTo(CTX, "[]", "[]");
+		expressionEvaluatesTo("[]", "[]");
 	}
 
 	@Test
 	void dropsUndefined() {
 		var expression = "[true,undefined,false,undefined]";
-		var expected = "[true,false]";
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = "[true,false]";
+		expressionEvaluatesTo(expression, expected);
 	}
 
 }

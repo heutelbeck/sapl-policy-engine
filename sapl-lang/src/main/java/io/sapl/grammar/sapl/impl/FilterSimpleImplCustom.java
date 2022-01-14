@@ -16,15 +16,13 @@
 package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
 public class FilterSimpleImplCustom extends FilterSimpleImpl {
 
 	@Override
-	public Flux<Val> apply(Val unfilteredValue, EvaluationContext ctx, Val relativeNode) {
-		return applyFilterFunction(unfilteredValue, arguments, FunctionUtil.resolveAbsoluteFunctionName(fsteps, ctx),
-				ctx, relativeNode, each);
+	public Flux<Val> apply(Val unfilteredValue, Val relativeNode) {
+		return applyFilterFunction(unfilteredValue, arguments, fsteps, relativeNode, each);
 	}
 
 }

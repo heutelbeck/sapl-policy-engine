@@ -20,7 +20,6 @@ import static io.sapl.grammar.sapl.impl.OperatorUtil.arithmeticOperator;
 import java.math.BigDecimal;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
@@ -30,8 +29,8 @@ import reactor.core.publisher.Flux;
 public class ModuloImplCustom extends ModuloImpl {
 
 	@Override
-	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		return arithmeticOperator(this, this::divide, ctx, relativeNode);
+	public Flux<Val> evaluate( @NonNull Val relativeNode) {
+		return arithmeticOperator(this, this::divide, relativeNode);
 	}
 
 	private Val divide(Val dividend, Val divisor) {

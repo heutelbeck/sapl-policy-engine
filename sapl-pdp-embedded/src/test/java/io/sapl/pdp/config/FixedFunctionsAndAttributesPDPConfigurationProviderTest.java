@@ -15,6 +15,7 @@
  */
 package io.sapl.pdp.config;
 
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -37,8 +38,9 @@ class FixedFunctionsAndAttributesPDPConfigurationProviderTest {
 		provider.dispose();
 
 		assertThat(config.getDocumentsCombinator() instanceof DenyUnlessPermitCombiningAlgorithm, is(true));
-		assertThat(config.getPdpScopedEvaluationContext().getAttributeCtx(), is(attrCtx));
-		assertThat(config.getPdpScopedEvaluationContext().getFunctionCtx(), is(funcCtx));
+		assertThat(config.getAttributeContext(), is(attrCtx));
+		assertThat(config.getFunctionContext(), is(funcCtx));
+		assertThat(config.getVariables(), notNullValue());
 		assertThat(config.isValid(), is(true));
 	}
 

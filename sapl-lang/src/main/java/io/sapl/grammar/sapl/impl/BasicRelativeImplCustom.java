@@ -16,7 +16,6 @@
 package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
@@ -30,11 +29,11 @@ public class BasicRelativeImplCustom extends BasicRelativeImpl {
 	private static final String NOT_ALLOWED = "Relative expression error. No relative node.";
 
 	@Override
-	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
+	public Flux<Val> evaluate( @NonNull Val relativeNode) {
 		if (relativeNode.isUndefined()) {
 			return Val.errorFlux(NOT_ALLOWED);
 		}
-		return Flux.just(relativeNode).switchMap(resolveStepsFiltersAndSubTemplates(steps, ctx, relativeNode));
+		return Flux.just(relativeNode).switchMap(resolveStepsFiltersAndSubTemplates(steps, relativeNode));
 	}
 
 }

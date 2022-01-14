@@ -18,21 +18,20 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.OperatorUtil.operator;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
  * Checks for equality of two values.
  *
- * Grammar: Comparison returns Expression: Prefixed (({Equals.left=current} '==')
- * right=Prefixed)? ;
+ * Grammar: Comparison returns Expression: Prefixed (({Equals.left=current}
+ * '==') right=Prefixed)? ;
  */
 public class EqualsImplCustom extends EqualsImpl {
 
 	@Override
-	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		return operator(this, this::equals, ctx, relativeNode);
+	public Flux<Val> evaluate(@NonNull Val relativeNode) {
+		return operator(this, this::equals, relativeNode);
 	}
 
 	private Val equals(Val left, Val right) {

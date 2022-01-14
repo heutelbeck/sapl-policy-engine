@@ -21,51 +21,48 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.impl.util.EObjectUtil;
 import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.SAPLInterpreter;
 import reactor.test.StepVerifier;
 
 class PolicyElementImplCustomTest {
-
-	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 
 	private final static SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
 	@Test
 	void emptyTargetMatches() {
 		var policy = INTERPRETER.parse("policy \"p\" permit");
-		StepVerifier.create(policy.matches(CTX)).expectNext(Val.TRUE).verifyComplete();
+		StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(Val.TRUE).verifyComplete();
 	}
 
 	@Test
 	void undefinedTargetErrors() {
 		var policy = INTERPRETER.parse("policy \"p\" permit undefined");
 		EObjectUtil.dump(policy);
-		StepVerifier.create(policy.matches(CTX)).expectNextMatches(Val::isError).verifyComplete();
+		StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(Val::isError).verifyComplete();
 	}
 
 	@Test
 	void errorTargetErrors() {
 		var policy = INTERPRETER.parse("policy \"p\" permit (10/0)");
-		StepVerifier.create(policy.matches(CTX)).expectNextMatches(Val::isError).verifyComplete();
+		StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(Val::isError).verifyComplete();
 	}
 
 	@Test
 	void nonBooleanTargetErrors() {
 		var policy = INTERPRETER.parse("policy \"p\" permit \"abc\"");
-		StepVerifier.create(policy.matches(CTX)).expectNextMatches(Val::isError).verifyComplete();
+		StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(Val::isError).verifyComplete();
 	}
 
 	@Test
 	void falseTargetDosNotMatch() {
 		var policy = INTERPRETER.parse("policy \"p\" permit false");
-		StepVerifier.create(policy.matches(CTX)).expectNext(Val.FALSE).verifyComplete();
+		StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(Val.FALSE).verifyComplete();
 	}
 
 	@Test
 	void trueTargetDosMatch() {
 		var policy = INTERPRETER.parse("policy \"p\" permit true");
-		StepVerifier.create(policy.matches(CTX)).expectNext(Val.TRUE).verifyComplete();
+		StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(Val.TRUE).verifyComplete();
 	}
 
 }

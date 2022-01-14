@@ -15,16 +15,6 @@
  */
 package io.sapl.prp.index.canonical;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.Expression;
-import io.sapl.interpreter.EvaluationContext;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
-import reactor.core.publisher.Flux;
-
-import java.util.Collections;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -35,6 +25,16 @@ import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
+
+import java.util.Collections;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+
+import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.Expression;
+import reactor.core.publisher.Flux;
 
 class BoolTest {
 
@@ -47,7 +47,7 @@ class BoolTest {
 		constantBool = new Bool(false);
 
 		var expressionMock = mock(Expression.class, RETURNS_DEEP_STUBS);
-		when(expressionMock.evaluate(any(), any())).thenReturn(Flux.just(Val.TRUE));
+		when(expressionMock.evaluate(any())).thenReturn(Flux.just(Val.TRUE));
 		expressionBool = new Bool(expressionMock, Collections.emptyMap());
 	}
 
@@ -80,7 +80,7 @@ class BoolTest {
 		try (MockedStatic<EquivalenceAndHashUtil> mock = mockStatic(EquivalenceAndHashUtil.class)) {
 			mock.when(() -> EquivalenceAndHashUtil.semanticHash(any(), any())).thenReturn(42);
 
-			var expressionMock = mock(Expression.class, RETURNS_DEEP_STUBS);
+			var expressionMock      = mock(Expression.class, RETURNS_DEEP_STUBS);
 			var otherExpressionBool = new Bool(expressionMock, Collections.emptyMap());
 
 			assertThat(expressionBool.equals(otherExpressionBool), is(false));
@@ -96,14 +96,12 @@ class BoolTest {
 
 	@Test
 	void evaluating_bool_with_error_expression_should_return_error() {
-		var contextMock = mock(EvaluationContext.class);
-		when(contextMock.withImports(any())).thenReturn(contextMock);
 
 		var expressionMock = mock(Expression.class);
-		when(expressionMock.evaluate(any(), any())).thenReturn(Flux.just(Val.error("error")));
+		when(expressionMock.evaluate(any())).thenReturn(Flux.just(Val.error("error")));
 
-		var bool = new Bool(expressionMock, Collections.emptyMap());
-		var result = bool.evaluate(contextMock).block();
+		var bool   = new Bool(expressionMock, Collections.emptyMap());
+		var result = bool.evaluateExpression().block();
 
 		assertThat(result.isError(), is(true));
 		assertThat(result.getMessage(), is("error"));
@@ -111,14 +109,11 @@ class BoolTest {
 
 	@Test
 	void evaluating_bool_with_false_expression_should_return_false() {
-		var contextMock = mock(EvaluationContext.class);
-		when(contextMock.withImports(any())).thenReturn(contextMock);
-
 		var expressionMock = mock(Expression.class);
-		when(expressionMock.evaluate(any(), any())).thenReturn(Flux.just(Val.FALSE));
+		when(expressionMock.evaluate(any())).thenReturn(Flux.just(Val.FALSE));
 
-		var bool = new Bool(expressionMock, Collections.emptyMap());
-		var result = bool.evaluate(contextMock).block();
+		var bool   = new Bool(expressionMock, Collections.emptyMap());
+		var result = bool.evaluateExpression().block();
 
 		assertThat(result.isBoolean(), is(true));
 		assertThat(result.getBoolean(), is(false));
@@ -126,14 +121,11 @@ class BoolTest {
 
 	@Test
 	void evaluating_bool_with_long_expression_should_return_error() {
-		var contextMock = mock(EvaluationContext.class);
-		when(contextMock.withImports(any())).thenReturn(contextMock);
-
 		var expressionMock = mock(Expression.class);
-		when(expressionMock.evaluate(any(), any())).thenReturn(Flux.just(Val.of(0L)));
+		when(expressionMock.evaluate(any())).thenReturn(Flux.just(Val.of(0L)));
 
-		var bool = new Bool(expressionMock, Collections.emptyMap());
-		var result = bool.evaluate(contextMock).block();
+		var bool   = new Bool(expressionMock, Collections.emptyMap());
+		var result = bool.evaluateExpression().block();
 
 		assertThat(result.isBoolean(), is(false));
 		assertThat(result.isError(), is(true));
@@ -141,9 +133,6 @@ class BoolTest {
 
 	@Test
 	void evaluating_bool_with_impossible_expression_should_return_impossible_value() {
-		var contextMock = mock(EvaluationContext.class);
-		when(contextMock.withImports(any())).thenReturn(contextMock);
-
 		// condition coverage requires Val to be boolean and error at the same time ->
 		// impossible
 		var valMock = mock(Val.class);
@@ -151,10 +140,10 @@ class BoolTest {
 		when(valMock.isBoolean()).thenReturn(true);
 
 		var expressionMock = mock(Expression.class);
-		when(expressionMock.evaluate(any(), any())).thenReturn(Flux.just(valMock));
+		when(expressionMock.evaluate(any())).thenReturn(Flux.just(valMock));
 
-		var bool = new Bool(expressionMock, Collections.emptyMap());
-		var result = bool.evaluate(contextMock).block();
+		var bool   = new Bool(expressionMock, Collections.emptyMap());
+		var result = bool.evaluateExpression().block();
 
 		assertThat(result.isError(), is(true));
 		assertThat(result.isBoolean(), is(true));

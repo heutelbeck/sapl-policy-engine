@@ -23,7 +23,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.util.HashMap;
 
 import org.junit.jupiter.api.Test;
 
@@ -32,7 +31,7 @@ import io.sapl.grammar.sapl.BasicEnvironmentAttribute;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.grammar.sapl.impl.util.ParserUtil;
-import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
@@ -45,59 +44,54 @@ class BasicEnvironmentAttributeImplTest {
 
 	private static final String FULLY_QUALIFIED_ATTRIBUTE = "mock." + ATTRIBUTE;
 
-	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
-
 	@Test
 	void evaluateBasicAttributeFlux() {
 		var expression = "<test.numbers>";
-		var expected = new String[] { "0", "1", "2", "3", "4", "5" };
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = new String[] { "0", "1", "2", "3", "4", "5" };
+		expressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void evaluateBasicAttributeInTargetPolicy() throws IOException {
 		var expression = ParserUtil.expression("<test.numbers>");
 		MockUtil.mockPolicyTargetExpressionContainerExpression(expression);
-		expressionErrors(CTX, expression);
+		expressionErrors(expression);
 	}
 
 	@Test
 	void evaluateBasicAttributeInTargetPolicySet() throws IOException {
 		var expression = ParserUtil.expression("<test.numbers>");
 		MockUtil.mockPolicySetTargetExpressionContainerExpression(expression);
-		expressionErrors(CTX, expression);
+		expressionErrors(expression);
 	}
 
 	@Test
 	void exceptionDuringEvaluation() {
-		var ctx = mockEvaluationContextWithAttributeStream(Flux.just(Val.error("ERROR")));
 		var step = attributeFinderStep();
-		StepVerifier.create(step.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		var sut  = step.evaluate(Val.UNDEFINED).contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
+				mockAttributeContextWithStream(Flux.just(Val.error("ERROR")))));
+		StepVerifier.create(sut).expectNextMatches(Val::isError).verifyComplete();
 	}
 
 	@Test
 	void applyWithSomeStreamData() {
 		Val[] data = { Val.FALSE, Val.error("ERROR"), Val.TRUE, Val.NULL, Val.UNDEFINED };
-		var ctx = mockEvaluationContextWithAttributeStream(Flux.just(data));
-		var step = attributeFinderStep();
-		StepVerifier.create(step.evaluate(ctx, Val.UNDEFINED)).expectNext(data).verifyComplete();
+		var   step = attributeFinderStep();
+		var   sut  = step.evaluate(Val.UNDEFINED).contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
+				mockAttributeContextWithStream(Flux.just(data))));
+		StepVerifier.create(sut).expectNext(data).verifyComplete();
 	}
 
-	private static EvaluationContext mockEvaluationContextWithAttributeStream(Flux<Val> stream) {
+	private static AttributeContext mockAttributeContextWithStream(Flux<Val> stream) {
 		var attributeCtx = mock(AttributeContext.class);
 		when(attributeCtx.evaluateAttribute(eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any(), any())).thenReturn(stream);
 		when(attributeCtx.evaluateEnvironmentAttribute(eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any())).thenReturn(stream);
-		var ctx = mock(EvaluationContext.class);
-		when(ctx.getAttributeCtx()).thenReturn(attributeCtx);
-		var imports = new HashMap<String, String>();
-		imports.put(ATTRIBUTE, FULLY_QUALIFIED_ATTRIBUTE);
-		when(ctx.getImports()).thenReturn(imports);
-		return ctx;
+		return attributeCtx;
 	}
 
 	private static BasicEnvironmentAttribute attributeFinderStep() {
 		var step = FACTORY.createBasicEnvironmentAttribute();
-		step.getIdSteps().add(ATTRIBUTE);
+		step.getIdSteps().add(FULLY_QUALIFIED_ATTRIBUTE);
 		return step;
 	}
 

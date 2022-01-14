@@ -25,20 +25,19 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.Policy;
-import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.combinators.ObligationAdviceCollector;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
- * This strict algorithm is used if the decision should be a DENY except for there is a
- * PERMIT. It ensures that any decision is either DENY or PERMIT.
+ * This strict algorithm is used if the decision should be a DENY except for
+ * there is a PERMIT. It ensures that any decision is either DENY or PERMIT.
  *
  * It works as follows:
  *
- * - If any policy document evaluates to PERMIT and there is no transformation uncertainty
- * (multiple policies evaluate to PERMIT and at least one of them has a transformation
- * statement), the decision is PERMIT.
+ * - If any policy document evaluates to PERMIT and there is no transformation
+ * uncertainty (multiple policies evaluate to PERMIT and at least one of them
+ * has a transformation statement), the decision is PERMIT.
  *
  * - Otherwise the decision is a DENY.
  */
@@ -50,9 +49,9 @@ public class DenyUnlessPermitCombiningAlgorithmImplCustom extends DenyUnlessPerm
 		if (decisions.length == 0)
 			return AuthorizationDecision.DENY;
 
-		var entitlement = DENY;
-		var collector = new ObligationAdviceCollector();
-		Optional<JsonNode> resource = Optional.empty();
+		var                entitlement = DENY;
+		var                collector   = new ObligationAdviceCollector();
+		Optional<JsonNode> resource    = Optional.empty();
 		for (var decision : decisions) {
 			if (decision.getDecision() == PERMIT) {
 				entitlement = PERMIT;
@@ -65,8 +64,7 @@ public class DenyUnlessPermitCombiningAlgorithmImplCustom extends DenyUnlessPerm
 					// this the overall result is basically INDETERMINATE.
 					// However, DENY overrides with this algorithm.
 					entitlement = DENY;
-				}
-				else {
+				} else {
 					resource = decision.getResource();
 				}
 			}
@@ -78,8 +76,8 @@ public class DenyUnlessPermitCombiningAlgorithmImplCustom extends DenyUnlessPerm
 	}
 
 	@Override
-	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
-		return doCombinePolicies(policies, ctx);
+	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies) {
+		return doCombinePolicies(policies);
 	}
 
 }

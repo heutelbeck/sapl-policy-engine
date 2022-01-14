@@ -21,81 +21,77 @@ import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.impl.util.MockUtil;
-import io.sapl.interpreter.EvaluationContext;
 
 class ApplyStepsEscapedkeyTest {
 
-	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
-
 	@Test
 	void keyStepPropagatesErrors() {
-		expressionErrors(CTX, "(10/0).\"k e y\"");
+		expressionErrors("(10/0).\"k e y\"");
 	}
 
 	@Test
 	void keyStepToNonObjectUndefined() {
-		expressionEvaluatesTo(CTX, "true.\"k e y\"", Val.UNDEFINED);
+		expressionEvaluatesTo("true.\"k e y\"", Val.UNDEFINED);
 	}
 
 	@Test
 	void keyStepToEmptyObject() {
-		expressionEvaluatesTo(CTX, "{}.\"k e y\"", Val.UNDEFINED);
+		expressionEvaluatesTo("{}.\"k e y\"", Val.UNDEFINED);
 	}
 
 	@Test
 	void keyStepToObject() {
-		expressionEvaluatesTo(CTX, "{\"k e y\" : true}.\"k e y\"", "true");
+		expressionEvaluatesTo("{\"k e y\" : true}.\"k e y\"", "true");
 	}
 
 	@Test
 	void keyStepToArray() {
 		var expression = "[{\"k e y\" : true},{\"k e y\": 123}].\"k e y\"";
-		var expected = "[true,123]";
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = "[true,123]";
+		expressionEvaluatesTo(expression, expected);
 	}
 
 	// FIXME: {"k e y",123} should be rejected at parse time
 	@Test
 	void keyStepToArrayNoMatch() {
 		var expression = "[{\"k e y\" : true},{\"k e y\": 123}].\"x\"";
-		var expected = "[]";
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = "[]";
+		expressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void filterNonObjectOrArray() {
 		var expression = "\"Gudrun\" |- { @.\"k e y\" : mock.nil }";
-		var expected = "\"Gudrun\"";
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = "\"Gudrun\"";
+		expressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void filterObject() {
 		var expression = "{\"k e y\" : true, \"other\" : false} |- { @.\"k e y\" : mock.nil}";
-		var expected = "{\"k e y\" : null, \"other\" : false}";
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = "{\"k e y\" : null, \"other\" : false}";
+		expressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void filterObjectDescend() {
 		var expression = "{\"k e y\" : { \"k e y2\" : true}, \"other\" : false} |- { @.\"k e y\".\"k e y2\" : mock.nil}";
-		var expected = "{\"k e y\" : {\"k e y2\" : null }, \"other\" : false}";
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = "{\"k e y\" : {\"k e y2\" : null }, \"other\" : false}";
+		expressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void filterArray() {
 		var expression = "[ {\"k e y\" : true, \"other\" : false} , false ] |- { @.\"k e y\" : mock.nil}";
-		var expected = "[ {\"k e y\" : null, \"other\" : false} , false ]";
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = "[ {\"k e y\" : null, \"other\" : false} , false ]";
+		expressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void filterEmptyrray() {
 		var expression = "[] |- { @.\"k e y\" : mock.nil}";
-		var expected = "[]";
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = "[]";
+		expressionEvaluatesTo(expression, expected);
 	}
 
 }

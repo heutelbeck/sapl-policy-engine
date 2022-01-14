@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
-import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -31,8 +30,8 @@ import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
 /**
- * Implements the application of a recursive index step to a previous array value, e.g.
- * {@code 'arr..[2]'}.
+ * Implements the application of a recursive index step to a previous array
+ * value, e.g. {@code 'arr..[2]'}.
  *
  * Grammar: {@code Step: '..' ({RecursiveIndexStep} '[' index=JSONNUMBER ']') ;}
  */
@@ -40,7 +39,7 @@ import reactor.util.function.Tuples;
 public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 
 	@Override
-	public Flux<Val> apply(@NonNull Val parentValue, @NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
+	public Flux<Val> apply(@NonNull Val parentValue, @NonNull Val relativeNode) {
 		if (parentValue.isError()) {
 			return Flux.just(parentValue);
 		}
@@ -59,8 +58,7 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 			for (var item : node) {
 				collect(index, item, results);
 			}
-		}
-		else if (node.isObject()) {
+		} else if (node.isObject()) {
 			var iter = node.fields();
 			while (iter.hasNext()) {
 				var item = iter.next().getValue();
@@ -76,24 +74,31 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 	}
 
 	@Override
-	public Flux<Val> applyFilterStatement(@NonNull Val parentValue, @NonNull EvaluationContext ctx,
-			@NonNull Val relativeNode, int stepId, @NonNull FilterStatement statement) {
-		return doApplyFilterStatement(index.intValue(), parentValue, ctx, relativeNode, stepId, statement);
+	public Flux<Val> applyFilterStatement(
+			@NonNull Val parentValue,
+			@NonNull Val relativeNode,
+			int stepId,
+			@NonNull FilterStatement statement) {
+		return doApplyFilterStatement(index.intValue(), parentValue, relativeNode, stepId, statement);
 	}
 
-	private static Flux<Val> doApplyFilterStatement(int index, Val parentValue, EvaluationContext ctx, Val relativeNode,
-			int stepId, FilterStatement statement) {
+	private static Flux<Val> doApplyFilterStatement(
+			int index,
+			Val parentValue,
+			Val relativeNode,
+			int stepId,
+			FilterStatement statement) {
 		log.trace("apply index step [{}] to: {}", index, parentValue);
 		if (parentValue.isObject()) {
-			return applyFilterStatementToObject(index, parentValue.getObjectNode(), ctx, relativeNode, stepId,
+			return applyFilterStatementToObject(index, parentValue.getObjectNode(), relativeNode, stepId,
 					statement);
 		}
 		if (!parentValue.isArray()) {
 			// this means the element does not get selected does not get filtered
 			return Flux.just(parentValue);
 		}
-		var array = parentValue.getArrayNode();
-		var idx = normalizeIndex(index, array.size());
+		var array         = parentValue.getArrayNode();
+		var idx           = normalizeIndex(index, array.size());
 		var elementFluxes = new ArrayList<Flux<Val>>(array.size());
 		for (var i = 0; i < array.size(); i++) {
 			var element = array.get(i);
@@ -105,32 +110,33 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 					log.trace("final step. apply filter!");
 					elementFluxes.add(
 							FilterComponentImplCustom.applyFilterFunction(Val.of(element), statement.getArguments(),
-									FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx,
-									parentValue, statement.isEach()));
-				}
-				else {
+									statement.getFsteps(), parentValue, statement.isEach()));
+				} else {
 					// there are more steps. descent with them
 					log.trace("this step was successful. descent with next step...");
 					elementFluxes.add(statement.getTarget().getSteps().get(stepId + 1)
-							.applyFilterStatement(Val.of(element), ctx, relativeNode, stepId + 1, statement));
+							.applyFilterStatement(Val.of(element), relativeNode, stepId + 1, statement));
 				}
-			}
-			else {
+			} else {
 				log.trace("array element not an object. Do recursive search for first match.");
-				elementFluxes.add(doApplyFilterStatement(index, Val.of(element), ctx, relativeNode, stepId, statement));
+				elementFluxes.add(doApplyFilterStatement(index, Val.of(element), relativeNode, stepId, statement));
 			}
 		}
 		return Flux.combineLatest(elementFluxes, RepackageUtil::recombineArray);
 	}
 
-	private static Flux<Val> applyFilterStatementToObject(int idx, ObjectNode object, EvaluationContext ctx,
-			Val relativeNode, int stepId, FilterStatement statement) {
+	private static Flux<Val> applyFilterStatementToObject(
+			int idx,
+			ObjectNode object,
+			Val relativeNode,
+			int stepId,
+			FilterStatement statement) {
 		var fieldFluxes = new ArrayList<Flux<Tuple2<String, Val>>>(object.size());
-		var fields = object.fields();
+		var fields      = object.fields();
 		while (fields.hasNext()) {
 			var field = fields.next();
 			log.trace("recursion for field {}", field);
-			fieldFluxes.add(doApplyFilterStatement(idx, Val.of(field.getValue()), ctx, relativeNode, stepId, statement)
+			fieldFluxes.add(doApplyFilterStatement(idx, Val.of(field.getValue()), relativeNode, stepId, statement)
 					.map(val -> Tuples.of(field.getKey(), val)));
 		}
 		return Flux.combineLatest(fieldFluxes, RepackageUtil::recombineObject);

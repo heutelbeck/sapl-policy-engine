@@ -28,7 +28,8 @@ import io.sapl.api.pdp.IdentifiableAuthorizationSubscription;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.interpreter.EvaluationContext;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.prp.PolicyRetrievalPoint;
@@ -36,6 +37,7 @@ import io.sapl.prp.PolicyRetrievalResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.util.context.Context;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -56,39 +58,38 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 			AuthorizationSubscription authzSubscription) {
 		return pdpConfiguration -> {
 			if (pdpConfiguration.isValid()) {
-				return Flux.just(pdpConfiguration.getPdpScopedEvaluationContext())
-						.map(createSubscriptionScope(authzSubscription))
-						.switchMap(retrieveAndCombineDocuments(pdpConfiguration));
-			}
-			else {
+				return retrieveAndCombineDocuments(pdpConfiguration.getDocumentsCombinator())
+						.contextWrite(buildSubscriptionScopedContext(pdpConfiguration, authzSubscription));
+			} else {
 				return Flux.just(AuthorizationDecision.INDETERMINATE);
 			}
 		};
 	}
 
-	private Function<EvaluationContext, Publisher<? extends AuthorizationDecision>> retrieveAndCombineDocuments(
-			PDPConfiguration pdpConfiguration) {
-		return subscriptionScopedEvaluationContext -> policyRetrievalPoint
-				.retrievePolicies(subscriptionScopedEvaluationContext)
-				.switchMap(combineDocuments(pdpConfiguration, subscriptionScopedEvaluationContext));
+	private Function<Context, Context> buildSubscriptionScopedContext(
+			PDPConfiguration pdpConfiguration,
+			AuthorizationSubscription authzSubscription) {
+		return ctx -> {
+			ctx = AuthorizationContext.setAttributeContext(ctx, pdpConfiguration.getAttributeContext());
+			ctx = AuthorizationContext.setFunctionContext(ctx, pdpConfiguration.getFunctionContext());
+			ctx = AuthorizationContext.setVariables(ctx, pdpConfiguration.getVariables());
+			ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription);
+			return ctx;
+		};
+	}
+
+	private Flux<AuthorizationDecision> retrieveAndCombineDocuments(CombiningAlgorithm documentsCombinator) {
+		return policyRetrievalPoint.retrievePolicies().switchMap(combineDocuments(documentsCombinator));
 	}
 
 	private Function<? super PolicyRetrievalResult, Publisher<? extends AuthorizationDecision>> combineDocuments(
-			PDPConfiguration pdpConfiguration, EvaluationContext subscriptionScopedEvaluationContext) {
+			CombiningAlgorithm documentsCombinator) {
 		return policyRetrievalResult -> {
-			if (policyRetrievalResult.isPrpValidState()) {
-				return pdpConfiguration.getDocumentsCombinator().combineMatchingDocuments(policyRetrievalResult,
-						subscriptionScopedEvaluationContext);
-			}
-			else {
-				return Flux.just(AuthorizationDecision.INDETERMINATE);
-			}
-		};
-	}
+			if (policyRetrievalResult.isPrpValidState())
+				return documentsCombinator.combineMatchingDocuments(policyRetrievalResult);
 
-	private Function<? super EvaluationContext, ? extends EvaluationContext> createSubscriptionScope(
-			AuthorizationSubscription authzSubscription) {
-		return pdpScopedEvaluationContext -> pdpScopedEvaluationContext.forAuthorizationSubscription(authzSubscription);
+			return Flux.just(AuthorizationDecision.INDETERMINATE);
+		};
 	}
 
 	@Override
@@ -115,8 +116,9 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 			Iterable<IdentifiableAuthorizationSubscription> multiDecision) {
 		final List<Flux<IdentifiableAuthorizationDecision>> identifiableAuthzDecisionFluxes = new ArrayList<>();
 		for (IdentifiableAuthorizationSubscription identifiableAuthzSubscription : multiDecision) {
-			final String subscriptionId = identifiableAuthzSubscription.getAuthorizationSubscriptionId();
-			final AuthorizationSubscription authzSubscription = identifiableAuthzSubscription
+			final String                                  subscriptionId                = identifiableAuthzSubscription
+					.getAuthorizationSubscriptionId();
+			final AuthorizationSubscription               authzSubscription             = identifiableAuthzSubscription
 					.getAuthorizationSubscription();
 			final Flux<IdentifiableAuthorizationDecision> identifiableAuthzDecisionFlux = decide(authzSubscription)
 					.map(authzDecision -> new IdentifiableAuthorizationDecision(subscriptionId, authzDecision));

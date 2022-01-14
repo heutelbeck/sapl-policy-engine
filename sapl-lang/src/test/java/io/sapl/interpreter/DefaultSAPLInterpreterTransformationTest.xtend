@@ -42,9 +42,7 @@ class DefaultSAPLInterpreterTransformationTest {
 	static final AnnotationAttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
 	static final AnnotationFunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
 	static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<String, JsonNode>());
-	static final EvaluationContext PDP_EVALUATION_CONTEXT = new EvaluationContext(ATTRIBUTE_CTX, FUNCTION_CTX,
-		SYSTEM_VARIABLES);
-
+	
 	@BeforeEach
 	def void setUp() {
 		FUNCTION_CTX.loadLibrary(new SimpleFunctionLibrary());
@@ -63,7 +61,7 @@ class DefaultSAPLInterpreterTransformationTest {
 						"teststring"		// This is a dummy comment
 						/* another comment */
 			''',
-			PDP_EVALUATION_CONTEXT
+			ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES
 		).blockFirst(), equalTo(new AuthorizationDecision(Decision.PERMIT, Optional.of(MAPPER.readValue('''
 			"teststring"
 		''', JsonNode)), Optional.empty(), Optional.empty())));
@@ -91,7 +89,7 @@ class DefaultSAPLInterpreterTransformationTest {
 		val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
 			Optional.empty(), Optional.empty())
 		assertThat("simple filtering not working as expected",
-			INTERPRETER.evaluate(authzSubscription, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
+			INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
 			equalTo(expectedAuthzDecision));
 	}
 
@@ -117,7 +115,7 @@ class DefaultSAPLInterpreterTransformationTest {
 		val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
 			Optional.empty(), Optional.empty())
 		assertThat("simple filtering not working as expected",
-			INTERPRETER.evaluate(authzSubscription, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
+			INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
 			equalTo(expectedAuthzDecision));
 	}
 
@@ -171,7 +169,7 @@ class DefaultSAPLInterpreterTransformationTest {
 		val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
 			Optional.empty(), Optional.empty())
 		assertThat("transformation with condition not working as expected",
-			INTERPRETER.evaluate(authzSubscription, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
+			INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
 			equalTo(expectedAuthzDecision));
 	}
 
@@ -225,7 +223,7 @@ class DefaultSAPLInterpreterTransformationTest {
 		val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
 			Optional.empty(), Optional.empty())
 		assertThat("transformation with condition, subtemplate and simple filtering not working as expected",
-			INTERPRETER.evaluate(authzSubscription, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
+			INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
 			equalTo(expectedAuthzDecision));
 	}
 
@@ -281,7 +279,7 @@ class DefaultSAPLInterpreterTransformationTest {
 		val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
 			Optional.empty(), Optional.empty())
 		assertThat("transformation with several filtering rules not working as expected",
-			INTERPRETER.evaluate(authzSubscription, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
+			INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
 			equalTo(expectedAuthzDecision));
 	}
 
@@ -319,7 +317,7 @@ class DefaultSAPLInterpreterTransformationTest {
 		val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
 			Optional.empty(), Optional.empty())
 		assertThat("array slicing (last element) not working as expected",
-			INTERPRETER.evaluate(authzSubscription, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
+			INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
 			equalTo(expectedAuthzDecision));
 	}
 
@@ -361,7 +359,7 @@ class DefaultSAPLInterpreterTransformationTest {
 		val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
 			Optional.empty(), Optional.empty())
 		assertThat("array slicing not working as expected",
-			INTERPRETER.evaluate(authzSubscription, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
+			INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
 			equalTo(expectedAuthzDecision));
 	}
 
@@ -402,7 +400,7 @@ class DefaultSAPLInterpreterTransformationTest {
 		val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
 			Optional.empty(), Optional.empty())
 		assertThat("array slicing not working as expected",
-			INTERPRETER.evaluate(authzSubscription, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
+			INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
 			equalTo(expectedAuthzDecision));
 	}
 
@@ -444,7 +442,7 @@ class DefaultSAPLInterpreterTransformationTest {
 		val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
 			Optional.empty(), Optional.empty())
 		assertThat("array selection by expression and multiple indices not working as expected",
-			INTERPRETER.evaluate(authzSubscription, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
+			INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
 			equalTo(expectedAuthzDecision));
 	}
 
@@ -480,7 +478,7 @@ class DefaultSAPLInterpreterTransformationTest {
 		val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
 			Optional.empty(), Optional.empty())
 		assertThat("array with explicit each not working as expected",
-			INTERPRETER.evaluate(authzSubscription, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
+			INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
 			equalTo(expectedAuthzDecision));
 	}
 
@@ -520,7 +518,7 @@ class DefaultSAPLInterpreterTransformationTest {
 		val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
 			Optional.empty(), Optional.empty())
 		assertThat("filtering through object arrays not working as expected",
-			INTERPRETER.evaluate(authzSubscription, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
+			INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
 			equalTo(expectedAuthzDecision));
 	}
 
@@ -552,7 +550,7 @@ class DefaultSAPLInterpreterTransformationTest {
 		val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
 			Optional.empty(), Optional.empty())
 		assertThat("recursive descent operator not working as expected",
-			INTERPRETER.evaluate(authzSubscription, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
+			INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
 			equalTo(expectedAuthzDecision));
 	}
 
@@ -593,7 +591,7 @@ class DefaultSAPLInterpreterTransformationTest {
 		val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
 			Optional.empty(), Optional.empty())
 		assertThat("recursive descent operator in filter (remove) not working as expected",
-			INTERPRETER.evaluate(authzSubscription, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
+			INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
 			equalTo(expectedAuthzDecision));
 	}
 
@@ -635,7 +633,7 @@ class DefaultSAPLInterpreterTransformationTest {
 		val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
 			Optional.empty(), Optional.empty())
 		assertThat("function replace() applied with recursive descent selector not working as expected",
-			INTERPRETER.evaluate(authzSubscription, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
+			INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
 			equalTo(expectedAuthzDecision));
 	}
 

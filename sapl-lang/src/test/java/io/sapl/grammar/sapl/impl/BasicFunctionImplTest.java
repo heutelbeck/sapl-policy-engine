@@ -20,26 +20,21 @@ import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 
 import org.junit.jupiter.api.Test;
 
-import io.sapl.grammar.sapl.impl.util.MockUtil;
-import io.sapl.interpreter.EvaluationContext;
-
 class BasicFunctionImplTest {
-
-	private static final EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 
 	@Test
 	void basicSuccessfullEvaluationNull() {
-		expressionEvaluatesTo(CTX, "mock.nil()", "null");
+		expressionEvaluatesTo("mock.nil()", "null");
 	}
 
 	@Test
 	void basicSuccessfullEvaluationError() {
-		expressionErrors(CTX, "mock.error()");
+		expressionErrors("mock.error()");
 	}
 
 	@Test
 	void basicSuccessfullEvaluationExceptionToError() {
-		expressionErrors(CTX, "mock.exception()");
+		expressionErrors("mock.exception()");
 	}
 
 }

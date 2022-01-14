@@ -15,16 +15,14 @@
  */
 package io.sapl.test.lang;
 
+import org.eclipse.emf.ecore.EObject;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.grammar.sapl.SaplPackage;
 import io.sapl.grammar.sapl.impl.PolicyImplCustom;
-import io.sapl.interpreter.EvaluationContext;
 import io.sapl.test.coverage.api.CoverageHitRecorder;
 import io.sapl.test.coverage.api.model.PolicyHit;
-
-import org.eclipse.emf.ecore.EObject;
-
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
@@ -38,11 +36,11 @@ public class PolicyImplCustomCoverage extends PolicyImplCustom {
 	}
 
 	@Override
-	public Mono<Val> matches(EvaluationContext ctx) {
-		return super.matches(ctx).doOnNext(matches -> {
+	public Mono<Val> matches() {
+		return super.matches().doOnNext(matches -> {
 			if (matches.isBoolean() && matches.getBoolean()) {
-				String policySetId = "";
-				EObject eContainer = eContainer();
+				String  policySetId = "";
+				EObject eContainer  = eContainer();
 				if (eContainer.eClass().equals(SaplPackage.Literals.POLICY_SET)) {
 					policySetId = ((PolicySet) eContainer()).getSaplName();
 				}

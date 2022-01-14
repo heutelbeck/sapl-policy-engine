@@ -23,51 +23,54 @@ import org.reactivestreams.Publisher;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Step;
-import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
 /**
- * Superclass of basic expressions providing a method to evaluate the steps, filter and
- * sub template possibly being part of the basic expression.
+ * Superclass of basic expressions providing a method to evaluate the steps,
+ * filter and sub template possibly being part of the basic expression.
  *
  * Grammar:
  * {@code BasicExpression returns Expression: Basic (FILTER filter=FilterComponent |
  * SUBTEMPLATE subtemplate=BasicExpression)? ;
  *
- * Basic returns BasicExpression: {BasicGroup} '(' expression=Expression ')' steps+=Step*
- * | {BasicValue} value=Value steps+=Step* | {BasicFunction} fsteps+=ID ('.' fsteps+=ID)*
- * arguments=Arguments steps+=Step* | {BasicIdentifier} identifier=ID steps+=Step* |
- * {BasicRelative} '@' steps+=Step* ;}
+ * Basic returns BasicExpression: {BasicGroup} '(' expression=Expression ')'
+ * steps+=Step* | {BasicValue} value=Value steps+=Step* | {BasicFunction}
+ * fsteps+=ID ('.' fsteps+=ID)* arguments=Arguments steps+=Step* |
+ * {BasicIdentifier} identifier=ID steps+=Step* | {BasicRelative} '@'
+ * steps+=Step* ;}
  */
 public class BasicExpressionImplCustom extends BasicExpressionImpl {
 
-	protected Function<? super Val, Publisher<? extends Val>> resolveStepsFiltersAndSubTemplates(EList<Step> steps,
-			EvaluationContext ctx, Val relativeNode) {
-		return resolveSteps(steps, 0, ctx, relativeNode);
+	protected Function<? super Val, Publisher<? extends Val>> resolveStepsFiltersAndSubTemplates(
+			EList<Step> steps,
+			Val relativeNode) {
+		return resolveSteps(steps, 0, relativeNode);
 	}
 
-	private Function<? super Val, Publisher<? extends Val>> resolveSteps(EList<Step> steps, int stepId,
-			EvaluationContext ctx, Val relativeNode) {
+	private Function<? super Val, Publisher<? extends Val>> resolveSteps(
+			EList<Step> steps,
+			int stepId,
+			Val relativeNode) {
 		if (steps == null || stepId == steps.size()) {
-			return value -> resolveFilterOrSubTemplate(value, ctx);
+			return value -> resolveFilterOrSubTemplate(value);
 		}
-		return value -> steps.get(stepId).apply(value, ctx, relativeNode)
-				.switchMap(resolveSteps(steps, stepId + 1, ctx, relativeNode));
+		return value -> steps.get(stepId).apply(value, relativeNode)
+				.switchMap(resolveSteps(steps, stepId + 1, relativeNode));
 	}
 
-	private Flux<Val> resolveFilterOrSubTemplate(Val value, EvaluationContext ctx) {
+	private Flux<Val> resolveFilterOrSubTemplate(Val value) {
 		if (filter != null) {
-			return filter.apply(value, ctx, value);
+			return filter.apply(value, value);
 		}
 		if (subtemplate != null) {
-			return applySubTemplate(ctx, value);
+			return applySubTemplate(value);
 		}
 		return Flux.just(value);
 	}
 
-	private Flux<Val> applySubTemplate(EvaluationContext ctx, Val value) {
+	private Flux<Val> applySubTemplate(Val value) {
 		if (!value.isArray()) {
-			return subtemplate.evaluate(ctx, value);
+			return subtemplate.evaluate(value);
 		}
 		var array = value.getArrayNode();
 		if (array.isEmpty()) {
@@ -75,7 +78,7 @@ public class BasicExpressionImplCustom extends BasicExpressionImpl {
 		}
 		var itemFluxes = new ArrayList<Flux<Val>>(array.size());
 		for (var element : array) {
-			itemFluxes.add(subtemplate.evaluate(ctx, Val.of(element)));
+			itemFluxes.add(subtemplate.evaluate(Val.of(element)));
 		}
 		return Flux.combineLatest(itemFluxes, RepackageUtil::recombineArray);
 	}

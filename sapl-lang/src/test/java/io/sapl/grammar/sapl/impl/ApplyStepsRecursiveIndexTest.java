@@ -22,74 +22,69 @@ import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
-import io.sapl.grammar.sapl.impl.util.MockUtil;
-import io.sapl.interpreter.EvaluationContext;
-
 class ApplyStepsRecursiveIndexTest {
-
-	private static final EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 
 	@Test
 	void recursiveIndexStepPropagatesErrors() {
-		expressionErrors(CTX, "(10/0)..[5]");
+		expressionErrors("(10/0)..[5]");
 	}
 
 	@Test
 	void recursiveIndexStepOnUndefinedEmpty() {
-		expressionEvaluatesTo(CTX, "undefined..[2]", "[]");
+		expressionEvaluatesTo("undefined..[2]", "[]");
 	}
 
 	@Test
 	void applyToNull() {
-		expressionEvaluatesTo(CTX, "null..[2]", "[]");
+		expressionEvaluatesTo("null..[2]", "[]");
 	}
 
 	@Test
 	void applyIndex1() {
-		expressionEvaluatesTo(CTX, "[ [1,2,3], [4,5,6,7] ]..[1]", "[[4,5,6,7],2,5]");
+		expressionEvaluatesTo("[ [1,2,3], [4,5,6,7] ]..[1]", "[[4,5,6,7],2,5]");
 	}
 
 	@Test
 	void applyIndex2() {
-		expressionEvaluatesTo(CTX, "[ [1,2,3], [4,5,6,7] ]..[2]", "[3,6]");
+		expressionEvaluatesTo("[ [1,2,3], [4,5,6,7] ]..[2]", "[3,6]");
 	}
 
 	@Test
 	void applyIndex3() {
-		expressionEvaluatesTo(CTX, "[ [1,2,3], [4,5,6,7] ]..[-1]", "[[4,5,6,7],3,7]");
+		expressionEvaluatesTo("[ [1,2,3], [4,5,6,7] ]..[-1]", "[[4,5,6,7],3,7]");
 	}
 
 	@Test
 	void applyIndex4() {
-		expressionEvaluatesTo(CTX, "[ [1,2,3], [4,5,6,7] ]..[-4]", "[4]");
+		expressionEvaluatesTo("[ [1,2,3], [4,5,6,7] ]..[-4]", "[4]");
 	}
 
 	@Test
 	void filterApplyIndex() {
-		expressionEvaluatesTo(CTX, "[ [1,2,3], [4,5,6,7] ] |- { @..[-4] : mock.nil }", "[ [1,2,3], [null,5,6,7] ]");
+		expressionEvaluatesTo("[ [1,2,3], [4,5,6,7] ] |- { @..[-4] : mock.nil }", "[ [1,2,3], [null,5,6,7] ]");
 	}
 
 	@Test
 	void applyToObject() throws JsonProcessingException {
 		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}..[0]";
-		var expected = "[ { \"key\" : \"value2\" }, 1 ]";
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = "[ { \"key\" : \"value2\" }, 1 ]";
+		expressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void removeRecussiveIndexStepObject() {
 		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] } "
 				+ "|- { @..[0] : filter.remove }";
-		var expected = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value3\" } ], \"array2\" : [ 2, 3, 4, 5 ] }";
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value3\" } ], \"array2\" : [ 2, 3, 4, 5 ] }";
+		expressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void removeRecussiveIndexStepObjectDescend() {
 		var expression = "{ \"key\" : \"value1\", \"array1\" : [ [ 1,2,3 ], { \"key\" : \"value3\" } ], \"array2\" : [ [1,2,3], 2, 3, 4, 5 ] } "
 				+ "|- { @..[0][0] : filter.remove }";
-		var expected = "{ \"key\" : \"value1\", \"array1\" : [ [ 2,3 ], { \"key\" : \"value3\" } ], \"array2\" : [ [2,3], 2, 3, 4, 5 ] }";
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = "{ \"key\" : \"value1\", \"array1\" : [ [ 2,3 ], { \"key\" : \"value3\" } ], \"array2\" : [ [2,3], 2, 3, 4, 5 ] }";
+		expressionEvaluatesTo(expression, expected);
 	}
 
 }

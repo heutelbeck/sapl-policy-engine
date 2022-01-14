@@ -19,19 +19,37 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
+import java.util.HashMap;
+
 import org.junit.jupiter.api.Test;
 
 import io.sapl.grammar.sapl.CombiningAlgorithm;
-import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.interpreter.pip.AttributeContext;
 
 class PDPConfigurationTest {
 
 	@Test
 	void testIsValid() {
-		assertThat(new PDPConfiguration(null, null).isValid(), is(false));
-		assertThat(new PDPConfiguration(null, mock(CombiningAlgorithm.class)).isValid(), is(false));
-		assertThat(new PDPConfiguration(mock(EvaluationContext.class), null).isValid(), is(false));
-		assertThat(new PDPConfiguration(mock(EvaluationContext.class), mock(CombiningAlgorithm.class)).isValid(),
+		assertThat(
+				new PDPConfiguration(null, mock(FunctionContext.class), new HashMap<>(), mock(CombiningAlgorithm.class))
+						.isValid(),
+				is(false));
+		assertThat(
+				new PDPConfiguration(mock(AttributeContext.class), null, new HashMap<>(),
+						mock(CombiningAlgorithm.class)).isValid(),
+				is(false));
+		assertThat(
+				new PDPConfiguration(mock(AttributeContext.class), mock(FunctionContext.class), null,
+						mock(CombiningAlgorithm.class)).isValid(),
+				is(false));
+		assertThat(
+				new PDPConfiguration(mock(AttributeContext.class), mock(FunctionContext.class), new HashMap<>(), null)
+						.isValid(),
+				is(false));
+		assertThat(
+				new PDPConfiguration(mock(AttributeContext.class), mock(FunctionContext.class), new HashMap<>(),
+						mock(CombiningAlgorithm.class)).isValid(),
 				is(true));
 	}
 

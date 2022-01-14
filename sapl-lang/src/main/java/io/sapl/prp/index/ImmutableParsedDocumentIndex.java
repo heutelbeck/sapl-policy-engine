@@ -15,14 +15,13 @@
  */
 package io.sapl.prp.index;
 
-import io.sapl.interpreter.EvaluationContext;
 import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.prp.PrpUpdateEvent;
 import reactor.core.publisher.Mono;
 
 public interface ImmutableParsedDocumentIndex {
 
-	Mono<PolicyRetrievalResult> retrievePolicies(EvaluationContext subscriptionScopedEvaluationContext);
+	Mono<PolicyRetrievalResult> retrievePolicies();
 
 	ImmutableParsedDocumentIndex apply(PrpUpdateEvent event);
 

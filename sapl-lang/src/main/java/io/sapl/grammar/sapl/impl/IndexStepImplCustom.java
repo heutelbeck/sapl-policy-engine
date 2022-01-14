@@ -22,13 +22,13 @@ import com.fasterxml.jackson.core.TreeNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
-import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
- * Implements the application of an index step to a previous array value, e.g. 'arr[2]'.
+ * Implements the application of an index step to a previous array value, e.g.
+ * 'arr[2]'.
  *
  * Grammar: {@code Step: '[' Subscript ']' ;
  *
@@ -42,7 +42,7 @@ public class IndexStepImplCustom extends IndexStepImpl {
 	private static final String INDEX_OUT_OF_BOUNDS_INDEX_MUST_BE_BETWEEN_0_AND_D_WAS_D = "Index out of bounds. Index must be between 0 and %d, was: %d ";
 
 	@Override
-	public Flux<Val> apply(@NonNull Val parentValue, @NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
+	public Flux<Val> apply(@NonNull Val parentValue, @NonNull Val relativeNode) {
 		if (parentValue.isError()) {
 			return Flux.just(parentValue);
 		}
@@ -50,7 +50,7 @@ public class IndexStepImplCustom extends IndexStepImpl {
 			return Val.errorFlux(TYPE_MISMATCH_CAN_ONLY_ACCESS_ARRAYS_BY_INDEX_GOT_S, parentValue);
 		}
 		var array = parentValue.getArrayNode();
-		var idx = normalizeIndex(index, array);
+		var idx   = normalizeIndex(index, array);
 		if (idx < 0 || idx >= array.size()) {
 			return Val.errorFlux(INDEX_OUT_OF_BOUNDS_INDEX_MUST_BE_BETWEEN_0_AND_D_WAS_D, array.size(), idx);
 		}
@@ -67,20 +67,27 @@ public class IndexStepImplCustom extends IndexStepImpl {
 	}
 
 	@Override
-	public Flux<Val> applyFilterStatement(@NonNull Val parentValue, @NonNull EvaluationContext ctx,
-			@NonNull Val relativeNode, int stepId, @NonNull FilterStatement statement) {
-		return doApplyFilterStatement(index, parentValue, ctx, relativeNode, stepId, statement);
+	public Flux<Val> applyFilterStatement(
+			@NonNull Val parentValue,
+			@NonNull Val relativeNode,
+			int stepId,
+			@NonNull FilterStatement statement) {
+		return doApplyFilterStatement(index, parentValue, relativeNode, stepId, statement);
 	}
 
-	public static Flux<Val> doApplyFilterStatement(BigDecimal index, Val parentValue, EvaluationContext ctx,
-			Val relativeNode, int stepId, FilterStatement statement) {
+	public static Flux<Val> doApplyFilterStatement(
+			BigDecimal index,
+			Val parentValue,
+			Val relativeNode,
+			int stepId,
+			FilterStatement statement) {
 		log.trace("apply index step [{}] to: {}", index, parentValue);
 		if (!parentValue.isArray()) {
 			// this means the element does not get selected does not get filtered
 			return Flux.just(parentValue);
 		}
 		var array = parentValue.getArrayNode();
-		var idx = normalizeIndex(index, array);
+		var idx   = normalizeIndex(index, array);
 		if (idx < 0 || idx >= array.size()) {
 			// this means the element does not get selected does not get filtered
 			return Flux.just(parentValue);
@@ -96,17 +103,14 @@ public class IndexStepImplCustom extends IndexStepImpl {
 					log.trace("final step. apply filter!");
 					elementFluxes.add(
 							FilterComponentImplCustom.applyFilterFunction(Val.of(element), statement.getArguments(),
-									FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx,
-									parentValue, statement.isEach()));
-				}
-				else {
+									statement.getFsteps(), parentValue, statement.isEach()));
+				} else {
 					// there are more steps. descent with them
 					log.trace("this step was successful. descent with next step...");
 					elementFluxes.add(statement.getTarget().getSteps().get(stepId + 1)
-							.applyFilterStatement(Val.of(element), ctx, relativeNode, stepId + 1, statement));
+							.applyFilterStatement(Val.of(element), relativeNode, stepId + 1, statement));
 				}
-			}
-			else {
+			} else {
 				log.trace("[{}] not selected. Just return as is. Not affected by filtering.", i);
 				elementFluxes.add(Flux.just(Val.of(element)));
 			}

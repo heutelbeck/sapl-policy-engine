@@ -21,54 +21,50 @@ import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.impl.util.MockUtil;
-import io.sapl.interpreter.EvaluationContext;
 
 class ApplyFilteringSimpleTest {
 
-	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
-
 	@Test
 	void filterPropagatesError() {
-		expressionErrors(CTX, "(10/0) |- filter.remove");
+		expressionErrors("(10/0) |- filter.remove");
 	}
 
 	@Test
 	void filterUndefined() {
-		expressionErrors(CTX, "undefined |- filter.remove");
+		expressionErrors("undefined |- filter.remove");
 	}
 
 	@Test
 	void removeNoEach() {
 		var expression = "{} |- filter.remove";
 		var expected = Val.UNDEFINED;
-		expressionEvaluatesTo(CTX, expression, expected);
+		expressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void removeEachNoArray() {
-		expressionErrors(CTX, "{} |- each filter.remove");
+		expressionErrors("{} |- each filter.remove");
 	}
 
 	@Test
 	void removeEachArray() {
 		var expression = "[null] |- each filter.remove";
 		var expected = "[]";
-		expressionEvaluatesTo(CTX, expression, expected);
+		expressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void emptyStringNoEach() {
 		var expression = "[] |- mock.emptyString";
 		var expected = "\"\"";
-		expressionEvaluatesTo(CTX, expression, expected);
+		expressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void emptyStringEach() {
 		var expression = "[ null, 5 ] |- each mock.emptyString(null)";
 		var expected = "[ \"\", \"\" ]";
-		expressionEvaluatesTo(CTX, expression, expected);
+		expressionEvaluatesTo(expression, expected);
 	}
 
 }

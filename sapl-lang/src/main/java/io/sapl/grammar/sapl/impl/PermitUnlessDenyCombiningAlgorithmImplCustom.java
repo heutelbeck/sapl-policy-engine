@@ -25,20 +25,19 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.Policy;
-import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.combinators.ObligationAdviceCollector;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
- * This generous algorithm is used if the decision should be a PERMIT except for there is
- * a DENY. It ensures that any decision is either a DENY or a PERMIT.
+ * This generous algorithm is used if the decision should be a PERMIT except for
+ * there is a DENY. It ensures that any decision is either a DENY or a PERMIT.
  *
  * It works as follows:
  *
- * If any policy document evaluates to DENY or if there is a transformation uncertainty
- * (multiple policies evaluate to PERMIT and at least one of them has a transformation
- * statement), the decision is a DENY.
+ * If any policy document evaluates to DENY or if there is a transformation
+ * uncertainty (multiple policies evaluate to PERMIT and at least one of them
+ * has a transformation statement), the decision is a DENY.
  *
  * Otherwise, the decision is PERMIT.
  */
@@ -50,9 +49,9 @@ public class PermitUnlessDenyCombiningAlgorithmImplCustom extends PermitUnlessDe
 		if (decisions.length == 0)
 			return AuthorizationDecision.PERMIT;
 
-		var entitlement = PERMIT;
-		var collector = new ObligationAdviceCollector();
-		Optional<JsonNode> resource = Optional.empty();
+		var                entitlement = PERMIT;
+		var                collector   = new ObligationAdviceCollector();
+		Optional<JsonNode> resource    = Optional.empty();
 		for (var decision : decisions) {
 			if (decision.getDecision() == DENY) {
 				entitlement = DENY;
@@ -65,8 +64,7 @@ public class PermitUnlessDenyCombiningAlgorithmImplCustom extends PermitUnlessDe
 					// this the overall result is basically INDETERMINATE.
 					// However, DENY overrides with this algorithm.
 					entitlement = DENY;
-				}
-				else {
+				} else {
 					resource = decision.getResource();
 				}
 			}
@@ -78,8 +76,8 @@ public class PermitUnlessDenyCombiningAlgorithmImplCustom extends PermitUnlessDe
 	}
 
 	@Override
-	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
-		return doCombinePolicies(policies, ctx);
+	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies) {
+		return doCombinePolicies(policies);
 	}
 
 }

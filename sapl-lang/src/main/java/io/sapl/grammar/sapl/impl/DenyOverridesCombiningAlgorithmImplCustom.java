@@ -27,14 +27,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.Policy;
-import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.combinators.ObligationAdviceCollector;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
- * This algorithm is used if a DENY decision should prevail a PERMIT without setting a
- * default decision.
+ * This algorithm is used if a DENY decision should prevail a PERMIT without
+ * setting a default decision.
  *
  * It works as follows:
  *
@@ -42,9 +41,9 @@ import reactor.core.publisher.Flux;
  *
  * - Otherwise:
  *
- * a) If there is any INDETERMINATE or there is a transformation uncertainty (multiple
- * policies evaluate to PERMIT and at least one of them has a transformation statement),
- * the decision is INDETERMINATE.
+ * a) If there is any INDETERMINATE or there is a transformation uncertainty
+ * (multiple policies evaluate to PERMIT and at least one of them has a
+ * transformation statement), the decision is INDETERMINATE.
  *
  * b) Otherwise:
  *
@@ -60,9 +59,9 @@ public class DenyOverridesCombiningAlgorithmImplCustom extends DenyOverridesComb
 		if (decisions.length == 0 && !errorsInTarget)
 			return AuthorizationDecision.NOT_APPLICABLE;
 
-		var entitlement = errorsInTarget ? INDETERMINATE : NOT_APPLICABLE;
-		var collector = new ObligationAdviceCollector();
-		Optional<JsonNode> resource = Optional.empty();
+		var                entitlement = errorsInTarget ? INDETERMINATE : NOT_APPLICABLE;
+		var                collector   = new ObligationAdviceCollector();
+		Optional<JsonNode> resource    = Optional.empty();
 		for (var decision : decisions) {
 			if (decision.getDecision() == DENY) {
 				entitlement = DENY;
@@ -87,8 +86,7 @@ public class DenyOverridesCombiningAlgorithmImplCustom extends DenyOverridesComb
 					if (entitlement != DENY) {
 						entitlement = INDETERMINATE;
 					}
-				}
-				else {
+				} else {
 					resource = decision.getResource();
 				}
 			}
@@ -100,8 +98,8 @@ public class DenyOverridesCombiningAlgorithmImplCustom extends DenyOverridesComb
 	}
 
 	@Override
-	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
-		return doCombinePolicies(policies, ctx);
+	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies) {
+		return doCombinePolicies(policies);
 	}
 
 }

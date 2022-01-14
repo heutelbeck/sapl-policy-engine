@@ -64,7 +64,7 @@ public class ConstraintEnforcementServiceTests {
 	private final static ArrayNode ONE_CONSTRAINT;
 
 	static {
-		CONSTRAINT = JSON.textNode("a constraint");
+		CONSTRAINT     = JSON.textNode("a constraint");
 		ONE_CONSTRAINT = JSON.arrayNode();
 		ONE_CONSTRAINT.add(CONSTRAINT);
 	}
@@ -90,13 +90,13 @@ public class ConstraintEnforcementServiceTests {
 
 	@BeforeEach
 	void beforeEach() {
-		globalRunnableProviders = new LinkedList<>();
-		globalConsumerProviders = new LinkedList<>();
+		globalRunnableProviders            = new LinkedList<>();
+		globalConsumerProviders            = new LinkedList<>();
 		globalSubscriptionHandlerProviders = new LinkedList<>();
-		globalRequestHandlerProviders = new LinkedList<>();
-		globalMappingHandlerProviders = new LinkedList<>();
+		globalRequestHandlerProviders      = new LinkedList<>();
+		globalMappingHandlerProviders      = new LinkedList<>();
 		globalErrorMappingHandlerProviders = new LinkedList<>();
-		globalErrorHandlerProviders = new LinkedList<>();
+		globalErrorHandlerProviders        = new LinkedList<>();
 	}
 
 	private ConstraintEnforcementService buildConstraintHandlerService() {
@@ -107,41 +107,45 @@ public class ConstraintEnforcementServiceTests {
 
 	@Test
 	void when_noConstraints_then_AccessIsGranted() {
-		var service = buildConstraintHandlerService();
-		var decision = AuthorizationDecision.PERMIT;
+		var service             = buildConstraintHandlerService();
+		var decision            = AuthorizationDecision.PERMIT;
 		var resourceAccessPoint = Flux.just(1, 2, 3);
-		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
 				Integer.class);
 		StepVerifier.create(wrapped).expectNext(1, 2, 3).verifyComplete();
 	}
 
 	@Test
 	void when_resource_then_AccessIsGranted_and_valueIsReplaced() {
-		var service = buildConstraintHandlerService();
-		var expected = 69;
-		var decision = AuthorizationDecision.PERMIT.withResource(JSON.numberNode(expected));
+		var service             = buildConstraintHandlerService();
+		var expected            = 69;
+		var decision            = AuthorizationDecision.PERMIT.withResource(JSON.numberNode(expected));
 		var resourceAccessPoint = Flux.just(1, 2, 3);
-		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
 				Integer.class);
 		StepVerifier.create(wrapped).expectNext(expected).verifyComplete();
 	}
 
 	@Test
 	void when_resource_and_typeMismatch_then_AccessIsDenied() {
-		var service = buildConstraintHandlerService();
-		var decision = AuthorizationDecision.PERMIT.withResource(JSON.textNode("not a number"));
+		var service             = buildConstraintHandlerService();
+		var decision            = AuthorizationDecision.PERMIT.withResource(JSON.textNode("not a number"));
 		var resourceAccessPoint = Flux.just(1, 2, 3);
-		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
 				Integer.class);
 		StepVerifier.create(wrapped).expectError(AccessDeniedException.class).verify();
 	}
 
 	@Test
 	void when_obligation_and_noHandler_then_AccessIsDenied() {
-		var service = buildConstraintHandlerService();
-		var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+		var service             = buildConstraintHandlerService();
+		var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
 		var resourceAccessPoint = Flux.just(1, 2, 3);
-		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
 				Integer.class);
 		StepVerifier.create(wrapped).expectError(AccessDeniedException.class).verify();
 	}
@@ -170,10 +174,11 @@ public class ConstraintEnforcementServiceTests {
 			}
 		});
 		globalRunnableProviders.add(provider);
-		var service = buildConstraintHandlerService();
-		var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+		var service             = buildConstraintHandlerService();
+		var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
 		var resourceAccessPoint = Flux.just(1, 2, 3);
-		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
 				Integer.class);
 		StepVerifier.create(wrapped).expectNext(1, 2, 3).verifyComplete();
 		verify(provider, times(1)).run();
@@ -181,63 +186,64 @@ public class ConstraintEnforcementServiceTests {
 
 	@Test
 	void when_obligationsWithPriority_and_onDecisionHandlerIsResponsible_andSucceeds_then_AccessIsGranted_and_handlersCalledInOrderOfPriority() {
-		var provider1 = spy(new RunnableConstraintHandlerProvider() {
-			@Override
-			public int getPriority() {
-				return 100;
-			}
+		var     provider1 = spy(new RunnableConstraintHandlerProvider() {
+								@Override
+								public int getPriority() {
+									return 100;
+								}
 
-			@Override
-			public boolean isResponsible(JsonNode constraint) {
-				return true;
-			}
+								@Override
+								public boolean isResponsible(JsonNode constraint) {
+									return true;
+								}
 
-			@Override
-			public Signal getSignal() {
-				return Signal.ON_DECISION;
-			}
+								@Override
+								public Signal getSignal() {
+									return Signal.ON_DECISION;
+								}
 
-			@Override
-			public Runnable getHandler(JsonNode constraint) {
-				return this::run;
-			}
+								@Override
+								public Runnable getHandler(JsonNode constraint) {
+									return this::run;
+								}
 
-			public void run() {
-				// NOOP
-			}
-		});
-		var provider2 = spy(new RunnableConstraintHandlerProvider() {
-			@Override
-			public int getPriority() {
-				return -100;
-			}
+								public void run() {
+									// NOOP
+								}
+							});
+		var     provider2 = spy(new RunnableConstraintHandlerProvider() {
+								@Override
+								public int getPriority() {
+									return -100;
+								}
 
-			@Override
-			public boolean isResponsible(JsonNode constraint) {
-				return true;
-			}
+								@Override
+								public boolean isResponsible(JsonNode constraint) {
+									return true;
+								}
 
-			@Override
-			public Signal getSignal() {
-				return Signal.ON_DECISION;
-			}
+								@Override
+								public Signal getSignal() {
+									return Signal.ON_DECISION;
+								}
 
-			@Override
-			public Runnable getHandler(JsonNode constraint) {
-				return this::run;
-			}
+								@Override
+								public Runnable getHandler(JsonNode constraint) {
+									return this::run;
+								}
 
-			public void run() {
-				// NOOP
-			}
-		});
-		InOrder inOrder = inOrder(provider1, provider2);
+								public void run() {
+									// NOOP
+								}
+							});
+		InOrder inOrder   = inOrder(provider1, provider2);
 		globalRunnableProviders.add(provider1);
 		globalRunnableProviders.add(provider2);
-		var service = buildConstraintHandlerService();
-		var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+		var service             = buildConstraintHandlerService();
+		var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
 		var resourceAccessPoint = Flux.just(1, 2, 3);
-		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
 				Integer.class);
 		StepVerifier.create(wrapped).expectNext(1, 2, 3).verifyComplete();
 		inOrder.verify(provider2).run();
@@ -268,10 +274,11 @@ public class ConstraintEnforcementServiceTests {
 			}
 		});
 		globalRunnableProviders.add(provider);
-		var service = buildConstraintHandlerService();
-		var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+		var service             = buildConstraintHandlerService();
+		var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
 		var resourceAccessPoint = Flux.just(1, 2, 3);
-		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
 				Integer.class);
 		StepVerifier.create(wrapped).expectError(AccessDeniedException.class).verify();
 		verify(provider, times(1)).run();
@@ -301,10 +308,11 @@ public class ConstraintEnforcementServiceTests {
 			}
 		});
 		globalRunnableProviders.add(provider);
-		var service = buildConstraintHandlerService();
-		var decision = AuthorizationDecision.PERMIT.withAdvice(ONE_CONSTRAINT);
+		var service             = buildConstraintHandlerService();
+		var decision            = AuthorizationDecision.PERMIT.withAdvice(ONE_CONSTRAINT);
 		var resourceAccessPoint = Flux.just(1, 2, 3);
-		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
 				Integer.class);
 		StepVerifier.create(wrapped).expectNext(1, 2, 3).verifyComplete();
 		verify(provider, times(1)).run();
@@ -334,10 +342,11 @@ public class ConstraintEnforcementServiceTests {
 			}
 		});
 		globalRunnableProviders.add(provider);
-		var service = buildConstraintHandlerService();
-		var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+		var service             = buildConstraintHandlerService();
+		var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
 		var resourceAccessPoint = Flux.just(1, 2, 3);
-		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
 				Integer.class);
 		StepVerifier.create(wrapped).expectNext(1, 2, 3).verifyComplete();
 		verify(provider, times(1)).run();
@@ -367,10 +376,11 @@ public class ConstraintEnforcementServiceTests {
 			}
 		});
 		globalRunnableProviders.add(provider);
-		var service = buildConstraintHandlerService();
-		var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+		var service             = buildConstraintHandlerService();
+		var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
 		var resourceAccessPoint = Flux.just(1, 2, 3);
-		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
 				Integer.class);
 		StepVerifier.create(wrapped.take(1)).expectNext(1).verifyComplete();
 		verify(provider, times(1)).run();
@@ -400,10 +410,11 @@ public class ConstraintEnforcementServiceTests {
 			}
 		});
 		globalRunnableProviders.add(provider);
-		var service = buildConstraintHandlerService();
-		var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+		var service             = buildConstraintHandlerService();
+		var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
 		var resourceAccessPoint = Flux.just(1, 2, 3);
-		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
 				Integer.class);
 		StepVerifier.create(wrapped).expectNext(1, 2, 3).verifyComplete();
 		verify(provider, times(1)).run();
@@ -433,10 +444,11 @@ public class ConstraintEnforcementServiceTests {
 			}
 		});
 		globalRunnableProviders.add(provider);
-		var service = buildConstraintHandlerService();
-		var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+		var service             = buildConstraintHandlerService();
+		var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
 		var resourceAccessPoint = Flux.just(1, 2, 3);
-		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
 				Integer.class);
 		StepVerifier.create(wrapped).expectNext(1, 2, 3).verifyComplete();
 		verify(provider, times(1)).run();
@@ -467,10 +479,11 @@ public class ConstraintEnforcementServiceTests {
 
 		});
 		globalConsumerProviders.add(provider);
-		var service = buildConstraintHandlerService();
-		var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+		var service             = buildConstraintHandlerService();
+		var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
 		var resourceAccessPoint = Flux.just(1, 2, 3);
-		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
 				Integer.class);
 		StepVerifier.create(wrapped).expectNext(1, 2, 3).verifyComplete();
 		verify(provider, times(3)).accept(any());
@@ -502,10 +515,11 @@ public class ConstraintEnforcementServiceTests {
 
 		});
 		globalConsumerProviders.add(provider);
-		var service = buildConstraintHandlerService();
-		var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+		var service             = buildConstraintHandlerService();
+		var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
 		var resourceAccessPoint = Flux.just(1, 2, 3);
-		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
 				Integer.class);
 		StepVerifier.create(wrapped).expectNext(1).expectError(AccessDeniedException.class).verify();
 		verify(provider, times(2)).accept(any());
@@ -537,10 +551,11 @@ public class ConstraintEnforcementServiceTests {
 
 		});
 		globalConsumerProviders.add(provider);
-		var service = buildConstraintHandlerService();
-		var decision = AuthorizationDecision.PERMIT.withAdvice(ONE_CONSTRAINT);
+		var service             = buildConstraintHandlerService();
+		var decision            = AuthorizationDecision.PERMIT.withAdvice(ONE_CONSTRAINT);
 		var resourceAccessPoint = Flux.just(1, 2, 3);
-		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
 				Integer.class);
 		StepVerifier.create(wrapped).expectNext(1, 2, 3).verifyComplete();
 		verify(provider, times(3)).accept(any());
@@ -571,10 +586,11 @@ public class ConstraintEnforcementServiceTests {
 
 		});
 		globalMappingHandlerProviders.add(provider);
-		var service = buildConstraintHandlerService();
-		var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+		var service             = buildConstraintHandlerService();
+		var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
 		var resourceAccessPoint = Flux.just("+", "-", "#");
-		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
 				String.class);
 		StepVerifier.create(wrapped).expectNext("+A", "-A", "#A").verifyComplete();
 		verify(provider, times(3)).apply(any());
@@ -582,67 +598,68 @@ public class ConstraintEnforcementServiceTests {
 
 	@Test
 	void when_obligation_and_doMapOnNextHandlersAreResponsible_andSucceeds_then_AccessIsGranted_and_ModifiedAccordingToPriority() {
-		var provider1 = spy(new MappingConstraintHandlerProvider<String>() {
-			@Override
-			public int getPriority() {
-				return -100;
-			}
+		var     provider1 = spy(new MappingConstraintHandlerProvider<String>() {
+								@Override
+								public int getPriority() {
+									return -100;
+								}
 
-			@Override
-			public boolean isResponsible(JsonNode constraint) {
-				return true;
-			}
+								@Override
+								public boolean isResponsible(JsonNode constraint) {
+									return true;
+								}
 
-			@Override
-			public Class<String> getSupportedType() {
-				return String.class;
-			}
+								@Override
+								public Class<String> getSupportedType() {
+									return String.class;
+								}
 
-			@Override
-			public Function<String, String> getHandler(JsonNode constraint) {
-				return this::apply;
-			}
+								@Override
+								public Function<String, String> getHandler(JsonNode constraint) {
+									return this::apply;
+								}
 
-			public String apply(String s) {
-				return s + "1";
-			}
+								public String apply(String s) {
+									return s + "1";
+								}
 
-		});
-		var provider2 = spy(new MappingConstraintHandlerProvider<String>() {
-			@Override
-			public int getPriority() {
-				return 100;
-			}
+							});
+		var     provider2 = spy(new MappingConstraintHandlerProvider<String>() {
+								@Override
+								public int getPriority() {
+									return 100;
+								}
 
-			@Override
-			public boolean isResponsible(JsonNode constraint) {
-				return true;
-			}
+								@Override
+								public boolean isResponsible(JsonNode constraint) {
+									return true;
+								}
 
-			@Override
-			public Class<String> getSupportedType() {
-				return String.class;
-			}
+								@Override
+								public Class<String> getSupportedType() {
+									return String.class;
+								}
 
-			@Override
-			public Function<String, String> getHandler(JsonNode constraint) {
-				return this::apply;
-			}
+								@Override
+								public Function<String, String> getHandler(JsonNode constraint) {
+									return this::apply;
+								}
 
-			public String apply(String s) {
-				return s + "2";
-			}
+								public String apply(String s) {
+									return s + "2";
+								}
 
-		});
-		InOrder inOrder = inOrder(provider1, provider2);
+							});
+		InOrder inOrder   = inOrder(provider1, provider2);
 
 		globalMappingHandlerProviders.add(provider2);
 		globalMappingHandlerProviders.add(provider1);
 
-		var service = buildConstraintHandlerService();
-		var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+		var service             = buildConstraintHandlerService();
+		var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
 		var resourceAccessPoint = Flux.just("+", "-", "#");
-		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
 				String.class);
 
 		StepVerifier.create(wrapped).expectNext("+12", "-12", "#12").verifyComplete();
@@ -653,67 +670,68 @@ public class ConstraintEnforcementServiceTests {
 
 	@Test
 	void when_advice_and_doMapOnNextHandlersAreResponsible_andOneFails_then_AccessIsGranted_and_ModifiedByOnlyTheOtherHandler() {
-		var provider1 = spy(new MappingConstraintHandlerProvider<String>() {
-			@Override
-			public int getPriority() {
-				return -100;
-			}
+		var     provider1 = spy(new MappingConstraintHandlerProvider<String>() {
+								@Override
+								public int getPriority() {
+									return -100;
+								}
 
-			@Override
-			public boolean isResponsible(JsonNode constraint) {
-				return true;
-			}
+								@Override
+								public boolean isResponsible(JsonNode constraint) {
+									return true;
+								}
 
-			@Override
-			public Class<String> getSupportedType() {
-				return String.class;
-			}
+								@Override
+								public Class<String> getSupportedType() {
+									return String.class;
+								}
 
-			@Override
-			public Function<String, String> getHandler(JsonNode constraint) {
-				return this::apply;
-			}
+								@Override
+								public Function<String, String> getHandler(JsonNode constraint) {
+									return this::apply;
+								}
 
-			public String apply(String s) {
-				throw new IllegalStateException("I FAILED TO OBLIGE");
-			}
+								public String apply(String s) {
+									throw new IllegalStateException("I FAILED TO OBLIGE");
+								}
 
-		});
-		var provider2 = spy(new MappingConstraintHandlerProvider<String>() {
-			@Override
-			public int getPriority() {
-				return 100;
-			}
+							});
+		var     provider2 = spy(new MappingConstraintHandlerProvider<String>() {
+								@Override
+								public int getPriority() {
+									return 100;
+								}
 
-			@Override
-			public boolean isResponsible(JsonNode constraint) {
-				return true;
-			}
+								@Override
+								public boolean isResponsible(JsonNode constraint) {
+									return true;
+								}
 
-			@Override
-			public Class<String> getSupportedType() {
-				return String.class;
-			}
+								@Override
+								public Class<String> getSupportedType() {
+									return String.class;
+								}
 
-			@Override
-			public Function<String, String> getHandler(JsonNode constraint) {
-				return this::apply;
-			}
+								@Override
+								public Function<String, String> getHandler(JsonNode constraint) {
+									return this::apply;
+								}
 
-			public String apply(String s) {
-				return s + "2";
-			}
+								public String apply(String s) {
+									return s + "2";
+								}
 
-		});
-		InOrder inOrder = inOrder(provider1, provider2);
+							});
+		InOrder inOrder   = inOrder(provider1, provider2);
 
 		globalMappingHandlerProviders.add(provider2);
 		globalMappingHandlerProviders.add(provider1);
 
-		var service = buildConstraintHandlerService();
-		var decision = AuthorizationDecision.PERMIT.withAdvice(ONE_CONSTRAINT);
+		var service             = buildConstraintHandlerService();
+		var decision            = AuthorizationDecision.PERMIT.withAdvice(ONE_CONSTRAINT);
 		var resourceAccessPoint = Flux.just("+", "-", "#");
-		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
 				String.class);
 
 		StepVerifier.create(wrapped).expectNext("+2", "-2", "#2").verifyComplete();
@@ -724,69 +742,70 @@ public class ConstraintEnforcementServiceTests {
 
 	@Test
 	void when_obligation_and_doMapOnNextHandlersAreResponsible_andOneFails_then_AccessIsDeniedAfterFail() {
-		var provider1 = spy(new MappingConstraintHandlerProvider<String>() {
-			@Override
-			public int getPriority() {
-				return -100;
-			}
+		var     provider1 = spy(new MappingConstraintHandlerProvider<String>() {
+								@Override
+								public int getPriority() {
+									return -100;
+								}
 
-			@Override
-			public boolean isResponsible(JsonNode constraint) {
-				return true;
-			}
+								@Override
+								public boolean isResponsible(JsonNode constraint) {
+									return true;
+								}
 
-			@Override
-			public Class<String> getSupportedType() {
-				return String.class;
-			}
+								@Override
+								public Class<String> getSupportedType() {
+									return String.class;
+								}
 
-			@Override
-			public Function<String, String> getHandler(JsonNode constraint) {
-				return this::apply;
-			}
+								@Override
+								public Function<String, String> getHandler(JsonNode constraint) {
+									return this::apply;
+								}
 
-			public String apply(String s) {
-				if ("-".equals(s))
-					throw new IllegalStateException("I FAILED TO OBLIGE");
-				return s + "1";
-			}
+								public String apply(String s) {
+									if ("-".equals(s))
+										throw new IllegalStateException("I FAILED TO OBLIGE");
+									return s + "1";
+								}
 
-		});
-		var provider2 = spy(new MappingConstraintHandlerProvider<String>() {
-			@Override
-			public int getPriority() {
-				return 100;
-			}
+							});
+		var     provider2 = spy(new MappingConstraintHandlerProvider<String>() {
+								@Override
+								public int getPriority() {
+									return 100;
+								}
 
-			@Override
-			public boolean isResponsible(JsonNode constraint) {
-				return true;
-			}
+								@Override
+								public boolean isResponsible(JsonNode constraint) {
+									return true;
+								}
 
-			@Override
-			public Class<String> getSupportedType() {
-				return String.class;
-			}
+								@Override
+								public Class<String> getSupportedType() {
+									return String.class;
+								}
 
-			@Override
-			public Function<String, String> getHandler(JsonNode constraint) {
-				return this::apply;
-			}
+								@Override
+								public Function<String, String> getHandler(JsonNode constraint) {
+									return this::apply;
+								}
 
-			public String apply(String s) {
-				return s + "2";
-			}
+								public String apply(String s) {
+									return s + "2";
+								}
 
-		});
-		InOrder inOrder = inOrder(provider1, provider2);
+							});
+		InOrder inOrder   = inOrder(provider1, provider2);
 
 		globalMappingHandlerProviders.add(provider2);
 		globalMappingHandlerProviders.add(provider1);
 
-		var service = buildConstraintHandlerService();
-		var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+		var service             = buildConstraintHandlerService();
+		var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
 		var resourceAccessPoint = Flux.just("+", "-", "#");
-		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
 				String.class);
 
 		StepVerifier.create(wrapped).expectNext("+12").expectError(AccessDeniedException.class).verify();
@@ -815,11 +834,12 @@ public class ConstraintEnforcementServiceTests {
 
 		});
 		globalErrorHandlerProviders.add(provider);
-		var service = buildConstraintHandlerService();
-		var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+		var service             = buildConstraintHandlerService();
+		var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
 		var resourceAccessPoint = Flux.concat(Flux.just(1), Flux.error(new IOException("I AM A FAILURE OF THE RAP")),
 				Flux.just(3));
-		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
 				Integer.class);
 		StepVerifier.create(wrapped).expectNext(1).expectError(IOException.class).verify();
 		verify(provider, times(1)).accept(any());
@@ -845,11 +865,12 @@ public class ConstraintEnforcementServiceTests {
 
 		});
 		globalErrorHandlerProviders.add(provider);
-		var service = buildConstraintHandlerService();
-		var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+		var service             = buildConstraintHandlerService();
+		var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
 		var resourceAccessPoint = Flux.concat(Flux.just(1), Flux.error(new IOException("I AM A FAILURE OF THE RAP")),
 				Flux.just(3));
-		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
 				Integer.class);
 		StepVerifier.create(wrapped).expectNext(1).expectError(AccessDeniedException.class).verify();
 		verify(provider, times(1)).accept(any());
@@ -875,11 +896,12 @@ public class ConstraintEnforcementServiceTests {
 
 		});
 		globalErrorMappingHandlerProviders.add(provider);
-		var service = buildConstraintHandlerService();
-		var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+		var service             = buildConstraintHandlerService();
+		var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
 		var resourceAccessPoint = Flux.concat(Flux.just(1), Flux.error(new IOException("I AM A FAILURE OF THE RAP")),
 				Flux.just(3));
-		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
 				Integer.class);
 		StepVerifier.create(wrapped).expectNext(1).expectError(IllegalArgumentException.class).verify();
 		verify(provider, times(1)).apply(any());
@@ -905,10 +927,11 @@ public class ConstraintEnforcementServiceTests {
 
 		});
 		globalSubscriptionHandlerProviders.add(provider);
-		var service = buildConstraintHandlerService();
-		var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+		var service             = buildConstraintHandlerService();
+		var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
 		var resourceAccessPoint = Flux.just(1, 2, 3);
-		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
 				Integer.class);
 		StepVerifier.create(wrapped).expectNext(1, 2, 3).verifyComplete();
 		verify(provider, times(1)).accept(any());
@@ -934,10 +957,11 @@ public class ConstraintEnforcementServiceTests {
 
 		});
 		globalSubscriptionHandlerProviders.add(provider);
-		var service = buildConstraintHandlerService();
-		var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+		var service             = buildConstraintHandlerService();
+		var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
 		var resourceAccessPoint = Flux.just(1, 2, 3);
-		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
 				Integer.class);
 		StepVerifier.create(wrapped).expectError(AccessDeniedException.class).verify();
 		verify(provider, times(1)).accept(any());
@@ -963,10 +987,11 @@ public class ConstraintEnforcementServiceTests {
 
 		});
 		globalRequestHandlerProviders.add(provider);
-		var service = buildConstraintHandlerService();
-		var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+		var service             = buildConstraintHandlerService();
+		var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
 		var resourceAccessPoint = Flux.just(1, 2, 3);
-		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
 				Integer.class);
 		StepVerifier.create(wrapped).expectNext(1, 2, 3).verifyComplete();
 		verify(provider, times(1)).accept(any());
@@ -992,10 +1017,11 @@ public class ConstraintEnforcementServiceTests {
 
 		});
 		globalRequestHandlerProviders.add(provider);
-		var service = buildConstraintHandlerService();
-		var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+		var service             = buildConstraintHandlerService();
+		var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
 		var resourceAccessPoint = Flux.just(1, 2, 3);
-		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
 				Integer.class);
 		assertThrows(RuntimeException.class, wrapped::blockLast);
 	}
@@ -1020,10 +1046,11 @@ public class ConstraintEnforcementServiceTests {
 
 		});
 		globalRequestHandlerProviders.add(provider);
-		var service = buildConstraintHandlerService();
-		var decision = AuthorizationDecision.PERMIT.withAdvice(ONE_CONSTRAINT);
+		var service             = buildConstraintHandlerService();
+		var decision            = AuthorizationDecision.PERMIT.withAdvice(ONE_CONSTRAINT);
 		var resourceAccessPoint = Flux.just(1, 2, 3);
-		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
 				Integer.class);
 		StepVerifier.create(wrapped).expectNext(1, 2, 3).verifyComplete();
 		verify(provider, times(1)).accept(any());

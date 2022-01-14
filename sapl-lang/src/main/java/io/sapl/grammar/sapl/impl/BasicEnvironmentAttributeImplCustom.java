@@ -16,7 +16,7 @@
 package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
@@ -25,16 +25,19 @@ import reactor.core.publisher.Flux;
  */
 public class BasicEnvironmentAttributeImplCustom extends BasicEnvironmentAttributeImpl {
 
-	private static final String EXTERNAL_ATTRIBUTE_IN_TARGET = "Attribute resolution error. Attribute '%s' is not allowed in target.";
+	private static final String EXTERNAL_ATTRIBUTE_IN_TARGET = "Attribute resolution error. Attributes not allowed in target.";
 
 	@Override
-	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		var fullyQualifiedName = FunctionUtil.resolveAbsoluteFunctionName(getIdSteps(), ctx);
-		if (TargetExpressionUtil.isInTargetExpression(this)) {
-			return Val.errorFlux(EXTERNAL_ATTRIBUTE_IN_TARGET, fullyQualifiedName);
-		}
-		return ctx.getAttributeCtx().evaluateEnvironmentAttribute(fullyQualifiedName, ctx, getArguments())
-				.distinctUntilChanged();
+	public Flux<Val> evaluate(@NonNull Val relativeNode) {
+		if (TargetExpressionUtil.isInTargetExpression(this))
+			return Val.errorFlux(EXTERNAL_ATTRIBUTE_IN_TARGET);
+
+		return Flux.deferContextual(ctxView -> {
+			return AuthorizationContext.getAttributeContext(ctxView).evaluateEnvironmentAttribute(
+					FunctionUtil.resolveAbsoluteFunctionName(getIdSteps(), AuthorizationContext.getImports(ctxView)),
+					getArguments(), AuthorizationContext.getVariables(ctxView))
+					.distinctUntilChanged();
+		});
 	}
 
 }

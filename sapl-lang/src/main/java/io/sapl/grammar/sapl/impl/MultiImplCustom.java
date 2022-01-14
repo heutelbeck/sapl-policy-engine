@@ -18,15 +18,14 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.OperatorUtil.arithmeticOperator;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 public class MultiImplCustom extends MultiImpl {
 
 	@Override
-	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		return arithmeticOperator(this, this::multiply, ctx, relativeNode);
+	public Flux<Val> evaluate(@NonNull Val relativeNode) {
+		return arithmeticOperator(this, this::multiply, relativeNode);
 	}
 
 	private Val multiply(Val left, Val right) {

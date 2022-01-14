@@ -32,8 +32,8 @@ import org.mockito.Mockito;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.grammar.sapl.SAPL;
-import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.SAPLInterpreter;
+import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.prp.PolicyRetrievalPoint;
@@ -50,20 +50,29 @@ public class ClasspathPolicyRetrievalPointTest {
 
 	private SAPLInterpreter interpreter;
 
-	private EvaluationContext ctx;
-
 	@BeforeEach
 	void setup() {
-		recorder = Mockito.mock(CoverageHitRecorder.class);
+		recorder    = Mockito.mock(CoverageHitRecorder.class);
 		interpreter = new TestSaplInterpreter(recorder);
-		ctx = new EvaluationContext(new AnnotationAttributeContext(), new AnnotationFunctionContext(), new HashMap<>());
+		// ctx = new EvaluationContext(new AnnotationAttributeContext(), new
+		// AnnotationFunctionContext(), new HashMap<>());
 	}
 
 	@Test
 	void test() {
-		PolicyRetrievalPoint prp = new ClasspathPolicyRetrievalPoint(Paths.get("policiesIT"), this.interpreter);
+		var prp               = new ClasspathPolicyRetrievalPoint(Paths.get("policiesIT"), this.interpreter);
 		var authzSubscription = AuthorizationSubscription.of("WILLI", "access", "foo", "");
-		var prpResult = prp.retrievePolicies(ctx.forAuthorizationSubscription(authzSubscription)).blockFirst();
+		var prpResult         = prp.retrievePolicies().contextWrite(ctx -> {
+									ctx = AuthorizationContext.setAttributeContext(ctx,
+											new AnnotationAttributeContext());
+									ctx = AuthorizationContext.setFunctionContext(ctx,
+											new AnnotationFunctionContext());
+									ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
+									ctx = AuthorizationContext.setSubscriptionVariables(ctx,
+											authzSubscription);
+									return ctx;
+								})
+				.blockFirst();
 		Assertions.assertThat(prpResult.getMatchingDocuments().size()).isEqualTo(2);
 	}
 
@@ -82,10 +91,17 @@ public class ClasspathPolicyRetrievalPointTest {
 
 	@Test
 	void return_empty_result_when_no_documents_are_published() {
-		PolicyRetrievalPoint prp = new ClasspathPolicyRetrievalPoint(Paths.get("it"), this.interpreter);
-		var evaluationCtx = ctx.forAuthorizationSubscription(EMPTY_SUBSCRIPTION);
+		var prp = new ClasspathPolicyRetrievalPoint(Paths.get("it"), this.interpreter);
 
-		PolicyRetrievalResult result = prp.retrievePolicies(evaluationCtx).blockFirst();
+		var result = prp.retrievePolicies().contextWrite(ctx -> {
+			ctx = AuthorizationContext.setAttributeContext(ctx,
+					new AnnotationAttributeContext());
+			ctx = AuthorizationContext.setFunctionContext(ctx,
+					new AnnotationFunctionContext());
+			ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
+			ctx = AuthorizationContext.setSubscriptionVariables(ctx, EMPTY_SUBSCRIPTION);
+			return ctx;
+		}).blockFirst();
 
 		assertThat(result, notNullValue());
 		assertThat(result.getMatchingDocuments(), empty());
@@ -101,10 +117,17 @@ public class ClasspathPolicyRetrievalPointTest {
 
 	@Test
 	void return_error_flag_when_evaluation_throws_exception() {
-		PolicyRetrievalPoint prp = new ClasspathPolicyRetrievalPoint(Paths.get("it/error"), this.interpreter);
-		var evaluationCtx = ctx.forAuthorizationSubscription(EMPTY_SUBSCRIPTION);
-
-		PolicyRetrievalResult result = prp.retrievePolicies(evaluationCtx).blockFirst();
+		var prp    = new ClasspathPolicyRetrievalPoint(Paths.get("it/error"), this.interpreter);
+		var result = prp.retrievePolicies().contextWrite(ctx -> {
+						ctx = AuthorizationContext.setAttributeContext(ctx,
+								new AnnotationAttributeContext());
+						ctx = AuthorizationContext.setFunctionContext(ctx,
+								new AnnotationFunctionContext());
+						ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
+						ctx = AuthorizationContext.setSubscriptionVariables(ctx, EMPTY_SUBSCRIPTION);
+						return ctx;
+					})
+				.blockFirst();
 
 		assertThat(result, notNullValue());
 		assertThat(result.getMatchingDocuments(), empty());
@@ -114,10 +137,19 @@ public class ClasspathPolicyRetrievalPointTest {
 
 	@Test
 	void return_matching_document_for_valid_subscription() {
-		PolicyRetrievalPoint prp = new ClasspathPolicyRetrievalPoint(Paths.get("it/policies"), this.interpreter);
+		var prp = new ClasspathPolicyRetrievalPoint(Paths.get("it/policies"), this.interpreter);
 
 		var authzSubscription1 = AuthorizationSubscription.of(null, "read", null);
-		PolicyRetrievalResult result1 = prp.retrievePolicies(ctx.forAuthorizationSubscription(authzSubscription1))
+		var result1            = prp.retrievePolicies().contextWrite(ctx -> {
+									ctx = AuthorizationContext.setAttributeContext(ctx,
+											new AnnotationAttributeContext());
+									ctx = AuthorizationContext.setFunctionContext(ctx,
+											new AnnotationFunctionContext());
+									ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
+									ctx = AuthorizationContext.setSubscriptionVariables(ctx,
+											authzSubscription1);
+									return ctx;
+								})
 				.blockFirst();
 
 		assertThat(result1, notNullValue());
@@ -129,8 +161,13 @@ public class ClasspathPolicyRetrievalPointTest {
 
 		var authzSubscription2 = AuthorizationSubscription.of("Willi", "eat", "icecream");
 
-		PolicyRetrievalResult result2 = prp.retrievePolicies(ctx.forAuthorizationSubscription(authzSubscription2))
-				.blockFirst();
+		PolicyRetrievalResult result2 = prp.retrievePolicies().contextWrite(ctx -> {
+			ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+			ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+			ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
+			ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription2);
+			return ctx;
+		}).blockFirst();
 
 		assertThat(result2, notNullValue());
 		assertThat(result2.getMatchingDocuments().size(), is(1));
@@ -143,10 +180,18 @@ public class ClasspathPolicyRetrievalPointTest {
 
 	@Test
 	void return_empty_result_for_non_matching_subscription() {
-		PolicyRetrievalPoint prp = new ClasspathPolicyRetrievalPoint(Paths.get("it/policies"), this.interpreter);
-		var evaluationCtx = ctx.forAuthorizationSubscription(EMPTY_SUBSCRIPTION);
+		var prp = new ClasspathPolicyRetrievalPoint(Paths.get("it/policies"),
+				this.interpreter);
 
-		PolicyRetrievalResult result = prp.retrievePolicies(evaluationCtx).blockFirst();
+		var result = prp.retrievePolicies().contextWrite(ctx -> {
+			ctx = AuthorizationContext.setAttributeContext(ctx,
+					new AnnotationAttributeContext());
+			ctx = AuthorizationContext.setFunctionContext(ctx,
+					new AnnotationFunctionContext());
+			ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
+			ctx = AuthorizationContext.setSubscriptionVariables(ctx, EMPTY_SUBSCRIPTION);
+			return ctx;
+		}).blockFirst();
 
 		assertThat(result, notNullValue());
 		assertThat(result.getMatchingDocuments(), empty());
@@ -156,10 +201,20 @@ public class ClasspathPolicyRetrievalPointTest {
 
 	@Test
 	void test_matchingReturnsError() {
-		PolicyRetrievalPoint prp = new ClasspathPolicyRetrievalPoint(Paths.get("it/error2"), this.interpreter);
+		var prp               = new ClasspathPolicyRetrievalPoint(Paths.get("it/error2"), this.interpreter);
 		var authzSubscription = AuthorizationSubscription.of("WILLI", "access", "foo", "");
-		var prpResult = prp.retrievePolicies(ctx.forAuthorizationSubscription(authzSubscription)).blockFirst();
-		Assertions.assertThat(prpResult.isErrorsInTarget()).isTrue();
+
+		var result = prp.retrievePolicies().contextWrite(ctx -> {
+			ctx = AuthorizationContext.setAttributeContext(ctx,
+					new AnnotationAttributeContext());
+			ctx = AuthorizationContext.setFunctionContext(ctx,
+					new AnnotationFunctionContext());
+			ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
+			ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription);
+			return ctx;
+		}).blockFirst();
+
+		Assertions.assertThat(result.isErrorsInTarget()).isTrue();
 	}
 
 }

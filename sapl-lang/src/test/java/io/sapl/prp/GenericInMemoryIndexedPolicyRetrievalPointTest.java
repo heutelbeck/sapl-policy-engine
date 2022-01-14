@@ -30,7 +30,6 @@ import org.junit.jupiter.api.Test;
 import io.sapl.grammar.sapl.AuthorizationDecisionEvaluable;
 import io.sapl.grammar.sapl.PolicyElement;
 import io.sapl.grammar.sapl.SAPL;
-import io.sapl.interpreter.EvaluationContext;
 import io.sapl.prp.index.ImmutableParsedDocumentIndex;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -41,8 +40,6 @@ class GenericInMemoryIndexedPolicyRetrievalPointTest {
 
 	ImmutableParsedDocumentIndex indexMock;
 
-	EvaluationContext contextMock;
-
 	@BeforeEach
 	void beforeEach() {
 		sourceMock = mock(PrpUpdateEventSource.class);
@@ -52,19 +49,17 @@ class GenericInMemoryIndexedPolicyRetrievalPointTest {
 		indexMock = mock(ImmutableParsedDocumentIndex.class);
 		when(indexMock.apply(any())).thenReturn(indexMock);
 
-		contextMock = mock(EvaluationContext.class);
-
 	}
 
 	@Test
 	void testConstructAndRetrieveWithEmptyResult() {
 		// WHEN
 		var resultMock = mock(PolicyRetrievalResult.class);
-		when(indexMock.retrievePolicies(any())).thenReturn(Mono.just(resultMock));
+		when(indexMock.retrievePolicies()).thenReturn(Mono.just(resultMock));
 
 		// DO
-		var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(indexMock, sourceMock);
-		var result = prp.retrievePolicies(contextMock).blockFirst();
+		var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(indexMock, sourceMock);
+		var result = prp.retrievePolicies().blockFirst();
 		prp.dispose();
 
 		// THEN
@@ -72,7 +67,7 @@ class GenericInMemoryIndexedPolicyRetrievalPointTest {
 		verify(indexMock, times(1)).apply(any());
 		assertThat(prp, is(notNullValue()));
 
-		verify(indexMock, times(1)).retrievePolicies((any()));
+		verify(indexMock, times(1)).retrievePolicies();
 		assertThat(result, is(resultMock));
 	}
 
@@ -89,11 +84,11 @@ class GenericInMemoryIndexedPolicyRetrievalPointTest {
 		var policyRetrievalResult = new PolicyRetrievalResult().withMatch(documentMock);
 		// doReturn(Collections.singletonList(documentMock)).when(resultMock.getMatchingDocuments());
 
-		when(indexMock.retrievePolicies(any())).thenReturn(Mono.just(policyRetrievalResult));
+		when(indexMock.retrievePolicies()).thenReturn(Mono.just(policyRetrievalResult));
 
 		// DO
-		var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(indexMock, sourceMock);
-		var result = prp.retrievePolicies(contextMock).blockFirst();
+		var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(indexMock, sourceMock);
+		var result = prp.retrievePolicies().blockFirst();
 		prp.dispose();
 
 		// THEN
@@ -101,7 +96,7 @@ class GenericInMemoryIndexedPolicyRetrievalPointTest {
 		verify(indexMock, times(1)).apply(any());
 		assertThat(prp, is(notNullValue()));
 
-		verify(indexMock, times(1)).retrievePolicies((any()));
+		verify(indexMock, times(1)).retrievePolicies();
 		assertThat(result, is(policyRetrievalResult));
 
 	}
@@ -118,11 +113,11 @@ class GenericInMemoryIndexedPolicyRetrievalPointTest {
 		var policyRetrievalResult = new PolicyRetrievalResult().withMatch(documentMock);
 		// doReturn(Collections.singletonList(documentMock)).when(resultMock.getMatchingDocuments());
 
-		when(indexMock.retrievePolicies(any())).thenReturn(Mono.just(policyRetrievalResult));
+		when(indexMock.retrievePolicies()).thenReturn(Mono.just(policyRetrievalResult));
 
 		// DO
-		var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(indexMock, sourceMock);
-		var result = prp.retrievePolicies(contextMock).blockFirst();
+		var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(indexMock, sourceMock);
+		var result = prp.retrievePolicies().blockFirst();
 		prp.dispose();
 
 		// THEN
@@ -130,7 +125,7 @@ class GenericInMemoryIndexedPolicyRetrievalPointTest {
 		verify(indexMock, times(1)).apply(any());
 		assertThat(prp, is(notNullValue()));
 
-		verify(indexMock, times(1)).retrievePolicies((any()));
+		verify(indexMock, times(1)).retrievePolicies();
 		assertThat(result, is(policyRetrievalResult));
 
 	}

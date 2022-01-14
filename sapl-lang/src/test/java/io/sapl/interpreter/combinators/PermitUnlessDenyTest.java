@@ -18,18 +18,19 @@ package io.sapl.interpreter.combinators;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 
@@ -45,62 +46,72 @@ class PermitUnlessDenyTest {
 	private static final AuthorizationSubscription AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE = new AuthorizationSubscription(
 			null, null, JSON.booleanNode(true), null);
 
-	private EvaluationContext evaluationCtx;
+	private static final Map<String, JsonNode> VARIABLES = new HashMap<>();
+
+	private AnnotationAttributeContext attributeCtx;
+
+	private AnnotationFunctionContext functionCtx;
 
 	@BeforeEach
 	void setUp() {
-		var attributeCtx = new AnnotationAttributeContext();
-		var functionCtx = new AnnotationFunctionContext();
-		evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, new HashMap<>());
+		attributeCtx = new AnnotationAttributeContext();
+		functionCtx  = new AnnotationFunctionContext();
 	}
 
 	@Test
 	void permit() {
 		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" permit";
 		assertEquals(Decision.PERMIT,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
+						.blockFirst().getDecision());
 	}
 
 	@Test
 	void deny() {
 		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" deny";
 		assertEquals(Decision.DENY,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
+						.blockFirst().getDecision());
 	}
 
 	@Test
 	void notApplicableTarget() {
 		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" deny true == false";
 		assertEquals(Decision.PERMIT,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
+						.blockFirst().getDecision());
 	}
 
 	@Test
 	void notApplicableCondition() {
 		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" deny where true == false;";
 		assertEquals(Decision.PERMIT,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
+						.blockFirst().getDecision());
 	}
 
 	@Test
 	void indeterminateTarget() {
 		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" deny \"a\" < 5";
 		assertEquals(Decision.PERMIT,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
+						.blockFirst().getDecision());
 	}
 
 	@Test
 	void indeterminateCondition() {
 		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" deny where \"a\" < 5;";
 		assertEquals(Decision.PERMIT,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
+						.blockFirst().getDecision());
 	}
 
 	@Test
 	void permitDeny() {
 		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit" + " policy \"testp2\" deny";
 		assertEquals(Decision.DENY,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
+						.blockFirst().getDecision());
 	}
 
 	@Test
@@ -108,7 +119,8 @@ class PermitUnlessDenyTest {
 		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit"
 				+ " policy \"testp2\" permit where \"a\" > 5;";
 		assertEquals(Decision.PERMIT,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
+						.blockFirst().getDecision());
 	}
 
 	@Test
@@ -117,7 +129,8 @@ class PermitUnlessDenyTest {
 				+ " policy \"testp2\" permit true == false" + " policy \"testp3\" deny";
 
 		assertEquals(Decision.DENY,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
+						.blockFirst().getDecision());
 	}
 
 	@Test
@@ -127,7 +140,8 @@ class PermitUnlessDenyTest {
 				+ " policy \"testp4\" deny" + " policy \"testp5\" permit";
 
 		assertEquals(Decision.DENY,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
+						.blockFirst().getDecision());
 	}
 
 	@Test
@@ -136,7 +150,8 @@ class PermitUnlessDenyTest {
 				+ " policy \"testp2\" permit \"a\" < 5" + " policy \"testp3\" permit true == false";
 
 		assertEquals(Decision.PERMIT,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
+						.blockFirst().getDecision());
 	}
 
 	@Test
@@ -145,7 +160,8 @@ class PermitUnlessDenyTest {
 				+ " policy \"testp2\" permit transform true" + " policy \"testp3\" deny false";
 
 		assertEquals(Decision.DENY,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
+						.blockFirst().getDecision());
 	}
 
 	@Test
@@ -153,7 +169,8 @@ class PermitUnlessDenyTest {
 		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit transform true";
 
 		assertEquals(Decision.PERMIT,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
+						.blockFirst().getDecision());
 	}
 
 	@Test
@@ -161,7 +178,8 @@ class PermitUnlessDenyTest {
 		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" permit transform true";
 
 		assertEquals(Optional.of(JSON.booleanNode(true)),
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getResource());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
+						.blockFirst().getResource());
 	}
 
 	@Test
@@ -170,7 +188,8 @@ class PermitUnlessDenyTest {
 				+ " policy \"testp2\" permit";
 
 		assertEquals(Decision.PERMIT, INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getDecision());
+				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, VARIABLES)
+				.blockFirst().getDecision());
 	}
 
 	@Test
@@ -186,7 +205,9 @@ class PermitUnlessDenyTest {
 		obligation.add(JSON.textNode("obligation2"));
 
 		assertEquals(Optional.of(obligation),
-				INTERPRETER.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst()
+				INTERPRETER
+						.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, VARIABLES)
+						.blockFirst()
 						.getObligations());
 	}
 
@@ -203,7 +224,8 @@ class PermitUnlessDenyTest {
 		advice.add(JSON.textNode("advice2"));
 
 		assertEquals(Optional.of(advice), INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getAdvice());
+				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, VARIABLES)
+				.blockFirst().getAdvice());
 	}
 
 	@Test
@@ -219,7 +241,9 @@ class PermitUnlessDenyTest {
 		obligation.add(JSON.textNode("obligation2"));
 
 		assertEquals(Optional.of(obligation),
-				INTERPRETER.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst()
+				INTERPRETER
+						.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, VARIABLES)
+						.blockFirst()
 						.getObligations());
 	}
 
@@ -236,7 +260,8 @@ class PermitUnlessDenyTest {
 		advice.add(JSON.textNode("advice2"));
 
 		assertEquals(Optional.of(advice), INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getAdvice());
+				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, VARIABLES)
+				.blockFirst().getAdvice());
 	}
 
 }

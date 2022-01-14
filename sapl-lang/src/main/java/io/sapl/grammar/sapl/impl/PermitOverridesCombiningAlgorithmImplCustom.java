@@ -27,26 +27,25 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.Policy;
-import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.combinators.ObligationAdviceCollector;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
- * This algorithm is used if a PERMIT decision should prevail a DENY without setting a
- * default decision.
+ * This algorithm is used if a PERMIT decision should prevail a DENY without
+ * setting a default decision.
  *
  * It works as follows:
  *
  * 1. If any policy document evaluates to PERMIT and there is no transformation
- * uncertainty (multiple policies evaluate to PERMIT and at least one of them has a
- * transformation statement), the decision is PERMIT.
+ * uncertainty (multiple policies evaluate to PERMIT and at least one of them
+ * has a transformation statement), the decision is PERMIT.
  *
  * 2. Otherwise:
  *
- * a) If there is any INDETERMINATE or there is a transformation uncertainty (multiple
- * policies evaluate to PERMIT and at least one of them has a transformation statement),
- * the decision is INDETERMINATE.
+ * a) If there is any INDETERMINATE or there is a transformation uncertainty
+ * (multiple policies evaluate to PERMIT and at least one of them has a
+ * transformation statement), the decision is INDETERMINATE.
  *
  * b) Otherwise:
  *
@@ -63,9 +62,9 @@ public class PermitOverridesCombiningAlgorithmImplCustom extends PermitOverrides
 			log.debug("| |-- No matches/errors. Default to: {}", AuthorizationDecision.NOT_APPLICABLE);
 			return AuthorizationDecision.NOT_APPLICABLE;
 		}
-		var entitlement = errorsInTarget ? INDETERMINATE : NOT_APPLICABLE;
-		var collector = new ObligationAdviceCollector();
-		Optional<JsonNode> resource = Optional.empty();
+		var                entitlement = errorsInTarget ? INDETERMINATE : NOT_APPLICABLE;
+		var                collector   = new ObligationAdviceCollector();
+		Optional<JsonNode> resource    = Optional.empty();
 		for (var decision : decisions) {
 			if (decision.getDecision() == PERMIT) {
 				entitlement = PERMIT;
@@ -88,8 +87,7 @@ public class PermitOverridesCombiningAlgorithmImplCustom extends PermitOverrides
 					// this the overall result is basically INDETERMINATE.
 					// However, existing DENY overrides with this algorithm.
 					entitlement = INDETERMINATE;
-				}
-				else {
+				} else {
 					resource = decision.getResource();
 				}
 			}
@@ -101,8 +99,8 @@ public class PermitOverridesCombiningAlgorithmImplCustom extends PermitOverrides
 	}
 
 	@Override
-	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
-		return doCombinePolicies(policies, ctx);
+	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies) {
+		return doCombinePolicies(policies);
 	}
 
 }

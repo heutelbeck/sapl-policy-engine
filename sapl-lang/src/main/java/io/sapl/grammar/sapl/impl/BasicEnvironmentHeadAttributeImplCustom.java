@@ -16,7 +16,7 @@
 package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
@@ -28,12 +28,19 @@ public class BasicEnvironmentHeadAttributeImplCustom extends BasicEnvironmentHea
 	private static final String EXTERNAL_ATTRIBUTE_IN_TARGET = "Attribute resolution error. Attribute '%s' is not allowed in target.";
 
 	@Override
-	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		var fullyQualifiedName = FunctionUtil.resolveAbsoluteFunctionName(getIdSteps(), ctx);
-		if (TargetExpressionUtil.isInTargetExpression(this)) {
-			return Val.errorFlux(EXTERNAL_ATTRIBUTE_IN_TARGET, fullyQualifiedName);
-		}
-		return ctx.getAttributeCtx().evaluateEnvironmentAttribute(fullyQualifiedName, ctx, getArguments()).take(1);
+	public Flux<Val> evaluate(@NonNull Val relativeNode) {
+		return Flux.deferContextual(ctx -> {
+			var fullyQualifiedName = FunctionUtil.resolveAbsoluteFunctionName(idSteps,
+					AuthorizationContext.getImports(ctx));
+
+			if (TargetExpressionUtil.isInTargetExpression(this))
+				return Val.errorFlux(EXTERNAL_ATTRIBUTE_IN_TARGET, fullyQualifiedName);
+
+			return AuthorizationContext.getAttributeContext(ctx)
+					.evaluateEnvironmentAttribute(fullyQualifiedName, getArguments(),
+							AuthorizationContext.getVariables(ctx))
+					.take(1);
+		});
 	}
 
 }

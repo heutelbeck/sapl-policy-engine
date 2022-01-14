@@ -18,21 +18,20 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.OperatorUtil.arithmeticOperator;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
  * Checks for a left value being greater than a right value.
  *
- * Grammar: {@code Comparison returns Expression: Prefixed (({More.left=current} '&gt;')
- * right=Prefixed)? ;}
+ * Grammar: {@code Comparison returns Expression: Prefixed (({More.left=current}
+ * '&gt;') right=Prefixed)? ;}
  */
 public class MoreImplCustom extends MoreImpl {
 
 	@Override
-	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		return arithmeticOperator(this, this::moreThan, ctx, relativeNode);
+	public Flux<Val> evaluate(@NonNull Val relativeNode) {
+		return arithmeticOperator(this, this::moreThan, relativeNode);
 
 	}
 

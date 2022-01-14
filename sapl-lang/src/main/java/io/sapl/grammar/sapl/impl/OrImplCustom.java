@@ -16,7 +16,6 @@
 package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
@@ -31,19 +30,19 @@ public class OrImplCustom extends OrImpl {
 	private static final String LAZY_OPERATOR_IN_TARGET = "Lazy OR operator is not allowed in the target";
 
 	@Override
-	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
+	public Flux<Val> evaluate( @NonNull Val relativeNode) {
 		if (TargetExpressionUtil.isInTargetExpression(this)) {
 			// lazy evaluation is not allowed in target expressions.
 			return Val.errorFlux(LAZY_OPERATOR_IN_TARGET);
 		}
-		var left = getLeft().evaluate(ctx, relativeNode).map(Val::requireBoolean);
+		var left = getLeft().evaluate(relativeNode).map(Val::requireBoolean);
 		return left.switchMap(leftResult -> {
 			if (leftResult.isError()) {
 				return Flux.just(leftResult);
 			}
 			// Lazy evaluation of the right expression
 			if (!leftResult.getBoolean()) {
-				return getRight().evaluate(ctx, relativeNode).map(Val::requireBoolean);
+				return getRight().evaluate(relativeNode).map(Val::requireBoolean);
 			}
 			return Flux.just(Val.TRUE);
 		});

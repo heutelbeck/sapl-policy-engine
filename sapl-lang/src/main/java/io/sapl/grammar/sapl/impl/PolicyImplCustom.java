@@ -22,7 +22,6 @@ import org.reactivestreams.Publisher;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.interpreter.EvaluationContext;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
@@ -30,38 +29,27 @@ import reactor.core.publisher.Flux;
 public class PolicyImplCustom extends PolicyImpl {
 
 	/**
-	 * Evaluates the body of the policy within the given evaluation context and returns a
-	 * {@link Flux} of {@link AuthorizationDecision} objects.
-	 * @param ctx the evaluation context in which the policy's body is evaluated. It must
-	 * contain
-	 * <ul>
-	 * <li>the attribute context</li>
-	 * <li>the function context</li>
-	 * <li>the variable context holding the four authorization subscription variables
-	 * 'subject', 'action', 'resource' and 'environment' combined with system variables
-	 * from the PDP configuration and other variables e.g. obtained from the containing
-	 * policy set</li>
-	 * <li>the import mapping for functions and attribute finders</li>
-	 * </ul>
+	 * Evaluates the body of the policy within the given evaluation context and
+	 * returns a {@link Flux} of {@link AuthorizationDecision} objects.
+	 * 
 	 * @return A {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
 	@Override
-	public Flux<AuthorizationDecision> evaluate(EvaluationContext ctx) {
+	public Flux<AuthorizationDecision> evaluate() {
 		log.debug("  |  |- Evaluate '{}'", saplName);
-		return Flux.just(getEntitlement().getDecision()).concatMap(evaluateBody(ctx)).map(AuthorizationDecision::new)
-				.concatMap(addObligation(ctx)).concatMap(addAdvice(ctx)).concatMap(addResource(ctx))
+		return Flux.just(getEntitlement().getDecision()).concatMap(evaluateBody()).map(AuthorizationDecision::new)
+				.concatMap(addObligation()).concatMap(addAdvice()).concatMap(addResource())
 				.doOnNext(authzDecision -> log.debug("  |     |- {} '{}': {}", authzDecision.getDecision(), saplName,
 						authzDecision));
 	}
 
-	private Function<? super Decision, Publisher<? extends Decision>> evaluateBody(EvaluationContext ctx) {
-		return entitlement -> getBody() == null ? Flux.just(entitlement) : getBody().evaluate(entitlement, ctx);
+	private Function<? super Decision, Publisher<? extends Decision>> evaluateBody() {
+		return entitlement -> getBody() == null ? Flux.just(entitlement) : getBody().evaluate(entitlement);
 
 	}
 
-	private Function<? super AuthorizationDecision, Publisher<? extends AuthorizationDecision>> addObligation(
-			EvaluationContext evaluationCtx) {
-		return previousDecision -> evaluateObligations(evaluationCtx).map(obligation -> {
+	private Function<? super AuthorizationDecision, Publisher<? extends AuthorizationDecision>> addObligation() {
+		return previousDecision -> evaluateObligations().map(obligation -> {
 			if (obligation.isError()) {
 				log.debug("  |     |- Error in obligation evaluation. INDETERMINATE: " + obligation.getMessage());
 				return AuthorizationDecision.INDETERMINATE;
@@ -77,9 +65,8 @@ public class PolicyImplCustom extends PolicyImpl {
 
 	}
 
-	private Function<? super AuthorizationDecision, Publisher<? extends AuthorizationDecision>> addAdvice(
-			EvaluationContext evaluationCtx) {
-		return previousDecision -> evaluateAdvice(evaluationCtx).map(advice -> {
+	private Function<? super AuthorizationDecision, Publisher<? extends AuthorizationDecision>> addAdvice() {
+		return previousDecision -> evaluateAdvice().map(advice -> {
 			if (advice.isError()) {
 				log.debug("  |     |- Error in advice evaluation. INDETERMINATE: " + advice.getMessage());
 				return AuthorizationDecision.INDETERMINATE;
@@ -96,9 +83,8 @@ public class PolicyImplCustom extends PolicyImpl {
 		}).defaultIfEmpty(previousDecision);
 	}
 
-	private Function<? super AuthorizationDecision, Publisher<? extends AuthorizationDecision>> addResource(
-			EvaluationContext evaluationCtx) {
-		return previousDecision -> evaluateTransformation(evaluationCtx).map(transformation -> {
+	private Function<? super AuthorizationDecision, Publisher<? extends AuthorizationDecision>> addResource() {
+		return previousDecision -> evaluateTransformation().map(transformation -> {
 			if (transformation.isError()) {
 				log.debug(
 						"  |     |- Error in transformation evaluation. INDETERMINATE: " + transformation.getMessage());
@@ -112,25 +98,25 @@ public class PolicyImplCustom extends PolicyImpl {
 		}).defaultIfEmpty(previousDecision);
 	}
 
-	private Flux<Val> evaluateObligations(EvaluationContext evaluationCtx) {
+	private Flux<Val> evaluateObligations() {
 		if (getObligation() == null) {
 			return Flux.empty();
 		}
-		return getObligation().evaluate(evaluationCtx, Val.UNDEFINED);
+		return getObligation().evaluate(Val.UNDEFINED);
 	}
 
-	private Flux<Val> evaluateAdvice(EvaluationContext evaluationCtx) {
+	private Flux<Val> evaluateAdvice() {
 		if (getAdvice() == null) {
 			return Flux.empty();
 		}
-		return getAdvice().evaluate(evaluationCtx, Val.UNDEFINED);
+		return getAdvice().evaluate(Val.UNDEFINED);
 	}
 
-	private Flux<Val> evaluateTransformation(EvaluationContext evaluationCtx) {
+	private Flux<Val> evaluateTransformation() {
 		if (getTransformation() == null) {
 			return Flux.empty();
 		}
-		return getTransformation().evaluate(evaluationCtx, Val.UNDEFINED);
+		return getTransformation().evaluate(Val.UNDEFINED);
 	}
 
 }

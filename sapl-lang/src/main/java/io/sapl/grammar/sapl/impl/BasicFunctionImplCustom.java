@@ -16,23 +16,23 @@
 package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
  * Implements the evaluation of functions.
  *
- * Grammar: {BasicFunction} fsteps+=ID ('.' fsteps+=ID)* arguments=Arguments steps+=Step*;
- * {Arguments} '(' (args+=Expression (',' args+=Expression)*)? ')';
+ * Grammar: {BasicFunction} fsteps+=ID ('.' fsteps+=ID)* arguments=Arguments
+ * steps+=Step*; {Arguments} '(' (args+=Expression (',' args+=Expression)*)?
+ * ')';
  */
 public class BasicFunctionImplCustom extends BasicFunctionImpl {
 
 	@Override
-	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		return FunctionUtil.combineArgumentFluxes(arguments, ctx, relativeNode)
-				.concatMap(parameters -> FunctionUtil.evaluateFunctionMono(fsteps, ctx, parameters))
-				.switchMap(resolveStepsFiltersAndSubTemplates(steps, ctx, relativeNode));
+	public Flux<Val> evaluate(@NonNull Val relativeNode) {
+		return FunctionUtil.combineArgumentFluxes(arguments, relativeNode)
+				.concatMap(parameters -> FunctionUtil.evaluateFunctionMono(fsteps, parameters))
+				.switchMap(resolveStepsFiltersAndSubTemplates(steps, relativeNode));
 	}
 
 }

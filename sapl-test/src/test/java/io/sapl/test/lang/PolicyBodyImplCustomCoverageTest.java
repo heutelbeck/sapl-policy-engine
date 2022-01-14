@@ -15,6 +15,8 @@
  */
 package io.sapl.test.lang;
 
+import static org.mockito.ArgumentMatchers.any;
+
 import java.util.HashMap;
 
 import org.assertj.core.api.Assertions;
@@ -24,15 +26,13 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.SAPLInterpreter;
+import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.test.coverage.api.CoverageHitRecorder;
 import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import reactor.test.StepVerifier;
-
-import static org.mockito.ArgumentMatchers.any;
 
 public class PolicyBodyImplCustomCoverageTest {
 
@@ -40,22 +40,23 @@ public class PolicyBodyImplCustomCoverageTest {
 
 	private SAPLInterpreter INTERPRETER;
 
-	private EvaluationContext ctx;
-
 	@BeforeEach
 	void setup() {
-		this.recorder = Mockito.mock(CoverageHitRecorder.class);
+		this.recorder    = Mockito.mock(CoverageHitRecorder.class);
 		this.INTERPRETER = new TestSaplInterpreter(this.recorder);
-		var attributeCtx = new AnnotationAttributeContext();
-		var functionCtx = new AnnotationFunctionContext();
-		ctx = new EvaluationContext(attributeCtx, functionCtx, new HashMap<>());
 	}
 
 	@Test
 	void trueReturnsEntitlement() {
-		var policy = INTERPRETER.parse("policy \"p\" permit true where true; true; true;");
+		var policy   = INTERPRETER.parse("policy \"p\" permit true where true; true; true;");
 		var expected = AuthorizationDecision.PERMIT;
-		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
+		StepVerifier.create(policy.evaluate()
+				.contextWrite(ctx -> {
+					ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+					ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+					ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
+					return ctx;
+				})).expectNext(expected).verifyComplete();
 
 		ArgumentCaptor<PolicyConditionHit> captor = ArgumentCaptor.forClass(PolicyConditionHit.class);
 		Mockito.verify(this.recorder, Mockito.times(3)).recordPolicyConditionHit(captor.capture());
@@ -66,9 +67,15 @@ public class PolicyBodyImplCustomCoverageTest {
 
 	@Test
 	void trueReturnsEntitlementInSet() {
-		var policy = INTERPRETER.parse("set \"set\" deny-overrides policy \"p\" permit true where true; true; true;");
+		var policy   = INTERPRETER.parse("set \"set\" deny-overrides policy \"p\" permit true where true; true; true;");
 		var expected = AuthorizationDecision.PERMIT;
-		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
+		StepVerifier.create(policy.evaluate()
+				.contextWrite(ctx -> {
+					ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+					ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+					ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
+					return ctx;
+				})).expectNext(expected).verifyComplete();
 
 		ArgumentCaptor<PolicyConditionHit> captor = ArgumentCaptor.forClass(PolicyConditionHit.class);
 		Mockito.verify(this.recorder, Mockito.times(3)).recordPolicyConditionHit(captor.capture());
@@ -79,10 +86,16 @@ public class PolicyBodyImplCustomCoverageTest {
 
 	@Test
 	void test_evaluateConditionThrowsError() {
-		var policy = INTERPRETER.parse(
+		var policy   = INTERPRETER.parse(
 				"set \"set\" deny-overrides policy \"p\" permit true where true == subject.<pip.attr>; true; true;");
 		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
+		StepVerifier.create(policy.evaluate()
+				.contextWrite(ctx -> {
+					ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+					ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+					ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
+					return ctx;
+				})).expectNext(expected).verifyComplete();
 		Mockito.verify(this.recorder, Mockito.never()).recordPolicyConditionHit(any());
 	}
 

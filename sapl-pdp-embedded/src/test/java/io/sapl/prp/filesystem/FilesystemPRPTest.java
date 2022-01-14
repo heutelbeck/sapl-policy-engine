@@ -22,14 +22,13 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.HashMap;
 import java.util.logging.Level;
 
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
@@ -40,13 +39,14 @@ import io.sapl.prp.index.canonical.CanonicalImmutableParsedDocumentIndex;
 import io.sapl.prp.index.naive.NaiveImmutableParsedDocumentIndex;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.SignalType;
+import reactor.util.context.Context;
 
 class FilesystemPRPTest {
 
 	@Test
 	void call_index_apply_method_for_each_prp_update_event() {
 		var mockSource = mock(FileSystemPrpUpdateEventSource.class);
-		var mockIndex = mock(CanonicalImmutableParsedDocumentIndex.class);
+		var mockIndex  = mock(CanonicalImmutableParsedDocumentIndex.class);
 
 		var updateEventFlux = Flux.just(event(Type.PUBLISH), event(Type.WITHDRAW), event(Type.PUBLISH),
 				event(Type.WITHDRAW), event(Type.PUBLISH)
@@ -75,14 +75,21 @@ class FilesystemPRPTest {
 	@Test
 	void doTest() {
 		var interpreter = new DefaultSAPLInterpreter();
-		var source = new FileSystemPrpUpdateEventSource("src/test/resources/policies", interpreter);
-		var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(new NaiveImmutableParsedDocumentIndex(), source);
-		var authzSubscription = AuthorizationSubscription.of("Willi", "eat", "icecream");
-		var evaluationCtx = new EvaluationContext(new AnnotationAttributeContext(), new AnnotationFunctionContext(),
-				new HashMap<>());
-		evaluationCtx = evaluationCtx.forAuthorizationSubscription(authzSubscription);
-		prp.retrievePolicies(evaluationCtx).log(null, Level.INFO, SignalType.ON_NEXT).blockFirst();
+		var source      = new FileSystemPrpUpdateEventSource("src/test/resources/policies", interpreter);
+		var prp         = new GenericInMemoryIndexedPolicyRetrievalPoint(new NaiveImmutableParsedDocumentIndex(),
+				source);
+		var authzSub    = AuthorizationSubscription.of("Willi", "eat", "icecream");
+
+		prp.retrievePolicies().contextWrite(ctx -> setUpAuthorizationContext(ctx, authzSub))
+				.log(null, Level.INFO, SignalType.ON_NEXT).blockFirst();
 		prp.dispose();
+	}
+
+	private static Context setUpAuthorizationContext(Context ctx, AuthorizationSubscription authzSubscription) {
+		ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+		ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+		ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription);
+		return ctx;
 	}
 
 }

@@ -46,7 +46,7 @@ class StepBuilderTest {
 	@Test
 	void test_matchResultNotBoolean() {
 		SAPL document = Mockito.mock(SAPL.class);
-		Mockito.when(document.matches(Mockito.any())).thenReturn(Val.errorMono("test"));
+		Mockito.when(document.matches()).thenReturn(Val.errorMono("test"));
 		StepBuilder.newBuilderAtWhenStep(document, new AnnotationAttributeContext(), new AnnotationFunctionContext(),
 				new HashMap<>()).when(AUTHZ_SUB).expectNotApplicable().verify();
 
@@ -55,7 +55,7 @@ class StepBuilderTest {
 	@Test
 	void test_matchEmpty() {
 		SAPL document = Mockito.mock(SAPL.class);
-		Mockito.when(document.matches(Mockito.any())).thenReturn(Mono.empty());
+		Mockito.when(document.matches()).thenReturn(Mono.empty());
 		StepBuilder.newBuilderAtWhenStep(document, new AnnotationAttributeContext(), new AnnotationFunctionContext(),
 				new HashMap<>()).when(AUTHZ_SUB).expectNotApplicable().verify();
 	}

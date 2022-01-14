@@ -31,14 +31,17 @@ import java.util.List;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.emf.common.util.BasicEList;
+import org.eclipse.xtext.xbase.controlflow.EvaluationContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.Expression;
-import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
@@ -56,11 +59,16 @@ public class MockingAttributeContextTest {
 
 	MockingAttributeContext attrCtx;
 
+	MockingFunctionContext funCtx;
+
+	private HashMap<String, JsonNode> variables;
+
 	@BeforeEach
 	void setup() {
 		this.unmockedCtx = Mockito.mock(AnnotationAttributeContext.class);
-		this.attrCtx = new MockingAttributeContext(unmockedCtx);
-		this.ctx = new EvaluationContext(this.attrCtx, new MockingFunctionContext(null), new HashMap<>());
+		this.attrCtx     = new MockingAttributeContext(unmockedCtx);
+		this.funCtx      = new MockingFunctionContext(Mockito.mock(FunctionContext.class));
+		this.variables   = new HashMap<>();
 	}
 
 	@Test
@@ -73,7 +81,7 @@ public class MockingAttributeContextTest {
 	@Test
 	void test_dynamicMock() {
 		attrCtx.markAttributeMock("foo.bar");
-		StepVerifier.create(attrCtx.evaluateAttribute("foo.bar", null, this.ctx, null))
+		StepVerifier.create(attrCtx.evaluateAttribute("foo.bar", null, null, variables))
 				.then(() -> attrCtx.mockEmit("foo.bar", Val.of(1))).expectNext(Val.of(1)).thenCancel().verify();
 	}
 
@@ -94,14 +102,14 @@ public class MockingAttributeContextTest {
 	@Test
 	void test_dynamicMock_ForEnvironmentAttribute() {
 		attrCtx.markAttributeMock("foo.bar");
-		StepVerifier.create(attrCtx.evaluateEnvironmentAttribute("foo.bar", this.ctx, null))
+		StepVerifier.create(attrCtx.evaluateEnvironmentAttribute("foo.bar", null, variables))
 				.then(() -> attrCtx.mockEmit("foo.bar", Val.of(1))).expectNext(Val.of(1)).thenCancel().verify();
 	}
 
 	@Test
 	void test_timingMock() {
 		attrCtx.loadAttributeMock("foo.bar", Duration.ofSeconds(10), Val.of(1), Val.of(2));
-		StepVerifier.withVirtualTime(() -> attrCtx.evaluateAttribute("foo.bar", null, this.ctx, null))
+		StepVerifier.withVirtualTime(() -> attrCtx.evaluateAttribute("foo.bar", null, null, variables))
 				.thenAwait(Duration.ofSeconds(10)).expectNext(Val.of(1)).thenAwait(Duration.ofSeconds(10))
 				.expectNext(Val.of(2)).verifyComplete();
 	}
@@ -116,7 +124,7 @@ public class MockingAttributeContextTest {
 	@Test
 	void test_timingMock_ForEnvironmentAttribute() {
 		attrCtx.loadAttributeMock("foo.bar", Duration.ofSeconds(10), Val.of(1), Val.of(2));
-		StepVerifier.withVirtualTime(() -> attrCtx.evaluateEnvironmentAttribute("foo.bar", this.ctx, null))
+		StepVerifier.withVirtualTime(() -> attrCtx.evaluateEnvironmentAttribute("foo.bar", null, variables))
 				.thenAwait(Duration.ofSeconds(10)).expectNext(Val.of(1)).thenAwait(Duration.ofSeconds(10))
 				.expectNext(Val.of(2)).verifyComplete();
 	}
@@ -124,7 +132,7 @@ public class MockingAttributeContextTest {
 	@Test
 	void test_loadAttributeMockForParentValue() {
 		attrCtx.loadAttributeMockForParentValue("foo.bar", parentValue(val(1)), Val.of(2));
-		StepVerifier.create(attrCtx.evaluateAttribute("foo.bar", Val.of(1), this.ctx, null)).expectNext(Val.of(2))
+		StepVerifier.create(attrCtx.evaluateAttribute("foo.bar", Val.of(1), null, variables)).expectNext(Val.of(2))
 				.verifyComplete();
 	}
 
@@ -132,9 +140,9 @@ public class MockingAttributeContextTest {
 	void test_loadAttributeMockForParentValue_duplicateRegistration() {
 		attrCtx.loadAttributeMockForParentValue("foo.bar", parentValue(val(1)), Val.of(2));
 		attrCtx.loadAttributeMockForParentValue("foo.bar", parentValue(val(2)), Val.of(3));
-		StepVerifier.create(attrCtx.evaluateAttribute("foo.bar", Val.of(1), this.ctx, null)).expectNext(Val.of(2))
+		StepVerifier.create(attrCtx.evaluateAttribute("foo.bar", Val.of(1), null, variables)).expectNext(Val.of(2))
 				.verifyComplete();
-		StepVerifier.create(attrCtx.evaluateAttribute("foo.bar", Val.of(2), this.ctx, null)).expectNext(Val.of(3))
+		StepVerifier.create(attrCtx.evaluateAttribute("foo.bar", Val.of(2), null, variables)).expectNext(Val.of(3))
 				.verifyComplete();
 	}
 
@@ -148,7 +156,7 @@ public class MockingAttributeContextTest {
 	@Test
 	void test_ForParentValue_ForEnvironmentAttribute() {
 		attrCtx.loadAttributeMockForParentValue("foo.bar", parentValue(is(Val.UNDEFINED)), Val.of(2));
-		StepVerifier.create(attrCtx.evaluateEnvironmentAttribute("foo.bar", this.ctx, null)).expectNext(Val.of(2))
+		StepVerifier.create(attrCtx.evaluateEnvironmentAttribute("foo.bar", null, variables)).expectNext(Val.of(2))
 				.verifyComplete();
 	}
 
@@ -158,11 +166,11 @@ public class MockingAttributeContextTest {
 				whenAttributeParams(parentValue(val(1)), arguments(val(true))), Val.of(2));
 
 		Expression expression = Mockito.mock(Expression.class);
-		Mockito.when(expression.evaluate(any(), any())).thenReturn(Flux.just(Val.TRUE));
+		Mockito.when(expression.evaluate(any())).thenReturn(Flux.just(Val.TRUE));
 		Arguments arguments = Mockito.mock(Arguments.class);
 		Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<Expression>(List.of(expression)));
 
-		StepVerifier.create(attrCtx.evaluateAttribute("foo.bar", Val.of(1), this.ctx, arguments)).expectNext(Val.of(2))
+		StepVerifier.create(attrCtx.evaluateAttribute("foo.bar", Val.of(1), arguments, variables)).expectNext(Val.of(2))
 				.verifyComplete();
 	}
 
@@ -174,11 +182,11 @@ public class MockingAttributeContextTest {
 				whenAttributeParams(parentValue(val(1)), arguments(val(false))), Val.of(1));
 
 		Expression expression = Mockito.mock(Expression.class);
-		Mockito.when(expression.evaluate(any(), any())).thenReturn(Flux.just(Val.TRUE));
+		Mockito.when(expression.evaluate(any())).thenReturn(Flux.just(Val.TRUE));
 		Arguments arguments = Mockito.mock(Arguments.class);
 		Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<Expression>(List.of(expression)));
 
-		StepVerifier.create(attrCtx.evaluateAttribute("foo.bar", Val.of(1), this.ctx, arguments)).expectNext(Val.of(0))
+		StepVerifier.create(attrCtx.evaluateAttribute("foo.bar", Val.of(1), arguments, variables)).expectNext(Val.of(0))
 				.verifyComplete();
 	}
 
@@ -196,11 +204,11 @@ public class MockingAttributeContextTest {
 				whenAttributeParams(parentValue(is(Val.UNDEFINED)), arguments(val(true))), Val.of(2));
 
 		Expression expression = Mockito.mock(Expression.class);
-		Mockito.when(expression.evaluate(any(), any())).thenReturn(Flux.just(Val.TRUE));
+		Mockito.when(expression.evaluate(any())).thenReturn(Flux.just(Val.TRUE));
 		Arguments arguments = Mockito.mock(Arguments.class);
 		Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<Expression>(List.of(expression)));
 
-		StepVerifier.create(attrCtx.evaluateEnvironmentAttribute("foo.bar", this.ctx, arguments)).expectNext(Val.of(2))
+		StepVerifier.create(attrCtx.evaluateEnvironmentAttribute("foo.bar", arguments, variables)).expectNext(Val.of(2))
 				.verifyComplete();
 	}
 
@@ -261,7 +269,7 @@ public class MockingAttributeContextTest {
 
 		Assertions.assertThat(result.size()).isEqualTo(2);
 		var iterator = result.iterator();
-		var doc1 = iterator.next();
+		var doc1     = iterator.next();
 		Assertions.assertThat(doc1.getName()).isEqualTo("foo");
 		Assertions.assertThat(doc1.getDocumentation().containsKey("bar")).isTrue();
 		var doc2 = iterator.next();
@@ -282,8 +290,8 @@ public class MockingAttributeContextTest {
 
 	@Test
 	void test_mockEmit_UnmockedAttribute() {
-		AttributeContext unmockedCtx = new AnnotationAttributeContext();
-		MockingAttributeContext ctx = new MockingAttributeContext(unmockedCtx);
+		AttributeContext        unmockedCtx = new AnnotationAttributeContext();
+		MockingAttributeContext ctx         = new MockingAttributeContext(unmockedCtx);
 
 		Assertions.assertThatExceptionOfType(SaplTestException.class)
 				.isThrownBy(() -> ctx.mockEmit("foo.bar", Val.of(1)));

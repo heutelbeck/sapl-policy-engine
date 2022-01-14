@@ -18,15 +18,14 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.OperatorUtil.operator;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 public class NotImplCustom extends NotImpl {
 
 	@Override
-	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		return operator(this, Val::requireBoolean, x -> Val.of(!x.get().asBoolean()), ctx, relativeNode);
+	public Flux<Val> evaluate(@NonNull Val relativeNode) {
+		return operator(this, Val::requireBoolean, x -> Val.of(!x.get().asBoolean()), relativeNode);
 	}
 
 }

@@ -20,7 +20,6 @@ import static io.sapl.grammar.sapl.impl.OperatorUtil.operator;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
@@ -34,8 +33,8 @@ import reactor.core.publisher.Flux;
 public class ElementOfImplCustom extends ElementOfImpl {
 
 	@Override
-	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		return operator(this, this::elementOf, ctx, relativeNode);
+	public Flux<Val> evaluate( @NonNull Val relativeNode) {
+		return operator(this, this::elementOf, relativeNode);
 	}
 
 	private Val elementOf(Val needle, Val haystack) {

@@ -19,7 +19,6 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
@@ -34,9 +33,9 @@ public class RegexImplCustom extends RegexImpl {
 	private static final String REGEX_SYNTAX_ERROR = "Syntax error in regular expression '%s'.";
 
 	@Override
-	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		var leftFlux = getLeft().evaluate(ctx, relativeNode);
-		var rightFlux = getRight().evaluate(ctx, relativeNode).map(Val::requireText);
+	public Flux<Val> evaluate( @NonNull Val relativeNode) {
+		var leftFlux = getLeft().evaluate(relativeNode);
+		var rightFlux = getRight().evaluate(relativeNode).map(Val::requireText);
 		return Flux.combineLatest(leftFlux, rightFlux, this::matchRegexp);
 	}
 

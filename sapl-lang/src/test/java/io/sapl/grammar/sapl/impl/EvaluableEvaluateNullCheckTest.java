@@ -16,7 +16,6 @@
 package io.sapl.grammar.sapl.impl;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -27,19 +26,20 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.reflections.Reflections;
 
-import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Evaluable;
-import io.sapl.interpreter.EvaluationContext;
 
 class EvaluableEvaluateNullCheckTest {
 
-	private final static EvaluationContext CTX = mock(EvaluationContext.class);
-
-	static Collection<Evaluable> data() throws InstantiationException, IllegalAccessException, IllegalArgumentException,
-			InvocationTargetException, NoSuchMethodException, SecurityException {
-		var reflections = new Reflections("io.sapl.grammar.sapl.impl");
-		var classes = reflections.getSubTypesOf(Evaluable.class);
-		List<Evaluable> instances = new ArrayList<>(classes.size());
+	static Collection<Evaluable> data()
+			throws InstantiationException,
+				IllegalAccessException,
+				IllegalArgumentException,
+				InvocationTargetException,
+				NoSuchMethodException,
+				SecurityException {
+		var             reflections = new Reflections("io.sapl.grammar.sapl.impl");
+		var             classes     = reflections.getSubTypesOf(Evaluable.class);
+		List<Evaluable> instances   = new ArrayList<>(classes.size());
 		for (var clazz : classes) {
 			if (clazz.getSimpleName().endsWith("ImplCustom")
 					&& !clazz.getSimpleName().equals("BasicExpressionImplCustom")) {
@@ -51,14 +51,8 @@ class EvaluableEvaluateNullCheckTest {
 
 	@ParameterizedTest
 	@MethodSource("data")
-	void nullEvaluationContext(Evaluable evaluable) {
-		assertThrows(NullPointerException.class, () -> evaluable.evaluate(null, Val.UNDEFINED));
-	}
-
-	@ParameterizedTest
-	@MethodSource("data")
 	void nullullRelativeNode(Evaluable evaluable) {
-		assertThrows(NullPointerException.class, () -> evaluable.evaluate(CTX, null));
+		assertThrows(NullPointerException.class, () -> evaluable.evaluate(null));
 	}
 
 }

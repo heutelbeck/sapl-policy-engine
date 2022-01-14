@@ -16,7 +16,6 @@
 package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
@@ -31,9 +30,9 @@ import reactor.core.publisher.Flux;
 public class BasicValueImplCustom extends BasicValueImpl {
 
 	@Override
-	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		var evaluatedValue = getValue().evaluate(ctx, relativeNode);
-		return evaluatedValue.switchMap(resolveStepsFiltersAndSubTemplates(steps, ctx, relativeNode));
+	public Flux<Val> evaluate( @NonNull Val relativeNode) {
+		var evaluatedValue = getValue().evaluate(relativeNode);
+		return evaluatedValue.switchMap(resolveStepsFiltersAndSubTemplates(steps, relativeNode));
 	}
 
 }

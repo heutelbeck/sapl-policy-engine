@@ -19,6 +19,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.function.Function;
 
 import org.eclipse.emf.common.util.Diagnostic;
@@ -31,6 +32,7 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.resource.XtextResourceSet;
 import org.reactivestreams.Publisher;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.inject.Injector;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
@@ -40,6 +42,9 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.grammar.SAPLStandaloneSetup;
 import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.grammar.sapl.SAPL;
+import io.sapl.interpreter.context.AuthorizationContext;
+import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.interpreter.pip.AttributeContext;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
@@ -62,7 +67,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 	@Override
 	public SAPL parse(InputStream saplInputStream) {
-		var sapl = loadAsResource(saplInputStream);
+		var sapl       = loadAsResource(saplInputStream);
 		var diagnostic = Diagnostician.INSTANCE.validate(sapl);
 		if (diagnostic.getSeverity() == Diagnostic.OK)
 			return sapl;
@@ -80,29 +85,35 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 	}
 
 	@Override
-	public Flux<AuthorizationDecision> evaluate(AuthorizationSubscription authzSubscription, String saplDefinition,
-			EvaluationContext evaluationCtx) {
+	public Flux<AuthorizationDecision> evaluate(
+			AuthorizationSubscription authzSubscription,
+			String saplDocumentSource,
+			AttributeContext attributeContext,
+			FunctionContext functionContext,
+			Map<String, JsonNode> environmentrVariables) {
 		final SAPL saplDocument;
 		try {
-			saplDocument = parse(saplDefinition);
-		}
-		catch (PolicyEvaluationException e) {
+			saplDocument = parse(saplDocumentSource);
+		} catch (PolicyEvaluationException e) {
 			log.error("Error in policy parsing: {}", e.getMessage());
 			return Flux.just(AuthorizationDecision.INDETERMINATE);
 		}
-		var subscriptionScopedEvaluationCtx = evaluationCtx.forAuthorizationSubscription(authzSubscription);
-		return saplDocument.matches(subscriptionScopedEvaluationCtx).flux()
-				.switchMap(evaluateBodyIfMatching(saplDocument, subscriptionScopedEvaluationCtx));
-
+		return saplDocument.matches().flux()
+				.switchMap(evaluateBodyIfMatching(saplDocument))
+				.contextWrite(ctx -> AuthorizationContext.setVariables(ctx, environmentrVariables))
+				.contextWrite(ctx -> AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription))
+				.contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx, attributeContext))
+				.contextWrite(ctx -> AuthorizationContext.setFunctionContext(ctx, functionContext))
+				.onErrorReturn(AuthorizationDecision.INDETERMINATE);
 	}
 
 	private Function<? super Val, Publisher<? extends AuthorizationDecision>> evaluateBodyIfMatching(
-			final SAPL saplDocument, EvaluationContext subscriptionScopedEvaluationCtx) {
+			final SAPL saplDocument) {
 		return match -> {
 			if (match.isError())
 				return Flux.just(AuthorizationDecision.INDETERMINATE);
 			if (match.getBoolean()) {
-				return saplDocument.evaluate(subscriptionScopedEvaluationCtx);
+				return saplDocument.evaluate();
 			}
 			return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
 		};
@@ -113,8 +124,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		SAPL saplDocument;
 		try {
 			saplDocument = parse(policyDefinition);
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return new DocumentAnalysisResult(false, "", null, e.getMessage());
 		}
 		return new DocumentAnalysisResult(true, saplDocument.getPolicyElement().getSaplName(),
@@ -127,12 +137,11 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 	private static SAPL loadAsResource(InputStream policyInputStream) {
 		final XtextResourceSet resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
-		final Resource resource = resourceSet.createResource(URI.createFileURI(DUMMY_RESOURCE_URI));
+		final Resource         resource    = resourceSet.createResource(URI.createFileURI(DUMMY_RESOURCE_URI));
 
 		try {
 			resource.load(policyInputStream, resourceSet.getLoadOptions());
-		}
-		catch (IOException | WrappedException e) {
+		} catch (IOException | WrappedException e) {
 			throw new PolicyEvaluationException(e, PARSING_ERRORS, resource.getErrors());
 		}
 

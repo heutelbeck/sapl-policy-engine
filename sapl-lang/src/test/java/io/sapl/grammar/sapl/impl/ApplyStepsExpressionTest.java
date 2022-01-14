@@ -21,110 +21,106 @@ import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.impl.util.MockUtil;
-import io.sapl.interpreter.EvaluationContext;
 
 class ApplyStepsExpressionTest {
 
-	private static final EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
-
 	@Test
 	void expressionStepPropagatesErrors1() {
-		expressionErrors(CTX, "[][(10/0)]");
+		expressionErrors("[][(10/0)]");
 	}
 
 	@Test
 	void expressionStepPropagatesErrors2() {
-		expressionErrors(CTX, "[(10/0)][(2+2)]");
+		expressionErrors("[(10/0)][(2+2)]");
 	}
 
 	@Test
 	void expressionStepOutOfBounds1() {
-		expressionErrors(CTX, "[1,2,3][(1+100)]");
+		expressionErrors("[1,2,3][(1+100)]");
 	}
 
 	@Test
 	void expressionStepOutOfBounds2() {
-		expressionErrors(CTX, "[1,2,3][(1 - 100)]");
+		expressionErrors("[1,2,3][(1 - 100)]");
 	}
 
 	@Test
 	void expressionStepOutOfBouonds2() {
-		expressionErrors(CTX, "[1,2,3][(1 - 100)]");
+		expressionErrors("[1,2,3][(1 - 100)]");
 	}
 
 	@Test
 	void applyExpressionStepToNonObjectNonArrayFails() {
-		expressionErrors(CTX, "undefined[(1 + 1)]");
+		expressionErrors("undefined[(1 + 1)]");
 	}
 
 	@Test
 	void expressionEvaluatesToBooleanAndFails() {
-		expressionErrors(CTX, "[1,2,3][(true)]");
+		expressionErrors("[1,2,3][(true)]");
 	}
 
 	@Test
 	void applyToArrayWithTextualExpressionResult() {
-		expressionErrors(CTX, "[0,1,2,3,4,5,6,7,8,9][(\"key\")]");
+		expressionErrors("[0,1,2,3,4,5,6,7,8,9][(\"key\")]");
 	}
 
 	@Test
 	void applyToArrayWithNumberExpressionResult() {
-		expressionEvaluatesTo(CTX, "[0,1,2,3,4,5,6,7,8,9][(2+3)]", "5");
+		expressionEvaluatesTo("[0,1,2,3,4,5,6,7,8,9][(2+3)]", "5");
 	}
 
 	@Test
 	void applyToObjectWithTextualResult() {
-		expressionEvaluatesTo(CTX, "{ \"key\" : true }[(\"ke\"+\"y\")]", "true");
+		expressionEvaluatesTo("{ \"key\" : true }[(\"ke\"+\"y\")]", "true");
 	}
 
 	@Test
 	void applyToObjectWithTextualResultNonExistingKey() {
-		expressionEvaluatesTo(CTX, "{ \"key\" : true }[(\"no_ke\"+\"y\")]", Val.UNDEFINED);
+		expressionEvaluatesTo("{ \"key\" : true }[(\"no_ke\"+\"y\")]", Val.UNDEFINED);
 	}
 
 	@Test
 	void applyToObjectWithNumericalResult() {
-		expressionErrors(CTX, "{ \"key\" : true }[(5+2)]");
+		expressionErrors("{ \"key\" : true }[(5+2)]");
 	}
 
 	@Test
 	void applyToObjectWithError() {
-		expressionErrors(CTX, "{ \"key\" : true }[(10/0)]");
+		expressionErrors("{ \"key\" : true }[(10/0)]");
 	}
 
 	@Test
 	void filterNonArrayNonObject() {
-		expressionEvaluatesTo(CTX, "123 |- { @[(1+1)] : mock.nil }", "123");
+		expressionEvaluatesTo("123 |- { @[(1+1)] : mock.nil }", "123");
 	}
 
 	@Test
 	void removeExpressionStepArray() {
 		var expression = "[ [0,1,2,3], [1,1,2,3], [2,1,2,3], [3,1,2,3], [4,1,2,3] ] |- { @[(1+2)] : filter.remove }";
-		var expected = "[ [0,1,2,3], [1,1,2,3], [2,1,2,3], [4,1,2,3] ]";
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = "[ [0,1,2,3], [1,1,2,3], [2,1,2,3], [4,1,2,3] ]";
+		expressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void filterTypeMismatch1() {
-		expressionErrors(CTX, "[ [4,1,2,3] ] |- { @[(false)] : filter.remove }");
+		expressionErrors("[ [4,1,2,3] ] |- { @[(false)] : filter.remove }");
 	}
 
 	@Test
 	void filterTypeMismatch2() {
-		expressionErrors(CTX, "[ [4,1,2,3] ] |- { @[(\"a\")] : filter.remove }");
+		expressionErrors("[ [4,1,2,3] ] |- { @[(\"a\")] : filter.remove }");
 	}
 
 	@Test
 	void filterTypeMismatch3() {
-		expressionErrors(CTX, "{ \"a\": [4,1,2,3] } |- { @[(123)] : filter.remove }");
+		expressionErrors("{ \"a\": [4,1,2,3] } |- { @[(123)] : filter.remove }");
 	}
 
 	@Test
 	void removeExpressionStepObject() {
 		var expression = "{ \"ab\" : [0,1,2,3], \"bb\" : [0,1,2,3], \"cb\" : [0,1,2,3], \"d\" : [0,1,2,3] } |- { @[(\"c\"+\"b\")] : filter.remove }";
-		var expected = "{ \"ab\" : [0,1,2,3], \"bb\" : [0,1,2,3], \"d\" : [0,1,2,3] }";
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = "{ \"ab\" : [0,1,2,3], \"bb\" : [0,1,2,3], \"d\" : [0,1,2,3] }";
+		expressionEvaluatesTo(expression, expected);
 	}
 
 }

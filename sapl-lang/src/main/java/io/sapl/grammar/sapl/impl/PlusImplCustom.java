@@ -20,7 +20,6 @@ import static io.sapl.grammar.sapl.impl.OperatorUtil.operator;
 import com.fasterxml.jackson.databind.node.TextNode;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
@@ -29,8 +28,8 @@ public class PlusImplCustom extends PlusImpl {
 	private static final TextNode UNDEFINED = Val.JSON.textNode("undefined");
 
 	@Override
-	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		return operator(this, this::plus, ctx, relativeNode);
+	public Flux<Val> evaluate( @NonNull Val relativeNode) {
+		return operator(this, this::plus, relativeNode);
 	}
 
 	private Val plus(Val left, Val right) {

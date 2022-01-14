@@ -17,17 +17,19 @@ package io.sapl.interpreter.pip;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
-import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
 public interface AttributeContext extends LibraryFunctionProvider {
 
-	Flux<Val> evaluateAttribute(String attribute, Val value, EvaluationContext ctx, Arguments arguments);
+	Flux<Val> evaluateAttribute(String attribute, Val value, Arguments arguments, Map<String, JsonNode> variables);
 
-	Flux<Val> evaluateEnvironmentAttribute(String attribute, EvaluationContext ctx, Arguments arguments);
+	Flux<Val> evaluateEnvironmentAttribute(String attribute, Arguments arguments, Map<String, JsonNode> variables);
 
 	Collection<PolicyInformationPointDocumentation> getDocumentation();
 
