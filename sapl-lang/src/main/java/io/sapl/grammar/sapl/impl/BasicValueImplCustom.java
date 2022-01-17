@@ -16,7 +16,6 @@
 package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
-import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -24,15 +23,15 @@ import reactor.core.publisher.Flux;
  *
  * Grammar: {BasicValue} value=Value steps+=Step*;
  *
- * Value: Object | Array | NumberLiteral | StringLiteral | BooleanLiteral | NullLiteral |
- * UndefinedLiteral ;
+ * Value: Object | Array | NumberLiteral | StringLiteral | BooleanLiteral |
+ * NullLiteral | UndefinedLiteral ;
  */
 public class BasicValueImplCustom extends BasicValueImpl {
 
 	@Override
-	public Flux<Val> evaluate( @NonNull Val relativeNode) {
-		var evaluatedValue = getValue().evaluate(relativeNode);
-		return evaluatedValue.switchMap(resolveStepsFiltersAndSubTemplates(steps, relativeNode));
+	public Flux<Val> evaluate() {
+		var evaluatedValue = getValue().evaluate();
+		return evaluatedValue.switchMap(resolveStepsFiltersAndSubTemplates(steps));
 	}
 
 }

@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
+import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -38,7 +39,7 @@ import reactor.util.function.Tuples;
 public class KeyStepImplCustom extends KeyStepImpl {
 
 	@Override
-	public Flux<Val> apply(@NonNull Val parentValue, @NonNull Val relativeNode) {
+	public Flux<Val> apply(@NonNull Val parentValue) {
 		if (parentValue.isError()) {
 			return Flux.just(parentValue);
 		}
@@ -67,21 +68,19 @@ public class KeyStepImplCustom extends KeyStepImpl {
 	@Override
 	public Flux<Val> applyFilterStatement(
 			@NonNull Val parentValue,
-			@NonNull Val relativeNode,
 			int stepId,
 			@NonNull FilterStatement statement) {
-		return applyKeyStepFilterStatement(id, parentValue, relativeNode, stepId, statement);
+		return applyKeyStepFilterStatement(id, parentValue, stepId, statement);
 	}
 
 	public static Flux<Val> applyKeyStepFilterStatement(
 			String id,
 			Val parentValue,
-			Val relativeNode,
 			int stepId,
 			FilterStatement statement) {
 		log.trace("apply key step '{}' to: {}", id, parentValue);
 		if (parentValue.isObject()) {
-			return applyFilterStatementToObject(id, parentValue.getObjectNode(), relativeNode, stepId, statement);
+			return applyFilterStatementToObject(id, parentValue.getObjectNode(), stepId, statement);
 		}
 
 		if (parentValue.isArray()) {
@@ -95,7 +94,6 @@ public class KeyStepImplCustom extends KeyStepImpl {
 	private static Flux<Val> applyFilterStatementToObject(
 			String id,
 			ObjectNode object,
-			Val relativeNode,
 			int stepId,
 			FilterStatement statement) {
 		var fieldFluxes = new ArrayList<Flux<Tuple2<String, Val>>>(object.size());
@@ -111,13 +109,14 @@ public class KeyStepImplCustom extends KeyStepImpl {
 					fieldFluxes
 							.add(FilterComponentImplCustom
 									.applyFilterFunction(Val.of(field.getValue()), statement.getArguments(),
-											statement.getFsteps(), Val.of(object), statement.isEach())
+											statement.getFsteps(), statement.isEach())
+									.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, Val.of(object)))
 									.map(val -> Tuples.of(field.getKey(), val)));
 				} else {
 					// there are more steps. descent with them
 					log.trace("this step was successful. descent with next step...");
 					fieldFluxes.add(statement.getTarget().getSteps().get(stepId + 1)
-							.applyFilterStatement(Val.of(field.getValue()), relativeNode, stepId + 1, statement)
+							.applyFilterStatement(Val.of(field.getValue()), stepId + 1, statement)
 							.map(val -> Tuples.of(field.getKey(), val)));
 				}
 			} else {
@@ -144,7 +143,8 @@ public class KeyStepImplCustom extends KeyStepImpl {
 			if (element.isObject()) {
 				log.trace("array element is an object. apply this step to the object.");
 				elementFluxes.add(
-						applyFilterStatementToObject(id, (ObjectNode) element, Val.of(array), stepId, statement));
+						applyFilterStatementToObject(id, (ObjectNode) element, stepId, statement)
+								.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, Val.of(array))));
 			} else {
 				log.trace("array element not an object. just return it as it will not be affected by filtering");
 				elementFluxes.add(Flux.just(Val.of(element)));

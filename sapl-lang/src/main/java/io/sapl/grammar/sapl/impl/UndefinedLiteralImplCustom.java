@@ -16,12 +16,11 @@
 package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
-import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
- * Implements a constant value of 'undefined'. The value of 'undefined' is represented by
- * Optional.empty().
+ * Implements a constant value of 'undefined'. The value of 'undefined' is
+ * represented by Optional.empty().
  *
  * Grammar: UndefinedLiteral returns Value: {UndefinedLiteral} 'undefined' ;
  */
@@ -31,7 +30,7 @@ public class UndefinedLiteralImplCustom extends UndefinedLiteralImpl {
 	 * A FLux only containing the 'undefined' value, i.e. Optional.empty();
 	 */
 	@Override
-	public Flux<Val> evaluate( @NonNull Val relativeNode) {
+	public Flux<Val> evaluate() {
 		return Val.fluxOfUndefined();
 	}
 

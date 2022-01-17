@@ -23,7 +23,6 @@ import java.math.BigDecimal;
 
 import org.junit.jupiter.api.Test;
 
-import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.grammar.sapl.impl.util.ParserUtil;
 
@@ -76,7 +75,7 @@ class ArtihmeticExpressionsTest {
 
 	private void assertEvaluatesTo(String given, double expected) throws IOException {
 		var expression = ParserUtil.expression(given);
-		var actual     = expression.evaluate(Val.UNDEFINED).contextWrite(MockUtil::setUpAuthorizationContext)
+		var actual     = expression.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)
 				.blockFirst();
 		assertThat(actual.decimalValue(), comparesEqualTo(BigDecimal.valueOf(expected)));
 	}

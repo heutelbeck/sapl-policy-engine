@@ -18,14 +18,13 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.OperatorUtil.arithmeticOperator;
 
 import io.sapl.api.interpreter.Val;
-import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 public class UnaryMinusImplCustom extends UnaryMinusImpl {
 
 	@Override
-	public Flux<Val> evaluate( @NonNull Val relativeNode) {
-		return arithmeticOperator(this, this::negate, relativeNode);
+	public Flux<Val> evaluate() {
+		return arithmeticOperator(this, this::negate);
 	}
 
 	private Val negate(Val value) {

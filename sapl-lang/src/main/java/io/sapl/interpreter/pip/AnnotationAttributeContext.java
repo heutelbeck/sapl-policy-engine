@@ -140,7 +140,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 				for (Expression argument : arguments.getArgs()) {
 					var parameter = attributeMetadata.function.getParameters()[argumentIndex];
 					invocationArguments[argumentIndex++] = ParameterTypeValidator
-							.validateType(argument.evaluate(Val.UNDEFINED), parameter);
+							.validateType(argument.evaluate(), parameter);
 				}
 			}
 		}
@@ -173,7 +173,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 		var i = 0;
 		if (arguments != null) {
 			for (Expression argument : arguments.getArgs()) {
-				varArgsArray[i++] = ParameterTypeValidator.validateType(argument.evaluate(Val.UNDEFINED),
+				varArgsArray[i++] = ParameterTypeValidator.validateType(argument.evaluate(),
 						parameter);
 			}
 		}
@@ -266,7 +266,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 				for (Expression argument : arguments.getArgs()) {
 					var parameter = attributeMetadata.function.getParameters()[argumentIndex];
 					invocationArguments[argumentIndex++] = ParameterTypeValidator
-							.validateType(argument.evaluate(Val.UNDEFINED), parameter);
+							.validateType(argument.evaluate(), parameter);
 				}
 			}
 		}

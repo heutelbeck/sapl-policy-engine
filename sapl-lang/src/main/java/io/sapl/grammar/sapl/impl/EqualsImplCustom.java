@@ -18,7 +18,6 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.OperatorUtil.operator;
 
 import io.sapl.api.interpreter.Val;
-import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -30,8 +29,8 @@ import reactor.core.publisher.Flux;
 public class EqualsImplCustom extends EqualsImpl {
 
 	@Override
-	public Flux<Val> evaluate(@NonNull Val relativeNode) {
-		return operator(this, this::equals, relativeNode);
+	public Flux<Val> evaluate() {
+		return operator(this, this::equals);
 	}
 
 	private Val equals(Val left, Val right) {

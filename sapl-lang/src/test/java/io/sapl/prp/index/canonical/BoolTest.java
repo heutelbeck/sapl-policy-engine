@@ -47,7 +47,7 @@ class BoolTest {
 		constantBool = new Bool(false);
 
 		var expressionMock = mock(Expression.class, RETURNS_DEEP_STUBS);
-		when(expressionMock.evaluate(any())).thenReturn(Flux.just(Val.TRUE));
+		when(expressionMock.evaluate()).thenReturn(Flux.just(Val.TRUE));
 		expressionBool = new Bool(expressionMock, Collections.emptyMap());
 	}
 
@@ -98,7 +98,7 @@ class BoolTest {
 	void evaluating_bool_with_error_expression_should_return_error() {
 
 		var expressionMock = mock(Expression.class);
-		when(expressionMock.evaluate(any())).thenReturn(Flux.just(Val.error("error")));
+		when(expressionMock.evaluate()).thenReturn(Flux.just(Val.error("error")));
 
 		var bool   = new Bool(expressionMock, Collections.emptyMap());
 		var result = bool.evaluateExpression().block();
@@ -110,7 +110,7 @@ class BoolTest {
 	@Test
 	void evaluating_bool_with_false_expression_should_return_false() {
 		var expressionMock = mock(Expression.class);
-		when(expressionMock.evaluate(any())).thenReturn(Flux.just(Val.FALSE));
+		when(expressionMock.evaluate()).thenReturn(Flux.just(Val.FALSE));
 
 		var bool   = new Bool(expressionMock, Collections.emptyMap());
 		var result = bool.evaluateExpression().block();
@@ -122,7 +122,7 @@ class BoolTest {
 	@Test
 	void evaluating_bool_with_long_expression_should_return_error() {
 		var expressionMock = mock(Expression.class);
-		when(expressionMock.evaluate(any())).thenReturn(Flux.just(Val.of(0L)));
+		when(expressionMock.evaluate()).thenReturn(Flux.just(Val.of(0L)));
 
 		var bool   = new Bool(expressionMock, Collections.emptyMap());
 		var result = bool.evaluateExpression().block();
@@ -140,7 +140,7 @@ class BoolTest {
 		when(valMock.isBoolean()).thenReturn(true);
 
 		var expressionMock = mock(Expression.class);
-		when(expressionMock.evaluate(any())).thenReturn(Flux.just(valMock));
+		when(expressionMock.evaluate()).thenReturn(Flux.just(valMock));
 
 		var bool   = new Bool(expressionMock, Collections.emptyMap());
 		var result = bool.evaluateExpression().block();

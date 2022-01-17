@@ -102,21 +102,21 @@ public class PolicyImplCustom extends PolicyImpl {
 		if (getObligation() == null) {
 			return Flux.empty();
 		}
-		return getObligation().evaluate(Val.UNDEFINED);
+		return getObligation().evaluate();
 	}
 
 	private Flux<Val> evaluateAdvice() {
 		if (getAdvice() == null) {
 			return Flux.empty();
 		}
-		return getAdvice().evaluate(Val.UNDEFINED);
+		return getAdvice().evaluate();
 	}
 
 	private Flux<Val> evaluateTransformation() {
 		if (getTransformation() == null) {
 			return Flux.empty();
 		}
-		return getTransformation().evaluate(Val.UNDEFINED);
+		return getTransformation().evaluate();
 	}
 
 }

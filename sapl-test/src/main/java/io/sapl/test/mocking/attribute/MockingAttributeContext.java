@@ -115,7 +115,7 @@ public class MockingAttributeContext implements AttributeContext {
 			List<Flux<Val>> args = new LinkedList<>();
 			if (arguments != null) {
 				for (Expression argument : arguments.getArgs()) {
-					args.add(argument.evaluate(Val.UNDEFINED));
+					args.add(argument.evaluate());
 				}
 			}
 
@@ -137,7 +137,7 @@ public class MockingAttributeContext implements AttributeContext {
 			List<Flux<Val>> args = new LinkedList<>();
 			if (arguments != null) {
 				for (Expression argument : arguments.getArgs()) {
-					args.add(argument.evaluate(Val.UNDEFINED));
+					args.add(argument.evaluate());
 				}
 			}
 			return mock.evaluate(Val.UNDEFINED, variables, args)

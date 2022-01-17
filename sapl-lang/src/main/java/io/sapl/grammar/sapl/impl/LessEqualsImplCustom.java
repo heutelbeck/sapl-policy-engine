@@ -18,20 +18,19 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.OperatorUtil.arithmeticOperator;
 
 import io.sapl.api.interpreter.Val;
-import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
  * Checks for a left value being less than or equal to a right value.
  *
- * Grammar: {@code Comparison returns Expression: Prefixed (({LessEquals.left=current}
- * '&lt;=') right=Prefixed)? ;}
+ * Grammar: {@code Comparison returns Expression: Prefixed
+ * (({LessEquals.left=current} '&lt;=') right=Prefixed)? ;}
  */
 public class LessEqualsImplCustom extends LessEqualsImpl {
 
 	@Override
-	public Flux<Val> evaluate( @NonNull Val relativeNode) {
-		return arithmeticOperator(this, this::lessOrEqual, relativeNode);
+	public Flux<Val> evaluate() {
+		return arithmeticOperator(this, this::lessOrEqual);
 	}
 
 	private Val lessOrEqual(Val left, Val right) {

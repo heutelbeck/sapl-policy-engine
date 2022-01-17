@@ -31,15 +31,16 @@ import reactor.core.publisher.Mono;
 @UtilityClass
 public class FunctionUtil {
 
-	public Flux<Val[]> combineArgumentFluxes(Arguments arguments, Val relativeNode) {
+	public Flux<Val[]> combineArgumentFluxes(Arguments arguments) {
 		if (arguments == null || arguments.getArgs().size() == 0)
 			return Mono.just(new Val[0]).flux();
 
-		return combine(argumentFluxes(arguments, relativeNode));
+		return combine(argumentFluxes(arguments));
 	}
 
 	public Mono<String> resolveAbsoluteFunctionName(Iterable<String> steps) {
-		return Mono.deferContextual(ctx -> Mono.just(resolveAbsoluteFunctionName(steps, AuthorizationContext.getImports(ctx))));
+		return Mono.deferContextual(
+				ctx -> Mono.just(resolveAbsoluteFunctionName(steps, AuthorizationContext.getImports(ctx))));
 	}
 
 	public String resolveAbsoluteFunctionName(Iterable<String> steps, Map<String, String> imports) {
@@ -57,7 +58,8 @@ public class FunctionUtil {
 
 	public Mono<Val> evaluateFunctionMono(String unresolvedFunctionName, Val... parameters) {
 		return Mono.deferContextual(ctx -> Mono.just(AuthorizationContext.functionContext(ctx)
-				.evaluate(resolveAbsoluteFunctionName(unresolvedFunctionName, AuthorizationContext.getImports(ctx)), parameters)));
+				.evaluate(resolveAbsoluteFunctionName(unresolvedFunctionName, AuthorizationContext.getImports(ctx)),
+						parameters)));
 	}
 
 	public Mono<Val> evaluateFunctionWithLeftHandArgumentMono(
@@ -70,8 +72,8 @@ public class FunctionUtil {
 		return evaluateFunctionMono(fsteps, mergedParameters);
 	}
 
-	private Stream<Flux<Val>> argumentFluxes(Arguments arguments, Val relativeNode) {
-		return arguments.getArgs().stream().map(expression -> expression.evaluate(relativeNode));
+	private Stream<Flux<Val>> argumentFluxes(Arguments arguments) {
+		return arguments.getArgs().stream().map(expression -> expression.evaluate());
 	}
 
 	private Flux<Val[]> combine(Stream<Flux<Val>> argumentFluxes) {

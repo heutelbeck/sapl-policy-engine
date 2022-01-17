@@ -503,7 +503,7 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext();
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
-		StepVerifier.create(expression.evaluate(Val.UNDEFINED)
+		StepVerifier.create(expression.evaluate()
 				.contextWrite(this.constructContext(attributeCtx, variables))).expectNextMatches(Val::isError)
 				.verifyComplete();
 	}
@@ -526,7 +526,7 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
-		StepVerifier.create(expression.evaluate(Val.UNDEFINED)
+		StepVerifier.create(expression.evaluate()
 				.contextWrite(this.constructContext(attributeCtx, variables))).expectNext(Val.of("param2"))
 				.verifyComplete();
 	}
@@ -550,7 +550,7 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("\"\".<test.envAttribute(\"param1\",\"param2\")>");
-		StepVerifier.create(expression.evaluate(Val.UNDEFINED)
+		StepVerifier.create(expression.evaluate()
 				.contextWrite(this.constructContext(attributeCtx, variables))).expectNext(Val.of("param2"))
 				.verifyComplete();
 	}
@@ -575,7 +575,7 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("\"\".<test.envAttribute(\"param1\",\"param2\")>");
-		StepVerifier.create(expression.evaluate(Val.UNDEFINED)
+		StepVerifier.create(expression.evaluate()
 				.contextWrite(this.constructContext(attributeCtx, variables))).expectNext(Val.of("param2"))
 				.verifyComplete();
 	}
@@ -596,7 +596,7 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
-		StepVerifier.create(expression.evaluate(Val.UNDEFINED)
+		StepVerifier.create(expression.evaluate()
 				.contextWrite(this.constructContext(attributeCtx, variables))).expectNext(Val.of("param2"))
 				.verifyComplete();
 	}
@@ -617,7 +617,7 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("<test.envAttribute(\"param1\")>");
-		StepVerifier.create(expression.evaluate(Val.UNDEFINED)
+		StepVerifier.create(expression.evaluate()
 				.contextWrite(this.constructContext(attributeCtx, variables))).expectNext(Val.of("param1"))
 				.verifyComplete();
 	}
@@ -650,7 +650,7 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
-		StepVerifier.create(expression.evaluate(Val.UNDEFINED)
+		StepVerifier.create(expression.evaluate()
 				.contextWrite(this.constructContext(attributeCtx, variables))).expectNext(Val.of("param1"))
 				.verifyComplete();
 	}
@@ -675,7 +675,7 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("<test.envAttribute>");
-		StepVerifier.create(expression.evaluate(Val.UNDEFINED)
+		StepVerifier.create(expression.evaluate()
 				.contextWrite(this.constructContext(attributeCtx, variables))).expectNext(Val.of(0)).verifyComplete();
 	}
 
@@ -695,7 +695,7 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("<test.envAttribute>");
-		StepVerifier.create(expression.evaluate(Val.UNDEFINED)
+		StepVerifier.create(expression.evaluate()
 				.contextWrite(this.constructContext(attributeCtx, variables))).expectNext(Val.of("OK"))
 				.verifyComplete();
 	}
@@ -718,7 +718,7 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("<test.envAttribute>");
-		StepVerifier.create(expression.evaluate(Val.UNDEFINED)
+		StepVerifier.create(expression.evaluate()
 				.contextWrite(this.constructContext(attributeCtx, variables))).expectNextMatches(Val::isError)
 				.verifyComplete();
 	}
@@ -739,7 +739,7 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("\"\".<test.attribute>");
-		StepVerifier.create(expression.evaluate(Val.UNDEFINED)
+		StepVerifier.create(expression.evaluate()
 				.contextWrite(this.constructContext(attributeCtx, variables))).expectNextMatches(Val::isError)
 				.verifyComplete();
 	}
@@ -760,7 +760,7 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("\"\".<test.attribute>");
-		StepVerifier.create(expression.evaluate(Val.UNDEFINED)
+		StepVerifier.create(expression.evaluate()
 				.contextWrite(this.constructContext(attributeCtx, variables))).expectNext(Val.of("")).verifyComplete();
 	}
 
@@ -770,7 +770,7 @@ public class AnnotationAttributeContextTests {
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("\"\".<test.envAttribute>");
 		StepVerifier
-				.create(expression.evaluate(Val.UNDEFINED).contextWrite(this.constructContext(attributeCtx, variables)))
+				.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
 				.expectNextMatches(Val::isError)
 				.verifyComplete();
 	}
@@ -796,7 +796,7 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("<test.envAttribute(\"param1\")>");
-		StepVerifier.create(expression.evaluate(Val.UNDEFINED)
+		StepVerifier.create(expression.evaluate()
 				.contextWrite(this.constructContext(attributeCtx, variables))).expectNextMatches(Val::isError)
 				.verifyComplete();
 	}
@@ -821,7 +821,7 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
-		StepVerifier.create(expression.evaluate(Val.UNDEFINED)
+		StepVerifier.create(expression.evaluate()
 				.contextWrite(this.constructContext(attributeCtx, variables))).expectNextMatches(Val::isError)
 				.verifyComplete();
 	}
@@ -916,7 +916,7 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("<test.attribute(\"param1\",\"param2\")>");
-		StepVerifier.create(expression.evaluate(Val.UNDEFINED)
+		StepVerifier.create(expression.evaluate()
 				.contextWrite(this.constructContext(attributeCtx, variables))).expectNextMatches(Val::isError)
 				.verifyComplete();
 	}

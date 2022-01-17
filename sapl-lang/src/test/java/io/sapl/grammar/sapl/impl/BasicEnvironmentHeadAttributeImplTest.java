@@ -68,7 +68,7 @@ class BasicEnvironmentHeadAttributeImplTest {
 	@Test
 	void exceptionDuringEvaluation() {
 		var step = headAttributeFinderStep();
-		var sut  = step.evaluate(Val.UNDEFINED).contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
+		var sut  = step.evaluate().contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
 				mockAttributeContextWithStream(Flux.just(Val.error("ERROR")))));
 		StepVerifier.create(sut).expectNextMatches(Val::isError).verifyComplete();
 	}
@@ -77,7 +77,7 @@ class BasicEnvironmentHeadAttributeImplTest {
 	void applyWithSomeStreamData() {
 		Val[] data = { Val.FALSE, Val.error("ERROR"), Val.TRUE, Val.NULL, Val.UNDEFINED };
 		var   step = headAttributeFinderStep();
-		var   sut  = step.evaluate(Val.UNDEFINED).contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
+		var   sut  = step.evaluate().contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
 				mockAttributeContextWithStream(Flux.just(data))));
 		sut.log().blockLast();
 

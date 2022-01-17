@@ -22,6 +22,7 @@ import com.fasterxml.jackson.core.TreeNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
+import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -42,7 +43,7 @@ public class IndexStepImplCustom extends IndexStepImpl {
 	private static final String INDEX_OUT_OF_BOUNDS_INDEX_MUST_BE_BETWEEN_0_AND_D_WAS_D = "Index out of bounds. Index must be between 0 and %d, was: %d ";
 
 	@Override
-	public Flux<Val> apply(@NonNull Val parentValue, @NonNull Val relativeNode) {
+	public Flux<Val> apply(@NonNull Val parentValue) {
 		if (parentValue.isError()) {
 			return Flux.just(parentValue);
 		}
@@ -69,16 +70,14 @@ public class IndexStepImplCustom extends IndexStepImpl {
 	@Override
 	public Flux<Val> applyFilterStatement(
 			@NonNull Val parentValue,
-			@NonNull Val relativeNode,
 			int stepId,
 			@NonNull FilterStatement statement) {
-		return doApplyFilterStatement(index, parentValue, relativeNode, stepId, statement);
+		return doApplyFilterStatement(index, parentValue, stepId, statement);
 	}
 
 	public static Flux<Val> doApplyFilterStatement(
 			BigDecimal index,
 			Val parentValue,
-			Val relativeNode,
 			int stepId,
 			FilterStatement statement) {
 		log.trace("apply index step [{}] to: {}", index, parentValue);
@@ -103,12 +102,13 @@ public class IndexStepImplCustom extends IndexStepImpl {
 					log.trace("final step. apply filter!");
 					elementFluxes.add(
 							FilterComponentImplCustom.applyFilterFunction(Val.of(element), statement.getArguments(),
-									statement.getFsteps(), parentValue, statement.isEach()));
+									statement.getFsteps(), statement.isEach())
+									.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, parentValue)));
 				} else {
 					// there are more steps. descent with them
 					log.trace("this step was successful. descent with next step...");
 					elementFluxes.add(statement.getTarget().getSteps().get(stepId + 1)
-							.applyFilterStatement(Val.of(element), relativeNode, stepId + 1, statement));
+							.applyFilterStatement(Val.of(element), stepId + 1, statement));
 				}
 			} else {
 				log.trace("[{}] not selected. Just return as is. Not affected by filtering.", i);

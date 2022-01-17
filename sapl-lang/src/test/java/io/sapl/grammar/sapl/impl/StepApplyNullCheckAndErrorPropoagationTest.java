@@ -54,42 +54,29 @@ class StepApplyNullCheckAndErrorPropoagationTest {
 
 	@ParameterizedTest
 	@MethodSource("data")
-	void nullRelativeNode(Step step) {
-		assertThrows(NullPointerException.class, () -> step.apply(Val.UNDEFINED, null));
-	}
-
-	@ParameterizedTest
-	@MethodSource("data")
 	void nullParentNode(Step step) {
-		assertThrows(NullPointerException.class, () -> step.apply(null, Val.UNDEFINED));
+		assertThrows(NullPointerException.class, () -> step.apply(null));
 	}
 
 	@ParameterizedTest
 	@MethodSource("data")
 	void stepsPropagateErrors(Step step) {
 		var error = Val.error("TEST");
-		StepVerifier.create(step.apply(error, Val.UNDEFINED)).expectNext(error).verifyComplete();
-	}
-
-	@ParameterizedTest
-	@MethodSource("data")
-	void nullRelativeNodeFilter(Step step) {
-		assertThrows(NullPointerException.class,
-				() -> step.applyFilterStatement(Val.UNDEFINED, null, 0, mock(FilterStatement.class)));
+		StepVerifier.create(step.apply(error)).expectNext(error).verifyComplete();
 	}
 
 	@ParameterizedTest
 	@MethodSource("data")
 	void nullParentNodeFilter(Step step) {
 		assertThrows(NullPointerException.class,
-				() -> step.applyFilterStatement(null, Val.UNDEFINED, 0, mock(FilterStatement.class)));
+				() -> step.applyFilterStatement(null, 0, mock(FilterStatement.class)));
 	}
 
 	@ParameterizedTest
 	@MethodSource("data")
 	void nullFilterStatementFilter(Step step) {
 		assertThrows(NullPointerException.class,
-				() -> step.applyFilterStatement(Val.UNDEFINED, Val.UNDEFINED, 0, null));
+				() -> step.applyFilterStatement(Val.UNDEFINED, 0, null));
 	}
 
 }

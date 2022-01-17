@@ -38,7 +38,7 @@ public class PolicyElementImplCustom extends PolicyElementImpl {
 		if (targetExpression == null) {
 			return Mono.just(Val.TRUE);
 		}
-		return targetExpression.evaluate(Val.UNDEFINED).next().defaultIfEmpty(Val.FALSE).flatMap(result -> {
+		return targetExpression.evaluate().next().defaultIfEmpty(Val.FALSE).flatMap(result -> {
 			if (result.isError() || !result.isBoolean()) {
 				return Val.errorMono(CONDITION_NOT_BOOLEAN, result);
 			}

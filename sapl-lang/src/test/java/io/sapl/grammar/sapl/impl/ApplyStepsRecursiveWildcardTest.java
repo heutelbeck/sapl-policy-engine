@@ -66,7 +66,7 @@ class ApplyStepsRecursiveWildcardTest {
 				"[1,2,3,4,5,\"value1\",[{\"key\":\"value2\"},{\"key\":\"value3\"}],{\"key\":\"value2\"},\"value2\",{\"key\":\"value3\"},\"value3\",[1,2,3,4,5]]");
 		expressionEvaluatesTo("null..*", "[]");
 		StepVerifier
-				.create(ParserUtil.expression(expression).evaluate(Val.UNDEFINED)
+				.create(ParserUtil.expression(expression).evaluate()
 						.contextWrite(MockUtil::setUpAuthorizationContext))
 				.expectNextMatches(result -> ArrayUtil.arraysMatchWithSetSemantics(result, expected)).verifyComplete();
 	}

@@ -21,6 +21,7 @@ import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.interpreter.context.AuthorizationContext;
 import reactor.test.StepVerifier;
 
 class EvaluateBasicExpressionsTest {
@@ -43,7 +44,9 @@ class EvaluateBasicExpressionsTest {
 	@Test
 	void evaluateBasicRelative() {
 		var expression = SaplFactoryImpl.eINSTANCE.createBasicRelative();
-		StepVerifier.create(expression.evaluate(Val.TRUE)).expectNext(Val.TRUE).verifyComplete();
+		StepVerifier.create(expression.evaluate()
+				.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, Val.TRUE))).expectNext(Val.TRUE)
+				.verifyComplete();
 	}
 
 	@Test

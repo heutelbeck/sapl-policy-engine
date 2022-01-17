@@ -16,33 +16,32 @@
 package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
-import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
  * Implements the lazy boolean OR operator, written as '||' in Expressions.
  *
- * Grammar: Addition returns Expression: Multiplication (({Or.left=current} '||')
- * right=Multiplication)* ;
+ * Grammar: Addition returns Expression: Multiplication (({Or.left=current}
+ * '||') right=Multiplication)* ;
  */
 public class OrImplCustom extends OrImpl {
 
 	private static final String LAZY_OPERATOR_IN_TARGET = "Lazy OR operator is not allowed in the target";
 
 	@Override
-	public Flux<Val> evaluate( @NonNull Val relativeNode) {
+	public Flux<Val> evaluate() {
 		if (TargetExpressionUtil.isInTargetExpression(this)) {
 			// lazy evaluation is not allowed in target expressions.
 			return Val.errorFlux(LAZY_OPERATOR_IN_TARGET);
 		}
-		var left = getLeft().evaluate(relativeNode).map(Val::requireBoolean);
+		var left = getLeft().evaluate().map(Val::requireBoolean);
 		return left.switchMap(leftResult -> {
 			if (leftResult.isError()) {
 				return Flux.just(leftResult);
 			}
 			// Lazy evaluation of the right expression
 			if (!leftResult.getBoolean()) {
-				return getRight().evaluate(relativeNode).map(Val::requireBoolean);
+				return getRight().evaluate().map(Val::requireBoolean);
 			}
 			return Flux.just(Val.TRUE);
 		});

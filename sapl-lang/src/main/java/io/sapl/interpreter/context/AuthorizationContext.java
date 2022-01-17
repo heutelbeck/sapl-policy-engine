@@ -28,10 +28,19 @@ public class AuthorizationContext {
 	private static final String          ACTION        = "action";
 	private static final String          RESOURCE      = "resource";
 	private static final String          ENVIRONMENT   = "environment";
+	private static final String          RELATIVE_NODE = "relativeNode";
 	private static final JsonNodeFactory JSON          = JsonNodeFactory.instance;
 
 	public static Map<String, String> getImports(ContextView ctx) {
 		return ctx.getOrDefault(IMPORTS, Collections.emptyMap());
+	}
+
+	public static Val getRelativeNode(ContextView ctx) {
+		return ctx.getOrDefault(RELATIVE_NODE, Val.UNDEFINED);
+	}
+
+	public static Context setRelativeNode(Context ctx, Val relativeNode) {
+		return ctx.put(RELATIVE_NODE, relativeNode);
 	}
 
 	public static AttributeContext getAttributeContext(ContextView ctx) {

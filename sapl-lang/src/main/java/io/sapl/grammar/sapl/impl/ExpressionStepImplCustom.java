@@ -53,16 +53,16 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 	private static final String EXPRESSIONS_STEP_ONLY_APPLICABLE_TO_ARRAY_OR_OBJECT_WAS_S = "Expressions step only applicable to Array or Object. was: %s";
 
 	@Override
-	public Flux<Val> apply(@NonNull Val parentValue, @NonNull Val relativeNode) {
+	public Flux<Val> apply(@NonNull Val parentValue) {
 		if (parentValue.isError()) {
 			return Flux.just(parentValue);
 		}
 		if (parentValue.isArray()) {
-			return expression.evaluate(relativeNode)
+			return expression.evaluate()
 					.map(index -> extractValueAt(parentValue.getArrayNode(), index));
 		}
 		if (parentValue.isObject()) {
-			return expression.evaluate(relativeNode).map(index -> extractKey(parentValue.get(), index));
+			return expression.evaluate().map(index -> extractKey(parentValue.get(), index));
 		}
 		return Val.errorFlux(EXPRESSIONS_STEP_ONLY_APPLICABLE_TO_ARRAY_OR_OBJECT_WAS_S, parentValue);
 	}
@@ -70,7 +70,6 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 	@Override
 	public Flux<Val> applyFilterStatement(
 			@NonNull Val parentValue,
-			@NonNull Val relativeNode,
 			int stepId,
 			@NonNull FilterStatement statement) {
 		log.trace("apply expression step to: {}", parentValue);
@@ -78,26 +77,23 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 			// this means the element does not get selected does not get filtered
 			return Flux.just(parentValue);
 		}
-		return expression.evaluate(relativeNode)
-				.concatMap(key -> applyFilterStatement(key, parentValue, relativeNode, stepId, statement));
+		return expression.evaluate()
+				.concatMap(key -> applyFilterStatement(key, parentValue, stepId, statement));
 	}
 
 	private Flux<Val> applyFilterStatement(
 			Val key,
 			Val parentValue,
-			Val relativeNode,
 			int stepId,
 			FilterStatement statement) {
 		log.trace("apply expression result '{}'to: {}", key, parentValue);
 		if (key.isTextual() && parentValue.isObject()) {
 			// This is a KeyStep equivalent
-			return KeyStepImplCustom.applyKeyStepFilterStatement(key.getText(), parentValue, relativeNode, stepId,
-					statement);
+			return KeyStepImplCustom.applyKeyStepFilterStatement(key.getText(), parentValue, stepId, statement);
 		}
 		if (key.isNumber() && parentValue.isArray()) {
 			// This is an IndexStep equivalent
-			return IndexStepImplCustom.doApplyFilterStatement(key.decimalValue(), parentValue, relativeNode,
-					stepId, statement);
+			return IndexStepImplCustom.doApplyFilterStatement(key.decimalValue(), parentValue, stepId, statement);
 		}
 		return Val.errorFlux("Type mismatch. Tried to access {} with {}", parentValue.getValType(), key.getValType());
 	}

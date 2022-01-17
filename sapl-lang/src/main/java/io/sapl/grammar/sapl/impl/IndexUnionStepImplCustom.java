@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
+import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -42,7 +43,7 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 	private static final String TYPE_MISMATCH_CAN_ONLY_ACCESS_ARRAYS_BY_INDEX_GOT_S = "Type mismatch. Can only access arrays by index, got: %s";
 
 	@Override
-	public Flux<Val> apply(@NonNull Val parentValue, @NonNull Val relativeNode) {
+	public Flux<Val> apply(@NonNull Val parentValue) {
 		if (parentValue.isError()) {
 			return Flux.just(parentValue);
 		}
@@ -78,7 +79,6 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 	@Override
 	public Flux<Val> applyFilterStatement(
 			@NonNull Val parentValue,
-			@NonNull Val relativeNode,
 			int stepId,
 			@NonNull FilterStatement statement) {
 		log.trace("apply index union step [{}] to: {}", indices, parentValue);
@@ -99,12 +99,13 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 					log.trace("final step. apply filter!");
 					elementFluxes.add(
 							FilterComponentImplCustom.applyFilterFunction(Val.of(element), statement.getArguments(),
-									statement.getFsteps(), parentValue, statement.isEach()));
+									statement.getFsteps(), statement.isEach())
+									.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, parentValue)));
 				} else {
 					// there are more steps. descent with them
 					log.trace("this step was successful. descent with next step...");
 					elementFluxes.add(statement.getTarget().getSteps().get(stepId + 1)
-							.applyFilterStatement(Val.of(element), relativeNode, stepId + 1, statement));
+							.applyFilterStatement(Val.of(element), stepId + 1, statement));
 				}
 			} else {
 				log.trace("[{}] not selected. Just return as is. Not affected by filtering.", i);

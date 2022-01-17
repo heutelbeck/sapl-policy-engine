@@ -27,6 +27,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.impl.util.EObjectUtil;
 import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.grammar.sapl.impl.util.ParserUtil;
+import io.sapl.interpreter.context.AuthorizationContext;
 import reactor.test.StepVerifier;
 
 class ApplyFilteringExtendedTest {
@@ -225,7 +226,10 @@ class ApplyFilteringExtendedTest {
 		var root     = Val.ofJson("{\"name\": \"Ben\", \"origin\": \"Berlin\"}");
 		var filter   = filterComponent("{@.name : simple.append(\" from \", @.origin), @.origin : filter.remove}");
 		var expected = Val.ofJson("{\"name\": \"Ben from Berlin\"}");
-		StepVerifier.create(filter.apply(root, root).contextWrite(MockUtil::setUpAuthorizationContext))
+		StepVerifier
+				.create(filter.apply(root)
+						.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, root))
+						.contextWrite(MockUtil::setUpAuthorizationContext))
 				.expectNext(expected).verifyComplete();
 	}
 
@@ -235,7 +239,9 @@ class ApplyFilteringExtendedTest {
 				"[ {\"name\": \"Ben\", \"origin\": \"Berlin\"}, {\"name\": \"Felix\", \"origin\": \"Zürich\"}]");
 		var filter   = filterComponent("{@.name : simple.append(\" from \", @.origin), @.origin : filter.remove}");
 		var expected = Val.ofJson("[{\"name\": \"Ben from Berlin\"},{ \"name\": \"Felix from Zürich\"}]");
-		StepVerifier.create(filter.apply(root, root).contextWrite(MockUtil::setUpAuthorizationContext))
+		StepVerifier.create(filter.apply(root)
+				.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, root))
+				.contextWrite(MockUtil::setUpAuthorizationContext))
 				.expectNext(expected).verifyComplete();
 	}
 

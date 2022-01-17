@@ -20,21 +20,20 @@ import static io.sapl.grammar.sapl.impl.OperatorUtil.operator;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
-import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
- * Implements the evaluation of the 'in-array' operation. It checks if a value is
- * contained in an array.
+ * Implements the evaluation of the 'in-array' operation. It checks if a value
+ * is contained in an array.
  *
- * Grammar: {@code Comparison returns Expression: Prefixed (({ElementOf.left=current}
- * 'in') right=Prefixed)? ;}
+ * Grammar: {@code Comparison returns Expression: Prefixed
+ * (({ElementOf.left=current} 'in') right=Prefixed)? ;}
  */
 public class ElementOfImplCustom extends ElementOfImpl {
 
 	@Override
-	public Flux<Val> evaluate( @NonNull Val relativeNode) {
-		return operator(this, this::elementOf, relativeNode);
+	public Flux<Val> evaluate() {
+		return operator(this, this::elementOf);
 	}
 
 	private Val elementOf(Val needle, Val haystack) {

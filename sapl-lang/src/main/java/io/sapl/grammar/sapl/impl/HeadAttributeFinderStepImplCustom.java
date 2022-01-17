@@ -32,7 +32,7 @@ public class HeadAttributeFinderStepImplCustom extends HeadAttributeFinderStepIm
 	private static final String EXTERNAL_ATTRIBUTE_IN_TARGET = "Attribute resolution error. Attributes not allowed in target.";
 
 	@Override
-	public Flux<Val> apply(@NonNull Val parentValue, @NonNull Val relativeNode) {
+	public Flux<Val> apply(@NonNull Val parentValue) {
 		if (parentValue.isError()) {
 			return Flux.just(parentValue);
 		}
@@ -44,7 +44,8 @@ public class HeadAttributeFinderStepImplCustom extends HeadAttributeFinderStepIm
 		}
 		return Flux.deferContextual(ctxView -> AuthorizationContext.getAttributeContext(ctxView)
 				.evaluateAttribute(
-						FunctionUtil.resolveAbsoluteFunctionName(getIdSteps(), AuthorizationContext.getImports(ctxView)),
+						FunctionUtil.resolveAbsoluteFunctionName(getIdSteps(),
+								AuthorizationContext.getImports(ctxView)),
 						parentValue, getArguments(), AuthorizationContext.getVariables(ctxView))
 				.take(1));
 	}
@@ -52,7 +53,6 @@ public class HeadAttributeFinderStepImplCustom extends HeadAttributeFinderStepIm
 	@Override
 	public Flux<Val> applyFilterStatement(
 			@NonNull Val parentValue,
-			@NonNull Val relativeNode,
 			int stepId,
 			@NonNull FilterStatement statement) {
 		return Val.errorFlux("AttributeFinderStep not permitted in filter selection steps.");

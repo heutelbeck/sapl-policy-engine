@@ -18,20 +18,19 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.OperatorUtil.booleanOperator;
 
 import io.sapl.api.interpreter.Val;
-import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
  * Implements the eager logical OR operation, noted as '|' in the grammar.
  *
- * Grammar: Addition returns Expression: Multiplication (('|' {EagerOr.left=current})
- * right=Multiplication)* ;
+ * Grammar: Addition returns Expression: Multiplication (('|'
+ * {EagerOr.left=current}) right=Multiplication)* ;
  */
 public class XOrImplCustom extends XOrImpl {
 
 	@Override
-	public Flux<Val> evaluate( @NonNull Val relativeNode) {
-		return booleanOperator(this, this::xor, relativeNode);
+	public Flux<Val> evaluate() {
+		return booleanOperator(this, this::xor);
 	}
 
 	private Val xor(Val left, Val right) {

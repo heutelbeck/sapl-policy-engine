@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
+import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -45,7 +46,7 @@ public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 	private static final String UNION_TYPE_MISMATCH = "Type mismatch. Attribute union can only be applied to JSON Objects. But had: %s";
 
 	@Override
-	public Flux<Val> apply(@NonNull Val parentValue, @NonNull Val relativeNode) {
+	public Flux<Val> apply(@NonNull Val parentValue) {
 		if (parentValue.isError()) {
 			return Flux.just(parentValue);
 		}
@@ -75,7 +76,6 @@ public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 	@Override
 	public Flux<Val> applyFilterStatement(
 			@NonNull Val parentValue,
-			@NonNull Val relativeNode,
 			int stepId,
 			@NonNull FilterStatement statement) {
 		log.trace("apply key union step '{}' to: {}", attributes, parentValue);
@@ -97,13 +97,14 @@ public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 					log.trace("final step. select and filter!");
 					fieldFluxes.add(FilterComponentImplCustom
 							.applyFilterFunction(Val.of(field.getValue()), statement.getArguments(),
-									statement.getFsteps(), parentValue, statement.isEach())
+									statement.getFsteps(), statement.isEach())
+							.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, parentValue))
 							.map(val -> Tuples.of(field.getKey(), val)));
 				} else {
 					// there are more steps. descent with them
 					log.trace("this step was successful. descent with next step...");
 					fieldFluxes.add(statement.getTarget().getSteps().get(stepId + 1)
-							.applyFilterStatement(Val.of(field.getValue()), relativeNode, stepId + 1, statement)
+							.applyFilterStatement(Val.of(field.getValue()), stepId + 1, statement)
 							.map(val -> Tuples.of(field.getKey(), val)));
 				}
 			} else {

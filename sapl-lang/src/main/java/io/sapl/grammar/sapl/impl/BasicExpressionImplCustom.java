@@ -23,6 +23,7 @@ import org.reactivestreams.Publisher;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Step;
+import io.sapl.interpreter.context.AuthorizationContext;
 import reactor.core.publisher.Flux;
 
 /**
@@ -42,25 +43,23 @@ import reactor.core.publisher.Flux;
 public class BasicExpressionImplCustom extends BasicExpressionImpl {
 
 	protected Function<? super Val, Publisher<? extends Val>> resolveStepsFiltersAndSubTemplates(
-			EList<Step> steps,
-			Val relativeNode) {
-		return resolveSteps(steps, 0, relativeNode);
+			EList<Step> steps) {
+		return resolveSteps(steps, 0);
 	}
 
 	private Function<? super Val, Publisher<? extends Val>> resolveSteps(
 			EList<Step> steps,
-			int stepId,
-			Val relativeNode) {
+			int stepId) {
 		if (steps == null || stepId == steps.size()) {
 			return value -> resolveFilterOrSubTemplate(value);
 		}
-		return value -> steps.get(stepId).apply(value, relativeNode)
-				.switchMap(resolveSteps(steps, stepId + 1, relativeNode));
+		return value -> steps.get(stepId).apply(value)
+				.switchMap(resolveSteps(steps, stepId + 1));
 	}
 
 	private Flux<Val> resolveFilterOrSubTemplate(Val value) {
 		if (filter != null) {
-			return filter.apply(value, value);
+			return filter.apply(value).contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, value));
 		}
 		if (subtemplate != null) {
 			return applySubTemplate(value);
@@ -70,7 +69,7 @@ public class BasicExpressionImplCustom extends BasicExpressionImpl {
 
 	private Flux<Val> applySubTemplate(Val value) {
 		if (!value.isArray()) {
-			return subtemplate.evaluate(value);
+			return subtemplate.evaluate().contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, value));
 		}
 		var array = value.getArrayNode();
 		if (array.isEmpty()) {
@@ -78,7 +77,8 @@ public class BasicExpressionImplCustom extends BasicExpressionImpl {
 		}
 		var itemFluxes = new ArrayList<Flux<Val>>(array.size());
 		for (var element : array) {
-			itemFluxes.add(subtemplate.evaluate(Val.of(element)));
+			itemFluxes.add(subtemplate.evaluate()
+					.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, Val.of(element))));
 		}
 		return Flux.combineLatest(itemFluxes, RepackageUtil::recombineArray);
 	}

@@ -21,8 +21,8 @@ import reactor.core.publisher.Flux;
 public class FilterSimpleImplCustom extends FilterSimpleImpl {
 
 	@Override
-	public Flux<Val> apply(Val unfilteredValue, Val relativeNode) {
-		return applyFilterFunction(unfilteredValue, arguments, fsteps, relativeNode, each);
+	public Flux<Val> apply(Val unfilteredValue) {
+		return applyFilterFunction(unfilteredValue, arguments, fsteps, each);
 	}
 
 }

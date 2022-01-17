@@ -18,7 +18,6 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.OperatorUtil.booleanOperator;
 
 import io.sapl.api.interpreter.Val;
-import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -30,8 +29,8 @@ import reactor.core.publisher.Flux;
 public class EagerAndImplCustom extends EagerAndImpl {
 
 	@Override
-	public Flux<Val> evaluate( @NonNull Val relativeNode) {
-		return booleanOperator(this, this::and, relativeNode);
+	public Flux<Val> evaluate() {
+		return booleanOperator(this, this::and);
 	}
 
 	private Val and(Val left, Val right) {

@@ -37,7 +37,6 @@ public class FilterComponentImplCustom extends FilterComponentImpl {
 			Val unfilteredValue,
 			Arguments arguments,
 			Iterable<String> fsteps,
-			Val relativeNode,
 			boolean each) {
 		log.trace("apply filter '{}' to {}", fsteps, unfilteredValue);
 		if (unfilteredValue.isError()) {
@@ -48,7 +47,7 @@ public class FilterComponentImplCustom extends FilterComponentImpl {
 		}
 
 		if (!each) {
-			return FunctionUtil.combineArgumentFluxes(arguments, relativeNode).concatMap(parameters -> FunctionUtil
+			return FunctionUtil.combineArgumentFluxes(arguments).concatMap(parameters -> FunctionUtil
 					.evaluateFunctionWithLeftHandArgumentMono(fsteps, unfilteredValue, parameters));
 		}
 
@@ -58,11 +57,11 @@ public class FilterComponentImplCustom extends FilterComponentImpl {
 		}
 
 		var rootArray      = (ArrayNode) unfilteredValue.get();
-		var argumentFluxes = FunctionUtil.combineArgumentFluxes(arguments, relativeNode);
+		var argumentFluxes = FunctionUtil.combineArgumentFluxes(arguments);
 		return argumentFluxes.concatMap(parameters -> {
 			var elementsEvaluations = new ArrayList<Mono<Val>>(rootArray.size());
 			for (var element : rootArray) {
-				elementsEvaluations.add(FunctionUtil.evaluateFunctionWithLeftHandArgumentMono(fsteps, 
+				elementsEvaluations.add(FunctionUtil.evaluateFunctionWithLeftHandArgumentMono(fsteps,
 						Val.of(element), parameters));
 			}
 			return Flux.combineLatest(elementsEvaluations, e -> Arrays.copyOf(e, e.length, Val[].class))

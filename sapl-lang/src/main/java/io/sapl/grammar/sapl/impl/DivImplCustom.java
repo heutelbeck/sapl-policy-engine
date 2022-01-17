@@ -20,21 +20,20 @@ import static io.sapl.grammar.sapl.impl.OperatorUtil.arithmeticOperator;
 import java.math.BigDecimal;
 
 import io.sapl.api.interpreter.Val;
-import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
  * Implements the numerical division operator, written as '/' in Expressions.
  *
- * Grammar: Multiplication returns Expression: Comparison (({Multi.left=current} '*' |
- * {Div.left=current} '/' | {And.left=current} '&amp;&amp;' | '&amp;'
+ * Grammar: Multiplication returns Expression: Comparison (({Multi.left=current}
+ * '*' | {Div.left=current} '/' | {And.left=current} '&amp;&amp;' | '&amp;'
  * {EagerAnd.left=current}) right=Comparison)* ;
  */
 public class DivImplCustom extends DivImpl {
 
 	@Override
-	public Flux<Val> evaluate( @NonNull Val relativeNode) {
-		return arithmeticOperator(this, this::divide, relativeNode);
+	public Flux<Val> evaluate() {
+		return arithmeticOperator(this, this::divide);
 	}
 
 	private Val divide(Val dividend, Val divisor) {

@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
+import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -40,7 +41,7 @@ public class WildcardStepImplCustom extends WildcardStepImpl {
 	private static final String WILDCARD_ACCESS_TYPE_MISMATCH = "Type mismatch. Wildcard access expects object or array, but got: '%s'.";
 
 	@Override
-	public Flux<Val> apply(@NonNull Val parentValue, @NonNull Val relativeNode) {
+	public Flux<Val> apply(@NonNull Val parentValue) {
 		if (parentValue.isError() || parentValue.isArray()) {
 			return Flux.just(parentValue);
 		}
@@ -60,24 +61,22 @@ public class WildcardStepImplCustom extends WildcardStepImpl {
 	@Override
 	public Flux<Val> applyFilterStatement(
 			@NonNull Val parentValue,
-			@NonNull Val relativeNode,
 			int stepId,
 			@NonNull FilterStatement statement) {
-		return doApplyFilterStatement(parentValue, relativeNode, stepId, statement);
+		return doApplyFilterStatement(parentValue, stepId, statement);
 	}
 
 	public static Flux<Val> doApplyFilterStatement(
 			Val parentValue,
-			Val relativeNode,
 			int stepId,
 			FilterStatement statement) {
 		log.trace("apply wildcard step to: {}", parentValue);
 		if (parentValue.isObject()) {
-			return applyFilterStatementToObject(parentValue.getObjectNode(), relativeNode, stepId, statement);
+			return applyFilterStatementToObject(parentValue.getObjectNode(), stepId, statement);
 		}
 
 		if (parentValue.isArray()) {
-			return applyFilterStatementToArray(parentValue.getArrayNode(), relativeNode, stepId, statement);
+			return applyFilterStatementToArray(parentValue.getArrayNode(), stepId, statement);
 		}
 
 		// this means the element does not get selected does not get filtered
@@ -86,7 +85,6 @@ public class WildcardStepImplCustom extends WildcardStepImpl {
 
 	private static Flux<Val> applyFilterStatementToObject(
 			ObjectNode object,
-			Val relativeNode,
 			int stepId,
 			FilterStatement statement) {
 		var fieldFluxes = new ArrayList<Flux<Tuple2<String, Val>>>(object.size());
@@ -98,13 +96,14 @@ public class WildcardStepImplCustom extends WildcardStepImpl {
 				// this was the final step. apply filter
 				log.trace("final step. select and filter!");
 				fieldFluxes.add(FilterComponentImplCustom.applyFilterFunction(Val.of(field.getValue()),
-						statement.getArguments(), statement.getFsteps(),
-						Val.of(object), statement.isEach()).map(val -> Tuples.of(field.getKey(), val)));
+						statement.getArguments(), statement.getFsteps(), statement.isEach())
+						.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, Val.of(object)))
+						.map(val -> Tuples.of(field.getKey(), val)));
 			} else {
 				// there are more steps. descent with them
 				log.trace("this step was successful. descent with next step...");
 				fieldFluxes.add(statement.getTarget().getSteps().get(stepId + 1)
-						.applyFilterStatement(Val.of(field.getValue()), relativeNode, stepId + 1, statement)
+						.applyFilterStatement(Val.of(field.getValue()), stepId + 1, statement)
 						.map(val -> Tuples.of(field.getKey(), val)));
 			}
 		}
@@ -113,7 +112,6 @@ public class WildcardStepImplCustom extends WildcardStepImpl {
 
 	private static Flux<Val> applyFilterStatementToArray(
 			ArrayNode array,
-			Val relativeNode,
 			int stepId,
 			FilterStatement statement) {
 		var elementFluxes = new ArrayList<Flux<Val>>(array.size());
@@ -125,13 +123,13 @@ public class WildcardStepImplCustom extends WildcardStepImpl {
 				// this was the final step. apply filter
 				log.trace("final step. select and filter!");
 				elementFluxes.add(FilterComponentImplCustom.applyFilterFunction(Val.of(element),
-						statement.getArguments(), statement.getFsteps(),
-						Val.of(array), statement.isEach()));
+						statement.getArguments(), statement.getFsteps(), statement.isEach())
+						.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, Val.of(array))));
 			} else {
 				// there are more steps. descent with them
 				log.trace("this step was successful. descent with next step...");
 				elementFluxes.add(statement.getTarget().getSteps().get(stepId + 1).applyFilterStatement(Val.of(element),
-						relativeNode, stepId + 1, statement));
+						stepId + 1, statement));
 			}
 		}
 		return Flux.combineLatest(elementFluxes, RepackageUtil::recombineArray);

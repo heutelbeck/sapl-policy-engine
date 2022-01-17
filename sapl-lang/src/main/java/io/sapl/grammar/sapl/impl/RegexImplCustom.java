@@ -19,23 +19,22 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 import io.sapl.api.interpreter.Val;
-import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
  * Checks for a value matching a regular expression.
  *
- * Grammar: {@code Comparison returns Expression: Prefixed (({Regex.left=current} '=~')
- * right=Prefixed)? ;}
+ * Grammar: {@code Comparison returns Expression: Prefixed
+ * (({Regex.left=current} '=~') right=Prefixed)? ;}
  */
 public class RegexImplCustom extends RegexImpl {
 
 	private static final String REGEX_SYNTAX_ERROR = "Syntax error in regular expression '%s'.";
 
 	@Override
-	public Flux<Val> evaluate( @NonNull Val relativeNode) {
-		var leftFlux = getLeft().evaluate(relativeNode);
-		var rightFlux = getRight().evaluate(relativeNode).map(Val::requireText);
+	public Flux<Val> evaluate() {
+		var leftFlux  = getLeft().evaluate();
+		var rightFlux = getRight().evaluate().map(Val::requireText);
 		return Flux.combineLatest(leftFlux, rightFlux, this::matchRegexp);
 	}
 
@@ -51,8 +50,7 @@ public class RegexImplCustom extends RegexImpl {
 		}
 		try {
 			return Val.of(Pattern.matches(right.getText(), left.getText()));
-		}
-		catch (PatternSyntaxException e) {
+		} catch (PatternSyntaxException e) {
 			return Val.error(REGEX_SYNTAX_ERROR, right);
 		}
 	}

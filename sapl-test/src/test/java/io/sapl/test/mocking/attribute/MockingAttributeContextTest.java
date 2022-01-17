@@ -166,7 +166,7 @@ public class MockingAttributeContextTest {
 				whenAttributeParams(parentValue(val(1)), arguments(val(true))), Val.of(2));
 
 		Expression expression = Mockito.mock(Expression.class);
-		Mockito.when(expression.evaluate(any())).thenReturn(Flux.just(Val.TRUE));
+		Mockito.when(expression.evaluate()).thenReturn(Flux.just(Val.TRUE));
 		Arguments arguments = Mockito.mock(Arguments.class);
 		Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<Expression>(List.of(expression)));
 
@@ -182,7 +182,7 @@ public class MockingAttributeContextTest {
 				whenAttributeParams(parentValue(val(1)), arguments(val(false))), Val.of(1));
 
 		Expression expression = Mockito.mock(Expression.class);
-		Mockito.when(expression.evaluate(any())).thenReturn(Flux.just(Val.TRUE));
+		Mockito.when(expression.evaluate()).thenReturn(Flux.just(Val.TRUE));
 		Arguments arguments = Mockito.mock(Arguments.class);
 		Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<Expression>(List.of(expression)));
 
@@ -204,7 +204,7 @@ public class MockingAttributeContextTest {
 				whenAttributeParams(parentValue(is(Val.UNDEFINED)), arguments(val(true))), Val.of(2));
 
 		Expression expression = Mockito.mock(Expression.class);
-		Mockito.when(expression.evaluate(any())).thenReturn(Flux.just(Val.TRUE));
+		Mockito.when(expression.evaluate()).thenReturn(Flux.just(Val.TRUE));
 		Arguments arguments = Mockito.mock(Arguments.class);
 		Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<Expression>(List.of(expression)));
 

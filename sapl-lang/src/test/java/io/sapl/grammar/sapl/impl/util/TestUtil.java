@@ -62,12 +62,12 @@ public class TestUtil {
 	}
 
 	public static void expressionEvaluatesTo(Expression expression, Val... expected) {
-		StepVerifier.create(expression.evaluate(Val.UNDEFINED).contextWrite(MockUtil::setUpAuthorizationContext))
+		StepVerifier.create(expression.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
 				.expectNext(expected).verifyComplete();
 	}
 
 	public static void expressionErrors(Expression expression) {
-		StepVerifier.create(expression.evaluate(Val.UNDEFINED).contextWrite(MockUtil::setUpAuthorizationContext))
+		StepVerifier.create(expression.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
 				.expectNextMatches(Val::isError).verifyComplete();
 	}
 

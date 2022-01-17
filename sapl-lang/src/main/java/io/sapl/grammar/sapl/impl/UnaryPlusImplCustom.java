@@ -20,14 +20,13 @@ import static io.sapl.grammar.sapl.impl.OperatorUtil.arithmeticOperator;
 import java.util.function.Function;
 
 import io.sapl.api.interpreter.Val;
-import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 public class UnaryPlusImplCustom extends UnaryPlusImpl {
 
 	@Override
-	public Flux<Val> evaluate( @NonNull Val relativeNode) {
-		return arithmeticOperator(this, Function.identity(), relativeNode);
+	public Flux<Val> evaluate() {
+		return arithmeticOperator(this, Function.identity());
 	}
 
 }

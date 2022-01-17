@@ -24,8 +24,8 @@ import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
- * Implements the application of a recursive wildcard step to a previous value, e.g.
- * {@code 'obj..*' or 'arr..[*]'}.
+ * Implements the application of a recursive wildcard step to a previous value,
+ * e.g. {@code 'obj..*' or 'arr..[*]'}.
  *
  * Grammar: {@code Step: '..' ({RecursiveWildcardStep} ('*' | '[' '*' ']' )) ;}
  */
@@ -34,7 +34,7 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 	private static final String CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE = "Cannot descent on an undefined value.";
 
 	@Override
-	public Flux<Val> apply(@NonNull Val parentValue, @NonNull Val relativeNode) {
+	public Flux<Val> apply(@NonNull Val parentValue) {
 		if (parentValue.isError()) {
 			return Flux.just(parentValue);
 		}
@@ -55,8 +55,7 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 				}
 				collect(item, results);
 			}
-		}
-		else if (node.isObject()) {
+		} else if (node.isObject()) {
 			var iter = node.fields();
 			while (iter.hasNext()) {
 				var item = iter.next().getValue();
@@ -65,20 +64,21 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 				}
 				collect(item, results);
 			}
-		}
-		else {
+		} else {
 			results.add(node);
 		}
 		return results;
 	}
 
 	@Override
-	public Flux<Val> applyFilterStatement(@NonNull Val parentValue,
-			@NonNull Val relativeNode, int stepId, @NonNull FilterStatement statement) {
+	public Flux<Val> applyFilterStatement(
+			@NonNull Val parentValue,
+			int stepId,
+			@NonNull FilterStatement statement) {
 		// This type of recursion does not translate well to filtering.
 		// Basically just apply filter to top-level matches and do recursion with steps.
 		// @.* is basically equivalent to @..* here.
-		return WildcardStepImplCustom.doApplyFilterStatement(parentValue, relativeNode, stepId, statement);
+		return WildcardStepImplCustom.doApplyFilterStatement(parentValue, stepId, statement);
 	}
 
 }

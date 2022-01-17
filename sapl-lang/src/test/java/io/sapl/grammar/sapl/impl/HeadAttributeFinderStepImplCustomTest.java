@@ -76,7 +76,7 @@ class HeadAttributeFinderStepImplCustomTest {
 	@Test
 	void exceptionDuringEvaluation() {
 		var step = headAttributeFinderStep();
-		var sut  = step.apply(Val.NULL, Val.UNDEFINED)
+		var sut  = step.apply(Val.NULL)
 				.contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
 						mockAttributeContext(Flux.just(Val.error("ERROR")))));
 		StepVerifier.create(sut).expectNextMatches(Val::isError).verifyComplete();
@@ -86,7 +86,7 @@ class HeadAttributeFinderStepImplCustomTest {
 	void applyWithSomeStreamData() {
 		Val[] data = { Val.FALSE, Val.error("ERROR"), Val.TRUE, Val.NULL, Val.UNDEFINED };
 		var   step = headAttributeFinderStep();
-		var   sut  = step.apply(Val.NULL, Val.UNDEFINED)
+		var   sut  = step.apply(Val.NULL)
 				.contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
 						mockAttributeContext(Flux.just(data))));
 		StepVerifier.create(sut).expectNext(Val.FALSE).verifyComplete();

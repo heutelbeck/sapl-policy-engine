@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
+import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -60,7 +61,7 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 	private static final String CONDITION_ACCESS_TYPE_MISMATCH = "Type mismatch. Condition access is only possible for array or object, but got '%s'.";
 
 	@Override
-	public Flux<Val> apply(@NonNull Val parentValue, @NonNull Val relativeNode) {
+	public Flux<Val> apply(@NonNull Val parentValue) {
 		if (parentValue.isError()) {
 			return Flux.just(parentValue);
 		}
@@ -83,7 +84,8 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 		var                                     iter       = object.fields();
 		while (iter.hasNext()) {
 			var field = iter.next();
-			itemFluxes.add(getExpression().evaluate(Val.of(field.getValue()))
+			itemFluxes.add(getExpression().evaluate()
+					.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, Val.of(field.getValue())))
 					.map(expressionResult -> Tuples.of(field.getValue(), expressionResult)));
 		}
 		return packageResultsInArray(itemFluxes);
@@ -97,7 +99,8 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 		// collect the fluxes providing the evaluated conditions for the array elements
 		final List<Flux<Tuple2<JsonNode, Val>>> itemFluxes = new ArrayList<>(arrayNode.size());
 		for (var value : arrayNode) {
-			itemFluxes.add(getExpression().evaluate(Val.of(value))
+			itemFluxes.add(getExpression().evaluate()
+					.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, Val.of(value)))
 					.map(expressionResult -> Tuples.of(value, expressionResult)));
 		}
 		return packageResultsInArray(itemFluxes);
@@ -124,21 +127,19 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 	@Override
 	public Flux<Val> applyFilterStatement(
 			@NonNull Val parentValue,
-			@NonNull Val relativeNode,
 			int stepId,
 			@NonNull FilterStatement statement) {
 		if (!parentValue.isObject() && !parentValue.isArray()) {
 			return Flux.just(parentValue);
 		}
 		if (parentValue.isArray()) {
-			return applyFilterStatementToArray(parentValue.getArrayNode(), relativeNode, stepId, statement);
+			return applyFilterStatementToArray(parentValue.getArrayNode(), stepId, statement);
 		}
-		return applyFilterStatementToObject(parentValue.getObjectNode(), relativeNode, stepId, statement);
+		return applyFilterStatementToObject(parentValue.getObjectNode(), stepId, statement);
 	}
 
 	private Flux<Val> applyFilterStatementToObject(
 			ObjectNode object,
-			Val relativeNode,
 			int stepId,
 			FilterStatement statement) {
 		// handle the empty object
@@ -151,39 +152,43 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 		while (iter.hasNext()) {
 			var field = iter.next();
 			log.trace("inspect field {}", field);
-			fieldFluxes.add(getExpression().evaluate(Val.of(field.getValue())).concatMap(expressionResult -> {
-				if (expressionResult.isError()) {
-					return Flux.just(expressionResult);
-				}
-				if (!expressionResult.isBoolean()) {
-					return Val.errorFlux("Type mismatch. Condition did not evaluate to boolean. Was: {}",
-							expressionResult);
-				}
-				if (expressionResult.getBoolean()) {
-					log.trace("field matches due to fulfilled condition");
-					if (stepId == statement.getTarget().getSteps().size() - 1) {
-						// this was the final step. apply filter
-						log.trace("final step. select and filter!");
-						return FilterComponentImplCustom.applyFilterFunction(Val.of(field.getValue()),
-								statement.getArguments(), statement.getFsteps(),
-								Val.of(object), statement.isEach());
-					} else {
-						// there are more steps. descent with them
-						log.trace("this step was successful. descent with next step...");
-						return statement.getTarget().getSteps().get(stepId + 1).applyFilterStatement(
-								Val.of(field.getValue()), relativeNode, stepId + 1, statement);
-					}
-				} else {
-					return Flux.just(Val.of(field.getValue()));
-				}
-			}).map(expressionResult -> Tuples.of(field.getKey(), expressionResult)));
+			fieldFluxes.add(getExpression().evaluate()
+					.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, Val.of(field.getValue())))
+					.concatMap(expressionResult -> {
+						if (expressionResult.isError()) {
+							return Flux.just(expressionResult);
+						}
+						if (!expressionResult.isBoolean()) {
+							return Val.errorFlux(
+									"Type mismatch. Condition did not evaluate to boolean. Was: {}",
+									expressionResult);
+						}
+						if (expressionResult.getBoolean()) {
+							log.trace("field matches due to fulfilled condition");
+							if (stepId == statement.getTarget().getSteps().size() - 1) {
+								// this was the final step. apply filter
+								log.trace("final step. select and filter!");
+								return FilterComponentImplCustom.applyFilterFunction(Val.of(field.getValue()),
+										statement.getArguments(), statement.getFsteps(),
+										statement.isEach())
+										.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx,
+												Val.of(object)));
+							} else {
+								// there are more steps. descent with them
+								log.trace("this step was successful. descent with next step...");
+								return statement.getTarget().getSteps().get(stepId + 1).applyFilterStatement(
+										Val.of(field.getValue()), stepId + 1, statement);
+							}
+						} else {
+							return Flux.just(Val.of(field.getValue()));
+						}
+					}).map(expressionResult -> Tuples.of(field.getKey(), expressionResult)));
 		}
 		return Flux.combineLatest(fieldFluxes, RepackageUtil::recombineObject);
 	}
 
 	private Flux<Val> applyFilterStatementToArray(
 			ArrayNode array,
-			Val relativeNode,
 			int stepId,
 			FilterStatement statement) {
 		// handle the empty object
@@ -196,31 +201,34 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 		while (iter.hasNext()) {
 			var element = iter.next();
 			log.trace("inspect element {}", element);
-			elementFluxes.add(getExpression().evaluate(Val.of(element)).concatMap(expressionResult -> {
-				if (expressionResult.isError()) {
-					return Flux.just(expressionResult);
-				}
-				if (!expressionResult.isBoolean()) {
-					return Val.errorFlux("Type mismatch. Condition did not evaluate to boolean. Was: {}",
-							expressionResult);
-				}
-				if (expressionResult.getBoolean()) {
-					log.trace("element matches due to fulfilled condition");
-					if (stepId == statement.getTarget().getSteps().size() - 1) {
-						// this was the final step. apply filter
-						log.trace("final step. select and filter!");
-						return FilterComponentImplCustom.applyFilterFunction(Val.of(element), statement.getArguments(),
-								statement.getFsteps(), Val.of(array), statement.isEach());
-					} else {
-						// there are more steps. descent with them
-						log.trace("this step was successful. descent with next step...");
-						return statement.getTarget().getSteps().get(stepId + 1).applyFilterStatement(Val.of(element),
-								relativeNode, stepId + 1, statement);
-					}
-				} else {
-					return Flux.just(Val.of(element));
-				}
-			}));
+			elementFluxes.add(getExpression().evaluate()
+					.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, Val.of(element)))
+					.concatMap(expressionResult -> {
+						if (expressionResult.isError()) {
+							return Flux.just(expressionResult);
+						}
+						if (!expressionResult.isBoolean()) {
+							return Val.errorFlux("Type mismatch. Condition did not evaluate to boolean. Was: {}",
+									expressionResult);
+						}
+						if (expressionResult.getBoolean()) {
+							log.trace("element matches due to fulfilled condition");
+							if (stepId == statement.getTarget().getSteps().size() - 1) {
+								// this was the final step. apply filter
+								log.trace("final step. select and filter!");
+								return FilterComponentImplCustom.applyFilterFunction(Val.of(element),
+										statement.getArguments(), statement.getFsteps(), statement.isEach())
+										.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, Val.of(array)));
+							} else {
+								// there are more steps. descent with them
+								log.trace("this step was successful. descent with next step...");
+								return statement.getTarget().getSteps().get(stepId + 1).applyFilterStatement(
+										Val.of(element), stepId + 1, statement);
+							}
+						} else {
+							return Flux.just(Val.of(element));
+						}
+					}));
 		}
 		return Flux.combineLatest(elementFluxes, RepackageUtil::recombineArray);
 	}

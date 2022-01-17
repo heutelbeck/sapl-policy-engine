@@ -75,7 +75,7 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 	}
 
 	private Flux<Val> evaluateValueStatement(Val previousResult, int statementId, ValueDefinition valueDefinition) {
-		var valueStream = valueDefinition.getEval().evaluate(Val.UNDEFINED);
+		var valueStream = valueDefinition.getEval().evaluate();
 		return valueStream.switchMap(value -> evaluateStatements(previousResult, statementId + 1)
 				.contextWrite(setVariable(valueDefinition.getName(), value)));
 	}
@@ -88,7 +88,7 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 	protected Flux<Val> evaluateCondition(
 			Val previousResult,
 			Condition condition) {
-		return condition.getExpression().evaluate(Val.UNDEFINED).map(this::assertConditionResultIsBooleanOrError);
+		return condition.getExpression().evaluate().map(this::assertConditionResultIsBooleanOrError);
 	}
 
 	private Val assertConditionResultIsBooleanOrError(Val conditionResult) {

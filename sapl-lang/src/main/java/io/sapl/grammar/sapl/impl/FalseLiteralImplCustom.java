@@ -16,13 +16,13 @@
 package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
-import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
  * Implements the boolean value 'false'.
  *
- * Grammar: BooleanLiteral returns Value: {TrueLiteral} 'true' | {FalseLiteral} 'false' ;
+ * Grammar: BooleanLiteral returns Value: {TrueLiteral} 'true' | {FalseLiteral}
+ * 'false' ;
  */
 public class FalseLiteralImplCustom extends FalseLiteralImpl {
 
@@ -30,7 +30,7 @@ public class FalseLiteralImplCustom extends FalseLiteralImpl {
 	 * Returns a constant value of false.
 	 */
 	@Override
-	public Flux<Val> evaluate( @NonNull Val relativeNode) {
+	public Flux<Val> evaluate() {
 		return Val.fluxOfFalse();
 	}
 

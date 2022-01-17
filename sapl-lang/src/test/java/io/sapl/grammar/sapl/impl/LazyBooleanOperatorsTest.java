@@ -17,7 +17,6 @@ package io.sapl.grammar.sapl.impl;
 
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
-import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -35,14 +34,14 @@ class LazyBooleanOperatorsTest {
 	void andEvaluationSouldfailInPolicyTargetExpression() {
 		var and = new AndImplCustom();
 		MockUtil.mockPolicyTargetExpressionContainerExpression(and);
-		StepVerifier.create(and.evaluate(Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		StepVerifier.create(and.evaluate()).expectNextMatches(Val::isError).verifyComplete();
 	}
 
 	@Test
 	void andEvaluationSouldfailInPolicySetTargetExpression() {
 		var and = new AndImplCustom();
 		MockUtil.mockPolicySetTargetExpressionContainerExpression(and);
-		StepVerifier.create(and.evaluate(Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		StepVerifier.create(and.evaluate()).expectNextMatches(Val::isError).verifyComplete();
 	}
 
 	@Test
@@ -80,9 +79,9 @@ class LazyBooleanOperatorsTest {
 		and.right = right;
 		var leftSequence  = Flux.fromArray(new Val[] { Val.FALSE, Val.TRUE });
 		var rightSequence = Flux.fromArray(new Val[] { Val.TRUE, Val.FALSE, Val.TRUE });
-		when(left.evaluate(nullable(Val.class))).thenReturn(leftSequence);
-		when(right.evaluate(nullable(Val.class))).thenReturn(rightSequence);
-		StepVerifier.create(and.evaluate(Val.UNDEFINED)).expectNext(Val.FALSE, Val.TRUE, Val.FALSE, Val.TRUE)
+		when(left.evaluate()).thenReturn(leftSequence);
+		when(right.evaluate()).thenReturn(rightSequence);
+		StepVerifier.create(and.evaluate()).expectNext(Val.FALSE, Val.TRUE, Val.FALSE, Val.TRUE)
 				.verifyComplete();
 	}
 
@@ -90,14 +89,14 @@ class LazyBooleanOperatorsTest {
 	void orEvaluationSouldfailInPolicyTargetExpression() {
 		var and = new OrImplCustom();
 		MockUtil.mockPolicyTargetExpressionContainerExpression(and);
-		StepVerifier.create(and.evaluate(Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		StepVerifier.create(and.evaluate()).expectNextMatches(Val::isError).verifyComplete();
 	}
 
 	@Test
 	void orEvaluationSouldfailInPolicySetTargetExpression() {
 		var and = new OrImplCustom();
 		MockUtil.mockPolicySetTargetExpressionContainerExpression(and);
-		StepVerifier.create(and.evaluate(Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		StepVerifier.create(and.evaluate()).expectNextMatches(Val::isError).verifyComplete();
 	}
 
 	@Test
@@ -139,9 +138,9 @@ class LazyBooleanOperatorsTest {
 		or.right = right;
 		var leftSequence  = Flux.fromArray(new Val[] { Val.FALSE, Val.TRUE, Val.FALSE });
 		var rightSequence = Flux.fromArray(new Val[] { Val.TRUE, Val.FALSE, Val.TRUE, Val.FALSE });
-		when(left.evaluate(nullable(Val.class))).thenReturn(leftSequence);
-		when(right.evaluate(nullable(Val.class))).thenReturn(rightSequence);
-		StepVerifier.create(or.evaluate(Val.UNDEFINED)).expectNext(Val.TRUE, Val.FALSE, Val.TRUE, Val.FALSE,
+		when(left.evaluate()).thenReturn(leftSequence);
+		when(right.evaluate()).thenReturn(rightSequence);
+		StepVerifier.create(or.evaluate()).expectNext(Val.TRUE, Val.FALSE, Val.TRUE, Val.FALSE,
 				Val.TRUE, Val.TRUE, Val.FALSE, Val.TRUE, Val.FALSE).verifyComplete();
 	}
 

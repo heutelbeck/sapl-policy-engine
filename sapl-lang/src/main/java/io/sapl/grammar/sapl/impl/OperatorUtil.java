@@ -31,47 +31,41 @@ public class OperatorUtil {
 			BinaryOperator operator,
 			Function<Val, Val> leftTypeRequirement,
 			Function<Val, Val> rightTypeRequirement,
-			BiFunction<Val, Val, Val> transformation,
-			Val relativeNode) {
-		var left  = operator.getLeft().evaluate(relativeNode).map(leftTypeRequirement);
-		var right = operator.getRight().evaluate(relativeNode).map(rightTypeRequirement);
+			BiFunction<Val, Val, Val> transformation) {
+		var left  = operator.getLeft().evaluate().map(leftTypeRequirement);
+		var right = operator.getRight().evaluate().map(rightTypeRequirement);
 		return Flux.combineLatest(left, right, errorOrDo(transformation));
 	}
 
 	public static Flux<Val> arithmeticOperator(
 			BinaryOperator operator,
-			BiFunction<Val, Val, Val> transformation,
-			Val relativeNode) {
-		return operator(operator, Val::requireBigDecimal, Val::requireBigDecimal, transformation, relativeNode);
+			BiFunction<Val, Val, Val> transformation) {
+		return operator(operator, Val::requireBigDecimal, Val::requireBigDecimal, transformation);
 	}
 
 	public static Flux<Val> arithmeticOperator(
 			UnaryOperator unarayOperator,
-			Function<Val, Val> transformation,
-			Val relativeNode) {
-		return operator(unarayOperator, Val::requireBigDecimal, transformation, relativeNode);
+			Function<Val, Val> transformation) {
+		return operator(unarayOperator, Val::requireBigDecimal, transformation);
 	}
 
 	public static Flux<Val> booleanOperator(
 			BinaryOperator operator,
-			BiFunction<Val, Val, Val> transformation,
-			Val relativeNode) {
-		return operator(operator, Val::requireBoolean, Val::requireBoolean, transformation, relativeNode);
+			BiFunction<Val, Val, Val> transformation) {
+		return operator(operator, Val::requireBoolean, Val::requireBoolean, transformation);
 	}
 
 	public static Flux<Val> operator(
 			BinaryOperator operator,
-			BiFunction<Val, Val, Val> transformation,
-			Val relativeNode) {
-		return operator(operator, Function.identity(), Function.identity(), transformation, relativeNode);
+			BiFunction<Val, Val, Val> transformation) {
+		return operator(operator, Function.identity(), Function.identity(), transformation);
 	}
 
 	public static Flux<Val> operator(
 			UnaryOperator unarayOperator,
 			Function<Val, Val> typeRequirement,
-			Function<Val, Val> transformation,
-			Val relativeNode) {
-		return unarayOperator.getExpression().evaluate(relativeNode).map(typeRequirement)
+			Function<Val, Val> transformation) {
+		return unarayOperator.getExpression().evaluate().map(typeRequirement)
 				.map(errorOrDo(transformation));
 	}
 

@@ -81,14 +81,12 @@
         <details key="documentation" value=""/>
       </eAnnotations>
       <eParameters name="parentValue" eType="#//Val"/>
-      <eParameters name="relativeNode" eType="#//Val"/>
     </eOperations>
     <eOperations name="applyFilterStatement" lowerBound="1" eType="#//ValFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
         <details key="documentation" value=""/>
       </eAnnotations>
       <eParameters name="parentValue" eType="#//Val"/>
-      <eParameters name="relativeNode" eType="#//Val"/>
       <eParameters name="stepId" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
       <eParameters name="statement" eType="#//FilterStatement"/>
     </eOperations>
@@ -106,7 +104,6 @@
         <details key="documentation" value=""/>
       </eAnnotations>
       <eParameters name="unfilteredRootNode" eType="#//Val"/>
-      <eParameters name="relativeNode" eType="#//Val"/>
     </eOperations>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="FilterStatement">
@@ -282,7 +279,6 @@
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
         <details key="documentation" value=""/>
       </eAnnotations>
-      <eParameters name="relativeNode" eType="#//Val"/>
     </eOperations>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Matchable" abstract="true" interface="true">

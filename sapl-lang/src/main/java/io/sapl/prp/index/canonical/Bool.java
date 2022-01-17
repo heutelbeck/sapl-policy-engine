@@ -61,7 +61,7 @@ public class Bool {
 
 	public Mono<Val> evaluateExpression() {
 		Flux<Val> resultFlux = isConstantExpression ? Flux.just(Val.of(constant))
-				: expression.evaluate(Val.UNDEFINED).contextWrite(ctx -> AuthorizationContext.setImports(ctx, imports));
+				: expression.evaluate().contextWrite(ctx -> AuthorizationContext.setImports(ctx, imports));
 		return resultFlux
 				.map(result -> result.isError() || result.isBoolean() ? result : Val.error("expression not boolean"))
 				.next();

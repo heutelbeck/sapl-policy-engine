@@ -16,7 +16,6 @@
 package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
-import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -29,10 +28,10 @@ import reactor.core.publisher.Flux;
 public class BasicFunctionImplCustom extends BasicFunctionImpl {
 
 	@Override
-	public Flux<Val> evaluate(@NonNull Val relativeNode) {
-		return FunctionUtil.combineArgumentFluxes(arguments, relativeNode)
+	public Flux<Val> evaluate() {
+		return FunctionUtil.combineArgumentFluxes(arguments)
 				.concatMap(parameters -> FunctionUtil.evaluateFunctionMono(fsteps, parameters))
-				.switchMap(resolveStepsFiltersAndSubTemplates(steps, relativeNode));
+				.switchMap(resolveStepsFiltersAndSubTemplates(steps));
 	}
 
 }

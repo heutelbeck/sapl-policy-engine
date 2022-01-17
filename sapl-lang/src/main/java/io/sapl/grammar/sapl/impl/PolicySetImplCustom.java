@@ -17,7 +17,6 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.HashSet;
 
-import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.extern.slf4j.Slf4j;
@@ -62,7 +61,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
 			return evaluateAndCombinePoliciesOfSet();
 
 		var valueDefinition = valueDefinitions.get(valueDefinitionId);
-		var evaluated       = valueDefinition.getEval().evaluate(Val.UNDEFINED);
+		var evaluated       = valueDefinition.getEval().evaluate();
 		return evaluated.switchMap(value -> evaluatePolicySet(valueDefinitionId + 1)
 				.contextWrite(ctx -> AuthorizationContext.setVariable(ctx, valueDefinition.getName(), value)));
 	}
