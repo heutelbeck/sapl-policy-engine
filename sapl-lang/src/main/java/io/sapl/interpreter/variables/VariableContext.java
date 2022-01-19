@@ -57,26 +57,22 @@ public class VariableContext {
 	private VariableContext loadSubscriptionVariables(AuthorizationSubscription authzSubscription) {
 		if (authzSubscription.getSubject() != null) {
 			variables.put(SUBJECT, authzSubscription.getSubject());
-		}
-		else {
+		} else {
 			variables.put(SUBJECT, JSON.nullNode());
 		}
 		if (authzSubscription.getAction() != null) {
 			variables.put(ACTION, authzSubscription.getAction());
-		}
-		else {
+		} else {
 			variables.put(ACTION, JSON.nullNode());
 		}
 		if (authzSubscription.getResource() != null) {
 			variables.put(RESOURCE, authzSubscription.getResource());
-		}
-		else {
+		} else {
 			variables.put(RESOURCE, JSON.nullNode());
 		}
 		if (authzSubscription.getEnvironment() != null) {
 			variables.put(ENVIRONMENT, authzSubscription.getEnvironment());
-		}
-		else {
+		} else {
 			variables.put(ENVIRONMENT, JSON.nullNode());
 		}
 		return this;

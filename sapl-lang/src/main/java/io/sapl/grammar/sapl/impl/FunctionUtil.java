@@ -38,11 +38,6 @@ public class FunctionUtil {
 		return combine(argumentFluxes(arguments));
 	}
 
-	public Mono<String> resolveAbsoluteFunctionName(Iterable<String> steps) {
-		return Mono.deferContextual(
-				ctx -> Mono.just(resolveAbsoluteFunctionName(steps, AuthorizationContext.getImports(ctx))));
-	}
-
 	public String resolveAbsoluteFunctionName(Iterable<String> steps, Map<String, String> imports) {
 		var functionName = mergeStepsToName(steps);
 		return imports.getOrDefault(functionName, functionName);

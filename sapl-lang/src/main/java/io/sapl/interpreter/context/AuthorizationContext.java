@@ -3,7 +3,6 @@ package io.sapl.interpreter.context;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Function;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -14,16 +13,15 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import lombok.experimental.UtilityClass;
-import reactor.core.publisher.Flux;
 import reactor.util.context.Context;
 import reactor.util.context.ContextView;
 
 @UtilityClass
 public class AuthorizationContext {
-	private final static String          ATTRIBUTE_CTX = "attributeCtx";
-	private final static String          FUNCTION_CTX  = "functionCtx";
-	private final static String          VARIABLES     = "variables";
-	private final static String          IMPORTS       = "imports";
+	private static final String          ATTRIBUTE_CTX = "attributeCtx";
+	private static final String          FUNCTION_CTX  = "functionCtx";
+	private static final String          VARIABLES     = "variables";
+	private static final String          IMPORTS       = "imports";
 	private static final String          SUBJECT       = "subject";
 	private static final String          ACTION        = "action";
 	private static final String          RESOURCE      = "resource";
@@ -132,14 +130,6 @@ public class AuthorizationContext {
 
 	public Context setImports(Context ctx, Map<String, String> imports) {
 		return ctx.put(IMPORTS, imports);
-	}
-
-	public static Flux<Val> doWithFunctionContext(Function<FunctionContext, Flux<Val>> processor) {
-		return Flux.deferContextual(ctx -> processor.apply(ctx.get(FUNCTION_CTX)));
-	}
-
-	public static Flux<Val> doWithAttributeContext(Function<AttributeContext, Flux<Val>> processor) {
-		return Flux.deferContextual(ctx -> processor.apply(ctx.get(ATTRIBUTE_CTX)));
 	}
 
 }

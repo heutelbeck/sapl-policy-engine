@@ -20,6 +20,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -28,6 +30,7 @@ import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 
@@ -106,6 +109,26 @@ class VariableContextTest {
 	void failGetUndefined() {
 		var ctx = new VariableContext(EMPTY_MAP).forAuthorizationSubscription(AUTH_SUBSCRIPTION);
 		assertThat(ctx.get(VAR_ID), is(Val.UNDEFINED));
+	}
+	
+	@Test
+	void when_getVariables_then_returnsMap() {
+		var ctx = new VariableContext(EMPTY_MAP).forAuthorizationSubscription(AUTH_SUBSCRIPTION);
+		assertThat(ctx.getVariables().get("action"), is(ACTION_NODE.get()));
+	}
+
+	@Test
+	void when_attemptingToSetReservedVariable_then_raiseException() {
+		var ctx = new VariableContext(EMPTY_MAP);
+		assertAll(
+				() -> assertThrows(PolicyEvaluationException.class,
+						() -> ctx.withEnvironmentVariable("subject", mock(JsonNode.class))),
+				() -> assertThrows(PolicyEvaluationException.class,
+						() -> ctx.withEnvironmentVariable("action", mock(JsonNode.class))),
+				() -> assertThrows(PolicyEvaluationException.class,
+						() -> ctx.withEnvironmentVariable("resource", mock(JsonNode.class))),
+				() -> assertThrows(PolicyEvaluationException.class,
+						() -> ctx.withEnvironmentVariable("environment", mock(JsonNode.class))));
 	}
 
 }
