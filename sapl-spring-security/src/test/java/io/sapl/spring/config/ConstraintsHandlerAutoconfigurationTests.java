@@ -29,6 +29,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
 import io.sapl.spring.constraints.ConstraintEnforcementService;
+import io.sapl.spring.constraints.providers.JsonNodeContentFilteringProvider;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
 import io.sapl.spring.serialization.ServerHttpRequestSerializer;
@@ -41,7 +42,7 @@ class ConstraintsHandlerAutoconfigurationTests {
 				.withConfiguration(AutoConfigurations.of(ConstraintsHandlerAutoconfiguration.class))
 				.withBean(ObjectMapper.class, () -> {
 					var mapper = new ObjectMapper();
-					SimpleModule module = new SimpleModule();
+					var module = new SimpleModule();
 					module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
 					module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
 					module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
@@ -51,6 +52,7 @@ class ConstraintsHandlerAutoconfigurationTests {
 		contextRunner.run(context -> {
 			assertThat(context).hasNotFailed();
 			assertThat(context).hasSingleBean(ConstraintEnforcementService.class);
+			assertThat(context).hasSingleBean(JsonNodeContentFilteringProvider.class);
 		});
 	}
 

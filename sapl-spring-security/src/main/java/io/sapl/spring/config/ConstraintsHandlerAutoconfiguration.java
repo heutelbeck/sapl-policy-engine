@@ -15,13 +15,20 @@
  */
 package io.sapl.spring.config;
 
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sapl.spring.constraints.ConstraintEnforcementService;
+import io.sapl.spring.constraints.providers.JsonNodeContentFilteringProvider;
 
 @Configuration
 @Import(value = { ConstraintEnforcementService.class })
 public class ConstraintsHandlerAutoconfiguration {
-
+	@Bean
+	JsonNodeContentFilteringProvider jsonNodeContentFilteringProvider(ObjectMapper objectMapper) {
+		return new JsonNodeContentFilteringProvider(objectMapper);
+	}
 }

@@ -260,8 +260,7 @@ public class ConstraintEnforcementService {
 			catch (Throwable t) {
 				Exceptions.throwIfFatal(t);
 				// non-fatal will not be reported by Flux in doOnRequest -> Bubble to
-				// force
-				// failure for an obligation
+				// force failure for an obligation
 				if (isObligation)
 					throw Exceptions
 							.bubble(new AccessDeniedException("Failed to execute consumer constraint handler", t));
