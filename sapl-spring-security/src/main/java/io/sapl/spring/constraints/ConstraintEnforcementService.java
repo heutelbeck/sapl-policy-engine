@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongConsumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.reactivestreams.Subscription;
@@ -38,6 +39,7 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.spring.constraints.api.ConsumerConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.ErrorHandlerProvider;
 import io.sapl.spring.constraints.api.ErrorMappingConstraintHandlerProvider;
+import io.sapl.spring.constraints.api.FilterPredicateConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.MappingConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.RequestHandlerProvider;
 import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
@@ -61,6 +63,8 @@ public class ConstraintEnforcementService {
 
 	private final List<ErrorHandlerProvider> globalErrorHandlerProviders;
 
+	private final List<FilterPredicateConstraintHandlerProvider<?>> filterPredicateProviders;
+
 	private final ObjectMapper mapper;
 
 	private final SortedSetMultimap<Signal, RunnableConstraintHandlerProvider> globalRunnableIndex;
@@ -71,7 +75,9 @@ public class ConstraintEnforcementService {
 			List<RequestHandlerProvider> globalRequestHandlerProviders,
 			List<MappingConstraintHandlerProvider<?>> globalMappingHandlerProviders,
 			List<ErrorMappingConstraintHandlerProvider> globalErrorMappingHandlerProviders,
-			List<ErrorHandlerProvider> globalErrorHandlerProviders, ObjectMapper mapper) {
+			List<ErrorHandlerProvider> globalErrorHandlerProviders,
+			List<FilterPredicateConstraintHandlerProvider<?>> filterPredicateProviders,
+			ObjectMapper mapper) {
 		this.globalConsumerProviders = globalConsumerProviders;
 		Collections.sort(this.globalConsumerProviders);
 		this.globalSubscriptionHandlerProviders = globalSubscriptionHandlerProviders;
@@ -84,20 +90,22 @@ public class ConstraintEnforcementService {
 		Collections.sort(this.globalErrorMappingHandlerProviders);
 		this.globalErrorHandlerProviders = globalErrorHandlerProviders;
 		Collections.sort(this.globalErrorHandlerProviders);
-		this.mapper = mapper;
-		globalRunnableIndex = TreeMultimap.create();
+		this.filterPredicateProviders = filterPredicateProviders;
+		this.mapper                   = mapper;
+		globalRunnableIndex           = TreeMultimap.create();
 		for (var provider : globalRunnableProviders)
 			globalRunnableIndex.put(provider.getSignal(), provider);
 	}
 
-	public <T> Flux<T> enforceConstraintsOfDecisionOnResourceAccessPoint(AuthorizationDecision decision,
-			Flux<T> resourceAccessPoint, Class<T> clazz) {
+	public <T> Flux<T> enforceConstraintsOfDecisionOnResourceAccessPoint(
+			AuthorizationDecision decision,
+			Flux<T> resourceAccessPoint,
+			Class<T> clazz) {
 		var wrapped = resourceAccessPoint;
 		wrapped = replaceIfResourcePresent(wrapped, decision.getResource(), clazz);
 		try {
 			return bundleFor(decision, clazz).wrap(wrapped);
-		}
-		catch (AccessDeniedException e) {
+		} catch (AccessDeniedException e) {
 			return Flux.error(e);
 		}
 	}
@@ -109,14 +117,20 @@ public class ConstraintEnforcementService {
 		return bundle;
 	}
 
-	private <T> void addConstraintHandlers(ConstraintHandlerBundle<T> bundle, Optional<ArrayNode> constraints,
-			boolean isObligation, Class<T> clazz) {
+	private <T> void addConstraintHandlers(
+			ConstraintHandlerBundle<T> bundle,
+			Optional<ArrayNode> constraints,
+			boolean isObligation,
+			Class<T> clazz) {
 		if (constraints.isPresent())
 			for (var constraint : constraints.get())
 				addConstraintHandlers(bundle, constraint, isObligation, clazz);
 	}
 
-	private <T> void addConstraintHandlers(ConstraintHandlerBundle<T> bundle, JsonNode constraint, boolean isObligation,
+	private <T> void addConstraintHandlers(
+			ConstraintHandlerBundle<T> bundle,
+			JsonNode constraint,
+			boolean isObligation,
 			Class<T> clazz) {
 		var onDecisionHandlers = constructRunnableHandlersForConstraint(Signal.ON_DECISION, constraint, isObligation);
 		bundle.onDecisionHandlers.addAll(onDecisionHandlers);
@@ -141,24 +155,27 @@ public class ConstraintEnforcementService {
 		bundle.doOnErrorHandlers.addAll(doOnErrorHandlers);
 		var onErrorMapHandlers = constructErrorMappingConstraintHandlersForConstraint(constraint, isObligation);
 		bundle.onErrorMapHandlers.addAll(onErrorMapHandlers);
+		var filterHandlers = constructFilterConstraintHandlersForConstraint(constraint, isObligation, clazz);
+		bundle.filterPredicateHandlers.addAll(filterHandlers);
 
 		if (isObligation)
 			if (onDecisionHandlers.size() + onCancelHandlers.size() + onCompleteHandlers.size()
 					+ onTerminateHandlers.size() + afterTerminateHandlers.size() + doOnNextHandlers.size()
 					+ onNextMapHandlers.size() + doOnErrorHandlers.size() + onErrorMapHandlers.size()
-					+ onSubscribeHandlers.size() + onRequestHandlers.size() == 0)
+					+ onSubscribeHandlers.size() + onRequestHandlers.size() + filterHandlers.size() == 0)
 				throw new AccessDeniedException(
 						String.format("No handler found for obligation: %s", constraint.asText()));
 	}
 
-	private <T> Flux<T> replaceIfResourcePresent(Flux<T> resourceAccessPoint, Optional<JsonNode> resource,
+	private <T> Flux<T> replaceIfResourcePresent(
+			Flux<T> resourceAccessPoint,
+			Optional<JsonNode> resource,
 			Class<T> clazz) {
 		if (resource.isEmpty())
 			return resourceAccessPoint;
 		try {
 			return Flux.just(unmarshallResource(resource.get(), clazz));
-		}
-		catch (JsonProcessingException | IllegalArgumentException e) {
+		} catch (JsonProcessingException | IllegalArgumentException e) {
 			return Flux.error(new AccessDeniedException(
 					String.format("Cannot map resource %s to type %s", resource.get().asText(), clazz.getSimpleName()),
 					e));
@@ -166,12 +183,26 @@ public class ConstraintEnforcementService {
 	}
 
 	public <T> T unmarshallResource(JsonNode resource, Class<T> clazz)
-			throws JsonProcessingException, IllegalArgumentException {
+			throws JsonProcessingException,
+				IllegalArgumentException {
 		return mapper.treeToValue(resource, clazz);
 	}
 
+	@SuppressWarnings("unchecked") // False positive the filter checks type
+	private <T> List<Predicate<T>>
+			constructFilterConstraintHandlersForConstraint(
+					JsonNode constraint,
+					boolean isObligation,
+					Class<T> clazz) {
+		return filterPredicateProviders.stream().filter(provider -> provider.supports(clazz))
+				.filter(provider -> provider.isResponsible(constraint))
+				.map(provider -> (Predicate<T>) provider.getHandler(constraint))
+				.collect(Collectors.toList());
+	}
+
 	private List<Function<Throwable, Throwable>> constructErrorMappingConstraintHandlersForConstraint(
-			JsonNode constraint, boolean isObligation) {
+			JsonNode constraint,
+			boolean isObligation) {
 		return globalErrorMappingHandlerProviders.stream().filter(provider -> provider.isResponsible(constraint))
 				.map(provider -> provider.getHandler(constraint))
 				.map(failFunctionOnlyIfObligationOrFatalElseFallBackToIdentity(isObligation))
@@ -179,8 +210,10 @@ public class ConstraintEnforcementService {
 	}
 
 	@SuppressWarnings("unchecked") // False positive the filter checks type
-	private <T> List<Function<T, T>> constructMappingConstraintHandlersForConstraint(JsonNode constraint,
-			boolean isObligation, Class<T> clazz) {
+	private <T> List<Function<T, T>> constructMappingConstraintHandlersForConstraint(
+			JsonNode constraint,
+			boolean isObligation,
+			Class<T> clazz) {
 		return globalMappingHandlerProviders.stream().filter(provider -> provider.supports(clazz))
 				.filter(provider -> provider.isResponsible(constraint))
 				.map(provider -> (Function<T, T>) provider.getHandler(constraint))
@@ -188,7 +221,8 @@ public class ConstraintEnforcementService {
 				.collect(Collectors.toList());
 	}
 
-	private List<Consumer<Subscription>> constructOnSubscribeHandlersForConstraint(JsonNode constraint,
+	private List<Consumer<Subscription>> constructOnSubscribeHandlersForConstraint(
+			JsonNode constraint,
 			boolean isObligation) {
 		return globalSubscriptionHandlerProviders.stream().filter(provider -> provider.isResponsible(constraint))
 				.map(provider -> provider.getHandler(constraint)).map(failConsumerOnlyIfObligationOrFatal(isObligation))
@@ -202,7 +236,8 @@ public class ConstraintEnforcementService {
 				.map(failLongConsumerOnlyIfObligationOrFatal(isObligation)).collect(Collectors.toList());
 	}
 
-	private List<Consumer<Throwable>> constructDoOnErrorHandlersForConstraint(JsonNode constraint,
+	private List<Consumer<Throwable>> constructDoOnErrorHandlersForConstraint(
+			JsonNode constraint,
 			boolean isObligation) {
 		return globalErrorHandlerProviders.stream().filter(provider -> provider.isResponsible(constraint))
 				.map(provider -> provider.getHandler(constraint)).map(failConsumerOnlyIfObligationOrFatal(isObligation))
@@ -210,7 +245,9 @@ public class ConstraintEnforcementService {
 	}
 
 	@SuppressWarnings("unchecked") // False positive the filter checks type
-	private <T> List<Consumer<T>> constructConsumerHandlersForConstraint(JsonNode constraint, boolean isObligation,
+	private <T> List<Consumer<T>> constructConsumerHandlersForConstraint(
+			JsonNode constraint,
+			boolean isObligation,
 			Class<T> clazz) {
 		return globalConsumerProviders.stream().filter(provider -> provider.supports(clazz))
 				.filter(provider -> provider.isResponsible(constraint))
@@ -218,7 +255,9 @@ public class ConstraintEnforcementService {
 				.map(failConsumerOnlyIfObligationOrFatal(isObligation)).collect(Collectors.toList());
 	}
 
-	private List<Runnable> constructRunnableHandlersForConstraint(Signal signal, JsonNode constraint,
+	private List<Runnable> constructRunnableHandlersForConstraint(
+			Signal signal,
+			JsonNode constraint,
 			boolean isObligation) {
 		var potentialProviders = globalRunnableIndex.get(signal);
 		return potentialProviders.stream().filter(provider -> provider.isResponsible(constraint))
@@ -230,8 +269,7 @@ public class ConstraintEnforcementService {
 		return runnable -> () -> {
 			try {
 				runnable.run();
-			}
-			catch (Throwable t) {
+			} catch (Throwable t) {
 				Exceptions.throwIfFatal(t);
 				if (isObligation)
 					throw new AccessDeniedException("Failed to execute runnable constraint handler", t);
@@ -243,8 +281,7 @@ public class ConstraintEnforcementService {
 		return consumer -> value -> {
 			try {
 				consumer.accept(value);
-			}
-			catch (Throwable t) {
+			} catch (Throwable t) {
 				Exceptions.throwIfFatal(t);
 				if (isObligation)
 					throw new AccessDeniedException("Failed to execute consumer constraint handler", t);
@@ -256,8 +293,7 @@ public class ConstraintEnforcementService {
 		return consumer -> value -> {
 			try {
 				consumer.accept(value);
-			}
-			catch (Throwable t) {
+			} catch (Throwable t) {
 				Exceptions.throwIfFatal(t);
 				// non-fatal will not be reported by Flux in doOnRequest -> Bubble to
 				// force failure for an obligation
@@ -273,8 +309,7 @@ public class ConstraintEnforcementService {
 		return function -> value -> {
 			try {
 				return function.apply(value);
-			}
-			catch (Throwable t) {
+			} catch (Throwable t) {
 				Exceptions.throwIfFatal(t);
 				if (isObligation)
 					throw new AccessDeniedException("Failed to execute consumer constraint handler", t);

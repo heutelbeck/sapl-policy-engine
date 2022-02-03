@@ -29,7 +29,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
 import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.constraints.providers.JsonNodeContentFilteringProvider;
+import io.sapl.spring.constraints.providers.ContentFilteringProvider;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
 import io.sapl.spring.serialization.ServerHttpRequestSerializer;
@@ -52,7 +52,7 @@ class ConstraintsHandlerAutoconfigurationTests {
 		contextRunner.run(context -> {
 			assertThat(context).hasNotFailed();
 			assertThat(context).hasSingleBean(ConstraintEnforcementService.class);
-			assertThat(context).hasSingleBean(JsonNodeContentFilteringProvider.class);
+			assertThat(context).hasSingleBean(ContentFilteringProvider.class);
 		});
 	}
 

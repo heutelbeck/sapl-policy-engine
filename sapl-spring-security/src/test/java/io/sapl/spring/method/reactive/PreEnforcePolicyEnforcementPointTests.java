@@ -41,6 +41,7 @@ import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.constraints.api.ConsumerConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.ErrorHandlerProvider;
 import io.sapl.spring.constraints.api.ErrorMappingConstraintHandlerProvider;
+import io.sapl.spring.constraints.api.FilterPredicateConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.MappingConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.RequestHandlerProvider;
 import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
@@ -68,31 +69,36 @@ public class PreEnforcePolicyEnforcementPointTests {
 
 	List<ErrorHandlerProvider> globalErrorHandlerProviders;
 
+	List<FilterPredicateConstraintHandlerProvider<?>> globalFilterPredicateProviders;
+
 	@BeforeEach
 	void beforeEach() {
-		globalRunnableProviders = new LinkedList<>();
-		globalConsumerProviders = new LinkedList<>();
+		globalRunnableProviders            = new LinkedList<>();
+		globalConsumerProviders            = new LinkedList<>();
 		globalSubscriptionHandlerProviders = new LinkedList<>();
-		globalRequestHandlerProviders = new LinkedList<>();
-		globalMappingHandlerProviders = new LinkedList<>();
+		globalRequestHandlerProviders      = new LinkedList<>();
+		globalMappingHandlerProviders      = new LinkedList<>();
 		globalErrorMappingHandlerProviders = new LinkedList<>();
-		globalErrorHandlerProviders = new LinkedList<>();
+		globalErrorHandlerProviders        = new LinkedList<>();
+		globalFilterPredicateProviders     = new LinkedList<>();
 	}
 
 	private ConstraintEnforcementService buildConstraintHandlerService() {
 		return new ConstraintEnforcementService(globalRunnableProviders, globalConsumerProviders,
 				globalSubscriptionHandlerProviders, globalRequestHandlerProviders, globalMappingHandlerProviders,
-				globalErrorMappingHandlerProviders, globalErrorHandlerProviders, MAPPER);
+				globalErrorMappingHandlerProviders, globalErrorHandlerProviders, globalFilterPredicateProviders,
+				MAPPER);
 	}
 
 	@Test
 	void when_Deny_ErrorIsRaisedAndStreamCompleteEvenWithOnErrorContinue() {
-		var constraintsService = buildConstraintHandlerService();
-		var decisions = Flux.just(AuthorizationDecision.DENY);
+		var constraintsService  = buildConstraintHandlerService();
+		var decisions           = Flux.just(AuthorizationDecision.DENY);
 		var resourceAccessPoint = Flux.just(1, 2, 3);
-		var onErrorContinue = errorAndCauseConsumer();
-		var doOnError = errorConsumer();
-		var sut = new PreEnforcePolicyEnforcementPoint(constraintsService).enforce(decisions, resourceAccessPoint,
+		var onErrorContinue     = errorAndCauseConsumer();
+		var doOnError           = errorConsumer();
+		var sut                 = new PreEnforcePolicyEnforcementPoint(constraintsService).enforce(decisions,
+				resourceAccessPoint,
 				Integer.class);
 
 		StepVerifier.create(sut.doOnError(doOnError).onErrorContinue(onErrorContinue))
@@ -108,12 +114,13 @@ public class PreEnforcePolicyEnforcementPointTests {
 
 	@Test
 	void when_Permit_AccessIsGranted() {
-		var constraintsService = buildConstraintHandlerService();
-		var decisions = Flux.just(AuthorizationDecision.PERMIT);
+		var constraintsService  = buildConstraintHandlerService();
+		var decisions           = Flux.just(AuthorizationDecision.PERMIT);
 		var resourceAccessPoint = Flux.just(1, 2, 3);
-		var onErrorContinue = errorAndCauseConsumer();
-		var doOnError = errorConsumer();
-		var sut = new PreEnforcePolicyEnforcementPoint(constraintsService).enforce(decisions, resourceAccessPoint,
+		var onErrorContinue     = errorAndCauseConsumer();
+		var doOnError           = errorConsumer();
+		var sut                 = new PreEnforcePolicyEnforcementPoint(constraintsService).enforce(decisions,
+				resourceAccessPoint,
 				Integer.class);
 
 		StepVerifier.create(sut.doOnError(doOnError).onErrorContinue(onErrorContinue)).expectNext(1, 2, 3)
@@ -143,12 +150,13 @@ public class PreEnforcePolicyEnforcementPointTests {
 
 		});
 		this.globalSubscriptionHandlerProviders.add(handler);
-		var constraintsService = buildConstraintHandlerService();
-		var decisions = decisionFluxOnePermitWithObligation();
+		var constraintsService  = buildConstraintHandlerService();
+		var decisions           = decisionFluxOnePermitWithObligation();
 		var resourceAccessPoint = Flux.just(1, 2, 3);
-		var onErrorContinue = errorAndCauseConsumer();
-		var doOnError = errorConsumer();
-		var sut = new PreEnforcePolicyEnforcementPoint(constraintsService).enforce(decisions, resourceAccessPoint,
+		var onErrorContinue     = errorAndCauseConsumer();
+		var doOnError           = errorConsumer();
+		var sut                 = new PreEnforcePolicyEnforcementPoint(constraintsService).enforce(decisions,
+				resourceAccessPoint,
 				Integer.class);
 
 		StepVerifier.create(sut.doOnError(doOnError).onErrorContinue(onErrorContinue)).expectNext(1, 2, 3)
@@ -183,12 +191,13 @@ public class PreEnforcePolicyEnforcementPointTests {
 			}
 		});
 		this.globalMappingHandlerProviders.add(handler);
-		var constraintsService = buildConstraintHandlerService();
-		var decisions = decisionFluxOnePermitWithObligation();
+		var constraintsService  = buildConstraintHandlerService();
+		var decisions           = decisionFluxOnePermitWithObligation();
 		var resourceAccessPoint = Flux.just(1, 2, 3);
-		var onErrorContinue = errorAndCauseConsumer();
-		var doOnError = errorConsumer();
-		var sut = new PreEnforcePolicyEnforcementPoint(constraintsService).enforce(decisions, resourceAccessPoint,
+		var onErrorContinue     = errorAndCauseConsumer();
+		var doOnError           = errorConsumer();
+		var sut                 = new PreEnforcePolicyEnforcementPoint(constraintsService).enforce(decisions,
+				resourceAccessPoint,
 				Integer.class);
 
 		StepVerifier.create(sut.doOnError(doOnError).onErrorContinue(onErrorContinue)).expectNext(10001)
@@ -219,14 +228,15 @@ public class PreEnforcePolicyEnforcementPointTests {
 		});
 		this.globalMappingHandlerProviders.add(handler);
 		var constraintsService = buildConstraintHandlerService();
-		var obligations = JSON.arrayNode();
+		var obligations        = JSON.arrayNode();
 		obligations.add(JSON.numberNode(420));
-		var decisions = Flux
+		var decisions           = Flux
 				.just(AuthorizationDecision.PERMIT.withObligations(obligations).withResource(JSON.numberNode(69)));
 		var resourceAccessPoint = Flux.just(1, 2, 3);
-		var onErrorContinue = errorAndCauseConsumer();
-		var doOnError = errorConsumer();
-		var sut = new PreEnforcePolicyEnforcementPoint(constraintsService).enforce(decisions, resourceAccessPoint,
+		var onErrorContinue     = errorAndCauseConsumer();
+		var doOnError           = errorConsumer();
+		var sut                 = new PreEnforcePolicyEnforcementPoint(constraintsService).enforce(decisions,
+				resourceAccessPoint,
 				Integer.class);
 
 		StepVerifier.create(sut.doOnError(doOnError).onErrorContinue(onErrorContinue)).expectNext(489).verifyComplete();
@@ -237,12 +247,14 @@ public class PreEnforcePolicyEnforcementPointTests {
 
 	@Test
 	void when_PermitWithResource_and_typeMismatch_thenAccessIsDenied() {
-		var constraintsService = buildConstraintHandlerService();
-		var decisions = Flux.just(AuthorizationDecision.PERMIT.withResource(JSON.textNode("I CAUSE A TYPE MISMATCH")));
+		var constraintsService  = buildConstraintHandlerService();
+		var decisions           = Flux
+				.just(AuthorizationDecision.PERMIT.withResource(JSON.textNode("I CAUSE A TYPE MISMATCH")));
 		var resourceAccessPoint = Flux.just(1, 2, 3);
-		var onErrorContinue = errorAndCauseConsumer();
-		var doOnError = errorConsumer();
-		var sut = new PreEnforcePolicyEnforcementPoint(constraintsService).enforce(decisions, resourceAccessPoint,
+		var onErrorContinue     = errorAndCauseConsumer();
+		var doOnError           = errorConsumer();
+		var sut                 = new PreEnforcePolicyEnforcementPoint(constraintsService).enforce(decisions,
+				resourceAccessPoint,
 				Integer.class);
 
 		StepVerifier.create(sut.doOnError(doOnError).onErrorContinue(onErrorContinue))
@@ -253,7 +265,7 @@ public class PreEnforcePolicyEnforcementPointTests {
 	}
 
 	public Flux<AuthorizationDecision> decisionFluxOnePermitWithObligation() {
-		var plus10000 = JSON.numberNode(10000L);
+		var plus10000  = JSON.numberNode(10000L);
 		var obligation = JSON.arrayNode();
 		obligation.add(plus10000);
 		return Flux.just(AuthorizationDecision.PERMIT.withObligations(obligation));

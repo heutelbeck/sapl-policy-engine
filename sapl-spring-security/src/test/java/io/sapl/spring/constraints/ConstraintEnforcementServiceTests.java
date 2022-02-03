@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongConsumer;
+import java.util.function.Predicate;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +46,7 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.spring.constraints.api.ConsumerConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.ErrorHandlerProvider;
 import io.sapl.spring.constraints.api.ErrorMappingConstraintHandlerProvider;
+import io.sapl.spring.constraints.api.FilterPredicateConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.MappingConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.RequestHandlerProvider;
 import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
@@ -88,6 +90,8 @@ public class ConstraintEnforcementServiceTests {
 
 	List<ErrorHandlerProvider> globalErrorHandlerProviders;
 
+	List<FilterPredicateConstraintHandlerProvider<?>> globalFilterPredicateProviders;
+
 	@BeforeEach
 	void beforeEach() {
 		globalRunnableProviders            = new LinkedList<>();
@@ -97,12 +101,14 @@ public class ConstraintEnforcementServiceTests {
 		globalMappingHandlerProviders      = new LinkedList<>();
 		globalErrorMappingHandlerProviders = new LinkedList<>();
 		globalErrorHandlerProviders        = new LinkedList<>();
+		globalFilterPredicateProviders     = new LinkedList<>();
 	}
 
 	private ConstraintEnforcementService buildConstraintHandlerService() {
 		return new ConstraintEnforcementService(globalRunnableProviders, globalConsumerProviders,
 				globalSubscriptionHandlerProviders, globalRequestHandlerProviders, globalMappingHandlerProviders,
-				globalErrorMappingHandlerProviders, globalErrorHandlerProviders, MAPPER);
+				globalErrorMappingHandlerProviders, globalErrorHandlerProviders, globalFilterPredicateProviders,
+				MAPPER);
 	}
 
 	@Test
@@ -995,6 +1001,41 @@ public class ConstraintEnforcementServiceTests {
 				Integer.class);
 		StepVerifier.create(wrapped).expectNext(1, 2, 3).verifyComplete();
 		verify(provider, times(1)).accept(any());
+	}
+
+	@Test
+	void when_filterObligation_then_ElementsFiltered() {
+		var provider = spy(new FilterPredicateConstraintHandlerProvider<Integer>() {
+
+			@Override
+			public boolean isResponsible(JsonNode constraint) {
+				return true;
+			}
+
+			@Override
+			public Predicate<Integer> getHandler(JsonNode constraint) {
+				return this::test;
+			}
+
+			public boolean test(Integer i) {
+				return i % 2 == 0;
+			}
+
+			@Override
+			public Class<Integer> getSupportedType() {
+				return Integer.class;
+			}
+
+		});
+		globalFilterPredicateProviders.add(provider);
+		var service             = buildConstraintHandlerService();
+		var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+		var resourceAccessPoint = Flux.just(1, 2, 3, 4, 5);
+		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+				resourceAccessPoint,
+				Integer.class);
+		StepVerifier.create(wrapped).expectNext(2, 4).verifyComplete();
+		verify(provider, times(5)).test(any());
 	}
 
 	@Test

@@ -15,7 +15,7 @@ import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider;
 
 import io.sapl.spring.constraints.api.MappingConstraintHandlerProvider;
 
-public class JsonNodeContentFilteringProvider implements MappingConstraintHandlerProvider<Object> {
+public class ContentFilteringProvider implements MappingConstraintHandlerProvider<Object> {
 
 	private static final String DISCLOSE_LEFT   = "discloseLeft";
 	private static final String DISCLOSE_RIGHT  = "discloseRight";
@@ -44,7 +44,7 @@ public class JsonNodeContentFilteringProvider implements MappingConstraintHandle
 	private final ObjectMapper  objectMapper;
 	private final Configuration jsonPathConfiguration;
 
-	public JsonNodeContentFilteringProvider(ObjectMapper objectMapper) {
+	public ContentFilteringProvider(ObjectMapper objectMapper) {
 		this.objectMapper     = objectMapper;
 		jsonPathConfiguration = Configuration.builder()
 				.jsonProvider(new JacksonJsonNodeJsonProvider(objectMapper))
@@ -201,7 +201,7 @@ public class JsonNodeContentFilteringProvider implements MappingConstraintHandle
 
 		var value = action.get(key);
 
-		if (!value.isInt())
+		if (!value.canConvertToInt())
 			throw new IllegalArgumentException(String.format(VALUE_NOT_INTEGER_S, key));
 
 		return value.intValue();

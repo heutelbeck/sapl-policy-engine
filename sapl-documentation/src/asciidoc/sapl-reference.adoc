@@ -232,7 +232,7 @@ permit subject == "admin"
 +
 [source,Java,linenums]
 ----
-var subscription = AuthorizationSubscription.of("admin", "an_action", "a_resource");
+var authzSubscription = AuthorizationSubscription.of("admin", "an_action", "a_resource");
 Flux<AuthorizationDecision> authzDecisions = pdp.decide(authzSubscription);
 authzDecisions.subscribe(authzDecision -> System.out.println(authzDecision.getDecision()));
 ----

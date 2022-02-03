@@ -44,6 +44,7 @@ import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.constraints.api.ConsumerConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.ErrorHandlerProvider;
 import io.sapl.spring.constraints.api.ErrorMappingConstraintHandlerProvider;
+import io.sapl.spring.constraints.api.FilterPredicateConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.MappingConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.RequestHandlerProvider;
 import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
@@ -71,23 +72,8 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 	List<ErrorMappingConstraintHandlerProvider> globalErrorMappingHandlerProviders;
 
 	List<ErrorHandlerProvider> globalErrorHandlerProviders;
-
-	@BeforeEach
-	void beforeEach() {
-		globalRunnableProviders = new LinkedList<>();
-		globalConsumerProviders = new LinkedList<>();
-		globalSubscriptionHandlerProviders = new LinkedList<>();
-		globalRequestHandlerProviders = new LinkedList<>();
-		globalMappingHandlerProviders = new LinkedList<>();
-		globalErrorMappingHandlerProviders = new LinkedList<>();
-		globalErrorHandlerProviders = new LinkedList<>();
-	}
-
-	private ConstraintEnforcementService buildConstraintHandlerService() {
-		return new ConstraintEnforcementService(globalRunnableProviders, globalConsumerProviders,
-				globalSubscriptionHandlerProviders, globalRequestHandlerProviders, globalMappingHandlerProviders,
-				globalErrorMappingHandlerProviders, globalErrorHandlerProviders, MAPPER);
-	}
+	
+	List<FilterPredicateConstraintHandlerProvider<?>> globalFilterPredicateProviders;
 
 	@BeforeAll
 	public static void beforeAll() {
@@ -97,6 +83,25 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 		});
 	}
 
+	@BeforeEach
+	void beforeEach() {
+		globalRunnableProviders            = new LinkedList<>();
+		globalConsumerProviders            = new LinkedList<>();
+		globalSubscriptionHandlerProviders = new LinkedList<>();
+		globalRequestHandlerProviders      = new LinkedList<>();
+		globalMappingHandlerProviders      = new LinkedList<>();
+		globalErrorMappingHandlerProviders = new LinkedList<>();
+		globalErrorHandlerProviders        = new LinkedList<>();
+		globalFilterPredicateProviders     = new LinkedList<>();
+	}
+
+	private ConstraintEnforcementService buildConstraintHandlerService() {
+		return new ConstraintEnforcementService(globalRunnableProviders, globalConsumerProviders,
+				globalSubscriptionHandlerProviders, globalRequestHandlerProviders, globalMappingHandlerProviders,
+				globalErrorMappingHandlerProviders, globalErrorHandlerProviders, globalFilterPredicateProviders,
+				MAPPER);
+	}
+	
 	@Test
 	void when_subscribingTwice_Fails() {
 		var constraintsService = buildConstraintHandlerService();

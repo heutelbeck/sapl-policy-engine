@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongConsumer;
+import java.util.function.Predicate;
 
 import org.reactivestreams.Subscription;
 
@@ -49,6 +50,8 @@ public class ConstraintHandlerBundle<T> {
 	final List<Consumer<Throwable>> doOnErrorHandlers = new LinkedList<>();
 
 	final List<Function<Throwable, Throwable>> onErrorMapHandlers = new LinkedList<>();
+
+	final List<Predicate<T>> filterPredicateHandlers = new LinkedList<>();
 
 	public void handleOnSubscribeConstraints(Subscription s) {
 		consumeAll(onSubscribeHandlers).accept(s);
@@ -113,6 +116,9 @@ public class ConstraintHandlerBundle<T> {
 		if (!onSubscribeHandlers.isEmpty())
 			wrapped = wrapped.doOnSubscribe(this::handleOnSubscribeConstraints);
 
+		if(!filterPredicateHandlers.isEmpty())
+			wrapped = wrapped.filter(this::applyFilterPredicates);
+
 		if (!onErrorMapHandlers.isEmpty())
 			wrapped = wrapped.onErrorMap(this::handleOnErrorMapConstraints);
 
@@ -139,10 +145,17 @@ public class ConstraintHandlerBundle<T> {
 
 		if (!onDecisionHandlers.isEmpty())
 			wrapped = onDecision(onDecisionHandlers).thenMany(wrapped);
-
+			
 		return wrapped;
 	}
 
+	private boolean applyFilterPredicates(T value) {
+		var result = true;
+		for (var predicate : filterPredicateHandlers)
+			result &= predicate.test(value); 
+		return result;
+	}
+	
 	private LongConsumer consumeAllLong(List<LongConsumer> handlers) {
 		return value -> handlers.forEach(handler -> handler.accept(value));
 	}

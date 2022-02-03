@@ -46,6 +46,7 @@ import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.constraints.api.ConsumerConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.ErrorHandlerProvider;
 import io.sapl.spring.constraints.api.ErrorMappingConstraintHandlerProvider;
+import io.sapl.spring.constraints.api.FilterPredicateConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.MappingConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.RequestHandlerProvider;
 import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
@@ -73,6 +74,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
 	List<ErrorMappingConstraintHandlerProvider> globalErrorMappingHandlerProviders;
 
 	List<ErrorHandlerProvider> globalErrorHandlerProviders;
+	List<FilterPredicateConstraintHandlerProvider<?>> globalFilterPredicateProviders;
 
 	@BeforeAll
 	public static void beforeAll() {
@@ -84,19 +86,21 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
 
 	@BeforeEach
 	void beforeEach() {
-		globalRunnableProviders = new LinkedList<>();
-		globalConsumerProviders = new LinkedList<>();
+		globalRunnableProviders            = new LinkedList<>();
+		globalConsumerProviders            = new LinkedList<>();
 		globalSubscriptionHandlerProviders = new LinkedList<>();
-		globalRequestHandlerProviders = new LinkedList<>();
-		globalMappingHandlerProviders = new LinkedList<>();
+		globalRequestHandlerProviders      = new LinkedList<>();
+		globalMappingHandlerProviders      = new LinkedList<>();
 		globalErrorMappingHandlerProviders = new LinkedList<>();
-		globalErrorHandlerProviders = new LinkedList<>();
+		globalErrorHandlerProviders        = new LinkedList<>();
+		globalFilterPredicateProviders     = new LinkedList<>();
 	}
 
 	private ConstraintEnforcementService buildConstraintHandlerService() {
 		return new ConstraintEnforcementService(globalRunnableProviders, globalConsumerProviders,
 				globalSubscriptionHandlerProviders, globalRequestHandlerProviders, globalMappingHandlerProviders,
-				globalErrorMappingHandlerProviders, globalErrorHandlerProviders, MAPPER);
+				globalErrorMappingHandlerProviders, globalErrorHandlerProviders, globalFilterPredicateProviders,
+				MAPPER);
 	}
 
 	@Test
