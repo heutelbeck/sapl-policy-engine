@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+    Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -57,7 +57,7 @@
 		</developer>
 	</developers>
 
-	<inceptionYear>2017-2021</inceptionYear>
+	<inceptionYear>2017-2022</inceptionYear>
 
 	<licenses>
 		<license>
@@ -86,10 +86,10 @@
 		<lombok.version>1.18.22</lombok.version>
 		<hamcrest.version>2.2</hamcrest.version>
 		<spotify.hamcrest.version>1.2.0</spotify.hamcrest.version>
-		<springboot.version>2.6.2</springboot.version>
+		<springboot.version>2.6.3</springboot.version>
 		<mockito.version>3.12.4</mockito.version>
-		<vaadin.version>14.7.3</vaadin.version>
-		<guice.version>5.0.1</guice.version>
+		<vaadin.version>14.7.8</vaadin.version>
+		<guice.version>5.1.0</guice.version>
 
 		<license-maven-plugin.version>4.1</license-maven-plugin.version>
 		<maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
