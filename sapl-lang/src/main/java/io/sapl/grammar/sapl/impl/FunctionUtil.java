@@ -23,6 +23,7 @@ import java.util.stream.Stream;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
+import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
@@ -68,7 +69,7 @@ public class FunctionUtil {
 	}
 
 	private Stream<Flux<Val>> argumentFluxes(Arguments arguments) {
-		return arguments.getArgs().stream().map(expression -> expression.evaluate());
+		return arguments.getArgs().stream().map(Expression::evaluate);
 	}
 
 	private Flux<Val[]> combine(Stream<Flux<Val>> argumentFluxes) {
