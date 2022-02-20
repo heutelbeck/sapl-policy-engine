@@ -104,6 +104,10 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			handleImportProposals(feature, context, acceptor);
 			return;
 
+		case "schema":
+			handleSchemaProposals(feature, context, acceptor);
+			return;
+
 		case "basic":
 			handleBasicProposals(feature, context, acceptor);
 			return;
@@ -147,6 +151,21 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
 		// add proposals to list of proposals
 		addSimpleProposals(proposals, context, acceptor);
+	}
+
+	private void handleSchemaProposals(String feature, ContentAssistContext context,
+			IIdeContentProposalAcceptor acceptor) {
+
+		EObject model = context.getCurrentModel();
+
+		if ("subscriptionelement".equals(feature)) {
+			addSimpleProposals(authzSubProposals, context, acceptor);
+			return;
+		}
+
+		if ("schemaexpression".equals(feature)) {
+			return;
+		}
 	}
 
 	private void handleBasicProposals(String feature, ContentAssistContext context,

@@ -41,6 +41,7 @@
     <genDataTypes ecoreDataType="SAPL.ecore#//Decision"/>
     <genClasses ecoreClass="SAPL.ecore#//SAPL">
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//SAPL/imports"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//SAPL/schemas"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//SAPL/policyElement"/>
       <genOperations ecoreOperation="SAPL.ecore#//SAPL/fetchFunctionImports">
         <genParameters ecoreParameter="SAPL.ecore#//SAPL/fetchFunctionImports/functionCtx"/>
@@ -50,6 +51,10 @@
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute SAPL.ecore#//Import/libSteps"/>
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute SAPL.ecore#//Import/functionName"/>
     </genClasses>
+    <genClasses ecoreClass="SAPL.ecore#//Schema">
+       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute SAPL.ecore#//Schema/schemaExpression"/>
+       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute SAPL.ecore#//Schema/subscriptionElement"/>
+     </genClasses>
     <genClasses ecoreClass="SAPL.ecore#//PolicyElement">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute SAPL.ecore#//PolicyElement/saplName"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//PolicyElement/targetExpression"/>

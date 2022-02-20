@@ -20,13 +20,17 @@ import "http://sapl.io/sapl/SAPL"
 import "http://www.eclipse.org/emf/2002/Ecore" as ecore
 
 SAPL: 
-	imports+=Import* policyElement=PolicyElement ;
+	imports+=Import*
+	schemas+=Schema* policyElement=PolicyElement ;
 
 Import:
 	'import' ( {WildcardImport} libSteps+=ID ('.' libSteps+=ID)* '.' '*' 
 		     | {LibraryImport} (libSteps+=ID '.')* libSteps+=ID 'as' libAlias=ID 
 		     | libSteps+=ID ('.' libSteps+=ID)* '.' functionName=ID	) ;
-	
+
+Schema:
+    'schema' schemaExpression=Expression 'for' subscriptionElement=STRING ;
+
 PolicyElement:
 	PolicySet | Policy;
 	
@@ -35,7 +39,7 @@ PolicySet:
 	algorithm=CombiningAlgorithm ('for' targetExpression=Expression)?
 	(valueDefinitions+=ValueDefinition ';')*
 	policies+=Policy+ ;
-	
+
 CombiningAlgorithm:
 	  {DenyOverridesCombiningAlgorithm}     'deny-overrides' 
 	| {PermitOverridesCombiningAlgorithm}   'permit-overrides' 
@@ -64,6 +68,7 @@ Statement:
 	{Condition} expression=Expression ;
 
 ValueDefinition:
+    ('schema' schemaVarExpression=Expression)*
 	'var' name=ID '=' eval=Expression ;
 
 Expression:
