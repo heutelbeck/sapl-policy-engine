@@ -306,10 +306,11 @@ public class TemporalFunctionLibrary {
 
 	@Function(
 			docs = "Parses the given string as local time in the given zone and converts it to the respective time in UTC.")
-	public static Val timeInZone(@Text Val localTime, @Text Val zoneId) {
+	public static Val timeInZone(@Text Val localTime, @Text Val localDate, @Text Val zoneId) {
 		var zone = zoneIdOf(zoneId);
 		LocalTime lt = DateTimeFormatter.ISO_LOCAL_TIME.parse(localTime.getText(), LocalTime::from);
-		ZonedDateTime zonedDateTime = ZonedDateTime.of(lt.atDate(LocalDate.now()), zone);
+		
+		ZonedDateTime zonedDateTime = ZonedDateTime.of(lt.atDate(LocalDate.parse(localDate.getText())), zone);
 		return Val.of(zonedDateTime.withZoneSameInstant(ZoneId.of("UTC")).toLocalTime().toString());
 	}
 

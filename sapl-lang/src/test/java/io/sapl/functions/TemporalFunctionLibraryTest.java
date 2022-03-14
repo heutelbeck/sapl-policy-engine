@@ -261,8 +261,8 @@ class TemporalFunctionLibraryTest {
 
 	@Test
 	void timeAtZoneTest() {
-		assertThat(TemporalFunctionLibrary.timeInZone(Val.of("13:12:35"), Val.of("US/Pacific")), is(val("21:12:35")));
-		assertThat(TemporalFunctionLibrary.timeInZone(Val.of("13:12:35"), Val.of("Europe/Samara")),
+		assertThat(TemporalFunctionLibrary.timeInZone(Val.of("13:12:35"), Val.of("2022-01-14"), Val.of("US/Pacific")), is(val("21:12:35")));
+		assertThat(TemporalFunctionLibrary.timeInZone(Val.of("13:12:35"), Val.of("2022-01-14"), Val.of("Europe/Samara")),
 				is(val("09:12:35")));
 	}
 
