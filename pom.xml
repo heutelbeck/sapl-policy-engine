@@ -86,7 +86,7 @@
 		<lombok.version>1.18.22</lombok.version>
 		<hamcrest.version>2.2</hamcrest.version>
 		<spotify.hamcrest.version>1.2.0</spotify.hamcrest.version>
-		<springboot.version>2.6.3</springboot.version>
+		<springboot.version>2.6.4</springboot.version>
 		<mockito.version>3.12.4</mockito.version>
 		<vaadin.version>14.7.8</vaadin.version>
 		<guice.version>5.1.0</guice.version>
@@ -100,6 +100,7 @@
 
 	<modules>
 		<module>sapl-pdp-api</module>
+		<module>sapl-pep-api</module>
 		<module>sapl-extensions-api</module>
 		<module>sapl-hamcrest</module>
 		<module>sapl-generator</module>

@@ -124,10 +124,8 @@ public class SAPLImplCustom extends SAPLImpl {
 			String library,
 			LibraryFunctionProvider functionProvider) {
 		for (var name : functionProvider.providedFunctionsOfLibrary(library)) {
-			log.info("name=" + name);
 			if (imports.put(name, String.join(".", library, name)) != null)
 				throw new PolicyEvaluationException(WILDCARD_IMPORT_EXISTS, library, name);
-			log.info("check");
 		}
 	}
 
