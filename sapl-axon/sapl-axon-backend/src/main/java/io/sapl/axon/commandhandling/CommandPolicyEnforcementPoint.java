@@ -106,7 +106,7 @@ public class CommandPolicyEnforcementPoint {
      * @param handleCommand the call super.handle() of the
      *                      WrappedMessageHandlingMember, transferred in a BiFunction
      * @return the result after commandHandling and constraintHandling
-     * @throws Exception
+     * @throws Exception	on error
      */
 	@SuppressWarnings("unchecked") // return type cast 
 	public <C, A, R> Object preEnforceCommandBlocking(CommandMessage<C> message, A aggregate,
@@ -160,11 +160,12 @@ public class CommandPolicyEnforcementPoint {
      * the Decision from the Policy Decision Point and to handle Constraints.
      *
      * @param <C>           PayloadType of the command
-     * @param message       Representation of a Message, containing a Payload and
+     * @param <R>           Return type
+     * @param message       Representation of a Message, containing a pay-load and
      *                      MetaData
      * @param handleCommand	Function that executes the Command (function may be throw exception)
      * @return the result after commandHandling and constraintHandling
-     * @throws Exception	
+     * @throws Exception	on error
      */
 	public <C, R> R preEnforceCommandDisruptor(CommandMessage<C> message,
 			CheckedFunction<CommandMessage<?>, R> handleCommand) throws Exception {
@@ -178,6 +179,7 @@ public class CommandPolicyEnforcementPoint {
      * from the Policy Decision Point and to handle Constraints.
      *
      * @param <C>           PayloadType of the command
+     * @param <R>           Return type
      * @param message       Representation of a Message, containing a Payload and
      *                      MetaData
      * @param handleCommand Function that executes the Command (function may be throw exception)
@@ -320,6 +322,7 @@ public class CommandPolicyEnforcementPoint {
 	 * 
 	 * @param commandName command name
 	 * @param commandHandler command message handler
+	 * @param commandTargetResolver a target resolver
 	 */
 	public void gatherNecessaryHandlers(String commandName, MessageHandler<? super CommandMessage<?>> commandHandler,
 				CommandTargetResolver commandTargetResolver) {

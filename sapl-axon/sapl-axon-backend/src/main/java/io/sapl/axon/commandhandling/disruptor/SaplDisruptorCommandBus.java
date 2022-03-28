@@ -95,10 +95,10 @@ import io.sapl.axon.commandhandling.CommandPolicyEnforcementPoint;
  * <p>
  * The process is split into two separate steps, each of which is executed in a different thread:
  * <ol>
- * <li><em>Command Handler execution</em><br/>This process invokes the command handler with the incoming command and 
+ * <li><em>Command Handler execution</em><br>This process invokes the command handler with the incoming command and 
  * calls the Command Policy Enforcement Point before executing the command. 
  * The result and changes to the aggregate are recorded for the next step.</li>
- * <li><em>Event storage and publication</em><br/>This process stores all generated domain events and publishes them
+ * <li><em>Event storage and publication</em><br>This process stores all generated domain events and publishes them
  * (with any optional application events) to the event bus. Finally, an asynchronous task is scheduled to invoke the
  * command handler callback with the result of the command handling result.</li>
  * </ol>
@@ -481,7 +481,7 @@ public class SaplDisruptorCommandBus extends DisruptorCommandBus {
          * Set the {@link MessageHandlerInterceptor} of generic type {@link CommandMessage} to use with the
          * {@link DisruptorCommandBus} during in the invocation thread. The interceptors are invoked by the thread that
          * also executes the command handler.
-         * <p/>
+         * <p>
          * Note that this is *not* the thread that stores and publishes the generated events. See
          * {@link #publisherInterceptors(java.util.List)}.
          *
@@ -532,7 +532,7 @@ public class SaplDisruptorCommandBus extends DisruptorCommandBus {
          * stopped. Additional threads are used to invoke callbacks and start a recovery process in case aggregate state
          * has been corrupted. Failure to do this results in the disruptor hanging at startup, waiting for resources to
          * become available.
-         * <p/>
+         * <p>
          * Defaults to {@code null}, causing the DisruptorCommandBus to create the necessary threads itself. In that
          * case, threads are created in the DisruptorCommandBus ThreadGroup.
          *
@@ -548,7 +548,7 @@ public class SaplDisruptorCommandBus extends DisruptorCommandBus {
          * Set the indicator specifying whether commands that failed because they were executed against potentially
          * corrupted aggregate state should be automatically rescheduled. Commands that caused the aggregate state to
          * become corrupted are <em>never</em> automatically rescheduled, to prevent poison message syndrome.
-         * <p/>
+         * <p>
          * Defaults to {@code true}.
          *
          * @param rescheduleCommandsOnCorruptState a {@code boolean} specifying whether or not to automatically
@@ -566,7 +566,7 @@ public class SaplDisruptorCommandBus extends DisruptorCommandBus {
          * but the {@link DisruptorCommandBus} may reschedule commands that may have been executed against a
          * corrupted Aggregate. If no commands have been rescheduled during this period, the disruptor shuts down
          * completely. Otherwise, it wait until no commands were scheduled for processing.
-         * <p/>
+         * <p>
          * Defaults to 1000 ms (1 second).
          *
          * @param coolingDownPeriod a {@code long} specifying the cooling down period for the shutdown of the
@@ -583,7 +583,7 @@ public class SaplDisruptorCommandBus extends DisruptorCommandBus {
          * Sets the {@link CommandTargetResolver} that must be used to indicate which Aggregate instance will be
          * invoked by an incoming command. The {@link DisruptorCommandBus} only uses this value if
          * {@link #invokerThreadCount(int)}}, or {@link #publisherThreadCount(int)} is greater than {@code 1}.
-         * <p/>
+         * <p>
          * Defaults to an {@link AnnotationCommandTargetResolver} instance.
          *
          * @param commandTargetResolver The {@link CommandTargetResolver} to use to indicate which Aggregate
@@ -599,7 +599,7 @@ public class SaplDisruptorCommandBus extends DisruptorCommandBus {
         /**
          * Sets the number of Threads that should be used to store and publish the generated Events. Defaults to
          * {@code 1}.
-         * <p/>
+         * <p>
          * A good value for this setting mainly depends on the number of cores your machine has, as well as the amount
          * of I/O that the process requires. If no I/O is involved, a good starting value is {@code [processors / 2]}.
          *
@@ -685,11 +685,11 @@ public class SaplDisruptorCommandBus extends DisruptorCommandBus {
          * Sets the {@link WaitStrategy} which is used to make dependent threads wait for tasks to be completed. The
          * choice of strategy mainly depends on the number of processors available and the number of tasks other than
          * the {@link DisruptorCommandBus} being processed.
-         * <p/>
+         * <p>
          * The {@link com.lmax.disruptor.BusySpinWaitStrategy} provides the best throughput at the lowest latency, but
          * also put a big claim on available CPU resources. The {@link com.lmax.disruptor.SleepingWaitStrategy} yields
          * lower performance, but leaves resources available for other processes to use.
-         * <p/>
+         * <p>
          * Defaults to the {@link BlockingWaitStrategy}.
          *
          * @param waitStrategy The WaitStrategy to use
@@ -707,7 +707,7 @@ public class SaplDisruptorCommandBus extends DisruptorCommandBus {
 
         /**
          * Sets the number of Threads that should be used to invoke the Command Handlers. Defaults to {@code 1}.
-         * <p/>
+         * <p>
          * A good value for this setting mainly depends on the number of cores your machine has, as well as the amount
          * of I/O that the process requires. A good range, if no I/O is involved is
          * {@code 1 .. ([processor count] / 2)}.
@@ -726,7 +726,7 @@ public class SaplDisruptorCommandBus extends DisruptorCommandBus {
          * Sets the {@link Cache} in which loaded aggregates will be stored. Aggregates that are not active in the
          * CommandBus' buffer will be loaded from this cache. If they are not in the cache, a new instance will be
          * constructed using Events from the {@link EventStore}.
-         * <p/>
+         * <p>
          * By default, no cache is used.
          *
          * @param cache the cache to store loaded aggregates in

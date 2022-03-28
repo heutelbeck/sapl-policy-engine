@@ -52,18 +52,18 @@ import reactor.core.Disposable;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class VaadinPep {
 
-	private final PolicyDecisionPoint pdp;
-	private final EnforceConstraintsOfDecision enforceConstraintsOfDecision;
-	private final List<Consumer<AuthorizationDecision>> decisionListenerList = new ArrayList<>();
-	private final List<BiConsumer<AuthorizationDecision, BeforeEvent>> decisionEventListenerList = new ArrayList<>();
-	private final List<VaadinFunctionConstraintHandlerProvider> localVaadinFunctionProvider = new ArrayList<>();
-	private final List<ConsumerConstraintHandlerProvider<UI>> localConsumerProviders = new ArrayList<>();
-	private final List<RunnableConstraintHandlerProvider> localRunnableProviders = new ArrayList<>();
-	private Disposable disposable;
-	private Object subject;
-	private Object action;
-	private Object resource;
-	private Object environment;
+	private final PolicyDecisionPoint                                  pdp;
+	private final EnforceConstraintsOfDecision                         enforceConstraintsOfDecision;
+	private final List<Consumer<AuthorizationDecision>>                decisionListenerList        = new ArrayList<>();
+	private final List<BiConsumer<AuthorizationDecision, BeforeEvent>> decisionEventListenerList   = new ArrayList<>();
+	private final List<VaadinFunctionConstraintHandlerProvider>        localVaadinFunctionProvider = new ArrayList<>();
+	private final List<ConsumerConstraintHandlerProvider<UI>>          localConsumerProviders      = new ArrayList<>();
+	private final List<RunnableConstraintHandlerProvider>              localRunnableProviders      = new ArrayList<>();
+	private Disposable                                                 disposable;
+	private Object                                                     subject;
+	private Object                                                     action;
+	private Object                                                     resource;
+	private Object                                                     environment;
 
 	/**
 	 * This function shall execute all decision listener consumers
@@ -262,6 +262,8 @@ public class VaadinPep {
 		 * Add a callback to the internal decision listener list. The callback sends the
 		 * defined Notification if a DENY decision occurs.
 		 *
+		 * @param message a message
+		 * @param variant the notification variant
 		 * @return VaadinSingle*PepBuilder or VaadinMulti*PepBuilder
 		 */
 		default T onDenyNotify(String message, NotificationVariant variant) {
@@ -275,6 +277,7 @@ public class VaadinPep {
 		 * Add a callback to the internal decision listener list. The callback sends the
 		 * defined Notification if a DENY decision occurs.
 		 *
+		 * @param message a message
 		 * @return VaadinSingle*PepBuilder or VaadinMulti*PepBuilder
 		 */
 		default T onDenyNotify(String message) {
@@ -285,6 +288,8 @@ public class VaadinPep {
 		 * Add a callback to the internal decision listener list. The callback sends the
 		 * defined Notification if a PERMIT decision occurs.
 		 *
+		 * @param message a message
+		 * @param variant the notification variant
 		 * @return VaadinSingle*PepBuilder or VaadinMulti*PepBuilder
 		 */
 		default T onPermitNotify(String message, NotificationVariant variant) {
@@ -298,6 +303,7 @@ public class VaadinPep {
 		 * Add a callback to the internal decision listener list. The callback sends the
 		 * defined Notification if a PERMIT decision occurs.
 		 *
+		 * @param message a message
 		 * @return VaadinSingle*PepBuilder or VaadinMulti*PepBuilder
 		 */
 		default T onPermitNotify(String message) {
@@ -387,8 +393,8 @@ public class VaadinPep {
 		 * @return VaadinSingle*PepBuilder or VaadinMulti*PepBuilder
 		 */
 		default T onPermitSetText(String permitText) {
-			return onPermitDo((AuthorizationDecision authzDecision, C component)
-					-> component.getUI().ifPresent(ui -> ui.access(() -> component.setText(permitText))));
+			return onPermitDo((AuthorizationDecision authzDecision, C component) -> component.getUI()
+					.ifPresent(ui -> ui.access(() -> component.setText(permitText))));
 		}
 
 		/**
@@ -401,8 +407,8 @@ public class VaadinPep {
 		 * @return VaadinSingle*PepBuilder or VaadinMulti*PepBuilder
 		 */
 		default T onDenySetText(String denyText) {
-			return onDenyDo((AuthorizationDecision authzDecision, C component)
-					-> component.getUI().ifPresent(ui -> ui.access(() -> component.setText(denyText))));
+			return onDenyDo((AuthorizationDecision authzDecision, C component) -> component.getUI()
+					.ifPresent(ui -> ui.access(() -> component.setText(denyText))));
 		}
 	}
 
@@ -445,12 +451,12 @@ public class VaadinPep {
 	 */
 	public abstract static class VaadinPepBuilder<T, C extends Component> implements VaadinPepBuilderBase<T, C> {
 		protected final VaadinPep vaadinPep;
-		protected final C component;
-		protected boolean denyRuleIsPresent = false;
+		protected final C         component;
+		protected boolean         denyRuleIsPresent = false;
 
 		protected VaadinPepBuilder(PolicyDecisionPoint pdp, EnforceConstraintsOfDecision enforceConstraintsOfDecision,
 				C component) {
-			vaadinPep = new VaadinPep(pdp, enforceConstraintsOfDecision);
+			vaadinPep      = new VaadinPep(pdp, enforceConstraintsOfDecision);
 			this.component = component;
 		}
 
@@ -572,8 +578,10 @@ public class VaadinPep {
 		/**
 		 * Adds a constraint handler provider to the local consumer provider list
 		 *
-		 * @param isResponsible predicate of JsonNode to determine the constraint the handler is responsible for
-		 * @param getHandler function that returns a Consumer handler for a specific constraint
+		 * @param isResponsible predicate of JsonNode to determine the constraint the
+		 *                      handler is responsible for
+		 * @param getHandler    function that returns a Consumer handler for a specific
+		 *                      constraint
 		 * @return Current object (=this)
 		 */
 		public T addConstraintHandler(Predicate<JsonNode> isResponsible, Function<JsonNode, Consumer<UI>> getHandler) {
@@ -676,7 +684,7 @@ public class VaadinPep {
 	 */
 	public abstract static class VaadinMultiPepBuilder<T, C extends Component> extends VaadinPepBuilder<T, C> {
 		private final MultiBuilder multiBuilder;
-		private boolean isBuild = false;
+		private boolean            isBuild = false;
 
 		protected VaadinMultiPepBuilder(PolicyDecisionPoint pdp,
 				EnforceConstraintsOfDecision enforceConstraintsOfDecision, MultiBuilder multiBuilder, C component) {
@@ -922,6 +930,9 @@ public class VaadinPep {
 
 		/**
 		 * The constructor sets the subject of the subscription.
+		 * 
+		 * @param pdp                          the PDP
+		 * @param enforceConstraintsOfDecision the deicision
 		 */
 		public LifecycleEventHandlerPepBuilder(PolicyDecisionPoint pdp,
 				EnforceConstraintsOfDecision enforceConstraintsOfDecision) {
@@ -945,8 +956,8 @@ public class VaadinPep {
 		 * the username and the user roles
 		 */
 		private void setDefaultSubject() {
-			JsonNodeFactory JSON = JsonNodeFactory.instance;
-			var subject = JSON.objectNode();
+			JsonNodeFactory JSON    = JsonNodeFactory.instance;
+			var             subject = JSON.objectNode();
 			subject.put("username", getUsername());
 			var rolesNode = JSON.arrayNode();
 			for (String role : getUserRoles()) {
@@ -1070,7 +1081,7 @@ public class VaadinPep {
 		/**
 		 * Calls the method onDenyNotify with the message "You are not authorized!"
 		 *
-		 * @return The current instance of this LifecycleEventHandlerPepBuilderV2.
+		 * @return The current instance of this LifecycleEventHandlerPepBuilder.
 		 */
 		public L onDenyNotify() {
 			return onDenyNotify("You are not authorized!");
@@ -1090,6 +1101,7 @@ public class VaadinPep {
 		 * the decision is 'DENY'.
 		 *
 		 * @param action A custom {@link BiConsumer} to be executed
+		 * @return The current instance of this LifecycleEventHandlerPepBuilder.
 		 */
 		public L onDenyDo(BiConsumer<AuthorizationDecision, BeforeEvent> action) {
 			this.onDecisionDo((decision, event) -> {
@@ -1105,6 +1117,7 @@ public class VaadinPep {
 		 *
 		 * @param action A custom {@link BiConsumer} to be executed. This BiConsumer
 		 *               must be able to handle the decisions 'DENY' and 'PERMIT'.
+		 * @return The current instance of this LifecycleEventHandlerPepBuilder.
 		 */
 		public L onDecisionDo(BiConsumer<AuthorizationDecision, BeforeEvent> action) {
 			vaadinPep.decisionEventListenerList.add(action);
@@ -1119,8 +1132,8 @@ public class VaadinPep {
 		 */
 		protected void setResourceByNavigationTargetIfNotDefined(BeforeEvent event) {
 			if (vaadinPep.resource == null) {
-				JsonNodeFactory JSON = JsonNodeFactory.instance;
-				var resource = JSON.objectNode();
+				JsonNodeFactory JSON     = JsonNodeFactory.instance;
+				var             resource = JSON.objectNode();
 				resource.put("target", event.getNavigationTarget().getName());
 				vaadinPep.resource = resource;
 			}
@@ -1138,6 +1151,9 @@ public class VaadinPep {
 
 		/**
 		 * This constructor method sets the action of the subscription.
+		 * 
+		 * @param pdp                          the PDP
+		 * @param enforceConstraintsOfDecision the decision
 		 */
 		public LifecycleBeforeEnterPepBuilder(PolicyDecisionPoint pdp,
 				EnforceConstraintsOfDecision enforceConstraintsOfDecision) {
@@ -1146,7 +1162,8 @@ public class VaadinPep {
 		}
 
 		/**
-		 * The method receives an {@link BeforeEnterEvent} and starts a subscription if there is at least one handler.
+		 * The method receives an {@link BeforeEnterEvent} and starts a subscription if
+		 * there is at least one handler.
 		 * 
 		 * @param event {@link BeforeEnterEvent} from the UI
 		 */
@@ -1186,6 +1203,9 @@ public class VaadinPep {
 
 		/**
 		 * This constructor method sets the action of the subscription.
+		 * 
+		 * @param pdp                          the PDP
+		 * @param enforceConstraintsOfDecision the decision
 		 */
 		protected LifecycleBeforeLeavePepBuilder(PolicyDecisionPoint pdp,
 				EnforceConstraintsOfDecision enforceConstraintsOfDecision) {

@@ -70,17 +70,19 @@ import reactor.util.concurrent.Queues;
 @Slf4j
 @SuppressWarnings("deprecation") // Inherited from Axon
 public class SaplQueryGateway implements QueryGateway {
-	private final QueryBus queryBus;
+	private final QueryBus                                                     queryBus;
 	private final List<MessageDispatchInterceptor<? super QueryMessage<?, ?>>> dispatchInterceptors;
 
 	protected SaplQueryGateway(QueryBus queryBus,
 			List<MessageDispatchInterceptor<? super QueryMessage<?, ?>>> dispatchInterceptors) {
-		this.queryBus = queryBus;
+		this.queryBus             = queryBus;
 		this.dispatchInterceptors = dispatchInterceptors;
 	}
 
 	/**
 	 * Will return a new {@link SaplQueryGateway.Builder}.
+	 * 
+	 * @return the builder
 	 */
 	public static SaplQueryGateway.Builder builder() {
 		return new SaplQueryGateway.Builder();
@@ -92,7 +94,7 @@ public class SaplQueryGateway implements QueryGateway {
 	public <R, Q> CompletableFuture<R> query(String queryName, Q query, ResponseType<R> responseType) {
 		CompletableFuture<QueryResponseMessage<R>> queryResponse = this.queryBus.query(this.processInterceptors(
 				new GenericQueryMessage<>(GenericMessage.asMessage(query), queryName, responseType)));
-		CompletableFuture<R> result = new CompletableFuture<>();
+		CompletableFuture<R>                       result        = new CompletableFuture<>();
 		queryResponse
 				.exceptionally(cause -> GenericQueryResponseMessage
 						.asResponseMessage(responseType.responseMessagePayloadType(), cause))
@@ -114,7 +116,11 @@ public class SaplQueryGateway implements QueryGateway {
 	/**
 	 * copied from org.axonframework.queryhandling.DefaultQueryGateway
 	 */
-	public <R, Q> Stream<R> scatterGather(String queryName, Q query, ResponseType<R> responseType, long timeout,
+	public <R, Q> Stream<R> scatterGather(
+			String queryName,
+			Q query,
+			ResponseType<R> responseType,
+			long timeout,
 			TimeUnit timeUnit) {
 
 		GenericQueryMessage<?, R> queryMessage = new GenericQueryMessage<>(GenericMessage.asMessage(query), queryName,
@@ -125,21 +131,31 @@ public class SaplQueryGateway implements QueryGateway {
 
 	/** @deprecated */
 	@Deprecated
-	public <Q, I, U> SubscriptionQueryResult<I, U> subscriptionQuery(String queryName, Q query,
-			ResponseType<I> initialResponseType, ResponseType<U> updateResponseType,
-			SubscriptionQueryBackpressure backpressure, int updateBufferSize) {
-		SubscriptionQueryMessage<?, I, U> interceptedQuery = this.getSubscriptionQueryMessage(queryName, query,
-				initialResponseType, updateResponseType);
-		SubscriptionQueryResult<QueryResponseMessage<I>, SubscriptionQueryUpdateMessage<U>> result = this.queryBus
+	public <Q, I, U> SubscriptionQueryResult<I, U> subscriptionQuery(
+			String queryName,
+			Q query,
+			ResponseType<I> initialResponseType,
+			ResponseType<U> updateResponseType,
+			SubscriptionQueryBackpressure backpressure,
+			int updateBufferSize) {
+		SubscriptionQueryMessage<?, I, U>                                                   interceptedQuery = this
+				.getSubscriptionQueryMessage(queryName, query,
+						initialResponseType, updateResponseType);
+		SubscriptionQueryResult<QueryResponseMessage<I>, SubscriptionQueryUpdateMessage<U>> result           = this.queryBus
 				.subscriptionQuery(interceptedQuery, backpressure, updateBufferSize);
 		return this.getSubscriptionQueryResult(result);
 	}
 
-	public <Q, I, U> SubscriptionQueryResult<I, U> subscriptionQuery(String queryName, Q query,
-			ResponseType<I> initialResponseType, ResponseType<U> updateResponseType, int updateBufferSize) {
-		SubscriptionQueryMessage<?, I, U> interceptedQuery = this.getSubscriptionQueryMessage(queryName, query,
-				initialResponseType, updateResponseType);
-		SubscriptionQueryResult<QueryResponseMessage<I>, SubscriptionQueryUpdateMessage<U>> result = this.queryBus
+	public <Q, I, U> SubscriptionQueryResult<I, U> subscriptionQuery(
+			String queryName,
+			Q query,
+			ResponseType<I> initialResponseType,
+			ResponseType<U> updateResponseType,
+			int updateBufferSize) {
+		SubscriptionQueryMessage<?, I, U>                                                   interceptedQuery = this
+				.getSubscriptionQueryMessage(queryName, query,
+						initialResponseType, updateResponseType);
+		SubscriptionQueryResult<QueryResponseMessage<I>, SubscriptionQueryUpdateMessage<U>> result           = this.queryBus
 				.subscriptionQuery(interceptedQuery, updateBufferSize);
 		return this.getSubscriptionQueryResult(result);
 	}
@@ -147,8 +163,11 @@ public class SaplQueryGateway implements QueryGateway {
 	/**
 	 * copied from org.axonframework.queryhandling.DefaultQueryGateway
 	 */
-	private <Q, I, U> SubscriptionQueryMessage<?, I, U> getSubscriptionQueryMessage(String queryName, Q query,
-			ResponseType<I> initialResponseType, ResponseType<U> updateResponseType) {
+	private <Q, I, U> SubscriptionQueryMessage<?, I, U> getSubscriptionQueryMessage(
+			String queryName,
+			Q query,
+			ResponseType<I> initialResponseType,
+			ResponseType<U> updateResponseType) {
 		SubscriptionQueryMessage<?, I, U> subscriptionQueryMessage = new GenericSubscriptionQueryMessage<>(
 				GenericMessage.asMessage(query), queryName, initialResponseType, updateResponseType);
 		return this.processInterceptors(subscriptionQueryMessage);
@@ -179,48 +198,10 @@ public class SaplQueryGateway implements QueryGateway {
 	 * @param errorConsumer       Consumer which is called on RecoverableException
 	 * @return SubscriptionQueryResult
 	 */
-	public <Q, I, U> SubscriptionQueryResult<I, U> recoverableSubscriptionQuery(Q query, Class<I> initialResponseType,
-			Class<U> updateResponseType, Consumer<RecoverableException> errorConsumer) {
-		return this.recoverableSubscriptionQuery(QueryMessage.queryName(query), query, initialResponseType,
-				updateResponseType, errorConsumer);
-	}
-
-	/**
-	 * Gets the QueryName, QueryMessage, InitialResponseType, UpdateResponseType and
-	 * RecoverableExcpetion. It returns a SubscriptionQueryResult.
-	 * 
-	 * @param <Q>                 PayloadType of the Query
-	 * @param <I>                 Initial Response Type
-	 * @param <U>                 Update Response Type
-	 * @param queryName           the Name of the Query
-	 * @param query               QueryMessage
-	 * @param initialResponseType the Type of the initial Response
-	 * @param updateResponseType  the Type of the update Response
-	 * @param errorConsumer       Consumer which is called on RecoverableException
-	 * @return SubscriptionQueryResult
-	 */
-	public <Q, I, U> SubscriptionQueryResult<I, U> recoverableSubscriptionQuery(String queryName, Q query,
-			Class<I> initialResponseType, Class<U> updateResponseType, Consumer<RecoverableException> errorConsumer) {
-		return this.recoverableSubscriptionQuery(queryName, query, ResponseTypes.instanceOf(initialResponseType),
-				ResponseTypes.instanceOf(updateResponseType), errorConsumer);
-	}
-
-	/**
-	 * Gets the QueryMessage, InitialResponseType, UpdateResponseType and
-	 * RecoverableExcpetion. It returns a SubscriptionQueryResult.
-	 * 
-	 * @param <Q>                 PayloadType of the Query
-	 * @param <I>                 Initial Response Type
-	 * @param <U>                 Update Response Type
-	 * @param query               QueryMessage
-	 * @param initialResponseType the Type of the initial Response
-	 * @param updateResponseType  the Type of the update Response
-	 * @param errorConsumer       Consumer which is called on RecoverableException
-	 * @return SubscriptionQueryResult
-	 */
-
-	public <Q, I, U> SubscriptionQueryResult<I, U> recoverableSubscriptionQuery(Q query,
-			ResponseType<I> initialResponseType, ResponseType<U> updateResponseType,
+	public <Q, I, U> SubscriptionQueryResult<I, U> recoverableSubscriptionQuery(
+			Q query,
+			Class<I> initialResponseType,
+			Class<U> updateResponseType,
 			Consumer<RecoverableException> errorConsumer) {
 		return this.recoverableSubscriptionQuery(QueryMessage.queryName(query), query, initialResponseType,
 				updateResponseType, errorConsumer);
@@ -240,8 +221,58 @@ public class SaplQueryGateway implements QueryGateway {
 	 * @param errorConsumer       Consumer which is called on RecoverableException
 	 * @return SubscriptionQueryResult
 	 */
-	public <Q, I, U> SubscriptionQueryResult<I, U> recoverableSubscriptionQuery(String queryName, Q query,
-			ResponseType<I> initialResponseType, ResponseType<U> updateResponseType,
+	public <Q, I, U> SubscriptionQueryResult<I, U> recoverableSubscriptionQuery(
+			String queryName,
+			Q query,
+			Class<I> initialResponseType,
+			Class<U> updateResponseType,
+			Consumer<RecoverableException> errorConsumer) {
+		return this.recoverableSubscriptionQuery(queryName, query, ResponseTypes.instanceOf(initialResponseType),
+				ResponseTypes.instanceOf(updateResponseType), errorConsumer);
+	}
+
+	/**
+	 * Gets the QueryMessage, InitialResponseType, UpdateResponseType and
+	 * RecoverableExcpetion. It returns a SubscriptionQueryResult.
+	 * 
+	 * @param <Q>                 PayloadType of the Query
+	 * @param <I>                 Initial Response Type
+	 * @param <U>                 Update Response Type
+	 * @param query               QueryMessage
+	 * @param initialResponseType the Type of the initial Response
+	 * @param updateResponseType  the Type of the update Response
+	 * @param errorConsumer       Consumer which is called on RecoverableException
+	 * @return SubscriptionQueryResult
+	 */
+
+	public <Q, I, U> SubscriptionQueryResult<I, U> recoverableSubscriptionQuery(
+			Q query,
+			ResponseType<I> initialResponseType,
+			ResponseType<U> updateResponseType,
+			Consumer<RecoverableException> errorConsumer) {
+		return this.recoverableSubscriptionQuery(QueryMessage.queryName(query), query, initialResponseType,
+				updateResponseType, errorConsumer);
+	}
+
+	/**
+	 * Gets the QueryName, QueryMessage, InitialResponseType, UpdateResponseType and
+	 * RecoverableExcpetion. It returns a SubscriptionQueryResult.
+	 * 
+	 * @param <Q>                 PayloadType of the Query
+	 * @param <I>                 Initial Response Type
+	 * @param <U>                 Update Response Type
+	 * @param queryName           the Name of the Query
+	 * @param query               QueryMessage
+	 * @param initialResponseType the Type of the initial Response
+	 * @param updateResponseType  the Type of the update Response
+	 * @param errorConsumer       Consumer which is called on RecoverableException
+	 * @return SubscriptionQueryResult
+	 */
+	public <Q, I, U> SubscriptionQueryResult<I, U> recoverableSubscriptionQuery(
+			String queryName,
+			Q query,
+			ResponseType<I> initialResponseType,
+			ResponseType<U> updateResponseType,
 			Consumer<RecoverableException> errorConsumer) {
 		return this.recoverableSubscriptionQuery(queryName, query, initialResponseType, updateResponseType,
 				Queues.SMALL_BUFFER_SIZE, errorConsumer);
@@ -264,8 +295,12 @@ public class SaplQueryGateway implements QueryGateway {
 	 * @param errorConsumer       Consumer which is called on RecoverableException
 	 * @return the RecoverableSubscriptionQuery Result
 	 */
-	public <Q, I, U> SubscriptionQueryResult<I, U> recoverableSubscriptionQuery(String queryName, Q query,
-			ResponseType<I> initialResponseType, ResponseType<U> updateResponseType, int updateBufferSize,
+	public <Q, I, U> SubscriptionQueryResult<I, U> recoverableSubscriptionQuery(
+			String queryName,
+			Q query,
+			ResponseType<I> initialResponseType,
+			ResponseType<U> updateResponseType,
+			int updateBufferSize,
 			Consumer<RecoverableException> errorConsumer) {
 		SubscriptionQueryMessage<?, I, U> interceptedQuery = this.getSubscriptionQueryMessage(queryName, query,
 				initialResponseType, updateResponseType);
@@ -280,14 +315,16 @@ public class SaplQueryGateway implements QueryGateway {
 	}
 
 	private <I, U> SubscriptionQueryMessage<?, I, U> transformToRecoverableSubscriptionQueryMessage(
-			SubscriptionQueryMessage<?, I, ?> interceptedQuery, String queryName, ResponseType<I> initialResponseType,
+			SubscriptionQueryMessage<?, I, ?> interceptedQuery,
+			String queryName,
+			ResponseType<I> initialResponseType,
 			ResponseType<U> recoverableResponseType) {
 
-		MetaData originalMetaData = interceptedQuery.getMetaData();
+		MetaData            originalMetaData      = interceptedQuery.getMetaData();
 		Map<String, Object> typeKeyToResponseType = Map.of(RecoverableResponse.RECOVERABLE_UPDATE_TYPE_KEY,
 				interceptedQuery.getUpdateResponseType());
 
-		MetaData mergedMetadata = originalMetaData.mergedWith(typeKeyToResponseType);
+		MetaData   mergedMetadata = originalMetaData.mergedWith(typeKeyToResponseType);
 		Message<?> genericMessage = new GenericMessage<>(interceptedQuery.getIdentifier(),
 				interceptedQuery.getPayload(), mergedMetadata);
 		return new GenericSubscriptionQueryMessage<>(genericMessage, queryName, initialResponseType,
@@ -297,29 +334,34 @@ public class SaplQueryGateway implements QueryGateway {
 
 	private <I, U> DefaultSubscriptionQueryResult<I, U> getRecoverableSubscriptionQueryResult(
 			SubscriptionQueryResult<QueryResponseMessage<I>, SubscriptionQueryUpdateMessage<RecoverableResponse>> result,
-			Consumer<RecoverableException> errorConsumer, ResponseType<U> originalUpdateResponseType) {
+			Consumer<RecoverableException> errorConsumer,
+			ResponseType<U> originalUpdateResponseType) {
 
 		return new DefaultSubscriptionQueryResult<>(
 				result.initialResult()
-				.filter((initialResult) -> Objects.nonNull(initialResult.getPayload()))
-				.map(Message::getPayload)
-				.onErrorMap(e -> e instanceof IllegalPayloadAccessException ? e.getCause() : e),
+						.filter((initialResult) -> Objects.nonNull(initialResult.getPayload()))
+						.map(Message::getPayload)
+						.onErrorMap(e -> e instanceof IllegalPayloadAccessException ? e.getCause() : e),
 
 				result.updates()
-				.filter(Objects::nonNull)
-				.mapNotNull(recoverableResponse -> recoverableResponse(originalUpdateResponseType, recoverableResponse)).onErrorContinue(RecoverableException.class,
-						((throwable, o) -> errorConsumer.accept((RecoverableException) throwable)))
+						.filter(Objects::nonNull)
+						.mapNotNull(recoverableResponse -> recoverableResponse(originalUpdateResponseType,
+								recoverableResponse))
+						.onErrorContinue(RecoverableException.class,
+								((throwable, o) -> errorConsumer.accept((RecoverableException) throwable)))
 						.doOnError(OriginalUpdateTypeRemoved.class, e -> {
 							log.error("updateResponseType:  {} was erased from Metadata",
 									originalUpdateResponseType.responseMessagePayloadType());
 							log.error("Verify that you don't delete MetaData on the AxonServer with an Interceptor");
-						}), result);
+						}),
+				result);
 	}
 
-	private <U> U recoverableResponse(ResponseType<U> originalUpdateResponseType,
+	private <U> U recoverableResponse(
+			ResponseType<U> originalUpdateResponseType,
 			SubscriptionQueryUpdateMessage<RecoverableResponse> recoverableResponse) {
-		RecoverableResponse response = recoverableResponse.getPayload();
-		U originalUpdateResponseTypepayload = originalUpdateResponseType
+		RecoverableResponse response                          = recoverableResponse.getPayload();
+		U                   originalUpdateResponseTypepayload = originalUpdateResponseType
 				.convert(response.getOriginalUpdateResponseTypePayload());
 
 		if (originalUpdateResponseTypepayload != null)
@@ -354,7 +396,7 @@ public class SaplQueryGateway implements QueryGateway {
 	 * {@link QueryBus} is a <b>hard requirement</b> and as such should be provided.
 	 */
 	public static class Builder {
-		private QueryBus queryBus;
+		private QueryBus                                                     queryBus;
 		private List<MessageDispatchInterceptor<? super QueryMessage<?, ?>>> dispatchInterceptors = new CopyOnWriteArrayList<>();
 
 		public Builder() {

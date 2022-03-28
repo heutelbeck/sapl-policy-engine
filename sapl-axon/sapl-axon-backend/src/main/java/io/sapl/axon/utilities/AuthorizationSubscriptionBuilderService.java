@@ -53,38 +53,43 @@ import lombok.RequiredArgsConstructor;
 public class AuthorizationSubscriptionBuilderService {
 
 	private static final String ENVIRONMENT = "environment";
-	private static final String RESOURCE = "resource";
-	private static final String ACTION = "action";
-	private static final String SUBJECT = "subject";
-	private final ObjectMapper mapper;
+	private static final String RESOURCE    = "resource";
+	private static final String ACTION      = "action";
+	private static final String SUBJECT     = "subject";
+	private final ObjectMapper  mapper;
 
 	/**
-	 * Executed to get the AuthorizationSubscription for a Query Message. It gets the
-	 * queryMessage and the annotation and returns the constructed
+	 * Executed to get the AuthorizationSubscription for a Query Message. It gets
+	 * the queryMessage and the annotation and returns the constructed
 	 * AuthorizationSubscription.
 	 * 
 	 * @param queryMessage Representation of a QueryMessage, containing a Payload
 	 *                     and MetaData
 	 * @param annotation   Annotation from the respective method
+	 * @param executable   an execuatable
+	 * @param queryResult  a query result
 	 * @return the AuthorizationSubscription for the Query
 	 */
-
-	public AuthorizationSubscription constructAuthorizationSubscriptionForQuery(QueryMessage<?, ?> queryMessage,
-			Annotation annotation, Executable executable, Optional<?> queryResult) {
+	public AuthorizationSubscription constructAuthorizationSubscriptionForQuery(
+			QueryMessage<?, ?> queryMessage,
+			Annotation annotation,
+			Executable executable,
+			Optional<?> queryResult) {
 
 		var annotationAttributeValues = retrieveAttributeValuesFromAnnotation(annotation);
 
-		var subject = retrieveSubject(queryMessage, annotationAttributeValues);
-		var action = retrieveAction(queryMessage, annotationAttributeValues);
-		var resource = retrieveResourceFromQueryMessage(queryMessage, annotationAttributeValues, executable,queryResult);
+		var subject     = retrieveSubject(queryMessage, annotationAttributeValues);
+		var action      = retrieveAction(queryMessage, annotationAttributeValues);
+		var resource    = retrieveResourceFromQueryMessage(queryMessage, annotationAttributeValues, executable,
+				queryResult);
 		var environment = retrieveEnvironment(annotationAttributeValues);
 
 		return AuthorizationSubscription.of(subject, action, resource, environment);
 	}
 
 	/**
-	 * Executed to get the AuthorizationSubscription for a Command Message. It gets the
-	 * message, target and the delegate and returns the constructed
+	 * Executed to get the AuthorizationSubscription for a Command Message. It gets
+	 * the message, target and the delegate and returns the constructed
 	 * AuthorizationSubscription.
 	 * 
 	 * @param message   Representation of a Message, containing a Payload and
@@ -94,15 +99,17 @@ public class AuthorizationSubscriptionBuilderService {
 	 * @return the AuthorizationSubscription for the Command
 	 */
 
-	public AuthorizationSubscription constructAuthorizationSubscriptionForCommand(CommandMessage<?> message,
-			Object aggregate, MessageHandlingMember<?> delegate) {
+	public AuthorizationSubscription constructAuthorizationSubscriptionForCommand(
+			CommandMessage<?> message,
+			Object aggregate,
+			MessageHandlingMember<?> delegate) {
 
-		Annotation methodAnnotation = retrievePreEnforceAnnotation(delegate);
-		var annotationAttributeValues = retrieveAttributeValuesFromAnnotation(methodAnnotation);
+		Annotation methodAnnotation          = retrievePreEnforceAnnotation(delegate);
+		var        annotationAttributeValues = retrieveAttributeValuesFromAnnotation(methodAnnotation);
 
-		var subject = retrieveSubject(message, annotationAttributeValues);
-		var action = retrieveAction(message, annotationAttributeValues);
-		var resource = retrieveResourceFromTarget(message, aggregate, annotationAttributeValues);
+		var subject     = retrieveSubject(message, annotationAttributeValues);
+		var action      = retrieveAction(message, annotationAttributeValues);
+		var resource    = retrieveResourceFromTarget(message, aggregate, annotationAttributeValues);
 		var environment = retrieveEnvironment(annotationAttributeValues);
 
 		return AuthorizationSubscription.of(subject, action, resource, environment);
@@ -114,7 +121,7 @@ public class AuthorizationSubscriptionBuilderService {
 
 	private JsonNode retrieveSubject(Message<?> message, Map<String, Object> values) {
 		var subjectNode = mapper.createObjectNode();
-		var subject = values.get(SUBJECT).toString();
+		var subject     = values.get(SUBJECT).toString();
 
 		if (!subject.isBlank()) {
 			var expr = setUpExpression(subject).getValue();
@@ -130,7 +137,7 @@ public class AuthorizationSubscriptionBuilderService {
 
 	private JsonNode retrieveAction(Message<?> message, Map<String, Object> values) {
 		var actionAnnotation = values.get(ACTION).toString();
-		var actionNode = mapper.createObjectNode();
+		var actionNode       = mapper.createObjectNode();
 
 		if (!actionAnnotation.isBlank())
 			actionNode.set(actionAnnotation, evaluateSpEL(message.getPayload(), actionAnnotation));
@@ -145,19 +152,21 @@ public class AuthorizationSubscriptionBuilderService {
 		actionNode.set("metadata", mapper.valueToTree(message.getMetaData()));
 	}
 
-	private JsonNode retrieveResourceFromQueryMessage(QueryMessage<?, ?> message, Map<String, Object> values,
-			Executable executable, Optional<?> queryResult) {
-		var resourceNode = mapper.createObjectNode();
+	private JsonNode retrieveResourceFromQueryMessage(
+			QueryMessage<?, ?> message,
+			Map<String, Object> values,
+			Executable executable,
+			Optional<?> queryResult) {
+		var resourceNode       = mapper.createObjectNode();
 		var resourceAnnotation = values.get(RESOURCE).toString();
 
 		if (!resourceAnnotation.isBlank()) {
 			var expr = setUpExpression(resourceAnnotation).getValue();
-			if(expr != null)
+			if (expr != null)
 				resourceNode.put(RESOURCE, expr.toString());
 		}
-			
 
-		queryResult.ifPresent(result-> resourceNode.set("queryResult",mapper.valueToTree(result)));
+		queryResult.ifPresent(result -> resourceNode.set("queryResult", mapper.valueToTree(result)));
 
 		resourceNode.put("projectionClass", executable.getDeclaringClass().getSimpleName());
 		resourceNode.put("methodName", executable.getName());
@@ -176,7 +185,7 @@ public class AuthorizationSubscriptionBuilderService {
 			return null;
 
 		var expr = setUpExpression(env).getValue();
-		if ( expr == null)
+		if (expr == null)
 			return null;
 
 		return expr.toString();
@@ -189,7 +198,7 @@ public class AuthorizationSubscriptionBuilderService {
 	}
 
 	private <T> JsonNode retrieveResourceFromTarget(Message<?> message, T aggregate, Map<String, Object> values) {
-		var resourceNode = mapper.createObjectNode();
+		var resourceNode       = mapper.createObjectNode();
 		var resourceAnnotation = values.get(RESOURCE).toString();
 
 		if (!resourceAnnotation.isBlank())
@@ -200,7 +209,9 @@ public class AuthorizationSubscriptionBuilderService {
 		return resourceNode;
 	}
 
-	private <T> void constructResourceWithAggregateInformation(Message<?> message, T aggregate,
+	private <T> void constructResourceWithAggregateInformation(
+			Message<?> message,
+			T aggregate,
 			ObjectNode resourceNode) {
 
 		var aggregateType = message.getMetaData().get(Constants.aggregateType.name());
@@ -238,7 +249,7 @@ public class AuthorizationSubscriptionBuilderService {
 	}
 
 	private JsonNode evaluateSpEL(Object obj, String expr) {
-		var context = setUpEvaluationContext(obj);
+		var context    = setUpEvaluationContext(obj);
 		var expression = setUpExpression(expr);
 		return evaluateToJson(expression, context);
 

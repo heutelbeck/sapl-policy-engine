@@ -75,9 +75,9 @@ import io.sapl.axon.utilities.CheckedFunction;
  * 
  * For example: Use a Cached Thread Pool (see {@link java.util.concurrent.Executors#newCachedThreadPool()}). 
  * It will reuse threads while possible, and shut them down after 60 seconds of inactivity.
- * <p/>
+ * <p>
  * Each Command is dispatched in a separate task, which is processed by the Executor.
- * <p/>
+ * <p>
  * Note that you should call {@link #shutdown()} to stop any threads waiting for new tasks. Failure to do so may cause
  * the JVM to hang for up to 60 seconds on JVM shutdown.
  * 
@@ -309,7 +309,7 @@ public class SaplCommandBus implements CommandBus {
     }
     
     /**
-     * Builder class to instantiate a {@link SaplSimpleCommandBus}.
+     * Builder class to instantiate a SaplSimpleCommandBus.
      * <p>
      * The {@link TransactionManager} is defaulted to a {@link NoTransactionManager}, the {@link MessageMonitor} is
      * defaulted to a {@link NoOpMessageMonitor}, the {@link RollbackConfiguration} defaults to a

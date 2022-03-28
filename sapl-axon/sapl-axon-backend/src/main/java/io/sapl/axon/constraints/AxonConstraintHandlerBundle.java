@@ -51,7 +51,8 @@ import com.fasterxml.jackson.databind.JsonNode;
  * 
  * @param <T> PayloadType of Messages
  * @param <R> ResultType of QueryMessages
- * @param <U> extends Message (CommandMessage<T>, QueryMessage<T, R>)
+ * @param <U> extends Message (CommandMessage&lt;T&gt;, QueryMessage&lt;T,
+ *            R&gt;)
  */
 
 public class AxonConstraintHandlerBundle<T, R, U extends Message<T>> {
@@ -91,9 +92,10 @@ public class AxonConstraintHandlerBundle<T, R, U extends Message<T>> {
 	 * members identified by the {@link io.sapl.axon.annotations.ConstraintHandler}
 	 * annotation.
 	 * 
-	 * @param aggregateRoot  aggregate root object
-	 * @param entity         aggregate member entity object
-	 * @param commandMessage commandMessage
+	 * @param aggregateRoot      aggregate root object
+	 * @param entity             aggregate member entity object
+	 * @param commandMessage     commandMessage
+	 * @param applicationContext the application context
 	 */
 	public void invokeAggregateConstraintHandlerMethods(
 			Object aggregateRoot,

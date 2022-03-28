@@ -12,8 +12,8 @@ import reactor.core.publisher.Mono;
 /**
  * This class is a container class for the following constraint handler types:
  *   - Runnable handlers
- *   - Consumer handlers -> UI is passed
- *   - Vaadin function handlers -> UI and current decision is passed
+ *   - Consumer handlers: UI is passed
+ *   - Vaadin function handlers: UI and current decision is passed
  */
 public class VaadinConstraintHandlerBundle {
     public final List<Function<UI, Mono<Boolean>>> vaadinFunctionHandlerList = new LinkedList<>();
