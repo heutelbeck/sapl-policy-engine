@@ -1,0 +1,6 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  io.sapl.axon.config.SaplAxonConstraintHandlerAutoConfiguration,\
+  io.sapl.axon.config.SaplAxonCommandPolicyEnforcementPointAutoConfiguration,\
+  io.sapl.axon.config.SaplAxonQueryPolicyEnforcementPointAutoConfiguration,\
+  io.sapl.axon.config.ObjectMapperAutoConfiguration,\
+  io.sapl.axon.config.AuthorizationSubscriptionBuilderServiceAutoConfiguration
