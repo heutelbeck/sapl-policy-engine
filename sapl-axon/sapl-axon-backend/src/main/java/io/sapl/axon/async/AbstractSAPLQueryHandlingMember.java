@@ -86,11 +86,11 @@ abstract public class AbstractSAPLQueryHandlingMember<T> extends WrappedMessageH
 
 	@SuppressWarnings("unchecked")
 	//Cast to R, because R is the ReturnType of a QueryMessage and super.handle executes the Query and returns the result
-	private <R> R handleQueryStage(QueryMessage<?, R> message, T source) throws QueryExecutionException {
+	private <R> R handleQueryStage(QueryMessage<?, R> message, T source) {
 		try {
 			return (R) super.handle(message, source);
 		} catch (Exception e) {
-			throw new QueryExecutionException("Exception Handler: ", e);
+			throw new QueryExecutionException("Failure handling Query.", e);
 		}
 	}
 

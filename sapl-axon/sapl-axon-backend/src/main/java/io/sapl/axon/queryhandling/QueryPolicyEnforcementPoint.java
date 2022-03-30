@@ -18,7 +18,6 @@ package io.sapl.axon.queryhandling;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Executable;
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -78,7 +77,7 @@ public class QueryPolicyEnforcementPoint {
 	// for axon point-to-point messages
 	private final ConcurrentHashMap<String, AuthorizationDecision> currentDecisions   = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, Annotation>            currentAnnotations = new ConcurrentHashMap<>();
-	private final Set<String>                                      unenforcedMessages = new HashSet<>();
+	private final Set<String>                                      unenforcedMessages = ConcurrentHashMap.newKeySet();
 	private static final String                                    DENY               = "Denied by PDP";
 	// important for Axon-Server usage
 	private final ConcurrentHashMap<String, SubscriptionQueryMessage<?, ?, ?>> currentSubscriptionQueryMessages = new ConcurrentHashMap<>();

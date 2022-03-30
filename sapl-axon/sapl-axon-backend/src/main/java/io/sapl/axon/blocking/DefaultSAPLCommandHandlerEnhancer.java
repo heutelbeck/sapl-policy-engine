@@ -22,14 +22,14 @@ import org.axonframework.messaging.annotation.HandlerEnhancerDefinition;
 import org.axonframework.messaging.annotation.MessageHandlingMember;
 
 import io.sapl.axon.commandhandling.CommandPolicyEnforcementPoint;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Default Implementation of Axon HandlerEnhancer which allows the enhancing of
  * CommandHandlingMember with the {@link DefaultSAPLCommandHandlingMember}.
  *
  */
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class DefaultSAPLCommandHandlerEnhancer implements HandlerEnhancerDefinition {
 
 	private final CommandPolicyEnforcementPoint pep;

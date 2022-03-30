@@ -24,7 +24,7 @@ import org.axonframework.messaging.annotation.MessageHandlingMember;
 import org.axonframework.queryhandling.annotation.QueryHandlingMember;
 
 import io.sapl.axon.queryhandling.QueryPolicyEnforcementPoint;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Default Implementation of Axon HandlerEnhancer which allows the enhancing of
@@ -32,7 +32,7 @@ import lombok.AllArgsConstructor;
  *
  */
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class DefaultSAPLQueryHandlerEnhancer implements HandlerEnhancerDefinition {
 
 	private final QueryPolicyEnforcementPoint pep;

@@ -71,7 +71,7 @@ public class DefaultSAPLQueryHandlingMemberTests {
 		var member = new DefaultSAPLQueryHandlingMember<>(delegate, pep);
 		var message = new GenericQueryMessage<>(new TestQuery(), null);
 		var exception = assertThrows(Exception.class, () -> member.handle(message, new ExceptionalProjection()));
-		assertEquals("Exception Handler: ", exception.getMessage());
+		assertEquals("Failure handling Query.", exception.getMessage());
 	}
 
 	/**

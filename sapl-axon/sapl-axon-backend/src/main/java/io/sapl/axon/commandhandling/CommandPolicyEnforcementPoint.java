@@ -267,7 +267,6 @@ public class CommandPolicyEnforcementPoint {
 				// load AnnotatedAggregate via repository (Disruptor)
 				annotatedAggregate = (AnnotatedAggregate<?>) repositoryAggregate;
 			}
-			log.debug("Aggregate: {}", annotatedAggregate);
 			annotatedAggregateOptional = Optional.of(annotatedAggregate);
 		} catch (Exception exception) {
 			// if exception than there is no aggregate maybe it is an aggregate creation command
@@ -366,7 +365,6 @@ public class CommandPolicyEnforcementPoint {
 		}
 		setFieldAccessible(repositoryField);
 		var repository = (Repository<?>) repositoryField.get(commandMessageHandler);
-		log.debug("Repository: {}", repository);
 		repositoryForCommand.put(commandName, repository);
 		
 		return messageHandlerClass;
@@ -379,7 +377,6 @@ public class CommandPolicyEnforcementPoint {
 			var fieldCommandTargetResolver = messageHandlerClass.getDeclaredField("commandTargetResolver");
 			setFieldAccessible(fieldCommandTargetResolver);
 			commandTargetResolver.set((CommandTargetResolver) fieldCommandTargetResolver.get(commandMessageHandler));
-			log.debug("CommandTargetResolver: {}", commandTargetResolver);
 		}
 	}
 	
@@ -433,8 +430,7 @@ public class CommandPolicyEnforcementPoint {
 						log.debug("Add command '{}' with method handler '{}'", commandName, executable);
 						if (msgHandlingMember instanceof ChildForwardingCommandMessageHandlingMember) {
 							gatherChildEntityResolver(commandName, msgHandlingMember);
-						}
-						
+						}						
 					}
 				}
 			}
@@ -450,7 +446,6 @@ public class CommandPolicyEnforcementPoint {
 		@SuppressWarnings("unchecked") // type of field is known (Axon Framework) 
 		var childEntityResolver = (BiFunction<CommandMessage<?>, Object, ?>) childEntityResolverField.get(msgHandlingMember);
 		childEntityResolverForCommand.put(commandName, childEntityResolver);
-		log.debug(" ... and ChildEntityResolver.");
 	}
 	
 	private void setFieldAccessible(Field field) {
