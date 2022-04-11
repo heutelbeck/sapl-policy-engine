@@ -12,15 +12,6 @@ Alternatively, a container image and configurations for deployment on Docker and
 
 ## Local Execution
 
-### Running from Pre-Build JAR
-
-Download the latest build from [here](https://s01.oss.sonatype.org/content/repositories/snapshots/io/sapl/sapl-server-lt/).
-To run the server, you need JRE 11 or later installed. Run the server:
-
-```
-java -jar sapl-server-lt-2.1.0-SNAPSHOT.jar
-```
-
 ### Running the Server from Source
 
 Disclaimer: It is likely that you only need to run the server from the source if you are a contributor to the policy engine project.
