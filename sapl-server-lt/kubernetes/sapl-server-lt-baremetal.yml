@@ -62,9 +62,10 @@ spec:
               name: http
 ---
 kind: Ingress
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 metadata:
   name: saple-server-lt
+  namespace: sapl-server-lt
   labels:
     app: sapl-server-lt
   annotations:
@@ -75,18 +76,23 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-read-timeout: '2147483647'
     nginx.ingress.kubernetes.io/proxy-send-timeout: '2147483647'
     kubernetes.io/ingress.class: nginx
-    cert-manager.io/issuer: letsencrypt-prod
+    cert-manager.io/cluster-issuer: letsencrypt-prod
     kubernetes.io/tls-acme: 'true'
 spec:
   tls:
     - hosts:
+        #edit the URL to the matching DNS Entry
         - sapl.exampleurl.com
-      secretName: sapl.lt.local-tls
+      secretName: sapl.ce.local-tls
   rules:
+    #edit the URL to the matching DNS Entry
     - host: sapl.exampleurl.com
       http:
         paths:
           - path: /
+            pathType: Prefix
             backend:
-              serviceName: sapl-server-lt 
-              servicePort: 8080
+              service:
+                name: sapl-server-lt
+                port:
+                  number: 8080
