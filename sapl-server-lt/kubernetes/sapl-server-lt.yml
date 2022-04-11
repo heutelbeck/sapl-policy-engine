@@ -55,7 +55,7 @@ spec:
               name: http
 ---
 kind: Ingress
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 metadata:
   name: saple-server-lt
   labels:
@@ -78,6 +78,9 @@ spec:
       http:
         paths:
           - path: /
+            pathType: Prefix
             backend:
-              serviceName: sapl-server-lt 
-              servicePort: 8080
+              service:
+                name: sapl-server-lt
+                port:
+                  number: 8080
