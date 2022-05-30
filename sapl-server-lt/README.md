@@ -12,15 +12,6 @@ Alternatively, a container image and configurations for deployment on Docker and
 
 ## Local Execution
 
-### Running from Pre-Build JAR
-
-Download the latest build from [here](https://s01.oss.sonatype.org/content/repositories/snapshots/io/sapl/sapl-server-lt/).
-To run the server, you need JRE 11 or later installed. Run the server:
-
-```
-java -jar sapl-server-lt-2.1.0-SNAPSHOT.jar
-```
-
 ### Running the Server from Source
 
 Disclaimer: It is likely that you only need to run the server from the source if you are a contributor to the policy engine project.
@@ -146,23 +137,17 @@ as well as Desktop Docker on Windows and will use the Kubernetes nginx-ingress-c
 
 #### Prerequisites
 
-Installed Kubernetes v1.18+ 
+Installed Kubernetes v1.23 
 Install NGINX Ingress Controller according to https://kubernetes.github.io/ingress-nginx/deploy/
 
 ```shell
-helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-helm repo update
-helm install ingress-nginx ingress-nginx/ingress-nginx
+helm upgrade --install ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx --namespace ingress-nginx --create-namespace --set controller.hostNetwork=true,controller.kind=DaemonSet
 ```
 
 Install Cert-Manager according to https://cert-manager.io/docs/installation/kubernetes/ (Only for Use with exposed Ports and matching DNS Entries)
 
 ```shell
-kubectl create namespace cert-manager
-kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.2.0-alpha.0/cert-manager.crds.yaml
-helm repo add jetstack https://charts.jetstack.io
-helm repo update
-helm install   cert-manager jetstack/cert-manager   --namespace cert-manager   --version v1.1.0
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.7.2/cert-manager.yaml
 ```
 
 Change the Email address in the Clusterissuer.yaml (Line email: user@email.com)

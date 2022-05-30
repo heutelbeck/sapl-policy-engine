@@ -86,10 +86,11 @@
 		<lombok.version>1.18.22</lombok.version>
 		<hamcrest.version>2.2</hamcrest.version>
 		<spotify.hamcrest.version>1.2.0</spotify.hamcrest.version>
-		<springboot.version>2.6.4</springboot.version>
+		<springboot.version>2.6.6</springboot.version>
 		<mockito.version>3.12.4</mockito.version>
-		<vaadin.version>14.7.8</vaadin.version>
 		<guice.version>5.1.0</guice.version>
+       	<vaadin.internal.version>14.8.3</vaadin.internal.version>
+       	<vaadin.version>23.0.3</vaadin.version>
 
 		<license-maven-plugin.version>4.1</license-maven-plugin.version>
 		<maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
@@ -219,15 +220,6 @@
 				<version>${lombok.version}</version>
 			</dependency>
 
-			<!-- Vaadin -->
-			<dependency>
-				<groupId>com.vaadin</groupId>
-				<artifactId>vaadin-bom</artifactId>
-				<version>${vaadin.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-
 			<dependency>
 				<groupId>com.google.inject</groupId>
 				<artifactId>guice</artifactId>
@@ -262,12 +254,7 @@
 					<groupId>org.springframework.boot</groupId>
 					<artifactId>spring-boot-maven-plugin</artifactId>
 					<version>${springboot.version}</version>
-				</plugin>
-				<plugin>
-					<groupId>com.vaadin</groupId>
-					<artifactId>vaadin-maven-plugin</artifactId>
-					<version>${vaadin.version}</version>
-				</plugin>
+				</plugin>		
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-jar-plugin</artifactId>
