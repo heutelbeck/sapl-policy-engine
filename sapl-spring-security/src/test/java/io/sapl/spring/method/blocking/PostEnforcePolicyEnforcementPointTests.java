@@ -51,6 +51,7 @@ import io.sapl.spring.constraints.api.ErrorHandlerProvider;
 import io.sapl.spring.constraints.api.ErrorMappingConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.FilterPredicateConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.MappingConstraintHandlerProvider;
+import io.sapl.spring.constraints.api.MethodInvocationConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.RequestHandlerProvider;
 import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.SubscriptionHandlerProvider;
@@ -100,11 +101,13 @@ class PostEnforcePolicyEnforcementPointTests {
 
 	List<FilterPredicateConstraintHandlerProvider<?>> globalFilterPredicateProviders;
 
+	List<MethodInvocationConstraintHandlerProvider> globalInvocationHandlerProviders;
+
 	private ConstraintEnforcementService buildConstraintHandlerService(ObjectMapper mapper) {
 		return new ConstraintEnforcementService(globalRunnableProviders, globalConsumerProviders,
 				globalSubscriptionHandlerProviders, globalRequestHandlerProviders, globalMappingHandlerProviders,
 				globalErrorMappingHandlerProviders, globalErrorHandlerProviders, globalFilterPredicateProviders,
-				mapper);
+				globalInvocationHandlerProviders, mapper);
 	}
 
 	@BeforeEach
@@ -119,6 +122,7 @@ class PostEnforcePolicyEnforcementPointTests {
 		globalErrorMappingHandlerProviders = new LinkedList<>();
 		globalErrorHandlerProviders        = new LinkedList<>();
 		globalFilterPredicateProviders     = new LinkedList<>();
+		globalInvocationHandlerProviders   = new LinkedList<>();
 
 		var          mapper = new ObjectMapper();
 		SimpleModule module = new SimpleModule();
@@ -199,7 +203,7 @@ class PostEnforcePolicyEnforcementPointTests {
 	}
 
 	@Test
-	void whenAfterAndDecideISPermitWithResource_then_ReturnTheReplacementObject() {
+	void whenAfterAndDecideIsPermitWithResource_then_ReturnTheReplacementObject() {
 		var sut                  = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				subscriptionBuilderFactory);
 		var methodInvocation     = MethodInvocationUtils.create(new TestClass(), DO_SOMETHING);

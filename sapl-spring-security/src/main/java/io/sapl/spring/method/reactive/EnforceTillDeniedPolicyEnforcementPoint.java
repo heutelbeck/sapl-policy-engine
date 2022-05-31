@@ -29,7 +29,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.constraints.ConstraintHandlerBundle;
+import io.sapl.spring.constraints.ReactiveTypeConstraintHandlerBundle;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.CoreSubscriber;
 import reactor.core.Disposable;
@@ -73,7 +73,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
 	final AtomicReference<AuthorizationDecision> latestDecision = new AtomicReference<>();
 
-	final AtomicReference<ConstraintHandlerBundle<T>> constraintHandler = new AtomicReference<>();
+	final AtomicReference<ReactiveTypeConstraintHandlerBundle<T>> constraintHandler = new AtomicReference<>();
 
 	final AtomicBoolean stopped = new AtomicBoolean(false);
 
@@ -108,13 +108,13 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
 	private void handleNextDecision(AuthorizationDecision decision) {
 		var previousDecision = latestDecision.getAndSet(decision);
-		ConstraintHandlerBundle<T> newBundle;
+		ReactiveTypeConstraintHandlerBundle<T> newBundle;
 		try {
-			newBundle = constraintsService.bundleFor(decision, clazz);
+			newBundle = constraintsService.reactiveTypeBundleFor(decision, clazz);
 			constraintHandler.set(newBundle);
 		}
 		catch (AccessDeniedException e) {
-			constraintHandler.set(new ConstraintHandlerBundle<>());
+			constraintHandler.set(new ReactiveTypeConstraintHandlerBundle<>());
 			sink.error(e);
 			disposeDecisionsAndResourceAccessPoint();
 			return;

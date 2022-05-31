@@ -90,8 +90,8 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 		log.trace("Intercepted: {}.{}", invocation.getClass().getSimpleName(), invocation.getMethod().getName());
 
 		var targetClass = invocation.getThis().getClass();
-		var method = invocation.getMethod();
-		var attributes = source.getAttributes(method, targetClass);
+		var method      = invocation.getMethod();
+		var attributes  = source.getAttributes(method, targetClass);
 
 		if (noSaplAnnotationsPresent(attributes))
 			return delegateToSpringSecurityInterceptor(invocation);
@@ -114,14 +114,14 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 		if (enforceRecoverableIfDeniedAttribute != null)
 			return interceptWithEnforceRecoverableIfDeniedPEP(invocation, enforceRecoverableIfDeniedAttribute);
 
-		var preEnforceAttribute = findAttribute(attributes, PreEnforceAttribute.class);
+		var preEnforceAttribute  = findAttribute(attributes, PreEnforceAttribute.class);
 		var postEnforceAttribute = findAttribute(attributes, PostEnforceAttribute.class);
 		return interceptWithPrePostEnforce(invocation, preEnforceAttribute, postEnforceAttribute);
 	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private Flux<?> interceptWithEnforceRecoverableIfDeniedPEP(MethodInvocation invocation, SaplAttribute attribute) {
-		var decisions = preSubscriptionDecisions(invocation, attribute);
+		var decisions           = preSubscriptionDecisions(invocation, attribute);
 		var resourceAccessPoint = (Flux) proceed(invocation);
 		return EnforceRecoverableIfDeniedPolicyEnforcementPoint.of(decisions, resourceAccessPoint,
 				constraintHandlerService, attribute.getGenericsType());
@@ -129,7 +129,7 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private Flux<?> interceptWithEnforceTillDeniedPEP(MethodInvocation invocation, SaplAttribute attribute) {
-		var decisions = preSubscriptionDecisions(invocation, attribute);
+		var decisions           = preSubscriptionDecisions(invocation, attribute);
 		var resourceAccessPoint = (Flux) proceed(invocation);
 		return EnforceTillDeniedPolicyEnforcementPoint.of(decisions, resourceAccessPoint, constraintHandlerService,
 				attribute.getGenericsType());
@@ -137,27 +137,31 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private Flux<?> interceptWithEnforceDropWhileDeniedPEP(MethodInvocation invocation, SaplAttribute attribute) {
-		var decisions = preSubscriptionDecisions(invocation, attribute);
+		var decisions           = preSubscriptionDecisions(invocation, attribute);
 		var resourceAccessPoint = (Flux) proceed(invocation);
 		return EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, resourceAccessPoint, constraintHandlerService,
 				attribute.getGenericsType());
 	}
 
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	private Publisher<?> interceptWithPrePostEnforce(MethodInvocation invocation,
-			PreEnforceAttribute preEnforceAttribute, PostEnforceAttribute postEnforceAttribute) {
-		var resourceAccessPoint = proceed(invocation);
-		var wrappedResourceAccessPoint = Flux.from(resourceAccessPoint);
-		if (preEnforceAttribute != null) {
+	private Publisher<?> interceptWithPrePostEnforce(
+			MethodInvocation invocation,
+			PreEnforceAttribute preEnforceAttribute,
+			PostEnforceAttribute postEnforceAttribute) {
+
+		Flux<?> wrappedResourceAccessPoint;
+		if (preEnforceAttribute == null) {
+			wrappedResourceAccessPoint = Flux.from(proceed(invocation));
+		} else {
 			var decisions = preSubscriptionDecisions(invocation, preEnforceAttribute);
 			wrappedResourceAccessPoint = preEnforcePolicyEnforcementPoint.enforce(decisions,
-					(Flux) wrappedResourceAccessPoint, preEnforceAttribute.getGenericsType());
+					invocation, preEnforceAttribute.getGenericsType());
 		}
 		if (postEnforceAttribute != null)
 			return postEnforcePolicyEnforcementPoint.postEnforceOneDecisionOnResourceAccessPoint(
 					wrappedResourceAccessPoint.next(), invocation, postEnforceAttribute);
 
-		if (resourceAccessPoint instanceof Mono)
+		var isMonoReturnType = invocation.getMethod().getReturnType().isAssignableFrom(Mono.class);
+		if (isMonoReturnType)
 			return wrappedResourceAccessPoint.next();
 
 		return wrappedResourceAccessPoint;
@@ -177,16 +181,16 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 	}
 
 	private void failIfPostEnforceIsOnAMethodNotReturningAMono(Collection<ConfigAttribute> attributes, Method method) {
-		var returnType = method.getReturnType();
-		var hasPostEnforceAttribute = hasAnyAttributeOfType(attributes, PostEnforceAttribute.class);
-		var methodReturnsMono = Mono.class.isAssignableFrom(returnType);
+		var returnType                 = method.getReturnType();
+		var hasPostEnforceAttribute    = hasAnyAttributeOfType(attributes, PostEnforceAttribute.class);
+		var methodReturnsMono          = Mono.class.isAssignableFrom(returnType);
 		var ifPostEnforceThenItIsAMono = !hasPostEnforceAttribute || methodReturnsMono;
 		Assert.state(ifPostEnforceThenItIsAMono,
 				() -> "The returnType " + returnType + " on " + method + " must be a Mono for @PostEnforce.");
 	}
 
 	private void failIfTheAnnotatedMethodIsNotOfReactiveType(Method method) {
-		var returnType = method.getReturnType();
+		var returnType            = method.getReturnType();
 		var hasReactiveReturnType = Publisher.class.isAssignableFrom(returnType);
 		Assert.state(hasReactiveReturnType, () -> "The returnType " + returnType + " on " + method
 				+ " must be org.reactivestreams.Publisher (i.e. Mono / Flux) in order to support Reactor Context. ");
@@ -198,18 +202,21 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 				+ " is annotated by both at least one SAPL annotation (@Enforce, @PreEnforce, @PostEnforce) and at least one Spring method security annotation (@PreAuthorize, @PostAuthorize, @PostFilter). Please only make use of one type of annotation exclusively.");
 	}
 
-	private void failIfEnforceIsCombinedWithPreEnforceOrPostEnforce(Collection<ConfigAttribute> attributes,
+	private void failIfEnforceIsCombinedWithPreEnforceOrPostEnforce(
+			Collection<ConfigAttribute> attributes,
 			Method method) {
-		var hasEnforceAttribute = hasAnyAttributeOfType(attributes, EnforceRecoverableIfDeniedAttribute.class,
+		var hasEnforceAttribute              = hasAnyAttributeOfType(attributes,
+				EnforceRecoverableIfDeniedAttribute.class,
 				EnforceTillDeniedAttribute.class, EnforceDropWhileDeniedAttribute.class);
-		var hasPreOrPostEnforceAttribute = hasAnyAttributeOfType(attributes, PreEnforceAttribute.class,
+		var hasPreOrPostEnforceAttribute     = hasAnyAttributeOfType(attributes, PreEnforceAttribute.class,
 				PostEnforceAttribute.class);
 		var onlyHasOneTypeOfAnnotationOrNone = !(hasEnforceAttribute && hasPreOrPostEnforceAttribute);
 		Assert.state(onlyHasOneTypeOfAnnotationOrNone, () -> "The method " + method
 				+ " is annotated by both one of  @EnforceRecoverableIfDenied, @EnforceTillDenied, or @EnforceDropWhileDenied and one of @PreEnforce or @PostEnforce. Please select one mode exclusively.");
 	}
 
-	private void failIfMoreThanOneContinuousEnforceAttributePresent(Collection<ConfigAttribute> attributes,
+	private void failIfMoreThanOneContinuousEnforceAttributePresent(
+			Collection<ConfigAttribute> attributes,
 			Method method) {
 		var numberOfContinuousEnforceAttributes = 0;
 		if (hasAnyAttributeOfType(attributes, EnforceRecoverableIfDeniedAttribute.class))

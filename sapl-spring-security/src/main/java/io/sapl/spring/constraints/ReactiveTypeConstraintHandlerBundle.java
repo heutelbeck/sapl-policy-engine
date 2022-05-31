@@ -22,36 +22,27 @@ import java.util.function.Function;
 import java.util.function.LongConsumer;
 import java.util.function.Predicate;
 
+import org.aopalliance.intercept.MethodInvocation;
 import org.reactivestreams.Subscription;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public class ConstraintHandlerBundle<T> {
+public class ReactiveTypeConstraintHandlerBundle<T> {
 
-	final List<Runnable> onDecisionHandlers = new LinkedList<>();
-
-	final List<Runnable> onCancelHandlers = new LinkedList<>();
-
-	final List<Runnable> onCompleteHandlers = new LinkedList<>();
-
-	final List<Runnable> onTerminateHandlers = new LinkedList<>();
-
-	final List<Runnable> afterTerminateHandlers = new LinkedList<>();
-
-	final List<Consumer<Subscription>> onSubscribeHandlers = new LinkedList<>();
-
-	final List<LongConsumer> onRequestHandlers = new LinkedList<>();
-
-	final List<Consumer<T>> doOnNextHandlers = new LinkedList<>();
-
-	final List<Function<T, T>> onNextMapHandlers = new LinkedList<>();
-
-	final List<Consumer<Throwable>> doOnErrorHandlers = new LinkedList<>();
-
-	final List<Function<Throwable, Throwable>> onErrorMapHandlers = new LinkedList<>();
-
-	final List<Predicate<T>> filterPredicateHandlers = new LinkedList<>();
+	final List<Runnable>                       onDecisionHandlers       = new LinkedList<>();
+	final List<Runnable>                       onCancelHandlers         = new LinkedList<>();
+	final List<Runnable>                       onCompleteHandlers       = new LinkedList<>();
+	final List<Runnable>                       onTerminateHandlers      = new LinkedList<>();
+	final List<Runnable>                       afterTerminateHandlers   = new LinkedList<>();
+	final List<Consumer<Subscription>>         onSubscribeHandlers      = new LinkedList<>();
+	final List<LongConsumer>                   onRequestHandlers        = new LinkedList<>();
+	final List<Consumer<T>>                    doOnNextHandlers         = new LinkedList<>();
+	final List<Function<T, T>>                 onNextMapHandlers        = new LinkedList<>();
+	final List<Consumer<Throwable>>            doOnErrorHandlers        = new LinkedList<>();
+	final List<Function<Throwable, Throwable>> onErrorMapHandlers       = new LinkedList<>();
+	final List<Predicate<T>>                   filterPredicateHandlers  = new LinkedList<>();
+	public List<Consumer<MethodInvocation>>    methodInvocationHandlers = new LinkedList<>();
 
 	public void handleOnSubscribeConstraints(Subscription s) {
 		consumeAll(onSubscribeHandlers).accept(s);
@@ -94,6 +85,10 @@ public class ConstraintHandlerBundle<T> {
 		runAll(onCancelHandlers).run();
 	}
 
+	public void handleMethodInvocationHandlers(MethodInvocation methodInvocation) {
+		consumeAll(methodInvocationHandlers).accept(methodInvocation);
+	}
+
 	public Throwable handleAllOnErrorConstraints(Throwable error) {
 		handleOnErrorConstraints(error);
 		return handleOnErrorMapConstraints(error);
@@ -116,7 +111,7 @@ public class ConstraintHandlerBundle<T> {
 		if (!onSubscribeHandlers.isEmpty())
 			wrapped = wrapped.doOnSubscribe(this::handleOnSubscribeConstraints);
 
-		if(!filterPredicateHandlers.isEmpty())
+		if (!filterPredicateHandlers.isEmpty())
 			wrapped = wrapped.filter(this::applyFilterPredicates);
 
 		if (!onErrorMapHandlers.isEmpty())
@@ -145,17 +140,17 @@ public class ConstraintHandlerBundle<T> {
 
 		if (!onDecisionHandlers.isEmpty())
 			wrapped = onDecision(onDecisionHandlers).thenMany(wrapped);
-			
+
 		return wrapped;
 	}
 
 	private boolean applyFilterPredicates(T value) {
 		var result = true;
 		for (var predicate : filterPredicateHandlers)
-			result &= predicate.test(value); 
+			result &= predicate.test(value);
 		return result;
 	}
-	
+
 	private LongConsumer consumeAllLong(List<LongConsumer> handlers) {
 		return value -> handlers.forEach(handler -> handler.accept(value));
 	}

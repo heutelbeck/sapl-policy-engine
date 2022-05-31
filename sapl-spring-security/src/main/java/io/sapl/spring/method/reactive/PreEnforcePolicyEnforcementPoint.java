@@ -17,6 +17,8 @@ package io.sapl.spring.method.reactive;
 
 import java.util.function.Function;
 
+import org.aopalliance.intercept.MethodInvocation;
+import org.reactivestreams.Publisher;
 import org.springframework.security.access.AccessDeniedException;
 
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -30,22 +32,37 @@ public class PreEnforcePolicyEnforcementPoint {
 
 	private final ConstraintEnforcementService constraintEnforcementService;
 
-	public <T> Flux<T> enforce(Flux<AuthorizationDecision> authorizationDecisions, Flux<T> resourceAccessPoint,
+	public <T> Flux<T> enforce(
+			Flux<AuthorizationDecision> authorizationDecisions,
+			MethodInvocation invocation,
 			Class<T> clazz) {
-		return authorizationDecisions.next().flatMapMany(enforceDecision(resourceAccessPoint, clazz));
+		return authorizationDecisions.next().flatMapMany(enforceDecision(invocation, clazz));
 	}
 
-	private <T> Function<AuthorizationDecision, Flux<T>> enforceDecision(Flux<T> resourceAccessPoint, Class<T> clazz) {
+	@SuppressWarnings("unchecked")
+	private <T> Function<AuthorizationDecision, Flux<T>> enforceDecision(MethodInvocation invocation, Class<T> clazz) {
 		return decision -> {
-			Flux<T> finalResourceAccessPoint = resourceAccessPoint;
-			if (Decision.PERMIT != decision.getDecision())
-				finalResourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
+			var constraintHandlerBundle = constraintEnforcementService.reactiveTypeBundleFor(decision, clazz);
 
-			// onErrorStop is required to counter an onErrorContinue attack on the
-			// PEP/RAP.
-			return constraintEnforcementService
-					.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, finalResourceAccessPoint, clazz)
-					.onErrorStop();
+			Flux<T> resourceAccessPoint;
+
+			var decisionIsPermit = Decision.PERMIT != decision.getDecision();
+			if (decisionIsPermit) {
+				resourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
+			} else {
+				constraintHandlerBundle.handleMethodInvocationHandlers(invocation);
+				try {
+					resourceAccessPoint = Flux.from((Publisher<T>) invocation.proceed());
+				} catch (Throwable t) {
+					resourceAccessPoint = Flux.error(t);
+				}
+			}
+
+			resourceAccessPoint = constraintEnforcementService.replaceIfResourcePresent(
+					resourceAccessPoint, decision.getResource(), clazz);
+
+			// onErrorStop is required to counter an onErrorContinue attack on the PEP/RAP.
+			return constraintHandlerBundle.wrap(resourceAccessPoint).onErrorStop();
 		};
 	}
 
