@@ -27,6 +27,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import reactor.util.context.Context;
 import reactor.util.context.ContextView;
@@ -64,7 +65,7 @@ public class AuthorizationContext {
 		return ctx.put(ATTRIBUTE_CTX, attributeContext);
 	}
 
-	public static Context setVariables(Context ctx, Map<String, JsonNode> environmentrVariables) {
+	public static Context setVariables(@NonNull Context ctx, Map<String, JsonNode> environmentrVariables) {
 		Map<String, JsonNode> variables = new HashMap<>(ctx.getOrDefault(VARIABLES, new HashMap<>()));
 		for (var variable : environmentrVariables.entrySet()) {
 			var name = variable.getKey();
@@ -75,7 +76,7 @@ public class AuthorizationContext {
 		return ctx.put(VARIABLES, variables);
 	}
 
-	public Context setVariable(Context ctx, String name, Val value) {
+	public Context setVariable(@NonNull Context ctx, String name, Val value) {
 		assertVariableNameNotReserved(name);
 
 		if (value.isError())
@@ -97,7 +98,7 @@ public class AuthorizationContext {
 		}
 	}
 
-	public Context setSubscriptionVariables(Context ctx, AuthorizationSubscription authzSubscription) {
+	public Context setSubscriptionVariables(@NonNull Context ctx, AuthorizationSubscription authzSubscription) {
 
 		Map<String, JsonNode> variables = new HashMap<>(ctx.getOrDefault(VARIABLES, new HashMap<>()));
 

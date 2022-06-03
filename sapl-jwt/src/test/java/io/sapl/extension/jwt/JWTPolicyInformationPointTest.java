@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -60,14 +61,16 @@ public class JWTPolicyInformationPointTest {
 
 	private JWTPolicyInformationPoint jwtPolicyInformationPoint;
 
+	private JWTKeyProvider provider;
+
 	@BeforeAll
 	public static void preSetup() throws IOException, NoSuchAlgorithmException {
 		Logger.getLogger(MockWebServer.class.getName()).setLevel(Level.OFF);
-		keyPair = KeyTestUtility.generateRSAKeyPair();
-		keyPair2 = KeyTestUtility.generateRSAKeyPair();
-		kid = KeyTestUtility.kid(keyPair);
-		kid2 = KeyTestUtility.kid(keyPair2);
-		server = KeyTestUtility.testServer("/public-keys/", keyPair);
+		keyPair    = KeyTestUtility.generateRSAKeyPair();
+		keyPair2   = KeyTestUtility.generateRSAKeyPair();
+		kid        = KeyTestUtility.kid(keyPair);
+		kid2       = KeyTestUtility.kid(keyPair2);
+		server     = KeyTestUtility.testServer("/public-keys/", keyPair);
 		dispatcher = (TestMockServerDispatcher) server.getDispatcher();
 		server.start();
 		builder = WebClient.builder();
@@ -80,7 +83,7 @@ public class JWTPolicyInformationPointTest {
 
 	@BeforeEach
 	public void setup() {
-		JWTKeyProvider provider = new JWTKeyProvider(builder);
+		provider                  = new JWTKeyProvider(builder);
 		jwtPolicyInformationPoint = new JWTPolicyInformationPoint(provider);
 	}
 
@@ -91,10 +94,10 @@ public class JWTPolicyInformationPointTest {
 	@Test
 	public void validity_withInvalidKey_shouldBeUntrusted() throws JOSEException {
 		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
-		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-		var claims = new JWTClaimsSet.Builder().build();
-		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-		jwtPolicyInformationPoint.getKeyProvider().cache(kid, KeyTestUtility.generateInvalidRSAPublicKey());
+		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
+		var claims    = new JWTClaimsSet.Builder().build();
+		var source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+		provider.cache(kid, KeyTestUtility.generateInvalidRSAPublicKey());
 		var flux = jwtPolicyInformationPoint.validity(source, variables);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString()))
 				.verifyComplete();
@@ -114,7 +117,7 @@ public class JWTPolicyInformationPointTest {
 	@Test
 	public void validity_withMalformedToken_shouldBeMalformed() {
 		var source = Val.of("MALFORMED TOKEN");
-		var flux = jwtPolicyInformationPoint.validity(source, null);
+		var flux   = jwtPolicyInformationPoint.validity(source, null);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.MALFORMED.toString()))
 				.verifyComplete();
 	}
@@ -135,10 +138,10 @@ public class JWTPolicyInformationPointTest {
 			throws NoSuchAlgorithmException, IOException, JOSEException {
 
 		var variables = JsonTestUtility.publicKeyWhitelistVariables(kid, null, kid2, keyPair2);
-		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-		var claims = new JWTClaimsSet.Builder().build();
-		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-		var flux = jwtPolicyInformationPoint.validity(source, variables);
+		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
+		var claims    = new JWTClaimsSet.Builder().build();
+		var source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+		var flux      = jwtPolicyInformationPoint.validity(source, variables);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString()))
 				.verifyComplete();
 	}
@@ -148,10 +151,10 @@ public class JWTPolicyInformationPointTest {
 			throws NoSuchAlgorithmException, IOException, JOSEException {
 
 		var variables = JsonTestUtility.publicKeyWhitelistVariables(kid, keyPair, kid2, null);
-		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid2).build();
-		var claims = new JWTClaimsSet.Builder().build();
-		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair2);
-		var flux = jwtPolicyInformationPoint.validity(source, variables);
+		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid2).build();
+		var claims    = new JWTClaimsSet.Builder().build();
+		var source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair2);
+		var flux      = jwtPolicyInformationPoint.validity(source, variables);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString()))
 				.verifyComplete();
 	}
@@ -160,9 +163,9 @@ public class JWTPolicyInformationPointTest {
 	public void validity_withWhitelist_multiTest_shouldBeTrustedThenTrustedThenUntrusted()
 			throws NoSuchAlgorithmException, IOException, JOSEException {
 
-		var keyPairs = new KeyPair[] { keyPair, keyPair2, KeyTestUtility.generateRSAKeyPair() };
-		var variables = JsonTestUtility.publicKeyWhitelistVariables(kid, keyPair, kid2, keyPair2);
-		var claims = new JWTClaimsSet.Builder().build();
+		var keyPairs   = new KeyPair[] { keyPair, keyPair2, KeyTestUtility.generateRSAKeyPair() };
+		var variables  = JsonTestUtility.publicKeyWhitelistVariables(kid, keyPair, kid2, keyPair2);
+		var claims     = new JWTClaimsSet.Builder().build();
 		var validities = new ArrayList<Mono<Val>>();
 		for (int trial = 0; trial < 3; trial++) {
 			var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(KeyTestUtility.kid(keyPairs[trial])).build();
@@ -182,10 +185,10 @@ public class JWTPolicyInformationPointTest {
 	@Test
 	public void validity_withEmptyEnvironment_shouldBeUntrusted() throws JOSEException {
 		var variables = Map.<String, JsonNode>of();
-		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-		var claims = new JWTClaimsSet.Builder().build();
-		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-		var flux = jwtPolicyInformationPoint.validity(source, variables);
+		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
+		var claims    = new JWTClaimsSet.Builder().build();
+		var source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+		var flux      = jwtPolicyInformationPoint.validity(source, variables);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString()))
 				.verifyComplete();
 	}
@@ -193,10 +196,10 @@ public class JWTPolicyInformationPointTest {
 	@Test
 	public void validity_withUriEnvironmentMissingServer_shouldBeUntrusted() throws JOSEException {
 		var variables = Map.<String, JsonNode>of("jwt", JsonTestUtility.getMAPPER().createObjectNode());
-		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-		var claims = new JWTClaimsSet.Builder().build();
-		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-		var flux = jwtPolicyInformationPoint.validity(source, variables);
+		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
+		var claims    = new JWTClaimsSet.Builder().build();
+		var source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+		var flux      = jwtPolicyInformationPoint.validity(source, variables);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString()))
 				.verifyComplete();
 	}
@@ -205,10 +208,10 @@ public class JWTPolicyInformationPointTest {
 	public void validity_withUriEnvironment_usingWrongKey_shouldBeUntrusted() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.Wrong);
 		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
-		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-		var claims = new JWTClaimsSet.Builder().build();
-		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-		var flux = jwtPolicyInformationPoint.validity(source, variables);
+		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
+		var claims    = new JWTClaimsSet.Builder().build();
+		var source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+		var flux      = jwtPolicyInformationPoint.validity(source, variables);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString()))
 				.verifyComplete();
 	}
@@ -218,14 +221,14 @@ public class JWTPolicyInformationPointTest {
 			throws JOSEException {
 
 		dispatcher.setDispatchMode(DispatchMode.True);
-		var jwtNode = JsonTestUtility.getMAPPER().createObjectNode().set(
+		var jwtNode   = JsonTestUtility.getMAPPER().createObjectNode().set(
 				JWTPolicyInformationPoint.PUBLIC_KEY_VARIABLES_KEY,
 				JsonTestUtility.serverNode(server, null, "invalid TTL format"));
 		var variables = Map.<String, JsonNode>of("jwt", jwtNode);
-		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-		var claims = new JWTClaimsSet.Builder().build();
-		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-		var flux = jwtPolicyInformationPoint.validity(source, variables);
+		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
+		var claims    = new JWTClaimsSet.Builder().build();
+		var source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+		var flux      = jwtPolicyInformationPoint.validity(source, variables);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString()))
 				.verifyComplete();
 	}
@@ -239,7 +242,7 @@ public class JWTPolicyInformationPointTest {
 		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).build();
 		var claims = new JWTClaimsSet.Builder().build();
 		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-		var flux = jwtPolicyInformationPoint.validity(source, null);
+		var flux   = jwtPolicyInformationPoint.validity(source, null);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.INCOMPLETE.toString()))
 				.verifyComplete();
 	}
@@ -249,7 +252,7 @@ public class JWTPolicyInformationPointTest {
 		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID("").build();
 		var claims = new JWTClaimsSet.Builder().build();
 		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-		var flux = jwtPolicyInformationPoint.validity(source, null);
+		var flux   = jwtPolicyInformationPoint.validity(source, null);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.INCOMPLETE.toString()))
 				.verifyComplete();
 	}
@@ -259,7 +262,7 @@ public class JWTPolicyInformationPointTest {
 		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).criticalParams(Set.of("critparam")).build();
 		var claims = new JWTClaimsSet.Builder().build();
 		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-		var flux = jwtPolicyInformationPoint.validity(source, null);
+		var flux   = jwtPolicyInformationPoint.validity(source, null);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.INCOMPATIBLE.toString()))
 				.verifyComplete();
 	}
@@ -272,10 +275,10 @@ public class JWTPolicyInformationPointTest {
 	public void validity_withWrongAlgorithm_shouldBeIncompatible() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var variables = Map.<String, JsonNode>of();
-		var header = new JWSHeader.Builder(JWSAlgorithm.PS512).keyID(kid).build();
-		var claims = new JWTClaimsSet.Builder().build();
-		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-		var flux = jwtPolicyInformationPoint.validity(source, variables);
+		var header    = new JWSHeader.Builder(JWSAlgorithm.PS512).keyID(kid).build();
+		var claims    = new JWTClaimsSet.Builder().build();
+		var source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+		var flux      = jwtPolicyInformationPoint.validity(source, variables);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.INCOMPATIBLE.toString()))
 				.verifyComplete();
 	}
@@ -284,23 +287,23 @@ public class JWTPolicyInformationPointTest {
 	public void valid_withWrongAlgorithm_shouldBeFalse() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var variables = Map.<String, JsonNode>of();
-		var header = new JWSHeader.Builder(JWSAlgorithm.PS512).keyID(kid).build();
-		var claims = new JWTClaimsSet.Builder().build();
-		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-		var flux = jwtPolicyInformationPoint.valid(source, variables);
+		var header    = new JWSHeader.Builder(JWSAlgorithm.PS512).keyID(kid).build();
+		var claims    = new JWTClaimsSet.Builder().build();
+		var source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+		var flux      = jwtPolicyInformationPoint.valid(source, variables);
 		StepVerifier.create(flux).expectNext(Val.FALSE).verifyComplete();
 	}
 
 	@Test
 	public void validity_withTamperedPayload_withUriEnvironment_shouldBeUntrusted() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
-		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
-		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-		var claims = new JWTClaimsSet.Builder().build();
+		var variables      = JsonTestUtility.publicKeyUriVariables(server, null);
+		var header         = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
+		var claims         = new JWTClaimsSet.Builder().build();
 		var tamperedClaims = new JWTClaimsSet.Builder().jwtID("").build();
-		var originalJWT = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-		var source = JWTTestUtility.replacePayload(originalJWT, tamperedClaims);
-		var flux = jwtPolicyInformationPoint.validity(source, variables);
+		var originalJWT    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+		var source         = JWTTestUtility.replacePayload(originalJWT, tamperedClaims);
+		var flux           = jwtPolicyInformationPoint.validity(source, variables);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString()))
 				.verifyComplete();
 	}
@@ -313,11 +316,11 @@ public class JWTPolicyInformationPointTest {
 	public void validity_withNbfAfterExp_shouldBeNeverValid() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
-		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-		var claims = new JWTClaimsSet.Builder().expirationTime(JWTTestUtility.timeOneUnitBeforeNow())
+		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
+		var claims    = new JWTClaimsSet.Builder().expirationTime(JWTTestUtility.timeOneUnitBeforeNow())
 				.notBeforeTime(JWTTestUtility.timeOneUnitAfterNow()).build();
-		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-		var flux = jwtPolicyInformationPoint.validity(source, variables);
+		var source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+		var flux      = jwtPolicyInformationPoint.validity(source, variables);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.NEVER_VALID.toString()))
 				.verifyComplete();
 	}
@@ -326,10 +329,10 @@ public class JWTPolicyInformationPointTest {
 	public void validity_withExpBeforeNow_shouldBeExpired() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
-		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-		var claims = new JWTClaimsSet.Builder().expirationTime(JWTTestUtility.timeOneUnitBeforeNow()).build();
-		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-		var flux = jwtPolicyInformationPoint.validity(source, variables);
+		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
+		var claims    = new JWTClaimsSet.Builder().expirationTime(JWTTestUtility.timeOneUnitBeforeNow()).build();
+		var source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+		var flux      = jwtPolicyInformationPoint.validity(source, variables);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.EXPIRED.toString()))
 				.verifyComplete();
 	}
@@ -338,9 +341,9 @@ public class JWTPolicyInformationPointTest {
 	public void validity_withExpAfterNow_shouldBeValidThenExpired() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
-		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-		var claims = new JWTClaimsSet.Builder().expirationTime(JWTTestUtility.timeOneUnitAfterNow()).build();
-		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
+		var claims    = new JWTClaimsSet.Builder().expirationTime(JWTTestUtility.timeOneUnitAfterNow()).build();
+		var source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
 		StepVerifier.withVirtualTime(() -> jwtPolicyInformationPoint.validity(source, variables))
 				.expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.VALID.toString()))
 				.thenAwait(JWTTestUtility.twoUnitDuration())
@@ -351,9 +354,9 @@ public class JWTPolicyInformationPointTest {
 	public void validity_withNbfAfterNow_shouldBeImmatureThenValid() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
-		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-		var claims = new JWTClaimsSet.Builder().notBeforeTime(JWTTestUtility.timeOneUnitAfterNow()).build();
-		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
+		var claims    = new JWTClaimsSet.Builder().notBeforeTime(JWTTestUtility.timeOneUnitAfterNow()).build();
+		var source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
 		StepVerifier.withVirtualTime(() -> jwtPolicyInformationPoint.validity(source, variables))
 				.expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.IMMATURE.toString()))
 				.thenAwait(JWTTestUtility.twoUnitDuration())
@@ -364,10 +367,10 @@ public class JWTPolicyInformationPointTest {
 	public void validity_withNbfBeforeNow_shouldBeValid() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
-		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-		var claims = new JWTClaimsSet.Builder().notBeforeTime(JWTTestUtility.timeOneUnitBeforeNow()).build();
-		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-		var flux = jwtPolicyInformationPoint.validity(source, variables);
+		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
+		var claims    = new JWTClaimsSet.Builder().notBeforeTime(JWTTestUtility.timeOneUnitBeforeNow()).build();
+		var source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+		var flux      = jwtPolicyInformationPoint.validity(source, variables);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.VALID.toString()))
 				.verifyComplete();
 	}
@@ -376,10 +379,10 @@ public class JWTPolicyInformationPointTest {
 	public void validity_withNbfAfterNowAndExpAfterNbf_shouldBeImmatureThenValidThenExpired() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
-		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-		var claims = new JWTClaimsSet.Builder().notBeforeTime(JWTTestUtility.timeOneUnitAfterNow())
+		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
+		var claims    = new JWTClaimsSet.Builder().notBeforeTime(JWTTestUtility.timeOneUnitAfterNow())
 				.expirationTime(JWTTestUtility.timeThreeUnitsAfterNow()).build();
-		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+		var source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
 		StepVerifier.withVirtualTime(() -> jwtPolicyInformationPoint.validity(source, variables))
 				.expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.IMMATURE.toString()))
 				.thenAwait(JWTTestUtility.twoUnitDuration())

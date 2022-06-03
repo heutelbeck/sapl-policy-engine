@@ -45,8 +45,7 @@ public class KeyTestUtility {
 		try {
 			KeyPairGenerator keyGen = KeyPairGenerator.getInstance(RSA);
 			keyPair = keyGen.genKeyPair();
-		}
-		catch (NoSuchAlgorithmException e) {
+		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 		}
 		return keyPair;
@@ -67,7 +66,7 @@ public class KeyTestUtility {
 	static MockWebServer testServer(String keyPath, KeyPair keyPair) throws NoSuchAlgorithmException, IOException {
 		Map<String, String> mockServerKeys = Map.of(KeyTestUtility.kid(keyPair),
 				KeyTestUtility.encodePublicKeyToBase64URLPrimary(keyPair));
-		MockWebServer server = new MockWebServer();
+		MockWebServer       server         = new MockWebServer();
 		server.setDispatcher(new TestMockServerDispatcher(keyPath, mockServerKeys));
 		return server;
 	}
@@ -83,8 +82,7 @@ public class KeyTestUtility {
 			try {
 				mockServerKeys.put(KeyTestUtility.kid(keyPair),
 						KeyTestUtility.encodePublicKeyToBase64URLPrimary(keyPair));
-			}
-			catch (NoSuchAlgorithmException | IOException e) {
+			} catch (NoSuchAlgorithmException | IOException e) {
 				e.printStackTrace();
 			}
 		});
@@ -108,8 +106,8 @@ public class KeyTestUtility {
 
 	/**
 	 * @param keyPair
-	 * @return a predicate that evaluates to true iff it's input is of type RSAPublicKey
-	 * and matches the public key of the supplied keyPair
+	 * @return a predicate that evaluates to true iff it's input is of type
+	 *         RSAPublicKey and matches the public key of the supplied keyPair
 	 */
 	static Predicate<Object> keyValidator(KeyPair keyPair) {
 		return publicKey -> {

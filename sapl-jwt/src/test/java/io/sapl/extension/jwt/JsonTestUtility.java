@@ -42,8 +42,7 @@ public class JsonTestUtility {
 		if (source instanceof String) {
 			try {
 				return MAPPER.readTree((String) source);
-			}
-			catch (Exception e) {
+			} catch (Exception e) {
 				// expected exception
 			}
 		}
@@ -53,8 +52,8 @@ public class JsonTestUtility {
 	}
 
 	/**
-	 * @param kid1 the ID of the first KeyPair
-	 * @param kid2 the ID of the second KeyPair
+	 * @param kid1     the ID of the first KeyPair
+	 * @param kid2     the ID of the second KeyPair
 	 * @param keyPair1 KeyPair of the first public key. Non textual, if null
 	 * @param keyPair2 KeyPair of the second public key. Bogus, if null
 	 * @return whitelist variables containing two public keys
@@ -64,14 +63,13 @@ public class JsonTestUtility {
 	static Map<String, JsonNode> publicKeyWhitelistVariables(String kid1, KeyPair keyPair1, String kid2,
 			KeyPair keyPair2) throws NoSuchAlgorithmException, IOException {
 
-		ObjectNode keyNode = MAPPER.createObjectNode();
+		ObjectNode keyNode   = MAPPER.createObjectNode();
 		ObjectNode valueNode = MAPPER.createObjectNode();
 
 		if (keyPair1 != null) {
 			String encodedFirstKey = Base64.getUrlEncoder().encodeToString(keyPair1.getPublic().getEncoded());
 			valueNode.put(kid1, encodedFirstKey);
-		}
-		else
+		} else
 			valueNode.putNull(kid1);
 
 		String encodedSecondKey = "This is Bogus";
@@ -84,14 +82,16 @@ public class JsonTestUtility {
 	}
 
 	/**
-	 * @param server mock web server for automatically generated url, or use null to omit
-	 * @param method request method ("GET" or "POST"), use null or empty String to omit,
-	 * use "NONETEXT" to generate a none-text value
-	 * @return environment variables containing public key server URI and request method
+	 * @param server mock web server for automatically generated url, or use null to
+	 *               omit
+	 * @param method request method ("GET" or "POST"), use null or empty String to
+	 *               omit, use "NONETEXT" to generate a none-text value
+	 * @return environment variables containing public key server URI and request
+	 *         method
 	 */
 	static Map<String, JsonNode> publicKeyUriVariables(MockWebServer server, String method) {
 
-		ObjectNode keyNode = MAPPER.createObjectNode();
+		ObjectNode keyNode   = MAPPER.createObjectNode();
 		ObjectNode valueNode = serverNode(server, method, null);
 
 		keyNode.set(JWTPolicyInformationPoint.PUBLIC_KEY_VARIABLES_KEY, valueNode);
@@ -107,8 +107,7 @@ public class JsonTestUtility {
 		if (method != null && method.length() > 0) {
 			if (method.equals("NONETEXT")) {
 				valueNode.set(JWTKeyProvider.PUBLIC_KEY_METHOD_KEY, jsonNode(false));
-			}
-			else {
+			} else {
 				valueNode.put(JWTKeyProvider.PUBLIC_KEY_METHOD_KEY, method);
 			}
 		}

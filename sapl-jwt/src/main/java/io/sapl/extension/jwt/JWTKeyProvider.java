@@ -42,10 +42,10 @@ public class JWTKeyProvider {
 
 	private static final String JWT_KEY_CACHING_ERROR = "The provided caching configuration was not understood: ";
 
-	static final String PUBLIC_KEY_URI_KEY = "uri";
-	static final String PUBLIC_KEY_METHOD_KEY = "method";
+	static final String PUBLIC_KEY_URI_KEY     = "uri";
+	static final String PUBLIC_KEY_METHOD_KEY  = "method";
 	static final String KEY_CACHING_TTL_MILLIS = "keyCachingTTLmillis";
-	static final long DEFAULT_CACHING_TTL = 300000L;
+	static final long   DEFAULT_CACHING_TTL    = 300000L;
 
 	public static class CachingException extends Exception {
 
@@ -64,9 +64,9 @@ public class JWTKeyProvider {
 	private long lastTTL = DEFAULT_CACHING_TTL;
 
 	public JWTKeyProvider(WebClient.Builder builder) {
-		webClient = builder.build();
-		keyCache = new ConcurrentHashMap<>(); // HashMap<String,
-												// RSAPublicKey>();
+		webClient    = builder.build();
+		keyCache     = new ConcurrentHashMap<>();     // HashMap<String,
+														// RSAPublicKey>();
 		cachingTimes = new ConcurrentLinkedQueue<>(); // PriorityQueue<CacheEntry>();
 	}
 
@@ -76,7 +76,7 @@ public class JWTKeyProvider {
 		if (jUri == null)
 			return Mono.empty();
 
-		var sMethod = "GET";
+		var      sMethod = "GET";
 		JsonNode jMethod = jPublicKeyServer.get(PUBLIC_KEY_METHOD_KEY);
 		if (jMethod != null && jMethod.isTextual())
 			sMethod = jMethod.textValue();
@@ -116,8 +116,9 @@ public class JWTKeyProvider {
 
 	/**
 	 * Fetches public key from remote authentication server
-	 * @param kid ID of public key to fetch
-	 * @param publicKeyURI URI to request the public key
+	 * 
+	 * @param kid                    ID of public key to fetch
+	 * @param publicKeyURI           URI to request the public key
 	 * @param publicKeyRequestMethod HTTP request method: GET or POST
 	 * @return public key or empty
 	 */
@@ -132,8 +133,7 @@ public class JWTKeyProvider {
 		if ("post".equalsIgnoreCase(publicKeyRequestMethod)) {
 			// POST request
 			response = webClient.post().uri(publicKeyURI, kid).retrieve();
-		}
-		else {
+		} else {
 			// default GET request
 			response = webClient.get().uri(publicKeyURI, kid).retrieve();
 		}
@@ -152,7 +152,7 @@ public class JWTKeyProvider {
 	 * remove all keys from cache, that are older than TTLmillis before now
 	 */
 	private void pruneCache() {
-		var pruneTime = new Date().toInstant().minusMillis(lastTTL);
+		var pruneTime   = new Date().toInstant().minusMillis(lastTTL);
 		var oldestEntry = cachingTimes.peek();
 		while (oldestEntry != null && oldestEntry.wasCachedBefore(pruneTime)) {
 			keyCache.remove(oldestEntry.getKeyId());
@@ -169,7 +169,7 @@ public class JWTKeyProvider {
 		private final Instant cachingTime;
 
 		CacheEntry(String keyId) {
-			this.keyId = keyId;
+			this.keyId  = keyId;
 			cachingTime = new Date().toInstant();
 		}
 

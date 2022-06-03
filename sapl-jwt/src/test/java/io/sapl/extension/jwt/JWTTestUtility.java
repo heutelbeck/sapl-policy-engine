@@ -33,10 +33,10 @@ class JWTTestUtility {
 
 	static final String UNSUPPORTED_KEY_ERROR = "The type of the provided key is not supported!";
 
-	static final long timeUnit = 2000L; // two seconds in millis
-	static final long synchronousTimeUnit = 50L; // fifty milliseconds
+	static final long timeUnit            = 2000L; // two seconds in millis
+	static final long synchronousTimeUnit = 50L;   // fifty milliseconds
 
-	static final String EC = "EC";
+	static final String EC  = "EC";
 	static final String RSA = "RSA";
 
 	/**
@@ -82,11 +82,9 @@ class JWTTestUtility {
 		JWSSigner signer;
 		if (EC.equalsIgnoreCase(keyPair.getPrivate().getAlgorithm())) {
 			signer = new ECDSASigner((ECPrivateKey) keyPair.getPrivate());
-		}
-		else if (RSA.equalsIgnoreCase(keyPair.getPrivate().getAlgorithm())) {
+		} else if (RSA.equalsIgnoreCase(keyPair.getPrivate().getAlgorithm())) {
 			signer = new RSASSASigner(keyPair.getPrivate());
-		}
-		else
+		} else
 			throw new UnsupportedOperationException(UNSUPPORTED_KEY_ERROR);
 
 		SignedJWT signedJwt = new SignedJWT(header, claims);
@@ -97,12 +95,12 @@ class JWTTestUtility {
 	/**
 	 * @param signedJWT
 	 * @param tamperedPayload
-	 * @return replaces the encoded payload of a signed JWT with another payload, without
-	 * updating the signature.
+	 * @return replaces the encoded payload of a signed JWT with another payload,
+	 *         without updating the signature.
 	 */
 	static Val replacePayload(Val signedJWT, JWTClaimsSet tamperedPayload) {
-		String[] parts = signedJWT.getText().split("\\.");
-		String tamperedJWT = parts[0] + "." + tamperedPayload.toPayload().toBase64URL().toString() + "." + parts[2];
+		String[] parts       = signedJWT.getText().split("\\.");
+		String   tamperedJWT = parts[0] + "." + tamperedPayload.toPayload().toBase64URL().toString() + "." + parts[2];
 		return Val.of(tamperedJWT);
 	}
 
