@@ -45,11 +45,8 @@ public class PostEnforcePolicyEnforcementPoint extends AbstractPolicyEnforcement
 	}
 
 	@SuppressWarnings("unchecked") // is actually checked, warning is false positive
-	public Object after(
-			Authentication authentication,
-			MethodInvocation methodInvocation,
-			PostEnforceAttribute postEnforceAttribute,
-			Object returnedObject) {
+	public Object after(Authentication authentication, MethodInvocation methodInvocation,
+			PostEnforceAttribute postEnforceAttribute, Object returnedObject) {
 		lazyLoadDependencies();
 
 		log.debug("Attribute        : {}", postEnforceAttribute);
@@ -85,16 +82,22 @@ public class PostEnforcePolicyEnforcementPoint extends AbstractPolicyEnforcement
 	}
 
 	@SuppressWarnings("unchecked") // False positive. The type is checked beforehand
-	private <T> Object enforceDecision(
-			boolean isOptional,
-			Object returnedObjectForAuthzSubscription,
-			Class<T> returnType,
-			AuthorizationDecision authzDecision) {
+	private <T> Object enforceDecision(boolean isOptional, Object returnedObjectForAuthzSubscription,
+			Class<T> returnType, AuthorizationDecision authzDecision) {
 		BlockingPostEnforceConstraintHandlerBundle<T> constraintHandlerBundle = null;
 		try {
 			constraintHandlerBundle = constraintEnforcementService.blockingPostEnforceBundleFor(authzDecision,
 					returnType);
-
+		} catch (Throwable e) {
+			Exceptions.throwIfFatal(e);
+			throw new AccessDeniedException("Access Denied by PEP. Failed to construct bundle.", e);
+		}
+		
+		if(constraintHandlerBundle == null) {
+			throw new AccessDeniedException("Access Denied by PEP. No constraint handler bundle.");			
+		}
+		
+		try {
 			constraintHandlerBundle.handleOnDecisionConstraints();
 
 			var isNotPermit = authzDecision.getDecision() != Decision.PERMIT;
