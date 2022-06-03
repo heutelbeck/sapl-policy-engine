@@ -12,8 +12,6 @@ import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
 
-import com.google.common.base.Functions;
-
 public class BundleUtilTests {
 
 	private static final String TEST = "TEST";
@@ -48,7 +46,7 @@ public class BundleUtilTests {
 		var function1       = spy(new Function<Integer, Integer>() {
 								@Override
 								public Integer apply(Integer t) {
-									return t+1;
+									return t + 1;
 								}
 							});
 		var function2       = spy(new Function<Integer, Integer>() {
@@ -59,17 +57,10 @@ public class BundleUtilTests {
 							});
 		var functions       = List.of(function1, function2);
 		var nestedFunctions = BundleUtil.mapAll(functions);
-		
-		Function<Integer, Integer> nestedManual= x -> function2.apply(function1.apply((Integer) Functions.identity().apply(x)));
-		
-		
 		var result          = nestedFunctions.apply(100);
 		assertEquals(202, result);
 		var inOrder = inOrder(function1, function2);
 		inOrder.verify(function1, times(1)).apply(100);
 		inOrder.verify(function2, times(1)).apply(101);
-		
-		
-		
 	}
 }

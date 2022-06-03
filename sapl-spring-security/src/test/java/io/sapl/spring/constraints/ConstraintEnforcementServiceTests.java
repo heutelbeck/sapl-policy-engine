@@ -199,7 +199,7 @@ public class ConstraintEnforcementServiceTests {
 		var     provider1 = spy(new RunnableConstraintHandlerProvider() {
 								@Override
 								public int getPriority() {
-									return 100;
+									return -100;
 								}
 
 								@Override
@@ -224,7 +224,7 @@ public class ConstraintEnforcementServiceTests {
 		var     provider2 = spy(new RunnableConstraintHandlerProvider() {
 								@Override
 								public int getPriority() {
-									return -100;
+									return 100;
 								}
 
 								@Override
@@ -611,7 +611,7 @@ public class ConstraintEnforcementServiceTests {
 		var     provider1 = spy(new MappingConstraintHandlerProvider<String>() {
 								@Override
 								public int getPriority() {
-									return -100;
+									return 100;
 								}
 
 								@Override
@@ -637,7 +637,7 @@ public class ConstraintEnforcementServiceTests {
 		var     provider2 = spy(new MappingConstraintHandlerProvider<String>() {
 								@Override
 								public int getPriority() {
-									return 100;
+									return -100;
 								}
 
 								@Override
@@ -755,7 +755,7 @@ public class ConstraintEnforcementServiceTests {
 		var     provider1 = spy(new MappingConstraintHandlerProvider<String>() {
 								@Override
 								public int getPriority() {
-									return -100;
+									return 100;
 								}
 
 								@Override
@@ -783,7 +783,7 @@ public class ConstraintEnforcementServiceTests {
 		var     provider2 = spy(new MappingConstraintHandlerProvider<String>() {
 								@Override
 								public int getPriority() {
-									return 100;
+									return -100;
 								}
 
 								@Override

@@ -22,7 +22,7 @@ public interface HasPriority extends Comparable<HasPriority> {
 	}
 
 	default int compareTo(HasPriority other) {
-		return Integer.compare(getPriority(), other.getPriority());
+		return Integer.compare(other.getPriority(), getPriority());
 	}
 
 }

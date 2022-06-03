@@ -52,7 +52,13 @@ public class PreEnforcePolicyEnforcementPoint extends AbstractPolicyEnforcementP
 				attribute);
 		log.debug("AuthzSubscription: {}", authzSubscription);
 
-		var authzDecision = pdp.decide(authzSubscription).blockFirst();
+		var authzDecisions = pdp.decide(authzSubscription);
+		if (authzDecisions == null) {
+			log.warn("Access Denied by PEP. PDP returned null. {}", attribute);
+			return false;
+		}
+
+		var authzDecision = authzDecisions.blockFirst();
 		log.debug("AuthzDecision    : {}", authzDecision);
 
 		if (authzDecision == null) {
