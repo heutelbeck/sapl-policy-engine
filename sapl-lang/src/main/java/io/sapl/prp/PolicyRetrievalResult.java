@@ -40,7 +40,7 @@ public class PolicyRetrievalResult {
 	boolean prpValidState = true;
 
 	public Collection<? extends AuthorizationDecisionEvaluable> getMatchingDocuments() {
-		return this.matchingDocuments;
+		return new ArrayList<>(matchingDocuments);
 	}
 
 	public PolicyRetrievalResult withMatch(AuthorizationDecisionEvaluable match) {

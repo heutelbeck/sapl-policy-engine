@@ -38,13 +38,13 @@ import io.sapl.spring.config.SaplMethodSecurityConfiguration;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.constraints.api.MethodInvocationConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
-import io.sapl.spring.constraints.it.PreEnforcementIntegrationTest.Application;
-import io.sapl.spring.constraints.it.PreEnforcementIntegrationTest.ConstraintHandlerOne;
-import io.sapl.spring.constraints.it.PreEnforcementIntegrationTest.ConstraintHandlerTwo;
-import io.sapl.spring.constraints.it.PreEnforcementIntegrationTest.FailingConstraintHandler;
-import io.sapl.spring.constraints.it.PreEnforcementIntegrationTest.MethodSecurityConfiguration;
-import io.sapl.spring.constraints.it.PreEnforcementIntegrationTest.SuccessfulMethodInvocationConstraintHandler;
-import io.sapl.spring.constraints.it.PreEnforcementIntegrationTest.TestService;
+import io.sapl.spring.constraints.it.PreEnforcementIntegrationTests.Application;
+import io.sapl.spring.constraints.it.PreEnforcementIntegrationTests.ConstraintHandlerOne;
+import io.sapl.spring.constraints.it.PreEnforcementIntegrationTests.ConstraintHandlerTwo;
+import io.sapl.spring.constraints.it.PreEnforcementIntegrationTests.FailingConstraintHandler;
+import io.sapl.spring.constraints.it.PreEnforcementIntegrationTests.MethodSecurityConfiguration;
+import io.sapl.spring.constraints.it.PreEnforcementIntegrationTests.SuccessfulMethodInvocationConstraintHandler;
+import io.sapl.spring.constraints.it.PreEnforcementIntegrationTests.TestService;
 import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import reactor.core.publisher.Flux;
@@ -52,7 +52,7 @@ import reactor.core.publisher.Flux;
 @SpringBootTest(classes = { Application.class, TestService.class, MethodSecurityConfiguration.class,
 		ConstraintHandlerOne.class, ConstraintHandlerTwo.class, FailingConstraintHandler.class,
 		SuccessfulMethodInvocationConstraintHandler.class, SuccessfulMethodInvocationConstraintHandler.class })
-public class PreEnforcementIntegrationTest {
+public class PreEnforcementIntegrationTests {
 	private static final String UNKNOWN_CONSTRAINT                      = "unknown constraint";
 	private static final String FAILING_CONSTRAINT                      = "failing constraint";
 	private static final String KNOWN_CONSTRAINT                        = "known constraint";

@@ -1,5 +1,6 @@
 package io.sapl.spring.constraints;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -16,7 +17,7 @@ public class BundleUtil {
 		return () -> handlers.forEach(Runnable::run);
 	}
 
-	public static <V> Function<V, V> mapAll(List<Function<V, V>> handlers) {
+	public static <V> Function<V, V> mapAll(Collection<Function<V, V>> handlers) {
 		return handlers.stream()
 				.reduce(Function.identity(), (merged, newFunction) -> x -> newFunction.apply(merged.apply(x)));
 	}

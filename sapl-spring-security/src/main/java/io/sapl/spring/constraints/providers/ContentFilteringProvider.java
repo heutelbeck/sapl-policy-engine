@@ -61,8 +61,7 @@ public class ContentFilteringProvider implements MappingConstraintHandlerProvide
 
 	public ContentFilteringProvider(ObjectMapper objectMapper) {
 		this.objectMapper     = objectMapper;
-		jsonPathConfiguration = Configuration.builder()
-				.jsonProvider(new JacksonJsonNodeJsonProvider(objectMapper))
+		jsonPathConfiguration = Configuration.builder().jsonProvider(new JacksonJsonNodeJsonProvider(objectMapper))
 				.build();
 	}
 
@@ -115,7 +114,7 @@ public class ContentFilteringProvider implements MappingConstraintHandlerProvide
 		};
 	}
 
-	private void applyAction(DocumentContext jsonContext, JsonNode action) {
+	private static void applyAction(DocumentContext jsonContext, JsonNode action) {
 		if (!action.isObject())
 			throw new IllegalArgumentException(ACTION_NOT_AN_OBJECT);
 
@@ -141,11 +140,11 @@ public class ContentFilteringProvider implements MappingConstraintHandlerProvide
 
 	}
 
-	private void replace(DocumentContext jsonContext, String path, JsonNode action) {
+	private static void replace(DocumentContext jsonContext, String path, JsonNode action) {
 		jsonContext.map(path, replaceNode(jsonContext, action));
 	}
 
-	private MapFunction replaceNode(DocumentContext jsonContext, JsonNode action) {
+	private static MapFunction replaceNode(DocumentContext jsonContext, JsonNode action) {
 		return (original, configuration) -> {
 			if (!action.has(REPLACEMENT))
 				throw new IllegalArgumentException(NO_REPLACEMENT_SPECIFIED);
@@ -154,11 +153,11 @@ public class ContentFilteringProvider implements MappingConstraintHandlerProvide
 		};
 	}
 
-	private void blacken(DocumentContext jsonContext, String path, JsonNode action) {
+	private static void blacken(DocumentContext jsonContext, String path, JsonNode action) {
 		jsonContext.map(path, blackenNode(jsonContext, action));
 	}
 
-	private MapFunction blackenNode(DocumentContext jsonContext, JsonNode action) {
+	private static MapFunction blackenNode(DocumentContext jsonContext, JsonNode action) {
 		return (original, configuration) -> {
 
 			if (!(original instanceof String))
@@ -172,7 +171,7 @@ public class ContentFilteringProvider implements MappingConstraintHandlerProvide
 		};
 	}
 
-	private String determineReplacementString(JsonNode action) {
+	private static String determineReplacementString(JsonNode action) {
 		var replacementNode = action.get(REPLACEMENT);
 
 		if (replacementNode == null)
@@ -201,7 +200,7 @@ public class ContentFilteringProvider implements MappingConstraintHandlerProvide
 		return result.toString();
 	}
 
-	private String getTextualValueOfActionKey(JsonNode action, String key) {
+	private static String getTextualValueOfActionKey(JsonNode action, String key) {
 		var value = getValueOfActionKey(action, key);
 
 		if (!value.isTextual())
@@ -210,7 +209,7 @@ public class ContentFilteringProvider implements MappingConstraintHandlerProvide
 		return value.textValue();
 	}
 
-	private int getIntegerValueOfActionKeyOrDefaultToZero(JsonNode action, String key) {
+	private static int getIntegerValueOfActionKeyOrDefaultToZero(JsonNode action, String key) {
 		if (!action.has(key))
 			return 0;
 
@@ -222,7 +221,7 @@ public class ContentFilteringProvider implements MappingConstraintHandlerProvide
 		return value.intValue();
 	}
 
-	private JsonNode getValueOfActionKey(JsonNode action, String key) {
+	private static JsonNode getValueOfActionKey(JsonNode action, String key) {
 		if (!action.hasNonNull(key))
 			throw new IllegalArgumentException(String.format(UNDEFINED_KEY_S, key));
 
