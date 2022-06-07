@@ -18,7 +18,7 @@ package io.sapl.spring.constraints.api;
 public interface HasPriority extends Comparable<HasPriority> {
 
 	default int getPriority() {
-		return Integer.MIN_VALUE;
+		return 0;
 	}
 
 	default int compareTo(HasPriority other) {
