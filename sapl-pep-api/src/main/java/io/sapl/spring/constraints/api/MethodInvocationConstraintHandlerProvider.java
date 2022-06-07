@@ -13,8 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/**
- * Functions and attributes to evaluate JSON Web Tokens (JWT) for access
- * decisions
- */
-package io.sapl.extension.jwt;
+package io.sapl.spring.constraints.api;
+
+import java.util.function.Consumer;
+
+import org.springframework.aop.framework.ReflectiveMethodInvocation;
+
+import com.fasterxml.jackson.databind.JsonNode;
+
+public interface MethodInvocationConstraintHandlerProvider extends Responsible, HasPriority {
+
+	Consumer<ReflectiveMethodInvocation> getHandler(JsonNode constraint);
+
+}

@@ -42,14 +42,15 @@ public class PreEnforcePolicyEnforcementPointVoter implements AccessDecisionVote
 
 	@Override
 	public int vote(Authentication authentication, MethodInvocation method, Collection<ConfigAttribute> attributes) {
-		var preAttr = findPreInvocationEnforcementAttribute(attributes);
+		var preInvocationAttribute = findPreInvocationEnforcementAttribute(attributes);
 
-		if (preAttr == null)
+		var noPreInvocationAttributeFound = preInvocationAttribute == null;
+		if (noPreInvocationAttributeFound)
 			return ACCESS_ABSTAIN;
 
-		var permitted = preEnforcePEP.before(authentication, method, preAttr);
+		var accessGranted = preEnforcePEP.before(authentication, method, preInvocationAttribute);
 
-		return permitted ? ACCESS_GRANTED : ACCESS_DENIED;
+		return accessGranted ? ACCESS_GRANTED : ACCESS_DENIED;
 	}
 
 	private PreEnforceAttribute findPreInvocationEnforcementAttribute(Collection<ConfigAttribute> config) {

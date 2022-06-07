@@ -32,24 +32,24 @@ import lombok.RequiredArgsConstructor;
 /**
  * Library of functions for evaluating Json Web Tokens (JWT)
  * <p>
- * Functions may be used in target expressions of SAPL policies. Since target expressions
- * need to be evaluated quickly for indexing and selecting policies, functions are not
- * allowed to call external services.
+ * Functions may be used in target expressions of SAPL policies. Since target
+ * expressions need to be evaluated quickly for indexing and selecting policies,
+ * functions are not allowed to call external services.
  * <p>
- * This prohibits functions from verifying digital signatures, as it would be necessary to
- * fetch public keys or certificates from external sources. <br>
- * The functions in this library therefore return information contained in JWTs as-is,
- * without verifying the token's validity.
+ * This prohibits functions from verifying digital signatures, as it would be
+ * necessary to fetch public keys or certificates from external sources. <br>
+ * The functions in this library therefore return information contained in JWTs
+ * as-is, without verifying the token's validity.
  * <p>
- * For secure implementations, any function used in the target expression for selecting a
- * policy should therefore be repeated as attribute in the policy's body, as JWT
- * attributes are properly validated.
+ * For secure implementations, any function used in the target expression for
+ * selecting a policy should therefore be repeated as attribute in the policy's
+ * body, as JWT attributes are properly validated.
  */
 @RequiredArgsConstructor
 @FunctionLibrary(name = JWTFunctionLibrary.NAME, description = JWTFunctionLibrary.DESCRIPTION)
 public class JWTFunctionLibrary {
 
-	static final String NAME = "jwt";
+	static final String NAME        = "jwt";
 	static final String DESCRIPTION = "Functions for evaluating Json Web Tokens. The contents of the token are returned without verifying the token's validity.";
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
@@ -61,15 +61,14 @@ public class JWTFunctionLibrary {
 		try {
 			var signedJwt = SignedJWT.parse(rawToken.getText());
 			var jsonToken = JSON.objectNode();
-			var payload = mapper.convertValue(signedJwt.getPayload().toJSONObject(), JsonNode.class);
+			var payload   = mapper.convertValue(signedJwt.getPayload().toJSONObject(), JsonNode.class);
 			ifPresentReplaceEpocFieldWithIsoTime(payload, "nbf");
 			ifPresentReplaceEpocFieldWithIsoTime(payload, "exp");
 			ifPresentReplaceEpocFieldWithIsoTime(payload, "iat");
 			jsonToken.set("header", mapper.convertValue(signedJwt.getHeader().toJSONObject(), JsonNode.class));
 			jsonToken.set("payload", payload);
 			return Val.of(jsonToken);
-		}
-		catch (ParseException e) {
+		} catch (ParseException e) {
 			return Val.error(e);
 		}
 	}
@@ -79,7 +78,7 @@ public class JWTFunctionLibrary {
 			return;
 
 		var epocSeconds = payload.get(key).asLong();
-		var isoString = Instant.ofEpochSecond(epocSeconds).toString();
+		var isoString   = Instant.ofEpochSecond(epocSeconds).toString();
 
 		((ObjectNode) payload).set(key, JSON.textNode(isoString));
 	}

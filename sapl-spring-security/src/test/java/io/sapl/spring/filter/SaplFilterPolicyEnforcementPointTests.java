@@ -46,7 +46,7 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.constraints.ConstraintHandlerBundle;
+import io.sapl.spring.constraints.ReactiveTypeConstraintHandlerBundle;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import reactor.core.publisher.Flux;
 
@@ -60,7 +60,7 @@ class SaplFilterPolicyEnforcementPointTests {
 
 	private ConstraintEnforcementService constraintHandlers;
 
-	private ConstraintHandlerBundle<?> bundle;
+	private ReactiveTypeConstraintHandlerBundle<?> bundle;
 
 	@BeforeEach
 	void setUpMocks() {
@@ -70,8 +70,8 @@ class SaplFilterPolicyEnforcementPointTests {
 		mapper.registerModule(module);
 		pdp = mock(PolicyDecisionPoint.class);
 		constraintHandlers = mock(ConstraintEnforcementService.class);
-		bundle = mock(ConstraintHandlerBundle.class);
-		doReturn(bundle).when(constraintHandlers).bundleFor(any(), any());
+		bundle = mock(ReactiveTypeConstraintHandlerBundle.class);
+		doReturn(bundle).when(constraintHandlers).reactiveTypeBundleFor(any(), any());
 	}
 
 	@Test

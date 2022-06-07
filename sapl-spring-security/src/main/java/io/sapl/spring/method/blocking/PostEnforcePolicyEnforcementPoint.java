@@ -22,13 +22,15 @@ import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 
+import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.spring.constraints.BlockingPostEnforceConstraintHandlerBundle;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.method.metadata.PostEnforceAttribute;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Flux;
+import reactor.core.Exceptions;
 
 /**
  * Method post-invocation handling based on a SAPL policy decision point.
@@ -45,31 +47,23 @@ public class PostEnforcePolicyEnforcementPoint extends AbstractPolicyEnforcement
 	@SuppressWarnings("unchecked") // is actually checked, warning is false positive
 	public Object after(Authentication authentication, MethodInvocation methodInvocation,
 			PostEnforceAttribute postEnforceAttribute, Object returnedObject) {
-		log.trace("Attribute        : {}", postEnforceAttribute);
-
 		lazyLoadDependencies();
 
-		var returnOptional = false;
+		log.debug("Attribute        : {}", postEnforceAttribute);
+
+		var isOptional                         = returnedObject instanceof Optional;
 		var returnedObjectForAuthzSubscription = returnedObject;
-		Flux<Object> resourceAccessPoint;
-		Class<?> returnType;
-		if (returnedObject instanceof Optional) {
-			returnOptional = true;
+		var returnType                         = methodInvocation.getMethod().getReturnType();
+
+		if (isOptional) {
 			var optObject = (Optional<Object>) returnedObject;
 			if (optObject.isPresent()) {
 				returnedObjectForAuthzSubscription = ((Optional<Object>) returnedObject).get();
-				returnType = ((Optional<Object>) returnedObject).get().getClass();
-				resourceAccessPoint = Flux.just(returnedObjectForAuthzSubscription);
-			}
-			else {
+				returnType                         = ((Optional<Object>) returnedObject).get().getClass();
+			} else {
 				returnedObjectForAuthzSubscription = null;
-				returnType = postEnforceAttribute.getGenericsType();
-				resourceAccessPoint = Flux.empty();
+				returnType                         = postEnforceAttribute.getGenericsType();
 			}
-		}
-		else {
-			returnType = methodInvocation.getMethod().getReturnType();
-			resourceAccessPoint = Flux.just(returnedObject);
 		}
 
 		var authzSubscription = subscriptionBuilder.constructAuthorizationSubscriptionWithReturnObject(authentication,
@@ -79,20 +73,50 @@ public class PostEnforcePolicyEnforcementPoint extends AbstractPolicyEnforcement
 		var authzDecision = pdp.decide(authzSubscription).blockFirst();
 		log.debug("AuthzDecision    : {}", authzDecision);
 
-		if (authzDecision == null)
-			throw new AccessDeniedException("No decision by PDP");
+		if (authzDecision == null) {
+			throw new AccessDeniedException(
+					String.format("Access Denied by PEP. PDP did not return a decision. %s", postEnforceAttribute));
+		}
 
-		if (authzDecision.getDecision() != Decision.PERMIT)
-			resourceAccessPoint = Flux.error(new AccessDeniedException("Access denied by PDP"));
+		return enforceDecision(isOptional, returnedObjectForAuthzSubscription, returnType, authzDecision);
+	}
 
-		@SuppressWarnings("rawtypes")
-		var result = constraintEnforcementService.enforceConstraintsOfDecisionOnResourceAccessPoint(authzDecision,
-				(Flux) resourceAccessPoint, returnType).blockFirst();
+	@SuppressWarnings("unchecked") // False positive. The type is checked beforehand
+	private <T> Object enforceDecision(boolean isOptional, Object returnedObjectForAuthzSubscription,
+			Class<T> returnType, AuthorizationDecision authzDecision) {
+		BlockingPostEnforceConstraintHandlerBundle<T> constraintHandlerBundle = null;
+		try {
+			constraintHandlerBundle = constraintEnforcementService.blockingPostEnforceBundleFor(authzDecision,
+					returnType);
+		} catch (Throwable e) {
+			Exceptions.throwIfFatal(e);
+			throw new AccessDeniedException("Access Denied by PEP. Failed to construct bundle.", e);
+		}
+		
+		if(constraintHandlerBundle == null) {
+			throw new AccessDeniedException("Access Denied by PEP. No constraint handler bundle.");			
+		}
+		
+		try {
+			constraintHandlerBundle.handleOnDecisionConstraints();
 
-		if (returnOptional)
-			return Optional.ofNullable(result);
+			var isNotPermit = authzDecision.getDecision() != Decision.PERMIT;
+			if (isNotPermit)
+				throw new AccessDeniedException("Access denied by PDP");
 
-		return result;
+			var result = constraintEnforcementService.replaceResultIfResourceDefinitionIsPresentInDecision(
+					authzDecision, (T) returnedObjectForAuthzSubscription, returnType);
+			result = constraintHandlerBundle.handleAllOnNextConstraints((T) result);
+
+			if (isOptional)
+				return Optional.ofNullable(result);
+
+			return result;
+		} catch (Throwable e) {
+			e = constraintHandlerBundle.handleAllOnErrorConstraints(e);
+			Exceptions.throwIfFatal(e);
+			throw new AccessDeniedException("Access Denied by PEP. Failed to enforce decision", e);
+		}
 	}
 
 }

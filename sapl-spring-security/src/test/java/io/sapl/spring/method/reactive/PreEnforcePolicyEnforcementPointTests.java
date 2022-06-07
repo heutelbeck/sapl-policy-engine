@@ -16,10 +16,12 @@
 package io.sapl.spring.method.reactive;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -30,6 +32,7 @@ import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscription;
+import org.springframework.aop.framework.ReflectiveMethodInvocation;
 import org.springframework.security.access.AccessDeniedException;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -43,6 +46,7 @@ import io.sapl.spring.constraints.api.ErrorHandlerProvider;
 import io.sapl.spring.constraints.api.ErrorMappingConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.FilterPredicateConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.MappingConstraintHandlerProvider;
+import io.sapl.spring.constraints.api.MethodInvocationConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.RequestHandlerProvider;
 import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.SubscriptionHandlerProvider;
@@ -71,6 +75,8 @@ public class PreEnforcePolicyEnforcementPointTests {
 
 	List<FilterPredicateConstraintHandlerProvider<?>> globalFilterPredicateProviders;
 
+	List<MethodInvocationConstraintHandlerProvider> globalInvocationHandlerProviders;
+
 	@BeforeEach
 	void beforeEach() {
 		globalRunnableProviders            = new LinkedList<>();
@@ -81,20 +87,21 @@ public class PreEnforcePolicyEnforcementPointTests {
 		globalErrorMappingHandlerProviders = new LinkedList<>();
 		globalErrorHandlerProviders        = new LinkedList<>();
 		globalFilterPredicateProviders     = new LinkedList<>();
+		globalInvocationHandlerProviders   = new LinkedList<>();
 	}
 
 	private ConstraintEnforcementService buildConstraintHandlerService() {
 		return new ConstraintEnforcementService(globalRunnableProviders, globalConsumerProviders,
 				globalSubscriptionHandlerProviders, globalRequestHandlerProviders, globalMappingHandlerProviders,
 				globalErrorMappingHandlerProviders, globalErrorHandlerProviders, globalFilterPredicateProviders,
-				MAPPER);
+				globalInvocationHandlerProviders, MAPPER);
 	}
 
 	@Test
-	void when_Deny_ErrorIsRaisedAndStreamCompleteEvenWithOnErrorContinue() {
+	void when_Deny_ErrorIsRaisedAndStreamCompleteEvenWithOnErrorContinue() throws Throwable {
 		var constraintsService  = buildConstraintHandlerService();
 		var decisions           = Flux.just(AuthorizationDecision.DENY);
-		var resourceAccessPoint = Flux.just(1, 2, 3);
+		var resourceAccessPoint = resourceAccessPointInvocation();
 		var onErrorContinue     = errorAndCauseConsumer();
 		var doOnError           = errorConsumer();
 		var sut                 = new PreEnforcePolicyEnforcementPoint(constraintsService).enforce(decisions,
@@ -113,10 +120,10 @@ public class PreEnforcePolicyEnforcementPointTests {
 	}
 
 	@Test
-	void when_Permit_AccessIsGranted() {
+	void when_Permit_AccessIsGranted() throws Throwable {
 		var constraintsService  = buildConstraintHandlerService();
 		var decisions           = Flux.just(AuthorizationDecision.PERMIT);
-		var resourceAccessPoint = Flux.just(1, 2, 3);
+		var resourceAccessPoint = resourceAccessPointInvocation();
 		var onErrorContinue     = errorAndCauseConsumer();
 		var doOnError           = errorConsumer();
 		var sut                 = new PreEnforcePolicyEnforcementPoint(constraintsService).enforce(decisions,
@@ -131,7 +138,94 @@ public class PreEnforcePolicyEnforcementPointTests {
 	}
 
 	@Test
-	void when_PermitWithObligations_and_allObligationsSucceed_then_AccessIsGranted() {
+	void when_PermitAndInvocationFails_thenFailureInStream() throws Throwable {
+		var constraintsService  = buildConstraintHandlerService();
+		var decisions           = Flux.just(AuthorizationDecision.PERMIT);
+		var resourceAccessPoint = mock(ReflectiveMethodInvocation.class);
+		doThrow(new IllegalArgumentException()).when(resourceAccessPoint).proceed();
+		var onErrorContinue = errorAndCauseConsumer();
+		var doOnError       = errorConsumer();
+		var sut             = new PreEnforcePolicyEnforcementPoint(constraintsService).enforce(decisions,
+				resourceAccessPoint,
+				Integer.class);
+
+		StepVerifier.create(sut.doOnError(doOnError).onErrorContinue(onErrorContinue))
+				.expectError(IllegalArgumentException.class).verify();
+
+		verify(onErrorContinue, times(0)).accept(any(), any());
+		verify(doOnError, times(1)).accept(any());
+	}
+
+	@Test
+	void when_PermitMethodInvocationObligationFail_thenAccessDenied() throws Throwable {
+		var failingHandler = new MethodInvocationConstraintHandlerProvider() {
+
+			@Override
+			public boolean isResponsible(JsonNode constraint) {
+				return true;
+			}
+
+			@Override
+			public Consumer<ReflectiveMethodInvocation> getHandler(JsonNode constraint) {
+				return invocation -> {
+					throw new IllegalArgumentException();
+				};
+			}
+
+		};
+		globalInvocationHandlerProviders.add(failingHandler);
+		var constraintsService  = buildConstraintHandlerService();
+		var decisions           = decisionFluxOnePermitWithObligation();
+		var resourceAccessPoint = resourceAccessPointInvocation();
+		var onErrorContinue     = errorAndCauseConsumer();
+		var doOnError           = errorConsumer();
+		var sut                 = new PreEnforcePolicyEnforcementPoint(constraintsService).enforce(decisions,
+				resourceAccessPoint,
+				Integer.class);
+
+		StepVerifier.create(sut.doOnError(doOnError).onErrorContinue(onErrorContinue))
+				.expectError(AccessDeniedException.class).verify();
+
+		verify(onErrorContinue, times(0)).accept(any(), any());
+		verify(doOnError, times(1)).accept(any());
+	}
+
+	@Test
+	void when_PermitMethodInvocationAdviceFail_thenAccessGranted() throws Throwable {
+		var failingHandler = new MethodInvocationConstraintHandlerProvider() {
+
+			@Override
+			public boolean isResponsible(JsonNode constraint) {
+				return true;
+			}
+
+			@Override
+			public Consumer<ReflectiveMethodInvocation> getHandler(JsonNode constraint) {
+				return invocation -> {
+					throw new IllegalArgumentException();
+				};
+			}
+
+		};
+		globalInvocationHandlerProviders.add(failingHandler);
+		var constraintsService  = buildConstraintHandlerService();
+		var decisions           = decisionFluxOnePermitWithAdvice();
+		var resourceAccessPoint = resourceAccessPointInvocation();
+		var onErrorContinue     = errorAndCauseConsumer();
+		var doOnError           = errorConsumer();
+		var sut                 = new PreEnforcePolicyEnforcementPoint(constraintsService).enforce(decisions,
+				resourceAccessPoint,
+				Integer.class);
+
+		StepVerifier.create(sut.doOnError(doOnError).onErrorContinue(onErrorContinue)).expectNext(1, 2, 3)
+				.verifyComplete();
+
+		verify(onErrorContinue, times(0)).accept(any(), any());
+		verify(doOnError, times(0)).accept(any());
+	}
+
+	@Test
+	void when_PermitWithObligations_and_allObligationsSucceed_then_AccessIsGranted() throws Throwable {
 		var handler = spy(new SubscriptionHandlerProvider() {
 
 			@Override
@@ -152,7 +246,7 @@ public class PreEnforcePolicyEnforcementPointTests {
 		this.globalSubscriptionHandlerProviders.add(handler);
 		var constraintsService  = buildConstraintHandlerService();
 		var decisions           = decisionFluxOnePermitWithObligation();
-		var resourceAccessPoint = Flux.just(1, 2, 3);
+		var resourceAccessPoint = resourceAccessPointInvocation();
 		var onErrorContinue     = errorAndCauseConsumer();
 		var doOnError           = errorConsumer();
 		var sut                 = new PreEnforcePolicyEnforcementPoint(constraintsService).enforce(decisions,
@@ -168,7 +262,8 @@ public class PreEnforcePolicyEnforcementPointTests {
 	}
 
 	@Test
-	void when_PermitWithObligations_and_oneObligationFailsMidStream_thenAccessIsDeniedOnFailure_notRecoverable_noLeaks() {
+	void when_PermitWithObligations_and_oneObligationFailsMidStream_thenAccessIsDeniedOnFailure_notRecoverable_noLeaks()
+			throws Throwable {
 		var handler = spy(new MappingConstraintHandlerProvider<Integer>() {
 
 			@Override
@@ -193,7 +288,7 @@ public class PreEnforcePolicyEnforcementPointTests {
 		this.globalMappingHandlerProviders.add(handler);
 		var constraintsService  = buildConstraintHandlerService();
 		var decisions           = decisionFluxOnePermitWithObligation();
-		var resourceAccessPoint = Flux.just(1, 2, 3);
+		var resourceAccessPoint = resourceAccessPointInvocation();
 		var onErrorContinue     = errorAndCauseConsumer();
 		var doOnError           = errorConsumer();
 		var sut                 = new PreEnforcePolicyEnforcementPoint(constraintsService).enforce(decisions,
@@ -208,7 +303,7 @@ public class PreEnforcePolicyEnforcementPointTests {
 	}
 
 	@Test
-	void when_PermitWithResource_thenAccessIsGrantedAndOnlyResourceFromPolicyInStream() {
+	void when_PermitWithResource_thenAccessIsGrantedAndOnlyResourceFromPolicyInStream() throws Throwable {
 		var handler = spy(new MappingConstraintHandlerProvider<Integer>() {
 
 			@Override
@@ -232,7 +327,7 @@ public class PreEnforcePolicyEnforcementPointTests {
 		obligations.add(JSON.numberNode(420));
 		var decisions           = Flux
 				.just(AuthorizationDecision.PERMIT.withObligations(obligations).withResource(JSON.numberNode(69)));
-		var resourceAccessPoint = Flux.just(1, 2, 3);
+		var resourceAccessPoint = resourceAccessPointInvocation();
 		var onErrorContinue     = errorAndCauseConsumer();
 		var doOnError           = errorConsumer();
 		var sut                 = new PreEnforcePolicyEnforcementPoint(constraintsService).enforce(decisions,
@@ -246,11 +341,11 @@ public class PreEnforcePolicyEnforcementPointTests {
 	}
 
 	@Test
-	void when_PermitWithResource_and_typeMismatch_thenAccessIsDenied() {
+	void when_PermitWithResource_and_typeMismatch_thenAccessIsDenied() throws Throwable {
 		var constraintsService  = buildConstraintHandlerService();
 		var decisions           = Flux
 				.just(AuthorizationDecision.PERMIT.withResource(JSON.textNode("I CAUSE A TYPE MISMATCH")));
-		var resourceAccessPoint = Flux.just(1, 2, 3);
+		var resourceAccessPoint = resourceAccessPointInvocation();
 		var onErrorContinue     = errorAndCauseConsumer();
 		var doOnError           = errorConsumer();
 		var sut                 = new PreEnforcePolicyEnforcementPoint(constraintsService).enforce(decisions,
@@ -271,6 +366,13 @@ public class PreEnforcePolicyEnforcementPointTests {
 		return Flux.just(AuthorizationDecision.PERMIT.withObligations(obligation));
 	}
 
+	public Flux<AuthorizationDecision> decisionFluxOnePermitWithAdvice() {
+		var plus10000 = JSON.numberNode(10000L);
+		var advice    = JSON.arrayNode();
+		advice.add(plus10000);
+		return Flux.just(AuthorizationDecision.PERMIT.withAdvice(advice));
+	}
+
 	@SuppressWarnings("unchecked")
 	private BiConsumer<Throwable, Object> errorAndCauseConsumer() {
 		return (BiConsumer<Throwable, Object>) mock(BiConsumer.class);
@@ -281,4 +383,9 @@ public class PreEnforcePolicyEnforcementPointTests {
 		return (Consumer<Throwable>) mock(Consumer.class);
 	}
 
+	public ReflectiveMethodInvocation resourceAccessPointInvocation() throws Throwable {
+		var mock = mock(ReflectiveMethodInvocation.class);
+		when(mock.proceed()).thenReturn(Flux.just(1, 2, 3));
+		return mock;
+	}
 }
