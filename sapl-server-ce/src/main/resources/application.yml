@@ -1,0 +1,9 @@
+spring:
+  profiles.active: demo
+
+logging.level:
+  org.atmosphere: WARN
+  web: INFO
+
+vaadin:
+  whitelisted-packages: io/sapl/vaadin,io/sapl/server/ui,org/vaadin

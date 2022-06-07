@@ -1,0 +1,10 @@
+{
+   "properties":{
+      "subject":{
+         "type":"object",
+         "properties":{
+            "testname": {"type":"object"}
+         }
+      }
+   }
+}

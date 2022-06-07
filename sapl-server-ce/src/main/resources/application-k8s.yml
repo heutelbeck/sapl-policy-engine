@@ -1,0 +1,19 @@
+# The configuration is loaded from a config tree mounted as a volume under the given path
+# The config tree should contain all parameters commented out below:
+# If SSL should be added it can be added there as well following normal Spring conventions
+spring:
+  config.import: configtree:/etc/config/
+  datasource:
+    driver-class-name: org.mariadb.jdbc.Driver
+#    url: jdbc:mariadb://localhost:3306/sapl
+#    username: root
+#    password: testdb
+  jpa:
+    hibernate.ddl-auto: update
+    database-platform: org.hibernate.dialect.MariaDB53Dialect
+#io.sapl:
+#  server:
+#    admin-username: user
+#    # Security (BCrypt encoded client-secret (raw secret: Fa4zvYQdiwHZVXh))
+#    encoded-admin-password: "{bcrypt}$2a$10$PhobF71xYb0MK8KubWLB7e0Dpl2AfMiEUi9dkKTbFR4kkWABrbiyO"
+    

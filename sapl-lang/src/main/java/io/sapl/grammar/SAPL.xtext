@@ -26,7 +26,10 @@ Import:
 	'import' ( {WildcardImport} libSteps+=ID ('.' libSteps+=ID)* '.' '*' 
 		     | {LibraryImport} (libSteps+=ID '.')* libSteps+=ID 'as' libAlias=ID 
 		     | libSteps+=ID ('.' libSteps+=ID)* '.' functionName=ID	) ;
-	
+
+Schema:
+    'schema' schemaExpression=Expression 'for' subscriptionElement=ID ;
+
 PolicyElement:
 	PolicySet | Policy;
 	
@@ -186,7 +189,10 @@ SignedNumber returns ecore::EBigDecimal: '-'? JSONNUMBER;
 
 @Override 
 terminal ID: 
-	'^'? ('a'..'z'|'A'..'Z'|'_'|'$') ('a'..'z'|'A'..'Z'|'_'|'$'|'0'..'9')*;
+	('^'? ('a'..'z'|'A'..'Z'|'_'|'$') ('a'..'z'|'A'..'Z'|'_'|'$'|'0'..'9')*);
+
+terminal SUBSCRIPTIONELEMENTS:
+    'resource' | 'action';
 
 terminal FILTER:
 	'|-' ;
