@@ -119,7 +119,30 @@ class PreEnforcePolicyEnforcementPointTests {
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.DENY));
 		assertThat(sut.before(authentication, methodInvocation, attribute), is(false));
 	}
+	
+	@Test
+	void whenBeforeAndDecideNull_thenReturnFalse() {
+		var mockBundle = mock(BlockingPreEnforceConstraintHandlerBundle.class);
+		when(constraintEnforcementService.blockingPreEnforceBundleFor(any())).thenReturn(mockBundle);
+		var sut              = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
+				subscriptionBuilderFactory);
+		var methodInvocation = MethodInvocationUtils.create(new TestClass(), "doSomething");
+		var attribute        = new PreEnforceAttribute(null, null, null, null, null);
+		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(null);
+		assertThat(sut.before(authentication, methodInvocation, attribute), is(false));
+	}
 
+	@Test
+	void whenBeforeAndDecidePermitButBundleNull_thenReturnFalse() {
+		when(constraintEnforcementService.blockingPreEnforceBundleFor(any())).thenReturn(null);
+		var sut              = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
+				subscriptionBuilderFactory);
+		var methodInvocation = MethodInvocationUtils.create(new TestClass(), "doSomething");
+		var attribute        = new PreEnforceAttribute(null, null, null, null, null);
+		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+		assertThat(sut.before(authentication, methodInvocation, attribute), is(false));
+	}
+	
 	@Test
 	void whenBeforeAndDecidePermit_thenReturnTrue() {
 		var mockBundle = mock(BlockingPreEnforceConstraintHandlerBundle.class);

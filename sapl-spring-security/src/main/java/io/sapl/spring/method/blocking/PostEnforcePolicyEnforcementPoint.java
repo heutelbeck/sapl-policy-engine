@@ -70,7 +70,13 @@ public class PostEnforcePolicyEnforcementPoint extends AbstractPolicyEnforcement
 				methodInvocation, postEnforceAttribute, returnedObjectForAuthzSubscription);
 		log.debug("AuthzSubscription: {}", authzSubscription);
 
-		var authzDecision = pdp.decide(authzSubscription).blockFirst();
+		var authzDecisions = pdp.decide(authzSubscription);
+		if (authzDecisions == null) {
+			throw new AccessDeniedException(
+					String.format("Access Denied by PEP. PDP returned null. %s", postEnforceAttribute));
+		}
+
+		var authzDecision = authzDecisions.blockFirst();
 		log.debug("AuthzDecision    : {}", authzDecision);
 
 		if (authzDecision == null) {
@@ -92,11 +98,11 @@ public class PostEnforcePolicyEnforcementPoint extends AbstractPolicyEnforcement
 			Exceptions.throwIfFatal(e);
 			throw new AccessDeniedException("Access Denied by PEP. Failed to construct bundle.", e);
 		}
-		
-		if(constraintHandlerBundle == null) {
-			throw new AccessDeniedException("Access Denied by PEP. No constraint handler bundle.");			
+
+		if (constraintHandlerBundle == null) {
+			throw new AccessDeniedException("Access Denied by PEP. No constraint handler bundle.");
 		}
-		
+
 		try {
 			constraintHandlerBundle.handleOnDecisionConstraints();
 
