@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,16 +15,25 @@
  */
 package io.sapl.pdp.config;
 
+import java.util.Map;
+
+import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.grammar.sapl.CombiningAlgorithm;
-import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.interpreter.pip.AttributeContext;
 import lombok.Value;
 
 @Value
 public class PDPConfiguration {
-	EvaluationContext pdpScopedEvaluationContext;
-	CombiningAlgorithm documentsCombinator;
+
+	AttributeContext      attributeContext;
+	FunctionContext       functionContext;
+	Map<String, JsonNode> variables;
+	CombiningAlgorithm    documentsCombinator;
 
 	public boolean isValid() {
-		return pdpScopedEvaluationContext != null && documentsCombinator != null;
+		return attributeContext != null && functionContext != null && variables != null && documentsCombinator != null;
 	}
+
 }

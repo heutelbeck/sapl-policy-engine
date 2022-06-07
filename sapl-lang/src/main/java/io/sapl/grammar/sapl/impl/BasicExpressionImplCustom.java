@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,51 +23,53 @@ import org.reactivestreams.Publisher;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Step;
-import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.context.AuthorizationContext;
 import reactor.core.publisher.Flux;
 
 /**
  * Superclass of basic expressions providing a method to evaluate the steps,
- * filter and subtemplate possibly being part of the basic expression.
+ * filter and sub template possibly being part of the basic expression.
  *
- * Grammar: BasicExpression returns Expression: Basic (FILTER
- * filter=FilterComponent | SUBTEMPLATE subtemplate=BasicExpression)? ;
+ * Grammar:
+ * {@code BasicExpression returns Expression: Basic (FILTER filter=FilterComponent |
+ * SUBTEMPLATE subtemplate=BasicExpression)? ;
  *
  * Basic returns BasicExpression: {BasicGroup} '(' expression=Expression ')'
  * steps+=Step* | {BasicValue} value=Value steps+=Step* | {BasicFunction}
  * fsteps+=ID ('.' fsteps+=ID)* arguments=Arguments steps+=Step* |
  * {BasicIdentifier} identifier=ID steps+=Step* | {BasicRelative} '@'
- * steps+=Step* ;
+ * steps+=Step* ;}
  */
 public class BasicExpressionImplCustom extends BasicExpressionImpl {
 
-	protected Function<? super Val, Publisher<? extends Val>> resolveStepsFiltersAndSubtemplates(EList<Step> steps,
-			EvaluationContext ctx, Val relativeNode) {
-		return resolveSteps(steps, 0, ctx, relativeNode);
+	protected Function<? super Val, Publisher<? extends Val>> resolveStepsFiltersAndSubTemplates(
+			EList<Step> steps) {
+		return resolveSteps(steps, 0);
 	}
 
-	private Function<? super Val, Publisher<? extends Val>> resolveSteps(EList<Step> steps, int stepId,
-			EvaluationContext ctx, Val relativeNode) {
+	private Function<? super Val, Publisher<? extends Val>> resolveSteps(
+			EList<Step> steps,
+			int stepId) {
 		if (steps == null || stepId == steps.size()) {
-			return value -> resolveFilterOrSubtemplate(value, ctx);
+			return value -> resolveFilterOrSubTemplate(value);
 		}
-		return value -> steps.get(stepId).apply(value, ctx, relativeNode)
-				.switchMap(resolveSteps(steps, stepId + 1, ctx, relativeNode));
+		return value -> steps.get(stepId).apply(value)
+				.switchMap(resolveSteps(steps, stepId + 1));
 	}
 
-	private Flux<Val> resolveFilterOrSubtemplate(Val value, EvaluationContext ctx) {
+	private Flux<Val> resolveFilterOrSubTemplate(Val value) {
 		if (filter != null) {
-			return filter.apply(value, ctx, value);
+			return filter.apply(value).contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, value));
 		}
 		if (subtemplate != null) {
-			return applySubTemplate(ctx, value);
+			return applySubTemplate(value);
 		}
 		return Flux.just(value);
 	}
 
-	private Flux<Val> applySubTemplate(EvaluationContext ctx, Val value) {
+	private Flux<Val> applySubTemplate(Val value) {
 		if (!value.isArray()) {
-			return subtemplate.evaluate(ctx, value);
+			return subtemplate.evaluate().contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, value));
 		}
 		var array = value.getArrayNode();
 		if (array.isEmpty()) {
@@ -75,7 +77,8 @@ public class BasicExpressionImplCustom extends BasicExpressionImpl {
 		}
 		var itemFluxes = new ArrayList<Flux<Val>>(array.size());
 		for (var element : array) {
-			itemFluxes.add(subtemplate.evaluate(ctx, Val.of(element)));
+			itemFluxes.add(subtemplate.evaluate()
+					.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, Val.of(element))));
 		}
 		return Flux.combineLatest(itemFluxes, RepackageUtil::recombineArray);
 	}

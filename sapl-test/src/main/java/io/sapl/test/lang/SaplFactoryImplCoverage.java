@@ -1,3 +1,18 @@
+/*
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.test.lang;
 
 import io.sapl.grammar.sapl.Policy;
@@ -10,34 +25,28 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SaplFactoryImplCoverage extends SaplFactoryImpl {
 
-	private CoverageHitRecorder recorder;
-	
+	private final CoverageHitRecorder recorder;
+
 	public SaplFactoryImplCoverage(CoverageHitRecorder recorder) {
 		this.recorder = recorder;
 	}
-	
+
 	@Override
-	public PolicySet createPolicySet()
-	{
+	public PolicySet createPolicySet() {
 		log.trace("Creating PolicySet Subclass for test mode");
-		PolicySetImplCustomCoverage policySet = new PolicySetImplCustomCoverage(this.recorder);
-		return policySet;
+		return new PolicySetImplCustomCoverage(this.recorder);
 	}
 
 	@Override
-	public Policy createPolicy()
-	{
+	public Policy createPolicy() {
 		log.trace("Creating Policy Subclass for test mode");
-		PolicyImplCustomCoverage policy = new PolicyImplCustomCoverage(this.recorder);
-		return policy;
+		return new PolicyImplCustomCoverage(this.recorder);
 	}
 
 	@Override
-	public PolicyBody createPolicyBody()
-	{
+	public PolicyBody createPolicyBody() {
 		log.trace("Creating PolicyBody Subclass for test mode");
-		PolicyBodyImplCustomCoverage body = new PolicyBodyImplCustomCoverage(this.recorder);
-		return body;
+		return new PolicyBodyImplCustomCoverage(this.recorder);
 	}
 
 }

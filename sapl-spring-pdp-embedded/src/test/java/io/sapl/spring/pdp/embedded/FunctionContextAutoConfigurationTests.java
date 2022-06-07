@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,16 +63,17 @@ class FunctionContextAutoConfigurationTests {
 
 	@Test
 	void whenBadLibraryIsPresent_thenContextFailsToLoad() {
-		contextRunner.withBean(BadFunctionLibrary.class, BadFunctionLibrary::new).run(context -> {
-			assertThat(context).hasFailed();
-		});
+		contextRunner.withBean(BadFunctionLibrary.class, BadFunctionLibrary::new)
+				.run(context -> assertThat(context).hasFailed());
 	}
 
 	@FunctionLibrary
 	protected static class BadFunctionLibrary {
+
 		@Function
 		void iAmABadSignatureFunction(Integer i, Float f) {
 		}
+
 	}
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
-import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
@@ -30,27 +30,33 @@ import reactor.core.publisher.Flux;
 public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 
 	private static final String UNDEFINED_VALUE = "Undefined value handed over as parameter to policy information point";
-	private static final String EXTERNAL_ATTRIBUTE_IN_TARGET = "Attribute resolution error. Attribute '%s' is not allowed in target.";
+
+	private static final String EXTERNAL_ATTRIBUTE_IN_TARGET = "Attribute resolution error. Attributes are not allowed in target.";
 
 	@Override
-	public Flux<Val> apply(@NonNull Val parentValue, @NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
+	public Flux<Val> apply(@NonNull Val parentValue) {
 		if (parentValue.isError()) {
 			return Flux.just(parentValue);
 		}
-		var fullyQualifiedName = FunctionUtil.resolveAbsoluteFunctionName(getIdSteps(), ctx);
 		if (TargetExpressionUtil.isInTargetExpression(this)) {
-			return Val.errorFlux(EXTERNAL_ATTRIBUTE_IN_TARGET, fullyQualifiedName);
+			return Val.errorFlux(EXTERNAL_ATTRIBUTE_IN_TARGET);
 		}
 		if (parentValue.isUndefined()) {
 			return Val.errorFlux(UNDEFINED_VALUE);
 		}
-		return ctx.getAttributeCtx().evaluate(fullyQualifiedName, parentValue, ctx, getArguments())
-				.distinctUntilChanged();
+		return Flux.deferContextual(ctxView -> AuthorizationContext.getAttributeContext(ctxView)
+				.evaluateAttribute(
+						FunctionUtil.resolveAbsoluteFunctionName(getIdSteps(),
+								AuthorizationContext.getImports(ctxView)),
+						parentValue, getArguments(), AuthorizationContext.getVariables(ctxView))
+				.distinctUntilChanged());
 	}
 
 	@Override
-	public Flux<Val> applyFilterStatement(@NonNull Val parentValue, @NonNull EvaluationContext ctx,
-			@NonNull Val relativeNode, int stepId, @NonNull FilterStatement statement) {
+	public Flux<Val> applyFilterStatement(
+			@NonNull Val parentValue,
+			int stepId,
+			@NonNull FilterStatement statement) {
 		return Val.errorFlux("AttributeFinderStep not permitted in filter selection steps.");
 	}
 

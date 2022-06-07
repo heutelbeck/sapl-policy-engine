@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,80 +41,82 @@ import java.util.zip.ZipFile;
 @Slf4j
 public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
 
-    private static final String POLICY_FILE_SUFFIX = ".sapl";
-    private static final String POLICY_FILE_GLOB_PATTERN = "*" + POLICY_FILE_SUFFIX;
+	private static final String POLICY_FILE_SUFFIX = ".sapl";
 
-    private final SAPLInterpreter interpreter;
-    private final PrpUpdateEvent initializingPrpUpdate;
+	private static final String POLICY_FILE_GLOB_PATTERN = "*" + POLICY_FILE_SUFFIX;
 
-    public ResourcesPrpUpdateEventSource(String policyPath, SAPLInterpreter interpreter)
-            throws InitializationException {
-        this(ResourcesPrpUpdateEventSource.class, policyPath, interpreter);
-    }
+	private final SAPLInterpreter interpreter;
 
-    public ResourcesPrpUpdateEventSource(@NonNull Class<?> clazz, @NonNull String policyPath,
-                                         @NonNull SAPLInterpreter interpreter) throws InitializationException {
-        this.interpreter = interpreter;
-        log.info("Loading a static set of policies from the bundled ressources");
-        initializingPrpUpdate = readPolicies(JarUtil.inferUrlOfRecourcesPath(clazz, policyPath));
-    }
+	private final PrpUpdateEvent initializingPrpUpdate;
 
-    private final PrpUpdateEvent readPolicies(URL policyFolderUrl) throws InitializationException {
-        try {
-            if ("jar".equals(policyFolderUrl.getProtocol()))
-                return readPoliciesFromJar(policyFolderUrl);
-            return readPoliciesFromDirectory(policyFolderUrl);
-        } catch (IOException | URISyntaxException e) {
-            throw (InitializationException) new InitializationException("Failed to read policies").initCause(e);
-        }
-    }
+	public ResourcesPrpUpdateEventSource(String policyPath, SAPLInterpreter interpreter)
+			throws InitializationException {
+		this(ResourcesPrpUpdateEventSource.class, policyPath, interpreter);
+	}
 
-    private final PrpUpdateEvent readPoliciesFromJar(URL policiesFolderUrl) throws IOException {
-        log.debug("reading policies from jar {}", policiesFolderUrl);
-        var pathOfJar = JarUtil.getJarFilePath(policiesFolderUrl);
-        try (var jarFile = new ZipFile(pathOfJar)) {
-            var updates = jarFile.stream().filter(entry -> isSAPLDocumentWithinPath(entry))
-                    .peek(entry -> log.info("load SAPL document: {}", entry.getName()))
-                    .map(entry -> JarUtil.readStringFromZipEntry(jarFile, entry))
-                    .map(this::parseAndCreatePublicationUpdate).collect(Collectors.toList());
-            return new PrpUpdateEvent(updates);
-        }
-    }
+	public ResourcesPrpUpdateEventSource(@NonNull Class<?> clazz, @NonNull String policyPath,
+			@NonNull SAPLInterpreter interpreter) throws InitializationException {
+		this.interpreter = interpreter;
+		log.info("Loading a static set of policies from the bundled resources");
+		initializingPrpUpdate = readPolicies(JarUtil.inferUrlOfResourcesPath(clazz, policyPath));
+	}
 
-    private boolean isSAPLDocumentWithinPath(ZipEntry zipEntry) {
-        return !zipEntry.isDirectory() && zipEntry.getName().endsWith(POLICY_FILE_SUFFIX);
-    }
+	private PrpUpdateEvent readPolicies(URL policyFolderUrl) throws InitializationException {
+		try {
+			if ("jar".equals(policyFolderUrl.getProtocol()))
+				return readPoliciesFromJar(policyFolderUrl);
+			return readPoliciesFromDirectory(policyFolderUrl);
+		}
+		catch (IOException | URISyntaxException e) {
+			throw (InitializationException) new InitializationException("Failed to read policies").initCause(e);
+		}
+	}
 
-    private final Update parseAndCreatePublicationUpdate(String rawDocument) {
-        return new Update(Type.PUBLISH, interpreter.parse(rawDocument), rawDocument);
-    }
+	private PrpUpdateEvent readPoliciesFromJar(URL policiesFolderUrl) throws IOException {
+		log.debug("reading policies from jar {}", policiesFolderUrl);
+		var pathOfJar = JarUtil.getJarFilePath(policiesFolderUrl);
+		try (var jarFile = new ZipFile(pathOfJar)) {
+			var updates = jarFile.stream().filter(this::isSAPLDocumentWithinPath)
+					.peek(entry -> log.info("load SAPL document: {}", entry.getName()))
+					.map(entry -> JarUtil.readStringFromZipEntry(jarFile, entry))
+					.map(this::parseAndCreatePublicationUpdate).collect(Collectors.toList());
+			return new PrpUpdateEvent(updates);
+		}
+	}
 
-    private final PrpUpdateEvent readPoliciesFromDirectory(URL policiesFolderUrl)
-            throws IOException, URISyntaxException {
-        log.debug("reading policies from directory {}", policiesFolderUrl);
-        try (var directoryStream = Files.newDirectoryStream(Paths.get(policiesFolderUrl.toURI()),
-                POLICY_FILE_GLOB_PATTERN)) {
-            var updates = StreamSupport.stream(directoryStream.spliterator(), false)
-                    .peek(path -> log.info("load SAPL document: {}", path))
-                    .map(ResourcesPrpUpdateEventSource::readFileAsString).map(this::parseAndCreatePublicationUpdate)
-                    .collect(Collectors.toList());
-            return new PrpUpdateEvent(updates);
-        }
-    }
+	private boolean isSAPLDocumentWithinPath(ZipEntry zipEntry) {
+		return !zipEntry.isDirectory() && zipEntry.getName().endsWith(POLICY_FILE_SUFFIX);
+	}
 
-    @SneakyThrows
-    private static String readFileAsString(Path path) {
-        return Files.readString(path);
-    }
+	private Update parseAndCreatePublicationUpdate(String rawDocument) {
+		return new Update(Type.PUBLISH, interpreter.parse(rawDocument), rawDocument);
+	}
 
-    @Override
-    public void dispose() {
-        // NOP nothing to dispose of
-    }
+	private PrpUpdateEvent readPoliciesFromDirectory(URL policiesFolderUrl) throws IOException, URISyntaxException {
+		log.debug("reading policies from directory {}", policiesFolderUrl);
+		try (var directoryStream = Files.newDirectoryStream(Paths.get(policiesFolderUrl.toURI()),
+				POLICY_FILE_GLOB_PATTERN)) {
+			var updates = StreamSupport.stream(directoryStream.spliterator(), false)
+					.peek(path -> log.info("load SAPL document: {}", path))
+					.map(ResourcesPrpUpdateEventSource::readFileAsString).map(this::parseAndCreatePublicationUpdate)
+					.collect(Collectors.toList());
+			return new PrpUpdateEvent(updates);
+		}
+	}
 
-    @Override
-    public Flux<PrpUpdateEvent> getUpdates() {
-        return Flux.just(initializingPrpUpdate);
-    }
+	@SneakyThrows
+	private static String readFileAsString(Path path) {
+		return Files.readString(path);
+	}
+
+	@Override
+	public void dispose() {
+		// NOP nothing to dispose of
+	}
+
+	@Override
+	public Flux<PrpUpdateEvent> getUpdates() {
+		return Flux.just(initializingPrpUpdate);
+	}
 
 }

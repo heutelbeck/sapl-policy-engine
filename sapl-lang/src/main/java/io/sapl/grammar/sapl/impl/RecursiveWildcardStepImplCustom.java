@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,22 +20,21 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
-import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
  * Implements the application of a recursive wildcard step to a previous value,
- * e.g. 'obj..*' or 'arr..[*]'.
+ * e.g. {@code 'obj..*' or 'arr..[*]'}.
  *
- * Grammar: Step: '..' ({RecursiveWildcardStep} ('*' | '[' '*' ']' )) ;
+ * Grammar: {@code Step: '..' ({RecursiveWildcardStep} ('*' | '[' '*' ']' )) ;}
  */
 public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 
 	private static final String CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE = "Cannot descent on an undefined value.";
 
 	@Override
-	public Flux<Val> apply(@NonNull Val parentValue, @NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
+	public Flux<Val> apply(@NonNull Val parentValue) {
 		if (parentValue.isError()) {
 			return Flux.just(parentValue);
 		}
@@ -50,7 +49,7 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 
 	private ArrayNode collect(JsonNode node, ArrayNode results) {
 		if (node.isArray()) {
-			for (var item : ((ArrayNode) node)) {
+			for (var item : node) {
 				if (item.isObject() || item.isArray()) {
 					results.add(item);
 				}
@@ -72,12 +71,14 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 	}
 
 	@Override
-	public Flux<Val> applyFilterStatement(@NonNull Val parentValue, @NonNull EvaluationContext ctx,
-			@NonNull Val relativeNode, int stepId, @NonNull FilterStatement statement) {
+	public Flux<Val> applyFilterStatement(
+			@NonNull Val parentValue,
+			int stepId,
+			@NonNull FilterStatement statement) {
 		// This type of recursion does not translate well to filtering.
 		// Basically just apply filter to top-level matches and do recursion with steps.
 		// @.* is basically equivalent to @..* here.
-		return WildcardStepImplCustom.doApplyFilterStatement(parentValue, ctx, relativeNode, stepId, statement);
+		return WildcardStepImplCustom.doApplyFilterStatement(parentValue, stepId, statement);
 	}
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import javax.net.ssl.SSLException;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
 import io.netty.handler.ssl.SslContextBuilder;
@@ -33,7 +32,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
-@ComponentScan("io.sapl.spring")
 @EnableConfigurationProperties(RemotePDPProperties.class)
 public class RemotePDPAutoConfiguration {
 
@@ -47,15 +45,15 @@ public class RemotePDPAutoConfiguration {
 			log.warn("INSECURE SSL SETTINGS! This demo uses an insecure SslContext for "
 					+ "testing purposes only. It will accept all certificates. "
 					+ "This is only for testing local servers with self-signed certificates easily. "
-					+ "NERVER USE SUCH A CONFIURATION IN PRODUCTION!");
+					+ "NEVER USE THIS A CONFIGURATION IN PRODUCTION!");
 			var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
 			return new RemotePolicyDecisionPoint(configuration.getHost(), configuration.getKey(),
 					configuration.getSecret(), sslContext);
 
-		} else {
-			return new RemotePolicyDecisionPoint(configuration.getHost(), configuration.getKey(),
-					configuration.getSecret());
 		}
+
+		return new RemotePolicyDecisionPoint(configuration.getHost(), configuration.getKey(),
+				configuration.getSecret());
 	}
 
 }

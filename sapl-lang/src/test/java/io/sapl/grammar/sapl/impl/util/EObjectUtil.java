@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,14 +40,16 @@ public class EObjectUtil {
 			log(indent + 1, "Feature:{} {}", feature.getName(), feature.getEType().getName());
 			if (featureInstance instanceof EObject) {
 				dumpEObjectTree((EObject) featureInstance, indent + 2);
-			} else if (featureInstance instanceof EList) {
+			}
+			else if (featureInstance instanceof EList) {
 				for (var feat : (EList<Object>) featureInstance) {
 					if (feat instanceof EObject)
 						dumpEObjectTree((EObject) feat, indent + 2);
 					else
 						log(indent + 2, feat.toString());
 				}
-			} else {
+			}
+			else {
 				log(indent + 2, String.valueOf(featureInstance));
 			}
 		}
@@ -56,4 +58,5 @@ public class EObjectUtil {
 	public static void log(int indent, String message, Object... arguments) {
 		log.trace("|  ".repeat(Math.max(0, indent - 1)) + "|- ".repeat(Math.min(1, indent)) + message, arguments);
 	}
+
 }

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+    Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@
 	<parent>
 		<groupId>io.sapl</groupId>
 		<artifactId>sapl-policy-engine</artifactId>
-		<version>2.0.0-SNAPSHOT</version>
+		<version>2.1.0-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>sapl-spring-pdp-embedded</artifactId>
@@ -38,18 +38,26 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-autoconfigure</artifactId>
 		</dependency>
-		
+
 		<!-- Validation -->
 		<dependency>
 			<groupId>org.hibernate.validator</groupId>
 			<artifactId>hibernate-validator</artifactId>
 		</dependency>
-		
+
 		<!-- The embedded PDP implementation -->
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>sapl-pdp-embedded</artifactId>
 			<version>${project.version}</version>
+		</dependency>
+
+		<!-- Optional JWT SAPL Extensions -->
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>sapl-jwt</artifactId>
+			<version>${project.version}</version>
+			<optional>true</optional>
 		</dependency>
 		
 		<!-- Utility -->
@@ -58,14 +66,14 @@
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
 		</dependency>
-		
+
 		<!-- Spring configuration handling -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-configuration-processor</artifactId>
 			<optional>true</optional>
 		</dependency>
-		
+
 		<!-- Testing -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

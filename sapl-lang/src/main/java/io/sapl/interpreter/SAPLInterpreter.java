@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,15 @@
 package io.sapl.interpreter;
 
 import java.io.InputStream;
+import java.util.Map;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.grammar.sapl.SAPL;
+import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.interpreter.pip.AttributeContext;
 import reactor.core.publisher.Flux;
 
 public interface SAPLInterpreter {
@@ -50,13 +55,19 @@ public interface SAPLInterpreter {
 	 * subscription object within a given attribute context and function context and
 	 * returns a {@link Flux} of {@link AuthorizationDecision} objects.
 	 * 
-	 * @param authzSubscription the authorization subscription object
-	 * @param saplDefinition    the String representing the SAPL document
-	 * @param evaluationCtx     the PDP scoped evaluation context
+	 * @param authzSubscription     the authorization subscription object
+	 * @param saplDocumentSource    the String representing the SAPL document
+	 * @param attributeContext      the PDP's AttributeContext
+	 * @param functionContext       the PDP's FunctionContext
+	 * @param environmentrVariables map containing the PDP's environment variables
 	 * @return A {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
-	Flux<AuthorizationDecision> evaluate(AuthorizationSubscription authzSubscription, String saplDefinition,
-			EvaluationContext evaluationCtx);
+	Flux<AuthorizationDecision> evaluate(
+			AuthorizationSubscription authzSubscription,
+			String saplDocumentSource,
+			AttributeContext attributeContext,
+			FunctionContext functionContext,
+			Map<String, JsonNode> environmentrVariables);
 
 	/**
 	 * Method which analyzes a String containing a SAPL document.

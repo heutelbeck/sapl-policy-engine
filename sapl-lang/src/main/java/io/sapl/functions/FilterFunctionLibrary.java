@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,9 +23,13 @@ import io.sapl.api.interpreter.Val;
 public class FilterFunctionLibrary {
 
 	public static final String NAME = "filter";
+
 	public static final String DESCRIPTION = "Essential functions for content filtering.";
+
 	private static final String DEFAULT_REPLACEMENT = "X";
+
 	private static final int DEFAULT_NUMBER_OF_CHARACTERS_TO_SHOW_LEFT = 0;
+
 	private static final int DEFAULT_NUMBER_OF_CHARACTERS_TO_SHOW_RIGHT = 0;
 
 	private static final String BLACKEN_DOC = "blacken(STRING, DISCLOSE_LEFT, DISCLOSE_RIGHT, REPLACEMENT): Assumes that DISCLOSE_LEFT and DISCLOSE_RIGHT are positive integers and STRING and REPLACEMENT are strings."
@@ -33,18 +37,29 @@ public class FilterFunctionLibrary {
 			+ " Except for STRING, all parameters are optional."
 			+ " DISCLOSE_LEFT defaults to 0, DISCLOSE_RIGHT defaults to 0 and REPLACEMENT defaults to 'X'"
 			+ " Returns the modified STRING.";
+
 	private static final String REPLACE_DOC = "replace(ORIGINAL, REPLACEMENT): Assumes that ORIGINAL and REPLACEMENT are JSON nodes. Returns REPLACEMENT.";
+
 	private static final String REMOVE_DOC = "remove: Maps any value to 'undefined' If used in a filter, this will be removed from arrays or objects";
+
 	private static final String ILLEGAL_PARAMETERS_COUNT = "Illegal number of parameters provided.";
+
 	private static final String ILLEGAL_PARAMETER_DISCLOSE_LEFT = "Illegal parameter for DISCLOSE_LEFT. Expecting a positive integer.";
+
 	private static final String ILLEGAL_PARAMETER_DISCLOSE_RIGHT = "Illegal parameter for DISCLOSE_RIGHT. Expecting a positive integer.";
+
 	private static final String ILLEGAL_PARAMETER_REPLACEMENT = "Illegal parameter for REPLACEMENT. Expecting a string.";
+
 	private static final String ILLEGAL_PARAMETER_STRING = "Illegal parameter for STRING. Expecting a string.";
 
 	private static final int ORIGINAL_STRING_INDEX = 0;
+
 	private static final int DISCLOSE_LEFT_INDEX = 1;
+
 	private static final int DISCLOSE_RIGHT_INDEX = 2;
+
 	private static final int REPLACEMENT_INDEX = 3;
+
 	private static final int MAXIMAL_NUMBER_OF_PARAMETERS_FOR_BLACKEN = 4;
 
 	@Function(docs = BLACKEN_DOC)

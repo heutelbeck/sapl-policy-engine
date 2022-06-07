@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,17 +15,19 @@
  */
 package io.sapl.spring.pdp.embedded;
 
+import java.time.Clock;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import io.sapl.pip.ClockPolicyInformationPoint;
+import io.sapl.pip.TimePolicyInformationPoint;
 
 @Configuration
 public class PolicyInformationPointsAutoConfiguration {
 
 	@Bean
-	public ClockPolicyInformationPoint clockPolicyInformationPoint() {
-		return new ClockPolicyInformationPoint();
+	public TimePolicyInformationPoint timePolicyInformationPoint() {
+		return new TimePolicyInformationPoint(Clock.systemUTC());
 	}
-	
+
 }

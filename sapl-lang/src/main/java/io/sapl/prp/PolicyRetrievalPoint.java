@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
  */
 package io.sapl.prp;
 
-import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
 /**
@@ -38,7 +37,8 @@ public interface PolicyRetrievalPoint {
 	 *         the matching policies or policy sets. New results are only added to
 	 *         the stream if they are different from the preceding result.
 	 */
-	Flux<PolicyRetrievalResult> retrievePolicies(EvaluationContext subscriptionScopedEvaluationContext);
+	Flux<PolicyRetrievalResult> retrievePolicies();
 
 	void dispose();
+
 }

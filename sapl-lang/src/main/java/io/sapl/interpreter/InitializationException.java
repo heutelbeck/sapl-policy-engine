@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ public class InitializationException extends Exception {
 
 	/**
 	 * Create a new FunctionException
-	 * 
 	 * @param message a message
 	 */
 	public InitializationException(String message) {
@@ -31,9 +30,8 @@ public class InitializationException extends Exception {
 
 	/**
 	 * Create a new PolicyEvaluationException
-	 * 
 	 * @param format format string
-	 * @param args   arguments for format string
+	 * @param args arguments for format string
 	 */
 	public InitializationException(String format, Object... args) {
 		super(String.format(format, args));

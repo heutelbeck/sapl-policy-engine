@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,7 @@
 package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.EvaluationContext;
-import lombok.NonNull;
+import io.sapl.interpreter.context.AuthorizationContext;
 import reactor.core.publisher.Flux;
 
 /**
@@ -25,15 +24,19 @@ import reactor.core.publisher.Flux;
  */
 public class BasicEnvironmentAttributeImplCustom extends BasicEnvironmentAttributeImpl {
 
-	private static final String EXTERNAL_ATTRIBUTE_IN_TARGET = "Attribute resolution error. Attribute '%s' is not allowed in target.";
+	private static final String EXTERNAL_ATTRIBUTE_IN_TARGET = "Attribute resolution error. Attributes not allowed in target.";
 
 	@Override
-	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		var fullyQualifiedName = FunctionUtil.resolveAbsoluteFunctionName(getIdSteps(), ctx);
-		if (TargetExpressionUtil.isInTargetExpression(this)) {
-			return Val.errorFlux(EXTERNAL_ATTRIBUTE_IN_TARGET, fullyQualifiedName);
-		}
-		return ctx.getAttributeCtx().evaluate(fullyQualifiedName, Val.UNDEFINED, ctx, getArguments())
-				.distinctUntilChanged();
+	public Flux<Val> evaluate() {
+		if (TargetExpressionUtil.isInTargetExpression(this))
+			return Val.errorFlux(EXTERNAL_ATTRIBUTE_IN_TARGET);
+
+		return Flux.deferContextual(ctxView -> {
+			return AuthorizationContext.getAttributeContext(ctxView).evaluateEnvironmentAttribute(
+					FunctionUtil.resolveAbsoluteFunctionName(getIdSteps(), AuthorizationContext.getImports(ctxView)),
+					getArguments(), AuthorizationContext.getVariables(ctxView))
+					.distinctUntilChanged();
+		});
 	}
+
 }

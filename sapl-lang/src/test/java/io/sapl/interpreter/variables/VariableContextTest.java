@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -28,22 +30,32 @@ import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 
 class VariableContextTest {
 
 	private static final Val SUBJECT_NODE = Val.of("subject");
+
 	private static final Val ACTION_NODE = Val.of("action");
+
 	private static final Val RESOURCE_NODE = Val.of("resource");
+
 	private static final Val ENVIRONMENT_NODE = Val.of("environment");
+
 	private static final Val VAR_NODE = Val.of("var");
+
 	private static final Val VAR_NODE_NEW = Val.of("var_new");
+
 	private static final String VAR_ID = "var";
+
 	private static final AuthorizationSubscription AUTH_SUBSCRIPTION = new AuthorizationSubscription(SUBJECT_NODE.get(),
 			ACTION_NODE.get(), RESOURCE_NODE.get(), ENVIRONMENT_NODE.get());
+
 	private static final AuthorizationSubscription EMPTY_AUTH_SUBSCRIPTION = new AuthorizationSubscription(null, null,
 			null, null);
+
 	private static final Map<String, JsonNode> EMPTY_MAP = new HashMap<>();
 
 	@Test
@@ -97,6 +109,26 @@ class VariableContextTest {
 	void failGetUndefined() {
 		var ctx = new VariableContext(EMPTY_MAP).forAuthorizationSubscription(AUTH_SUBSCRIPTION);
 		assertThat(ctx.get(VAR_ID), is(Val.UNDEFINED));
+	}
+	
+	@Test
+	void when_getVariables_then_returnsMap() {
+		var ctx = new VariableContext(EMPTY_MAP).forAuthorizationSubscription(AUTH_SUBSCRIPTION);
+		assertThat(ctx.getVariables().get("action"), is(ACTION_NODE.get()));
+	}
+
+	@Test
+	void when_attemptingToSetReservedVariable_then_raiseException() {
+		var ctx = new VariableContext(EMPTY_MAP);
+		assertAll(
+				() -> assertThrows(PolicyEvaluationException.class,
+						() -> ctx.withEnvironmentVariable("subject", mock(JsonNode.class))),
+				() -> assertThrows(PolicyEvaluationException.class,
+						() -> ctx.withEnvironmentVariable("action", mock(JsonNode.class))),
+				() -> assertThrows(PolicyEvaluationException.class,
+						() -> ctx.withEnvironmentVariable("resource", mock(JsonNode.class))),
+				() -> assertThrows(PolicyEvaluationException.class,
+						() -> ctx.withEnvironmentVariable("environment", mock(JsonNode.class))));
 	}
 
 }

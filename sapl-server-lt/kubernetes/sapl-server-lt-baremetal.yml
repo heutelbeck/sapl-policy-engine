@@ -1,3 +1,19 @@
+#
+# Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 apiVersion: v1
 kind: Service
 metadata:
@@ -36,7 +52,7 @@ spec:
           claimName: sapl-server-lt-pv-claim
       containers:
         - name: sapl-server-lt
-          image: ghcr.io/heutelbeck/sapl-server-lt:2.0.0-snapshot
+          image: ghcr.io/heutelbeck/sapl-server-lt:2.1.0-snapshot
           volumeMounts:
             - name: sapl-server-lt-pv-storage
               mountPath: /data
@@ -46,9 +62,10 @@ spec:
               name: http
 ---
 kind: Ingress
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 metadata:
   name: saple-server-lt
+  namespace: sapl-server-lt
   labels:
     app: sapl-server-lt
   annotations:
@@ -59,18 +76,23 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-read-timeout: '2147483647'
     nginx.ingress.kubernetes.io/proxy-send-timeout: '2147483647'
     kubernetes.io/ingress.class: nginx
-    cert-manager.io/issuer: letsencrypt-prod
+    cert-manager.io/cluster-issuer: letsencrypt-prod
     kubernetes.io/tls-acme: 'true'
 spec:
   tls:
     - hosts:
+        #edit the URL to the matching DNS Entry
         - sapl.exampleurl.com
-      secretName: sapl.lt.local-tls
+      secretName: sapl.ce.local-tls
   rules:
+    #edit the URL to the matching DNS Entry
     - host: sapl.exampleurl.com
       http:
         paths:
           - path: /
+            pathType: Prefix
             backend:
-              serviceName: sapl-server-lt 
-              servicePort: 8080
+              service:
+                name: sapl-server-lt
+                port:
+                  number: 8080

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,11 +42,12 @@ public class IsValError extends TypeSafeDiagnosingMatcher<Val> {
 		if (!item.isError()) {
 			mismatchDescription.appendText("a value that is ").appendValue(item);
 			return false;
-		} 
+		}
 		var message = item.getMessage();
 		if (stringMatcher.matches(message)) {
 			return true;
-		} else {
+		}
+		else {
 			mismatchDescription.appendText("was an error with a message that ");
 			stringMatcher.describeMismatch(message, mismatchDescription);
 			return false;

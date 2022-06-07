@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ import io.sapl.grammar.sapl.Statement;
 import io.sapl.grammar.services.SAPLGrammarAccess;
 
 public class ParserUtil {
+
 	private static final Injector INJECTOR = new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();
 
 	public static FilterComponent filterComponent(String sapl) throws IOException {
@@ -71,4 +72,5 @@ public class ParserUtil {
 		resource.load(in, resourceSet.getLoadOptions());
 		return (Entitlement) resource.getContents().get(0);
 	}
+
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.util.HashMap;
 
 import org.junit.jupiter.api.Test;
 
@@ -32,68 +31,69 @@ import io.sapl.grammar.sapl.BasicEnvironmentHeadAttribute;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.grammar.sapl.impl.util.ParserUtil;
-import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 class BasicEnvironmentHeadAttributeImplTest {
-	private static final SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
-	private static final String ATTRIBUTE = "attribute";
-	private static final String FULLY_QUALIFIED_ATTRIBUTE = "mock." + ATTRIBUTE;
 
-	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
+	private static final SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
+
+	private static final String ATTRIBUTE = "attribute";
+
+	private static final String FULLY_QUALIFIED_ATTRIBUTE = "mock." + ATTRIBUTE;
 
 	@Test
 	void evaluateBasicAttributeFlux() {
 		var expression = "|<test.numbers>";
-		var expected = new String[] { "0" };
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = new String[] { "0" };
+		expressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void evaluateBasicAttributeInTargetPolicy() throws IOException {
 		var expression = ParserUtil.expression("|<test.numbers>");
 		MockUtil.mockPolicyTargetExpressionContainerExpression(expression);
-		expressionErrors(CTX, expression);
+		expressionErrors(expression);
 	}
 
 	@Test
 	void evaluateBasicAttributeInTargetPolicySet() throws IOException {
 		var expression = ParserUtil.expression("|<test.numbers>");
 		MockUtil.mockPolicySetTargetExpressionContainerExpression(expression);
-		expressionErrors(CTX, expression);
+		expressionErrors(expression);
 	}
 
 	@Test
 	void exceptionDuringEvaluation() {
-		var ctx = mockEvaluationContextWithAttributeStream(Flux.just(Val.error("ERROR")));
-		var step = attributeFinderStep();
-		StepVerifier.create(step.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		var step = headAttributeFinderStep();
+		var sut  = step.evaluate().contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
+				mockAttributeContextWithStream(Flux.just(Val.error("ERROR")))));
+		StepVerifier.create(sut).expectNextMatches(Val::isError).verifyComplete();
 	}
 
 	@Test
 	void applyWithSomeStreamData() {
 		Val[] data = { Val.FALSE, Val.error("ERROR"), Val.TRUE, Val.NULL, Val.UNDEFINED };
-		var ctx = mockEvaluationContextWithAttributeStream(Flux.just(data));
-		var step = attributeFinderStep();
-		StepVerifier.create(step.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
+		var   step = headAttributeFinderStep();
+		var   sut  = step.evaluate().contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
+				mockAttributeContextWithStream(Flux.just(data))));
+		sut.log().blockLast();
+
+		StepVerifier.create(sut).expectNext(Val.FALSE).verifyComplete();
 	}
 
-	private static EvaluationContext mockEvaluationContextWithAttributeStream(Flux<Val> stream) {
+	private static AttributeContext mockAttributeContextWithStream(Flux<Val> stream) {
 		var attributeCtx = mock(AttributeContext.class);
-		when(attributeCtx.evaluate(eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any(), any())).thenReturn(stream);
-		var ctx = mock(EvaluationContext.class);
-		when(ctx.getAttributeCtx()).thenReturn(attributeCtx);
-		var imports = new HashMap<String, String>();
-		imports.put(ATTRIBUTE, FULLY_QUALIFIED_ATTRIBUTE);
-		when(ctx.getImports()).thenReturn(imports);
-		return ctx;
+		when(attributeCtx.evaluateAttribute(eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any(), any())).thenReturn(stream);
+		when(attributeCtx.evaluateEnvironmentAttribute(eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any())).thenReturn(stream);
+		return attributeCtx;
 	}
 
-	private static BasicEnvironmentHeadAttribute attributeFinderStep() {
+	private static BasicEnvironmentHeadAttribute headAttributeFinderStep() {
 		var step = FACTORY.createBasicEnvironmentHeadAttribute();
-		step.getIdSteps().add(ATTRIBUTE);
+		step.getIdSteps().add(FULLY_QUALIFIED_ATTRIBUTE);
 		return step;
 	}
 

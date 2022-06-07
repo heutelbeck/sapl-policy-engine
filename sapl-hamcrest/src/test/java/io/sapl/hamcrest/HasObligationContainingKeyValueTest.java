@@ -1,3 +1,18 @@
+/*
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.hamcrest;
 
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonText;
@@ -38,7 +53,7 @@ class HasObligationContainingKeyValueTest {
 
 		assertThat(dec, is(sut));
 	}
-	
+
 	@Test
 	public void test_neg() {
 		ObjectMapper mapper = new ObjectMapper();
@@ -65,24 +80,26 @@ class HasObligationContainingKeyValueTest {
 
 	@Test
 	public void test_nullKey() {
-		assertThrows(NullPointerException.class, () ->  Matchers.hasObligationContainingKeyValue(null, jsonText("value")));
+		assertThrows(NullPointerException.class,
+				() -> Matchers.hasObligationContainingKeyValue(null, jsonText("value")));
 	}
-
 
 	@Test
 	public void test_nullValue() {
-		assertThrows(NullPointerException.class, () ->  Matchers.hasObligationContainingKeyValue("key", (Matcher<JsonNode>)null));
+		assertThrows(NullPointerException.class,
+				() -> Matchers.hasObligationContainingKeyValue("key", (Matcher<JsonNode>) null));
 	}
 
 	@Test
 	public void test_emptyObligation() {
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.empty());
+		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
+				Optional.empty());
 
 		var sut = Matchers.hasObligationContainingKeyValue("key", jsonText("value"));
 
 		assertThat(dec, not(is(sut)));
 	}
-	
+
 	@Test
 	public void test_emptyMatcher() {
 		ObjectMapper mapper = new ObjectMapper();
@@ -91,13 +108,14 @@ class HasObligationContainingKeyValueTest {
 		actualObligation.put("key", "value");
 		ArrayNode actualObligations = mapper.createArrayNode();
 		actualObligations.add(actualObligation);
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, null, Optional.of(actualObligations), null);
+		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, null, Optional.of(actualObligations),
+				null);
 
 		var sut = Matchers.hasObligationContainingKeyValue("key");
-		
+
 		assertThat(dec, is(sut));
 	}
-	
+
 	@Test
 	public void test_StringValueMatcher() {
 		ObjectMapper mapper = new ObjectMapper();
@@ -106,13 +124,14 @@ class HasObligationContainingKeyValueTest {
 		actualObligation.put("key", "value");
 		ArrayNode actualObligations = mapper.createArrayNode();
 		actualObligations.add(actualObligation);
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, null, Optional.of(actualObligations), null);
+		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, null, Optional.of(actualObligations),
+				null);
 
 		var sut = Matchers.hasObligationContainingKeyValue("key", "value");
-		
+
 		assertThat(dec, is(sut));
 	}
-	
+
 	@Test
 	public void test_MatchingKey_NotMatchingValue() {
 		ObjectMapper mapper = new ObjectMapper();
@@ -121,13 +140,14 @@ class HasObligationContainingKeyValueTest {
 		actualObligation.put("key", "value");
 		ArrayNode actualObligations = mapper.createArrayNode();
 		actualObligations.add(actualObligation);
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, null, Optional.of(actualObligations), null);
+		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, null, Optional.of(actualObligations),
+				null);
 
 		var sut = Matchers.hasObligationContainingKeyValue("key", "xxx");
-		
+
 		assertThat(dec, not(is(sut)));
 	}
-	
+
 	@Test
 	void testDescriptionForMatcherEmptyMatcher() {
 		var sut = Matchers.hasObligationContainingKeyValue("key");
@@ -135,12 +155,14 @@ class HasObligationContainingKeyValueTest {
 		sut.describeTo(description);
 		assertThat(description.toString(), is("the decision has an obligation containing key key with any value"));
 	}
-	
+
 	@Test
 	void testDescriptionForMatcher() {
 		var sut = Matchers.hasObligationContainingKeyValue("key", jsonText("value"));
 		final StringDescription description = new StringDescription();
 		sut.describeTo(description);
-		assertThat(description.toString(), is("the decision has an obligation containing key key with a text node with value that is \"value\""));
+		assertThat(description.toString(),
+				is("the decision has an obligation containing key key with a text node with value that is \"value\""));
 	}
+
 }

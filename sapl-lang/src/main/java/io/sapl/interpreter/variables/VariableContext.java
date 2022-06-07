@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,9 +30,13 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 public class VariableContext {
 
 	private static final String SUBJECT = "subject";
+
 	private static final String ACTION = "action";
+
 	private static final String RESOURCE = "resource";
+
 	private static final String ENVIRONMENT = "environment";
+
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	private final Map<String, JsonNode> variables;
@@ -99,7 +103,7 @@ public class VariableContext {
 	}
 
 	/**
-	 * @return a deep copy of this variables context.
+	 * @return a deep copy of this variable's context.
 	 */
 	private VariableContext copy() {
 		var variablesCopy = new HashMap<String, JsonNode>();

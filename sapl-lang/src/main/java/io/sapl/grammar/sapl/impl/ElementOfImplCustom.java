@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,32 +18,29 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.OperatorUtil.operator;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.EvaluationContext;
-import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
  * Implements the evaluation of the 'in-array' operation. It checks if a value
  * is contained in an array.
  *
- * Grammar: Comparison returns Expression: Prefixed (({ElementOf.left=current}
- * 'in') right=Prefixed)? ;
+ * Grammar: {@code Comparison returns Expression: Prefixed
+ * (({ElementOf.left=current} 'in') right=Prefixed)? ;}
  */
 public class ElementOfImplCustom extends ElementOfImpl {
 
 	@Override
-	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		return operator(this, this::elementOf, ctx, relativeNode);
+	public Flux<Val> evaluate() {
+		return operator(this, this::elementOf);
 	}
 
 	private Val elementOf(Val needle, Val haystack) {
 		if (needle.isUndefined() || haystack.isUndefined() || !haystack.isArray())
 			return Val.FALSE;
 
-		for (JsonNode arrayItem : (ArrayNode) haystack.get())
+		for (JsonNode arrayItem : haystack.get())
 			if (needleAndArrayElementAreEquivalent(needle, arrayItem))
 				return Val.TRUE;
 

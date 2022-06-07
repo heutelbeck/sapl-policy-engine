@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,28 +22,31 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
-import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
  * Implements the application of an array slicing step to a previous array
- * value, e.g. 'arr[4:12:2]'.
+ * value, e.g. {@code 'arr[4:12:2]'}.
  *
- * Grammar: Step: '[' Subscript ']' ;
+ * Grammar:
+ *
+ * {@code Step: '[' Subscript ']' ;
  *
  * Subscript returns Step: {ArraySlicingStep} index=JSONNUMBER? ':'
- * to=JSONNUMBER? (':' step=JSONNUMBER)? ;
+ * to=JSONNUMBER? (':' step=JSONNUMBER)? ;}
  */
 @Slf4j
 public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 
 	private static final String STEP_ZERO = "Step must not be zero.";
+
 	private static final String INDEX_ACCESS_TYPE_MISMATCH = "Type mismatch. Accessing an JSON array index [%s] expects array value, but got: '%s'.";
 
 	@Override
-	public Flux<Val> apply(@NonNull Val parentValue, @NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
+	public Flux<Val> apply(@NonNull Val parentValue) {
 		if (parentValue.isError()) {
 			return Flux.just(parentValue);
 		}
@@ -52,7 +55,7 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 		}
 
 		var array = (ArrayNode) parentValue.get();
-		var step = getStep() == null ? BigDecimal.ONE.intValue() : getStep().intValue();
+		var step  = getStep() == null ? BigDecimal.ONE.intValue() : getStep().intValue();
 		if (step == 0) {
 			return Val.errorFlux(STEP_ZERO);
 		}
@@ -87,14 +90,16 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 	}
 
 	@Override
-	public Flux<Val> applyFilterStatement(@NonNull Val parentValue, @NonNull EvaluationContext ctx,
-			@NonNull Val relativeNode, int stepId, @NonNull FilterStatement statement) {
+	public Flux<Val> applyFilterStatement(
+			@NonNull Val parentValue,
+			int stepId,
+			@NonNull FilterStatement statement) {
 		log.trace("apply array slicing step [{},{},{}] to: {}", getIndex(), getTo(), getStep(), parentValue);
 		if (!parentValue.isArray()) {
 			return Flux.just(parentValue);
 		}
 		var array = (ArrayNode) parentValue.get();
-		var step = getStep() == null ? BigDecimal.ONE.intValue() : getStep().intValue();
+		var step  = getStep() == null ? BigDecimal.ONE.intValue() : getStep().intValue();
 		if (step == 0) {
 			return Val.errorFlux(STEP_ZERO);
 		}
@@ -118,15 +123,15 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 				if (stepId == statement.getTarget().getSteps().size() - 1) {
 					// this was the final step. apply filter
 					log.trace("final step. do filter...");
-					elementFluxes.add(
-							FilterComponentImplCustom.applyFilterFunction(Val.of(element), statement.getArguments(),
-									FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx,
-									parentValue, statement.isEach()));
+					elementFluxes.add(FilterComponentImplCustom
+							.applyFilterFunction(Val.of(element), statement.getArguments(), statement.getFsteps(),
+									statement.isEach())
+							.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, parentValue)));
 				} else {
 					// there are more steps. descent with them
 					log.trace("this step was successful. descent with next step...");
 					elementFluxes.add(statement.getTarget().getSteps().get(stepId + 1)
-							.applyFilterStatement(Val.of(element), ctx, relativeNode, stepId + 1, statement));
+							.applyFilterStatement(Val.of(element), stepId + 1, statement));
 				}
 			} else {
 				log.trace("array element [{}] not selected. return as is", i);

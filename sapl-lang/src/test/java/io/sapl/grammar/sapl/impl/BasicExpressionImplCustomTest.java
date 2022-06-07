@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,36 +19,31 @@ import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 
 import org.junit.jupiter.api.Test;
 
-import io.sapl.grammar.sapl.impl.util.MockUtil;
-import io.sapl.interpreter.EvaluationContext;
-
 class BasicExpressionImplCustomTest {
-
-	private static final EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 
 	@Test
 	void basicExpressionWithStep() {
-		expressionEvaluatesTo(CTX, "[ null ].[0]", "null");
+		expressionEvaluatesTo("[ null ].[0]", "null");
 	}
 
 	@Test
 	void basicExpressionWithFilter() {
-		expressionEvaluatesTo(CTX, "null |- mock.emptyString", "\"\"");
+		expressionEvaluatesTo("null |- mock.emptyString", "\"\"");
 	}
 
 	@Test
 	void subtemplateNoArray() {
-		expressionEvaluatesTo(CTX, "null :: { \"name\" : @ }", "{ \"name\" : null }");
+		expressionEvaluatesTo("null :: { \"name\" : @ }", "{ \"name\" : null }");
 	}
 
 	@Test
 	void subtemplateArray() {
-		expressionEvaluatesTo(CTX, "[true, false] :: null", "[ null,null ]");
+		expressionEvaluatesTo("[true, false] :: null", "[ null,null ]");
 	}
 
 	@Test
 	void subtemplateEmptyArray() {
-		expressionEvaluatesTo(CTX, "[] :: null", "[]");
+		expressionEvaluatesTo("[] :: null", "[]");
 	}
 
 }

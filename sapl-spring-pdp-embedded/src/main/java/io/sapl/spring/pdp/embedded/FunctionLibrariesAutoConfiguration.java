@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import io.sapl.functions.FilterFunctionLibrary;
+import io.sapl.functions.LoggingFunctionLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
 
@@ -39,4 +40,10 @@ public class FunctionLibrariesAutoConfiguration {
 	public TemporalFunctionLibrary temporalFunctionLibrary() {
 		return new TemporalFunctionLibrary();
 	}
+
+	@Bean
+	public LoggingFunctionLibrary loggingFunctionLibrary() {
+		return new LoggingFunctionLibrary();
+	}
+
 }

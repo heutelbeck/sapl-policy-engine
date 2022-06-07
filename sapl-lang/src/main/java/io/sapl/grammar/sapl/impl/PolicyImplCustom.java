@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ import org.reactivestreams.Publisher;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.interpreter.EvaluationContext;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
@@ -33,41 +32,30 @@ public class PolicyImplCustom extends PolicyImpl {
 	 * Evaluates the body of the policy within the given evaluation context and
 	 * returns a {@link Flux} of {@link AuthorizationDecision} objects.
 	 * 
-	 * @param ctx the evaluation context in which the policy's body is evaluated. It
-	 *            must contain
-	 *            <ul>
-	 *            <li>the attribute context</li>
-	 *            <li>the function context</li>
-	 *            <li>the variable context holding the four authorization
-	 *            subscription variables 'subject', 'action', 'resource' and
-	 *            'environment' combined with system variables from the PDP
-	 *            configuration and other variables e.g. obtained from the
-	 *            containing policy set</li>
-	 *            <li>the import mapping for functions and attribute finders</li>
-	 *            </ul>
 	 * @return A {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
 	@Override
-	public Flux<AuthorizationDecision> evaluate(EvaluationContext ctx) {
-		return Flux.just(getEntitlement().getDecision()).concatMap(evaluateBody(ctx)).map(AuthorizationDecision::new)
-				.concatMap(addObligation(ctx)).concatMap(addAdvice(ctx)).concatMap(addResource(ctx))
-				.doOnNext(authzDecision -> log.debug("| |- Decision of '{}': {}", saplName, authzDecision));
+	public Flux<AuthorizationDecision> evaluate() {
+		log.debug("  |  |- Evaluate '{}'", saplName);
+		return Flux.just(getEntitlement().getDecision()).concatMap(evaluateBody()).map(AuthorizationDecision::new)
+				.concatMap(addObligation()).concatMap(addAdvice()).concatMap(addResource())
+				.doOnNext(authzDecision -> log.debug("  |     |- {} '{}': {}", authzDecision.getDecision(), saplName,
+						authzDecision));
 	}
 
-	private Function<? super Decision, Publisher<? extends Decision>> evaluateBody(EvaluationContext ctx) {
-		return entiltmnt -> getBody() == null ? Flux.just(entiltmnt) : getBody().evaluate(entiltmnt, ctx);
+	private Function<? super Decision, Publisher<? extends Decision>> evaluateBody() {
+		return entitlement -> getBody() == null ? Flux.just(entitlement) : getBody().evaluate(entitlement);
 
 	}
 
-	private Function<? super AuthorizationDecision, Publisher<? extends AuthorizationDecision>> addObligation(
-			EvaluationContext evaluationCtx) {
-		return previousDecision -> evaluateObligations(evaluationCtx).map(obligation -> {
+	private Function<? super AuthorizationDecision, Publisher<? extends AuthorizationDecision>> addObligation() {
+		return previousDecision -> evaluateObligations().map(obligation -> {
 			if (obligation.isError()) {
-				log.debug("| |- Error in obligation evaluation. INDETERMINATE: " + obligation.getMessage());
+				log.debug("  |     |- Error in obligation evaluation. INDETERMINATE: " + obligation.getMessage());
 				return AuthorizationDecision.INDETERMINATE;
 			}
 			if (obligation.isUndefined()) {
-				log.debug("| |- Undefined obligation. INDETERMINATE");
+				log.debug("  |     |- Undefined obligation. INDETERMINATE");
 				return AuthorizationDecision.INDETERMINATE;
 			}
 			var obligationArray = Val.JSON.arrayNode();
@@ -77,58 +65,58 @@ public class PolicyImplCustom extends PolicyImpl {
 
 	}
 
-	private Function<? super AuthorizationDecision, Publisher<? extends AuthorizationDecision>> addAdvice(
-			EvaluationContext evaluationCtx) {
-		return previousDecision -> evaluateAdvices(evaluationCtx).map(advice -> {
+	private Function<? super AuthorizationDecision, Publisher<? extends AuthorizationDecision>> addAdvice() {
+		return previousDecision -> evaluateAdvice().map(advice -> {
 			if (advice.isError()) {
-				log.debug("| |- Error in advice evaluation. INDETERMINATE: " + advice.getMessage());
+				log.debug("  |     |- Error in advice evaluation. INDETERMINATE: " + advice.getMessage());
 				return AuthorizationDecision.INDETERMINATE;
 			}
 			if (advice.isUndefined()) {
-				log.debug("| |- Undefined advice. INDETERMINATE");
+				log.debug("  |     |- Undefined advice. INDETERMINATE");
 				return AuthorizationDecision.INDETERMINATE;
 			}
 			var adviceValue = advice.get();
-			log.debug("| |- Got advice: {}", adviceValue);
+			log.debug("  |     |- Got advice: {}", adviceValue);
 			var adviceArray = Val.JSON.arrayNode();
 			adviceArray.add(adviceValue);
-			return previousDecision.withAdvices(adviceArray);
+			return previousDecision.withAdvice(adviceArray);
 		}).defaultIfEmpty(previousDecision);
 	}
 
-	private Function<? super AuthorizationDecision, Publisher<? extends AuthorizationDecision>> addResource(
-			EvaluationContext evaluationCtx) {
-		return previousDecision -> evaluateTransformation(evaluationCtx).map(transformation -> {
+	private Function<? super AuthorizationDecision, Publisher<? extends AuthorizationDecision>> addResource() {
+		return previousDecision -> evaluateTransformation().map(transformation -> {
 			if (transformation.isError()) {
-				log.debug("| |- Error in transformation evaluation. INDETERMINATE: " + transformation.getMessage());
+				log.debug(
+						"  |     |- Error in transformation evaluation. INDETERMINATE: " + transformation.getMessage());
 				return AuthorizationDecision.INDETERMINATE;
 			}
 			if (transformation.isUndefined()) {
-				log.debug("| |- Undefined transformation. INDETERMINATE");
+				log.debug("  |     |- Undefined transformation. INDETERMINATE");
 				return AuthorizationDecision.INDETERMINATE;
 			}
 			return previousDecision.withResource(transformation.get());
 		}).defaultIfEmpty(previousDecision);
 	}
 
-	private Flux<Val> evaluateObligations(EvaluationContext evaluationCtx) {
+	private Flux<Val> evaluateObligations() {
 		if (getObligation() == null) {
 			return Flux.empty();
 		}
-		return getObligation().evaluate(evaluationCtx, Val.UNDEFINED);
+		return getObligation().evaluate();
 	}
 
-	private Flux<Val> evaluateAdvices(EvaluationContext evaluationCtx) {
+	private Flux<Val> evaluateAdvice() {
 		if (getAdvice() == null) {
 			return Flux.empty();
 		}
-		return getAdvice().evaluate(evaluationCtx, Val.UNDEFINED);
+		return getAdvice().evaluate();
 	}
 
-	private Flux<Val> evaluateTransformation(EvaluationContext evaluationCtx) {
+	private Flux<Val> evaluateTransformation() {
 		if (getTransformation() == null) {
 			return Flux.empty();
 		}
-		return getTransformation().evaluate(evaluationCtx, Val.UNDEFINED);
+		return getTransformation().evaluate();
 	}
+
 }

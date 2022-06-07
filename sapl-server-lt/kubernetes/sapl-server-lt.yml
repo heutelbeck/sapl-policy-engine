@@ -1,3 +1,19 @@
+#
+# Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 apiVersion: v1
 kind: Service
 metadata:
@@ -32,14 +48,14 @@ spec:
     spec:
       containers:
         - name: sapl-server-lt
-          image: ghcr.io/heutelbeck/sapl-server-lt:2.0.0-snapshot
+          image: ghcr.io/heutelbeck/sapl-server-lt:2.1.0-snapshot
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
               name: http
 ---
 kind: Ingress
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 metadata:
   name: saple-server-lt
   labels:
@@ -62,6 +78,9 @@ spec:
       http:
         paths:
           - path: /
+            pathType: Prefix
             backend:
-              serviceName: sapl-server-lt 
-              servicePort: 8080
+              service:
+                name: sapl-server-lt
+                port:
+                  number: 8080

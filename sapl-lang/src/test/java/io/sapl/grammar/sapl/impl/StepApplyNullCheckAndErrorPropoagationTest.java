@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,18 +30,20 @@ import org.reflections.Reflections;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.grammar.sapl.Step;
-import io.sapl.interpreter.EvaluationContext;
 import reactor.test.StepVerifier;
 
 class StepApplyNullCheckAndErrorPropoagationTest {
 
-	private final static EvaluationContext CTX = mock(EvaluationContext.class);
-
-	static Collection<Step> data() throws InstantiationException, IllegalAccessException, IllegalArgumentException,
-			InvocationTargetException, NoSuchMethodException, SecurityException {
-		var reflections = new Reflections("io.sapl.grammar.sapl.impl");
-		var classes = reflections.getSubTypesOf(Step.class);
-		List<Step> instances = new ArrayList<>(classes.size());
+	static Collection<Step> data()
+			throws InstantiationException,
+				IllegalAccessException,
+				IllegalArgumentException,
+				InvocationTargetException,
+				NoSuchMethodException,
+				SecurityException {
+		var        reflections = new Reflections("io.sapl.grammar.sapl.impl");
+		var        classes     = reflections.getSubTypesOf(Step.class);
+		List<Step> instances   = new ArrayList<>(classes.size());
 		for (var clazz : classes) {
 			if (clazz.getSimpleName().endsWith("ImplCustom")) {
 				instances.add(clazz.getDeclaredConstructor().newInstance());
@@ -52,64 +54,29 @@ class StepApplyNullCheckAndErrorPropoagationTest {
 
 	@ParameterizedTest
 	@MethodSource("data")
-	void nullEvaluationContext(Step step) {
-		assertThrows(NullPointerException.class, () -> {
-			step.apply(Val.UNDEFINED, null, Val.UNDEFINED);
-		});
-	}
-
-	@ParameterizedTest
-	@MethodSource("data")
-	void nullRelativeNode(Step step) {
-		assertThrows(NullPointerException.class, () -> {
-			step.apply(Val.UNDEFINED, CTX, null);
-		});
-	}
-
-	@ParameterizedTest
-	@MethodSource("data")
 	void nullParentNode(Step step) {
-		assertThrows(NullPointerException.class, () -> {
-			step.apply(null, CTX, Val.UNDEFINED);
-		});
+		assertThrows(NullPointerException.class, () -> step.apply(null));
 	}
 
 	@ParameterizedTest
 	@MethodSource("data")
 	void stepsPropagateErrors(Step step) {
 		var error = Val.error("TEST");
-		StepVerifier.create(step.apply(error, CTX, Val.UNDEFINED)).expectNext(error).verifyComplete();
-	}
-
-	@ParameterizedTest
-	@MethodSource("data")
-	void nullEvaluationContextFilter(Step step) {
-		assertThrows(NullPointerException.class, () -> {
-			step.applyFilterStatement(Val.UNDEFINED, null, Val.UNDEFINED, 0, mock(FilterStatement.class));
-		});
-	}
-
-	@ParameterizedTest
-	@MethodSource("data")
-	void nullRelativeNodeFilter(Step step) {
-		assertThrows(NullPointerException.class, () -> {
-			step.applyFilterStatement(Val.UNDEFINED, CTX, null, 0, mock(FilterStatement.class));
-		});
+		StepVerifier.create(step.apply(error)).expectNext(error).verifyComplete();
 	}
 
 	@ParameterizedTest
 	@MethodSource("data")
 	void nullParentNodeFilter(Step step) {
-		assertThrows(NullPointerException.class, () -> {
-			step.applyFilterStatement(null, CTX, Val.UNDEFINED, 0, mock(FilterStatement.class));
-		});
+		assertThrows(NullPointerException.class,
+				() -> step.applyFilterStatement(null, 0, mock(FilterStatement.class)));
 	}
 
 	@ParameterizedTest
 	@MethodSource("data")
 	void nullFilterStatementFilter(Step step) {
-		assertThrows(NullPointerException.class, () -> {
-			step.applyFilterStatement(Val.UNDEFINED, CTX, Val.UNDEFINED, 0, null);
-		});
+		assertThrows(NullPointerException.class,
+				() -> step.applyFilterStatement(Val.UNDEFINED, 0, null));
 	}
+
 }

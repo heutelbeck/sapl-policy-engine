@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,9 @@ import lombok.Data;
 @Data
 @ConfigurationProperties(prefix = "io.sapl.server-lt")
 public class SAPLServerLTProperties {
+
 	private String key = "";
+
 	private String secret = "";
+
 }

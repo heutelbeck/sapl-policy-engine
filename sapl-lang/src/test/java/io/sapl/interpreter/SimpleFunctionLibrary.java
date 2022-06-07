@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,9 +30,11 @@ public class SimpleFunctionLibrary {
 		Val result = Val.UNDEFINED;
 		if (parameter.isArray()) {
 			result = Val.of(parameter.get().size());
-		} else if (parameter.isTextual()) {
+		}
+		else if (parameter.isTextual()) {
 			result = Val.of(parameter.get().asText().length());
-		} else {
+		}
+		else {
 			throw new PolicyEvaluationException(
 					"length() parameter must be a string or an array, found " + parameter + ".");
 		}
@@ -45,7 +47,8 @@ public class SimpleFunctionLibrary {
 		for (Val parameter : parameters) {
 			if (parameter.isTextual()) {
 				builder.append(parameter.get().asText());
-			} else if (parameter.isNumber()) {
+			}
+			else if (parameter.isNumber()) {
 				builder.append(parameter.get().asInt());
 			}
 		}

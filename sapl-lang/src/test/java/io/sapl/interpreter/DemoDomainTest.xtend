@@ -1,12 +1,12 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
- * 
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,7 +22,6 @@ import io.sapl.api.pdp.AuthorizationDecision
 import io.sapl.api.pdp.AuthorizationSubscription
 import io.sapl.functions.FilterFunctionLibrary
 import io.sapl.interpreter.functions.AnnotationFunctionContext
-import io.sapl.interpreter.functions.FunctionContext
 import io.sapl.interpreter.pip.AnnotationAttributeContext
 import io.sapl.interpreter.pip.AttributeContext
 import java.time.Clock
@@ -42,10 +41,8 @@ class DemoDomainTest {
 	static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 	static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 	static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
-	static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
+	static final AnnotationFunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
 	static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<String, JsonNode>());
-	static final EvaluationContext PDP_EVALUATION_CONTEXT = new EvaluationContext(ATTRIBUTE_CTX, FUNCTION_CTX,
-		SYSTEM_VARIABLES);
 
 	@BeforeEach
 	def void setUp() {
@@ -82,8 +79,8 @@ class DemoDomainTest {
 		val expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE
 
 		assertThat("demo policy fail",
-			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
-			equalTo(expectedAuthzDecision));
+			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+				SYSTEM_VARIABLES).blockFirst(), equalTo(expectedAuthzDecision));
 	}
 
 }

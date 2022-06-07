@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,61 +28,40 @@ class RemotePDPPropertiesValidationTests {
 
 	@EnableConfigurationProperties(RemotePDPProperties.class)
 	static class EnablePropertiesInApplicationTestRunnerConfiguration {
+
 	}
 
 	@Test
 	void whenValidPropertiesPresent_thenConfigurationBeanIsPresent() {
-		contextRunner.withPropertyValues(
-					"io.sapl.pdp.remote.host=https://localhost:8443",
-					"io.sapl.pdp.remote.key=aKey", 
-					"io.sapl.pdp.remote.secret=aSecret"
-				).run(context -> {
-					assertThat(context).hasNotFailed();
-				});
+		contextRunner.withPropertyValues("io.sapl.pdp.remote.host=https://localhost:8443",
+				"io.sapl.pdp.remote.key=aKey", "io.sapl.pdp.remote.secret=aSecret")
+				.run(context -> assertThat(context).hasNotFailed());
 	}
 
 	@Test
 	void whenInvalidHostPropertyPresent_thenConfigurationFails() {
-		contextRunner.withPropertyValues(
-					"io.sapl.pdp.remote.host=ht tps://loc alhost:8443",
-					"io.sapl.pdp.remote.key=aKey", 
-					"io.sapl.pdp.remote.secret=aSecret"
-				).run(context -> {
-					assertThat(context).hasFailed();
-				});
+		contextRunner.withPropertyValues("io.sapl.pdp.remote.host=ht tps://loc alhost:8443",
+				"io.sapl.pdp.remote.key=aKey", "io.sapl.pdp.remote.secret=aSecret")
+				.run(context -> assertThat(context).hasFailed());
 	}
 
 	@Test
 	void whenHostPropertyMissing_thenConfigurationFails() {
-		contextRunner.withPropertyValues(
-					"io.sapl.pdp.remote.host=", 
-					"io.sapl.pdp.remote.key=aKey",
-					"io.sapl.pdp.remote.secret=aSecret"
-				).run(context -> {
-					assertThat(context).hasFailed();
-				});
+		contextRunner.withPropertyValues("io.sapl.pdp.remote.host=", "io.sapl.pdp.remote.key=aKey",
+				"io.sapl.pdp.remote.secret=aSecret").run(context -> assertThat(context).hasFailed());
 	}
-	
+
 	@Test
 	void whenKeyPropertyMissing_thenConfigurationFails() {
-		contextRunner.withPropertyValues(
-					"io.sapl.pdp.remote.host=https://localhost:8443", 
-					"io.sapl.pdp.remote.key=",
-					"io.sapl.pdp.remote.secret=aSecret"
-				).run(context -> {
-					assertThat(context).hasFailed();
-				});
+		contextRunner.withPropertyValues("io.sapl.pdp.remote.host=https://localhost:8443", "io.sapl.pdp.remote.key=",
+				"io.sapl.pdp.remote.secret=aSecret").run(context -> assertThat(context).hasFailed());
 	}
 
 	@Test
 	void whenSecretPropertyMissing_thenConfigurationFails() {
-		contextRunner.withPropertyValues(
-					"io.sapl.pdp.remote.host=https://localhost:8443",
-					"io.sapl.pdp.remote.key=aKey", 
-					"io.sapl.pdp.remote.secret="
-				).run(context -> {
-					assertThat(context).hasFailed();
-				});
+		contextRunner.withPropertyValues("io.sapl.pdp.remote.host=https://localhost:8443",
+				"io.sapl.pdp.remote.key=aKey", "io.sapl.pdp.remote.secret=")
+				.run(context -> assertThat(context).hasFailed());
 	}
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,8 +43,7 @@ public class IsVal extends TypeSafeDiagnosingMatcher<Val> {
 	@Override
 	public void describeTo(Description description) {
 		description.appendText("a val that ");
-		jsonMatcher.ifPresentOrElse(matcher -> description.appendDescriptionOf(matcher),
-				() -> description.appendText("is any JsonNode"));
+		jsonMatcher.ifPresentOrElse(description::appendDescriptionOf, () -> description.appendText("is any JsonNode"));
 	}
 
 	@Override
@@ -60,7 +59,8 @@ public class IsVal extends TypeSafeDiagnosingMatcher<Val> {
 		var json = item.get();
 		if (jsonMatcher.isEmpty() || jsonMatcher.get().matches(json)) {
 			return true;
-		} else {
+		}
+		else {
 			mismatchDescription.appendText("was val that ");
 			jsonMatcher.get().describeMismatch(json, mismatchDescription);
 			return false;

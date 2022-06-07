@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,6 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 public class PrpUpdateEventSourceAutoConfiguration {
 
 	private final SAPLInterpreter interpreter;
+
 	private final EmbeddedPDPProperties pdpProperties;
 
 	@Bean
@@ -49,4 +50,5 @@ public class PrpUpdateEventSourceAutoConfiguration {
 		log.info("creating embedded PDP sourcing access policies from fixed bundled resources at: {}", policiesFolder);
 		return new ResourcesPrpUpdateEventSource(policiesFolder, interpreter);
 	}
+
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,6 @@
 package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.EvaluationContext;
-import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -31,9 +29,9 @@ import reactor.core.publisher.Flux;
 public class BasicValueImplCustom extends BasicValueImpl {
 
 	@Override
-	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		var evaluatedValue = getValue().evaluate(ctx, relativeNode);
-		return evaluatedValue.switchMap(resolveStepsFiltersAndSubtemplates(steps, ctx, relativeNode));
+	public Flux<Val> evaluate() {
+		var evaluatedValue = getValue().evaluate();
+		return evaluatedValue.switchMap(resolveStepsFiltersAndSubTemplates(steps));
 	}
 
 }

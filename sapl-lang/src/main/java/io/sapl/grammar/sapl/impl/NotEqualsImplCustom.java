@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,21 +18,19 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.OperatorUtil.operator;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.EvaluationContext;
-import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
  * Checks for non equality of two values.
  *
- * Grammar: Comparison returns Expression: Prefixed (({NotEquals.left=current}
- * '!=') right=Prefixed)? ;
+ * Grammar: {@code Comparison returns Expression: Prefixed
+ * (({NotEquals.left=current} '!=') * right=Prefixed)? ;}
  */
 public class NotEqualsImplCustom extends NotEqualsImpl {
 
 	@Override
-	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		return operator(this, Val::notEqual, ctx, relativeNode);
+	public Flux<Val> evaluate() {
+		return operator(this, Val::notEqual);
 	}
 
 }

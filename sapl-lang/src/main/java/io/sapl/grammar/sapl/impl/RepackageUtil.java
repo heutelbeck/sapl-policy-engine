@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import reactor.util.function.Tuple2;
 
 @UtilityClass
 public class RepackageUtil {
+
 	public Val recombineObject(Object[] oElements) {
 		var object = Val.JSON.objectNode();
 		for (var elem : oElements) {
@@ -51,4 +52,5 @@ public class RepackageUtil {
 		}
 		return Val.of(array);
 	}
+
 }

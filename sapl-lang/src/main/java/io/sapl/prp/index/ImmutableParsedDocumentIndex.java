@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,14 +15,13 @@
  */
 package io.sapl.prp.index;
 
-import io.sapl.interpreter.EvaluationContext;
 import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.prp.PrpUpdateEvent;
 import reactor.core.publisher.Mono;
 
 public interface ImmutableParsedDocumentIndex {
 
-	Mono<PolicyRetrievalResult> retrievePolicies(EvaluationContext subscriptionScopedEvaluationContext);
+	Mono<PolicyRetrievalResult> retrievePolicies();
 
 	ImmutableParsedDocumentIndex apply(PrpUpdateEvent event);
 

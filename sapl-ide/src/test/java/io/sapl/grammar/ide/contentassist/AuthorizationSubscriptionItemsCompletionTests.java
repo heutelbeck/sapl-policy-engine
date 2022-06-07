@@ -1,12 +1,12 @@
-/**
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
- * 
+/*
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,12 +19,17 @@ import java.util.List;
 
 import org.eclipse.xtext.testing.TestCompletionConfiguration;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ContextConfiguration;
 
 /**
- * Tests regarding the auto completion of the keywords subject, resource,
- * action, environment
+ * Tests regarding the auto completion of the keywords subject, resource, action,
+ * environment
  */
+@SpringBootTest
+@ContextConfiguration(classes = SAPLIdeSpringTestConfiguration.class)
 public class AuthorizationSubscriptionItemsCompletionTests extends CompletionTests {
+
 	@Test
 	public void testCompletion_AuthorizationSubscriptionItemsInTargetExpression() {
 		testCompletion((TestCompletionConfiguration it) -> {
@@ -64,4 +69,31 @@ public class AuthorizationSubscriptionItemsCompletionTests extends CompletionTes
 			});
 		});
 	}
+
+	@Test
+	public void testCompletion_SuggestAttributesForEnvironmentalAttribute() {
+		testCompletion((TestCompletionConfiguration it) -> {
+			String policy = "policy \"test\" permit where <";
+			it.setModel(policy);
+			it.setColumn(policy.length());
+			it.setAssertCompletionList(completionList -> {
+				var expectedProposals = List.of("clock.now", "clock.ticker", "clock.millis");
+				assertProposalsSimple(expectedProposals, completionList);
+			});
+		});
+	}
+
+	@Test
+	public void testCompletion_SuggestAttributesForHeadEnvironmentalAttribute() {
+		testCompletion((TestCompletionConfiguration it) -> {
+			String policy = "policy \"test\" permit where |<";
+			it.setModel(policy);
+			it.setColumn(policy.length());
+			it.setAssertCompletionList(completionList -> {
+				var expectedProposals = List.of("clock.now", "clock.ticker", "clock.millis");
+				assertProposalsSimple(expectedProposals, completionList);
+			});
+		});
+	}
+
 }

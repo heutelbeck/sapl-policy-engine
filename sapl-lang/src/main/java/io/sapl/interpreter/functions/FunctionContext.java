@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,17 +16,17 @@
 package io.sapl.interpreter.functions;
 
 import java.util.Collection;
+import java.util.List;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.pip.LibraryFunctionProvider;
 
 public interface FunctionContext extends LibraryFunctionProvider {
 
 	Val evaluate(String function, Val... parameters);
 
-	void loadLibrary(Object library) throws InitializationException;
-
 	Collection<LibraryDocumentation> getDocumentation();
+
+	List<String> getCodeTemplates();
 
 }

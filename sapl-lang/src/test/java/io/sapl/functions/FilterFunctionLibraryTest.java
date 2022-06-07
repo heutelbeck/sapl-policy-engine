@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,24 +39,24 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.interpreter.pip.AttributeContext;
 import reactor.test.StepVerifier;
 
 class FilterFunctionLibraryTest {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+
 	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
-	private static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
-	private static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
+
+	private static final AnnotationAttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
+
+	private static final AnnotationFunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
+
 	private static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
+
 	private static final FilterFunctionLibrary LIBRARY = new FilterFunctionLibrary();
-	private static final EvaluationContext PDP_EVALUATION_CONTEXT = new EvaluationContext(ATTRIBUTE_CTX, FUNCTION_CTX,
-			SYSTEM_VARIABLES);
 
 	@BeforeEach
 	void setUp() throws InitializationException {
@@ -65,69 +65,61 @@ class FilterFunctionLibraryTest {
 
 	@Test
 	void blackenTooManyArguments() {
-		assertThrows(IllegalArgumentException.class, () -> {
-			FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(2), Val.of("x"), Val.of(2));
-		});
+		assertThrows(IllegalArgumentException.class,
+				() -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(2), Val.of("x"), Val.of(2)));
 	}
 
 	@Test
 	void blackenNoString() {
-		assertThrows(IllegalArgumentException.class, () -> {
-			FilterFunctionLibrary.blacken(Val.of(2));
-		});
+		assertThrows(IllegalArgumentException.class, () -> FilterFunctionLibrary.blacken(Val.of(2)));
 	}
 
 	@Test
 	void blackenReplacementNoString() {
-		assertThrows(IllegalArgumentException.class, () -> {
-			FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(2), Val.of(2));
-		});
+		assertThrows(IllegalArgumentException.class,
+				() -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(2), Val.of(2)));
 	}
 
 	@Test
 	void blackenReplacementNegativeRight() {
-		assertThrows(IllegalArgumentException.class, () -> {
-			FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(-2));
-		});
+		assertThrows(IllegalArgumentException.class,
+				() -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(-2)));
 	}
 
 	@Test
 	void blackenReplacementNegativeLeft() {
-		assertThrows(IllegalArgumentException.class, () -> {
-			FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(-2), Val.of(2));
-		});
+		assertThrows(IllegalArgumentException.class,
+				() -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(-2), Val.of(2)));
 	}
 
 	@Test
 	void blackenReplacementRightNoNumber() {
-		assertThrows(IllegalArgumentException.class, () -> {
-			FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.NULL);
-		});
+		assertThrows(IllegalArgumentException.class,
+				() -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.NULL));
 	}
 
 	@Test
 	void blackenReplacementLeftNoNumber() {
-		assertThrows(IllegalArgumentException.class, () -> {
-			FilterFunctionLibrary.blacken(Val.of("abcde"), Val.NULL, Val.of(2));
-		});
+		assertThrows(IllegalArgumentException.class,
+				() -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.NULL, Val.of(2)));
 	}
 
 	@Test
 	void blackenWorking() {
-		var given = Val.of("abcde");
-		var discloseLeft = Val.of(1);
+		var given         = Val.of("abcde");
+		var discloseLeft  = Val.of(1);
 		var discloseRight = Val.of(1);
-		var replacement = Val.of("*");
-		var actual = FilterFunctionLibrary.blacken(given, discloseLeft, discloseRight, replacement);
+		var replacement   = Val.of("*");
+		var actual        = FilterFunctionLibrary.blacken(given, discloseLeft, discloseRight, replacement);
 		assertThat(actual, is(val("a***e")));
 	}
 
 	@Test
 	void blackenWorkingAllVisible() {
-		var text = Val.of("abcde");
-		var discloseLeft = Val.of(3);
+		var text          = Val.of("abcde");
+		var discloseLeft  = Val.of(3);
 		var discloseRight = Val.of(3);
-		var replacement = Val.of("*");
+		var replacement   = Val.of("*");
 
 		var result = FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight, replacement);
 
@@ -136,16 +128,16 @@ class FilterFunctionLibraryTest {
 
 	@Test
 	void blackenReplacementDefault() {
-		var text = Val.of("abcde");
-		var discloseLeft = Val.of(1);
+		var text          = Val.of("abcde");
+		var discloseLeft  = Val.of(1);
 		var discloseRight = Val.of(1);
-		var result = FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight);
+		var result        = FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight);
 		assertThat(result, is(val("aXXXe")));
 	}
 
 	@Test
 	void blackenDiscloseRightDefault() {
-		var text = Val.of("abcde");
+		var text         = Val.of("abcde");
 		var discloseLeft = Val.of(2);
 
 		var result = FilterFunctionLibrary.blacken(text, discloseLeft);
@@ -154,7 +146,7 @@ class FilterFunctionLibraryTest {
 
 	@Test
 	void blackenDiscloseLeftDefault() {
-		var text = Val.of("abcde");
+		var text   = Val.of("abcde");
 		var result = FilterFunctionLibrary.blacken(text);
 		assertThat(result, is(val("XXXXX")));
 	}
@@ -167,17 +159,19 @@ class FilterFunctionLibraryTest {
 
 	@Test
 	void blackenInPolicy() throws JsonProcessingException {
-		var authzSubscription = MAPPER.readValue("{ \"resource\": {	\"array\": [ null, true ], \"key1\": \"abcde\" } }",
+		var authzSubscription     = MAPPER.readValue(
+				"{ \"resource\": {	\"array\": [ null, true ], \"key1\": \"abcde\" } }",
 				AuthorizationSubscription.class);
-		var policyDefinition = "policy \"test\"	permit transform resource |- { @.key1 : filter.blacken(1) }";
-		var expectedResource = MAPPER.readValue("{	\"array\": [ null, true ], \"key1\": \"aXXXX\" }", JsonNode.class);
+		var policyDefinition      = "policy \"test\"	permit transform resource |- { @.key1 : filter.blacken(1) }";
+		var expectedResource      = MAPPER.readValue("{	\"array\": [ null, true ], \"key1\": \"aXXXX\" }",
+				JsonNode.class);
 		var expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
 				Optional.empty(), Optional.empty());
 
-		StepVerifier.create(INTERPRETER.evaluate(authzSubscription, policyDefinition, PDP_EVALUATION_CONTEXT))
-				.assertNext(authzDecision -> {
-					assertThat(authzDecision, is(expectedAuthzDecision));
-				}).verifyComplete();
+		StepVerifier
+				.create(INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+						SYSTEM_VARIABLES))
+				.assertNext(authzDecision -> assertThat(authzDecision, is(expectedAuthzDecision))).verifyComplete();
 	}
 
 	@Test
@@ -188,16 +182,19 @@ class FilterFunctionLibraryTest {
 
 	@Test
 	void replaceInPolicy() throws JsonProcessingException {
-		var authzSubscription = MAPPER.readValue("{ \"resource\": {	\"array\": [ null, true ], \"key1\": \"abcde\" } }",
+		var authzSubscription     = MAPPER.readValue(
+				"{ \"resource\": {	\"array\": [ null, true ], \"key1\": \"abcde\" } }",
 				AuthorizationSubscription.class);
-		var policyDefinition = "policy \"test\" permit transform resource |- { @.array[1] : filter.replace(\"***\"), @.key1 : filter.replace(null) }";
-		var expectedResource = MAPPER.readValue("{	\"array\": [ null, \"***\" ], \"key1\": null }", JsonNode.class);
+		var policyDefinition      = "policy \"test\" permit transform resource |- { @.array[1] : filter.replace(\"***\"), @.key1 : filter.replace(null) }";
+		var expectedResource      = MAPPER.readValue("{	\"array\": [ null, \"***\" ], \"key1\": null }",
+				JsonNode.class);
 		var expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
 				Optional.empty(), Optional.empty());
 
-		StepVerifier.create(INTERPRETER.evaluate(authzSubscription, policyDefinition, PDP_EVALUATION_CONTEXT))
-				.assertNext(authzDecision -> {
-					assertThat(authzDecision, is(expectedAuthzDecision));
-				}).verifyComplete();
+		StepVerifier
+				.create(INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+						SYSTEM_VARIABLES))
+				.assertNext(authzDecision -> assertThat(authzDecision, is(expectedAuthzDecision))).verifyComplete();
 	}
+
 }

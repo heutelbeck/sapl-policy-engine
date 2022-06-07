@@ -1,8 +1,22 @@
+/*
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.test.lang;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.impl.PolicySetImplCustom;
-import io.sapl.interpreter.EvaluationContext;
 import io.sapl.test.coverage.api.CoverageHitRecorder;
 import io.sapl.test.coverage.api.model.PolicySetHit;
 import lombok.extern.slf4j.Slf4j;
@@ -10,6 +24,7 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 public class PolicySetImplCustomCoverage extends PolicySetImplCustom {
+
 	private final CoverageHitRecorder hitRecorder;
 
 	PolicySetImplCustomCoverage(CoverageHitRecorder recorder) {
@@ -17,14 +32,14 @@ public class PolicySetImplCustomCoverage extends PolicySetImplCustom {
 	}
 
 	@Override
-	public Mono<Val> matches(EvaluationContext ctx) {
-		return super.matches(ctx).doOnNext(matches -> {
-			//record policySet hit if policySet matches
-			if(matches.isBoolean() && matches.getBoolean()) {
+	public Mono<Val> matches() {
+		return super.matches().doOnNext(matches -> {
+			if (matches.isBoolean() && matches.getBoolean()) {
 				PolicySetHit hit = new PolicySetHit(getSaplName());
-				log.trace("Hit PolicySet: " + hit);
+				log.trace("| | | | |-- Hit PolicySet: " + hit);
 				this.hitRecorder.recordPolicySetHit(hit);
 			}
 		});
 	}
+
 }

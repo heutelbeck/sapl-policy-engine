@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,9 +15,9 @@
  */
 package io.sapl.interpreter;
 
+import static org.hamcrest.CoreMatchers.is;
 import static com.spotify.hamcrest.jackson.IsJsonBoolean.jsonBoolean;
 import static com.spotify.hamcrest.optional.OptionalMatchers.optionalWithValue;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.HashMap;
@@ -37,59 +37,60 @@ class DefaultSAPLInterpreterPolicySetTest {
 
 	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
-	private EvaluationContext evaluationCtx;
-
 	private AuthorizationSubscription authzSubscription;
+
+	private AnnotationAttributeContext attributeCtx;
+
+	private AnnotationFunctionContext functionCtx;
 
 	@BeforeEach
 	void setUp() throws InitializationException {
 		Hooks.onOperatorDebug();
 		authzSubscription = new AuthorizationSubscription(null, null, null, null);
-		var attributeCtx = new AnnotationAttributeContext();
-		var functionCtx = new AnnotationFunctionContext();
+		attributeCtx      = new AnnotationAttributeContext();
+		functionCtx       = new AnnotationFunctionContext();
 		functionCtx.loadLibrary(new FilterFunctionLibrary());
-		evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, new HashMap<>());
 	}
 
 	@Test
 	void setPermit() {
 		var policySet = "set \"tests\" deny-overrides " + "policy \"testp\" permit";
-		var expected = AuthorizationDecision.PERMIT;
+		var expected  = AuthorizationDecision.PERMIT;
 		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
 	}
 
 	@Test
 	void setDeny() {
 		var policySet = "set \"tests\" deny-overrides " + "policy \"testp\" deny";
-		var expected = AuthorizationDecision.DENY;
+		var expected  = AuthorizationDecision.DENY;
 		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
 	}
 
 	@Test
 	void setNotApplicable() {
 		var policySet = "set \"tests\" deny-overrides " + "for true == false " + "policy \"testp\" deny";
-		var expected = AuthorizationDecision.NOT_APPLICABLE;
+		var expected  = AuthorizationDecision.NOT_APPLICABLE;
 		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
 	}
 
 	@Test
 	void noApplicablePolicies() {
 		var policySet = "set \"tests\" deny-overrides " + "for true " + "policy \"testp\" deny true == false";
-		var expected = AuthorizationDecision.NOT_APPLICABLE;
+		var expected  = AuthorizationDecision.NOT_APPLICABLE;
 		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
 	}
 
 	@Test
 	void setIndeterminate() {
 		var policySet = "set \"tests\" deny-overrides" + "for \"a\" > 4 " + "policy \"testp\" permit";
-		var expected = AuthorizationDecision.INDETERMINATE;
+		var expected  = AuthorizationDecision.INDETERMINATE;
 		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
 	}
 
 	@Test
 	void denyOverridesPermitAndDeny() {
 		var policySet = "set \"tests\" deny-overrides " + "policy \"testp1\" permit " + "policy \"testp2\" deny";
-		var expected = AuthorizationDecision.DENY;
+		var expected  = AuthorizationDecision.DENY;
 		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
 	}
 
@@ -97,17 +98,17 @@ class DefaultSAPLInterpreterPolicySetTest {
 	void denyOverridesPermitAndNotApplicableAndDeny() {
 		var policySet = "set \"tests\" deny-overrides " + "policy \"testp1\" permit "
 				+ "policy \"testp2\" permit true == false " + "policy \"testp3\" deny";
-		var expected = AuthorizationDecision.DENY;
+		var expected  = AuthorizationDecision.DENY;
 		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
 	}
 
 	@Test
 	void denyOverridesPermitAndIntederminateAndDeny() {
-		var policySet = "set \"tests\" deny-overrides " + //
-				"policy \"testp1\" permit " + //
-				"policy \"testp2\" permit \"a\" < 5 " + //
+		var policySet = "set \"tests\" deny-overrides " +   //
+				"policy \"testp1\" permit " +               //
+				"policy \"testp2\" permit \"a\" < 5 " +     //
 				"policy \"testp3\" deny";
-		var expected = AuthorizationDecision.DENY;
+		var expected  = AuthorizationDecision.DENY;
 		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
 	}
 
@@ -117,69 +118,72 @@ class DefaultSAPLInterpreterPolicySetTest {
 				"set \"tests\" deny-overrides " + //
 				"policy \"testp1\" permit transform true |- replace(false)";
 
-		StepVerifier.create(INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx))
+		StepVerifier
+				.create(INTERPRETER.evaluate(authzSubscription, policySet, attributeCtx, functionCtx, new HashMap<>()))
 				.assertNext(decision -> assertThat(decision.getResource(), is(optionalWithValue(jsonBoolean(false)))))
 				.verifyComplete();
 	}
 
 	@Test
 	void importsDuplicatesByPolicySet() {
-		var policySet = "import filter.replace " + //
-				"import filter.replace " + //
-				"set \"tests\" deny-overrides " + //
+		var policySet = "import filter.replace " +          //
+				"import filter.replace " +                  //
+				"set \"tests\" deny-overrides " +           //
 				"policy \"testp1\" permit where true;";
-		var expected = AuthorizationDecision.INDETERMINATE;
+		var expected  = AuthorizationDecision.INDETERMINATE;
 		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
 	}
 
 	@Test
 	void variablesOnSetLevel() {
-		var policySet = "set \"tests\" deny-overrides " + //
-				"var var1 = true; " + //
+		var policySet = "set \"tests\" deny-overrides " +   //
+				"var var1 = true; " +                       //
 				"policy \"testp1\" permit var1 == true";
-		var expected = AuthorizationDecision.PERMIT;
+		var expected  = AuthorizationDecision.PERMIT;
 		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
 	}
 
 	@Test
 	void variablesOnSetLevelError() {
-		var policySet = "set \"tests\" deny-overrides " + //
-				"var var1 = true / null; " + //
+		var policySet = "set \"tests\" deny-overrides " +   //
+				"var var1 = true / null; " +                //
 				"policy \"testp1\" permit";
-		var expected = AuthorizationDecision.INDETERMINATE;
+		var expected  = AuthorizationDecision.INDETERMINATE;
 		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
 	}
 
 	@Test
 	void variablesOverwriteInPolicy() {
-		var policySet = "set \"tests\" deny-overrides " + //
-				"var var1 = true; " + //
-				"policy \"testp1\" permit where var var1 = 10; var1 == 10; " + //
+		var policySet = "set \"tests\" deny-overrides " +                        //
+				"var var1 = true; " +                                            //
+				"policy \"testp1\" permit where var var1 = 10; var1 == 10; " +   //
 				"policy \"testp2\" deny where !(var1 == true);";
-		var expected = AuthorizationDecision.PERMIT;
+		var expected  = AuthorizationDecision.PERMIT;
 		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
 	}
 
 	@Test
 	void subjectAsVariable() {
-		var policySet = "set \"test\" deny-overrides " + //
-				"var subject = null;  " + //
+		var policySet = "set \"test\" deny-overrides " +    //
+				"var subject = null;  " +                   //
 				"policy \"test\" permit";
-		var expected = AuthorizationDecision.INDETERMINATE;
+		var expected  = AuthorizationDecision.INDETERMINATE;
 		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
 	}
 
 	@Test
 	void variablesInPolicyMustNotLeakIntoNextPolicy() {
-		var policySet = "set \"test\" deny-overrides " + "var ps1 = true; " + //
-				"policy \"pol1\" permit where var p1 = 10; p1 == 10; " + //
+		var policySet = "set \"test\" deny-overrides " + "var ps1 = true; " +   //
+				"policy \"pol1\" permit where var p1 = 10; p1 == 10; " +        //
 				"policy \"pol2\" deny where p1 == undefined;";
-		var expected = AuthorizationDecision.DENY;
+		var expected  = AuthorizationDecision.DENY;
 		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
 	}
 
 	private void assertThatDocumentEvaluationReturnsExpected(String document, AuthorizationDecision expected) {
-		StepVerifier.create(INTERPRETER.evaluate(authzSubscription, document, evaluationCtx)).expectNext(expected)
+		StepVerifier
+				.create(INTERPRETER.evaluate(authzSubscription, document, attributeCtx, functionCtx, new HashMap<>()))
+				.expectNext(expected)
 				.verifyComplete();
 	}
 

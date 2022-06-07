@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,19 +23,19 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
-import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
  * Implements the application of an index union step to a previous array value,
- * e.g. 'arr[4, 7, 11]'.
+ * e.g. {@code 'arr[4, 7, 11]'.}
  *
- * Grammar: Step: '[' Subscript ']' ;
+ * Grammar:{@code  Step: '[' Subscript ']' ;
  *
  * Subscript returns Step: {IndexUnionStep} indices+=JSONNUMBER ','
- * indices+=JSONNUMBER (',' indices+=JSONNUMBER)* ;
+ * indices+=JSONNUMBER (',' indices+=JSONNUMBER)* ;}
  */
 @Slf4j
 public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
@@ -43,7 +43,7 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 	private static final String TYPE_MISMATCH_CAN_ONLY_ACCESS_ARRAYS_BY_INDEX_GOT_S = "Type mismatch. Can only access arrays by index, got: %s";
 
 	@Override
-	public Flux<Val> apply(@NonNull Val parentValue, @NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
+	public Flux<Val> apply(@NonNull Val parentValue) {
 		if (parentValue.isError()) {
 			return Flux.just(parentValue);
 		}
@@ -54,7 +54,7 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 		var array = parentValue.getArrayNode();
 		// remove duplicates
 		var uniqueIndices = uniqueIndices(array);
-		var resultArray = Val.JSON.arrayNode();
+		var resultArray   = Val.JSON.arrayNode();
 		for (var index : uniqueIndices) {
 			if (index >= 0 && index < array.size())
 				resultArray.add(array.get(index));
@@ -77,14 +77,16 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 	}
 
 	@Override
-	public Flux<Val> applyFilterStatement(@NonNull Val parentValue, @NonNull EvaluationContext ctx,
-			@NonNull Val relativeNode, int stepId, @NonNull FilterStatement statement) {
+	public Flux<Val> applyFilterStatement(
+			@NonNull Val parentValue,
+			int stepId,
+			@NonNull FilterStatement statement) {
 		log.trace("apply index union step [{}] to: {}", indices, parentValue);
 		if (!parentValue.isArray()) {
 			// this means the element does not get selected does not get filtered
 			return Flux.just(parentValue);
 		}
-		var array = parentValue.getArrayNode();
+		var array         = parentValue.getArrayNode();
 		var uniqueIndices = uniqueIndices(array);
 		var elementFluxes = new ArrayList<Flux<Val>>(array.size());
 		for (var i = 0; i < array.size(); i++) {
@@ -97,13 +99,13 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 					log.trace("final step. apply filter!");
 					elementFluxes.add(
 							FilterComponentImplCustom.applyFilterFunction(Val.of(element), statement.getArguments(),
-									FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx,
-									parentValue, statement.isEach()));
+									statement.getFsteps(), statement.isEach())
+									.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, parentValue)));
 				} else {
 					// there are more steps. descent with them
 					log.trace("this step was successful. descent with next step...");
 					elementFluxes.add(statement.getTarget().getSteps().get(stepId + 1)
-							.applyFilterStatement(Val.of(element), ctx, relativeNode, stepId + 1, statement));
+							.applyFilterStatement(Val.of(element), stepId + 1, statement));
 				}
 			} else {
 				log.trace("[{}] not selected. Just return as is. Not affected by filtering.", i);
@@ -112,4 +114,5 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 		}
 		return Flux.combineLatest(elementFluxes, RepackageUtil::recombineArray);
 	}
+
 }

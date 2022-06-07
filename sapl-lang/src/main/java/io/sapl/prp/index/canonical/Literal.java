@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,67 +24,69 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class Literal {
 
-    @Getter
-    @NonNull
-    private final Bool bool;
-    @Getter
-    private final boolean negated;
+	@Getter
+	@NonNull
+	private final Bool bool;
 
-    private int hash;
-    private boolean hasHashCode;
+	@Getter
+	private final boolean negated;
 
-    public Literal(@NonNull final Bool bool) {
-        this(bool, false);
-    }
+	private int hash;
 
-    public boolean isImmutable() {
-        return bool.isImmutable();
-    }
+	private boolean hasHashCode;
 
-    public boolean evaluate() {
-        return negated ^ bool.evaluate();
-    }
+	public Literal(@NonNull final Bool bool) {
+		this(bool, false);
+	}
 
-    public Literal negate() {
-        return new Literal(bool, !negated);
-    }
+	public boolean isImmutable() {
+		return bool.isImmutable();
+	}
 
-    public boolean sharesBool(final Literal other) {
-        return bool.equals(other.bool);
-    }
+	public boolean evaluate() {
+		return negated ^ bool.evaluate();
+	}
 
-    public boolean sharesNegation(final Literal other) {
-        return negated == other.negated;
-    }
+	public Literal negate() {
+		return new Literal(bool, !negated);
+	}
 
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final Literal other = (Literal) obj;
-        if (negated != other.negated) {
-            return false;
-        }
-        if (hashCode() != obj.hashCode()) {
-            return false;
-        }
-        return bool.equals(other.bool);
-    }
+	public boolean sharesBool(final Literal other) {
+		return bool.equals(other.bool);
+	}
 
-    @Override
-    public int hashCode() {
-        if (!hasHashCode) {
-            hash = Objects.hash(bool, negated);
-            hasHashCode = true;
-        }
-        return hash;
-    }
+	public boolean sharesNegation(final Literal other) {
+		return negated == other.negated;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		final Literal other = (Literal) obj;
+		if (negated != other.negated) {
+			return false;
+		}
+		if (hashCode() != obj.hashCode()) {
+			return false;
+		}
+		return bool.equals(other.bool);
+	}
+
+	@Override
+	public int hashCode() {
+		if (!hasHashCode) {
+			hash = Objects.hash(bool, negated);
+			hasHashCode = true;
+		}
+		return hash;
+	}
 
 }

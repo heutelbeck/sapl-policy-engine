@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
-import io.sapl.pip.ClockPolicyInformationPoint;
+import io.sapl.pip.TimePolicyInformationPoint;
 
 class PolicyInformationPointsAutoConfigurationTests {
 
@@ -32,7 +32,7 @@ class PolicyInformationPointsAutoConfigurationTests {
 	void whenContextLoaded_thenDefaultPolicyInformationPointsArePresent() {
 		contextRunner.run(context -> {
 			assertThat(context).hasNotFailed();
-			assertThat(context).hasSingleBean(ClockPolicyInformationPoint.class);
+			assertThat(context).hasSingleBean(TimePolicyInformationPoint.class);
 		});
 	}
 

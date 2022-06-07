@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,50 +20,46 @@ import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 
 import org.junit.jupiter.api.Test;
 
-import io.sapl.grammar.sapl.impl.util.MockUtil;
-import io.sapl.interpreter.EvaluationContext;
-
 class IndexUnionStepImplCustomTest {
-
-	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 
 	@Test
 	void applyIndexUnionStepToNonArrayFails() {
-		expressionErrors(CTX, "(undefined)[1,2]");
+		expressionErrors("(undefined)[1,2]");
 	}
 
 	@Test
 	void applyToArray() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9][0,1,-2,10,-10]";
-		var expected = "[0,1,8]";
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = "[0,1,8]";
+		expressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void applyToArrayOutOfBounds() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9][100,-100]";
-		var expected = "[]";
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = "[]";
+		expressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void filterNegativeStepArray() {
 		var expression = "\"Otto\" |- { @[1,2,3] : mock.nil }";
-		var expected = "\"Otto\"";
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = "\"Otto\"";
+		expressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void filterElementsInArray() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9] |- { @[0,1,-2,10,-10] : mock.nil }";
-		var expected = "[null,null,2,3,4,5,6,7,null,9]";
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = "[null,null,2,3,4,5,6,7,null,9]";
+		expressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void filterElementsInDescend() {
 		var expression = "[[0,1,2,3],[0,1,2,3],[0,1,2,3],[0,1,2,3]] |- { @[1,3][3] : mock.nil }";
-		var expected = "[[0,1,2,3],[0,1,2,null],[0,1,2,3],[0,1,2,null]]";
-		expressionEvaluatesTo(CTX, expression, expected);
+		var expected   = "[[0,1,2,3],[0,1,2,null],[0,1,2,3],[0,1,2,null]]";
+		expressionEvaluatesTo(expression, expected);
 	}
+
 }

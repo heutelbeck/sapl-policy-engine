@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,24 +26,25 @@ import io.sapl.prp.index.canonical.PredicateInfo;
 
 public class DefaultPredicateOrderStrategy implements PredicateOrderStrategy {
 
-    @Override
-    public List<Predicate> createPredicateOrder(Collection<PredicateInfo> data) {
-        List<PredicateInfo> predicateInfos = new ArrayList<>(data);
-        predicateInfos.parallelStream().forEach(predicateInfo -> predicateInfo.setScore(createScore(predicateInfo)));
+	@Override
+	public List<Predicate> createPredicateOrder(Collection<PredicateInfo> data) {
+		List<PredicateInfo> predicateInfos = new ArrayList<>(data);
+		predicateInfos.parallelStream().forEach(predicateInfo -> predicateInfo.setScore(createScore(predicateInfo)));
 
-        return predicateInfos.stream().sorted(Collections.reverseOrder()).map(PredicateInfo::getPredicate)
-                .collect(Collectors.toList());
-    }
+		return predicateInfos.stream().sorted(Collections.reverseOrder()).map(PredicateInfo::getPredicate)
+				.collect(Collectors.toList());
+	}
 
-    private double createScore(final PredicateInfo predicateInfo) {
-        var square = 2.0D;
-        var groupedPositives = predicateInfo.getGroupedNumberOfPositives();
-        var groupedNegatives = predicateInfo.getGroupedNumberOfNegatives();
-        var relevance = predicateInfo.getRelevance();
-        var costs = 1.0D;
+	private double createScore(final PredicateInfo predicateInfo) {
+		var square = 2.0D;
+		var groupedPositives = predicateInfo.getGroupedNumberOfPositives();
+		var groupedNegatives = predicateInfo.getGroupedNumberOfNegatives();
+		var relevance = predicateInfo.getRelevance();
+		var costs = 1.0D;
 
-        return Math.pow(relevance, square - relevance) * (groupedPositives + groupedNegatives) / costs * (square
-                - Math.pow(((double) groupedPositives - (double) groupedNegatives) / ((double) groupedPositives + (double) groupedNegatives), square));
-    }
+		return Math.pow(relevance, square - relevance) * (groupedPositives + groupedNegatives) / costs
+				* (square - Math.pow(((double) groupedPositives - (double) groupedNegatives)
+						/ ((double) groupedPositives + (double) groupedNegatives), square));
+	}
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -140,26 +141,70 @@ class AnnotationFunctionContextTest {
 		assertThrows(InitializationException.class,
 				() -> new AnnotationFunctionContext(new BadReturnTypeFunctionLibrary()));
 	}
-	
-	@Test 
+
+	@Test
 	void loadedLibrariesShouldBeReturned() throws InitializationException {
 		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
 		assertThat(context.getAvailableLibraries().contains(MockLibrary.LIBRARY_NAME), is(true));
 	}
-	
-	@Test 
+
+	@Test
 	void loadedLibrariesReturnEmptyListWhenNotLoaded() throws InitializationException {
 		AnnotationFunctionContext context = new AnnotationFunctionContext();
 		assertThat(context.getAvailableLibraries().size(), is(0));
+	}
+
+	@Test
+	void codeTemplatesAreGenerated() throws InitializationException {
+		@FunctionLibrary(name = "test")
+		class TestLib {
+
+			@Function
+			public Val hello() {
+				return Val.TRUE;
+			}
+
+			@Function
+			public Val helloVarArgs(Val... aVarArgs) {
+				return Val.TRUE;
+			}
+
+			@Function
+			public Val helloTwoArgs(Val arg1, Val arg2) {
+				return Val.TRUE;
+			}
+
+			@Function
+			public Val helloThreeArgs(Val arg1, Val arg2, Val arg3) {
+				throw new PolicyEvaluationException();
+			}
+
+		}
+		var context = new AnnotationFunctionContext(new TestLib());
+		var actualFullyQualified = context.getAllFullyQualifiedFunctions();
+		assertThat(actualFullyQualified,
+				containsInAnyOrder("test.helloThreeArgs", "test.helloVarArgs", "test.helloTwoArgs", "test.hello"));
+
+		var actualTemplates = context.getCodeTemplates();
+		actualTemplates = context.getCodeTemplates();
+		assertThat(actualTemplates, containsInAnyOrder("test.hello()", "test.helloThreeArgs(arg1, arg2, arg3)",
+				"test.helloTwoArgs(arg1, arg2)", "test.helloVarArgs(aVarArgs...)"));
+		actualTemplates = context.getCodeTemplates();
+		assertThat(actualTemplates, containsInAnyOrder("test.hello()", "test.helloThreeArgs(arg1, arg2, arg3)",
+				"test.helloTwoArgs(arg1, arg2)", "test.helloVarArgs(aVarArgs...)"));
 	}
 
 	@FunctionLibrary(name = MockLibrary.LIBRARY_NAME, description = MockLibrary.LIBRARY_DOC)
 	public static class MockLibrary {
 
 		public static final String FUNCTION_DOC = "docs for helloTest";
+
 		public static final String FUNCTION_NAME = "helloTest";
+
 		public static final Val RETURN_VALUE = Val.of("HELLO TEST");
+
 		public static final String LIBRARY_NAME = "test.lib";
+
 		public static final String LIBRARY_DOC = "docs of my lib";
 
 		@Function(name = FUNCTION_NAME, docs = FUNCTION_DOC)
@@ -186,6 +231,7 @@ class AnnotationFunctionContextTest {
 
 	@FunctionLibrary(name = "validate")
 	public static class ValidationLibrary {
+
 		@Function
 		public static Val fixed(@Text Val arg) {
 			return Val.UNDEFINED;
@@ -195,37 +241,46 @@ class AnnotationFunctionContextTest {
 		public static Val varArgs(@Text Val... args) {
 			return Val.UNDEFINED;
 		}
+
 	}
 
 	@FunctionLibrary
 	@NoArgsConstructor
 	public static class FunctionLibraryWithoutName {
+
 	}
 
 	@FunctionLibrary
 	@NoArgsConstructor
 	public static class BadParameterTypeFunctionLibrary {
+
 		@Function
 		public Val fun(String param) {
 			return Val.UNDEFINED;
 		}
+
 	}
 
 	@FunctionLibrary
 	@NoArgsConstructor
 	public static class BadParameterTypeFunctionLibraryVarArgs {
+
 		@Function
 		public Val fun(String... param) {
 			return Val.UNDEFINED;
 		}
+
 	}
 
 	@FunctionLibrary
 	@NoArgsConstructor
 	public static class BadReturnTypeFunctionLibrary {
+
 		@Function
 		public String fun(Val param) {
 			return param.toString();
 		}
+
 	}
+
 }

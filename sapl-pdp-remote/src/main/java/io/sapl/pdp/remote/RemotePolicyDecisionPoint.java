@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,7 +42,9 @@ import reactor.retry.Repeat;
 public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 
 	private static final String DECIDE = "/api/pdp/decide";
+
 	private static final String MULTI_DECIDE = "/api/pdp/multi-decide";
+
 	private static final String MULTI_DECIDE_ALL = "/api/pdp/multi-decide-all";
 
 	private final WebClient client;
@@ -50,9 +52,11 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 	@Setter
 	@Getter
 	private int firstBackoffMillis = 500;
+
 	@Setter
 	@Getter
 	private int maxBackOffMillis = 5000;
+
 	@Setter
 	@Getter
 	private int backoffFactor = 2;
@@ -82,7 +86,8 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 		var type = new ParameterizedTypeReference<ServerSentEvent<AuthorizationDecision>>() {
 		};
 		return decide(DECIDE, type, authzSubscription)
-				.onErrorResume(__ -> Flux.just(AuthorizationDecision.INDETERMINATE)).repeatWhen(repeat());
+				.onErrorResume(__ -> Flux.just(AuthorizationDecision.INDETERMINATE)).repeatWhen(repeat())
+				.distinctUntilChanged();
 	}
 
 	@Override
@@ -90,7 +95,8 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 		var type = new ParameterizedTypeReference<ServerSentEvent<IdentifiableAuthorizationDecision>>() {
 		};
 		return decide(MULTI_DECIDE, type, multiAuthzSubscription)
-				.onErrorResume(__ -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE)).repeatWhen(repeat());
+				.onErrorResume(__ -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE)).repeatWhen(repeat())
+				.distinctUntilChanged();
 	}
 
 	@Override
@@ -98,16 +104,15 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 		var type = new ParameterizedTypeReference<ServerSentEvent<MultiAuthorizationDecision>>() {
 		};
 		return decide(MULTI_DECIDE_ALL, type, multiAuthzSubscription)
-				.onErrorResume(__ -> Flux.just(MultiAuthorizationDecision.indeterminate())).repeatWhen(repeat());
+				.onErrorResume(__ -> Flux.just(MultiAuthorizationDecision.indeterminate())).repeatWhen(repeat())
+				.distinctUntilChanged();
 	}
 
 	private <T> Flux<T> decide(String path, ParameterizedTypeReference<ServerSentEvent<T>> type,
 			Object authzSubscription) {
 		return client.post().uri(path).accept(MediaType.APPLICATION_NDJSON).contentType(MediaType.APPLICATION_JSON)
-				.bodyValue(authzSubscription).retrieve().bodyToFlux(type).map(ServerSentEvent::data)
-				.doOnError(error -> {
-					log.error("Error : {}", error.getMessage());
-				});
+				.bodyValue(authzSubscription).retrieve().bodyToFlux(type).mapNotNull(ServerSentEvent::data)
+				.doOnError(error -> log.error("Error : {}", error.getMessage()));
 	}
 
 }

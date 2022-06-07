@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,28 +31,32 @@ import lombok.ToString;
 @AllArgsConstructor
 public class PolicyRetrievalResult {
 
-    Collection<? extends AuthorizationDecisionEvaluable> matchingDocuments = new ArrayList<>();
-    @Getter
-    boolean errorsInTarget = false;
-    @Getter
-    boolean prpValidState = true;
+	Collection<? extends AuthorizationDecisionEvaluable> matchingDocuments = new ArrayList<>();
 
-    public Collection<? extends AuthorizationDecisionEvaluable> getMatchingDocuments() {
-        return this.matchingDocuments;
-    }
+	@Getter
+	boolean errorsInTarget = false;
 
-    public PolicyRetrievalResult withMatch(AuthorizationDecisionEvaluable match) {
-        var matches = new ArrayList<AuthorizationDecisionEvaluable>(matchingDocuments);
-        matches.add(match);
-        return new PolicyRetrievalResult(matches, errorsInTarget, prpValidState);
-    }
+	@Getter
+	boolean prpValidState = true;
 
-    public PolicyRetrievalResult withError() {
-        return new PolicyRetrievalResult(new ArrayList<AuthorizationDecisionEvaluable>(matchingDocuments), true, prpValidState);
-    }
+	public Collection<? extends AuthorizationDecisionEvaluable> getMatchingDocuments() {
+		return this.matchingDocuments;
+	}
 
-    public PolicyRetrievalResult withInvalidState() {
-        return new PolicyRetrievalResult(new ArrayList<AuthorizationDecisionEvaluable>(matchingDocuments), errorsInTarget, false);
-    }
+	public PolicyRetrievalResult withMatch(AuthorizationDecisionEvaluable match) {
+		var matches = new ArrayList<AuthorizationDecisionEvaluable>(matchingDocuments);
+		matches.add(match);
+		return new PolicyRetrievalResult(matches, errorsInTarget, prpValidState);
+	}
+
+	public PolicyRetrievalResult withError() {
+		return new PolicyRetrievalResult(new ArrayList<AuthorizationDecisionEvaluable>(matchingDocuments), true,
+				prpValidState);
+	}
+
+	public PolicyRetrievalResult withInvalidState() {
+		return new PolicyRetrievalResult(new ArrayList<AuthorizationDecisionEvaluable>(matchingDocuments),
+				errorsInTarget, false);
+	}
 
 }

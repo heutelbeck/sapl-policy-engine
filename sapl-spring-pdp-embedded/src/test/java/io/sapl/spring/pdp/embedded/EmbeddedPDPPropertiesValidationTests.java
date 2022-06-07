@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ class EmbeddedPDPPropertiesValidationTests {
 
 	@TempDir
 	File tempDir;
+
 	String existingFolder;
 
 	@BeforeEach
@@ -41,66 +42,49 @@ class EmbeddedPDPPropertiesValidationTests {
 
 	@EnableConfigurationProperties(EmbeddedPDPProperties.class)
 	static class EnablePropertiesInApplicationTestRunnerConfiguration {
+
 	}
 
 	@Test
 	void whenValidProertiesArePresent_thenPropertiesLoad() {
-		contextRunner.withPropertyValues(
-					"io.sapl.pdp.embedded.pdpConfigType=FILEsystem",
-					"io.sapl.pdp.embedded.index=CaNoNiCaL", 
-					"io.sapl.pdp.embedded.configPath=" + tempDir,
-					"io.sapl.pdp.embedded.policiesPath=" + tempDir
-				).run(context -> {
-					assertThat(context).hasNotFailed();
-				});
+		contextRunner
+				.withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=FILEsystem",
+						"io.sapl.pdp.embedded.index=CaNoNiCaL", "io.sapl.pdp.embedded.configPath=" + tempDir,
+						"io.sapl.pdp.embedded.policiesPath=" + tempDir)
+				.run(context -> assertThat(context).hasNotFailed());
 	}
 
 	@Test
 	void whenValidProertiesWithMissingPathsArePresent_thenPropertiesFallBackToDefaults() {
-		contextRunner.withPropertyValues(
-					"io.sapl.pdp.embedded.pdpConfigType=FILESYSTEM",
-					"io.sapl.pdp.embedded.index=NAIVE"
-				).run(context -> {
+		contextRunner
+				.withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=FILESYSTEM", "io.sapl.pdp.embedded.index=NAIVE")
+				.run(context -> {
 					assertThat(context).hasNotFailed();
 					assertThat(context.getBean(EmbeddedPDPProperties.class).getConfigPath()).isEqualTo("/policies");
 					assertThat(context.getBean(EmbeddedPDPProperties.class).getPoliciesPath()).isEqualTo("/policies");
 				});
 	}
-	
+
 	@Test
 	void whenPathsAreSetToNull_thenContextFailsLoading() {
-		contextRunner.withPropertyValues(
-					"io.sapl.pdp.embedded.pdpConfigType=FILESYSTEM",
-					"io.sapl.pdp.embedded.index=NAIVE",
-					"io.sapl.pdp.embedded.configPath=",
-					"io.sapl.pdp.embedded.policiesPath="
-				).run(context -> {
-					assertThat(context).hasFailed();
-				});
+		contextRunner
+				.withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=FILESYSTEM", "io.sapl.pdp.embedded.index=NAIVE",
+						"io.sapl.pdp.embedded.configPath=", "io.sapl.pdp.embedded.policiesPath=")
+				.run(context -> assertThat(context).hasFailed());
 	}
 
 	@Test
 	void whenPdpConfigTypeIsInvalid_thenContextFailsLoading() {
-		contextRunner.withPropertyValues(
-					"io.sapl.pdp.embedded.pdpConfigType=I AM INVALID",
-					"io.sapl.pdp.embedded.index=NAIVE",
-					"io.sapl.pdp.embedded.configPath=" + tempDir,
-					"io.sapl.pdp.embedded.policiesPath=" + tempDir
-				).run(context -> {
-					assertThat(context).hasFailed();
-				});
+		contextRunner.withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=I AM INVALID",
+				"io.sapl.pdp.embedded.index=NAIVE", "io.sapl.pdp.embedded.configPath=" + tempDir,
+				"io.sapl.pdp.embedded.policiesPath=" + tempDir).run(context -> assertThat(context).hasFailed());
 	}
 
 	@Test
 	void whenIndexIsInvalid_thenContextFailsLoading() {
-		contextRunner.withPropertyValues(
-					"io.sapl.pdp.embedded.pdpConfigType=RESOUORCES",
-					"io.sapl.pdp.embedded.index=I AM INVALID", 
-					"io.sapl.pdp.embedded.configPath=" + tempDir,
-					"io.sapl.pdp.embedded.policiesPath=" + tempDir
-				).run(context -> {
-					assertThat(context).hasFailed();
-				});
+		contextRunner.withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=RESOUORCES",
+				"io.sapl.pdp.embedded.index=I AM INVALID", "io.sapl.pdp.embedded.configPath=" + tempDir,
+				"io.sapl.pdp.embedded.policiesPath=" + tempDir).run(context -> assertThat(context).hasFailed());
 	}
 
 }

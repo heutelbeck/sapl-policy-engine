@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,68 +42,73 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombinatorSource {
 
-    private static final String CONFIG_FILE_GLOB_PATTERN = "pdp.json";
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+	private static final String CONFIG_FILE_GLOB_PATTERN = "pdp.json";
 
-    private final String watchDir;
-    private final Flux<Optional<PolicyDecisionPointConfiguration>> configFlux;
-    private final Disposable monitorSubscription;
+	private static final ObjectMapper MAPPER = new ObjectMapper();
 
+	private final String watchDir;
 
-    public FileSystemVariablesAndCombinatorSource(String configurationPath) {
-        watchDir = resolveHomeFolderIfPresent(configurationPath);
-        log.info("Monitor folder for config: {}", watchDir);
-        Flux<FileEvent> monitoringFlux = monitorDirectory(watchDir,
-                file -> CONFIG_FILE_GLOB_PATTERN.equals(file.getName()));
-        configFlux = monitoringFlux.scan(loadConfig(), (__, fileEvent) -> processWatcherEvent(fileEvent))
-                .distinctUntilChanged().share()
-                .cache(1);
-        monitorSubscription = Flux.from(configFlux).subscribe();
-    }
+	private final Flux<Optional<PolicyDecisionPointConfiguration>> configFlux;
 
-    private Optional<PolicyDecisionPointConfiguration> loadConfig() {
-        Path configurationFile = Paths.get(watchDir, CONFIG_FILE_GLOB_PATTERN);
-        log.info("Loading config from: {}", configurationFile.toAbsolutePath());
-        if (Files.notExists(configurationFile, LinkOption.NOFOLLOW_LINKS)) {
-            // If file does not exist, return default configuration
-            log.info("No config file present. Use default config.");
-            return Optional.of(new PolicyDecisionPointConfiguration());
-        }
-        try {
-            return Optional.of(MAPPER.readValue(configurationFile.toFile(), PolicyDecisionPointConfiguration.class));
-        } catch (IOException e) {
-            return Optional.empty();
-        }
-    }
+	private final Disposable monitorSubscription;
 
-    @Override
-    public Flux<Optional<CombiningAlgorithm>> getCombiningAlgorithm() {
-        return Flux.from(configFlux)
-                .switchMap(config -> config.map(policyDecisionPointConfiguration -> Flux.just(Optional
-                        .of(CombiningAlgorithmFactory.getCombiningAlgorithm(policyDecisionPointConfiguration.getAlgorithm()))))
-                        .orElseGet(() -> Flux.just(Optional.empty())));
-    }
+	public FileSystemVariablesAndCombinatorSource(String configurationPath) {
+		watchDir = resolveHomeFolderIfPresent(configurationPath);
+		log.info("Monitor folder for config: {}", watchDir);
+		Flux<FileEvent> monitoringFlux = monitorDirectory(watchDir,
+				file -> CONFIG_FILE_GLOB_PATTERN.equals(file.getName()));
+		configFlux = monitoringFlux.scan(loadConfig(), (__, fileEvent) -> processWatcherEvent(fileEvent))
+				.distinctUntilChanged().share().cache(1);
+		monitorSubscription = Flux.from(configFlux).subscribe();
+	}
 
-    @Override
-    public Flux<Optional<Map<String, JsonNode>>> getVariables() {
-        return Flux.from(configFlux).switchMap(config -> config.map(policyDecisionPointConfiguration -> Flux
-                .just(Optional.of(policyDecisionPointConfiguration.getVariables())))
-                .orElseGet(() -> Flux.just(Optional.empty())));
-    }
+	private Optional<PolicyDecisionPointConfiguration> loadConfig() {
+		Path configurationFile = Paths.get(watchDir, CONFIG_FILE_GLOB_PATTERN);
+		log.info("Loading config from: {}", configurationFile.toAbsolutePath());
+		if (Files.notExists(configurationFile, LinkOption.NOFOLLOW_LINKS)) {
+			// If file does not exist, return default configuration
+			log.info("No config file present. Use default config.");
+			return Optional.of(new PolicyDecisionPointConfiguration());
+		}
+		try {
+			return Optional.of(MAPPER.readValue(configurationFile.toFile(), PolicyDecisionPointConfiguration.class));
+		}
+		catch (IOException e) {
+			return Optional.empty();
+		}
+	}
 
-    private Optional<PolicyDecisionPointConfiguration> processWatcherEvent(FileEvent fileEvent) {
-        if (fileEvent instanceof FileDeletedEvent) {
-            log.info("Configuration file deleted. Reverting to default config.");
-            return Optional.of(new PolicyDecisionPointConfiguration());
-        }
-        // MODIFY or CREATED
-        return loadConfig();
-    }
+	@Override
+	public Flux<Optional<CombiningAlgorithm>> getCombiningAlgorithm() {
+		return Flux.from(configFlux)
+				.switchMap(config -> config
+						.map(policyDecisionPointConfiguration -> Flux.just(Optional.of(CombiningAlgorithmFactory
+								.getCombiningAlgorithm(policyDecisionPointConfiguration.getAlgorithm()))))
+						.orElseGet(() -> Flux.just(Optional.empty())));
+	}
 
-    @Override
-    public void dispose() {
-        if (!monitorSubscription.isDisposed())
-            monitorSubscription.dispose();
-    }
+	@Override
+	public Flux<Optional<Map<String, JsonNode>>> getVariables() {
+		return Flux.from(configFlux)
+				.switchMap(config -> config
+						.map(policyDecisionPointConfiguration -> Flux
+								.just(Optional.of(policyDecisionPointConfiguration.getVariables())))
+						.orElseGet(() -> Flux.just(Optional.empty())));
+	}
+
+	private Optional<PolicyDecisionPointConfiguration> processWatcherEvent(FileEvent fileEvent) {
+		if (fileEvent instanceof FileDeletedEvent) {
+			log.info("Configuration file deleted. Reverting to default config.");
+			return Optional.of(new PolicyDecisionPointConfiguration());
+		}
+		// MODIFY or CREATED
+		return loadConfig();
+	}
+
+	@Override
+	public void dispose() {
+		if (!monitorSubscription.isDisposed())
+			monitorSubscription.dispose();
+	}
 
 }

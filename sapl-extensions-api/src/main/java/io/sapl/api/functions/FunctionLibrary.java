@@ -23,7 +23,7 @@ import java.lang.annotation.Target;
 
 /**
  * Annotation to indicate that a class is a function library.
- * 
+ *
  * The name defaults to the class name if not explicitly declared as a parameter.
  */
 @Inherited

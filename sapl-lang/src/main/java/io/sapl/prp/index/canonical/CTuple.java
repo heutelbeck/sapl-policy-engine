@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,11 +18,13 @@ package io.sapl.prp.index.canonical;
 import lombok.Value;
 
 /**
- * Tuple of a conjunction index number and the number of formulas in F(ci)
- * containing ci .
+ * Tuple of a conjunction index number and the number of formulas in F(ci) containing ci .
  */
 @Value
 public class CTuple {
+
 	int cI; // conjunction index number
+
 	long n; // number of formulas containing conjunction
+
 }

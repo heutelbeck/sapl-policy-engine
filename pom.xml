@@ -1,24 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-	Copyright © 2020-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+    Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
 
-	Licensed under the Apache License, Version 2.0 (the "License");
-	you may not use this file except in compliance with the License.
-	You may obtain a copy of the License at
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
 
-	http://www.apache.org/licenses/LICENSE-2.0
+        http://www.apache.org/licenses/LICENSE-2.0
 
-	Unless required by applicable law or agreed to in writing, software
-	distributed under the License is distributed on an "AS IS" BASIS,
-	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	See the License for the specific language governing permissions and
-	limitations under the License.
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
 
 -->
-<!-- Update all child project versions to the actual parent pom version:
-	mvn versions:update-child-modules -N -->
-<!-- correct the license headers of all source files mvn license:format -->
+<!-- 
+	Utility goals supported by the POM:
+	
+	* Update the version of all modules:
+	  mvn versions:set -DnewVersion=2.0.0-RC1 -DprocessAllModules -DgenerateBackupPoms=false
+	  
+	* Correct the license headers of all source files:
+	  mvn license:format
+	  
+	* Format the code according to Spring code formatting conventions:
+	  mvn spring-javaformat:apply 
+-->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -26,7 +35,7 @@
 
 	<groupId>io.sapl</groupId>
 	<artifactId>sapl-policy-engine</artifactId>
-	<version>2.0.0-SNAPSHOT</version>
+	<version>2.1.0-SNAPSHOT</version>
 
 	<packaging>pom</packaging>
 
@@ -48,12 +57,12 @@
 		</developer>
 	</developers>
 
-	<inceptionYear>2017-2021</inceptionYear>
+	<inceptionYear>2017-2022</inceptionYear>
 
 	<licenses>
 		<license>
 			<name>Apache 2.0</name>
-			<url>http://www.apache.org/licenses/LICENSE-2.0</url>
+			<url>https://www.apache.org/licenses/LICENSE-2.0</url>
 		</license>
 	</licenses>
 
@@ -66,26 +75,33 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
 		<java.version>11</java.version>
-		<xtext.version>2.25.0</xtext.version>
-		<license-maven-plugin.version>3.0</license-maven-plugin.version>
-		<maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
-		<junit.version>5.7.2</junit.version>
-		<lombok.version>1.18.20</lombok.version>
-		<hamcrest.version>2.2</hamcrest.version>
-		<spotify.hamcrest.version>1.2.0</spotify.hamcrest.version>
-		<springboot.version>2.5.2</springboot.version>
-		<mockito.version>3.11.2</mockito.version>
-		<vaadin.version>14.6.5</vaadin.version>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
+
+		<xtext.version>2.25.0</xtext.version>
+		<junit.version>5.7.2</junit.version>
+		<junit4.version>4.13.2</junit4.version>
+		<lombok.version>1.18.22</lombok.version>
+		<hamcrest.version>2.2</hamcrest.version>
+		<spotify.hamcrest.version>1.2.0</spotify.hamcrest.version>
+		<springboot.version>2.6.6</springboot.version>
+		<mockito.version>3.12.4</mockito.version>
+		<guice.version>5.1.0</guice.version>
+       	<vaadin.internal.version>14.8.3</vaadin.internal.version>
+       	<vaadin.version>23.0.3</vaadin.version>
+
+		<license-maven-plugin.version>4.1</license-maven-plugin.version>
+		<maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
+
 		<dockerfile-maven-plugin.version>1.4.13</dockerfile-maven-plugin.version>
 		<docker-registry-url>ghcr.io/heutelbeck</docker-registry-url>
-		<guice.version>5.0.1</guice.version>
 	</properties>
 
 	<modules>
 		<module>sapl-pdp-api</module>
+		<module>sapl-pep-api</module>
 		<module>sapl-extensions-api</module>
 		<module>sapl-hamcrest</module>
 		<module>sapl-generator</module>
@@ -95,6 +111,7 @@
 		<module>sapl-test</module>
 		<module>sapl-coverage-api</module>
 		<module>sapl-maven-plugin</module>
+		<module>sapl-jwt</module>
 		<module>sapl-pdp-embedded</module>
 		<module>sapl-pdp-remote</module>
 		<module>sapl-spring-pdp-embedded</module>
@@ -135,6 +152,13 @@
 				<version>${junit.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
+			</dependency>
+			<dependency>
+		<!-- explicitly override transient junit 4 dependencies to fix CVE-2020-15250 -->
+				<groupId>junit</groupId>
+				<artifactId>junit</artifactId>
+				<version>${junit4.version}</version>
+				<scope>test</scope>
 			</dependency>
 			<dependency>
 				<groupId>org.mockito</groupId>
@@ -196,16 +220,6 @@
 				<version>${lombok.version}</version>
 			</dependency>
 
-			<!-- Vaadin -->
-			<!-- https://mvnrepository.com/artifact/com.vaadin/vaadin-bom -->
-			<dependency>
-				<groupId>com.vaadin</groupId>
-				<artifactId>vaadin-bom</artifactId>
-				<version>${vaadin.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-
 			<dependency>
 				<groupId>com.google.inject</groupId>
 				<artifactId>guice</artifactId>
@@ -231,18 +245,16 @@
 								<version>${lombok.version}</version>
 							</path>
 						</annotationProcessorPaths>
+						<compilerArgs>
+							<arg>-parameters</arg>
+						</compilerArgs>
 					</configuration>
 				</plugin>
 				<plugin>
 					<groupId>org.springframework.boot</groupId>
 					<artifactId>spring-boot-maven-plugin</artifactId>
 					<version>${springboot.version}</version>
-				</plugin>
-				<plugin>
-					<groupId>com.vaadin</groupId>
-					<artifactId>vaadin-maven-plugin</artifactId>
-					<version>${vaadin.version}</version>
-				</plugin>
+				</plugin>		
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-jar-plugin</artifactId>
@@ -279,7 +291,7 @@
 				<plugin>
 					<groupId>io.spring.javaformat</groupId>
 					<artifactId>spring-javaformat-maven-plugin</artifactId>
-					<version>0.0.28</version>
+					<version>0.0.29</version>
 				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
@@ -396,6 +408,10 @@
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+				<groupId>io.spring.javaformat</groupId>
+				<artifactId>spring-javaformat-maven-plugin</artifactId>
+			</plugin>
 		</plugins>
 	</build>
 
@@ -404,6 +420,14 @@
 			<id>publish</id>
 			<build>
 				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-deploy-plugin</artifactId>
+						<version>2.8.2</version>
+						<configuration>
+							<skip>true</skip>
+						</configuration>
+					</plugin>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-source-plugin</artifactId>
@@ -420,7 +444,7 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-javadoc-plugin</artifactId>
-						<version>3.3.0</version>
+						<version>3.3.1</version>
 						<executions>
 							<execution>
 								<id>attach-javadocs</id>
@@ -430,6 +454,7 @@
 							</execution>
 						</executions>
 						<configuration>
+							<doclint>none</doclint>
 							<tags>
 								<tag>
 									<name>generated</name>
@@ -459,6 +484,15 @@
 						<artifactId>nexus-staging-maven-plugin</artifactId>
 						<version>1.6.8</version>
 						<extensions>true</extensions>
+						<executions>
+							<execution>
+								<id>default-deploy</id>
+								<phase>deploy</phase>
+								<goals>
+									<goal>deploy</goal>
+								</goals>
+							</execution>
+						</executions>
 						<configuration>
 							<serverId>ossrh</serverId>
 							<nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
@@ -490,12 +524,16 @@
 			</build>
 		</profile>
 	</profiles>
-
+	
 	<distributionManagement>
 		<snapshotRepository>
 			<id>ossrh</id>
 			<url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
 		</snapshotRepository>
+		<repository>
+			<id>ossrh</id>
+			<url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+		</repository>
 	</distributionManagement>
 
 </project>

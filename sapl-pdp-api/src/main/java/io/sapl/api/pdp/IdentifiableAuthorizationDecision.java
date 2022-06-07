@@ -1,5 +1,5 @@
 /*
- * Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2021 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,9 +25,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Holds a {@link AuthorizationDecision SAPL authorization decision} together
- * with the ID of the corresponding {@link AuthorizationSubscription SAPL
- * authorization subscription}.
+ * Holds a {@link AuthorizationDecision SAPL authorization decision} together with the ID
+ * of the corresponding {@link AuthorizationSubscription SAPL authorization subscription}.
  *
  * @see AuthorizationDecision
  * @see IdentifiableAuthorizationSubscription
@@ -40,6 +39,7 @@ public class IdentifiableAuthorizationDecision {
 
 	@JsonProperty(required = true)
 	String authorizationSubscriptionId;
+
 	@JsonProperty(required = true)
 	AuthorizationDecision authorizationDecision;
 

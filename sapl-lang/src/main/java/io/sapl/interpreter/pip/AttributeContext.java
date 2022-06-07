@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,19 +16,25 @@
 package io.sapl.interpreter.pip;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
-import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.InitializationException;
 import reactor.core.publisher.Flux;
 
 public interface AttributeContext extends LibraryFunctionProvider {
 
-	Flux<Val> evaluate(String attribute, Val value, EvaluationContext ctx, Arguments arguments);
+	Flux<Val> evaluateAttribute(String attribute, Val value, Arguments arguments, Map<String, JsonNode> variables);
 
-	void loadPolicyInformationPoint(Object pip) throws InitializationException;
+	Flux<Val> evaluateEnvironmentAttribute(String attribute, Arguments arguments, Map<String, JsonNode> variables);
 
 	Collection<PolicyInformationPointDocumentation> getDocumentation();
+
+	List<String> getEnvironmentAttributeCodeTemplates();
+
+	List<String> getAttributeCodeTemplates();
 
 }

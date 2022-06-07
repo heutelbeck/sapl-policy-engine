@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSource;
 import reactor.core.publisher.SignalType;
 
 class ResourcesConfigTest {
+
 	@Test
 	void doTest() throws InitializationException {
 		var configProvider = new ResourcesVariablesAndCombinatorSource("/policies");
@@ -31,4 +32,5 @@ class ResourcesConfigTest {
 		configProvider.getVariables().log(null, Level.INFO, SignalType.ON_NEXT).blockFirst();
 		configProvider.dispose();
 	}
+
 }

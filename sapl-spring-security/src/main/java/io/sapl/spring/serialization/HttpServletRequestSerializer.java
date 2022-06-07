@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -94,6 +94,7 @@ public class HttpServletRequestSerializer extends JsonSerializer<HttpServletRequ
 		writeCookies(value, gen);
 		writeLocales(value, gen);
 		writeParameters(value, gen);
+		gen.writeEndObject();
 	}
 
 	private void writeHeaders(HttpServletRequest value, JsonGenerator gen) throws IOException {
@@ -116,13 +117,16 @@ public class HttpServletRequestSerializer extends JsonSerializer<HttpServletRequ
 	}
 
 	private void writeCookies(HttpServletRequest value, JsonGenerator gen) throws IOException {
-		if (value.getCookies() != null) {
-			gen.writeArrayFieldStart(COOKIES);
-			for (Cookie cookie : value.getCookies()) {
-				gen.writeObject(cookie);
-			}
-			gen.writeEndArray();
+		if (value.getCookies() == null)
+			return;
+		gen.writeArrayFieldStart(COOKIES);
+		for (Cookie cookie : value.getCookies()) {
+			gen.writeStartObject();
+			gen.writeObjectField("name", cookie.getName());
+			gen.writeObjectField("value", cookie.getValue());
+			gen.writeEndObject();
 		}
+		gen.writeEndArray();
 	}
 
 	private void writeLocales(HttpServletRequest value, JsonGenerator gen) throws IOException {

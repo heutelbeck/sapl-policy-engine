@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,19 +16,11 @@
 package io.sapl.grammar.sapl.impl;
 
 import java.util.HashSet;
-import java.util.function.Function;
 
-import org.reactivestreams.Publisher;
-
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.grammar.sapl.ValueDefinition;
-import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
-import reactor.util.function.Tuple2;
-import reactor.util.function.Tuples;
 
 @Slf4j
 public class PolicySetImplCustom extends PolicySetImpl {
@@ -37,88 +29,45 @@ public class PolicySetImplCustom extends PolicySetImpl {
 	 * Evaluates the body of the policy set within the given evaluation context and
 	 * returns a {@link Flux} of {@link AuthorizationDecision} objects.
 	 * 
-	 * @param ctx the evaluation context in which the policy set's body is
-	 *            evaluated. It must contain
-	 *            <ul>
-	 *            <li>the attribute context</li>
-	 *            <li>the function context</li>
-	 *            <li>the variable context holding the four authorization
-	 *            subscription variables 'subject', 'action', 'resource' and
-	 *            'environment' combined with system variables from the PDP
-	 *            configuration</li>
-	 *            <li>the import mapping for functions and attribute finders</li>
-	 *            </ul>
 	 * @return A {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
 	@Override
-	public Flux<AuthorizationDecision> evaluate(EvaluationContext ctx) {
+	public Flux<AuthorizationDecision> evaluate() {
 		if (!policyNamesAreUnique()) {
-			log.debug("| |- Policy Set '{}'. Policy names are not uniqe. INDETERMINATE", saplName);
+			log.debug("  |- INDETERMINATE (Set) '{}'. (Policy names not unique)", saplName);
 			return Flux.just(AuthorizationDecision.INDETERMINATE);
 		}
-		return Flux.just(Tuples.of(Val.TRUE, ctx)).switchMap(evaluateValueDefinitions(0)).switchMap(this::evalPolicies)
-				.doOnNext(authzDecision -> log.debug("| |- Policy Set '{}' evaluates to: {}", saplName, authzDecision));
+		return evaluatePolicySet(0)
+				.doOnError(e -> log.debug(
+						"| |- Error in the policy set evaluation. Policy set evaluated INDETERMINATE.: {}",
+						e.getMessage()))
+				.onErrorReturn(AuthorizationDecision.INDETERMINATE)
+				.doOnNext(authzDecision -> log.debug("  |- {} (Set) '{}' {}", authzDecision.getDecision(), saplName,
+						authzDecision));
 	}
 
-	// TODO: move into validation at parse time, remove from evaluation
 	private boolean policyNamesAreUnique() {
 		var policyNames = new HashSet<String>(policies.size(), 1.0F);
-		for (var policy : policies) {
-			if (!policyNames.add(policy.getSaplName())) {
-				log.warn("Policy name collision in policy set: \"{}\"", policy.getSaplName());
+		for (var policy : policies)
+			if (!policyNames.add(policy.getSaplName()))
 				return false;
-			}
-		}
+
 		return true;
 	}
 
-	private Flux<AuthorizationDecision> evalPolicies(
-			Tuple2<Val, EvaluationContext> valueDefinitionSuccessAndScopedEvaluationContext) {
-		if (valueDefinitionSuccessAndScopedEvaluationContext.getT1().isError()) {
-			log.debug("| |- Error in the value definitions of the policy set. Policy evaluated INDETERMINATE.: {}",
-					valueDefinitionSuccessAndScopedEvaluationContext.getT1().getMessage());
-			return Flux.just(AuthorizationDecision.INDETERMINATE);
-		}
-		return getAlgorithm().combinePolicies(policies, valueDefinitionSuccessAndScopedEvaluationContext.getT2());
-
-	}
-
-	private Function<? super Tuple2<Val, EvaluationContext>, Publisher<? extends Tuple2<Val, EvaluationContext>>> evaluateValueDefinitions(
+	private Flux<AuthorizationDecision> evaluatePolicySet(
 			int valueDefinitionId) {
-		if (valueDefinitions == null || valueDefinitionId == valueDefinitions.size()) {
-			return Flux::just;
-		}
-		return valueDefinitionSuccessAndScopedEvaluationContext -> evaluateValueDefinition(
-				valueDefinitionSuccessAndScopedEvaluationContext.getT1(), valueDefinitions.get(valueDefinitionId),
-				valueDefinitionSuccessAndScopedEvaluationContext.getT2())
-						.switchMap(evaluateValueDefinitions(valueDefinitionId + 1));
+		if (valueDefinitions == null || valueDefinitionId == valueDefinitions.size())
+			return evaluateAndCombinePoliciesOfSet();
+
+		var valueDefinition = valueDefinitions.get(valueDefinitionId);
+		var evaluated       = valueDefinition.getEval().evaluate();
+		return evaluated.switchMap(value -> evaluatePolicySet(valueDefinitionId + 1)
+				.contextWrite(ctx -> AuthorizationContext.setVariable(ctx, valueDefinition.getName(), value)));
 	}
 
-	private Flux<Tuple2<Val, EvaluationContext>> evaluateValueDefinition(Val previousResult,
-			ValueDefinition valueDefinition, EvaluationContext ctx) {
-		if (previousResult.isError()) {
-			return Flux.just(Tuples.of(previousResult, ctx));
-		}
-		return valueDefinition.getEval().evaluate(ctx, Val.UNDEFINED)
-				.concatMap(derivePolicySetScopeEvaluationContext(valueDefinition, ctx));
-	}
-
-	private Function<? super Val, ? extends Publisher<? extends Tuple2<Val, EvaluationContext>>> derivePolicySetScopeEvaluationContext(
-			ValueDefinition valueDefinition, EvaluationContext ctx) {
-		return evaluatedValue -> {
-			if (evaluatedValue.isError()) {
-				return Flux.just(Tuples.of(evaluatedValue, ctx));
-			}
-			if (evaluatedValue.isDefined()) {
-				try {
-					var scopedCtx = ctx.withEnvironmentVariable(valueDefinition.getName(), evaluatedValue.get());
-					return Flux.just(Tuples.of(Val.TRUE, scopedCtx));
-				} catch (PolicyEvaluationException e) {
-					return Flux.just(Tuples.of(Val.error(e), ctx));
-				}
-			}
-			return Flux.just(Tuples.of(Val.TRUE, ctx));
-		};
+	private Flux<AuthorizationDecision> evaluateAndCombinePoliciesOfSet() {
+		return getAlgorithm().combinePolicies(policies);
 	}
 
 }

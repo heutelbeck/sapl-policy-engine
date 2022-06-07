@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ public class SimpleFilterFunctionLibrary {
 	}
 
 	@Function(name = "roundto")
-	public static Val roundto(@Int Val node, @Int Val roundvalue)  {
+	public static Val roundto(@Int Val node, @Int Val roundvalue) {
 		int value = node.get().asInt();
 		int round = roundvalue.get().asInt();
 
@@ -50,7 +50,7 @@ public class SimpleFilterFunctionLibrary {
 	}
 
 	@Function
-	public Val isOfToday(@Text Val parameter)  {
+	public Val isOfToday(@Text Val parameter) {
 		LocalDate today = LocalDate.now(clock);
 		Instant instant = Instant.parse(parameter.get().asText());
 		ZoneId zone = ZoneId.of("Europe/Berlin");
@@ -59,7 +59,8 @@ public class SimpleFilterFunctionLibrary {
 		if (today.getYear() == zdt.getYear() && today.getMonthValue() == zdt.getMonthValue()
 				&& today.getDayOfMonth() == zdt.getDayOfMonth()) {
 			return Val.TRUE;
-		} else {
+		}
+		else {
 			return Val.FALSE;
 		}
 	}

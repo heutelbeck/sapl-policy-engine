@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ import io.sapl.grammar.sapl.BasicValue;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.Value;
-import io.sapl.interpreter.EvaluationContext;
 import reactor.test.StepVerifier;
 
 public class TestUtil {
@@ -33,40 +32,43 @@ public class TestUtil {
 		return basicValue;
 	}
 
-	public static void expressionEvaluatesTo(EvaluationContext ctx, String expression, String... expected) {
+	public static void expressionEvaluatesTo(String expression, String... expected) {
 		try {
 			var expectations = new Val[expected.length];
-			var i = 0;
+			var i            = 0;
 			for (var ex : expected) {
 				expectations[i++] = Val.ofJson(ex);
 			}
-			expressionEvaluatesTo(ctx, ParserUtil.expression(expression), expectations);
+			expressionEvaluatesTo(ParserUtil.expression(expression), expectations);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	public static void expressionEvaluatesTo(EvaluationContext ctx, String expression, Val... expected) {
+	public static void expressionEvaluatesTo(String expression, Val... expected) {
 		try {
-			expressionEvaluatesTo(ctx, ParserUtil.expression(expression), expected);
+			expressionEvaluatesTo(ParserUtil.expression(expression), expected);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	public static void expressionErrors(EvaluationContext ctx, String expression) {
+	public static void expressionErrors(String expression) {
 		try {
-			expressionErrors(ctx, ParserUtil.expression(expression));
+			expressionErrors(ParserUtil.expression(expression));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	public static void expressionEvaluatesTo(EvaluationContext ctx, Expression expression, Val... expected) {
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public static void expressionEvaluatesTo(Expression expression, Val... expected) {
+		StepVerifier.create(expression.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
+				.expectNext(expected).verifyComplete();
 	}
 
-	public static void expressionErrors(EvaluationContext ctx, Expression expression) {
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+	public static void expressionErrors(Expression expression) {
+		StepVerifier.create(expression.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
+				.expectNextMatches(Val::isError).verifyComplete();
 	}
+
 }

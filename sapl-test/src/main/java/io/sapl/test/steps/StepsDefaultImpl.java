@@ -1,21 +1,21 @@
+/*
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.test.steps;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.Decision;
-import io.sapl.test.SaplTestException;
-import io.sapl.test.mocking.FunctionCall;
-import io.sapl.test.mocking.FunctionParameters;
-import io.sapl.test.mocking.MockingAttributeContext;
-import io.sapl.test.mocking.MockingFunctionContext;
-import io.sapl.test.verification.TimesCalledVerification;
-import org.hamcrest.Matcher;
-import reactor.test.StepVerifier.Step;
-import reactor.test.scheduler.VirtualTimeScheduler;
+import static io.sapl.hamcrest.Matchers.*;
 
 import java.time.Duration;
 import java.util.LinkedList;
@@ -24,351 +24,367 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import io.sapl.api.interpreter.Val;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.test.SaplTestException;
+import io.sapl.test.mocking.attribute.MockingAttributeContext;
+import io.sapl.test.mocking.attribute.models.AttributeParameters;
+import io.sapl.test.mocking.attribute.models.AttributeParentValueMatcher;
+import io.sapl.test.mocking.function.MockingFunctionContext;
+import io.sapl.test.mocking.function.models.FunctionParameters;
+import io.sapl.test.verification.TimesCalledVerification;
+
+import org.hamcrest.Matcher;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import reactor.test.StepVerifier.Step;
+import reactor.test.scheduler.VirtualTimeScheduler;
+
 public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWhenStep, ExpectStep, ExpectOrVerifyStep {
-    protected static final String ERROR_COULD_NOT_PARSE_JSON = "Error parsing the specified JSON for your AuthorizationSubscription";
-    protected static final String ERROR_NULL_JSONNODE = "Error reading the specified JsonNode for your AuthorizationSubscription. It was null";
-    protected static final String ERROR_EXPECT_NEXT_0_OR_NEGATIVE = "0 or a negative value is not allowed for the count of expected events";
-    protected static final String ERROR_EXPECT_VIRTUAL_TIME_REGISTRATION_BEFORE_TIMING_ATTRIBUTE_MOCK = "Error expecting to register the Virtual-Time-Mode before mocking an attribute emitting timed values. Did you forget to call \".withVirtualTime()\" first?";
 
+	protected static final String ERROR_COULD_NOT_PARSE_JSON = "Error parsing the specified JSON for your AuthorizationSubscription";
 
-    protected MockingAttributeContext mockingAttributeContext;
-    protected MockingFunctionContext mockingFunctionContext;
-    protected Map<String, JsonNode> variables;
-    protected LinkedList<AttributeMockReturnValues> mockedAttributeValues;
-    protected Step<AuthorizationDecision> steps;
-    protected boolean withVirtualTime;
-    protected NumberOfExpectSteps numberOfExpectSteps;
+	protected static final String ERROR_NULL_JSON_NODE = "Error reading the specified JsonNode for your AuthorizationSubscription. It was null";
 
-    public StepsDefaultImpl() {
-        this.numberOfExpectSteps = new NumberOfExpectSteps();
-    }
+	protected static final String ERROR_EXPECT_NEXT_0_OR_NEGATIVE = "0 or a negative value is not allowed for the count of expected events";
 
+	protected static final String ERROR_EXPECT_VIRTUAL_TIME_REGISTRATION_BEFORE_TIMING_ATTRIBUTE_MOCK = "Error expecting to register the Virtual-Time-Mode before mocking an attribute emitting timed values. Did you forget to call \".withVirtualTime()\" first?";
 
-    @Override
-    public GivenOrWhenStep givenFunction(String importName, Val returns) {
-        this.mockingFunctionContext.loadFunctionMockAlwaysSameValue(importName, returns);
-        return this;
-    }
+	protected MockingAttributeContext mockingAttributeContext;
 
-    @Override
-    public GivenOrWhenStep givenFunction(String importName, Val returns, TimesCalledVerification verification) {
-        this.mockingFunctionContext.loadFunctionMockAlwaysSameValue(importName, returns, verification);
-        return this;
-    }
+	protected MockingFunctionContext mockingFunctionContext;
 
-    @Override
-    public GivenOrWhenStep givenFunctionOnce(String importName, Val returns) {
-        this.mockingFunctionContext.loadFunctionMockOnceReturnValue(importName, returns);
-        return this;
-    }
+	protected Map<String, JsonNode> variables;
 
-    @Override
-    public GivenOrWhenStep givenFunctionOnce(String importName, Val... returns) {
-        this.mockingFunctionContext.loadFunctionMockReturnsSequence(importName, returns);
-        return this;
-    }
+	protected LinkedList<AttributeMockReturnValues> mockedAttributeValues;
 
-    @Override
-    public GivenOrWhenStep givenFunction(String importName, Val returns, FunctionParameters parameter) {
-        this.mockingFunctionContext.loadFunctionMockAlwaysSameValueForParameters(importName, returns, parameter);
-        return this;
-    }
+	protected Step<AuthorizationDecision> steps;
 
-    @Override
-    public GivenOrWhenStep givenFunction(String importName, Val returns, FunctionParameters parameters,
-                                         TimesCalledVerification verification) {
-        this.mockingFunctionContext.loadFunctionMockAlwaysSameValueForParameters(importName, returns, parameters,
-                verification);
-        return this;
-    }
+	protected boolean withVirtualTime;
 
-    @Override
-    public GivenOrWhenStep givenFunction(String importName, Function<FunctionCall, Val> returns) {
-        this.mockingFunctionContext.loadFunctionMockValueFromFunction(importName, returns);
-        return this;
-    }
+	protected final NumberOfExpectSteps numberOfExpectSteps;
 
-    @Override
-    public GivenOrWhenStep givenFunction(String importName, Function<FunctionCall, Val> returns,
-                                         TimesCalledVerification verification) {
-        this.mockingFunctionContext.loadFunctionMockValueFromFunction(importName, returns, verification);
-        return this;
-    }
+	public StepsDefaultImpl() {
+		this.numberOfExpectSteps = new NumberOfExpectSteps();
+	}
 
-    @Override
-    public GivenOrWhenStep givenAttribute(String importName, Val... returns) {
-        // this.mockingAttributeContext.loadAttributeMock(importName, returns);
-        this.mockingAttributeContext.markAttributeMock(importName);
-        this.mockedAttributeValues.add(AttributeMockReturnValues.of(importName, List.of(returns)));
-        return this;
-    }
+	@Override
+	public GivenOrWhenStep givenFunction(String importName, Val returns) {
+		this.mockingFunctionContext.loadFunctionMockAlwaysSameValue(importName, returns);
+		return this;
+	}
 
-    @Override
-    public GivenOrWhenStep givenAttribute(String importName, Duration timing, Val... returns) {
-        if (!this.withVirtualTime) {
-            throw new SaplTestException(ERROR_EXPECT_VIRTUAL_TIME_REGISTRATION_BEFORE_TIMING_ATTRIBUTE_MOCK);
-        }
-        this.mockingAttributeContext.loadAttributeMock(importName, timing, returns);
-        return this;
-    }
+	@Override
+	public GivenOrWhenStep givenFunction(String importName, Val returns, TimesCalledVerification verification) {
+		this.mockingFunctionContext.loadFunctionMockAlwaysSameValue(importName, returns, verification);
+		return this;
+	}
 
-    @Override
-    public GivenOrWhenStep givenAttribute(String importName) {
-        this.mockingAttributeContext.markAttributeMock(importName);
-        return this;
-    }
+	@Override
+	public GivenOrWhenStep givenFunctionOnce(String importName, Val returns) {
+		this.mockingFunctionContext.loadFunctionMockOnceReturnValue(importName, returns);
+		return this;
+	}
 
-    @Override
-    public GivenOrWhenStep withVirtualTime() {
-        this.withVirtualTime = true;
+	@Override
+	public GivenOrWhenStep givenFunctionOnce(String importName, Val... returns) {
+		this.mockingFunctionContext.loadFunctionMockReturnsSequence(importName, returns);
+		return this;
+	}
 
-        VirtualTimeScheduler.getOrSet();
+	@Override
+	public GivenOrWhenStep givenFunction(String importName, FunctionParameters parameter, Val returns) {
+		this.mockingFunctionContext.loadFunctionMockAlwaysSameValueForParameters(importName, returns, parameter);
+		return this;
+	}
 
-        return this;
-    }
+	@Override
+	public GivenOrWhenStep givenFunction(String importName, FunctionParameters parameters, Val returns,
+			TimesCalledVerification verification) {
+		this.mockingFunctionContext.loadFunctionMockAlwaysSameValueForParameters(importName, returns, parameters,
+				verification);
+		return this;
+	}
 
-    @Override
-    public ExpectStep when(AuthorizationSubscription authzSub) {
-        createStepVerifier(authzSub);
-        return this;
-    }
+	@Override
+	public GivenOrWhenStep givenFunction(String importName, Function<Val[], Val> returns) {
+		this.mockingFunctionContext.loadFunctionMockValueFromFunction(importName, returns);
+		return this;
+	}
 
-    @Override
-    public ExpectStep when(String jsonauthzSub) throws JsonProcessingException {
-        ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode authzSubJsonNode = objectMapper.readTree(jsonauthzSub);
-        if (authzSubJsonNode != null) {
-            AuthorizationSubscription authzSub = new AuthorizationSubscription(authzSubJsonNode.findValue("subject"),
-                    authzSubJsonNode.findValue("action"), authzSubJsonNode.findValue("resource"),
-                    authzSubJsonNode.findValue("environment"));
-            createStepVerifier(authzSub);
-            return this;
-        }
-        throw new SaplTestException(ERROR_COULD_NOT_PARSE_JSON);
-    }
+	@Override
+	public GivenOrWhenStep givenFunction(String importName, Function<Val[], Val> returns,
+			TimesCalledVerification verification) {
+		this.mockingFunctionContext.loadFunctionMockValueFromFunction(importName, returns, verification);
+		return this;
+	}
 
-    @Override
-    public ExpectStep when(JsonNode jsonNode) {
-        if (jsonNode != null) {
-            AuthorizationSubscription authzSub = new AuthorizationSubscription(jsonNode.findValue("subject"),
-                    jsonNode.findValue("action"), jsonNode.findValue("resource"),
-                    jsonNode.findValue("environment"));
-            createStepVerifier(authzSub);
-            return this;
-        }
-        throw new SaplTestException(ERROR_NULL_JSONNODE);
-    }
+	@Override
+	public GivenOrWhenStep givenAttribute(String importName, Val... returns) {
+		this.mockingAttributeContext.markAttributeMock(importName);
+		this.mockedAttributeValues.add(AttributeMockReturnValues.of(importName, List.of(returns)));
+		return this;
+	}
 
-    protected abstract void createStepVerifier(AuthorizationSubscription authzSub);
+	@Override
+	public GivenOrWhenStep givenAttribute(String importName, Duration timing, Val... returns) {
+		if (!this.withVirtualTime) {
+			throw new SaplTestException(ERROR_EXPECT_VIRTUAL_TIME_REGISTRATION_BEFORE_TIMING_ATTRIBUTE_MOCK);
+		}
+		this.mockingAttributeContext.loadAttributeMock(importName, timing, returns);
+		return this;
+	}
 
-    @Override
-    public VerifyStep expectPermit() {
-        this.steps = this.steps
-                .expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.PERMIT)
-                .as("Expecting Decision.PERMIT");
-        this.numberOfExpectSteps.addExpectStep();
-        return this;
-    }
+	@Override
+	public GivenOrWhenStep givenAttribute(String importName) {
+		this.mockingAttributeContext.markAttributeMock(importName);
+		return this;
+	}
 
-    @Override
-    public VerifyStep expectDeny() {
-        this.steps = this.steps
-                .expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.DENY)
-                .as("Expecting Decision.DENY");
-        this.numberOfExpectSteps.addExpectStep();
-        return this;
-    }
+	@Override
+	public GivenOrWhenStep givenAttribute(String importName, AttributeParentValueMatcher parentValueMatcher,
+			Val returns) {
+		this.mockingAttributeContext.loadAttributeMockForParentValue(importName, parentValueMatcher, returns);
+		return this;
+	}
 
-    @Override
-    public VerifyStep expectIndeterminate() {
-        this.steps = this.steps
-                .expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.INDETERMINATE)
-                .as("Expecting Decision.INDETERMINATE");
-        this.numberOfExpectSteps.addExpectStep();
-        return this;
-    }
+	@Override
+	public GivenOrWhenStep givenAttribute(String importName, AttributeParameters parameters, Val returns) {
+		this.mockingAttributeContext.loadAttributeMockForParentValueAndArguments(importName, parameters, returns);
+		return this;
 
-    @Override
-    public VerifyStep expectNotApplicable() {
-        this.steps = this.steps
-                .expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.NOT_APPLICABLE)
-                .as("Expecting Decision.NOT_APPLICABLE");
-        return this;
-    }
+	}
 
-    @Override
-    public VerifyStep expect(AuthorizationDecision authDec) {
-        this.steps = this.steps.expectNext(authDec);
-        this.numberOfExpectSteps.addExpectStep();
-        return this;
-    }
+	@Override
+	public GivenOrWhenStep withVirtualTime() {
+		this.withVirtualTime = true;
 
-    @Override
-    public VerifyStep expect(Predicate<AuthorizationDecision> pred) {
-        this.steps = this.steps.expectNextMatches(pred);
-        this.numberOfExpectSteps.addExpectStep();
-        return this;
-    }
+		VirtualTimeScheduler.getOrSet();
 
-    @Override
-    public VerifyStep expect(Matcher<AuthorizationDecision> matcher) {
-        this.steps = this.steps.expectNextMatches(dec -> matcher.matches(dec));
-        this.numberOfExpectSteps.addExpectStep();
-        return this;
-    }
+		return this;
+	}
 
-    // #
+	@Override
+	public ExpectStep when(AuthorizationSubscription authzSub) {
+		createStepVerifier(authzSub);
+		return this;
+	}
 
-    @Override
-    public ExpectOrVerifyStep expectNextPermit() {
-        this.steps = this.steps
-                .expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.PERMIT)
-                .as("Expecting Decision.PERMIT");
-        this.numberOfExpectSteps.addExpectStep();
-        return this;
-    }
+	@Override
+	public ExpectStep when(String jsonAuthzSub) throws JsonProcessingException {
+		ObjectMapper objectMapper = new ObjectMapper();
+		JsonNode authzSubJsonNode = objectMapper.readTree(jsonAuthzSub);
+		AuthorizationSubscription authzSub = new AuthorizationSubscription(authzSubJsonNode.findValue("subject"),
+				authzSubJsonNode.findValue("action"), authzSubJsonNode.findValue("resource"),
+				authzSubJsonNode.findValue("environment"));
+		createStepVerifier(authzSub);
+		return this;
+	}
 
-    @Override
-    public ExpectOrVerifyStep expectNextPermit(Integer count) {
-        if (count < 1) {
-            throw new SaplTestException(ERROR_EXPECT_NEXT_0_OR_NEGATIVE);
-        }
-        for (int i = 0; i < count; i++) {
-            this.steps = this.steps
-                    .expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.PERMIT)
-                    .as("Expecting Decision.PERMIT");
-            this.numberOfExpectSteps.addExpectStep();
-        }
-        return this;
-    }
+	@Override
+	public ExpectStep when(JsonNode jsonNode) {
+		if (jsonNode != null) {
+			AuthorizationSubscription authzSub = new AuthorizationSubscription(jsonNode.findValue("subject"),
+					jsonNode.findValue("action"), jsonNode.findValue("resource"), jsonNode.findValue("environment"));
+			createStepVerifier(authzSub);
+			return this;
+		}
+		throw new SaplTestException(ERROR_NULL_JSON_NODE);
+	}
 
-    @Override
-    public ExpectOrVerifyStep expectNextDeny() {
-        this.steps = this.steps
-                .expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.DENY)
-                .as("Expecting Decision.DENY");
-        this.numberOfExpectSteps.addExpectStep();
-        return this;
-    }
+	protected abstract void createStepVerifier(AuthorizationSubscription authzSub);
 
-    @Override
-    public ExpectOrVerifyStep expectNextDeny(Integer count) {
-        if (count < 1) {
-            throw new SaplTestException(ERROR_EXPECT_NEXT_0_OR_NEGATIVE);
-        }
-        for (int i = 0; i < count; i++) {
-            this.steps = this.steps
-                    .expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.DENY)
-                    .as("Expecting Decision.DENY");
-            this.numberOfExpectSteps.addExpectStep();
-        }
-        return this;
-    }
+	@Override
+	public VerifyStep expectPermit() {
+		return this.expect(isPermit(), "AuthorizationDecision.PERMIT");
+	}
 
-    @Override
-    public ExpectOrVerifyStep expectNextIndeterminate() {
-        this.steps = this.steps
-                .expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.INDETERMINATE)
-                .as("Expecting Decision.INDETERMINATE");
-        this.numberOfExpectSteps.addExpectStep();
-        return this;
-    }
+	@Override
+	public VerifyStep expectDeny() {
+		return this.expect(isDeny(), "AuthorizationDecision.DENY");
+	}
 
-    @Override
-    public ExpectOrVerifyStep expectNextIndeterminate(Integer count) {
-        if (count < 1) {
-            throw new SaplTestException(ERROR_EXPECT_NEXT_0_OR_NEGATIVE);
-        }
-        for (int i = 0; i < count; i++) {
-            this.steps = this.steps
-                    .expectNextMatches(
-                            (AuthorizationDecision dec) -> dec.getDecision() == Decision.INDETERMINATE)
-                    .as("Expecting Decision.INDETERMINATE");
-            this.numberOfExpectSteps.addExpectStep();
-        }
-        return this;
-    }
+	@Override
+	public VerifyStep expectIndeterminate() {
+		return this.expect(isIndeterminate(), "AuthorizationDecision.INDETERMINATE");
+	}
 
-    @Override
-    public ExpectOrVerifyStep expectNextNotApplicable() {
-        this.steps = this.steps
-                .expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.NOT_APPLICABLE)
-                .as("Expecting Decision.NOT_APPLICABLE");
-        this.numberOfExpectSteps.addExpectStep();
-        return this;
-    }
+	@Override
+	public VerifyStep expectNotApplicable() {
+		return this.expect(isNotApplicable(), "AuthorizationDecision.NOT_APPLICABLE");
+	}
 
-    @Override
-    public ExpectOrVerifyStep expectNextNotApplicable(Integer count) {
-        if (count < 1) {
-            throw new SaplTestException(ERROR_EXPECT_NEXT_0_OR_NEGATIVE);
-        }
-        for (int i = 0; i < count; i++) {
-            this.steps = this.steps
-                    .expectNextMatches(
-                            (AuthorizationDecision dec) -> dec.getDecision() == Decision.NOT_APPLICABLE)
-                    .as("Expecting Decision.NOT_APPLICABLE");
-            this.numberOfExpectSteps.addExpectStep();
-        }
-        return this;
-    }
+	@Override
+	public VerifyStep expect(AuthorizationDecision authDec) {
+		this.numberOfExpectSteps.addExpectStep();
+		this.steps = this.steps.expectNext(authDec).as(getDebugMessage("equals " + authDec));
+		return this;
+	}
 
-    @Override
-    public ExpectOrVerifyStep expectNext(AuthorizationDecision authDec) {
-        this.steps = this.steps.expectNext(authDec);
-        this.numberOfExpectSteps.addExpectStep();
-        return this;
-    }
+	@Override
+	public VerifyStep expect(Predicate<AuthorizationDecision> pred) {
+		this.numberOfExpectSteps.addExpectStep();
+		this.steps = this.steps.expectNextMatches(pred).as(getDebugMessage("predicate evaluating to true"));
+		return this;
+	}
 
-    @Override
-    public ExpectOrVerifyStep expectNext(Matcher<AuthorizationDecision> matcher) {
-        this.steps = this.steps.expectNextMatches(dec -> matcher.matches(dec));
-        this.numberOfExpectSteps.addExpectStep();
-        return this;
-    }
+	@Override
+	public VerifyStep expect(Matcher<AuthorizationDecision> matcher) {
+		return this.expect(matcher, matcher.toString());
+	}
 
-    @Override
-    public ExpectOrVerifyStep expectNext(Predicate<AuthorizationDecision> pred) {
-        this.steps = this.steps.expectNextMatches(pred);
-        this.numberOfExpectSteps.addExpectStep();
-        return this;
-    }
+	private VerifyStep expect(Matcher<AuthorizationDecision> matcher, String message) {
+		this.numberOfExpectSteps.addExpectStep();
+		this.steps = this.steps.expectNextMatches(matcher::matches).as(getDebugMessage(message));
+		return this;
+	}
 
-    // #
+	// #
 
-    @Override
-    public ExpectOrVerifyStep thenAttribute(String importName, Val returns) {
-        this.steps = this.steps.then(() -> this.mockingAttributeContext.mockEmit(importName, returns));
-        return this;
-    }
+	@Override
+	public ExpectOrVerifyStep expectNextPermit() {
+		return this.expectNextPermit(1);
+	}
 
-    // #
+	@Override
+	public ExpectOrVerifyStep expectNextPermit(Integer count) {
+		if (count < 1) {
+			throw new SaplTestException(ERROR_EXPECT_NEXT_0_OR_NEGATIVE);
+		}
+		for (int i = 0; i < count; i++) {
+			this.expectNext(isPermit(), "AuthorizationDecision.PERMIT");
+		}
+		return this;
+	}
 
-    @Override
-    public ExpectOrVerifyStep thenAwait() {
-        this.steps = this.steps.thenAwait();
-        return this;
-    }
+	@Override
+	public ExpectOrVerifyStep expectNextDeny() {
+		return this.expectNextDeny(1);
+	}
 
-    @Override
-    public ExpectOrVerifyStep thenAwait(Duration duration) {
-        this.steps = this.steps.thenAwait(duration);
-        return this;
-    }
+	@Override
+	public ExpectOrVerifyStep expectNextDeny(Integer count) {
+		if (count < 1) {
+			throw new SaplTestException(ERROR_EXPECT_NEXT_0_OR_NEGATIVE);
+		}
+		for (int i = 0; i < count; i++) {
+			this.expectNext(isDeny(), "AuthorizationDecision.DENY");
+		}
+		return this;
+	}
 
-    @Override
-    public ExpectOrVerifyStep expectNoEvent(Duration duration) {
-        this.steps = this.steps.expectNoEvent(duration);
-        return this;
-    }
+	@Override
+	public ExpectOrVerifyStep expectNextIndeterminate() {
+		return this.expectNextIndeterminate(1);
+	}
 
-    @Override
-    public void verify() {
-        this.steps.thenCancel().verify(Duration.ofSeconds(10));
-        // this.steps.verifyComplete();
+	@Override
+	public ExpectOrVerifyStep expectNextIndeterminate(Integer count) {
+		if (count < 1) {
+			throw new SaplTestException(ERROR_EXPECT_NEXT_0_OR_NEGATIVE);
+		}
+		for (int i = 0; i < count; i++) {
+			this.expectNext(isIndeterminate(), "AuthorizationDecision.INDETERMINATE");
+		}
+		return this;
+	}
 
-        this.mockingAttributeContext.assertVerifications();
-        this.mockingFunctionContext.assertVerifications();
+	@Override
+	public ExpectOrVerifyStep expectNextNotApplicable() {
+		return this.expectNextNotApplicable(1);
+	}
 
-    }
+	@Override
+	public ExpectOrVerifyStep expectNextNotApplicable(Integer count) {
+		if (count < 1) {
+			throw new SaplTestException(ERROR_EXPECT_NEXT_0_OR_NEGATIVE);
+		}
+		for (int i = 0; i < count; i++) {
+			this.expectNext(isNotApplicable(), "AuthorizationDecision.NOT_APPLICABLE");
+		}
+		return this;
+	}
+
+	@Override
+	public ExpectOrVerifyStep expectNext(AuthorizationDecision authDec) {
+		this.numberOfExpectSteps.addExpectStep();
+		this.steps = this.steps.expectNext(authDec).as(getDebugMessage("equals " + authDec));
+		return this;
+	}
+
+	@Override
+	public ExpectOrVerifyStep expectNext(Predicate<AuthorizationDecision> pred) {
+		this.numberOfExpectSteps.addExpectStep();
+		this.steps = this.steps.expectNextMatches(pred).as(getDebugMessage("predicate evaluating to true"));
+		return this;
+	}
+
+	@Override
+	public ExpectOrVerifyStep expectNext(Matcher<AuthorizationDecision> matcher) {
+		return this.expectNext(matcher, matcher.toString());
+	}
+
+	private ExpectOrVerifyStep expectNext(Matcher<AuthorizationDecision> matcher, String message) {
+		this.numberOfExpectSteps.addExpectStep();
+		this.steps = this.steps.expectNextMatches(matcher::matches).as(getDebugMessage(message));
+		return this;
+	}
+
+	// #
+
+	@Override
+	public ExpectOrVerifyStep thenAttribute(String importName, Val returns) {
+		this.steps = this.steps.then(() -> this.mockingAttributeContext.mockEmit(importName, returns));
+		return this;
+	}
+
+	// #
+
+	@Override
+	public ExpectOrVerifyStep thenAwait(Duration duration) {
+		this.steps = this.steps.thenAwait(duration);
+		return this;
+	}
+
+	@Override
+	public ExpectOrVerifyStep expectNoEvent(Duration duration) {
+		this.steps = this.steps.expectNoEvent(duration);
+		return this;
+	}
+
+	@Override
+	public void verify() {
+		this.steps.thenCancel().verify(Duration.ofSeconds(10));
+		// this.steps.verifyComplete();
+
+		this.mockingAttributeContext.assertVerifications();
+		this.mockingFunctionContext.assertVerifications();
+
+	}
+
+	private String getDebugMessage(String endOfMessage) {
+		StringBuilder builder = new StringBuilder();
+		switch (this.numberOfExpectSteps.getNumberOfExpectSteps()) {
+		case 1:
+			builder.append("1st");
+			break;
+		case 2:
+			builder.append("2nd");
+			break;
+		case 3:
+			builder.append("3rd");
+			break;
+		default:
+			builder.append(this.numberOfExpectSteps.getNumberOfExpectSteps()).append("th");
+		}
+
+		builder.append(" expect step failed: Expected ").append(endOfMessage);
+
+		return builder.toString();
+	}
+
 }

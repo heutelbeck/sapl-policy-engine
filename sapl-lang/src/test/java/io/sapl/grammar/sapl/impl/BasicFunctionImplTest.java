@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,24 +20,21 @@ import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 
 import org.junit.jupiter.api.Test;
 
-import io.sapl.grammar.sapl.impl.util.MockUtil;
-import io.sapl.interpreter.EvaluationContext;
-
 class BasicFunctionImplTest {
-	private static final EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 
 	@Test
 	void basicSuccessfullEvaluationNull() {
-		expressionEvaluatesTo(CTX, "mock.nil()", "null");
+		expressionEvaluatesTo("mock.nil()", "null");
 	}
 
 	@Test
 	void basicSuccessfullEvaluationError() {
-		expressionErrors(CTX, "mock.error()");
+		expressionErrors("mock.error()");
 	}
 
 	@Test
 	void basicSuccessfullEvaluationExceptionToError() {
-		expressionErrors(CTX, "mock.exception()");
+		expressionErrors("mock.exception()");
 	}
+
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,17 +15,12 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.HashMap;
-
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
@@ -45,26 +40,29 @@ import lombok.extern.slf4j.Slf4j;
 public class PRPAutoConfiguration {
 
 	private final EmbeddedPDPProperties pdpProperties;
+
 	private final PrpUpdateEventSource eventSource;
+
 	private final FunctionContext functionContext;
+
 	private final AttributeContext attributeContext;
 
 	@Bean
 	@ConditionalOnMissingBean
-	public PolicyRetrievalPoint policyRetrievalPoint()
-			throws IOException, URISyntaxException, PolicyEvaluationException {
+	public PolicyRetrievalPoint policyRetrievalPoint() throws PolicyEvaluationException {
 		log.info("Using index type: {}", pdpProperties.getIndex());
 		ImmutableParsedDocumentIndex seedIndex;
 		if (pdpProperties.getIndex() == IndexType.NAIVE) {
 			seedIndex = new NaiveImmutableParsedDocumentIndex();
 		} else {
 			// This index type has to normalize function calls based on import statements
-			// Variables need not to be bound here. Thus, this hind of static PDP scoped
+			// Variables do not need to be bound here. Thus, this hind of static PDP
+			// scoped
 			// evaluation context is sufficient. Variables will be bound later in the
 			// subscription scoped EvaluationContext handed over for lookup.
-			seedIndex = new CanonicalImmutableParsedDocumentIndex(
-					new EvaluationContext(attributeContext, functionContext, new HashMap<>()));
+			seedIndex = new CanonicalImmutableParsedDocumentIndex(attributeContext, functionContext);
 		}
 		return new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, eventSource);
 	}
+
 }

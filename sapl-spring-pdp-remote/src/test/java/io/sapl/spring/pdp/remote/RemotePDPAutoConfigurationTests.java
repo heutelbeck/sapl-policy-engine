@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,25 +30,22 @@ class RemotePDPAutoConfigurationTests {
 
 	@Test
 	void whenValidPropertiesArePresent_thenTheRemotePdpIsPresent() {
-		contextRunner.withPropertyValues(
-					"io.sapl.pdp.remote.host=https://localhost:8443",
-					"io.sapl.pdp.remote.key=aKey", 
-					"io.sapl.pdp.remote.secret=aSecret"
-				).run(context -> {
+		contextRunner.withPropertyValues("io.sapl.pdp.remote.host=https://localhost:8443",
+				"io.sapl.pdp.remote.key=aKey", "io.sapl.pdp.remote.secret=aSecret").run(context -> {
 					assertThat(context).hasNotFailed();
 					assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
 				});
 	}
+
 	@Test
 	void whenValidPropertiesArePresentWithIgnore_thenTheRemotePdpIsPresent() {
-		contextRunner.withPropertyValues(
-					"io.sapl.pdp.remote.host=https://localhost:8443",
-					"io.sapl.pdp.remote.key=aKey", 
-					"io.sapl.pdp.remote.secret=aSecret",
-					"io.sapl.pdp.remote.ignoreCertificates=true"
-				).run(context -> {
+		contextRunner
+				.withPropertyValues("io.sapl.pdp.remote.host=https://localhost:8443", "io.sapl.pdp.remote.key=aKey",
+						"io.sapl.pdp.remote.secret=aSecret", "io.sapl.pdp.remote.ignoreCertificates=true")
+				.run(context -> {
 					assertThat(context).hasNotFailed();
 					assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
 				});
 	}
+
 }

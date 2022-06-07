@@ -1,10 +1,28 @@
+#
+# Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 name: Push documentation to sapl.io
 
 on:
+  workflow_dispatch:
+    branches: [master]
   push:
     branches: [master]
-    paths: ['sapl-documentation/**']
-    
+    paths: ["sapl-documentation/**",".github/build_documentation.yml"]
+
 jobs:
   build:
 
@@ -30,11 +48,12 @@ jobs:
     - name: Build Documentation
       run: mvn -B generate-resources -pl sapl-documentation
 
-    - name: Remove Files not to push
+    - name: Get version
+      id: get-version
       run: |
-        rm sapl-documentation/target/generated-docs/*.pdf
-        rm sapl-documentation/target/generated-docs/*.ebnf
-
+        VERSION=$( mvn help:evaluate -Dexpression=project.version -q -DforceStdout )
+        echo "::set-output name=version::$VERSION"     
+                      
     - name: Push Documentation to Website
       uses: hpcodecraft/action-deploy-workspace-to-repo@v2.2
       env:
@@ -43,5 +62,5 @@ jobs:
         DEST_OWNER: heutelbeck
         DEST_REPO: sapl-pages
         DEST_BRANCH: master
-        DEST_FOLDER: docs
-        DEST_PREDEPLOY_CLEANUP: "rm -rf docs/*"        
+        DEST_FOLDER: docs/${{ steps.get-version.outputs.VERSION }}
+        DEST_PREDEPLOY_CLEANUP: "rm -rf docs/${{ steps.get-version.outputs.VERSION }}/*"        

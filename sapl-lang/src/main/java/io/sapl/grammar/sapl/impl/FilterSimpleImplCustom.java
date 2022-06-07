@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,15 +16,13 @@
 package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
 public class FilterSimpleImplCustom extends FilterSimpleImpl {
 
 	@Override
-	public Flux<Val> apply(Val unfilteredValue, EvaluationContext ctx, Val relativeNode) {
-		return applyFilterFunction(unfilteredValue, arguments, FunctionUtil.resolveAbsoluteFunctionName(fsteps, ctx),
-				ctx, relativeNode, each);
+	public Flux<Val> apply(Val unfilteredValue) {
+		return applyFilterFunction(unfilteredValue, arguments, fsteps, each);
 	}
 
 }

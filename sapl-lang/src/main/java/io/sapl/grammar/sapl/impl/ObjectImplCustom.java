@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,8 +23,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Pair;
-import io.sapl.interpreter.EvaluationContext;
-import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -46,14 +44,14 @@ public class ObjectImplCustom extends ObjectImpl {
 	 * expression Fluxes emits a new value.
 	 */
 	@Override
-	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
+	public Flux<Val> evaluate() {
 		// collect all attribute names (keys) and fluxes providing the evaluated values
-		final List<String> keys = new ArrayList<>(getMembers().size());
+		final List<String>    keys        = new ArrayList<>(getMembers().size());
 		final List<Flux<Val>> valueFluxes = new ArrayList<>(getMembers().size());
 		for (Pair member : getMembers()) {
 			keys.add(member.getKey());
 
-			valueFluxes.add(member.getValue().evaluate(ctx, relativeNode));
+			valueFluxes.add(member.getValue().evaluate());
 		}
 
 		// handle the empty object

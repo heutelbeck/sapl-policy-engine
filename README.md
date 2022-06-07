@@ -6,7 +6,7 @@
 
 ## Maven Dependencies
 
-### Add the Maven Central snapshot repository to your `pom.xml`:
+### Add the Maven Central snapshot repository to your `pom.xml`, if you want to use SNAPSHOT versions of the engine:
 
 ```xml
   <repositories>
@@ -36,7 +36,7 @@
   <dependency>
     <groupId>io.sapl</groupId>
     <artifactId>sapl-pdp-embedded</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
+    <version>2.1.0-SNAPSHOT</version>
   </dependency>
 ```
 
@@ -48,7 +48,7 @@
       <dependency>
         <groupId>io.sapl</groupId>
         <artifactId>sapl-bom</artifactId>
-        <version>2.0.0-SNAPSHOT</version>
+        <version>2.1.0-SNAPSHOT</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>

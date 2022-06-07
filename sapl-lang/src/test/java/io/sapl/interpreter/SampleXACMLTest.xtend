@@ -1,12 +1,12 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
- * 
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,14 +24,13 @@ import io.sapl.api.pdp.AuthorizationSubscription
 import io.sapl.api.pdp.Decision
 import io.sapl.functions.FilterFunctionLibrary
 import io.sapl.interpreter.functions.AnnotationFunctionContext
-import io.sapl.interpreter.functions.FunctionContext
 import io.sapl.interpreter.pip.AnnotationAttributeContext
-import io.sapl.interpreter.pip.AttributeContext
 import java.util.Collections
 import java.util.HashMap
 import java.util.Map
 import java.util.Optional
 import lombok.extern.slf4j.Slf4j
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -43,20 +42,22 @@ class SampleXACMLTest {
 
 	static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 	static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
-	static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
-	static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
+	static final AnnotationAttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
+	static final AnnotationFunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
 	static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<String, JsonNode>());
-	static final EvaluationContext PDP_EVALUATION_CONTEXT = new EvaluationContext(ATTRIBUTE_CTX, FUNCTION_CTX,
-		SYSTEM_VARIABLES);
 
 	static AuthorizationSubscription authzSubscription_example_two;
 
-	@BeforeEach
-	def void setUp() {
+	@BeforeAll
+	def static void setUpClass() {
 		FUNCTION_CTX.loadLibrary(new MockXACMLStringFunctionLibrary());
 		FUNCTION_CTX.loadLibrary(new MockXACMLDateFunctionLibrary());
 		FUNCTION_CTX.loadLibrary(new FilterFunctionLibrary());
 		ATTRIBUTE_CTX.loadPolicyInformationPoint(new MockXACMLPatientProfilePIP());
+	}
+
+	@BeforeEach
+	def void setUp() {
 
 		SampleXACMLTest.authzSubscription_example_two = MAPPER.readValue('''
 			{
@@ -109,8 +110,8 @@ class SampleXACMLTest {
 		val expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE
 
 		assertThat("XACML example one not working as expected",
-			INTERPRETER.evaluate(authzSubscription_object, policyExampleOne(), PDP_EVALUATION_CONTEXT).blockFirst(),
-			equalTo(expectedAuthzDecision));
+			INTERPRETER.evaluate(authzSubscription_object, policyExampleOne(), ATTRIBUTE_CTX, FUNCTION_CTX,
+				SYSTEM_VARIABLES).blockFirst(), equalTo(expectedAuthzDecision));
 	}
 
 	@Test
@@ -134,8 +135,8 @@ class SampleXACMLTest {
 		val expectedAuthzDecision = AuthorizationDecision.PERMIT
 
 		assertThat("XACML example one not working as expected",
-			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
-			equalTo(expectedAuthzDecision));
+			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+				SYSTEM_VARIABLES).blockFirst(), equalTo(expectedAuthzDecision));
 	}
 
 	def String policyExampleTwoRule1() {
@@ -160,8 +161,8 @@ class SampleXACMLTest {
 		val expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE
 
 		assertThat("XACML example two rule 1 not working as expected",
-			INTERPRETER.evaluate(authzSubscription_example_two, policyExampleTwoRule1(), PDP_EVALUATION_CONTEXT).
-				blockFirst(), equalTo(expectedAuthzDecision));
+			INTERPRETER.evaluate(authzSubscription_example_two, policyExampleTwoRule1(), ATTRIBUTE_CTX, FUNCTION_CTX,
+				SYSTEM_VARIABLES).blockFirst(), equalTo(expectedAuthzDecision));
 	}
 
 	@Test
@@ -196,8 +197,8 @@ class SampleXACMLTest {
 		val expectedAuthzDecision = AuthorizationDecision.PERMIT
 
 		assertThat("XACML example two rule 1 not working as expected",
-			INTERPRETER.evaluate(authzSubscription, policyExampleTwoRule1(), PDP_EVALUATION_CONTEXT).blockFirst(),
-			equalTo(expectedAuthzDecision));
+			INTERPRETER.evaluate(authzSubscription, policyExampleTwoRule1(), ATTRIBUTE_CTX, FUNCTION_CTX,
+				SYSTEM_VARIABLES).blockFirst(), equalTo(expectedAuthzDecision));
 	}
 
 	def String policyExampleTwoRule2() {
@@ -224,8 +225,8 @@ class SampleXACMLTest {
 		val expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE
 
 		assertThat("XACML example two rule 2 not working as expected",
-			INTERPRETER.evaluate(authzSubscription_example_two, policyExampleTwoRule2(), PDP_EVALUATION_CONTEXT).
-				blockFirst(), equalTo(expectedAuthzDecision));
+			INTERPRETER.evaluate(authzSubscription_example_two, policyExampleTwoRule2(), ATTRIBUTE_CTX, FUNCTION_CTX,
+				SYSTEM_VARIABLES).blockFirst(), equalTo(expectedAuthzDecision));
 	}
 
 	@Test
@@ -260,8 +261,8 @@ class SampleXACMLTest {
 		val expectedAuthzDecision = AuthorizationDecision.PERMIT
 
 		assertThat("XACML example two rule 2 not working as expected",
-			INTERPRETER.evaluate(authzSubscription, policyExampleTwoRule2(), PDP_EVALUATION_CONTEXT).blockFirst(),
-			equalTo(expectedAuthzDecision));
+			INTERPRETER.evaluate(authzSubscription, policyExampleTwoRule2(), ATTRIBUTE_CTX, FUNCTION_CTX,
+				SYSTEM_VARIABLES).blockFirst(), equalTo(expectedAuthzDecision));
 	}
 
 	def String policyExampleTwoRule3() {
@@ -291,8 +292,8 @@ class SampleXACMLTest {
 		val expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE
 
 		assertThat("XACML example two rule 3 not working as expected",
-			INTERPRETER.evaluate(authzSubscription_example_two, policyExampleTwoRule3(), PDP_EVALUATION_CONTEXT).
-				blockFirst(), equalTo(expectedAuthzDecision));
+			INTERPRETER.evaluate(authzSubscription_example_two, policyExampleTwoRule3(), ATTRIBUTE_CTX, FUNCTION_CTX,
+				SYSTEM_VARIABLES).blockFirst(), equalTo(expectedAuthzDecision));
 	}
 
 	@Test
@@ -341,8 +342,8 @@ class SampleXACMLTest {
 			Optional.of(expectedObligation), Optional.empty)
 
 		assertThat("XACML example two rule 3 not working as expected",
-			INTERPRETER.evaluate(authzSubscription, policyExampleTwoRule3(), PDP_EVALUATION_CONTEXT).blockFirst(),
-			equalTo(expectedAuthzDecision));
+			INTERPRETER.evaluate(authzSubscription, policyExampleTwoRule3(), ATTRIBUTE_CTX, FUNCTION_CTX,
+				SYSTEM_VARIABLES).blockFirst(), equalTo(expectedAuthzDecision));
 	}
 
 }

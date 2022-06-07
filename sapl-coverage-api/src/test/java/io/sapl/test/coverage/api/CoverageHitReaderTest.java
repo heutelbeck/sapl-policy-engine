@@ -1,3 +1,18 @@
+/*
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.test.coverage.api;
 
 import java.nio.file.Files;
@@ -18,12 +33,13 @@ import io.sapl.test.coverage.api.model.PolicySetHit;
 public class CoverageHitReaderTest {
 
 	private Path basedir;
+
 	private CoverageHitReader reader;
 
 	@BeforeEach
 	void setup() {
 		this.basedir = Paths.get("target").resolve("sapl-coverage");
-		this.reader = new CoverageHitAPIImpl(this.basedir);
+		this.reader = new CoverageHitAPIFile(this.basedir);
 		this.reader.cleanCoverageHitFiles();
 	}
 
@@ -35,8 +51,7 @@ public class CoverageHitReaderTest {
 	@Test
 	void testCoverageReading_PolicySets() throws Exception {
 		// arrange
-		Path FILE_PATH_POLICY_SET_HITS = this.basedir.resolve("hits")
-				.resolve("_policySetHits.txt");
+		Path FILE_PATH_POLICY_SET_HITS = this.basedir.resolve("hits").resolve("_policySetHits.txt");
 		if (!Files.exists(FILE_PATH_POLICY_SET_HITS)) {
 			if (FILE_PATH_POLICY_SET_HITS.getParent() != null) {
 				Files.createDirectories(FILE_PATH_POLICY_SET_HITS.getParent());
@@ -88,8 +103,7 @@ public class CoverageHitReaderTest {
 	@Test
 	public void testCoverageReading_PolicyConditions() throws Exception {
 		// arrange
-		Path FILE_PATH_POLICY_CONDITION_HITS = this.basedir.resolve("hits")
-				.resolve("_policyConditionHits.txt");
+		Path FILE_PATH_POLICY_CONDITION_HITS = this.basedir.resolve("hits").resolve("_policyConditionHits.txt");
 		if (!Files.exists(FILE_PATH_POLICY_CONDITION_HITS)) {
 			if (FILE_PATH_POLICY_CONDITION_HITS.getParent() != null) {
 				Files.createDirectories(FILE_PATH_POLICY_CONDITION_HITS.getParent());
@@ -129,4 +143,5 @@ public class CoverageHitReaderTest {
 		// assert
 		Assertions.assertThat(resultPolicySetHits.size()).isEqualTo(0);
 	}
+
 }

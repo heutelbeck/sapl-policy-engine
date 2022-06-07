@@ -1,3 +1,18 @@
+/*
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.test.coverage.api;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -18,38 +33,38 @@ import org.mockito.Mockito;
 import io.sapl.test.coverage.api.model.PolicySetHit;
 
 public class CoverageFilesUtilityTest {
-	
+
 	Path baseDir;
-	
+
 	@BeforeEach
 	void setup() throws IOException {
 		baseDir = Paths.get("target/tmp");
 		Files.createDirectories(baseDir);
 	}
-	
+
 	@AfterEach
 	void cleanup() {
 		TestFileHelper.deleteDirectory(baseDir.toFile());
 	}
-	
+
 	@Test
 	void test_DirectoryNotEmptyException() throws IOException {
 		var reader = CoverageAPIFactory.constructCoverageHitReader(baseDir);
 		Path pathToErrorFile = baseDir.resolve("hits").resolve("_policySetHits.txt").resolve("test.txt");
 		Files.createDirectories(pathToErrorFile.getParent());
 		Files.createFile(pathToErrorFile);
-		assertDoesNotThrow(() -> reader.cleanCoverageHitFiles());
+		assertDoesNotThrow(reader::cleanCoverageHitFiles);
 	}
-	
+
 	@Test
 	void test_FileAlreadyExists() throws IOException {
 		Path pathToErrorFile = baseDir.resolve("hits").resolve("_policySetHits.txt");
 		Files.createDirectories(pathToErrorFile.getParent());
 		Files.createFile(pathToErrorFile);
-		CoverageHitRecorder recorder = new CoverageHitAPIImpl(baseDir);
-		assertDoesNotThrow(() -> recorder.createCoverageHitFiles());
+		CoverageHitRecorder recorder = new CoverageHitAPIFile(baseDir);
+		assertDoesNotThrow(recorder::createCoverageHitFiles);
 	}
-	
+
 	@Test
 	void test_NoParent() throws IOException {
 		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
@@ -57,44 +72,41 @@ public class CoverageFilesUtilityTest {
 			Path path = Mockito.mock(Path.class);
 			when(path.getParent()).thenReturn(null);
 			when(path.resolve(Mockito.anyString())).thenReturn(path);
-			CoverageHitRecorder recorder = new CoverageHitAPIImpl(path);
-			assertDoesNotThrow(() -> recorder.createCoverageHitFiles());
+			CoverageHitRecorder recorder = new CoverageHitAPIFile(path);
+			assertDoesNotThrow(recorder::createCoverageHitFiles);
 			recorder.cleanCoverageHitFiles();
-	    }
+		}
 	}
 
-	
 	@Test
 	void test_ThrowsIOException_OnCreateCoverageFiles() {
 		Path path = Paths.get("target");
-		CoverageHitRecorder recorder = new CoverageHitAPIImpl(path);
+		CoverageHitRecorder recorder = new CoverageHitAPIFile(path);
 		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
 			mockedFiles.when(() -> Files.createDirectories(Mockito.any())).thenThrow(IOException.class);
-			assertDoesNotThrow(() -> recorder.createCoverageHitFiles());
-	    }
+			assertDoesNotThrow(recorder::createCoverageHitFiles);
+		}
 	}
-	
+
 	@Test
 	void test_ThrowsIOException_OnRecordHit() {
-		CoverageHitRecorder recorder = new CoverageHitAPIImpl(baseDir);
+		CoverageHitRecorder recorder = new CoverageHitAPIFile(baseDir);
 		recorder.createCoverageHitFiles();
 		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
 			mockedFiles.when(() -> Files.lines(Mockito.any())).thenThrow(IOException.class);
 			assertDoesNotThrow(() -> recorder.recordPolicySetHit(new PolicySetHit("")));
-	    }
+		}
 		recorder.cleanCoverageHitFiles();
 	}
-	
+
 	@Test
 	void test_NullFilePath() {
 		Path path = Mockito.mock(Path.class);
 		when(path.getParent()).thenReturn(null);
-		when(path.resolve(Mockito.anyString()))
-			.thenReturn(path).thenReturn(null)
-			.thenReturn(path).thenReturn(null)
-			.thenReturn(path).thenReturn(null);
-		CoverageHitRecorder recorder = new CoverageHitAPIImpl(path);
+		when(path.resolve(Mockito.anyString())).thenReturn(path).thenReturn(null).thenReturn(path).thenReturn(null)
+				.thenReturn(path).thenReturn(null);
+		CoverageHitRecorder recorder = new CoverageHitAPIFile(path);
 		assertThrows(NullPointerException.class, () -> recorder.recordPolicySetHit(new PolicySetHit("")));
 	}
-	
+
 }

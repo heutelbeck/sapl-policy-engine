@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,9 @@ import lombok.experimental.UtilityClass;
 public class TargetExpressionUtil {
 
 	private static final String POLICY_SET = "PolicySet";
+
 	private static final String POLICY = "Policy";
+
 	/**
 	 * Used to check for illegal attributes or lazy operators in target expressions.
 	 * 
@@ -35,16 +37,16 @@ public class TargetExpressionUtil {
 	public boolean isInTargetExpression(EObject object) {
 		EObject current = object;
 		while (current.eContainer() != null) {
-			var container = current.eContainer();
+			var container     = current.eContainer();
 			var containerName = container.eClass().getName();
 			if (POLICY.equals(containerName)) {
-				var policy = (Policy) container;
+				var policy           = (Policy) container;
 				var targetExpression = policy.getTargetExpression();
 				if (current == targetExpression) {
 					return true;
 				}
 			} else if (POLICY_SET.equals(containerName)) {
-				var policy = (PolicySet) container;
+				var policy           = (PolicySet) container;
 				var targetExpression = policy.getTargetExpression();
 				if (current == targetExpression) {
 					return true;
@@ -54,4 +56,5 @@ public class TargetExpressionUtil {
 		}
 		return false;
 	}
+
 }

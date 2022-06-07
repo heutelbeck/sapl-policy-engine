@@ -1,12 +1,12 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
- * 
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,7 +23,6 @@ import io.sapl.api.pdp.AuthorizationSubscription
 import io.sapl.api.pdp.Decision
 import io.sapl.functions.FilterFunctionLibrary
 import io.sapl.interpreter.functions.AnnotationFunctionContext
-import io.sapl.interpreter.functions.FunctionContext
 import io.sapl.interpreter.pip.AnnotationAttributeContext
 import io.sapl.interpreter.pip.AttributeContext
 import java.time.Clock
@@ -45,10 +44,8 @@ class SampleOurPuppetTest {
 	static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 	static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 	static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
-	static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
+	static final AnnotationFunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
 	static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<String, JsonNode>());
-	static final EvaluationContext PDP_EVALUATION_CONTEXT = new EvaluationContext(ATTRIBUTE_CTX, FUNCTION_CTX,
-		SYSTEM_VARIABLES);
 
 	@BeforeEach
 	def void setUp() {
@@ -133,8 +130,8 @@ class SampleOurPuppetTest {
 			Optional.empty(), Optional.empty())
 
 		assertThat("anonymizing patient data for annotators not working as expected",
-			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
-			equalTo(expectedAuthzDecision));
+			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+				SYSTEM_VARIABLES).blockFirst(), equalTo(expectedAuthzDecision));
 	}
 
 	@Test
@@ -199,7 +196,8 @@ class SampleOurPuppetTest {
 		''', JsonNode);
 
 		assertThat("anonymizing patient data for doctors not working as expected",
-			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
+			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+				SYSTEM_VARIABLES).blockFirst(),
 			equalTo(
 				new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(),
 					Optional.empty())));
@@ -308,7 +306,8 @@ class SampleOurPuppetTest {
 		''', JsonNode);
 
 		assertThat("truncating detected situations for familymembers not working as expected",
-			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
+			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+				SYSTEM_VARIABLES).blockFirst(),
 			equalTo(
 				new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(),
 					Optional.empty())));
@@ -407,7 +406,8 @@ class SampleOurPuppetTest {
 		''', JsonNode);
 
 		assertThat("truncating detected situations for professional caregivers not working as expected",
-			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
+			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+				SYSTEM_VARIABLES).blockFirst(),
 			equalTo(
 				new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(),
 					Optional.empty())));
@@ -504,7 +504,8 @@ class SampleOurPuppetTest {
 
 		Hooks.onOperatorDebug()
 		assertThat("truncating detected situations for puppetintroducers not working as expected",
-			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
+			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+				SYSTEM_VARIABLES).blockFirst(),
 			equalTo(
 				new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(),
 					Optional.empty())));

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,18 +37,17 @@ class DocumentationAutoConfigurationTests {
 
 	@Test
 	void whenContextLoaded_thenDocumentationBeansArePresent() {
-		
+
 		var mockAttributeContext = mock(AttributeContext.class);
-		var mockPipDoc = new PolicyInformationPointDocumentation("PIP name","PIP description", "A MOCK PIP OBJECT");
+		var mockPipDoc = new PolicyInformationPointDocumentation("PIP name", "PIP description", "A MOCK PIP OBJECT");
 		when(mockAttributeContext.getDocumentation()).thenReturn(List.of(mockPipDoc));
-		
+
 		var functionContext = mock(FunctionContext.class);
-		var mockFunDoc = new LibraryDocumentation("Library name","Library description", "A MOCK LIBRARY OBJECT");
+		var mockFunDoc = new LibraryDocumentation("Library name", "Library description", "A MOCK LIBRARY OBJECT");
 		when(functionContext.getDocumentation()).thenReturn(List.of(mockFunDoc));
-		
+
 		contextRunner.withBean(AttributeContext.class, () -> mockAttributeContext)
-				.withBean(FunctionContext.class, () -> functionContext)
-				.run(context -> {
+				.withBean(FunctionContext.class, () -> functionContext).run(context -> {
 					assertThat(context).hasNotFailed();
 					assertThat(context).hasSingleBean(PolicyInformationPointsDocumentation.class);
 					assertThat(context).hasSingleBean(FunctionLibrariesDocumentation.class);

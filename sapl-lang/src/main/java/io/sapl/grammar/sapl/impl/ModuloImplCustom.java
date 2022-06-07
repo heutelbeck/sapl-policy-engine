@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,8 +20,6 @@ import static io.sapl.grammar.sapl.impl.OperatorUtil.arithmeticOperator;
 import java.math.BigDecimal;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.EvaluationContext;
-import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -30,8 +28,8 @@ import reactor.core.publisher.Flux;
 public class ModuloImplCustom extends ModuloImpl {
 
 	@Override
-	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		return arithmeticOperator(this, this::divide, ctx, relativeNode);
+	public Flux<Val> evaluate() {
+		return arithmeticOperator(this, this::divide);
 	}
 
 	private Val divide(Val dividend, Val divisor) {

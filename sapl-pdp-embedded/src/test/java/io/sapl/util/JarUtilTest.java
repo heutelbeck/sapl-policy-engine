@@ -1,3 +1,18 @@
+/*
+ * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.util;
 
 import static org.hamcrest.CoreMatchers.not;
@@ -18,21 +33,22 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 public class JarUtilTest {
+
 	@Test
 	public void inferUrlOfRecourcesPathTest() {
-		var result = JarUtil.inferUrlOfRecourcesPath(getClass(), "/policies");
+		var result = JarUtil.inferUrlOfResourcesPath(getClass(), "/policies");
 		assertThat(result.toString().startsWith("file:"), is(true));
 		assertThat(result.toString().endsWith("policies"), is(true));
 	}
 
 	@Test
 	public void inferUrlOfRecourcesPathTestWithMissingResource() {
-		assertThrows(RuntimeException.class, () -> JarUtil.inferUrlOfRecourcesPath(getClass(), "/iDoNotExist"));
+		assertThrows(RuntimeException.class, () -> JarUtil.inferUrlOfResourcesPath(getClass(), "/iDoNotExist"));
 	}
 
 	@Test
 	public void getJarFilePathTest() {
-		var url = JarUtil.inferUrlOfRecourcesPath(getClass(), "/policies");
+		var url = JarUtil.inferUrlOfResourcesPath(getClass(), "/policies");
 		var result = JarUtil.getJarFilePath(url);
 		assertThat(result.toString().endsWith("policies"), is(true));
 	}
