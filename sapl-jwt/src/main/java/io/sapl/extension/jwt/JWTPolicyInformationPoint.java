@@ -35,7 +35,6 @@ import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.validation.Text;
 import io.sapl.extension.jwt.JWTKeyProvider.CachingException;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
