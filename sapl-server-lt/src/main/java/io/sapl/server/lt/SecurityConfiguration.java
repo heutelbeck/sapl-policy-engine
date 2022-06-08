@@ -39,8 +39,17 @@ public class SecurityConfiguration {
 	@Bean
 	@Profile("local")
 	public SecurityWebFilterChain securityFilterChainLocal(ServerHttpSecurity http) {
-		return http.csrf().disable().authorizeExchange().pathMatchers("/**").permitAll().anyExchange().authenticated()
-				.and().httpBasic().and().formLogin().disable().build();
+		return http
+				.csrf()
+					.disable()
+				.authorizeExchange()
+					// any other request requires the user to be authenticated
+					.anyExchange().authenticated()
+				.and()
+					.httpBasic()
+				.and()
+					.formLogin().disable()
+				.build();
 	}
 
 	@Bean
