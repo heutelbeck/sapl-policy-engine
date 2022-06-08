@@ -195,7 +195,7 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<!-- override xtext guice for JDK16+ compatibility -->
+			<!-- override xtext guice 5.0.1 still causing problems for SAPL test libraries -->
 			<groupId>com.google.inject</groupId>
 			<artifactId>guice</artifactId>
 		</dependency>
