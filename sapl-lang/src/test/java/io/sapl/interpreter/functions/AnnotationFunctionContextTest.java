@@ -84,13 +84,13 @@ class AnnotationFunctionContextTest {
 	}
 
 	@Test
-	void validationForFixedParametersFailsOnWringInput() throws InitializationException {
+	void validationForFixedParametersFailsOnWrongInput() throws InitializationException {
 		AnnotationFunctionContext context = new AnnotationFunctionContext(new ValidationLibrary());
 		assertThat(context.evaluate("validate.fixed", Val.of(0)), valError());
 	}
 
 	@Test
-	void validationForVarArgsParametersFailsOnWringInput() throws InitializationException {
+	void validationForVarArgsParametersFailsOnWrongInput() throws InitializationException {
 		AnnotationFunctionContext context = new AnnotationFunctionContext(new ValidationLibrary());
 		assertThat(context.evaluate("validate.varArgs", Val.of(""), Val.of(1)), valError());
 	}

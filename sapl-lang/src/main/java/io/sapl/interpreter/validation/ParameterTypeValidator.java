@@ -18,6 +18,7 @@ package io.sapl.interpreter.validation;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Parameter;
 import java.util.Set;
+import java.util.function.Function;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -40,31 +41,46 @@ public class ParameterTypeValidator {
 	private static final Set<Class<?>> VALIDATION_ANNOTATIONS = Set.of(Number.class, Int.class, Long.class, Bool.class,
 			Text.class, Array.class, JsonObject.class);
 
-	public static Val validateType(Val parameterValue, Parameter parameterType) {
+	public static void validateType(Val parameterValue, Parameter parameterType) throws IllegalParameterType {
 		if (!hasValidationAnnotations(parameterType))
-			return parameterValue;
+			return;
+
+		if (parameterValue.isError())
+			throw new IllegalParameterType(
+					String.format(ILLEGAL_PARAMETER_TYPE, "error", listAllowedTypes(parameterType.getAnnotations())));
 
 		if (parameterValue.isUndefined())
-			return Val.error(new IllegalParameterType(String.format(ILLEGAL_PARAMETER_TYPE, "undefined",
-					listAllowedTypes(parameterType.getAnnotations()))));
+			throw new IllegalParameterType(String.format(ILLEGAL_PARAMETER_TYPE, "undefined",
+					listAllowedTypes(parameterType.getAnnotations())));
 
-		return validateJsonNodeType(parameterValue.get(), parameterType);
+		validateJsonNodeType(parameterValue.get(), parameterType);
 	}
 
 	public static Flux<Val> validateType(Flux<Val> parameterFlux, Parameter parameterType) {
 		if (!hasValidationAnnotations(parameterType))
 			return parameterFlux;
-		return parameterFlux.map(parameterValue -> validateType(parameterValue, parameterType));
+		return parameterFlux.map(mapInvalidToError(parameterType));
 	}
 
-	private static Val validateJsonNodeType(JsonNode node, Parameter parameterType) {
+	private static Function<Val, Val> mapInvalidToError(Parameter parameterType) {
+		return val -> {
+			try {
+				validateType(val, parameterType);
+			} catch (IllegalParameterType e) {
+				return Val.error(e);
+			}
+			return val;
+		};
+	}
+
+	private static void validateJsonNodeType(JsonNode node, Parameter parameterType) throws IllegalParameterType {
 		Annotation[] annotations = parameterType.getAnnotations();
 		for (Annotation annotation : annotations)
 			if (nodeContentsMatchesTypeGivenByAnnotation(node, annotation))
-				return Val.of(node);
+				return;
 
-		return Val.error(new IllegalParameterType(
-				String.format(ILLEGAL_PARAMETER_TYPE, node.getNodeType().toString(), listAllowedTypes(annotations))));
+		throw new IllegalParameterType(
+				String.format(ILLEGAL_PARAMETER_TYPE, node.getNodeType().toString(), listAllowedTypes(annotations)));
 	}
 
 	private static boolean nodeContentsMatchesTypeGivenByAnnotation(JsonNode node, Annotation annotation) {
