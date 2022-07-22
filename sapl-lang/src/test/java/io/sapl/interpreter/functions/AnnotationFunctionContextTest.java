@@ -23,6 +23,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -193,6 +194,14 @@ class AnnotationFunctionContextTest {
 		assertThat(actualTemplates, containsInAnyOrder("test.hello()", "test.helloThreeArgs(arg1, arg2, arg3)",
 				"test.helloTwoArgs(arg1, arg2)", "test.helloVarArgs(aVarArgs...)"));
 	}
+
+	@Test
+	void documentationIsAddedToTheLibrary() throws InitializationException {
+		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
+		var templates = context.getDocumentedCodeTemplates(); 
+		assertThat(templates, hasEntry(MockLibrary.LIBRARY_NAME, MockLibrary.LIBRARY_DOC));
+	}
+
 
 	@FunctionLibrary(name = MockLibrary.LIBRARY_NAME, description = MockLibrary.LIBRARY_DOC)
 	public static class MockLibrary {

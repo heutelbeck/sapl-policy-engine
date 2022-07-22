@@ -18,6 +18,7 @@ package io.sapl.interpreter.pip;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -826,6 +827,7 @@ public class AnnotationAttributeContextTests {
 				.verifyComplete();
 	}
 
+	
 	@Test
 	public void generatesCodeTemplates() throws InitializationException, IOException {
 
@@ -929,6 +931,28 @@ public class AnnotationAttributeContextTests {
 			ctx = AuthorizationContext.setVariables(ctx, variables);
 			return ctx;
 		};
+	}
+
+	@Test
+	public void addsDocumentedAttributeCodeTemplates() throws InitializationException {
+
+		final String pipName = "test";
+		final String pipDescription = "description";
+
+		@PolicyInformationPoint(name = pipName, description = pipDescription)
+		class PIP {
+
+			@Attribute
+			public Flux<Val> empty() {
+				return Flux.empty();
+			}
+		}
+
+		var pip = new PIP();
+		var sut = new AnnotationAttributeContext(pip);
+
+		var actualTemplates = sut.getDocumentedAttributeCodeTemplates();
+		assertThat(actualTemplates, hasEntry(pipName, pipDescription));
 	}
 
 }
