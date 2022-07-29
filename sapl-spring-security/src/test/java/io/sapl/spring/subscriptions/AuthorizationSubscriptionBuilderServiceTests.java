@@ -150,8 +150,11 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 										.where("name", jsonText("publicVoid")))))),
 				() -> assertThat(subscription.getResource(),
 						is(jsonObject()
-								.where("targetClass", is(jsonObject()
-										.where("simpleName", jsonText("TestClass")))))),
+								.where("java", is(jsonObject()
+										.where("instanceof", 
+											is(jsonArray(org.hamcrest.Matchers.hasItems(
+												jsonObject()
+													.where("simpleName", is(jsonText("TestClass"))))))))))),											
 				() -> assertThat(subscription.getEnvironment(), is(jsonNull())));
 		// @formatter:on
 	}
@@ -198,8 +201,11 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 				  () -> assertThat(subscription.getResource(),
 						  is(jsonObject()
 								  .where("http", is(jsonMissing()))
-								  .where("targetClass", is(jsonObject()
-										.where("simpleName", jsonText("TestClass")) )))),
+									.where("java", is(jsonObject()
+											.where("instanceof", 
+												is(jsonArray(org.hamcrest.Matchers.hasItems(
+													jsonObject()
+														.where("simpleName", is(jsonText("TestClass"))))))))))),											
 			      () -> assertThat(subscription.getEnvironment(), is(jsonNull())));
 		// @formatter:on
 	}
@@ -229,8 +235,11 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 					() -> assertThat(subscription.getResource(),
 							is(jsonObject()
 									.where("http", is(jsonObject()))
-									.where("targetClass", is(jsonObject()
-											.where("simpleName", jsonText("TestClass")))))),
+									.where("java", is(jsonObject()
+										.where("instanceof", 
+											is(jsonArray(org.hamcrest.Matchers.hasItems(
+												jsonObject()
+													.where("simpleName", is(jsonText("TestClass"))))))))))),											
 					() -> assertThat(subscription.getEnvironment(), is(jsonNull())));
 			// @formatter:on
 		}
@@ -256,8 +265,11 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 										.where("name", jsonText("publicVoidArgs")))))),
 				() -> assertThat(subscription.getResource(),
 						is(jsonObject()
-								.where("targetClass", is(jsonObject()
-										.where("simpleName", jsonText("TestClass")))))),
+								.where("java", is(jsonObject()
+										.where("instanceof", 
+											is(jsonArray(org.hamcrest.Matchers.hasItems(
+												jsonObject()
+													.where("simpleName", is(jsonText("TestClass"))))))))))),											
 				() -> assertThat(subscription.getEnvironment(), is(jsonNull())));
 		// @formatter:on
 
@@ -284,8 +296,11 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 										.where("name", jsonText("publicVoidProblemArg")))))),
 				() -> assertThat(subscription.getResource(),
 						is(jsonObject()
-								.where("targetClass", is(jsonObject()
-										.where("simpleName", jsonText("TestClass")))))),
+								.where("java", is(jsonObject()
+										.where("instanceof", 
+											is(jsonArray(org.hamcrest.Matchers.hasItems(
+												jsonObject()
+													.where("simpleName", is(jsonText("TestClass"))))))))))),											
 				() -> assertThat(subscription.getEnvironment(), is(jsonNull())));
 		// @formatter:on
 	}
@@ -311,8 +326,11 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 										.where("name", jsonText("publicVoid")))))),
 				() -> assertThat(subscription.getResource(),
 						is(jsonObject()
-								.where("targetClass", is(jsonObject()
-										.where("simpleName", jsonText("TestClass")))))),
+								.where("java", is(jsonObject()
+										.where("instanceof", 
+											is(jsonArray(org.hamcrest.Matchers.hasItems(
+												jsonObject()
+													.where("simpleName", is(jsonText("TestClass"))))))))))),											
 				() -> assertThat(subscription.getEnvironment(), is(jsonNull())));
 		// @formatter:on
 	}
@@ -336,8 +354,11 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 				  () -> assertThat(subscription.getResource(),
 						  is(jsonObject()
 								  .where("http", is(jsonMissing()))
-								  .where("targetClass", is(jsonObject()
-										.where("simpleName", jsonText("TestClass")) )))),
+									.where("java", is(jsonObject()
+											.where("instanceof", 
+												is(jsonArray(org.hamcrest.Matchers.hasItems(
+													jsonObject()
+														.where("simpleName", is(jsonText("TestClass"))))))))))),											
 			      () -> assertThat(subscription.getEnvironment(), is(jsonNull())));
 		// @formatter:on
 	}
