@@ -37,15 +37,34 @@ public class PolicyImplCustom extends PolicyImpl {
 	@Override
 	public Flux<AuthorizationDecision> evaluate() {
 		log.debug("  |  |- Evaluate '{}'", saplName);
-		return Flux.just(getEntitlement().getDecision()).concatMap(evaluateBody()).map(AuthorizationDecision::new)
-				.concatMap(addObligation()).concatMap(addAdvice()).concatMap(addResource())
-				.doOnNext(authzDecision -> log.debug("  |     |- {} '{}': {}", authzDecision.getDecision(), saplName,
-						authzDecision));
+		// @formatter:off
+		return Flux.just(getEntitlement().getDecision())
+				.concatMap(evaluateBody())
+				.map(AuthorizationDecision::new)
+				.switchMap(addConstraintsIfPolicyIsApplicable())
+				.doOnNext(authzDecision -> log.debug("  |     |- {} '{}': {}", authzDecision.getDecision(), saplName, authzDecision));
+		// @formatter:on
+	}
+
+	private Function<? super AuthorizationDecision, Publisher<? extends AuthorizationDecision>> addConstraintsIfPolicyIsApplicable() {
+		return authzDecision -> {
+			var justTheDecision = Flux.just(authzDecision);
+			if(decisionMayNotCarryConstraints(authzDecision))
+				return justTheDecision;
+			
+			return justTheDecision
+					.concatMap(addObligation())
+					.concatMap(addAdvice())
+					.concatMap(addResource());
+		};
+	}
+
+	private boolean decisionMayNotCarryConstraints(AuthorizationDecision authzDecision) {
+		return authzDecision.getDecision() == Decision.INDETERMINATE || authzDecision.getDecision() == Decision.NOT_APPLICABLE;
 	}
 
 	private Function<? super Decision, Publisher<? extends Decision>> evaluateBody() {
 		return entitlement -> getBody() == null ? Flux.just(entitlement) : getBody().evaluate(entitlement);
-
 	}
 
 	private Function<? super AuthorizationDecision, Publisher<? extends AuthorizationDecision>> addObligation() {
