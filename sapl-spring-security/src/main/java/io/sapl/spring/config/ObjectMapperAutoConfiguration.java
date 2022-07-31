@@ -48,7 +48,7 @@ public class ObjectMapperAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public ObjectMapper objectMapper() {
+	ObjectMapper objectMapper() {
 		return new ObjectMapper();
 	}
 
