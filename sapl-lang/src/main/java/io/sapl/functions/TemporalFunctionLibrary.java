@@ -30,6 +30,7 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.UnsupportedTemporalTypeException;
 import java.util.Locale;
 
 import io.sapl.api.functions.Function;
@@ -157,7 +158,13 @@ public class TemporalFunctionLibrary {
 		var unit = ChronoUnit.valueOf(chronoUnit.getText().toUpperCase());
 		var instantFrom = instantOf(timeA);
 		var instantTo = instantOf(timeB);
-		return Val.of(instantFrom.until(instantTo, unit));
+		try {
+			return Val.of(unit.between(instantFrom,instantTo));
+		} catch (UnsupportedTemporalTypeException e) {
+			var dateFrom = LocalDate.ofInstant(instantFrom, ZoneId.systemDefault());
+			var dateTo = LocalDate.ofInstant(instantTo, ZoneId.systemDefault());
+			return Val.of(unit.between(dateFrom,dateTo));
+		}
 	}
 
 	/* ######## INSTANT/UTC MANIPULATION ######## */
@@ -351,7 +358,12 @@ public class TemporalFunctionLibrary {
 	}
 
 	private static Instant instantOf(Val time) {
-		return Instant.parse(time.getText());
+		var text = time.getText();
+		try {
+		return Instant.parse(text);
+		} catch ( DateTimeParseException e ) {
+			return LocalDate.parse(text).atStartOfDay().toInstant(ZoneOffset.UTC);
+		}
 	}
 
 	private static ZoneId zoneIdOf(Val zone) {

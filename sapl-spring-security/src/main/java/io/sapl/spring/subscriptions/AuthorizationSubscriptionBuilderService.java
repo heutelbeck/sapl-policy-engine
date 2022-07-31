@@ -64,14 +64,18 @@ public class AuthorizationSubscriptionBuilderService {
 
 	public AuthorizationSubscription constructAuthorizationSubscriptionWithReturnObject(Authentication authentication,
 			MethodInvocation methodInvocation, SaplAttribute attribute, Object returnObject) {
-		var evaluationCtx = expressionHandler.createEvaluationContext(authentication, methodInvocation);
+		var evaluationCtx = expressionHandler.createEvaluationContext(authentication, methodInvocation);		
 		expressionHandler.setReturnObject(returnObject, evaluationCtx);
+		evaluationCtx.setVariable("authentication", authentication);
+		evaluationCtx.setVariable("methodInvocation", methodInvocation);
 		return constructAuthorizationSubscription(authentication, methodInvocation, attribute, evaluationCtx);
 	}
 
 	public AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
 			MethodInvocation methodInvocation, SaplAttribute attribute) {
 		var evaluationCtx = expressionHandler.createEvaluationContext(authentication, methodInvocation);
+		evaluationCtx.setVariable("authentication", authentication);
+		evaluationCtx.setVariable("methodInvocation", methodInvocation);
 		return constructAuthorizationSubscription(authentication, methodInvocation, attribute, evaluationCtx);
 	}
 
