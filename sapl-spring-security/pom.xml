@@ -35,12 +35,7 @@
 			<groupId>${project.groupId}</groupId>
 			<artifactId>sapl-pdp-api</artifactId>
 			<version>${project.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>sapl-pep-api</artifactId>
-			<version>${project.version}</version>
-		</dependency>
+		</dependency>	
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-autoconfigure</artifactId>

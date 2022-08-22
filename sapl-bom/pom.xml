@@ -71,12 +71,7 @@
 				<groupId>${project.groupId}</groupId>
 				<artifactId>sapl-pdp-api</artifactId>
 				<version>${project.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>${project.groupId}</groupId>
-				<artifactId>sapl-pep-api</artifactId>
-				<version>${project.version}</version>
-			</dependency>
+			</dependency>		
 			<dependency>
 				<groupId>${project.groupId}</groupId>
 				<artifactId>sapl-extensions-api</artifactId>
@@ -154,12 +149,7 @@
 			</dependency>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
-				<artifactId>sapl-axon-client</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>${project.groupId}</groupId>
-				<artifactId>sapl-axon-backend</artifactId>
+				<artifactId>sapl-axon</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
