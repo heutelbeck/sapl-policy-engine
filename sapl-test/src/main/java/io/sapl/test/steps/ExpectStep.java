@@ -34,28 +34,28 @@ public interface ExpectStep {
 
 	/**
 	 * Asserts that the first emitted {@link AuthorizationDecision} of the policy
-	 * evaluation is a {@link Decision#PERMIT}
+	 * evaluation is a {@link io.sapl.api.pdp.Decision#PERMIT}
 	 * @return {@link VerifyStep} to verify your test case.
 	 */
 	VerifyStep expectPermit();
 
 	/**
 	 * Asserts that the first emitted {@link AuthorizationDecision} of the policy
-	 * evaluation is a {@link Decision#DENY}
+	 * evaluation is a {@link io.sapl.api.pdp.Decision#DENY}
 	 * @return {@link VerifyStep} to verify your test case.
 	 */
 	VerifyStep expectDeny();
 
 	/**
 	 * Asserts that the first emitted {@link AuthorizationDecision} of the policy
-	 * evaluation is a {@link Decision#INDETERMINATE}
+	 * evaluation is a {@link io.sapl.api.pdp.Decision#INDETERMINATE}
 	 * @return {@link VerifyStep} to verify your test case.
 	 */
 	VerifyStep expectIndeterminate();
 
 	/**
 	 * Asserts that the first emitted {@link AuthorizationDecision} of the policy
-	 * evaluation is a {@link Decision#NOT_APPLICABLE}
+	 * evaluation is a {@link io.sapl.api.pdp.Decision#NOT_APPLICABLE}
 	 * @return {@link VerifyStep} to verify your test case.
 	 */
 	VerifyStep expectNotApplicable();
@@ -88,7 +88,7 @@ public interface ExpectStep {
 
 	/**
 	 * Asserts that the current emitted {@link AuthorizationDecision} of the policy
-	 * evaluation is a {@link Decision#PERMIT}
+	 * evaluation is a {@link io.sapl.api.pdp.Decision#PERMIT}
 	 * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
 	 * {@link VerifyStep}
 	 */
@@ -96,7 +96,7 @@ public interface ExpectStep {
 
 	/**
 	 * Asserts that the next @param emitted values of {@link AuthorizationDecision} of the
-	 * policy evaluation is a {@link Decision#PERMIT}
+	 * policy evaluation is a {@link io.sapl.api.pdp.Decision#PERMIT}
 	 * @param count number of permits
 	 * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
 	 * {@link VerifyStep}
@@ -105,7 +105,7 @@ public interface ExpectStep {
 
 	/**
 	 * Asserts that the current emitted {@link AuthorizationDecision} of the policy
-	 * evaluation is a {@link Decision#DENY}
+	 * evaluation is a {@link io.sapl.api.pdp.Decision#DENY}
 	 * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
 	 * {@link VerifyStep}
 	 */
@@ -113,7 +113,7 @@ public interface ExpectStep {
 
 	/**
 	 * Asserts that the next @param emitted values of {@link AuthorizationDecision} of the
-	 * policy evaluation is a {@link Decision#DENY}
+	 * policy evaluation is a {@link io.sapl.api.pdp.Decision#DENY}
 	 * @param count expected number
 	 * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
 	 * {@link VerifyStep}
@@ -122,7 +122,7 @@ public interface ExpectStep {
 
 	/**
 	 * Asserts that the current emitted {@link AuthorizationDecision} of the policy
-	 * evaluation is a {@link Decision#INDETERMINATE}
+	 * evaluation is a {@link io.sapl.api.pdp.Decision#INDETERMINATE}
 	 * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
 	 * {@link VerifyStep}
 	 */
@@ -130,7 +130,7 @@ public interface ExpectStep {
 
 	/**
 	 * Asserts that the next @param emitted values of {@link AuthorizationDecision} of the
-	 * policy evaluation is a {@link Decision#INDETERMINATE}
+	 * policy evaluation is a {@link io.sapl.api.pdp.Decision#INDETERMINATE}
 	 * @param count expected number
 	 * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
 	 * {@link VerifyStep}
@@ -139,7 +139,7 @@ public interface ExpectStep {
 
 	/**
 	 * Asserts that the first emitted {@link AuthorizationDecision} of the policy
-	 * evaluation is a {@link Decision#NOT_APPLICABLE}
+	 * evaluation is a {@link io.sapl.api.pdp.Decision#NOT_APPLICABLE}
 	 * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
 	 * {@link VerifyStep}
 	 */
@@ -147,7 +147,7 @@ public interface ExpectStep {
 
 	/**
 	 * Asserts that the next @param emitted values of {@link AuthorizationDecision} of the
-	 * policy evaluation is a {@link Decision#NOT_APPLICABLE}
+	 * policy evaluation is a {@link io.sapl.api.pdp.Decision#NOT_APPLICABLE}
 	 * @param count expected number
 	 * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
 	 * {@link VerifyStep}
