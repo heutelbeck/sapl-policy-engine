@@ -268,5 +268,24 @@ public class AnnotationFunctionContext implements FunctionContext {
 	public Collection<String> getAllFullyQualifiedFunctions() {
 		return functions.keySet();
 	}
+	
+	@Override
+	public Map<String, String> getDocumentedCodeTemplates() {
+		var documentedCodeTemplates = new HashMap<String, String>();
+		for (var entry : functions.entrySet()) {
+			var documentationCodeTemplate = entry.getValue().getDocumentationCodeTemplate();
+			for (var library : documentation) {
+				if (!documentedCodeTemplates.containsKey(library.name)) {
+					documentedCodeTemplates.put(library.name, library.description);
+				}
+				var documentationForCodeTemplate = library.getDocumentation().get(documentationCodeTemplate);
+				if (documentationForCodeTemplate != null) {
+					documentedCodeTemplates.put(entry.getKey(), documentationForCodeTemplate);
+					documentedCodeTemplates.put(entry.getValue().getCodeTemplate(), documentationForCodeTemplate);
+				}
+			}
+		}
+		return documentedCodeTemplates;
+	}
 
 }

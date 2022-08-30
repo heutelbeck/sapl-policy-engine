@@ -605,4 +605,25 @@ public class AnnotationAttributeContext implements AttributeContext {
 		return functionsCache;
 	}
 
+	@Override
+	public Map<String, String> getDocumentedAttributeCodeTemplates() {
+		var documentedAttributeCodeTemplates = new HashMap<String, String>();
+		
+		for (var entry : attributeMetadataByAttributeName.entrySet()) {
+			for (var attribute : entry.getValue()) {
+				var attributeCodeTemplate = attribute.getDocumentationCodeTemplate();
+				for (var doc : pipDocumentations) {
+					if (!documentedAttributeCodeTemplates.containsKey(doc.name)) {
+						documentedAttributeCodeTemplates.put(doc.name, doc.description);
+					}
+					var documentationForCodeTemplate = doc.getDocumentation().get(attributeCodeTemplate);
+					if (documentationForCodeTemplate != null) {
+						documentedAttributeCodeTemplates.put(attribute.fullyQualifiedName(), documentationForCodeTemplate);
+					}
+				}
+			}
+		}
+		return documentedAttributeCodeTemplates;
+	}
+
 }

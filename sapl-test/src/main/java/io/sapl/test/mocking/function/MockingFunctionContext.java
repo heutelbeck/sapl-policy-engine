@@ -256,4 +256,9 @@ public class MockingFunctionContext implements FunctionContext {
 		return List.of();
 	}
 
+	@Override
+	public Map<String, String> getDocumentedCodeTemplates() {
+		return Map.of();
+	}
+
 }

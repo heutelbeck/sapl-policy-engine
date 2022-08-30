@@ -73,4 +73,9 @@ public class TestFunctionContext implements FunctionContext {
 				"standard.numberToString", "time.after", "time.before", "time.between");
 	}
 
+	@Override
+	public Map<String, String> getDocumentedCodeTemplates() {
+		return Map.of("filter.blacken", "documentation");
+	}
+
 }
