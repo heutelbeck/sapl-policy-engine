@@ -44,7 +44,7 @@ public interface GivenStep {
 	 * Mock the return value of a Function in the SAPL policy
 	 * @param importName the reference in the SAPL policy to the function
 	 * @param returns the mocked return value
-	 * @param verification verification for this mocking. See {@link MockingVerification}
+	 * @param verification verification for this mocking. See {@link io.sapl.test.verification.MockingVerification}
 	 * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to the
 	 * {@link WhenStep}
 	 */
@@ -106,20 +106,19 @@ public interface GivenStep {
 	 * @param returns the mocked return value
 	 * @param parameters only return the specified {@link Val} if the parameters of the
 	 * call to the function are equal to the Val's specified here. See
-	 * {@link Imports#whenAttributeParams(AttributeParentValueMatcher, io.sapl.test.mocking.attribute.models.AttributeArgumentMatchers)}
-	 * @param verification verification for this mocking. See {@link MockingVerification}
+	 * {@link io.sapl.test.Imports#whenAttributeParams(AttributeParentValueMatcher, io.sapl.test.mocking.attribute.models.AttributeArgumentMatchers)}
+	 * @param verification verification for this mocking. See {@link io.sapl.test.verification.MockingVerification}
 	 * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to the
 	 * {@link WhenStep}
 	 */
 	GivenOrWhenStep givenFunction(String importName, FunctionParameters parameters, Val returns,
 			TimesCalledVerification verification);
-
 	/**
 	 * Mock the return value of a Function in the SAPL policy
 	 *
 	 * You can apply some complex logic in this lambda to return a {@link Val} dependent
 	 * on the function parameter values Parameter to this Lambda-Expression is a
-	 * {@link MockCall} representing the call of your function. You can access the
+	 * {@link io.sapl.test.mocking.MockCall} representing the call of your function. You can access the
 	 * parameter values via this object. Example:
 	 *
 	 * <pre>
@@ -146,7 +145,7 @@ public interface GivenStep {
 	 *
 	 * You can apply some complex logic in this lambda to return a {@link Val} dependent
 	 * on the function parameter values Parameter to this Lambda-Expression is a
-	 * {@link MockCall} representing the call of your function. You can access the
+	 * {@link io.sapl.test.mocking.MockCall} representing the call of your function. You can access the
 	 * parameter values via this object. Example:
 	 *
 	 * <pre>
@@ -163,7 +162,7 @@ public interface GivenStep {
 	 * </pre>
 	 * @param importName the reference in the SAPL policy to the function
 	 * @param returns a {@link Val} to be returned by the function
-	 * @param verification verification for this mocking. See {@link MockingVerification}
+	 * @param verification verification for this mocking. See {@link io.sapl.test.verification.MockingVerification}
 	 * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to the
 	 * {@link WhenStep}
 	 */
@@ -214,11 +213,11 @@ public interface GivenStep {
 	 * @param importName the reference in the SAPL policy to the PIP
 	 * @param parameters only return the specified {@link Val} if the parameters of the
 	 * call to the attribute match the expectations. Use
-	 * {@link Imports#whenAttributeParams(AttributeParentValueMatcher, io.sapl.test.mocking.attribute.models.AttributeArgumentMatchers)}
+	 * {@link io.sapl.test.Imports#whenAttributeParams(AttributeParentValueMatcher, io.sapl.test.mocking.attribute.models.AttributeArgumentMatchers)}
 	 * @param returns the mocked return value
 	 * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to the
 	 * {@link WhenStep}
-	 */
+	 */ 
 	GivenOrWhenStep givenAttribute(String importName, AttributeParameters parameters, Val returns);
 
 	/**
