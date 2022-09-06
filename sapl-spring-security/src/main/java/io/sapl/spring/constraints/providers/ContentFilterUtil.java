@@ -1,10 +1,13 @@
 package io.sapl.spring.constraints.providers;
 
 import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
@@ -25,6 +28,13 @@ public class ContentFilterUtil {
 	private static final String DELETE                   = "delete";
 	private static final String PATH                     = "path";
 	private static final String ACTIONS                  = "actions";
+	private static final String CONDITIONS               = "conditions";
+	private static final String VALUE                    = "value";
+	private static final String EQUALS                   = "==";
+	private static final String NEQ                      = "!=";
+	private static final String GEQ                      = ">=";
+	private static final String LEQ                      = "<=";
+	private static final String REGEX                    = "=~";
 	private static final String TYPE                     = "type";
 	private static final String BLACK_SQUARE             = "\u2588";
 	private static final String UNDEFINED_KEY_S          = "An action does not declare '%s'.";
@@ -38,6 +48,156 @@ public class ContentFilterUtil {
 	private static final String ACTIONS_NOT_AN_ARRAY     = "'actions' is not an array.";
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+
+	public static Predicate<Object> predicateFromConditions(JsonNode constraint, ObjectMapper objectMapper) {
+		Predicate<Object> predicate = __ -> true;
+		if (noConditionsArrayPresent(constraint))
+			return predicate;
+		var conditions = (ArrayNode) constraint.get(CONDITIONS);
+		for (var condition : conditions) {
+			var newPredicate      = conditionToPredicate(condition, objectMapper);
+			var previousPredicate = predicate;
+			predicate = x -> previousPredicate.test(x) && newPredicate.test(x);
+		}
+		return predicate;
+	}
+
+	private static Predicate<Object> conditionToPredicate(JsonNode condition, ObjectMapper objectMapper) {
+		if (!condition.isObject())
+			throwConditionValidationError(condition);
+
+		if (!condition.has(PATH) || !condition.get(PATH).isTextual())
+			throwConditionValidationError(condition);
+
+		var path = condition.get(PATH).textValue();
+
+		if (!condition.has(TYPE) || !condition.get(TYPE).isTextual())
+			throwConditionValidationError(condition);
+
+		var type = condition.get(TYPE).textValue();
+
+		if (!condition.has(VALUE))
+			throwConditionValidationError(condition);
+
+		var jsonPathConfiguration = Configuration.builder().jsonProvider(new JacksonJsonNodeJsonProvider(objectMapper))
+				.build();
+
+		if (EQUALS.equals(type))
+			return equalsCondition(condition, path, jsonPathConfiguration, objectMapper);
+
+		if (NEQ.equals(type))
+			return x -> !equalsCondition(condition, path, jsonPathConfiguration, objectMapper).test(x);
+
+		if (GEQ.equals(type))
+			return geqCondition(condition, path, jsonPathConfiguration, objectMapper);
+
+		if (LEQ.equals(type))
+			return leqCondition(condition, path, jsonPathConfiguration, objectMapper);
+
+		if (REGEX.equals(type))
+			return regexCondition(condition, path, jsonPathConfiguration, objectMapper);
+
+		throw new IllegalStateException("Not a valid predicate condition: " + condition.toString());
+	}
+
+	private static Predicate<Object> regexCondition(JsonNode condition, String path,
+			Configuration jsonPathConfiguration, ObjectMapper objectMapper) {
+
+		if (!condition.has(VALUE) || !condition.get(VALUE).isTextual())
+			throwConditionValidationError(condition);
+
+		var regex = Pattern.compile(condition.get(VALUE).textValue());
+
+		return original -> {
+			var node = getNodeAtPath(original, path, jsonPathConfiguration, objectMapper);
+			if (!node.isTextual())
+				return false;
+			return regex.asMatchPredicate().test(node.textValue());
+		};
+	}
+
+	private static Predicate<Object> leqCondition(JsonNode condition, String path, Configuration jsonPathConfiguration,
+			ObjectMapper objectMapper) {
+		if (!condition.has(VALUE) || !condition.get(VALUE).isNumber())
+			throwConditionValidationError(condition);
+
+		var value = condition.get(VALUE).asDouble();
+
+		return original -> {
+			var node = getNodeAtPath(original, path, jsonPathConfiguration, objectMapper);
+			if (!node.isNumber())
+				return false;
+			return value <= node.asDouble();
+		};
+	}
+
+	private static Predicate<Object> geqCondition(JsonNode condition, String path, Configuration jsonPathConfiguration,
+			ObjectMapper objectMapper) {
+		if (!condition.has(VALUE) || !condition.get(VALUE).isNumber())
+			throwConditionValidationError(condition);
+
+		var value = condition.get(VALUE).asDouble();
+
+		return original -> {
+			var node = getNodeAtPath(original, path, jsonPathConfiguration, objectMapper);
+			if (!node.isNumber())
+				return false;
+			return value >= node.asDouble();
+		};
+	}
+
+	private static Predicate<Object> numberEqCondition(JsonNode condition, String path,
+			Configuration jsonPathConfiguration, ObjectMapper objectMapper) {
+		if (!condition.has(VALUE) || !condition.get(VALUE).isNumber())
+			throwConditionValidationError(condition);
+
+		var value = condition.get(VALUE).asDouble();
+
+		return original -> {
+			var node = getNodeAtPath(original, path, jsonPathConfiguration, objectMapper);
+			if (!node.isNumber())
+				return false;
+			return value == node.asDouble();
+		};
+	}
+
+	private static Predicate<Object> equalsCondition(JsonNode condition, String path,
+			Configuration jsonPathConfiguration, ObjectMapper objectMapper) {
+		if (!condition.has(VALUE))
+			throwConditionValidationError(condition);
+
+		var valueNode = condition.get(VALUE);
+		if (valueNode.isNumber())
+			return numberEqCondition(condition, path, jsonPathConfiguration, objectMapper);
+
+		if (!valueNode.isTextual())
+			throwConditionValidationError(condition);
+
+		var value = valueNode.textValue();
+
+		return original -> {
+			var node = getNodeAtPath(original, path, jsonPathConfiguration, objectMapper);
+			if (!node.isTextual())
+				return false;
+			return value.equals(node.textValue());
+		};
+	}
+
+	private static JsonNode getNodeAtPath(Object original, String path, Configuration jsonPathConfiguration,
+			ObjectMapper objectMapper) {
+		var originalJsonNode = objectMapper.valueToTree(original);
+		var jsonContext      = JsonPath.using(jsonPathConfiguration).parse(originalJsonNode);
+		return (JsonNode) jsonContext.read(path);
+	}
+
+	void throwConditionValidationError(JsonNode condition) {
+		throw new IllegalStateException("Not a valid predicate condition: " + condition.toString());
+	}
+
+	private static boolean noConditionsArrayPresent(JsonNode constraint) {
+		return !constraint.isObject() || !constraint.has(CONDITIONS) || !constraint.get(CONDITIONS).isArray()
+				|| constraint.get(CONDITIONS).isEmpty();
+	}
 
 	public static Function<Object, Object> getHandler(JsonNode constraint, ObjectMapper objectMapper) {
 		return original -> {
