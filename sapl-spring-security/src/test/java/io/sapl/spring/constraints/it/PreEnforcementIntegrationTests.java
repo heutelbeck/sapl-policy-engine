@@ -98,11 +98,6 @@ public class PreEnforcementIntegrationTests {
 	public static class ConstraintHandlerOne implements RunnableConstraintHandlerProvider {
 
 		@Override
-		public int getPriority() {
-			return 1;
-		}
-
-		@Override
 		public boolean isResponsible(JsonNode constraint) {
 			return constraint != null && constraint.isTextual() && KNOWN_CONSTRAINT.equals(constraint.textValue());
 		}
@@ -124,11 +119,6 @@ public class PreEnforcementIntegrationTests {
 
 	@Component
 	public static class ConstraintHandlerTwo implements RunnableConstraintHandlerProvider {
-
-		@Override
-		public int getPriority() {
-			return 2;
-		}
 
 		@Override
 		public boolean isResponsible(JsonNode constraint) {
@@ -341,10 +331,9 @@ public class PreEnforcementIntegrationTests {
 		obligations.add(JSON.textNode(KNOWN_CONSTRAINT));
 		var decision = AuthorizationDecision.PERMIT.withObligations(obligations);
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
-		InOrder inOrder = inOrder(constraintHandlerOne, constraintHandlerTwo);
 		assertEquals("Argument: test", service.execute("test"));
-		inOrder.verify(constraintHandlerTwo).run();
-		inOrder.verify(constraintHandlerOne).run();
+		verify(constraintHandlerTwo).run();
+		verify(constraintHandlerOne).run();
 	}
 
 	@Test
@@ -354,10 +343,9 @@ public class PreEnforcementIntegrationTests {
 		obligations.add(JSON.textNode(KNOWN_CONSTRAINT));
 		var decision = AuthorizationDecision.DENY.withObligations(obligations);
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
-		InOrder inOrder = inOrder(constraintHandlerOne, constraintHandlerTwo);
 		assertThrows(AccessDeniedException.class, () -> service.execute("test"));
-		inOrder.verify(constraintHandlerTwo).run();
-		inOrder.verify(constraintHandlerOne).run();
+		verify(constraintHandlerTwo).run();
+		verify(constraintHandlerOne).run();
 		verify(service, times(0)).execute(any());
 	}
 
@@ -370,8 +358,8 @@ public class PreEnforcementIntegrationTests {
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
 		InOrder inOrder = inOrder(constraintHandlerOne, constraintHandlerTwo);
 		assertEquals("Argument: test", service.execute("test"));
-		inOrder.verify(constraintHandlerTwo).run();
 		inOrder.verify(constraintHandlerOne).run();
+		inOrder.verify(constraintHandlerTwo).run();
 	}
 
 	@Test
@@ -383,12 +371,9 @@ public class PreEnforcementIntegrationTests {
 		obligations.add(JSON.textNode(KNOWN_CONSTRAINT));
 		var decision = AuthorizationDecision.PERMIT.withObligations(obligations).withAdvice(advice);
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
-		InOrder inOrder = inOrder(constraintHandlerOne, constraintHandlerTwo);
 		assertEquals("Argument: test", service.execute("test"));
-		inOrder.verify(constraintHandlerTwo).run();
-		inOrder.verify(constraintHandlerOne).run();
-		inOrder.verify(constraintHandlerTwo).run();
-		inOrder.verify(constraintHandlerOne).run();
+		verify(constraintHandlerOne, times(2)).run();
+		verify(constraintHandlerTwo, times(2)).run();
 	}
 
 	@Test
@@ -412,7 +397,7 @@ public class PreEnforcementIntegrationTests {
 		assertThrows(AccessDeniedException.class, () -> service.execute("test"));
 		verify(service, times(0)).execute(any());
 	}
-	
+
 	@Test
 	@WithMockUser(USER)
 	void when_testDecisionHasResource_then_accessDenied() {

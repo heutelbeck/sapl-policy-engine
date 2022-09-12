@@ -70,7 +70,6 @@ public class StandardFunctionLibrary {
 	
 	@Function(docs = ON_ERROR_MAP_DOC)
 	public static Val onErrorMap(Val guardedExpression, Val fallbackValue) {
-		System.out.println("** "+ guardedExpression+"--"+fallbackValue);
 		if(guardedExpression.isError())
 			return fallbackValue;
 		

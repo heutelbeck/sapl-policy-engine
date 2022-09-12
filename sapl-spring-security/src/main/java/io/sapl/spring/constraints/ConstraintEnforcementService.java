@@ -34,8 +34,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.google.common.collect.SortedSetMultimap;
-import com.google.common.collect.TreeMultimap;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.spring.constraints.api.ConsumerConstraintHandlerProvider;
@@ -65,7 +65,7 @@ public class ConstraintEnforcementService {
 	private final List<FilterPredicateConstraintHandlerProvider<?>>            filterPredicateProviders;
 	private final List<MethodInvocationConstraintHandlerProvider>              methodInvocationHandlerProviders;
 	private final ObjectMapper                                                 mapper;
-	private final SortedSetMultimap<Signal, RunnableConstraintHandlerProvider> globalRunnableIndex;
+	private final Multimap<Signal, RunnableConstraintHandlerProvider> globalRunnableIndex;
 
 	public ConstraintEnforcementService(List<RunnableConstraintHandlerProvider> globalRunnableProviders,
 			List<ConsumerConstraintHandlerProvider<?>> globalConsumerProviders,
@@ -78,22 +78,17 @@ public class ConstraintEnforcementService {
 			List<MethodInvocationConstraintHandlerProvider> methodInvocationHandlerProviders, ObjectMapper mapper) {
 
 		this.globalConsumerProviders = globalConsumerProviders;
-		Collections.sort(this.globalConsumerProviders);
 		this.globalSubscriptionHandlerProviders = globalSubscriptionHandlerProviders;
-		Collections.sort(this.globalSubscriptionHandlerProviders);
 		this.globalRequestHandlerProviders = globalRequestHandlerProviders;
-		Collections.sort(this.globalRequestHandlerProviders);
 		this.globalMappingHandlerProviders = globalMappingHandlerProviders;
 		Collections.sort(this.globalMappingHandlerProviders);
 		this.globalErrorMappingHandlerProviders = globalErrorMappingHandlerProviders;
 		Collections.sort(this.globalErrorMappingHandlerProviders);
 		this.globalErrorHandlerProviders = globalErrorHandlerProviders;
-		Collections.sort(this.globalErrorHandlerProviders);
 		this.methodInvocationHandlerProviders = methodInvocationHandlerProviders;
-		Collections.sort(this.methodInvocationHandlerProviders);
 		this.filterPredicateProviders = filterPredicateProviders;
 		this.mapper                   = mapper;
-		globalRunnableIndex           = TreeMultimap.create();
+		globalRunnableIndex           = ArrayListMultimap.create();
 
 		for (var provider : globalRunnableProviders)
 			globalRunnableIndex.put(provider.getSignal(), provider);

@@ -21,7 +21,7 @@ import org.reactivestreams.Subscription;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-public interface SubscriptionHandlerProvider extends Responsible, HasPriority {
+public interface SubscriptionHandlerProvider extends Responsible {
 
 	Consumer<Subscription> getHandler(JsonNode constraint);
 

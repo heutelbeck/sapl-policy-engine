@@ -21,7 +21,7 @@ import org.springframework.aop.framework.ReflectiveMethodInvocation;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-public interface MethodInvocationConstraintHandlerProvider extends Responsible, HasPriority {
+public interface MethodInvocationConstraintHandlerProvider extends Responsible {
 
 	Consumer<ReflectiveMethodInvocation> getHandler(JsonNode constraint);
 

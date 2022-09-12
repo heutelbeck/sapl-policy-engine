@@ -3,7 +3,6 @@ package io.sapl.spring.constraints.it;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -11,7 +10,6 @@ import static org.mockito.Mockito.when;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
-import org.mockito.InOrder;
 import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -91,11 +89,6 @@ public class PostEnforcementIntegrationTests {
 	public static class ConstraintHandlerOne implements RunnableConstraintHandlerProvider {
 
 		@Override
-		public int getPriority() {
-			return 1;
-		}
-
-		@Override
 		public boolean isResponsible(JsonNode constraint) {
 			return constraint != null && constraint.isTextual() && KNOWN_CONSTRAINT.equals(constraint.textValue());
 		}
@@ -117,11 +110,6 @@ public class PostEnforcementIntegrationTests {
 
 	@Component
 	public static class ConstraintHandlerTwo implements RunnableConstraintHandlerProvider {
-
-		@Override
-		public int getPriority() {
-			return 2;
-		}
 
 		@Override
 		public boolean isResponsible(JsonNode constraint) {
@@ -298,10 +286,9 @@ public class PostEnforcementIntegrationTests {
 		obligations.add(JSON.textNode(KNOWN_CONSTRAINT));
 		var decision = AuthorizationDecision.PERMIT.withObligations(obligations);
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
-		InOrder inOrder = inOrder(constraintHandlerOne, constraintHandlerTwo);
 		assertEquals("Argument: test", service.execute("test"));
-		inOrder.verify(constraintHandlerTwo).run();
-		inOrder.verify(constraintHandlerOne).run();
+		verify(constraintHandlerTwo).run();
+		verify(constraintHandlerOne).run();
 	}
 
 	@Test
@@ -311,10 +298,9 @@ public class PostEnforcementIntegrationTests {
 		obligations.add(JSON.textNode(KNOWN_CONSTRAINT));
 		var decision = AuthorizationDecision.DENY.withObligations(obligations);
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
-		InOrder inOrder = inOrder(constraintHandlerOne, constraintHandlerTwo);
 		assertThrows(AccessDeniedException.class, () -> service.execute("test"));
-		inOrder.verify(constraintHandlerTwo).run();
-		inOrder.verify(constraintHandlerOne).run();
+		verify(constraintHandlerOne).run();
+		verify(constraintHandlerTwo).run();
 		verify(service, times(1)).execute(any());
 	}
 
@@ -325,10 +311,9 @@ public class PostEnforcementIntegrationTests {
 		advice.add(JSON.textNode(KNOWN_CONSTRAINT));
 		var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
-		InOrder inOrder = inOrder(constraintHandlerOne, constraintHandlerTwo);
 		assertEquals("Argument: test", service.execute("test"));
-		inOrder.verify(constraintHandlerTwo).run();
-		inOrder.verify(constraintHandlerOne).run();
+		verify(constraintHandlerTwo).run();
+		verify(constraintHandlerOne).run();
 		verify(service, times(1)).execute(any());
 	}
 
@@ -341,12 +326,9 @@ public class PostEnforcementIntegrationTests {
 		obligations.add(JSON.textNode(KNOWN_CONSTRAINT));
 		var decision = AuthorizationDecision.PERMIT.withObligations(obligations).withAdvice(advice);
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
-		InOrder inOrder = inOrder(constraintHandlerOne, constraintHandlerTwo);
 		assertEquals("Argument: test", service.execute("test"));
-		inOrder.verify(constraintHandlerTwo).run();
-		inOrder.verify(constraintHandlerOne).run();
-		inOrder.verify(constraintHandlerTwo).run();
-		inOrder.verify(constraintHandlerOne).run();
+		verify(constraintHandlerOne, times(2)).run();
+		verify(constraintHandlerTwo, times(2)).run();
 		verify(service, times(1)).execute(any());
 	}
 
