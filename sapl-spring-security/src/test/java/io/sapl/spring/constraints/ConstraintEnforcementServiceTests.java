@@ -978,7 +978,7 @@ public class ConstraintEnforcementServiceTests {
 		var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
 		var resourceAccessPoint = Flux.just(1, 2, 3);
 		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
-				resourceAccessPoint, Integer.class);
+				resourceAccessPoint, Integer.class);		
 		assertThrows(RuntimeException.class, wrapped::blockLast);
 	}
 

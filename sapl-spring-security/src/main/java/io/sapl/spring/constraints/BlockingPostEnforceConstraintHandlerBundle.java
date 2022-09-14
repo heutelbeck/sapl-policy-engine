@@ -15,22 +15,24 @@
  */
 package io.sapl.spring.constraints;
 
-import static io.sapl.spring.constraints.BundleUtil.consumeAll;
-import static io.sapl.spring.constraints.BundleUtil.mapAll;
-import static io.sapl.spring.constraints.BundleUtil.runAll;
-
-import java.util.LinkedList;
-import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import lombok.AccessLevel;
+import lombok.Setter;
+
+@Setter(AccessLevel.PROTECTED)
 public class BlockingPostEnforceConstraintHandlerBundle<T> {
 
-	final List<Runnable>                       onDecisionHandlers = new LinkedList<>();
-	final List<Consumer<T>>                    doOnNextHandlers   = new LinkedList<>();
-	final List<Function<T, T>>                 onNextMapHandlers  = new LinkedList<>();
-	final List<Consumer<Throwable>>            doOnErrorHandlers  = new LinkedList<>();
-	final List<Function<Throwable, Throwable>> onErrorMapHandlers = new LinkedList<>();
+	// @formatter:off
+	private static final Runnable NOP = () -> {};
+
+	private Runnable                       onDecisionHandlers = NOP;
+	private Consumer<T>                    doOnNextHandlers   = __ -> {};
+	private Function<T, T>                 onNextMapHandlers  = x->x;
+	private Consumer<Throwable>            doOnErrorHandlers  = __ -> {};
+	private Function<Throwable, Throwable> onErrorMapHandlers = x->x;
+	// @formatter:on
 
 	public T handleAllOnNextConstraints(T value) {
 		handleOnNextConstraints(value);
@@ -38,15 +40,15 @@ public class BlockingPostEnforceConstraintHandlerBundle<T> {
 	}
 
 	private T handleOnNextMapConstraints(T value) {
-		return mapAll(onNextMapHandlers).apply(value);
+		return onNextMapHandlers.apply(value);
 	}
 
 	private void handleOnNextConstraints(T value) {
-		consumeAll(doOnNextHandlers).accept(value);
+		doOnNextHandlers.accept(value);
 	}
 
 	public void handleOnDecisionConstraints() {
-		runAll(onDecisionHandlers).run();
+		onDecisionHandlers.run();
 	}
 
 	public Throwable handleAllOnErrorConstraints(Throwable error) {
@@ -55,11 +57,11 @@ public class BlockingPostEnforceConstraintHandlerBundle<T> {
 	}
 
 	private Throwable handleOnErrorMapConstraints(Throwable error) {
-		return mapAll(onErrorMapHandlers).apply(error);
+		return onErrorMapHandlers.apply(error);
 	}
 
 	private void handleOnErrorConstraints(Throwable error) {
-		consumeAll(doOnErrorHandlers).accept(error);
+		doOnErrorHandlers.accept(error);
 	}
 
 }

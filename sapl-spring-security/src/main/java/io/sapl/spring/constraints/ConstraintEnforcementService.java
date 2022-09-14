@@ -15,14 +15,15 @@
  */
 package io.sapl.spring.constraints;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongConsumer;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import org.aopalliance.intercept.MethodInvocation;
 import org.reactivestreams.Subscription;
@@ -34,8 +35,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.google.common.base.Functions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.spring.constraints.api.ConsumerConstraintHandlerProvider;
@@ -48,6 +51,8 @@ import io.sapl.spring.constraints.api.RequestHandlerProvider;
 import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider.Signal;
 import io.sapl.spring.constraints.api.SubscriptionHandlerProvider;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
@@ -56,15 +61,15 @@ import reactor.core.publisher.Flux;
 @Service
 public class ConstraintEnforcementService {
 
-	private final List<ConsumerConstraintHandlerProvider<?>>                   globalConsumerProviders;
-	private final List<SubscriptionHandlerProvider>                            globalSubscriptionHandlerProviders;
-	private final List<RequestHandlerProvider>                                 globalRequestHandlerProviders;
-	private final List<MappingConstraintHandlerProvider<?>>                    globalMappingHandlerProviders;
-	private final List<ErrorMappingConstraintHandlerProvider>                  globalErrorMappingHandlerProviders;
-	private final List<ErrorHandlerProvider>                                   globalErrorHandlerProviders;
-	private final List<FilterPredicateConstraintHandlerProvider<?>>            filterPredicateProviders;
-	private final List<MethodInvocationConstraintHandlerProvider>              methodInvocationHandlerProviders;
-	private final ObjectMapper                                                 mapper;
+	private final List<ConsumerConstraintHandlerProvider<?>>          globalConsumerProviders;
+	private final List<SubscriptionHandlerProvider>                   globalSubscriptionHandlerProviders;
+	private final List<RequestHandlerProvider>                        globalRequestHandlerProviders;
+	private final List<MappingConstraintHandlerProvider<?>>           globalMappingHandlerProviders;
+	private final List<ErrorMappingConstraintHandlerProvider>         globalErrorMappingHandlerProviders;
+	private final List<ErrorHandlerProvider>                          globalErrorHandlerProviders;
+	private final List<FilterPredicateConstraintHandlerProvider<?>>   filterPredicateProviders;
+	private final List<MethodInvocationConstraintHandlerProvider>     methodInvocationHandlerProviders;
+	private final ObjectMapper                                        mapper;
 	private final Multimap<Signal, RunnableConstraintHandlerProvider> globalRunnableIndex;
 
 	public ConstraintEnforcementService(List<RunnableConstraintHandlerProvider> globalRunnableProviders,
@@ -77,19 +82,20 @@ public class ConstraintEnforcementService {
 			List<FilterPredicateConstraintHandlerProvider<?>> filterPredicateProviders,
 			List<MethodInvocationConstraintHandlerProvider> methodInvocationHandlerProviders, ObjectMapper mapper) {
 
-		this.globalConsumerProviders = globalConsumerProviders;
+		this.globalConsumerProviders            = globalConsumerProviders;
 		this.globalSubscriptionHandlerProviders = globalSubscriptionHandlerProviders;
-		this.globalRequestHandlerProviders = globalRequestHandlerProviders;
+		this.globalRequestHandlerProviders      = globalRequestHandlerProviders;
+		this.globalErrorHandlerProviders        = globalErrorHandlerProviders;
+		this.methodInvocationHandlerProviders   = methodInvocationHandlerProviders;
+		this.filterPredicateProviders           = filterPredicateProviders;
+		this.mapper                             = mapper;
+
 		this.globalMappingHandlerProviders = globalMappingHandlerProviders;
 		Collections.sort(this.globalMappingHandlerProviders);
 		this.globalErrorMappingHandlerProviders = globalErrorMappingHandlerProviders;
 		Collections.sort(this.globalErrorMappingHandlerProviders);
-		this.globalErrorHandlerProviders = globalErrorHandlerProviders;
-		this.methodInvocationHandlerProviders = methodInvocationHandlerProviders;
-		this.filterPredicateProviders = filterPredicateProviders;
-		this.mapper                   = mapper;
-		globalRunnableIndex           = ArrayListMultimap.create();
 
+		globalRunnableIndex = ArrayListMultimap.create();
 		for (var provider : globalRunnableProviders)
 			globalRunnableIndex.put(provider.getSignal(), provider);
 	}
@@ -107,133 +113,504 @@ public class ConstraintEnforcementService {
 
 	public <T> ReactiveTypeConstraintHandlerBundle<T> reactiveTypeBundleFor(AuthorizationDecision decision,
 			Class<T> clazz) {
-		var bundle = new ReactiveTypeConstraintHandlerBundle<T>();
-		addConstraintHandlersForReactiveType(bundle, decision.getObligations(), true, clazz);
-		addConstraintHandlersForReactiveType(bundle, decision.getAdvice(), false, clazz);
+
+		var unhandledObligations = Sets.newHashSet(decision.getObligations().orElseGet(() -> mapper.createArrayNode()));
+		var bundle               = new ReactiveTypeConstraintHandlerBundle<T>();
+
+		bundle.setOnDecisionHandlers(runnableHandlersForSignal(Signal.ON_DECISION, decision, unhandledObligations));
+		bundle.setOnCancelHandlers(runnableHandlersForSignal(Signal.ON_CANCEL, decision, unhandledObligations));
+		bundle.setOnCompleteHandlers(runnableHandlersForSignal(Signal.ON_COMPLETE, decision, unhandledObligations));
+		bundle.setOnTerminateHandlers(runnableHandlersForSignal(Signal.ON_TERMINATE, decision, unhandledObligations));
+		bundle.setAfterTerminateHandlers(
+				runnableHandlersForSignal(Signal.AFTER_TERMINATE, decision, unhandledObligations));
+
+		bundle.setOnSubscribeHandlers(subscriptionHandlers(decision, unhandledObligations));
+		bundle.setOnRequestHandlers(requestHandlers(decision, unhandledObligations));
+
+		bundle.setDoOnNextHandlers(onNextHandlers(decision, unhandledObligations, clazz));
+		bundle.setOnNextMapHandlers(mapNextHandlers(decision, unhandledObligations, clazz));
+
+		bundle.setDoOnErrorHandlers(onErrorHandlers(decision, unhandledObligations));
+		bundle.setOnErrorMapHandlers(mapErrorHandlers(decision, unhandledObligations));
+
+		bundle.setFilterPredicateHandlers(filterConstraintHandlers(decision, unhandledObligations, clazz));
+		bundle.setMethodInvocationHandlers(methodInvocationHandlers(decision, unhandledObligations));
+
+		if (!unhandledObligations.isEmpty())
+			throw new AccessDeniedException("No handler for obligation: " + unhandledObligations);
+
 		return bundle;
-	}
-
-	private <T> void addConstraintHandlersForReactiveType(ReactiveTypeConstraintHandlerBundle<T> bundle,
-			Optional<ArrayNode> constraints, boolean isObligation, Class<T> clazz) {
-		if (constraints.isPresent())
-			for (var constraint : constraints.get())
-				addConstraintHandlersForReactiveType(bundle, constraint, isObligation, clazz);
-	}
-
-	private <T> void addConstraintHandlersForReactiveType(ReactiveTypeConstraintHandlerBundle<T> bundle,
-			JsonNode constraint, boolean isObligation, Class<T> clazz) {
-		var onDecisionHandlers = constructRunnableHandlersForConstraint(Signal.ON_DECISION, constraint, isObligation);
-		bundle.onDecisionHandlers.addAll(onDecisionHandlers);
-		var onCancelHandlers = constructRunnableHandlersForConstraint(Signal.ON_CANCEL, constraint, isObligation);
-		bundle.onCancelHandlers.addAll(onCancelHandlers);
-		var onCompleteHandlers = constructRunnableHandlersForConstraint(Signal.ON_COMPLETE, constraint, isObligation);
-		bundle.onCompleteHandlers.addAll(onCompleteHandlers);
-		var onTerminateHandlers = constructRunnableHandlersForConstraint(Signal.ON_TERMINATE, constraint, isObligation);
-		bundle.onTerminateHandlers.addAll(onTerminateHandlers);
-		var afterTerminateHandlers = constructRunnableHandlersForConstraint(Signal.AFTER_TERMINATE, constraint,
-				isObligation);
-		bundle.afterTerminateHandlers.addAll(afterTerminateHandlers);
-		var onSubscribeHandlers = constructOnSubscribeHandlersForConstraint(constraint, isObligation);
-		bundle.onSubscribeHandlers.addAll(onSubscribeHandlers);
-		var onRequestHandlers = constructOnRequestHandlersForConstraint(constraint, isObligation);
-		bundle.onRequestHandlers.addAll(onRequestHandlers);
-		var doOnNextHandlers = constructConsumerHandlersForConstraint(constraint, isObligation, clazz);
-		bundle.doOnNextHandlers.addAll(doOnNextHandlers);
-		var onNextMapHandlers = constructMappingConstraintHandlersForConstraint(constraint, isObligation, clazz);
-		bundle.onNextMapHandlers.addAll(onNextMapHandlers);
-		var doOnErrorHandlers = constructDoOnErrorHandlersForConstraint(constraint, isObligation);
-		bundle.doOnErrorHandlers.addAll(doOnErrorHandlers);
-		var onErrorMapHandlers = constructErrorMappingConstraintHandlersForConstraint(constraint, isObligation);
-		bundle.onErrorMapHandlers.addAll(onErrorMapHandlers);
-		var filterHandlers = constructFilterConstraintHandlersForConstraint(constraint, isObligation, clazz);
-		bundle.filterPredicateHandlers.addAll(filterHandlers);
-		var methodInvocationHandlers = methodInvocationHandlersForConstraint(constraint, isObligation);
-		bundle.methodInvocationHandlers.addAll(methodInvocationHandlers);
-
-		if (isObligation) {
-			var numberOfHandlersFound       = onDecisionHandlers.size() + onCancelHandlers.size()
-					+ onCompleteHandlers.size() + onTerminateHandlers.size() + afterTerminateHandlers.size()
-					+ doOnNextHandlers.size() + onNextMapHandlers.size() + doOnErrorHandlers.size()
-					+ onErrorMapHandlers.size() + onSubscribeHandlers.size() + onRequestHandlers.size()
-					+ filterHandlers.size() + methodInvocationHandlers.size();
-			var noHandlerFoundForObligation = numberOfHandlersFound == 0;
-			if (noHandlerFoundForObligation) {
-				var message = String.format("No handler found for obligation: %s", constraint);
-				log.warn(message);
-				throw new AccessDeniedException(message);
-			}
-		}
 	}
 
 	public <T> BlockingPostEnforceConstraintHandlerBundle<T> blockingPostEnforceBundleFor(
 			AuthorizationDecision decision, Class<T> clazz) {
 		var bundle = new BlockingPostEnforceConstraintHandlerBundle<T>();
-		addConstraintHandlersForBlockingPostEnforce(bundle, decision.getObligations(), true, clazz);
-		addConstraintHandlersForBlockingPostEnforce(bundle, decision.getAdvice(), false, clazz);
+
+		var unhandledObligations = Sets.newHashSet(decision.getObligations().orElseGet(() -> mapper.createArrayNode()));
+
+		bundle.setOnDecisionHandlers(runnableHandlersForSignal(Signal.ON_DECISION, decision, unhandledObligations));
+
+		bundle.setDoOnNextHandlers(onNextHandlers(decision, unhandledObligations, clazz));
+		bundle.setOnNextMapHandlers(mapNextHandlers(decision, unhandledObligations, clazz));
+
+		bundle.setDoOnErrorHandlers(onErrorHandlers(decision, unhandledObligations));
+		bundle.setOnErrorMapHandlers(mapErrorHandlers(decision, unhandledObligations));
+
+		if (!unhandledObligations.isEmpty())
+			throw new AccessDeniedException("No handler for obligation: " + unhandledObligations);
+
 		return bundle;
-	}
-
-	private <T> void addConstraintHandlersForBlockingPostEnforce(BlockingPostEnforceConstraintHandlerBundle<T> bundle,
-			Optional<ArrayNode> constraints, boolean isObligation, Class<T> clazz) {
-		if (constraints.isPresent())
-			for (var constraint : constraints.get())
-				addConstraintHandlersForBlockingPostEnforce(bundle, constraint, isObligation, clazz);
-	}
-
-	private <T> void addConstraintHandlersForBlockingPostEnforce(BlockingPostEnforceConstraintHandlerBundle<T> bundle,
-			JsonNode constraint, boolean isObligation, Class<T> clazz) {
-		var onDecisionHandlers = constructRunnableHandlersForConstraint(Signal.ON_DECISION, constraint, isObligation);
-		bundle.onDecisionHandlers.addAll(onDecisionHandlers);
-		var doOnNextHandlers = constructConsumerHandlersForConstraint(constraint, isObligation, clazz);
-		bundle.doOnNextHandlers.addAll(doOnNextHandlers);
-		var onNextMapHandlers = constructMappingConstraintHandlersForConstraint(constraint, isObligation, clazz);
-		bundle.onNextMapHandlers.addAll(onNextMapHandlers);
-		var doOnErrorHandlers = constructDoOnErrorHandlersForConstraint(constraint, isObligation);
-		bundle.doOnErrorHandlers.addAll(doOnErrorHandlers);
-		var onErrorMapHandlers = constructErrorMappingConstraintHandlersForConstraint(constraint, isObligation);
-		bundle.onErrorMapHandlers.addAll(onErrorMapHandlers);
-
-		if (!isObligation)
-			return;
-
-		var numberOfHandlersFound       = onDecisionHandlers.size() + doOnNextHandlers.size() + onNextMapHandlers.size()
-				+ doOnErrorHandlers.size() + onErrorMapHandlers.size();
-		var noHandlerFoundForObligation = numberOfHandlersFound == 0;
-		if (noHandlerFoundForObligation) {
-			throw new AccessDeniedException(
-					String.format("Access Denied by PEP. No handler found for obligation: %s", constraint));
-		}
 	}
 
 	public BlockingPreEnforceConstraintHandlerBundle blockingPreEnforceBundleFor(AuthorizationDecision decision) {
-		var bundle = new BlockingPreEnforceConstraintHandlerBundle();
-		addConstraintHandlersForBlockingPreEnforce(bundle, decision.getObligations(), true);
-		addConstraintHandlersForBlockingPreEnforce(bundle, decision.getAdvice(), false);
+		var bundle               = new BlockingPreEnforceConstraintHandlerBundle();
+		var unhandledObligations = Sets.newHashSet(decision.getObligations().orElseGet(() -> mapper.createArrayNode()));
+
+		bundle.setOnDecisionHandlers(runnableHandlersForSignal(Signal.ON_DECISION, decision, unhandledObligations));
+		bundle.setMethodInvocationHandlers(methodInvocationHandlers(decision, unhandledObligations));
+
+		if (!unhandledObligations.isEmpty())
+			throw new AccessDeniedException("No handler for obligation: " + unhandledObligations);
+
 		return bundle;
 	}
 
-	private void addConstraintHandlersForBlockingPreEnforce(BlockingPreEnforceConstraintHandlerBundle bundle,
-			Optional<ArrayNode> constraints, boolean isObligation) {
-		if (constraints.isPresent())
-			for (var constraint : constraints.get())
-				addConstraintHandlersForBlockingPreEnforce(bundle, constraint, isObligation);
+	private Consumer<MethodInvocation> methodInvocationHandlers(AuthorizationDecision decision,
+			HashSet<JsonNode> unhandledObligations) {
+		var obligationHandlers = obligation(constructMethodInvocationHandlersForConstraints(decision.getObligations(),
+				c -> unhandledObligations.remove(c)));
+		var adviceHandlers     = advice(constructMethodInvocationHandlersForConstraints(decision.getAdvice(), __ -> {
+								}));
+		return consumeWithBoth(obligationHandlers, adviceHandlers);
 	}
 
-	private void addConstraintHandlersForBlockingPreEnforce(BlockingPreEnforceConstraintHandlerBundle bundle,
-			JsonNode constraint, boolean isObligation) {
-		var onDecisionHandlers = constructRunnableHandlersForConstraint(Signal.ON_DECISION, constraint, isObligation);
-		bundle.onDecisionHandlers.addAll(onDecisionHandlers);
-		var methodInvocationHandlers = methodInvocationHandlersForConstraint(constraint, isObligation);
-		bundle.methodInvocationHandlers.addAll(methodInvocationHandlers);
+	private Consumer<MethodInvocation> constructMethodInvocationHandlersForConstraints(Optional<ArrayNode> constraints,
+			Consumer<JsonNode> onHandlerFound) {
+		var handlers = (Consumer<MethodInvocation>) __ -> {
+		};
 
-		if (isObligation) {
-			var numberOfHandlersFound       = onDecisionHandlers.size() + methodInvocationHandlers.size();
-			var noHandlerFoundForObligation = numberOfHandlersFound == 0;
-			if (noHandlerFoundForObligation) {
-				throw new AccessDeniedException(
-						String.format("Access Denied by PEP. No handler found for obligation: %s", constraint));
+		if (constraints.isEmpty())
+			return handlers;
+
+		for (var constraint : constraints.get()) {
+			for (var provider : methodInvocationHandlerProviders) {
+				if (provider.isResponsible(constraint)) {
+					onHandlerFound.accept(constraint);
+					handlers = consumeWithBoth(handlers, checkInvocationType(provider.getHandler(constraint)));
+				}
 			}
 		}
+
+		return handlers;
+	}
+
+	private Consumer<MethodInvocation> checkInvocationType(Consumer<ReflectiveMethodInvocation> handler) {
+		return i -> {
+			if (!(i instanceof ReflectiveMethodInvocation))
+				throw new IllegalArgumentException("MethodInvocation not ReflectiveMethodInvocation");
+			handler.accept((ReflectiveMethodInvocation) i);
+		};
+	}
+
+	private <T> Predicate<T> filterConstraintHandlers(AuthorizationDecision decision,
+			HashSet<JsonNode> unhandledObligations, Class<T> clazz) {
+		var obligationHandlers = constructFilterHandlersForConstraint(decision.getObligations(),
+				c -> unhandledObligations.remove(c), clazz, this::obligation);
+		var adviceHandlers     = constructFilterHandlersForConstraint(decision.getAdvice(), __ -> {
+								}, clazz, this::advice);
+		return both(obligationHandlers, adviceHandlers);
+	}
+
+	private <T> Predicate<T> both(Predicate<T> a, Predicate<T> b) {
+		return x -> a.test(x) && b.test(x);
+	}
+
+	@SuppressWarnings("unchecked") // provider.supports(clazz)
+	private <T> Predicate<T> constructFilterHandlersForConstraint(Optional<ArrayNode> constraints,
+			Consumer<JsonNode> onHandlerFound, Class<T> clazz, Function<Predicate<T>, Predicate<T>> wrapper) {
+		var handlers = (Predicate<T>) __ -> true;
+
+		if (constraints.isEmpty())
+			return handlers;
+
+		for (var constraint : constraints.get()) {
+			for (var provider : filterPredicateProviders) {
+				if (provider.supports(clazz) && provider.isResponsible(constraint)) {
+					onHandlerFound.accept(constraint);
+					handlers = both(handlers, wrapper.apply((Predicate<T>) provider.getHandler(constraint)));
+				}
+			}
+		}
+
+		return handlers;
+	}
+
+	private Consumer<Throwable> onErrorHandlers(AuthorizationDecision decision,
+			HashSet<JsonNode> unhandledObligations) {
+		var obligationHandlers = obligation(
+				constructOnErrorHandlersForConstraints(decision.getObligations(), c -> unhandledObligations.remove(c)));
+		var adviceHandlers     = advice(constructOnErrorHandlersForConstraints(decision.getAdvice(), __ -> {
+								}));
+		return consumeWithBoth(obligationHandlers, adviceHandlers);
+	}
+
+	private Consumer<Throwable> constructOnErrorHandlersForConstraints(Optional<ArrayNode> constraints,
+			Consumer<JsonNode> onHandlerFound) {
+		var handlers = (Consumer<Throwable>) __ -> {
+		};
+
+		if (constraints.isEmpty())
+			return handlers;
+
+		for (var constraint : constraints.get()) {
+			for (var provider : globalErrorHandlerProviders) {
+				if (provider.isResponsible(constraint)) {
+					onHandlerFound.accept(constraint);
+					handlers = consumeWithBoth(handlers, provider.getHandler(constraint));
+				}
+			}
+		}
+
+		return handlers;
+	}
+
+	private Function<Throwable, Throwable> mapErrorHandlers(AuthorizationDecision decision,
+			HashSet<JsonNode> unhandledObligations) {
+		var obligationHandlers = constructMapNextHandlersForConstraints(decision.getObligations(),
+				c -> unhandledObligations.remove(c), this::obligation);
+		var adviceHandlers     = constructMapNextHandlersForConstraints(decision.getAdvice(), __ -> {
+								}, this::advice);
+		return mapBoth(obligationHandlers, adviceHandlers);
+	}
+
+	private Function<Throwable, Throwable> constructMapNextHandlersForConstraints(Optional<ArrayNode> constraints,
+			Consumer<JsonNode> onHandlerFound,
+			Function<Function<Throwable, Throwable>, Function<Throwable, Throwable>> wrapper) {
+		var handlers = (Function<Throwable, Throwable>) t -> t;
+
+		if (constraints.isEmpty())
+			return handlers;
+
+		var prioritizedHandlers = new ArrayList<HandlerWithPriotiry<Function<Throwable, Throwable>>>();
+
+		for (var constraint : constraints.get()) {
+			for (var provider : globalErrorMappingHandlerProviders) {
+				if (provider.isResponsible(constraint)) {
+					onHandlerFound.accept(constraint);
+					prioritizedHandlers.add(new HandlerWithPriotiry<Function<Throwable, Throwable>>(
+							provider.getHandler(constraint), provider.getPriority()));
+				}
+			}
+		}
+
+		Collections.sort(prioritizedHandlers);
+
+		for (var handler : prioritizedHandlers) {
+			handlers = mapBoth(handlers, wrapper.apply(handler.getHandler()));
+		}
+
+		return handlers;
+	}
+
+	private <T> Function<T, T> mapNextHandlers(AuthorizationDecision decision, HashSet<JsonNode> unhandledObligations,
+			Class<T> clazz) {
+		var obligationHandlers = constructMapNextHandlersForConstraints(decision.getObligations(),
+				c -> unhandledObligations.remove(c), clazz, this::obligation);
+		var adviceHandlers     = constructMapNextHandlersForConstraints(decision.getAdvice(), __ -> {
+								}, clazz, this::advice);
+		return mapBoth(obligationHandlers, adviceHandlers);
+	}
+
+	@Data
+	@AllArgsConstructor
+	private static class HandlerWithPriotiry<T> implements Comparable<HandlerWithPriotiry<T>> {
+		T   handler;
+		int priority;
+
+		@Override
+		public int compareTo(HandlerWithPriotiry<T> o) {
+			return Integer.compare(o.priority, priority);
+		}
+	}
+
+	@SuppressWarnings("unchecked") // false positive. "support()" does check
+	private <T> Function<T, T> constructMapNextHandlersForConstraints(Optional<ArrayNode> constraints,
+			Consumer<JsonNode> onHandlerFound, Class<T> clazz, Function<Function<T, T>, Function<T, T>> wrapper) {
+		var handlers = (Function<T, T>) Functions.identity();
+
+		if (constraints.isEmpty())
+			return handlers;
+
+		var prioritizedHandlers = new ArrayList<HandlerWithPriotiry<Function<T, T>>>();
+		for (var constraint : constraints.get()) {
+			for (var provider : globalMappingHandlerProviders) {
+				if (provider.supports(clazz) && provider.isResponsible(constraint)) {
+					onHandlerFound.accept(constraint);
+					prioritizedHandlers.add(new HandlerWithPriotiry<Function<T, T>>(
+							(Function<T, T>) provider.getHandler(constraint), provider.getPriority()));
+				}
+			}
+		}
+
+		Collections.sort(prioritizedHandlers);
+
+		for (var handler : prioritizedHandlers) {
+			handlers = mapBoth(handlers, wrapper.apply(handler.getHandler()));
+		}
+
+		return handlers;
+	}
+
+	private <T> Consumer<T> onNextHandlers(AuthorizationDecision decision, HashSet<JsonNode> unhandledObligations,
+			Class<T> clazz) {
+		var obligationHandlers = obligation(constructOnNextHandlersForConstraints(decision.getObligations(),
+				c -> unhandledObligations.remove(c), clazz));
+		var adviceHandlers     = advice(constructOnNextHandlersForConstraints(decision.getAdvice(), __ -> {
+								}, clazz));
+		return consumeWithBoth(obligationHandlers, adviceHandlers);
+	}
+
+	@SuppressWarnings("unchecked") // false positive. "support()" does check
+	private <T> Consumer<T> constructOnNextHandlersForConstraints(Optional<ArrayNode> constraints,
+			Consumer<JsonNode> onHandlerFound, Class<T> clazz) {
+		var handlers = (Consumer<T>) __ -> {
+		};
+
+		if (constraints.isEmpty())
+			return handlers;
+
+		for (var constraint : constraints.get()) {
+			for (var provider : globalConsumerProviders) {
+				if (provider.supports(clazz) && provider.isResponsible(constraint)) {
+					onHandlerFound.accept(constraint);
+					handlers = consumeWithBoth(handlers, (Consumer<T>) provider.getHandler(constraint));
+				}
+			}
+		}
+
+		return handlers;
+	}
+
+	private LongConsumer requestHandlers(AuthorizationDecision decision, HashSet<JsonNode> unhandledObligations) {
+		var obligationHandlers = obligation(
+				constructRequestHandlersForConstraints(decision.getObligations(), c -> unhandledObligations.remove(c)));
+		var adviceHandlers     = advice(constructRequestHandlersForConstraints(decision.getAdvice(), __ -> {
+								}));
+		return consumeWithBoth(obligationHandlers, adviceHandlers);
+	}
+
+	private LongConsumer constructRequestHandlersForConstraints(Optional<ArrayNode> constraints,
+			Consumer<JsonNode> onHandlerFound) {
+		var handlers = (LongConsumer) __ -> {
+		};
+
+		if (constraints.isEmpty())
+			return handlers;
+
+		for (var constraint : constraints.get()) {
+			for (var provider : globalRequestHandlerProviders) {
+				if (provider.isResponsible(constraint)) {
+					onHandlerFound.accept(constraint);
+					handlers = consumeWithBoth(handlers, provider.getHandler(constraint));
+				}
+			}
+		}
+
+		return handlers;
+	}
+
+	private Consumer<Subscription> subscriptionHandlers(AuthorizationDecision decision,
+			HashSet<JsonNode> unhandledObligations) {
+		var obligationHandlers = obligation(constructSubscriptionHandlersForConstraints(decision.getObligations(),
+				c -> unhandledObligations.remove(c)));
+		var adviceHandlers     = advice(constructSubscriptionHandlersForConstraints(decision.getAdvice(), __ -> {
+								}));
+		return consumeWithBoth(obligationHandlers, adviceHandlers);
+	}
+
+	private Consumer<Subscription> constructSubscriptionHandlersForConstraints(Optional<ArrayNode> constraints,
+			Consumer<JsonNode> onHandlerFound) {
+		var handlers = (Consumer<Subscription>) __ -> {
+		};
+
+		if (constraints.isEmpty())
+			return handlers;
+
+		for (var constraint : constraints.get()) {
+			for (var provider : globalSubscriptionHandlerProviders) {
+				if (provider.isResponsible(constraint)) {
+					onHandlerFound.accept(constraint);
+					handlers = consumeWithBoth(handlers, provider.getHandler(constraint));
+				}
+			}
+		}
+
+		return handlers;
+	}
+
+	private Runnable runnableHandlersForSignal(Signal signal, AuthorizationDecision decision,
+			HashSet<JsonNode> unhandledObligations) {
+		var onDecisionObligationHandlers = obligation(constructRunnableHandlersForConstraints(signal,
+				decision.getObligations(), c -> unhandledObligations.remove(c)));
+		var onDecisionAdviceHandlers     = advice(
+				constructRunnableHandlersForConstraints(signal, decision.getAdvice(), __ -> {
+													}));
+		return runBoth(onDecisionObligationHandlers, onDecisionAdviceHandlers);
+	}
+
+	private <T> Predicate<T> obligation(Predicate<T> handlers) {
+		return x -> {
+			try {
+				return handlers.test(x);
+			} catch (Throwable t) {
+				Exceptions.throwIfFatal(t);
+				throw new AccessDeniedException("Failed to execute runnable obligation handler", t);
+			}
+		};
+	}
+
+	private <T> Predicate<T> advice(Predicate<T> handlers) {
+		return x -> {
+			try {
+				return handlers.test(x);
+			} catch (Throwable t) {
+				Exceptions.throwIfFatal(t);
+				return true;
+			}
+		};
+	}
+
+	private <T> Function<T, T> obligation(Function<T, T> handlers) {
+		return x -> {
+			try {
+				return handlers.apply(x);
+			} catch (Throwable t) {
+				Exceptions.throwIfFatal(t);
+				throw new AccessDeniedException("Failed to execute runnable obligation handler", t);
+			}
+		};
+	}
+
+	private <T> Function<T, T> advice(Function<T, T> handlers) {
+		return x -> {
+			try {
+				return handlers.apply(x);
+			} catch (Throwable t) {
+				Exceptions.throwIfFatal(t);
+				return x; // fallback to identity
+			}
+		};
+	}
+
+	private Runnable obligation(Runnable handlers) {
+		return () -> {
+			try {
+				handlers.run();
+			} catch (Throwable t) {
+				Exceptions.throwIfFatal(t);
+				throw new AccessDeniedException("Failed to execute runnable obligation handler", t);
+			}
+		};
+	}
+
+	private Runnable advice(Runnable handlers) {
+		return () -> {
+			try {
+				handlers.run();
+			} catch (Throwable t) {
+				Exceptions.throwIfFatal(t);
+			}
+		};
+	}
+
+	private <T> Consumer<T> obligation(Consumer<T> handlers) {
+		return s -> {
+			try {
+				handlers.accept(s);
+			} catch (Throwable t) {
+				Exceptions.throwIfFatal(t);
+				throw new AccessDeniedException("Failed to execute obligation handler " + s.getClass().getSimpleName(),
+						t);
+			}
+		};
+	}
+
+	private <T> Consumer<T> advice(Consumer<T> handlers) {
+		return s -> {
+			try {
+				handlers.accept(s);
+			} catch (Throwable t) {
+				Exceptions.throwIfFatal(t);
+			}
+		};
+	}
+
+	private LongConsumer obligation(LongConsumer handlers) {
+		return s -> {
+			try {
+				handlers.accept(s);
+			} catch (Throwable t) {
+				Exceptions.throwIfFatal(t);
+				throw Exceptions.bubble(new AccessDeniedException("Failed to execute request obligation handler", t));
+			}
+		};
+	}
+
+	private LongConsumer advice(LongConsumer handlers) {
+		return s -> {
+			try {
+				handlers.accept(s);
+			} catch (Throwable t) {
+				Exceptions.throwIfFatal(t);
+			}
+		};
+	}
+
+	private Runnable runBoth(Runnable a, Runnable b) {
+		return () -> {
+			a.run();
+			b.run();
+		};
+	}
+
+	private <T> Consumer<T> consumeWithBoth(Consumer<T> a, Consumer<T> b) {
+		return t -> {
+			a.accept(t);
+			b.accept(t);
+		};
+	}
+
+	private LongConsumer consumeWithBoth(LongConsumer a, LongConsumer b) {
+		return t -> {
+			a.accept(t);
+			b.accept(t);
+		};
+	}
+
+	private <T> Function<T, T> mapBoth(Function<T, T> first, Function<T, T> second) {
+		return t -> {
+			return second.apply(first.apply(t));
+		};
+	}
+
+	private Runnable constructRunnableHandlersForConstraints(Signal signal, Optional<ArrayNode> constraints,
+			Consumer<JsonNode> onHandlerFound) {
+		var handlers = (Runnable) () -> {
+		};
+
+		if (constraints.isEmpty())
+			return handlers;
+
+		for (var constraint : constraints.get()) {
+			for (var provider : globalRunnableIndex.get(signal)) {
+				if (provider.isResponsible(constraint)) {
+					onHandlerFound.accept(constraint);
+					handlers = runBoth(handlers, provider.getHandler(constraint));
+				}
+			}
+		}
+
+		return handlers;
 	}
 
 	public <T> T replaceResultIfResourceDefinitionIsPresentInDecision(AuthorizationDecision authzDecision,
@@ -269,146 +646,6 @@ public class ConstraintEnforcementService {
 	public <T> T unmarshallResource(JsonNode resource, Class<T> clazz)
 			throws JsonProcessingException, IllegalArgumentException {
 		return mapper.treeToValue(resource, clazz);
-	}
-
-	@SuppressWarnings("unchecked") // False positive the filter checks type
-	private <T> List<Predicate<T>> constructFilterConstraintHandlersForConstraint(JsonNode constraint,
-			boolean isObligation, Class<T> clazz) {
-		return filterPredicateProviders.stream().filter(provider -> provider.supports(clazz))
-				.filter(provider -> provider.isResponsible(constraint))
-				.map(provider -> (Predicate<T>) provider.getHandler(constraint)).collect(Collectors.toList());
-	}
-
-	private List<Consumer<MethodInvocation>> methodInvocationHandlersForConstraint(JsonNode constraint,
-			boolean isObligation) {
-		return methodInvocationHandlerProviders.stream().filter(provider -> provider.isResponsible(constraint))
-				.map(provider -> provider.getHandler(constraint))
-				.map(this::checkAndCastInvocationTypeBeforeInvokingHandler)
-				.map(failConsumerOnlyIfObligationOrFatal(isObligation)).collect(Collectors.toList());
-	}
-
-	private Consumer<MethodInvocation> checkAndCastInvocationTypeBeforeInvokingHandler(
-			Consumer<ReflectiveMethodInvocation> handler) {
-		return invocation -> handler.accept(castToReflectiveMethodInvocationOrFail(invocation));
-	}
-
-	private ReflectiveMethodInvocation castToReflectiveMethodInvocationOrFail(MethodInvocation methodInvocation) {
-		var isReflectiveMethodInvocation = methodInvocation instanceof ReflectiveMethodInvocation;
-		if (!isReflectiveMethodInvocation) {
-			var message = "Can only enforce constraints on ReflectiveMethodInvocation.";
-			log.warn(message);
-			throw new IllegalArgumentException(message);
-		}
-		return (ReflectiveMethodInvocation) methodInvocation;
-	}
-
-	private List<Function<Throwable, Throwable>> constructErrorMappingConstraintHandlersForConstraint(
-			JsonNode constraint, boolean isObligation) {
-		return globalErrorMappingHandlerProviders.stream().filter(provider -> provider.isResponsible(constraint))
-				.map(provider -> provider.getHandler(constraint))
-				.map(failFunctionOnlyIfObligationOrFatalElseFallBackToIdentity(isObligation))
-				.collect(Collectors.toList());
-	}
-
-	@SuppressWarnings("unchecked") // False positive the filter checks type
-	private <T> List<Function<T, T>> constructMappingConstraintHandlersForConstraint(JsonNode constraint,
-			boolean isObligation, Class<T> clazz) {
-		return globalMappingHandlerProviders.stream().filter(provider -> provider.supports(clazz))
-				.filter(provider -> provider.isResponsible(constraint))
-				.map(provider -> (Function<T, T>) provider.getHandler(constraint))
-				.map(failFunctionOnlyIfObligationOrFatalElseFallBackToIdentity(isObligation))
-				.collect(Collectors.toList());
-	}
-
-	private List<Consumer<Subscription>> constructOnSubscribeHandlersForConstraint(JsonNode constraint,
-			boolean isObligation) {
-		return globalSubscriptionHandlerProviders.stream().filter(provider -> provider.isResponsible(constraint))
-				.map(provider -> provider.getHandler(constraint)).map(failConsumerOnlyIfObligationOrFatal(isObligation))
-				.collect(Collectors.toList());
-	}
-
-	private List<LongConsumer> constructOnRequestHandlersForConstraint(JsonNode constraint, boolean isObligation) {
-
-		return globalRequestHandlerProviders.stream().filter(provider -> provider.isResponsible(constraint))
-				.map(provider -> provider.getHandler(constraint))
-				.map(failLongConsumerOnlyIfObligationOrFatal(isObligation)).collect(Collectors.toList());
-	}
-
-	private List<Consumer<Throwable>> constructDoOnErrorHandlersForConstraint(JsonNode constraint,
-			boolean isObligation) {
-		return globalErrorHandlerProviders.stream().filter(provider -> provider.isResponsible(constraint))
-				.map(provider -> provider.getHandler(constraint)).map(failConsumerOnlyIfObligationOrFatal(isObligation))
-				.collect(Collectors.toList());
-	}
-
-	@SuppressWarnings("unchecked") // False positive the filter checks type
-	private <T> List<Consumer<T>> constructConsumerHandlersForConstraint(JsonNode constraint, boolean isObligation,
-			Class<T> clazz) {
-		return globalConsumerProviders.stream().filter(provider -> provider.supports(clazz))
-				.filter(provider -> provider.isResponsible(constraint))
-				.map(provider -> (Consumer<T>) provider.getHandler(constraint))
-				.map(failConsumerOnlyIfObligationOrFatal(isObligation)).collect(Collectors.toList());
-	}
-
-	private List<Runnable> constructRunnableHandlersForConstraint(Signal signal, JsonNode constraint,
-			boolean isObligation) {
-		var potentialProviders = globalRunnableIndex.get(signal);
-		return potentialProviders.stream().filter(provider -> provider.isResponsible(constraint))
-				.map(provider -> provider.getHandler(constraint)).map(failRunnableOnlyIfObligationOrFatal(isObligation))
-				.collect(Collectors.toList());
-	}
-
-	private Function<Runnable, Runnable> failRunnableOnlyIfObligationOrFatal(boolean isObligation) {
-		return runnable -> () -> {
-			try {
-				runnable.run();
-			} catch (Throwable t) {
-				Exceptions.throwIfFatal(t);
-				if (isObligation)
-					throw new AccessDeniedException("Failed to execute runnable constraint handler", t);
-			}
-		};
-	}
-
-	private <T> Function<Consumer<T>, Consumer<T>> failConsumerOnlyIfObligationOrFatal(boolean isObligation) {
-		return consumer -> value -> {
-			try {
-				consumer.accept(value);
-			} catch (Throwable t) {
-				Exceptions.throwIfFatal(t);
-				if (isObligation)
-					throw new AccessDeniedException("Failed to execute consumer constraint handler", t);
-			}
-		};
-	}
-
-	private Function<LongConsumer, LongConsumer> failLongConsumerOnlyIfObligationOrFatal(boolean isObligation) {
-		return consumer -> value -> {
-			try {
-				consumer.accept(value);
-			} catch (Throwable t) {
-				Exceptions.throwIfFatal(t);
-				// non-fatal will not be reported by Flux in doOnRequest -> Bubble to
-				// force failure for an obligation
-				if (isObligation)
-					throw Exceptions
-							.bubble(new AccessDeniedException("Failed to execute consumer constraint handler", t));
-			}
-		};
-	}
-
-	private <T> Function<Function<T, T>, Function<T, T>> failFunctionOnlyIfObligationOrFatalElseFallBackToIdentity(
-			boolean isObligation) {
-		return function -> value -> {
-			try {
-				return function.apply(value);
-			} catch (Throwable t) {
-				Exceptions.throwIfFatal(t);
-				if (isObligation)
-					throw new AccessDeniedException("Failed to execute consumer constraint handler", t);
-				return value;
-			}
-		};
 	}
 
 }

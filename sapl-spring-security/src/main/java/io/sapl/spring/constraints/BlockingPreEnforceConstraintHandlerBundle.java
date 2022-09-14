@@ -15,26 +15,26 @@
  */
 package io.sapl.spring.constraints;
 
-import static io.sapl.spring.constraints.BundleUtil.consumeAll;
-import static io.sapl.spring.constraints.BundleUtil.runAll;
-
-import java.util.LinkedList;
-import java.util.List;
 import java.util.function.Consumer;
 
 import org.aopalliance.intercept.MethodInvocation;
 
-public class BlockingPreEnforceConstraintHandlerBundle {
+import lombok.AccessLevel;
+import lombok.Setter;
 
-	final List<Runnable>                   onDecisionHandlers       = new LinkedList<>();
-	final List<Consumer<MethodInvocation>> methodInvocationHandlers = new LinkedList<>();
+@Setter(AccessLevel.PROTECTED)
+public class BlockingPreEnforceConstraintHandlerBundle {
+	// @formatter:off
+	private Runnable                   onDecisionHandlers       = () -> {};
+	private Consumer<MethodInvocation> methodInvocationHandlers = __ -> {};
+	// @formatter:on
 
 	public void handleOnDecisionConstraints() {
-		runAll(onDecisionHandlers).run();
+		onDecisionHandlers.run();
 	}
 
 	public void handleMethodInvocationHandlers(MethodInvocation methodInvocation) {
-		consumeAll(methodInvocationHandlers).accept(methodInvocation);
+		methodInvocationHandlers.accept(methodInvocation);
 	}
 
 }

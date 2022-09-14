@@ -15,8 +15,6 @@
  */
 package io.sapl.spring.constraints;
 
-import java.util.LinkedList;
-import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongConsumer;
@@ -25,27 +23,34 @@ import java.util.function.Predicate;
 import org.aopalliance.intercept.MethodInvocation;
 import org.reactivestreams.Subscription;
 
+import lombok.AccessLevel;
+import lombok.Setter;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+@Setter(AccessLevel.PROTECTED)
 public class ReactiveTypeConstraintHandlerBundle<T> {
 
-	final List<Runnable>                       onDecisionHandlers       = new LinkedList<>();
-	final List<Runnable>                       onCancelHandlers         = new LinkedList<>();
-	final List<Runnable>                       onCompleteHandlers       = new LinkedList<>();
-	final List<Runnable>                       onTerminateHandlers      = new LinkedList<>();
-	final List<Runnable>                       afterTerminateHandlers   = new LinkedList<>();
-	final List<Consumer<Subscription>>         onSubscribeHandlers      = new LinkedList<>();
-	final List<LongConsumer>                   onRequestHandlers        = new LinkedList<>();
-	final List<Consumer<T>>                    doOnNextHandlers         = new LinkedList<>();
-	final List<Function<T, T>>                 onNextMapHandlers        = new LinkedList<>();
-	final List<Consumer<Throwable>>            doOnErrorHandlers        = new LinkedList<>();
-	final List<Function<Throwable, Throwable>> onErrorMapHandlers       = new LinkedList<>();
-	final List<Predicate<T>>                   filterPredicateHandlers  = new LinkedList<>();
-	public List<Consumer<MethodInvocation>>    methodInvocationHandlers = new LinkedList<>();
+	// @formatter:off
+	private static final Runnable NOP = () -> {};
+
+	private Runnable                       onDecisionHandlers       = NOP;
+	private Runnable                       onCancelHandlers         = NOP;
+	private Runnable                       onCompleteHandlers       = NOP;
+	private Runnable                       onTerminateHandlers      = NOP;
+	private Runnable                       afterTerminateHandlers   = NOP;
+	private Consumer<Subscription>         onSubscribeHandlers      = __->{};
+	private LongConsumer                   onRequestHandlers        = __->{};
+	private Consumer<T>                    doOnNextHandlers         = __->{};
+	private Function<T, T>                 onNextMapHandlers        = x->x;
+	private Consumer<Throwable>            doOnErrorHandlers        = __->{};
+	private Function<Throwable, Throwable> onErrorMapHandlers       = x->x;
+	private Predicate<T>                   filterPredicateHandlers  = __->true;
+	private Consumer<MethodInvocation>     methodInvocationHandlers = __->{};
+	// @formatter:on
 
 	public void handleOnSubscribeConstraints(Subscription s) {
-		consumeAll(onSubscribeHandlers).accept(s);
+		onSubscribeHandlers.accept(s);
 	}
 
 	public T handleAllOnNextConstraints(T value) {
@@ -54,39 +59,39 @@ public class ReactiveTypeConstraintHandlerBundle<T> {
 	}
 
 	private T handleOnNextMapConstraints(T value) {
-		return mapAll(onNextMapHandlers).apply(value);
+		return onNextMapHandlers.apply(value);
 	}
 
-	public void handleOnNextConstraints(T value) {
-		consumeAll(doOnNextHandlers).accept(value);
+	private void handleOnNextConstraints(T value) {
+		doOnNextHandlers.accept(value);
 	}
 
 	public void handleOnRequestConstraints(Long value) {
-		consumeAllLong(onRequestHandlers).accept(value);
+		onRequestHandlers.accept(value);
 	}
 
 	public void handleOnCompleteConstraints() {
-		runAll(onCompleteHandlers).run();
+		onCompleteHandlers.run();
 	}
 
 	public void handleOnTerminateConstraints() {
-		runAll(onTerminateHandlers).run();
+		onTerminateHandlers.run();
 	}
 
 	public void handleOnDecisionConstraints() {
-		runAll(onDecisionHandlers).run();
+		onDecisionHandlers.run();
 	}
 
 	public void handleAfterTerminateConstraints() {
-		runAll(afterTerminateHandlers).run();
+		afterTerminateHandlers.run();
 	}
 
 	public void handleOnCancelConstraints() {
-		runAll(onCancelHandlers).run();
+		onCancelHandlers.run();
 	}
 
 	public void handleMethodInvocationHandlers(MethodInvocation methodInvocation) {
-		consumeAll(methodInvocationHandlers).accept(methodInvocation);
+		methodInvocationHandlers.accept(methodInvocation);
 	}
 
 	public Throwable handleAllOnErrorConstraints(Throwable error) {
@@ -95,82 +100,26 @@ public class ReactiveTypeConstraintHandlerBundle<T> {
 	}
 
 	private Throwable handleOnErrorMapConstraints(Throwable error) {
-		return mapAll(onErrorMapHandlers).apply(error);
+		return onErrorMapHandlers.apply(error);
 	}
 
 	private void handleOnErrorConstraints(Throwable error) {
-		consumeAll(doOnErrorHandlers).accept(error);
+		doOnErrorHandlers.accept(error);
 	}
 
 	public Flux<T> wrap(Flux<T> resourceAccessPoint) {
-		var wrapped = resourceAccessPoint;
-
-		if (!onRequestHandlers.isEmpty())
-			wrapped = wrapped.doOnRequest(this::handleOnRequestConstraints);
-
-		if (!onSubscribeHandlers.isEmpty())
-			wrapped = wrapped.doOnSubscribe(this::handleOnSubscribeConstraints);
-
-		if (!filterPredicateHandlers.isEmpty())
-			wrapped = wrapped.filter(this::applyFilterPredicates);
-
-		if (!onErrorMapHandlers.isEmpty())
-			wrapped = wrapped.onErrorMap(this::handleOnErrorMapConstraints);
-
-		if (!doOnErrorHandlers.isEmpty())
-			wrapped = wrapped.doOnError(this::handleOnErrorConstraints);
-
-		if (!onNextMapHandlers.isEmpty())
-			wrapped = wrapped.map(this::handleOnNextMapConstraints);
-
-		if (!doOnNextHandlers.isEmpty())
-			wrapped = wrapped.doOnNext(this::handleOnNextConstraints);
-
-		if (!onCancelHandlers.isEmpty())
-			wrapped = wrapped.doOnCancel(this::handleOnCancelConstraints);
-
-		if (!onCompleteHandlers.isEmpty())
-			wrapped = wrapped.doOnComplete(this::handleOnCompleteConstraints);
-
-		if (!onTerminateHandlers.isEmpty())
-			wrapped = wrapped.doOnTerminate(this::handleOnTerminateConstraints);
-
-		if (!afterTerminateHandlers.isEmpty())
-			wrapped = wrapped.doAfterTerminate(this::handleAfterTerminateConstraints);
-
-		if (!onDecisionHandlers.isEmpty())
-			wrapped = onDecision(onDecisionHandlers).thenMany(wrapped);
-
-		return wrapped;
+		var wrapped = resourceAccessPoint.doOnRequest(onRequestHandlers)
+				.doOnSubscribe(onSubscribeHandlers).filter(filterPredicateHandlers)
+				.onErrorMap(onErrorMapHandlers).doOnError(doOnErrorHandlers)
+				.map(onNextMapHandlers).doOnNext(doOnNextHandlers)
+				.doOnCancel(onCancelHandlers).doOnComplete(onCompleteHandlers)
+				.doOnTerminate(onTerminateHandlers)
+				.doAfterTerminate(afterTerminateHandlers);
+		return onDecision(onDecisionHandlers).thenMany(wrapped);
 	}
 
-	private boolean applyFilterPredicates(T value) {
-		var result = true;
-		for (var predicate : filterPredicateHandlers)
-			result &= predicate.test(value);
-		return result;
-	}
-
-	private LongConsumer consumeAllLong(List<LongConsumer> handlers) {
-		return value -> handlers.forEach(handler -> handler.accept(value));
-	}
-
-	private <V> Function<V, V> mapAll(List<Function<V, V>> handlers) {
-		return value -> handlers.stream()
-				.reduce(Function.identity(), (merged, newFunction) -> x -> newFunction.apply(merged.apply(x)))
-				.apply(value);
-	}
-
-	private <V> Consumer<V> consumeAll(List<Consumer<V>> handlers) {
-		return value -> handlers.forEach(handler -> handler.accept(value));
-	}
-
-	private Mono<Void> onDecision(List<Runnable> handlers) {
-		return Mono.fromRunnable(runAll(handlers));
-	}
-
-	private Runnable runAll(List<Runnable> handlers) {
-		return () -> handlers.forEach(Runnable::run);
+	private Mono<Void> onDecision(Runnable handlers) {
+		return Mono.fromRunnable(handlers);
 	}
 
 }
