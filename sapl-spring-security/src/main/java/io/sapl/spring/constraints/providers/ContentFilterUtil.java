@@ -1,8 +1,14 @@
 package io.sapl.spring.constraints.providers;
 
+import java.lang.reflect.Array;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -48,6 +54,56 @@ public class ContentFilterUtil {
 	private static final String ACTIONS_NOT_AN_ARRAY     = "'actions' is not an array.";
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+
+	public static Function<Object, Object> getHandler(JsonNode constraint, ObjectMapper objectMapper) {
+		var predicate      = ContentFilterUtil.predicateFromConditions(constraint, objectMapper);
+		var transformation = ContentFilterUtil.getTransformationHandler(constraint, objectMapper);
+
+		return payload -> {
+
+			if (payload == null)
+				return null;
+
+			if (payload instanceof Optional)
+				return ((Optional<?>) payload).map(x -> mapElement(x, transformation, predicate));
+			if (payload instanceof List)
+				return mapListContents((List<?>) payload, transformation, predicate);
+			if (payload instanceof Set)
+				return mapSetContents((Set<?>) payload, transformation, predicate);
+
+			if (payload.getClass().isArray()) {
+				var filteredAsList = mapListContents((List<?>) payload, transformation, predicate);
+				var resultArray    = Array.newInstance(payload.getClass().getComponentType(), filteredAsList.size());
+
+				var i = 0;
+				for (var x : filteredAsList)
+					Array.set(resultArray, i++, x);
+
+				return resultArray;
+			}
+
+			return mapElement(payload, transformation, predicate);
+
+		};
+	}
+
+	private static Object mapElement(Object payload, Function<Object, Object> transformation,
+			Predicate<Object> predicate) {
+		if (predicate.test(payload))
+			return transformation.apply(payload);
+
+		return payload;
+	}
+
+	private static List<?> mapListContents(Collection<?> payload, Function<Object, Object> transformation,
+			Predicate<Object> predicate) {
+		return payload.stream().map(o -> mapElement(o, transformation, predicate)).collect(Collectors.toList());
+	}
+
+	private static Set<?> mapSetContents(Collection<?> payload, Function<Object, Object> transformation,
+			Predicate<Object> predicate) {
+		return payload.stream().map(o -> mapElement(o, transformation, predicate)).collect(Collectors.toSet());
+	}
 
 	public static Predicate<Object> predicateFromConditions(JsonNode constraint, ObjectMapper objectMapper) {
 		Predicate<Object> predicate = __ -> true;
@@ -199,7 +255,7 @@ public class ContentFilterUtil {
 				|| constraint.get(CONDITIONS).isEmpty();
 	}
 
-	public static Function<Object, Object> getHandler(JsonNode constraint, ObjectMapper objectMapper) {
+	public static Function<Object, Object> getTransformationHandler(JsonNode constraint, ObjectMapper objectMapper) {
 		return original -> {
 			var actions               = constraint.get(ACTIONS);
 			var jsonPathConfiguration = Configuration.builder()

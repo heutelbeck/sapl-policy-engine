@@ -23,12 +23,13 @@ import java.util.function.Predicate;
 import org.aopalliance.intercept.MethodInvocation;
 import org.reactivestreams.Subscription;
 
-import lombok.AccessLevel;
-import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-@Setter(AccessLevel.PROTECTED)
+@NoArgsConstructor
+@AllArgsConstructor
 public class ReactiveTypeConstraintHandlerBundle<T> {
 
 	// @formatter:off
@@ -45,7 +46,7 @@ public class ReactiveTypeConstraintHandlerBundle<T> {
 	private Function<T, T>                 onNextMapHandlers        = x->x;
 	private Consumer<Throwable>            doOnErrorHandlers        = __->{};
 	private Function<Throwable, Throwable> onErrorMapHandlers       = x->x;
-	private Predicate<T>                   filterPredicateHandlers  = __->true;
+	private Predicate<Object>              filterPredicateHandlers  = __->true;
 	private Consumer<MethodInvocation>     methodInvocationHandlers = __->{};
 	// @formatter:on
 
@@ -108,12 +109,10 @@ public class ReactiveTypeConstraintHandlerBundle<T> {
 	}
 
 	public Flux<T> wrap(Flux<T> resourceAccessPoint) {
-		var wrapped = resourceAccessPoint.doOnRequest(onRequestHandlers)
-				.doOnSubscribe(onSubscribeHandlers).filter(filterPredicateHandlers)
-				.onErrorMap(onErrorMapHandlers).doOnError(doOnErrorHandlers)
-				.map(onNextMapHandlers).doOnNext(doOnNextHandlers)
-				.doOnCancel(onCancelHandlers).doOnComplete(onCompleteHandlers)
-				.doOnTerminate(onTerminateHandlers)
+		var wrapped = resourceAccessPoint.doOnRequest(onRequestHandlers).doOnSubscribe(onSubscribeHandlers)
+				.filter(filterPredicateHandlers).onErrorMap(onErrorMapHandlers).doOnError(doOnErrorHandlers)
+				.map(onNextMapHandlers).doOnNext(doOnNextHandlers).doOnCancel(onCancelHandlers)
+				.doOnComplete(onCompleteHandlers).doOnTerminate(onTerminateHandlers)
 				.doAfterTerminate(afterTerminateHandlers);
 		return onDecision(onDecisionHandlers).thenMany(wrapped);
 	}

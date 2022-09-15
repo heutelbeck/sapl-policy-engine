@@ -19,8 +19,8 @@ import java.util.function.Predicate;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-public interface FilterPredicateConstraintHandlerProvider<T> extends Responsible, TypeSupport<T> {
+public interface FilterPredicateConstraintHandlerProvider extends Responsible {
 
-	Predicate<T> getHandler(JsonNode constraint);
+	Predicate<Object> getHandler(JsonNode constraint);
 
 }

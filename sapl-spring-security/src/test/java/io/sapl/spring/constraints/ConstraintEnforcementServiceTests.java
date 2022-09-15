@@ -94,7 +94,7 @@ public class ConstraintEnforcementServiceTests {
 
 	List<ErrorHandlerProvider> globalErrorHandlerProviders;
 
-	List<FilterPredicateConstraintHandlerProvider<?>> globalFilterPredicateProviders;
+	List<FilterPredicateConstraintHandlerProvider> globalFilterPredicateProviders;
 
 	List<MethodInvocationConstraintHandlerProvider> globalInvocationHandlerProviders;
 
@@ -922,7 +922,7 @@ public class ConstraintEnforcementServiceTests {
 
 	@Test
 	void when_filterObligation_then_ElementsFiltered() {
-		var provider = spy(new FilterPredicateConstraintHandlerProvider<Integer>() {
+		var provider = spy(new FilterPredicateConstraintHandlerProvider() {
 
 			@Override
 			public boolean isResponsible(JsonNode constraint) {
@@ -930,17 +930,12 @@ public class ConstraintEnforcementServiceTests {
 			}
 
 			@Override
-			public Predicate<Integer> getHandler(JsonNode constraint) {
+			public Predicate<Object> getHandler(JsonNode constraint) {
 				return this::test;
 			}
 
-			public boolean test(Integer i) {
-				return i % 2 == 0;
-			}
-
-			@Override
-			public Class<Integer> getSupportedType() {
-				return Integer.class;
+			public boolean test(Object i) {
+				return ((Integer) i) % 2 == 0;
 			}
 
 		});
@@ -978,7 +973,7 @@ public class ConstraintEnforcementServiceTests {
 		var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
 		var resourceAccessPoint = Flux.just(1, 2, 3);
 		var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
-				resourceAccessPoint, Integer.class);		
+				resourceAccessPoint, Integer.class);
 		assertThrows(RuntimeException.class, wrapped::blockLast);
 	}
 

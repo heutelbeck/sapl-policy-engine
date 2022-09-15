@@ -19,15 +19,12 @@ import java.util.function.Consumer;
 
 import org.aopalliance.intercept.MethodInvocation;
 
-import lombok.AccessLevel;
-import lombok.Setter;
+import lombok.RequiredArgsConstructor;
 
-@Setter(AccessLevel.PROTECTED)
+@RequiredArgsConstructor
 public class BlockingPreEnforceConstraintHandlerBundle {
-	// @formatter:off
-	private Runnable                   onDecisionHandlers       = () -> {};
-	private Consumer<MethodInvocation> methodInvocationHandlers = __ -> {};
-	// @formatter:on
+	private final Runnable                   onDecisionHandlers;
+	private final Consumer<MethodInvocation> methodInvocationHandlers;
 
 	public void handleOnDecisionConstraints() {
 		onDecisionHandlers.run();

@@ -104,7 +104,7 @@ public class PostEnforcePolicyEnforcementPointTests {
 
 	List<ErrorHandlerProvider> globalErrorHandlerProviders;
 
-	List<FilterPredicateConstraintHandlerProvider<?>> globalFilterPredicateProviders;
+	List<FilterPredicateConstraintHandlerProvider> globalFilterPredicateProviders;
 
 	List<MethodInvocationConstraintHandlerProvider> globalInvocationHandlerProviders;
 

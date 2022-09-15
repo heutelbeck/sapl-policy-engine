@@ -67,7 +67,7 @@ public class ConstraintEnforcementService {
 	private final List<MappingConstraintHandlerProvider<?>>           globalMappingHandlerProviders;
 	private final List<ErrorMappingConstraintHandlerProvider>         globalErrorMappingHandlerProviders;
 	private final List<ErrorHandlerProvider>                          globalErrorHandlerProviders;
-	private final List<FilterPredicateConstraintHandlerProvider<?>>   filterPredicateProviders;
+	private final List<FilterPredicateConstraintHandlerProvider>      filterPredicateProviders;
 	private final List<MethodInvocationConstraintHandlerProvider>     methodInvocationHandlerProviders;
 	private final ObjectMapper                                        mapper;
 	private final Multimap<Signal, RunnableConstraintHandlerProvider> globalRunnableIndex;
@@ -79,7 +79,7 @@ public class ConstraintEnforcementService {
 			List<MappingConstraintHandlerProvider<?>> globalMappingHandlerProviders,
 			List<ErrorMappingConstraintHandlerProvider> globalErrorMappingHandlerProviders,
 			List<ErrorHandlerProvider> globalErrorHandlerProviders,
-			List<FilterPredicateConstraintHandlerProvider<?>> filterPredicateProviders,
+			List<FilterPredicateConstraintHandlerProvider> filterPredicateProviders,
 			List<MethodInvocationConstraintHandlerProvider> methodInvocationHandlerProviders, ObjectMapper mapper) {
 
 		this.globalConsumerProviders            = globalConsumerProviders;
@@ -115,26 +115,23 @@ public class ConstraintEnforcementService {
 			Class<T> clazz) {
 
 		var unhandledObligations = Sets.newHashSet(decision.getObligations().orElseGet(() -> mapper.createArrayNode()));
-		var bundle               = new ReactiveTypeConstraintHandlerBundle<T>();
 
-		bundle.setOnDecisionHandlers(runnableHandlersForSignal(Signal.ON_DECISION, decision, unhandledObligations));
-		bundle.setOnCancelHandlers(runnableHandlersForSignal(Signal.ON_CANCEL, decision, unhandledObligations));
-		bundle.setOnCompleteHandlers(runnableHandlersForSignal(Signal.ON_COMPLETE, decision, unhandledObligations));
-		bundle.setOnTerminateHandlers(runnableHandlersForSignal(Signal.ON_TERMINATE, decision, unhandledObligations));
-		bundle.setAfterTerminateHandlers(
-				runnableHandlersForSignal(Signal.AFTER_TERMINATE, decision, unhandledObligations));
-
-		bundle.setOnSubscribeHandlers(subscriptionHandlers(decision, unhandledObligations));
-		bundle.setOnRequestHandlers(requestHandlers(decision, unhandledObligations));
-
-		bundle.setDoOnNextHandlers(onNextHandlers(decision, unhandledObligations, clazz));
-		bundle.setOnNextMapHandlers(mapNextHandlers(decision, unhandledObligations, clazz));
-
-		bundle.setDoOnErrorHandlers(onErrorHandlers(decision, unhandledObligations));
-		bundle.setOnErrorMapHandlers(mapErrorHandlers(decision, unhandledObligations));
-
-		bundle.setFilterPredicateHandlers(filterConstraintHandlers(decision, unhandledObligations, clazz));
-		bundle.setMethodInvocationHandlers(methodInvocationHandlers(decision, unhandledObligations));
+		// @formatter:off
+		var bundle = new ReactiveTypeConstraintHandlerBundle<T>(
+				runnableHandlersForSignal(Signal.ON_DECISION, decision, unhandledObligations),
+				runnableHandlersForSignal(Signal.ON_CANCEL, decision, unhandledObligations),
+				runnableHandlersForSignal(Signal.ON_COMPLETE, decision, unhandledObligations),
+				runnableHandlersForSignal(Signal.ON_TERMINATE, decision, unhandledObligations),
+				runnableHandlersForSignal(Signal.AFTER_TERMINATE, decision, unhandledObligations),
+				subscriptionHandlers(decision, unhandledObligations), 
+				requestHandlers(decision, unhandledObligations),
+				onNextHandlers(decision, unhandledObligations, clazz),
+				mapNextHandlers(decision, unhandledObligations, clazz),
+				onErrorHandlers(decision, unhandledObligations),
+				mapErrorHandlers(decision, unhandledObligations),
+				filterConstraintHandlers(decision, unhandledObligations),
+				methodInvocationHandlers(decision, unhandledObligations));
+		// @formatter:on
 
 		if (!unhandledObligations.isEmpty())
 			throw new AccessDeniedException("No handler for obligation: " + unhandledObligations);
@@ -144,17 +141,18 @@ public class ConstraintEnforcementService {
 
 	public <T> BlockingPostEnforceConstraintHandlerBundle<T> blockingPostEnforceBundleFor(
 			AuthorizationDecision decision, Class<T> clazz) {
-		var bundle = new BlockingPostEnforceConstraintHandlerBundle<T>();
 
 		var unhandledObligations = Sets.newHashSet(decision.getObligations().orElseGet(() -> mapper.createArrayNode()));
 
-		bundle.setOnDecisionHandlers(runnableHandlersForSignal(Signal.ON_DECISION, decision, unhandledObligations));
-
-		bundle.setDoOnNextHandlers(onNextHandlers(decision, unhandledObligations, clazz));
-		bundle.setOnNextMapHandlers(mapNextHandlers(decision, unhandledObligations, clazz));
-
-		bundle.setDoOnErrorHandlers(onErrorHandlers(decision, unhandledObligations));
-		bundle.setOnErrorMapHandlers(mapErrorHandlers(decision, unhandledObligations));
+		// @formatter:off
+		var bundle = new BlockingPostEnforceConstraintHandlerBundle<T>(
+				runnableHandlersForSignal(Signal.ON_DECISION, decision, unhandledObligations),
+				onNextHandlers(decision, unhandledObligations, clazz),
+				mapNextHandlers(decision, unhandledObligations, clazz), 
+				onErrorHandlers(decision, unhandledObligations),
+				mapErrorHandlers(decision, unhandledObligations),
+				filterConstraintHandlers(decision, unhandledObligations));
+		// @formatter:on
 
 		if (!unhandledObligations.isEmpty())
 			throw new AccessDeniedException("No handler for obligation: " + unhandledObligations);
@@ -163,11 +161,11 @@ public class ConstraintEnforcementService {
 	}
 
 	public BlockingPreEnforceConstraintHandlerBundle blockingPreEnforceBundleFor(AuthorizationDecision decision) {
-		var bundle               = new BlockingPreEnforceConstraintHandlerBundle();
 		var unhandledObligations = Sets.newHashSet(decision.getObligations().orElseGet(() -> mapper.createArrayNode()));
 
-		bundle.setOnDecisionHandlers(runnableHandlersForSignal(Signal.ON_DECISION, decision, unhandledObligations));
-		bundle.setMethodInvocationHandlers(methodInvocationHandlers(decision, unhandledObligations));
+		var bundle = new BlockingPreEnforceConstraintHandlerBundle(
+				runnableHandlersForSignal(Signal.ON_DECISION, decision, unhandledObligations),
+				methodInvocationHandlers(decision, unhandledObligations));
 
 		if (!unhandledObligations.isEmpty())
 			throw new AccessDeniedException("No handler for obligation: " + unhandledObligations);
@@ -212,32 +210,27 @@ public class ConstraintEnforcementService {
 		};
 	}
 
-	private <T> Predicate<T> filterConstraintHandlers(AuthorizationDecision decision,
-			HashSet<JsonNode> unhandledObligations, Class<T> clazz) {
+	private Predicate<Object> filterConstraintHandlers(AuthorizationDecision decision,
+			HashSet<JsonNode> unhandledObligations) {
 		var obligationHandlers = constructFilterHandlersForConstraint(decision.getObligations(),
-				c -> unhandledObligations.remove(c), clazz, this::obligation);
+				c -> unhandledObligations.remove(c), this::obligation);
 		var adviceHandlers     = constructFilterHandlersForConstraint(decision.getAdvice(), __ -> {
-								}, clazz, this::advice);
-		return both(obligationHandlers, adviceHandlers);
+								}, this::advice);
+		return obligationHandlers.and(adviceHandlers);
 	}
 
-	private <T> Predicate<T> both(Predicate<T> a, Predicate<T> b) {
-		return x -> a.test(x) && b.test(x);
-	}
-
-	@SuppressWarnings("unchecked") // provider.supports(clazz)
-	private <T> Predicate<T> constructFilterHandlersForConstraint(Optional<ArrayNode> constraints,
-			Consumer<JsonNode> onHandlerFound, Class<T> clazz, Function<Predicate<T>, Predicate<T>> wrapper) {
-		var handlers = (Predicate<T>) __ -> true;
+	private Predicate<Object> constructFilterHandlersForConstraint(Optional<ArrayNode> constraints,
+			Consumer<JsonNode> onHandlerFound, Function<Predicate<Object>, Predicate<Object>> wrapper) {
+		var handlers = (Predicate<Object>) __ -> true;
 
 		if (constraints.isEmpty())
 			return handlers;
 
 		for (var constraint : constraints.get()) {
 			for (var provider : filterPredicateProviders) {
-				if (provider.supports(clazz) && provider.isResponsible(constraint)) {
+				if (provider.isResponsible(constraint)) {
 					onHandlerFound.accept(constraint);
-					handlers = both(handlers, wrapper.apply((Predicate<T>) provider.getHandler(constraint)));
+					handlers = handlers.and(wrapper.apply(provider.getHandler(constraint)));
 				}
 			}
 		}
