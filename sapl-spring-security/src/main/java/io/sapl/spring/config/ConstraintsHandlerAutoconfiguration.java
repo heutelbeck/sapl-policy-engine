@@ -22,6 +22,7 @@ import org.springframework.context.annotation.Import;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.spring.constraints.ConstraintEnforcementService;
+import io.sapl.spring.constraints.providers.ContentFilterPredicateProvider;
 import io.sapl.spring.constraints.providers.ContentFilteringProvider;
 
 @Configuration
@@ -30,5 +31,10 @@ public class ConstraintsHandlerAutoconfiguration {
 	@Bean
 	ContentFilteringProvider jsonNodeContentFilteringProvider(ObjectMapper objectMapper) {
 		return new ContentFilteringProvider(objectMapper);
+	}
+
+	@Bean
+	ContentFilterPredicateProvider contentFilterPredicateProvider(ObjectMapper objectMapper) {
+		return new ContentFilterPredicateProvider(objectMapper);
 	}
 }
