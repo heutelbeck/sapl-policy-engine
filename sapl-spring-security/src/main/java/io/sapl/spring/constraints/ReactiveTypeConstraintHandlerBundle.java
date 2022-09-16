@@ -28,6 +28,16 @@ import lombok.NoArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+/**
+ * 
+ * This bundle aggregates all constraint handlers for a specific decision which
+ * are useful in a reactive scenario.
+ * 
+ * 
+ * @author Dominic Heutelbeck
+ *
+ * @param <T> return type
+ */
 @NoArgsConstructor
 @AllArgsConstructor
 public class ReactiveTypeConstraintHandlerBundle<T> {
@@ -50,10 +60,21 @@ public class ReactiveTypeConstraintHandlerBundle<T> {
 	private Consumer<MethodInvocation>     methodInvocationHandlers = __->{};
 	// @formatter:on
 
+	/**
+	 * Runs all onSubscription handlers.
+	 * 
+	 * @param s the Subscription.
+	 */
 	public void handleOnSubscribeConstraints(Subscription s) {
 		onSubscribeHandlers.accept(s);
 	}
 
+	/**
+	 * Executes all onNext constraint handlers, potentially transforming the value.
+	 * 
+	 * @param value a return value
+	 * @return the return value after constraint handling
+	 */
 	public T handleAllOnNextConstraints(T value) {
 		handleOnNextConstraints(value);
 		return handleOnNextMapConstraints(value);
@@ -67,34 +88,66 @@ public class ReactiveTypeConstraintHandlerBundle<T> {
 		doOnNextHandlers.accept(value);
 	}
 
+	/**
+	 * Runs all onRequest handlers.
+	 * 
+	 * @param value number of events requested
+	 */
 	public void handleOnRequestConstraints(Long value) {
 		onRequestHandlers.accept(value);
 	}
 
+	/**
+	 * Runs all onComplete handlers.
+	 */
 	public void handleOnCompleteConstraints() {
 		onCompleteHandlers.run();
 	}
 
+	/**
+	 * Runs all onTerminate handlers.
+	 */
 	public void handleOnTerminateConstraints() {
 		onTerminateHandlers.run();
 	}
 
+	/**
+	 * Runs all onDecision handlers.
+	 */
 	public void handleOnDecisionConstraints() {
 		onDecisionHandlers.run();
 	}
 
+	/**
+	 * Runs all afterTerminate handlers.
+	 */
 	public void handleAfterTerminateConstraints() {
 		afterTerminateHandlers.run();
 	}
 
+	/**
+	 * Runs all onCancel handlers.
+	 */
 	public void handleOnCancelConstraints() {
 		onCancelHandlers.run();
 	}
 
+	/**
+	 * Runs all method invocation handlers. These handlers may modify the
+	 * methodInvocation.
+	 * 
+	 * @param methodInvocation
+	 */
 	public void handleMethodInvocationHandlers(MethodInvocation methodInvocation) {
 		methodInvocationHandlers.accept(methodInvocation);
 	}
 
+	/**
+	 * Executes all onError constraint handlers, potentially transforming the error.
+	 *
+	 * @param error the error
+	 * @return the error after all handlers have run
+	 */
 	public Throwable handleAllOnErrorConstraints(Throwable error) {
 		handleOnErrorConstraints(error);
 		return handleOnErrorMapConstraints(error);
@@ -108,6 +161,13 @@ public class ReactiveTypeConstraintHandlerBundle<T> {
 		doOnErrorHandlers.accept(error);
 	}
 
+	/**
+	 * Wires the handlers into the matching reactive signals.
+	 * 
+	 * @param resourceAccessPoint a reactive resource access point
+	 * @return the resource access point with the different handlers wired to their
+	 *         respective hooks.
+	 */
 	public Flux<T> wrap(Flux<T> resourceAccessPoint) {
 		var wrapped = resourceAccessPoint.doOnRequest(onRequestHandlers).doOnSubscribe(onSubscribeHandlers)
 				.filter(filterPredicateHandlers).onErrorMap(onErrorMapHandlers).doOnError(doOnErrorHandlers)

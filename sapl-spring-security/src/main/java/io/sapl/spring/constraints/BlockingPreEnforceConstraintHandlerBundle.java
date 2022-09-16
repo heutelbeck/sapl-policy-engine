@@ -21,15 +21,32 @@ import org.aopalliance.intercept.MethodInvocation;
 
 import lombok.RequiredArgsConstructor;
 
+/**
+ * 
+ * This bundle aggregates all constraint handlers for a specific decision which
+ * are useful in a blocking PreEnforce scenario.
+ * 
+ * @author Dominic Heutelbeck
+ *
+ */
 @RequiredArgsConstructor
 public class BlockingPreEnforceConstraintHandlerBundle {
 	private final Runnable                   onDecisionHandlers;
 	private final Consumer<MethodInvocation> methodInvocationHandlers;
 
+	/**
+	 * Runs all onDecision constraint handlers.
+	 */
 	public void handleOnDecisionConstraints() {
 		onDecisionHandlers.run();
 	}
 
+	/**
+	 * Runs all method invocation handlers. These handlers may modify the
+	 * methodInvocation.
+	 * 
+	 * @param methodInvocation
+	 */
 	public void handleMethodInvocationHandlers(MethodInvocation methodInvocation) {
 		methodInvocationHandlers.accept(methodInvocation);
 	}

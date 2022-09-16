@@ -52,6 +52,12 @@ public class ObjectMapperAutoConfiguration {
 		return new ObjectMapper();
 	}
 
+	/**
+	 * Register serializers for creating authorization subscriptions.
+	 * 
+	 * @author Dominic Heutelbeck
+	 *
+	 */
 	@Configuration
 	public static class ModuleRegistrationConfiguration {
 

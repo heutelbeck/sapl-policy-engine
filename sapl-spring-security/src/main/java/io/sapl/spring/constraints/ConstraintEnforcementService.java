@@ -57,6 +57,16 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
+/**
+ * 
+ * The ConstraintEnforcementService is responsible for collecting executable
+ * constraint handlers in bundles for the PEP whenever the PDP sends a new
+ * decision. The PEP in return will execute the matching handlers in the
+ * protected code path.
+ * 
+ * @author Dominic Heutelbeck
+ *
+ */
 @Slf4j
 @Service
 public class ConstraintEnforcementService {
@@ -72,6 +82,27 @@ public class ConstraintEnforcementService {
 	private final ObjectMapper                                        mapper;
 	private final Multimap<Signal, RunnableConstraintHandlerProvider> globalRunnableIndex;
 
+	/**
+	 * Constructor with dependency injection of all beans implementing handler
+	 * providers.
+	 * 
+	 * @param globalRunnableProviders            all
+	 *                                           RunnableConstraintHandlerProvider
+	 * @param globalConsumerProviders            all
+	 *                                           ConsumerConstraintHandlerProvider
+	 * @param globalSubscriptionHandlerProviders all SubscriptionHandlerProvider
+	 * @param globalRequestHandlerProviders      all RequestHandlerProvider
+	 * @param globalMappingHandlerProviders      all
+	 *                                           MappingConstraintHandlerProvider
+	 * @param globalErrorMappingHandlerProviders all
+	 *                                           ErrorMappingConstraintHandlerProvider
+	 * @param globalErrorHandlerProviders        all ErrorHandlerProvider
+	 * @param filterPredicateProviders           all
+	 *                                           FilterPredicateConstraintHandlerProvider
+	 * @param methodInvocationHandlerProviders   all
+	 *                                           MethodInvocationConstraintHandlerProvider
+	 * @param mapper                             the global ObjectMapper
+	 */
 	public ConstraintEnforcementService(List<RunnableConstraintHandlerProvider> globalRunnableProviders,
 			List<ConsumerConstraintHandlerProvider<?>> globalConsumerProviders,
 			List<SubscriptionHandlerProvider> globalSubscriptionHandlerProviders,
@@ -100,6 +131,17 @@ public class ConstraintEnforcementService {
 			globalRunnableIndex.put(provider.getSignal(), provider);
 	}
 
+	/**
+	 * Takes the decision and derives a wrapped resource access point Flux where the
+	 * decision is enforced. I.e., access is granted or denied, and all constraints
+	 * are handled.
+	 * 
+	 * @param <T>                 event type
+	 * @param decision            a decision
+	 * @param resourceAccessPoint a Flux to be protected
+	 * @param clazz               the class of the event type
+	 * @return a Flux where the decision is enforced.
+	 */
 	public <T> Flux<T> enforceConstraintsOfDecisionOnResourceAccessPoint(AuthorizationDecision decision,
 			Flux<T> resourceAccessPoint, Class<T> clazz) {
 		var wrapped = resourceAccessPoint;
@@ -111,6 +153,14 @@ public class ConstraintEnforcementService {
 		}
 	}
 
+	/**
+	 * @param <T>      event type
+	 * @param decision a decision
+	 * @param clazz    class of the event type
+	 * @return a ReactiveTypeConstraintHandlerBundle with handlers for all
+	 *         constraints in the decision, or throws AccessDeniedException, if
+	 *         bundle cannot be constructed.
+	 */
 	public <T> ReactiveTypeConstraintHandlerBundle<T> reactiveTypeBundleFor(AuthorizationDecision decision,
 			Class<T> clazz) {
 
@@ -139,6 +189,14 @@ public class ConstraintEnforcementService {
 		return bundle;
 	}
 
+	/**
+	 * @param <T>      event type
+	 * @param decision a decision
+	 * @param clazz    class of the event type
+	 * @return a BlockingPostEnforceConstraintHandlerBundle with handlers for all
+	 *         constraints in the decision, or throws AccessDeniedException, if
+	 *         bundle cannot be constructed.
+	 */
 	public <T> BlockingPostEnforceConstraintHandlerBundle<T> blockingPostEnforceBundleFor(
 			AuthorizationDecision decision, Class<T> clazz) {
 
@@ -160,6 +218,12 @@ public class ConstraintEnforcementService {
 		return bundle;
 	}
 
+	/**
+	 * @param decision a decision
+	 * @return a BlockingPreEnforceConstraintHandlerBundle with handlers for all
+	 *         constraints in the decision, or throws AccessDeniedException, if
+	 *         bundle cannot be constructed.
+	 */
 	public BlockingPreEnforceConstraintHandlerBundle blockingPreEnforceBundleFor(AuthorizationDecision decision) {
 		var unhandledObligations = Sets.newHashSet(decision.getObligations().orElseGet(() -> mapper.createArrayNode()));
 
@@ -606,6 +670,17 @@ public class ConstraintEnforcementService {
 		return handlers;
 	}
 
+	/**
+	 * Convenience method to replace the result of an resource access point (RAP)
+	 * with an alternative object containing the resource if present.
+	 * 
+	 * @param <T>            result type
+	 * @param authzDecision  a decision
+	 * @param originalResult the original result
+	 * @param clazz          type of the expected result
+	 * @return the replacement, if a resource was present. Else return the original
+	 *         result.
+	 */
 	public <T> T replaceResultIfResourceDefinitionIsPresentInDecision(AuthorizationDecision authzDecision,
 			T originalResult, Class<T> clazz) {
 		var mustReplaceResource = authzDecision.getResource().isPresent();
@@ -623,6 +698,17 @@ public class ConstraintEnforcementService {
 		}
 	}
 
+	/**
+	 * Convenience method to replace the resource access point (RAP) with a Flux
+	 * only containing the resource if present.
+	 * 
+	 * @param <T>                 event type
+	 * @param resourceAccessPoint the original RAP
+	 * @param resource            an optional resource to replace the RAP
+	 * @param clazz               event type class
+	 * @return the replacement, if a resource was present. Else return the original
+	 *         RAP.
+	 */
 	public <T> Flux<T> replaceIfResourcePresent(Flux<T> resourceAccessPoint, Optional<JsonNode> resource,
 			Class<T> clazz) {
 		if (resource.isEmpty())
@@ -636,6 +722,17 @@ public class ConstraintEnforcementService {
 		}
 	}
 
+	/**
+	 * Convenience method to convert a JSON to a JavaObject using the gloabl
+	 * ObjectMapper.
+	 * 
+	 * @param <T>      type of the expected output
+	 * @param resource a JSON value
+	 * @param clazz    class of the expected output
+	 * @return the JSON object converted into the provided class
+	 * @throws JsonProcessingException  on JSON marshaling error
+	 * @throws IllegalArgumentException on JSON marshaling error
+	 */
 	public <T> T unmarshallResource(JsonNode resource, Class<T> clazz)
 			throws JsonProcessingException, IllegalArgumentException {
 		return mapper.treeToValue(resource, clazz);

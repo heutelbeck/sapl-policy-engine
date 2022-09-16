@@ -27,6 +27,16 @@ import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
 
+/**
+ * 
+ * This bundle aggregates all constraint handlers for a specific decision which
+ * are useful in a blocking PostEnforce scenario.
+ * 
+ * 
+ * @author Dominic Heutelbeck
+ *
+ * @param <T> return type
+ */
 @RequiredArgsConstructor
 public class BlockingPostEnforceConstraintHandlerBundle<T> {
 
@@ -37,6 +47,12 @@ public class BlockingPostEnforceConstraintHandlerBundle<T> {
 	private final Function<Throwable, Throwable> onErrorMapHandlers;
 	private final Predicate<Object>              filterPredicateHandlers;
 
+	/**
+	 * Executes all onNext constraint handlers, potentially transforming the value.
+	 * 
+	 * @param value a return value
+	 * @return the return value after constraint handling
+	 */
 	public T handleAllOnNextConstraints(T value) {
 		var newValue = handleFilterPredicateHandlers(value);
 		handleOnNextConstraints(newValue);
@@ -75,10 +91,19 @@ public class BlockingPostEnforceConstraintHandlerBundle<T> {
 		doOnNextHandlers.accept(value);
 	}
 
+	/**
+	 * Runs all onDecision constraint handlers.
+	 */
 	public void handleOnDecisionConstraints() {
 		onDecisionHandlers.run();
 	}
 
+	/**
+	 * Executes all onError constraint handlers, potentially transforming the error.
+	 *
+	 * @param error the error
+	 * @return the error after all handlers have run
+	 */
 	public Throwable handleAllOnErrorConstraints(Throwable error) {
 		handleOnErrorConstraints(error);
 		return handleOnErrorMapConstraints(error);
