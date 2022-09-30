@@ -10,6 +10,8 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.reactivestreams.Publisher;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,6 +24,8 @@ import com.jayway.jsonpath.MapFunction;
 import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider;
 
 import lombok.experimental.UtilityClass;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @UtilityClass
 public class ContentFilterUtil {
@@ -60,16 +64,16 @@ public class ContentFilterUtil {
 		var transformation = ContentFilterUtil.getTransformationHandler(constraint, objectMapper);
 
 		return payload -> {
-
 			if (payload == null)
 				return null;
-
 			if (payload instanceof Optional)
 				return ((Optional<?>) payload).map(x -> mapElement(x, transformation, predicate));
 			if (payload instanceof List)
 				return mapListContents((List<?>) payload, transformation, predicate);
 			if (payload instanceof Set)
 				return mapSetContents((Set<?>) payload, transformation, predicate);
+			if (payload instanceof Publisher)
+				return mapPublisherContents((Publisher<?>) payload, transformation, predicate);
 
 			if (payload.getClass().isArray()) {
 				var filteredAsList = mapListContents((List<?>) payload, transformation, predicate);
@@ -85,6 +89,14 @@ public class ContentFilterUtil {
 			return mapElement(payload, transformation, predicate);
 
 		};
+	}
+
+	private static Object mapPublisherContents(Publisher<?> payload, Function<Object, Object> transformation,
+			Predicate<Object> predicate) {
+		if (payload instanceof Mono) {
+			return ((Mono<?>) payload).map(element -> mapElement(element, transformation, predicate));
+		}
+		return ((Flux<?>) payload).map(element -> mapElement(element, transformation, predicate));
 	}
 
 	private static Object mapElement(Object payload, Function<Object, Object> transformation,
