@@ -30,7 +30,6 @@ import org.springframework.security.access.intercept.AfterInvocationProviderMana
 import org.springframework.security.access.method.MethodSecurityMetadataSource;
 import org.springframework.security.access.vote.AbstractAccessDecisionManager;
 import org.springframework.security.access.vote.AffirmativeBased;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.method.configuration.GlobalMethodSecurityConfiguration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,8 +40,6 @@ import io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPoint;
 import io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPointProvider;
 import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPoint;
 import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPointVoter;
-import io.sapl.spring.method.metadata.PostEnforce;
-import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.method.metadata.SaplAttributeFactory;
 import io.sapl.spring.method.metadata.SaplMethodSecurityMetadataSource;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
@@ -50,11 +47,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * This configuration class adds blocking SAPL {@link PreEnforce} and {@link PostEnforce}
- * annotations to the global method security configuration.
+ * This configuration class adds blocking SAPL
+ * {@link io.sapl.spring.method.metadata.PreEnforce} and
+ * {@link io.sapl.spring.method.metadata.PostEnforce} annotations to the global
+ * method security configuration.
  *
- * Classes may extend this class to customize the defaults, but must be sure to specify
- * the {@link EnableGlobalMethodSecurity} annotation on the subclass.
+ * Classes may extend this class to customize the defaults, but must be sure to
+ * specify the
+ * {@link org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity}
+ * annotation on the subclass.
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -93,22 +94,22 @@ public class SaplMethodSecurityConfiguration extends GlobalMethodSecurityConfigu
 	@Override
 	protected AfterInvocationManager afterInvocationManager() {
 		log.debug("Blocking SAPL method level after-invocation security activated.");
-		var advice = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
+		var advice   = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				subscriptionBuilderFactory);
 		var provider = new PostEnforcePolicyEnforcementPointProvider(advice);
 
 		var baseManager = super.afterInvocationManager();
 		if (baseManager == null) {
 			var invocationProviderManager = new AfterInvocationProviderManager();
-			var afterInvocationProviders = new ArrayList<AfterInvocationProvider>();
+			var afterInvocationProviders  = new ArrayList<AfterInvocationProvider>();
 			afterInvocationProviders.add(provider);
 			invocationProviderManager.setProviders(afterInvocationProviders);
 			return invocationProviderManager;
 		}
 
-		var invocationProviderManager = (AfterInvocationProviderManager) baseManager;
-		List<AfterInvocationProvider> originalProviders = invocationProviderManager.getProviders();
-		List<AfterInvocationProvider> afterInvocationProviders = new ArrayList<>();
+		var                           invocationProviderManager = (AfterInvocationProviderManager) baseManager;
+		List<AfterInvocationProvider> originalProviders         = invocationProviderManager.getProviders();
+		List<AfterInvocationProvider> afterInvocationProviders  = new ArrayList<>();
 		afterInvocationProviders.add(provider);
 		afterInvocationProviders.addAll(originalProviders);
 		invocationProviderManager.setProviders(afterInvocationProviders);

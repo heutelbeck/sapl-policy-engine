@@ -74,7 +74,7 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 
 	List<ErrorHandlerProvider> globalErrorHandlerProviders;
 
-	List<FilterPredicateConstraintHandlerProvider<?>> globalFilterPredicateProviders;
+	List<FilterPredicateConstraintHandlerProvider> globalFilterPredicateProviders;
 
 	List<MethodInvocationConstraintHandlerProvider> globalInvocationHandlerProviders;
 

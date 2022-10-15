@@ -52,8 +52,8 @@ Policy:
 	{Policy} 'policy' saplName=STRING
 	entitlement=Entitlement (targetExpression=Expression)?
 	(body=PolicyBody)?
-	('obligation' obligation=Expression)?
-	('advice' advice=Expression)?
+	('obligation' obligations+=Expression)*
+	('advice' advice+=Expression)*
 	('transform' transformation=Expression)?;
 
 Entitlement:	

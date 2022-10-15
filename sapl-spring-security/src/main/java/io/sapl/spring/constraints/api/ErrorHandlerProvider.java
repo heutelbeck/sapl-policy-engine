@@ -19,7 +19,7 @@ import java.util.function.Consumer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-public interface ErrorHandlerProvider extends Responsible, HasPriority {
+public interface ErrorHandlerProvider extends Responsible {
 
 	Consumer<Throwable> getHandler(JsonNode constraint);
 

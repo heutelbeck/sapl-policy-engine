@@ -122,6 +122,7 @@ class TemporalFunctionLibraryTest {
 		assertThat(TemporalFunctionLibrary.timeBetween(today, tomorrow, Val.of("HOURS")), is(val(24L)));
 		assertThat(TemporalFunctionLibrary.timeBetween(tomorrow, today, Val.of("DAYS")), is(val(-1L)));
 		assertThat(TemporalFunctionLibrary.timeBetween(tomorrow, today, Val.of("HOURS")), is(val(-24L)));
+		assertThat(TemporalFunctionLibrary.timeBetween(Val.of("2001-01-01"), Val.of("2002-01-01"), Val.of("YEARS")), is(val(1L)));
 	}
 
 	@Test

@@ -80,17 +80,15 @@
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 
-		<xtext.version>2.25.0</xtext.version>
+		<xtext.version>2.27.0</xtext.version>
 		<junit.version>5.7.2</junit.version>
 		<junit4.version>4.13.2</junit4.version>
 		<lombok.version>1.18.24</lombok.version>
-		<hamcrest.version>2.2</hamcrest.version>
 		<spotify.hamcrest.version>1.2.0</spotify.hamcrest.version>
-		<springboot.version>2.6.8</springboot.version>
-		<mockito.version>3.12.4</mockito.version>
+		<springboot.version>2.7.3</springboot.version>
 		<guice.version>5.1.0</guice.version>
-       	<vaadin.internal.version>14.8.3</vaadin.internal.version>
-       	<vaadin.version>23.0.3</vaadin.version>
+       	<vaadin.internal.version>14.8.15</vaadin.internal.version>
+       	<vaadin.version>23.1.6</vaadin.version>
 
 		<license-maven-plugin.version>4.1</license-maven-plugin.version>
 		<maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
@@ -101,7 +99,6 @@
 
 	<modules>
 		<module>sapl-pdp-api</module>
-		<module>sapl-pep-api</module>
 		<module>sapl-extensions-api</module>
 		<module>sapl-hamcrest</module>
 		<module>sapl-generator</module>
@@ -154,27 +151,12 @@
 				<scope>import</scope>
 			</dependency>
 			<dependency>
-		<!-- explicitly override transient junit 4 dependencies to fix CVE-2020-15250 -->
+				<!-- explicitly override transient junit 4 dependencies to fix CVE-2020-15250 -->
 				<groupId>junit</groupId>
 				<artifactId>junit</artifactId>
 				<version>${junit4.version}</version>
 				<scope>test</scope>
-			</dependency>
-			<dependency>
-				<groupId>org.mockito</groupId>
-				<artifactId>mockito-core</artifactId>
-				<version>${mockito.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>org.mockito</groupId>
-				<artifactId>mockito-inline</artifactId>
-				<version>${mockito.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>org.hamcrest</groupId>
-				<artifactId>hamcrest</artifactId>
-				<version>${hamcrest.version}</version>
-			</dependency>
+			</dependency>	
 			<dependency>
 				<groupId>com.spotify</groupId>
 				<artifactId>hamcrest-pojo</artifactId>
@@ -193,22 +175,13 @@
 			<dependency>
 				<groupId>nl.jqno.equalsverifier</groupId>
 				<artifactId>equalsverifier</artifactId>
-				<version>3.5.5</version>
+				<version>3.10</version>
 			</dependency>
 			<!-- Spring-Boot -->
 			<dependency>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-dependencies</artifactId>
 				<version>${springboot.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-
-			<!-- Project Reactor -->
-			<dependency>
-				<groupId>io.projectreactor</groupId>
-				<artifactId>reactor-bom</artifactId>
-				<version>Californium-RELEASE</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -291,12 +264,12 @@
 				<plugin>
 					<groupId>io.spring.javaformat</groupId>
 					<artifactId>spring-javaformat-maven-plugin</artifactId>
-					<version>0.0.29</version>
+					<version>0.0.33</version>
 				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-clean-plugin</artifactId>
-					<version>3.1.0</version>
+					<version>3.2.0</version>
 					<configuration>
 						<filesets>
 							<fileset>
@@ -329,7 +302,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-surefire-plugin</artifactId>
-					<version>2.22.2</version>
+					<version>3.0.0-M7</version>
 					<configuration>
 						<!-- workaround for https://issues.apache.org/jira/browse/SUREFIRE-1588 -->
 						<useSystemClassLoader>false</useSystemClassLoader>

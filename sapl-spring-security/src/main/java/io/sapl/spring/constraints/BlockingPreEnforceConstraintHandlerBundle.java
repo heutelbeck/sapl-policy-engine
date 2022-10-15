@@ -15,26 +15,40 @@
  */
 package io.sapl.spring.constraints;
 
-import static io.sapl.spring.constraints.BundleUtil.consumeAll;
-import static io.sapl.spring.constraints.BundleUtil.runAll;
-
-import java.util.LinkedList;
-import java.util.List;
 import java.util.function.Consumer;
 
 import org.aopalliance.intercept.MethodInvocation;
 
+import lombok.RequiredArgsConstructor;
+
+/**
+ * 
+ * This bundle aggregates all constraint handlers for a specific decision which
+ * are useful in a blocking PreEnforce scenario.
+ * 
+ * @author Dominic Heutelbeck
+ *
+ */
+@RequiredArgsConstructor
 public class BlockingPreEnforceConstraintHandlerBundle {
+	private final Runnable                   onDecisionHandlers;
+	private final Consumer<MethodInvocation> methodInvocationHandlers;
 
-	final List<Runnable>                   onDecisionHandlers       = new LinkedList<>();
-	final List<Consumer<MethodInvocation>> methodInvocationHandlers = new LinkedList<>();
-
+	/**
+	 * Runs all onDecision constraint handlers.
+	 */
 	public void handleOnDecisionConstraints() {
-		runAll(onDecisionHandlers).run();
+		onDecisionHandlers.run();
 	}
 
+	/**
+	 * Runs all method invocation handlers. These handlers may modify the
+	 * methodInvocation.
+	 * 
+	 * @param methodInvocation
+	 */
 	public void handleMethodInvocationHandlers(MethodInvocation methodInvocation) {
-		consumeAll(methodInvocationHandlers).accept(methodInvocation);
+		methodInvocationHandlers.accept(methodInvocation);
 	}
 
 }

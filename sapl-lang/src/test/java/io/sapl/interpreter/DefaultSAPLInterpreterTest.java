@@ -39,6 +39,7 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.functions.FilterFunctionLibrary;
+import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.TestPIP;
@@ -79,6 +80,7 @@ class DefaultSAPLInterpreterTest {
 		functionCtx = new AnnotationFunctionContext();
 		functionCtx.loadLibrary(new SimpleFunctionLibrary());
 		functionCtx.loadLibrary(new FilterFunctionLibrary());
+		functionCtx.loadLibrary(new StandardFunctionLibrary());
 		variables = new HashMap<String, JsonNode>();
 
 	}
@@ -721,6 +723,13 @@ class DefaultSAPLInterpreterTest {
 	void importDuplicateAlias() {
 		var policyDefinition = "import simple as test import simple as test policy \"test\" permit where true;";
 		var expected         = AuthorizationDecision.INDETERMINATE;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
+	}
+	
+	@Test
+	void onErrorMap() {
+		var policyDefinition = "import standard.* policy \"errors\" permit where onErrorMap(100/0, true);";
+		var expected         = AuthorizationDecision.PERMIT;
 		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 

@@ -86,4 +86,9 @@ public class TestAttributeContext implements AttributeContext {
 		throw new UnsupportedOperationException();
 	}
 
+	@Override
+	public Map<String, String> getDocumentedAttributeCodeTemplates() {
+		return Map.of("clock.now", "documentation");
+	}
+
 }

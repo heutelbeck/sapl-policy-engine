@@ -16,18 +16,18 @@
 package io.sapl.spring.constraints.providers;
 
 import java.util.Objects;
-import java.util.function.Function;
+import java.util.function.Predicate;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.sapl.spring.constraints.api.MappingConstraintHandlerProvider;
+import io.sapl.spring.constraints.api.FilterPredicateConstraintHandlerProvider;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class ContentFilteringProvider implements MappingConstraintHandlerProvider<Object> {
+public class ContentFilterPredicateProvider implements FilterPredicateConstraintHandlerProvider {
 
-	private static final String CONSTRAINT_TYPE = "filterJsonContent";
+	private static final String CONSTRAINT_TYPE = "jsonContentFilterPredicate";
 	private static final String TYPE            = "type";
 
 	private final ObjectMapper objectMapper;
@@ -46,12 +46,7 @@ public class ContentFilteringProvider implements MappingConstraintHandlerProvide
 	}
 
 	@Override
-	public Class<Object> getSupportedType() {
-		return Object.class;
-	}
-
-	@Override
-	public Function<Object, Object> getHandler(JsonNode constraint) {
-		return ContentFilterUtil.getHandler(constraint, objectMapper);
+	public Predicate<Object> getHandler(JsonNode constraint) {
+		return ContentFilterUtil.predicateFromConditions(constraint, objectMapper);
 	}
 }

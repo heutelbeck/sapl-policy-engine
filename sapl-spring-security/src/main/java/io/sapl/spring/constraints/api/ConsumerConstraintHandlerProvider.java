@@ -15,18 +15,12 @@
  */
 package io.sapl.spring.constraints.api;
 
+import java.util.function.Consumer;
+
 import com.fasterxml.jackson.databind.JsonNode;
 
-public interface RunnableConstraintHandlerProvider extends Responsible, HasPriority {
+public interface ConsumerConstraintHandlerProvider<T> extends Responsible, TypeSupport<T> {
 
-	enum Signal {
-
-		ON_CANCEL, ON_COMPLETE, ON_TERMINATE, AFTER_TERMINATE, ON_DECISION
-
-	}
-
-	RunnableConstraintHandlerProvider.Signal getSignal();
-
-	Runnable getHandler(JsonNode constraint);
+	Consumer<T> getHandler(JsonNode constraint);
 
 }

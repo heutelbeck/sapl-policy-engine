@@ -3,17 +3,13 @@ package io.sapl.spring.constraints.it;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
-import java.util.function.Consumer;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
-import org.mockito.InOrder;
-import org.springframework.aop.framework.ReflectiveMethodInvocation;
 import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -36,29 +32,24 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.config.SaplMethodSecurityConfiguration;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.constraints.api.MethodInvocationConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
-import io.sapl.spring.constraints.it.PreEnforcementIntegrationTests.Application;
-import io.sapl.spring.constraints.it.PreEnforcementIntegrationTests.ConstraintHandlerOne;
-import io.sapl.spring.constraints.it.PreEnforcementIntegrationTests.ConstraintHandlerTwo;
-import io.sapl.spring.constraints.it.PreEnforcementIntegrationTests.FailingConstraintHandler;
-import io.sapl.spring.constraints.it.PreEnforcementIntegrationTests.MethodSecurityConfiguration;
-import io.sapl.spring.constraints.it.PreEnforcementIntegrationTests.SuccessfulMethodInvocationConstraintHandler;
-import io.sapl.spring.constraints.it.PreEnforcementIntegrationTests.TestService;
-import io.sapl.spring.method.metadata.PreEnforce;
+import io.sapl.spring.constraints.it.PostEnforcementIntegrationTests.Application;
+import io.sapl.spring.constraints.it.PostEnforcementIntegrationTests.ConstraintHandlerOne;
+import io.sapl.spring.constraints.it.PostEnforcementIntegrationTests.ConstraintHandlerTwo;
+import io.sapl.spring.constraints.it.PostEnforcementIntegrationTests.FailingConstraintHandler;
+import io.sapl.spring.constraints.it.PostEnforcementIntegrationTests.MethodSecurityConfiguration;
+import io.sapl.spring.constraints.it.PostEnforcementIntegrationTests.TestService;
+import io.sapl.spring.method.metadata.PostEnforce;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import reactor.core.publisher.Flux;
 
 @SpringBootTest(classes = { Application.class, TestService.class, MethodSecurityConfiguration.class,
-		ConstraintHandlerOne.class, ConstraintHandlerTwo.class, FailingConstraintHandler.class,
-		SuccessfulMethodInvocationConstraintHandler.class, SuccessfulMethodInvocationConstraintHandler.class })
-public class PreEnforcementIntegrationTests {
-	private static final String UNKNOWN_CONSTRAINT                      = "unknown constraint";
-	private static final String FAILING_CONSTRAINT                      = "failing constraint";
-	private static final String KNOWN_CONSTRAINT                        = "known constraint";
-	private static final String SUCCESSFUL_METHOD_INVOCATION_CONSTRAINT = "successful method invocation constraint";
-	private static final String FAILING_METHOD_INVOCATION_CONSTRAINT    = "failing method invocation constraint";
-	private static final String USER                                    = "user";
+		ConstraintHandlerOne.class, ConstraintHandlerTwo.class, FailingConstraintHandler.class })
+public class PostEnforcementIntegrationTests {
+	private static final String UNKNOWN_CONSTRAINT = "unknown constraint";
+	private static final String FAILING_CONSTRAINT = "failing constraint";
+	private static final String KNOWN_CONSTRAINT   = "known constraint";
+	private static final String USER               = "user";
 
 	public static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
@@ -163,61 +154,22 @@ public class PreEnforcementIntegrationTests {
 		}
 	}
 
-	@Component
-	public static class FailingMethodInvocationConstraintHandler implements MethodInvocationConstraintHandlerProvider {
-
-		@Override
-		public boolean isResponsible(JsonNode constraint) {
-			return constraint != null && constraint.isTextual()
-					&& FAILING_METHOD_INVOCATION_CONSTRAINT.equals(constraint.textValue());
-		}
-
-		@Override
-		public Consumer<ReflectiveMethodInvocation> getHandler(JsonNode constraint) {
-			return this::accept;
-		}
-
-		public void accept(ReflectiveMethodInvocation invocation) {
-			throw new IllegalArgumentException("I fail because I must test!");
-		}
-
-	}
-
-	@Component
-	public static class SuccessfulMethodInvocationConstraintHandler
-			implements MethodInvocationConstraintHandlerProvider {
-
-		@Override
-		public boolean isResponsible(JsonNode constraint) {
-			return constraint != null && constraint.isTextual()
-					&& SUCCESSFUL_METHOD_INVOCATION_CONSTRAINT.equals(constraint.textValue());
-		}
-
-		@Override
-		public Consumer<ReflectiveMethodInvocation> getHandler(JsonNode constraint) {
-			return this::accept;
-		}
-
-		public void accept(ReflectiveMethodInvocation invocation) {
-			Object[] originalArguments = invocation.getArguments();
-			Object[] newArguments      = Arrays.copyOf(originalArguments, originalArguments.length);
-
-			for (int i = 0; i < newArguments.length; i++)
-				if (newArguments[i] instanceof String)
-					newArguments[i] = "replaced";
-
-			invocation.setArguments(newArguments);
-		}
-
-	}
-
 	@Service
 	static class TestService {
-		@PreEnforce
+		@PostEnforce
 		public String execute(String argument) {
 			return "Argument: " + argument;
 		}
 
+		@PostEnforce
+		public Optional<String> executeOptional(String argument) {
+			return Optional.of("Argument: " + argument);
+		}
+
+		@PostEnforce
+		public Optional<String> executeOptionalEmpty() {
+			return Optional.empty();
+		}
 	}
 
 	@Test
@@ -237,81 +189,83 @@ public class PreEnforcementIntegrationTests {
 	void when_testServiceCalledAndPdpPermits_then_pdpMethodReturnsNormally() {
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
 		assertEquals("Argument: test", service.execute("test"));
+		verify(service, times(1)).execute(any());
 	}
 
 	@Test
 	@WithMockUser(USER)
-	void when_testServiceCalledAndPdpDenies_then_pdpMethodThrowsAccessDenied() {
+	void when_testServiceCalledAndPdpDenies_then_pdpMethodThrowsAccessDeniedButWasInvoked() {
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.DENY));
 		assertThrows(AccessDeniedException.class, () -> service.execute("test"));
-		verify(service, times(0)).execute(any());
+		verify(service, times(1)).execute(any());
 	}
 
 	@Test
 	@WithMockUser(USER)
-	void when_testServiceCalledAndPdpIndeterminate_then_pdpMethodThrowsAccessDenied() {
+	void when_testServiceCalledAndPdpIndeterminate_then_pdpMethodThrowsAccessDeniedButWasInvoked() {
 		when(pdp.decide(any(AuthorizationSubscription.class)))
 				.thenReturn(Flux.just(AuthorizationDecision.INDETERMINATE));
 		assertThrows(AccessDeniedException.class, () -> service.execute("test"));
-		verify(service, times(0)).execute(any());
+		verify(service, times(1)).execute(any());
 	}
 
 	@Test
 	@WithMockUser(USER)
-	void when_testServiceCalledAndPdpNotApplicable_then_pdpMethodThrowsAccessDenied() {
+	void when_testServiceCalledAndPdpNotApplicable_then_pdpMethodThrowsAccessDeniedButWasInvoked() {
 		when(pdp.decide(any(AuthorizationSubscription.class)))
 				.thenReturn(Flux.just(AuthorizationDecision.NOT_APPLICABLE));
 		assertThrows(AccessDeniedException.class, () -> service.execute("test"));
-		verify(service, times(0)).execute(any());
+		verify(service, times(1)).execute(any());
 	}
 
 	@Test
 	@WithMockUser(USER)
-	void when_testServiceCalledAndPdpReturnsEmptyStream_then_pdpMethodThrowsAccessDenied() {
+	void when_testServiceCalledAndPdpReturnsEmptyStream_then_pdpMethodThrowsAccessDeniedButWasInvoked() {
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.empty());
 		assertThrows(AccessDeniedException.class, () -> service.execute("test"));
-		verify(service, times(0)).execute(any());
+		verify(service, times(1)).execute(any());
 	}
 
 	@Test
 	@WithMockUser(USER)
-	void when_testServiceCalledAndPdpReturnsNull_then_pdpMethodThrowsAccessDenied() {
+	void when_testServiceCalledAndPdpReturnsNull_then_pdpMethodThrowsAccessDeniedButWasInvoked() {
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(null);
 		assertThrows(AccessDeniedException.class, () -> service.execute("test"));
-		verify(service, times(0)).execute(any());
+		verify(service, times(1)).execute(any());
 	}
 
 	@Test
 	@WithMockUser(USER)
-	void when_testServiceCalledAndDecisionContainsUnenforcableObligation_then_pdpMethodThrowsAccessDenied() {
+	void when_testServiceCalledAndDecisionContainsUnenforcableObligation_then_pdpMethodThrowsAccessDeniedButWasInvoked() {
 		var obligations = JSON.arrayNode();
 		obligations.add(JSON.textNode(UNKNOWN_CONSTRAINT));
 		var decision = AuthorizationDecision.PERMIT.withObligations(obligations);
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
 		assertThrows(AccessDeniedException.class, () -> service.execute("test"));
-		verify(service, times(0)).execute(any());
+		verify(service, times(1)).execute(any());
 	}
 
 	@Test
 	@WithMockUser(USER)
-	void when_testServiceCalledAndDecisionContainsFailingObligation_then_pdpMethodThrowsAccessDenied() {
+	void when_testServiceCalledAndDecisionContainsFailingObligation_then_pdpMethodThrowsAccessDeniedButWasInvoked() {
 		var obligations = JSON.arrayNode();
 		obligations.add(JSON.textNode(FAILING_CONSTRAINT));
 		obligations.add(JSON.textNode(KNOWN_CONSTRAINT));
 		var decision = AuthorizationDecision.PERMIT.withObligations(obligations);
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
 		assertThrows(AccessDeniedException.class, () -> service.execute("test"));
-		verify(service, times(0)).execute(any());
+		verify(service, times(1)).execute(any());
 	}
 
 	@Test
 	@WithMockUser(USER)
-	void when_testServiceCalledAndDecisionContainsUnenforcableAdvice_then_pdpMethodInvoked() {
+	void when_testServiceCalledAndDecisionContainsUnenforcableAdvice_then_accessGranted() {
 		var advice = JSON.arrayNode();
 		advice.add(JSON.textNode(UNKNOWN_CONSTRAINT));
 		var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
 		assertEquals("Argument: test", service.execute("test"));
+		verify(service, times(1)).execute(any());
 	}
 
 	@Test
@@ -322,6 +276,7 @@ public class PreEnforcementIntegrationTests {
 		var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
 		assertEquals("Argument: test", service.execute("test"));
+		verify(service, times(1)).execute(any());
 	}
 
 	@Test
@@ -344,9 +299,9 @@ public class PreEnforcementIntegrationTests {
 		var decision = AuthorizationDecision.DENY.withObligations(obligations);
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
 		assertThrows(AccessDeniedException.class, () -> service.execute("test"));
-		verify(constraintHandlerTwo).run();
 		verify(constraintHandlerOne).run();
-		verify(service, times(0)).execute(any());
+		verify(constraintHandlerTwo).run();
+		verify(service, times(1)).execute(any());
 	}
 
 	@Test
@@ -356,10 +311,10 @@ public class PreEnforcementIntegrationTests {
 		advice.add(JSON.textNode(KNOWN_CONSTRAINT));
 		var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
-		InOrder inOrder = inOrder(constraintHandlerOne, constraintHandlerTwo);
 		assertEquals("Argument: test", service.execute("test"));
-		inOrder.verify(constraintHandlerOne).run();
-		inOrder.verify(constraintHandlerTwo).run();
+		verify(constraintHandlerTwo).run();
+		verify(constraintHandlerOne).run();
+		verify(service, times(1)).execute(any());
 	}
 
 	@Test
@@ -374,36 +329,25 @@ public class PreEnforcementIntegrationTests {
 		assertEquals("Argument: test", service.execute("test"));
 		verify(constraintHandlerOne, times(2)).run();
 		verify(constraintHandlerTwo, times(2)).run();
+		verify(service, times(1)).execute(any());
 	}
 
 	@Test
 	@WithMockUser(USER)
-	void when_testServiceCalledAndDecisionContainsEnforcableMethodInvocationMaipulatingObligation_then_pdpMethodReturnsNormallyWithModifiedArgument() {
-		var obligations = JSON.arrayNode();
-		obligations.add(JSON.textNode(SUCCESSFUL_METHOD_INVOCATION_CONSTRAINT));
-		var decision = AuthorizationDecision.PERMIT.withObligations(obligations);
+	void when_testServiceCalledOptionalReturnValueAndPermit_then_returnsNormally() {
+		var decision = AuthorizationDecision.PERMIT;
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
-		assertEquals("Argument: replaced", service.execute("test"));
-		verify(service, times(1)).execute("replaced");
+		assertEquals(Optional.of("Argument: test"), service.executeOptional("test"));
+		verify(service, times(1)).executeOptional(any());
 	}
 
 	@Test
 	@WithMockUser(USER)
-	void when_testServiceCalledAndDecisionContainsFailingMethodInvocationMaipulatingObligation_then_accessDenied() {
-		var obligations = JSON.arrayNode();
-		obligations.add(JSON.textNode(FAILING_METHOD_INVOCATION_CONSTRAINT));
-		var decision = AuthorizationDecision.PERMIT.withObligations(obligations);
+	void when_testServiceCalledOptionalEmptyReturnValueAndPermit_then_returnsNormally() {
+		var decision = AuthorizationDecision.PERMIT;
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
-		assertThrows(AccessDeniedException.class, () -> service.execute("test"));
-		verify(service, times(0)).execute(any());
+		assertEquals(Optional.empty(), service.executeOptionalEmpty());
+		verify(service, times(1)).executeOptionalEmpty();
 	}
 
-	@Test
-	@WithMockUser(USER)
-	void when_testDecisionHasResource_then_accessDenied() {
-		var decision = AuthorizationDecision.PERMIT.withResource(JSON.textNode("replacement will make it fail"));
-		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
-		assertThrows(AccessDeniedException.class, () -> service.execute("test"));
-		verify(service, times(0)).execute(any());
-	}
 }

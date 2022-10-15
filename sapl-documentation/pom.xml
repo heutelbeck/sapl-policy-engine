@@ -34,7 +34,7 @@
 	<description>The developer documentation for the SAPL policy language and policy engine.</description>
 
 	<properties>
-		<asciidoc.version>2.2.1</asciidoc.version>
+		<asciidoc.version>2.2.2</asciidoc.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.deploy.skip>true</maven.deploy.skip>
 	</properties>

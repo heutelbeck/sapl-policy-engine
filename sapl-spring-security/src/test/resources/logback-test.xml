@@ -2,6 +2,7 @@
 <configuration>
 	<!-- This quiets the logging of the Spring testing initialization, which ignores profiles etc. -->
     <include resource="org/springframework/boot/logging/logback/base.xml" />
+    <logger name="reactor.core.Exceptions" level="error" />
     <logger name="org.springframework" level="error" />
     <logger name="org.hibernate" level="error" />
     <logger name="io.sapl" level="error" />

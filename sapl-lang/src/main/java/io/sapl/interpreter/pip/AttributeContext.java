@@ -37,4 +37,5 @@ public interface AttributeContext extends LibraryFunctionProvider {
 
 	List<String> getAttributeCodeTemplates();
 
+	Map<String, String> getDocumentedAttributeCodeTemplates();
 }

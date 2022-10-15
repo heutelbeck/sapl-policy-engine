@@ -15,12 +15,14 @@
  */
 package io.sapl.spring.constraints.api;
 
-import java.util.function.Predicate;
+import java.util.function.Consumer;
+
+import org.reactivestreams.Subscription;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-public interface FilterPredicateConstraintHandlerProvider<T> extends Responsible, TypeSupport<T> {
+public interface SubscriptionHandlerProvider extends Responsible {
 
-	Predicate<T> getHandler(JsonNode constraint);
+	Consumer<Subscription> getHandler(JsonNode constraint);
 
 }

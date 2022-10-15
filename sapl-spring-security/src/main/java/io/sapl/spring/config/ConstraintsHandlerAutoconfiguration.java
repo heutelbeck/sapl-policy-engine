@@ -22,13 +22,25 @@ import org.springframework.context.annotation.Import;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.spring.constraints.ConstraintEnforcementService;
+import io.sapl.spring.constraints.providers.ContentFilterPredicateProvider;
 import io.sapl.spring.constraints.providers.ContentFilteringProvider;
 
+/**
+ * Sets up the default constraint handler provides.
+ * 
+ * @author Dominic Heutelbeck
+ * @since 2.0.0
+ */
 @Configuration
 @Import(value = { ConstraintEnforcementService.class })
 public class ConstraintsHandlerAutoconfiguration {
 	@Bean
 	ContentFilteringProvider jsonNodeContentFilteringProvider(ObjectMapper objectMapper) {
 		return new ContentFilteringProvider(objectMapper);
+	}
+
+	@Bean
+	ContentFilterPredicateProvider contentFilterPredicateProvider(ObjectMapper objectMapper) {
+		return new ContentFilterPredicateProvider(objectMapper);
 	}
 }

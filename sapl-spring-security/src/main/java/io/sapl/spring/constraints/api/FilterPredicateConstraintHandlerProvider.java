@@ -15,14 +15,12 @@
  */
 package io.sapl.spring.constraints.api;
 
-public interface HasPriority extends Comparable<HasPriority> {
+import java.util.function.Predicate;
 
-	default int getPriority() {
-		return Integer.MIN_VALUE;
-	}
+import com.fasterxml.jackson.databind.JsonNode;
 
-	default int compareTo(HasPriority other) {
-		return Integer.compare(other.getPriority(), getPriority());
-	}
+public interface FilterPredicateConstraintHandlerProvider extends Responsible {
+
+	Predicate<Object> getHandler(JsonNode constraint);
 
 }

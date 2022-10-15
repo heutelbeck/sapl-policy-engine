@@ -74,6 +74,11 @@ public class PreEnforcePolicyEnforcementPoint extends AbstractPolicyEnforcementP
 
 		var blockingPreEnforceBundle = constraintEnforcementService.blockingPreEnforceBundleFor(authzDecision);
 
+		if (blockingPreEnforceBundle == null) {
+			log.warn("Access Denied by PEP. No constraint handler bundle.");
+			return false;
+		}
+		
 		try {
 			blockingPreEnforceBundle.handleOnDecisionConstraints();
 			blockingPreEnforceBundle.handleMethodInvocationHandlers(methodInvocation);

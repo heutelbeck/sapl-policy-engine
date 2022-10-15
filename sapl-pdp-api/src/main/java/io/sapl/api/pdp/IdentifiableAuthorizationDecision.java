@@ -43,6 +43,9 @@ public class IdentifiableAuthorizationDecision {
 	@JsonProperty(required = true)
 	AuthorizationDecision authorizationDecision;
 
+	/**
+	 * A simple INDETERMINATE decision.
+	 */
 	public final static IdentifiableAuthorizationDecision INDETERMINATE = new IdentifiableAuthorizationDecision(null,
 			AuthorizationDecision.INDETERMINATE);
 

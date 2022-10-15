@@ -15,12 +15,14 @@
  */
 package io.sapl.spring.constraints.api;
 
-import java.util.function.LongConsumer;
+import java.util.function.Consumer;
+
+import org.springframework.aop.framework.ReflectiveMethodInvocation;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-public interface RequestHandlerProvider extends Responsible, HasPriority {
+public interface MethodInvocationConstraintHandlerProvider extends Responsible {
 
-	LongConsumer getHandler(JsonNode constraint);
+	Consumer<ReflectiveMethodInvocation> getHandler(JsonNode constraint);
 
 }
