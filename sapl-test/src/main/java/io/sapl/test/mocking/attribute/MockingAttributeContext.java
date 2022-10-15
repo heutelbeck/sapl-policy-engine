@@ -285,4 +285,9 @@ public class MockingAttributeContext implements AttributeContext {
 		return List.of();
 	}
 
+	@Override
+	public Map<String, String> getDocumentedAttributeCodeTemplates() {
+		return Map.of();
+	}
+
 }

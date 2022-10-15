@@ -29,7 +29,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.constraints.ConstraintHandlerBundle;
+import io.sapl.spring.constraints.ReactiveTypeConstraintHandlerBundle;
 import lombok.SneakyThrows;
 import reactor.core.CoreSubscriber;
 import reactor.core.Disposable;
@@ -71,7 +71,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 
 	final AtomicReference<AuthorizationDecision> latestDecision = new AtomicReference<>();
 
-	final AtomicReference<ConstraintHandlerBundle<T>> constraintHandler = new AtomicReference<>();
+	final AtomicReference<ReactiveTypeConstraintHandlerBundle<T>> constraintHandler = new AtomicReference<>();
 
 	final AtomicBoolean stopped = new AtomicBoolean(false);
 
@@ -115,16 +115,16 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 
 		var implicitDecision = decision;
 
-		ConstraintHandlerBundle<T> newBundle;
+		ReactiveTypeConstraintHandlerBundle<T> newBundle;
 		try {
-			newBundle = constraintsService.bundleFor(implicitDecision, clazz);
+			newBundle = constraintsService.reactiveTypeBundleFor(implicitDecision, clazz);
 			constraintHandler.set(newBundle);
 		}
 		catch (AccessDeniedException e) {
 			sink.error(e);
 			// INDETERMINATE -> as long as we cannot handle the obligations of the current
 			// decision, drop data
-			constraintHandler.set(new ConstraintHandlerBundle<>());
+			constraintHandler.set(new ReactiveTypeConstraintHandlerBundle<>());
 			implicitDecision = AuthorizationDecision.INDETERMINATE;
 		}
 

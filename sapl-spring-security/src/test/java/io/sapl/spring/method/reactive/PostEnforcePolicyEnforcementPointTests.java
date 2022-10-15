@@ -56,6 +56,7 @@ import io.sapl.spring.constraints.api.ErrorHandlerProvider;
 import io.sapl.spring.constraints.api.ErrorMappingConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.FilterPredicateConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.MappingConstraintHandlerProvider;
+import io.sapl.spring.constraints.api.MethodInvocationConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.RequestHandlerProvider;
 import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.SubscriptionHandlerProvider;
@@ -103,7 +104,9 @@ public class PostEnforcePolicyEnforcementPointTests {
 
 	List<ErrorHandlerProvider> globalErrorHandlerProviders;
 
-	List<FilterPredicateConstraintHandlerProvider<?>> globalFilterPredicateProviders;
+	List<FilterPredicateConstraintHandlerProvider> globalFilterPredicateProviders;
+
+	List<MethodInvocationConstraintHandlerProvider> globalInvocationHandlerProviders;
 
 	@BeforeEach
 	void beforeEach() {
@@ -136,14 +139,14 @@ public class PostEnforcePolicyEnforcementPointTests {
 		globalErrorMappingHandlerProviders = new LinkedList<>();
 		globalErrorHandlerProviders        = new LinkedList<>();
 		globalFilterPredicateProviders     = new LinkedList<>();
-
+		globalInvocationHandlerProviders   = new LinkedList<>();
 	}
 
 	private ConstraintEnforcementService buildConstraintHandlerService() {
 		return new ConstraintEnforcementService(globalRunnableProviders, globalConsumerProviders,
 				globalSubscriptionHandlerProviders, globalRequestHandlerProviders, globalMappingHandlerProviders,
 				globalErrorMappingHandlerProviders, globalErrorHandlerProviders, globalFilterPredicateProviders,
-				mapper);
+				globalInvocationHandlerProviders, mapper);
 	}
 
 	@Test

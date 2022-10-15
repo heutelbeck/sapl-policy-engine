@@ -21,7 +21,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Collection;
+import java.util.Map;
 
+import org.hamcrest.collection.IsMapContaining;
 import org.junit.jupiter.api.Test;
 
 public class TestFunctionContextTests {
@@ -85,6 +87,13 @@ public class TestFunctionContextTests {
 		Collection<String> functions = context.getAllFullyQualifiedFunctions();
 		assertThat(functions, hasItems("filter.blacken", "filter.remove", "filter.replace", "standard.length",
 				"standard.numberToString", "time.after", "time.before", "time.between"));
+	}
+	
+	@Test
+	public void getDocumentedCodeTemplatesReturnsAllKnownDocumetedCodeTemplates() {
+		var context = new TestFunctionContext();
+		Map<String, String> functions = context.getDocumentedCodeTemplates();
+		assertThat(functions, IsMapContaining.hasEntry("filter.blacken", "documentation"));
 	}
 
 }

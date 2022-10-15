@@ -133,6 +133,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			proposals.addAll(attributeContext.getAvailableLibraries());
 			proposals.addAll(functionContext.getAllFullyQualifiedFunctions());
 			proposals.addAll(functionContext.getAvailableLibraries());
+			addDocumentationToImportProposals(proposals, context, acceptor);
+			addDocumentationToTemplates(proposals, context, acceptor);
 		}
 		else {
 			proposals = Set.of();
@@ -177,6 +179,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			addSimpleProposals(definedSchemas, context, acceptor);
 
 			var templates = functionContext.getCodeTemplates();
+			addDocumentationToTemplates(templates, context, acceptor);
 			addSimpleProposals(templates, context, acceptor);
 			addProposalsWithImportsForTemplates(templates, context, acceptor);
 			return;
@@ -190,6 +193,39 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			addSimpleProposals(definedValues, context, acceptor);
 			// add authorization subscriptions proposals
 			addSimpleProposals(authzSubProposals, context, acceptor);
+		}
+	}
+	
+	private void addDocumentationToImportProposals(Collection<String> proposals, ContentAssistContext context,
+			IIdeContentProposalAcceptor acceptor) {
+		var documentedAttributeCodeTemplates = attributeContext.getDocumentedAttributeCodeTemplates();
+		for (var proposal : proposals) {
+			var documentationForAttributeCodeTemplate = documentedAttributeCodeTemplates.get(proposal);
+			if (documentationForAttributeCodeTemplate != null) {
+				var entry = getProposalCreator().createProposal(proposal, context);
+				if (entry != null) {
+					entry.setDocumentation(documentationForAttributeCodeTemplate);
+					entry.setDescription(proposal);
+					acceptor.accept(entry, 0);
+				}
+			}
+		}
+	}
+
+
+	private void addDocumentationToTemplates(Collection<String> templates, ContentAssistContext context,
+			IIdeContentProposalAcceptor acceptor) {
+		var documentedCodeTemplates = functionContext.getDocumentedCodeTemplates();
+		for (var template : templates) {
+			var documentation = documentedCodeTemplates.get(template);
+			if (documentation != null) {
+				var entry = getProposalCreator().createProposal(template, context);
+				if (entry != null) {
+					entry.setDocumentation(documentation);
+					entry.setDescription(template);
+					acceptor.accept(entry, 0);
+				}
+			}
 		}
 	}
 

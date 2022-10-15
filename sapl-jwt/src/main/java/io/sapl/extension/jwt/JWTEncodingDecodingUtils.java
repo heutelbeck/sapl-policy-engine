@@ -40,6 +40,7 @@ class JWTEncodingDecodingUtils {
 
 	/**
 	 * decodes a Base64 encoded string into bytes
+	 * 
 	 * @param base64 encoded string
 	 * @return bytes
 	 */
@@ -51,24 +52,23 @@ class JWTEncodingDecodingUtils {
 		try {
 			byte[] bytes = Base64.getUrlDecoder().decode(base64);
 			return Optional.of(bytes);
-		}
-		catch (IllegalArgumentException e) {
+		} catch (IllegalArgumentException e) {
 			return Optional.empty();
 		}
 	}
 
 	/**
 	 * generates an RSAPublicKey from an X509EncodedKeySpec
+	 * 
 	 * @param x509Key an X509EncodedKeySpec object
 	 * @return the RSAPublicKey object
 	 */
 	private static Optional<RSAPublicKey> generatePublicKey(X509EncodedKeySpec x509Key) {
 		try {
-			KeyFactory kf = KeyFactory.getInstance("RSA");
+			KeyFactory   kf        = KeyFactory.getInstance("RSA");
 			RSAPublicKey publicKey = (RSAPublicKey) kf.generatePublic(x509Key);
 			return Optional.of(publicKey);
-		}
-		catch (NullPointerException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+		} catch (NullPointerException | NoSuchAlgorithmException | InvalidKeySpecException e) {
 			return Optional.empty();
 		}
 	}

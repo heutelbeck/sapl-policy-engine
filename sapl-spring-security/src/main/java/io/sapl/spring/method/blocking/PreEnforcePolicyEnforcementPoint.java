@@ -26,10 +26,10 @@ import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.method.metadata.PreEnforceAttribute;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Flux;
 
 /**
- * Method pre-invocation handling based on a SAPL policy decision point.
+ * Method pre-invocation handling based on a SAPL policy decision point for
+ * blocking methods.
  */
 @Slf4j
 public class PreEnforcePolicyEnforcementPoint extends AbstractPolicyEnforcementPoint {
@@ -40,33 +40,49 @@ public class PreEnforcePolicyEnforcementPoint extends AbstractPolicyEnforcementP
 		super(pdpFactory, constraintHandlerFactory, subscriptionBuilderFactory);
 	}
 
-	public boolean before(Authentication authentication, MethodInvocation methodInvocation,
+	public boolean before(
+			Authentication authentication,
+			MethodInvocation methodInvocation,
 			PreEnforceAttribute attribute) {
-		log.debug("Attribute        : {}", attribute);
-
 		lazyLoadDependencies();
+
+		log.debug("Attribute        : {}", attribute);
 
 		var authzSubscription = subscriptionBuilder.constructAuthorizationSubscription(authentication, methodInvocation,
 				attribute);
 		log.debug("AuthzSubscription: {}", authzSubscription);
-		var authzDecision = pdp.decide(authzSubscription).blockFirst();
+
+		var authzDecisions = pdp.decide(authzSubscription);
+		if (authzDecisions == null) {
+			log.warn("Access Denied by PEP. PDP returned null. {}", attribute);
+			return false;
+		}
+
+		var authzDecision = authzDecisions.blockFirst();
 		log.debug("AuthzDecision    : {}", authzDecision);
 
-		if (authzDecision == null)
-			return false;
-
-		if (authzDecision.getResource().isPresent()) {
-			log.warn(
-					"Cannot handle a authorization decision declaring a new resource in blocking @PreEnforce. Deny access!");
+		if (authzDecision == null) {
+			log.warn("Access Denied by PEP. PDP did not return a decision. {}", attribute);
 			return false;
 		}
 
+		var hasResourceReplacement = authzDecision.getResource().isPresent();
+		if (hasResourceReplacement) {
+			log.warn("Access Denied by PEP. @PreEnforce cannot replace method return value. {}", attribute);
+			return false;
+		}
+
+		var blockingPreEnforceBundle = constraintEnforcementService.blockingPreEnforceBundleFor(authzDecision);
+
+		if (blockingPreEnforceBundle == null) {
+			log.warn("Access Denied by PEP. No constraint handler bundle.");
+			return false;
+		}
+		
 		try {
-			constraintEnforcementService
-					.enforceConstraintsOfDecisionOnResourceAccessPoint(authzDecision, Flux.empty(), Object.class)
-					.blockFirst();
-		}
-		catch (AccessDeniedException e) {
+			blockingPreEnforceBundle.handleOnDecisionConstraints();
+			blockingPreEnforceBundle.handleMethodInvocationHandlers(methodInvocation);
+		} catch (AccessDeniedException e) {
 			return false;
 		}
 

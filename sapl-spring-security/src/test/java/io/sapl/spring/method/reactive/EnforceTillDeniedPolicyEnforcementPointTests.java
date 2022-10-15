@@ -46,6 +46,7 @@ import io.sapl.spring.constraints.api.ErrorHandlerProvider;
 import io.sapl.spring.constraints.api.ErrorMappingConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.FilterPredicateConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.MappingConstraintHandlerProvider;
+import io.sapl.spring.constraints.api.MethodInvocationConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.RequestHandlerProvider;
 import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.SubscriptionHandlerProvider;
@@ -72,8 +73,10 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 	List<ErrorMappingConstraintHandlerProvider> globalErrorMappingHandlerProviders;
 
 	List<ErrorHandlerProvider> globalErrorHandlerProviders;
-	
-	List<FilterPredicateConstraintHandlerProvider<?>> globalFilterPredicateProviders;
+
+	List<FilterPredicateConstraintHandlerProvider> globalFilterPredicateProviders;
+
+	List<MethodInvocationConstraintHandlerProvider> globalInvocationHandlerProviders;
 
 	@BeforeAll
 	public static void beforeAll() {
@@ -93,21 +96,23 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 		globalErrorMappingHandlerProviders = new LinkedList<>();
 		globalErrorHandlerProviders        = new LinkedList<>();
 		globalFilterPredicateProviders     = new LinkedList<>();
+		globalInvocationHandlerProviders   = new LinkedList<>();
 	}
 
 	private ConstraintEnforcementService buildConstraintHandlerService() {
 		return new ConstraintEnforcementService(globalRunnableProviders, globalConsumerProviders,
 				globalSubscriptionHandlerProviders, globalRequestHandlerProviders, globalMappingHandlerProviders,
 				globalErrorMappingHandlerProviders, globalErrorHandlerProviders, globalFilterPredicateProviders,
-				MAPPER);
+				globalInvocationHandlerProviders, MAPPER);
 	}
-	
+
 	@Test
 	void when_subscribingTwice_Fails() {
 		var constraintsService = buildConstraintHandlerService();
-		var decisions = Flux.just(AuthorizationDecision.PERMIT);
-		var data = Flux.just(1, 2, 3);
-		var sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
+		var decisions          = Flux.just(AuthorizationDecision.PERMIT);
+		var data               = Flux.just(1, 2, 3);
+		var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
+				Integer.class);
 		sut.blockLast();
 		assertThrows(IllegalStateException.class, sut::blockLast);
 	}
@@ -115,27 +120,30 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 	@Test
 	void when_onlyOnePermit_thenAllSignalsGetThrough() {
 		var constraintsService = buildConstraintHandlerService();
-		var decisions = Flux.just(AuthorizationDecision.PERMIT);
-		var data = Flux.just(1, 2, 3);
-		var sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
+		var decisions          = Flux.just(AuthorizationDecision.PERMIT);
+		var data               = Flux.just(1, 2, 3);
+		var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
+				Integer.class);
 		StepVerifier.create(sut).expectNext(1, 2, 3).verifyComplete();
 	}
 
 	@Test
 	void when_permitWithResource_thenReplaceAndComlpete() {
 		var constraintsService = buildConstraintHandlerService();
-		var decisions = Flux.just(AuthorizationDecision.PERMIT.withResource(JSON.numberNode(69)));
-		var data = Flux.just(1, 2, 3);
-		var sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
+		var decisions          = Flux.just(AuthorizationDecision.PERMIT.withResource(JSON.numberNode(69)));
+		var data               = Flux.just(1, 2, 3);
+		var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
+				Integer.class);
 		StepVerifier.create(sut).expectNext(69).verifyComplete();
 	}
 
 	@Test
 	void when_permitWithResource_typeMismatch_thenDenyAndComlpete() {
 		var constraintsService = buildConstraintHandlerService();
-		var decisions = Flux.just(AuthorizationDecision.PERMIT.withResource(JSON.textNode("NOT A NUMBER")));
-		var data = Flux.just(1, 2, 3);
-		var sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
+		var decisions          = Flux.just(AuthorizationDecision.PERMIT.withResource(JSON.textNode("NOT A NUMBER")));
+		var data               = Flux.just(1, 2, 3);
+		var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
+				Integer.class);
 		StepVerifier.create(sut).expectError(AccessDeniedException.class).verify();
 	}
 
@@ -147,26 +155,28 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 
 	private Flux<Integer> scenario_when_endlessPermits_thenAllSignalsGetThrough() {
 		var constraintsService = buildConstraintHandlerService();
-		var decisions = Flux.just(AuthorizationDecision.PERMIT).repeat().delayElements(Duration.ofMillis(5L));
-		var data = Flux.just(1, 2, 3).delayElements(Duration.ofMillis(30L));
+		var decisions          = Flux.just(AuthorizationDecision.PERMIT).repeat().delayElements(Duration.ofMillis(5L));
+		var data               = Flux.just(1, 2, 3).delayElements(Duration.ofMillis(30L));
 		return EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
 	}
 
 	@Test
 	void when_onlyOneDeny_thenNoSignalsAndAccessDenied() {
 		var constraintsService = buildConstraintHandlerService();
-		var decisions = Flux.just(AuthorizationDecision.DENY);
-		var data = Flux.just(1, 2, 3);
-		var sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
+		var decisions          = Flux.just(AuthorizationDecision.DENY);
+		var data               = Flux.just(1, 2, 3);
+		var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
+				Integer.class);
 		StepVerifier.create(sut).expectError(AccessDeniedException.class).verify();
 	}
 
 	@Test
 	void when_onlyOneDeny_thenNoSignalsAndAccessDeniedOnErrorContinueDoesNotLeakData() {
 		var constraintsService = buildConstraintHandlerService();
-		var decisions = Flux.just(AuthorizationDecision.DENY);
-		var data = Flux.just(1, 2, 3);
-		var sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
+		var decisions          = Flux.just(AuthorizationDecision.DENY);
+		var data               = Flux.just(1, 2, 3);
+		var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
+				Integer.class);
 		StepVerifier.create(sut.onErrorContinue((a, b) -> {
 		})).expectError(AccessDeniedException.class).verify();
 	}
@@ -179,9 +189,9 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 
 	private Flux<Integer> scenario_firstPermitThenDeny_thenSignalsPassThroughTillDenied() {
 		var constraintsService = buildConstraintHandlerService();
-		var decisions = Flux.just(AuthorizationDecision.PERMIT, AuthorizationDecision.DENY)
+		var decisions          = Flux.just(AuthorizationDecision.PERMIT, AuthorizationDecision.DENY)
 				.delayElements(Duration.ofMillis(50L));
-		var data = Flux.just(1, 2, 3).delayElements(Duration.ofMillis(20L));
+		var data               = Flux.just(1, 2, 3).delayElements(Duration.ofMillis(20L));
 		return EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
 	}
 
@@ -213,8 +223,8 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 		};
 		globalMappingHandlerProviders.add(handler);
 		var constraintsService = buildConstraintHandlerService();
-		var decisions = decisionFluxWithChangeingAdvice().delayElements(Duration.ofMillis(270L));
-		var data = Flux.range(0, 10).delayElements(Duration.ofMillis(50L));
+		var decisions          = decisionFluxWithChangeingAdvice().delayElements(Duration.ofMillis(270L));
+		var data               = Flux.range(0, 10).delayElements(Duration.ofMillis(50L));
 		return EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
 
 	}
@@ -240,16 +250,16 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 
 		};
 		globalMappingHandlerProviders.add(handler);
-		var json = JsonNodeFactory.instance;
+		var json            = JsonNodeFactory.instance;
 		var advicePlus10000 = json.numberNode(10000L);
-		var firstAdvice = json.arrayNode();
+		var firstAdvice     = json.arrayNode();
 		firstAdvice.add(advicePlus10000);
 
-		var decisions = Flux.just(AuthorizationDecision.PERMIT.withAdvice(firstAdvice));
+		var decisions          = Flux.just(AuthorizationDecision.PERMIT.withAdvice(firstAdvice));
 		var constraintsService = buildConstraintHandlerService();
 
 		var data = Flux.range(0, 10);
-		var sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
+		var sut  = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
 		StepVerifier.create(sut).expectNext(0, 2, 4, 6, 8).verifyComplete();
 
 	}
@@ -279,15 +289,15 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 
 		});
 		globalRunnableProviders.add(handler);
-		var json = JsonNodeFactory.instance;
+		var json            = JsonNodeFactory.instance;
 		var advicePlus10000 = json.numberNode(10000L);
-		var firstAdvice = json.arrayNode();
+		var firstAdvice     = json.arrayNode();
 		firstAdvice.add(advicePlus10000);
-		var decisions = Flux.just(AuthorizationDecision.PERMIT.withAdvice(firstAdvice));
+		var decisions          = Flux.just(AuthorizationDecision.PERMIT.withAdvice(firstAdvice));
 		var constraintsService = buildConstraintHandlerService();
 
 		var data = Flux.range(0, 10);
-		var sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
+		var sut  = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
 		StepVerifier.create(sut.take(5)).expectNext(0, 1, 2, 3, 4).verifyComplete();
 		verify(handler, times(1)).run();
 	}
@@ -312,14 +322,15 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 
 		});
 		this.globalErrorMappingHandlerProviders.add(handler);
-		var decisions = decisionFluxOnePermitWithObligation();
+		var decisions          = decisionFluxOnePermitWithObligation();
 		var constraintsService = buildConstraintHandlerService();
-		var data = Flux.range(0, 10).map(x -> {
-			if (x == 5)
-				throw new RuntimeException("ILLEGAL");
-			return x;
-		});
-		var sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
+		var data               = Flux.range(0, 10).map(x -> {
+									if (x == 5)
+										throw new RuntimeException("ILLEGAL");
+									return x;
+								});
+		var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
+				Integer.class);
 
 		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4)
 				.expectErrorMatches(error -> error instanceof IOException && "LEGAL".equals(error.getMessage()))
@@ -353,10 +364,11 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 
 		});
 		this.globalConsumerProviders.add(handler);
-		var decisions = decisionFluxOnePermitWithObligation();
+		var decisions          = decisionFluxOnePermitWithObligation();
 		var constraintsService = buildConstraintHandlerService();
-		var data = Flux.range(0, 10);
-		var sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
+		var data               = Flux.range(0, 10);
+		var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
+				Integer.class);
 
 		StepVerifier.create(sut).expectError(AccessDeniedException.class).verify();
 		verify(handler, times(1)).accept(any());
@@ -382,14 +394,15 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 
 		});
 		this.globalErrorHandlerProviders.add(handler);
-		var decisions = decisionFluxOnePermitWithObligation();
+		var decisions          = decisionFluxOnePermitWithObligation();
 		var constraintsService = buildConstraintHandlerService();
-		var data = Flux.range(0, 10).map(x -> {
-			if (x == 5)
-				throw new RuntimeException("ILLEGAL");
-			return x;
-		});
-		var sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
+		var data               = Flux.range(0, 10).map(x -> {
+									if (x == 5)
+										throw new RuntimeException("ILLEGAL");
+									return x;
+								});
+		var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
+				Integer.class);
 
 		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4).expectError(AccessDeniedException.class).verify();
 		verify(handler, times(2)).accept(any());
@@ -415,10 +428,11 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 
 		});
 		this.globalSubscriptionHandlerProviders.add(handler);
-		var decisions = decisionFluxOnePermitWithObligation();
+		var decisions          = decisionFluxOnePermitWithObligation();
 		var constraintsService = buildConstraintHandlerService();
-		var data = Flux.range(0, 10);
-		var sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
+		var data               = Flux.range(0, 10);
+		var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
+				Integer.class);
 
 		StepVerifier.create(sut).expectError(AccessDeniedException.class).verify();
 		verify(handler, times(1)).accept(any());
@@ -442,10 +456,11 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 			}
 		});
 		this.globalRequestHandlerProviders.add(handler);
-		var decisions = decisionFluxOnePermitWithObligation();
+		var decisions          = decisionFluxOnePermitWithObligation();
 		var constraintsService = buildConstraintHandlerService();
-		var data = Flux.range(0, 10);
-		var sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
+		var data               = Flux.range(0, 10);
+		var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
+				Integer.class);
 
 		StepVerifier.create(sut).expectError(RuntimeException.class).verify();
 		verify(handler, times(1)).accept(any());
@@ -476,10 +491,11 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 
 		});
 		this.globalRunnableProviders.add(handler);
-		var decisions = decisionFluxOnePermitWithObligation();
+		var decisions          = decisionFluxOnePermitWithObligation();
 		var constraintsService = buildConstraintHandlerService();
-		var data = Flux.range(0, 10);
-		var sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
+		var data               = Flux.range(0, 10);
+		var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
+				Integer.class);
 
 		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4, 5, 6, 7, 8, 9).expectError(AccessDeniedException.class)
 				.verify();
@@ -511,10 +527,11 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 
 		});
 		this.globalConsumerProviders.add(handler);
-		var decisions = decisionFluxOnePermitWithAdvice();
+		var decisions          = decisionFluxOnePermitWithAdvice();
 		var constraintsService = buildConstraintHandlerService();
-		var data = Flux.range(0, 10);
-		var sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
+		var data               = Flux.range(0, 10);
+		var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
+				Integer.class);
 
 		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4, 5, 6, 7, 8, 9).verifyComplete();
 		verify(handler, times(10)).accept(any());
@@ -540,14 +557,15 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 
 		});
 		this.globalErrorHandlerProviders.add(handler);
-		var decisions = decisionFluxOnePermitWithAdvice();
+		var decisions          = decisionFluxOnePermitWithAdvice();
 		var constraintsService = buildConstraintHandlerService();
-		var data = Flux.range(0, 10).map(x -> {
-			if (x == 5)
-				throw new RuntimeException("ILLEGAL");
-			return x;
-		});
-		var sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
+		var data               = Flux.range(0, 10).map(x -> {
+									if (x == 5)
+										throw new RuntimeException("ILLEGAL");
+									return x;
+								});
+		var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
+				Integer.class);
 
 		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4).expectErrorMatches(err -> err.getMessage().equals("ILLEGAL"))
 				.verify();
@@ -574,10 +592,11 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 
 		});
 		this.globalSubscriptionHandlerProviders.add(handler);
-		var decisions = decisionFluxOnePermitWithAdvice();
+		var decisions          = decisionFluxOnePermitWithAdvice();
 		var constraintsService = buildConstraintHandlerService();
-		var data = Flux.range(0, 10);
-		var sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
+		var data               = Flux.range(0, 10);
+		var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
+				Integer.class);
 
 		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4, 5, 6, 7, 8, 9).verifyComplete();
 		verify(handler, times(1)).accept(any());
@@ -601,10 +620,11 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 			}
 		});
 		this.globalRequestHandlerProviders.add(handler);
-		var decisions = decisionFluxOnePermitWithAdvice();
+		var decisions          = decisionFluxOnePermitWithAdvice();
 		var constraintsService = buildConstraintHandlerService();
-		var data = Flux.range(0, 10);
-		var sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
+		var data               = Flux.range(0, 10);
+		var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
+				Integer.class);
 
 		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4, 5, 6, 7, 8, 9).verifyComplete();
 		verify(handler, times(1)).accept(any());
@@ -635,10 +655,11 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 
 		});
 		this.globalRunnableProviders.add(handler);
-		var decisions = decisionFluxOnePermitWithAdvice();
+		var decisions          = decisionFluxOnePermitWithAdvice();
 		var constraintsService = buildConstraintHandlerService();
-		var data = Flux.range(0, 10);
-		var sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
+		var data               = Flux.range(0, 10);
+		var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
+				Integer.class);
 
 		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4, 5, 6, 7, 8, 9).verifyComplete();
 	}
@@ -668,10 +689,11 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 
 		});
 		this.globalRunnableProviders.add(handler);
-		var decisions = decisionFluxOnePermitWithAdvice();
+		var decisions          = decisionFluxOnePermitWithAdvice();
 		var constraintsService = buildConstraintHandlerService();
-		var data = Flux.range(0, 10);
-		var sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
+		var data               = Flux.range(0, 10);
+		var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
+				Integer.class);
 
 		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4, 5, 6, 7, 8, 9).verifyComplete();
 		verify(handler, times(1)).run();
@@ -679,29 +701,32 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 
 	@Test
 	void when_onNextObligationFailsByMissing_thenAccessDenied() {
-		var decisions = decisionFluxOnePermitWithObligation();
+		var decisions          = decisionFluxOnePermitWithObligation();
 		var constraintsService = buildConstraintHandlerService();
-		var data = Flux.range(0, 10);
-		var sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
+		var data               = Flux.range(0, 10);
+		var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
+				Integer.class);
 
 		StepVerifier.create(sut).expectError(AccessDeniedException.class).verify();
 	}
 
 	@Test
 	void when_onSubscribeObligationFailsByMissing_thenAccessDenied() {
-		var decisions = decisionFluxOnePermitWithObligation();
+		var decisions          = decisionFluxOnePermitWithObligation();
 		var constraintsService = buildConstraintHandlerService();
-		var data = Flux.range(0, 10);
-		var sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
+		var data               = Flux.range(0, 10);
+		var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
+				Integer.class);
 		StepVerifier.create(sut).expectError(AccessDeniedException.class).verify();
 	}
 
 	@Test
 	void when_onRequestObligationFailsByMissing_thenAccessDenied() {
-		var decisions = decisionFluxOnePermitWithObligation();
+		var decisions          = decisionFluxOnePermitWithObligation();
 		var constraintsService = buildConstraintHandlerService();
-		var data = Flux.range(0, 10);
-		var sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
+		var data               = Flux.range(0, 10);
+		var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
+				Integer.class);
 
 		StepVerifier.create(sut).expectError(AccessDeniedException.class).verify();
 	}
@@ -731,36 +756,37 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 
 		});
 		this.globalRunnableProviders.add(handler);
-		var decisions = decisionFluxOnePermitWithObligation();
+		var decisions          = decisionFluxOnePermitWithObligation();
 		var constraintsService = buildConstraintHandlerService();
-		var data = Flux.range(0, 10);
-		var sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
+		var data               = Flux.range(0, 10);
+		var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
+				Integer.class);
 
 		StepVerifier.create(sut.take(1)).expectNext(0).verifyComplete();
 		verify(handler, times(1)).run();
 	}
 
 	public Flux<AuthorizationDecision> decisionFluxOnePermitWithObligation() {
-		var json = JsonNodeFactory.instance;
-		var plus10000 = json.numberNode(10000L);
+		var json       = JsonNodeFactory.instance;
+		var plus10000  = json.numberNode(10000L);
 		var obligation = json.arrayNode();
 		obligation.add(plus10000);
 		return Flux.just(AuthorizationDecision.PERMIT.withObligations(obligation));
 	}
 
 	public Flux<AuthorizationDecision> decisionFluxOnePermitWithAdvice() {
-		var json = JsonNodeFactory.instance;
+		var json      = JsonNodeFactory.instance;
 		var plus10000 = json.numberNode(10000L);
-		var advice = json.arrayNode();
+		var advice    = json.arrayNode();
 		advice.add(plus10000);
 		return Flux.just(AuthorizationDecision.PERMIT.withAdvice(advice));
 	}
 
 	public Flux<AuthorizationDecision> decisionFluxWithChangeingAdvice() {
-		var json = JsonNodeFactory.instance;
+		var json            = JsonNodeFactory.instance;
 		var advicePlus10000 = json.numberNode(10000L);
 		var advicePlus50000 = json.numberNode(50000L);
-		var firstAdvice = json.arrayNode();
+		var firstAdvice     = json.arrayNode();
 		firstAdvice.add(advicePlus10000);
 		var secondAdvice = json.arrayNode();
 		secondAdvice.add(advicePlus50000);

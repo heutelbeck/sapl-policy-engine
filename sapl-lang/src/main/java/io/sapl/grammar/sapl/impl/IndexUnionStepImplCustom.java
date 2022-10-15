@@ -40,7 +40,7 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 
-	private static final String TYPE_MISMATCH_CAN_ONLY_ACCESS_ARRAYS_BY_INDEX_GOT_S = "Type mismatch. Can only access arrays by index, got: %s";
+	private static final String TYPE_MISMATCH_CAN_ONLY_ACCESS_ARRAYS_BY_INDEX_GOT_S = "Type mismatch. The [index] access operator can only be applied to arrays. However, the policy actually attempted to apply the operator to: %s";
 
 	@Override
 	public Flux<Val> apply(@NonNull Val parentValue) {

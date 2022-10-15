@@ -36,29 +36,55 @@ import com.github.fge.jackson.JsonNumEquals;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+/**
+ * Val is the basic data type SAPL expressions evaluate to. A Val may contain a
+ * Jackson JsonNode, an error, or may be undefined. Vals are immutable.
+ * 
+ * @author Dominic Heutelbeck
+ *
+ */
 public class Val {
 
-	static final String ERROR_TEXT = "ERROR";
-	static final String UNDEFINED_TEXT = "undefined";
-	static final String UNKNOWN_ERROR = "Unknown Error";
-	static final String UNDEFINED_VALUE_ERROR = "Undefined value error.";
-	static final String OBJECT_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Expected an object, but got %s.";
-	static final String ARRAY_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Expected an array, but got %s.";
-	static final String BOOLEAN_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Boolean operation expects boolean values, but got: '%s'.";
-	static final String NUMBER_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Number operation expects number values, but got: '%s'.";
-	static final String TEXT_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Text operation expects text values, but got: '%s'.";
+	static final String ERROR_TEXT                           = "ERROR";
+	static final String UNDEFINED_TEXT                       = "undefined";
+	static final String UNKNOWN_ERROR                        = "Unknown Error";
+	static final String UNDEFINED_VALUE_ERROR                = "Undefined value error.";
+	static final String OBJECT_OPERATION_TYPE_MISMATCH_S     = "Type mismatch. Expected an object, but got %s.";
+	static final String ARRAY_OPERATION_TYPE_MISMATCH_S      = "Type mismatch. Expected an array, but got %s.";
+	static final String BOOLEAN_OPERATION_TYPE_MISMATCH_S    = "Type mismatch. Boolean operation expects boolean values, but got: '%s'.";
+	static final String NUMBER_OPERATION_TYPE_MISMATCH_S     = "Type mismatch. Number operation expects number values, but got: '%s'.";
+	static final String TEXT_OPERATION_TYPE_MISMATCH_S       = "Type mismatch. Text operation expects text values, but got: '%s'.";
 	static final String ARITHMETIC_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Number operation expects number values, but got: '%s'.";
 
+	/**
+	 * Convenience Instance of a JsonNodeFactory.
+	 */
 	public static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
+	/**
+	 * Convenience Instance of a ObjectMapper. Attention, this is not the same as
+	 * the gloablly available bean in Spring.
+	 */
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
+	/**
+	 * Constant 'undefined' Val.
+	 */
 	public static final Val UNDEFINED = new Val();
 
+	/**
+	 * Constant 'true' Val.
+	 */
 	public static final Val TRUE = new Val(JSON.booleanNode(true));
 
+	/**
+	 * Constant 'false' Val.
+	 */
 	public static final Val FALSE = new Val(JSON.booleanNode(false));
 
+	/**
+	 * Constant 'null' Val.
+	 */
 	public static final Val NULL = Val.of(JSON.nullNode());
 
 	private final JsonNode value;
@@ -66,12 +92,12 @@ public class Val {
 	private String errorMessage;
 
 	private Val(String errorMessage) {
-		this.value = null;
+		this.value        = null;
 		this.errorMessage = errorMessage;
 	}
 
 	private Val() {
-		this.value = null;
+		this.value        = null;
 		this.errorMessage = null;
 	}
 
@@ -101,7 +127,8 @@ public class Val {
 
 	public static Val error(Throwable throwable) {
 		return (throwable.getMessage() == null || throwable.getMessage().isBlank())
-				? new Val(throwable.getClass().getSimpleName()) : new Val(throwable.getMessage());
+				? new Val(throwable.getClass().getSimpleName())
+				: new Val(throwable.getMessage());
 	}
 
 	public static Flux<Val> errorFlux(String errorMessage, Object... args) {
@@ -221,8 +248,7 @@ public class Val {
 	public <X extends Throwable> JsonNode orElseThrow(Supplier<? extends X> exceptionSupplier) throws X {
 		if (isDefined()) {
 			return value;
-		}
-		else {
+		} else {
 			throw exceptionSupplier.get();
 		}
 	}
@@ -257,8 +283,7 @@ public class Val {
 		}
 		if (left.isNumber() && right.isNumber()) {
 			return left.decimalValue().compareTo(right.decimalValue()) != 0;
-		}
-		else {
+		} else {
 			return !left.get().equals(right.get());
 		}
 	}
@@ -533,6 +558,10 @@ public class Val {
 		return requireBigDecimal(value);
 	}
 
+	/**
+	 * @param value a Val
+	 * @return a String describing the type of the Val.
+	 */
 	public static String typeOf(Val value) {
 		if (value.isError()) {
 			return ERROR_TEXT;
@@ -540,6 +569,9 @@ public class Val {
 		return value.isDefined() ? value.get().getNodeType().toString() : UNDEFINED_TEXT;
 	}
 
+	/**
+	 * @return a String describing the type of the Val.
+	 */
 	public String getValType() {
 		return typeOf(this);
 	}

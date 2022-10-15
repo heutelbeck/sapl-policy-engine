@@ -24,6 +24,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -57,6 +58,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.server.ServerWebExchange;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
@@ -150,8 +152,11 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 										.where("name", jsonText("publicVoid")))))),
 				() -> assertThat(subscription.getResource(),
 						is(jsonObject()
-								.where("targetClass", is(jsonObject()
-										.where("simpleName", jsonText("TestClass")))))),
+								  .where("java", is(jsonObject()
+										.where("instanceof",												
+											is(jsonArray(containsInAnyOrder(
+												jsonObject().where("simpleName",is(jsonText("TestClass"))),
+												jsonObject().where("simpleName",is(jsonText("Object"))))))))))),
 				() -> assertThat(subscription.getEnvironment(), is(jsonNull())));
 		// @formatter:on
 	}
@@ -179,11 +184,12 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 	}
 
 	@Test
-	void when_nullParametersAndAnonymousAuthentication_then_FactoryConstructsFromContextAndNoAuthn() {
+	void when_nullParametersAndAnonymousAuthentication_then_FactoryConstructsFromContextAndNoAuthn() throws JsonProcessingException {
 		var attribute = attribute(null, null, null, null, Object.class);
 		var anonymous = new AnonymousAuthenticationToken("key", "anonymous",
 				AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
 		var subscription = defaultBuilderUnderTest.constructAuthorizationSubscription(anonymous, invocation, attribute);
+		
 		// @formatter:off
 		assertAll(() -> assertThat(subscription.getSubject(),
 						  is(jsonObject()
@@ -198,8 +204,11 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 				  () -> assertThat(subscription.getResource(),
 						  is(jsonObject()
 								  .where("http", is(jsonMissing()))
-								  .where("targetClass", is(jsonObject()
-										.where("simpleName", jsonText("TestClass")) )))),
+								  .where("java", is(jsonObject()
+										.where("instanceof",												
+											is(jsonArray(containsInAnyOrder(
+												jsonObject().where("simpleName",is(jsonText("TestClass"))),
+												jsonObject().where("simpleName",is(jsonText("Object"))))))))))),
 			      () -> assertThat(subscription.getEnvironment(), is(jsonNull())));
 		// @formatter:on
 	}
@@ -229,8 +238,11 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 					() -> assertThat(subscription.getResource(),
 							is(jsonObject()
 									.where("http", is(jsonObject()))
-									.where("targetClass", is(jsonObject()
-											.where("simpleName", jsonText("TestClass")))))),
+									  .where("java", is(jsonObject()
+												.where("instanceof",												
+													is(jsonArray(containsInAnyOrder(
+														jsonObject().where("simpleName",is(jsonText("TestClass"))),
+														jsonObject().where("simpleName",is(jsonText("Object"))))))))))),
 					() -> assertThat(subscription.getEnvironment(), is(jsonNull())));
 			// @formatter:on
 		}
@@ -256,8 +268,11 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 										.where("name", jsonText("publicVoidArgs")))))),
 				() -> assertThat(subscription.getResource(),
 						is(jsonObject()
-								.where("targetClass", is(jsonObject()
-										.where("simpleName", jsonText("TestClass")))))),
+								  .where("java", is(jsonObject()
+										.where("instanceof",												
+											is(jsonArray(containsInAnyOrder(
+												jsonObject().where("simpleName",is(jsonText("TestClass"))),
+												jsonObject().where("simpleName",is(jsonText("Object"))))))))))),
 				() -> assertThat(subscription.getEnvironment(), is(jsonNull())));
 		// @formatter:on
 
@@ -284,8 +299,11 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 										.where("name", jsonText("publicVoidProblemArg")))))),
 				() -> assertThat(subscription.getResource(),
 						is(jsonObject()
-								.where("targetClass", is(jsonObject()
-										.where("simpleName", jsonText("TestClass")))))),
+								  .where("java", is(jsonObject()
+										.where("instanceof",												
+											is(jsonArray(containsInAnyOrder(
+												jsonObject().where("simpleName",is(jsonText("TestClass"))),
+												jsonObject().where("simpleName",is(jsonText("Object"))))))))))),
 				() -> assertThat(subscription.getEnvironment(), is(jsonNull())));
 		// @formatter:on
 	}
@@ -311,8 +329,11 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 										.where("name", jsonText("publicVoid")))))),
 				() -> assertThat(subscription.getResource(),
 						is(jsonObject()
-								.where("targetClass", is(jsonObject()
-										.where("simpleName", jsonText("TestClass")))))),
+								  .where("java", is(jsonObject()
+										.where("instanceof",												
+											is(jsonArray(containsInAnyOrder(
+												jsonObject().where("simpleName",is(jsonText("TestClass"))),
+												jsonObject().where("simpleName",is(jsonText("Object"))))))))))),
 				() -> assertThat(subscription.getEnvironment(), is(jsonNull())));
 		// @formatter:on
 	}
@@ -336,8 +357,11 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 				  () -> assertThat(subscription.getResource(),
 						  is(jsonObject()
 								  .where("http", is(jsonMissing()))
-								  .where("targetClass", is(jsonObject()
-										.where("simpleName", jsonText("TestClass")) )))),
+								  .where("java", is(jsonObject()
+										.where("instanceof",												
+											is(jsonArray(containsInAnyOrder(
+												jsonObject().where("simpleName",is(jsonText("TestClass"))),
+												jsonObject().where("simpleName",is(jsonText("Object"))))))))))),
 			      () -> assertThat(subscription.getEnvironment(), is(jsonNull())));
 		// @formatter:on
 	}

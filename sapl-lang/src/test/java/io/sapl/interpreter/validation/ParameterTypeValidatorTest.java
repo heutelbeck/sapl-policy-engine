@@ -16,8 +16,8 @@
 package io.sapl.interpreter.validation;
 
 import static io.sapl.interpreter.validation.ParameterTypeValidator.validateType;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -62,23 +62,31 @@ class ParameterTypeValidatorTest {
 
 	private static final Set<Set<Class<?>>> ANOTATION_POWERSET = Sets.powerSet(TEST_ANNOTATIONS);
 
-	private static final Map<Val, Class<?>[]> TEST_CASES = Map.of(Val.of(123),
-			new Class<?>[] { Number.class, Int.class, Long.class }, Val.UNDEFINED, new Class<?>[] {},
-			Val.of(Double.MAX_VALUE), new Class<?>[] { Number.class }, Val.of(java.lang.Long.MAX_VALUE),
-			new Class<?>[] { Number.class, Long.class }, Val.of(Integer.MAX_VALUE),
-			new Class<?>[] { Number.class, Long.class, Int.class }, Val.ofEmptyObject(),
-			new Class<?>[] { JsonObject.class }, Val.TRUE, new Class<?>[] { Bool.class }, Val.ofEmptyArray(),
-			new Class<?>[] { Array.class }, Val.of(""), new Class<?>[] { Text.class });
+	// @formatter:off
+	private static final Map<Val, Class<?>[]> TEST_CASES = Map.of(
+	//      GIVEN VALUE                         WILL BE VALID WITH THESE ANNOTATIONS
+			Val.of(123), 						new Class<?>[] { Number.class, Int.class, Long.class }, 
+			Val.UNDEFINED, 						new Class<?>[] { },
+			Val.error(), 						new Class<?>[] { },
+			Val.of(Double.MAX_VALUE), 			new Class<?>[] { Number.class }, 
+			Val.of(java.lang.Long.MAX_VALUE),	new Class<?>[] { Number.class, Long.class }, 
+			Val.of(Integer.MAX_VALUE),			new Class<?>[] { Number.class, Long.class, Int.class }, 
+			Val.ofEmptyObject(),				new Class<?>[] { JsonObject.class }, 
+			Val.TRUE, 							new Class<?>[] { Bool.class }, 
+			Val.ofEmptyArray(),					new Class<?>[] { Array.class }, 
+			Val.of(""), 						new Class<?>[] { Text.class });
+	// @formatter:on
 
 	static Collection<ValidationTestSpecification> data() {
 		var testData = new LinkedList<ValidationTestSpecification>();
 		for (var testCase : TEST_CASES.entrySet()) {
-			var givenValue = testCase.getKey();
+			var           givenValue                          = testCase.getKey();
 			Set<Class<?>> annotationsImplyingValidityForGiven = Stream.of(testCase.getValue())
 					.collect(Collectors.toCollection(HashSet::new));
 			for (var givenAnnotations : ANOTATION_POWERSET) {
-				var intersection = Sets.intersection(annotationsImplyingValidityForGiven, givenAnnotations);
-				var givenWithoutUnrelated = Sets.difference(givenAnnotations, UNRELATED_ANNOTATIONS);
+				var intersection                      = Sets.intersection(annotationsImplyingValidityForGiven,
+						givenAnnotations);
+				var givenWithoutUnrelated             = Sets.difference(givenAnnotations, UNRELATED_ANNOTATIONS);
 				var expectedToBeSuccessfullyValidated = givenWithoutUnrelated.isEmpty() || !intersection.isEmpty();
 				testData.add(new ValidationTestSpecification(givenValue, givenAnnotations,
 						expectedToBeSuccessfullyValidated));
@@ -91,16 +99,14 @@ class ParameterTypeValidatorTest {
 	@MethodSource("data")
 	void theGivenValue_YieldsExpctedValidation(ValidationTestSpecification testSpec) {
 		var parameter = mockParameter(testSpec.getGivenAnnotations());
-		assertThat(validationOfValue_IsSuccessfull(testSpec.getGivenValue(), parameter),
-				is(testSpec.expectedToBeSuccessfullyValidated));
-	}
-
-	private boolean validationOfValue_IsSuccessfull(Val givenValue, Parameter givenParameter) {
-		return !validateType(givenValue, givenParameter).isError();
+		if (testSpec.expectedToBeSuccessfullyValidated)
+			assertDoesNotThrow(() -> validateType(testSpec.getGivenValue(), parameter));
+		else
+			assertThrows(IllegalParameterType.class, () -> validateType(testSpec.getGivenValue(), parameter));
 	}
 
 	private static Parameter mockParameter(Set<Class<?>> annotationClasses) {
-		var parameter = mock(Parameter.class);
+		var parameter         = mock(Parameter.class);
 		var mockedAnnotations = new ArrayList<Annotation>(annotationClasses.size());
 		for (var clazz : annotationClasses) {
 			mockedAnnotations.add((Annotation) mock(clazz));

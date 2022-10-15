@@ -421,7 +421,7 @@ The SAPL Policy engine comes with two implementations ready for deployment in an
 
 * SAPL Server LT: This light (LT) PDP server implementation uses a configuration and policies stored on a file system. The server is available as a docker container. Documentation: https://github.com/heutelbeck/sapl-policy-engine/tree/master/sapl-server-lt
 
-* SAPL Server CE: This community edition (CE) PDP server implementation uses a relational database (MariaDB) for persistence configuration and offers a convenient graphical Web interface to manage policies, configuration, and clients. The UI includes SAPL specific text editors with syntax highlighting and auto-completion features. The server is available as a docker container. Documentation: https://github.com/heutelbeck/sapl-policy-engine/tree/master/sapl-server-ce
+* SAPL Server CE: This community edition (CE) PDP server implementation uses a relational database (MariaDB) for persistence configuration and offers a convenient graphical Web interface to manage policies, configuration, and clients. The UI includes SAPL specific text editors with syntax highlighting and auto-completion features. The server is available as a docker container. Documentation: https://github.com/heutelbeck/sapl-server/tree/main/sapl-server-ce
 
 === Java API
 
@@ -740,11 +740,16 @@ A common situation in which obligations are useful is _Break the Glass Scenarios
 
 Obligations are only returned in the authorization decision if the decision is `PERMIT` or `DENY`. The PDP simply collects all obligations from policies evaluating to one of these entitlements. Depending on the final decision, the obligations and advice which belong to this decision are included in the authorization decision object. It does not matter if the obligation is described with a string (like `"create_emergency_access_log"`) or an object (like `{ "task" : "create_log", "content" : "emergency_access" }`) or another JSON value - only the PEP must be implemented in a way that it knows how to process these obligations.
 
+In any policy an arbitrary number of obligation expressions, all introduced with the *obligation* keyword may be present. All obligation expressions must be written down before any *advice*.
+
+
 ==== Advice
 
 An *optional* advice expression is treated similarly to an obligation expression. Unlike obligations, fulfilling the described tasks in the advice is not a requirement for granting or denying access. The advice expression consists of the keyword `advice` followed by any expression.
 
 If the final decision is `PERMIT` or `DENY`, advice from all policies evaluating to this decision is included in the authorization decision object by the PDP.
+
+In any policy an arbitrary number of advice expressions, all introduced with the *advice* keyword may be present. All advice expressions must be written down after any *obligation*.
 
 ==== Transformation
 

@@ -51,6 +51,7 @@ import io.sapl.spring.constraints.api.ErrorHandlerProvider;
 import io.sapl.spring.constraints.api.ErrorMappingConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.FilterPredicateConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.MappingConstraintHandlerProvider;
+import io.sapl.spring.constraints.api.MethodInvocationConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.RequestHandlerProvider;
 import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.SubscriptionHandlerProvider;
@@ -98,13 +99,15 @@ class PostEnforcePolicyEnforcementPointTests {
 
 	List<ErrorHandlerProvider> globalErrorHandlerProviders;
 
-	List<FilterPredicateConstraintHandlerProvider<?>> globalFilterPredicateProviders;
+	List<FilterPredicateConstraintHandlerProvider> globalFilterPredicateProviders;
+
+	List<MethodInvocationConstraintHandlerProvider> globalInvocationHandlerProviders;
 
 	private ConstraintEnforcementService buildConstraintHandlerService(ObjectMapper mapper) {
 		return new ConstraintEnforcementService(globalRunnableProviders, globalConsumerProviders,
 				globalSubscriptionHandlerProviders, globalRequestHandlerProviders, globalMappingHandlerProviders,
 				globalErrorMappingHandlerProviders, globalErrorHandlerProviders, globalFilterPredicateProviders,
-				mapper);
+				globalInvocationHandlerProviders, mapper);
 	}
 
 	@BeforeEach
@@ -119,6 +122,7 @@ class PostEnforcePolicyEnforcementPointTests {
 		globalErrorMappingHandlerProviders = new LinkedList<>();
 		globalErrorHandlerProviders        = new LinkedList<>();
 		globalFilterPredicateProviders     = new LinkedList<>();
+		globalInvocationHandlerProviders   = new LinkedList<>();
 
 		var          mapper = new ObjectMapper();
 		SimpleModule module = new SimpleModule();
@@ -131,13 +135,40 @@ class PostEnforcePolicyEnforcementPointTests {
 
 		authentication             = new UsernamePasswordAuthenticationToken("principal", "credentials");
 		subscriptionBuilder        = new AuthorizationSubscriptionBuilderService(
-				new DefaultMethodSecurityExpressionHandler(),
-				mapper);
+				new DefaultMethodSecurityExpressionHandler(), mapper);
 		subscriptionBuilderFactory = () -> subscriptionBuilder;
 	}
 
 	@Test
-	void whenAfterAndDecideIsPermit_then_ReturnOriginalReturnObject() {
+	void when_errorDuringBundleConmstruction_then_AccessDenied() {
+		var constraintEnforcementService = mock(ConstraintEnforcementService.class);
+		when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
+				.thenThrow(new IllegalStateException("TEST FAILURE"));
+		var sut                  = new PostEnforcePolicyEnforcementPoint(pdpFactory, () -> constraintEnforcementService,
+				subscriptionBuilderFactory);
+		var methodInvocation     = MethodInvocationUtils.create(new TestClass(), DO_SOMETHING);
+		var attribute            = new PostEnforceAttribute(null, null, null, null, null);
+		var originalReturnObject = ORIGINAL_RETURN_OBJECT;
+		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+		assertThrows(AccessDeniedException.class,
+				() -> sut.after(authentication, methodInvocation, attribute, originalReturnObject));
+	}
+
+	@Test
+	void when_bundleIsNull_then_AccessDenied() {
+		var constraintEnforcementService = mock(ConstraintEnforcementService.class);
+		var sut                          = new PostEnforcePolicyEnforcementPoint(pdpFactory,
+				() -> constraintEnforcementService, subscriptionBuilderFactory);
+		var methodInvocation             = MethodInvocationUtils.create(new TestClass(), DO_SOMETHING);
+		var attribute                    = new PostEnforceAttribute(null, null, null, null, null);
+		var originalReturnObject         = ORIGINAL_RETURN_OBJECT;
+		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+		assertThrows(AccessDeniedException.class,
+				() -> sut.after(authentication, methodInvocation, attribute, originalReturnObject));
+	}
+
+	@Test
+	void when_AfterAndDecideIsPermit_then_ReturnOriginalReturnObject() {
 		var sut                  = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				subscriptionBuilderFactory);
 		var methodInvocation     = MethodInvocationUtils.create(new TestClass(), DO_SOMETHING);
@@ -149,7 +180,7 @@ class PostEnforcePolicyEnforcementPointTests {
 	}
 
 	@Test
-	void whenAfterAndDecideIsDeny_then_ThrowAccessDeniedException() {
+	void when_AfterAndDecideIsDeny_then_ThrowAccessDeniedException() {
 		var sut                  = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				subscriptionBuilderFactory);
 		var methodInvocation     = MethodInvocationUtils.create(new TestClass(), DO_SOMETHING);
@@ -161,7 +192,7 @@ class PostEnforcePolicyEnforcementPointTests {
 	}
 
 	@Test
-	void whenAfterBeforeAndDecideNotApplicable_then_ThrowAccessDeniedException() {
+	void when_AfterBeforeAndDecideNotApplicable_then_ThrowAccessDeniedException() {
 		var sut                  = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				subscriptionBuilderFactory);
 		var methodInvocation     = MethodInvocationUtils.create(new TestClass(), DO_SOMETHING);
@@ -174,7 +205,7 @@ class PostEnforcePolicyEnforcementPointTests {
 	}
 
 	@Test
-	void whenAfterAndDecideIsIndeterminate_then_ThrowAccessDeniedException() {
+	void when_AfterAndDecideIsIndeterminate_then_ThrowAccessDeniedException() {
 		var sut                  = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				subscriptionBuilderFactory);
 		var methodInvocation     = MethodInvocationUtils.create(new TestClass(), DO_SOMETHING);
@@ -187,7 +218,7 @@ class PostEnforcePolicyEnforcementPointTests {
 	}
 
 	@Test
-	void whenAfterAndDecideIsEmpty_then_ThrowAccessDeniedException() {
+	void when_AfterAndDecideIsEmpty_then_ThrowAccessDeniedException() {
 		var sut                  = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				subscriptionBuilderFactory);
 		var methodInvocation     = MethodInvocationUtils.create(new TestClass(), DO_SOMETHING);
@@ -199,7 +230,7 @@ class PostEnforcePolicyEnforcementPointTests {
 	}
 
 	@Test
-	void whenAfterAndDecideISPermitWithResource_then_ReturnTheReplacementObject() {
+	void when_AfterAndDecideIsPermitWithResource_then_ReturnTheReplacementObject() {
 		var sut                  = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				subscriptionBuilderFactory);
 		var methodInvocation     = MethodInvocationUtils.create(new TestClass(), DO_SOMETHING);
@@ -213,7 +244,7 @@ class PostEnforcePolicyEnforcementPointTests {
 	}
 
 	@Test
-	void whenAfterAndDecideISPermitWithResourceOfBadType_then_ThrowAccessDeniedException() {
+	void when_AfterAndDecideISPermitWithResourceOfBadType_then_ThrowAccessDeniedException() {
 		var sut                  = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				subscriptionBuilderFactory);
 		var methodInvocation     = MethodInvocationUtils.create(new TestClass(), DO_SOMETHING);
@@ -227,7 +258,7 @@ class PostEnforcePolicyEnforcementPointTests {
 	}
 
 	@Test
-	void whenAfterAndDecideISPermitWithResourceAndMethodReturnsOptional_then_ReturnTheReplacementObject() {
+	void when_AfterAndDecideISPermitWithResourceAndMethodReturnsOptional_then_ReturnTheReplacementObject() {
 		var sut                  = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				subscriptionBuilderFactory);
 		var methodInvocation     = MethodInvocationUtils.create(new TestClass(), "doSomethingOptional");
@@ -241,7 +272,7 @@ class PostEnforcePolicyEnforcementPointTests {
 	}
 
 	@Test
-	void whenAfterAndDecideISPermitWithResourceAndMethodReturnsEmptyOptional_then_ReturnEmpty() {
+	void when_AfterAndDecideISPermitWithResourceAndMethodReturnsEmptyOptional_then_ReturnEmpty() {
 		var sut                  = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				subscriptionBuilderFactory);
 		var methodInvocation     = MethodInvocationUtils.create(new TestClass(), "doSomethingOptional");

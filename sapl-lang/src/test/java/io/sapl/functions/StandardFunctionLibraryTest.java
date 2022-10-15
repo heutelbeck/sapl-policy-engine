@@ -84,4 +84,14 @@ class StandardFunctionLibraryTest {
 		assertThat(StandardFunctionLibrary.numberToString(Val.of("ABC")), is(val("ABC")));
 	}
 
+	@Test
+	void when_noError_then_originalValueIsReturned() {
+		assertThat(StandardFunctionLibrary.onErrorMap(Val.of("ORIGINAL"), Val.of("REPLACED")), is(val("ORIGINAL")));
+	}
+
+	@Test
+	void when_error_then_valueIsReplaced() {
+		assertThat(StandardFunctionLibrary.onErrorMap(Val.error(), Val.of("REPLACED")), is(val("REPLACED")));
+	}
+
 }

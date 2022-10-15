@@ -28,6 +28,12 @@ import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.filter.SaplFilterPolicyEnforcementPoint;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Deploys the filter PEP.
+ * 
+ * @author Dominic Heutelbeck
+ *
+ */
 @Slf4j
 @Configuration
 @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
@@ -35,7 +41,7 @@ public class SaplFilterPolicyEnforcementPointAutoConfiguration {
 
 	@Bean
 	@ConditionalOnProperty("io.sapl.policyEnforcementFilter")
-	public SaplFilterPolicyEnforcementPoint policyEnforcementFilter(PolicyDecisionPoint pdp,
+	SaplFilterPolicyEnforcementPoint policyEnforcementFilter(PolicyDecisionPoint pdp,
 			ConstraintEnforcementService constraintHandlers, ObjectMapper mapper) {
 		log.info("PolicyEnforcementFilter enabled.");
 		return new SaplFilterPolicyEnforcementPoint(pdp, constraintHandlers, mapper);

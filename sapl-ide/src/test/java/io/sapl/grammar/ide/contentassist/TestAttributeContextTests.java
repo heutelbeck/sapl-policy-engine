@@ -22,7 +22,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Collection;
+import java.util.Map;
 
+import org.hamcrest.collection.IsMapContaining;
 import org.junit.jupiter.api.Test;
 
 public class TestAttributeContextTests {
@@ -92,6 +94,13 @@ public class TestAttributeContextTests {
 		var context = new TestAttributeContext();
 		Collection<String> functions = context.getAllFullyQualifiedFunctions();
 		assertThat(functions, hasItems("clock.now", "clock.millis", "clock.ticker"));
+	}
+	
+	@Test
+	public void getDocumentedAttributeCodeTemplatesReturnsAllKnownDocumentedCodeTemplates() {
+		var context = new TestAttributeContext();
+		Map<String, String> functions = context.getDocumentedAttributeCodeTemplates();
+		assertThat(functions, IsMapContaining.hasEntry("clock.now", "documentation"));
 	}
 
 }

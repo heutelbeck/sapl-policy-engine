@@ -17,6 +17,7 @@ package io.sapl.interpreter.functions;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.pip.LibraryFunctionProvider;
@@ -29,4 +30,5 @@ public interface FunctionContext extends LibraryFunctionProvider {
 
 	List<String> getCodeTemplates();
 
+	Map<String, String> getDocumentedCodeTemplates();
 }

@@ -29,6 +29,8 @@ import io.sapl.api.validation.Text;
 @FunctionLibrary(name = StandardFunctionLibrary.NAME, description = StandardFunctionLibrary.DESCRIPTION)
 public class StandardFunctionLibrary {
 
+	private static final String ON_ERROR_MAP_DOC = "onErrorMap(guardedExpression, fallbackExpression): If the guarded expression evaluates to an error, return the evaluation result of the fallbackExpression.";
+
 	public static final String NAME = "standard";
 
 	public static final String DESCRIPTION = "This library contains the mandatory functions for the SAPL implementation.";
@@ -64,6 +66,14 @@ public class StandardFunctionLibrary {
 			return Val.of("");
 
 		return parameter;
+	}
+	
+	@Function(docs = ON_ERROR_MAP_DOC)
+	public static Val onErrorMap(Val guardedExpression, Val fallbackValue) {
+		if(guardedExpression.isError())
+			return fallbackValue;
+		
+		return guardedExpression;
 	}
 
 }

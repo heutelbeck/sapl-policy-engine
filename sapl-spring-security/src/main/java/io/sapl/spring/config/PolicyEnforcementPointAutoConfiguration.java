@@ -20,6 +20,12 @@ import org.springframework.context.annotation.Import;
 
 import io.sapl.spring.pep.PolicyEnforcementPoint;
 
+/**
+ * Deploys the PEP
+ * 
+ * @author Dominic Heutelbeck
+ *
+ */
 @Configuration
 @Import(PolicyEnforcementPoint.class)
 public class PolicyEnforcementPointAutoConfiguration {

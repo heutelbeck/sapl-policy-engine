@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 /**
- * Functions and attributes to evaluate JSON Web Tokens (JWT) for access decisions
+ * Functions and attributes to evaluate JSON Web Tokens (JWT) for access
+ * decisions
  */
 package io.sapl.extension.jwt;

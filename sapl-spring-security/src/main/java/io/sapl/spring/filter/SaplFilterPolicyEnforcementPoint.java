@@ -69,7 +69,7 @@ public class SaplFilterPolicyEnforcementPoint extends GenericFilterBean {
 					"PDP requested resource replacement. This is not possible in the filter chain.");
 
 		try {
-			constraintEnforcementService.bundleFor(authzDecision, Object.class).wrap(Flux.empty()).blockLast();
+			constraintEnforcementService.reactiveTypeBundleFor(authzDecision, Object.class).wrap(Flux.empty()).blockLast();
 		}
 		catch (AccessDeniedException e) {
 			throw new AccessDeniedException("Not all obligations could be handled.", e);
