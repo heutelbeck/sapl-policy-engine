@@ -29,7 +29,7 @@ Import:
 		     | libSteps+=ID ('.' libSteps+=ID)* '.' functionName=ID	) ;
 
 Schema:
-    'schema' schemaExpression=Expression 'for' subscriptionElement=STRING ;
+    'schema' schemaExpression=Expression 'for' subscriptionElement=AUTHZID ;
 
 PolicyElement:
 	PolicySet | Policy;
@@ -189,7 +189,10 @@ FilterStatement:
 
 SignedNumber returns ecore::EBigDecimal: '-'? JSONNUMBER;
 
-@Override 
+terminal AUTHZID:
+    'subject' | 'action' | 'resource' | 'environment';
+
+@Override
 terminal ID: 
 	'^'? ('a'..'z'|'A'..'Z'|'_'|'$') ('a'..'z'|'A'..'Z'|'_'|'$'|'0'..'9')*;
 

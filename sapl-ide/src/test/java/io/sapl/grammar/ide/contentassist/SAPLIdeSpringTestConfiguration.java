@@ -15,6 +15,10 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
+import io.sapl.interpreter.InitializationException;
+import io.sapl.pdp.config.VariablesAndCombinatorSource;
+import io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSource;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -34,6 +38,12 @@ public class SAPLIdeSpringTestConfiguration {
 	@Bean
 	public AttributeContext attributeContext() {
 		return new TestAttributeContext();
+	}
+
+	@Bean
+	public VariablesAndCombinatorSource variablesAndCombinatorSource() throws InitializationException {
+		String configPath = "src/test/resources";
+		return new FileSystemVariablesAndCombinatorSource(configPath);
 	}
 
 }

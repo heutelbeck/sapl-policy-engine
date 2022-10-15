@@ -13,12 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp.config.spring;
+package io.sapl.grammar.ide.contentassist;
 
 import io.sapl.interpreter.InitializationException;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSource;
 import io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSource;
+import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties;
+import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.PDPDataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -29,14 +31,28 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
-public class VariablesAndCombinatorSourceAutoConfiguration {
+@EnableConfigurationProperties(EmbeddedPDPProperties.class)
+public class VariablesSourceAutoConfiguration {
 
+	private final EmbeddedPDPProperties pdpProperties;
 
-	@Bean
+/*	@Bean
+	@ConditionalOnMissingBean(VariablesAndCombinatorSource.class)
+	public VariablesAndCombinatorSource variablesAndCombinatorSource() throws InitializationException {
+		log.info("Deploying {} VariablesAndCombinatorSource configuration provider. Sourcing data from: {}",
+				pdpProperties.getPdpConfigType(), pdpProperties.getConfigPath());
+
+		if (pdpProperties.getPdpConfigType() == PDPDataSource.FILESYSTEM)
+			return new FileSystemVariablesAndCombinatorSource(pdpProperties.getConfigPath());
+
+		return new ResourcesVariablesAndCombinatorSource(pdpProperties.getConfigPath());
+	}*/
+
+/*	@Bean
 	@ConditionalOnMissingBean(VariablesAndCombinatorSource.class)
 	public VariablesAndCombinatorSource variablesAndCombinatorSource() throws InitializationException {
 
-		return new FileSystemVariablesAndCombinatorSource("~");
-	}
+		return new FileSystemVariablesAndCombinatorSource("../../sapl-policy-engine/sapl-ide/src/main/resources");
+	}*/
 
 }

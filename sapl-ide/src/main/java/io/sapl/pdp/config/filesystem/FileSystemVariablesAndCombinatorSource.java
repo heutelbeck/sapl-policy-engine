@@ -34,10 +34,7 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -51,15 +48,18 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
-	private static final String SCHEMA_FILE_DIR = "../../sapl-policy-engine/sapl-ide/src/main/resources";
+	//private static final String SCHEMA_FILE_DIR = "../../sapl-policy-engine/sapl-ide/src/main/resources";
 
 	private final String watchDir;
+
+	private final String configPath;
 
 	private final Flux<Optional<PolicyDecisionPointConfiguration>> configFlux;
 
 	private final Disposable monitorSubscription;
 
 	public FileSystemVariablesAndCombinatorSource(String configurationPath) {
+		configPath = configurationPath;
 		watchDir = resolveHomeFolderIfPresent(configurationPath);
 		log.info("Monitor folder for config: {}", watchDir);
 		Flux<FileEvent> monitoringFlux = monitorDirectory(watchDir,
@@ -98,7 +98,17 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
 	public Flux<Optional<Map<String, JsonNode>>> getVariables() {
 
 		Map<String, JsonNode> schemaMap = new HashMap<>();
-		File[] jsonFiles = new File(SCHEMA_FILE_DIR).listFiles((dir, name) -> name.endsWith(".json"));
+		//File[] jsonFiles = new File(SCHEMA_FILE_DIR).listFiles((dir, name) -> name.endsWith(".json"));
+		File[] jsonFiles = new File(configPath).listFiles((dir, name) -> name.endsWith(".json"));
+		//File[] jsonFilesFromSchemaDir = new File(SCHEMA_FILE_DIR).listFiles((dir, name) -> name.endsWith(".json"));
+		//File[] jsonFilesFromConfigDir = new File(watchDir).listFiles((dir, name) -> name.endsWith(".json"));
+
+/*		if (jsonFilesFromConfigDir.length > 0 && jsonFilesFromSchemaDir.length > 0)
+			jsonFiles = concatWithArrayCopy(jsonFilesFromConfigDir, jsonFilesFromSchemaDir);
+		else if(jsonFilesFromConfigDir.length > 0)
+			jsonFiles = jsonFilesFromConfigDir;
+		else
+			jsonFiles = jsonFilesFromSchemaDir;*/
 
 		for (File jsonFile: jsonFiles)
 			try {
@@ -115,6 +125,16 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
 
 		return Flux.just(optSchemaMap);
 	}
+
+/*	@Override
+	public Flux<Optional<Map<String, JsonNode>>> getVariables() {
+		return Flux.from(configFlux)
+				.switchMap(config -> config
+						.map(policyDecisionPointConfiguration -> Flux
+								.just(Optional.of(policyDecisionPointConfiguration.getVariables())))
+						.orElseGet(() -> Flux.just(Optional.empty())));
+
+	}*/
 
 	private Optional<PolicyDecisionPointConfiguration> processWatcherEvent(FileEvent fileEvent) {
 		if (fileEvent instanceof FileDeletedEvent) {
