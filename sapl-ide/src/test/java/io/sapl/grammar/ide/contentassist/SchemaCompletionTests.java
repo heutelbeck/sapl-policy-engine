@@ -33,7 +33,8 @@
             @ContextConfiguration(classes = SAPLIdeSpringTestConfiguration.class)
             public class SchemaCompletionTests extends CompletionTests {
 
-                List<String> environmentVariableNames = List.of("schema_with_additional_keywords");
+                List<String> environmentVariableNames = List.of("schema_with_additional_keywords",
+                        "bank_action_schema", "subject_schema");
 
                 /**
                  * Tests regarding the preamble
