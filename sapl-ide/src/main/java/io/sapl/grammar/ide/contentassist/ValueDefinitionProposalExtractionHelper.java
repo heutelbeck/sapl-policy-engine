@@ -15,9 +15,7 @@ public class ValueDefinitionProposalExtractionHelper {
 
     private final VariablesAndCombinatorSource variablesAndCombinatorSource;
     private final ContentAssistContext context;
-
     private final Collection<String> authzSubProposals = Set.of("subject", "action", "resource", "environment");
-
     public enum ProposalType {VALUE, SCHEMA};
 
     public Collection<String> getProposals(ContentAssistContext context, EObject model, ProposalType proposalType){
@@ -59,7 +57,7 @@ public class ValueDefinitionProposalExtractionHelper {
             var subscriptionElement = schema.getSubscriptionElement();
             var schemaExpression = schema.getSchemaExpression();
             var codeTemplates = schemaProposals.getCodeTemplates(schemaExpression);
-            var templates = constructTemplates(subscriptionElement, codeTemplates);
+            var templates = constructProposals(subscriptionElement, codeTemplates);
             proposals.addAll(templates);
         }
         return proposals;
@@ -86,41 +84,6 @@ public class ValueDefinitionProposalExtractionHelper {
         }
         return proposals;
     }
-
-/*    public Collection<String> getDefinedValues(ContentAssistContext context, EObject model) {
-
-        Collection<String> definedValues = new HashSet<>();
-        var policyBody = (PolicyBody) getPolicyBody(model);
-
-        if (policyBody != null){
-            int currentOffset = context.getOffset();
-
-            for (var statement : policyBody.getStatements()) {
-                if (statement instanceof ValueDefinition) {
-                    var vals = getValueFromStatement(currentOffset, (ValueDefinition) statement);
-                    definedValues.addAll(vals);
-                }
-            }
-        }
-        return definedValues;
-    }
-
-    public Collection<String> getDefinedSchemas(ContentAssistContext context, EObject model) {
-
-        Collection<String> definedValues = new HashSet<>();
-        var policyBody = (PolicyBody) getPolicyBody(model);
-
-        if (policyBody != null){
-            int currentOffset = context.getOffset();
-            for (var statement : policyBody.getStatements()) {
-                if (statement instanceof ValueDefinition) {
-                    var schemaFromStatement = getSchemaFromStatement(currentOffset, (ValueDefinition) statement);
-                    definedValues.addAll(schemaFromStatement);
-                }
-            }
-        }
-        return definedValues;
-    }*/
 
     private List<String> getValueFromStatement(int currentOffset, ValueDefinition statement) {
         var valueDefinition = statement;
@@ -152,12 +115,12 @@ public class ValueDefinitionProposalExtractionHelper {
                 .getCodeTemplates(schemaVarExpression);
         List<String> proposalTemplates = new ArrayList<>();
         var valueDefinitionName = valueDefinition.getName();
-        var templates = constructTemplates(valueDefinitionName, schemaTemplates);
+        var templates = constructProposals(valueDefinitionName, schemaTemplates);
         proposalTemplates.addAll(templates);
         return proposalTemplates;
     }
 
-    private static Collection<String> constructTemplates(String elementName, List<String> templates) {
+    private static Collection<String> constructProposals(String elementName, List<String> templates) {
         Collection<String> proposals = new HashSet<>();
         for(var template: templates){
             var proposal = elementName.concat(".").concat(template);

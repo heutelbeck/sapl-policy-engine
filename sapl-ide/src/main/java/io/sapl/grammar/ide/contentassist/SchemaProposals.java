@@ -16,6 +16,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SchemaProposals {
 
+    private final VariablesAndCombinatorSource variablesAndCombinatorSource;
+
     private final Collection<String> unwantedJsonKeywords = Set.of(
             "$schema",
             "required(\\[\\d+\\])*",
@@ -29,7 +31,6 @@ public class SchemaProposals {
 
     private final String enumKeyword = "enum\\[\\d+\\]";
 
-    private final VariablesAndCombinatorSource variablesAndCombinatorSource;
 
     public List<String> getVariableNamesAsTemplates(){
         return getAllVariables().next().block()
@@ -68,11 +69,21 @@ public class SchemaProposals {
 
 
     private List<String> flattenSchema(String schema) {
+        var unwantedEnumMatch = ".*".concat(enumKeyword);
         var flattenJson = JsonFlattener.flattenAsMap(schema);
         List<String> paths = new ArrayList<>(flattenJson.keySet());
-        var unwantedEnumMatch = ".*".concat(enumKeyword);
-        //flattenJson.forEach((key, value) -> System.out.println(key + ": " + value));
 
+        var correctedPaths = correctJsonPathForEnums(unwantedEnumMatch, flattenJson);
+        paths.addAll(correctedPaths);
+
+        return paths.stream()
+                .filter(path -> !stringMatchesUnwantedJsonKeyword(path))
+                .map(path -> removeUnwantedKeywordsFromPath(path))
+                .collect(Collectors.toList());
+    }
+
+    private List<String> correctJsonPathForEnums(String unwantedEnumMatch, Map<String, Object> flattenJson) {
+        List<String> paths = new ArrayList<>();
         for (var entry: flattenJson.entrySet()){
             if(entry.getKey().matches(unwantedEnumMatch)){
                 var correctedPath = entry.getKey()
@@ -80,11 +91,7 @@ public class SchemaProposals {
                 paths.add(correctedPath);
             }
         }
-        paths.remove("$schema");
-        return paths.stream()
-                .filter(path -> !stringMatchesUnwantedJsonKeyword(path))
-                .map(path -> removeUnwantedKeywordsFromPath(path))
-                .collect(Collectors.toList());
+        return paths;
     }
 
     private boolean stringMatchesUnwantedJsonKeyword(String matchingString) {
