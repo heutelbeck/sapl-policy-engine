@@ -18,7 +18,7 @@ public class ValueDefinitionProposalExtractionHelper {
     private final Collection<String> authzSubProposals = Set.of("subject", "action", "resource", "environment");
     public enum ProposalType {VALUE, SCHEMA};
 
-    public Collection<String> getProposals(ContentAssistContext context, EObject model, ProposalType proposalType){
+    public Collection<String> getProposals(EObject model, ProposalType proposalType){
         int currentOffset = context.getOffset();
         var policyBody = (PolicyBody) getPolicyBody(model);
 
@@ -44,7 +44,8 @@ public class ValueDefinitionProposalExtractionHelper {
             var currentProposals = getProposalsFromStatement(proposalType, currentOffset, statement);
             proposals.addAll(currentProposals);
         }
-        proposals.addAll(getAuthzProposals());
+        var authzProposals = getAuthzProposals();
+        proposals.addAll(authzProposals);
         return proposals;
     }
 
@@ -90,7 +91,7 @@ public class ValueDefinitionProposalExtractionHelper {
         List<String> valueList = new ArrayList<>();
         int valueDefinitionOffset = getValueDefinitionOffset(valueDefinition);
 
-        if (currentOffset >= valueDefinitionOffset) {
+        if (currentOffset > valueDefinitionOffset) {
             String valueDefinitionName = valueDefinition.getName();
             valueList.add(valueDefinitionName);
         }
@@ -104,7 +105,7 @@ public class ValueDefinitionProposalExtractionHelper {
 
         var schemaVarExpression = valueDefinition.getSchemaVarExpression();
 
-        if (currentOffset >= valueDefinitionOffset & schemaVarExpression != null) {
+        if (currentOffset > valueDefinitionOffset & schemaVarExpression != null) {
             proposalTemplates = getProposalTemplates(valueDefinition, schemaVarExpression);
         }
         return proposalTemplates;
