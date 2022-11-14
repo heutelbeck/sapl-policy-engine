@@ -77,7 +77,7 @@ class PolicyBodyImplCustomTest {
 	}
 
 	@Test
-	void valueDefinitionsAttemptToOverwriteDefailtSubscriptionVariableSubjectError() {
+	void valueDefinitionsAttemptToOverwriteDefaultSubscriptionVariableSubjectError() {
 		var policy   = INTERPRETER.parse("policy \"p\" permit where var subject = {};");
 		var expected = AuthorizationDecision.INDETERMINATE;
 		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
@@ -85,7 +85,7 @@ class PolicyBodyImplCustomTest {
 	}
 
 	@Test
-	void valueDefinitionsAttemptToOverwriteDefailtSubscriptionVariableActionError() {
+	void valueDefinitionsAttemptToOverwriteDefaultSubscriptionVariableActionError() {
 		var policy   = INTERPRETER.parse("policy \"p\" permit where var action = {};");
 		var expected = AuthorizationDecision.INDETERMINATE;
 		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
@@ -93,7 +93,7 @@ class PolicyBodyImplCustomTest {
 	}
 
 	@Test
-	void valueDefinitionsAttemptToOverwriteDefailtSubscriptionVariableResourceError() {
+	void valueDefinitionsAttemptToOverwriteDefaultSubscriptionVariableResourceError() {
 		var policy   = INTERPRETER.parse("policy \"p\" permit where var resource = {};");
 		var expected = AuthorizationDecision.INDETERMINATE;
 		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
@@ -101,7 +101,7 @@ class PolicyBodyImplCustomTest {
 	}
 
 	@Test
-	void valueDefinitionsAttemptToOverwriteDefailtSubscriptionVariableEnvironmentError() {
+	void valueDefinitionsAttemptToOverwriteDefaultSubscriptionVariableEnvironmentError() {
 		var policy   = INTERPRETER.parse("policy \"p\" permit where var environment = {};");
 		var expected = AuthorizationDecision.INDETERMINATE;
 		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
