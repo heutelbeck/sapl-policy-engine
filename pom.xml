@@ -119,7 +119,6 @@
 
 	<dependencyManagement>
 		<dependencies>
-
 			<!-- XText -->
 			<dependency>
 				<groupId>org.eclipse.xtext</groupId>
@@ -315,6 +314,45 @@
 					<artifactId>dockerfile-maven-plugin</artifactId>
 					<version>${dockerfile-maven-plugin.version}</version>
 				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-javadoc-plugin</artifactId>
+					<version>3.4.1</version>
+					<executions>
+						<execution>
+							<id>attach-javadocs</id>
+							<goals>
+								<goal>jar</goal>
+							</goals>
+						</execution>
+					</executions>
+					<configuration>
+						<verbose>false</verbose>
+						<doclint>none</doclint>
+						<tags>
+							<tag>
+								<name>generated</name>
+								<placement>a</placement>
+								<head>Generated Code</head>
+							</tag>
+							<tag>
+								<name>ordered</name>
+								<placement>a</placement>
+								<head>EMF Ordered</head>
+							</tag>
+							<tag>
+								<name>model</name>
+								<placement>a</placement>
+								<head>EMF Model</head>
+							</tag>
+							<tag>
+								<name>returns</name>
+								<placement>a</placement>
+								<head>EMF Returns:</head>
+							</tag>
+						</tags>
+					</configuration>
+				</plugin>
 			</plugins>
 		</pluginManagement>
 		<plugins>
@@ -382,52 +420,6 @@
 				<groupId>io.spring.javaformat</groupId>
 				<artifactId>spring-javaformat-maven-plugin</artifactId>
 			</plugin>
-			
-			
-			
-			
-							<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-javadoc-plugin</artifactId>
-						<version>3.4.1</version>
-						<executions>
-							<execution>
-								<id>attach-javadocs</id>
-								<goals>
-									<goal>jar</goal>
-								</goals>
-							</execution>
-						</executions>
-						<configuration>
-							<verbose>false</verbose>
-							<doclint>none</doclint>
-							<tags>
-								<tag>
-									<name>generated</name>
-									<placement>a</placement>
-									<head>Generated Code</head>
-								</tag>
-								<tag>
-									<name>ordered</name>
-									<placement>a</placement>
-									<head>EMF Ordered</head>
-								</tag>
-								<tag>
-									<name>model</name>
-									<placement>a</placement>
-									<head>EMF Model</head>
-								</tag>
-								<tag>
-									<name>returns</name>
-									<placement>a</placement>
-									<head>EMF Returns:</head>
-								</tag>
-							</tags>
-						</configuration>
-					</plugin>
-			
-			
-			
 		</plugins>
 	</build>
 
@@ -436,6 +428,10 @@
 			<id>publish</id>
 			<build>
 				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-javadoc-plugin</artifactId>
+					</plugin>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-deploy-plugin</artifactId>
