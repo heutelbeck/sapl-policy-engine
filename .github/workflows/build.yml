@@ -34,7 +34,7 @@ jobs:
 
     steps:
     - name: Check out
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         lfs: true
         fetch-depth: 0
@@ -59,7 +59,7 @@ jobs:
           ${{ runner.os }}-maven-
 
     - name: Run tests
-      run: mvn -B package javadoc:jar # package, as the maven plugin loads resources from the dependency packages
+      run: mvn -B package
 
   analyze:
     needs: [tests]
@@ -67,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Check out
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         lfs: true
         # avoid shallow clone to ensure correct sonarqube auto assignment
@@ -106,7 +106,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Check out
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         lfs: true
         fetch-depth: 0
@@ -159,7 +159,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Check out
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         lfs: true
         fetch-depth: 0
