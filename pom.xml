@@ -382,15 +382,11 @@
 				<groupId>io.spring.javaformat</groupId>
 				<artifactId>spring-javaformat-maven-plugin</artifactId>
 			</plugin>
-		</plugins>
-	</build>
-
-	<profiles>
-		<profile>
-			<id>publish</id>
-			<build>
-				<plugins>
-					<plugin>
+			
+			
+			
+			
+							<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-javadoc-plugin</artifactId>
 						<version>3.4.1</version>
@@ -429,6 +425,17 @@
 							</tags>
 						</configuration>
 					</plugin>
+			
+			
+			
+		</plugins>
+	</build>
+
+	<profiles>
+		<profile>
+			<id>publish</id>
+			<build>
+				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-deploy-plugin</artifactId>

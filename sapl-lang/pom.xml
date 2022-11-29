@@ -16,7 +16,9 @@
     limitations under the License.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>io.sapl</groupId>
@@ -97,7 +99,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-
+		
 		<!-- Logging -->
 		<dependency>
 			<!-- map log4j API to slf4j API -->
@@ -220,7 +222,7 @@
 							Attention: the ?m2e annotations may break validation of release packages 
 							being pushed to maven central.
 						-->
-						<?m2e ignore?>
+                        <?m2e ignore?>
 						<id>mwe2GenerateEMFClasses</id>
 						<phase>generate-sources</phase>
 						<goals>
@@ -237,7 +239,7 @@
 							<classpathScope>compile</classpathScope>
 							<includePluginDependencies>true</includePluginDependencies>
 							<cleanupDaemonThreads>false
-							</cleanupDaemonThreads> <!-- see https://bugs.eclipse.org/bugs/show_bug.cgi?id=475098#c3 -->
+							</cleanupDaemonThreads><!-- see https://bugs.eclipse.org/bugs/show_bug.cgi?id=475098#c3 -->
 							<systemProperties>
 								<!-- Use custom logger configuration to make logs look like default 
 									maven logs. Attention: Setting this here spills over into the mwe2Launcher 
@@ -250,7 +252,7 @@
 						</configuration>
 					</execution>
 					<execution>
-						<?m2e ignore?>
+                        <?m2e ignore?>
 						<id>mwe2Launcher</id>
 						<phase>generate-sources</phase>
 						<goals>
@@ -266,7 +268,7 @@
 							<classpathScope>compile</classpathScope>
 							<includePluginDependencies>true</includePluginDependencies>
 							<cleanupDaemonThreads>false
-							</cleanupDaemonThreads> <!-- see https://bugs.eclipse.org/bugs/show_bug.cgi?id=475098#c3 -->
+							</cleanupDaemonThreads><!-- see https://bugs.eclipse.org/bugs/show_bug.cgi?id=475098#c3 -->
 						</configuration>
 					</execution>
 				</executions>
@@ -322,7 +324,7 @@
 				<version>1.9.1</version>
 				<executions>
 					<execution>
-						<?m2e execute onConfiguration,onIncremental?>
+                      	<?m2e execute onConfiguration,onIncremental?>
 						<id>add-source</id>
 						<phase>initialize</phase>
 						<goals>
@@ -347,7 +349,7 @@
 						</configuration>
 					</execution>
 					<execution>
-						<?m2e execute onConfiguration,onIncremental?>
+                        <?m2e execute onConfiguration,onIncremental?>
 						<id>add-test-source</id>
 						<phase>initialize</phase>
 						<goals>
