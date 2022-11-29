@@ -74,7 +74,7 @@ class RemotePolicyDecisionPointTests {
 	}
 
 	@BeforeEach
-	private void startServer() throws IOException {
+	void startServer() throws IOException {
 		server = new MockWebServer();
 		server.start();
 		pdp = new RemotePolicyDecisionPoint(this.server.url("/").toString(), "secret", "key");

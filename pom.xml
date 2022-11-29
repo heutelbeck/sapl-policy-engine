@@ -78,7 +78,7 @@
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 
-		<xtext.version>2.27.0</xtext.version>
+		<xtext.version>2.29.0</xtext.version>
 		<junit.version>5.7.2</junit.version>
 		<junit4.version>4.13.2</junit4.version>
 		<lombok.version>1.18.24</lombok.version>
