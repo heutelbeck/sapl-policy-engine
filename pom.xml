@@ -87,7 +87,7 @@
 		<spotify.hamcrest.version>1.2.0</spotify.hamcrest.version>
 		<springboot.version>2.7.6</springboot.version>
 		<guice.version>5.1.0</guice.version>
-       	<vaadin.internal.version>14.9.2</vaadin.internal.version>
+       	<vaadin.internal.version>14.8.20</vaadin.internal.version>
        	<vaadin.version>23.2.9</vaadin.version>
 
 		<license-maven-plugin.version>4.1</license-maven-plugin.version>
