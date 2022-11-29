@@ -19,6 +19,11 @@ import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 
+/**
+ * Function library implementing the blacken, replace, and remove filter functions. 
+ * 
+ * @author Dominic Heutelbeck
+ */
 @FunctionLibrary(name = FilterFunctionLibrary.NAME, description = FilterFunctionLibrary.DESCRIPTION)
 public class FilterFunctionLibrary {
 

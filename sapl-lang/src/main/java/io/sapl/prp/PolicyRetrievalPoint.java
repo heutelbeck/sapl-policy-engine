@@ -29,16 +29,15 @@ public interface PolicyRetrievalPoint {
 	 * authorization subscription. The given function context and variables
 	 * constitute the environment the target expressions are evaluated in.
 	 * 
-	 * @param subscriptionScopedEvaluationContext with scope subscription. This
-	 *                                            means, that the subscription
-	 *                                            variables are already imported
-	 *                                            into the context.
 	 * @return a {@link Flux} providing the policy retrieval results containing all
 	 *         the matching policies or policy sets. New results are only added to
 	 *         the stream if they are different from the preceding result.
 	 */
 	Flux<PolicyRetrievalResult> retrievePolicies();
 
+	/**
+	 * Release all claimed resources
+	 */
 	void dispose();
 
 }
