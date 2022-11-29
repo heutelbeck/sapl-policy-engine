@@ -42,7 +42,7 @@ public class AttributeContextAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public AttributeContext attributeContext() throws InitializationException {
+	AttributeContext attributeContext() throws InitializationException {
 		var ctx = new AnnotationAttributeContext();
 		for (var entry : policyInformationPoints) {
 			log.trace("loading Policy Information Point: {}", entry.getClass().getSimpleName());

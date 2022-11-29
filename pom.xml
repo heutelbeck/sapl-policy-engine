@@ -85,10 +85,10 @@
 		<junit4.version>4.13.2</junit4.version>
 		<lombok.version>1.18.24</lombok.version>
 		<spotify.hamcrest.version>1.2.0</spotify.hamcrest.version>
-		<springboot.version>2.7.3</springboot.version>
+		<springboot.version>2.7.6</springboot.version>
 		<guice.version>5.1.0</guice.version>
-       	<vaadin.internal.version>14.8.15</vaadin.internal.version>
-       	<vaadin.version>23.1.6</vaadin.version>
+       	<vaadin.internal.version>14.9.2</vaadin.internal.version>
+       	<vaadin.version>23.2.9</vaadin.version>
 
 		<license-maven-plugin.version>4.1</license-maven-plugin.version>
 		<maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
