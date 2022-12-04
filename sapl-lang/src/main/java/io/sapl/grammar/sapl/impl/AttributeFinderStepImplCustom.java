@@ -15,9 +15,13 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import static io.sapl.interpreter.context.AuthorizationContext.getAttributeContext;
+import static io.sapl.interpreter.context.AuthorizationContext.getImports;
+import static io.sapl.interpreter.context.AuthorizationContext.getVariables;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
-import io.sapl.interpreter.context.AuthorizationContext;
+import io.sapl.interpreter.ExplainedValue;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
@@ -44,19 +48,44 @@ public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 		if (parentValue.isUndefined()) {
 			return Val.errorFlux(UNDEFINED_VALUE);
 		}
-		return Flux.deferContextual(ctxView -> AuthorizationContext.getAttributeContext(ctxView)
-				.evaluateAttribute(
-						FunctionUtil.resolveAbsoluteFunctionName(getIdSteps(),
-								AuthorizationContext.getImports(ctxView)),
-						parentValue, getArguments(), AuthorizationContext.getVariables(ctxView))
-				.distinctUntilChanged());
+
+		return Flux.deferContextual(ctxView -> {
+			var attributeContext = getAttributeContext(ctxView);
+			var attributeName    = FunctionUtil.resolveAbsoluteFunctionName(getIdSteps(), getImports(ctxView));
+			var variables        = getVariables(ctxView);
+			// @formatter:off
+			return attributeContext
+					.evaluateAttribute(attributeName, parentValue, getArguments(), variables)
+					.distinctUntilChanged();
+			// @formatter:on
+		});
+	}
+
+	public Flux<ExplainedValue> applyAndExplain(@NonNull ExplainedValue parentValue) {
+		if (parentValue.getValue().isError()) {
+			return Flux.just(ExplainedValue.of(parentValue.getValue(), parentValue));
+		}
+		if (TargetExpressionUtil.isInTargetExpression(this)) {
+			return Flux.just(ExplainedValue.of(Val.error(EXTERNAL_ATTRIBUTE_IN_TARGET)));
+		}
+		if (parentValue.getValue().isUndefined()) {
+			return Flux.just(ExplainedValue.of(Val.error(UNDEFINED_VALUE), parentValue));
+		}
+
+		return Flux.deferContextual(ctxView -> {
+			var attributeContext = getAttributeContext(ctxView);
+			var attributeName    = FunctionUtil.resolveAbsoluteFunctionName(getIdSteps(), getImports(ctxView));
+			var variables        = getVariables(ctxView);
+			// @formatter:off
+			return attributeContext
+					.evaluateAttributeAndExplain(attributeName, parentValue, getArguments(), variables)
+					.distinctUntilChanged();
+			// @formatter:on
+		});
 	}
 
 	@Override
-	public Flux<Val> applyFilterStatement(
-			@NonNull Val parentValue,
-			int stepId,
-			@NonNull FilterStatement statement) {
+	public Flux<Val> applyFilterStatement(@NonNull Val parentValue, int stepId, @NonNull FilterStatement statement) {
 		return Val.errorFlux("AttributeFinderStep not permitted in filter selection steps.");
 	}
 

@@ -46,10 +46,10 @@ public class TestPIP {
 	}
 
 	@Attribute
-	public Flux<Val> echoRepeat(Val value, Map<String, JsonNode> variables, Flux<Val> repetitions) {
+	public Flux<Val> echoRepeat(Val value, Map<String, JsonNode> variables, Val repetitions) {
 		logVars(variables);
-		return repetitions.map(
-				n -> Val.of(StringUtils.repeat(value.orElse(JSON.textNode("undefined")).asText(), n.get().asInt())));
+		return Flux.just(Val
+				.of(StringUtils.repeat(value.orElse(JSON.textNode("undefined")).asText(), repetitions.get().asInt())));
 	}
 
 	private void logVars(Map<String, JsonNode> variables) {

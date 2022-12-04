@@ -27,6 +27,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.interpreter.trace.DecisionTrace;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import reactor.util.context.Context;
@@ -34,16 +35,17 @@ import reactor.util.context.ContextView;
 
 @UtilityClass
 public class AuthorizationContext {
-	private static final String          ATTRIBUTE_CTX = "attributeCtx";
-	private static final String          FUNCTION_CTX  = "functionCtx";
-	private static final String          VARIABLES     = "variables";
-	private static final String          IMPORTS       = "imports";
-	private static final String          SUBJECT       = "subject";
-	private static final String          ACTION        = "action";
-	private static final String          RESOURCE      = "resource";
-	private static final String          ENVIRONMENT   = "environment";
-	private static final String          RELATIVE_NODE = "relativeNode";
-	private static final JsonNodeFactory JSON          = JsonNodeFactory.instance;
+	private static final String          DECISION_TRACE = "decisionTrace";
+	private static final String          ATTRIBUTE_CTX  = "attributeCtx";
+	private static final String          FUNCTION_CTX   = "functionCtx";
+	private static final String          VARIABLES      = "variables";
+	private static final String          IMPORTS        = "imports";
+	private static final String          SUBJECT        = "subject";
+	private static final String          ACTION         = "action";
+	private static final String          RESOURCE       = "resource";
+	private static final String          ENVIRONMENT    = "environment";
+	private static final String          RELATIVE_NODE  = "relativeNode";
+	private static final JsonNodeFactory JSON           = JsonNodeFactory.instance;
 
 	public static Map<String, String> getImports(ContextView ctx) {
 		return ctx.getOrDefault(IMPORTS, Collections.emptyMap());
@@ -92,8 +94,7 @@ public class AuthorizationContext {
 	}
 
 	private void assertVariableNameNotReserved(String name) {
-		if (SUBJECT.equals(name) || RESOURCE.equals(name) || ACTION.equals(name)
-				|| ENVIRONMENT.equals(name)) {
+		if (SUBJECT.equals(name) || RESOURCE.equals(name) || ACTION.equals(name) || ENVIRONMENT.equals(name)) {
 			throw new PolicyEvaluationException("cannot overwrite request variable: %s", name);
 		}
 	}
@@ -146,6 +147,14 @@ public class AuthorizationContext {
 
 	public Context setImports(Context ctx, Map<String, String> imports) {
 		return ctx.put(IMPORTS, imports);
+	}
+
+	public Context setTrace(Context ctx, DecisionTrace trace) {
+		return ctx.put(DECISION_TRACE, trace);
+	}
+
+	public DecisionTrace getTrace(Context ctx) {
+		return ctx.get(DECISION_TRACE);
 	}
 
 }

@@ -38,6 +38,7 @@ public class OperatorUtil {
 	}
 
 	public static Flux<Val> arithmeticOperator(
+			
 			BinaryOperator operator,
 			BiFunction<Val, Val, Val> transformation) {
 		return operator(operator, Val::requireBigDecimal, Val::requireBigDecimal, transformation);

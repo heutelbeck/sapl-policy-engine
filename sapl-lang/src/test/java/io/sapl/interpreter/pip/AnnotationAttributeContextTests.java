@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import javax.validation.constraints.NotNull;
 
@@ -36,6 +37,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
+import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.validation.Bool;
 import io.sapl.api.validation.Text;
@@ -177,7 +179,7 @@ public class AnnotationAttributeContextTests {
 		@PolicyInformationPoint
 		class PIP {
 
-			@Attribute
+			@EnvironmentAttribute
 			public Flux<Val> x(Map<String, JsonNode> variables) {
 				return null;
 			}
@@ -222,12 +224,12 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_firstAndOnlyParameterFluxOfVal_loadSuccessful() {
+	public void when_firstAndOnlyParameterOfEnvAttributeVal_loadSuccessful() {
 		@PolicyInformationPoint
 		class PIP {
 
-			@Attribute
-			public Flux<Val> x(Flux<Val> firstParameter) {
+			@EnvironmentAttribute
+			public Flux<Val> x(Val firstParameter) {
 				return null;
 			}
 
@@ -239,7 +241,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_firstAndOnlyParameterNotAFlux_fail() {
+	public void when_firstAndOnlyParameterNotAVal_fail() {
 		@PolicyInformationPoint
 		class PIP {
 
@@ -255,28 +257,12 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_firstAndOnlyParameterFluxWithBadContentsType_fail() {
-		@PolicyInformationPoint
-		class PIP {
-
-			@Attribute
-			public Flux<Val> x(Flux<String> firstParameter) {
-				return null;
-			}
-
-		}
-
-		var pip = new PIP();
-		assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(pip));
-	}
-
-	@Test
 	public void when_someParamBAdType_fail() {
 		@PolicyInformationPoint
 		class PIP {
 
-			@Attribute
-			public Flux<Val> x(Flux<Val> firstParameter, String x) {
+			@EnvironmentAttribute
+			public Flux<Val> x(Val firstParameter, String x) {
 				return null;
 			}
 
@@ -287,13 +273,12 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_firstAndOnlyParameterIsVarArgsFluxOfVal_loadSuccessful() {
+	public void when_firstAndOnlyParameterIsVarArgsOfVal_loadSuccessful() {
 		@PolicyInformationPoint
 		class PIP {
 
-			@Attribute
-			@SuppressWarnings("unchecked")
-			public Flux<Val> x(Flux<Val>... varArgsParams) {
+			@EnvironmentAttribute
+			public Flux<Val> x(Val... varArgsParams) {
 				return null;
 			}
 
@@ -305,12 +290,12 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_firstAndOnlyParameterIsArrayOfFluxOfVal_loadSuccessful() {
+	public void when_firstAndOnlyParameterIsArrayOfVal_loadSuccessful() {
 		@PolicyInformationPoint
 		class PIP {
 
-			@Attribute
-			public Flux<Val> x(Flux<Val>[] varArgsParams) {
+			@EnvironmentAttribute
+			public Flux<Val> x(Val[] varArgsParams) {
 				return null;
 			}
 
@@ -326,8 +311,8 @@ public class AnnotationAttributeContextTests {
 		@PolicyInformationPoint
 		class PIP {
 
-			@Attribute
-			public Flux<Val> x(Flux<Val>[] varArgsParams, String iAmTooMuchToHandle) {
+			@EnvironmentAttribute
+			public Flux<Val> x(Val[] varArgsParams, String iAmTooMuchToHandle) {
 				return null;
 			}
 
@@ -343,42 +328,8 @@ public class AnnotationAttributeContextTests {
 		@PolicyInformationPoint
 		class PIP {
 
-			@Attribute
+			@EnvironmentAttribute
 			public Flux<Val> x(String... varArgsParams) {
-				return null;
-			}
-
-		}
-
-		var pip = new PIP();
-		var ctx = new AnnotationAttributeContext();
-		assertThrows(InitializationException.class, () -> ctx.loadPolicyInformationPoint(pip));
-	}
-
-	@Test
-	public void when_firstAndOnlyParameterIsVarFluxNoGeneric_fail() {
-		@PolicyInformationPoint
-		class PIP {
-
-			@Attribute
-			public Flux<Val> x(@SuppressWarnings("rawtypes") Flux... varArgsParams) {
-				return null;
-			}
-
-		}
-
-		var pip = new PIP();
-		var ctx = new AnnotationAttributeContext();
-		assertThrows(InitializationException.class, () -> ctx.loadPolicyInformationPoint(pip));
-	}
-
-	@Test
-	public void when_firstAndOnlyParameterIsVarWringGenericWithVal_fail() {
-		@PolicyInformationPoint
-		class PIP {
-
-			@Attribute
-			public Flux<Val> x(@SuppressWarnings("unchecked") List<Val>... varArgsParams) {
 				return null;
 			}
 
@@ -395,12 +346,12 @@ public class AnnotationAttributeContextTests {
 		class PIP {
 
 			@Attribute
-			public Flux<Val> x(Flux<Val> param) {
+			public Flux<Val> x(Val leftHand) {
 				return null;
 			}
 
 			@Attribute
-			public Flux<Val> y(Flux<Val> parameter) {
+			public Flux<Val> y(Val leftHand) {
 				return null;
 			}
 
@@ -416,7 +367,7 @@ public class AnnotationAttributeContextTests {
 		@PolicyInformationPoint
 		class PIP {
 
-			@Attribute
+			@EnvironmentAttribute
 			public Flux<Val> x() {
 				return null;
 			}
@@ -438,13 +389,13 @@ public class AnnotationAttributeContextTests {
 		@PolicyInformationPoint
 		class PIP {
 
-			@Attribute
-			public Flux<Val> x(Flux<Val> a) {
+			@EnvironmentAttribute
+			public Flux<Val> x(Val a) {
 				return null;
 			}
 
-			@Attribute
-			public Flux<Val> x(@SuppressWarnings("unchecked") Flux<Val>... a) {
+			@EnvironmentAttribute
+			public Flux<Val> x(Val... a) {
 				return null;
 			}
 
@@ -460,13 +411,13 @@ public class AnnotationAttributeContextTests {
 		@PolicyInformationPoint
 		class PIP {
 
-			@Attribute
-			public Flux<Val> x(Flux<Val>[] a) {
+			@EnvironmentAttribute
+			public Flux<Val> x(Val[] a) {
 				return null;
 			}
 
-			@Attribute(name = "x")
-			public Flux<Val> y(@SuppressWarnings("unchecked") Flux<Val>... a) {
+			@EnvironmentAttribute(name = "x")
+			public Flux<Val> y(Val... a) {
 				return null;
 			}
 
@@ -482,13 +433,13 @@ public class AnnotationAttributeContextTests {
 		@PolicyInformationPoint
 		class PIP {
 
-			@Attribute
-			public Flux<Val> x(Flux<Val> a) {
+			@EnvironmentAttribute
+			public Flux<Val> x(Val a) {
 				return null;
 			}
 
-			@Attribute(name = "x")
-			public Flux<Val> y(Flux<Val> b) {
+			@EnvironmentAttribute(name = "x")
+			public Flux<Val> y(Val b) {
 				return null;
 			}
 
@@ -504,9 +455,8 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext();
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
-		StepVerifier.create(expression.evaluate()
-				.contextWrite(this.constructContext(attributeCtx, variables))).expectNextMatches(Val::isError)
-				.verifyComplete();
+		StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+				.expectNextMatches(valErrorText("Unknown attribute test.envAttribute")).verifyComplete();
 	}
 
 	@Test
@@ -514,11 +464,9 @@ public class AnnotationAttributeContextTests {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
 
-			@Attribute
-			public Flux<Val> envAttribute(
-					Map<String, JsonNode> variables,
-					@SuppressWarnings("unchecked") @Text Flux<Val>... varArgsParams) {
-				return varArgsParams[1];
+			@EnvironmentAttribute
+			public Flux<Val> envAttribute(Map<String, JsonNode> variables, @Text Val... varArgsParams) {
+				return Flux.just(varArgsParams[1]);
 			}
 
 		}
@@ -527,9 +475,8 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
-		StepVerifier.create(expression.evaluate()
-				.contextWrite(this.constructContext(attributeCtx, variables))).expectNext(Val.of("param2"))
-				.verifyComplete();
+		StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+				.expectNext(Val.of("param2")).verifyComplete();
 	}
 
 	@Test
@@ -538,11 +485,8 @@ public class AnnotationAttributeContextTests {
 		class PIP {
 
 			@Attribute
-			public Flux<Val> envAttribute(
-					Val leftHand,
-					Map<String, JsonNode> variables,
-					@SuppressWarnings("unchecked") @Text Flux<Val>... varArgsParams) {
-				return varArgsParams[1];
+			public Flux<Val> attribute(Val leftHand, Map<String, JsonNode> variables, @Text Val... varArgsParams) {
+				return Flux.just(varArgsParams[1]);
 			}
 
 		}
@@ -550,10 +494,9 @@ public class AnnotationAttributeContextTests {
 		var pip          = new PIP();
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
-		var expression   = ParserUtil.expression("\"\".<test.envAttribute(\"param1\",\"param2\")>");
-		StepVerifier.create(expression.evaluate()
-				.contextWrite(this.constructContext(attributeCtx, variables))).expectNext(Val.of("param2"))
-				.verifyComplete();
+		var expression   = ParserUtil.expression("\"\".<test.attribute(\"param1\",\"param2\")>");
+		StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+				.expectNext(Val.of("param2")).verifyComplete();
 	}
 
 	@Test
@@ -562,12 +505,9 @@ public class AnnotationAttributeContextTests {
 		class PIP {
 
 			@Attribute
-			public Flux<Val> envAttribute(
-					Val leftHand,
-					Map<String, JsonNode> variables,
-					@Text Flux<Val> param1,
-					@Text Flux<Val> param2) {
-				return param2;
+			public Flux<Val> attribute(Val leftHand, Map<String, JsonNode> variables, @Text Val param1,
+					@Text Val param2) {
+				return Flux.just(param2);
 			}
 
 		}
@@ -575,10 +515,9 @@ public class AnnotationAttributeContextTests {
 		var pip          = new PIP();
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
-		var expression   = ParserUtil.expression("\"\".<test.envAttribute(\"param1\",\"param2\")>");
-		StepVerifier.create(expression.evaluate()
-				.contextWrite(this.constructContext(attributeCtx, variables))).expectNext(Val.of("param2"))
-				.verifyComplete();
+		var expression   = ParserUtil.expression("\"\".<test.attribute(\"param1\",\"param2\")>");
+		StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+				.expectNext(Val.of("param2")).verifyComplete();
 	}
 
 	@Test
@@ -586,9 +525,9 @@ public class AnnotationAttributeContextTests {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
 
-			@Attribute
-			public Flux<Val> envAttribute(@SuppressWarnings("unchecked") @Text Flux<Val>... varArgsParams) {
-				return varArgsParams[1];
+			@EnvironmentAttribute
+			public Flux<Val> envAttribute(@Text Val... varArgsParams) {
+				return Flux.just(varArgsParams[1]);
 			}
 
 		}
@@ -597,9 +536,8 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
-		StepVerifier.create(expression.evaluate()
-				.contextWrite(this.constructContext(attributeCtx, variables))).expectNext(Val.of("param2"))
-				.verifyComplete();
+		StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+				.expectNext(Val.of("param2")).verifyComplete();
 	}
 
 	@Test
@@ -607,9 +545,9 @@ public class AnnotationAttributeContextTests {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
 
-			@Attribute
-			public Flux<Val> envAttribute(Map<String, JsonNode> variables, @Text Flux<Val> param1) {
-				return param1;
+			@EnvironmentAttribute
+			public Flux<Val> envAttribute(Map<String, JsonNode> variables, @Text Val param1) {
+				return Flux.just(param1);
 			}
 
 		}
@@ -618,31 +556,24 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("<test.envAttribute(\"param1\")>");
-		StepVerifier.create(expression.evaluate()
-				.contextWrite(this.constructContext(attributeCtx, variables))).expectNext(Val.of("param1"))
-				.verifyComplete();
+		StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+				.expectNext(Val.of("param1")).verifyComplete();
 	}
 
 	@Test
 	public void when_varArgsAndTwoParamEnvironmentAttribute_evaluatesExactParameterMatch()
-			throws InitializationException,
-				IOException {
+			throws InitializationException, IOException {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
 
-			@Attribute
-			public Flux<Val> envAttribute(
-					Map<String, JsonNode> variables,
-					@Text Flux<Val> param1,
-					@Text Flux<Val> param2) {
-				return param1;
+			@EnvironmentAttribute
+			public Flux<Val> envAttribute(Map<String, JsonNode> variables, @Text Val param1, @Text Val param2) {
+				return Flux.just(param1);
 			}
 
-			@Attribute
-			public Flux<Val> envAttribute(
-					Map<String, JsonNode> variables,
-					@SuppressWarnings("unchecked") @Text Flux<Val>... varArgsParams) {
-				return varArgsParams[1];
+			@EnvironmentAttribute
+			public Flux<Val> envAttribute(Map<String, JsonNode> variables, @Text Val... varArgsParams) {
+				return Flux.just(varArgsParams[1]);
 			}
 
 		}
@@ -651,22 +582,18 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
-		StepVerifier.create(expression.evaluate()
-				.contextWrite(this.constructContext(attributeCtx, variables))).expectNext(Val.of("param1"))
-				.verifyComplete();
+		StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+				.expectNext(Val.of("param1")).verifyComplete();
 	}
 
 	@Test
 	public void when_varArgsEnvironmentAttribute_calledWithNoParams_evalsVarArgsWithEmptyParamArray()
-			throws InitializationException,
-				IOException {
+			throws InitializationException, IOException {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
 
-			@Attribute
-			public Flux<Val> envAttribute(
-					Map<String, JsonNode> variables,
-					@SuppressWarnings("unchecked") @Text Flux<Val>... varArgsParams) {
+			@EnvironmentAttribute
+			public Flux<Val> envAttribute(Map<String, JsonNode> variables, @Text Val... varArgsParams) {
 				return Flux.just(Val.of(varArgsParams.length));
 			}
 
@@ -676,8 +603,8 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("<test.envAttribute>");
-		StepVerifier.create(expression.evaluate()
-				.contextWrite(this.constructContext(attributeCtx, variables))).expectNext(Val.of(0)).verifyComplete();
+		StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+				.expectNext(Val.of(0)).verifyComplete();
 	}
 
 	@Test
@@ -685,7 +612,7 @@ public class AnnotationAttributeContextTests {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
 
-			@Attribute
+			@EnvironmentAttribute
 			public Flux<Val> envAttribute() {
 				return Flux.just(Val.of("OK"));
 			}
@@ -696,21 +623,19 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("<test.envAttribute>");
-		StepVerifier.create(expression.evaluate()
-				.contextWrite(this.constructContext(attributeCtx, variables))).expectNext(Val.of("OK"))
-				.verifyComplete();
+		StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+				.expectNext(Val.of("OK")).verifyComplete();
 	}
 
 	@Test
 	public void when_noArgsEnvironmentAttribute_calledAndFails_evalsToError()
-			throws InitializationException,
-				IOException {
+			throws InitializationException, IOException {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
 
-			@Attribute
+			@EnvironmentAttribute
 			public Flux<Val> envAttribute() {
-				throw new IllegalStateException("ERROR");
+				throw new IllegalStateException("INTENDED ERROR FROM TEST");
 			}
 
 		}
@@ -719,9 +644,8 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("<test.envAttribute>");
-		StepVerifier.create(expression.evaluate()
-				.contextWrite(this.constructContext(attributeCtx, variables))).expectNextMatches(Val::isError)
-				.verifyComplete();
+		StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+				.expectNextMatches(valErrorText("INTENDED ERROR FROM TEST")).verifyComplete();
 	}
 
 	@Test
@@ -731,7 +655,7 @@ public class AnnotationAttributeContextTests {
 
 			@Attribute
 			public Flux<Val> attribute(Val leftHand) {
-				throw new IllegalStateException("ERROR");
+				throw new IllegalStateException("INTENDED ERROR FROM TEST");
 			}
 
 		}
@@ -740,11 +664,14 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("\"\".<test.attribute>");
-		StepVerifier.create(expression.evaluate()
-				.contextWrite(this.constructContext(attributeCtx, variables))).expectNextMatches(Val::isError)
-				.verifyComplete();
+		StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+				.expectNextMatches(valErrorText("INTENDED ERROR FROM TEST")).verifyComplete();
 	}
 
+	private Predicate<Val> valErrorText(String errorMessage) {
+		return val -> val.isError() && errorMessage.equals(val.getMessage());
+	}
+	
 	@Test
 	public void when_noArgsAttribute_called_evals() throws InitializationException, IOException {
 		@PolicyInformationPoint(name = "test")
@@ -761,8 +688,8 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("\"\".<test.attribute>");
-		StepVerifier.create(expression.evaluate()
-				.contextWrite(this.constructContext(attributeCtx, variables))).expectNext(Val.of("")).verifyComplete();
+		StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+				.expectNext(Val.of("")).verifyComplete();
 	}
 
 	@Test
@@ -770,25 +697,19 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext();
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("\"\".<test.envAttribute>");
-		StepVerifier
-				.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
-				.expectNextMatches(Val::isError)
-				.verifyComplete();
+		StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+				.expectNextMatches(valErrorText("Unknown attribute test.envAttribute")).verifyComplete();
 	}
 
 	@Test
 	public void when_twoParamEnvironmentAttribute_calledWithOneParam_evaluatesToError()
-			throws InitializationException,
-				IOException {
+			throws InitializationException, IOException {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
 
-			@Attribute
-			public Flux<Val> envAttribute(
-					Map<String, JsonNode> variables,
-					@Text Flux<Val> param1,
-					@Text Flux<Val> param2) {
-				return param1;
+			@EnvironmentAttribute
+			public Flux<Val> envAttribute(Map<String, JsonNode> variables, @Text Val param1, @Text Val param2) {
+				return Flux.just(param1);
 			}
 
 		}
@@ -797,23 +718,19 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("<test.envAttribute(\"param1\")>");
-		StepVerifier.create(expression.evaluate()
-				.contextWrite(this.constructContext(attributeCtx, variables))).expectNextMatches(Val::isError)
-				.verifyComplete();
+		StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+				.expectNextMatches(valErrorText("Unknown attribute test.envAttribute")).verifyComplete();
 	}
 
 	@Test
 	public void when_varArgsWithVariablesEnvironmentAttributeAndBadParamType_evaluatesToError()
-			throws InitializationException,
-				IOException {
+			throws InitializationException, IOException {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
 
-			@Attribute
-			public Flux<Val> envAttribute(
-					Map<String, JsonNode> variables,
-					@SuppressWarnings("unchecked") @Bool Flux<Val>... varArgsParams) {
-				return varArgsParams[1];
+			@EnvironmentAttribute
+			public Flux<Val> envAttribute(Map<String, JsonNode> variables, @Bool Val... varArgsParams) {
+				return Flux.just(varArgsParams[1]);
 			}
 
 		}
@@ -822,56 +739,49 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
-		StepVerifier.create(expression.evaluate()
-				.contextWrite(this.constructContext(attributeCtx, variables))).expectNextMatches(Val::isError)
-				.verifyComplete();
+		StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+				.expectNextMatches(valErrorText("Illegal parameter type. Got: STRING Expected: @io.sapl.api.validation.Bool() ")).verifyComplete();
 	}
 
-	
 	@Test
 	public void generatesCodeTemplates() throws InitializationException, IOException {
 
 		@PolicyInformationPoint(name = "test")
 		class PIP {
 
-			@Attribute
-			public Flux<Val> a(
-					Map<String, JsonNode> variables,
-					@SuppressWarnings("unchecked") @Bool @Text Flux<Val>... varArgsParams) {
-				return varArgsParams[1];
+			@EnvironmentAttribute
+			public Flux<Val> a(Map<String, JsonNode> variables, @Bool @Text Val... varArgsParams) {
+				return Flux.just(varArgsParams[1]);
 			}
 
-			@Attribute
-			public Flux<Val> a(@Bool @Text Flux<Val> a1, @Bool Flux<Val> a2) {
-				return a1;
+			@EnvironmentAttribute
+			public Flux<Val> a(@Bool @Text Val a1, @Bool Val a2) {
+				return Flux.just(a1);
 			}
 
-			@Attribute
-			public Flux<Val> a2(Flux<Val> a1, Flux<Val> a2) {
-				return a1;
+			@EnvironmentAttribute
+			public Flux<Val> a2(Val a1, Val a2) {
+				return Flux.just(a1);
 			}
 
-			@Attribute
+			@EnvironmentAttribute
 			public Flux<Val> a2() {
 				return Flux.empty();
 			}
 
 			@Attribute
-			public Flux<Val> x(
-					Val leftHand,
-					Map<String, JsonNode> variables,
-					@SuppressWarnings("unchecked") @Bool @Text Flux<Val>... varArgsParams) {
-				return varArgsParams[1];
+			public Flux<Val> x(Val leftHand, Map<String, JsonNode> variables, @Bool @Text Val... varArgsParams) {
+				return Flux.just(varArgsParams[1]);
 			}
 
 			@Attribute
-			public Flux<Val> x(Val leftHand, @NotNull @Bool @Text Flux<Val> a1, @Bool Flux<Val> a2) {
-				return a1;
+			public Flux<Val> x(Val leftHand, @NotNull @Bool @Text Val a1, @Bool Val a2) {
+				return Flux.just(a1);
 			}
 
 			@Attribute
-			public Flux<Val> x2(Val leftHand, Flux<Val> a1, Flux<Val> a2) {
-				return a1;
+			public Flux<Val> x2(Val leftHand, Val a1, Val a2) {
+				return Flux.just(a1);
 			}
 
 		}
@@ -899,17 +809,13 @@ public class AnnotationAttributeContextTests {
 
 	@Test
 	public void when_environmentAttributeButOnlyNonEnvAttributePresent_fail()
-			throws InitializationException,
-				IOException {
+			throws InitializationException, IOException {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
 
 			@Attribute
-			public Flux<Val> attribute(
-					Val leftHand,
-					Map<String, JsonNode> variables,
-					@SuppressWarnings("unchecked") @Text Flux<Val>... varArgsParams) {
-				return varArgsParams[1];
+			public Flux<Val> attribute(Val leftHand, Map<String, JsonNode> variables, @Text Val... varArgsParams) {
+				return Flux.just(varArgsParams[1]);
 			}
 
 		}
@@ -918,13 +824,12 @@ public class AnnotationAttributeContextTests {
 		var attributeCtx = new AnnotationAttributeContext(pip);
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("<test.attribute(\"param1\",\"param2\")>");
-		StepVerifier.create(expression.evaluate()
-				.contextWrite(this.constructContext(attributeCtx, variables))).expectNextMatches(Val::isError)
-				.verifyComplete();
+		StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+				.expectNextMatches(valErrorText("Unknown attribute test.attribute")).verifyComplete();
 	}
 
-	private Function<Context, Context>
-			constructContext(AttributeContext attributeCtx, Map<String, JsonNode> variables) {
+	private Function<Context, Context> constructContext(AttributeContext attributeCtx,
+			Map<String, JsonNode> variables) {
 		return ctx -> {
 			ctx = AuthorizationContext.setAttributeContext(ctx, attributeCtx);
 			ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
@@ -936,13 +841,13 @@ public class AnnotationAttributeContextTests {
 	@Test
 	public void addsDocumentedAttributeCodeTemplates() throws InitializationException {
 
-		final String pipName = "test";
+		final String pipName        = "test";
 		final String pipDescription = "description";
 
 		@PolicyInformationPoint(name = pipName, description = pipDescription)
 		class PIP {
 
-			@Attribute
+			@EnvironmentAttribute
 			public Flux<Val> empty() {
 				return Flux.empty();
 			}

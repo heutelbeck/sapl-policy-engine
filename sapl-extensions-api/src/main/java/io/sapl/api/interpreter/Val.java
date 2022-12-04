@@ -89,20 +89,36 @@ public class Val {
 
 	private final JsonNode value;
 
-	private String errorMessage;
+	private final String errorMessage;
+
+	private final boolean secret;
 
 	private Val(String errorMessage) {
 		this.value        = null;
 		this.errorMessage = errorMessage;
+		this.secret       = false;
 	}
 
 	private Val() {
 		this.value        = null;
 		this.errorMessage = null;
+		this.secret       = false;
+	}
+
+	private Val(JsonNode value, String errorMessage, boolean isSecret) {
+		this.value        = value;
+		this.errorMessage = errorMessage;
+		this.secret       = isSecret;
 	}
 
 	private Val(JsonNode value) {
-		this.value = value;
+		this.value        = value;
+		this.errorMessage = null;
+		this.secret       = false;
+	}
+
+	public Val asSecret() {
+		return new Val(value, errorMessage, true);
 	}
 
 	public static Val of(JsonNode value) {
@@ -122,10 +138,13 @@ public class Val {
 	}
 
 	public static Val error(String errorMessage, Object... args) {
-		return new Val(String.format(errorMessage, args));
+		return new Val(String.format(errorMessage == null ? "Undefined Error" : errorMessage, args));
 	}
 
 	public static Val error(Throwable throwable) {
+		if (throwable == null)
+			return new Val("Undefined Error");
+
 		return (throwable.getMessage() == null || throwable.getMessage().isBlank())
 				? new Val(throwable.getClass().getSimpleName())
 				: new Val(throwable.getMessage());
@@ -137,6 +156,10 @@ public class Val {
 
 	public static Mono<Val> errorMono(String errorMessage, Object... args) {
 		return Mono.just(error(errorMessage, args));
+	}
+
+	public boolean isSecret() {
+		return secret;
 	}
 
 	public String getMessage() {
@@ -321,6 +344,9 @@ public class Val {
 
 	@Override
 	public String toString() {
+		if (isSecret()) {
+			return "SECRET";
+		}
 		if (isError()) {
 			return "ERROR[" + errorMessage + "]";
 		}

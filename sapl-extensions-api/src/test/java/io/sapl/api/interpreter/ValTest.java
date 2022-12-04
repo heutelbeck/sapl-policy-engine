@@ -94,12 +94,12 @@ class ValTest {
 
 	@Test
 	void createErrorWithNullMessage() {
-		assertThrows(NullPointerException.class, () -> Val.error((String) null));
+		assertEquals("Undefined Error", Val.error((String) null).getMessage());
 	}
 
 	@Test
 	void createErrorWithNullCause() {
-		assertThrows(NullPointerException.class, () -> Val.error((Throwable) null));
+		assertEquals("Undefined Error", Val.error((Throwable) null).getMessage());
 	}
 
 	@Test

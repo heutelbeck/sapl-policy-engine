@@ -24,9 +24,9 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.pdp.config.FixedFunctionsAndAttributesPDPConfigurationProvider;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
+import io.sapl.pdp.config.fixed.FixedFunctionsAndAttributesPDPConfigurationProvider;
 
 class PDPConfigurationProviderAutoConfigurationTests {
 

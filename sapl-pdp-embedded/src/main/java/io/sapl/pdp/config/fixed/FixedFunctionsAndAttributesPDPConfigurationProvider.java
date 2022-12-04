@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp.config;
+package io.sapl.pdp.config.fixed;
 
 import java.util.Map;
 import java.util.Optional;
@@ -23,6 +23,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.pdp.config.PDPConfiguration;
+import io.sapl.pdp.config.PDPConfigurationProvider;
+import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 

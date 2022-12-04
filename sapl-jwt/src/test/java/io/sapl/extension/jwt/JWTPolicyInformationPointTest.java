@@ -15,9 +15,13 @@
  */
 package io.sapl.extension.jwt;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.mockito.Mockito.mock;
+
 import java.io.IOException;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +42,8 @@ import com.nimbusds.jwt.JWTClaimsSet;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.extension.jwt.TestMockServerDispatcher.DispatchMode;
+import io.sapl.interpreter.pip.AnnotationAttributeContext;
+import io.sapl.pip.TimePolicyInformationPoint;
 import okhttp3.mockwebserver.MockWebServer;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -87,6 +93,11 @@ public class JWTPolicyInformationPointTest {
 		jwtPolicyInformationPoint = new JWTPolicyInformationPoint(provider);
 	}
 
+	@Test
+	public void contextIsAbleToLoadJWTPolicyInformationPoint() {
+		assertDoesNotThrow(() -> new AnnotationAttributeContext(jwtPolicyInformationPoint));
+	}
+	
 	/*
 	 * TEST INVALID KEY
 	 */
