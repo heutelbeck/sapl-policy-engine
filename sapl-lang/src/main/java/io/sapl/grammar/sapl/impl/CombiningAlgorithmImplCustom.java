@@ -17,7 +17,6 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -34,8 +33,8 @@ public class CombiningAlgorithmImplCustom extends CombiningAlgorithmImpl {
 
 	@Override
 	public Flux<AuthorizationDecision> combineMatchingDocuments(PolicyRetrievalResult policyRetrievalResult) {
-		var                                     matchingSaplDocuments = policyRetrievalResult.getMatchingDocuments();
-		final List<Flux<AuthorizationDecision>> authzDecisionFluxes   = new ArrayList<>(matchingSaplDocuments.size());
+		var matchingSaplDocuments = policyRetrievalResult.getMatchingDocuments();
+		var authzDecisionFluxes   = new ArrayList<Flux<AuthorizationDecision>>(matchingSaplDocuments.size());
 		for (AuthorizationDecisionEvaluable document : matchingSaplDocuments) {
 			log.debug("  |- Evaluate: {} ", document);
 			authzDecisionFluxes.add(document.evaluate());

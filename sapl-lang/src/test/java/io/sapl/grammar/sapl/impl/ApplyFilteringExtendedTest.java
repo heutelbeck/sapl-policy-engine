@@ -24,9 +24,7 @@ import java.io.IOException;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.impl.util.EObjectUtil;
 import io.sapl.grammar.sapl.impl.util.MockUtil;
-import io.sapl.grammar.sapl.impl.util.ParserUtil;
 import io.sapl.interpreter.context.AuthorizationContext;
 import reactor.test.StepVerifier;
 
@@ -34,12 +32,12 @@ class ApplyFilteringExtendedTest {
 
 	@Test
 	void filterUndefined() {
-		expressionErrors("undefined |- { @.name : filter.remove }");
+		expressionErrors("undefined |- { @.name : filter.remove }", "Filters cannot be applied to undefined values.");
 	}
 
 	@Test
 	void filterError() {
-		expressionErrors("(10/0) |- { @.name : filter.remove }");
+		expressionErrors("(10/0) |- { @.name : filter.remove }", "Division by zero");
 	}
 
 	@Test
@@ -89,7 +87,8 @@ class ApplyFilteringExtendedTest {
 
 	@Test
 	void removeEachNoArray() {
-		expressionErrors("{} |- { each @ : filter.remove }");
+		expressionErrors("{} |- { each @ : filter.remove }",
+				"Type mismatch error. Cannot use 'each' keyword with non-array values. Value type was: OBJECT");
 	}
 
 	@Test
@@ -115,8 +114,6 @@ class ApplyFilteringExtendedTest {
 
 	@Test
 	void emptyStringEachNoArray() throws IOException {
-		var expression = ParserUtil.expression("[ {}, true ] |- { each @[0] : mock.emptyString }");
-		EObjectUtil.dump(expression);
 		expressionErrors("[ {}, true ] |- { each @[0] : mock.emptyString }");
 	}
 
@@ -206,6 +203,13 @@ class ApplyFilteringExtendedTest {
 	}
 
 	@Test
+	void relativeUndefined() {
+		var expression = "{}[?(@ == undefined)]";
+		var expected   = "[]";
+		expressionEvaluatesTo(expression, expected);
+	}
+
+	@Test
 	void replaceRecussiveKeyStepObject() {
 		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] } "
 				+ "|- { @..key : filter.blacken }";
@@ -226,11 +230,8 @@ class ApplyFilteringExtendedTest {
 		var root     = Val.ofJson("{\"name\": \"Ben\", \"origin\": \"Berlin\"}");
 		var filter   = filterComponent("{@.name : simple.append(\" from \", @.origin), @.origin : filter.remove}");
 		var expected = Val.ofJson("{\"name\": \"Ben from Berlin\"}");
-		StepVerifier
-				.create(filter.apply(root)
-						.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, root))
-						.contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNext(expected).verifyComplete();
+		StepVerifier.create(filter.apply(root).contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, root))
+				.contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
@@ -239,10 +240,8 @@ class ApplyFilteringExtendedTest {
 				"[ {\"name\": \"Ben\", \"origin\": \"Berlin\"}, {\"name\": \"Felix\", \"origin\": \"Zürich\"}]");
 		var filter   = filterComponent("{@.name : simple.append(\" from \", @.origin), @.origin : filter.remove}");
 		var expected = Val.ofJson("[{\"name\": \"Ben from Berlin\"},{ \"name\": \"Felix from Zürich\"}]");
-		StepVerifier.create(filter.apply(root)
-				.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, root))
-				.contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNext(expected).verifyComplete();
+		StepVerifier.create(filter.apply(root).contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, root))
+				.contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected).verifyComplete();
 	}
 
 }

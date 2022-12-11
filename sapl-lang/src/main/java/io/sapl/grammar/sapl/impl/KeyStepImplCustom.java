@@ -16,15 +16,15 @@
 package io.sapl.grammar.sapl.impl;
 
 import java.util.ArrayList;
-
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.util.Map;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
+import io.sapl.grammar.sapl.KeyStep;
+import io.sapl.grammar.sapl.impl.util.FilterAlgorithmUtil;
+import io.sapl.grammar.sapl.impl.util.RepackageUtil;
 import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
@@ -35,24 +35,33 @@ import reactor.util.function.Tuples;
  * <p>
  * Grammar: Step: '.' ({KeyStep} id=ID) ;
  */
-@Slf4j
 public class KeyStepImplCustom extends KeyStepImpl {
 
 	@Override
 	public Flux<Val> apply(@NonNull Val parentValue) {
+		return Flux.just(applyToValue(parentValue, id).withTrace(KeyStep.class,
+				Map.of("parentValue", parentValue, "id", Val.of(id))));
+	}
+
+	@Override
+	public Flux<Val> applyFilterStatement(@NonNull Val parentValue, int stepId, @NonNull FilterStatement statement) {
+		return applyKeyStepFilterStatement(id, parentValue, stepId, statement);
+	}
+
+	public static Val applyToValue(@NonNull Val parentValue, String id) {
 		if (parentValue.isError()) {
-			return Flux.just(parentValue);
+			return parentValue;
 		}
 
 		if (!parentValue.isObject() && !parentValue.isArray()) {
-			return Val.fluxOfUndefined();
+			return Val.UNDEFINED;
 		}
 
 		if (parentValue.isObject()) {
 			if (parentValue.get().has(id)) {
-				return Flux.just(Val.of(parentValue.get().get(id)));
+				return Val.of(parentValue.get().get(id));
 			} else {
-				return Val.fluxOfUndefined();
+				return Val.UNDEFINED;
 			}
 		}
 
@@ -62,92 +71,75 @@ public class KeyStepImplCustom extends KeyStepImpl {
 				resultArray.add(value.get(id));
 			}
 		}
-		return Flux.just(Val.of(resultArray));
+		return Val.of(resultArray);
 	}
 
-	@Override
-	public Flux<Val> applyFilterStatement(
-			@NonNull Val parentValue,
-			int stepId,
-			@NonNull FilterStatement statement) {
-		return applyKeyStepFilterStatement(id, parentValue, stepId, statement);
-	}
-
-	public static Flux<Val> applyKeyStepFilterStatement(
-			String id,
-			Val parentValue,
-			int stepId,
+	public static Flux<Val> applyKeyStepFilterStatement(String id, Val parentValue, int stepId,
 			FilterStatement statement) {
-		log.trace("apply key step '{}' to: {}", id, parentValue);
 		if (parentValue.isObject()) {
-			return applyFilterStatementToObject(id, parentValue.getObjectNode(), stepId, statement);
+			return applyFilterStatementToObject(id, parentValue, stepId, statement);
 		}
 
 		if (parentValue.isArray()) {
-			return applyFilterStatementToArray(id, parentValue.getArrayNode(), stepId, statement);
+			return applyFilterStatementToArray(id, parentValue, stepId, statement);
 		}
 
 		// this means the element does not get selected does not get filtered
 		return Flux.just(parentValue);
 	}
 
-	private static Flux<Val> applyFilterStatementToObject(
-			String id,
-			ObjectNode object,
-			int stepId,
+	private static Flux<Val> applyFilterStatementToObject(String id, Val unfilteredValue, int stepId,
 			FilterStatement statement) {
+		var object      = unfilteredValue.getObjectNode();
 		var fieldFluxes = new ArrayList<Flux<Tuple2<String, Val>>>(object.size());
 		var fields      = object.fields();
 		while (fields.hasNext()) {
 			var field = fields.next();
-			log.trace("inspect field {}", field);
+			var key   = field.getKey();
+			var value = Val.of(field.getValue()).withTrace(KeyStep.class,
+					Map.of("unfilteredValue", unfilteredValue, "key", Val.of(key)));
 			if (field.getKey().equals(id)) {
-				log.trace("field matches '{}'", id);
 				if (stepId == statement.getTarget().getSteps().size() - 1) {
 					// this was the final step. apply filter
-					log.trace("final step. select and filter!");
-					fieldFluxes
-							.add(FilterComponentImplCustom
-									.applyFilterFunction(Val.of(field.getValue()), statement.getArguments(),
-											statement.getFsteps(), statement.isEach())
-									.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, Val.of(object)))
-									.map(val -> Tuples.of(field.getKey(), val)));
+					fieldFluxes.add(FilterAlgorithmUtil
+							.applyFilterFunction(value, statement.getArguments(), statement.getFsteps(),
+									statement.isEach())
+							.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, Val.of(object)))
+							.map(val -> Tuples.of(field.getKey(), val)));
 				} else {
 					// there are more steps. descent with them
-					log.trace("this step was successful. descent with next step...");
 					fieldFluxes.add(statement.getTarget().getSteps().get(stepId + 1)
-							.applyFilterStatement(Val.of(field.getValue()), stepId + 1, statement)
+							.applyFilterStatement(value, stepId + 1, statement)
 							.map(val -> Tuples.of(field.getKey(), val)));
 				}
 			} else {
-				log.trace("field not matching. just return it as it will not be affected by filtering");
-				fieldFluxes.add(Flux.just(Tuples.of(field.getKey(), Val.of(field.getValue()))));
+				// field not matching. just return it as it will not be affected by filtering
+				fieldFluxes.add(Flux.just(Tuples.of(field.getKey(), value)));
 			}
 		}
 		return Flux.combineLatest(fieldFluxes, RepackageUtil::recombineObject);
 	}
 
-	private static Flux<Val> applyFilterStatementToArray(
-			String id,
-			ArrayNode array,
-			int stepId,
+	private static Flux<Val> applyFilterStatementToArray(String id, Val unfilteredValue, int stepId,
 			FilterStatement statement) {
+		var array = unfilteredValue.getArrayNode();
 		if (array.isEmpty()) {
-			return Flux.just(Val.ofEmptyArray());
+			return Flux.just(unfilteredValue.withTrace(KeyStep.class, Map.of("unfilteredValue", unfilteredValue)));
 		}
 		var elementFluxes = new ArrayList<Flux<Val>>(array.size());
 		var elements      = array.elements();
+		var i             = 0;
 		while (elements.hasNext()) {
-			var element = elements.next();
-			log.trace("inspect element {}", element);
+			var element = Val.of(elements.next()).withTrace(KeyStep.class,
+					Map.of("unfilteredValue", unfilteredValue, "index", Val.of(i++)));
 			if (element.isObject()) {
-				log.trace("array element is an object. apply this step to the object.");
-				elementFluxes.add(
-						applyFilterStatementToObject(id, (ObjectNode) element, stepId, statement)
-								.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, Val.of(array))));
+				// array element is an object. apply this step to the object.
+				elementFluxes.add(applyFilterStatementToObject(id, element, stepId, statement)
+						.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, Val.of(array))));
 			} else {
-				log.trace("array element not an object. just return it as it will not be affected by filtering");
-				elementFluxes.add(Flux.just(Val.of(element)));
+				// array element not an object. just return it as it will not be affected by
+				// filtering
+				elementFluxes.add(Flux.just(element));
 			}
 		}
 		return Flux.combineLatest(elementFluxes, RepackageUtil::recombineArray);

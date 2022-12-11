@@ -23,20 +23,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
-import io.sapl.interpreter.ExplainedValue;
 import reactor.core.publisher.Flux;
 
 public interface AttributeContext extends LibraryFunctionProvider {
 
-	Flux<Val> evaluateAttribute(String attributeName, Val value, Arguments arguments, Map<String, JsonNode> variables);
-
-	Flux<ExplainedValue> evaluateAttributeAndExplain(String attributeName, ExplainedValue value, Arguments arguments,
+	Flux<Val> evaluateAttribute(String attributeName, Val leftHandValue, Arguments arguments,
 			Map<String, JsonNode> variables);
 
 	Flux<Val> evaluateEnvironmentAttribute(String attributeName, Arguments arguments, Map<String, JsonNode> variables);
-
-	Flux<ExplainedValue> evaluateEnvironmentAttributeAndExplain(String attributeName, Arguments arguments,
-			Map<String, JsonNode> variables);
 
 	Collection<PolicyInformationPointDocumentation> getDocumentation();
 

@@ -26,7 +26,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
-import io.sapl.interpreter.ExplainedValue;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import reactor.core.publisher.Flux;
@@ -76,32 +75,20 @@ public class TestAttributeContext implements AttributeContext {
 	}
 
 	@Override
-	public Flux<Val>
-			evaluateAttribute(String attribute, Val value, Arguments arguments, Map<String, JsonNode> variables) {
+	public Flux<Val> evaluateAttribute(String attribute, Val value, Arguments arguments,
+			Map<String, JsonNode> variables) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public Flux<Val>
-			evaluateEnvironmentAttribute(String attribute, Arguments arguments, Map<String, JsonNode> variables) {
+	public Flux<Val> evaluateEnvironmentAttribute(String attribute, Arguments arguments,
+			Map<String, JsonNode> variables) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public Map<String, String> getDocumentedAttributeCodeTemplates() {
 		return Map.of("clock.now", "documentation");
-	}
-
-	@Override
-	public Flux<ExplainedValue> evaluateAttributeAndExplain(String attributeName, ExplainedValue value,
-			Arguments arguments, Map<String, JsonNode> variables) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public Flux<ExplainedValue> evaluateEnvironmentAttributeAndExplain(String attributeName, Arguments arguments,
-			Map<String, JsonNode> variables) {
-		throw new UnsupportedOperationException();
 	}
 
 }

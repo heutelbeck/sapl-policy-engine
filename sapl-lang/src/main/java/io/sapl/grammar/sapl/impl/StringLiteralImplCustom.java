@@ -16,13 +16,14 @@
 package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.StringLiteral;
 import reactor.core.publisher.Flux;
 
 public class StringLiteralImplCustom extends StringLiteralImpl {
 
 	@Override
 	public Flux<Val> evaluate() {
-		return Val.fluxOf(getString());
+		return Flux.just(Val.of(getString()).withTrace(StringLiteral.class));
 	}
 
 }

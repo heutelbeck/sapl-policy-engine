@@ -15,17 +15,18 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
-
-import com.fasterxml.jackson.databind.node.ArrayNode;
+import java.math.BigDecimal;
+import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.ArraySlicingStep;
+import io.sapl.grammar.sapl.AttributeUnionStep;
 import io.sapl.grammar.sapl.FilterStatement;
-import io.sapl.interpreter.context.AuthorizationContext;
+import io.sapl.grammar.sapl.impl.util.FilterAlgorithmUtil;
+import io.sapl.grammar.sapl.impl.util.SelectorUtil;
+import io.sapl.grammar.sapl.impl.util.StepAlgorithmUtil;
 import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
@@ -37,82 +38,33 @@ import reactor.core.publisher.Flux;
  * Subscript returns Step: {IndexUnionStep} indices+=JSONNUMBER ','
  * indices+=JSONNUMBER (',' indices+=JSONNUMBER)* ;}
  */
-@Slf4j
 public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
-
-	private static final String TYPE_MISMATCH_CAN_ONLY_ACCESS_ARRAYS_BY_INDEX_GOT_S = "Type mismatch. The [index] access operator can only be applied to arrays. However, the policy actually attempted to apply the operator to: %s";
 
 	@Override
 	public Flux<Val> apply(@NonNull Val parentValue) {
-		if (parentValue.isError()) {
-			return Flux.just(parentValue);
-		}
-		if (!parentValue.isArray()) {
-			return Val.errorFlux(TYPE_MISMATCH_CAN_ONLY_ACCESS_ARRAYS_BY_INDEX_GOT_S, parentValue);
-		}
-
-		var array = parentValue.getArrayNode();
-		// remove duplicates
-		var uniqueIndices = uniqueIndices(array);
-		var resultArray   = Val.JSON.arrayNode();
-		for (var index : uniqueIndices) {
-			if (index >= 0 && index < array.size())
-				resultArray.add(array.get(index));
-		}
-		return Flux.just(Val.of(resultArray));
-	}
-
-	private Set<Integer> uniqueIndices(ArrayNode array) {
-		// remove duplicates
-		var uniqueIndices = new HashSet<Integer>();
-		for (var index : indices) {
-			var idx = index.intValue();
-			if (idx < 0) {
-				uniqueIndices.add(array.size() + idx);
-			} else {
-				uniqueIndices.add(idx);
-			}
-		}
-		return uniqueIndices;
+		return StepAlgorithmUtil.applyOnArray(parentValue, SelectorUtil.toArrayElementSelector(hasIndex(parentValue)),
+				parameters(), AttributeUnionStep.class);
 	}
 
 	@Override
-	public Flux<Val> applyFilterStatement(
-			@NonNull Val parentValue,
-			int stepId,
+	public Flux<Val> applyFilterStatement(@NonNull Val unfilteredValue, int stepId,
 			@NonNull FilterStatement statement) {
-		log.trace("apply index union step [{}] to: {}", indices, parentValue);
-		if (!parentValue.isArray()) {
-			// this means the element does not get selected does not get filtered
-			return Flux.just(parentValue);
-		}
-		var array         = parentValue.getArrayNode();
-		var uniqueIndices = uniqueIndices(array);
-		var elementFluxes = new ArrayList<Flux<Val>>(array.size());
-		for (var i = 0; i < array.size(); i++) {
-			var element = array.get(i);
-			log.trace("inspect element [{}]={}", i, element);
-			if (uniqueIndices.contains(i)) {
-				log.trace("selected. [{}]={}", i, element);
-				if (stepId == statement.getTarget().getSteps().size() - 1) {
-					// this was the final step. apply filter
-					log.trace("final step. apply filter!");
-					elementFluxes.add(
-							FilterComponentImplCustom.applyFilterFunction(Val.of(element), statement.getArguments(),
-									statement.getFsteps(), statement.isEach())
-									.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, parentValue)));
-				} else {
-					// there are more steps. descent with them
-					log.trace("this step was successful. descent with next step...");
-					elementFluxes.add(statement.getTarget().getSteps().get(stepId + 1)
-							.applyFilterStatement(Val.of(element), stepId + 1, statement));
-				}
-			} else {
-				log.trace("[{}] not selected. Just return as is. Not affected by filtering.", i);
-				elementFluxes.add(Flux.just(Val.of(element)));
-			}
-		}
-		return Flux.combineLatest(elementFluxes, RepackageUtil::recombineArray);
+		return FilterAlgorithmUtil.applyFilterOnArray(unfilteredValue, stepId,
+				SelectorUtil.toArrayElementSelector(hasIndex(unfilteredValue)), statement, parameters(),
+				ArraySlicingStep.class);
+	}
+
+	private BiFunction<Integer, Val, Boolean> hasIndex(Val parentVlue) {
+		return (index, ___) -> {
+			var arraySize = parentVlue.getArrayNode().size();
+			return indices.stream().map(BigDecimal::intValue).map(i -> i < 0 ? i + arraySize : i)
+					.filter(i -> i == index).findAny().isPresent();
+		};
+	}
+
+	private String parameters() {
+		return "[" + (indices == null ? "" : indices.stream().map(Object::toString).collect(Collectors.joining(",")))
+				+ "]";
 	}
 
 }

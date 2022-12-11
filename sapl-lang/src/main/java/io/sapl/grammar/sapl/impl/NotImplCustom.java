@@ -15,16 +15,17 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.OperatorUtil.operator;
+import static io.sapl.grammar.sapl.impl.util.OperatorUtil.operator;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.Not;
 import reactor.core.publisher.Flux;
 
 public class NotImplCustom extends NotImpl {
 
 	@Override
 	public Flux<Val> evaluate() {
-		return operator(this, Val::requireBoolean, x -> Val.of(!x.get().asBoolean()));
+		return operator(this, Val::requireBoolean, x -> Val.of(!x.get().asBoolean()).withTrace(Not.class, x));
 	}
 
 }

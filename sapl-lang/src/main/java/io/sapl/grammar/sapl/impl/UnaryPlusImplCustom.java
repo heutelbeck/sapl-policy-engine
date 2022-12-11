@@ -15,18 +15,17 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.OperatorUtil.arithmeticOperator;
-
-import java.util.function.Function;
+import static io.sapl.grammar.sapl.impl.util.OperatorUtil.arithmeticOperator;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.UnaryPlus;
 import reactor.core.publisher.Flux;
 
 public class UnaryPlusImplCustom extends UnaryPlusImpl {
 
 	@Override
 	public Flux<Val> evaluate() {
-		return arithmeticOperator(this, Function.identity());
+		return arithmeticOperator(this, val -> val.withTrace(UnaryPlus.class, val));
 	}
 
 }

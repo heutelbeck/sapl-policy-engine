@@ -15,9 +15,12 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.OperatorUtil.booleanOperator;
+import static io.sapl.grammar.sapl.impl.util.OperatorUtil.booleanOperator;
+
+import java.util.Map;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.XOr;
 import reactor.core.publisher.Flux;
 
 /**
@@ -34,7 +37,8 @@ public class XOrImplCustom extends XOrImpl {
 	}
 
 	private Val xor(Val left, Val right) {
-		return Val.of(left.getBoolean() ^ right.getBoolean());
+		return Val.of(left.getBoolean() ^ right.getBoolean()).withTrace(XOr.class,
+				Map.of("left", left, "right", right));
 	}
 
 }

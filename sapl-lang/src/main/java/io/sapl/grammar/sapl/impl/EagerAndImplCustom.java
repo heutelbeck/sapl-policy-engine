@@ -15,9 +15,12 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.OperatorUtil.booleanOperator;
+import static io.sapl.grammar.sapl.impl.util.OperatorUtil.booleanOperator;
+
+import java.util.Map;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.EagerAnd;
 import reactor.core.publisher.Flux;
 
 /**
@@ -34,7 +37,8 @@ public class EagerAndImplCustom extends EagerAndImpl {
 	}
 
 	private Val and(Val left, Val right) {
-		return Val.of(left.getBoolean() && right.getBoolean());
+		return Val.of(left.getBoolean() && right.getBoolean()).withTrace(EagerAnd.class,
+				Map.of("left", left, "right", right));
 	}
 
 }

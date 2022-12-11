@@ -15,9 +15,9 @@
  */
 package io.sapl.interpreter;
 
-import static org.hamcrest.CoreMatchers.is;
 import static com.spotify.hamcrest.jackson.IsJsonBoolean.jsonBoolean;
 import static com.spotify.hamcrest.optional.OptionalMatchers.optionalWithValue;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.HashMap;

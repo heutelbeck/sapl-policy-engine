@@ -16,6 +16,7 @@
 package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.UndefinedLiteral;
 import reactor.core.publisher.Flux;
 
 /**
@@ -31,7 +32,7 @@ public class UndefinedLiteralImplCustom extends UndefinedLiteralImpl {
 	 */
 	@Override
 	public Flux<Val> evaluate() {
-		return Val.fluxOfUndefined();
+		return Flux.just(Val.UNDEFINED.withTrace(UndefinedLiteral.class));
 	}
 
 }

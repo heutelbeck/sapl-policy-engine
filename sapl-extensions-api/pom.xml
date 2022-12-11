@@ -59,6 +59,12 @@
 			<artifactId>jackson-coreutils</artifactId>
 			<version>1.8</version>
 		</dependency>
+		<!-- Utility -->
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<scope>provided</scope>
+		</dependency>
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter</artifactId>

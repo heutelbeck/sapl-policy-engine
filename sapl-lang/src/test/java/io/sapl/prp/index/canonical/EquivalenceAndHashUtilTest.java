@@ -15,13 +15,6 @@
  */
 package io.sapl.prp.index.canonical;
 
-import org.eclipse.emf.common.util.EList;
-import org.junit.jupiter.api.Test;
-
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Map;
-
 import static io.sapl.grammar.sapl.impl.util.ParserUtil.entitilement;
 import static io.sapl.grammar.sapl.impl.util.ParserUtil.expression;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -31,6 +24,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Map;
+
+import org.eclipse.emf.common.util.EList;
+import org.junit.jupiter.api.Test;
 
 class EquivalenceAndHashUtilTest {
 

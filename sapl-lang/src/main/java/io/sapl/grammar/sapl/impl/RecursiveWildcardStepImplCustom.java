@@ -15,11 +15,16 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import java.util.Map;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
+import io.sapl.grammar.sapl.RecursiveWildcardStep;
+import io.sapl.grammar.sapl.WildcardStep;
+import io.sapl.grammar.sapl.impl.util.FilterAlgorithmUtil;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
@@ -35,16 +40,21 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 
 	@Override
 	public Flux<Val> apply(@NonNull Val parentValue) {
+		return Flux.just(
+				applyToValue(parentValue).withTrace(RecursiveWildcardStep.class, Map.of("parentValue", parentValue)));
+	}
+
+	public Val applyToValue(@NonNull Val parentValue) {
 		if (parentValue.isError()) {
-			return Flux.just(parentValue);
+			return parentValue;
 		}
 		if (parentValue.isUndefined()) {
-			return Val.errorFlux(CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE);
+			return Val.error(CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE);
 		}
 		if (!parentValue.isArray() && !parentValue.isObject()) {
-			return Flux.just(Val.ofEmptyArray());
+			return Val.ofEmptyArray();
 		}
-		return Flux.just(Val.of(collect(parentValue.get(), Val.JSON.arrayNode())));
+		return Val.of(collect(parentValue.get(), Val.JSON.arrayNode()));
 	}
 
 	private ArrayNode collect(JsonNode node, ArrayNode results) {
@@ -71,14 +81,13 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 	}
 
 	@Override
-	public Flux<Val> applyFilterStatement(
-			@NonNull Val parentValue,
-			int stepId,
+	public Flux<Val> applyFilterStatement(@NonNull Val unfilteredValue, int stepId,
 			@NonNull FilterStatement statement) {
 		// This type of recursion does not translate well to filtering.
 		// Basically just apply filter to top-level matches and do recursion with steps.
 		// @.* is basically equivalent to @..* here.
-		return WildcardStepImplCustom.doApplyFilterStatement(parentValue, stepId, statement);
+		return FilterAlgorithmUtil.applyFilter(unfilteredValue, stepId, WildcardStepImplCustom::wildcard, statement,
+				"..*", WildcardStep.class);
 	}
 
 }

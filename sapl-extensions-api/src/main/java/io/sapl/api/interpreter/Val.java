@@ -17,6 +17,7 @@ package io.sapl.api.interpreter;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
@@ -33,6 +34,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.fge.jackson.JsonNumEquals;
 
+import io.sapl.api.interpreter.Trace.ExpressionArgument;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -88,37 +90,82 @@ public class Val {
 	public static final Val NULL = Val.of(JSON.nullNode());
 
 	private final JsonNode value;
-
-	private final String errorMessage;
-
-	private final boolean secret;
+	private final String   errorMessage;
+	private final boolean  secret;
+	private final Trace    trace;
 
 	private Val(String errorMessage) {
 		this.value        = null;
 		this.errorMessage = errorMessage;
 		this.secret       = false;
+		this.trace        = null;
 	}
 
 	private Val() {
 		this.value        = null;
 		this.errorMessage = null;
 		this.secret       = false;
+		this.trace        = null;
 	}
 
 	private Val(JsonNode value, String errorMessage, boolean isSecret) {
 		this.value        = value;
 		this.errorMessage = errorMessage;
 		this.secret       = isSecret;
+		this.trace        = null;
+	}
+
+	private Val(JsonNode value, String errorMessage, boolean isSecret, Trace trace) {
+		this.value        = value;
+		this.errorMessage = errorMessage;
+		this.secret       = isSecret;
+		this.trace        = trace;
+	}
+
+	private Val(JsonNode value, String errorMessage, Trace trace) {
+		this.value        = value;
+		this.errorMessage = errorMessage;
+		this.secret       = false;
+		this.trace        = trace;
 	}
 
 	private Val(JsonNode value) {
 		this.value        = value;
 		this.errorMessage = null;
 		this.secret       = false;
+		this.trace        = null;
 	}
 
 	public Val asSecret() {
 		return new Val(value, errorMessage, true);
+	}
+
+	public Val withTrace(Trace trace) {
+		return new Val(value, errorMessage, secret, trace);
+	}
+
+	public Val withTrace(Class<?> operation) {
+		return withTrace(new Trace(operation));
+	}
+
+	public Val withTrace(Class<?> operation, Val... arguments) {
+		return withTrace(new Trace(operation, arguments));
+	}
+
+	public Val withTrace(Class<?> operation, Map<String, Val> arguments) {
+		return withTrace(new Trace(operation, arguments));
+	}
+
+	public Val withParentTrace(Class<?> operation, Val parentValue) {
+		return withTrace(new Trace(operation, new ExpressionArgument("parentValue", parentValue)));
+	}
+
+	public Val withTrace(Class<?> operation, ExpressionArgument... arguments) {
+		return withTrace(new Trace(operation, arguments));
+	}
+
+	public Val withTrace(Val leftHandValue, Class<?> operation, Val... arguments) {
+		return withTrace(new Trace(leftHandValue, operation, arguments));
 	}
 
 	public static Val of(JsonNode value) {
@@ -350,7 +397,7 @@ public class Val {
 		if (isError()) {
 			return "ERROR[" + errorMessage + "]";
 		}
-		return value != null ? String.format("Value[%s]", value) : "Value[undefined]";
+		return value != null ? value.toString() : "undefined";
 	}
 
 	public Optional<JsonNode> optional() {
@@ -602,4 +649,14 @@ public class Val {
 		return typeOf(this);
 	}
 
+	public String evaluationTree() {
+		return evaluationTree("", "");
+	}
+
+	public String evaluationTree(String firstLine, String followingLines) {
+		if (trace == null) {
+			return firstLine + toString() + "\n";
+		}
+		return trace.evaluationTree(this, firstLine, followingLines);
+	}
 }

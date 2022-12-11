@@ -39,7 +39,6 @@ import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.grammar.sapl.Arguments;
-import io.sapl.interpreter.ExplainedValue;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.validation.ParameterTypeValidator;
 import lombok.NoArgsConstructor;
@@ -533,20 +532,6 @@ public class AnnotationAttributeContext implements AttributeContext {
 			}
 		}
 		return documentedAttributeCodeTemplates;
-	}
-
-	@Override
-	public Flux<ExplainedValue> evaluateAttributeAndExplain(String attributeName, ExplainedValue leftHandValue,
-			Arguments arguments, Map<String, JsonNode> variables) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Flux<ExplainedValue> evaluateEnvironmentAttributeAndExplain(String attribute, Arguments arguments,
-			Map<String, JsonNode> variables) {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 }

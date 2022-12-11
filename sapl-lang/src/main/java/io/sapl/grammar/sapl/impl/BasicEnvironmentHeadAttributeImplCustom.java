@@ -15,7 +15,12 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import java.util.Map;
+
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.AttributeFinderStep;
+import io.sapl.grammar.sapl.impl.util.FunctionUtil;
+import io.sapl.grammar.sapl.impl.util.TargetExpressionUtil;
 import io.sapl.interpreter.context.AuthorizationContext;
 import reactor.core.publisher.Flux;
 
@@ -33,12 +38,13 @@ public class BasicEnvironmentHeadAttributeImplCustom extends BasicEnvironmentHea
 					AuthorizationContext.getImports(ctx));
 
 			if (TargetExpressionUtil.isInTargetExpression(this))
-				return Val.errorFlux(EXTERNAL_ATTRIBUTE_IN_TARGET, fullyQualifiedName);
-
+				return Flux.just(Val.error(EXTERNAL_ATTRIBUTE_IN_TARGET,fullyQualifiedName).withTrace(AttributeFinderStep.class,
+						Map.of("attribute", Val.of(fullyQualifiedName))));
+			
 			return AuthorizationContext.getAttributeContext(ctx)
 					.evaluateEnvironmentAttribute(fullyQualifiedName, getArguments(),
 							AuthorizationContext.getVariables(ctx))
-					.take(1);
+					.next();
 		});
 	}
 

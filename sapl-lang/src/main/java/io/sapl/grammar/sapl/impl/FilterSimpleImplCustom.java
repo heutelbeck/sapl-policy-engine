@@ -16,13 +16,14 @@
 package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.impl.util.FilterAlgorithmUtil;
 import reactor.core.publisher.Flux;
 
 public class FilterSimpleImplCustom extends FilterSimpleImpl {
 
 	@Override
 	public Flux<Val> apply(Val unfilteredValue) {
-		return applyFilterFunction(unfilteredValue, arguments, fsteps, each);
+		return FilterAlgorithmUtil.applyFilterFunction(unfilteredValue, arguments, fsteps, each);
 	}
 
 }

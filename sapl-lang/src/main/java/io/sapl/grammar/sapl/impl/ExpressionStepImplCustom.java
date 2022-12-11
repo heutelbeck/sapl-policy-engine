@@ -15,13 +15,12 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
+import java.util.Map;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.ExpressionStep;
 import io.sapl.grammar.sapl.FilterStatement;
 import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
@@ -41,7 +40,6 @@ import reactor.core.publisher.Flux;
  * Grammar: Step: ... | '[' Subscript ']' | ... Subscript returns Step: ... |
  * {ExpressionStep} '(' expression=Expression ')' | ...
  */
-@Slf4j
 public class ExpressionStepImplCustom extends ExpressionStepImpl {
 
 	private static final String OBJECT_ACCESS_TYPE_MISMATCH_EXPECT_A_STRING_WAS_S = "Object access type mismatch. Expect a string, was: %s ";
@@ -55,38 +53,28 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 	@Override
 	public Flux<Val> apply(@NonNull Val parentValue) {
 		if (parentValue.isError()) {
-			return Flux.just(parentValue);
+			return Flux.just(parentValue.withParentTrace(ExpressionStep.class, parentValue));
 		}
 		if (parentValue.isArray()) {
-			return expression.evaluate()
-					.map(index -> extractValueAt(parentValue.getArrayNode(), index));
+			return expression.evaluate().map(index -> extractValueAt(parentValue, index));
 		}
 		if (parentValue.isObject()) {
-			return expression.evaluate().map(index -> extractKey(parentValue.get(), index));
+			return expression.evaluate().map(index -> extractKey(parentValue, index));
 		}
-		return Val.errorFlux(EXPRESSIONS_STEP_ONLY_APPLICABLE_TO_ARRAY_OR_OBJECT_WAS_S, parentValue);
+		return Flux.just(Val.error(EXPRESSIONS_STEP_ONLY_APPLICABLE_TO_ARRAY_OR_OBJECT_WAS_S, parentValue)
+				.withParentTrace(ExpressionStep.class, parentValue));
 	}
 
 	@Override
-	public Flux<Val> applyFilterStatement(
-			@NonNull Val parentValue,
-			int stepId,
-			@NonNull FilterStatement statement) {
-		log.trace("apply expression step to: {}", parentValue);
+	public Flux<Val> applyFilterStatement(@NonNull Val parentValue, int stepId, @NonNull FilterStatement statement) {
 		if (!parentValue.isArray() && !parentValue.isObject()) {
 			// this means the element does not get selected does not get filtered
-			return Flux.just(parentValue);
+			return Flux.just(parentValue.withParentTrace(ExpressionStep.class, parentValue));
 		}
-		return expression.evaluate()
-				.concatMap(key -> applyFilterStatement(key, parentValue, stepId, statement));
+		return expression.evaluate().concatMap(key -> applyFilterStatement(key, parentValue, stepId, statement));
 	}
 
-	private Flux<Val> applyFilterStatement(
-			Val key,
-			Val parentValue,
-			int stepId,
-			FilterStatement statement) {
-		log.trace("apply expression result '{}'to: {}", key, parentValue);
+	private Flux<Val> applyFilterStatement(Val key, Val parentValue, int stepId, FilterStatement statement) {
 		if (key.isTextual() && parentValue.isObject()) {
 			// This is a KeyStep equivalent
 			return KeyStepImplCustom.applyKeyStepFilterStatement(key.getText(), parentValue, stepId, statement);
@@ -95,35 +83,44 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 			// This is an IndexStep equivalent
 			return IndexStepImplCustom.doApplyFilterStatement(key.decimalValue(), parentValue, stepId, statement);
 		}
-		return Val.errorFlux("Type mismatch. Tried to access {} with {}", parentValue.getValType(), key.getValType());
+		return Flux
+				.just(Val.error("Type mismatch. Tried to access {} with {}", parentValue.getValType(), key.getValType())
+						.withParentTrace(ExpressionStep.class, parentValue));
 	}
 
-	private Val extractValueAt(ArrayNode array, Val index) {
+	private Val extractValueAt(Val parentValue, Val index) {
+		var trace = Map.of("parentValue", parentValue, "expressionResult", index);
 		if (index.isError()) {
-			return index;
+			return index.withTrace(ExpressionStep.class, trace);
 		}
 		if (!index.isNumber()) {
-			return Val.error(ARRAY_ACCESS_TYPE_MISMATCH_EXPECT_AN_INTEGER_WAS_S, index);
+			return Val.error(ARRAY_ACCESS_TYPE_MISMATCH_EXPECT_AN_INTEGER_WAS_S, index).withTrace(ExpressionStep.class,
+					trace);
 		}
-		var idx = index.get().asInt();
+		var idx   = index.get().asInt();
+		var array = parentValue.get();
 		if (idx < 0 || idx > array.size()) {
-			return Val.error(INDEX_OUT_OF_BOUNDS_INDEX_MUST_BE_BETWEEN_0_AND_D_WAS_D, array.size(), idx);
+			return Val.error(INDEX_OUT_OF_BOUNDS_INDEX_MUST_BE_BETWEEN_0_AND_D_WAS_D, array.size(), idx)
+					.withTrace(ExpressionStep.class, trace);
 		}
-		return Val.of(array.get(idx));
+		return Val.of(array.get(idx)).withTrace(ExpressionStep.class, trace);
 	}
 
-	private Val extractKey(JsonNode object, Val key) {
+	private Val extractKey(Val parentValue, Val key) {
+		var trace = Map.of("parentValue", parentValue, "expressionResult", key);
 		if (key.isError()) {
-			return key;
+			return key.withTrace(ExpressionStep.class, trace);
 		}
 		if (!key.isTextual()) {
-			return Val.error(OBJECT_ACCESS_TYPE_MISMATCH_EXPECT_A_STRING_WAS_S, key);
+			return Val.error(OBJECT_ACCESS_TYPE_MISMATCH_EXPECT_A_STRING_WAS_S, key).withTrace(ExpressionStep.class,
+					trace);
 		}
 		var fieldName = key.get().asText();
+		var object    = parentValue.getObjectNode();
 		if (!object.has(fieldName)) {
-			return Val.UNDEFINED;
+			return Val.UNDEFINED.withTrace(ExpressionStep.class, trace);
 		}
-		return Val.of(object.get(fieldName));
+		return Val.of(object.get(fieldName)).withTrace(ExpressionStep.class, trace);
 	}
 
 }

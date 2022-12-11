@@ -19,9 +19,13 @@ import static io.sapl.interpreter.context.AuthorizationContext.getAttributeConte
 import static io.sapl.interpreter.context.AuthorizationContext.getImports;
 import static io.sapl.interpreter.context.AuthorizationContext.getVariables;
 
+import java.util.Map;
+
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.AttributeFinderStep;
 import io.sapl.grammar.sapl.FilterStatement;
-import io.sapl.interpreter.ExplainedValue;
+import io.sapl.grammar.sapl.impl.util.FunctionUtil;
+import io.sapl.grammar.sapl.impl.util.TargetExpressionUtil;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
@@ -33,52 +37,34 @@ import reactor.core.publisher.Flux;
  */
 public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 
-	private static final String UNDEFINED_VALUE = "Undefined value handed over as parameter to policy information point";
+	private static final String UNDEFINED_VALUE = "Undefined value handed over as left-hand parameter to policy information point";
 
 	private static final String EXTERNAL_ATTRIBUTE_IN_TARGET = "Attribute resolution error. Attributes are not allowed in target.";
 
 	@Override
 	public Flux<Val> apply(@NonNull Val parentValue) {
-		if (parentValue.isError()) {
-			return Flux.just(parentValue);
-		}
-		if (TargetExpressionUtil.isInTargetExpression(this)) {
-			return Val.errorFlux(EXTERNAL_ATTRIBUTE_IN_TARGET);
-		}
-		if (parentValue.isUndefined()) {
-			return Val.errorFlux(UNDEFINED_VALUE);
-		}
 
 		return Flux.deferContextual(ctxView -> {
+			var attributeName = FunctionUtil.resolveAbsoluteFunctionName(getIdSteps(), getImports(ctxView));
+
+			if (parentValue.isError()) {
+				return Flux.just(parentValue.withTrace(AttributeFinderStep.class,
+						Map.of("parentValue", parentValue, "attribute", Val.of(attributeName))));
+			}
+			if (TargetExpressionUtil.isInTargetExpression(this)) {
+				return Flux.just(Val.error(EXTERNAL_ATTRIBUTE_IN_TARGET).withTrace(AttributeFinderStep.class,
+						Map.of("parentValue", parentValue, "attribute", Val.of(attributeName))));
+			}
+			if (parentValue.isUndefined()) {
+				return Flux.just(Val.error(UNDEFINED_VALUE).withTrace(AttributeFinderStep.class,
+						Map.of("parentValue", parentValue, "attribute", Val.of(attributeName))));
+			}
+
 			var attributeContext = getAttributeContext(ctxView);
-			var attributeName    = FunctionUtil.resolveAbsoluteFunctionName(getIdSteps(), getImports(ctxView));
 			var variables        = getVariables(ctxView);
 			// @formatter:off
 			return attributeContext
 					.evaluateAttribute(attributeName, parentValue, getArguments(), variables)
-					.distinctUntilChanged();
-			// @formatter:on
-		});
-	}
-
-	public Flux<ExplainedValue> applyAndExplain(@NonNull ExplainedValue parentValue) {
-		if (parentValue.getValue().isError()) {
-			return Flux.just(ExplainedValue.of(parentValue.getValue(), parentValue));
-		}
-		if (TargetExpressionUtil.isInTargetExpression(this)) {
-			return Flux.just(ExplainedValue.of(Val.error(EXTERNAL_ATTRIBUTE_IN_TARGET)));
-		}
-		if (parentValue.getValue().isUndefined()) {
-			return Flux.just(ExplainedValue.of(Val.error(UNDEFINED_VALUE), parentValue));
-		}
-
-		return Flux.deferContextual(ctxView -> {
-			var attributeContext = getAttributeContext(ctxView);
-			var attributeName    = FunctionUtil.resolveAbsoluteFunctionName(getIdSteps(), getImports(ctxView));
-			var variables        = getVariables(ctxView);
-			// @formatter:off
-			return attributeContext
-					.evaluateAttributeAndExplain(attributeName, parentValue, getArguments(), variables)
 					.distinctUntilChanged();
 			// @formatter:on
 		});

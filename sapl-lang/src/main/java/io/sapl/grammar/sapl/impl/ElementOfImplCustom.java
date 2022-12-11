@@ -15,11 +15,14 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.OperatorUtil.operator;
+import static io.sapl.grammar.sapl.impl.util.OperatorUtil.operator;
+
+import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.ElementOf;
 import reactor.core.publisher.Flux;
 
 /**
@@ -33,7 +36,11 @@ public class ElementOfImplCustom extends ElementOfImpl {
 
 	@Override
 	public Flux<Val> evaluate() {
-		return operator(this, this::elementOf);
+		return operator(this, this::tracedElementOf);
+	}
+
+	private Val tracedElementOf(Val needle, Val haystack) {
+		return elementOf(needle, haystack).withTrace(ElementOf.class, Map.of("needle", needle, "haystack", haystack));
 	}
 
 	private Val elementOf(Val needle, Val haystack) {

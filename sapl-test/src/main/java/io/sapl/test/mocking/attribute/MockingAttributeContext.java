@@ -31,7 +31,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.Expression;
-import io.sapl.interpreter.ExplainedValue;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import io.sapl.test.SaplTestException;
@@ -107,8 +106,8 @@ public class MockingAttributeContext implements AttributeContext {
 	}
 
 	@Override
-	public Flux<Val>
-			evaluateAttribute(String attribute, Val value, Arguments arguments, Map<String, JsonNode> variables) {
+	public Flux<Val> evaluateAttribute(String attribute, Val value, Arguments arguments,
+			Map<String, JsonNode> variables) {
 		AttributeMock mock = this.registeredMocks.get(attribute);
 		if (mock != null) {
 			log.debug("| | | | |-- Evaluate mocked attribute \"{}\"", attribute);
@@ -129,8 +128,8 @@ public class MockingAttributeContext implements AttributeContext {
 	}
 
 	@Override
-	public Flux<Val>
-			evaluateEnvironmentAttribute(String attribute, Arguments arguments, Map<String, JsonNode> variables) {
+	public Flux<Val> evaluateEnvironmentAttribute(String attribute, Arguments arguments,
+			Map<String, JsonNode> variables) {
 		AttributeMock mock = this.registeredMocks.get(attribute);
 		if (mock != null) {
 			log.debug("| | | | |-- Evaluate mocked attribute \"{}\"", attribute);
@@ -179,9 +178,7 @@ public class MockingAttributeContext implements AttributeContext {
 		}
 	}
 
-	public void loadAttributeMockForParentValue(
-			String fullName,
-			AttributeParentValueMatcher parentValueMatcher,
+	public void loadAttributeMockForParentValue(String fullName, AttributeParentValueMatcher parentValueMatcher,
 			Val returns) {
 		checkImportName(fullName);
 
@@ -201,9 +198,7 @@ public class MockingAttributeContext implements AttributeContext {
 		}
 	}
 
-	public void loadAttributeMockForParentValueAndArguments(
-			String fullName,
-			AttributeParameters parameters,
+	public void loadAttributeMockForParentValueAndArguments(String fullName, AttributeParameters parameters,
 			Val returns) {
 		checkImportName(fullName);
 
@@ -289,18 +284,6 @@ public class MockingAttributeContext implements AttributeContext {
 	@Override
 	public Map<String, String> getDocumentedAttributeCodeTemplates() {
 		return Map.of();
-	}
-
-	@Override
-	public Flux<ExplainedValue> evaluateAttributeAndExplain(String attributeName, ExplainedValue value,
-			Arguments arguments, Map<String, JsonNode> variables) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public Flux<ExplainedValue> evaluateEnvironmentAttributeAndExplain(String attributeName, Arguments arguments,
-			Map<String, JsonNode> variables) {
-		throw new UnsupportedOperationException();
 	}
 
 }

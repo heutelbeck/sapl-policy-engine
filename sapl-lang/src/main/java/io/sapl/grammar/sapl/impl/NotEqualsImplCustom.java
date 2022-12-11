@@ -15,9 +15,12 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.OperatorUtil.operator;
+import static io.sapl.grammar.sapl.impl.util.OperatorUtil.operator;
+
+import java.util.Map;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.NotEquals;
 import reactor.core.publisher.Flux;
 
 /**
@@ -30,7 +33,11 @@ public class NotEqualsImplCustom extends NotEqualsImpl {
 
 	@Override
 	public Flux<Val> evaluate() {
-		return operator(this, Val::notEqual);
+		return operator(this, this::notEqual);
+	}
+
+	private Val notEqual(Val left, Val right) {
+		return Val.notEqual(left, right).withTrace(NotEquals.class, Map.of("left", left, "right", right));
 	}
 
 }

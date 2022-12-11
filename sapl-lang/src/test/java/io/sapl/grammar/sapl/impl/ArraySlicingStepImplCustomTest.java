@@ -24,12 +24,12 @@ class ArraySlicingStepImplCustomTest {
 
 	@Test
 	void slicingPropagatesErrors() {
-		expressionErrors("(1/0)[0:1]");
+		expressionErrors("(1/0)[0:1]","Division by zero");
 	}
 
 	@Test
 	void applySlicingToNoArray() {
-		expressionErrors("\"abc\"[0:1]");
+		expressionErrors("\"abc\"[0:1]", "Type mismatch. Expected an Array, but got: '\"abc\"'.");
 	}
 
 	@Test
@@ -119,7 +119,7 @@ class ArraySlicingStepImplCustomTest {
 	@Test
 	void applySlicingStepZeroErrors() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9][1:5:0]";
-		expressionErrors(expression);
+		expressionErrors(expression,"Step must not be zero.");
 	}
 
 	@Test
@@ -160,7 +160,7 @@ class ArraySlicingStepImplCustomTest {
 	@Test
 	void filterErrorOnZeroStep() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9] |- { @[: :0] : mock.nil }";
-		expressionErrors(expression);
+		expressionErrors(expression,"Step must not be zero.");
 	}
 
 	@Test

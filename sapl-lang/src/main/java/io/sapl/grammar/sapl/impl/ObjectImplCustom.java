@@ -16,10 +16,9 @@
 package io.sapl.grammar.sapl.impl;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.IntStream;
-
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Pair;
@@ -56,18 +55,25 @@ public class ObjectImplCustom extends ObjectImpl {
 
 		// handle the empty object
 		if (valueFluxes.isEmpty()) {
-			return Flux.just(Val.of(Val.JSON.objectNode()));
+			return Flux.just(Val.of(Val.JSON.objectNode()).withTrace(Object.class));
 		}
 
 		// the indices of the keys correspond to the indices of the values, because
 		// combineLatest() preserves the order of the given list of fluxes in the array
 		// of values passed to the combinator function
 		return Flux.combineLatest(valueFluxes, values -> {
-			final ObjectNode result = Val.JSON.objectNode();
+			var result       = Val.JSON.objectNode();
+			var tracedValues = new HashMap<String, Val>();
 			// omit undefined fields
-			IntStream.range(0, values.length)
-					.forEach(idx -> ((Val) values[idx]).ifDefined(val -> result.set(keys.get(idx), val)));
-			return Val.of(result);
+			IntStream.range(0, values.length).forEach(idx -> {
+				var key   = keys.get(idx);
+				var value = ((Val) values[idx]);
+				value.ifDefined(val -> {
+					result.set(key, val);
+				});
+				tracedValues.put(key, value);
+			});
+			return Val.of(result).withTrace(Object.class, tracedValues);
 		});
 	}
 

@@ -25,6 +25,7 @@ import io.sapl.grammar.sapl.Value;
 import reactor.test.StepVerifier;
 
 public class TestUtil {
+	private final static boolean DEBUG_TESTS = true;
 
 	public static BasicValue basicValueFrom(Value value) {
 		BasicValue basicValue = SaplFactory.eINSTANCE.createBasicValue();
@@ -33,6 +34,11 @@ public class TestUtil {
 	}
 
 	public static void expressionEvaluatesTo(String expression, String... expected) {
+		if (DEBUG_TESTS) {
+			System.out.println("Expression: " + expression);
+			for (var e : expected)
+				System.out.println("Expected  : " + e);
+		}
 		try {
 			var expectations = new Val[expected.length];
 			var i            = 0;
@@ -46,6 +52,11 @@ public class TestUtil {
 	}
 
 	public static void expressionEvaluatesTo(String expression, Val... expected) {
+		if (DEBUG_TESTS) {
+			System.out.println("Expression: " + expression);
+			for (var e : expected)
+				System.out.println("Expected  : " + e);
+		}
 		try {
 			expressionEvaluatesTo(ParserUtil.expression(expression), expected);
 		} catch (IOException e) {
@@ -54,6 +65,10 @@ public class TestUtil {
 	}
 
 	public static void expressionErrors(String expression) {
+		if (DEBUG_TESTS) {
+			System.out.println("Expression: " + expression);
+			System.out.println("Expected  : ERROR");
+		}
 		try {
 			expressionErrors(ParserUtil.expression(expression));
 		} catch (IOException e) {
@@ -61,14 +76,40 @@ public class TestUtil {
 		}
 	}
 
+	public static void expressionErrors(String expression, String errorMessage) {
+		if (DEBUG_TESTS) {
+			System.out.println("Expression: " + expression);
+			System.out.println("Expected  : ERROR["+errorMessage+"]");
+		}
+		try {
+			expressionErrors(ParserUtil.expression(expression), errorMessage);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	public static void expressionEvaluatesTo(Expression expression, Val... expected) {
-		StepVerifier.create(expression.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
+		StepVerifier.create(
+				expression.evaluate().doOnNext(TestUtil::logResult).contextWrite(MockUtil::setUpAuthorizationContext))
 				.expectNext(expected).verifyComplete();
 	}
 
 	public static void expressionErrors(Expression expression) {
-		StepVerifier.create(expression.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
+		StepVerifier
+				.create(expression.evaluate().doOnNext(TestUtil::logResult)
+						.contextWrite(MockUtil::setUpAuthorizationContext))
 				.expectNextMatches(Val::isError).verifyComplete();
 	}
 
+	public static void expressionErrors(Expression expression, String errorMessage) {
+		StepVerifier
+				.create(expression.evaluate().doOnNext(TestUtil::logResult)
+						.contextWrite(MockUtil::setUpAuthorizationContext))
+				.expectNextMatches(val -> val.isError() && val.getMessage().equals(errorMessage)).verifyComplete();
+	}
+
+	private static void logResult(Val result) {
+		if (DEBUG_TESTS)
+			System.out.println("Actual    : " + result.evaluationTree("", "            "));
+	}
 }
