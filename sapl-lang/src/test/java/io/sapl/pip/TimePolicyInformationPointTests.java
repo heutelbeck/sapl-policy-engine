@@ -214,7 +214,7 @@ public class TimePolicyInformationPointTests {
 		when(clock.instant()).thenReturn(startingTime);
 		var sut = new TimePolicyInformationPoint(clock);
 		// @formatter:off
-		StepVerifier.withVirtualTime(() -> sut.localTimeIsBetween(start, end).log())
+		StepVerifier.withVirtualTime(() -> sut.localTimeIsBetween(start, end))
 			.expectNext(Val.TRUE)
 			.thenAwait(Duration.ofHours(1L)).expectNext(Val.FALSE)
 			.thenAwait(Duration.ofHours(22L)).expectNext(Val.TRUE)
@@ -235,7 +235,7 @@ public class TimePolicyInformationPointTests {
 		when(clock.instant()).thenReturn(startingTime);
 		var sut = new TimePolicyInformationPoint(clock);
 		// @formatter:off
-		StepVerifier.withVirtualTime(() -> sut.localTimeIsBetween(start, end).log())
+		StepVerifier.withVirtualTime(() -> sut.localTimeIsBetween(start, end))
 			.expectNext(Val.FALSE)
 			.thenAwait(Duration.ofHours(20L)).expectNext(Val.TRUE)
 			.thenAwait(Duration.ofHours(2L)).expectNext(Val.FALSE)

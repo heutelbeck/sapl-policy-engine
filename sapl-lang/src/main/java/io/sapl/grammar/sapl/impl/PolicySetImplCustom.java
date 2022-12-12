@@ -18,6 +18,8 @@ package io.sapl.grammar.sapl.impl;
 import java.util.HashSet;
 
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.interpreter.PolicySetDecision;
+import io.sapl.interpreter.SAPLDecision;
 import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -32,18 +34,18 @@ public class PolicySetImplCustom extends PolicySetImpl {
 	 * @return A {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
 	@Override
-	public Flux<AuthorizationDecision> evaluate() {
+	public Flux<SAPLDecision> evaluate() {
 		if (!policyNamesAreUnique()) {
-			log.debug("  |- INDETERMINATE (Set) '{}'. (Policy names not unique)", saplName);
-			return Flux.just(AuthorizationDecision.INDETERMINATE);
+			return Flux.just(PolicySetDecision.error(saplName,
+					"Inconsisten policy set. Names of policies in set are not unique."));
 		}
 		return evaluatePolicySet(0)
 				.doOnError(e -> log.debug(
 						"| |- Error in the policy set evaluation. Policy set evaluated INDETERMINATE.: {}",
 						e.getMessage()))
-				.onErrorReturn(AuthorizationDecision.INDETERMINATE)
-				.doOnNext(authzDecision -> log.debug("  |- {} (Set) '{}' {}", authzDecision.getDecision(), saplName,
-						authzDecision));
+				.onErrorReturn(AuthorizationDecision.INDETERMINATE).doOnNext(authzDecision -> log
+						.debug("  |- {} (Set) '{}' {}", authzDecision.getDecision(), saplName, authzDecision))
+				.map(decision -> PolicySetDecision.of(saplName, decision));
 	}
 
 	private boolean policyNamesAreUnique() {
@@ -55,8 +57,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
 		return true;
 	}
 
-	private Flux<AuthorizationDecision> evaluatePolicySet(
-			int valueDefinitionId) {
+	private Flux<AuthorizationDecision> evaluatePolicySet(int valueDefinitionId) {
 		if (valueDefinitions == null || valueDefinitionId == valueDefinitions.size())
 			return evaluateAndCombinePoliciesOfSet();
 

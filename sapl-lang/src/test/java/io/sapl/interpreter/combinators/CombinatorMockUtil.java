@@ -20,8 +20,10 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.AuthorizationDecisionEvaluable;
+import io.sapl.interpreter.PolicyDecision;
 import io.sapl.prp.PolicyRetrievalResult;
 import reactor.core.publisher.Flux;
 
@@ -36,9 +38,12 @@ class CombinatorMockUtil {
 		return new PolicyRetrievalResult(documents, errorsInTarget, true);
 	}
 
-	public static AuthorizationDecisionEvaluable mockDocumentEvaluatingTo(AuthorizationDecision authzDecison) {
+	public static AuthorizationDecisionEvaluable mockDocumentEvaluatingTo(AuthorizationDecision authzDecision) {
 		var document = mock(AuthorizationDecisionEvaluable.class);
-		when(document.evaluate()).thenReturn(Flux.just(authzDecison));
+		when(document.evaluate()).thenReturn(Flux
+				.just(PolicyDecision
+						.of("mockDocument", authzDecision.getDecision(), Val.TRUE.withTrace(CombinatorMockUtil.class))
+						.withDecision(authzDecision)));
 		return document;
 	}
 

@@ -15,6 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import static io.sapl.grammar.sapl.impl.util.TestUtil.hasDecision;
+
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
@@ -50,16 +52,17 @@ class SAPLImplCustomTest {
 	void detectErrorInImportsDuringEvaluate() {
 		var policy   = INTERPRETER.parse("import filter.blacken import filter.blacken policy \"policy\" permit true");
 		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
-				.verifyComplete();
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
+				.expectNextMatches(hasDecision(expected)).verifyComplete();
 	}
 
 	@Test
 	void importsWorkCorrectlyBasicFunction() {
 		var policy          = INTERPRETER.parse("import filter.blacken policy \"policy\" permit true");
 		var expectedImports = Map.of("blacken", "filter.blacken");
-		policy.evaluate().flatMap(val -> Mono.deferContextual(
-				ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
+		policy.evaluate()
+				.flatMap(val -> Mono.deferContextual(
+						ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
 				.contextWrite(MockUtil::setUpAuthorizationContext).blockFirst();
 	}
 
@@ -68,8 +71,9 @@ class SAPLImplCustomTest {
 		var policy          = INTERPRETER.parse("import filter.* policy \"policy\" permit true");
 		var expectedImports = Map.of("blacken", "filter.blacken", "replace", "filter.replace", "remove",
 				"filter.remove");
-		policy.evaluate().flatMap(val -> Mono.deferContextual(
-				ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
+		policy.evaluate()
+				.flatMap(val -> Mono.deferContextual(
+						ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
 				.contextWrite(MockUtil::setUpAuthorizationContext).blockFirst();
 	}
 
@@ -78,8 +82,9 @@ class SAPLImplCustomTest {
 		var policy          = INTERPRETER.parse("import filter as fil policy \"policy\" permit true");
 		var expectedImports = Map.of("fil.blacken", "filter.blacken", "fil.replace", "filter.replace", "fil.remove",
 				"filter.remove");
-		policy.evaluate().flatMap(val -> Mono.deferContextual(
-				ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
+		policy.evaluate()
+				.flatMap(val -> Mono.deferContextual(
+						ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
 				.contextWrite(MockUtil::setUpAuthorizationContext).blockFirst();
 	}
 
@@ -87,8 +92,9 @@ class SAPLImplCustomTest {
 	void importsWorkCorrectlyBasicAttribute() {
 		var policy          = INTERPRETER.parse("import test.numbers policy \"policy\" permit true");
 		var expectedImports = Map.of("numbers", "test.numbers");
-		policy.evaluate().flatMap(val -> Mono.deferContextual(
-				ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
+		policy.evaluate()
+				.flatMap(val -> Mono.deferContextual(
+						ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
 				.contextWrite(MockUtil::setUpAuthorizationContext).blockFirst();
 	}
 
@@ -97,8 +103,9 @@ class SAPLImplCustomTest {
 		var policy          = INTERPRETER.parse("import test.* policy \"policy\" permit true");
 		var expectedImports = Map.of("numbers", "test.numbers", "numbersWithError", "test.numbersWithError", "nilflux",
 				"test.nilflux");
-		policy.evaluate().flatMap(val -> Mono.deferContextual(
-				ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
+		policy.evaluate()
+				.flatMap(val -> Mono.deferContextual(
+						ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
 				.contextWrite(MockUtil::setUpAuthorizationContext).blockFirst();
 	}
 
@@ -107,8 +114,9 @@ class SAPLImplCustomTest {
 		var policy          = INTERPRETER.parse("import test as t policy \"policy\" permit true");
 		var expectedImports = Map.of("t.numbers", "test.numbers", "t.numbersWithError", "test.numbersWithError",
 				"t.nilflux", "test.nilflux");
-		policy.evaluate().flatMap(val -> Mono.deferContextual(
-				ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
+		policy.evaluate()
+				.flatMap(val -> Mono.deferContextual(
+						ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
 				.contextWrite(MockUtil::setUpAuthorizationContext).blockFirst();
 	}
 
@@ -116,32 +124,32 @@ class SAPLImplCustomTest {
 	void importNonExistingFails() {
 		var policy   = INTERPRETER.parse("import test.nonExisting policy \"policy\" permit true");
 		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
-				.verifyComplete();
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
+				.expectNextMatches(hasDecision(expected)).verifyComplete();
 	}
 
 	@Test
 	void doubleImportWildcardFails() {
 		var policy   = INTERPRETER.parse("import test.* import test.* policy \"policy\" permit true");
 		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
-				.verifyComplete();
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
+				.expectNextMatches(hasDecision(expected)).verifyComplete();
 	}
 
 	@Test
 	void doubleImportLibraryFails() {
 		var policy   = INTERPRETER.parse("import test as t import test as t policy \"policy\" permit true");
 		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
-				.verifyComplete();
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
+				.expectNextMatches(hasDecision(expected)).verifyComplete();
 	}
 
 	@Test
 	void policyBodyEvaluationDoesNotCheckTargetAgain() {
 		var policy   = INTERPRETER.parse("policy \"policy\" permit (10/0)");
 		var expected = AuthorizationDecision.PERMIT;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
-				.verifyComplete();
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
+				.expectNextMatches(hasDecision(expected)).verifyComplete();
 	}
 
 }

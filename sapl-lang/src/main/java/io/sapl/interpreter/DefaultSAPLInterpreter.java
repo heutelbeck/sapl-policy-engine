@@ -113,7 +113,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			if (match.isError())
 				return Flux.just(AuthorizationDecision.INDETERMINATE);
 			if (match.getBoolean()) {
-				return saplDocument.evaluate();
+				return saplDocument.evaluate().map(SAPLDecision::getDecision);
 			}
 			return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
 		};

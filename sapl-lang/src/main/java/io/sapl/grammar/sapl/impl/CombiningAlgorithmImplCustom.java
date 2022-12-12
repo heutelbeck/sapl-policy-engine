@@ -22,6 +22,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.AuthorizationDecisionEvaluable;
 import io.sapl.grammar.sapl.Policy;
+import io.sapl.interpreter.SAPLDecision;
 import io.sapl.prp.PolicyRetrievalResult;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -37,7 +38,7 @@ public class CombiningAlgorithmImplCustom extends CombiningAlgorithmImpl {
 		var authzDecisionFluxes   = new ArrayList<Flux<AuthorizationDecision>>(matchingSaplDocuments.size());
 		for (AuthorizationDecisionEvaluable document : matchingSaplDocuments) {
 			log.debug("  |- Evaluate: {} ", document);
-			authzDecisionFluxes.add(document.evaluate());
+			authzDecisionFluxes.add(document.evaluate().map(SAPLDecision::getDecision));
 		}
 		if (matchingSaplDocuments.isEmpty()) {
 			return Flux.just(combineDecisions(new AuthorizationDecision[0], policyRetrievalResult.isErrorsInTarget()));

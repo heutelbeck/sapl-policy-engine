@@ -24,6 +24,7 @@ import org.reactivestreams.Publisher;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.Policy;
+import io.sapl.interpreter.SAPLDecision;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
@@ -88,7 +89,7 @@ public class FirstApplicableCombiningAlgorithmImplCustom extends FirstApplicable
 				return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
 			}
 
-			return policy.evaluate().doOnNext(
+			return policy.evaluate().map(SAPLDecision::getDecision).doOnNext(
 					decision -> log.debug("  |- {} '{}' {}", decision.getDecision(), policy.getSaplName(), decision));
 		});
 	}

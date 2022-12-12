@@ -16,16 +16,23 @@
 package io.sapl.grammar.sapl.impl.util;
 
 import java.io.IOException;
+import java.util.function.Predicate;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.BasicValue;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.Value;
+import io.sapl.interpreter.SAPLDecision;
 import reactor.test.StepVerifier;
 
 public class TestUtil {
 	private final static boolean DEBUG_TESTS = true;
+
+	public static Predicate<SAPLDecision> hasDecision(AuthorizationDecision decision) {
+		return saplDecision -> decision.equals(saplDecision.getDecision());
+	}
 
 	public static BasicValue basicValueFrom(Value value) {
 		BasicValue basicValue = SaplFactory.eINSTANCE.createBasicValue();

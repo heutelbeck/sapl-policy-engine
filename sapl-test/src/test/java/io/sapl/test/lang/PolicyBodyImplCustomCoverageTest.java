@@ -26,6 +26,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.interpreter.SAPLDecision;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
@@ -50,13 +51,12 @@ public class PolicyBodyImplCustomCoverageTest {
 	void trueReturnsEntitlement() {
 		var policy   = INTERPRETER.parse("policy \"p\" permit true where true; true; true;");
 		var expected = AuthorizationDecision.PERMIT;
-		StepVerifier.create(policy.evaluate()
-				.contextWrite(ctx -> {
-					ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
-					ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
-					ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
-					return ctx;
-				})).expectNext(expected).verifyComplete();
+		StepVerifier.create(policy.evaluate().map(SAPLDecision::getDecision).contextWrite(ctx -> {
+			ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+			ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+			ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
+			return ctx;
+		})).expectNext(expected).verifyComplete();
 
 		ArgumentCaptor<PolicyConditionHit> captor = ArgumentCaptor.forClass(PolicyConditionHit.class);
 		Mockito.verify(this.recorder, Mockito.times(3)).recordPolicyConditionHit(captor.capture());
@@ -69,13 +69,12 @@ public class PolicyBodyImplCustomCoverageTest {
 	void trueReturnsEntitlementInSet() {
 		var policy   = INTERPRETER.parse("set \"set\" deny-overrides policy \"p\" permit true where true; true; true;");
 		var expected = AuthorizationDecision.PERMIT;
-		StepVerifier.create(policy.evaluate()
-				.contextWrite(ctx -> {
-					ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
-					ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
-					ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
-					return ctx;
-				})).expectNext(expected).verifyComplete();
+		StepVerifier.create(policy.evaluate().map(SAPLDecision::getDecision).contextWrite(ctx -> {
+			ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+			ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+			ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
+			return ctx;
+		})).expectNext(expected).verifyComplete();
 
 		ArgumentCaptor<PolicyConditionHit> captor = ArgumentCaptor.forClass(PolicyConditionHit.class);
 		Mockito.verify(this.recorder, Mockito.times(3)).recordPolicyConditionHit(captor.capture());
@@ -89,13 +88,12 @@ public class PolicyBodyImplCustomCoverageTest {
 		var policy   = INTERPRETER.parse(
 				"set \"set\" deny-overrides policy \"p\" permit true where true == subject.<pip.attr>; true; true;");
 		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate()
-				.contextWrite(ctx -> {
-					ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
-					ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
-					ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
-					return ctx;
-				})).expectNext(expected).verifyComplete();
+		StepVerifier.create(policy.evaluate().map(SAPLDecision::getDecision).contextWrite(ctx -> {
+			ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+			ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+			ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
+			return ctx;
+		})).expectNext(expected).verifyComplete();
 		Mockito.verify(this.recorder, Mockito.never()).recordPolicyConditionHit(any());
 	}
 
