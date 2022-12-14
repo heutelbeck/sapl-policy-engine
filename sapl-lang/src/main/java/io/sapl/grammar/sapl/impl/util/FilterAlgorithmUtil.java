@@ -48,11 +48,9 @@ public class FilterAlgorithmUtil {
 					.just(unfilteredValue.withTrace(ConditionStep.class, Map.of("unfilteredValue", unfilteredValue)));
 		}
 		var array = unfilteredValue.getArrayNode();
-		// handle the empty object
 		if (array.isEmpty()) {
 			return Flux.just(unfilteredValue.withTrace(operationType, Map.of("unfilteredValue", unfilteredValue)));
 		}
-		// collect the fluxes providing the evaluated conditions for the array elements
 		var elementFluxes = new ArrayList<Flux<Val>>(array.size());
 		var iter          = array.elements();
 		var elementCount  = 0;
@@ -76,12 +74,10 @@ public class FilterAlgorithmUtil {
 					.just(unfilteredValue.withTrace(ConditionStep.class, Map.of("unfilteredValue", unfilteredValue)));
 		}
 		var object = unfilteredValue.getObjectNode();
-		// handle the empty object
 		if (object.isEmpty()) {
 			return Flux
 					.just(unfilteredValue.withTrace(ConditionStep.class, Map.of("unfilteredValue", unfilteredValue)));
 		}
-		// collect the fluxes providing the evaluated conditions for the array elements
 		var fieldFluxes = new ArrayList<Flux<Tuple2<String, Val>>>(object.size());
 		var iter        = object.fields();
 		while (iter.hasNext()) {

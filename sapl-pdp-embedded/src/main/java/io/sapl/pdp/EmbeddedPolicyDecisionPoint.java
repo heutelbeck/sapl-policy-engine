@@ -18,6 +18,7 @@ package io.sapl.pdp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.reactivestreams.Publisher;
 
@@ -29,6 +30,9 @@ import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.grammar.sapl.PolicyElement;
+import io.sapl.grammar.sapl.SAPL;
+import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
@@ -59,6 +63,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		return pdpConfiguration -> {
 			if (pdpConfiguration.isValid()) {
 				return retrieveAndCombineDocuments(pdpConfiguration.getDocumentsCombinator())
+						.map(CombinedDecision::getAuthorizationDecision)
 						.contextWrite(buildSubscriptionScopedContext(pdpConfiguration, authzSubscription));
 			} else {
 				return Flux.just(AuthorizationDecision.INDETERMINATE);
@@ -66,8 +71,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		};
 	}
 
-	private Function<Context, Context> buildSubscriptionScopedContext(
-			PDPConfiguration pdpConfiguration,
+	private Function<Context, Context> buildSubscriptionScopedContext(PDPConfiguration pdpConfiguration,
 			AuthorizationSubscription authzSubscription) {
 		return ctx -> {
 			ctx = AuthorizationContext.setAttributeContext(ctx, pdpConfiguration.getAttributeContext());
@@ -78,17 +82,20 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		};
 	}
 
-	private Flux<AuthorizationDecision> retrieveAndCombineDocuments(CombiningAlgorithm documentsCombinator) {
+	private Flux<CombinedDecision> retrieveAndCombineDocuments(CombiningAlgorithm documentsCombinator) {
 		return policyRetrievalPoint.retrievePolicies().switchMap(combineDocuments(documentsCombinator));
 	}
 
-	private Function<? super PolicyRetrievalResult, Publisher<? extends AuthorizationDecision>> combineDocuments(
+	private Function<? super PolicyRetrievalResult, Publisher<? extends CombinedDecision>> combineDocuments(
 			CombiningAlgorithm documentsCombinator) {
 		return policyRetrievalResult -> {
-			if (policyRetrievalResult.isPrpValidState())
-				return documentsCombinator.combineMatchingDocuments(policyRetrievalResult);
+			if (!policyRetrievalResult.isPrpValidState() || policyRetrievalResult.isErrorsInTarget())
+				return Flux.just(
+						CombinedDecision.of(AuthorizationDecision.INDETERMINATE, "PRP Detected Error in Targets"));
+			var policyElements = policyRetrievalResult.getMatchingDocuments().stream().map(SAPL::getPolicyElement)
+					.collect(Collectors.<PolicyElement>toList());
+			return documentsCombinator.combinePolicies(policyElements);
 
-			return Flux.just(AuthorizationDecision.INDETERMINATE);
 		};
 	}
 

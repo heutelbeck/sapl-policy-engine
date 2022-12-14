@@ -85,11 +85,8 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 	}
 
 	@Override
-	public Flux<AuthorizationDecision> evaluate(
-			AuthorizationSubscription authzSubscription,
-			String saplDocumentSource,
-			AttributeContext attributeContext,
-			FunctionContext functionContext,
+	public Flux<AuthorizationDecision> evaluate(AuthorizationSubscription authzSubscription, String saplDocumentSource,
+			AttributeContext attributeContext, FunctionContext functionContext,
 			Map<String, JsonNode> environmentrVariables) {
 		final SAPL saplDocument;
 		try {
@@ -98,8 +95,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			log.error("Error in policy parsing: {}", e.getMessage());
 			return Flux.just(AuthorizationDecision.INDETERMINATE);
 		}
-		return saplDocument.matches().flux()
-				.switchMap(evaluateBodyIfMatching(saplDocument))
+		return saplDocument.matches().flux().switchMap(evaluateBodyIfMatching(saplDocument))
 				.contextWrite(ctx -> AuthorizationContext.setVariables(ctx, environmentrVariables))
 				.contextWrite(ctx -> AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription))
 				.contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx, attributeContext))
@@ -113,7 +109,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			if (match.isError())
 				return Flux.just(AuthorizationDecision.INDETERMINATE);
 			if (match.getBoolean()) {
-				return saplDocument.evaluate().map(SAPLDecision::getDecision);
+				return saplDocument.evaluate().map(DocumentEvaluationResult::getAuthorizationDecision);
 			}
 			return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
 		};

@@ -25,7 +25,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.grammar.sapl.SAPL;
-import io.sapl.interpreter.SAPLDecision;
+import io.sapl.interpreter.DocumentEvaluationResult;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
@@ -92,11 +92,13 @@ class StepBuilder {
 			Val matchResult = this.document.matches().contextWrite(setUpContext(authzSub)).block();
 			if (matchResult != null && matchResult.isBoolean() && matchResult.getBoolean()) {
 				if (this.withVirtualTime) {
-					this.steps = StepVerifier.withVirtualTime(() -> this.document.evaluate()
-							.map(SAPLDecision::getDecision).contextWrite(setUpContext(authzSub)));
+					this.steps = StepVerifier.withVirtualTime(
+							() -> this.document.evaluate().map(DocumentEvaluationResult::getAuthorizationDecision)
+									.contextWrite(setUpContext(authzSub)));
 				} else {
-					this.steps = StepVerifier.create(this.document.evaluate().map(SAPLDecision::getDecision)
-							.contextWrite(setUpContext(authzSub)));
+					this.steps = StepVerifier
+							.create(this.document.evaluate().map(DocumentEvaluationResult::getAuthorizationDecision)
+									.contextWrite(setUpContext(authzSub)));
 				}
 
 				for (AttributeMockReturnValues mock : this.mockedAttributeValues) {

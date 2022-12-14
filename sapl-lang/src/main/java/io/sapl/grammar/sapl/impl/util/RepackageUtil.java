@@ -15,8 +15,6 @@
  */
 package io.sapl.grammar.sapl.impl.util;
 
-import java.util.List;
-
 import io.sapl.api.interpreter.Trace.ExpressionArgument;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Array;
@@ -25,26 +23,6 @@ import reactor.util.function.Tuple2;
 
 @UtilityClass
 public class RepackageUtil {
-
-	public Val recombineObject(List<Tuple2<String, Val>> oElements) {
-		var object         = Val.JSON.objectNode();
-		var tracedElements = new ExpressionArgument[oElements.size()];
-		var elementCount   = 0;
-		Val error          = null;
-		for (var element : oElements) {
-			var key   = element.getT1();
-			var value = element.getT2();
-			tracedElements[elementCount++] = new ExpressionArgument(key, value);
-			if (value.isError() && error == null) {
-				error = value;
-			} else if (value.isDefined()) { // drop undefined
-				object.set(element.getT1(), element.getT2().get());
-			}
-		}
-		if (error != null)
-			return error.withTrace(Object.class, tracedElements);
-		return Val.of(object).withTrace(Object.class, tracedElements);
-	}
 
 	public Val recombineObject(Object[] oElements) {
 		var object         = Val.JSON.objectNode();
@@ -75,28 +53,6 @@ public class RepackageUtil {
 		Val error          = null;
 		for (var elem : oElements) {
 			var element = (Val) elem;
-			tracedElements[elementCount] = new ExpressionArgument("array[" + elementCount + "]", element);
-			elementCount++;
-			if (element.isError() && error == null) {
-				error = element;
-			}
-			// drop undefined
-			if (element.isDefined()) {
-				array.add(element.get());
-			}
-		}
-		if (error != null)
-			return error.withTrace(Array.class, tracedElements);
-		return Val.of(array).withTrace(Array.class, tracedElements);
-	}
-
-	public Val recombineArray(List<Val> oElements) {
-		var array          = Val.JSON.arrayNode();
-		var tracedElements = new ExpressionArgument[oElements.size()];
-		var elementCount   = 0;
-		Val error          = null;
-		for (var elem : oElements) {
-			var element = elem;
 			tracedElements[elementCount] = new ExpressionArgument("array[" + elementCount + "]", element);
 			elementCount++;
 			if (element.isError() && error == null) {

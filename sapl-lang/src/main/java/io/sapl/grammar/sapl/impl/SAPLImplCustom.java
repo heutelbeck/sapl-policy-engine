@@ -22,12 +22,9 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Import;
 import io.sapl.grammar.sapl.LibraryImport;
-import io.sapl.grammar.sapl.Policy;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.grammar.sapl.WildcardImport;
-import io.sapl.interpreter.PolicyDecision;
-import io.sapl.interpreter.PolicySetDecision;
-import io.sapl.interpreter.SAPLDecision;
+import io.sapl.interpreter.DocumentEvaluationResult;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
@@ -53,15 +50,12 @@ public class SAPLImplCustom extends SAPLImpl {
 	}
 
 	@Override
-	public Flux<SAPLDecision> evaluate() {
+	public Flux<DocumentEvaluationResult> evaluate() {
 		return policyElement.evaluate().contextWrite(this::loadImportsIntoContext).onErrorResume(this::importFailure);
 	}
 
-	private Flux<SAPLDecision> importFailure(Throwable error) {
-		if (policyElement instanceof Policy)
-			return Flux.just(PolicyDecision.error(policyElement.getSaplName(), error.getMessage()));
-
-		return Flux.just(PolicySetDecision.error(policyElement.getSaplName(), error.getMessage()));
+	private Flux<DocumentEvaluationResult> importFailure(Throwable error) {
+		return Flux.just(policyElement.importError(error.getMessage()));
 	}
 
 	protected Context loadImportsIntoContext(Context ctx) {

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" name="sapl" nsURI="http://sapl.io/sapl/SAPL" nsPrefix="sapl">
-  <eClassifiers xsi:type="ecore:EClass" name="SAPL" eSuperTypes="#//Matchable #//AuthorizationDecisionEvaluable">
+  <eClassifiers xsi:type="ecore:EClass" name="SAPL" eSuperTypes="#//Matchable #//EvaluableDocument">
     <eStructuralFeatures xsi:type="ecore:EReference" name="imports" upperBound="-1"
         eType="#//Import" containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="policyElement" eType="#//PolicyElement"
@@ -12,7 +12,7 @@
         upperBound="-1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="functionName" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
   </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="PolicyElement" eSuperTypes="#//Matchable #//AuthorizationDecisionEvaluable">
+  <eClassifiers xsi:type="ecore:EClass" name="PolicyElement" eSuperTypes="#//Matchable #//EvaluableDocument">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="saplName" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="targetExpression" eType="#//Expression"
         containment="true"/>
@@ -284,12 +284,23 @@
       </eAnnotations>
     </eOperations>
   </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="AuthorizationDecisionEvaluable" abstract="true"
-      interface="true">
-    <eOperations name="evaluate" lowerBound="1" eType="#//SAPLDecisionFlux">
+  <eClassifiers xsi:type="ecore:EClass" name="EvaluableDocument" abstract="true" interface="true">
+    <eOperations name="evaluate" lowerBound="1" eType="#//DocumentEvaluationResultFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
         <details key="documentation" value=""/>
       </eAnnotations>
+    </eOperations>
+    <eOperations name="targetResult" lowerBound="1" eType="#//DocumentEvaluationResult">
+      <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
+        <details key="documentation" value=""/>
+      </eAnnotations>
+      <eParameters name="targetValue" eType="#//Val"/>
+    </eOperations>
+    <eOperations name="importError" lowerBound="1" eType="#//DocumentEvaluationResult">
+      <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
+        <details key="documentation" value=""/>
+      </eAnnotations>
+      <eParameters name="errorMessage" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eOperations>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EDataType" name="JsonNode" instanceClassName="com.fasterxml.jackson.databind.JsonNode"/>
@@ -312,19 +323,13 @@
       serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="Decision" instanceClassName="io.sapl.api.pdp.Decision"/>
   <eClassifiers xsi:type="ecore:EDataType" name="ValMono" instanceTypeName="reactor.core.publisher.Mono&lt;io.sapl.api.interpreter.Val>"/>
-  <eClassifiers xsi:type="ecore:EDataType" name="PolicyList" instanceTypeName="java.util.List&lt;io.sapl.grammar.sapl.Policy>"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="PolicyElementList" instanceTypeName="java.util.List&lt;io.sapl.grammar.sapl.PolicyElement>"/>
   <eClassifiers xsi:type="ecore:EClass" name="CombiningAlgorithm" abstract="true">
-    <eOperations name="combinePolicies" lowerBound="1" eType="#//AuthorizationDecisionFlux">
+    <eOperations name="combinePolicies" lowerBound="1" eType="#//CombindeDecisionFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
         <details key="documentation" value="Method which evaluates multiple policies within a policy set against an authorization subscription object, combines the results and creates and returns a corresponding authorization decision object. The method is supposed to be used to determine an authorization decision for the SAPL documents known to the PDP. Imports are obtained from the SAPL document.&#xA;@param policies policies of the set currently matching the ongoing authorization subscription.&#xA;@return a {@link Flux} of {@link AuthorizationDecision} objects containing the combined decision, the combined obligation and advice and a transformed resource if applicable. A new authorization decision object is only pushed if it is different from the previous one."/>
       </eAnnotations>
-      <eParameters name="policies" eType="#//PolicyList"/>
-    </eOperations>
-    <eOperations name="combineMatchingDocuments" lowerBound="1" eType="#//AuthorizationDecisionFlux">
-      <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
-        <details key="documentation" value="Method which evaluates multiple SAPL documents (containing a policy set or a policy) against an authorization subscription object, combines the results and creates and returns a corresponding authorization decision object. The method is supposed to be used to determine an authorization decision for the SAPL documents known to the PDP. Imports are obtained from the SAPL document.&#xA;@param policyRetrievalResult The SAPL documents currently matching the ongoing authorization subscription.&#xA;@return a {@link Flux} of {@link AuthorizationDecision} objects containing the combined decision, the combined obligation and advice and a transformed resource if applicable. A new authorization decision object is only pushed if it is different from the previous one."/>
-      </eAnnotations>
-      <eParameters name="policyRetrievalResult" eType="#//PolicyRetrievalResult"/>
+      <eParameters name="policies" eType="#//PolicyElementList"/>
     </eOperations>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="DenyOverridesCombiningAlgorithm" eSuperTypes="#//CombiningAlgorithm"/>
@@ -337,6 +342,10 @@
   <eClassifiers xsi:type="ecore:EClass" name="PermitUnlessDenyCombiningAlgorithm"
       eSuperTypes="#//CombiningAlgorithm"/>
   <eClassifiers xsi:type="ecore:EDataType" name="PolicyRetrievalResult" instanceClassName="io.sapl.prp.PolicyRetrievalResult"/>
-  <eClassifiers xsi:type="ecore:EDataType" name="SAPLDecisionFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.interpreter.SAPLDecision>"
+  <eClassifiers xsi:type="ecore:EDataType" name="DocumentEvaluationResultFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.interpreter.DocumentEvaluationResult>"
+      serializable="false"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="CombindeDecisionFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.interpreter.CombinedDecision>"
+      serializable="false"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="DocumentEvaluationResult" instanceClassName="io.sapl.interpreter.DocumentEvaluationResult"
       serializable="false"/>
 </ecore:EPackage>

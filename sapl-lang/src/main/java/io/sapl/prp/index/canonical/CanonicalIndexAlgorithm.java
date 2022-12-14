@@ -18,6 +18,7 @@ package io.sapl.prp.index.canonical;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -182,9 +183,9 @@ public class CanonicalIndexAlgorithm {
 		return result;
 	}
 
-	private Set<SAPL> fetchPolicies(final Set<DisjunctiveFormula> formulas, CanonicalIndexDataContainer dataContainer) {
+	private List<SAPL> fetchPolicies(final Set<DisjunctiveFormula> formulas, CanonicalIndexDataContainer dataContainer) {
 		return formulas.parallelStream().map(dataContainer::getPoliciesIncludingFormula)
-				.flatMap(Collection::parallelStream).collect(Collectors.toSet());
+				.flatMap(Collection::parallelStream).distinct().collect(Collectors.toList());
 	}
 
 	Bitmask findUnsatisfiableCandidates(

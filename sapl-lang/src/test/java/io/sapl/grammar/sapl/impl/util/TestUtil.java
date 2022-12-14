@@ -24,14 +24,23 @@ import io.sapl.grammar.sapl.BasicValue;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.Value;
-import io.sapl.interpreter.SAPLDecision;
+import io.sapl.interpreter.DocumentEvaluationResult;
+import lombok.extern.slf4j.Slf4j;
 import reactor.test.StepVerifier;
 
+@Slf4j
 public class TestUtil {
 	private final static boolean DEBUG_TESTS = true;
 
-	public static Predicate<SAPLDecision> hasDecision(AuthorizationDecision decision) {
-		return saplDecision -> decision.equals(saplDecision.getDecision());
+	public static Predicate<DocumentEvaluationResult> hasDecision(AuthorizationDecision expected) {
+		return saplDecision -> {
+			if (DEBUG_TESTS) {
+				log.debug("Expected: {}", expected);
+				log.debug("Actual  : {}", saplDecision.getAuthorizationDecision());
+				log.debug("From    : {}", saplDecision);
+			}
+			return expected.equals(saplDecision.getAuthorizationDecision());
+		};
 	}
 
 	public static BasicValue basicValueFrom(Value value) {
@@ -42,9 +51,9 @@ public class TestUtil {
 
 	public static void expressionEvaluatesTo(String expression, String... expected) {
 		if (DEBUG_TESTS) {
-			System.out.println("Expression: " + expression);
+			log.debug("Expression: {}", expression);
 			for (var e : expected)
-				System.out.println("Expected  : " + e);
+				log.debug("Expected  : {}", e);
 		}
 		try {
 			var expectations = new Val[expected.length];
@@ -60,9 +69,9 @@ public class TestUtil {
 
 	public static void expressionEvaluatesTo(String expression, Val... expected) {
 		if (DEBUG_TESTS) {
-			System.out.println("Expression: " + expression);
+			log.debug("Expression: {}", expression);
 			for (var e : expected)
-				System.out.println("Expected  : " + e);
+				log.debug("Expected  : {}", e);
 		}
 		try {
 			expressionEvaluatesTo(ParserUtil.expression(expression), expected);
@@ -73,8 +82,8 @@ public class TestUtil {
 
 	public static void expressionErrors(String expression) {
 		if (DEBUG_TESTS) {
-			System.out.println("Expression: " + expression);
-			System.out.println("Expected  : ERROR");
+			log.debug("Expression: {}", expression);
+			log.debug("Expected  : ERROR");
 		}
 		try {
 			expressionErrors(ParserUtil.expression(expression));
@@ -85,8 +94,8 @@ public class TestUtil {
 
 	public static void expressionErrors(String expression, String errorMessage) {
 		if (DEBUG_TESTS) {
-			System.out.println("Expression: " + expression);
-			System.out.println("Expected  : ERROR["+errorMessage+"]");
+			log.debug("Expression: {}", expression);
+			log.debug("Expected  : ERROR[{}", errorMessage + "]");
 		}
 		try {
 			expressionErrors(ParserUtil.expression(expression), errorMessage);
@@ -117,6 +126,6 @@ public class TestUtil {
 
 	private static void logResult(Val result) {
 		if (DEBUG_TESTS)
-			System.out.println("Actual    : " + result.evaluationTree("", "            "));
+			log.debug("Actual    : {}", result.evaluationTree("", "            "));
 	}
 }

@@ -15,9 +15,9 @@
  */
 package io.sapl.interpreter.combinators;
 
-import static io.sapl.interpreter.combinators.CombinatorMockUtil.mockPolicyRetrievalResult;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -32,7 +32,9 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
+import io.sapl.grammar.sapl.SAPL;
 import io.sapl.grammar.sapl.impl.OnlyOneApplicableCombiningAlgorithmImplCustom;
+import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
@@ -67,28 +69,28 @@ class OnlyOneApplicableTest {
 
 	@Test
 	void combineDocumentsOneDeny() {
-		var given    = mockPolicyRetrievalResult(false, AuthorizationDecision.DENY);
+		var given    = mockPolicyRetrievalResult(false, denyPolicy(""));
 		var expected = AuthorizationDecision.DENY;
 		verifyDocumentsCombinator(given, expected);
 	}
 
 	@Test
 	void combineDocumentsOnePermit() {
-		var given    = mockPolicyRetrievalResult(false, AuthorizationDecision.PERMIT);
+		var given    = mockPolicyRetrievalResult(false, permitPolicy(""));
 		var expected = AuthorizationDecision.PERMIT;
 		verifyDocumentsCombinator(given, expected);
 	}
 
 	@Test
 	void combineDocumentsOneIndeterminate() {
-		var given    = mockPolicyRetrievalResult(false, AuthorizationDecision.INDETERMINATE);
+		var given    = mockPolicyRetrievalResult(false, indeterminatePolicy(""));
 		var expected = AuthorizationDecision.INDETERMINATE;
 		verifyDocumentsCombinator(given, expected);
 	}
 
 	@Test
 	void combineDocumentsOneNotApplicable() {
-		var given    = mockPolicyRetrievalResult(false, AuthorizationDecision.NOT_APPLICABLE);
+		var given    = mockPolicyRetrievalResult(false, notApplicablePolicy(""));
 		var expected = AuthorizationDecision.NOT_APPLICABLE;
 		verifyDocumentsCombinator(given, expected);
 	}
@@ -101,33 +103,47 @@ class OnlyOneApplicableTest {
 	}
 
 	@Test
-	void combineDocumentsNoDocsButError() {
-		var given    = mockPolicyRetrievalResult(true);
-		var expected = AuthorizationDecision.INDETERMINATE;
-		verifyDocumentsCombinator(given, expected);
-	}
-
-	@Test
 	void combineDocumentsMoreDocsWithError() {
-		var given    = mockPolicyRetrievalResult(true, AuthorizationDecision.DENY, AuthorizationDecision.NOT_APPLICABLE,
-				AuthorizationDecision.PERMIT);
+		var given    = mockPolicyRetrievalResult(true, denyPolicy(""), notApplicablePolicy(""), permitPolicy(""));
 		var expected = AuthorizationDecision.INDETERMINATE;
 		verifyDocumentsCombinator(given, expected);
 	}
 
 	@Test
 	void combineDocumentsMoreDocs() {
-		var given    = mockPolicyRetrievalResult(false, AuthorizationDecision.DENY,
-				AuthorizationDecision.NOT_APPLICABLE,
-				AuthorizationDecision.PERMIT);
+		var given    = mockPolicyRetrievalResult(false, denyPolicy(""), notApplicablePolicy(""), permitPolicy(""));
 		var expected = AuthorizationDecision.INDETERMINATE;
 		verifyDocumentsCombinator(given, expected);
 	}
 
+	private String denyPolicy(String nameSuffix) {
+		return "policy \"denies" + nameSuffix + "\" deny";
+	}
+
+	private String permitPolicy(String nameSuffix) {
+		return "policy \"permits" + nameSuffix + "\" permit";
+	}
+
+	private String indeterminatePolicy(String nameSuffix) {
+		return "policy \"indeterminate" + nameSuffix + "\" permit where (10/0);";
+	}
+
+	private String notApplicablePolicy(String nameSuffix) {
+		return "policy \"notApplicable" + nameSuffix + "\" permit where false;";
+	}
+
+	private PolicyRetrievalResult mockPolicyRetrievalResult(boolean errorsInTarget, String... policies) {
+		var documents = new ArrayList<SAPL>(policies.length);
+		for (var policy : policies) {
+			documents.add(INTERPRETER.parse(policy));
+		}
+		return new PolicyRetrievalResult(documents, errorsInTarget, true);
+	}
+
 	private void verifyDocumentsCombinator(PolicyRetrievalResult given, AuthorizationDecision expected) {
-		StepVerifier.create(combinator.combineMatchingDocuments(given))
-				.expectNext(expected)
-				.verifyComplete();
+		StepVerifier.create(
+				combinator.combinePolicies(given.getPolicyElements()).map(CombinedDecision::getAuthorizationDecision))
+				.expectNext(expected).verifyComplete();
 	}
 
 	@Test
@@ -249,7 +265,7 @@ class OnlyOneApplicableTest {
 		String policySet = "set \"tests\" only-one-applicable" + " policy \"testp1\" permit"
 				+ " policy \"testp2\" deny where false;";
 
-		assertEquals(Decision.INDETERMINATE,
+		assertEquals(Decision.PERMIT,
 				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
 						.blockFirst().getDecision());
 	}
@@ -286,8 +302,7 @@ class OnlyOneApplicableTest {
 		assertEquals(Optional.of(obligation),
 				INTERPRETER
 						.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, VARIABLES)
-						.blockFirst()
-						.getObligations());
+						.blockFirst().getObligations());
 	}
 
 	@Test
@@ -301,9 +316,10 @@ class OnlyOneApplicableTest {
 		ArrayNode advice = JSON.arrayNode();
 		advice.add(JSON.textNode("advice1"));
 
-		assertEquals(Optional.of(advice), INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, VARIABLES)
-				.blockFirst().getAdvice());
+		assertEquals(Optional.of(advice),
+				INTERPRETER
+						.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, VARIABLES)
+						.blockFirst().getAdvice());
 	}
 
 	@Test
@@ -320,8 +336,7 @@ class OnlyOneApplicableTest {
 		assertEquals(Optional.of(obligation),
 				INTERPRETER
 						.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, VARIABLES)
-						.blockFirst()
-						.getObligations());
+						.blockFirst().getObligations());
 	}
 
 	@Test
@@ -335,9 +350,10 @@ class OnlyOneApplicableTest {
 		ArrayNode advice = JSON.arrayNode();
 		advice.add(JSON.textNode("advice1"));
 
-		assertEquals(Optional.of(advice), INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, VARIABLES)
-				.blockFirst().getAdvice());
+		assertEquals(Optional.of(advice),
+				INTERPRETER
+						.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, VARIABLES)
+						.blockFirst().getAdvice());
 	}
 
 }

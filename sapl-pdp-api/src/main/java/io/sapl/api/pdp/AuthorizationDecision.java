@@ -23,6 +23,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
@@ -60,6 +61,8 @@ public class AuthorizationDecision {
 	 * A simple NOT_APPLICABLE decision.
 	 */
 	public static final AuthorizationDecision NOT_APPLICABLE = new AuthorizationDecision(Decision.NOT_APPLICABLE);
+
+	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	@NotNull
 	Decision decision = Decision.INDETERMINATE;
@@ -103,6 +106,38 @@ public class AuthorizationDecision {
 		return new AuthorizationDecision(decision, resource, obligations,
 				newAdvice.isEmpty() ? Optional.empty() : Optional.of(newAdvice));
 	}
+
+//	/**
+//	 * @param newAdvice a JsonNode containing advice.
+//	 * @return new immutable decision object, replacing the advice of the original
+//	 *         object with newAdvice. If the array is empty, no advice will be
+//	 *         present, not even an empty array.
+//	 */
+//	public AuthorizationDecision withAdvice(@NonNull JsonNode newAdvice) {
+//		var currentAdviceArray = advice.orElseGet(() -> JSON.arrayNode());
+//		var newAdviceArray     = JSON.arrayNode(currentAdviceArray.size() + 1);
+//		newAdviceArray.addAll(currentAdviceArray);
+//		newAdviceArray.add(newAdvice);
+//
+//		return new AuthorizationDecision(decision, resource, obligations,
+//				newAdviceArray.isEmpty() ? Optional.empty() : Optional.of(newAdviceArray));
+//	}
+//
+//	/**
+//	 * @param newObligation a JsonNode containing an obligation.
+//	 * @return new immutable decision object, replacing the obligations of the
+//	 *         original object with newObligation. If the array is empty, no
+//	 *         obligations will be present, not even an empty array.
+//	 */
+//	public AuthorizationDecision withObligation(@NonNull JsonNode newObligation) {
+//		var currentObligarionsArray = obligations.orElseGet(() -> JSON.arrayNode());
+//		var newObligationsArray     = JSON.arrayNode(currentObligarionsArray.size() + 1);
+//		newObligationsArray.addAll(currentObligarionsArray);
+//		newObligationsArray.add(newObligation);
+//
+//		return new AuthorizationDecision(decision, resource, obligations,
+//				newObligationsArray.isEmpty() ? Optional.empty() : Optional.of(newObligationsArray));
+//	}
 
 	/**
 	 * @param newResource a JSON object, must nor be null.

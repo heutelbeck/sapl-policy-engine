@@ -34,7 +34,6 @@ import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
-import reactor.util.function.Tuple2;
 
 @RequiredArgsConstructor
 @PolicyInformationPoint(name = TimePolicyInformationPoint.NAME, description = TimePolicyInformationPoint.DESCRIPTION)
@@ -231,10 +230,6 @@ public class TimePolicyInformationPoint {
 		var start = valToInstant(startTime);
 		var end   = valToInstant(endTime);
 		return nowIsBetween(start, end).map(Val::of);
-	}
-
-	public Flux<Boolean> nowIsBetween(Tuple2<Instant, Instant> startAndEnd) {
-		return nowIsBetween(startAndEnd.getT1(), startAndEnd.getT2());
 	}
 
 	public Flux<Boolean> nowIsBetween(Instant start, Instant end) {

@@ -27,7 +27,6 @@ import static org.mockito.Mockito.when;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import io.sapl.grammar.sapl.AuthorizationDecisionEvaluable;
 import io.sapl.grammar.sapl.PolicyElement;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.prp.index.ImmutableParsedDocumentIndex;
@@ -108,7 +107,7 @@ class GenericInMemoryIndexedPolicyRetrievalPointTest {
 		when(policyElementMock.getSaplName()).thenReturn("SAPL");
 		// when(policyElementMock.getClass()).thenCallRealMethod();
 
-		var documentMock = mock(AuthorizationDecisionEvaluable.class);
+		var documentMock = mock(SAPL.class);
 
 		var policyRetrievalResult = new PolicyRetrievalResult().withMatch(documentMock);
 		// doReturn(Collections.singletonList(documentMock)).when(resultMock.getMatchingDocuments());

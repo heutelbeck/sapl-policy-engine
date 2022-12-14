@@ -1,16 +1,32 @@
 package io.sapl.interpreter;
 
 import java.time.Instant;
-import java.util.LinkedList;
-import java.util.List;
 
-import io.sapl.api.pdp.AuthorizationDecision;
+import com.fasterxml.jackson.databind.JsonNode;
+
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 
-public class PDPDecision {
-	AuthorizationSubscription     authzSubscription;
-	AuthorizationDecision         decision;
-	String                        combiningAlgorithm;
-	Instant                       timestamp;
-	List<PolicyDecision> matchingDocuments = new LinkedList<>();
+public class PDPDecision implements Traced {
+	CombinedDecision          combinedDecision;
+	AuthorizationSubscription authzSubscription;
+	Instant                   timestamp;
+
+	@Override
+	public String evaluationTree() {
+		// TODO Auto-generated method stub
+		return "";
+	}
+
+	@Override
+	public String report() {
+		// TODO Auto-generated method stub
+		return "";
+	}
+
+	@Override
+	public JsonNode jsonReport() {
+		// TODO Auto-generated method stub
+		return Val.JSON.objectNode();
+	}
 }
