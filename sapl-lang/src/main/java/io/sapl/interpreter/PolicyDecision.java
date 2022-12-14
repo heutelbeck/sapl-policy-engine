@@ -76,7 +76,8 @@ public class PolicyDecision implements DocumentEvaluationResult {
 				Optional.ofNullable(resource), errorMessage);
 	}
 
-	public PolicyDecision withTarget(Val targetResult) {
+	@Override
+	public DocumentEvaluationResult withTargetResult(Val targetResult) {
 		return new PolicyDecision(document, entitlement, Optional.ofNullable(targetResult), whereResult, obligations,
 				advice, resource, errorMessage);
 	}

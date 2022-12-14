@@ -53,6 +53,11 @@ public class PolicySetDecision implements DocumentEvaluationResult {
 	}
 
 	@Override
+	public DocumentEvaluationResult withTargetResult(Val targetResult) {
+		return new PolicySetDecision(combinedDecision, document, Optional.ofNullable(targetResult), errorMessage);
+	}
+
+	@Override
 	public AuthorizationDecision getAuthorizationDecision() {
 		if (errorMessage.isPresent())
 			return AuthorizationDecision.INDETERMINATE;
