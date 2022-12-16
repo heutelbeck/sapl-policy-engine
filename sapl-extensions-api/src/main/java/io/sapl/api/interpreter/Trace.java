@@ -5,6 +5,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import lombok.Value;
 
 @Value
@@ -65,26 +67,16 @@ public class Trace {
 		}
 	}
 
-	public String evaluationTree(Val result, String firstLineIndentationString, String follwoingLineIndentationString) {
-		var resultString        = result.toString();
-		var operationName       = operation.getSimpleName();
-		var tree                = firstLineIndentationString + operationName + " -> " + resultString + " " + timestamp
-				+ "\n";
-		var longestArgumentName = 0;
-		for (var argument : arguments) {
-			if (argument.getName().length() > longestArgumentName)
-				longestArgumentName = argument.getName().length();
+	public JsonNode getTrace() {
+		var jsonTrace = Val.JSON.objectNode();
+		jsonTrace.set("operator", Val.JSON.textNode(operation.getSimpleName()));
+		if (!arguments.isEmpty()) {
+			var args = Val.JSON.objectNode();
+			for (var argument : arguments)
+				args.set(argument.getName(), argument.getValue().getTrace());
+			jsonTrace.set("arguments", args);
 		}
-		var argumentCount = 0;
-		for (var argument : arguments) {
-			var indentation    = " ".repeat(operationName.length() + 1);
-			var firstLine      = String.format("%s%s|-%-" + longestArgumentName + "s=", follwoingLineIndentationString,
-					indentation, argument.getName());
-			var isLastArgument = argumentCount++ == arguments.size() - 1;
-			var followingLines = follwoingLineIndentationString + indentation + (isLastArgument ? " " : "|")
-					+ " ".repeat(3 + longestArgumentName);
-			tree += argument.getValue().evaluationTree(firstLine, followingLines);
-		}
-		return tree;
+		jsonTrace.set("creationTime", Val.JSON.textNode(timestamp.toString()));
+		return jsonTrace;
 	}
 }

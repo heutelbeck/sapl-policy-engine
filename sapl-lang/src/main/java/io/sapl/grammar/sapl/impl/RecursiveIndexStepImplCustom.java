@@ -29,7 +29,6 @@ import io.sapl.grammar.sapl.impl.util.FilterAlgorithmUtil;
 import io.sapl.grammar.sapl.impl.util.RepackageUtil;
 import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
@@ -43,7 +42,6 @@ import reactor.util.function.Tuples;
  * @author Dominic Heutelbeck
  *
  */
-@Slf4j
 public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 
 	private static final String INDEX_WAS_NULL = "Index was null.";
@@ -147,7 +145,6 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 			var value      = field.getValue();
 			var fieldValue = Val.of(value).withTrace(RecursiveIndexStep.class,
 					Map.of("parentValue", parentValue, "index", Val.of(idx), "key", Val.of(key)));
-			log.trace("recursion for field {}", field);
 			fieldFluxes.add(doApplyFilterStatement(idx, fieldValue, stepId, statement).map(val -> Tuples.of(key, val)));
 		}
 		return Flux.combineLatest(fieldFluxes, RepackageUtil::recombineObject);

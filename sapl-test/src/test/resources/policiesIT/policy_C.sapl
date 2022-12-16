@@ -4,4 +4,4 @@ permit
 where
   subject == "WILLI";
   var interval = 2;
-  time.secondOf(<time.now(interval)>) > 4;
+  time.secondOf(<time.now(interval)>) >= 4;

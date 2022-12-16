@@ -15,16 +15,17 @@ import lombok.ToString;
 @ToString
 @EqualsAndHashCode
 public class PolicySetDecision implements DocumentEvaluationResult {
+
 	final CombinedDecision combinedDecision;
 	final PolicyElement    document;
-	final Optional<Val>    matches;
+	final Optional<Val>    targetResult;
 	final Optional<String> errorMessage;
 
 	private PolicySetDecision(CombinedDecision combinedDecision, PolicyElement document, Optional<Val> matches,
 			Optional<String> errorMessage) {
 		this.combinedDecision = combinedDecision;
 		this.document         = document;
-		this.matches          = matches;
+		this.targetResult     = matches;
 		this.errorMessage     = errorMessage;
 	}
 
@@ -66,21 +67,14 @@ public class PolicySetDecision implements DocumentEvaluationResult {
 	}
 
 	@Override
-	public String evaluationTree() {
-		// TODO
-		return "";
-	}
-
-	@Override
-	public String report() {
-		// TODO
-		return "";
-	}
-
-	@Override
-	public JsonNode jsonReport() {
-		// TODO
-		return Val.JSON.objectNode();
+	public JsonNode getTrace() {
+		var trace = Val.JSON.objectNode();
+		trace.set("documentType", Val.JSON.textNode("policy set"));
+		trace.set("policySetName", Val.JSON.textNode(document.getSaplName()));
+		trace.set("combinedDecision", combinedDecision.getTrace());
+		errorMessage.ifPresent(error -> trace.set("error", Val.JSON.textNode(errorMessage.get())));
+		targetResult.ifPresent(target -> trace.set("where", target.getTrace()));
+		return trace;
 	}
 
 }

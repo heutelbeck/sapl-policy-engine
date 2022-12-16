@@ -15,24 +15,21 @@
  */
 package io.sapl.test.unit.usecase;
 
+import static io.sapl.test.Imports.times;
+
+import java.time.Duration;
+
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.functions.TemporalFunctionLibrary;
 import io.sapl.interpreter.InitializationException;
-import io.sapl.pip.TimePolicyInformationPoint;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.unit.SaplUnitTestFixture;
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import java.time.Clock;
-import java.time.Duration;
-
-import static io.sapl.hamcrest.Matchers.anyDecision;
-import static io.sapl.test.Imports.times;
 
 class E_PolicyStreamingTest {
 
@@ -46,7 +43,6 @@ class E_PolicyStreamingTest {
 	}
 
 	@Test
-	@Disabled
 	void test_streamingPolicy() {
 		var timestamp0 = Val.of("2021-02-08T16:16:01.000Z");
 		var timestamp1 = Val.of("2021-02-08T16:16:02.000Z");
@@ -64,27 +60,6 @@ class E_PolicyStreamingTest {
 	}
 
 	@Test
-	@Disabled("Unmocked PIPs with time-based attributes aren't reliable working with virtual time."
-			+ "Sometimes on some systems there is a Exception thrown, because the Attribute is emitting on event too few")
-	void test_streamingPolicyWithVirtualTime() throws InitializationException {
-		// Note that virtual time, StepVerifier.Step.thenAwait(Duration) sources that are
-		// subscribed on a different Scheduler
-		// (eg. a source that is initialized outside of the lambda with a dedicated
-		// Scheduler)
-		// and delays introduced within the data pat (eg. an interval in a flatMap)
-		// are not always compatible, as this can perform the time move BEFORE the
-		// interval schedules itself, resulting in the interval never playing out.
-
-		fixture.registerPIP(new TimePolicyInformationPoint(Clock.systemUTC())).constructTestCaseWithMocks()
-				.withVirtualTime().when(AuthorizationSubscription.of("ROLE_DOCTOR", "read", "heartBeatData"))
-				.expectNext(anyDecision()).expectNoEvent(Duration.ofSeconds(2)).expectNext(anyDecision())
-				.expectNoEvent(Duration.ofSeconds(2)).expectNext(anyDecision()).expectNoEvent(Duration.ofSeconds(2))
-				.expectNext(anyDecision()).expectNoEvent(Duration.ofSeconds(2)).thenAwait(Duration.ofSeconds(5))
-				.verify();
-	}
-
-	@Test
-	@Disabled
 	void test_streamingPolicy_TimingAttributeMock() {
 		var timestamp0 = Val.of("2021-02-08T16:16:01.000Z");
 		var timestamp1 = Val.of("2021-02-08T16:16:02.000Z");

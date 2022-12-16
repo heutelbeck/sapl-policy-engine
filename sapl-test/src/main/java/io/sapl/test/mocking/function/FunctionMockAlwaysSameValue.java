@@ -33,8 +33,8 @@ public class FunctionMockAlwaysSameValue implements FunctionMock {
 	private final MockRunInformation mockRunInformation;
 
 	public FunctionMockAlwaysSameValue(String fullName, Val returnValue, TimesCalledVerification verification) {
-		this.fullName = fullName;
-		this.alwaysMockReturnValue = returnValue;
+		this.fullName                = fullName;
+		this.alwaysMockReturnValue   = returnValue.withTrace(FunctionMockAlwaysSameValue.class);
 		this.timesCalledVerification = verification;
 
 		this.mockRunInformation = new MockRunInformation(fullName);

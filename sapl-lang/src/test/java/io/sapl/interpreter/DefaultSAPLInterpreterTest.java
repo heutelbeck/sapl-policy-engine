@@ -73,7 +73,7 @@ class DefaultSAPLInterpreterTest {
 
 	@BeforeAll
 	static void beforeAll() throws JsonProcessingException, InitializationException {
-		Hooks.onOperatorDebug();
+		//Hooks.onOperatorDebug();
 		authzSubscription = MAPPER.readValue(AUTHZ_SUBSCRIPTION_JSON, AuthorizationSubscription.class);
 		attributeCtx      = new AnnotationAttributeContext();
 		attributeCtx.loadPolicyInformationPoint(new TestPIP());

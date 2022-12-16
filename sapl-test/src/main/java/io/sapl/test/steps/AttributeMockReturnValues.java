@@ -15,16 +15,25 @@
  */
 package io.sapl.test.steps;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import io.sapl.api.interpreter.Val;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
-@Data(staticConstructor = "of")
+@Data
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class AttributeMockReturnValues {
 
 	private final String fullName;
 
 	private final List<Val> mockReturnValues;
 
+	public static AttributeMockReturnValues of(String fullName, List<Val> mockReturnValues) {
+		var tracedMockValues = new ArrayList<Val>(mockReturnValues.size());
+		mockReturnValues.forEach(mockVal -> tracedMockValues.add(mockVal.withTrace(AttributeMockReturnValues.class)));
+		return new AttributeMockReturnValues(fullName, tracedMockValues);
+	}
 }

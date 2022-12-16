@@ -31,7 +31,7 @@ public class AttributeMockTimingTest {
 		AttributeMockTiming mock = new AttributeMockTiming("test.test");
 		mock.loadAttributeMockWithTiming(Duration.ofSeconds(10), Val.of(1), Val.of(2), Val.of(3), Val.of(4));
 
-		StepVerifier.withVirtualTime(() -> mock.evaluate(null, null, null)).expectSubscription()
+		StepVerifier.withVirtualTime(() -> mock.evaluate("test.attribute", null, null, null)).expectSubscription()
 				.expectNoEvent(Duration.ofSeconds(10)).expectNext(Val.of(1)).expectNoEvent(Duration.ofSeconds(10))
 				.expectNext(Val.of(2)).expectNoEvent(Duration.ofSeconds(10)).expectNext(Val.of(3))
 				.expectNoEvent(Duration.ofSeconds(10)).expectNext(Val.of(4)).verifyComplete();
@@ -49,14 +49,16 @@ public class AttributeMockTimingTest {
 	void test_nullReturnValue() {
 		AttributeMockTiming mock = new AttributeMockTiming("test.test");
 		mock.loadAttributeMockWithTiming(Duration.ofSeconds(1), (Val[]) null);
-		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> mock.evaluate(null, null, null));
+		Assertions.assertThatExceptionOfType(SaplTestException.class)
+				.isThrownBy(() -> mock.evaluate("test.attribute", null, null, null));
 	}
 
 	@Test
 	void test_nullTiming() {
 		AttributeMockTiming mock = new AttributeMockTiming("test.test");
 		mock.loadAttributeMockWithTiming(null, new Val[] { Val.of(1) });
-		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> mock.evaluate(null, null, null));
+		Assertions.assertThatExceptionOfType(SaplTestException.class)
+				.isThrownBy(() -> mock.evaluate("test.attribute", null, null, null));
 	}
 
 }

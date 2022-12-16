@@ -53,11 +53,14 @@ import reactor.core.publisher.Flux;
  */
 public class FirstApplicableCombiningAlgorithmImplCustom extends FirstApplicableCombiningAlgorithmImpl {
 
-	private static final String FIRST_APPLICABLE = "FIRST_APPLICABLE";
-
 	@Override
 	public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
-		return combine(0, policies).apply(CombinedDecision.of(AuthorizationDecision.NOT_APPLICABLE, FIRST_APPLICABLE));
+		return combine(0, policies).apply(CombinedDecision.of(AuthorizationDecision.NOT_APPLICABLE, getName()));
+	}
+
+	@Override
+	public String getName() {
+		return "FIRST_APPLICABLE";
 	}
 
 	private Function<CombinedDecision, Flux<CombinedDecision>> combine(int policyId, List<PolicyElement> policies) {

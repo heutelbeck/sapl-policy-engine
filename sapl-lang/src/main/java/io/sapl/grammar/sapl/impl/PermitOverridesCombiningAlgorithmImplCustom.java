@@ -58,16 +58,19 @@ import reactor.core.publisher.Flux;
  */
 public class PermitOverridesCombiningAlgorithmImplCustom extends PermitOverridesCombiningAlgorithmImpl {
 
-	private static final String PERMIT_OVERRIDES = "PERMIT_OVERRIDES";
-
 	@Override
 	public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
-		return CombiningAlgorithmUtil.eagerlyCombinePolicyElements(policies, this::combinator, PERMIT_OVERRIDES);
+		return CombiningAlgorithmUtil.eagerlyCombinePolicyElements(policies, this::combinator, getName());
+	}
+
+	@Override
+	public String getName() {
+		return "PERMIT_OVERRIDES";
 	}
 
 	private CombinedDecision combinator(DocumentEvaluationResult[] policyDecisions) {
 		if (policyDecisions.length == 0)
-			return CombinedDecision.of(AuthorizationDecision.NOT_APPLICABLE, PERMIT_OVERRIDES);
+			return CombinedDecision.of(AuthorizationDecision.NOT_APPLICABLE, getName());
 
 		var entitlement = NOT_APPLICABLE;
 		var collector   = new ObligationAdviceCollector();
@@ -101,7 +104,7 @@ public class PermitOverridesCombiningAlgorithmImplCustom extends PermitOverrides
 		}
 		var finalDecision = new AuthorizationDecision(entitlement, resource, collector.getObligations(entitlement),
 				collector.getAdvice(entitlement));
-		return CombinedDecision.of(finalDecision, PERMIT_OVERRIDES, decisions);
+		return CombinedDecision.of(finalDecision, getName(), decisions);
 	}
 
 }

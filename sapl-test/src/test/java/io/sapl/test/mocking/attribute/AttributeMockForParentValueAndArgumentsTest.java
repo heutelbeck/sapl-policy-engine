@@ -52,7 +52,7 @@ class AttributeMockForParentValueAndArgumentsTest {
 		arguments.add(Flux.just(Val.of(1)));
 		arguments.add(Flux.just(Val.of(1), Val.of(2)));
 
-		StepVerifier.create(mock.evaluate(Val.of(true), null, arguments)).expectNext(Val.of(true))
+		StepVerifier.create(mock.evaluate("test.attribute", Val.of(true), null, arguments)).expectNext(Val.of(true))
 				.expectNext(Val.of(false)).thenCancel().verify();
 
 		mock.assertVerifications();
@@ -66,8 +66,9 @@ class AttributeMockForParentValueAndArgumentsTest {
 		List<Flux<Val>> arguments = new LinkedList<>();
 		arguments.add(Flux.just(Val.of(1)));
 
-		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> StepVerifier
-				.create(mock.evaluate(Val.of(false), null, arguments)).expectNext(Val.of(true)).thenCancel().verify());
+		Assertions.assertThatExceptionOfType(SaplTestException.class)
+				.isThrownBy(() -> StepVerifier.create(mock.evaluate("test.attribute", Val.of(false), null, arguments))
+						.expectNext(Val.of(true)).thenCancel().verify());
 	}
 
 	@Test
@@ -79,7 +80,7 @@ class AttributeMockForParentValueAndArgumentsTest {
 		arguments.add(Flux.just(Val.of(99)));
 		arguments.add(Flux.just(Val.of(99)));
 
-		StepVerifier.create(mock.evaluate(Val.of(true), null, arguments)).expectError().verify();
+		StepVerifier.create(mock.evaluate("test.attribute", Val.of(true), null, arguments)).expectError().verify();
 	}
 
 	@Test
@@ -90,7 +91,7 @@ class AttributeMockForParentValueAndArgumentsTest {
 		List<Flux<Val>> arguments = new LinkedList<>();
 		arguments.add(Flux.just(Val.of(1)));
 
-		StepVerifier.create(mock.evaluate(Val.of(true), null, arguments)).expectError().verify();
+		StepVerifier.create(mock.evaluate("test.attribute", Val.of(true), null, arguments)).expectError().verify();
 	}
 
 	@Test

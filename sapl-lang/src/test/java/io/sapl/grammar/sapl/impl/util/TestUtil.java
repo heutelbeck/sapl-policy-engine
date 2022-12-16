@@ -18,6 +18,9 @@ package io.sapl.grammar.sapl.impl.util;
 import java.io.IOException;
 import java.util.function.Predicate;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.BasicValue;
@@ -30,7 +33,9 @@ import reactor.test.StepVerifier;
 
 @Slf4j
 public class TestUtil {
-	private final static boolean DEBUG_TESTS = true;
+	private static final ObjectMapper MAPPER = new ObjectMapper();
+
+	private final static boolean DEBUG_TESTS = false;
 
 	public static Predicate<DocumentEvaluationResult> hasDecision(AuthorizationDecision expected) {
 		return saplDecision -> {
@@ -126,6 +131,10 @@ public class TestUtil {
 
 	private static void logResult(Val result) {
 		if (DEBUG_TESTS)
-			log.debug("Actual    : {}", result.evaluationTree("", "            "));
+			try {
+				log.debug("Actual    :\n{}", MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(result.getTrace()));
+			} catch (JsonProcessingException e) {
+				log.debug("Error", e);
+			}
 	}
 }

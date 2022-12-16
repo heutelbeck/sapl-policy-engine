@@ -49,14 +49,14 @@ public class PolicySetImplCustom extends PolicySetImpl {
 	@Override
 	public DocumentEvaluationResult targetResult(Val targetValue) {
 		if (targetValue.isError())
-			return PolicySetDecision.ofTargetError(this, targetValue, this.algorithm.getClass().getSimpleName());
-		return PolicySetDecision.notApplicable(this, targetValue, this.algorithm.getClass().getSimpleName());
+			return PolicySetDecision.ofTargetError(this, targetValue, this.algorithm.getName());
+		return PolicySetDecision.notApplicable(this, targetValue, this.algorithm.getName());
 
 	}
 
 	@Override
 	public DocumentEvaluationResult importError(String errorMessage) {
-		return PolicySetDecision.ofImportError(this, errorMessage, this.algorithm.getClass().getSimpleName());
+		return PolicySetDecision.ofImportError(this, errorMessage, this.algorithm.getName());
 	}
 
 	private boolean policyNamesAreUnique() {

@@ -649,14 +649,25 @@ public class Val {
 		return typeOf(this);
 	}
 
-	public String evaluationTree() {
-		return evaluationTree("", "");
-	}
+	public JsonNode getTrace() {
+		if (isSecret())
+			return JSON.textNode("|SECRET|");
 
-	public String evaluationTree(String firstLine, String followingLines) {
-		if (trace == null) {
-			return firstLine + toString() + "\n";
+		JsonNode val;
+		if (isError()) {
+			val = JSON.textNode("|ERROR| " + errorMessage);
+		} else if (isUndefined()) {
+			val = JSON.textNode("|UNDEFINED|");
+		} else {
+			val = value;
 		}
-		return trace.evaluationTree(this, firstLine, followingLines);
+
+		if (trace == null)
+			return val;
+
+		var traceJson = JSON.objectNode();
+		traceJson.set("value", val);
+		traceJson.set("trace", trace.getTrace());
+		return traceJson;
 	}
 }

@@ -2,44 +2,55 @@ package io.sapl.interpreter;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
-import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 @ToString
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class CombinedDecision implements Traced {
 
+	private static final ObjectMapper MAPPER = new ObjectMapper();
+	
 	@Getter
 	AuthorizationDecision          authorizationDecision;
 	String                         combiningAlgorithm;
 	List<DocumentEvaluationResult> documentEvaluationResults = new LinkedList<>();
+	Optional<String>               errorMessage;
 
 	private CombinedDecision(AuthorizationDecision authorizationDecision, String combiningAlgorithm,
-			List<DocumentEvaluationResult> documentEvaluationResults) {
+			List<DocumentEvaluationResult> documentEvaluationResults, Optional<String> errorMessage) {
 		this.authorizationDecision = authorizationDecision;
 		this.combiningAlgorithm    = combiningAlgorithm;
 		this.documentEvaluationResults.addAll(documentEvaluationResults);
+		this.errorMessage = errorMessage;
+		MAPPER.registerModule(new Jdk8Module());	
+	}
+
+	public static CombinedDecision error(String combiningAlgorithm, String errorMessage) {
+		return new CombinedDecision(AuthorizationDecision.INDETERMINATE, combiningAlgorithm, List.of(),
+				Optional.ofNullable(errorMessage));
 	}
 
 	public static CombinedDecision of(AuthorizationDecision authorizationDecision, String combiningAlgorithm) {
-		return new CombinedDecision(authorizationDecision, combiningAlgorithm, List.of());
+		return new CombinedDecision(authorizationDecision, combiningAlgorithm, List.of(), Optional.empty());
 	}
 
 	public static CombinedDecision of(AuthorizationDecision authorizationDecision, String combiningAlgorithm,
 			List<DocumentEvaluationResult> documentEvaluationResults) {
-		return new CombinedDecision(authorizationDecision, combiningAlgorithm, documentEvaluationResults);
+		return new CombinedDecision(authorizationDecision, combiningAlgorithm, documentEvaluationResults,
+				Optional.empty());
 	}
 
 	public CombinedDecision withEvaluationResult(DocumentEvaluationResult result) {
 		var newCombindedDecision = new CombinedDecision(authorizationDecision, combiningAlgorithm,
-				documentEvaluationResults);
+				documentEvaluationResults, errorMessage);
 		documentEvaluationResults.add(result);
 		return newCombindedDecision;
 	}
@@ -47,27 +58,26 @@ public class CombinedDecision implements Traced {
 	public CombinedDecision withDecisionAndEvaluationResult(AuthorizationDecision authorizationDecision,
 			DocumentEvaluationResult result) {
 		var newCombindedDecision = new CombinedDecision(authorizationDecision, combiningAlgorithm,
-				documentEvaluationResults);
+				documentEvaluationResults, errorMessage);
 		documentEvaluationResults.add(result);
 		return newCombindedDecision;
 	}
 
 	@Override
-	public String evaluationTree() {
-		// TODO Auto-generated method stub
-		return "";
+	public JsonNode getTrace() {
+		var trace = Val.JSON.objectNode();
+		trace.set("combiningAlgorithm", Val.JSON.textNode(combiningAlgorithm));
+		trace.set("authoriyationDecision", MAPPER.valueToTree(getAuthorizationDecision()));
+		if (errorMessage.isPresent())
+			trace.set("error", Val.JSON.textNode(errorMessage.get()));
+		trace.set("evaluatedPolicies", listOfTracedToJsonArray(documentEvaluationResults));
+		return trace;
 	}
 
-	@Override
-	public String report() {
-		// TODO Auto-generated method stub
-		return "";
-	}
-
-	@Override
-	public JsonNode jsonReport() {
-		// TODO Auto-generated method stub
-		return Val.JSON.objectNode();
+	private JsonNode listOfTracedToJsonArray(List<DocumentEvaluationResult> results) {
+		var arrayNode = Val.JSON.arrayNode();
+		results.forEach(r -> arrayNode.add(r.getTrace()));
+		return arrayNode;
 	}
 
 }

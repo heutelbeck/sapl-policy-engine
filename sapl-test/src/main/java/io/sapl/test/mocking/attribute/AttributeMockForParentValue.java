@@ -52,10 +52,10 @@ public class AttributeMockForParentValue implements AttributeMock {
 	private final List<MockingVerification> listMockingVerifications;
 
 	public AttributeMockForParentValue(String fullName) {
-		this.fullName = fullName;
+		this.fullName                              = fullName;
 		this.listParameterSpecificMockReturnValues = new LinkedList<>();
-		this.mockRunInformation = new MockRunInformation(fullName);
-		this.listMockingVerifications = new LinkedList<>();
+		this.mockRunInformation                    = new MockRunInformation(fullName);
+		this.listMockingVerifications              = new LinkedList<>();
 	}
 
 	public void loadMockForParentValue(AttributeParentValueMatcher parentValueMatcher, Val returnValue) {
@@ -67,7 +67,8 @@ public class AttributeMockForParentValue implements AttributeMock {
 	}
 
 	@Override
-	public Flux<Val> evaluate(Val parentValue, Map<String, JsonNode> variables, List<Flux<Val>> args) {
+	public Flux<Val> evaluate(String attributeName, Val parentValue, Map<String, JsonNode> variables,
+			List<Flux<Val>> args) {
 		this.mockRunInformation.saveCall(new MockCall(parentValue));
 
 		Optional<ParameterSpecificMockReturnValue> matchingParameterSpecificMockReturnValues = findMatchingParameterSpecificMockReturnValue(
@@ -75,7 +76,8 @@ public class AttributeMockForParentValue implements AttributeMock {
 
 		checkAtLeastOneMatchingMockReturnValueExists(matchingParameterSpecificMockReturnValues);
 
-		return Flux.just(matchingParameterSpecificMockReturnValues.get().getMockReturnValue());
+		return Flux.just(matchingParameterSpecificMockReturnValues.get().getMockReturnValue()).map(val -> val
+				.withTrace(AttributeMockForParentValue.class, Map.of("attributeName", Val.of(attributeName))));
 	}
 
 	private void checkAtLeastOneMatchingMockReturnValueExists(

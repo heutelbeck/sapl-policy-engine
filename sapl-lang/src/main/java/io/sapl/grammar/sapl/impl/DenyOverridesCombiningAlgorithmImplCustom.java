@@ -56,16 +56,20 @@ import reactor.core.publisher.Flux;
  */
 public class DenyOverridesCombiningAlgorithmImplCustom extends DenyOverridesCombiningAlgorithmImpl {
 
-	private static final String DENY_OVERRIDES = "DENY_OVERRIDES";
 
 	@Override
 	public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
-		return CombiningAlgorithmUtil.eagerlyCombinePolicyElements(policies, this::combinator, DENY_OVERRIDES);
+		return CombiningAlgorithmUtil.eagerlyCombinePolicyElements(policies, this::combinator, getName());
 	}
 
+	@Override
+	public String getName() {
+		return "DENY_OVERRIDES";
+	}
+	
 	private CombinedDecision combinator(DocumentEvaluationResult[] policyDecisions) {
 		if (policyDecisions.length == 0)
-			return CombinedDecision.of(AuthorizationDecision.NOT_APPLICABLE, DENY_OVERRIDES);
+			return CombinedDecision.of(AuthorizationDecision.NOT_APPLICABLE, getName());
 
 		var entitlement = NOT_APPLICABLE;
 		var collector   = new ObligationAdviceCollector();
@@ -105,7 +109,7 @@ public class DenyOverridesCombiningAlgorithmImplCustom extends DenyOverridesComb
 
 		var finalDecision = new AuthorizationDecision(entitlement, resource, collector.getObligations(entitlement),
 				collector.getAdvice(entitlement));
-		return CombinedDecision.of(finalDecision, DENY_OVERRIDES, decisions);
+		return CombinedDecision.of(finalDecision, getName(), decisions);
 
 	}
 

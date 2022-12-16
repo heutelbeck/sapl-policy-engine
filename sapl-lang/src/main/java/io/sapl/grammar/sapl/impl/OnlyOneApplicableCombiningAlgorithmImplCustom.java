@@ -24,7 +24,6 @@ import io.sapl.grammar.sapl.PolicyElement;
 import io.sapl.grammar.sapl.impl.util.CombiningAlgorithmUtil;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DocumentEvaluationResult;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
@@ -48,18 +47,19 @@ import reactor.core.publisher.Flux;
  * decision is the result of evaluating this policy document.
  *
  */
-@Slf4j
 public class OnlyOneApplicableCombiningAlgorithmImplCustom extends OnlyOneApplicableCombiningAlgorithmImpl {
-
-	private static final String ONLY_ONE_APPLICABLE = "ONLY_ONE_APPLICABLE";
 
 	@Override
 	public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
-		return CombiningAlgorithmUtil.eagerlyCombinePolicyElements(policies,
-				OnlyOneApplicableCombiningAlgorithmImplCustom::onlyOneApplicableCombinator, ONLY_ONE_APPLICABLE);
+		return CombiningAlgorithmUtil.eagerlyCombinePolicyElements(policies, this::combinator, getName());
 	}
 
-	private static CombinedDecision onlyOneApplicableCombinator(DocumentEvaluationResult[] evaluationResults) {
+	@Override
+	public String getName() {
+		return "ONLY_ONE_APPLICABLE";
+	}
+
+	private CombinedDecision combinator(DocumentEvaluationResult[] evaluationResults) {
 		var aPolicyWasIndeterminate = false;
 		var applicableCount         = 0;
 		var authzDecision           = AuthorizationDecision.NOT_APPLICABLE;
@@ -67,8 +67,7 @@ public class OnlyOneApplicableCombiningAlgorithmImplCustom extends OnlyOneApplic
 		for (var evaluationResult : evaluationResults) {
 			decisions.add(evaluationResult);
 			var decisionUnderInspection = evaluationResult.getAuthorizationDecision();
-			log.info("Decision: {}", decisionUnderInspection);
-			var decision = decisionUnderInspection.getDecision();
+			var decision                = decisionUnderInspection.getDecision();
 			if (decision != Decision.NOT_APPLICABLE) {
 				applicableCount++;
 				authzDecision            = decisionUnderInspection;
@@ -82,7 +81,7 @@ public class OnlyOneApplicableCombiningAlgorithmImplCustom extends OnlyOneApplic
 			authzDecision = AuthorizationDecision.INDETERMINATE;
 		}
 
-		return CombinedDecision.of(authzDecision, ONLY_ONE_APPLICABLE, decisions);
+		return CombinedDecision.of(authzDecision, getName(), decisions);
 	}
 
 }

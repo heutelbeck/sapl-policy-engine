@@ -331,6 +331,9 @@
       </eAnnotations>
       <eParameters name="policies" eType="#//PolicyElementList"/>
     </eOperations>
+    <eOperations name="getName" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString">
+      <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel"/>
+    </eOperations>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="DenyOverridesCombiningAlgorithm" eSuperTypes="#//CombiningAlgorithm"/>
   <eClassifiers xsi:type="ecore:EClass" name="PermitOverridesCombiningAlgorithm" eSuperTypes="#//CombiningAlgorithm"/>

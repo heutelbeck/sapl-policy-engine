@@ -22,14 +22,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.MockCall;
 import io.sapl.test.verification.MockRunInformation;
 import io.sapl.test.verification.MockingVerification;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
 import reactor.core.publisher.Flux;
 
 public class AttributeMockTiming implements AttributeMock {
@@ -47,21 +46,22 @@ public class AttributeMockTiming implements AttributeMock {
 	private final List<MockingVerification> listMockingVerifications;
 
 	public AttributeMockTiming(String fullName) {
-		this.fullName = fullName;
-		this.returnValues = null;
-		this.timing = null;
-		this.mockRunInformation = new MockRunInformation(fullName);
+		this.fullName                 = fullName;
+		this.returnValues             = null;
+		this.timing                   = null;
+		this.mockRunInformation       = new MockRunInformation(fullName);
 		this.listMockingVerifications = new LinkedList<>();
 	}
 
 	public void loadAttributeMockWithTiming(Duration timing, Val... returns) {
-		this.timing = timing;
+		this.timing       = timing;
 		this.returnValues = returns;
 		this.listMockingVerifications.add(times(1));
 	}
 
 	@Override
-	public Flux<Val> evaluate(Val parentValue, Map<String, JsonNode> variables, List<Flux<Val>> args) {
+	public Flux<Val> evaluate(String attributeName, Val parentValue, Map<String, JsonNode> variables,
+			List<Flux<Val>> args) {
 		// ignore arguments
 
 		this.mockRunInformation.saveCall(new MockCall());
@@ -71,7 +71,8 @@ public class AttributeMockTiming implements AttributeMock {
 		}
 
 		return Flux.interval(this.timing).map(number -> this.returnValues[number.intValue()])
-				.take(this.returnValues.length);
+				.take(this.returnValues.length)
+				.map(val -> val.withTrace(AttributeMockTiming.class, Map.of("attributeName", Val.of(attributeName))));
 	}
 
 	@Override

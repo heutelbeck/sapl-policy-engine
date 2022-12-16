@@ -38,8 +38,7 @@ public class CombiningAlgorithmUtil {
 	private static Flux<DocumentEvaluationResult> evaluatePolicyElementTargetAndPolicyIfApplicable(
 			PolicyElement policyElement) {
 		var matches = policyElement.matches().map(CombiningAlgorithmUtil::requireTargetExpressionEvaluatesToBoolean);
-		var aux     = matches.flatMapMany(evaluatePolicyIfApplicable(policyElement));
-		return aux;
+		return matches.flatMapMany(evaluatePolicyIfApplicable(policyElement));
 	}
 
 	private static Function<Val, Flux<DocumentEvaluationResult>> evaluatePolicyIfApplicable(

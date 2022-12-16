@@ -5,7 +5,9 @@ import java.util.List;
 import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -18,6 +20,8 @@ import lombok.ToString;
 @Getter
 @ToString
 public class PolicyDecision implements DocumentEvaluationResult {
+
+	private static final ObjectMapper MAPPER = new ObjectMapper();
 
 	final PolicyElement    document;
 	final Decision         entitlement;
@@ -39,6 +43,7 @@ public class PolicyDecision implements DocumentEvaluationResult {
 		this.errorMessage = errorMessage;
 		this.obligations.addAll(obligations);
 		this.advice.addAll(advice);
+		MAPPER.registerModule(new Jdk8Module());	
 	}
 
 	public static PolicyDecision ofTargetExpressionEvaluation(Policy policy, Val targetExpressionResult,
@@ -124,21 +129,28 @@ public class PolicyDecision implements DocumentEvaluationResult {
 	}
 
 	@Override
-	public String evaluationTree() {
-		// TODO
-		return "";
+	public JsonNode getTrace() {
+		var trace = Val.JSON.objectNode();
+		trace.set("documentType", Val.JSON.textNode("policy"));
+		trace.set("policyName", Val.JSON.textNode(document.getSaplName()));
+		trace.set("authoriyationDecision", MAPPER.valueToTree(getAuthorizationDecision()));
+		if (entitlement != null)
+			trace.set("entitlement", Val.JSON.textNode(entitlement.toString()));
+		errorMessage.ifPresent(error -> trace.set("error", Val.JSON.textNode(errorMessage.get())));
+		targetResult.ifPresent(target -> trace.set("where", target.getTrace()));
+		whereResult.ifPresent(where -> trace.set("where", where.getTrace()));
+		if (!obligations.isEmpty())
+			trace.set("obligations", listOfValToTraceArray(obligations));
+		if (!obligations.isEmpty())
+			trace.set("advice", listOfValToTraceArray(advice));
+		resource.ifPresent(resource -> trace.set("resource", resource.getTrace()));
+		return trace;
 	}
 
-	@Override
-	public String report() {
-		// TODO
-		return "";
-	}
-
-	@Override
-	public JsonNode jsonReport() {
-		// TODO
-		return Val.JSON.objectNode();
+	private JsonNode listOfValToTraceArray(List<Val> vals) {
+		var arrayNode = Val.JSON.arrayNode();
+		vals.forEach(val -> arrayNode.add(val.getTrace()));
+		return arrayNode;
 	}
 
 }

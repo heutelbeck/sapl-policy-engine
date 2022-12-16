@@ -18,7 +18,6 @@ package io.sapl.grammar.sapl.impl;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.impl.util.EObjectUtil;
 import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
@@ -37,7 +36,6 @@ class PolicyElementImplCustomTest {
 	@Test
 	void undefinedTargetErrors() {
 		var policy = INTERPRETER.parse("policy \"p\" permit undefined");
-		EObjectUtil.dump(policy);
 		StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(Val::isError).verifyComplete();
 	}
 

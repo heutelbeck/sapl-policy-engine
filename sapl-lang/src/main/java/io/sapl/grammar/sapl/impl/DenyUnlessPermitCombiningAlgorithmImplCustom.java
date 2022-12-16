@@ -46,16 +46,19 @@ import reactor.core.publisher.Flux;
  */
 public class DenyUnlessPermitCombiningAlgorithmImplCustom extends DenyUnlessPermitCombiningAlgorithmImpl {
 
-	private static final String DENY_UNLESS_PERMIT = "DENY_UNLESS_PERMIT";
-
 	@Override
 	public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
-		return CombiningAlgorithmUtil.eagerlyCombinePolicyElements(policies, this::combinator, DENY_UNLESS_PERMIT);
+		return CombiningAlgorithmUtil.eagerlyCombinePolicyElements(policies, this::combinator, getName());
+	}
+
+	@Override
+	public String getName() {
+		return "DENY_UNLESS_PERMIT";
 	}
 
 	private CombinedDecision combinator(DocumentEvaluationResult[] policyDecisions) {
 		if (policyDecisions.length == 0)
-			return CombinedDecision.of(AuthorizationDecision.DENY, DENY_UNLESS_PERMIT);
+			return CombinedDecision.of(AuthorizationDecision.DENY, getName());
 
 		var entitlement = DENY;
 		var collector   = new ObligationAdviceCollector();
@@ -83,7 +86,7 @@ public class DenyUnlessPermitCombiningAlgorithmImplCustom extends DenyUnlessPerm
 
 		var finalDecision = new AuthorizationDecision(entitlement, resource, collector.getObligations(entitlement),
 				collector.getAdvice(entitlement));
-		return CombinedDecision.of(finalDecision, DENY_UNLESS_PERMIT, decisions);
+		return CombinedDecision.of(finalDecision, getName(), decisions);
 	}
 
 }

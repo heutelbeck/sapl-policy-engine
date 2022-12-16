@@ -24,9 +24,8 @@ public class SelectorUtil {
 	}
 
 	public static Supplier<Flux<Val>> toObjectFieldSelector(BiFunction<String, Val, Boolean> selector) {
-		return () -> Flux.deferContextual(ctx -> {			
+		return () -> Flux.deferContextual(ctx -> {
 			var relativeNode = AuthorizationContext.getRelativeNode(ctx);
-			System.out.println("rela: "+relativeNode);
 			var key          = AuthorizationContext.getKey(ctx);
 			try {
 				return Flux.just(Val.of(selector.apply(key, relativeNode)));
