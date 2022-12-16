@@ -29,7 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 public class DocumentationAutoConfiguration {
 
 	@Bean
-	public PolicyInformationPointsDocumentation pipDocumentation(AttributeContext attributeCtx) {
+	PolicyInformationPointsDocumentation pipDocumentation(AttributeContext attributeCtx) {
 		log.info("Provisioning PIP Documentation Bean");
 		for (var doc : attributeCtx.getDocumentation()) {
 			log.debug("AttributeCtx contains: {}", doc.getName());
@@ -38,7 +38,7 @@ public class DocumentationAutoConfiguration {
 	}
 
 	@Bean
-	public FunctionLibrariesDocumentation functionDocumentation(FunctionContext functionCtx) {
+	FunctionLibrariesDocumentation functionDocumentation(FunctionContext functionCtx) {
 		log.info("Provisioning Function Libraries Documentation Bean");
 		for (var doc : functionCtx.getDocumentation()) {
 			log.debug("FunctionCtx contains: {}", doc.getName());

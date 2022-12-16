@@ -26,7 +26,6 @@ import io.sapl.functions.TemporalFunctionLibrary;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.integration.SaplIntegrationTestFixture;
-import reactor.core.publisher.Hooks;
 
 class B_StreamingVirtualTimeTest {
 
@@ -34,8 +33,6 @@ class B_StreamingVirtualTimeTest {
 
 	@BeforeEach
 	void setUp() throws InitializationException {
-		Hooks.onOperatorDebug();
-
 		fixture = new SaplIntegrationTestFixture("policiesIT").registerFunctionLibrary(new TemporalFunctionLibrary());
 	}
 
@@ -52,8 +49,8 @@ class B_StreamingVirtualTimeTest {
 				.givenAttribute("time.now", Duration.ofSeconds(1), timestamp0, timestamp1, timestamp2, timestamp3,
 						timestamp4, timestamp5)
 				.when(AuthorizationSubscription.of("WILLI", "read", "bar")).thenAwait(Duration.ofSeconds(10))
-				.expectNextDeny().expectNextDeny().expectNextDeny().expectNextPermit().expectNextPermit().expectNextPermit()
-				.expectNoEvent(Duration.ofSeconds(2)).verify();
+				.expectNextDeny().expectNextDeny().expectNextDeny().expectNextPermit().expectNextPermit()
+				.expectNextPermit().expectNoEvent(Duration.ofSeconds(2)).verify();
 	}
 
 	@Test

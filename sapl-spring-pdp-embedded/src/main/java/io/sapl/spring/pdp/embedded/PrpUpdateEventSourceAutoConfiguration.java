@@ -40,7 +40,7 @@ public class PrpUpdateEventSourceAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public PrpUpdateEventSource prpUpdateSource() throws InitializationException {
+	PrpUpdateEventSource prpUpdateSource() throws InitializationException {
 		var policiesFolder = pdpProperties.getPoliciesPath();
 		if (pdpProperties.getPdpConfigType() == EmbeddedPDPProperties.PDPDataSource.FILESYSTEM) {
 			log.info("creating embedded PDP sourcing and monitoring access policies from the filesystem: {}",

@@ -10,6 +10,7 @@ import java.util.function.Supplier;
  * @author Dominic Heutelbeck
  *
  */
+@FunctionalInterface
 public interface FunctionLibrarySupplier extends Supplier<Collection<Object>> {
 
 }

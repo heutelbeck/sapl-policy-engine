@@ -106,7 +106,8 @@ class EmbeddedPolicyDecisionPointTest {
 		var source   = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
 		var attrCtx  = new AnnotationAttributeContext();
 		var funcCtx  = new AnnotationFunctionContext();
-		var provider = new FixedFunctionsAndAttributesPDPConfigurationProvider(attrCtx, funcCtx, source);
+		var provider = new FixedFunctionsAndAttributesPDPConfigurationProvider(attrCtx, funcCtx, source, List.of(),
+				List.of());
 
 		var embeddedPdp = new EmbeddedPolicyDecisionPoint(provider, prpMock);
 

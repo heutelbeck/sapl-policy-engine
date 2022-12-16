@@ -42,7 +42,7 @@ public class FunctionContextAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public FunctionContext functionContext() throws InitializationException {
+	FunctionContext functionContext() throws InitializationException {
 		var functionContext = new AnnotationFunctionContext();
 		for (var library : functionLibraries) {
 			log.trace("loading FunctionLibrary: {}", library.getClass().getSimpleName());

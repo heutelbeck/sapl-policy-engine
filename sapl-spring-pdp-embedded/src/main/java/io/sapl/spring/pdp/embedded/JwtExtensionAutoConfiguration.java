@@ -31,17 +31,17 @@ import io.sapl.extension.jwt.JWTPolicyInformationPoint;
 public class JwtExtensionAutoConfiguration {
 
 	@Bean
-	public JWTFunctionLibrary jwtFunctionLibrary(ObjectMapper mapper) {
+	JWTFunctionLibrary jwtFunctionLibrary(ObjectMapper mapper) {
 		return new JWTFunctionLibrary(mapper);
 	}
 
 	@Bean
-	public JWTPolicyInformationPoint jwtPolicyInformationPoint(ObjectMapper mapper, JWTKeyProvider jwtKeyProvider) {
+	JWTPolicyInformationPoint jwtPolicyInformationPoint(ObjectMapper mapper, JWTKeyProvider jwtKeyProvider) {
 		return new JWTPolicyInformationPoint(jwtKeyProvider);
 	}
 
 	@Bean
-	public JWTKeyProvider jwtKeyProvider(WebClient.Builder builder) {
+	JWTKeyProvider jwtKeyProvider(WebClient.Builder builder) {
 		return new JWTKeyProvider(builder);
 	}
 

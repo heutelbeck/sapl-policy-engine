@@ -38,7 +38,7 @@ public class VariablesAndCombinatorSourceAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean(VariablesAndCombinatorSource.class)
-	public VariablesAndCombinatorSource variablesAndCombinatorSource() throws InitializationException {
+	VariablesAndCombinatorSource variablesAndCombinatorSource() throws InitializationException {
 		log.info("Deploying {} VariablesAndCombinatorSource configuration provider. Sourcing data from: {}",
 				pdpProperties.getPdpConfigType(), pdpProperties.getConfigPath());
 

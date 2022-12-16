@@ -25,7 +25,7 @@ import io.sapl.interpreter.SAPLInterpreter;
 public class InterpreterAutoConfiguration {
 
 	@Bean
-	public SAPLInterpreter parser() {
+	SAPLInterpreter parser() {
 		return new DefaultSAPLInterpreter();
 	}
 

@@ -30,7 +30,6 @@
 	<name>SAPL Embedded PDP</name>
 
 	<dependencies>
-
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>sapl-lang</artifactId>

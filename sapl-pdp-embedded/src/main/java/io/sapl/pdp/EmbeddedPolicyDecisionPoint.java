@@ -16,7 +16,6 @@
 package io.sapl.pdp;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -30,6 +29,7 @@ import io.sapl.api.pdp.IdentifiableAuthorizationSubscription;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.api.pdp.TracedDecision;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.grammar.sapl.PolicyElement;
 import io.sapl.grammar.sapl.SAPL;
@@ -39,64 +39,34 @@ import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
+import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.util.context.Context;
 
+@RequiredArgsConstructor
 public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
 	private final PDPConfigurationProvider configurationProvider;
 	private final PolicyRetrievalPoint     policyRetrievalPoint;
 
-	private final List<Function<AuthorizationSubscription, AuthorizationSubscription>> subscriptionInterceptors = new LinkedList<>();
-	private final List<Function<PDPDecision, PDPDecision>>                             decisionInterceptors     = new LinkedList<>();
-
-	public EmbeddedPolicyDecisionPoint(PDPConfigurationProvider configurationProvider,
-			PolicyRetrievalPoint policyRetrievalPoint) {
-		this.configurationProvider = configurationProvider;
-		this.policyRetrievalPoint  = policyRetrievalPoint;
-		this.decisionInterceptors.add(this::loggingInterceptor);
-	}
-
-	private PDPDecision loggingInterceptor(PDPDecision decision) {
-//		System.out.println("decision: " + decision.getAuthorizationDecision());
-//		System.out.println("trace:\n" + decision.getTrace());
-		return decision;
-	}
-
 	@Override
 	public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
-		return decideTraced(interceptSubscription(authzSubscription)).map(PDPDecision::getAuthorizationDecision);
+		return decideTraced(authzSubscription).map(TracedDecision::getAuthorizationDecision);
 	}
 
-	public void registerOnDecisionInterceptor(Function<PDPDecision, PDPDecision> interceptor) {
-		decisionInterceptors.add(interceptor);
-	}
-
-	public Flux<PDPDecision> decideTraced(AuthorizationSubscription authzSubscription) {
+	public Flux<TracedDecision> decideTraced(AuthorizationSubscription authzSubscription) {
 		return configurationProvider.pdpConfiguration().switchMap(decideSubscription(authzSubscription))
-				.distinctUntilChanged().map(this::interceptDecision);
+				.distinctUntilChanged();
 	}
 
-	private PDPDecision interceptDecision(PDPDecision decision) {
-		for (var interceptor : decisionInterceptors) {
-			decision = interceptor.apply(decision);
-		}
-		return decision;
-	}
-
-	private AuthorizationSubscription interceptSubscription(AuthorizationSubscription authzSubscription) {
-		for (var interceptor : subscriptionInterceptors) {
-			authzSubscription = interceptor.apply(authzSubscription);
-		}
-		return authzSubscription;
-	}
-
-	private Function<? super PDPConfiguration, Publisher<? extends PDPDecision>> decideSubscription(
+	private Function<? super PDPConfiguration, Publisher<? extends TracedDecision>> decideSubscription(
 			AuthorizationSubscription authzSubscription) {
 		return pdpConfiguration -> {
 			var combiningAlgorithm = pdpConfiguration.getDocumentsCombinator();
 			if (pdpConfiguration.isValid()) {
-				return retrieveAndCombineDocuments(pdpConfiguration.getDocumentsCombinator(), authzSubscription)
+				var subscription = pdpConfiguration.getSubscriptionInterceptorChain().apply(authzSubscription);
+				return retrieveAndCombineDocuments(pdpConfiguration.getDocumentsCombinator(), subscription)
+						.map(pdpConfiguration.getDecisionInterceptorChain())
 						.contextWrite(buildSubscriptionScopedContext(pdpConfiguration, authzSubscription));
 			} else {
 				var decision = CombinedDecision.error(

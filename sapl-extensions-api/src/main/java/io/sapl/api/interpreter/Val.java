@@ -45,7 +45,7 @@ import reactor.core.publisher.Mono;
  * @author Dominic Heutelbeck
  *
  */
-public class Val {
+public class Val implements Traced {
 
 	static final String ERROR_TEXT                           = "ERROR";
 	static final String UNDEFINED_TEXT                       = "undefined";

@@ -15,21 +15,27 @@
  */
 package io.sapl.pdp.config.fixed;
 
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.AuthorizationSubscriptionInterceptor;
+import io.sapl.api.pdp.TracedDecision;
+import io.sapl.api.pdp.TracedDecisionInterceptor;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
-import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 
-@RequiredArgsConstructor
 public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPConfigurationProvider {
 
 	private final AttributeContext attributeCtx;
@@ -38,21 +44,55 @@ public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPC
 
 	private final VariablesAndCombinatorSource variablesAndCombinatorSource;
 
+	private final List<AuthorizationSubscriptionInterceptor> subscriptionInterceptors;
+
+	private final List<TracedDecisionInterceptor> decisionInterceptors;
+
+	public FixedFunctionsAndAttributesPDPConfigurationProvider(AttributeContext attributeCtx,
+			FunctionContext functionCtx, VariablesAndCombinatorSource variablesAndCombinatorSource,
+			List<AuthorizationSubscriptionInterceptor> subscriptionInterceptors,
+			List<TracedDecisionInterceptor> decisionInterceptors) {
+		this.attributeCtx                 = attributeCtx;
+		this.functionCtx                  = functionCtx;
+		this.variablesAndCombinatorSource = variablesAndCombinatorSource;
+		this.subscriptionInterceptors     = subscriptionInterceptors.stream().sorted(Comparator.reverseOrder())
+				.collect(Collectors.toList());
+		this.decisionInterceptors         = decisionInterceptors.stream().sorted(Comparator.reverseOrder())
+				.collect(Collectors.toList());
+	}
+
 	@Override
 	public Flux<PDPConfiguration> pdpConfiguration() {
 		return Flux.combineLatest(variablesAndCombinatorSource.getCombiningAlgorithm(),
 				variablesAndCombinatorSource.getVariables(), this::createConfiguration);
 	}
 
-	private PDPConfiguration createConfiguration(
-			Optional<CombiningAlgorithm> combinator,
+	private PDPConfiguration createConfiguration(Optional<CombiningAlgorithm> combinator,
 			Optional<Map<String, JsonNode>> variables) {
-		return new PDPConfiguration(attributeCtx, functionCtx, variables.orElse(null), combinator.orElse(null));
+		return new PDPConfiguration(attributeCtx, functionCtx, variables.orElse(null), combinator.orElse(null),
+				decisionInterceptorChain(), subscriptionInterceptorChain());
+	}
+
+	private Function<AuthorizationSubscription, AuthorizationSubscription> subscriptionInterceptorChain() {
+		return t -> {
+			for (var intercept : subscriptionInterceptors) {
+				t = intercept.apply(t);
+			}
+			return t;
+		};
+	}
+
+	private Function<TracedDecision, TracedDecision> decisionInterceptorChain() {
+		return t -> {
+			for (var intercept : decisionInterceptors) {
+				t = intercept.apply(t);
+			}
+			return t;
+		};
 	}
 
 	@Override
 	public void dispose() {
 		variablesAndCombinatorSource.dispose();
 	}
-
 }

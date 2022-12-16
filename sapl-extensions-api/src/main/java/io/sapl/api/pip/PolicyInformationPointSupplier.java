@@ -9,6 +9,8 @@ import java.util.function.Supplier;
  * 
  * @author Dominic Heutelbeck
  *
- */public interface PolicyInformationPointSupplier extends Supplier<Collection<Object>> {
+ */
+@FunctionalInterface
+public interface PolicyInformationPointSupplier extends Supplier<Collection<Object>> {
 
 }

@@ -1,4 +1,4 @@
-package io.sapl.interpreter;
+package io.sapl.api.interpreter;
 
 import com.fasterxml.jackson.databind.JsonNode;
 

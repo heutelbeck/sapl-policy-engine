@@ -49,7 +49,7 @@ public class PRPAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public PolicyRetrievalPoint policyRetrievalPoint() throws PolicyEvaluationException {
+	PolicyRetrievalPoint policyRetrievalPoint() throws PolicyEvaluationException {
 		log.info("Using index type: {}", pdpProperties.getIndex());
 		ImmutableParsedDocumentIndex seedIndex;
 		if (pdpProperties.getIndex() == IndexType.NAIVE) {

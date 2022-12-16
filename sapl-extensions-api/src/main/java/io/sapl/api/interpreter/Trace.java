@@ -1,6 +1,5 @@
 package io.sapl.api.interpreter;
 
-import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -13,7 +12,6 @@ import lombok.Value;
 public class Trace {
 	Class<?>                 operation;
 	List<ExpressionArgument> arguments = new LinkedList<>();
-	Instant                  timestamp;
 
 	@Value
 	public static class ExpressionArgument {
@@ -23,12 +21,10 @@ public class Trace {
 
 	public Trace(Class<?> operation) {
 		this.operation = operation;
-		this.timestamp = Instant.now();
 	}
 
 	public Trace(Class<?> operation, Val... arguments) {
 		this.operation = operation;
-		this.timestamp = Instant.now();
 		var i = 0;
 		for (var argument : arguments) {
 			if (arguments.length == 1)
@@ -40,7 +36,6 @@ public class Trace {
 
 	public Trace(Class<?> operation, Map<String, Val> arguments) {
 		this.operation = operation;
-		this.timestamp = Instant.now();
 		for (var argument : arguments.entrySet()) {
 			this.arguments.add(new ExpressionArgument(argument.getKey(), argument.getValue()));
 		}
@@ -48,7 +43,6 @@ public class Trace {
 
 	public Trace(Class<?> operation, ExpressionArgument... arguments) {
 		this.operation = operation;
-		this.timestamp = Instant.now();
 		for (var argument : arguments) {
 			this.arguments.add(argument);
 		}
@@ -56,7 +50,6 @@ public class Trace {
 
 	public Trace(Val leftHandValue, Class<?> operation, Val... arguments) {
 		this.operation = operation;
-		this.timestamp = Instant.now();
 		this.arguments.add(new ExpressionArgument("leftHandValue", leftHandValue));
 		var i = 0;
 		for (var argument : arguments) {
@@ -76,7 +69,6 @@ public class Trace {
 				args.set(argument.getName(), argument.getValue().getTrace());
 			jsonTrace.set("arguments", args);
 		}
-		jsonTrace.set("creationTime", Val.JSON.textNode(timestamp.toString()));
 		return jsonTrace;
 	}
 }

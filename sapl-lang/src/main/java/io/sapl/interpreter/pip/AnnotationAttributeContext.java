@@ -19,6 +19,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -87,7 +88,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 		var attributeMetadata = lookupAttribute(attributeName, numberOfArguments(arguments), false);
 		if (attributeMetadata == null)
 			return Flux.just(Val.error(UNKNOWN_ATTRIBUTE, attributeName));
-		return evaluateAttribute(attributeMetadata, leftHandValue, arguments, variables);
+		return evaluateAttribute(attributeName, attributeMetadata, leftHandValue, arguments, variables);
 	}
 
 	@Override
@@ -96,15 +97,15 @@ public class AnnotationAttributeContext implements AttributeContext {
 		var attributeMetadata = lookupAttribute(attributeName, numberOfArguments(arguments), true);
 		if (attributeMetadata == null)
 			return Flux.just(Val.error(UNKNOWN_ATTRIBUTE, attributeName));
-		return evaluateEnvironmentAttribute(attributeMetadata, arguments, variables);
+		return evaluateEnvironmentAttribute(attributeName, attributeMetadata, arguments, variables);
 	}
 
-	private Flux<Val> evaluateEnvironmentAttribute(AttributeFinderMetadata attributeMetadata, Arguments arguments,
-			Map<String, JsonNode> variables) {
+	private Flux<Val> evaluateEnvironmentAttribute(String attributeName, AttributeFinderMetadata attributeMetadata,
+			Arguments arguments, Map<String, JsonNode> variables) {
 		var pip    = attributeMetadata.getPolicyInformationPoint();
 		var method = attributeMetadata.getFunction();
 		return attributeFinderArguments(attributeMetadata, arguments, variables)
-				.switchMap(invokeAttributeFinderMethod(attributeMetadata, pip, method));
+				.switchMap(invokeAttributeFinderMethod(attributeName, attributeMetadata, pip, method));
 	}
 
 	private AttributeFinderMetadata lookupAttribute(String attributeName, int numberOfParameters,
@@ -124,22 +125,34 @@ public class AnnotationAttributeContext implements AttributeContext {
 		return varArgsMatch;
 	}
 
-	private Flux<Val> evaluateAttribute(AttributeFinderMetadata attributeMetadata, Val leftHandValue,
-			Arguments arguments, Map<String, JsonNode> variables) {
+	private Flux<Val> evaluateAttribute(String attributeName, AttributeFinderMetadata attributeMetadata,
+			Val leftHandValue, Arguments arguments, Map<String, JsonNode> variables) {
 
 		var pip    = attributeMetadata.getPolicyInformationPoint();
 		var method = attributeMetadata.getFunction();
 
 		return attributeFinderArguments(attributeMetadata, leftHandValue, arguments, variables)
-				.switchMap(invokeAttributeFinderMethod(attributeMetadata, pip, method));
+				.switchMap(invokeAttributeFinderMethod(attributeName, attributeMetadata, pip, method));
 	}
 
 	@SuppressWarnings("unchecked")
-	private Function<Object[], Publisher<? extends Val>> invokeAttributeFinderMethod(
+	private Function<Object[], Publisher<? extends Val>> invokeAttributeFinderMethod(String attributeName,
 			AttributeFinderMetadata attributeMetadata, Object pip, Method method) {
 		return invocationParameters -> {
 			try {
-				return ((Flux<Val>) method.invoke(pip, invocationParameters));
+				return ((Flux<Val>) method.invoke(pip, invocationParameters)).map(val -> {
+					var trace = new HashMap<String, Val>();
+					trace.put("attribute", Val.of(attributeName));
+					for (int i = 0; i < invocationParameters.length; i++) {
+						if (invocationParameters[i] instanceof Val)
+							trace.put("argument[" + i + "]", (Val) (invocationParameters[i]));
+						if (invocationParameters[i] instanceof Map) {
+							trace.put("argument[" + i + "]", Val.of("VARIABLES OMITTED"));
+						}
+					}
+					trace.put("timestamp", Val.of(Instant.now().toString()));
+					return val.withTrace(getClass(), trace);
+				});
 			} catch (InvocationTargetException | IllegalAccessException | IllegalArgumentException e) {
 				if (e.getCause() != null)
 					return Val.errorFlux(e.getCause().getMessage());

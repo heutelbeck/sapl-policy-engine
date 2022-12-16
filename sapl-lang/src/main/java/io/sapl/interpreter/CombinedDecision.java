@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
+import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import lombok.Getter;
@@ -67,7 +68,7 @@ public class CombinedDecision implements Traced {
 	public JsonNode getTrace() {
 		var trace = Val.JSON.objectNode();
 		trace.set("combiningAlgorithm", Val.JSON.textNode(combiningAlgorithm));
-		trace.set("authoriyationDecision", MAPPER.valueToTree(getAuthorizationDecision()));
+		trace.set("authorizationDecision", MAPPER.valueToTree(getAuthorizationDecision()));
 		if (errorMessage.isPresent())
 			trace.set("error", Val.JSON.textNode(errorMessage.get()));
 		trace.set("evaluatedPolicies", listOfTracedToJsonArray(documentEvaluationResults));

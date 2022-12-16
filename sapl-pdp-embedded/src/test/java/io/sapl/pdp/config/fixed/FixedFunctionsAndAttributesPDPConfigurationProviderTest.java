@@ -19,6 +19,8 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 
 import io.sapl.grammar.sapl.DenyUnlessPermitCombiningAlgorithm;
@@ -30,11 +32,12 @@ class FixedFunctionsAndAttributesPDPConfigurationProviderTest {
 
 	@Test
 	void do_test() {
-		var source = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
-		var attrCtx = new AnnotationAttributeContext();
-		var funcCtx = new AnnotationFunctionContext();
-		var provider = new FixedFunctionsAndAttributesPDPConfigurationProvider(attrCtx, funcCtx, source);
-		var config = provider.pdpConfiguration().blockFirst();
+		var source   = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
+		var attrCtx  = new AnnotationAttributeContext();
+		var funcCtx  = new AnnotationFunctionContext();
+		var provider = new FixedFunctionsAndAttributesPDPConfigurationProvider(attrCtx, funcCtx, source, List.of(),
+				List.of());
+		var config   = provider.pdpConfiguration().blockFirst();
 		provider.dispose();
 
 		assertThat(config.getDocumentsCombinator() instanceof DenyUnlessPermitCombiningAlgorithm, is(true));

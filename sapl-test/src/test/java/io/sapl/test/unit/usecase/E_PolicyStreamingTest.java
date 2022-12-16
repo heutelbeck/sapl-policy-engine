@@ -55,7 +55,6 @@ class E_PolicyStreamingTest {
 				.givenAttribute("time.now", timestamp0, timestamp1, timestamp2, timestamp3, timestamp4, timestamp5)
 				.when(AuthorizationSubscription.of("ROLE_DOCTOR", "read", "heartBeatData")).expectNextNotApplicable()
 				.expectNextNotApplicable().expectNextNotApplicable().expectNextNotApplicable()
-				// .expectNextNotApplicable(4)
 				.expectNextPermit().expectNextPermit().verify();
 	}
 

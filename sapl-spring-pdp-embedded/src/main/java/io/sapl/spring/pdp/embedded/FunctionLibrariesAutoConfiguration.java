@@ -27,22 +27,22 @@ import io.sapl.functions.TemporalFunctionLibrary;
 public class FunctionLibrariesAutoConfiguration {
 
 	@Bean
-	public FilterFunctionLibrary filterFunctionLibrary() {
+	FilterFunctionLibrary filterFunctionLibrary() {
 		return new FilterFunctionLibrary();
 	}
 
 	@Bean
-	public StandardFunctionLibrary standardFunctionLibrary() {
+	StandardFunctionLibrary standardFunctionLibrary() {
 		return new StandardFunctionLibrary();
 	}
 
 	@Bean
-	public TemporalFunctionLibrary temporalFunctionLibrary() {
+	TemporalFunctionLibrary temporalFunctionLibrary() {
 		return new TemporalFunctionLibrary();
 	}
 
 	@Bean
-	public LoggingFunctionLibrary loggingFunctionLibrary() {
+	LoggingFunctionLibrary loggingFunctionLibrary() {
 		return new LoggingFunctionLibrary();
 	}
 
