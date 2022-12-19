@@ -15,10 +15,9 @@
  */
 package io.sapl.interpreter.validation;
 
-public class IllegalParameterType extends Exception {
+import lombok.experimental.StandardException;
 
-	public IllegalParameterType(String message) {
-		super(message);
-	}
+@StandardException
+public class IllegalParameterType extends Exception {
 
 }

@@ -32,6 +32,7 @@ import org.springframework.web.reactive.function.client.WebClient.ResponseSpec;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import lombok.Getter;
+import lombok.experimental.StandardException;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
@@ -47,11 +48,8 @@ public class JWTKeyProvider {
 	static final String KEY_CACHING_TTL_MILLIS = "keyCachingTTLmillis";
 	static final long   DEFAULT_CACHING_TTL    = 300000L;
 
+	@StandardException
 	public static class CachingException extends Exception {
-
-		public CachingException(String message) {
-			super(message);
-		}
 
 	}
 
