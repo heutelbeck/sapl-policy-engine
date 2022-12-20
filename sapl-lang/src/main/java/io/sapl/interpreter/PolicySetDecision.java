@@ -73,7 +73,7 @@ public class PolicySetDecision implements DocumentEvaluationResult {
 		trace.set("policySetName", Val.JSON.textNode(document.getSaplName()));
 		trace.set("combinedDecision", combinedDecision.getTrace());
 		errorMessage.ifPresent(error -> trace.set("error", Val.JSON.textNode(errorMessage.get())));
-		targetResult.ifPresent(target -> trace.set("where", target.getTrace()));
+		targetResult.ifPresent(target -> trace.set("target", target.getTrace()));
 		return trace;
 	}
 

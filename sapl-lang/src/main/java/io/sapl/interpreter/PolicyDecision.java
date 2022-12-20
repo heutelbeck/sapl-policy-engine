@@ -133,11 +133,11 @@ public class PolicyDecision implements DocumentEvaluationResult {
 		var trace = Val.JSON.objectNode();
 		trace.set("documentType", Val.JSON.textNode("policy"));
 		trace.set("policyName", Val.JSON.textNode(document.getSaplName()));
-		trace.set("authoriyationDecision", MAPPER.valueToTree(getAuthorizationDecision()));
+		trace.set("authorizationDecision", MAPPER.valueToTree(getAuthorizationDecision()));
 		if (entitlement != null)
 			trace.set("entitlement", Val.JSON.textNode(entitlement.toString()));
 		errorMessage.ifPresent(error -> trace.set("error", Val.JSON.textNode(errorMessage.get())));
-		targetResult.ifPresent(target -> trace.set("where", target.getTrace()));
+		targetResult.ifPresent(target -> trace.set("target", target.getTrace()));
 		whereResult.ifPresent(where -> trace.set("where", where.getTrace()));
 		if (!obligations.isEmpty())
 			trace.set("obligations", listOfValToTraceArray(obligations));

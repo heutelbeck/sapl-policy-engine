@@ -650,11 +650,10 @@ public class Val implements Traced {
 	}
 
 	public JsonNode getTrace() {
-		if (isSecret())
-			return JSON.textNode("|SECRET|");
-
 		JsonNode val;
-		if (isError()) {
+		if (isSecret())
+			val = JSON.textNode("|SECRET|");
+		else if (isError()) {
 			val = JSON.textNode("|ERROR| " + errorMessage);
 		} else if (isUndefined()) {
 			val = JSON.textNode("|UNDEFINED|");
@@ -662,12 +661,12 @@ public class Val implements Traced {
 			val = value;
 		}
 
-		if (trace == null)
-			return val;
-
 		var traceJson = JSON.objectNode();
 		traceJson.set("value", val);
-		traceJson.set("trace", trace.getTrace());
+		if (trace != null) {
+			traceJson.set("trace", trace.getTrace());
+		}
 		return traceJson;
 	}
+	
 }

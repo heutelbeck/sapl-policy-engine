@@ -151,7 +151,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 						}
 					}
 					trace.put("timestamp", Val.of(Instant.now().toString()));
-					return val.withTrace(getClass(), trace);
+					return val.withTrace(AttributeContext.class, trace);
 				});
 			} catch (InvocationTargetException | IllegalAccessException | IllegalArgumentException e) {
 				if (e.getCause() != null)
@@ -296,9 +296,9 @@ public class AnnotationAttributeContext implements AttributeContext {
 	 *                                 inconsistencies.
 	 */
 	public final void loadPolicyInformationPoint(Object pip) throws InitializationException {
-		final Class<?> clazz = pip.getClass();
-
-		final PolicyInformationPoint pipAnnotation = clazz.getAnnotation(PolicyInformationPoint.class);
+		
+		var clazz         = pip.getClass();
+		var pipAnnotation = clazz.getAnnotation(PolicyInformationPoint.class);
 
 		if (pipAnnotation == null)
 			throw new InitializationException(NO_POLICY_INFORMATION_POINT_ANNOTATION);

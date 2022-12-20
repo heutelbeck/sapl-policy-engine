@@ -21,7 +21,15 @@ import lombok.Value;
 @Getter
 @ToString
 public class PDPDecision implements TracedDecision {
-	private static final ObjectMapper MAPPER = new ObjectMapper();
+	public static final String MODIFICATIONS              = "modifications";
+	public static final String TIMESTAMP                  = "timestamp";
+	public static final String COMBINED_DECISION          = "combinedDecision";
+	public static final String MATCHING_DOCUMENTS         = "matchingDocuments";
+	public static final String AUTHORIZATION_DECISION     = "authorizationDecision";
+	public static final String AUTHORIZATION_SUBSCRIPTION = "authorizationSubscription";
+	public static final String OPERATOR                   = "operator";
+
+	public static final ObjectMapper MAPPER = new ObjectMapper();
 
 	AuthorizationSubscription authorizationSubscription;
 	List<SAPL>                matchingDocuments = new LinkedList<>();
@@ -42,7 +50,7 @@ public class PDPDecision implements TracedDecision {
 		this.timestamp                 = timestamp;
 		this.matchingDocuments.addAll(matchingDocuments);
 		this.modifications.addAll(modifications);
-		MAPPER.registerModule(new Jdk8Module());	
+		MAPPER.registerModule(new Jdk8Module());
 	}
 
 	public static PDPDecision of(AuthorizationSubscription authorizationSubscription, CombinedDecision combinedDecision,
@@ -74,16 +82,16 @@ public class PDPDecision implements TracedDecision {
 	@Override
 	public JsonNode getTrace() {
 		var trace = Val.JSON.objectNode();
-		trace.set("operator", Val.JSON.textNode("Policy Decision Point"));
-		trace.set("subscription", MAPPER.valueToTree(authorizationSubscription));
-		trace.set("authorizationDecision", MAPPER.valueToTree(getAuthorizationDecision()));
+		trace.set(OPERATOR, Val.JSON.textNode("Policy Decision Point"));
+		trace.set(AUTHORIZATION_SUBSCRIPTION, MAPPER.valueToTree(authorizationSubscription));
+		trace.set(AUTHORIZATION_DECISION, MAPPER.valueToTree(getAuthorizationDecision()));
 		var matches = Val.JSON.arrayNode();
 		matchingDocuments.forEach(doc -> matches.add(Val.JSON.textNode(doc.getPolicyElement().getSaplName())));
-		trace.set("matchingDocuments", matches);
-		trace.set("combinedDecision", combinedDecision.getTrace());
-		trace.set("creationTime", Val.JSON.textNode(timestamp.toString()));
+		trace.set(MATCHING_DOCUMENTS, matches);
+		trace.set(COMBINED_DECISION, combinedDecision.getTrace());
+		trace.set(TIMESTAMP, Val.JSON.textNode(timestamp.toString()));
 		if (!modifications.isEmpty()) {
-			trace.set("modifications", getModificationsTrace());
+			trace.set(MODIFICATIONS, getModificationsTrace());
 		}
 		return trace;
 	}
@@ -92,7 +100,7 @@ public class PDPDecision implements TracedDecision {
 		var modificationTrace = Val.JSON.arrayNode();
 		for (var mod : modifications) {
 			var modJson = Val.JSON.objectNode();
-			modJson.set("authorizationDecision", MAPPER.valueToTree(mod.getAuthorizationDecision()));
+			modJson.set(AUTHORIZATION_DECISION, MAPPER.valueToTree(mod.getAuthorizationDecision()));
 			modJson.set("explanation", Val.JSON.textNode(mod.getExplanation()));
 			modificationTrace.add(modJson);
 		}

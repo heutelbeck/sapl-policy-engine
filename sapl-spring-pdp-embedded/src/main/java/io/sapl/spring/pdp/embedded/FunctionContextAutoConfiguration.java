@@ -17,11 +17,11 @@ package io.sapl.spring.pdp.embedded;
 
 import java.util.Collection;
 
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.interpreter.InitializationException;
@@ -30,7 +30,7 @@ import io.sapl.interpreter.functions.FunctionContext;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Configuration
+@AutoConfiguration
 @AutoConfigureAfter(FunctionLibrariesAutoConfiguration.class)
 public class FunctionContextAutoConfiguration {
 

@@ -17,8 +17,13 @@ import lombok.ToString;
 @ToString
 public class CombinedDecision implements Traced {
 
+	public static final String EVALUATED_POLICIES     = "evaluatedPolicies";
+	public static final String ERROR                  = "error";
+	public static final String AUTHORIZATION_DECISION = "authorizationDecision";
+	public static final String COMBINING_ALGORITHM    = "combiningAlgorithm";
+
 	private static final ObjectMapper MAPPER = new ObjectMapper();
-	
+
 	@Getter
 	AuthorizationDecision          authorizationDecision;
 	String                         combiningAlgorithm;
@@ -31,7 +36,7 @@ public class CombinedDecision implements Traced {
 		this.combiningAlgorithm    = combiningAlgorithm;
 		this.documentEvaluationResults.addAll(documentEvaluationResults);
 		this.errorMessage = errorMessage;
-		MAPPER.registerModule(new Jdk8Module());	
+		MAPPER.registerModule(new Jdk8Module());
 	}
 
 	public static CombinedDecision error(String combiningAlgorithm, String errorMessage) {
@@ -52,7 +57,7 @@ public class CombinedDecision implements Traced {
 	public CombinedDecision withEvaluationResult(DocumentEvaluationResult result) {
 		var newCombindedDecision = new CombinedDecision(authorizationDecision, combiningAlgorithm,
 				documentEvaluationResults, errorMessage);
-		documentEvaluationResults.add(result);
+		newCombindedDecision.documentEvaluationResults.add(result);
 		return newCombindedDecision;
 	}
 
@@ -60,18 +65,18 @@ public class CombinedDecision implements Traced {
 			DocumentEvaluationResult result) {
 		var newCombindedDecision = new CombinedDecision(authorizationDecision, combiningAlgorithm,
 				documentEvaluationResults, errorMessage);
-		documentEvaluationResults.add(result);
+		newCombindedDecision.documentEvaluationResults.add(result);
 		return newCombindedDecision;
 	}
 
 	@Override
 	public JsonNode getTrace() {
 		var trace = Val.JSON.objectNode();
-		trace.set("combiningAlgorithm", Val.JSON.textNode(combiningAlgorithm));
-		trace.set("authorizationDecision", MAPPER.valueToTree(getAuthorizationDecision()));
+		trace.set(COMBINING_ALGORITHM, Val.JSON.textNode(combiningAlgorithm));
+		trace.set(AUTHORIZATION_DECISION, MAPPER.valueToTree(getAuthorizationDecision()));
 		if (errorMessage.isPresent())
-			trace.set("error", Val.JSON.textNode(errorMessage.get()));
-		trace.set("evaluatedPolicies", listOfTracedToJsonArray(documentEvaluationResults));
+			trace.set(ERROR, Val.JSON.textNode(errorMessage.get()));
+		trace.set(EVALUATED_POLICIES, listOfTracedToJsonArray(documentEvaluationResults));
 		return trace;
 	}
 

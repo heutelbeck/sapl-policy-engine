@@ -1,3 +1,9 @@
+io.sapl:
+  pdp.embedded:
+    pretty-print-reports: false
+    print-trace: false
+    print-json-report: false
+    print-text-report: true     
 spring:
   profiles.active: local
   application.name: sapl-server-lt
@@ -6,4 +12,3 @@ management:
     health:
       show-details: always
 loader.path: /pdp/data/lib
-      
