@@ -1,34 +1,52 @@
-
-# configure the PDP
 io.sapl:
-  pdp.embedded:
-    pdp-config-type: FILESYSTEM
-    # folder in which the configuration and policies reside on the system
-    config-path: ~/sapl/policies
-    policies-path: ~/sapl/policies
-  server-lt:
-    key: YJidgyT2mfdkbmL
-    # BCrypt encoded client-secret (raw secret: Fa4zvYQdiwHZVXh)
-    # Authorization: Basic WUppZGd5VDJtZmRrYm1MOkZhNHp2WVFkaXdIWlZYaA==
-    secret: $2a$10$PhobF71xYb0MK8KubWLB7e0Dpl2AfMiEUi9dkKTbFR4kkWABrbiyO
+   server-lt:
+      key: YJidgyT2mfdkbmL
+# BCrypt encoded client-secret (raw secret: Fa4zvYQdiwHZVXh)
+# Authorization: Basic WUppZGd5VDJtZmRrYm1MOkZhNHp2WVFkaXdIWlZYaA==
+      secret: $2a$10$PhobF71xYb0MK8KubWLB7e0Dpl2AfMiEUi9dkKTbFR4kkWABrbiyO
+   pdp.embedded:
+      pdp-config-type: FILESYSTEM
+# folder in which the configuration and policies reside on the system
+      config-path: ~/sapl/policies
+      policies-path: ~/sapl/policies
+# The following options enable or disable different levels of logging for decisions.
+#
+# print-trace: true|false This is the most fine-grained explanation of a decision made
+#                         by the PDP each individual calculation step is documented.
+#                         The trace is in JSON format and may become very large.
+#                         Recommended only as a last resort for troubleshooting.
+      print-trace: true
+# print-json-report: true|false This is a JSON report summarizing the applied algorithms
+#                               and results of each evaluated policy (set) in the decision
+#                               making process. It includes lists of all errors and values
+#                               of policy information point attributes encountered
+#                               during the evaluation of each policy (set).
+      print-json-report: true
+# print-text-report: true|false This will log a human readable textual report based on the
+#                               same data as the 'print-json-report' option generates.
+      print-text-report: true
+# pretty-print-reports: true|false This option can enable formatting of JSON data while
+#                                  printing JSON during reporting and tracing.
+#                                  If it is intended to copy&paste JSON from the console-log
+#                                  it is recommended to keep this turned off.
+      pretty-print-reports: false
 
 loader.path: /pdp/data/lib
 
-# configure the server
 server:
-  port: 8443
-  address: localhost
-  ssl:
-    enabled: true
-    key-store-type: PKCS12
-    key-store: classpath:keystore.p12
-    key-store-password: changeme
-    key-password: changeme
-    key-alias: netty
+   port: 8443
+# configure the server
+   address: localhost
+   ssl:
+      enabled: true
+      key-store-type: PKCS12
+      key-store: classpath:keystore.p12
+      key-store-password: changeme
+      key-password: changeme
+      key-alias: netty
 
 # configure  logger
 logging.level:
-  # set to TRACE to see how the PDP is coming to its decisions
-  io.sapl: INFO
-  # turned off for localhost self-signed to suppress useless error logs. Turn it on in production.
-  reactor.netty.tcp.TcpServer: OFF 
+   io.sapl: INFO
+# turned off for localhost self-signed to suppress useless error logs. Turn it on in production.
+   reactor.netty.tcp.TcpServer: OFF
