@@ -38,7 +38,8 @@ public class PDPConfiguration {
 	Function<AuthorizationSubscription, AuthorizationSubscription> subscriptionInterceptorChain;
 
 	public boolean isValid() {
-		return attributeContext != null && functionContext != null && variables != null && documentsCombinator != null;
+		return attributeContext != null && functionContext != null && variables != null && documentsCombinator != null
+				&& decisionInterceptorChain != null && subscriptionInterceptorChain != null;
 	}
 
 }
