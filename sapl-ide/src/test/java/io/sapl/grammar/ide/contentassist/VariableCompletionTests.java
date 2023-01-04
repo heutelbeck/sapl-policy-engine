@@ -57,6 +57,21 @@ public class VariableCompletionTests extends CompletionTests {
 	}
 
 	@Test
+	public void testCompletion_SuggestVariableInBodyAfterSubject_debug() {
+		testCompletion((TestCompletionConfiguration it) -> {
+			String policy = "import time.before\npolicy \"test\" permit where var foo = 5; var bar = 6; subject ==";
+			String cursor = "policy \"test\" permit where var foo = 5; var bar = 6; subject ==";
+			it.setModel(policy);
+			it.setLine(1);
+			it.setColumn(cursor.length());
+			it.setAssertCompletionList(completionList -> {
+				var expected = List.of("action", "bar", "environment", "foo", "resource", "subject");
+				assertProposalsSimple(expected, completionList);
+			});
+		});
+	}
+
+	@Test
 	public void testCompletion_SuggestVariableInBody_NotSuggestOutOfScopeVariable() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "policy \"test\" permit where var foo = 5; var bar = 6;";

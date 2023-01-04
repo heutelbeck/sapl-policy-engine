@@ -148,7 +148,7 @@
                                 "    }," +
                                 "    \"age\": {\"type\": \"number\"}" +
                                 "  }" +
-                                "} var foo = 1; foo.";
+                                "} var foo = 1; foo";
                         it.setModel(policy);
                         it.setColumn(policy.length());
                         it.setAssertCompletionList(completionList -> {
@@ -161,7 +161,7 @@
                 @Test
                 public void testCompletion_PolicyBody_getSchemaFromEnvironmentVariable() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "policy \"test\" permit where bar = 5; schema schema_with_additional_keywords var foo = \"test\"; ";
+                        String policy = "policy \"test\" permit where var bar = 5; schema schema_with_additional_keywords var foo = \"test\"; foo";
                         it.setModel(policy);
                         it.setColumn(policy.length());
                         it.setAssertCompletionList(completionList -> {
@@ -223,6 +223,19 @@
 
                 @Test
                 public void testCompletion_SuggestSchemaFromPDPScopedVariable_for_AuthzElementAction() {
+                    testCompletion((TestCompletionConfiguration it) -> {
+                        String policy = "schema myschema for action policy \"test\" permit where action";
+                        it.setModel(policy);
+                        it.setColumn(policy.length());
+                        it.setAssertCompletionList(completionList -> {
+                            var expected = List.of("action.name", "action.age");
+                            assertProposalsSimple(expected, completionList);
+                        });
+                    });
+                }
+
+                @Test
+                public void testCompletion_SuggestSchemaFromPDPScopedVariable_for_AuthzElementAction2() {
                     testCompletion((TestCompletionConfiguration it) -> {
                         String policy = "schema subject_schema for action policy \"test\" permit where action";
                         it.setModel(policy);

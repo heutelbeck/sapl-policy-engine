@@ -7,12 +7,14 @@ import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import reactor.core.publisher.Flux;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RequiredArgsConstructor
 public class SchemaProposals {
 
@@ -29,12 +31,15 @@ public class SchemaProposals {
             "\\.?type\\.?",
             "java\\.?");
 
-    private final String enumKeyword = "enum\\[\\d+\\]";
+    private static final String enumKeyword = "enum\\[\\d+\\]";
 
 
     public List<String> getVariableNamesAsTemplates(){
-        return getAllVariables().next().block()
-                .keySet().stream().collect(Collectors.toList());
+        List<String> templates = new ArrayList<>();
+        var variables = getAllVariables().next().block();
+        if(variables != null)
+            templates = variables.keySet().stream().collect(Collectors.toList());
+        return templates;
     }
 
     public List<String> getCodeTemplates(Expression expression) {
@@ -42,7 +47,7 @@ public class SchemaProposals {
                 expression
                         .evaluate()
                         .contextWrite(ctx -> AuthorizationContext.setVariables(ctx, vars))
-                        .flatMap(s -> getCodeTemplates(s))
+                        .flatMap(this::getCodeTemplates)
                         .filter(StringUtils::isNotBlank)
                         .collectList()
         ).block();
@@ -52,19 +57,20 @@ public class SchemaProposals {
         List<String> schema = new ArrayList<>();
         try {
             schema = flattenSchema(v.getText());
-        } finally {
-            return Flux.fromIterable(schema);
+        } catch (Exception e) {
+            log.info("Could not flatten schema: {}", v.getText());
         }
+        return Flux.fromIterable(schema);
     }
 
     private Flux<Map<String, JsonNode>> getAllVariables() {
         return variablesAndCombinatorSource
                 .getVariables()
-                .map(s -> getMapOfVariables(s));
+                .map(this::getMapOfVariables);
     }
 
     private Map<String, JsonNode> getMapOfVariables(Optional<Map<String, JsonNode>> s) {
-        return s.isPresent() ? s.get() : Collections.EMPTY_MAP;
+        return s.isPresent() ? s.get() : Collections.emptyMap();
     }
 
 
@@ -78,7 +84,7 @@ public class SchemaProposals {
 
         return paths.stream()
                 .filter(path -> !stringMatchesUnwantedJsonKeyword(path))
-                .map(path -> removeUnwantedKeywordsFromPath(path))
+                .map(this::removeUnwantedKeywordsFromPath)
                 .collect(Collectors.toList());
     }
 

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp.config.filesystem;
+package io.sapl.grammar.ide.contentassist.filesystem;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -47,8 +47,6 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
 	private static final String CONFIG_FILE_GLOB_PATTERN = "pdp.json";
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();
-
-	//private static final String SCHEMA_FILE_DIR = "../../sapl-policy-engine/sapl-ide/src/main/resources";
 
 	private final String watchDir;
 
@@ -98,43 +96,21 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
 	public Flux<Optional<Map<String, JsonNode>>> getVariables() {
 
 		Map<String, JsonNode> schemaMap = new HashMap<>();
-		//File[] jsonFiles = new File(SCHEMA_FILE_DIR).listFiles((dir, name) -> name.endsWith(".json"));
 		File[] jsonFiles = new File(configPath).listFiles((dir, name) -> name.endsWith(".json"));
-		//File[] jsonFilesFromSchemaDir = new File(SCHEMA_FILE_DIR).listFiles((dir, name) -> name.endsWith(".json"));
-		//File[] jsonFilesFromConfigDir = new File(watchDir).listFiles((dir, name) -> name.endsWith(".json"));
-
-/*		if (jsonFilesFromConfigDir.length > 0 && jsonFilesFromSchemaDir.length > 0)
-			jsonFiles = concatWithArrayCopy(jsonFilesFromConfigDir, jsonFilesFromSchemaDir);
-		else if(jsonFilesFromConfigDir.length > 0)
-			jsonFiles = jsonFilesFromConfigDir;
-		else
-			jsonFiles = jsonFilesFromSchemaDir;*/
 
 		for (File jsonFile: jsonFiles)
 			try {
 				String keyString = jsonFile.getName().substring(0, jsonFile.getName().lastIndexOf("."));
 				JsonNode node = MAPPER.readTree(jsonFile);
 				schemaMap.put(keyString, node);
-			} catch (JsonProcessingException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
+			} catch (Exception e) {
+				log.info("Error reading variables from file system: {}", e.getMessage());
 			}
 
 		Optional optSchemaMap = Optional.ofNullable(schemaMap);
 
 		return Flux.just(optSchemaMap);
 	}
-
-/*	@Override
-	public Flux<Optional<Map<String, JsonNode>>> getVariables() {
-		return Flux.from(configFlux)
-				.switchMap(config -> config
-						.map(policyDecisionPointConfiguration -> Flux
-								.just(Optional.of(policyDecisionPointConfiguration.getVariables())))
-						.orElseGet(() -> Flux.just(Optional.empty())));
-
-	}*/
 
 	private Optional<PolicyDecisionPointConfiguration> processWatcherEvent(FileEvent fileEvent) {
 		if (fileEvent instanceof FileDeletedEvent) {

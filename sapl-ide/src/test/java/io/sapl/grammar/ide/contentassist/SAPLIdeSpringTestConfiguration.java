@@ -17,8 +17,7 @@ package io.sapl.grammar.ide.contentassist;
 
 import io.sapl.interpreter.InitializationException;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
-import io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSource;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import io.sapl.grammar.ide.contentassist.filesystem.FileSystemVariablesAndCombinatorSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;

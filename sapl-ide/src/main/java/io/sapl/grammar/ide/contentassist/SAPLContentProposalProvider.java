@@ -237,6 +237,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
 	private void addProposalsWithImportsForTemplates(Collection<String> templates, ContentAssistContext context,
 													 IIdeContentProposalAcceptor acceptor) {
+		var test = TreeNavigationHelper.goToFirstParent(context.getCurrentModel(), SAPL.class);
 		var sapl = Objects.requireNonNullElse(
 				TreeNavigationHelper.goToFirstParent(context.getCurrentModel(), SAPL.class),
 				SaplFactory.eINSTANCE.createSAPL());
