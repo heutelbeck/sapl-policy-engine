@@ -15,9 +15,9 @@
  */
 package io.sapl.interpreter;
 
-import static org.hamcrest.CoreMatchers.is;
 import static com.spotify.hamcrest.jackson.IsJsonBoolean.jsonBoolean;
 import static com.spotify.hamcrest.optional.OptionalMatchers.optionalWithValue;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.HashMap;
@@ -30,7 +30,6 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import reactor.core.publisher.Hooks;
 import reactor.test.StepVerifier;
 
 class DefaultSAPLInterpreterPolicySetTest {
@@ -45,7 +44,6 @@ class DefaultSAPLInterpreterPolicySetTest {
 
 	@BeforeEach
 	void setUp() throws InitializationException {
-		Hooks.onOperatorDebug();
 		authzSubscription = new AuthorizationSubscription(null, null, null, null);
 		attributeCtx      = new AnnotationAttributeContext();
 		functionCtx       = new AnnotationFunctionContext();
@@ -183,8 +181,7 @@ class DefaultSAPLInterpreterPolicySetTest {
 	private void assertThatDocumentEvaluationReturnsExpected(String document, AuthorizationDecision expected) {
 		StepVerifier
 				.create(INTERPRETER.evaluate(authzSubscription, document, attributeCtx, functionCtx, new HashMap<>()))
-				.expectNext(expected)
-				.verifyComplete();
+				.expectNext(expected).verifyComplete();
 	}
 
 }

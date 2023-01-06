@@ -33,10 +33,8 @@ import io.sapl.prp.PrpUpdateEvent.Type;
 import io.sapl.prp.index.ImmutableParsedDocumentIndex;
 import io.sapl.prp.index.canonical.ordering.DefaultPredicateOrderStrategy;
 import io.sapl.prp.index.canonical.ordering.PredicateOrderStrategy;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
-@Slf4j
 public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDocumentIndex {
 
 	private final CanonicalIndexDataContainer indexDataContainer;
@@ -61,16 +59,16 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
 	}
 
 	private CanonicalImmutableParsedDocumentIndex(Map<String, SAPL> updatedDocuments,
-			PredicateOrderStrategy predicateOrderStrategy,
-			boolean consistent, AttributeContext attributeCtx, FunctionContext functionCtx) {
+			PredicateOrderStrategy predicateOrderStrategy, boolean consistent, AttributeContext attributeCtx,
+			FunctionContext functionCtx) {
 		this.documents              = updatedDocuments;
 		this.predicateOrderStrategy = predicateOrderStrategy;
 		this.consistent             = consistent;
 		this.attributeCtx           = attributeCtx;
 		this.functionCtx            = functionCtx;
 
-		Map<String, DisjunctiveFormula> targets = this.documents.entrySet().stream().collect(
-				Collectors.toMap(Entry::getKey, entry -> retainTarget(entry.getValue())));
+		Map<String, DisjunctiveFormula> targets = this.documents.entrySet().stream()
+				.collect(Collectors.toMap(Entry::getKey, entry -> retainTarget(entry.getValue())));
 
 		this.indexDataContainer = new CanonicalIndexDataCreationStrategy(predicateOrderStrategy).constructNew(documents,
 				targets);
@@ -89,7 +87,6 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
 		try {
 			return CanonicalIndexAlgorithm.match(indexDataContainer);
 		} catch (PolicyEvaluationException e) {
-			log.error("error while retrieving policies", e);
 			return Mono.just(new PolicyRetrievalResult(new ArrayList<>(), true, true));
 		}
 	}
@@ -107,7 +104,6 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
 				applyUpdate(newDocuments, update);
 			}
 		}
-		log.debug("returning updated index containing {} documents", newDocuments.size());
 		return recreateIndex(newDocuments, newConsistencyState);
 	}
 
@@ -138,7 +134,6 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
 
 			return targetFormula;
 		} catch (PolicyEvaluationException e) {
-			log.error("exception while retaining target for document {}", sapl.getPolicyElement().getSaplName(), e);
 			return new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
 		}
 	}

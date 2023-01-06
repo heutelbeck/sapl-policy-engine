@@ -15,54 +15,36 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import java.util.Map;
 import java.util.function.Function;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.api.pdp.Decision;
 import io.sapl.grammar.sapl.Condition;
+import io.sapl.grammar.sapl.PolicyBody;
 import io.sapl.grammar.sapl.ValueDefinition;
 import io.sapl.interpreter.context.AuthorizationContext;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.util.context.Context;
 
-@Slf4j
 public class PolicyBodyImplCustom extends PolicyBodyImpl {
 
-	private static final String STATEMENT_NOT_BOOLEAN = "Evaluation error: Statement must evaluate to a boolean value, but was: '%s'.";
+	private static final String STATEMENT_NOT_BOOLEAN = "Evaluation error: Each condition in 'where' must evaluate to a boolean value. Got: '%s'.";
 
 	/**
 	 * Evaluates all statements of this policy body within the given evaluation
 	 * context and returns a {@link Flux} of {@link Decision} objects.
 	 * 
-	 * @param entitlement the entitlement of the enclosing policy.
 	 * @return A {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
 	@Override
-	public Flux<Decision> evaluate(Decision entitlement) {
-		return evaluateStatements(Val.TRUE, 0).map(toDecision(entitlement))
-				.onErrorReturn(Decision.INDETERMINATE);
+	public Flux<Val> evaluate() {
+		return evaluateStatements(Val.TRUE.withTrace(PolicyBody.class), 0);
 	}
 
-	private Function<? super Val, Decision> toDecision(Decision entitlement) {
-		return val -> {
-			if (val.isError()) {
-				log.trace("Error evaluating statements: {}", val.getMessage());
-				return Decision.INDETERMINATE;
-			}
-
-			if (val.getBoolean())
-				return entitlement;
-
-			return Decision.NOT_APPLICABLE;
-		};
-	}
-
-	protected Flux<Val> evaluateStatements(
-			Val previousResult,
-			int statementId) {
+	protected Flux<Val> evaluateStatements(Val previousResult, int statementId) {
 		if (previousResult.isError() || !previousResult.getBoolean() || statementId == statements.size())
-			return Flux.just(previousResult);
+			return Flux.just(
+					previousResult.withTrace(PolicyBody.class, Map.of("previousConditionResult", previousResult)));
 
 		var statement = statements.get(statementId);
 
@@ -74,7 +56,8 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 	}
 
 	private Flux<Val> evaluateValueStatement(Val previousResult, int statementId, ValueDefinition valueDefinition) {
-		var valueStream = valueDefinition.getEval().evaluate();
+		var valueStream = valueDefinition.getEval().evaluate()
+				.map(val -> val.withTrace(PolicyBody.class, Map.of("variableName", Val.of(valueDefinition.getName()))));
 		return valueStream.switchMap(value -> evaluateStatements(previousResult, statementId + 1)
 				.contextWrite(setVariable(valueDefinition.getName(), value)));
 	}
@@ -84,9 +67,7 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 	}
 
 	// protected to provide hook for test coverage calculations
-	protected Flux<Val> evaluateCondition(
-			Val previousResult,
-			Condition condition) {
+	protected Flux<Val> evaluateCondition(Val previousResult, Condition condition) {
 		return condition.getExpression().evaluate().map(this::assertConditionResultIsBooleanOrError);
 	}
 
@@ -94,7 +75,8 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 		if (conditionResult.isBoolean() || conditionResult.isError())
 			return conditionResult;
 
-		return Val.error(STATEMENT_NOT_BOOLEAN, conditionResult);
+		return Val.error(STATEMENT_NOT_BOOLEAN, conditionResult).withTrace(PolicyBody.class,
+				Map.of("previousConditionResult", conditionResult));
 	}
 
 }

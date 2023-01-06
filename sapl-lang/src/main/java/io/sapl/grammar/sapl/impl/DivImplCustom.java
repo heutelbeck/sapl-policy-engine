@@ -15,11 +15,13 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.OperatorUtil.arithmeticOperator;
+import static io.sapl.grammar.sapl.impl.util.OperatorUtil.arithmeticOperator;
 
 import java.math.BigDecimal;
+import java.util.Map;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.Div;
 import reactor.core.publisher.Flux;
 
 /**
@@ -37,9 +39,10 @@ public class DivImplCustom extends DivImpl {
 	}
 
 	private Val divide(Val dividend, Val divisor) {
+		var trace = Map.of("dividend", dividend, "divisor", divisor);
 		if (divisor.decimalValue().compareTo(BigDecimal.ZERO) == 0)
-			return Val.error("Division by zero");
-		return Val.of(dividend.decimalValue().divide(divisor.decimalValue()));
+			return Val.error("Division by zero").withTrace(Div.class, trace);
+		return Val.of(dividend.decimalValue().divide(divisor.decimalValue())).withTrace(Div.class, trace);
 	}
 
 }

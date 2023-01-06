@@ -20,15 +20,18 @@ import static io.sapl.api.pdp.Decision.INDETERMINATE;
 import static io.sapl.api.pdp.Decision.NOT_APPLICABLE;
 import static io.sapl.api.pdp.Decision.PERMIT;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.grammar.sapl.Policy;
+import io.sapl.grammar.sapl.PolicyElement;
+import io.sapl.grammar.sapl.impl.util.CombiningAlgorithmUtil;
+import io.sapl.interpreter.CombinedDecision;
+import io.sapl.interpreter.DocumentEvaluationResult;
 import io.sapl.interpreter.combinators.ObligationAdviceCollector;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
@@ -51,33 +54,45 @@ import reactor.core.publisher.Flux;
  *
  * ii) Otherwise the decision is NOT_APPLICABLE.
  */
-@Slf4j
 public class DenyOverridesCombiningAlgorithmImplCustom extends DenyOverridesCombiningAlgorithmImpl {
 
-	@Override
-	protected AuthorizationDecision combineDecisions(AuthorizationDecision[] decisions, boolean errorsInTarget) {
-		if (decisions.length == 0 && !errorsInTarget)
-			return AuthorizationDecision.NOT_APPLICABLE;
 
-		var                entitlement = errorsInTarget ? INDETERMINATE : NOT_APPLICABLE;
-		var                collector   = new ObligationAdviceCollector();
-		Optional<JsonNode> resource    = Optional.empty();
-		for (var decision : decisions) {
-			if (decision.getDecision() == DENY) {
+	@Override
+	public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
+		return CombiningAlgorithmUtil.eagerlyCombinePolicyElements(policies, this::combinator, getName());
+	}
+
+	@Override
+	public String getName() {
+		return "DENY_OVERRIDES";
+	}
+	
+	private CombinedDecision combinator(DocumentEvaluationResult[] policyDecisions) {
+		if (policyDecisions.length == 0)
+			return CombinedDecision.of(AuthorizationDecision.NOT_APPLICABLE, getName());
+
+		var entitlement = NOT_APPLICABLE;
+		var collector   = new ObligationAdviceCollector();
+		var resource    = Optional.<JsonNode>empty();
+		var decisions   = new LinkedList<DocumentEvaluationResult>();
+		for (var policyDecision : policyDecisions) {
+			decisions.add(policyDecision);
+			var authzDecision = policyDecision.getAuthorizationDecision();
+			if (authzDecision.getDecision() == DENY) {
 				entitlement = DENY;
 			}
-			if (decision.getDecision() == INDETERMINATE) {
+			if (authzDecision.getDecision() == INDETERMINATE) {
 				if (entitlement != DENY) {
 					entitlement = INDETERMINATE;
 				}
 			}
-			if (decision.getDecision() == PERMIT) {
+			if (authzDecision.getDecision() == PERMIT) {
 				if (entitlement == NOT_APPLICABLE) {
 					entitlement = PERMIT;
 				}
 			}
-			collector.add(decision);
-			if (decision.getResource().isPresent()) {
+			collector.add(authzDecision);
+			if (authzDecision.getResource().isPresent()) {
 				if (resource.isPresent()) {
 					// this is a transformation uncertainty.
 					// another policy already defined a transformation
@@ -87,19 +102,15 @@ public class DenyOverridesCombiningAlgorithmImplCustom extends DenyOverridesComb
 						entitlement = INDETERMINATE;
 					}
 				} else {
-					resource = decision.getResource();
+					resource = authzDecision.getResource();
 				}
 			}
 		}
+
 		var finalDecision = new AuthorizationDecision(entitlement, resource, collector.getObligations(entitlement),
 				collector.getAdvice(entitlement));
-		log.debug("| |-- {} Combined AuthorizationDecision: {}", finalDecision.getDecision(), finalDecision);
-		return finalDecision;
-	}
+		return CombinedDecision.of(finalDecision, getName(), decisions);
 
-	@Override
-	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies) {
-		return doCombinePolicies(policies);
 	}
 
 }

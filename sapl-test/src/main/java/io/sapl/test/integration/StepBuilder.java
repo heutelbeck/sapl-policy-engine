@@ -16,16 +16,18 @@
 package io.sapl.test.integration;
 
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
-import io.sapl.pdp.config.FixedFunctionsAndAttributesPDPConfigurationProvider;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
+import io.sapl.pdp.config.fixed.FixedFunctionsAndAttributesPDPConfigurationProvider;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.test.mocking.attribute.MockingAttributeContext;
 import io.sapl.test.mocking.function.MockingFunctionContext;
@@ -33,15 +35,13 @@ import io.sapl.test.steps.AttributeMockReturnValues;
 import io.sapl.test.steps.GivenStep;
 import io.sapl.test.steps.StepsDefaultImpl;
 import io.sapl.test.steps.WhenStep;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
 import reactor.test.StepVerifier;
 
 public class StepBuilder {
 
 	/**
 	 * Create Builder starting at the Given-Step. Only for internal usage.
+	 * 
 	 * @return {@link GivenStep} to start constructing the test case.
 	 */
 	static GivenStep newBuilderAtGivenStep(PolicyRetrievalPoint prp, VariablesAndCombinatorSource pdpConfig,
@@ -51,6 +51,7 @@ public class StepBuilder {
 
 	/**
 	 * Create Builder starting at the When-Step. Only for internal usage.
+	 * 
 	 * @return {@link WhenStep} to start constructing the test case.
 	 */
 	static WhenStep newBuilderAtWhenStep(PolicyRetrievalPoint prp, VariablesAndCombinatorSource pdpConfig,
@@ -74,30 +75,29 @@ public class StepBuilder {
 
 		Steps(PolicyRetrievalPoint prp, VariablesAndCombinatorSource pdpConfig, AttributeContext attrCtx,
 				FunctionContext funcCtx, Map<String, JsonNode> variables) {
-			this.prp = prp;
-			this.pdpConfig = pdpConfig;
-			this.mockingFunctionContext = new MockingFunctionContext(funcCtx);
+			this.prp                     = prp;
+			this.pdpConfig               = pdpConfig;
+			this.mockingFunctionContext  = new MockingFunctionContext(funcCtx);
 			this.mockingAttributeContext = new MockingAttributeContext(attrCtx);
-			this.variables = variables;
-			this.mockedAttributeValues = new LinkedList<>();
+			this.variables               = variables;
+			this.mockedAttributeValues   = new LinkedList<>();
 		}
 
 		@Override
 		protected void createStepVerifier(AuthorizationSubscription authzSub) {
 
 			var configurationProvider = new FixedFunctionsAndAttributesPDPConfigurationProvider(
-					this.mockingAttributeContext, this.mockingFunctionContext, this.pdpConfig);
-			PolicyDecisionPoint pdp = new EmbeddedPolicyDecisionPoint(configurationProvider, this.prp);
+					this.mockingAttributeContext, this.mockingFunctionContext, this.pdpConfig, List.of(), List.of());
+			var pdp                   = new EmbeddedPolicyDecisionPoint(configurationProvider, this.prp);
 
 			if (this.withVirtualTime) {
 				this.steps = StepVerifier.withVirtualTime(() -> pdp.decide(authzSub));
-			}
-			else {
+			} else {
 				this.steps = StepVerifier.create(pdp.decide(authzSub));
 			}
 
 			for (AttributeMockReturnValues mock : this.mockedAttributeValues) {
-				String fullName = mock.getFullName();
+				var fullName = mock.getFullName();
 				for (Val val : mock.getMockReturnValues()) {
 					this.steps = this.steps.then(() -> this.mockingAttributeContext.mockEmit(fullName, val));
 				}

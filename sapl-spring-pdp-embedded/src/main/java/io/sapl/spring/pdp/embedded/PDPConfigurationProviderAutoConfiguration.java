@@ -15,36 +15,42 @@
  */
 package io.sapl.spring.pdp.embedded;
 
+import java.util.List;
+
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
+import io.sapl.api.pdp.AuthorizationSubscriptionInterceptor;
+import io.sapl.api.pdp.TracedDecisionInterceptor;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.pdp.config.FixedFunctionsAndAttributesPDPConfigurationProvider;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
+import io.sapl.pdp.config.fixed.FixedFunctionsAndAttributesPDPConfigurationProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Configuration
+@AutoConfiguration
 @RequiredArgsConstructor
 public class PDPConfigurationProviderAutoConfiguration {
 
-	private final AttributeContext attributeCtx;
-
-	private final FunctionContext functionCtx;
-
-	private final VariablesAndCombinatorSource combinatorProvider;
+	private final AttributeContext                           attributeCtx;
+	private final FunctionContext                            functionCtx;
+	private final VariablesAndCombinatorSource               combinatorProvider;
+	private final List<AuthorizationSubscriptionInterceptor> subscriptionInterceptors;
+	private final List<TracedDecisionInterceptor>            decisionInterceptors;
 
 	@Bean
 	@ConditionalOnMissingBean
-	public PDPConfigurationProvider pdpConfigurationProvider() {
+	PDPConfigurationProvider pdpConfigurationProvider() {
 		log.info(
-				"Deploying PDP configuration provider with AttributeContext: {} FunctionContext: {} VariablesAndCombinatorSource: {}",
-				attributeCtx, functionCtx, combinatorProvider);
-		return new FixedFunctionsAndAttributesPDPConfigurationProvider(attributeCtx, functionCtx, combinatorProvider);
+				"Deploying PDP configuration provider with AttributeContext: {} FunctionContext: {} VariablesAndCombinatorSource: {} #SubscriptionIntercptors: {} #DecisionInterceptors: {}",
+				attributeCtx, functionCtx, combinatorProvider, subscriptionInterceptors.size(),
+				decisionInterceptors.size());
+		return new FixedFunctionsAndAttributesPDPConfigurationProvider(attributeCtx, functionCtx, combinatorProvider,
+				subscriptionInterceptors, decisionInterceptors);
 	}
 
 }

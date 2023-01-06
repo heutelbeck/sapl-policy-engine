@@ -30,8 +30,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public abstract class AbstractSaplAttribute implements SaplAttribute {
 
-	private static final long serialVersionUID = -2697854599354396960L;
-
 	private final Expression subjectExpression;
 
 	private final Expression actionExpression;

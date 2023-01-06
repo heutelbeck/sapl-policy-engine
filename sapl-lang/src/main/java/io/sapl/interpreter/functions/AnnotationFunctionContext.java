@@ -27,6 +27,7 @@ import java.util.Map;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.interpreter.Trace.ExpressionArgument;
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.pip.LibraryEntryMetadata;
@@ -75,19 +76,28 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 	@Override
 	public Val evaluate(String function, Val... parameters) {
+		var functionTrace = new ExpressionArgument[parameters.length + 1];
+		functionTrace[0] = new ExpressionArgument("functionName", Val.of(function));
+		for (var parameter = 0; parameter < parameters.length; parameter++) {
+			functionTrace[parameter + 1] = new ExpressionArgument("parameter[" + parameter + "]",
+					parameters[parameter]);
+		}
 		var metadata = functions.get(function);
 		if (metadata == null)
-			return Val.error(UNKNOWN_FUNCTION, function);
+			return Val.error(UNKNOWN_FUNCTION, function).withTrace(FunctionContext.class, functionTrace);
 
 		var funParams = metadata.getFunction().getParameters();
 
 		if (metadata.isVarArgsParameters()) {
-			return evaluateVarArgsFunction(metadata, funParams, parameters);
+			return evaluateVarArgsFunction(metadata, funParams, parameters).withTrace(FunctionContext.class,
+					functionTrace);
 		}
 		if (metadata.getNumberOfParameters() == parameters.length) {
-			return evaluateFixedParametersFunction(metadata, funParams, parameters);
+			return evaluateFixedParametersFunction(metadata, funParams, parameters).withTrace(FunctionContext.class,
+					functionTrace);
 		}
-		return Val.error(ILLEGAL_NUMBER_OF_PARAMETERS, metadata.getNumberOfParameters(), parameters.length);
+		return Val.error(ILLEGAL_NUMBER_OF_PARAMETERS, metadata.getNumberOfParameters(), parameters.length)
+				.withTrace(FunctionContext.class, functionTrace);
 	}
 
 	private Val evaluateFixedParametersFunction(FunctionMetadata metadata, Parameter[] funParams, Val... parameters) {
@@ -268,7 +278,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 	public Collection<String> getAllFullyQualifiedFunctions() {
 		return functions.keySet();
 	}
-	
+
 	@Override
 	public Map<String, String> getDocumentedCodeTemplates() {
 		var documentedCodeTemplates = new HashMap<String, String>();

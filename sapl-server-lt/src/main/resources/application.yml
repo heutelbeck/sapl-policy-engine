@@ -6,4 +6,3 @@ management:
     health:
       show-details: always
 loader.path: /pdp/data/lib
-      

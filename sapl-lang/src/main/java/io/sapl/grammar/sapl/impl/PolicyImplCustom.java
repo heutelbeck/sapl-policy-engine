@@ -15,135 +15,65 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.Arrays;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.function.BiFunction;
 
 import org.eclipse.emf.common.util.EList;
-import org.reactivestreams.Publisher;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.grammar.sapl.Expression;
-import lombok.extern.slf4j.Slf4j;
+import io.sapl.grammar.sapl.Policy;
+import io.sapl.interpreter.DocumentEvaluationResult;
+import io.sapl.interpreter.PolicyDecision;
 import reactor.core.publisher.Flux;
 
-@Slf4j
 public class PolicyImplCustom extends PolicyImpl {
 
-	/**
-	 * Evaluates the body of the policy within the given evaluation context and
-	 * returns a {@link Flux} of {@link AuthorizationDecision} objects.
-	 * 
-	 * @return A {@link Flux} of {@link AuthorizationDecision} objects.
-	 */
 	@Override
-	public Flux<AuthorizationDecision> evaluate() {
-		log.debug("  |  |- Evaluate '{}'", saplName);
-		// @formatter:off
-		return Flux.just(getEntitlement().getDecision())
-				.concatMap(evaluateBody())
-				.map(AuthorizationDecision::new)
-				.switchMap(addConstraintsIfPolicyIsApplicable())
-				.doOnNext(authzDecision -> log.debug("  |     |- {} '{}': {}", authzDecision.getDecision(), saplName, authzDecision));
-		// @formatter:on
+	public Flux<DocumentEvaluationResult> evaluate() {
+		var whereResult     = body == null ? Flux.just(Val.TRUE.withTrace(Policy.class)) : body.evaluate();
+		var afterWhere      = whereResult
+				.map(where -> PolicyDecision.fromWhereResult(this, entitlement.getDecision(), where));
+		var withObligations = afterWhere
+				.switchMap(decision -> addConstraints(decision, obligations, 0, (d, val) -> d.withObligation(val)));
+		var withAdvice      = withObligations
+				.switchMap(decision -> addConstraints(decision, advice, 0, (d, val) -> d.withAdvice(val)));
+		return withAdvice.switchMap(decision -> addResource(decision));
 	}
 
-	private Function<? super AuthorizationDecision, Publisher<? extends AuthorizationDecision>> addConstraintsIfPolicyIsApplicable() {
-		return authzDecision -> {
-			var justTheDecision = Flux.just(authzDecision);
-			if (decisionMayNotCarryConstraints(authzDecision))
-				return justTheDecision;
-
-			return justTheDecision.concatMap(addObligation()).concatMap(addAdvice()).concatMap(addResource());
-		};
-	}
-
-	private boolean decisionMayNotCarryConstraints(AuthorizationDecision authzDecision) {
-		return authzDecision.getDecision() == Decision.INDETERMINATE
-				|| authzDecision.getDecision() == Decision.NOT_APPLICABLE;
-	}
-
-	private Function<? super Decision, Publisher<? extends Decision>> evaluateBody() {
-		return entitlement -> getBody() == null ? Flux.just(entitlement) : getBody().evaluate(entitlement);
-	}
-
-	private Function<? super AuthorizationDecision, Publisher<? extends AuthorizationDecision>> addObligation() {
-		return previousDecision -> evaluateObligations().map(obligations -> {
-			var obligationArray = Val.JSON.arrayNode();
-			for (var obligation : obligations) {
-				if (obligation.isError()) {
-					log.debug("  |     |- Error in obligation evaluation. INDETERMINATE: " + obligation.getMessage());
-					return AuthorizationDecision.INDETERMINATE;
-				}
-				if (obligation.isUndefined()) {
-					log.debug("  |     |- Undefined obligation. INDETERMINATE");
-					return AuthorizationDecision.INDETERMINATE;
-				}
-				log.debug("  |     |- Got obligation: {}", obligation);
-				obligationArray.add(obligation.get());
-			}
-			return previousDecision.withObligations(obligationArray);
-		}).defaultIfEmpty(previousDecision);
+	@Override
+	public DocumentEvaluationResult targetResult(Val targetValue) {
+		return PolicyDecision.ofTargetExpressionEvaluation(this, targetValue, getEntitlement().getDecision());
 
 	}
 
-	private Function<? super AuthorizationDecision, Publisher<? extends AuthorizationDecision>> addAdvice() {
-		return previousDecision -> evaluateAdvice().map(advice -> {
-			var adviceArray = Val.JSON.arrayNode();
-			for (var anAdvice : advice) {
-
-				if (anAdvice.isError()) {
-					log.debug("  |     |- Error in advice evaluation. INDETERMINATE: " + anAdvice.getMessage());
-					return AuthorizationDecision.INDETERMINATE;
-				}
-				if (anAdvice.isUndefined()) {
-					log.debug("  |     |- Undefined advice. INDETERMINATE");
-					return AuthorizationDecision.INDETERMINATE;
-				}
-				log.debug("  |     |- Got advice: {}", anAdvice);
-				adviceArray.add(anAdvice.get());
-			}
-			return previousDecision.withAdvice(adviceArray);
-		}).defaultIfEmpty(previousDecision);
+	@Override
+	public DocumentEvaluationResult importError(String errorMessage) {
+		return PolicyDecision.ofImportError(this, getEntitlement().getDecision(), errorMessage);
 	}
 
-	private Function<? super AuthorizationDecision, Publisher<? extends AuthorizationDecision>> addResource() {
-		return previousDecision -> evaluateTransformation().map(transformation -> {
-			if (transformation.isError()) {
-				log.debug(
-						"  |     |- Error in transformation evaluation. INDETERMINATE: " + transformation.getMessage());
-				return AuthorizationDecision.INDETERMINATE;
-			}
-			if (transformation.isUndefined()) {
-				log.debug("  |     |- Undefined transformation. INDETERMINATE");
-				return AuthorizationDecision.INDETERMINATE;
-			}
-			return previousDecision.withResource(transformation.get());
-		}).defaultIfEmpty(previousDecision);
+	private Flux<PolicyDecision> addResource(PolicyDecision policyDecision) {
+		if (transformation == null || decisionMustNotCarryConstraints(policyDecision))
+			return Flux.just(policyDecision);
+		return transformation.evaluate().map(policyDecision::withResource).defaultIfEmpty(policyDecision);
 	}
 
-	private Flux<Val[]> evaluateObligations() {
-		return evaluateConstraints(getObligations());
-	}
-
-	private Flux<Val[]> evaluateAdvice() {
-		return evaluateConstraints(getAdvice());
-	}
-
-	private Flux<Val[]> evaluateConstraints(EList<Expression> constraints) {
-		if (constraints == null)
-			return Flux.empty();
-		var evaluatedConstraints = constraints.stream().map(Expression::evaluate).collect(Collectors.toList());
-		return Flux.combineLatest(evaluatedConstraints, v -> Arrays.copyOf(v, v.length, Val[].class));
-	}
-
-	private Flux<Val> evaluateTransformation() {
-		if (getTransformation() == null) {
-			return Flux.empty();
+	private Flux<PolicyDecision> addConstraints(PolicyDecision policyDecision, EList<Expression> constraints,
+			int constraintIndex, BiFunction<PolicyDecision, Val, PolicyDecision> merge) {
+		if (constraints == null || constraints.size() == constraintIndex
+				|| decisionMustNotCarryConstraints(policyDecision)) {
+			return Flux.just(policyDecision);
 		}
-		return getTransformation().evaluate();
+		var constraint               = constraints.get(constraintIndex).evaluate();
+		var decisionWithConstraint   = constraint.map(val -> merge.apply(policyDecision, val));
+		var withRemainingConstraints = decisionWithConstraint
+				.switchMap(decision -> addConstraints(decision, constraints, constraintIndex + 1, merge));
+		return withRemainingConstraints;
+	}
+
+	private boolean decisionMustNotCarryConstraints(PolicyDecision policyDecision) {
+		var decision = policyDecision.getAuthorizationDecision().getDecision();
+		return decision == Decision.INDETERMINATE || decision == Decision.NOT_APPLICABLE;
 	}
 
 }

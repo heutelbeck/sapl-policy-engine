@@ -43,7 +43,6 @@ import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.TestPIP;
-import reactor.core.publisher.Hooks;
 import reactor.test.StepVerifier;
 
 class DefaultSAPLInterpreterTest {
@@ -73,7 +72,6 @@ class DefaultSAPLInterpreterTest {
 
 	@BeforeAll
 	static void beforeAll() throws JsonProcessingException, InitializationException {
-		Hooks.onOperatorDebug();
 		authzSubscription = MAPPER.readValue(AUTHZ_SUBSCRIPTION_JSON, AuthorizationSubscription.class);
 		attributeCtx      = new AnnotationAttributeContext();
 		attributeCtx.loadPolicyInformationPoint(new TestPIP());

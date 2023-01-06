@@ -94,12 +94,12 @@ class ValTest {
 
 	@Test
 	void createErrorWithNullMessage() {
-		assertThrows(NullPointerException.class, () -> Val.error((String) null));
+		assertEquals("Undefined Error", Val.error((String) null).getMessage());
 	}
 
 	@Test
 	void createErrorWithNullCause() {
-		assertThrows(NullPointerException.class, () -> Val.error((Throwable) null));
+		assertEquals("Undefined Error", Val.error((Throwable) null).getMessage());
 	}
 
 	@Test
@@ -276,8 +276,8 @@ class ValTest {
 
 	@Test
 	void toStringTest() {
-		assertAll(() -> assertEquals("Value[true]", Val.TRUE.toString()),
-				() -> assertEquals("Value[undefined]", Val.UNDEFINED.toString()),
+		assertAll(() -> assertEquals("true", Val.TRUE.toString()),
+				() -> assertEquals("undefined", Val.UNDEFINED.toString()),
 				() -> assertEquals("ERROR[" + Val.UNKNOWN_ERROR + "]", Val.error().toString()));
 	}
 

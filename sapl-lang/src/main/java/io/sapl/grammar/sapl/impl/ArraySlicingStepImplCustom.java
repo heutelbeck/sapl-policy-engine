@@ -16,15 +16,16 @@
 package io.sapl.grammar.sapl.impl;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
+import java.util.function.BiFunction;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
-
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.ArraySlicingStep;
 import io.sapl.grammar.sapl.FilterStatement;
-import io.sapl.interpreter.context.AuthorizationContext;
+import io.sapl.grammar.sapl.impl.util.FilterAlgorithmUtil;
+import io.sapl.grammar.sapl.impl.util.SelectorUtil;
+import io.sapl.grammar.sapl.impl.util.StepAlgorithmUtil;
 import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
@@ -38,48 +39,51 @@ import reactor.core.publisher.Flux;
  * Subscript returns Step: {ArraySlicingStep} index=JSONNUMBER? ':'
  * to=JSONNUMBER? (':' step=JSONNUMBER)? ;}
  */
-@Slf4j
 public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 
 	private static final String STEP_ZERO = "Step must not be zero.";
 
-	private static final String INDEX_ACCESS_TYPE_MISMATCH = "Type mismatch. Accessing an JSON array index [%s] expects array value, but got: '%s'.";
-
 	@Override
 	public Flux<Val> apply(@NonNull Val parentValue) {
-		if (parentValue.isError()) {
-			return Flux.just(parentValue);
-		}
-		if (!parentValue.isArray()) {
-			return Val.errorFlux(INDEX_ACCESS_TYPE_MISMATCH, getIndex(), parentValue);
-		}
-
-		var array = (ArrayNode) parentValue.get();
-		var step  = getStep() == null ? BigDecimal.ONE.intValue() : getStep().intValue();
-		if (step == 0) {
-			return Val.errorFlux(STEP_ZERO);
-		}
-		var index = getIndex() == null ? 0 : getIndex().intValue();
-		if (index < 0) {
-			index = index + array.size();
-		}
-		var to = getTo() == null ? array.size() : getTo().intValue();
-		if (to < 0) {
-			to = to + array.size();
-		}
-		log.trace("after normalization [{},{},{}]", index, to, step);
-
-		var resultArray = Val.JSON.arrayNode();
-		for (int i = 0; i < array.size(); i++) {
-			var element = array.get(i);
-			if (isSelected(i, index, to, step)) {
-				resultArray.add(element);
-			}
-		}
-		return Flux.just(Val.of(resultArray));
+		return StepAlgorithmUtil.applyOnArray(parentValue, SelectorUtil.toArrayElementSelector(isInSlice(parentValue)),
+				parameters(), ArraySlicingStep.class);
 	}
 
-	private boolean isSelected(int i, int from, int to, int step) {
+	@Override
+	public Flux<Val> applyFilterStatement(@NonNull Val unfilteredValue, int stepId,
+			@NonNull FilterStatement statement) {
+		return FilterAlgorithmUtil.applyFilterOnArray(unfilteredValue, stepId,
+				SelectorUtil.toArrayElementSelector(isInSlice(unfilteredValue)), statement, parameters(),
+				ArraySlicingStep.class);
+	}
+
+	private String parameters() {
+		return "[" + getIndex() + ":" + getTo() + ":" + getStep() + "]";
+	}
+
+	private BiFunction<Integer, Val, Boolean> isInSlice(Val parentValue) {
+		return (i, __) -> {
+			var arraySize = parentValue.getArrayNode().size();
+			// normalize slicing ranges
+			var step = getStep() == null ? BigDecimal.ONE.intValue() : getStep().intValue();
+			if (step == 0) {
+				throw new PolicyEvaluationException(STEP_ZERO);
+			}
+
+			var index = getIndex() == null ? 0 : getIndex().intValue();
+			if (index < 0) {
+				index += arraySize;
+			}
+			var to = getTo() == null ? arraySize : getTo().intValue();
+			if (to < 0) {
+				to += arraySize;
+			}
+
+			return isInNormalizedSlice(i, index, to, step);
+		};
+	}
+
+	private boolean isInNormalizedSlice(int i, int from, int to, int step) {
 		if (i < from || i >= to) {
 			return false;
 		}
@@ -87,58 +91,6 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 			return (i - from) % step == 0;
 		}
 		return (to - i) % step == 0;
-	}
-
-	@Override
-	public Flux<Val> applyFilterStatement(
-			@NonNull Val parentValue,
-			int stepId,
-			@NonNull FilterStatement statement) {
-		log.trace("apply array slicing step [{},{},{}] to: {}", getIndex(), getTo(), getStep(), parentValue);
-		if (!parentValue.isArray()) {
-			return Flux.just(parentValue);
-		}
-		var array = (ArrayNode) parentValue.get();
-		var step  = getStep() == null ? BigDecimal.ONE.intValue() : getStep().intValue();
-		if (step == 0) {
-			return Val.errorFlux(STEP_ZERO);
-		}
-		var index = getIndex() == null ? 0 : getIndex().intValue();
-		if (index < 0) {
-			index = index + array.size();
-		}
-		var to = getTo() == null ? array.size() : getTo().intValue();
-		if (to < 0) {
-			to = to + array.size();
-		}
-		log.trace("after normalization [{},{},{}]", index, to, step);
-		if (array.isEmpty()) {
-			return Flux.just(Val.ofEmptyArray());
-		}
-		var elementFluxes = new ArrayList<Flux<Val>>(array.size());
-		for (int i = 0; i < array.size(); i++) {
-			var element = array.get(i);
-			if (isSelected(i, index, to, step)) {
-				log.trace("array element [{}] selected.", i);
-				if (stepId == statement.getTarget().getSteps().size() - 1) {
-					// this was the final step. apply filter
-					log.trace("final step. do filter...");
-					elementFluxes.add(FilterComponentImplCustom
-							.applyFilterFunction(Val.of(element), statement.getArguments(), statement.getFsteps(),
-									statement.isEach())
-							.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, parentValue)));
-				} else {
-					// there are more steps. descent with them
-					log.trace("this step was successful. descent with next step...");
-					elementFluxes.add(statement.getTarget().getSteps().get(stepId + 1)
-							.applyFilterStatement(Val.of(element), stepId + 1, statement));
-				}
-			} else {
-				log.trace("array element [{}] not selected. return as is", i);
-				elementFluxes.add(Flux.just(Val.of(element)));
-			}
-		}
-		return Flux.combineLatest(elementFluxes, RepackageUtil::recombineArray);
 	}
 
 }

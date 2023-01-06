@@ -15,10 +15,12 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.Regex;
 import reactor.core.publisher.Flux;
 
 /**
@@ -46,12 +48,13 @@ public class RegexImplCustom extends RegexImpl {
 			return right;
 		}
 		if (!left.isTextual()) {
-			return Val.FALSE;
+			return Val.FALSE.withTrace(Regex.class, Map.of("left", left, "right", right));
 		}
 		try {
-			return Val.of(Pattern.matches(right.getText(), left.getText()));
+			return Val.of(Pattern.matches(right.getText(), left.getText())).withTrace(Regex.class,
+					Map.of("left", left, "right", right));
 		} catch (PatternSyntaxException e) {
-			return Val.error(REGEX_SYNTAX_ERROR, right);
+			return Val.error(REGEX_SYNTAX_ERROR, right).withTrace(Regex.class, Map.of("left", left, "right", right));
 		}
 	}
 

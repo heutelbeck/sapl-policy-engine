@@ -37,10 +37,10 @@ import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.pdp.config.FixedFunctionsAndAttributesPDPConfigurationProvider;
 import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSource;
+import io.sapl.pdp.config.fixed.FixedFunctionsAndAttributesPDPConfigurationProvider;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
 import reactor.core.publisher.Flux;
@@ -80,19 +80,19 @@ class EmbeddedPolicyDecisionPointTest {
 	}
 
 	@Test
-	void decide_withEmptyRequest_shouldReturnDeny() {
+	void decide_withEmptyRequest_shouldBeNotApplicable() {
 		AuthorizationSubscription         emptyAuthzSubscription = new AuthorizationSubscription(JSON.nullNode(),
 				JSON.nullNode(), JSON.nullNode(), JSON.nullNode());
 		final Flux<AuthorizationDecision> authzDecisionFlux      = pdp.decide(emptyAuthzSubscription);
 		StepVerifier.create(authzDecisionFlux)
-				.expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.DENY).thenCancel().verify();
+				.expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.NOT_APPLICABLE).thenCancel()
+				.verify();
 	}
 
 	@Test
 	void decide_withAllowedAction_shouldReturnPermit() {
 		AuthorizationSubscription         simpleAuthzSubscription = new AuthorizationSubscription(
-				JSON.textNode("willi"),
-				JSON.textNode("read"), JSON.textNode("something"), JSON.nullNode());
+				JSON.textNode("willi"), JSON.textNode("read"), JSON.textNode("something"), JSON.nullNode());
 		final Flux<AuthorizationDecision> authzDecisionFlux       = pdp.decide(simpleAuthzSubscription);
 		StepVerifier.create(authzDecisionFlux)
 				.expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.DENY).thenCancel().verify();
@@ -106,17 +106,17 @@ class EmbeddedPolicyDecisionPointTest {
 		var source   = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
 		var attrCtx  = new AnnotationAttributeContext();
 		var funcCtx  = new AnnotationFunctionContext();
-		var provider = new FixedFunctionsAndAttributesPDPConfigurationProvider(attrCtx, funcCtx, source);
+		var provider = new FixedFunctionsAndAttributesPDPConfigurationProvider(attrCtx, funcCtx, source, List.of(),
+				List.of());
 
 		var embeddedPdp = new EmbeddedPolicyDecisionPoint(provider, prpMock);
 
 		when(prpMock.retrievePolicies()).thenReturn(Flux.just(prpResult));
 		when(prpResult.isPrpValidState()).thenReturn(false);
 
-		AuthorizationSubscription         simpleAuthzSubscription = new AuthorizationSubscription(
-				JSON.textNode("willi"),
-				JSON.textNode("read"), JSON.textNode("something"), JSON.nullNode());
-		final Flux<AuthorizationDecision> authzDecisionFlux       = embeddedPdp.decide(simpleAuthzSubscription);
+		var simpleAuthzSubscription = new AuthorizationSubscription(JSON.textNode("willi"), JSON.textNode("read"),
+				JSON.textNode("something"), JSON.nullNode());
+		var authzDecisionFlux       = embeddedPdp.decide(simpleAuthzSubscription);
 		StepVerifier.create(authzDecisionFlux)
 				.expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.INDETERMINATE).thenCancel()
 				.verify();
@@ -125,8 +125,7 @@ class EmbeddedPolicyDecisionPointTest {
 	@Test
 	void decide_withForbiddenAction_shouldReturnDeny() {
 		AuthorizationSubscription         simpleAuthzSubscription = new AuthorizationSubscription(
-				JSON.textNode("willi"),
-				JSON.textNode("write"), JSON.textNode("something"), JSON.nullNode());
+				JSON.textNode("willi"), JSON.textNode("write"), JSON.textNode("something"), JSON.nullNode());
 		final Flux<AuthorizationDecision> authzDecisionFlux       = pdp.decide(simpleAuthzSubscription);
 		StepVerifier.create(authzDecisionFlux)
 				.expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.DENY).thenCancel().verify();

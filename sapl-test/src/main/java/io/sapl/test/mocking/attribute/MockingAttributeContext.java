@@ -36,10 +36,8 @@ import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.attribute.models.AttributeParameters;
 import io.sapl.test.mocking.attribute.models.AttributeParentValueMatcher;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
-@Slf4j
 public class MockingAttributeContext implements AttributeContext {
 
 	private static final String ERROR_MOCK_INVALID_FULL_NAME = "Got invalid attribute reference containing more than one \".\" delimiter: \"%s\"";
@@ -79,13 +77,10 @@ public class MockingAttributeContext implements AttributeContext {
 	@Override
 	public Boolean isProvidedFunction(String function) {
 		if (this.registeredMocks.containsKey(function)) {
-			log.trace("Attribute \"{}\" is mocked", function);
 			return Boolean.TRUE;
 		} else if (originalAttributeContext.isProvidedFunction(function)) {
-			log.trace("Attribute \"{}\" is provided by original attribute context", function);
 			return Boolean.TRUE;
 		} else {
-			log.trace("Attribute \"{}\" is NOT provided", function);
 			return Boolean.FALSE;
 		}
 	}
@@ -106,44 +101,35 @@ public class MockingAttributeContext implements AttributeContext {
 	}
 
 	@Override
-	public Flux<Val>
-			evaluateAttribute(String attribute, Val value, Arguments arguments, Map<String, JsonNode> variables) {
+	public Flux<Val> evaluateAttribute(String attribute, Val value, Arguments arguments,
+			Map<String, JsonNode> variables) {
 		AttributeMock mock = this.registeredMocks.get(attribute);
 		if (mock != null) {
-			log.debug("| | | | |-- Evaluate mocked attribute \"{}\"", attribute);
-
 			List<Flux<Val>> args = new LinkedList<>();
 			if (arguments != null) {
 				for (Expression argument : arguments.getArgs()) {
 					args.add(argument.evaluate());
 				}
 			}
-
-			return mock.evaluate(value, variables, args)
-					.doOnNext((val) -> log.trace("| | | | |-- AttributeMock returned: " + val.toString()));
+			return mock.evaluate(attribute, value, variables, args);
 		} else {
-			log.debug("| | | | |-- Delegate attribute \"{}\" to original attribute context", attribute);
 			return this.originalAttributeContext.evaluateAttribute(attribute, value, arguments, variables);
 		}
 	}
 
 	@Override
-	public Flux<Val>
-			evaluateEnvironmentAttribute(String attribute, Arguments arguments, Map<String, JsonNode> variables) {
+	public Flux<Val> evaluateEnvironmentAttribute(String attribute, Arguments arguments,
+			Map<String, JsonNode> variables) {
 		AttributeMock mock = this.registeredMocks.get(attribute);
 		if (mock != null) {
-			log.debug("| | | | |-- Evaluate mocked attribute \"{}\"", attribute);
-
 			List<Flux<Val>> args = new LinkedList<>();
 			if (arguments != null) {
 				for (Expression argument : arguments.getArgs()) {
 					args.add(argument.evaluate());
 				}
 			}
-			return mock.evaluate(Val.UNDEFINED, variables, args)
-					.doOnNext((val) -> log.trace("| | | | |-- AttributeMock returned: " + val.toString()));
+			return mock.evaluate(attribute, Val.UNDEFINED, variables, args);
 		} else {
-			log.debug("| | | | |-- Delegate attribute \"{}\" to original attribute context", attribute);
 			return this.originalAttributeContext.evaluateEnvironmentAttribute(attribute, arguments, variables);
 		}
 	}
@@ -178,9 +164,7 @@ public class MockingAttributeContext implements AttributeContext {
 		}
 	}
 
-	public void loadAttributeMockForParentValue(
-			String fullName,
-			AttributeParentValueMatcher parentValueMatcher,
+	public void loadAttributeMockForParentValue(String fullName, AttributeParentValueMatcher parentValueMatcher,
 			Val returns) {
 		checkImportName(fullName);
 
@@ -200,9 +184,7 @@ public class MockingAttributeContext implements AttributeContext {
 		}
 	}
 
-	public void loadAttributeMockForParentValueAndArguments(
-			String fullName,
-			AttributeParameters parameters,
+	public void loadAttributeMockForParentValueAndArguments(String fullName, AttributeParameters parameters,
 			Val returns) {
 		checkImportName(fullName);
 

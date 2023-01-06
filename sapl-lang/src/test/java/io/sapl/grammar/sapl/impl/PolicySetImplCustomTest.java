@@ -15,6 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import static io.sapl.grammar.sapl.impl.util.TestUtil.hasDecision;
+
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -38,7 +40,7 @@ class PolicySetImplCustomTest {
 	void simplePermitAllOnePolicy() {
 		var policy   = INTERPRETER.parse("set \"set\" deny-overrides policy \"set.p1\" permit");
 		var expected = AuthorizationDecision.PERMIT;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected))
 				.verifyComplete();
 	}
 
@@ -48,7 +50,7 @@ class PolicySetImplCustomTest {
 				+ "policy \"indeterminate\" permit where (10/0); " + "policy \"denies\" deny "
 				+ "policy \"not-applicable\" deny where false;");
 		var expected = AuthorizationDecision.DENY;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected))
 				.verifyComplete();
 	}
 
@@ -58,7 +60,7 @@ class PolicySetImplCustomTest {
 				+ "policy \"indeterminate\" permit where (10/0); " + "policy \"denies\" deny "
 				+ "policy \"not-applicable\" deny where false;");
 		var expected = AuthorizationDecision.PERMIT;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected))
 				.verifyComplete();
 	}
 
@@ -68,7 +70,7 @@ class PolicySetImplCustomTest {
 				+ "policy \"indeterminate\" permit where (10/0); " + "policy \"denies\" deny "
 				+ "policy \"not-applicable\" deny where false;");
 		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected))
 				.verifyComplete();
 	}
 
@@ -78,7 +80,7 @@ class PolicySetImplCustomTest {
 				+ "policy \"indeterminate\" permit where (10/0); " + "policy \"denies\" deny "
 				+ "policy \"not-applicable\" deny where false;");
 		var expected = AuthorizationDecision.PERMIT;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected))
 				.verifyComplete();
 	}
 
@@ -88,7 +90,7 @@ class PolicySetImplCustomTest {
 				+ "policy \"indeterminate\" permit where (10/0); " + "policy \"denies\" deny "
 				+ "policy \"not-applicable\" deny where false;");
 		var expected = AuthorizationDecision.PERMIT;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected))
 				.verifyComplete();
 	}
 
@@ -97,7 +99,7 @@ class PolicySetImplCustomTest {
 		var policy   = INTERPRETER
 				.parse("set \"set\" deny-unless-permit policy \"permits\" permit policy \"permits\" permit");
 		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected))
 				.verifyComplete();
 	}
 
@@ -107,7 +109,7 @@ class PolicySetImplCustomTest {
 				+ "policy \"indeterminate\" permit where (10/0); " + "policy \"denies\" deny "
 				+ "policy \"not-applicable\" deny where false;");
 		var expected = AuthorizationDecision.DENY;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected))
 				.verifyComplete();
 	}
 
@@ -116,7 +118,7 @@ class PolicySetImplCustomTest {
 		var policy   = INTERPRETER.parse(
 				"set \"set\" deny-overrides var a = 5; var b = a+2; policy \"set.p1\" permit where a==5 && b == 7;");
 		var expected = AuthorizationDecision.PERMIT;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected))
 				.verifyComplete();
 	}
 
@@ -125,7 +127,7 @@ class PolicySetImplCustomTest {
 		var policy   = INTERPRETER
 				.parse("set \"set\" deny-overrides var a = undefined; policy \"set.p1\" permit where a==undefined;");
 		var expected = AuthorizationDecision.PERMIT;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected))
 				.verifyComplete();
 	}
 
@@ -134,7 +136,7 @@ class PolicySetImplCustomTest {
 		var policy   = INTERPRETER.parse(
 				"set \"set\" first-applicable var a = (10/0); var b = 12; policy \"set.p1\" permit where a==undefined;");
 		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected))
 				.verifyComplete();
 	}
 
@@ -143,7 +145,7 @@ class PolicySetImplCustomTest {
 		var policy   = INTERPRETER.parse(
 				"set \"set\" deny-overrides policy \"set.p1\" permit where var a=5; var b=2; policy \"set.p2\" permit where a==undefined && b == undefined;");
 		var expected = AuthorizationDecision.PERMIT;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected))
 				.verifyComplete();
 	}
 
@@ -151,7 +153,7 @@ class PolicySetImplCustomTest {
 	void simpleDenyAll() {
 		var policy   = INTERPRETER.parse("policy \"p\" deny");
 		var expected = AuthorizationDecision.DENY;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected))
 				.verifyComplete();
 	}
 
@@ -159,7 +161,7 @@ class PolicySetImplCustomTest {
 	void simplePermitAllWithBodyTrue() {
 		var policy   = INTERPRETER.parse("policy \"p\" permit where true;");
 		var expected = AuthorizationDecision.PERMIT;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected))
 				.verifyComplete();
 	}
 
@@ -167,7 +169,7 @@ class PolicySetImplCustomTest {
 	void simplePermitAllWithBodyFalse() {
 		var policy   = INTERPRETER.parse("policy \"p\" permit where false;");
 		var expected = AuthorizationDecision.NOT_APPLICABLE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected))
 				.verifyComplete();
 	}
 
@@ -175,7 +177,7 @@ class PolicySetImplCustomTest {
 	void simplePermitAllWithBodyError() {
 		var policy   = INTERPRETER.parse("policy \"p\" permit where (10/0);");
 		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected))
 				.verifyComplete();
 	}
 
@@ -184,7 +186,7 @@ class PolicySetImplCustomTest {
 		var policy   = INTERPRETER.parse("policy \"p\" permit obligation true");
 		var expected = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
 				Optional.of(Val.ofJson("[true]").getArrayNode()), Optional.empty());
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected))
 				.verifyComplete();
 	}
 
@@ -192,7 +194,7 @@ class PolicySetImplCustomTest {
 	void obligationErrors() {
 		var policy   = INTERPRETER.parse("policy \"p\" permit obligation (10/0)");
 		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected))
 				.verifyComplete();
 	}
 
@@ -200,7 +202,7 @@ class PolicySetImplCustomTest {
 	void obligationUndefined() {
 		var policy   = INTERPRETER.parse("policy \"p\" permit obligation undefined");
 		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected))
 				.verifyComplete();
 	}
 
@@ -209,7 +211,7 @@ class PolicySetImplCustomTest {
 		var policy   = INTERPRETER.parse("policy \"p\" permit advice true");
 		var expected = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
 				Optional.of(Val.ofJson("[true]").getArrayNode()));
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected))
 				.verifyComplete();
 	}
 
@@ -217,7 +219,7 @@ class PolicySetImplCustomTest {
 	void adviceErrors() {
 		var policy   = INTERPRETER.parse("policy \"p\" permit advice (10/0)");
 		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected))
 				.verifyComplete();
 	}
 
@@ -225,7 +227,7 @@ class PolicySetImplCustomTest {
 	void adviceUndefined() {
 		var policy   = INTERPRETER.parse("policy \"p\" permit advice undefined");
 		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected))
 				.verifyComplete();
 	}
 
@@ -234,7 +236,7 @@ class PolicySetImplCustomTest {
 		var policy   = INTERPRETER.parse("policy \"p\" permit transform true");
 		var expected = new AuthorizationDecision(Decision.PERMIT, Optional.of(Val.JSON.booleanNode(true)),
 				Optional.empty(), Optional.empty());
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected))
 				.verifyComplete();
 	}
 
@@ -242,7 +244,7 @@ class PolicySetImplCustomTest {
 	void transformErrors() {
 		var policy   = INTERPRETER.parse("policy \"p\" permit transform (10/0)");
 		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected))
 				.verifyComplete();
 	}
 
@@ -250,7 +252,7 @@ class PolicySetImplCustomTest {
 	void transformUndefined() {
 		var policy   = INTERPRETER.parse("policy \"p\" permit transform undefined");
 		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected))
 				.verifyComplete();
 	}
 
@@ -261,7 +263,8 @@ class PolicySetImplCustomTest {
 		var expected = new AuthorizationDecision(Decision.PERMIT, Optional.of(Val.ofJson("[true,false,null]").get()),
 				Optional.of((ArrayNode) Val.ofJson("[\"wash your hands\"]").get()),
 				Optional.of((ArrayNode) Val.ofJson("[\"smile\"]").get()));
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
+				.expectNextMatches(hasDecision(expected))
 				.verifyComplete();
 	}
 

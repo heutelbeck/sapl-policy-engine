@@ -77,10 +77,8 @@ class BasicEnvironmentHeadAttributeImplTest {
 	void applyWithSomeStreamData() {
 		Val[] data = { Val.FALSE, Val.error("ERROR"), Val.TRUE, Val.NULL, Val.UNDEFINED };
 		var   step = headAttributeFinderStep();
-		var   sut  = step.evaluate().contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
-				mockAttributeContextWithStream(Flux.just(data))));
-		sut.log().blockLast();
-
+		var   sut  = step.evaluate().contextWrite(
+				ctx -> AuthorizationContext.setAttributeContext(ctx, mockAttributeContextWithStream(Flux.just(data))));
 		StepVerifier.create(sut).expectNext(Val.FALSE).verifyComplete();
 	}
 

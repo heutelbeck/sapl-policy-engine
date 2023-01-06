@@ -17,16 +17,16 @@ package io.sapl.spring.pdp.embedded;
 
 import java.time.Clock;
 
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 import io.sapl.pip.TimePolicyInformationPoint;
 
-@Configuration
+@AutoConfiguration
 public class PolicyInformationPointsAutoConfiguration {
 
 	@Bean
-	public TimePolicyInformationPoint timePolicyInformationPoint() {
+	TimePolicyInformationPoint timePolicyInformationPoint() {
 		return new TimePolicyInformationPoint(Clock.systemUTC());
 	}
 

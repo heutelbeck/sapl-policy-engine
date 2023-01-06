@@ -22,15 +22,15 @@ import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
 
-class ApplyStepsEscapedkeyTest {
+class ApplyStepsEscapedkeyTests {
 
 	@Test
 	void keyStepPropagatesErrors() {
-		expressionErrors("(10/0).\"k e y\"");
+		expressionErrors("(10/0).\"k e y\"", "Division by zero");
 	}
 
 	@Test
-	void keyStepToNonObjectUndefined() {
+	void keyStepToNonObjectToUndefined() {
 		expressionEvaluatesTo("true.\"k e y\"", Val.UNDEFINED);
 	}
 
@@ -51,7 +51,6 @@ class ApplyStepsEscapedkeyTest {
 		expressionEvaluatesTo(expression, expected);
 	}
 
-	// FIXME: {"k e y",123} should be rejected at parse time
 	@Test
 	void keyStepToArrayNoMatch() {
 		var expression = "[{\"k e y\" : true},{\"k e y\": 123}].\"x\"";

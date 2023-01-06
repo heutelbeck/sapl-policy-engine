@@ -15,11 +15,14 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.OperatorUtil.operator;
+import static io.sapl.grammar.sapl.impl.util.OperatorUtil.operator;
+
+import java.util.Map;
 
 import com.fasterxml.jackson.databind.node.TextNode;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.Plus;
 import reactor.core.publisher.Flux;
 
 public class PlusImplCustom extends PlusImpl {
@@ -33,11 +36,12 @@ public class PlusImplCustom extends PlusImpl {
 
 	private Val plus(Val left, Val right) {
 		if (left.isNumber() && right.isNumber())
-			return Val.of(left.get().decimalValue().add(right.get().decimalValue()));
+			return Val.of(left.get().decimalValue().add(right.get().decimalValue())).withTrace(Plus.class,
+					Map.of("left", left, "right", right));
 
 		var lStr = left.orElse(UNDEFINED).asText();
 		var rStr = right.orElse(UNDEFINED).asText();
-		return Val.of(lStr.concat(rStr));
+		return Val.of(lStr.concat(rStr)).withTrace(Plus.class, Map.of("left", left, "right", right));
 	}
 
 }

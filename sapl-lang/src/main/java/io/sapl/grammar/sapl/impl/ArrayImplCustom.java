@@ -16,9 +16,11 @@
 package io.sapl.grammar.sapl.impl;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.Array;
 import io.sapl.grammar.sapl.Expression;
 import reactor.core.publisher.Flux;
 
@@ -44,7 +46,7 @@ public class ArrayImplCustom extends ArrayImpl {
 	public Flux<Val> evaluate() {
 		// handle the empty array
 		if (getItems().size() == 0) {
-			return Flux.just(Val.of(Val.JSON.arrayNode()));
+			return Flux.just(Val.of(Val.JSON.arrayNode()).withTrace(Array.class));
 		}
 		// aggregate child fluxes into a flux of a JSON array
 		final List<Flux<Val>> itemFluxes = new ArrayList<>(getItems().size());
@@ -62,18 +64,25 @@ public class ArrayImplCustom extends ArrayImpl {
 	 * want to return valid JSON values 'undefined' may not occur anywhere.
 	 */
 	private Val collectValuesToArrayNode(Object[] values) {
-		var resultArr = Val.JSON.arrayNode();
+		var resultArr    = Val.JSON.arrayNode();
+		var tracedValues = new LinkedList<Val>();
+		Val error        = null;
 		for (var oVal : values) {
 			Val val = (Val) oVal;
+			tracedValues.add(val);
 			if (val.isError()) {
-				return val;
+				if (error == null)
+					error = val;
 			}
 			if (val.isDefined()) {
 				// drop undefined
 				resultArr.add(val.get());
 			}
 		}
-		return Val.of(resultArr);
+		if (error != null)
+			return error.withTrace(Array.class, tracedValues.toArray(new Val[0]));
+		
+		return Val.of(resultArr).withTrace(Array.class, tracedValues.toArray(new Val[0]));
 	}
 
 }

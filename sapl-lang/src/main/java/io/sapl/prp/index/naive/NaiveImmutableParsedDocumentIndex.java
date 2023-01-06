@@ -61,11 +61,9 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
 		if (!consistent)
 			return Mono.just(new PolicyRetrievalResult().withInvalidState());
 
-		var documentsWithMatchingInformation = Flux.merge(documentsByName.values().stream().map(
-				document -> document.matches().map(val -> Tuples.of(document, val)))
-				.collect(Collectors.toList()));
+		var documentsWithMatchingInformation = Flux.merge(documentsByName.values().stream()
+				.map(document -> document.matches().map(val -> Tuples.of(document, val))).collect(Collectors.toList()));
 
-		// refactor inner lambda to function
 		return documentsWithMatchingInformation.reduce(new PolicyRetrievalResult(),
 				(policyRetrievalResult, documentWithMatchingInformation) -> {
 					var match = documentWithMatchingInformation.getT2();

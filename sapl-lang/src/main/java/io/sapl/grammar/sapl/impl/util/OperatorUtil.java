@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.sapl.impl;
+package io.sapl.grammar.sapl.impl.util;
 
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -38,6 +38,7 @@ public class OperatorUtil {
 	}
 
 	public static Flux<Val> arithmeticOperator(
+			
 			BinaryOperator operator,
 			BiFunction<Val, Val, Val> transformation) {
 		return operator(operator, Val::requireBigDecimal, Val::requireBigDecimal, transformation);

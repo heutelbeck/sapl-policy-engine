@@ -27,9 +27,10 @@ import reactor.core.publisher.Flux;
 
 public interface AttributeContext extends LibraryFunctionProvider {
 
-	Flux<Val> evaluateAttribute(String attribute, Val value, Arguments arguments, Map<String, JsonNode> variables);
+	Flux<Val> evaluateAttribute(String attributeName, Val leftHandValue, Arguments arguments,
+			Map<String, JsonNode> variables);
 
-	Flux<Val> evaluateEnvironmentAttribute(String attribute, Arguments arguments, Map<String, JsonNode> variables);
+	Flux<Val> evaluateEnvironmentAttribute(String attributeName, Arguments arguments, Map<String, JsonNode> variables);
 
 	Collection<PolicyInformationPointDocumentation> getDocumentation();
 

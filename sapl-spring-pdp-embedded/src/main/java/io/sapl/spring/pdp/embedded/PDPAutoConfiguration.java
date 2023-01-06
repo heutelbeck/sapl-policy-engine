@@ -15,10 +15,10 @@
  */
 package io.sapl.spring.pdp.embedded;
 
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
@@ -28,7 +28,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Configuration
+@AutoConfiguration
 @RequiredArgsConstructor
 @AutoConfigureAfter({ FunctionLibrariesAutoConfiguration.class, PolicyInformationPointsAutoConfiguration.class })
 public class PDPAutoConfiguration {
@@ -39,7 +39,7 @@ public class PDPAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public PolicyDecisionPoint policyDecisionPoint() {
+	PolicyDecisionPoint policyDecisionPoint() {
 		log.info("Deploying embedded Policy Decision Point. ConfigProvider: {} PRP: {}",
 				configurationProvider.getClass().getSimpleName(), policyRetrievalPoint.getClass().getSimpleName());
 		return new EmbeddedPolicyDecisionPoint(configurationProvider, policyRetrievalPoint);

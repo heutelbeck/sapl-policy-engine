@@ -16,9 +16,11 @@
 package io.sapl.prp;
 
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 
-import io.sapl.grammar.sapl.AuthorizationDecisionEvaluable;
+import io.sapl.grammar.sapl.PolicyElement;
+import io.sapl.grammar.sapl.SAPL;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -31,7 +33,7 @@ import lombok.ToString;
 @AllArgsConstructor
 public class PolicyRetrievalResult {
 
-	Collection<? extends AuthorizationDecisionEvaluable> matchingDocuments = new ArrayList<>();
+	List<SAPL> matchingDocuments = new ArrayList<>();
 
 	@Getter
 	boolean errorsInTarget = false;
@@ -39,24 +41,26 @@ public class PolicyRetrievalResult {
 	@Getter
 	boolean prpValidState = true;
 
-	public Collection<? extends AuthorizationDecisionEvaluable> getMatchingDocuments() {
+	public List<SAPL> getMatchingDocuments() {
 		return new ArrayList<>(matchingDocuments);
 	}
 
-	public PolicyRetrievalResult withMatch(AuthorizationDecisionEvaluable match) {
-		var matches = new ArrayList<AuthorizationDecisionEvaluable>(matchingDocuments);
+	public List<PolicyElement> getPolicyElements() {
+		return matchingDocuments.stream().map(SAPL::getPolicyElement).collect(Collectors.toList());
+	}
+
+	public PolicyRetrievalResult withMatch(SAPL match) {
+		var matches = new ArrayList<SAPL>(matchingDocuments);
 		matches.add(match);
 		return new PolicyRetrievalResult(matches, errorsInTarget, prpValidState);
 	}
 
 	public PolicyRetrievalResult withError() {
-		return new PolicyRetrievalResult(new ArrayList<AuthorizationDecisionEvaluable>(matchingDocuments), true,
-				prpValidState);
+		return new PolicyRetrievalResult(new ArrayList<SAPL>(matchingDocuments), true, prpValidState);
 	}
 
 	public PolicyRetrievalResult withInvalidState() {
-		return new PolicyRetrievalResult(new ArrayList<AuthorizationDecisionEvaluable>(matchingDocuments),
-				errorsInTarget, false);
+		return new PolicyRetrievalResult(new ArrayList<SAPL>(matchingDocuments), errorsInTarget, false);
 	}
 
 }

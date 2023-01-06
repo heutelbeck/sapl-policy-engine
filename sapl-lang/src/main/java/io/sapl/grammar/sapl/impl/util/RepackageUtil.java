@@ -13,9 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.sapl.impl;
+package io.sapl.grammar.sapl.impl.util;
 
+import io.sapl.api.interpreter.Trace.ExpressionArgument;
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.Array;
 import lombok.experimental.UtilityClass;
 import reactor.util.function.Tuple2;
 
@@ -23,34 +25,47 @@ import reactor.util.function.Tuple2;
 public class RepackageUtil {
 
 	public Val recombineObject(Object[] oElements) {
-		var object = Val.JSON.objectNode();
+		var object         = Val.JSON.objectNode();
+		var tracedElements = new ExpressionArgument[oElements.length];
+		var elementCount   = 0;
+		Val error          = null;
 		for (var elem : oElements) {
 			@SuppressWarnings("unchecked")
 			var element = (Tuple2<String, Val>) elem;
-			if (element.getT2().isError()) {
-				return element.getT2();
-			}
-			// drop undefined
-			if (element.getT2().isDefined()) {
+			var key     = element.getT1();
+			var value   = element.getT2();
+			tracedElements[elementCount++] = new ExpressionArgument(key, value);
+			if (value.isError() && error == null) {
+				error = value;
+			} else if (value.isDefined()) { // drop undefined
 				object.set(element.getT1(), element.getT2().get());
 			}
 		}
-		return Val.of(object);
+		if (error != null)
+			return error.withTrace(Object.class, tracedElements);
+		return Val.of(object).withTrace(Object.class, tracedElements);
 	}
 
 	public Val recombineArray(Object[] oElements) {
-		var array = Val.JSON.arrayNode();
+		var array          = Val.JSON.arrayNode();
+		var tracedElements = new ExpressionArgument[oElements.length];
+		var elementCount   = 0;
+		Val error          = null;
 		for (var elem : oElements) {
 			var element = (Val) elem;
-			if (element.isError()) {
-				return element;
+			tracedElements[elementCount] = new ExpressionArgument("array[" + elementCount + "]", element);
+			elementCount++;
+			if (element.isError() && error == null) {
+				error = element;
 			}
 			// drop undefined
 			if (element.isDefined()) {
 				array.add(element.get());
 			}
 		}
-		return Val.of(array);
+		if (error != null)
+			return error.withTrace(Array.class, tracedElements);
+		return Val.of(array).withTrace(Array.class, tracedElements);
 	}
 
 }

@@ -19,6 +19,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
+import org.hamcrest.Matcher;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.MockCall;
@@ -26,10 +28,6 @@ import io.sapl.test.mocking.function.models.FunctionParameters;
 import io.sapl.test.verification.MockRunInformation;
 import io.sapl.test.verification.TimesCalledVerification;
 import io.sapl.test.verification.TimesParameterCalledVerification;
-
-import org.hamcrest.Matcher;
-
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 public class FunctionMockAlwaysSameForParameters implements FunctionMock {
@@ -49,11 +47,11 @@ public class FunctionMockAlwaysSameForParameters implements FunctionMock {
 	private final List<TimesParameterCalledVerification> listMockingVerifications;
 
 	public FunctionMockAlwaysSameForParameters(String fullName) {
-		this.fullName = fullName;
+		this.fullName                              = fullName;
 		this.listParameterSpecificMockReturnValues = new LinkedList<>();
 
 		this.listMockingVerifications = new LinkedList<>();
-		this.mockRunInformation = new MockRunInformation(fullName);
+		this.mockRunInformation       = new MockRunInformation(fullName);
 	}
 
 	@Override
@@ -64,8 +62,7 @@ public class FunctionMockAlwaysSameForParameters implements FunctionMock {
 				parameter);
 		if (matchingParameterSpecificMockReturnValue.isPresent()) {
 			return matchingParameterSpecificMockReturnValue.get().getAlwaysMockReturnValue();
-		}
-		else {
+		} else {
 			throw new SaplTestException(ERROR_NO_MATCHING_PARAMETERS);
 		}
 	}
@@ -111,13 +108,16 @@ public class FunctionMockAlwaysSameForParameters implements FunctionMock {
 	}
 
 	@Getter
-	@AllArgsConstructor
 	static class ParameterSpecificMockReturnValue {
 
 		private List<Matcher<Val>> matchers;
 
 		private Val alwaysMockReturnValue;
 
+		public ParameterSpecificMockReturnValue(List<Matcher<Val>> matchers, Val alwaysMockReturnValue) {
+			this.matchers              = matchers;
+			this.alwaysMockReturnValue = alwaysMockReturnValue.withTrace(FunctionMockAlwaysSameForParameters.class);
+		}
 	}
 
 }

@@ -34,6 +34,8 @@ import reactor.util.context.ContextView;
 
 @UtilityClass
 public class AuthorizationContext {
+	private static final String          INDEX         = "index";
+	private static final String          KEY           = "key";
 	private static final String          ATTRIBUTE_CTX = "attributeCtx";
 	private static final String          FUNCTION_CTX  = "functionCtx";
 	private static final String          VARIABLES     = "variables";
@@ -53,8 +55,24 @@ public class AuthorizationContext {
 		return ctx.getOrDefault(RELATIVE_NODE, Val.UNDEFINED);
 	}
 
+	public static Integer getIndex(ContextView ctx) {
+		return ctx.get(INDEX);
+	}
+
+	public static String getKey(ContextView ctx) {
+		return ctx.get(KEY);
+	}
+
 	public static Context setRelativeNode(Context ctx, Val relativeNode) {
 		return ctx.put(RELATIVE_NODE, relativeNode);
+	}
+
+	public static Context setRelativeNodeWithIndex(Context ctx, Val relativeNode, Integer index) {
+		return ctx.put(RELATIVE_NODE, relativeNode).put(INDEX, index);
+	}
+
+	public static Context setRelativeNodeWithKey(Context ctx, Val relativeNode, String key) {
+		return ctx.put(RELATIVE_NODE, relativeNode).put(KEY, key);
 	}
 
 	public static AttributeContext getAttributeContext(ContextView ctx) {
@@ -92,8 +110,7 @@ public class AuthorizationContext {
 	}
 
 	private void assertVariableNameNotReserved(String name) {
-		if (SUBJECT.equals(name) || RESOURCE.equals(name) || ACTION.equals(name)
-				|| ENVIRONMENT.equals(name)) {
+		if (SUBJECT.equals(name) || RESOURCE.equals(name) || ACTION.equals(name) || ENVIRONMENT.equals(name)) {
 			throw new PolicyEvaluationException("cannot overwrite request variable: %s", name);
 		}
 	}

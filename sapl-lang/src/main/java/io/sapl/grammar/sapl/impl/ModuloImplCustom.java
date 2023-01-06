@@ -15,11 +15,13 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.OperatorUtil.arithmeticOperator;
+import static io.sapl.grammar.sapl.impl.util.OperatorUtil.arithmeticOperator;
 
 import java.math.BigDecimal;
+import java.util.Map;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.Modulo;
 import reactor.core.publisher.Flux;
 
 /**
@@ -34,8 +36,10 @@ public class ModuloImplCustom extends ModuloImpl {
 
 	private Val divide(Val dividend, Val divisor) {
 		if (divisor.decimalValue().compareTo(BigDecimal.ZERO) == 0)
-			return Val.error("Division by zero");
-		return Val.of(dividend.decimalValue().remainder(divisor.decimalValue()));
+			return Val.error("Division by zero").withTrace(Modulo.class,
+					Map.of("dividend", dividend, "divisor", divisor));
+		return Val.of(dividend.decimalValue().remainder(divisor.decimalValue())).withTrace(Modulo.class,
+				Map.of("dividend", dividend, "divisor", divisor));
 	}
 
 }

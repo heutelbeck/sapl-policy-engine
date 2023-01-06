@@ -31,26 +31,16 @@ class PDPConfigurationTest {
 
 	@Test
 	void testIsValid() {
-		assertThat(
-				new PDPConfiguration(null, mock(FunctionContext.class), new HashMap<>(), mock(CombiningAlgorithm.class))
-						.isValid(),
-				is(false));
-		assertThat(
-				new PDPConfiguration(mock(AttributeContext.class), null, new HashMap<>(),
-						mock(CombiningAlgorithm.class)).isValid(),
-				is(false));
-		assertThat(
-				new PDPConfiguration(mock(AttributeContext.class), mock(FunctionContext.class), null,
-						mock(CombiningAlgorithm.class)).isValid(),
-				is(false));
-		assertThat(
-				new PDPConfiguration(mock(AttributeContext.class), mock(FunctionContext.class), new HashMap<>(), null)
-						.isValid(),
-				is(false));
-		assertThat(
-				new PDPConfiguration(mock(AttributeContext.class), mock(FunctionContext.class), new HashMap<>(),
-						mock(CombiningAlgorithm.class)).isValid(),
-				is(true));
+		assertThat(new PDPConfiguration(null, mock(FunctionContext.class), new HashMap<>(),
+				mock(CombiningAlgorithm.class), x -> x, x -> x).isValid(), is(false));
+		assertThat(new PDPConfiguration(mock(AttributeContext.class), null, new HashMap<>(),
+				mock(CombiningAlgorithm.class), x -> x, x -> x).isValid(), is(false));
+		assertThat(new PDPConfiguration(mock(AttributeContext.class), mock(FunctionContext.class), null,
+				mock(CombiningAlgorithm.class), x -> x, x -> x).isValid(), is(false));
+		assertThat(new PDPConfiguration(mock(AttributeContext.class), mock(FunctionContext.class), new HashMap<>(),
+				null, x -> x, x -> x).isValid(), is(false));
+		assertThat(new PDPConfiguration(mock(AttributeContext.class), mock(FunctionContext.class), new HashMap<>(),
+				mock(CombiningAlgorithm.class), x -> x, x -> x).isValid(), is(true));
 	}
 
 }

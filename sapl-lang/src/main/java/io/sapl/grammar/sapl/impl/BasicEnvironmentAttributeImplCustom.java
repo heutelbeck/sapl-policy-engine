@@ -15,7 +15,12 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import java.util.Map;
+
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.AttributeFinderStep;
+import io.sapl.grammar.sapl.impl.util.FunctionUtil;
+import io.sapl.grammar.sapl.impl.util.TargetExpressionUtil;
 import io.sapl.interpreter.context.AuthorizationContext;
 import reactor.core.publisher.Flux;
 
@@ -28,14 +33,16 @@ public class BasicEnvironmentAttributeImplCustom extends BasicEnvironmentAttribu
 
 	@Override
 	public Flux<Val> evaluate() {
-		if (TargetExpressionUtil.isInTargetExpression(this))
-			return Val.errorFlux(EXTERNAL_ATTRIBUTE_IN_TARGET);
-
 		return Flux.deferContextual(ctxView -> {
-			return AuthorizationContext.getAttributeContext(ctxView).evaluateEnvironmentAttribute(
-					FunctionUtil.resolveAbsoluteFunctionName(getIdSteps(), AuthorizationContext.getImports(ctxView)),
-					getArguments(), AuthorizationContext.getVariables(ctxView))
-					.distinctUntilChanged();
+			var attributeName = FunctionUtil.resolveAbsoluteFunctionName(getIdSteps(),
+					AuthorizationContext.getImports(ctxView));
+
+			if (TargetExpressionUtil.isInTargetExpression(this))
+				return Flux.just(Val.error(EXTERNAL_ATTRIBUTE_IN_TARGET).withTrace(AttributeFinderStep.class,
+						Map.of("attribute", Val.of(attributeName))));
+
+			return AuthorizationContext.getAttributeContext(ctxView).evaluateEnvironmentAttribute(attributeName,
+					getArguments(), AuthorizationContext.getVariables(ctxView)).distinctUntilChanged();
 		});
 	}
 

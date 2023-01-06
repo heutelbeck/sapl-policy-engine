@@ -16,13 +16,14 @@
 package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.NullLiteral;
 import reactor.core.publisher.Flux;
 
 public class NullLiteralImplCustom extends NullLiteralImpl {
 
 	@Override
 	public Flux<Val> evaluate() {
-		return Val.fluxOfNull();
+		return Flux.just(Val.NULL.withTrace(NullLiteral.class));
 	}
 
 }

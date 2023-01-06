@@ -15,9 +15,12 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.OperatorUtil.arithmeticOperator;
+import static io.sapl.grammar.sapl.impl.util.OperatorUtil.arithmeticOperator;
+
+import java.util.Map;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.Less;
 import reactor.core.publisher.Flux;
 
 /**
@@ -34,7 +37,8 @@ public class LessImplCustom extends LessImpl {
 	}
 
 	private Val lessThan(Val left, Val right) {
-		return Val.of(left.decimalValue().compareTo(right.decimalValue()) < 0);
+		return Val.of(left.decimalValue().compareTo(right.decimalValue()) < 0).withTrace(Less.class,
+				Map.of("left", left, "right", right));
 	}
 
 }

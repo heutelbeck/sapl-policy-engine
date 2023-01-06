@@ -28,14 +28,12 @@ import java.time.temporal.Temporal;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
-import io.sapl.api.pip.Attribute;
+import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
-import reactor.util.function.Tuple2;
-import reactor.util.function.Tuples;
 
 @RequiredArgsConstructor
 @PolicyInformationPoint(name = TimePolicyInformationPoint.NAME, description = TimePolicyInformationPoint.DESCRIPTION)
@@ -45,23 +43,26 @@ public class TimePolicyInformationPoint {
 
 	public static final String DESCRIPTION = "Policy Information Point and attributes for retrieving current date and time information";
 
-	private static final Flux<Val> DEFAULT_UPDATE_INTERVAL_IN_MS = Flux.just(Val.of(1000L));
+	private static final Val DEFAULT_UPDATE_INTERVAL_IN_MS = Val.of(1000L);
 
 	private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_DATE_TIME
 			.withZone(ZoneId.from(ZoneOffset.UTC));
 
 	private final Clock clock;
 
-	@Attribute(
-			docs = "Emits the current date and time as an ISO8601 String in UTC. The first time is emitted instantly. After that the time is updated once every second.")
+	@EnvironmentAttribute(docs = "Emits the current date and time as an ISO8601 String in UTC. The first time is emitted instantly. After that the time is updated once every second.")
 	public Flux<Val> now() {
 		return now(DEFAULT_UPDATE_INTERVAL_IN_MS);
 	}
 
-	@Attribute(
-			docs = "Emits the current date and time as an ISO8601 String in UTC. The first time is emitted instantly. After that the time is updated once every second.")
-	public Flux<Val> now(@Number Flux<Val> updateIntervalInMillis) {
-		return instantNow(updateIntervalInMillis).map(ISO_FORMATTER::format).map(Val::of);
+	@EnvironmentAttribute(docs = "Emits the current date and time as an ISO8601 String in UTC. The first time is emitted instantly. After that the time is updated once every second.")
+	public Flux<Val> now(@Number Val updateIntervalInMillis) {
+		try {
+			var intervall = valMsToNonZeroDuration(updateIntervalInMillis);
+			return instantNow(intervall).map(ISO_FORMATTER::format).map(Val::of);
+		} catch (PolicyEvaluationException e) {
+			return Flux.error(e);
+		}
 	}
 
 	private Duration valMsToNonZeroDuration(Val val) {
@@ -71,31 +72,25 @@ public class TimePolicyInformationPoint {
 		return duration;
 	}
 
-	private Flux<Instant> instantNow(Flux<Val> pollIntervalInMillis) {
-		return pollIntervalInMillis.map(this::valMsToNonZeroDuration).switchMap(this::instantNow);
-	}
-
 	private Flux<Instant> instantNow(Duration pollIntervalInMillis) {
-		var first = Flux.just(clock.instant());
+		var first     = Flux.just(clock.instant());
 		var following = Flux.just(0).repeat().delayElements(pollIntervalInMillis).map(__ -> clock.instant());
 		return Flux.concat(first, following);
 	}
 
-	@Attribute(docs = "Returns the system default time-zone.")
+	@EnvironmentAttribute(docs = "Returns the system default time-zone.")
 	public Flux<Val> systemTimeZone() {
 		return Val.fluxOf(ZoneId.systemDefault().toString());
 	}
 
-	@Attribute(
-			docs = "Returns true, if the current time in ISO UTC is after the provided time parameter, also in ISO UTC.")
-	public Flux<Val> nowIsAfter(@Text Flux<Val> time) {
-		return time.map(this::valToInstant).switchMap(this::nowIsAfter).map(Val::of);
+	@EnvironmentAttribute(docs = "Returns true, if the current time in ISO UTC is after the provided time parameter, also in ISO UTC.")
+	public Flux<Val> nowIsAfter(@Text Val time) {
+		return nowIsAfter(valToInstant(time)).map(Val::of);
 	}
 
-	@Attribute(
-			docs = "Returns true, if the current local time in UTC (e.g., \"17:00\") is before the provided checkpoint time.")
-	public Flux<Val> localTimeIsAfter(@Text Flux<Val> checkpoint) {
-		return checkpoint.map(Val::getText).map(LocalTime::parse).switchMap(this::localTimeIsAfter).map(Val::of);
+	@EnvironmentAttribute(docs = "Returns true, if the current local time in UTC (e.g., \"17:00\") is before the provided checkpoint time.")
+	public Flux<Val> localTimeIsAfter(@Text Val checkpoint) {
+		return localTimeIsAfter(LocalTime.parse(checkpoint.getText())).map(Val::of);
 	}
 
 	private Flux<Boolean> localTimeIsAfter(LocalTime checkpoint) {
@@ -115,37 +110,31 @@ public class TimePolicyInformationPoint {
 			return Flux.just(Boolean.FALSE);
 
 		if (now.isAfter(checkpoint)) {
-			var initial = Flux.just(Boolean.TRUE);
+			var initial      = Flux.just(Boolean.TRUE);
 			var tillMidnight = boolAfterTimeDifference(false, now, LocalTime.MAX);
-			var initialDay = Flux.concat(initial, tillMidnight);
+			var initialDay   = Flux.concat(initial, tillMidnight);
 			return Flux.concat(initialDay, afterCheckpointEventsFollowingDays(checkpoint));
 		}
 
-		var initial = Flux.just(Boolean.FALSE);
+		var initial        = Flux.just(Boolean.FALSE);
 		var tillCheckpoint = boolAfterTimeDifference(true, now, checkpoint);
-		var tillMidnight = boolAfterTimeDifference(false, checkpoint, LocalTime.MAX);
-		var initialDay = Flux.concat(initial, tillCheckpoint, tillMidnight);
+		var tillMidnight   = boolAfterTimeDifference(false, checkpoint, LocalTime.MAX);
+		var initialDay     = Flux.concat(initial, tillCheckpoint, tillMidnight);
 		return Flux.concat(initialDay, afterCheckpointEventsFollowingDays(checkpoint));
 
 	}
 
 	private Flux<Boolean> afterCheckpointEventsFollowingDays(LocalTime checkpoint) {
 		var startOfDay = boolAfterTimeDifference(true, LocalTime.MIN, checkpoint);
-		var endOfDay = boolAfterTimeDifference(false, checkpoint, LocalTime.MAX);
+		var endOfDay   = boolAfterTimeDifference(false, checkpoint, LocalTime.MAX);
 		return Flux.concat(startOfDay, endOfDay).repeat();
 	}
 
-	@Attribute(
-			docs = "Returns true, while the local UTC time (e.g., \"13:34:21\") is between the two provided times of the day. If the time of the first parameter is after the time of the second parameter, the interval ist considered to be the one between the to times, crossing the midnight border of the days.")
-	public Flux<Val> localTimeIsBetween(@Text Flux<Val> startTime, @Text Flux<Val> endTime) {
-		var startTimes = startTime.map(Val::getText).map(LocalTime::parse);
-		var endTimes = endTime.map(Val::getText).map(LocalTime::parse);
-		return Flux.combineLatest(times -> Tuples.of((LocalTime) times[0], (LocalTime) times[1]), startTimes, endTimes)
-				.switchMap(this::localTimeIsBetween).map(Val::of);
-	}
-
-	private Flux<Boolean> localTimeIsBetween(Tuple2<LocalTime, LocalTime> startAndEnd) {
-		return nowIsBetween(startAndEnd.getT1(), startAndEnd.getT2());
+	@EnvironmentAttribute(docs = "Returns true, while the local UTC time (e.g., \"13:34:21\") is between the two provided times of the day. If the time of the first parameter is after the time of the second parameter, the interval ist considered to be the one between the to times, crossing the midnight border of the days.")
+	public Flux<Val> localTimeIsBetween(@Text Val startTime, @Text Val endTime) {
+		var localStartTime = LocalTime.parse(startTime.getText());
+		var localEndTime   = LocalTime.parse(endTime.getText());
+		return nowIsBetween(localStartTime, localEndTime).map(Val::of);
 	}
 
 	private Flux<Boolean> nowIsBetween(LocalTime t1, LocalTime t2) {
@@ -176,30 +165,28 @@ public class TimePolicyInformationPoint {
 
 		Flux<Boolean> initialStates;
 		if (now.isBefore(start)) {
-			var initial = Flux.just(Boolean.FALSE);
+			var initial   = Flux.just(Boolean.FALSE);
 			var tillStart = boolAfterTimeDifference(true, now, start);
 			initialStates = Flux.concat(initial, tillStart);
-		}
-		else if (now.isAfter(end)) {
-			var initial = Flux.just(Boolean.FALSE);
+		} else if (now.isAfter(end)) {
+			var initial                = Flux.just(Boolean.FALSE);
 			var timeTillIntervalStarts = Duration
 					.ofMillis(MILLIS.between(now, LocalTime.MAX) + MILLIS.between(LocalTime.MIN, start));
-			var tillStart = Flux.just(Boolean.TRUE).delayElements(timeTillIntervalStarts);
+			var tillStart              = Flux.just(Boolean.TRUE).delayElements(timeTillIntervalStarts);
 			initialStates = Flux.concat(initial, tillStart);
-		}
-		else {
+		} else {
 			// starts inside of interval
-			var initial = Flux.just(Boolean.TRUE);
-			var tillIntervalEnd = boolAfterTimeDifference(false, now, end);
+			var initial                = Flux.just(Boolean.TRUE);
+			var tillIntervalEnd        = boolAfterTimeDifference(false, now, end);
 			var timeTillIntervalStarts = Duration
 					.ofMillis(MILLIS.between(end, LocalTime.MAX) + MILLIS.between(LocalTime.MIN, start));
-			var tillStart = Flux.just(Boolean.TRUE).delayElements(timeTillIntervalStarts);
+			var tillStart              = Flux.just(Boolean.TRUE).delayElements(timeTillIntervalStarts);
 			initialStates = Flux.concat(initial, tillIntervalEnd, tillStart);
 		}
 
-		var tillEnd = boolAfterTimeDifference(false, start, end);
+		var tillEnd          = boolAfterTimeDifference(false, start, end);
 		var tillStartNextDay = boolAfterTimeDifference(true, start, end);
-		var repeated = Flux.concat(tillEnd, tillStartNextDay).repeat();
+		var repeated         = Flux.concat(tillEnd, tillStartNextDay).repeat();
 
 		return Flux.concat(initialStates, repeated);
 	}
@@ -208,15 +195,14 @@ public class TimePolicyInformationPoint {
 		return Flux.just(val).delayElements(Duration.ofMillis(MILLIS.between(start, end)));
 	}
 
-	@Attribute(docs = "Returns true while the current local time in UTC is before the provided checkpoint time.")
-	public Flux<Val> localTimeIsBefore(@Text Flux<Val> checkpoint) {
-		return checkpoint.map(Val::getText).map(LocalTime::parse).switchMap(this::localTimeIsAfter).map(this::negate)
-				.map(Val::of);
+	@EnvironmentAttribute(docs = "Returns true while the current local time in UTC is before the provided checkpoint time.")
+	public Flux<Val> localTimeIsBefore(@Text Val checkpoint) {
+		return localTimeIsAfter(LocalTime.parse(checkpoint.getText())).map(this::negate).map(Val::of);
 	}
 
-	@Attribute(docs = "Returns true, while the current UTC time is before the provided checkpoint time.")
-	public Flux<Val> nowIsBefore(@Text Flux<Val> time) {
-		return time.map(this::valToInstant).switchMap(this::nowIsBefore).map(Val::of);
+	@EnvironmentAttribute(docs = "Returns true, while the current UTC time is before the provided checkpoint time.")
+	public Flux<Val> nowIsBefore(@Text Val time) {
+		return nowIsBefore(valToInstant(time)).map(Val::of);
 	}
 
 	private Instant valToInstant(Val val) {
@@ -234,23 +220,16 @@ public class TimePolicyInformationPoint {
 	private Flux<Boolean> isAfter(Instant instantA, Instant instantB) {
 		if (instantB.isAfter(instantA))
 			return Flux.just(Boolean.TRUE);
-		var initial = Flux.just(Boolean.FALSE);
+		var initial  = Flux.just(Boolean.FALSE);
 		var eventual = Flux.just(Boolean.TRUE).delayElements(Duration.between(instantB, instantA));
 		return Flux.concat(initial, eventual);
 	}
 
-	@Attribute(
-			docs = "Returns true while the current time is between the two given times (ISO Strings). Will emit updates if the time changes and enters or exits the provided time interval.")
-	public Flux<Val> nowIsBetween(@Text Flux<Val> startTime, @Text Flux<Val> endTime) {
-		var startInstants = startTime.map(this::valToInstant);
-		var endInstants = endTime.map(this::valToInstant);
-		return Flux
-				.combineLatest(times -> Tuples.of((Instant) times[0], (Instant) times[1]), startInstants, endInstants)
-				.switchMap(this::nowIsBetween).map(Val::of);
-	}
-
-	public Flux<Boolean> nowIsBetween(Tuple2<Instant, Instant> startAndEnd) {
-		return nowIsBetween(startAndEnd.getT1(), startAndEnd.getT2());
+	@EnvironmentAttribute(docs = "Returns true while the current time is between the two given times (ISO Strings). Will emit updates if the time changes and enters or exits the provided time interval.")
+	public Flux<Val> nowIsBetween(@Text Val startTime, @Text Val endTime) {
+		var start = valToInstant(startTime);
+		var end   = valToInstant(endTime);
+		return nowIsBetween(start, end).map(Val::of);
 	}
 
 	public Flux<Boolean> nowIsBetween(Instant start, Instant end) {
@@ -259,30 +238,27 @@ public class TimePolicyInformationPoint {
 			return Flux.just(Boolean.FALSE);
 
 		if (now.isAfter(start)) {
-			var initial = Flux.just(Boolean.TRUE);
+			var initial  = Flux.just(Boolean.TRUE);
 			var eventual = Flux.just(Boolean.FALSE).delayElements(Duration.between(now, end));
 			return Flux.concat(initial, eventual);
 		}
 
-		var initial = Flux.just(Boolean.FALSE);
+		var initial         = Flux.just(Boolean.FALSE);
 		var duringIsBetween = Flux.just(Boolean.TRUE).delayElements(Duration.between(now, start));
-		var eventual = Flux.just(Boolean.FALSE).delayElements(Duration.between(start, end));
+		var eventual        = Flux.just(Boolean.FALSE).delayElements(Duration.between(start, end));
 
 		return Flux.concat(initial, duringIsBetween, eventual);
 	}
 
-	@Attribute(
-			docs = "A periodically toggling signal. Will be true for the first duration (ms) and then false for the second duration (ms). This will repeat periodically. Note, that the cycle will completely reset if the durations are updated. The attribute will forget its stat ein this case.")
-	public Flux<Val> toggle(@Number Flux<Val> trueDurationMs, @Number Flux<Val> falseDurationMs) {
-		return Flux.combineLatest(durations -> Tuples.of((Duration) durations[0], (Duration) durations[1]),
-				trueDurationMs.map(this::valMsToNonZeroDuration), falseDurationMs.map(this::valMsToNonZeroDuration))
-				.switchMap(this::toggle).map(Val::of);
+	@EnvironmentAttribute(docs = "A periodically toggling signal. Will be true for the first duration (ms) and then false for the second duration (ms). This will repeat periodically. Note, that the cycle will completely reset if the durations are updated. The attribute will forget its stat ein this case.")
+	public Flux<Val> toggle(@Number Val trueDurationMs, @Number Val falseDurationMs) {
+		return toggle(valMsToNonZeroDuration(trueDurationMs), valMsToNonZeroDuration(falseDurationMs)).map(Val::of);
 	}
 
-	private Flux<Boolean> toggle(Tuple2<Duration, Duration> durations) {
-		var initial = Flux.just(Boolean.TRUE);
-		var waitTillFalse = Flux.just(Boolean.FALSE).delayElements(durations.getT1());
-		var waitTillTrue = Flux.just(Boolean.TRUE).delayElements(durations.getT2());
+	private Flux<Boolean> toggle(Duration trueDurationMs, Duration falseDurationMs) {
+		var initial       = Flux.just(Boolean.TRUE);
+		var waitTillFalse = Flux.just(Boolean.FALSE).delayElements(trueDurationMs);
+		var waitTillTrue  = Flux.just(Boolean.TRUE).delayElements(falseDurationMs);
 		var repeatingTail = Flux.concat(waitTillFalse, waitTillTrue).repeat();
 		return Flux.concat(initial, repeatingTail);
 	}

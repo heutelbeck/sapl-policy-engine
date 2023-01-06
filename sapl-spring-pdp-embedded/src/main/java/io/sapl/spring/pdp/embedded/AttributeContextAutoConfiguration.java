@@ -17,11 +17,11 @@ package io.sapl.spring.pdp.embedded;
 
 import java.util.Collection;
 
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.interpreter.InitializationException;
@@ -30,7 +30,7 @@ import io.sapl.interpreter.pip.AttributeContext;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Configuration
+@AutoConfiguration
 @AutoConfigureAfter(PolicyInformationPointsAutoConfiguration.class)
 public class AttributeContextAutoConfiguration {
 
@@ -42,7 +42,7 @@ public class AttributeContextAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public AttributeContext attributeContext() throws InitializationException {
+	AttributeContext attributeContext() throws InitializationException {
 		var ctx = new AnnotationAttributeContext();
 		for (var entry : policyInformationPoints) {
 			log.trace("loading Policy Information Point: {}", entry.getClass().getSimpleName());

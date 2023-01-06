@@ -15,34 +15,34 @@
  */
 package io.sapl.spring.pdp.embedded;
 
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.LoggingFunctionLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
 
-@Configuration
+@AutoConfiguration
 public class FunctionLibrariesAutoConfiguration {
 
 	@Bean
-	public FilterFunctionLibrary filterFunctionLibrary() {
+	FilterFunctionLibrary filterFunctionLibrary() {
 		return new FilterFunctionLibrary();
 	}
 
 	@Bean
-	public StandardFunctionLibrary standardFunctionLibrary() {
+	StandardFunctionLibrary standardFunctionLibrary() {
 		return new StandardFunctionLibrary();
 	}
 
 	@Bean
-	public TemporalFunctionLibrary temporalFunctionLibrary() {
+	TemporalFunctionLibrary temporalFunctionLibrary() {
 		return new TemporalFunctionLibrary();
 	}
 
 	@Bean
-	public LoggingFunctionLibrary loggingFunctionLibrary() {
+	LoggingFunctionLibrary loggingFunctionLibrary() {
 		return new LoggingFunctionLibrary();
 	}
 

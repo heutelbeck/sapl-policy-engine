@@ -15,7 +15,10 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import java.util.Map;
+
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.BasicIdentifier;
 import io.sapl.interpreter.context.AuthorizationContext;
 import reactor.core.publisher.Flux;
 
@@ -30,7 +33,8 @@ public class BasicIdentifierImplCustom extends BasicIdentifierImpl {
 	public Flux<Val> evaluate() {
 		return Flux.deferContextual(ctx -> {
 			var identifierFlux = Flux.just(AuthorizationContext.getVariable(ctx, getIdentifier()));
-			return identifierFlux.switchMap(resolveStepsFiltersAndSubTemplates(steps));
+			return identifierFlux.switchMap(resolveStepsFiltersAndSubTemplates(steps))
+					.map(val -> val.withTrace(BasicIdentifier.class, Map.of("identifier", Val.of(getIdentifier()))));
 		});
 	}
 

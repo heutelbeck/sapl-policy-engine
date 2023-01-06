@@ -37,20 +37,20 @@ public class EObjectUtil {
 		EList<EStructuralFeature> features = eObject.eClass().getEAllStructuralFeatures();
 		for (EStructuralFeature feature : features) {
 			var featureInstance = eObject.eGet(feature);
-			log(indent + 1, "Feature:{} {}", feature.getName(), feature.getEType().getName());
-			if (featureInstance instanceof EObject) {
-				dumpEObjectTree((EObject) featureInstance, indent + 2);
-			}
-			else if (featureInstance instanceof EList) {
-				for (var feat : (EList<Object>) featureInstance) {
-					if (feat instanceof EObject)
-						dumpEObjectTree((EObject) feat, indent + 2);
-					else
-						log(indent + 2, feat.toString());
+			if (featureInstance != null) {
+				log(indent + 1, "Feature:{} {}", feature.getName(), feature.getEType().getName());
+				if (featureInstance instanceof EObject) {
+					dumpEObjectTree((EObject) featureInstance, indent + 2);
+				} else if (featureInstance instanceof EList) {
+					for (var feat : (EList<Object>) featureInstance) {
+						if (feat instanceof EObject)
+							dumpEObjectTree((EObject) feat, indent + 2);
+						else
+							log(indent + 2, feat.toString());
+					}
+				} else {
+					log(indent + 2, String.valueOf(featureInstance));
 				}
-			}
-			else {
-				log(indent + 2, String.valueOf(featureInstance));
 			}
 		}
 	}

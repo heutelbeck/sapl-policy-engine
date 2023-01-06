@@ -15,12 +15,15 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import java.util.Map;
 import java.util.function.Function;
 
 import org.reactivestreams.Publisher;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.FilterExtended;
 import io.sapl.grammar.sapl.FilterStatement;
+import io.sapl.grammar.sapl.impl.util.FilterAlgorithmUtil;
 import reactor.core.publisher.Flux;
 
 public class FilterExtendedImplCustom extends FilterExtendedImpl {
@@ -28,13 +31,16 @@ public class FilterExtendedImplCustom extends FilterExtendedImpl {
 	@Override
 	public Flux<Val> apply(Val unfilteredValue) {
 		if (unfilteredValue.isError()) {
-			return Flux.just(unfilteredValue);
+			return Flux
+					.just(unfilteredValue.withTrace(FilterExtended.class, Map.of("unfilteredValue", unfilteredValue)));
 		}
 		if (unfilteredValue.isUndefined()) {
-			return Val.errorFlux(FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED_VALUES);
+			return Flux.just(Val.error("Filters cannot be applied to undefined values.").withTrace(FilterExtended.class,
+					Map.of("unfilteredValue", unfilteredValue)));
 		}
 		if (statements == null) {
-			return Flux.just(unfilteredValue);
+			return Flux
+					.just(unfilteredValue.withTrace(FilterExtended.class, Map.of("unfilteredValue", unfilteredValue)));
 		}
 		return Flux.just(unfilteredValue).switchMap(applyFilterStatements());
 	}
@@ -47,6 +53,7 @@ public class FilterExtendedImplCustom extends FilterExtendedImpl {
 		if (statementId == statements.size()) {
 			return Flux::just;
 		}
+
 		return value -> applyFilterStatement(value, statements.get(statementId))
 				.switchMap(applyFilterStatements(statementId + 1));
 	}
@@ -54,12 +61,11 @@ public class FilterExtendedImplCustom extends FilterExtendedImpl {
 	private Flux<Val> applyFilterStatement(Val unfilteredValue, FilterStatement statement) {
 		if (statement.getTarget().getSteps().size() == 0) {
 			// the expression has no steps. apply filter to unfiltered node directly
-			return applyFilterFunction(unfilteredValue, statement.getArguments(),
+			return FilterAlgorithmUtil.applyFilterFunction(unfilteredValue, statement.getArguments(),
 					statement.getFsteps(), statement.isEach());
 		} else {
 			// descent with steps
-			return statement.getTarget().getSteps().get(0).applyFilterStatement(unfilteredValue, 0,
-					statement);
+			return statement.getTarget().getSteps().get(0).applyFilterStatement(unfilteredValue, 0, statement);
 		}
 	}
 

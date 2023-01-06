@@ -15,9 +15,12 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.OperatorUtil.arithmeticOperator;
+import static io.sapl.grammar.sapl.impl.util.OperatorUtil.arithmeticOperator;
+
+import java.util.Map;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.Multi;
 import reactor.core.publisher.Flux;
 
 public class MultiImplCustom extends MultiImpl {
@@ -28,7 +31,8 @@ public class MultiImplCustom extends MultiImpl {
 	}
 
 	private Val multiply(Val left, Val right) {
-		return Val.of(left.decimalValue().multiply(right.decimalValue()));
+		return Val.of(left.decimalValue().multiply(right.decimalValue())).withTrace(Multi.class,
+				Map.of("left", left, "right", right));
 	}
 
 }

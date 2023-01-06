@@ -34,7 +34,8 @@ public class EmbeddedPDPProperties {
 	 * The options are:
 	 *
 	 * - RESOURCES : Loads a fixed set of documents and pdp.json from the bundled
-	 * resource. These will be loaded once and cannot be updated at runtime of the system.
+	 * resource. These will be loaded once and cannot be updated at runtime of the
+	 * system.
 	 *
 	 * - FILESYSTEM: Monitors directories for documents and configuration. Will
 	 * automatically update any changes made to the documents and configuration at
@@ -49,29 +50,32 @@ public class EmbeddedPDPProperties {
 	 *
 	 * The options are:
 	 *
-	 * - NAIVE : A simple implementation for systems with small numbers of documents.
+	 * - NAIVE : A simple implementation for systems with small numbers of
+	 * documents.
 	 *
-	 * - CANONICAL : An improved index for systems with large numbers of documents. Takes
-	 * more time to update and initialize but significantly reduces retrieval time.
+	 * - CANONICAL : An improved index for systems with large numbers of documents.
+	 * Takes more time to update and initialize but significantly reduces retrieval
+	 * time.
 	 */
 	@NotNull
 	private IndexType index = IndexType.NAIVE;
 
 	/**
-	 * This property sets the path to the folder where the pdp.json configuration file is
-	 * located.
+	 * This property sets the path to the folder where the pdp.json configuration
+	 * file is located.
 	 *
-	 * If the pdpConfigType is set to RESOURCES, / is the root of the context path. For
-	 * FILESYSTEM, it must be a valid path on the system's filesystem.
+	 * If the pdpConfigType is set to RESOURCES, / is the root of the context path.
+	 * For FILESYSTEM, it must be a valid path on the system's filesystem.
 	 */
 	@NotEmpty
 	private String configPath = "/policies";
 
 	/**
-	 * This property sets the path to the folder where the *.sapl documents are located.
+	 * This property sets the path to the folder where the *.sapl documents are
+	 * located.
 	 *
-	 * If the pdpConfigType is set to RESOURCES, / is the root of the context path. For
-	 * FILESYSTEM, it must be a valid path on the system's filesystem.
+	 * If the pdpConfigType is set to RESOURCES, / is the root of the context path.
+	 * For FILESYSTEM, it must be a valid path on the system's filesystem.
 	 */
 	@NotEmpty
 	private String policiesPath = "/policies";
@@ -87,5 +91,29 @@ public class EmbeddedPDPProperties {
 		NAIVE, CANONICAL
 
 	}
+
+	/**
+	 * If this property is set to true, JSON in logged traces and reports is pretty
+	 * printed.
+	 */
+	private boolean prettyPrintReports = false;
+
+	/**
+	 * If this property is set to true, the full JSON evaluation trace is logged on
+	 * each decision.
+	 */
+	private boolean printTrace = false;
+
+	/**
+	 * If this property is set to true, the a JSON evaluation report is logged on
+	 * each decision.
+	 */
+	private boolean printJsonReport = false;
+
+	/**
+	 * If this property is set to true, the a textual decision report is logged on
+	 * each decision.
+	 */
+	private boolean printTextReport = false;
 
 }

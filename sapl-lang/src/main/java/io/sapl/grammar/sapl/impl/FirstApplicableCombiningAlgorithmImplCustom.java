@@ -15,16 +15,14 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.api.pdp.Decision.NOT_APPLICABLE;
-
 import java.util.List;
 import java.util.function.Function;
 
-import org.reactivestreams.Publisher;
-
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.grammar.sapl.Policy;
-import lombok.extern.slf4j.Slf4j;
+import io.sapl.api.pdp.Decision;
+import io.sapl.grammar.sapl.PolicyElement;
+import io.sapl.interpreter.CombinedDecision;
+import io.sapl.interpreter.DocumentEvaluationResult;
 import reactor.core.publisher.Flux;
 
 /**
@@ -53,43 +51,40 @@ import reactor.core.publisher.Flux;
  * the decision of the policy set is NOT_APPLICABLE.
  *
  */
-@Slf4j
 public class FirstApplicableCombiningAlgorithmImplCustom extends FirstApplicableCombiningAlgorithmImpl {
 
 	@Override
-	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies) {
-		return Flux.just(AuthorizationDecision.NOT_APPLICABLE).flatMap(combine(0, policies));
+	public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
+		return combine(0, policies).apply(CombinedDecision.of(AuthorizationDecision.NOT_APPLICABLE, getName()));
 	}
 
-	private Function<AuthorizationDecision, Publisher<? extends AuthorizationDecision>> combine(
-			int policyId,
-			List<Policy> policies) {
+	@Override
+	public String getName() {
+		return "FIRST_APPLICABLE";
+	}
+
+	private Function<CombinedDecision, Flux<CombinedDecision>> combine(int policyId, List<PolicyElement> policies) {
 		if (policyId == policies.size())
 			return Flux::just;
 
-		return decision -> evaluatePolicy(policies.get(policyId)).switchMap(newDecision -> {
-			if (newDecision.getDecision() != NOT_APPLICABLE)
-				return Flux.just(newDecision);
+		return combinedDecision -> evaluatePolicy(policies.get(policyId)).switchMap(documentEvaluationResult -> {
+			var authzDecision = documentEvaluationResult.getAuthorizationDecision();
+			if (authzDecision.getDecision() != Decision.NOT_APPLICABLE) // Found first applicable
+				return Flux.just(
+						combinedDecision.withDecisionAndEvaluationResult(authzDecision, documentEvaluationResult));
 
-			return Flux.just(newDecision).switchMap(combine(policyId + 1, policies));
+			return combine(policyId + 1, policies)
+					.apply(combinedDecision.withEvaluationResult(documentEvaluationResult));
 		});
 	}
 
-	private Flux<AuthorizationDecision> evaluatePolicy(Policy policy) {
-		return policy.matches().flux().flatMap(match -> {
-
-			if (!match.isBoolean()) {
-				log.debug("  |- INDETERMINATE - '{}' (target not Boolean)", policy.getSaplName());
-				return Flux.just(AuthorizationDecision.INDETERMINATE);
+	private Flux<DocumentEvaluationResult> evaluatePolicy(PolicyElement policyElement) {
+		return policyElement.matches().flux().flatMap(match -> {
+			if (!match.isBoolean() || !match.getBoolean()) {
+				return Flux.just(policyElement.targetResult(match));
 			}
 
-			if (!match.getBoolean()) {
-				log.debug("  |- NOT_APPLICABLE - '{}' (target FALSE)", policy.getSaplName());
-				return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
-			}
-
-			return policy.evaluate().doOnNext(
-					decision -> log.debug("  |- {} '{}' {}", decision.getDecision(), policy.getSaplName(), decision));
+			return policyElement.evaluate();
 		});
 	}
 

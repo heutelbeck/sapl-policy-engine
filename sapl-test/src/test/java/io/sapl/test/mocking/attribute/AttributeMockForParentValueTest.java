@@ -41,9 +41,11 @@ class AttributeMockForParentValueTest {
 		mock.loadMockForParentValue(parentValue(val(1)), Val.of(true));
 		mock.loadMockForParentValue(parentValue(val(2)), Val.of(false));
 
-		StepVerifier.create(mock.evaluate(Val.of(1), null, null)).expectNext(Val.of(true)).thenCancel().verify();
+		StepVerifier.create(mock.evaluate("test.attribute", Val.of(1), null, null)).expectNext(Val.of(true))
+				.thenCancel().verify();
 
-		StepVerifier.create(mock.evaluate(Val.of(2), null, null)).expectNext(Val.of(false)).thenCancel().verify();
+		StepVerifier.create(mock.evaluate("test.attribute", Val.of(2), null, null)).expectNext(Val.of(false))
+				.thenCancel().verify();
 
 		mock.assertVerifications();
 	}
@@ -53,8 +55,9 @@ class AttributeMockForParentValueTest {
 
 		mock.loadMockForParentValue(parentValue(val(1)), Val.of(true));
 
-		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> StepVerifier
-				.create(mock.evaluate(Val.of(99), null, null)).expectNext(Val.of(false)).thenCancel().verify());
+		Assertions.assertThatExceptionOfType(SaplTestException.class)
+				.isThrownBy(() -> StepVerifier.create(mock.evaluate("test.attribute", Val.of(99), null, null))
+						.expectNext(Val.of(false)).thenCancel().verify());
 	}
 
 	@Test

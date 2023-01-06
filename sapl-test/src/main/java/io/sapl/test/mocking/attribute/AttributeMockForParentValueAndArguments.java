@@ -16,10 +16,15 @@
 package io.sapl.test.mocking.attribute;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import org.hamcrest.Matcher;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.Imports;
@@ -28,11 +33,6 @@ import io.sapl.test.mocking.MockCall;
 import io.sapl.test.mocking.attribute.models.AttributeParameters;
 import io.sapl.test.verification.MockRunInformation;
 import io.sapl.test.verification.TimesParameterCalledVerification;
-
-import org.hamcrest.Matcher;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import reactor.core.publisher.Flux;
@@ -56,10 +56,10 @@ public class AttributeMockForParentValueAndArguments implements AttributeMock {
 	private final List<TimesParameterCalledVerification> listMockingVerifications;
 
 	public AttributeMockForParentValueAndArguments(String fullName) {
-		this.fullName = fullName;
+		this.fullName                              = fullName;
 		this.listParameterSpecificMockReturnValues = new LinkedList<>();
-		this.listMockingVerifications = new LinkedList<>();
-		this.mockRunInformation = new MockRunInformation(fullName);
+		this.listMockingVerifications              = new LinkedList<>();
+		this.mockRunInformation                    = new MockRunInformation(fullName);
 	}
 
 	public void loadMockForParentValueAndArguments(AttributeParameters parameters, Val returnValue) {
@@ -73,7 +73,8 @@ public class AttributeMockForParentValueAndArguments implements AttributeMock {
 	}
 
 	@Override
-	public Flux<Val> evaluate(Val parentValue, Map<String, JsonNode> variables, List<Flux<Val>> args) {
+	public Flux<Val> evaluate(String attributeName, Val parentValue, Map<String, JsonNode> variables,
+			List<Flux<Val>> args) {
 
 		List<ParameterSpecificMockReturnValue> matchingParameterSpecificMockReturnValues = findMatchingParentValueMockReturnValue(
 				parentValue);
@@ -81,7 +82,11 @@ public class AttributeMockForParentValueAndArguments implements AttributeMock {
 		checkAtLeastOneMatchingMockReturnValueExists(matchingParameterSpecificMockReturnValues);
 
 		return Flux.combineLatest(args, (latestPublishedEventsPerArgument) -> {
-
+			var trace = new HashMap<String, Val>(latestPublishedEventsPerArgument.length + 1);
+			trace.put("attributeName", Val.of(attributeName));
+			for (int i = 0; i < latestPublishedEventsPerArgument.length; i++) {
+				trace.put("argument[" + i + "]", (Val) latestPublishedEventsPerArgument[i]);
+			}
 			// interpret a call to an AttributeMock as
 			// not when the evaluate method is called
 			// but for every combination of Val objects from parentValue and by argument
@@ -98,7 +103,8 @@ public class AttributeMockForParentValueAndArguments implements AttributeMock {
 
 				if (isEveryArgumentValueMatchingItsMatcher(argumentMatchers.getMatchers(),
 						latestPublishedEventsPerArgument)) {
-					return parameterSpecificMockReturnValue.getMockReturnValue();
+					return parameterSpecificMockReturnValue.getMockReturnValue()
+							.withTrace(AttributeMockForParentValueAndArguments.class, trace);
 				}
 			}
 			throw new SaplTestException(ERROR_NO_MATCHING_ARGUMENTS);
@@ -119,7 +125,7 @@ public class AttributeMockForParentValueAndArguments implements AttributeMock {
 		boolean isMatching = true;
 		for (int i = 0; i < argumentMatchers.length; i++) {
 			Matcher<Val> argumentMatcher = argumentMatchers[i];
-			Val argumentValue = (Val) latestPublishedEventsPerArgument[i];
+			Val          argumentValue   = (Val) latestPublishedEventsPerArgument[i];
 			if (!argumentMatcher.matches(argumentValue))
 				isMatching = false;
 		}

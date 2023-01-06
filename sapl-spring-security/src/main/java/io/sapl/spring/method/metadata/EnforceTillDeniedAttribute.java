@@ -19,8 +19,6 @@ import org.springframework.expression.Expression;
 
 public class EnforceTillDeniedAttribute extends AbstractSaplAttribute {
 
-	private static final long serialVersionUID = -3012177291107121964L;
-
 	public EnforceTillDeniedAttribute(Expression subjectExpression, Expression actionExpression,
 			Expression resourceExpression, Expression environmentExpression, Class<?> genericsType) {
 		super(subjectExpression, actionExpression, resourceExpression, environmentExpression, genericsType);

@@ -17,7 +17,7 @@ package io.sapl.test.mocking.function;
 
 import static io.sapl.test.Imports.times;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.LinkedList;
 
 import io.sapl.api.interpreter.Val;
@@ -40,7 +40,7 @@ public class FunctionMockSequence implements FunctionMock {
 	private int numberOfReturnValues = 0;
 
 	public FunctionMockSequence(String fullName) {
-		this.fullName = fullName;
+		this.fullName             = fullName;
 		this.listMockReturnValues = new LinkedList<>();
 
 		this.mockRunInformation = new MockRunInformation(fullName);
@@ -53,8 +53,7 @@ public class FunctionMockSequence implements FunctionMock {
 		if (this.listMockReturnValues.size() > 0) {
 			// if so, take the first element from the fifo list and return this val
 			return this.listMockReturnValues.removeFirst();
-		}
-		else {
+		} else {
 			throw new SaplTestException(String.format(ERROR_SEQUENCE_EMPTY, this.fullName));
 		}
 	}
@@ -65,7 +64,11 @@ public class FunctionMockSequence implements FunctionMock {
 	}
 
 	public void loadMockReturnValue(Val[] mockReturnValueSequence) {
-		this.listMockReturnValues.addAll(Arrays.asList(mockReturnValueSequence));
+		var tracedMockValues = new ArrayList<Val>(mockReturnValueSequence.length);
+		for (var val : mockReturnValueSequence) {
+			tracedMockValues.add(val.withTrace(FunctionMockSequence.class));
+		}
+		this.listMockReturnValues.addAll(tracedMockValues);
 		this.numberOfReturnValues = this.numberOfReturnValues + mockReturnValueSequence.length;
 	}
 

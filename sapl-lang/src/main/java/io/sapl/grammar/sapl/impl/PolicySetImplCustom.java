@@ -15,35 +15,48 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Map;
 
-import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.PolicyElement;
+import io.sapl.grammar.sapl.PolicySet;
+import io.sapl.interpreter.CombinedDecision;
+import io.sapl.interpreter.DocumentEvaluationResult;
+import io.sapl.interpreter.PolicySetDecision;
 import io.sapl.interpreter.context.AuthorizationContext;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
-@Slf4j
 public class PolicySetImplCustom extends PolicySetImpl {
 
 	/**
 	 * Evaluates the body of the policy set within the given evaluation context and
-	 * returns a {@link Flux} of {@link AuthorizationDecision} objects.
+	 * returns a {@link Flux} of {@link SAPLDecision} objects.
 	 * 
-	 * @return A {@link Flux} of {@link AuthorizationDecision} objects.
+	 * @return A {@link Flux} of {@link SAPLDecision} objects.
 	 */
 	@Override
-	public Flux<AuthorizationDecision> evaluate() {
+	public Flux<DocumentEvaluationResult> evaluate() {
 		if (!policyNamesAreUnique()) {
-			log.debug("  |- INDETERMINATE (Set) '{}'. (Policy names not unique)", saplName);
-			return Flux.just(AuthorizationDecision.INDETERMINATE);
+			return Flux.just(
+					PolicySetDecision.error(this, "Inconsistent policy set. Names of policies in set are not unique."));
 		}
-		return evaluatePolicySet(0)
-				.doOnError(e -> log.debug(
-						"| |- Error in the policy set evaluation. Policy set evaluated INDETERMINATE.: {}",
-						e.getMessage()))
-				.onErrorReturn(AuthorizationDecision.INDETERMINATE)
-				.doOnNext(authzDecision -> log.debug("  |- {} (Set) '{}' {}", authzDecision.getDecision(), saplName,
-						authzDecision));
+		var combindedDecisions = evaluateValueDefinitionsAndPolicies(0);
+		return combindedDecisions.map(combined -> PolicySetDecision.of(combined, this));
+	}
+
+	@Override
+	public DocumentEvaluationResult targetResult(Val targetValue) {
+		if (targetValue.isError())
+			return PolicySetDecision.ofTargetError(this, targetValue, this.algorithm.getName());
+		return PolicySetDecision.notApplicable(this, targetValue, this.algorithm.getName());
+
+	}
+
+	@Override
+	public DocumentEvaluationResult importError(String errorMessage) {
+		return PolicySetDecision.ofImportError(this, errorMessage, this.algorithm.getName());
 	}
 
 	private boolean policyNamesAreUnique() {
@@ -55,19 +68,20 @@ public class PolicySetImplCustom extends PolicySetImpl {
 		return true;
 	}
 
-	private Flux<AuthorizationDecision> evaluatePolicySet(
-			int valueDefinitionId) {
+	private Flux<CombinedDecision> evaluateValueDefinitionsAndPolicies(int valueDefinitionId) {
 		if (valueDefinitions == null || valueDefinitionId == valueDefinitions.size())
 			return evaluateAndCombinePoliciesOfSet();
 
-		var valueDefinition = valueDefinitions.get(valueDefinitionId);
-		var evaluated       = valueDefinition.getEval().evaluate();
-		return evaluated.switchMap(value -> evaluatePolicySet(valueDefinitionId + 1)
-				.contextWrite(ctx -> AuthorizationContext.setVariable(ctx, valueDefinition.getName(), value)));
+		var valueDefinition           = valueDefinitions.get(valueDefinitionId);
+		var evaluatedValueDefinitions = valueDefinition.getEval().evaluate();
+		return evaluatedValueDefinitions.switchMap(value -> evaluateValueDefinitionsAndPolicies(valueDefinitionId + 1)
+				.contextWrite(ctx -> AuthorizationContext.setVariable(ctx, valueDefinition.getName(), value.withTrace(
+						PolicySet.class,
+						Map.of("policySet", Val.of(saplName), "variableName", Val.of(valueDefinition.getName()))))));
 	}
 
-	private Flux<AuthorizationDecision> evaluateAndCombinePoliciesOfSet() {
-		return getAlgorithm().combinePolicies(policies);
+	private Flux<CombinedDecision> evaluateAndCombinePoliciesOfSet() {
+		return getAlgorithm().combinePolicies(new ArrayList<PolicyElement>(policies));
 	}
 
 }

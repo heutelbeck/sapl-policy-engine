@@ -62,9 +62,9 @@ public class AttributeMockPublisher implements AttributeMock {
 	}
 
 	@Override
-	public Flux<Val> evaluate(Val parentValue, Map<String, JsonNode> variables, List<Flux<Val>> args) {
+	public Flux<Val> evaluate(String attributeName, Val parentValue, Map<String, JsonNode> variables, List<Flux<Val>> args) {
 		this.mockRunInformation.saveCall(new MockCall());
-		return this.returnFlux;
+		return this.returnFlux.map(val->val.withTrace(AttributeMockPublisher.class,Map.of("attributeName",Val.of(attributeName))));
 	}
 
 	@Override

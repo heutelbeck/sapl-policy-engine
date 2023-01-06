@@ -15,10 +15,10 @@
  */
 package io.sapl.spring.pdp.embedded;
 
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.SAPLInterpreter;
@@ -29,7 +29,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Configuration
+@AutoConfiguration
 @RequiredArgsConstructor
 @EnableConfigurationProperties(EmbeddedPDPProperties.class)
 public class PrpUpdateEventSourceAutoConfiguration {
@@ -40,7 +40,7 @@ public class PrpUpdateEventSourceAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public PrpUpdateEventSource prpUpdateSource() throws InitializationException {
+	PrpUpdateEventSource prpUpdateSource() throws InitializationException {
 		var policiesFolder = pdpProperties.getPoliciesPath();
 		if (pdpProperties.getPdpConfigType() == EmbeddedPDPProperties.PDPDataSource.FILESYSTEM) {
 			log.info("creating embedded PDP sourcing and monitoring access policies from the filesystem: {}",

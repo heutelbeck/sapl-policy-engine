@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.grammar.sapl.AuthorizationDecisionEvaluable;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.PolicyRetrievalPoint;
@@ -66,16 +65,15 @@ public class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {
 	public Flux<PolicyRetrievalResult> retrievePolicies() {
 		var retrieval = Mono.just(new PolicyRetrievalResult());
 		for (SAPL document : documents.values()) {
-			retrieval = retrieval
-					.flatMap(retrievalResult -> document.matches().map(match -> {
-						if (match.isError()) {
-							return retrievalResult.withError();
-						}
-						if (match.getBoolean()) {
-							return retrievalResult.withMatch(document);
-						}
-						return retrievalResult;
-					}));
+			retrieval = retrieval.flatMap(retrievalResult -> document.matches().map(match -> {
+				if (match.isError()) {
+					return retrievalResult.withError();
+				}
+				if (match.getBoolean()) {
+					return retrievalResult.withMatch(document);
+				}
+				return retrievalResult;
+			}));
 		}
 
 		return Flux.from(retrieval).doOnNext(this::logMatching);
@@ -86,7 +84,7 @@ public class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {
 			log.trace("|-- Matching documents: NONE");
 		} else {
 			log.trace("|-- Matching documents:");
-			for (AuthorizationDecisionEvaluable doc : result.getMatchingDocuments())
+			for (SAPL doc : result.getMatchingDocuments())
 				log.trace("| |-- * {} ", doc);
 		}
 		log.trace("|");

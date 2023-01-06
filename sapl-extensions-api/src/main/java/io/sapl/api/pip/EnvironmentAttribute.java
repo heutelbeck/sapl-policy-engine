@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,18 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.sapl.impl;
+package io.sapl.api.pip;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-import org.junit.jupiter.api.Test;
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface EnvironmentAttribute {
 
-class CombiningAlgorithmImplCustomTest {
+	String name() default "";
 
-	@Test
-	void cannotBeCalled() {
-		var combiner = new CombiningAlgorithmImplCustom();
-		assertThrows(UnsupportedOperationException.class, () -> combiner.combineDecisions(null, true));
-	}
+	String docs() default "";
 
 }

@@ -17,6 +17,7 @@ package io.sapl.api.interpreter;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
@@ -33,6 +34,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.fge.jackson.JsonNumEquals;
 
+import io.sapl.api.interpreter.Trace.ExpressionArgument;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -43,7 +45,7 @@ import reactor.core.publisher.Mono;
  * @author Dominic Heutelbeck
  *
  */
-public class Val {
+public class Val implements Traced {
 
 	static final String ERROR_TEXT                           = "ERROR";
 	static final String UNDEFINED_TEXT                       = "undefined";
@@ -88,21 +90,82 @@ public class Val {
 	public static final Val NULL = Val.of(JSON.nullNode());
 
 	private final JsonNode value;
-
-	private String errorMessage;
+	private final String   errorMessage;
+	private final boolean  secret;
+	private final Trace    trace;
 
 	private Val(String errorMessage) {
 		this.value        = null;
 		this.errorMessage = errorMessage;
+		this.secret       = false;
+		this.trace        = null;
 	}
 
 	private Val() {
 		this.value        = null;
 		this.errorMessage = null;
+		this.secret       = false;
+		this.trace        = null;
+	}
+
+	private Val(JsonNode value, String errorMessage, boolean isSecret) {
+		this.value        = value;
+		this.errorMessage = errorMessage;
+		this.secret       = isSecret;
+		this.trace        = null;
+	}
+
+	private Val(JsonNode value, String errorMessage, boolean isSecret, Trace trace) {
+		this.value        = value;
+		this.errorMessage = errorMessage;
+		this.secret       = isSecret;
+		this.trace        = trace;
+	}
+
+	private Val(JsonNode value, String errorMessage, Trace trace) {
+		this.value        = value;
+		this.errorMessage = errorMessage;
+		this.secret       = false;
+		this.trace        = trace;
 	}
 
 	private Val(JsonNode value) {
-		this.value = value;
+		this.value        = value;
+		this.errorMessage = null;
+		this.secret       = false;
+		this.trace        = null;
+	}
+
+	public Val asSecret() {
+		return new Val(value, errorMessage, true);
+	}
+
+	public Val withTrace(Trace trace) {
+		return new Val(value, errorMessage, secret, trace);
+	}
+
+	public Val withTrace(Class<?> operation) {
+		return withTrace(new Trace(operation));
+	}
+
+	public Val withTrace(Class<?> operation, Val... arguments) {
+		return withTrace(new Trace(operation, arguments));
+	}
+
+	public Val withTrace(Class<?> operation, Map<String, Val> arguments) {
+		return withTrace(new Trace(operation, arguments));
+	}
+
+	public Val withParentTrace(Class<?> operation, Val parentValue) {
+		return withTrace(new Trace(operation, new ExpressionArgument("parentValue", parentValue)));
+	}
+
+	public Val withTrace(Class<?> operation, ExpressionArgument... arguments) {
+		return withTrace(new Trace(operation, arguments));
+	}
+
+	public Val withTrace(Val leftHandValue, Class<?> operation, Val... arguments) {
+		return withTrace(new Trace(leftHandValue, operation, arguments));
 	}
 
 	public static Val of(JsonNode value) {
@@ -122,10 +185,13 @@ public class Val {
 	}
 
 	public static Val error(String errorMessage, Object... args) {
-		return new Val(String.format(errorMessage, args));
+		return new Val(String.format(errorMessage == null ? "Undefined Error" : errorMessage, args));
 	}
 
 	public static Val error(Throwable throwable) {
+		if (throwable == null)
+			return new Val("Undefined Error");
+
 		return (throwable.getMessage() == null || throwable.getMessage().isBlank())
 				? new Val(throwable.getClass().getSimpleName())
 				: new Val(throwable.getMessage());
@@ -137,6 +203,10 @@ public class Val {
 
 	public static Mono<Val> errorMono(String errorMessage, Object... args) {
 		return Mono.just(error(errorMessage, args));
+	}
+
+	public boolean isSecret() {
+		return secret;
 	}
 
 	public String getMessage() {
@@ -321,10 +391,13 @@ public class Val {
 
 	@Override
 	public String toString() {
+		if (isSecret()) {
+			return "SECRET";
+		}
 		if (isError()) {
 			return "ERROR[" + errorMessage + "]";
 		}
-		return value != null ? String.format("Value[%s]", value) : "Value[undefined]";
+		return value != null ? value.toString() : "undefined";
 	}
 
 	public Optional<JsonNode> optional() {
@@ -576,4 +649,24 @@ public class Val {
 		return typeOf(this);
 	}
 
+	public JsonNode getTrace() {
+		JsonNode val;
+		if (isSecret())
+			val = JSON.textNode("|SECRET|");
+		else if (isError()) {
+			val = JSON.textNode("|ERROR| " + errorMessage);
+		} else if (isUndefined()) {
+			val = JSON.textNode("|UNDEFINED|");
+		} else {
+			val = value;
+		}
+
+		var traceJson = JSON.objectNode();
+		traceJson.set("value", val);
+		if (trace != null) {
+			traceJson.set("trace", trace.getTrace());
+		}
+		return traceJson;
+	}
+	
 }

@@ -24,17 +24,17 @@ class ApplyStepsConditionTest {
 
 	@Test
 	void propagatesErrors() {
-		expressionErrors("(10/0)[?(@>0)]");
+		expressionErrors("(10/0)[?(@>0)]","Division by zero");
 	}
 
 	@Test
 	void onUndefinedError() {
-		expressionErrors("undefined[?(@>0)]");
+		expressionErrors("undefined[?(@>0)]","Type mismatch. Expected an Object or Array, but got: 'undefined'.");
 	}
 
 	@Test
 	void nonObjectNonArray() {
-		expressionErrors("\"Toastbrot\"[?(@>0)]");
+		expressionErrors("\"Toastbrot\"[?(@>0)]","Type mismatch. Expected an Object or Array, but got: '\"Toastbrot\"'.");
 	}
 
 	@Test
@@ -49,12 +49,12 @@ class ApplyStepsConditionTest {
 
 	@Test
 	void applyToArrayWithError() {
-		expressionErrors("[20, (10/0), 5][?(@>10)]");
+		expressionErrors("[20, 10/0, 5][?(@>10)]","Division by zero");
 	}
 
 	@Test
 	void applyToArrayWithErrorCondition() {
-		expressionErrors("[20,  5][?(@>(10/0)]");
+		expressionErrors("[20,  5][?(@>(10/0)]","Division by zero");
 	}
 
 	@Test
@@ -88,7 +88,7 @@ class ApplyStepsConditionTest {
 
 	@Test
 	void filterErrorPropagation() {
-		expressionErrors("[(10/0)] |- { @[?(@>2)] : mock.emptyString }");
+		expressionErrors("[(10/0)] |- { @[?(@>2)] : mock.emptyString }","Division by zero");
 	}
 
 	@Test
@@ -103,7 +103,7 @@ class ApplyStepsConditionTest {
 
 	@Test
 	void filterErrorInArray() {
-		expressionErrors("[1, (10/0), 3] |- { @[?(@>2)] : mock.emptyString }");
+		expressionErrors("[1, (10/0), 3] |- { @[?(@>2)] : mock.emptyString }","Division by zero");
 	}
 
 	@Test
@@ -125,13 +125,13 @@ class ApplyStepsConditionTest {
 	@Test
 	void filterObjectErrorInCondition() {
 		var expression = "{ \"name\" : \"Otto\" } |- { @[?(10/0))] : filter.remove }";
-		expressionErrors(expression);
+		expressionErrors(expression,"Division by zero");
 	}
 
 	@Test
 	void filterObjectNonBoolInCondition() {
 		var expression = "{ \"name\" : \"Otto\" } |- { @[?(123)] : filter.remove }";
-		expressionErrors(expression);
+		expressionErrors(expression,"Type mismatch. Expected the condition expression to return a Boolean, but was '123'.");
 	}
 
 	@Test
@@ -141,12 +141,12 @@ class ApplyStepsConditionTest {
 
 	@Test
 	void filterErrorInCondition() {
-		expressionErrors("[10,1] |- { @[?(@>(10/0))] : mock.emptyString }");
+		expressionErrors("[10,1] |- { @[?(@>(10/0))] : mock.emptyString }","Division by zero");
 	}
 
 	@Test
 	void filterNonBoolInCondition() {
-		expressionErrors("[10,1] |- { @[?(123)] : mock.emptyString }");
+		expressionErrors("[10,1] |- { @[?(123)] : mock.emptyString }", "Type mismatch. Expected the condition expression to return a Boolean, but was '123'.");
 	}
 
 }

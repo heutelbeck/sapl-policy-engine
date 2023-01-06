@@ -25,6 +25,7 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.interpreter.DocumentEvaluationResult;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
@@ -59,13 +60,14 @@ public class StepsDefaultImplTestImpl extends StepsDefaultImpl {
 
 		if (matchResult.isBoolean() && matchResult.getBoolean()) {
 
-			this.steps = StepVerifier.create(this.document.evaluate().contextWrite(ctx -> {
-				ctx = AuthorizationContext.setAttributeContext(ctx, this.mockingAttributeContext);
-				ctx = AuthorizationContext.setFunctionContext(ctx, this.mockingFunctionContext);
-				ctx = AuthorizationContext.setVariables(ctx, this.variables);
-				ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSub);
-				return ctx;
-			}));
+			this.steps = StepVerifier.create(this.document.evaluate()
+					.map(DocumentEvaluationResult::getAuthorizationDecision).contextWrite(ctx -> {
+						ctx = AuthorizationContext.setAttributeContext(ctx, this.mockingAttributeContext);
+						ctx = AuthorizationContext.setFunctionContext(ctx, this.mockingFunctionContext);
+						ctx = AuthorizationContext.setVariables(ctx, this.variables);
+						ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSub);
+						return ctx;
+					}));
 
 			for (AttributeMockReturnValues mock : this.mockedAttributeValues) {
 				String fullname = mock.getFullName();

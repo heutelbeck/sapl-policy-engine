@@ -25,6 +25,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.grammar.sapl.SAPL;
+import io.sapl.interpreter.DocumentEvaluationResult;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
@@ -50,10 +51,7 @@ class StepBuilder {
 	 * @param document containing the {@link SAPL} policy to evaluate
 	 * @return {@link GivenStep} to start constructing the test case.
 	 */
-	static GivenStep newBuilderAtGivenStep(
-			SAPL document,
-			AttributeContext attrCtx,
-			FunctionContext funcCtx,
+	static GivenStep newBuilderAtGivenStep(SAPL document, AttributeContext attrCtx, FunctionContext funcCtx,
 			Map<String, JsonNode> variables) {
 		return new Steps(document, attrCtx, funcCtx, variables);
 	}
@@ -64,10 +62,7 @@ class StepBuilder {
 	 * @param document containing the {@link SAPL} policy to evaluate
 	 * @return {@link WhenStep} to start constructing the test case.
 	 */
-	static WhenStep newBuilderAtWhenStep(
-			SAPL document,
-			AttributeContext attrCtx,
-			FunctionContext funcCtx,
+	static WhenStep newBuilderAtWhenStep(SAPL document, AttributeContext attrCtx, FunctionContext funcCtx,
 			Map<String, JsonNode> variables) {
 		return new Steps(document, attrCtx, funcCtx, variables);
 	}
@@ -97,9 +92,13 @@ class StepBuilder {
 			Val matchResult = this.document.matches().contextWrite(setUpContext(authzSub)).block();
 			if (matchResult != null && matchResult.isBoolean() && matchResult.getBoolean()) {
 				if (this.withVirtualTime) {
-					this.steps = StepVerifier.withVirtualTime(() -> this.document.evaluate().contextWrite(setUpContext(authzSub)));
+					this.steps = StepVerifier.withVirtualTime(
+							() -> this.document.evaluate().map(DocumentEvaluationResult::getAuthorizationDecision)
+									.contextWrite(setUpContext(authzSub)));
 				} else {
-					this.steps = StepVerifier.create(this.document.evaluate().contextWrite(setUpContext(authzSub)));
+					this.steps = StepVerifier
+							.create(this.document.evaluate().map(DocumentEvaluationResult::getAuthorizationDecision)
+									.contextWrite(setUpContext(authzSub)));
 				}
 
 				for (AttributeMockReturnValues mock : this.mockedAttributeValues) {

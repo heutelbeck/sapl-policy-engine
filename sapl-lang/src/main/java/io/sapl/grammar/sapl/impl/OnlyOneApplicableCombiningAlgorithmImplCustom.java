@@ -15,12 +15,15 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.api.pdp.Decision.NOT_APPLICABLE;
-
+import java.util.LinkedList;
 import java.util.List;
 
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.grammar.sapl.Policy;
+import io.sapl.api.pdp.Decision;
+import io.sapl.grammar.sapl.PolicyElement;
+import io.sapl.grammar.sapl.impl.util.CombiningAlgorithmUtil;
+import io.sapl.interpreter.CombinedDecision;
+import io.sapl.interpreter.DocumentEvaluationResult;
 import reactor.core.publisher.Flux;
 
 /**
@@ -47,19 +50,38 @@ import reactor.core.publisher.Flux;
 public class OnlyOneApplicableCombiningAlgorithmImplCustom extends OnlyOneApplicableCombiningAlgorithmImpl {
 
 	@Override
-	protected AuthorizationDecision combineDecisions(AuthorizationDecision[] decisions, boolean errorsInTarget) {
-		if (errorsInTarget || decisions.length > 1)
-			return AuthorizationDecision.INDETERMINATE;
-
-		if (decisions.length == 0 || decisions[0].getDecision() == NOT_APPLICABLE)
-			return AuthorizationDecision.NOT_APPLICABLE;
-
-		return decisions[0];
+	public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
+		return CombiningAlgorithmUtil.eagerlyCombinePolicyElements(policies, this::combinator, getName());
 	}
 
 	@Override
-	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies) {
-		return doCombinePolicies(policies);
+	public String getName() {
+		return "ONLY_ONE_APPLICABLE";
+	}
+
+	private CombinedDecision combinator(DocumentEvaluationResult[] evaluationResults) {
+		var aPolicyWasIndeterminate = false;
+		var applicableCount         = 0;
+		var authzDecision           = AuthorizationDecision.NOT_APPLICABLE;
+		var decisions               = new LinkedList<DocumentEvaluationResult>();
+		for (var evaluationResult : evaluationResults) {
+			decisions.add(evaluationResult);
+			var decisionUnderInspection = evaluationResult.getAuthorizationDecision();
+			var decision                = decisionUnderInspection.getDecision();
+			if (decision != Decision.NOT_APPLICABLE) {
+				applicableCount++;
+				authzDecision            = decisionUnderInspection;
+				aPolicyWasIndeterminate |= decision == Decision.INDETERMINATE;
+				if (decision == Decision.PERMIT || decision == Decision.DENY) {
+					decisionUnderInspection = authzDecision;
+				}
+			}
+		}
+		if (aPolicyWasIndeterminate || applicableCount > 1) {
+			authzDecision = AuthorizationDecision.INDETERMINATE;
+		}
+
+		return CombinedDecision.of(authzDecision, getName(), decisions);
 	}
 
 }

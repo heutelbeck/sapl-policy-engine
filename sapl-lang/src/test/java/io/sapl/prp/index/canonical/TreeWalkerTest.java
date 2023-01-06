@@ -15,19 +15,20 @@
  */
 package io.sapl.prp.index.canonical;
 
-import io.sapl.grammar.sapl.BasicGroup;
-import io.sapl.grammar.sapl.Expression;
-import io.sapl.grammar.sapl.FilterComponent;
-import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
-
-import java.util.Collections;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
+
+import java.util.Collections;
+
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+
+import io.sapl.grammar.sapl.BasicGroup;
+import io.sapl.grammar.sapl.Expression;
+import io.sapl.grammar.sapl.FilterComponent;
 
 class TreeWalkerTest {
 

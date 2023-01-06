@@ -15,9 +15,11 @@
  */
 package io.sapl.grammar;
 
-import com.google.inject.Injector;
-import io.sapl.grammar.sapl.SaplPackage;
 import org.eclipse.emf.ecore.EPackage;
+
+import com.google.inject.Injector;
+
+import io.sapl.grammar.sapl.SaplPackage;
 
 /**
  * Initialization support for running Xtext languages without Equinox extension registry.

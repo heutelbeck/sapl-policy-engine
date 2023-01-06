@@ -15,16 +15,17 @@
  */
 package io.sapl.test.integration.usecase;
 
+import java.time.Duration;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.functions.TemporalFunctionLibrary;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.integration.SaplIntegrationTestFixture;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.time.Duration;
 
 class B_StreamingVirtualTimeTest {
 
@@ -45,22 +46,20 @@ class B_StreamingVirtualTimeTest {
 		var timestamp5 = Val.of("2021-02-08T16:16:06.000Z");
 
 		fixture.constructTestCaseWithMocks().withVirtualTime()
-				.givenAttribute("time.now", Duration.ofSeconds(2), timestamp0, timestamp1, timestamp2, timestamp3,
+				.givenAttribute("time.now", Duration.ofSeconds(1), timestamp0, timestamp1, timestamp2, timestamp3,
 						timestamp4, timestamp5)
-				.when(AuthorizationSubscription.of("WILLI", "read", "bar")).thenAwait(Duration.ofSeconds(2))
-				.expectNextDeny().expectNoEvent(Duration.ofSeconds(8)).expectNextPermit()
-				.expectNoEvent(Duration.ofSeconds(2)).verify();
+				.when(AuthorizationSubscription.of("WILLI", "read", "bar")).thenAwait(Duration.ofSeconds(10))
+				.expectNextDeny().expectNextDeny().expectNextDeny().expectNextPermit().expectNextPermit()
+				.expectNextPermit().expectNoEvent(Duration.ofSeconds(2)).verify();
 	}
 
 	@Test
 	void test_mockedFunctionAndAttribute_ArrayOfReturnValues() {
-
 		fixture.constructTestCaseWithMocks()
 				.givenAttribute("time.now", Val.of("value"), Val.of("doesn't"), Val.of("matter"))
 				.givenFunctionOnce("time.secondOf", Val.of(3), Val.of(4), Val.of(5))
 				.when(AuthorizationSubscription.of("WILLI", "read", "bar")).expectNextDeny().expectNextPermit()
-				.verify();
-
+				.expectNextPermit().verify();
 	}
 
 }

@@ -15,7 +15,11 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import java.util.Map;
+
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.Or;
+import io.sapl.grammar.sapl.impl.util.TargetExpressionUtil;
 import reactor.core.publisher.Flux;
 
 /**
@@ -32,7 +36,7 @@ public class OrImplCustom extends OrImpl {
 	public Flux<Val> evaluate() {
 		if (TargetExpressionUtil.isInTargetExpression(this)) {
 			// lazy evaluation is not allowed in target expressions.
-			return Val.errorFlux(LAZY_OPERATOR_IN_TARGET);
+			return Flux.just(Val.error(LAZY_OPERATOR_IN_TARGET).withTrace(Or.class));
 		}
 		var left = getLeft().evaluate().map(Val::requireBoolean);
 		return left.switchMap(leftResult -> {
@@ -41,9 +45,10 @@ public class OrImplCustom extends OrImpl {
 			}
 			// Lazy evaluation of the right expression
 			if (!leftResult.getBoolean()) {
-				return getRight().evaluate().map(Val::requireBoolean);
+				return getRight().evaluate().map(Val::requireBoolean).map(rightResult -> rightResult.withTrace(Or.class,
+						Map.of("left", leftResult, "right", rightResult)));
 			}
-			return Flux.just(Val.TRUE);
+			return Flux.just(Val.TRUE.withTrace(Or.class, Map.of("left", leftResult)));
 		});
 	}
 

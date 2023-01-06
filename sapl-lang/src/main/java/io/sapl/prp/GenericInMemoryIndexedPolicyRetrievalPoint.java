@@ -15,14 +15,10 @@
  */
 package io.sapl.prp;
 
-import io.sapl.grammar.sapl.AuthorizationDecisionEvaluable;
-import io.sapl.grammar.sapl.SAPL;
 import io.sapl.prp.index.ImmutableParsedDocumentIndex;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 
-@Slf4j
 public class GenericInMemoryIndexedPolicyRetrievalPoint implements PolicyRetrievalPoint, Disposable {
 
 	private final Flux<ImmutableParsedDocumentIndex> index;
@@ -35,34 +31,20 @@ public class GenericInMemoryIndexedPolicyRetrievalPoint implements PolicyRetriev
 			PrpUpdateEventSource eventSource) {
 		this.eventSource = eventSource;
 		index            = Flux.from(eventSource.getUpdates()).scan(seedIndex, ImmutableParsedDocumentIndex::apply)
-				.skip(1L)
-				.share().cache(1);
+				.skip(1L).share().cache(1);
 		// initial subscription, so that the index starts building upon startup
 		indexSubscription = Flux.from(index).subscribe();
 	}
 
 	@Override
 	public Flux<PolicyRetrievalResult> retrievePolicies() {
-		return Flux.from(index).flatMap(idx -> idx.retrievePolicies())
-				.doOnNext(this::logMatching);
+		return Flux.from(index).flatMap(idx -> idx.retrievePolicies());
 	}
 
 	@Override
 	public void dispose() {
 		indexSubscription.dispose();
 		eventSource.dispose();
-	}
-
-	private void logMatching(PolicyRetrievalResult result) {
-		if (result.getMatchingDocuments().isEmpty()) {
-			log.debug("  |- Matching documents: NONE");
-		} else {
-			log.debug("  |- Matching documents:");
-			for (AuthorizationDecisionEvaluable doc : result.getMatchingDocuments()) {
-				log.debug("  |  * '{}'",
-						(doc instanceof SAPL) ? ((SAPL) doc).getPolicyElement().getSaplName() : doc.toString());
-			}
-		}
 	}
 
 }

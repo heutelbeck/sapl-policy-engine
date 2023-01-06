@@ -18,15 +18,18 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.api.pdp.Decision.DENY;
 import static io.sapl.api.pdp.Decision.PERMIT;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.grammar.sapl.Policy;
+import io.sapl.grammar.sapl.PolicyElement;
+import io.sapl.grammar.sapl.impl.util.CombiningAlgorithmUtil;
+import io.sapl.interpreter.CombinedDecision;
+import io.sapl.interpreter.DocumentEvaluationResult;
 import io.sapl.interpreter.combinators.ObligationAdviceCollector;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
@@ -41,23 +44,34 @@ import reactor.core.publisher.Flux;
  *
  * Otherwise, the decision is PERMIT.
  */
-@Slf4j
 public class PermitUnlessDenyCombiningAlgorithmImplCustom extends PermitUnlessDenyCombiningAlgorithmImpl {
 
 	@Override
-	protected AuthorizationDecision combineDecisions(AuthorizationDecision[] decisions, boolean errorsInTarget) {
-		if (decisions.length == 0)
-			return AuthorizationDecision.PERMIT;
+	public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
+		return CombiningAlgorithmUtil.eagerlyCombinePolicyElements(policies, this::combinator, getName());
+	}
 
-		var                entitlement = PERMIT;
-		var                collector   = new ObligationAdviceCollector();
-		Optional<JsonNode> resource    = Optional.empty();
-		for (var decision : decisions) {
-			if (decision.getDecision() == DENY) {
+	@Override
+	public String getName() {
+		return "PERMIT_UNLESS_DENY";
+	}
+
+	private CombinedDecision combinator(DocumentEvaluationResult[] policyDecisions) {
+		if (policyDecisions.length == 0)
+			return CombinedDecision.of(AuthorizationDecision.PERMIT, getName());
+
+		var entitlement = PERMIT;
+		var collector   = new ObligationAdviceCollector();
+		var resource    = Optional.<JsonNode>empty();
+		var decisions   = new LinkedList<DocumentEvaluationResult>();
+		for (var policyDecision : policyDecisions) {
+			decisions.add(policyDecision);
+			var authzDecision = policyDecision.getAuthorizationDecision();
+			if (authzDecision.getDecision() == DENY) {
 				entitlement = DENY;
 			}
-			collector.add(decision);
-			if (decision.getResource().isPresent()) {
+			collector.add(authzDecision);
+			if (authzDecision.getResource().isPresent()) {
 				if (resource.isPresent()) {
 					// this is a transformation uncertainty.
 					// another policy already defined a transformation
@@ -65,19 +79,14 @@ public class PermitUnlessDenyCombiningAlgorithmImplCustom extends PermitUnlessDe
 					// However, DENY overrides with this algorithm.
 					entitlement = DENY;
 				} else {
-					resource = decision.getResource();
+					resource = authzDecision.getResource();
 				}
 			}
 		}
+
 		var finalDecision = new AuthorizationDecision(entitlement, resource, collector.getObligations(entitlement),
 				collector.getAdvice(entitlement));
-		log.debug("| |-- {} Combined AuthorizationDecision: {}", finalDecision.getDecision(), finalDecision);
-		return finalDecision;
-	}
-
-	@Override
-	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies) {
-		return doCombinePolicies(policies);
+		return CombinedDecision.of(finalDecision, getName(), decisions);
 	}
 
 }

@@ -49,8 +49,8 @@ class SaplIntegrationTestFixtureTest {
 	@Test
 	void test_withPDPVariables() {
 
-		SaplIntegrationTestFixture fixture = new SaplIntegrationTestFixture("it/variables");
-		Map<String, JsonNode> variables = new HashMap<>();
+		SaplIntegrationTestFixture fixture   = new SaplIntegrationTestFixture("it/variables");
+		Map<String, JsonNode>      variables = new HashMap<>();
 		variables.put("test", mapper.createObjectNode().numberNode(1));
 		fixture.withPDPVariables(variables).constructTestCase()
 				.when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit().verify();
@@ -58,7 +58,6 @@ class SaplIntegrationTestFixtureTest {
 
 	@Test
 	void test_withoutPDPVariables() {
-
 		SaplIntegrationTestFixture fixture = new SaplIntegrationTestFixture("it/variables");
 		fixture.constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny().verify();
 	}

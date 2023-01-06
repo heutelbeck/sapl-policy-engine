@@ -17,6 +17,7 @@ package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Expression;
+import io.sapl.grammar.sapl.PolicyElement;
 import reactor.core.publisher.Mono;
 
 public class PolicyElementImplCustom extends PolicyElementImpl {
@@ -40,7 +41,7 @@ public class PolicyElementImplCustom extends PolicyElementImpl {
 		}
 		return targetExpression.evaluate().next().defaultIfEmpty(Val.FALSE).flatMap(result -> {
 			if (result.isError() || !result.isBoolean()) {
-				return Val.errorMono(CONDITION_NOT_BOOLEAN, result);
+				return Mono.just(Val.error(CONDITION_NOT_BOOLEAN, result).withTrace(PolicyElement.class,result));
 			}
 			return Mono.just(result);
 		});
