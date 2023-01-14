@@ -29,23 +29,4 @@ public class VariablesSourceAutoConfiguration {
 
 	private final EmbeddedPDPProperties pdpProperties;
 
-/*	@Bean
-	@ConditionalOnMissingBean(VariablesAndCombinatorSource.class)
-	public VariablesAndCombinatorSource variablesAndCombinatorSource() throws InitializationException {
-		log.info("Deploying {} VariablesAndCombinatorSource configuration provider. Sourcing data from: {}",
-				pdpProperties.getPdpConfigType(), pdpProperties.getConfigPath());
-
-		if (pdpProperties.getPdpConfigType() == PDPDataSource.FILESYSTEM)
-			return new FileSystemVariablesAndCombinatorSource(pdpProperties.getConfigPath());
-
-		return new ResourcesVariablesAndCombinatorSource(pdpProperties.getConfigPath());
-	}*/
-
-/*	@Bean
-	@ConditionalOnMissingBean(VariablesAndCombinatorSource.class)
-	public VariablesAndCombinatorSource variablesAndCombinatorSource() throws InitializationException {
-
-		return new FileSystemVariablesAndCombinatorSource("../../sapl-policy-engine/sapl-ide/src/main/resources");
-	}*/
-
 }

@@ -22,10 +22,10 @@ public class ValueDefinitionProposalExtractionHelper {
         int currentOffset = context.getOffset();
         var policyBody = (PolicyBody) getPolicyBody(model);
 
-        if (policyBody == null & proposalType == ProposalType.SCHEMA)
+        if (policyBody == null && proposalType == ProposalType.SCHEMA)
             return getPreambleSchemaProposals();
 
-        if (policyBody == null & authzSubProposals.contains(context.getPrefix()))
+        if (policyBody == null && authzSubProposals.contains(context.getPrefix()))
             return getAuthzProposals();
 
         if (policyBody == null)
@@ -65,10 +65,9 @@ public class ValueDefinitionProposalExtractionHelper {
     }
 
     private SAPL getSapl() {
-        var sapl = Objects.requireNonNullElse(
+        return Objects.requireNonNullElse(
                 TreeNavigationHelper.goToFirstParent(context.getCurrentModel(), SAPL.class),
                 SaplFactory.eINSTANCE.createSAPL());
-        return sapl;
     }
 
     private Collection<String> getProposalsFromStatement(ProposalType proposalType, int currentOffset, Statement statement) {
@@ -105,7 +104,7 @@ public class ValueDefinitionProposalExtractionHelper {
 
         var schemaVarExpression = valueDefinition.getSchemaVarExpression();
 
-        if (currentOffset > valueDefinitionOffset & schemaVarExpression != null) {
+        if (currentOffset > valueDefinitionOffset && schemaVarExpression != null) {
             proposalTemplates = getProposalTemplates(valueDefinition, schemaVarExpression);
         }
         return proposalTemplates;

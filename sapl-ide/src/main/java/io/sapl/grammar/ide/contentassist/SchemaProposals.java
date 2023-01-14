@@ -31,7 +31,7 @@ public class SchemaProposals {
             "\\.?type\\.?",
             "java\\.?");
 
-    private static final String enumKeyword = "enum\\[\\d+\\]";
+    private static final String ENUM_KEYWORD = "enum\\[\\d+\\]";
 
 
     public List<String> getVariableNamesAsTemplates(){
@@ -75,7 +75,7 @@ public class SchemaProposals {
 
 
     private List<String> flattenSchema(String schema) {
-        var unwantedEnumMatch = ".*".concat(enumKeyword);
+        var unwantedEnumMatch = ".*".concat(ENUM_KEYWORD);
         var flattenJson = JsonFlattener.flattenAsMap(schema);
         List<String> paths = new ArrayList<>(flattenJson.keySet());
 
@@ -93,7 +93,7 @@ public class SchemaProposals {
         for (var entry: flattenJson.entrySet()){
             if(entry.getKey().matches(unwantedEnumMatch)){
                 var correctedPath = entry.getKey()
-                        .replaceAll(enumKeyword, (String) entry.getValue());
+                        .replaceAll(ENUM_KEYWORD, (String) entry.getValue());
                 paths.add(correctedPath);
             }
         }
