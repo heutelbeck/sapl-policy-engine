@@ -14,16 +14,16 @@
         upperBound="-1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="functionName" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
   </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="PolicyElement" eSuperTypes="#//Matchable #//EvaluableDocument">
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="saplName" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="targetExpression" eType="#//Expression"
+          containment="true"/>
+    </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Schema">
       <eStructuralFeatures xsi:type="ecore:EReference" name="schemaExpression" eType="#//Expression"
          containment="true"/>
       <eStructuralFeatures xsi:type="ecore:EAttribute" name="subscriptionElement" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="PolicyElement" eSuperTypes="#//Matchable #//AuthorizationDecisionEvaluable">
-    <eStructuralFeatures xsi:type="ecore:EAttribute" name="saplName" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="targetExpression" eType="#//Expression"
-        containment="true"/>
-  </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="PolicySet" eSuperTypes="#//PolicyElement">
     <eStructuralFeatures xsi:type="ecore:EReference" name="algorithm" eType="#//CombiningAlgorithm"
         containment="true"/>
