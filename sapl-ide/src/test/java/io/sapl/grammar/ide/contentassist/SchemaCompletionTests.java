@@ -123,22 +123,9 @@
                 }
 
                 @Test
-                public void testCompletion_PolicyBody_SchemaAnnotationNameIsEmptyString() {
+                public void testCompletion_PolicyBody_getSchemaFromJSONinText() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "policy \"test\" permit where schema ";
-                        it.setModel(policy);
-                        it.setColumn(policy.length());
-                        it.setAssertCompletionList(completionList -> {
-                            var expected = new ArrayList<String>();
-                            assertProposalsSimple(expected, completionList);
-                        });
-                    });
-                }
-
-                @Test
-                public void testCompletion_PolicyBody_getFromJSONinText() {
-                    testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "policy \"220530_testpolicy\" deny where schema {" +
+                        String policy = "policy \"test\" deny where schema {" +
                                 "\"properties\":" +
                                 "  {" +
                                 "    \"name\":" +
@@ -159,7 +146,7 @@
                 }
 
                 @Test
-                public void testCompletion_PolicyBody_getSchemaFromEnvironmentVariable() {
+                public void testCompletion_PolicyBody_getNestedSchemaFromEnvironmentVariable() {
                     testCompletion((TestCompletionConfiguration it) -> {
                         String policy = "policy \"test\" permit where var bar = 5; schema schema_with_additional_keywords var foo = \"test\"; foo";
                         it.setModel(policy);
@@ -201,7 +188,7 @@
                         it.setColumn(cursor.length());
                         it.setAssertCompletionList(completionList -> {
                             var expected = environmentVariableNames;
-                            var unwanted = List.of("foo", "bar");
+                            var unwanted = List.of("foo");
                             assertProposalsSimple(expected, completionList);
                             assertDoesNotContainProposals(unwanted, completionList);
                         });
@@ -211,7 +198,7 @@
                 @Test
                 public void testCompletion_SuggestSchemaFromPDPScopedVariable_for_AuthzElementSubject() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "schema subject_schema for subject policy \"test\" permit where subject";
+                        String policy = "schema general_schema for subject policy \"test\" permit where subject";
                         it.setModel(policy);
                         it.setColumn(policy.length());
                         it.setAssertCompletionList(completionList -> {
@@ -224,7 +211,7 @@
                 @Test
                 public void testCompletion_SuggestSchemaFromPDPScopedVariable_for_AuthzElementAction() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "schema myschema for action policy \"test\" permit where action";
+                        String policy = "schema general_schema for action policy \"test\" permit where action";
                         it.setModel(policy);
                         it.setColumn(policy.length());
                         it.setAssertCompletionList(completionList -> {
@@ -235,13 +222,26 @@
                 }
 
                 @Test
-                public void testCompletion_SuggestSchemaFromPDPScopedVariable_for_AuthzElementAction2() {
+                public void testCompletion_SuggestSchemaFromPDPScopedVariableWithNameContainingSubjectAuthzElement() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "schema subject_schema for action policy \"test\" permit where action";
+                        String policy = "schema subject_schema for subject policy \"test\" permit where subject";
                         it.setModel(policy);
                         it.setColumn(policy.length());
                         it.setAssertCompletionList(completionList -> {
-                            var expected = List.of("action.name", "action.age");
+                            var expected = List.of("subject.name", "subject.age", "subject.name.firstname");
+                            assertProposalsSimple(expected, completionList);
+                        });
+                    });
+                }
+
+                @Test
+                public void testCompletion_SuggestSchemaFromPDPScopedVariableWithNameContainingActionAuthzElement() {
+                    testCompletion((TestCompletionConfiguration it) -> {
+                        String policy = "schema action_schema for action policy \"test\" permit where action";
+                        it.setModel(policy);
+                        it.setColumn(policy.length());
+                        it.setAssertCompletionList(completionList -> {
+                            var expected = List.of("action.process", "action.result", "action.process.duration");
                             assertProposalsSimple(expected, completionList);
                         });
                     });
@@ -260,11 +260,26 @@
                                 "    }," +
                                 "    \"age\": {\"type\": \"number\"}" +
                                 "  }" +
-                                "} for subject policy \"testpolicy\" deny where subject";
+                                "} for subject policy \"test\" deny where subject";
                         it.setModel(policy);
                         it.setColumn(policy.length());
                         it.setAssertCompletionList(completionList -> {
                             var expected = List.of("subject.age", "subject.name", "subject.name.firstname");
+                            assertProposalsSimple(expected, completionList);
+                        });
+                    });
+                }
+
+
+                @Test
+                public void testCompletion_PolicyBody_getNestedSchemaFromEnvironmentVariable2() {
+                    testCompletion((TestCompletionConfiguration it) -> {
+                        String policy = "policy \"test\" permit where schema schema_with_additional_keywords schema bank_action_schema var foo = \"test\"; foo";
+                        it.setModel(policy);
+                        it.setColumn(policy.length());
+                        it.setAssertCompletionList(completionList -> {
+                            var expected = List.of("foo.subject.age", "foo.subject.name",
+                                    "foo.subject.name.firstname", "foo.name.registerNewCustomer");
                             assertProposalsSimple(expected, completionList);
                         });
                     });

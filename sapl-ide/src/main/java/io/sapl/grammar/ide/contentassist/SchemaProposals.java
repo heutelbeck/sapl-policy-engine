@@ -21,7 +21,7 @@ public class SchemaProposals {
     private final VariablesAndCombinatorSource variablesAndCombinatorSource;
 
     private final Collection<String> unwantedJsonKeywords = Set.of(
-            "$schema",
+            "\\$schema",
             "required(\\[\\d+\\])*",
             ".*enum\\[\\d+\\]",
             "additionalProperties(\\[\\d+\\])*");
