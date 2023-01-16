@@ -177,12 +177,14 @@
 			<artifactId>org.eclipse.xtext.xbase.testing</artifactId>
 			<version>${xtext.version}</version>
 			<scope>test</scope>
+			<!--
 			<exclusions>
 				<exclusion>
 					<groupId>junit</groupId>
 					<artifactId>junit</artifactId>
 				</exclusion>
 			</exclusions>
+			-->
 		</dependency>
 		<dependency>
 			<groupId>org.mockito</groupId>
