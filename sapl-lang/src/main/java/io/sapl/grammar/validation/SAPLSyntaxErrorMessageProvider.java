@@ -15,6 +15,7 @@
  */
 package io.sapl.grammar.validation;
 
+import io.sapl.grammar.sapl.*;
 import org.antlr.runtime.EarlyExitException;
 import org.antlr.runtime.MismatchedTokenException;
 import org.antlr.runtime.NoViableAltException;
@@ -28,12 +29,6 @@ import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.SyntaxErrorMessage;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.parser.antlr.SyntaxErrorMessageProvider;
-
-import io.sapl.grammar.sapl.Policy;
-import io.sapl.grammar.sapl.PolicyBody;
-import io.sapl.grammar.sapl.PolicySet;
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.grammar.sapl.ValueDefinition;
 
 public class SAPLSyntaxErrorMessageProvider extends SyntaxErrorMessageProvider {
 
@@ -129,7 +124,10 @@ public class SAPLSyntaxErrorMessageProvider extends SyntaxErrorMessageProvider {
 			return new SyntaxErrorMessage(INCOMPLETE_SET_ENTITLEMENT, Diagnostic.SYNTAX_DIAGNOSTIC);
 		}
 		else if (currentContext instanceof Policy) {
-			return new SyntaxErrorMessage(INCOMPLETE_POLICY_ENTITLEMENT, Diagnostic.SYNTAX_DIAGNOSTIC);
+			Entitlement entitlement = ((Policy) currentContext).getEntitlement();
+			if (entitlement == null)
+				return new SyntaxErrorMessage(INCOMPLETE_POLICY_ENTITLEMENT, Diagnostic.SYNTAX_DIAGNOSTIC);
+			return new SyntaxErrorMessage(INCOMPLETE_VARIABLE_NAME, Diagnostic.SYNTAX_DIAGNOSTIC);
 		}
 		else if (currentContext instanceof ValueDefinition) {
 			return new SyntaxErrorMessage(INCOMPLETE_VARIABLE_VALUE, Diagnostic.SYNTAX_DIAGNOSTIC);

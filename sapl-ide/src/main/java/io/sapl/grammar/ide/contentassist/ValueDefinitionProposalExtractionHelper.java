@@ -110,13 +110,15 @@ public class ValueDefinitionProposalExtractionHelper {
         return proposalTemplates;
     }
 
-    private List<String> getProposalTemplates(ValueDefinition valueDefinition, Expression schemaVarExpression) {
-        var schemaTemplates = new SchemaProposals(variablesAndCombinatorSource)
-                .getCodeTemplates(schemaVarExpression);
+    private List<String> getProposalTemplates(ValueDefinition valueDefinition, List<Expression> schemaVarExpression) {
         List<String> proposalTemplates = new ArrayList<>();
-        var valueDefinitionName = valueDefinition.getName();
-        var templates = constructProposals(valueDefinitionName, schemaTemplates);
-        proposalTemplates.addAll(templates);
+        for (Expression varExpression: schemaVarExpression) {
+            var schemaTemplates = new SchemaProposals(variablesAndCombinatorSource)
+                    .getCodeTemplates(varExpression);
+            var valueDefinitionName = valueDefinition.getName();
+            var templates = constructProposals(valueDefinitionName, schemaTemplates);
+            proposalTemplates.addAll(templates);
+        }
         return proposalTemplates;
     }
 

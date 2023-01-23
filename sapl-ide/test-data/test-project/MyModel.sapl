@@ -1,1 +1,0 @@
-policy "test" permit where schema schema_with_additional_keywords schema bank_action_schema var foo = "test"; foo

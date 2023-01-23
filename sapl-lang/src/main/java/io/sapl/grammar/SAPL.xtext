@@ -68,7 +68,7 @@ Statement:
 	{Condition} expression=Expression ;
 
 ValueDefinition:
-    ('schema' schemaVarExpression=Expression)*
+    ('schema' schemaVarExpression+=Expression)*
 	'var' name=ALLID '=' eval=Expression ;
 
 Expression:
