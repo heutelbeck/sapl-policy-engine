@@ -24,12 +24,12 @@ SAPL:
 	schemas+=Schema* policyElement=PolicyElement ;
 
 Import:
-	'import' ( {WildcardImport} libSteps+=ALLID ('.' libSteps+=ALLID)* '.' '*'
-		     | {LibraryImport} (libSteps+=ALLID '.')* libSteps+=ALLID 'as' libAlias=ALLID
-		     | libSteps+=ALLID ('.' libSteps+=ALLID)* '.' functionName=ALLID	) ;
+	'import' ( {WildcardImport} libSteps+=SaplID ('.' libSteps+=SaplID)* '.' '*'
+		     | {LibraryImport} (libSteps+=SaplID '.')* libSteps+=SaplID 'as' libAlias=SaplID
+		     | libSteps+=SaplID ('.' libSteps+=SaplID)* '.' functionName=SaplID	) ;
 
 Schema:
-    'schema' schemaExpression=Expression 'for' subscriptionElement=AUTHZ ;
+    'schema' schemaExpression=Expression 'for' subscriptionElement=ReservedID ;
 
 PolicyElement:
 	PolicySet | Policy;
@@ -69,7 +69,7 @@ Statement:
 
 ValueDefinition:
     ('schema' schemaVarExpression+=Expression)*
-	'var' name=ALLID '=' eval=Expression ;
+	'var' name=SaplID '=' eval=Expression ;
 
 Expression:
 	LazyOr ;
@@ -119,10 +119,10 @@ BasicExpression returns Expression:
 Basic returns BasicExpression:
 	  {BasicGroup} '(' expression=Expression ')' steps+=Step* 
 	| {BasicValue} value=Value steps+=Step*  
-	| {BasicFunction} fsteps+=ALLID ('.' fsteps+=ALLID)*  arguments=Arguments steps+=Step*
-	| {BasicEnvironmentAttribute} '<' idSteps+=ALLID ('.' idSteps+=ALLID)* arguments=Arguments? '>' steps+=Step*
-	| {BasicEnvironmentHeadAttribute} '|<' idSteps+=ALLID ('.' idSteps+=ALLID)* arguments=Arguments? '>' steps+=Step*
-	| {BasicIdentifier} identifier=ALLID steps+=Step*
+	| {BasicFunction} fsteps+=SaplID ('.' fsteps+=SaplID)*  arguments=Arguments steps+=Step*
+	| {BasicEnvironmentAttribute} '<' idSteps+=SaplID ('.' idSteps+=SaplID)* arguments=Arguments? '>' steps+=Step*
+	| {BasicEnvironmentHeadAttribute} '|<' idSteps+=SaplID ('.' idSteps+=SaplID)* arguments=Arguments? '>' steps+=Step*
+	| {BasicIdentifier} identifier=SaplID steps+=Step*
 	| BasicRelative;
 
 BasicRelative:
@@ -132,13 +132,13 @@ Arguments:
 	{Arguments} '(' (args+=Expression (',' args+=Expression)*)? ')';
 
 Step:
-	'.' ( {KeyStep} id=ALLID
+	'.' ( {KeyStep} id=SaplID
 		| {EscapedKeyStep} id=STRING
 		| {WildcardStep} '*' 
-		| {AttributeFinderStep} '<' idSteps+=ALLID ('.' idSteps+=ALLID)* arguments=Arguments? '>'
-		| {HeadAttributeFinderStep} '|<' idSteps+=ALLID ('.' idSteps+=ALLID)* arguments=Arguments? '>' )
+		| {AttributeFinderStep} '<' idSteps+=SaplID ('.' idSteps+=SaplID)* arguments=Arguments? '>'
+		| {HeadAttributeFinderStep} '|<' idSteps+=SaplID ('.' idSteps+=SaplID)* arguments=Arguments? '>' )
 	| '[' Subscript ']' 
-	| '..' ( {RecursiveKeyStep} (id=ALLID | '[' id=STRING ']' )
+	| '..' ( {RecursiveKeyStep} (id=SaplID | '[' id=STRING ']' )
 		   | {RecursiveWildcardStep} ('*' | '[' '*' ']' ) 
 		   | {RecursiveIndexStep} '[' index=SignedNumber ']' ) ;
 	
@@ -181,18 +181,18 @@ NumberLiteral returns Value:
 	{NumberLiteral} number=JSONNUMBER ;
 
 FilterComponent: 
-	  {FilterSimple} each?='each'? fsteps+=ALLID ('.' fsteps+=ALLID)* arguments=Arguments? 
+	  {FilterSimple} each?='each'? fsteps+=SaplID ('.' fsteps+=SaplID)* arguments=Arguments? 
 	| {FilterExtended} '{' statements+=FilterStatement (',' statements+=FilterStatement)* '}' ;
 
 FilterStatement:
-	each?='each'? target=BasicRelative? ':' fsteps+=ALLID ('.' fsteps+=ALLID)* arguments=Arguments? ;
+	each?='each'? target=BasicRelative? ':' fsteps+=SaplID ('.' fsteps+=SaplID)* arguments=Arguments? ;
 
 SignedNumber returns ecore::EBigDecimal: '-'? JSONNUMBER;
 
-ALLID:
-    ID | AUTHZ;
+SaplID returns ecore::EString:
+    ID | ReservedID;
 
-AUTHZ:
+ReservedID returns ecore::EString:
     'subject' | 'action' | 'resource' | 'environment';
 
 @Override
