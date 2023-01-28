@@ -39,7 +39,7 @@ public class RemotePDPAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public PolicyDecisionPoint policyDecisionPoint() throws SSLException {
+	PolicyDecisionPoint policyDecisionPoint() throws SSLException {
 		log.info("Binding to remote PDP server: {}", configuration.getHost());
 		if (configuration.isIgnoreCertificates()) {
 			log.warn("INSECURE SSL SETTINGS! This demo uses an insecure SslContext for "

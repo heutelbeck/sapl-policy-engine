@@ -38,7 +38,7 @@ public class SecurityConfiguration {
 
 	@Bean
 	@Profile("local")
-	public SecurityWebFilterChain securityFilterChainLocal(ServerHttpSecurity http) {
+	SecurityWebFilterChain securityFilterChainLocal(ServerHttpSecurity http) {
 		return http
 				.csrf()
 					.disable()
@@ -54,20 +54,20 @@ public class SecurityConfiguration {
 
 	@Bean
 	@Profile("docker")
-	public SecurityWebFilterChain securityFilterChainDocker(ServerHttpSecurity http) {
+	SecurityWebFilterChain securityFilterChainDocker(ServerHttpSecurity http) {
 		return http.csrf().disable().authorizeExchange().pathMatchers("/**").permitAll().and().build();
 	}
 
 	@Bean
 	@Profile("local")
-	public MapReactiveUserDetailsService userDetailsServiceLocal() {
+	MapReactiveUserDetailsService userDetailsServiceLocal() {
 		UserDetails client = User.builder().username(pdpProperties.getKey()).password(pdpProperties.getSecret())
 				.roles("PDP_CLIENT").build();
 		return new MapReactiveUserDetailsService(client);
 	}
 
 	@Bean
-	public PasswordEncoder passwordEncoder() {
+	PasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder();
 	}
 
