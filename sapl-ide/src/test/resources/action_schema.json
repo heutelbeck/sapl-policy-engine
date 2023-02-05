@@ -2,6 +2,7 @@
  "$schema": "http://json-schema.org/draft-07/schema#",
  "properties":
    {
+	"type_of_action": {"type": "string"},
 	"process": {"type": "object",
 		"properties":
 		{

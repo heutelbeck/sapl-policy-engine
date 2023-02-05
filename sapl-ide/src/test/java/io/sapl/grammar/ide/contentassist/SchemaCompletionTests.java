@@ -41,9 +41,9 @@
                  */
 
                 @Test
-                public void testCompletion_Preamble_Empty_ReturnsSchemaKeyword() {
+                public void testCompletion_Preamble_ReturnsSchemaKeyword_For_Subject() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "";
+                        String policy = "subject ";
                         it.setModel(policy);
                         it.setColumn(policy.length());
                         it.setAssertCompletionList(completionList -> {
@@ -56,7 +56,7 @@
                 @Test
                 public void testCompletion_Preamble_PartialSchemaKeyword_ReturnsSchemaKeyword() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "schem";
+                        String policy = "subject schem";
                         it.setModel(policy);
                         it.setColumn(policy.length());
                         it.setAssertCompletionList(completionList -> {
@@ -69,7 +69,7 @@
                 @Test
                 public void testCompletion_Preamble_SchemaNameIsEmptyString_ReturnsEnvironmentVariables() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "schema ";
+                        String policy = "subject schema ";
                         it.setModel(policy);
                         it.setColumn(policy.length());
                         it.setAssertCompletionList(completionList -> {
@@ -80,27 +80,15 @@
                 }
 
                 @Test
-                public void testCompletion_Preamble_SchemaStatement_ReturnsKeyword() {
-                    testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "schema \"text\" ";
-                        it.setModel(policy);
-                        it.setColumn(policy.length());
-                        it.setAssertCompletionList(completionList -> {
-                            var expected = List.of("for");
-                            assertEqualProposals(expected, completionList);
-                        });
-                    });
-                }
-
-                @Test
                 public void testCompletion_Preamble_SubscriptionElementIsAuthzElement() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "schema \"test\" for ";
+                        String policy = " schema \"test\"";
+                        String cursor = "";
                         it.setModel(policy);
-                        it.setColumn(policy.length());
+                        it.setColumn(cursor.length());
                         it.setAssertCompletionList(completionList -> {
                             var expected = List.of("subject", "action", "resource", "environment");
-                            assertEqualProposals(expected, completionList);
+                            assertProposalsSimple(expected, completionList);
                         });
                     });
                 }
@@ -112,7 +100,7 @@
                 @Test
                 public void testCompletion_PolicyBody_SchemaAnnotation() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "policy \"test\" permit where s";
+                        String policy = "policy \"test\" permit where var foo = 1 s";
                         it.setModel(policy);
                         it.setColumn(policy.length());
                         it.setAssertCompletionList(completionList -> {
@@ -125,7 +113,7 @@
                 @Test
                 public void testCompletion_PolicyBody_getSchemaFromJSONinText() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "policy \"test\" deny where schema {" +
+                        String policy = "policy \"test\" deny where var foo = 1 schema {" +
                                 "\"properties\":" +
                                 "  {" +
                                 "    \"name\":" +
@@ -135,7 +123,7 @@
                                 "    }," +
                                 "    \"age\": {\"type\": \"number\"}" +
                                 "  }" +
-                                "} var foo = 1; foo";
+                                "}; foo";
                         it.setModel(policy);
                         it.setColumn(policy.length());
                         it.setAssertCompletionList(completionList -> {
@@ -148,7 +136,7 @@
                 @Test
                 public void testCompletion_PolicyBody_getNestedSchemaFromEnvironmentVariable() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "policy \"test\" permit where var bar = 5; schema schema_with_additional_keywords var foo = \"test\"; foo";
+                        String policy = "policy \"test\" permit where var bar = 5; var foo = \"test\" schema schema_with_additional_keywords; foo";
                         it.setModel(policy);
                         it.setColumn(policy.length());
                         it.setAssertCompletionList(completionList -> {
@@ -162,7 +150,7 @@
                 @Test
                 public void testCompletion_PolicyBody_NotSuggestEnumKeywords() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "policy \"test\" permit where var bar = 3; schema bank_action_schema var foo = \"test\"; ";
+                        String policy = "policy \"test\" permit where var bar = 3; var foo = \"test\" schema bank_action_schema; ";
                         it.setModel(policy);
                         it.setColumn(policy.length());
                         it.setAssertCompletionList(completionList -> {
@@ -182,8 +170,8 @@
                 @Test
                 public void testCompletion_SuggestPDPScopedVariable_NotSuggestOutOfScopeVariable() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "schema policy \"test\" permit where var foo = 5;";
-                        String cursor = "schema ";
+                        String policy = "subject schema policy \"test\" permit where var foo = 5;";
+                        String cursor = "subject schema ";
                         it.setModel(policy);
                         it.setColumn(cursor.length());
                         it.setAssertCompletionList(completionList -> {
@@ -198,7 +186,7 @@
                 @Test
                 public void testCompletion_SuggestSchemaFromPDPScopedVariable_for_AuthzElementSubject() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "schema general_schema for subject policy \"test\" permit where subject";
+                        String policy = "subject schema general_schema policy \"test\" permit where subject";
                         it.setModel(policy);
                         it.setColumn(policy.length());
                         it.setAssertCompletionList(completionList -> {
@@ -211,7 +199,7 @@
                 @Test
                 public void testCompletion_SuggestSchemaFromPDPScopedVariable_for_AuthzElementAction() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "schema general_schema for action policy \"test\" permit where action";
+                        String policy = "action schema general_schema policy \"test\" permit where action";
                         it.setModel(policy);
                         it.setColumn(policy.length());
                         it.setAssertCompletionList(completionList -> {
@@ -224,7 +212,7 @@
                 @Test
                 public void testCompletion_SuggestSchemaFromPDPScopedVariableWithNameContainingSubjectAuthzElement() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "schema subject_schema for subject policy \"test\" permit where subject";
+                        String policy = "subject schema subject_schema policy \"test\" permit where subject";
                         it.setModel(policy);
                         it.setColumn(policy.length());
                         it.setAssertCompletionList(completionList -> {
@@ -237,11 +225,11 @@
                 @Test
                 public void testCompletion_SuggestSchemaFromPDPScopedVariableWithNameContainingActionAuthzElement() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "schema action_schema for action policy \"test\" permit where action";
+                        String policy = "action schema action_schema policy \"test\" permit where action";
                         it.setModel(policy);
                         it.setColumn(policy.length());
                         it.setAssertCompletionList(completionList -> {
-                            var expected = List.of("action.process", "action.result", "action.process.duration");
+                            var expected = List.of("action.process", "action.result", "action.process.duration", "action.type_of_action");
                             assertProposalsSimple(expected, completionList);
                         });
                     });
@@ -250,7 +238,7 @@
                 @Test
                 public void testCompletion_getFromJSONinText_for_AuthzElementSubject() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "schema {" +
+                        String policy = "subject schema {" +
                                 "\"properties\":" +
                                 "  {" +
                                 "    \"name\":" +
@@ -260,7 +248,7 @@
                                 "    }," +
                                 "    \"age\": {\"type\": \"number\"}" +
                                 "  }" +
-                                "} for subject policy \"test\" deny where subject";
+                                "} policy \"test\" deny where subject";
                         it.setModel(policy);
                         it.setColumn(policy.length());
                         it.setAssertCompletionList(completionList -> {
@@ -274,7 +262,7 @@
                 @Test
                 public void testCompletion_PolicyBody_getNestedSchemaFromEnvironmentVariable2() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "policy \"test\" permit where schema schema_with_additional_keywords schema bank_action_schema var foo = \"test\"; foo";
+                        String policy = "policy \"test\" permit where var foo = \"test\" schema schema_with_additional_keywords, bank_action_schema; foo";
                         it.setModel(policy);
                         it.setColumn(policy.length());
                         it.setAssertCompletionList(completionList -> {

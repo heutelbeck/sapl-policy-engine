@@ -36,7 +36,7 @@ public class VariableCompletionTests extends CompletionTests {
 			it.setModel(policy);
 			it.setColumn(policy.length());
 			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("advice", "obligation", "transform", "schema", "var", "action", "bar", "environment",
+				var expected = List.of("advice", "obligation", "transform",  "var", "action", "bar", "environment",
 						"foo", "resource", "subject");
 				assertProposalsSimple(expected, completionList);
 			});
@@ -79,7 +79,7 @@ public class VariableCompletionTests extends CompletionTests {
 			it.setModel(policy);
 			it.setColumn(cursor.length());
 			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("advice", "obligation", "transform", "schema", "var", "action", "environment", "foo",
+				var expected = List.of("advice", "obligation", "transform", "var", "action", "environment", "foo",
 						"resource", "subject");
 				var unwanted = List.of("bar");
 				assertProposalsSimple(expected, completionList);

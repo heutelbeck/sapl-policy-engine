@@ -28,7 +28,8 @@ public class SchemaProposals {
 
     private final Collection<String> unwantedPathKeywords = Set.of(
             "properties\\.?",
-            "\\.?type\\.?",
+            "\\.type\\.",
+            "\\.type$",
             "java\\.?");
 
     private static final String ENUM_KEYWORD = "enum\\[\\d+\\]";

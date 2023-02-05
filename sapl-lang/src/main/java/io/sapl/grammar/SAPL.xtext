@@ -29,7 +29,7 @@ Import:
 		     | libSteps+=SaplID ('.' libSteps+=SaplID)* '.' functionName=SaplID	) ;
 
 Schema:
-    'schema' schemaExpression=Expression 'for' subscriptionElement=ReservedID ;
+    subscriptionElement=ReservedID 'schema' schemaExpression=Expression;
 
 PolicyElement:
 	PolicySet | Policy;
@@ -68,8 +68,8 @@ Statement:
 	{Condition} expression=Expression ;
 
 ValueDefinition:
-    ('schema' schemaVarExpression+=Expression)*
-	'var' name=SaplID '=' eval=Expression ;
+	'var' name=SaplID '=' eval=Expression
+	('schema' schemaVarExpression+=Expression (',' schemaVarExpression+=Expression)*)? ;
 
 Expression:
 	LazyOr ;
