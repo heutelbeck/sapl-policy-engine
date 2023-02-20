@@ -14,7 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ReportTextRenderUtil {
 
 	public static String textReport(JsonNode jsonReport, boolean prettyPrint, ObjectMapper mapper) {
-		var report = "--- The PDP made a decison ---\n";
+		var report = "--- The PDP made a decision ---\n";
 		report += "Subscription: " + (prettyPrint ? "\n" : "")
 				+ prettyPrintJson(jsonReport.get(PDPDecision.AUTHORIZATION_SUBSCRIPTION), prettyPrint, mapper) + "\n";
 		report += "Decision    : " + (prettyPrint ? "\n" : "")
