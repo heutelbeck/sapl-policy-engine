@@ -79,38 +79,6 @@ class PolicyBodyImplCustomTest {
 	}
 
 	@Test
-	void valueDefinitionsAttemptToOverwriteDefaultSubscriptionVariableSubjectError() {
-		var policy   = INTERPRETER.parse("policy \"p\" permit where var subject = {};");
-		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNextMatches(hasDecision(expected)).verifyComplete();
-	}
-
-	@Test
-	void valueDefinitionsAttemptToOverwriteDefaultSubscriptionVariableActionError() {
-		var policy   = INTERPRETER.parse("policy \"p\" permit where var action = {};");
-		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNextMatches(hasDecision(expected)).verifyComplete();
-	}
-
-	@Test
-	void valueDefinitionsAttemptToOverwriteDefaultSubscriptionVariableResourceError() {
-		var policy   = INTERPRETER.parse("policy \"p\" permit where var resource = {};");
-		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNextMatches(hasDecision(expected)).verifyComplete();
-	}
-
-	@Test
-	void valueDefinitionsAttemptToOverwriteDefaultSubscriptionVariableEnvironmentError() {
-		var policy   = INTERPRETER.parse("policy \"p\" permit where var environment = {};");
-		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNextMatches(hasDecision(expected)).verifyComplete();
-	}
-
-	@Test
 	void lazyStatementEvaluationVarDef() {
 		var policy   = INTERPRETER.parse("policy \"p\" permit true where false; var variable = (10/0);");
 		var expected = AuthorizationDecision.NOT_APPLICABLE;

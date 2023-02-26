@@ -68,7 +68,7 @@ Statement:
 	{Condition} expression=Expression ;
 
 ValueDefinition:
-	'var' name=SaplID '=' eval=Expression
+	'var' name=ID '=' eval=Expression
 	('schema' schemaVarExpression+=Expression (',' schemaVarExpression+=Expression)*)? ;
 
 Expression:

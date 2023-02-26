@@ -56,6 +56,8 @@ class DefaultSAPLInterpreterTest {
 			+ "\"objectArray\" : [ {\"id\" : \"1\", \"name\" : \"one\"}, {\"id\" : \"2\", \"name\" : \"two\"} ] " + "},"
 			+ "\"environment\" : { " + "\"ipAddress\" : \"10.10.10.254\"," + "\"year\" : 2016" + "}" + " }";
 
+	private static final String SCHEMA_TEST = "{\"name\": {\"type\": \"object\" }}";
+
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
@@ -228,6 +230,37 @@ class DefaultSAPLInterpreterTest {
 		var policyDefinition = "policy \"test\" permit where null;";
 		var expected         = AuthorizationDecision.INDETERMINATE;
 		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
+	}
+
+	@Test
+	void variableNameIsValid() {
+		var policyDefinition = "policy \"p\" permit where var foo = 1;";
+		var expected         = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
+	}
+
+	@Test
+	void variableNameEqualsSubscriptionVariableSubjectError() {
+		var policyDefinition = "policy \"p\" permit where var subject = 1;";
+		assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyDefinition));
+	}
+
+	@Test
+	void variableNameEqualsSubscriptionVariableActionError() {
+		var policyDefinition = "policy \"p\" permit where var action = 1;";
+		assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyDefinition));
+	}
+
+	@Test
+	void variableNameEqualsSubscriptionVariableResourceError() {
+		var policyDefinition = "policy \"p\" permit where var resource = 1;";
+		assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyDefinition));
+	}
+
+	@Test
+	void variableNameEqualsSubscriptionVariableEnvironmentError() {
+		var policyDefinition = "policy \"p\" permit where var environment = 1;";
+		assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyDefinition));
 	}
 
 	@Test
@@ -730,6 +763,37 @@ class DefaultSAPLInterpreterTest {
 		var expected         = AuthorizationDecision.PERMIT;
 		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
+
+	@Test
+	void schemaSubscriptionElementNotEqualsSubscriptionVariableError() {
+		var policyDefinition = "xyz schema " + SCHEMA_TEST + " policy \"test\" permit";
+		assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyDefinition));
+	}
+
+	@Test
+	void schemaSubscriptionElementEqualsSubscriptionVariableSubject() {
+		var policyDefinition = "subject schema " + SCHEMA_TEST + " policy \"test\" permit";
+		var expected         = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
+	}
+
+	@Test
+	void schemaSubscriptionElementEqualsSubscriptionVariableAction() {
+		var policyDefinition = "action schema " + SCHEMA_TEST + " policy \"test\" permit";
+		var expected         = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);	}
+
+	@Test
+	void schemaSubscriptionElementEqualsSubscriptionVariableResource() {
+		var policyDefinition = "resource schema " + SCHEMA_TEST + " policy \"test\" permit";
+		var expected         = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);	}
+
+	@Test
+	void schemaSubscriptionElementEqualsSubscriptionVariableEnvironment() {
+		var policyDefinition = "environment schema " + SCHEMA_TEST + " policy \"test\" permit";
+		var expected         = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);	}
 
 	private void assertThatPolicyEvaluationReturnsExpected(String document, AuthorizationDecision expected) {
 		StepVerifier.create(INTERPRETER.evaluate(authzSubscription, document, attributeCtx, functionCtx, variables))

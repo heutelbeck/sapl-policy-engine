@@ -142,7 +142,7 @@ public class SAPLSyntaxErrorMessageProviderTests {
 	public void incompleteVariable_Trimmed_ReturnsHintToProvideVariableName() throws Exception {
 		String testPolicy = "policy \"\" deny where var";
 		SAPL policy = this.parseHelper.parse(testPolicy);
-		this.validator.assertError(policy, SaplPackage.eINSTANCE.getValueDefinition(), Diagnostic.SYNTAX_DIAGNOSTIC,
+		this.validator.assertError(policy, SaplPackage.eINSTANCE.getPolicyBody(), Diagnostic.SYNTAX_DIAGNOSTIC,
 				SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_NAME);
 	}
 
