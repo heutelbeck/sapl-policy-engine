@@ -24,8 +24,8 @@ public class ReportBuilderUtil {
 		report.set(PDPDecision.TIMESTAMP, trace.get(PDPDecision.TIMESTAMP));
 		var combinedDecision = trace.get(PDPDecision.COMBINED_DECISION);
 		if (combinedDecision != null) {
-			var pdpCombiningAlgorith = combinedDecision.get(CombinedDecision.COMBINING_ALGORITHM);
-			report.set(PDP_COMBINING_ALGORITHM, pdpCombiningAlgorith);
+			var pdpCombiningAlgorithm = combinedDecision.get(CombinedDecision.COMBINING_ALGORITHM);
+			report.set(PDP_COMBINING_ALGORITHM, pdpCombiningAlgorithm);
 			if (combinedDecision.get(CombinedDecision.ERROR) != null) {
 				report.set(CombinedDecision.ERROR, combinedDecision.get(CombinedDecision.ERROR));
 			}
@@ -42,20 +42,20 @@ public class ReportBuilderUtil {
 	}
 
 	private JsonNode documentReports(JsonNode evaluatedPolices) {
-		var documentRepots = JSON.arrayNode();
+		var documentReports = JSON.arrayNode();
 		for (var documentTrace : evaluatedPolices) {
 			var documentType = documentTrace.get("documentType");
 			if (documentType != null && documentType.isTextual()) {
 				var type = documentType.asText();
 				if ("policy".equals(type)) {
-					documentRepots.add(policyReport(documentTrace));
+					documentReports.add(policyReport(documentTrace));
 				}
 				if ("policy set".equals(type)) {
-					documentRepots.add(policySetReport(documentTrace));
+					documentReports.add(policySetReport(documentTrace));
 				}
 			}
 		}
-		return documentRepots;
+		return documentReports;
 	}
 
 	private JsonNode policySetReport(JsonNode documentTrace) {
@@ -120,7 +120,7 @@ public class ReportBuilderUtil {
 
 	private JsonNode valueReport(JsonNode jsonNode) {
 		if (!jsonNode.isObject())
-			return JSON.textNode("Reorting error: Val was not represented as JSON Object. Was: " + jsonNode);
+			return JSON.textNode("Reporting error: Val was not represented as JSON Object. Was: " + jsonNode);
 		return jsonNode.get("value");
 	}
 

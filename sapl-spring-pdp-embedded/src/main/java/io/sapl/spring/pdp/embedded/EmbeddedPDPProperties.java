@@ -105,13 +105,13 @@ public class EmbeddedPDPProperties {
 	private boolean printTrace = false;
 
 	/**
-	 * If this property is set to true, the a JSON evaluation report is logged on
+	 * If this property is set to true, the JSON evaluation report is logged on
 	 * each decision.
 	 */
 	private boolean printJsonReport = false;
 
 	/**
-	 * If this property is set to true, the a textual decision report is logged on
+	 * If this property is set to true, the textual decision report is logged on
 	 * each decision.
 	 */
 	private boolean printTextReport = false;
