@@ -49,7 +49,7 @@ import okhttp3.mockwebserver.MockWebServer;
 import reactor.core.publisher.Hooks;
 import reactor.test.StepVerifier;
 
-class RemotePolicyDecisionPointTests {
+class RemoteHttpPolicyDecisionPointTests {
 
 	private static final String ID = "id1";
 
@@ -63,7 +63,7 @@ class RemotePolicyDecisionPointTests {
 
 	private MockWebServer server;
 
-	private RemotePolicyDecisionPoint pdp;
+	private RemoteHttpPolicyDecisionPoint pdp;
 
 	@BeforeAll
 	static void setupLog() {
@@ -77,7 +77,11 @@ class RemotePolicyDecisionPointTests {
 	void startServer() throws IOException {
 		server = new MockWebServer();
 		server.start();
-		pdp = new RemotePolicyDecisionPoint(this.server.url("/").toString(), "secret", "key");
+		pdp = RemotePolicyDecisionPoint.builder()
+				.http()
+				.baseUrl(this.server.url("/").toString())
+				.basicAuth("secret", "key")
+				.build();
 		pdp.setBackoffFactor(2);
 		pdp.setFirstBackoffMillis(100);
 		pdp.setMaxBackOffMillis(200);
@@ -156,7 +160,7 @@ class RemotePolicyDecisionPointTests {
 			}
 		}
 		var response = new MockResponse()
-				.setHeader(HttpHeaders.CONTENT_TYPE.toString(),
+				.setHeader(HttpHeaders.CONTENT_TYPE,
 						MediaType.TEXT_EVENT_STREAM_VALUE /* .APPLICATION_NDJSON_VALUE */)
 				.setResponseCode(HttpStatus.OK.value()).setBody(body.toString());
 		server.enqueue(response);
@@ -164,25 +168,39 @@ class RemotePolicyDecisionPointTests {
 
 	@Test
 	void construct() {
-		assertThat(new RemotePolicyDecisionPoint("http://localhost", "secret", "key"), notNullValue());
+		var pdp = RemotePolicyDecisionPoint.builder()
+				.http()
+				.baseUrl("http://localhost")
+				.basicAuth("secret", "key")
+				.build();
+		assertThat(pdp, notNullValue());
 	}
 
 	@Test
 	void constructWithSslContext() throws SSLException {
 		var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
-		assertThat(new RemotePolicyDecisionPoint("http://localhost", "secret", "key", sslContext), notNullValue());
+		var pdp = RemotePolicyDecisionPoint.builder()
+				.http()
+				.baseUrl("http://localhost")
+				.basicAuth("secret", "key")
+				.secure(sslContext)
+				.build();
+		assertThat(pdp, notNullValue());
 	}
 
 	@Test
 	void settersAndGetters() {
-		var pdp = new RemotePolicyDecisionPoint("http://localhost", "secret", "key");
+		var pdp = RemotePolicyDecisionPoint.builder()
+				.http()
+				.baseUrl("http://localhost")
+				.basicAuth("secret", "key")
+				.build();
 		pdp.setBackoffFactor(999);
 		pdp.setFirstBackoffMillis(998);
 		pdp.setMaxBackOffMillis(1001);
 		assertAll(() -> assertThat(pdp.getBackoffFactor(), is(999)),
 				() -> assertThat(pdp.getFirstBackoffMillis(), is(998)),
 				() -> assertThat(pdp.getMaxBackOffMillis(), is(1001)));
-
 	}
 
 }
