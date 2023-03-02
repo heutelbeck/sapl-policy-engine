@@ -1,14 +1,36 @@
+# authentication methods
 io.sapl:
    server-lt:
       key: YJidgyT2mfdkbmL
 # BCrypt encoded client-secret (raw secret: Fa4zvYQdiwHZVXh)
 # Authorization: Basic WUppZGd5VDJtZmRrYm1MOkZhNHp2WVFkaXdIWlZYaA==
       secret: $2a$10$PhobF71xYb0MK8KubWLB7e0Dpl2AfMiEUi9dkKTbFR4kkWABrbiyO
-   pdp.embedded:
+# Authentication Methods
+      allowNoAuth: False
+      allowBasicAuth: True
+
+# Optional: configure API key  authentication
+# List of permitted API Keys that can be used for authentication when the option allowApiKeyAuth is set to ture.
+# --header "API_KEY: phsNZdvQAFX9P2jgGzq9TrzUecQhsnHc"
+io.sapl.server-lt:
+      allowApiKeyAuth: False
+      allowedApiKeys:
+         - phsNZdvQAFX9P2jgGzq9TrzUecQhsnHh
+         - uQKyuL3LkBY84hJXLFPgF6cATCsTYGgy
+
+# Optional: configure Oauth2 (jwt) authentication
+io.sapl.server-lt.allowOauth2Auth: False
+spring.security.oauth2:
+      resourceserver:
+         jwt.issuer-uri: http://auth-server:9000
+
+# Configure embedded pdp
+io.sapl.pdp.embedded:
       pdp-config-type: FILESYSTEM
 # folder in which the configuration and policies reside on the system
       config-path: ~/sapl/policies
       policies-path: ~/sapl/policies
+
 # The following options enable or disable different levels of logging for decisions.
 #
 # print-trace: true|false This is the most fine-grained explanation of a decision made
@@ -37,6 +59,19 @@ server:
    port: 8443
 # configure the server
    address: localhost
+   ssl:
+      enabled: true
+      key-store-type: PKCS12
+      key-store: classpath:keystore.p12
+      key-store-password: changeme
+      key-password: changeme
+      key-alias: netty
+
+# Rsocket configuration
+spring.rsocket.server:
+   address: localhost
+   port: 7000
+   transport: tcp
    ssl:
       enabled: true
       key-store-type: PKCS12
