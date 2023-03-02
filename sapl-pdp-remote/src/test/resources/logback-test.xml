@@ -6,6 +6,7 @@
     <logger name="org.springframework" level="error" />
     <logger name="reactor" level="info" />
     <logger name="org.hibernate" level="error" />
-    <logger name="io.sapl" level="off" />
+    <logger name="io.sapl" level="error" />
     <logger name="okhttp3" level="error" />
+    <logger name="reactor.core.publisher.Operators" level="error" />
 </configuration>

@@ -44,6 +44,15 @@
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-webflux</artifactId>
 		</dependency>
+		<!-- Dependency for the RSocket -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-rsocket</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-rsocket</artifactId>
+		</dependency>
 		<!-- Dependency for the Repeat and Back-Off -->
 		<dependency>
 			<groupId>io.projectreactor.addons</groupId>
@@ -91,5 +100,10 @@
 			<artifactId>jul-to-slf4j</artifactId>
 			<scope>test</scope>
 		</dependency>
-	</dependencies>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-oauth2-client</artifactId>
+            <version>5.7.6</version>
+        </dependency>
+    </dependencies>
 </project>
