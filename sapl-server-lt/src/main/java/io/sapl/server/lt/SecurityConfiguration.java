@@ -21,7 +21,6 @@ import io.sapl.server.lt.apikey.ApiKeyReactiveAuthenticationManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -37,7 +36,6 @@ import org.springframework.security.config.annotation.rsocket.RSocketSecurity;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.MapReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -53,11 +51,6 @@ import org.springframework.security.rsocket.authentication.AuthenticationPayload
 import org.springframework.security.rsocket.core.PayloadSocketAcceptorInterceptor;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
-import reactor.core.publisher.Mono;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Function;
 
 
 @Slf4j
@@ -65,6 +58,7 @@ import java.util.function.Function;
 @EnableRSocketSecurity
 @EnableWebFluxSecurity
 @RequiredArgsConstructor
+@SuppressWarnings("UnnecessarilyFullyQualified")
 public class SecurityConfiguration {
 
 	private final SAPLServerLTProperties pdpProperties;

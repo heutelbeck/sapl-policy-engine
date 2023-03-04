@@ -17,10 +17,10 @@ package io.sapl.server.lt;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import lombok.Data;
-import java.util.Arrays;
 import java.util.List;
 
 @Data
+@SuppressWarnings("UnnecessarilyFullyQualified")
 @ConfigurationProperties(prefix = "io.sapl.server-lt")
 public class SAPLServerLTProperties {
 
