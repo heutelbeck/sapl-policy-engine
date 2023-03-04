@@ -40,8 +40,8 @@ import javax.net.ssl.SSLException;
 import java.time.Duration;
 import java.util.function.Function;
 
-@SuppressWarnings("unused")
 @Slf4j
+@SuppressWarnings({"unused", "UnnecessarilyFullyQualified"})
 public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 
 	private static final String DECIDE = "/api/pdp/decide";
@@ -170,7 +170,6 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 			if ( this.authenticationCustomizer == null ) {
 				this.authenticationCustomizer = applyFunction;
 			} else {
-				// TODO: replace by custom Exception Class
 				throw new RuntimeException(this.getClass().getName() + ": authentication method already defined");
 			}
 		}

@@ -39,7 +39,6 @@ import org.springframework.security.oauth2.client.endpoint.WebClientReactiveClie
 import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AccessTokenResponse;
-import org.springframework.security.rsocket.metadata.BearerTokenMetadata;
 import org.springframework.security.rsocket.metadata.SimpleAuthenticationEncoder;
 import org.springframework.security.rsocket.metadata.UsernamePasswordMetadata;
 import org.springframework.util.MimeType;
@@ -53,8 +52,8 @@ import javax.net.ssl.SSLException;
 import java.time.Duration;
 import java.util.function.Function;
 
-@SuppressWarnings("unused")
 @Slf4j
+@SuppressWarnings({"unused", "UnnecessarilyFullyQualified"})
 public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 
 	private static final String DECIDE = "decide";
