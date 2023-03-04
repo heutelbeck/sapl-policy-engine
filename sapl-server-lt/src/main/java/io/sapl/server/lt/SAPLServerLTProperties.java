@@ -17,7 +17,6 @@ package io.sapl.server.lt;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import lombok.Data;
-import java.util.Arrays;
 import java.util.List;
 
 @Data
