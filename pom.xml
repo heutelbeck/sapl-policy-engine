@@ -112,6 +112,7 @@
 		<module>sapl-spring-pdp-remote</module>
 		<module>sapl-spring-security</module>
 		<module>sapl-webflux-endpoint</module>
+		<module>sapl-rsocket-endpoint</module>
 		<module>sapl-documentation</module>
 		<module>sapl-server-lt</module>
 		<module>sapl-bom</module>

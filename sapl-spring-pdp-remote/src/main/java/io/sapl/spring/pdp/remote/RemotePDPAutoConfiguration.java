@@ -47,13 +47,23 @@ public class RemotePDPAutoConfiguration {
 					+ "This is only for testing local servers with self-signed certificates easily. "
 					+ "NEVER USE THIS A CONFIGURATION IN PRODUCTION!");
 			var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
-			return new RemotePolicyDecisionPoint(configuration.getHost(), configuration.getKey(),
-					configuration.getSecret(), sslContext);
+			return RemotePolicyDecisionPoint.builder()
+					.http()
+					.baseUrl(configuration.getHost())
+					.basicAuth(configuration.getKey(), configuration.getSecret())
+					.secure(sslContext)
+					.build();
 
 		}
 
-		return new RemotePolicyDecisionPoint(configuration.getHost(), configuration.getKey(),
-				configuration.getSecret());
+		var builder = RemotePolicyDecisionPoint.builder()
+				.http()
+				.baseUrl(configuration.getHost())
+				.basicAuth(configuration.getKey(), configuration.getSecret());
+		if ( configuration.getHost().startsWith("https://") ){
+			builder =  builder.secure();
+		}
+		return builder.build();
 	}
 
 }
