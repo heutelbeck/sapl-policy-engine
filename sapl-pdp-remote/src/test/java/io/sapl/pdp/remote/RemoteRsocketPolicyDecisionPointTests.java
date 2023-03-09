@@ -15,14 +15,11 @@
  */
 package io.sapl.pdp.remote;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import io.rsocket.SocketAcceptor;
-import io.rsocket.core.RSocketServer;
-import io.rsocket.frame.decoder.PayloadDecoder;
-import io.rsocket.transport.netty.server.CloseableChannel;
-import io.rsocket.transport.netty.server.TcpServerTransport;
-import lombok.extern.slf4j.Slf4j;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+
+import java.time.Duration;
+import java.util.UUID;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
@@ -39,17 +36,18 @@ import org.springframework.messaging.rsocket.RSocketStrategies;
 import org.springframework.messaging.rsocket.annotation.ConnectMapping;
 import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHandler;
 import org.springframework.stereotype.Controller;
+
+import io.rsocket.SocketAcceptor;
+import io.rsocket.core.RSocketServer;
+import io.rsocket.frame.decoder.PayloadDecoder;
+import io.rsocket.transport.netty.server.CloseableChannel;
+import io.rsocket.transport.netty.server.TcpServerTransport;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
-
-import java.time.Duration;
-import java.util.UUID;
-
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 class RemoteRsocketPolicyDecisionPointTests {
 
@@ -58,16 +56,7 @@ class RemoteRsocketPolicyDecisionPointTests {
 	private static AnnotationConfigApplicationContext context;
 
 	private static CloseableChannel server;
-	private static final String ID = "id1";
-
-	private static final String RESOURCE = "resource";
-
-	private static final String ACTION = "action";
-
-	private static final String SUBJECT = "subject";
-
-	private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
-
+	
 	private RemoteRsocketPolicyDecisionPoint pdp;
 
 	@BeforeAll
@@ -231,19 +220,19 @@ class RemoteRsocketPolicyDecisionPointTests {
 	static class ServerConfig {
 
 		@Bean
-		public ServerController serverController() {
+		ServerController serverController() {
 			return new ServerController();
 		}
 
 		@Bean
-		public RSocketMessageHandler serverMessageHandler(@Qualifier("testStrategies") RSocketStrategies strategies) {
+		RSocketMessageHandler serverMessageHandler(@Qualifier("testStrategies") RSocketStrategies strategies) {
 			RSocketMessageHandler handler = new RSocketMessageHandler();
 			handler.setRSocketStrategies(strategies);
 			return handler;
 		}
 
 		@Bean("testStrategies")
-		public RSocketStrategies rsocketStrategies() {
+		RSocketStrategies rsocketStrategies() {
 			return RSocketStrategies.create();
 		}
 	}
@@ -276,7 +265,6 @@ class RemoteRsocketPolicyDecisionPointTests {
 
  */
 
-	@Slf4j
 	static class ClientHandler {
 
 		@MessageMapping("client-status")

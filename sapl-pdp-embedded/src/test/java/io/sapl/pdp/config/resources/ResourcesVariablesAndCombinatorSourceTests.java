@@ -32,7 +32,7 @@ import org.mockito.MockedStatic;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.sapl.grammar.sapl.DenyUnlessPermitCombiningAlgorithm;
+import io.sapl.grammar.sapl.DenyOverridesCombiningAlgorithm;
 import io.sapl.grammar.sapl.PermitUnlessDenyCombiningAlgorithm;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.util.JarUtil;
@@ -75,7 +75,7 @@ class ResourcesVariablesAndCombinatorSourceTests {
 		var variables = configProvider.getVariables().blockFirst();
 		configProvider.dispose();
 
-		assertThat(algo.get() instanceof DenyUnlessPermitCombiningAlgorithm, is(true));
+		assertThat(algo.get() instanceof DenyOverridesCombiningAlgorithm, is(true));
 		assertThat(variables.get().size(), is(0));
 	}
 
@@ -121,7 +121,7 @@ class ResourcesVariablesAndCombinatorSourceTests {
 			var variables = configProvider.getVariables().blockFirst();
 			configProvider.dispose();
 
-			assertThat(algo.get() instanceof DenyUnlessPermitCombiningAlgorithm, is(true));
+			assertThat(algo.get() instanceof DenyOverridesCombiningAlgorithm, is(true));
 			assertThat(variables.get().size(), is(0));
 		}
 	}

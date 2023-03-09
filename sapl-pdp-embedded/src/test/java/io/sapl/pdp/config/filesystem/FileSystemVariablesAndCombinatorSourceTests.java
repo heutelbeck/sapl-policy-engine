@@ -24,7 +24,7 @@ import static org.mockito.Mockito.times;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
-import io.sapl.grammar.sapl.DenyUnlessPermitCombiningAlgorithm;
+import io.sapl.grammar.sapl.DenyOverridesCombiningAlgorithm;
 import io.sapl.grammar.sapl.PermitUnlessDenyCombiningAlgorithm;
 import io.sapl.util.filemonitoring.FileCreatedEvent;
 import io.sapl.util.filemonitoring.FileDeletedEvent;
@@ -51,7 +51,7 @@ class FileSystemVariablesAndCombinatorSourceTest {
 		var variables = configProvider.getVariables().blockFirst();
 		configProvider.dispose();
 
-		assertThat(algo.get() instanceof DenyUnlessPermitCombiningAlgorithm, is(true));
+		assertThat(algo.get() instanceof DenyOverridesCombiningAlgorithm, is(true));
 		assertThat(variables.get().size(), is(0));
 	}
 
@@ -79,7 +79,7 @@ class FileSystemVariablesAndCombinatorSourceTest {
 			configProvider.dispose();
 
 			mock.verify(() -> FileMonitorUtil.monitorDirectory(any(), any()), times(1));
-			assertThat(algo.get() instanceof DenyUnlessPermitCombiningAlgorithm, is(true));
+			assertThat(algo.get() instanceof DenyOverridesCombiningAlgorithm, is(true));
 		}
 	}
 
