@@ -86,7 +86,7 @@
 		<springboot.version>2.7.9</springboot.version>
 		<guice.version>5.1.0</guice.version>
 		<vaadin.internal.version>14.8.20</vaadin.internal.version>
-		<vaadin.version>23.3.6</vaadin.version>
+		<vaadin.version>24.0.0</vaadin.version>
 
 		<license-maven-plugin.version>4.1</license-maven-plugin.version>
 

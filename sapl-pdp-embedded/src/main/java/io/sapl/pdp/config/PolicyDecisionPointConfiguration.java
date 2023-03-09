@@ -26,15 +26,15 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Data structure holding the configured algorithm to be used to combine SAPL documents
- * and configured system variables to be available in all policies.
+ * Data structure holding the configured algorithm to be used to combine SAPL
+ * documents and configured system variables to be available in all policies.
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class PolicyDecisionPointConfiguration {
 
-	private PolicyDocumentCombiningAlgorithm algorithm = PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT;
+	private PolicyDocumentCombiningAlgorithm algorithm = PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES;
 
 	private Map<String, JsonNode> variables = new HashMap<>();
 
