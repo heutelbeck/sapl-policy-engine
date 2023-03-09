@@ -59,7 +59,7 @@ class SaplIntegrationTestFixtureTest {
 	@Test
 	void test_withoutPDPVariables() {
 		SaplIntegrationTestFixture fixture = new SaplIntegrationTestFixture("it/variables");
-		fixture.constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny().verify();
+		fixture.constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectNotApplicable().verify();
 	}
 
 	@Test
