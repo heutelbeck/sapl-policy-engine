@@ -15,12 +15,6 @@
  */
 package io.sapl.server.lt;
 
-import io.sapl.server.lt.apikey.ApiKeyAuthenticationConverter;
-import io.sapl.server.lt.apikey.ApiKeyPayloadExchangeAuthenticationConverter;
-import io.sapl.server.lt.apikey.ApiKeyReactiveAuthenticationManager;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -52,20 +46,23 @@ import org.springframework.security.rsocket.core.PayloadSocketAcceptorIntercepto
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
 
+import io.sapl.server.lt.apikey.ApiKeyAuthenticationConverter;
+import io.sapl.server.lt.apikey.ApiKeyPayloadExchangeAuthenticationConverter;
+import io.sapl.server.lt.apikey.ApiKeyReactiveAuthenticationManager;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Configuration
 @EnableRSocketSecurity
 @EnableWebFluxSecurity
 @RequiredArgsConstructor
-@SuppressWarnings("UnnecessarilyFullyQualified")
 public class SecurityConfiguration {
 
 	private final SAPLServerLTProperties pdpProperties;
-	@Autowired
-	private Environment env;
+	private final Environment            env;
 
-	String getJwtIssuerURI(){
+	String getJwtIssuerURI() {
 		return env.getProperty("spring.security.oauth2.resourceserver.jwt.issuer-uri");
 	}
 
@@ -76,30 +73,23 @@ public class SecurityConfiguration {
 
 		if (pdpProperties.isAllowNoAuth()) {
 			log.info("configuring NoAuth authentication");
-			http = http.authorizeExchange()
-					.pathMatchers("/**").permitAll()
-					.and();
+			http = http.authorizeExchange().pathMatchers("/**").permitAll().and();
 		} else {
 			// any other request requires the user to be authenticated
-			http = http
-					.authorizeExchange()
-					.anyExchange()
-					.authenticated()
-					.and();
+			http = http.authorizeExchange().anyExchange().authenticated().and();
 		}
 
 		if (pdpProperties.isAllowApiKeyAuth()) {
 			log.info("configuring ApiKey authentication");
 			var customAuthenticationWebFilter = new AuthenticationWebFilter(new ApiKeyReactiveAuthenticationManager());
-			customAuthenticationWebFilter.setServerAuthenticationConverter(new ApiKeyAuthenticationConverter(pdpProperties));
+			customAuthenticationWebFilter
+					.setServerAuthenticationConverter(new ApiKeyAuthenticationConverter(pdpProperties));
 			http = http.addFilterAt(customAuthenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION);
 		}
 
 		if (pdpProperties.isAllowBasicAuth()) {
 			log.info("configuring BasicAuth authentication");
-			http = http
-					.httpBasic()
-					.and();
+			http = http.httpBasic().and();
 		}
 
 		if (pdpProperties.isAllowOauth2Auth()) {
@@ -107,9 +97,7 @@ public class SecurityConfiguration {
 			http = http.oauth2ResourceServer(ServerHttpSecurity.OAuth2ResourceServerSpec::jwt);
 		}
 
-		return http
-				.formLogin().disable()
-				.build();
+		return http.formLogin().disable().build();
 	}
 
 	@Bean
@@ -132,8 +120,9 @@ public class SecurityConfiguration {
 	}
 
 	/**
-	 * The RSocketMessageHandler Bean (rsocketMessageHandler), activates parts of the Spring Security component
-	 * model that let us inject the authenticated user into our handler methods (those annotated with @MessageMapping).
+	 * The RSocketMessageHandler Bean (rsocketMessageHandler), activates parts of
+	 * the Spring Security component model that let us inject the authenticated user
+	 * into our handler methods (those annotated with @MessageMapping).
 	 */
 	@Bean
 	RSocketMessageHandler rsocketMessageHandler(RSocketStrategies strategies) {
@@ -144,12 +133,12 @@ public class SecurityConfiguration {
 	}
 
 	/**
-	 * Decodes JSON Web Token (JWT) according to the configuration that was initialized by the
-	 * OpenID Provider specified in the jwtIssuerURI.
+	 * Decodes JSON Web Token (JWT) according to the configuration that was
+	 * initialized by the OpenID Provider specified in the jwtIssuerURI.
 	 */
 	@Bean
 	ReactiveJwtDecoder jwtDecoder() {
-		if (pdpProperties.isAllowOauth2Auth()){
+		if (pdpProperties.isAllowOauth2Auth()) {
 			return ReactiveJwtDecoders.fromIssuerLocation(getJwtIssuerURI());
 		} else {
 			return null;
@@ -157,8 +146,9 @@ public class SecurityConfiguration {
 	}
 
 	/**
-	 * The PayloadSocketAcceptorInterceptor Bean (rsocketPayloadAuthorization) configures the Security Filter Chain for
-	 * Rsocket Payloads. Supported Authentication Methods are: NoAuth, BasicAuth, Oauth2 (jwt) and ApiKey.
+	 * The PayloadSocketAcceptorInterceptor Bean (rsocketPayloadAuthorization)
+	 * configures the Security Filter Chain for Rsocket Payloads. Supported
+	 * Authentication Methods are: NoAuth, BasicAuth, Oauth2 (jwt) and ApiKey.
 	 */
 	@Bean
 	PayloadSocketAcceptorInterceptor rsocketPayloadAuthorization(RSocketSecurity security) {
@@ -166,46 +156,54 @@ public class SecurityConfiguration {
 			if (pdpProperties.isAllowNoAuth()) {
 				spec.anyExchange().permitAll();
 			} else {
-				spec.anyRequest().authenticated()
-						.anyExchange().permitAll();
+				spec.anyRequest().authenticated().anyExchange().permitAll();
 			}
 		});
 
 		// Configure Basic and Oauth Authentication
 		UserDetailsRepositoryReactiveAuthenticationManager simpleManager = null;
-		if ( pdpProperties.isAllowBasicAuth() ){
+		if (pdpProperties.isAllowBasicAuth()) {
 			simpleManager = new UserDetailsRepositoryReactiveAuthenticationManager(this.userDetailsServiceLocal());
 			simpleManager.setPasswordEncoder(this.passwordEncoder());
 		}
 
 		JwtReactiveAuthenticationManager jwtManager = null;
-		if ( pdpProperties.isAllowOauth2Auth()){
+		if (pdpProperties.isAllowOauth2Auth()) {
 			jwtManager = new JwtReactiveAuthenticationManager(
-					ReactiveJwtDecoders.fromIssuerLocation(getJwtIssuerURI())
-			);
+					ReactiveJwtDecoders.fromIssuerLocation(getJwtIssuerURI()));
 		}
 
 		UserDetailsRepositoryReactiveAuthenticationManager finalSimpleManager = simpleManager;
-		JwtReactiveAuthenticationManager finalJwtManager = jwtManager;
-		AuthenticationPayloadInterceptor auth = new AuthenticationPayloadInterceptor(
-			a -> {
-				if ( finalSimpleManager != null && a instanceof UsernamePasswordAuthenticationToken ){
-					return finalSimpleManager.authenticate(a);
-				} else if ( finalJwtManager != null && a instanceof BearerTokenAuthenticationToken ) {
-					return finalJwtManager.authenticate(a);
-				} else {
-					throw new IllegalArgumentException("Unsupported Authentication Type " + a.getClass().getSimpleName());
-				}
-			});
+		JwtReactiveAuthenticationManager                   finalJwtManager    = jwtManager;
+		AuthenticationPayloadInterceptor                   auth               = new AuthenticationPayloadInterceptor(
+				a -> {
+																							if (finalSimpleManager != null
+																									&& a instanceof UsernamePasswordAuthenticationToken) {
+																								return finalSimpleManager
+																										.authenticate(
+																												a);
+																							} else if (finalJwtManager != null
+																									&& a instanceof BearerTokenAuthenticationToken) {
+																								return finalJwtManager
+																										.authenticate(
+																												a);
+																							} else {
+																								throw new IllegalArgumentException(
+																										"Unsupported Authentication Type "
+																												+ a.getClass()
+																														.getSimpleName());
+																							}
+																						});
 		auth.setAuthenticationConverter(new AuthenticationPayloadExchangeConverter());
 		auth.setOrder(PayloadInterceptorOrder.AUTHENTICATION.getOrder());
 		security.addPayloadInterceptor(auth);
 
 		// Confgure ApiKey authentication
 		if (pdpProperties.isAllowApiKeyAuth()) {
-			ReactiveAuthenticationManager manager = new ApiKeyReactiveAuthenticationManager();
+			ReactiveAuthenticationManager    manager           = new ApiKeyReactiveAuthenticationManager();
 			AuthenticationPayloadInterceptor apikeyInterceptor = new AuthenticationPayloadInterceptor(manager);
-			apikeyInterceptor.setAuthenticationConverter(new ApiKeyPayloadExchangeAuthenticationConverter(pdpProperties));
+			apikeyInterceptor
+					.setAuthenticationConverter(new ApiKeyPayloadExchangeAuthenticationConverter(pdpProperties));
 			apikeyInterceptor.setOrder(PayloadInterceptorOrder.AUTHENTICATION.getOrder());
 			security.addPayloadInterceptor(apikeyInterceptor);
 		}

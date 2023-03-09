@@ -20,7 +20,6 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-@SuppressWarnings("UnnecessarilyFullyQualified")
 @ConfigurationProperties(prefix = "io.sapl.server-lt")
 public class SAPLServerLTProperties {
 

@@ -380,7 +380,6 @@ public class ConstraintEnforcementService {
 
 	@Data
 	@AllArgsConstructor
-	@SuppressWarnings("unused")
 	private static class HandlerWithPriotiry<T> implements Comparable<HandlerWithPriotiry<T>> {
 		T   handler;
 		int priority;
