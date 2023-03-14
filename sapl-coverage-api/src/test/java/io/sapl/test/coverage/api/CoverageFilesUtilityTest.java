@@ -49,18 +49,24 @@ class CoverageFilesUtilityTest {
 
 	@Test
 	void test_DirectoryNotEmptyException() throws IOException {
-		var reader = CoverageAPIFactory.constructCoverageHitReader(baseDir);
-		Path pathToErrorFile = baseDir.resolve("hits").resolve("_policySetHits.txt").resolve("test.txt");
-		Files.createDirectories(pathToErrorFile.getParent());
-		Files.createFile(pathToErrorFile);
+		var reader          = CoverageAPIFactory.constructCoverageHitReader(baseDir);
+		var pathToErrorFile = baseDir.resolve("hits").resolve("_policySetHits.txt").resolve("test.txt");
+		var parent          = pathToErrorFile.getParent();
+		if (parent != null) {
+			Files.createDirectories(parent);
+			Files.createFile(pathToErrorFile);
+		}
 		assertDoesNotThrow(reader::cleanCoverageHitFiles);
 	}
 
 	@Test
 	void test_FileAlreadyExists() throws IOException {
 		Path pathToErrorFile = baseDir.resolve("hits").resolve("_policySetHits.txt");
-		Files.createDirectories(pathToErrorFile.getParent());
-		Files.createFile(pathToErrorFile);
+		var  parent          = pathToErrorFile.getParent();
+		if (parent != null) {
+			Files.createDirectories(parent);
+			Files.createFile(pathToErrorFile);
+		}
 		CoverageHitRecorder recorder = new CoverageHitAPIFile(baseDir);
 		assertDoesNotThrow(recorder::createCoverageHitFiles);
 	}
@@ -68,7 +74,7 @@ class CoverageFilesUtilityTest {
 	@Test
 	void test_NoParent() throws IOException {
 		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
-			mockedFiles.when(() -> Files.exists(Mockito.any())).thenReturn(false);
+			mockedFiles.when(() -> Files.exists(Mockito.any())).thenReturn(Boolean.FALSE);
 			Path path = Mockito.mock(Path.class);
 			when(path.getParent()).thenReturn(null);
 			when(path.resolve(Mockito.anyString())).thenReturn(path);
@@ -80,7 +86,7 @@ class CoverageFilesUtilityTest {
 
 	@Test
 	void test_ThrowsIOException_OnCreateCoverageFiles() {
-		Path path = Paths.get("target");
+		Path                path     = Paths.get("target");
 		CoverageHitRecorder recorder = new CoverageHitAPIFile(path);
 		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
 			mockedFiles.when(() -> Files.createDirectories(Mockito.any())).thenThrow(IOException.class);
@@ -106,7 +112,7 @@ class CoverageFilesUtilityTest {
 		when(path.resolve(Mockito.anyString())).thenReturn(path).thenReturn(null).thenReturn(path).thenReturn(null)
 				.thenReturn(path).thenReturn(null);
 		var recorder = new CoverageHitAPIFile(path);
-		var hit = new PolicySetHit("");
+		var hit      = new PolicySetHit("");
 		assertThrows(NullPointerException.class, () -> recorder.recordPolicySetHit(hit));
 	}
 
