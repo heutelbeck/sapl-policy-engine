@@ -27,10 +27,10 @@ import org.springframework.test.context.ContextConfiguration;
  */
 @SpringBootTest
 @ContextConfiguration(classes = SAPLIdeSpringTestConfiguration.class)
-public class ImportCompletionTests extends CompletionTests {
+class ImportCompletionTests extends CompletionTests {
 
 	@Test
-	public void testCompletion_AtTheBeginningImportStatement_ReturnsLibraries() {
+	void testCompletion_AtTheBeginningImportStatement_ReturnsLibraries() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "import ";
 			it.setModel(policy);
@@ -43,7 +43,7 @@ public class ImportCompletionTests extends CompletionTests {
 	}
 
 	@Test
-	public void testCompletion_WithPartialLibrary_ReturnsLibrary() {
+	void testCompletion_WithPartialLibrary_ReturnsLibrary() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "import ti";
 			it.setModel(policy);
@@ -56,7 +56,7 @@ public class ImportCompletionTests extends CompletionTests {
 	}
 
 	@Test
-	public void testCompletion_WithFullLibrary_ReturnsFunction() {
+	void testCompletion_WithFullLibrary_ReturnsFunction() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "import time.";
 			it.setModel(policy);
@@ -71,7 +71,7 @@ public class ImportCompletionTests extends CompletionTests {
 	}
 
 	@Test
-	public void testCompletion_WithFullLibraryAndPartialFunction_ReturnsFunction() {
+	void testCompletion_WithFullLibraryAndPartialFunction_ReturnsFunction() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "import time.n";
 			it.setModel(policy);
@@ -84,7 +84,7 @@ public class ImportCompletionTests extends CompletionTests {
 	}
 
 	@Test
-	public void testCompletion_WithFullLibraryAndPartialFunctionAndNewLinesInBetween_ReturnsFunction() {
+	void testCompletion_WithFullLibraryAndPartialFunctionAndNewLinesInBetween_ReturnsFunction() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "import\ntime.\nn";
 			it.setModel(policy);
@@ -98,7 +98,7 @@ public class ImportCompletionTests extends CompletionTests {
 	}
 
 	@Test
-	public void testCompletion_WithPrecedingTextAndFullLibraryAndPartialFunction_ReturnsFunction() {
+	void testCompletion_WithPrecedingTextAndFullLibraryAndPartialFunction_ReturnsFunction() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "import time.yesterday\nimport time.n";
 			String cursor = "import time.n";
@@ -113,7 +113,7 @@ public class ImportCompletionTests extends CompletionTests {
 	}
 
 	@Test
-	public void testCompletion_WithPrecedingAndSucceedingAndFullLibraryAndPartialFunction_ReturnsFunction() {
+	void testCompletion_WithPrecedingAndSucceedingAndFullLibraryAndPartialFunction_ReturnsFunction() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "import time.yesterday\nimport time.n policy \"test policy\" deny";
 			String cursor = "import time.n";

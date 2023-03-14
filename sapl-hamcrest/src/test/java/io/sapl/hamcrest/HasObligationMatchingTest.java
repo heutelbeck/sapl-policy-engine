@@ -38,12 +38,12 @@ import io.sapl.api.pdp.Decision;
 class HasObligationMatchingTest {
 
 	@Test
-	public void test() {
-		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
-		var matcher = Matchers.hasObligationMatching(pred);
+	void test() {
+		Predicate<JsonNode> pred    = (JsonNode jsonNode) -> jsonNode.has("foo");
+		var                 matcher = Matchers.hasObligationMatching(pred);
 
-		ObjectMapper mapper = new ObjectMapper();
-		ObjectNode obligation = mapper.createObjectNode();
+		ObjectMapper mapper     = new ObjectMapper();
+		ObjectNode   obligation = mapper.createObjectNode();
 		obligation.put("foo", "bar");
 		ArrayNode obligations = mapper.createArrayNode();
 		obligations.add(obligation);
@@ -54,9 +54,9 @@ class HasObligationMatchingTest {
 	}
 
 	@Test
-	public void testConvenienceMatchierObligationString() {
-		ObjectMapper mapper = new ObjectMapper();
-		ObjectNode obligation = mapper.createObjectNode();
+	void testConvenienceMatchierObligationString() {
+		ObjectMapper mapper     = new ObjectMapper();
+		ObjectNode   obligation = mapper.createObjectNode();
 		obligation.put("foo", "bar");
 		ArrayNode obligationArray = mapper.createArrayNode();
 		obligationArray.add(obligation);
@@ -68,12 +68,12 @@ class HasObligationMatchingTest {
 	}
 
 	@Test
-	public void test_neg() {
-		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("xxx");
-		var matcher = Matchers.hasObligationMatching(pred);
+	void test_neg() {
+		Predicate<JsonNode> pred    = (JsonNode jsonNode) -> jsonNode.has("xxx");
+		var                 matcher = Matchers.hasObligationMatching(pred);
 
-		ObjectMapper mapper = new ObjectMapper();
-		ObjectNode obligation = mapper.createObjectNode();
+		ObjectMapper mapper     = new ObjectMapper();
+		ObjectNode   obligation = mapper.createObjectNode();
 		obligation.put("foo", "bar");
 		ArrayNode obligations = mapper.createArrayNode();
 		obligations.add(obligation);
@@ -84,29 +84,29 @@ class HasObligationMatchingTest {
 	}
 
 	@Test
-	public void test_nullDecision() {
-		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
-		var matcher = Matchers.hasObligationMatching(pred);
+	void test_nullDecision() {
+		Predicate<JsonNode> pred    = (JsonNode jsonNode) -> jsonNode.has("foo");
+		var                 matcher = Matchers.hasObligationMatching(pred);
 		assertThat(null, not(is(matcher)));
 	}
 
 	@Test
-	public void test_nullPredicate() {
+	void test_nullPredicate() {
 		assertThrows(NullPointerException.class, () -> Matchers.hasObligationMatching(null));
 	}
 
 	@Test
-	public void test_emptyObligation() {
-		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
-		var matcher = Matchers.hasObligationMatching(pred);
+	void test_emptyObligation() {
+		Predicate<JsonNode> pred    = (JsonNode jsonNode) -> jsonNode.has("foo");
+		var                 matcher = Matchers.hasObligationMatching(pred);
 		assertThat(new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.empty()),
 				not(is(matcher)));
 	}
 
 	@Test
 	void testDescriptionForMatcher() {
-		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
-		var sut = Matchers.hasObligationMatching(pred);
+		Predicate<JsonNode>     pred        = (JsonNode jsonNode) -> jsonNode.has("foo");
+		var                     sut         = Matchers.hasObligationMatching(pred);
 		final StringDescription description = new StringDescription();
 		sut.describeTo(description);
 		assertThat(description.toString(), is("the decision has an obligation matching the predicate"));

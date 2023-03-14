@@ -20,10 +20,10 @@ import java.util.List;
 import org.eclipse.xtext.testing.TestCompletionConfiguration;
 import org.junit.jupiter.api.Test;
 
-public class PolicyProposalCompletionTests extends CompletionTests {
+class PolicyProposalCompletionTests extends CompletionTests {
 
 	@Test
-	public void testCompletion_PolicyNameIsEmptyString() {
+	void testCompletion_PolicyNameIsEmptyString() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "policy ";
 			it.setModel(policy);

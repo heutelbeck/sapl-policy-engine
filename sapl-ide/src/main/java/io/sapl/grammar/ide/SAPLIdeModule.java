@@ -20,7 +20,7 @@ import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
 import io.sapl.grammar.ide.contentassist.SAPLContentProposalProvider;
 
 /**
- * Use this class to register ide components.
+ * Use this class to register IDE components.
  */
 public class SAPLIdeModule extends AbstractSAPLIdeModule {
 

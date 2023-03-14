@@ -26,10 +26,10 @@ import java.util.Map;
 import org.hamcrest.collection.IsMapContaining;
 import org.junit.jupiter.api.Test;
 
-public class TestFunctionContextTests {
+class TestFunctionContextTests {
 
 	@Test
-	public void isProvidedFunctionThrowsUnsupportedOperationException() {
+	void isProvidedFunctionThrowsUnsupportedOperationException() {
 		var context = new TestFunctionContext();
 		assertThrows(UnsupportedOperationException.class, () -> {
 			context.isProvidedFunction("");
@@ -37,28 +37,28 @@ public class TestFunctionContextTests {
 	}
 
 	@Test
-	public void providedFunctionsOfLibraryReturnsFunctionsForKnownPip() {
-		var context = new TestFunctionContext();
+	void providedFunctionsOfLibraryReturnsFunctionsForKnownPip() {
+		var                context   = new TestFunctionContext();
 		Collection<String> functions = context.providedFunctionsOfLibrary("filter");
 		assertThat(functions, hasItems("blacken", "remove", "replace"));
 	}
 
 	@Test
-	public void providedFunctionsOfLibraryReturnsNoFunctionsForUnknownPip() {
-		var context = new TestFunctionContext();
+	void providedFunctionsOfLibraryReturnsNoFunctionsForUnknownPip() {
+		var      context   = new TestFunctionContext();
 		Object[] functions = context.providedFunctionsOfLibrary("foo").toArray();
 		assertEquals(0, functions.length);
 	}
 
 	@Test
-	public void getAvailableLibrariesReturnsClockPip() {
-		var context = new TestFunctionContext();
+	void getAvailableLibrariesReturnsClockPip() {
+		var                context   = new TestFunctionContext();
 		Collection<String> libraries = context.getAvailableLibraries();
 		assertThat(libraries, hasItems("filter", "standard", "time"));
 	}
 
 	@Test
-	public void getDocumentationThrowsUnsupportedOperationException() {
+	void getDocumentationThrowsUnsupportedOperationException() {
 		var context = new TestFunctionContext();
 		assertThrows(UnsupportedOperationException.class, () -> {
 			context.getDocumentation();
@@ -66,7 +66,7 @@ public class TestFunctionContextTests {
 	}
 
 	@Test
-	public void evaluateThrowsUnsupportedOperationException() {
+	void evaluateThrowsUnsupportedOperationException() {
 		var context = new TestFunctionContext();
 		assertThrows(UnsupportedOperationException.class, () -> {
 			context.evaluate(null, null, null, null);
@@ -74,24 +74,24 @@ public class TestFunctionContextTests {
 	}
 
 	@Test
-	public void getCodeTemplatesReturnsAllKnownFunctions() {
-		var context = new TestFunctionContext();
+	void getCodeTemplatesReturnsAllKnownFunctions() {
+		var                context   = new TestFunctionContext();
 		Collection<String> functions = context.getCodeTemplates();
 		assertThat(functions, hasItems("filter.blacken", "filter.remove", "filter.replace", "standard.length",
 				"standard.numberToString", "time.after", "time.before", "time.between"));
 	}
 
 	@Test
-	public void getAllFullyQualifiedFunctionsReturnsAllKnownFunctions() {
-		var context = new TestFunctionContext();
+	void getAllFullyQualifiedFunctionsReturnsAllKnownFunctions() {
+		var                context   = new TestFunctionContext();
 		Collection<String> functions = context.getAllFullyQualifiedFunctions();
 		assertThat(functions, hasItems("filter.blacken", "filter.remove", "filter.replace", "standard.length",
 				"standard.numberToString", "time.after", "time.before", "time.between"));
 	}
-	
+
 	@Test
-	public void getDocumentedCodeTemplatesReturnsAllKnownDocumetedCodeTemplates() {
-		var context = new TestFunctionContext();
+	void getDocumentedCodeTemplatesReturnsAllKnownDocumetedCodeTemplates() {
+		var                 context   = new TestFunctionContext();
 		Map<String, String> functions = context.getDocumentedCodeTemplates();
 		assertThat(functions, IsMapContaining.hasEntry("filter.blacken", "documentation"));
 	}

@@ -37,12 +37,12 @@ import io.sapl.api.pdp.Decision;
 class HasAdviceMatchingTest {
 
 	@Test
-	public void test() {
-		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
-		var matcher = Matchers.hasAdviceMatching(pred);
+	void test() {
+		Predicate<JsonNode> pred    = (JsonNode jsonNode) -> jsonNode.has("foo");
+		var                 matcher = Matchers.hasAdviceMatching(pred);
 
 		ObjectMapper mapper = new ObjectMapper();
-		ObjectNode advice = mapper.createObjectNode();
+		ObjectNode   advice = mapper.createObjectNode();
 		advice.put("foo", "bar");
 		ArrayNode adviceArray = mapper.createArrayNode();
 		adviceArray.add(advice);
@@ -53,12 +53,12 @@ class HasAdviceMatchingTest {
 	}
 
 	@Test
-	public void test_neg() {
-		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("xxx");
-		var matcher = Matchers.hasAdviceMatching(pred);
+	void test_neg() {
+		Predicate<JsonNode> pred    = (JsonNode jsonNode) -> jsonNode.has("xxx");
+		var                 matcher = Matchers.hasAdviceMatching(pred);
 
 		ObjectMapper mapper = new ObjectMapper();
-		ObjectNode advice = mapper.createObjectNode();
+		ObjectNode   advice = mapper.createObjectNode();
 		advice.put("foo", "bar");
 		ArrayNode adviceArray = mapper.createArrayNode();
 		adviceArray.add(advice);
@@ -69,29 +69,29 @@ class HasAdviceMatchingTest {
 	}
 
 	@Test
-	public void test_nullDecision() {
-		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
-		var matcher = Matchers.hasAdviceMatching(pred);
+	void test_nullDecision() {
+		Predicate<JsonNode> pred    = (JsonNode jsonNode) -> jsonNode.has("foo");
+		var                 matcher = Matchers.hasAdviceMatching(pred);
 		assertThat(null, not(is(matcher)));
 	}
 
 	@Test
-	public void test_nullPredicate() {
+	void test_nullPredicate() {
 		assertThrows(NullPointerException.class, () -> Matchers.hasAdviceMatching(null));
 	}
 
 	@Test
-	public void test_emptyAdvice() {
-		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
-		var matcher = Matchers.hasAdviceMatching(pred);
+	void test_emptyAdvice() {
+		Predicate<JsonNode> pred    = (JsonNode jsonNode) -> jsonNode.has("foo");
+		var                 matcher = Matchers.hasAdviceMatching(pred);
 		assertThat(new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.empty()),
 				not(is(matcher)));
 	}
 
 	@Test
 	void testDescriptionForMatcher() {
-		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
-		var sut = Matchers.hasAdviceMatching(pred);
+		Predicate<JsonNode>     pred        = (JsonNode jsonNode) -> jsonNode.has("foo");
+		var                     sut         = Matchers.hasAdviceMatching(pred);
 		final StringDescription description = new StringDescription();
 		sut.describeTo(description);
 		assertThat(description.toString(), is("the decision has an advice matching the predicate"));

@@ -27,10 +27,10 @@ import org.springframework.test.context.ContextConfiguration;
  */
 @SpringBootTest
 @ContextConfiguration(classes = SAPLIdeSpringTestConfiguration.class)
-public class VariableCompletionTests extends CompletionTests {
+ class VariableCompletionTests extends CompletionTests {
 
 	@Test
-	public void testCompletion_SuggestVariableInBody() {
+	void testCompletion_SuggestVariableInBody() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "policy \"test\" permit where var foo = 5; var bar = 6; ";
 			it.setModel(policy);
@@ -44,7 +44,7 @@ public class VariableCompletionTests extends CompletionTests {
 	}
 
 	@Test
-	public void testCompletion_SuggestVariableInBodyAfterSubject() {
+	void testCompletion_SuggestVariableInBodyAfterSubject() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "policy \"test\" permit where var foo = 5; var bar = 6; subject.attribute == ";
 			it.setModel(policy);
@@ -57,7 +57,7 @@ public class VariableCompletionTests extends CompletionTests {
 	}
 
 	@Test
-	public void testCompletion_SuggestVariableInBody_NotSuggestOutOfScopeVariable() {
+	void testCompletion_SuggestVariableInBody_NotSuggestOutOfScopeVariable() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "policy \"test\" permit where var foo = 5; var bar = 6;";
 			String cursor = "policy \"test\" permit where var foo = 5; ";
@@ -74,7 +74,7 @@ public class VariableCompletionTests extends CompletionTests {
 	}
 
 	@Test
-	public void testCompletion_SuggestVariableInBodyAfterSubject_NotSuggestOutOfScopeVariable() {
+	void testCompletion_SuggestVariableInBodyAfterSubject_NotSuggestOutOfScopeVariable() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "policy \"test\" permit where var foo = 5; subject.attribute == abc; subject.attribute == var bar = 6;";
 			String cursor = "policy \"test\" permit where var foo = 5; subject.attribute == abc; subject.attribute == ";
@@ -90,7 +90,7 @@ public class VariableCompletionTests extends CompletionTests {
 	}
 
 	@Test
-	public void testCompletion_SuggestFunctionsFromSimpleImport() {
+	void testCompletion_SuggestFunctionsFromSimpleImport() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "import time.before\npolicy \"test policy\" deny where var foo = 5;";
 			String cursor = "policy \"test policy\" deny where var foo = 5;";
@@ -105,7 +105,7 @@ public class VariableCompletionTests extends CompletionTests {
 	}
 
 	@Test
-	public void testCompletion_SuggestFunctionsFromWildcardImport() {
+	void testCompletion_SuggestFunctionsFromWildcardImport() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "import time.*\npolicy \"test policy\" deny where var foo = 5;";
 			String cursor = "policy \"test policy\" deny where var foo = 5;";
@@ -120,7 +120,7 @@ public class VariableCompletionTests extends CompletionTests {
 	}
 
 	@Test
-	public void testCompletion_SuggestFunctionsFromLibraryImport() {
+	void testCompletion_SuggestFunctionsFromLibraryImport() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "import time as abc\npolicy \"test policy\" deny where var foo = 5;";
 			String cursor = "policy \"test policy\" deny where var foo = 5;";
@@ -135,7 +135,7 @@ public class VariableCompletionTests extends CompletionTests {
 	}
 
 	@Test
-	public void testCompletion_SuggestRenameedFunctionFromLibraryImport() {
+	void testCompletion_SuggestRenameedFunctionFromLibraryImport() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "import time.before as abc\npolicy \"test policy\" deny where var foo = 5;";
 			String cursor = "policy \"test policy\" deny where var foo = 5;";

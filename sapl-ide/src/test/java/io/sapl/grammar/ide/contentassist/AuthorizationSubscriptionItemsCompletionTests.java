@@ -28,10 +28,10 @@ import org.springframework.test.context.ContextConfiguration;
  */
 @SpringBootTest
 @ContextConfiguration(classes = SAPLIdeSpringTestConfiguration.class)
-public class AuthorizationSubscriptionItemsCompletionTests extends CompletionTests {
+class AuthorizationSubscriptionItemsCompletionTests extends CompletionTests {
 
 	@Test
-	public void testCompletion_AuthorizationSubscriptionItemsInTargetExpression() {
+	void testCompletion_AuthorizationSubscriptionItemsInTargetExpression() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "policy \"test\" permit ";
 			it.setModel(policy);
@@ -45,7 +45,7 @@ public class AuthorizationSubscriptionItemsCompletionTests extends CompletionTes
 	}
 
 	@Test
-	public void testCompletion_AuthorizationSubscriptionItemsInBody() {
+	void testCompletion_AuthorizationSubscriptionItemsInBody() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "policy \"test\" permit where ";
 			it.setModel(policy);
@@ -58,7 +58,7 @@ public class AuthorizationSubscriptionItemsCompletionTests extends CompletionTes
 	}
 
 	@Test
-	public void testCompletion_NoTechnicalProposalsAfterAuthorizationSubscriptionItem() {
+	void testCompletion_NoTechnicalProposalsAfterAuthorizationSubscriptionItem() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "policy \"test\" permit where subject.";
 			it.setModel(policy);
@@ -71,7 +71,7 @@ public class AuthorizationSubscriptionItemsCompletionTests extends CompletionTes
 	}
 
 	@Test
-	public void testCompletion_SuggestAttributesForEnvironmentalAttribute() {
+	void testCompletion_SuggestAttributesForEnvironmentalAttribute() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "policy \"test\" permit where <";
 			it.setModel(policy);
@@ -84,7 +84,7 @@ public class AuthorizationSubscriptionItemsCompletionTests extends CompletionTes
 	}
 
 	@Test
-	public void testCompletion_SuggestAttributesForHeadEnvironmentalAttribute() {
+	void testCompletion_SuggestAttributesForHeadEnvironmentalAttribute() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "policy \"test\" permit where |<";
 			it.setModel(policy);

@@ -24,63 +24,65 @@ import org.junit.jupiter.api.Test;
 
 import io.sapl.grammar.sapl.impl.SAPLImpl;
 
-public class TreeNavigatorHelperTests {
+class TreeNavigatorHelperTests {
 
 	public class TestEObject extends MinimalEObjectImpl.Container {
 
 	}
 
 	@Test
-	public void test_goToFirstParent_objectIsNull_throwsIllegalArgumentException() {
+	void test_goToFirstParent_objectIsNull_throwsIllegalArgumentException() {
 		assertThrows(IllegalArgumentException.class, () -> {
 			TreeNavigationHelper.goToFirstParent(null, Object.class);
 		});
 	}
 
 	@Test
-	public void test_goToFirstParent_classTypeIsNull_throwsIllegalArgumentException() {
+	void test_goToFirstParent_classTypeIsNull_throwsIllegalArgumentException() {
+		var testObject = new TestEObject();
 		assertThrows(IllegalArgumentException.class, () -> {
-			TreeNavigationHelper.goToFirstParent(new TestEObject(), null);
+			TreeNavigationHelper.goToFirstParent(testObject, null);
 		});
 	}
 
 	@Test
-	public void test_goToFirstParent_objectIsWrongClassAndHasNoEContainer_returnsNull() {
+	void test_goToFirstParent_objectIsWrongClassAndHasNoEContainer_returnsNull() {
 		Object result = TreeNavigationHelper.goToFirstParent(new TestEObject(), SAPLImpl.class);
 		assertNull(result);
 	}
 
 	@Test
-	public void test_goToFirstParent_objectHasRequestedClass_returnsObject() {
-		var expectedObject = new TestEObject();
-		Object result = TreeNavigationHelper.goToFirstParent(expectedObject, TestEObject.class);
+	void test_goToFirstParent_objectHasRequestedClass_returnsObject() {
+		var    expectedObject = new TestEObject();
+		Object result         = TreeNavigationHelper.goToFirstParent(expectedObject, TestEObject.class);
 		assertSame(expectedObject, result);
 	}
 
 	@Test
-	public void test_goToLastParent_objectIsNull_throwsIllegalArgumentException() {
+	void test_goToLastParent_objectIsNull_throwsIllegalArgumentException() {
 		assertThrows(IllegalArgumentException.class, () -> {
 			TreeNavigationHelper.goToLastParent(null, Object.class);
 		});
 	}
 
 	@Test
-	public void test_goToLastParent_classTypeIsNull_throwsIllegalArgumentException() {
+	void test_goToLastParent_classTypeIsNull_throwsIllegalArgumentException() {
+		var testObject = new TestEObject();
 		assertThrows(IllegalArgumentException.class, () -> {
-			TreeNavigationHelper.goToLastParent(new TestEObject(), null);
+			TreeNavigationHelper.goToLastParent(testObject, null);
 		});
 	}
 
 	@Test
-	public void test_goToLastParent_objectIsWrongClassAndHasNoEContainer_returnsNull() {
+	void test_goToLastParent_objectIsWrongClassAndHasNoEContainer_returnsNull() {
 		Object result = TreeNavigationHelper.goToLastParent(new TestEObject(), SAPLImpl.class);
 		assertNull(result);
 	}
 
 	@Test
-	public void test_goToLastParent_objectHasRequestedClass_returnsObject() {
-		var expectedObject = new TestEObject();
-		Object result = TreeNavigationHelper.goToLastParent(expectedObject, TestEObject.class);
+	void test_goToLastParent_objectHasRequestedClass_returnsObject() {
+		var    expectedObject = new TestEObject();
+		Object result         = TreeNavigationHelper.goToLastParent(expectedObject, TestEObject.class);
 		assertSame(expectedObject, result);
 	}
 

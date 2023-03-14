@@ -48,16 +48,16 @@ public class IsResource extends TypeSafeDiagnosingMatcher<AuthorizationDecision>
 
 	@Override
 	protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
-		if (decision.getResource().isEmpty()) {
+		var resource = decision.getResource();
+		if (resource.isEmpty()) {
 			mismatchDescription.appendText("decision didn't contain a resource");
 			return false;
 		}
 
-		var json = decision.getResource().get();
+		var json = resource.get();
 		if (jsonMatcher.isEmpty() || jsonMatcher.get().matches(json)) {
 			return true;
-		}
-		else {
+		} else {
 			mismatchDescription.appendText("was resource that ");
 			jsonMatcher.get().describeMismatch(json, mismatchDescription);
 			return false;

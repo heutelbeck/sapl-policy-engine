@@ -27,10 +27,10 @@ import java.util.Map;
 import org.hamcrest.collection.IsMapContaining;
 import org.junit.jupiter.api.Test;
 
-public class TestAttributeContextTests {
+class TestAttributeContextTests {
 
 	@Test
-	public void isProvidedFunctionThrowsUnsupportedOperationException() {
+	void isProvidedFunctionThrowsUnsupportedOperationException() {
 		var context = new TestAttributeContext();
 		assertThrows(UnsupportedOperationException.class, () -> {
 			context.isProvidedFunction("");
@@ -38,28 +38,28 @@ public class TestAttributeContextTests {
 	}
 
 	@Test
-	public void providedFunctionsOfLibraryReturnsFunctionsForKnownPip() {
-		var context = new TestAttributeContext();
+	void providedFunctionsOfLibraryReturnsFunctionsForKnownPip() {
+		var                context   = new TestAttributeContext();
 		Collection<String> functions = context.providedFunctionsOfLibrary("clock");
 		assertThat(functions, hasItems("now", "millis", "ticker"));
 	}
 
 	@Test
-	public void providedFunctionsOfLibraryReturnsNoFunctionsForUnknownPip() {
-		var context = new TestAttributeContext();
+	void providedFunctionsOfLibraryReturnsNoFunctionsForUnknownPip() {
+		var      context   = new TestAttributeContext();
 		Object[] functions = context.providedFunctionsOfLibrary("foo").toArray();
 		assertEquals(0, functions.length);
 	}
 
 	@Test
-	public void getAvailableLibrariesReturnsClockPip() {
-		var context = new TestAttributeContext();
+	void getAvailableLibrariesReturnsClockPip() {
+		var                context   = new TestAttributeContext();
 		Collection<String> libraries = context.getAvailableLibraries();
 		assertThat(libraries, hasItem("clock"));
 	}
 
 	@Test
-	public void getDocumentationThrowsUnsupportedOperationException() {
+	void getDocumentationThrowsUnsupportedOperationException() {
 		var context = new TestAttributeContext();
 		assertThrows(UnsupportedOperationException.class, () -> {
 			context.getDocumentation();
@@ -67,7 +67,7 @@ public class TestAttributeContextTests {
 	}
 
 	@Test
-	public void evaluateAttributeThrowsUnsupportedOperationException() {
+	void evaluateAttributeThrowsUnsupportedOperationException() {
 		var context = new TestAttributeContext();
 		assertThrows(UnsupportedOperationException.class, () -> {
 			context.evaluateAttribute(null, null, null, null);
@@ -75,7 +75,7 @@ public class TestAttributeContextTests {
 	}
 
 	@Test
-	public void evaluateEnvironmentAttributeThrowsUnsupportedOperationException() {
+	void evaluateEnvironmentAttributeThrowsUnsupportedOperationException() {
 		var context = new TestAttributeContext();
 		assertThrows(UnsupportedOperationException.class, () -> {
 			context.evaluateEnvironmentAttribute(null, null, null);
@@ -83,22 +83,22 @@ public class TestAttributeContextTests {
 	}
 
 	@Test
-	public void getCodeTemplatesWithPrefixReturnsAllKnownFunctions() {
-		var context = new TestAttributeContext();
+	void getCodeTemplatesWithPrefixReturnsAllKnownFunctions() {
+		var                context   = new TestAttributeContext();
 		Collection<String> functions = context.getEnvironmentAttributeCodeTemplates();
 		assertThat(functions, hasItems("clock.now", "clock.millis", "clock.ticker"));
 	}
 
 	@Test
-	public void getAllFullyQualifiedFunctionsReturnsAllKnownFunctions() {
-		var context = new TestAttributeContext();
+	void getAllFullyQualifiedFunctionsReturnsAllKnownFunctions() {
+		var                context   = new TestAttributeContext();
 		Collection<String> functions = context.getAllFullyQualifiedFunctions();
 		assertThat(functions, hasItems("clock.now", "clock.millis", "clock.ticker"));
 	}
-	
+
 	@Test
-	public void getDocumentedAttributeCodeTemplatesReturnsAllKnownDocumentedCodeTemplates() {
-		var context = new TestAttributeContext();
+	void getDocumentedAttributeCodeTemplatesReturnsAllKnownDocumentedCodeTemplates() {
+		var                 context   = new TestAttributeContext();
 		Map<String, String> functions = context.getDocumentedAttributeCodeTemplates();
 		assertThat(functions, IsMapContaining.hasEntry("clock.now", "documentation"));
 	}

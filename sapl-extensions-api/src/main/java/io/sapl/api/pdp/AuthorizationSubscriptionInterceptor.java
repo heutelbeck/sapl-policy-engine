@@ -14,5 +14,4 @@ public interface AuthorizationSubscriptionInterceptor
 	default int compareTo(AuthorizationSubscriptionInterceptor other) {
 		return getPriority().compareTo(other.getPriority());
 	}
-
 }

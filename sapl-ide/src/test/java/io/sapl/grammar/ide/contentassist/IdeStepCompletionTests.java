@@ -21,10 +21,10 @@ import java.util.List;
 import org.eclipse.xtext.testing.TestCompletionConfiguration;
 import org.junit.jupiter.api.Test;
 
-public class IdeStepCompletionTests extends CompletionTests {
+class IdeStepCompletionTests extends CompletionTests {
 
 	@Test
-	public void testCompletion_EmptyAttributeStepReturnsClockFunctions() {
+	void testCompletion_EmptyAttributeStepReturnsClockFunctions() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "policy \"test\" permit where subject.<";
 			it.setModel(policy);
@@ -37,7 +37,7 @@ public class IdeStepCompletionTests extends CompletionTests {
 	}
 
 	@Test
-	public void testCompletion_AttributeStepWithPrefixReturnsMatchingClockFunction() {
+	void testCompletion_AttributeStepWithPrefixReturnsMatchingClockFunction() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "policy \"test\" permit where subject.<clock.n";
 			it.setModel(policy);
@@ -50,7 +50,7 @@ public class IdeStepCompletionTests extends CompletionTests {
 	}
 
 	@Test
-	public void testCompletion_AttributeStepWithNoMatchingPrefixReturnsNoMatchingFunction() {
+	void testCompletion_AttributeStepWithNoMatchingPrefixReturnsNoMatchingFunction() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "policy \"test\" permit where subject.<foo";
 			it.setModel(policy);
@@ -63,7 +63,7 @@ public class IdeStepCompletionTests extends CompletionTests {
 	}
 
 	@Test
-	public void testCompletion_HeadEmptyAttributeStepReturnsClockFunctions() {
+	void testCompletion_HeadEmptyAttributeStepReturnsClockFunctions() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "policy \"test\" permit where subject.|<";
 			it.setModel(policy);
@@ -76,7 +76,7 @@ public class IdeStepCompletionTests extends CompletionTests {
 	}
 
 	@Test
-	public void testCompletion_HeadAttributeStepWithPrefixReturnsMatchingClockFunction() {
+	void testCompletion_HeadAttributeStepWithPrefixReturnsMatchingClockFunction() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "policy \"test\" permit where subject.|<clock.n";
 			it.setModel(policy);
@@ -89,7 +89,7 @@ public class IdeStepCompletionTests extends CompletionTests {
 	}
 
 	@Test
-	public void testCompletion_HeadAttributeStepWithNoMatchingPrefixReturnsNoMatchingFunction() {
+	void testCompletion_HeadAttributeStepWithNoMatchingPrefixReturnsNoMatchingFunction() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "policy \"test\" permit where subject.|<";
 			it.setModel(policy);

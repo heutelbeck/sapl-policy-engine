@@ -37,7 +37,7 @@ import io.sapl.api.pdp.Decision;
 class IsResourceMatchingTest {
 
 	@Test
-	public void test() {
+	void test() {
 		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
 		var sut = isResourceMatching(pred);
 
@@ -50,7 +50,7 @@ class IsResourceMatchingTest {
 	}
 
 	@Test
-	public void test_neg() {
+	void test_neg() {
 		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("xxx");
 		var sut = isResourceMatching(pred);
 
@@ -63,14 +63,14 @@ class IsResourceMatchingTest {
 	}
 
 	@Test
-	public void test_nullDecision() {
+	void test_nullDecision() {
 		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
 		var sut = isResourceMatching(pred);
 		assertThat(null, not(is(sut)));
 	}
 
 	@Test
-	public void test_resourceEmpty() {
+	void test_resourceEmpty() {
 		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
 		var sut = isResourceMatching(pred);
 		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), null, null);
@@ -78,7 +78,7 @@ class IsResourceMatchingTest {
 	}
 
 	@Test
-	public void test_nullPredicate() {
+	void test_nullPredicate() {
 		assertThrows(NullPointerException.class, () -> isResourceMatching(null));
 	}
 

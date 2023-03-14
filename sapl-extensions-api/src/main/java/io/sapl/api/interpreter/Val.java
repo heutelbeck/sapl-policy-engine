@@ -122,13 +122,6 @@ public class Val implements Traced {
 		this.trace        = trace;
 	}
 
-	private Val(JsonNode value, String errorMessage, Trace trace) {
-		this.value        = value;
-		this.errorMessage = errorMessage;
-		this.secret       = false;
-		this.trace        = trace;
-	}
-
 	private Val(JsonNode value) {
 		this.value        = value;
 		this.errorMessage = null;
@@ -397,7 +390,7 @@ public class Val implements Traced {
 		if (isError()) {
 			return "ERROR[" + errorMessage + "]";
 		}
-		return value != null ? value.toString() : "undefined";
+		return value != null ? value.toString() : UNDEFINED_TEXT;
 	}
 
 	public Optional<JsonNode> optional() {

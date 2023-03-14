@@ -54,22 +54,24 @@ class AuthorizationDecisionTest {
 
 	@Test
 	void decisionConstructorNull() {
-		assertThrows(NullPointerException.class, () -> new AuthorizationDecision(null).withAdvice(null));
+		assertThrows(NullPointerException.class, () -> new AuthorizationDecision(null));
 	}
 
 	@Test
 	void withAdviceNull() {
-		assertThrows(NullPointerException.class, () -> new AuthorizationDecision().withAdvice(null));
+		var decision = new AuthorizationDecision();
+		assertThrows(NullPointerException.class, () -> decision.withAdvice(null));
 	}
 
 	@Test
 	void withDecisionNull() {
-		assertThrows(NullPointerException.class, () -> new AuthorizationDecision().withDecision(null));
+		var decision = new AuthorizationDecision();
+		assertThrows(NullPointerException.class, () -> decision.withDecision(null));
 	}
 
 	@Test
 	void withAdviceEmpty() {
-		var advice = JSON.arrayNode();
+		var advice   = JSON.arrayNode();
 		var decision = new AuthorizationDecision().withAdvice(advice);
 		assertThat(decision.getAdvice(), is(emptyOptional()));
 	}
@@ -85,13 +87,14 @@ class AuthorizationDecisionTest {
 	@Test
 	void withObligationsEmpty() {
 		var obligations = JSON.arrayNode();
-		var decision = new AuthorizationDecision().withObligations(obligations);
+		var decision    = new AuthorizationDecision().withObligations(obligations);
 		assertThat(decision.getObligations(), is(emptyOptional()));
 	}
 
 	@Test
 	void withObligationsNull() {
-		assertThrows(NullPointerException.class, () -> new AuthorizationDecision().withObligations(null));
+		var decision = new AuthorizationDecision();
+		assertThrows(NullPointerException.class, () -> decision.withObligations(null));
 	}
 
 	@Test
@@ -104,7 +107,8 @@ class AuthorizationDecisionTest {
 
 	@Test
 	void withResourceNull() {
-		assertThrows(NullPointerException.class, () -> new AuthorizationDecision().withResource(null));
+		var decision = new AuthorizationDecision();
+		assertThrows(NullPointerException.class, () -> decision.withResource(null));
 	}
 
 	@Test
