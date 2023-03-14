@@ -15,7 +15,7 @@
  */
 package io.sapl.test.coverage.api.model;
 
-import io.sapl.test.coverage.api.CoverageHitConfig;
+import io.sapl.test.coverage.api.CoverageHitConstants;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -53,13 +53,12 @@ public class PolicyConditionHit {
 
 	@Override
 	public String toString() {
-		String stringBuilder = policySetId + CoverageHitConfig.DELIMITER + policyId + CoverageHitConfig.DELIMITER
-				+ conditionStatementId + CoverageHitConfig.DELIMITER + conditionResult;
-		return stringBuilder;
+		return policySetId + CoverageHitConstants.DELIMITER + policyId + CoverageHitConstants.DELIMITER
+				+ conditionStatementId + CoverageHitConstants.DELIMITER + conditionResult;
 	}
 
 	public static PolicyConditionHit fromString(String policyConditionToStringResult) {
-		String[] split = policyConditionToStringResult.split(CoverageHitConfig.DELIMITER_MATCH_REGEX);
+		String[] split = policyConditionToStringResult.split(CoverageHitConstants.DELIMITER_MATCH_REGEX);
 		return new PolicyConditionHit(split[0], split[1], Integer.parseInt(split[2]), Boolean.parseBoolean(split[3]));
 	}
 

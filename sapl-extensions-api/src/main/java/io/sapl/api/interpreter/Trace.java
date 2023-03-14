@@ -1,5 +1,6 @@
 package io.sapl.api.interpreter;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -70,5 +71,9 @@ public class Trace {
 			jsonTrace.set("arguments", args);
 		}
 		return jsonTrace;
+	}
+
+	public List<ExpressionArgument> getArguments() {
+		return Collections.unmodifiableList(arguments);
 	}
 }

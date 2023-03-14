@@ -35,31 +35,29 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
 
-	public final Path FILE_PATH_POLICY_SET_HITS;
-
-	public final Path FILE_PATH_POLICY_HITS;
-
-	public final Path FILE_PATH_POLICY_CONDITION_HITS;
+	private final Path filePathPolicySetHits;
+	private final Path filePathPolicyHits;
+	private final Path filePathPolicyConditionHits;
 
 	CoverageHitAPIFile(Path basedir) {
-		FILE_PATH_POLICY_SET_HITS = basedir.resolve("hits").resolve("_policySetHits.txt");
-		FILE_PATH_POLICY_HITS = basedir.resolve("hits").resolve("_policyHits.txt");
-		FILE_PATH_POLICY_CONDITION_HITS = basedir.resolve("hits").resolve("_policyConditionHits.txt");
+		filePathPolicySetHits       = basedir.resolve("hits").resolve("_policySetHits.txt");
+		filePathPolicyHits          = basedir.resolve("hits").resolve("_policyHits.txt");
+		filePathPolicyConditionHits = basedir.resolve("hits").resolve("_policyConditionHits.txt");
 	}
 
 	@Override
 	public void recordPolicySetHit(PolicySetHit hit) {
-		addPossibleHit(FILE_PATH_POLICY_SET_HITS, hit.toString());
+		addPossibleHit(filePathPolicySetHits, hit.toString());
 	}
 
 	@Override
 	public void recordPolicyHit(PolicyHit hit) {
-		addPossibleHit(FILE_PATH_POLICY_HITS, hit.toString());
+		addPossibleHit(filePathPolicyHits, hit.toString());
 	}
 
 	@Override
 	public void recordPolicyConditionHit(PolicyConditionHit hit) {
-		addPossibleHit(FILE_PATH_POLICY_CONDITION_HITS, hit.toString());
+		addPossibleHit(filePathPolicyConditionHits, hit.toString());
 
 	}
 
@@ -72,8 +70,7 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
 		try {
 			if (!doesLineExistsInFile(filePath, lineToAdd))
 				appendLineToFile(filePath, lineToAdd);
-		}
-		catch (IOException e) {
+		} catch (IOException e) {
 			log.error("Error writing File " + filePath, e);
 		}
 	}
@@ -92,26 +89,24 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
 
 	@Override
 	public List<PolicySetHit> readPolicySetHits() {
-		return readFileLines(FILE_PATH_POLICY_SET_HITS).stream().map(PolicySetHit::fromString)
-				.collect(Collectors.toList());
+		return readFileLines(filePathPolicySetHits).stream().map(PolicySetHit::fromString).collect(Collectors.toList());
 	}
 
 	@Override
 	public List<PolicyHit> readPolicyHits() {
-		return readFileLines(FILE_PATH_POLICY_HITS).stream().map(PolicyHit::fromString).collect(Collectors.toList());
+		return readFileLines(filePathPolicyHits).stream().map(PolicyHit::fromString).collect(Collectors.toList());
 	}
 
 	@Override
 	public List<PolicyConditionHit> readPolicyConditionHits() {
-		return readFileLines(FILE_PATH_POLICY_CONDITION_HITS).stream().map(PolicyConditionHit::fromString)
+		return readFileLines(filePathPolicyConditionHits).stream().map(PolicyConditionHit::fromString)
 				.collect(Collectors.toList());
 	}
 
 	private List<String> readFileLines(Path filePathPolicySetHits) {
 		try {
 			return Files.readAllLines(filePathPolicySetHits);
-		}
-		catch (IOException e) {
+		} catch (IOException e) {
 			log.error(String.format("Error reading File %s. Is the policy coverage recording disabled?",
 					filePathPolicySetHits.toAbsolutePath()), e);
 		}
@@ -120,25 +115,24 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
 
 	@Override
 	public void cleanCoverageHitFiles() {
-		cleanCoverageHitFile(FILE_PATH_POLICY_SET_HITS);
-		cleanCoverageHitFile(FILE_PATH_POLICY_HITS);
-		cleanCoverageHitFile(FILE_PATH_POLICY_CONDITION_HITS);
+		cleanCoverageHitFile(filePathPolicySetHits);
+		cleanCoverageHitFile(filePathPolicyHits);
+		cleanCoverageHitFile(filePathPolicyConditionHits);
 	}
 
 	private void cleanCoverageHitFile(Path filePath) {
 		try {
 			Files.deleteIfExists(filePath);
-		}
-		catch (IOException e) {
+		} catch (IOException e) {
 			log.error("Error deleting File " + filePath, e);
 		}
 	}
 
 	@Override
 	public void createCoverageHitFiles() {
-		createCoverageHitFile(FILE_PATH_POLICY_SET_HITS);
-		createCoverageHitFile(FILE_PATH_POLICY_HITS);
-		createCoverageHitFile(FILE_PATH_POLICY_CONDITION_HITS);
+		createCoverageHitFile(filePathPolicySetHits);
+		createCoverageHitFile(filePathPolicyHits);
+		createCoverageHitFile(filePathPolicyConditionHits);
 	}
 
 	private void createCoverageHitFile(Path filePath) {
@@ -150,8 +144,7 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
 					Files.createDirectories(parent);
 				Files.createFile(filePath);
 			}
-		}
-		catch (IOException e) {
+		} catch (IOException e) {
 			log.error("Error creating File " + filePath, e);
 		}
 	}

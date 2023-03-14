@@ -29,7 +29,7 @@ import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import io.sapl.test.coverage.api.model.PolicyHit;
 import io.sapl.test.coverage.api.model.PolicySetHit;
 
-public class CoverageHitRecorderTest {
+class CoverageHitRecorderTest {
 
 	private Path basedir;
 
@@ -86,43 +86,43 @@ public class CoverageHitRecorderTest {
 
 		// assert
 		List<String> resultPolicySetHits = Files.readAllLines(FILE_PATH_POLICY_SET_HITS);
-		Assertions.assertThat(resultPolicySetHits.size()).isEqualTo(2);
+		Assertions.assertThat(resultPolicySetHits).hasSize(2);
 		Assertions.assertThat(resultPolicySetHits.get(0)).isEqualTo("set1");
 		Assertions.assertThat(resultPolicySetHits.get(1)).isEqualTo("set2");
 
 		List<String> resultPolicyHits = Files.readAllLines(FILE_PATH_POLICY_HITS);
-		Assertions.assertThat(resultPolicyHits.size()).isEqualTo(4);
-		Assertions.assertThat(resultPolicyHits.get(0)).isEqualTo("set1" + CoverageHitConfig.DELIMITER + "policy11");
-		Assertions.assertThat(resultPolicyHits.get(1)).isEqualTo("set1" + CoverageHitConfig.DELIMITER + "policy12");
-		Assertions.assertThat(resultPolicyHits.get(2)).isEqualTo("set2" + CoverageHitConfig.DELIMITER + "policy21");
-		Assertions.assertThat(resultPolicyHits.get(3)).isEqualTo("set2" + CoverageHitConfig.DELIMITER + "policy22");
+		Assertions.assertThat(resultPolicyHits).hasSize(4);
+		Assertions.assertThat(resultPolicyHits.get(0)).isEqualTo("set1" + CoverageHitConstants.DELIMITER + "policy11");
+		Assertions.assertThat(resultPolicyHits.get(1)).isEqualTo("set1" + CoverageHitConstants.DELIMITER + "policy12");
+		Assertions.assertThat(resultPolicyHits.get(2)).isEqualTo("set2" + CoverageHitConstants.DELIMITER + "policy21");
+		Assertions.assertThat(resultPolicyHits.get(3)).isEqualTo("set2" + CoverageHitConstants.DELIMITER + "policy22");
 
 		List<String> resultPolicyConditionHits = Files.readAllLines(FILE_PATH_POLICY_CONDITION_HITS);
-		Assertions.assertThat(resultPolicyConditionHits.size()).isEqualTo(12);
-		Assertions.assertThat(resultPolicyConditionHits.get(0)).isEqualTo("set1" + CoverageHitConfig.DELIMITER
-				+ "policy11" + CoverageHitConfig.DELIMITER + "7" + CoverageHitConfig.DELIMITER + true);
-		Assertions.assertThat(resultPolicyConditionHits.get(1)).isEqualTo("set1" + CoverageHitConfig.DELIMITER
-				+ "policy11" + CoverageHitConfig.DELIMITER + "8" + CoverageHitConfig.DELIMITER + true);
-		Assertions.assertThat(resultPolicyConditionHits.get(2)).isEqualTo("set1" + CoverageHitConfig.DELIMITER
-				+ "policy11" + CoverageHitConfig.DELIMITER + "9" + CoverageHitConfig.DELIMITER + true);
-		Assertions.assertThat(resultPolicyConditionHits.get(3)).isEqualTo("set1" + CoverageHitConfig.DELIMITER
-				+ "policy12" + CoverageHitConfig.DELIMITER + "7" + CoverageHitConfig.DELIMITER + true);
-		Assertions.assertThat(resultPolicyConditionHits.get(4)).isEqualTo("set1" + CoverageHitConfig.DELIMITER
-				+ "policy12" + CoverageHitConfig.DELIMITER + "8" + CoverageHitConfig.DELIMITER + true);
-		Assertions.assertThat(resultPolicyConditionHits.get(5)).isEqualTo("set1" + CoverageHitConfig.DELIMITER
-				+ "policy12" + CoverageHitConfig.DELIMITER + "9" + CoverageHitConfig.DELIMITER + true);
-		Assertions.assertThat(resultPolicyConditionHits.get(6)).isEqualTo("set2" + CoverageHitConfig.DELIMITER
-				+ "policy21" + CoverageHitConfig.DELIMITER + "7" + CoverageHitConfig.DELIMITER + true);
-		Assertions.assertThat(resultPolicyConditionHits.get(7)).isEqualTo("set2" + CoverageHitConfig.DELIMITER
-				+ "policy21" + CoverageHitConfig.DELIMITER + "8" + CoverageHitConfig.DELIMITER + true);
-		Assertions.assertThat(resultPolicyConditionHits.get(8)).isEqualTo("set2" + CoverageHitConfig.DELIMITER
-				+ "policy21" + CoverageHitConfig.DELIMITER + "9" + CoverageHitConfig.DELIMITER + true);
-		Assertions.assertThat(resultPolicyConditionHits.get(9)).isEqualTo("set2" + CoverageHitConfig.DELIMITER
-				+ "policy22" + CoverageHitConfig.DELIMITER + "7" + CoverageHitConfig.DELIMITER + true);
-		Assertions.assertThat(resultPolicyConditionHits.get(10)).isEqualTo("set2" + CoverageHitConfig.DELIMITER
-				+ "policy22" + CoverageHitConfig.DELIMITER + "8" + CoverageHitConfig.DELIMITER + true);
-		Assertions.assertThat(resultPolicyConditionHits.get(11)).isEqualTo("set2" + CoverageHitConfig.DELIMITER
-				+ "policy22" + CoverageHitConfig.DELIMITER + "9" + CoverageHitConfig.DELIMITER + true);
+		Assertions.assertThat(resultPolicyConditionHits).hasSize(12);
+		Assertions.assertThat(resultPolicyConditionHits.get(0)).isEqualTo("set1" + CoverageHitConstants.DELIMITER
+				+ "policy11" + CoverageHitConstants.DELIMITER + "7" + CoverageHitConstants.DELIMITER + true);
+		Assertions.assertThat(resultPolicyConditionHits.get(1)).isEqualTo("set1" + CoverageHitConstants.DELIMITER
+				+ "policy11" + CoverageHitConstants.DELIMITER + "8" + CoverageHitConstants.DELIMITER + true);
+		Assertions.assertThat(resultPolicyConditionHits.get(2)).isEqualTo("set1" + CoverageHitConstants.DELIMITER
+				+ "policy11" + CoverageHitConstants.DELIMITER + "9" + CoverageHitConstants.DELIMITER + true);
+		Assertions.assertThat(resultPolicyConditionHits.get(3)).isEqualTo("set1" + CoverageHitConstants.DELIMITER
+				+ "policy12" + CoverageHitConstants.DELIMITER + "7" + CoverageHitConstants.DELIMITER + true);
+		Assertions.assertThat(resultPolicyConditionHits.get(4)).isEqualTo("set1" + CoverageHitConstants.DELIMITER
+				+ "policy12" + CoverageHitConstants.DELIMITER + "8" + CoverageHitConstants.DELIMITER + true);
+		Assertions.assertThat(resultPolicyConditionHits.get(5)).isEqualTo("set1" + CoverageHitConstants.DELIMITER
+				+ "policy12" + CoverageHitConstants.DELIMITER + "9" + CoverageHitConstants.DELIMITER + true);
+		Assertions.assertThat(resultPolicyConditionHits.get(6)).isEqualTo("set2" + CoverageHitConstants.DELIMITER
+				+ "policy21" + CoverageHitConstants.DELIMITER + "7" + CoverageHitConstants.DELIMITER + true);
+		Assertions.assertThat(resultPolicyConditionHits.get(7)).isEqualTo("set2" + CoverageHitConstants.DELIMITER
+				+ "policy21" + CoverageHitConstants.DELIMITER + "8" + CoverageHitConstants.DELIMITER + true);
+		Assertions.assertThat(resultPolicyConditionHits.get(8)).isEqualTo("set2" + CoverageHitConstants.DELIMITER
+				+ "policy21" + CoverageHitConstants.DELIMITER + "9" + CoverageHitConstants.DELIMITER + true);
+		Assertions.assertThat(resultPolicyConditionHits.get(9)).isEqualTo("set2" + CoverageHitConstants.DELIMITER
+				+ "policy22" + CoverageHitConstants.DELIMITER + "7" + CoverageHitConstants.DELIMITER + true);
+		Assertions.assertThat(resultPolicyConditionHits.get(10)).isEqualTo("set2" + CoverageHitConstants.DELIMITER
+				+ "policy22" + CoverageHitConstants.DELIMITER + "8" + CoverageHitConstants.DELIMITER + true);
+		Assertions.assertThat(resultPolicyConditionHits.get(11)).isEqualTo("set2" + CoverageHitConstants.DELIMITER
+				+ "policy22" + CoverageHitConstants.DELIMITER + "9" + CoverageHitConstants.DELIMITER + true);
 	}
 
 	@Test

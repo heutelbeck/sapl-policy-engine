@@ -15,6 +15,7 @@
  */
 package io.sapl.test.coverage.api;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -30,7 +31,7 @@ import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import io.sapl.test.coverage.api.model.PolicyHit;
 import io.sapl.test.coverage.api.model.PolicySetHit;
 
-public class CoverageHitReaderTest {
+class CoverageHitReaderTest {
 
 	private Path basedir;
 
@@ -39,7 +40,7 @@ public class CoverageHitReaderTest {
 	@BeforeEach
 	void setup() {
 		this.basedir = Paths.get("target").resolve("sapl-coverage");
-		this.reader = new CoverageHitAPIFile(this.basedir);
+		this.reader  = new CoverageHitAPIFile(this.basedir);
 		this.reader.cleanCoverageHitFiles();
 	}
 
@@ -51,23 +52,26 @@ public class CoverageHitReaderTest {
 	@Test
 	void testCoverageReading_PolicySets() throws Exception {
 		// arrange
-		Path FILE_PATH_POLICY_SET_HITS = this.basedir.resolve("hits").resolve("_policySetHits.txt");
-		if (!Files.exists(FILE_PATH_POLICY_SET_HITS)) {
-			if (FILE_PATH_POLICY_SET_HITS.getParent() != null) {
-				Files.createDirectories(FILE_PATH_POLICY_SET_HITS.getParent());
+		var path = this.basedir.resolve("hits").resolve("_policySetHits.txt");
+		if (!Files.exists(path)) {
+			var parent = path.getParent();
+			if (parent != null) {
+				Files.createDirectories(parent);
 			}
-			Files.createFile(FILE_PATH_POLICY_SET_HITS);
+			Files.createFile(path);
 		}
-		Files.write(FILE_PATH_POLICY_SET_HITS,
-				(new PolicySetHit("set1").toString() + System.lineSeparator()).getBytes(), StandardOpenOption.APPEND);
-		Files.write(FILE_PATH_POLICY_SET_HITS,
-				(new PolicySetHit("set2").toString() + System.lineSeparator()).getBytes(), StandardOpenOption.APPEND);
+		Files.write(path,
+				(new PolicySetHit("set1").toString() + System.lineSeparator()).getBytes(StandardCharsets.UTF_8),
+				StandardOpenOption.APPEND);
+		Files.write(path,
+				(new PolicySetHit("set2").toString() + System.lineSeparator()).getBytes(StandardCharsets.UTF_8),
+				StandardOpenOption.APPEND);
 
 		// act
 		List<PolicySetHit> resultPolicySetHits = this.reader.readPolicySetHits();
 
 		// assert
-		Assertions.assertThat(resultPolicySetHits.size()).isEqualTo(2);
+		Assertions.assertThat(resultPolicySetHits).hasSize(2);
 		Assertions.assertThat(resultPolicySetHits.get(0).getPolicySetId()).isEqualTo("set1");
 		Assertions.assertThat(resultPolicySetHits.get(1).getPolicySetId()).isEqualTo("set2");
 	}
@@ -75,25 +79,24 @@ public class CoverageHitReaderTest {
 	@Test
 	void testCoverageReading_Policys() throws Exception {
 		// arrange
-		Path FILE_PATH_POLICY_HITS = this.basedir.resolve("hits").resolve("_policyHits.txt");
-		if (!Files.exists(FILE_PATH_POLICY_HITS)) {
-			if (FILE_PATH_POLICY_HITS.getParent() != null) {
-				Files.createDirectories(FILE_PATH_POLICY_HITS.getParent());
+		var path = this.basedir.resolve("hits").resolve("_policyHits.txt");
+		if (!Files.exists(path)) {
+			var parent = path.getParent();
+			if (parent != null) {
+				Files.createDirectories(parent);
 			}
-			Files.createFile(FILE_PATH_POLICY_HITS);
+			Files.createFile(path);
 		}
-		Files.write(FILE_PATH_POLICY_HITS,
-				(new PolicyHit("set1", "policy 1").toString() + System.lineSeparator()).getBytes(),
-				StandardOpenOption.APPEND);
-		Files.write(FILE_PATH_POLICY_HITS,
-				(new PolicyHit("set2", "policy 1").toString() + System.lineSeparator()).getBytes(),
-				StandardOpenOption.APPEND);
+		Files.write(path, (new PolicyHit("set1", "policy 1").toString() + System.lineSeparator())
+				.getBytes(StandardCharsets.UTF_8), StandardOpenOption.APPEND);
+		Files.write(path, (new PolicyHit("set2", "policy 1").toString() + System.lineSeparator())
+				.getBytes(StandardCharsets.UTF_8), StandardOpenOption.APPEND);
 
 		// act
 		List<PolicyHit> resultPolicyHits = this.reader.readPolicyHits();
 
 		// assert
-		Assertions.assertThat(resultPolicyHits.size()).isEqualTo(2);
+		Assertions.assertThat(resultPolicyHits).hasSize(2);
 		Assertions.assertThat(resultPolicyHits.get(0).getPolicyId()).isEqualTo("policy 1");
 		Assertions.assertThat(resultPolicyHits.get(0).getPolicySetId()).isEqualTo("set1");
 		Assertions.assertThat(resultPolicyHits.get(1).getPolicyId()).isEqualTo("policy 1");
@@ -101,7 +104,7 @@ public class CoverageHitReaderTest {
 	}
 
 	@Test
-	public void testCoverageReading_PolicyConditions() throws Exception {
+	void testCoverageReading_PolicyConditions() throws Exception {
 		// arrange
 		Path FILE_PATH_POLICY_CONDITION_HITS = this.basedir.resolve("hits").resolve("_policyConditionHits.txt");
 		if (!Files.exists(FILE_PATH_POLICY_CONDITION_HITS)) {
@@ -121,27 +124,27 @@ public class CoverageHitReaderTest {
 		List<PolicyConditionHit> resultPolicyConditionHits = this.reader.readPolicyConditionHits();
 
 		// assert
-		Assertions.assertThat(resultPolicyConditionHits.size()).isEqualTo(2);
-		Assertions.assertThat(resultPolicyConditionHits.get(0).getConditionStatementId()).isEqualTo(0);
-		Assertions.assertThat(resultPolicyConditionHits.get(0).isConditionResult()).isEqualTo(true);
+		Assertions.assertThat(resultPolicyConditionHits).hasSize(2);
+		Assertions.assertThat(resultPolicyConditionHits.get(0).getConditionStatementId()).isZero();
+		Assertions.assertThat(resultPolicyConditionHits.get(0).isConditionResult()).isTrue();
 		Assertions.assertThat(resultPolicyConditionHits.get(0).getPolicyId()).isEqualTo("policy 1");
 		Assertions.assertThat(resultPolicyConditionHits.get(0).getPolicySetId()).isEqualTo("set1");
 		;
-		Assertions.assertThat(resultPolicyConditionHits.get(1).getConditionStatementId()).isEqualTo(0);
-		Assertions.assertThat(resultPolicyConditionHits.get(1).isConditionResult()).isEqualTo(true);
+		Assertions.assertThat(resultPolicyConditionHits.get(1).getConditionStatementId()).isZero();
+		Assertions.assertThat(resultPolicyConditionHits.get(1).isConditionResult()).isTrue();
 		Assertions.assertThat(resultPolicyConditionHits.get(1).getPolicyId()).isEqualTo("policy 1");
 		Assertions.assertThat(resultPolicyConditionHits.get(1).getPolicySetId()).isEqualTo("set2");
 	}
 
 	@Test
-	public void testCoverageReading_PolicySets_FileNotExist() throws Exception {
+	void testCoverageReading_PolicySets_FileNotExist() throws Exception {
 		// arrange
 
 		// act
 		List<PolicySetHit> resultPolicySetHits = this.reader.readPolicySetHits();
 
 		// assert
-		Assertions.assertThat(resultPolicySetHits.size()).isEqualTo(0);
+		Assertions.assertThat(resultPolicySetHits).isEmpty();
 	}
 
 }

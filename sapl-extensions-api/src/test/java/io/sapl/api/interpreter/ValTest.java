@@ -119,7 +119,8 @@ class ValTest {
 
 	@Test
 	void gerValueFromError() {
-		assertThrows(NoSuchElementException.class, () -> Val.error(ERROR_MESSAGE).get());
+		var value = Val.error(ERROR_MESSAGE);
+		assertThrows(NoSuchElementException.class, () -> value.get());
 	}
 
 	@Test
@@ -213,7 +214,7 @@ class ValTest {
 		assertAll(() -> assertFalse(Val.of(1).isFloatingPointNumber()),
 				() -> assertTrue(Val.of(1F).isFloatingPointNumber()),
 				() -> assertTrue(Val.of(1F).isFloatingPointNumber()),
-				() -> assertTrue(Val.of(new BigDecimal(2.2F)).isFloatingPointNumber()),
+				() -> assertTrue(Val.of(BigDecimal.valueOf(2.2D)).isFloatingPointNumber()),
 				() -> assertFalse(Val.of(BigInteger.valueOf(10L)).isFloatingPointNumber()),
 				() -> assertFalse(Val.error().isFloatingPointNumber()));
 	}
@@ -359,7 +360,7 @@ class ValTest {
 
 	@Test
 	void toBoolean() {
-		StepVerifier.create(Val.toBoolean(Val.TRUE)).expectNext(true).verifyComplete();
+		StepVerifier.create(Val.toBoolean(Val.TRUE)).expectNext(Boolean.TRUE).verifyComplete();
 		StepVerifier.create(Val.toBoolean(Val.UNDEFINED)).expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -399,14 +400,16 @@ class ValTest {
 
 	@Test
 	void getBoolean() {
-		assertAll(() -> assertEquals(true, Val.TRUE.getBoolean()),
-				() -> assertThrows(PolicyEvaluationException.class, () -> Val.of("").getBoolean()));
+		var value = Val.of("");
+		assertAll(() -> assertEquals(Boolean.TRUE, Val.TRUE.getBoolean()),
+				() -> assertThrows(PolicyEvaluationException.class, () -> value.getBoolean()));
 	}
 
 	@Test
 	void getLong() {
+		var value = Val.of("");
 		assertAll(() -> assertEquals(123L, Val.of(123L).getLong()),
-				() -> assertThrows(PolicyEvaluationException.class, () -> Val.of("").getLong()));
+				() -> assertThrows(PolicyEvaluationException.class, () -> value.getLong()));
 	}
 
 	@Test
@@ -463,32 +466,39 @@ class ValTest {
 
 	@Test
 	void decimalValue() {
+		var errorValue       = Val.error();
+		var emptyStringValue = Val.of("");
 		assertAll(() -> assertEquals(BigDecimal.valueOf(100D), Val.of(100D).decimalValue()),
-				() -> assertThrows(PolicyEvaluationException.class, () -> Val.error().decimalValue()),
+				() -> assertThrows(PolicyEvaluationException.class, () -> errorValue.decimalValue()),
 				() -> assertThrows(PolicyEvaluationException.class, Val.UNDEFINED::decimalValue),
-				() -> assertThrows(PolicyEvaluationException.class, () -> Val.of("").decimalValue()));
+				() -> assertThrows(PolicyEvaluationException.class, () -> emptyStringValue.decimalValue()));
 	}
 
 	@Test
 	void getObjectNode() {
+		var errorValue       = Val.error();
+		var emptyStringValue = Val.of("");
 		assertAll(() -> assertThat(Val.ofEmptyObject().getObjectNode(), is(jsonObject())),
-				() -> assertThrows(PolicyEvaluationException.class, () -> Val.error().getObjectNode()),
+				() -> assertThrows(PolicyEvaluationException.class, () -> errorValue.getObjectNode()),
 				() -> assertThrows(PolicyEvaluationException.class, Val.UNDEFINED::getObjectNode),
-				() -> assertThrows(PolicyEvaluationException.class, () -> Val.of("").getObjectNode()));
+				() -> assertThrows(PolicyEvaluationException.class, () -> emptyStringValue.getObjectNode()));
 	}
 
 	@Test
 	void getArrayNode() {
+		var errorValue       = Val.error();
+		var emptyStringValue = Val.of("");
 		assertAll(() -> assertThat(Val.ofEmptyArray().getArrayNode(), is(jsonArray())),
-				() -> assertThrows(PolicyEvaluationException.class, () -> Val.error().getArrayNode()),
+				() -> assertThrows(PolicyEvaluationException.class, () -> errorValue.getArrayNode()),
 				() -> assertThrows(PolicyEvaluationException.class, Val.UNDEFINED::getArrayNode),
-				() -> assertThrows(PolicyEvaluationException.class, () -> Val.of("").getArrayNode()));
+				() -> assertThrows(PolicyEvaluationException.class, () -> emptyStringValue.getArrayNode()));
 	}
 
 	@Test
 	void getJsonNode() {
+		var errorValue = Val.error();
 		assertAll(() -> assertThat(Val.ofEmptyArray().getJsonNode(), is(jsonArray())),
-				() -> assertThrows(PolicyEvaluationException.class, () -> Val.error().getJsonNode()),
+				() -> assertThrows(PolicyEvaluationException.class, () -> errorValue.getJsonNode()),
 				() -> assertThrows(PolicyEvaluationException.class, Val.UNDEFINED::getJsonNode));
 	}
 
@@ -499,7 +509,7 @@ class ValTest {
 		assertEquals(Val.UNDEFINED, Val.UNDEFINED);
 		assertEquals(Val.error("ABC"), Val.error("ABC"));
 		assertNotEquals(Val.error("X"), Val.error("Y"));
-		assertNotEquals(Val.error("X"), Val.UNDEFINED);
+		assertNotEquals(Val.UNDEFINED, Val.error("X"));
 		assertNotEquals(Val.of(1L), BigInteger.valueOf(1L));
 		assertNotEquals(Val.TRUE, Val.UNDEFINED);
 		assertNotEquals(Val.UNDEFINED, Val.TRUE);
@@ -539,31 +549,33 @@ class ValTest {
 	void ifDefinedIsDefined() {
 		final var calledWithValue = new HashSet<JsonNode>();
 		Val.TRUE.ifDefined(calledWithValue::add);
-		assertTrue(calledWithValue.size() == 1);
+		assertEquals(1, calledWithValue.size());
 	}
 
 	@Test
 	void ifDefinedIsUndefined() {
 		final var calledWithValue = new HashSet<JsonNode>();
 		Val.UNDEFINED.ifDefined(calledWithValue::add);
-		assertTrue(calledWithValue.size() == 0);
+		assertEquals(0, calledWithValue.size());
 	}
 
 	@Test
 	void orElseThrow() {
+		var errorValue = Val.error();
 		assertAll(() -> assertEquals(JSON.booleanNode(true), Val.TRUE.orElseThrow(RuntimeException::new)),
 				() -> assertThrows(RuntimeException.class, () -> Val.UNDEFINED.orElseThrow(RuntimeException::new)),
-				() -> assertThrows(RuntimeException.class, () -> Val.error().orElseThrow(RuntimeException::new)));
+				() -> assertThrows(RuntimeException.class, () -> errorValue.orElseThrow(RuntimeException::new)));
 	}
 
 	@Test
 	void filter() {
+		var tenValue = Val.of(10);
 		assertAll(() -> assertEquals(Val.UNDEFINED, Val.UNDEFINED.filter(JsonNode::isArray)),
 				() -> assertEquals(Val.UNDEFINED, Val.TRUE.filter(JsonNode::isArray)),
 				() -> assertEquals(Val.ofEmptyArray(), Val.ofEmptyArray().filter(JsonNode::isArray)),
 				() -> assertEquals(Val.of(10), Val.of(10).filter(json -> json.intValue() > 5)),
 				() -> assertEquals(Val.UNDEFINED, Val.of(10).filter(json -> json.intValue() < 5)),
-				() -> assertThrows(NullPointerException.class, () -> Val.of(10).filter(null)));
+				() -> assertThrows(NullPointerException.class, () -> tenValue.filter(null)));
 	}
 
 	@Test

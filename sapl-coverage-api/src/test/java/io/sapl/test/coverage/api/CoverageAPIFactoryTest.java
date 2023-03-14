@@ -37,7 +37,7 @@ class CoverageAPIFactoryTest {
 
 		Path hitDir = Paths.get("target/tmp/hits");
 
-		Assertions.assertThat(countFilesInDir(hitDir)).isEqualTo(0);
+		Assertions.assertThat(countFilesInDir(hitDir)).isZero();
 
 		CoverageAPIFactory.constructCoverageHitRecorder(Paths.get("target/tmp"));
 

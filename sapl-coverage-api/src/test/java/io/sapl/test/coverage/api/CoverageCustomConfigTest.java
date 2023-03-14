@@ -16,6 +16,7 @@
 package io.sapl.test.coverage.api;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -59,7 +60,8 @@ class CoverageCustomConfigTest {
 			}
 			Files.createFile(path);
 		}
-		Files.write(path, (new PolicySetHit("set1").toString() + System.lineSeparator()).getBytes("UTF-8"),
+		Files.write(path,
+				(new PolicySetHit("set1").toString() + System.lineSeparator()).getBytes(StandardCharsets.UTF_8),
 				StandardOpenOption.APPEND);
 
 		// act
