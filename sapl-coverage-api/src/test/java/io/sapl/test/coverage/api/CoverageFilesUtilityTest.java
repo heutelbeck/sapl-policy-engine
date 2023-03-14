@@ -32,7 +32,7 @@ import org.mockito.Mockito;
 
 import io.sapl.test.coverage.api.model.PolicySetHit;
 
-public class CoverageFilesUtilityTest {
+class CoverageFilesUtilityTest {
 
 	Path baseDir;
 
@@ -105,8 +105,9 @@ public class CoverageFilesUtilityTest {
 		when(path.getParent()).thenReturn(null);
 		when(path.resolve(Mockito.anyString())).thenReturn(path).thenReturn(null).thenReturn(path).thenReturn(null)
 				.thenReturn(path).thenReturn(null);
-		CoverageHitRecorder recorder = new CoverageHitAPIFile(path);
-		assertThrows(NullPointerException.class, () -> recorder.recordPolicySetHit(new PolicySetHit("")));
+		var recorder = new CoverageHitAPIFile(path);
+		var hit = new PolicySetHit("");
+		assertThrows(NullPointerException.class, () -> recorder.recordPolicySetHit(hit));
 	}
 
 }

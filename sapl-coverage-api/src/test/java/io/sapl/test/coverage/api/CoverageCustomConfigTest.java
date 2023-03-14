@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Test;
 
 import io.sapl.test.coverage.api.model.PolicySetHit;
 
-public class CoverageCustomConfigTest {
+class CoverageCustomConfigTest {
 
 	private Path basedir;
 
@@ -66,7 +66,7 @@ public class CoverageCustomConfigTest {
 		List<PolicySetHit> resultPolicySetHits = reader.readPolicySetHits();
 
 		// assert
-		Assertions.assertThat(resultPolicySetHits.size()).isEqualTo(1);
+		Assertions.assertThat(resultPolicySetHits).hasSize(1);
 		Assertions.assertThat(resultPolicySetHits.get(0).getPolicySetId()).isEqualTo("set1");
 	}
 

@@ -92,7 +92,7 @@ class RemoteRsocketPolicyDecisionPointTests {
 	 */
 	@Test
 	@Disabled
-	public void testServerCallsClientAfterConnection() {
+	void testServerCallsClientAfterConnection() {
 		connectAndRunTest("shell-client");
 	}
 
@@ -190,7 +190,7 @@ class RemoteRsocketPolicyDecisionPointTests {
 							assertThat(s).isNotNull();
 							assertThat(s).isNotEmpty();
 							assertThat(Integer.valueOf(s)).isPositive();
-							assertThat(Integer.valueOf(s)).isGreaterThan(0);
+							assertThat(Integer.valueOf(s)).isPositive();
 						})
 						.thenCancel()
 						.verify(Duration.ofSeconds(10));
