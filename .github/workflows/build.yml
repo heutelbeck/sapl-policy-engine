@@ -18,7 +18,6 @@ name: Build
 
 on:
   workflow_dispatch:
-    branches: [master]
   push:
     branches: [master]
     paths-ignore: ["sapl-documentation/**", ".github/build_documentation.yml"]
@@ -40,23 +39,16 @@ jobs:
         fetch-depth: 0
 
     - name: Set up JDK ${{ matrix.java }}
-      uses: actions/setup-java@v3.6.0
+      uses: actions/setup-java@v3
       with:
         distribution: 'adopt'
         java-version: ${{ matrix.java }}
+        cache: 'maven'
 
     - name: Set up Node.js
-      uses: actions/setup-node@v3.5.1
+      uses: actions/setup-node@v3
       with:
-        node-version: '16'
-
-    - name: Cache Maven dependencies
-      uses: actions/cache@v3.0.11  
-      with:
-        path: ~/.m2/repository
-        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-        restore-keys: |
-          ${{ runner.os }}-maven-
+        node-version: '18'
 
     - name: Run tests
       run: mvn -B package javadoc:jar # package, as the maven plugin loads resources from the dependency packages
@@ -78,19 +70,12 @@ jobs:
       with:
         distribution: 'adopt'
         java-version: 11
+        cache: 'maven'
 
     - name: Set up Node.js
-      uses: actions/setup-node@v3.5.1
+      uses: actions/setup-node@v3
       with:
-        node-version: '16'
-
-    - name: Cache Maven dependencies
-      uses: actions/cache@v3.0.11  
-      with:
-        path: ~/.m2/repository
-        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-        restore-keys: |
-          ${{ runner.os }}-maven-
+        node-version: '18'
 
     - name: Run analysis (JaCoCo, Sonar)
       env:
@@ -99,6 +84,14 @@ jobs:
 
     - name: Clean up local repository before caching 
       run: rm -rf ~/.m2/repository/io/sapl
+      
+    - name: Delete workflow runs
+      uses: Mattraks/delete-workflow-runs@v2
+      with:
+        token: ${{ github.token }}
+        repository: ${{ github.repository }}
+        retain_days: 1
+        keep_minimum_runs: 6
 
   dockerize:
     needs: [analyze]
@@ -112,13 +105,14 @@ jobs:
         fetch-depth: 0
 
     - name: Set up JDK 11
-      uses: actions/setup-java@v3.6.0
+      uses: actions/setup-java@v3
       with:
         distribution: 'adopt'
         java-version: 11
+        cache: 'maven'
 
     - name: Configure servers
-      uses: s4u/maven-settings-action@v2.7.0
+      uses: s4u/maven-settings-action@v2.8.0
       with:
         githubServer: false
         servers: |
@@ -129,17 +123,9 @@ jobs:
            }]
 
     - name: Set up Node.js
-      uses: actions/setup-node@v3.5.1
+      uses: actions/setup-node@v3
       with:
-        node-version: '16'
-
-    - name: Cache Maven dependencies
-      uses: actions/cache@v3.0.11  
-      with:
-        path: ~/.m2/repository
-        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-        restore-keys: |
-          ${{ runner.os }}-maven-
+        node-version: '18'
 
     - name: Build Modules
       run: mvn -B install -DskipTests
@@ -165,10 +151,11 @@ jobs:
         fetch-depth: 0
 
     - name: Set up JDK 11
-      uses: actions/setup-java@v3.6.0
+      uses: actions/setup-java@v3
       with:
         distribution: 'adopt'
         java-version: 11
+        cache: 'maven'
 
     - name: Configure servers
       uses: s4u/maven-settings-action@v2.7.0
@@ -192,15 +179,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v3.5.1
       with:
-        node-version: '16'
-
-    - name: Cache Maven dependencies
-      uses: actions/cache@v3.0.11  
-      with:
-        path: ~/.m2/repository
-        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-        restore-keys: |
-          ${{ runner.os }}-maven-
+        node-version: '18'
 
     - name: Install GPG Code Signing Key
       run: |
@@ -219,4 +198,3 @@ jobs:
     
     - name: Clean up local repository before caching 
       run: rm -rf ~/.m2/repository/io/sapl
-        
