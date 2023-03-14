@@ -39,8 +39,8 @@ public class CoverageCustomConfigTest {
 
 	@BeforeEach
 	void setup() {
-		basedir = Paths.get("temp").resolve("sapl-coverage");
-		this.reader = new CoverageHitAPIFile(basedir);
+		basedir       = Paths.get("temp").resolve("sapl-coverage");
+		this.reader   = new CoverageHitAPIFile(basedir);
 		this.recorder = new CoverageHitAPIFile(basedir);
 	}
 
@@ -53,12 +53,13 @@ public class CoverageCustomConfigTest {
 	void testSystemPropertyConfig_Reader() throws IOException {
 		Path path = this.basedir.resolve("hits").resolve("_policySetHits.txt");
 		if (!Files.exists(path)) {
-			if (path.getParent() != null) {
-				Files.createDirectories(path.getParent());
+			var parent = path.getParent();
+			if (parent != null) {
+				Files.createDirectories(parent);
 			}
 			Files.createFile(path);
 		}
-		Files.write(path, (new PolicySetHit("set1").toString() + System.lineSeparator()).getBytes(),
+		Files.write(path, (new PolicySetHit("set1").toString() + System.lineSeparator()).getBytes("UTF-8"),
 				StandardOpenOption.APPEND);
 
 		// act
