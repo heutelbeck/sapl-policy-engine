@@ -39,7 +39,7 @@ import okhttp3.mockwebserver.MockWebServer;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-public class JWTKeyProviderTest {
+class JWTKeyProviderTest {
 
 	private static String kid;
 
@@ -51,12 +51,12 @@ public class JWTKeyProviderTest {
 
 	private static WebClient.Builder builder;
 
-	private static JWTKeyProvider provider;
-
 	private static KeyPair keyPair;
 
 	private static KeyPair otherKeyPair;
-
+	
+	private JWTKeyProvider provider;
+	
 	@BeforeAll
 	public static void preSetup() throws IOException, NoSuchAlgorithmException {
 		Logger.getLogger(MockWebServer.class.getName()).setLevel(Level.OFF);
@@ -76,7 +76,7 @@ public class JWTKeyProviderTest {
 	}
 
 	@BeforeEach
-	public void setup() {
+	void setup() {
 		provider = new JWTKeyProvider(builder);
 	}
 
@@ -85,7 +85,7 @@ public class JWTKeyProviderTest {
 	 */
 
 	@Test
-	public void isCached_notCachedThenCachedThenNotCached_shouldBeFalseThenTrueThenFalse() {
+	void isCached_notCachedThenCachedThenNotCached_shouldBeFalseThenTrueThenFalse() {
 		var pubKey = (RSAPublicKey) keyPair.getPublic();
 		provider.setTTLmillis(JWTTestUtility.synchronousTimeUnit);
 		assertFalse(provider.isCached(kid));
@@ -96,7 +96,7 @@ public class JWTKeyProviderTest {
 	}
 
 	@Test
-	public void isCached_cacheTwice_shouldBeFalseThenTrueThenTrue() {
+	void isCached_cacheTwice_shouldBeFalseThenTrueThenTrue() {
 		var pubKey = (RSAPublicKey) keyPair.getPublic();
 		assertFalse(provider.isCached(kid));
 		provider.cache(kid, pubKey);
@@ -106,7 +106,7 @@ public class JWTKeyProviderTest {
 	}
 
 	@Test
-	public void provide_cacheThenRetrieve_shouldBeFalseThenTrueThenPublicKey() throws CachingException {
+	void provide_cacheThenRetrieve_shouldBeFalseThenTrueThenPublicKey() throws CachingException {
 		var pubKey     = (RSAPublicKey) keyPair.getPublic();
 		var serverNode = JsonTestUtility.serverNode(server, null, null);
 		assertFalse(provider.isCached(kid));
@@ -117,7 +117,7 @@ public class JWTKeyProviderTest {
 	}
 
 	@Test
-	public void isCachedAndProvide_multipleKeys_shouldBeTwiceFalseThenPublicKeyThenTrueThenFalseThenPublicKeyTheTwiceTrueThenFalse()
+	void isCachedAndProvide_multipleKeys_shouldBeTwiceFalseThenPublicKeyThenTrueThenFalseThenPublicKeyTheTwiceTrueThenFalse()
 			throws NoSuchAlgorithmException, IOException, CachingException {
 
 		dispatcher.setDispatchMode(DispatchMode.True);
@@ -142,14 +142,14 @@ public class JWTKeyProviderTest {
 	 */
 
 	@Test
-	public void provide_withUriEnvironmentMissingUri_shouldBeEmpty() throws CachingException {
+	void provide_withUriEnvironmentMissingUri_shouldBeEmpty() throws CachingException {
 		var serverNode = JsonTestUtility.serverNode(null, null, null);
 		var mono       = provider.provide(kid, serverNode);
 		StepVerifier.create(mono).verifyComplete();
 	}
 
 	@Test
-	public void provide_withUriEnvironment_usingBase64Url_shouldBePublicKey() throws CachingException {
+	void provide_withUriEnvironment_usingBase64Url_shouldBePublicKey() throws CachingException {
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var serverNode = JsonTestUtility.serverNode(server, null, null);
 		var mono       = provider.provide(kid, serverNode);
@@ -157,14 +157,14 @@ public class JWTKeyProviderTest {
 	}
 
 	@Test
-	public void provide_withUriEnvironmentAndInvalidCachingTTL_usingBase64Url_shouldThrowCachingException() {
+	void provide_withUriEnvironmentAndInvalidCachingTTL_usingBase64Url_shouldThrowCachingException() {
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var serverNode = JsonTestUtility.serverNode(server, null, "invalid TTL format");
 		assertThrows(CachingException.class, () -> provider.provide(kid, serverNode));
 	}
 
 	@Test
-	public void provide_withUriAndMethodPostEnvironment_usingBase64Url_shouldBePublicKey() throws CachingException {
+	void provide_withUriAndMethodPostEnvironment_usingBase64Url_shouldBePublicKey() throws CachingException {
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var serverNode = JsonTestUtility.serverNode(server, "POST", null);
 		var mono       = provider.provide(kid, serverNode);
@@ -172,7 +172,7 @@ public class JWTKeyProviderTest {
 	}
 
 	@Test
-	public void provide_withUriAndMethodNonTextEnvironment_usingBase64Url_shouldBePublicKey() throws CachingException {
+	void provide_withUriAndMethodNonTextEnvironment_usingBase64Url_shouldBePublicKey() throws CachingException {
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var serverNode = JsonTestUtility.serverNode(server, "NONETEXT", null);
 		var mono       = provider.provide(kid, serverNode);
@@ -180,7 +180,7 @@ public class JWTKeyProviderTest {
 	}
 
 	@Test
-	public void provide_withUriAndCustomTTLEnvironment_usingBase64Url_shouldBePublicKey() throws CachingException {
+	void provide_withUriAndCustomTTLEnvironment_usingBase64Url_shouldBePublicKey() throws CachingException {
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var serverNode = JsonTestUtility.serverNode(server, null, JWTTestUtility.timeUnit);
 		var mono       = provider.provide(kid, serverNode);
@@ -188,7 +188,7 @@ public class JWTKeyProviderTest {
 	}
 
 	@Test
-	public void provide_withUriAndNegativeTTLEnvironment_usingBase64Url_shouldBePublicKey() throws CachingException {
+	void provide_withUriAndNegativeTTLEnvironment_usingBase64Url_shouldBePublicKey() throws CachingException {
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var serverNode = JsonTestUtility.serverNode(server, null, -JWTTestUtility.timeUnit);
 		var mono       = provider.provide(kid, serverNode);
@@ -196,7 +196,7 @@ public class JWTKeyProviderTest {
 	}
 
 	@Test
-	public void provide_withUriEnvironment_usingBase64Basic_shouldBePublicKey() throws CachingException {
+	void provide_withUriEnvironment_usingBase64Basic_shouldBePublicKey() throws CachingException {
 		dispatcher.setDispatchMode(DispatchMode.Basic);
 		var serverNode = JsonTestUtility.serverNode(server, null, null);
 		var mono       = provider.provide(kid, serverNode);
@@ -204,7 +204,7 @@ public class JWTKeyProviderTest {
 	}
 
 	@Test
-	public void provide_withUriEnvironment_usingBase64Wrong_shouldBeEmpty() throws CachingException {
+	void provide_withUriEnvironment_usingBase64Wrong_shouldBeEmpty() throws CachingException {
 		dispatcher.setDispatchMode(DispatchMode.Invalid);
 		var serverNode = JsonTestUtility.serverNode(server, null, null);
 		var mono       = provider.provide(kid, serverNode);
@@ -212,7 +212,7 @@ public class JWTKeyProviderTest {
 	}
 
 	@Test
-	public void provide_withUriEnvironment_usingBogusKey_shouldBeEmpty() throws CachingException {
+	void provide_withUriEnvironment_usingBogusKey_shouldBeEmpty() throws CachingException {
 		dispatcher.setDispatchMode(DispatchMode.Bogus);
 		var serverNode = JsonTestUtility.serverNode(server, null, null);
 		var mono       = provider.provide(kid, serverNode);
@@ -220,7 +220,7 @@ public class JWTKeyProviderTest {
 	}
 
 	@Test
-	public void provide_withUriBogusEnvironment_shouldBeEmpty() throws CachingException {
+	void provide_withUriBogusEnvironment_shouldBeEmpty() throws CachingException {
 		dispatcher.setDispatchMode(DispatchMode.Unknown);
 		var serverNode = JsonTestUtility.serverNode(server, null, null);
 		var mono       = provider.provide(kid, serverNode);

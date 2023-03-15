@@ -114,9 +114,9 @@ class AnnotationFunctionContextTest {
 		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
 		assertAll(
 				() -> assertThat(context.isProvidedFunction(MockLibrary.LIBRARY_NAME + "." + MockLibrary.FUNCTION_NAME),
-						is(true)),
-				() -> assertThat(context.isProvidedFunction(MockLibrary.LIBRARY_NAME + ".helloTwoArgs"), is(true)),
-				() -> assertThat(context.isProvidedFunction(MockLibrary.LIBRARY_NAME + ".helloVarArgs"), is(true)));
+						is(Boolean.TRUE)),
+				() -> assertThat(context.isProvidedFunction(MockLibrary.LIBRARY_NAME + ".helloTwoArgs"), is(Boolean.TRUE)),
+				() -> assertThat(context.isProvidedFunction(MockLibrary.LIBRARY_NAME + ".helloVarArgs"), is(Boolean.TRUE)));
 	}
 
 	@Test
@@ -146,7 +146,7 @@ class AnnotationFunctionContextTest {
 	@Test
 	void loadedLibrariesShouldBeReturned() throws InitializationException {
 		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
-		assertThat(context.getAvailableLibraries().contains(MockLibrary.LIBRARY_NAME), is(true));
+		assertThat(context.getAvailableLibraries().contains(MockLibrary.LIBRARY_NAME), is(Boolean.TRUE));
 	}
 
 	@Test

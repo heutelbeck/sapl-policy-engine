@@ -14,12 +14,6 @@ public class Trace {
 	Class<?>                 operation;
 	List<ExpressionArgument> arguments = new LinkedList<>();
 
-	@Value
-	public static class ExpressionArgument {
-		String name;
-		Val    value;
-	}
-
 	public Trace(Class<?> operation) {
 		this.operation = operation;
 	}

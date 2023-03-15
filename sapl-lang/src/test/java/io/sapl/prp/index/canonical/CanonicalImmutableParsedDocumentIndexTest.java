@@ -90,7 +90,7 @@ class CanonicalImmutableParsedDocumentIndexTest {
 
 	@BeforeEach
 	void setUp() {
-		bindings = new HashMap<>();
+		bindings = new HashMap<>(getVariables().size());
 		for (String variable : getVariables()) {
 			bindings.put(variable, null);
 		}
@@ -201,9 +201,9 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
 		ImmutableParsedDocumentIndex updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
-		bindings.put("x0", false);
-		bindings.put("x1", false);
-		bindings.put("x2", true);
+		bindings.put("x0", Boolean.FALSE);
+		bindings.put("x1", Boolean.FALSE);
+		bindings.put("x2", Boolean.TRUE);
 
 		// when
 		PolicyRetrievalResult result = updatedIndex.retrievePolicies()
@@ -264,8 +264,8 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
 		ImmutableParsedDocumentIndex updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
-		bindings.put("x0", false);
-		bindings.put("x1", false);
+		bindings.put("x0", Boolean.FALSE);
+		bindings.put("x1", Boolean.FALSE);
 
 		// when
 		PolicyRetrievalResult result = updatedIndex.retrievePolicies()
@@ -297,8 +297,8 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
 		ImmutableParsedDocumentIndex updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
-		bindings.put("x0", true);
-		bindings.put("x1", true);
+		bindings.put("x0", Boolean.TRUE);
+		bindings.put("x1", Boolean.TRUE);
 
 		updates.clear();
 		updates.add(new Update(Type.WITHDRAW, document, definition));
@@ -334,7 +334,7 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
 		ImmutableParsedDocumentIndex updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
-		bindings.put("x0", false);
+		bindings.put("x0", Boolean.FALSE);
 
 		// when
 		PolicyRetrievalResult result = updatedIndex.retrievePolicies()

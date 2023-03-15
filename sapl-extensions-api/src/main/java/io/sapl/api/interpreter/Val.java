@@ -34,7 +34,6 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.fge.jackson.JsonNumEquals;
 
-import io.sapl.api.interpreter.Trace.ExpressionArgument;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

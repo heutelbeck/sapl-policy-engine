@@ -20,11 +20,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationContext;
 
-public class SpringtContextTests {
+class SpringContextTests {
 
 	@Test
-	public void getBeanThrowsIllegalStateExceptionWhenApplicationContextIsNotSet() {
-		SpringContext springContext = new SpringContext();
+	void getBeanThrowsIllegalStateExceptionWhenApplicationContextIsNotSet() {
+		SpringContext      springContext      = new SpringContext();
 		ApplicationContext applicationContext = springContext.getApplicationContext();
 		springContext.setApplicationContext(null);
 

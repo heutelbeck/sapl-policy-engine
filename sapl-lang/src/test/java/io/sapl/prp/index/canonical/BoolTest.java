@@ -136,8 +136,8 @@ class BoolTest {
 		// condition coverage requires Val to be boolean and error at the same time ->
 		// impossible
 		var valMock = mock(Val.class);
-		when(valMock.isError()).thenReturn(true);
-		when(valMock.isBoolean()).thenReturn(true);
+		when(valMock.isError()).thenReturn(Boolean.TRUE);
+		when(valMock.isBoolean()).thenReturn(Boolean.TRUE);
 
 		var expressionMock = mock(Expression.class);
 		when(expressionMock.evaluate()).thenReturn(Flux.just(valMock));

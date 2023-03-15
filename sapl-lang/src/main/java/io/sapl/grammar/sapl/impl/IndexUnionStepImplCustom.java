@@ -55,10 +55,10 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 	}
 
 	private BiFunction<Integer, Val, Boolean> hasIndex(Val parentVlue) {
-		return (index, ___) -> {
+		return (index, __) -> {
 			var arraySize = parentVlue.getArrayNode().size();
 			return indices.stream().map(BigDecimal::intValue).map(i -> i < 0 ? i + arraySize : i)
-					.filter(i -> i == index).findAny().isPresent();
+					.anyMatch(i -> i.equals(index));
 		};
 	}
 
