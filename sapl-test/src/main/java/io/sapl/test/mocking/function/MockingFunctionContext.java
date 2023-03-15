@@ -30,7 +30,7 @@ import java.util.regex.Pattern;
 
 import org.hamcrest.number.OrderingComparison;
 
-import io.sapl.api.interpreter.Trace.ExpressionArgument;
+import io.sapl.api.interpreter.ExpressionArgument;
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.functions.LibraryDocumentation;

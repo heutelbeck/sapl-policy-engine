@@ -42,7 +42,7 @@ import io.sapl.test.SaplTestException;
 import io.sapl.test.coverage.api.CoverageHitRecorder;
 import io.sapl.test.lang.TestSaplInterpreter;
 
-public class ClasspathPolicyRetrievalPointTest {
+class ClasspathPolicyRetrievalPointTest {
 
 	private static final AuthorizationSubscription EMPTY_SUBSCRIPTION = AuthorizationSubscription.of(null, null, null);
 

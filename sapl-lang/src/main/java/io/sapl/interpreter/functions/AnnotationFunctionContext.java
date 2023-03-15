@@ -27,7 +27,7 @@ import java.util.Map;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.interpreter.Trace.ExpressionArgument;
+import io.sapl.api.interpreter.ExpressionArgument;
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.pip.LibraryEntryMetadata;

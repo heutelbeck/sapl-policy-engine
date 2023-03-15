@@ -19,15 +19,14 @@ import static io.sapl.hamcrest.Matchers.valUndefined;
 import static org.hamcrest.CoreMatchers.any;
 import static org.hamcrest.number.OrderingComparison.comparesEqualTo;
 
+import org.hamcrest.Matcher;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.mocking.attribute.models.AttributeArgumentMatchers;
 import io.sapl.test.mocking.attribute.models.AttributeParameters;
 import io.sapl.test.mocking.attribute.models.AttributeParentValueMatcher;
 import io.sapl.test.mocking.function.models.FunctionParameters;
 import io.sapl.test.verification.TimesCalledVerification;
-
-import org.hamcrest.Matcher;
-
 import lombok.experimental.UtilityClass;
 
 @UtilityClass

@@ -53,14 +53,12 @@ public class FunctionUtil {
 	}
 
 	public Mono<Val> evaluateFunctionMono(String unresolvedFunctionName, Val... parameters) {
-		return Mono.deferContextual(ctx -> Mono.just(AuthorizationContext.functionContext(ctx)
-				.evaluate(resolveAbsoluteFunctionName(unresolvedFunctionName, AuthorizationContext.getImports(ctx)),
-						parameters)));
+		return Mono.deferContextual(ctx -> Mono.just(AuthorizationContext.functionContext(ctx).evaluate(
+				resolveAbsoluteFunctionName(unresolvedFunctionName, AuthorizationContext.getImports(ctx)),
+				parameters)));
 	}
 
-	public Mono<Val> evaluateFunctionWithLeftHandArgumentMono(
-			Iterable<String> fsteps,
-			Val leftHandArgument,
+	public Mono<Val> evaluateFunctionWithLeftHandArgumentMono(Iterable<String> fsteps, Val leftHandArgument,
 			Val... parameters) {
 		Val[] mergedParameters = new Val[parameters.length + 1];
 		mergedParameters[0] = leftHandArgument;

@@ -15,7 +15,7 @@
  */
 package io.sapl.grammar.sapl.impl.util;
 
-import io.sapl.api.interpreter.Trace.ExpressionArgument;
+import io.sapl.api.interpreter.ExpressionArgument;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Array;
 import lombok.experimental.UtilityClass;

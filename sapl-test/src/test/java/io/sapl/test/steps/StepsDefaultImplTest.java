@@ -15,11 +15,27 @@
  */
 package io.sapl.test.steps;
 
-import static io.sapl.hamcrest.Matchers.*;
-import static io.sapl.test.Imports.*;
+import static io.sapl.hamcrest.Matchers.anyVal;
+import static io.sapl.hamcrest.Matchers.val;
+import static io.sapl.test.Imports.arguments;
+import static io.sapl.test.Imports.parentValue;
+import static io.sapl.test.Imports.thenReturn;
+import static io.sapl.test.Imports.times;
+import static io.sapl.test.Imports.whenAttributeParams;
+import static io.sapl.test.Imports.whenEnvironmentAttributeParams;
+import static io.sapl.test.Imports.whenFunctionParams;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -33,15 +49,6 @@ import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.attribute.MockingAttributeContext;
 import io.sapl.test.mocking.function.MockingFunctionContext;
-
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 class StepsDefaultImplTest {
 

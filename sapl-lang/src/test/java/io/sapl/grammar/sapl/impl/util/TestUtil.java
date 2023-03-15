@@ -132,7 +132,8 @@ public class TestUtil {
 	private static void logResult(Val result) {
 		if (DEBUG_TESTS)
 			try {
-				log.debug("Actual    :\n{}", MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(result.getTrace()));
+				log.debug("Actual    :\n{}",
+						MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(result.getTrace()));
 			} catch (JsonProcessingException e) {
 				log.debug("Error", e);
 			}

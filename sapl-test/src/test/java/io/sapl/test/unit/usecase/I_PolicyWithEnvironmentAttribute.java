@@ -15,16 +15,16 @@
  */
 package io.sapl.test.unit.usecase;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.test.SaplTestFixture;
-import io.sapl.test.unit.SaplUnitTestFixture;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
+
+import io.sapl.api.interpreter.Val;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.test.SaplTestFixture;
+import io.sapl.test.unit.SaplUnitTestFixture;
 
 public class I_PolicyWithEnvironmentAttribute {
 
