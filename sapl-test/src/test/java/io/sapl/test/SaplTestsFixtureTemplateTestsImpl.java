@@ -13,27 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.test.unit;
+package io.sapl.test;
 
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.pip.Attribute;
-import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.api.validation.Text;
-import reactor.core.publisher.Flux;
+import io.sapl.test.steps.GivenStep;
+import io.sapl.test.steps.WhenStep;
 
-@PolicyInformationPoint(name = TestPIP2.NAME, description = TestPIP2.DESCRIPTION)
-public class TestPIP2 {
+public class SaplTestsFixtureTemplateTestsImpl extends SaplTestFixtureTemplate {
 
-	public static final String NAME        = "test";
-	public static final String DESCRIPTION = "Policy information Point for testing";
+	@Override
+	public GivenStep constructTestCaseWithMocks() {
+		// NOOP
+		return null;
+	}
 
-	@Attribute
-	public Flux<Val> upper(@Text Val value, Map<String, JsonNode> variables) {
-		return Flux.just(Val.of("Willi"), Val.of("WIlli"), Val.of("WILli"), Val.of("WILLi"), Val.of("WILLI"));
+	@Override
+	public WhenStep constructTestCase() {
+		// NOOP
+		return null;
+	}
+
+	public Map<String, JsonNode> getVariablesMap() {
+		return this.variables;
 	}
 
 }

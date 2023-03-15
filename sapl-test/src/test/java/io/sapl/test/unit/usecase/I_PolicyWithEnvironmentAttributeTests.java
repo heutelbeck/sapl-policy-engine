@@ -13,27 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.test.unit;
+package io.sapl.test.unit.usecase;
 
-import java.util.Map;
-
-import com.fasterxml.jackson.databind.JsonNode;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.api.pip.Attribute;
-import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.api.validation.Text;
-import reactor.core.publisher.Flux;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.test.SaplTestFixture;
+import io.sapl.test.unit.SaplUnitTestFixture;
 
-@PolicyInformationPoint(name = TestPIP.NAME, description = TestPIP.DESCRIPTION)
-public class TestPIP {
+class I_PolicyWithEnvironmentAttributeTests {
 
-	public static final String NAME        = "test";
-	public static final String DESCRIPTION = "Policy information Point for testing";
+	private SaplTestFixture fixture;
 
-	@Attribute
-	public Flux<Val> upper(@Text Val value, Map<String, JsonNode> variables) {
-		return Flux.just(Val.of(value.get().asText().toUpperCase()));
+	@BeforeEach
+	void setUp() {
+		fixture = new SaplUnitTestFixture("policyWithEnvironmentAttribute.sapl");
+	}
+
+	@Test
+	void test() {
+		fixture.constructTestCaseWithMocks().givenAttribute("org.emergencyLevel", Val.of(0))
+				.when(AuthorizationSubscription.of("WILLI", "write", "something")).expectPermit().verify();
 	}
 
 }

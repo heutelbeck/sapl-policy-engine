@@ -18,8 +18,11 @@ package io.sapl.mavenplugin.test.coverage;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyFloat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -31,7 +34,6 @@ import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugin.testing.AbstractMojoTestCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import io.sapl.mavenplugin.test.coverage.helper.CoverageAPIHelper;
 import io.sapl.mavenplugin.test.coverage.helper.CoverageRatioCalculator;
@@ -68,14 +70,14 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 	@BeforeEach
 	void setup() throws Exception {
 		super.setUp();
-		saplDocumentReader = Mockito.mock(SaplDocumentReader.class);
-		coverageTargetHelper = Mockito.mock(CoverageTargetHelper.class);
-		coverageAPIHelper = Mockito.mock(CoverageAPIHelper.class);
-		ratioCalculator = Mockito.mock(CoverageRatioCalculator.class);
-		reporter = Mockito.mock(GenericCoverageReporter.class);
-		sonarReporter = Mockito.mock(SonarLineCoverageReportGenerator.class);
-		htmlReporter = Mockito.mock(HtmlLineCoverageReportGenerator.class);
-		log = Mockito.mock(Log.class);
+		saplDocumentReader   = mock(SaplDocumentReader.class);
+		coverageTargetHelper = mock(CoverageTargetHelper.class);
+		coverageAPIHelper    = mock(CoverageAPIHelper.class);
+		ratioCalculator      = mock(CoverageRatioCalculator.class);
+		reporter             = mock(GenericCoverageReporter.class);
+		sonarReporter        = mock(SonarLineCoverageReportGenerator.class);
+		htmlReporter         = mock(HtmlLineCoverageReportGenerator.class);
+		log                  = mock(Log.class);
 
 		getContainer().addComponent(saplDocumentReader, SaplDocumentReader.class, "");
 		getContainer().addComponent(coverageTargetHelper, CoverageTargetHelper.class, "");
@@ -93,50 +95,50 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 	}
 
 	@Test
-	public void test_disableCoverage() throws Exception {
+	void test_disableCoverage() throws Exception {
 
-		Path pom = Paths.get("src", "test", "resources", "pom", "pom_coverageDisabled.xml");
+		Path pom  = Paths.get("src", "test", "resources", "pom", "pom_coverageDisabled.xml");
+		var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+		mojo.setLog(this.log);
+
+		mojo.execute();
+		verify(log).info("Policy Coverage Collection is disabled");
+
+	}
+
+	@Test
+	 void test_happyPath() throws Exception {
+
+		when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
+		when(this.coverageTargetHelper.getCoverageTargets(any()))
+				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+		when(this.coverageAPIHelper.readHits(any()))
+				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+		when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
+		when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
+				.thenReturn(Paths.get("test", "index.html"));
+
+		Path pom = Paths.get("src", "test", "resources", "pom", "pom.xml");
 		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
 		mojo.setLog(this.log);
 
 		mojo.execute();
-		Mockito.verify(log).info("Policy Coverage Collection is disabled");
-
-	}
-
-	@Test
-	public void test_happyPath() throws Exception {
-
-		Mockito.when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
-		Mockito.when(this.coverageTargetHelper.getCoverageTargets(any()))
-				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		Mockito.when(this.coverageAPIHelper.readHits(any()))
-				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		Mockito.when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
-		Mockito.when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
-				.thenReturn(Paths.get("test", "index.html"));
-
-		Path pom = Paths.get("src", "test", "resources", "pom", "pom.xml");
-		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
-		mojo.setLog(this.log);
-
-		mojo.execute();
 
 		verifyReporterAreCalled();
 
-		Mockito.verify(log).info("All coverage criteria passed");
+		verify(log).info("All coverage criteria passed");
 	}
 
 	@Test
-	public void test_policyConditionHitCriteriaNotFulfilled() throws Exception {
+	 void test_policyConditionHitCriteriaNotFulfilled() throws Exception {
 
-		Mockito.when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
-		Mockito.when(this.coverageTargetHelper.getCoverageTargets(any()))
+		when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
+		when(this.coverageTargetHelper.getCoverageTargets(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		Mockito.when(this.coverageAPIHelper.readHits(any()))
+		when(this.coverageAPIHelper.readHits(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		Mockito.when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 50f);
-		Mockito.when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
+		when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 50f);
+		when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
 				.thenReturn(Paths.get("test", "index.html"));
 
 		Path pom = Paths.get("src", "test", "resources", "pom", "pom.xml");
@@ -147,20 +149,20 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 
 		verifyReporterAreCalled();
 
-		Mockito.verify(log)
+		verify(log)
 				.error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal 80.0 but got 50.0");
 	}
 
 	@Test
-	public void test_policyHitCriteriaNotFulfilled() throws Exception {
+	 void test_policyHitCriteriaNotFulfilled() throws Exception {
 
-		Mockito.when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
-		Mockito.when(this.coverageTargetHelper.getCoverageTargets(any()))
+		when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
+		when(this.coverageTargetHelper.getCoverageTargets(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		Mockito.when(this.coverageAPIHelper.readHits(any()))
+		when(this.coverageAPIHelper.readHits(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		Mockito.when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 50f, 100f);
-		Mockito.when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
+		when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 50f, 100f);
+		when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
 				.thenReturn(Paths.get("test", "index.html"));
 
 		Path pom = Paths.get("src", "test", "resources", "pom", "pom.xml");
@@ -171,19 +173,19 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 
 		verifyReporterAreCalled();
 
-		Mockito.verify(log).error("Policy Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
+		verify(log).error("Policy Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
 	}
 
 	@Test
-	public void test_policySetHitCriteriaNotFulfilled() throws Exception {
+	 void test_policySetHitCriteriaNotFulfilled() throws Exception {
 
-		Mockito.when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
-		Mockito.when(this.coverageTargetHelper.getCoverageTargets(any()))
+		when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
+		when(this.coverageTargetHelper.getCoverageTargets(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		Mockito.when(this.coverageAPIHelper.readHits(any()))
+		when(this.coverageAPIHelper.readHits(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		Mockito.when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(50f, 100f, 100f);
-		Mockito.when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
+		when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(50f, 100f, 100f);
+		when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
 				.thenReturn(Paths.get("test", "index.html"));
 
 		Path pom = Paths.get("src", "test", "resources", "pom", "pom.xml");
@@ -194,20 +196,20 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 
 		verifyReporterAreCalled();
 
-		Mockito.verify(log).error("Policy Set Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
+		verify(log).error("Policy Set Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
 
 	}
 
 	@Test
-	public void test_policySetHitAndPolicyHitCriteriaNotFulfilled() throws Exception {
+	 void test_policySetHitAndPolicyHitCriteriaNotFulfilled() throws Exception {
 
-		Mockito.when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
-		Mockito.when(this.coverageTargetHelper.getCoverageTargets(any()))
+		when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
+		when(this.coverageTargetHelper.getCoverageTargets(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		Mockito.when(this.coverageAPIHelper.readHits(any()))
+		when(this.coverageAPIHelper.readHits(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		Mockito.when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(50f, 50f, 100f);
-		Mockito.when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
+		when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(50f, 50f, 100f);
+		when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
 				.thenReturn(Paths.get("test", "index.html"));
 
 		Path pom = Paths.get("src", "test", "resources", "pom", "pom.xml");
@@ -218,20 +220,20 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 
 		verifyReporterAreCalled();
 
-		Mockito.verify(log).error("Policy Set Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
-		Mockito.verify(log).error("Policy Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
+		verify(log).error("Policy Set Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
+		verify(log).error("Policy Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
 	}
 
 	@Test
-	public void test_policySetHitAndPolicyConditionHitCriteriaNotFulfilled() throws Exception {
+	 void test_policySetHitAndPolicyConditionHitCriteriaNotFulfilled() throws Exception {
 
-		Mockito.when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
-		Mockito.when(this.coverageTargetHelper.getCoverageTargets(any()))
+		when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
+		when(this.coverageTargetHelper.getCoverageTargets(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		Mockito.when(this.coverageAPIHelper.readHits(any()))
+		when(this.coverageAPIHelper.readHits(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		Mockito.when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(50f, 100f, 50f);
-		Mockito.when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
+		when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(50f, 100f, 50f);
+		when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
 				.thenReturn(Paths.get("test", "index.html"));
 
 		Path pom = Paths.get("src", "test", "resources", "pom", "pom.xml");
@@ -242,21 +244,21 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 
 		verifyReporterAreCalled();
 
-		Mockito.verify(log).error("Policy Set Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
-		Mockito.verify(log)
+		verify(log).error("Policy Set Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
+		verify(log)
 				.error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal 80.0 but got 50.0");
 	}
 
 	@Test
-	public void test_policyHitAndPolicyConditionHitCriteriaNotFulfilled() throws Exception {
+	 void test_policyHitAndPolicyConditionHitCriteriaNotFulfilled() throws Exception {
 
-		Mockito.when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
-		Mockito.when(this.coverageTargetHelper.getCoverageTargets(any()))
+		when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
+		when(this.coverageTargetHelper.getCoverageTargets(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		Mockito.when(this.coverageAPIHelper.readHits(any()))
+		when(this.coverageAPIHelper.readHits(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		Mockito.when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 50f, 50f);
-		Mockito.when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
+		when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 50f, 50f);
+		when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
 				.thenReturn(Paths.get("test", "index.html"));
 
 		Path pom = Paths.get("src", "test", "resources", "pom", "pom.xml");
@@ -267,22 +269,22 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 
 		verifyReporterAreCalled();
 
-		Mockito.verify(log).error("Policy Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
-		Mockito.verify(log)
+		verify(log).error("Policy Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
+		verify(log)
 				.error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal 80.0 but got 50.0");
 	}
 
 	@Test
-	public void test_allCriteriaNotFulfilled() throws Exception {
+	 void test_allCriteriaNotFulfilled() throws Exception {
 
-		Mockito.when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
-		Mockito.when(this.coverageTargetHelper.getCoverageTargets(any()))
+		when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
+		when(this.coverageTargetHelper.getCoverageTargets(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		Mockito.when(this.coverageAPIHelper.readHits(any()))
+		when(this.coverageAPIHelper.readHits(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		Mockito.when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
+		when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
 				.thenReturn(Paths.get("test", "index.html"));
-		Mockito.when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(50f, 50f, 50f);
+		when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(50f, 50f, 50f);
 
 		Path pom = Paths.get("src", "test", "resources", "pom", "pom.xml");
 		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
@@ -292,22 +294,22 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 
 		verifyReporterAreCalled();
 
-		Mockito.verify(log).error("Policy Set Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
-		Mockito.verify(log).error("Policy Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
-		Mockito.verify(log)
+		verify(log).error("Policy Set Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
+		verify(log).error("Policy Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
+		verify(log)
 				.error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal 80.0 but got 50.0");
 	}
 
 	@Test
-	public void test_emptyTargets() throws Exception {
+	 void test_emptyTargets() throws Exception {
 
-		Mockito.when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
+		when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
 		CoverageTargets targets = new CoverageTargets(List.of(), List.of(), List.of());
-		Mockito.when(this.coverageTargetHelper.getCoverageTargets(any())).thenReturn(targets);
-		Mockito.when(this.coverageAPIHelper.readHits(any()))
+		when(this.coverageTargetHelper.getCoverageTargets(any())).thenReturn(targets);
+		when(this.coverageAPIHelper.readHits(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		Mockito.when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(50f, 50f, 50f);
-		Mockito.when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
+		when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(50f, 50f, 50f);
+		when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
 				.thenReturn(Paths.get("test", "index.html"));
 
 		Path pom = Paths.get("src", "test", "resources", "pom", "pom.xml");
@@ -318,31 +320,29 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 
 		verifyReporterAreCalled();
 
-		Mockito.verify(log).info("All coverage criteria passed");
-		Mockito.verify(log).info("There are no PolicySets to hit");
-		Mockito.verify(log).info("There are no Policies to hit");
-		Mockito.verify(log).info("There are no PolicyConditions to hit");
+		verify(log).info("All coverage criteria passed");
+		verify(log).info("There are no PolicySets to hit");
+		verify(log).info("There are no Policies to hit");
+		verify(log).info("There are no PolicyConditions to hit");
 	}
 
 	private void verifyReporterAreCalled() throws MojoExecutionException {
 
-		Mockito.verify(saplDocumentReader, times(1)).retrievePolicyDocuments(Mockito.any(), Mockito.any(),
-				Mockito.any());
-		Mockito.verify(this.htmlReporter, times(1)).generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(),
-				anyFloat());
-		Mockito.verify(this.sonarReporter, times(1)).generateSonarLineCoverageReport(any(), any(), any(), any(), any());
+		verify(saplDocumentReader, times(1)).retrievePolicyDocuments(any(), any(), any());
+		verify(this.htmlReporter, times(1)).generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat());
+		verify(this.sonarReporter, times(1)).generateSonarLineCoverageReport(any(), any(), any(), any(), any());
 	}
 
 	@Test
-	public void test_happyPath_sonarReportDisabled() throws Exception {
+	 void test_happyPath_sonarReportDisabled() throws Exception {
 
-		Mockito.when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
-		Mockito.when(this.coverageTargetHelper.getCoverageTargets(any()))
+		when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
+		when(this.coverageTargetHelper.getCoverageTargets(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		Mockito.when(this.coverageAPIHelper.readHits(any()))
+		when(this.coverageAPIHelper.readHits(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		Mockito.when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
-		Mockito.when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
+		when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
+		when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
 				.thenReturn(Paths.get("test", "index.html"));
 
 		Path pom = Paths.get("src", "test", "resources", "pom", "pom_sonarReportDisabled.xml");
@@ -351,24 +351,24 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 
 		mojo.execute();
 
-		Mockito.verify(saplDocumentReader, times(1)).retrievePolicyDocuments(Mockito.any(), Mockito.any(),
-				Mockito.any());
-		Mockito.verify(this.htmlReporter, times(1)).generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(),
+		verify(saplDocumentReader, times(1)).retrievePolicyDocuments(any(), any(),
+				any());
+		verify(this.htmlReporter, times(1)).generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(),
 				anyFloat());
-		Mockito.verify(this.sonarReporter, never()).generateSonarLineCoverageReport(any(), any(), any(), any(), any());
+		verify(this.sonarReporter, never()).generateSonarLineCoverageReport(any(), any(), any(), any(), any());
 
-		Mockito.verify(log).info("All coverage criteria passed");
+		verify(log).info("All coverage criteria passed");
 	}
 
 	@Test
-	public void test_happyPath_htmlReportDisabled() throws Exception {
+	 void test_happyPath_htmlReportDisabled() throws Exception {
 
-		Mockito.when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
-		Mockito.when(this.coverageTargetHelper.getCoverageTargets(any()))
+		when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
+		when(this.coverageTargetHelper.getCoverageTargets(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		Mockito.when(this.coverageAPIHelper.readHits(any()))
+		when(this.coverageAPIHelper.readHits(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		Mockito.when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
+		when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
 
 		Path pom = Paths.get("src", "test", "resources", "pom", "pom_htmlReportDisabled.xml");
 		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
@@ -376,24 +376,24 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 
 		mojo.execute();
 
-		Mockito.verify(saplDocumentReader, times(1)).retrievePolicyDocuments(Mockito.any(), Mockito.any(),
-				Mockito.any());
-		Mockito.verify(this.htmlReporter, never()).generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(),
+		verify(saplDocumentReader, times(1)).retrievePolicyDocuments(any(), any(),
+				any());
+		verify(this.htmlReporter, never()).generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(),
 				anyFloat());
-		Mockito.verify(this.sonarReporter, times(1)).generateSonarLineCoverageReport(any(), any(), any(), any(), any());
+		verify(this.sonarReporter, times(1)).generateSonarLineCoverageReport(any(), any(), any(), any(), any());
 
-		Mockito.verify(log).info("All coverage criteria passed");
+		verify(log).info("All coverage criteria passed");
 	}
 
 	@Test
-	public void test_happyPath_allReportsDisabled() throws Exception {
+	 void test_happyPath_allReportsDisabled() throws Exception {
 
-		Mockito.when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
-		Mockito.when(this.coverageTargetHelper.getCoverageTargets(any()))
+		when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
+		when(this.coverageTargetHelper.getCoverageTargets(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		Mockito.when(this.coverageAPIHelper.readHits(any()))
+		when(this.coverageAPIHelper.readHits(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		Mockito.when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
+		when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
 
 		Path pom = Paths.get("src", "test", "resources", "pom", "pom_allReportsDisabled.xml");
 		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
@@ -401,13 +401,13 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 
 		mojo.execute();
 
-		Mockito.verify(saplDocumentReader, times(1)).retrievePolicyDocuments(Mockito.any(), Mockito.any(),
-				Mockito.any());
-		Mockito.verify(this.htmlReporter, never()).generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(),
+		verify(saplDocumentReader, times(1)).retrievePolicyDocuments(any(), any(),
+				any());
+		verify(this.htmlReporter, never()).generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(),
 				anyFloat());
-		Mockito.verify(this.sonarReporter, never()).generateSonarLineCoverageReport(any(), any(), any(), any(), any());
+		verify(this.sonarReporter, never()).generateSonarLineCoverageReport(any(), any(), any(), any(), any());
 
-		Mockito.verify(log).info("All coverage criteria passed");
+		verify(log).info("All coverage criteria passed");
 	}
 
 }

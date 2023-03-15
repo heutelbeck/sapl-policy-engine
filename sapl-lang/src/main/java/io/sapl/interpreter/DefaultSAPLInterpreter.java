@@ -45,13 +45,11 @@ import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
  * The default implementation of the SAPLInterpreter interface.
  */
-@Slf4j
 public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 	private static final String DUMMY_RESOURCE_URI = "policy:/aPolicy.sapl";
@@ -92,7 +90,6 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		try {
 			saplDocument = parse(saplDocumentSource);
 		} catch (PolicyEvaluationException e) {
-			log.error("Error in policy parsing: {}", e.getMessage());
 			return Flux.just(AuthorizationDecision.INDETERMINATE);
 		}
 		return saplDocument.matches().flux().switchMap(evaluateBodyIfMatching(saplDocument))

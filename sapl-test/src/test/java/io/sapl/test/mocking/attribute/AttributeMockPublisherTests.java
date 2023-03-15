@@ -13,27 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.test.unit;
+package io.sapl.test.mocking.attribute;
 
-import java.util.Map;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.api.pip.Attribute;
-import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.api.validation.Text;
-import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
 
-@PolicyInformationPoint(name = TestPIP.NAME, description = TestPIP.DESCRIPTION)
-public class TestPIP {
+class AttributeMockPublisherTests {
 
-	public static final String NAME        = "test";
-	public static final String DESCRIPTION = "Policy information Point for testing";
+	@Test
+	void test() {
+		var mock = new AttributeMockPublisher("foo.bar");
 
-	@Attribute
-	public Flux<Val> upper(@Text Val value, Map<String, JsonNode> variables) {
-		return Flux.just(Val.of(value.get().asText().toUpperCase()));
+		StepVerifier.create(mock.evaluate("test.attribute", null, null, null)).then(() -> mock.mockEmit(Val.of(1)))
+				.expectNext(Val.of(1)).thenCancel().verify();
+
+		mock.assertVerifications();
+	}
+
+	@Test
+	void test_errorMessage() {
+		var mock = new AttributeMockPublisher("test.test");
+		assertThat(mock.getErrorMessageForCurrentMode()).isNotEmpty();
 	}
 
 }
