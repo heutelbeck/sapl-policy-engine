@@ -114,10 +114,12 @@ class CoverageHitReaderTest {
 			Files.createFile(FILE_PATH_POLICY_CONDITION_HITS);
 		}
 		Files.write(FILE_PATH_POLICY_CONDITION_HITS,
-				(new PolicyConditionHit("set1", "policy 1", 0, true).toString() + System.lineSeparator()).getBytes(),
+				(new PolicyConditionHit("set1", "policy 1", 0, true).toString() + System.lineSeparator())
+						.getBytes(StandardCharsets.UTF_8),
 				StandardOpenOption.APPEND);
 		Files.write(FILE_PATH_POLICY_CONDITION_HITS,
-				(new PolicyConditionHit("set2", "policy 1", 0, true).toString() + System.lineSeparator()).getBytes(),
+				(new PolicyConditionHit("set2", "policy 1", 0, true).toString() + System.lineSeparator())
+						.getBytes(StandardCharsets.UTF_8),
 				StandardOpenOption.APPEND);
 
 		// act

@@ -18,6 +18,7 @@ package io.sapl.extension.jwt;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
@@ -156,7 +157,8 @@ public class KeyTestUtility {
 	 * @return Base64 url-safe encoding of bogus key
 	 */
 	static String base64Bogus() {
-		return Base64.getUrlEncoder().encodeToString("ThisIsAVeryBogusPublicKey".getBytes()).toString();
+		return Base64.getUrlEncoder().encodeToString("ThisIsAVeryBogusPublicKey".getBytes(StandardCharsets.UTF_8))
+				.toString();
 	}
 
 	private static class InvalidRSAPublicKey implements RSAPublicKey {

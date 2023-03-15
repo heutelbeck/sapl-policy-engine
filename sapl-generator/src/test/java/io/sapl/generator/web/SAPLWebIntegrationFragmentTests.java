@@ -151,7 +151,7 @@ class SAPLWebIntegrationFragmentTests {
 	void generateRemovesJsSuffixFromModuleName() {
 		String expectedValue = "myModule";
 
-		SAPLWebIntegrationFragment fragment = createDefaultFragment(false);
+		SAPLWebIntegrationFragment fragment = createDefaultFragment(Boolean.FALSE);
 		fragment.setHighlightingModuleName("myModule.js");
 
 		fragment.generate();
@@ -169,7 +169,7 @@ class SAPLWebIntegrationFragmentTests {
 		keywords.add("a-b");
 		keywords.add("b");
 
-		SAPLWebIntegrationFragment fragment = createDefaultFragment(true);
+		SAPLWebIntegrationFragment fragment = createDefaultFragment(Boolean.TRUE);
 		fragment.setAllKeywords(keywords);
 		fragment.setGenerateJsHighlighting(true);
 
@@ -189,7 +189,7 @@ class SAPLWebIntegrationFragmentTests {
 		Set<String> keywords = new HashSet<String>();
 		keywords.add("a-a");
 
-		SAPLWebIntegrationFragment fragment = createDefaultFragment(true);
+		SAPLWebIntegrationFragment fragment = createDefaultFragment(Boolean.TRUE);
 		fragment.setAllKeywords(keywords);
 		fragment.setGenerateJsHighlighting(true);
 
