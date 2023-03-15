@@ -18,6 +18,7 @@ package io.sapl.extension.jwt;
 import java.security.KeyPair;
 import java.security.interfaces.ECPrivateKey;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSHeader;
@@ -43,21 +44,21 @@ class JWTTestUtility {
 	 * @return timestamp one unit ago as Date object
 	 */
 	static Date timeOneUnitBeforeNow() {
-		return Date.from(new Date().toInstant().minusMillis(timeUnit));
+		return Date.from(Instant.now().minusMillis(timeUnit));
 	}
 
 	/**
 	 * @return timestamp one unit in the future as Date object
 	 */
 	static Date timeOneUnitAfterNow() {
-		return Date.from(new Date().toInstant().plusMillis(timeUnit));
+		return Date.from(Instant.now().plusMillis(timeUnit));
 	}
 
 	/**
 	 * @return timestamp three units in the future as Date object
 	 */
 	static Date timeThreeUnitsAfterNow() {
-		return Date.from(new Date().toInstant().plusMillis(3 * timeUnit));
+		return Date.from(Instant.now().plusMillis(3 * timeUnit));
 	}
 
 	/**

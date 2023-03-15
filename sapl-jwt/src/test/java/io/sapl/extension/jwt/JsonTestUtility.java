@@ -106,7 +106,7 @@ public class JsonTestUtility {
 		}
 		if (method != null && method.length() > 0) {
 			if (method.equals("NONETEXT")) {
-				valueNode.set(JWTKeyProvider.PUBLIC_KEY_METHOD_KEY, jsonNode(false));
+				valueNode.set(JWTKeyProvider.PUBLIC_KEY_METHOD_KEY, jsonNode(Boolean.FALSE));
 			} else {
 				valueNode.put(JWTKeyProvider.PUBLIC_KEY_METHOD_KEY, method);
 			}

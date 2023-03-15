@@ -135,7 +135,7 @@ public class KeyTestUtility {
 	 * @return Base64 url-safe encoding of public key
 	 */
 	static String encodePublicKeyToBase64URLPrimary(KeyPair keyPair) {
-		return Base64.getUrlEncoder().encodeToString(keyPair.getPublic().getEncoded()).toString();
+		return Base64.getUrlEncoder().encodeToString(keyPair.getPublic().getEncoded());
 	}
 
 	/**
@@ -157,8 +157,7 @@ public class KeyTestUtility {
 	 * @return Base64 url-safe encoding of bogus key
 	 */
 	static String base64Bogus() {
-		return Base64.getUrlEncoder().encodeToString("ThisIsAVeryBogusPublicKey".getBytes(StandardCharsets.UTF_8))
-				.toString();
+		return Base64.getUrlEncoder().encodeToString("ThisIsAVeryBogusPublicKey".getBytes(StandardCharsets.UTF_8));
 	}
 
 	private static class InvalidRSAPublicKey implements RSAPublicKey {
