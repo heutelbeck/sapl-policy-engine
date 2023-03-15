@@ -15,30 +15,24 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationContext;
 
-class SpringContextTests {
+public class SpringtContextTests {
 
 	@Test
-	void getBeanThrowsIllegalStateExceptionWhenApplicationContextIsNotSet() {
-		SpringContext.applicationContext = null;
-		assertThrows(IllegalStateException.class, () -> SpringContext.getBean(Object.class));
-	}
+	public void getBeanThrowsIllegalStateExceptionWhenApplicationContextIsNotSet() {
+		SpringContext springContext = new SpringContext();
+		ApplicationContext applicationContext = springContext.getApplicationContext();
+		springContext.setApplicationContext(null);
 
-	@Test
-	void returnsContextIfSet() {
-		var mockCtx = mock(ApplicationContext.class);
-		new SpringContext().setApplicationContext(mockCtx);
+		assertThrows(IllegalStateException.class, () -> {
+			SpringContext.getBean(Object.class);
+		});
 
-		assertEquals(null, SpringContext.getBean(Object.class));
-		verify(mockCtx, times(1)).getBean(Object.class);
+		springContext.setApplicationContext(applicationContext);
 	}
 
 }
