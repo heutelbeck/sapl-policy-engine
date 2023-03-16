@@ -15,49 +15,24 @@
  */
 package io.sapl.interpreter.combinators;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
-import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import reactor.core.publisher.Flux;
-import reactor.test.StepVerifier;
+import static io.sapl.interpreter.combinators.CombinatorTestUtil.*;
 
 class DenyOverridesTest {
 
-	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
-
-	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-
-	private static final AuthorizationSubscription EMPTY_AUTH_SUBSCRIPTION = new AuthorizationSubscription(null, null,
-			null, null);
-
+	private static final JsonNodeFactory           JSON                                 = JsonNodeFactory.instance;
+	private static final AuthorizationSubscription EMPTY_AUTH_SUBSCRIPTION              = new AuthorizationSubscription(
+			null, null, null, null);
 	private static final AuthorizationSubscription AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE = new AuthorizationSubscription(
 			null, null, JSON.booleanNode(true), null);
-
-	private static final Map<String, JsonNode> VARIABLES = new HashMap<>();
-
-	private AnnotationAttributeContext attributeCtx;
-
-	private AnnotationFunctionContext functionCtx;
-
-	@BeforeEach
-	void setUp() {
-		attributeCtx = new AnnotationAttributeContext();
-		functionCtx  = new AnnotationFunctionContext();
-	}
 
 	@Test
 	void permit() {
@@ -192,7 +167,7 @@ class DenyOverridesTest {
 				+ " policy \"testp3\" permit obligation \"obligation3\" advice \"advice3\""
 				+ " policy \"testp4\" deny false obligation \"obligation4\" advice \"advice4\"";
 
-		ArrayNode obligations = JSON.arrayNode();
+		var obligations = JSON.arrayNode();
 		obligations.add(JSON.textNode("obligation1"));
 		obligations.add(JSON.textNode("obligation2"));
 
@@ -242,33 +217,6 @@ class DenyOverridesTest {
 		advice.add(JSON.textNode("advice2"));
 
 		validateAdvice(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, Optional.of(advice));
-	}
-
-	private void validateDecision(AuthorizationSubscription subscription, String policySet, Decision expected) {
-		var decisions = evaluate(subscription, policySet).map(AuthorizationDecision::getDecision);
-		StepVerifier.create(decisions).expectNext(expected).verifyComplete();
-	}
-
-	private void validateResource(AuthorizationSubscription subscription, String policySet,
-			Optional<JsonNode> expected) {
-		var decisions = evaluate(subscription, policySet).map(AuthorizationDecision::getResource);
-		StepVerifier.create(decisions).expectNext(expected).verifyComplete();
-	}
-
-	private void validateObligations(AuthorizationSubscription subscription, String policySet,
-			Optional<ArrayNode> expected) {
-		var decisions = evaluate(subscription, policySet).map(AuthorizationDecision::getObligations);
-		StepVerifier.create(decisions).expectNext(expected).verifyComplete();
-	}
-
-	private void validateAdvice(AuthorizationSubscription subscription, String policySet,
-			Optional<ArrayNode> expected) {
-		var decisions = evaluate(subscription, policySet).map(AuthorizationDecision::getAdvice);
-		StepVerifier.create(decisions).expectNext(expected).verifyComplete();
-	}
-
-	private Flux<AuthorizationDecision> evaluate(AuthorizationSubscription subscription, String policySet) {
-		return INTERPRETER.evaluate(subscription, policySet, attributeCtx, functionCtx, VARIABLES);
 	}
 
 }

@@ -15,253 +15,195 @@
  */
 package io.sapl.interpreter.combinators;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateAdvice;
+import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateDecision;
+import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateObligations;
+import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateResource;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
 
 class PermitUnlessDenyTest {
 
-	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
-
-	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-
-	private static final AuthorizationSubscription EMPTY_AUTH_SUBSCRIPTION = new AuthorizationSubscription(null, null,
-			null, null);
-
+	private static final JsonNodeFactory           JSON                                 = JsonNodeFactory.instance;
+	private static final AuthorizationSubscription EMPTY_AUTH_SUBSCRIPTION              = new AuthorizationSubscription(
+			null, null, null, null);
 	private static final AuthorizationSubscription AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE = new AuthorizationSubscription(
 			null, null, JSON.booleanNode(true), null);
 
-	private static final Map<String, JsonNode> VARIABLES = new HashMap<>();
-
-	private AnnotationAttributeContext attributeCtx;
-
-	private AnnotationFunctionContext functionCtx;
-
-	@BeforeEach
-	void setUp() {
-		attributeCtx = new AnnotationAttributeContext();
-		functionCtx  = new AnnotationFunctionContext();
-	}
-
 	@Test
 	void permit() {
-		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" permit";
-		assertEquals(Decision.PERMIT,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
-						.blockFirst().getDecision());
+		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" permit";
+		var expected  = Decision.PERMIT;
+		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
 	}
 
 	@Test
 	void deny() {
-		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" deny";
-		assertEquals(Decision.DENY,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
-						.blockFirst().getDecision());
+		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" deny";
+		var expected  = Decision.DENY;
+		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
 	}
 
 	@Test
 	void notApplicableTarget() {
-		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" deny true == false";
-		assertEquals(Decision.PERMIT,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
-						.blockFirst().getDecision());
+		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" deny true == false";
+		var expected  = Decision.PERMIT;
+		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
 	}
 
 	@Test
 	void notApplicableCondition() {
-		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" deny where true == false;";
-		assertEquals(Decision.PERMIT,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
-						.blockFirst().getDecision());
+		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" deny where true == false;";
+		var expected  = Decision.PERMIT;
+		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
 	}
 
 	@Test
 	void indeterminateTarget() {
-		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" deny \"a\" < 5";
-		assertEquals(Decision.PERMIT,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
-						.blockFirst().getDecision());
+		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" deny \"a\" < 5";
+		var expected  = Decision.PERMIT;
+		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
 	}
 
 	@Test
 	void indeterminateCondition() {
-		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" deny where \"a\" < 5;";
-		assertEquals(Decision.PERMIT,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
-						.blockFirst().getDecision());
+		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" deny where \"a\" < 5;";
+		var expected  = Decision.PERMIT;
+		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
 	}
 
 	@Test
 	void permitDeny() {
-		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit" + " policy \"testp2\" deny";
-		assertEquals(Decision.DENY,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
-						.blockFirst().getDecision());
+		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit" + " policy \"testp2\" deny";
+		var expected  = Decision.DENY;
+		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
 	}
 
 	@Test
 	void denyIndeterminate() {
-		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit"
+		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit"
 				+ " policy \"testp2\" permit where \"a\" > 5;";
-		assertEquals(Decision.PERMIT,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
-						.blockFirst().getDecision());
+		var expected  = Decision.PERMIT;
+		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
 	}
 
 	@Test
 	void permitNotApplicableDeny() {
-		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit"
+		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit"
 				+ " policy \"testp2\" permit true == false" + " policy \"testp3\" deny";
-
-		assertEquals(Decision.DENY,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
-						.blockFirst().getDecision());
+		var expected  = Decision.DENY;
+		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
 	}
 
 	@Test
 	void permitNotApplicableIndeterminateDeny() {
-		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" deny \"a\" > 5"
+		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" deny \"a\" > 5"
 				+ " policy \"testp2\" permit true == false" + " policy \"testp3\" permit \"a\" > 5"
 				+ " policy \"testp4\" deny" + " policy \"testp5\" permit";
-
-		assertEquals(Decision.DENY,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
-						.blockFirst().getDecision());
+		var expected  = Decision.DENY;
+		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
 	}
 
 	@Test
 	void permitIndeterminateNotApplicable() {
-		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit"
+		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit"
 				+ " policy \"testp2\" permit \"a\" < 5" + " policy \"testp3\" permit true == false";
-
-		assertEquals(Decision.PERMIT,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
-						.blockFirst().getDecision());
+		var expected  = Decision.PERMIT;
+		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
 	}
 
 	@Test
 	void multiplePermitTransformationDeny() {
-		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit transform false"
+		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit transform false"
 				+ " policy \"testp2\" permit transform true" + " policy \"testp3\" deny false";
-
-		assertEquals(Decision.DENY,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
-						.blockFirst().getDecision());
+		var expected  = Decision.DENY;
+		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
 	}
 
 	@Test
 	void singlePermitTransformation() {
-		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit transform true";
-
-		assertEquals(Decision.PERMIT,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
-						.blockFirst().getDecision());
+		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit transform true";
+		var expected  = Decision.PERMIT;
+		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
 	}
 
 	@Test
 	void singlePermitTransformationResource() {
-		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" permit transform true";
-
-		assertEquals(Optional.of(JSON.booleanNode(true)),
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, VARIABLES)
-						.blockFirst().getResource());
+		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" permit transform true";
+		var expected  = Optional.<JsonNode>of(JSON.booleanNode(true));
+		validateResource(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
 	}
 
 	@Test
 	void multiplePermitNoTransformation() {
-		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit"
-				+ " policy \"testp2\" permit";
-
-		assertEquals(Decision.PERMIT, INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, VARIABLES)
-				.blockFirst().getDecision());
+		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit" + " policy \"testp2\" permit";
+		var expected  = Decision.PERMIT;
+		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
 	}
 
 	@Test
 	void collectObligationDeny() {
-		String policySet = "set \"tests\" permit-unless-deny"
+		var policySet = "set \"tests\" permit-unless-deny"
 				+ " policy \"testp1\" deny obligation \"obligation1\" advice \"advice1\""
 				+ " policy \"testp2\" deny obligation \"obligation2\" advice \"advice2\""
 				+ " policy \"testp3\" permit obligation \"obligation3\" advice \"advice3\""
 				+ " policy \"testp4\" deny false obligation \"obligation4\" advice \"advice4\"";
 
-		ArrayNode obligation = JSON.arrayNode();
-		obligation.add(JSON.textNode("obligation1"));
-		obligation.add(JSON.textNode("obligation2"));
+		var obligations = JSON.arrayNode();
+		obligations.add(JSON.textNode("obligation1"));
+		obligations.add(JSON.textNode("obligation2"));
 
-		assertEquals(Optional.of(obligation),
-				INTERPRETER
-						.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, VARIABLES)
-						.blockFirst()
-						.getObligations());
+		validateObligations(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, Optional.of(obligations));
 	}
 
 	@Test
 	void collectAdviceDeny() {
-		String policySet = "set \"tests\" permit-unless-deny"
+		var policySet = "set \"tests\" permit-unless-deny"
 				+ " policy \"testp1\" deny obligation \"obligation1\" advice \"advice1\""
 				+ " policy \"testp2\" deny obligation \"obligation2\" advice \"advice2\""
 				+ " policy \"testp3\" permit obligation \"obligation3\" advice \"advice3\""
 				+ " policy \"testp4\" deny false obligation \"obligation4\" advice \"advice4\"";
 
-		ArrayNode advice = JSON.arrayNode();
+		var advice = JSON.arrayNode();
 		advice.add(JSON.textNode("advice1"));
 		advice.add(JSON.textNode("advice2"));
-
-		assertEquals(Optional.of(advice), INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, VARIABLES)
-				.blockFirst().getAdvice());
+		validateAdvice(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, Optional.of(advice));
 	}
 
 	@Test
 	void collectObligationPermit() {
-		String policySet = "set \"tests\" permit-unless-deny"
+		var policySet = "set \"tests\" permit-unless-deny"
 				+ " policy \"testp1\" permit obligation \"obligation1\" advice \"advice1\""
 				+ " policy \"testp2\" permit obligation \"obligation2\" advice \"advice2\""
 				+ " policy \"testp3\" deny false obligation \"obligation3\" advice \"advice3\""
 				+ " policy \"testp4\" deny where false; obligation \"obligation4\" advice \"advice4\"";
 
-		ArrayNode obligation = JSON.arrayNode();
-		obligation.add(JSON.textNode("obligation1"));
-		obligation.add(JSON.textNode("obligation2"));
-
-		assertEquals(Optional.of(obligation),
-				INTERPRETER
-						.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, VARIABLES)
-						.blockFirst()
-						.getObligations());
+		var obligations = JSON.arrayNode();
+		obligations.add(JSON.textNode("obligation1"));
+		obligations.add(JSON.textNode("obligation2"));
+		validateObligations(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, Optional.of(obligations));
 	}
 
 	@Test
 	void collectAdvicePermit() {
-		String policySet = "set \"tests\" permit-unless-deny"
+		var policySet = "set \"tests\" permit-unless-deny"
 				+ " policy \"testp1\" permit obligation \"obligation1\" advice \"advice1\""
 				+ " policy \"testp2\" permit obligation \"obligation2\" advice \"advice2\""
 				+ " policy \"testp3\" deny false obligation \"obligation3\" advice \"advice3\""
 				+ " policy \"testp4\" deny where false; obligation \"obligation4\" advice \"advice4\"";
 
-		ArrayNode advice = JSON.arrayNode();
+		var advice = JSON.arrayNode();
 		advice.add(JSON.textNode("advice1"));
 		advice.add(JSON.textNode("advice2"));
-
-		assertEquals(Optional.of(advice), INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, VARIABLES)
-				.blockFirst().getAdvice());
+		validateAdvice(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, Optional.of(advice));
 	}
 
 }
