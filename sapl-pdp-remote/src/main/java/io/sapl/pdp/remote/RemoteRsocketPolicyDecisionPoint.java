@@ -173,7 +173,6 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 			if (this.authenticationCustomizer == null) {
 				this.authenticationCustomizer = applyFunction;
 			} else {
-				// TODO: replace by custom Exception Class
 				throw new RuntimeException(this.getClass().getName() + ": authentication method already defined");
 			}
 			return this;

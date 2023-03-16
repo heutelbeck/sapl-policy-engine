@@ -27,7 +27,7 @@ public class RSocketPDPController {
 	 * @see PolicyDecisionPoint#decide(AuthorizationSubscription)
 	 */
 	@MessageMapping("decide")
-	Flux<AuthorizationDecision> requestStream(AuthorizationSubscription authzSubscription) {
+	Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
 		return pdp.decide(authzSubscription).onErrorResume(error -> Flux.just(AuthorizationDecision.INDETERMINATE));
 	}
 
