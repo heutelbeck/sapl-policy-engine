@@ -31,7 +31,6 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.eclipse.emf.common.util.BasicEList;
-import org.eclipse.xtext.xbase.controlflow.EvaluationContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -41,33 +40,24 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.Expression;
-import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.mocking.function.MockingFunctionContext;
 import io.sapl.test.unit.TestPIP;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 class MockingAttributeContextTests {
 
-	EvaluationContext ctx;
-
-	AttributeContext unmockedCtx;
-
-	MockingAttributeContext attrCtx;
-
-	MockingFunctionContext funCtx;
-
+	private AttributeContext          unmockedCtx;
+	private MockingAttributeContext   attrCtx;
 	private HashMap<String, JsonNode> variables;
 
 	@BeforeEach
 	void setup() {
 		this.unmockedCtx = Mockito.mock(AnnotationAttributeContext.class);
 		this.attrCtx     = new MockingAttributeContext(unmockedCtx);
-		this.funCtx      = new MockingFunctionContext(Mockito.mock(FunctionContext.class));
 		this.variables   = new HashMap<>();
 	}
 
@@ -223,7 +213,7 @@ class MockingAttributeContextTests {
 
 	@Test
 	void test_test_isProvided() {
-		when(unmockedCtx.isProvidedFunction("iii.iii")).thenReturn(true);
+		when(unmockedCtx.isProvidedFunction("iii.iii")).thenReturn(Boolean.TRUE);
 		when(unmockedCtx.providedFunctionsOfLibrary("foo")).thenReturn(List.of());
 		when(unmockedCtx.providedFunctionsOfLibrary("xxx")).thenReturn(List.of());
 		when(unmockedCtx.providedFunctionsOfLibrary("iii")).thenReturn(List.of("iii", "iiii"));

@@ -24,7 +24,7 @@ import io.sapl.test.coverage.api.CoverageHitRecorder;
 
 class TestSaplInterpreterTests {
 
-	private final String POLICY_ID = "test";
+	private static final String POLICY_ID = "test";
 
 	@Test
 	void testTestModeImplAreCreatedIfSystemPropertyIsNotSet() {
@@ -32,7 +32,7 @@ class TestSaplInterpreterTests {
 		var policyDocument = "policy \"" + POLICY_ID + "\" permit";
 		var document       = interpreter.parse(policyDocument);
 
-		assertThat(document.getPolicyElement() instanceof PolicyImplCustomCoverage).isTrue();
+		assertThat(document.getPolicyElement()).isInstanceOf(PolicyImplCustomCoverage.class);
 	}
 
 	@Test
@@ -42,7 +42,7 @@ class TestSaplInterpreterTests {
 		var policyDocument = "policy \"" + POLICY_ID + "\" permit";
 		var document       = interpreter.parse(policyDocument);
 
-		assertThat(document.getPolicyElement() instanceof PolicyImplCustomCoverage).isTrue();
+		assertThat(document.getPolicyElement()).isInstanceOf(PolicyImplCustomCoverage.class);
 		System.clearProperty("io.sapl.test.coverage.collect");
 	}
 
@@ -53,7 +53,7 @@ class TestSaplInterpreterTests {
 		var policyDocument = "policy \"" + POLICY_ID + "\" permit";
 		var document       = interpreter.parse(policyDocument);
 
-		assertThat(document.getPolicyElement() instanceof PolicyImplCustomCoverage).isFalse();
+		assertThat(document.getPolicyElement()).isNotInstanceOf(PolicyImplCustomCoverage.class);
 		System.clearProperty("io.sapl.test.coverage.collect");
 	}
 

@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -27,11 +28,9 @@ import java.util.HashMap;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
@@ -44,13 +43,11 @@ class ClasspathPolicyRetrievalPointTests {
 
 	private static final AuthorizationSubscription EMPTY_SUBSCRIPTION = AuthorizationSubscription.of(null, null, null);
 
-	private CoverageHitRecorder recorder;
-
 	private SAPLInterpreter interpreter;
 
 	@BeforeEach
 	void setup() {
-		recorder    = Mockito.mock(CoverageHitRecorder.class);
+		var recorder = mock(CoverageHitRecorder.class);
 		interpreter = new TestSaplInterpreter(recorder);
 	}
 
@@ -143,8 +140,8 @@ class ClasspathPolicyRetrievalPointTests {
 		assertThat(result1.getMatchingDocuments().size(), is(1));
 		assertThat(result1.isErrorsInTarget(), is(false));
 
-		assertThat(result1.getMatchingDocuments().stream().map(doc -> (SAPL) doc).findFirst().get().getPolicyElement()
-				.getSaplName(), is("policy read"));
+		assertThat(result1.getMatchingDocuments().stream().findFirst().get().getPolicyElement().getSaplName(),
+				is("policy read"));
 
 		var authzSubscription2 = AuthorizationSubscription.of("Willi", "eat", "icecream");
 
@@ -161,8 +158,8 @@ class ClasspathPolicyRetrievalPointTests {
 		assertThat(result2.isErrorsInTarget(), is(false));
 		assertThat(result2.isPrpValidState(), is(true));
 
-		assertThat(result2.getMatchingDocuments().stream().map(doc -> (SAPL) doc).findFirst().get().getPolicyElement()
-				.getSaplName(), is("policy eat icecream"));
+		assertThat(result2.getMatchingDocuments().stream().findFirst().get().getPolicyElement().getSaplName(),
+				is("policy eat icecream"));
 	}
 
 	@Test

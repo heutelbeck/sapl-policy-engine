@@ -99,7 +99,7 @@ class MockingFunctionContextTests {
 
 	@Test
 	void test_isProvided() {
-		when(unmockedCtx.isProvidedFunction("iii.iii")).thenReturn(true);
+		when(unmockedCtx.isProvidedFunction("iii.iii")).thenReturn(Boolean.TRUE);
 		when(unmockedCtx.providedFunctionsOfLibrary("foo")).thenReturn(List.of());
 		when(unmockedCtx.providedFunctionsOfLibrary("xxx")).thenReturn(List.of());
 		when(unmockedCtx.providedFunctionsOfLibrary("iii")).thenReturn(List.of("iii", "iiii"));

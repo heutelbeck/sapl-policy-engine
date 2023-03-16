@@ -26,8 +26,6 @@ import java.util.logging.Level;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.grammar.sapl.impl.DenyUnlessPermitCombiningAlgorithmImplCustom;
@@ -59,7 +57,7 @@ class ClasspathVariablesAndCombinatorSourceTests {
 	}
 
 	@Test
-	void test_IOException() throws JsonParseException, JsonMappingException, IOException {
+	void test_IOException() throws IOException {
 		var mapper = Mockito.mock(ObjectMapper.class);
 		Mockito.when(mapper.readValue((File) Mockito.any(), Mockito.<Class<PolicyDecisionPointConfiguration>>any()))
 				.thenThrow(new IOException());
