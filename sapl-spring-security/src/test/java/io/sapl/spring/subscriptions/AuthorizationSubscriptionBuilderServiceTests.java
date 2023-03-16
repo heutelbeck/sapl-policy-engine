@@ -72,13 +72,10 @@ import reactor.util.context.Context;
 
 class AuthorizationSubscriptionBuilderServiceTests {
 
-	private Authentication authentication;
-
+	private Authentication                          authentication;
 	private AuthorizationSubscriptionBuilderService defaultBuilderUnderTest;
-
-	private MethodInvocation invocation;
-
-	private ObjectMapper mapper;
+	private MethodInvocation                        invocation;
+	private ObjectMapper                            mapper;
 
 	@BeforeEach
 	void beforeEach() {
@@ -90,10 +87,11 @@ class AuthorizationSubscriptionBuilderServiceTests {
 		mapper.registerModule(module);
 		var user = new User("the username", "the password", true, true, true, true,
 				AuthorityUtils.createAuthorityList("ROLE_USER"));
-		authentication = new UsernamePasswordAuthenticationToken(user, "the credentials");
+		authentication          = new UsernamePasswordAuthenticationToken(user, "the credentials");
 		defaultBuilderUnderTest = new AuthorizationSubscriptionBuilderService(
 				new DefaultMethodSecurityExpressionHandler(), mapper);
-		invocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "publicVoid", null, null);
+		invocation              = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "publicVoid",
+				null, null);
 	}
 
 	@Test
@@ -105,17 +103,19 @@ class AuthorizationSubscriptionBuilderServiceTests {
 
 	@Test
 	void when_usedForAuthorizationContext_subscriptionReturns() {
-		MockServerHttpRequest request = MockServerHttpRequest.get("/requestpath").build();
+		MockServerHttpRequest request  = MockServerHttpRequest.get("/requestpath").build();
 		MockServerWebExchange exchange = MockServerWebExchange.from(request);
-		AuthorizationContext context = new AuthorizationContext(exchange);
-		var sut = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(), mapper);
-		var actual = sut.reactiveConstructAuthorizationSubscription(Mono.just(authentication), context).block();
+		AuthorizationContext  context  = new AuthorizationContext(exchange);
+		var                   sut      = new AuthorizationSubscriptionBuilderService(
+				new DefaultMethodSecurityExpressionHandler(), mapper);
+		var                   actual   = sut
+				.reactiveConstructAuthorizationSubscription(Mono.just(authentication), context).block();
 		assertThat(actual, is(not(nullValue())));
 	}
 
 	@Test
 	void when_expressionsAreProvided_then_SubscriptionContainsResult() {
-		var attribute = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'", Object.class);
+		var attribute    = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'", Object.class);
 		var subscription = defaultBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
 				attribute);
 		assertAll(() -> assertThat(subscription.getSubject(), is(jsonText("a subject"))),
@@ -126,7 +126,7 @@ class AuthorizationSubscriptionBuilderServiceTests {
 
 	@Test
 	void when_expressionResultCannotBeMarshalledToJson_then_FactoryThrows() {
-		var attribute = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'", Object.class);
+		var attribute  = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'", Object.class);
 		var mockMapper = mock(ObjectMapper.class);
 		when(mockMapper.valueToTree(any())).thenThrow(new EvaluationException("ERROR"));
 		var sut = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(), mockMapper);
@@ -136,7 +136,7 @@ class AuthorizationSubscriptionBuilderServiceTests {
 
 	@Test
 	void when_nullParameters_then_FactoryConstructsFromContext() {
-		var attribute = attribute(null, null, null, null, Object.class);
+		var attribute    = attribute(null, null, null, null, Object.class);
 		var subscription = defaultBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
 				attribute);
 		// @formatter:off
@@ -163,7 +163,7 @@ class AuthorizationSubscriptionBuilderServiceTests {
 
 	@Test
 	void when_returnObjectResourceAndNulls_then_FactoryConstructsFromContextWithReturnObjectInResource() {
-		var attribute = attribute(null, null, "returnObject", null, Object.class);
+		var attribute    = attribute(null, null, "returnObject", null, Object.class);
 		var subscription = defaultBuilderUnderTest.constructAuthorizationSubscriptionWithReturnObject(authentication,
 				invocation, attribute, "the returnObject");
 		// @formatter:off
@@ -184,12 +184,13 @@ class AuthorizationSubscriptionBuilderServiceTests {
 	}
 
 	@Test
-	void when_nullParametersAndAnonymousAuthentication_then_FactoryConstructsFromContextAndNoAuthn() throws JsonProcessingException {
-		var attribute = attribute(null, null, null, null, Object.class);
-		var anonymous = new AnonymousAuthenticationToken("key", "anonymous",
+	void when_nullParametersAndAnonymousAuthentication_then_FactoryConstructsFromContextAndNoAuthn()
+			throws JsonProcessingException {
+		var attribute    = attribute(null, null, null, null, Object.class);
+		var anonymous    = new AnonymousAuthenticationToken("key", "anonymous",
 				AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
 		var subscription = defaultBuilderUnderTest.constructAuthorizationSubscription(anonymous, invocation, attribute);
-		
+
 		// @formatter:off
 		assertAll(() -> assertThat(subscription.getSubject(),
 						  is(jsonObject()
@@ -217,11 +218,11 @@ class AuthorizationSubscriptionBuilderServiceTests {
 	void when_nullParametersAndHttpRequestInContext_then_FactoryConstructsFromContextIncludingRequest() {
 
 		try (MockedStatic<RequestContextHolder> theMock = mockStatic(RequestContextHolder.class)) {
-			var request = new MockHttpServletRequest();
+			var request           = new MockHttpServletRequest();
 			var requestAttributes = mock(ServletRequestAttributes.class);
 			when(requestAttributes.getRequest()).thenReturn(request);
 			theMock.when(RequestContextHolder::getRequestAttributes).thenReturn(requestAttributes);
-			var attribute = attribute(null, null, null, null, Object.class);
+			var attribute    = attribute(null, null, null, null, Object.class);
 			var subscription = defaultBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
 					attribute);
 			// @formatter:off
@@ -250,9 +251,9 @@ class AuthorizationSubscriptionBuilderServiceTests {
 
 	@Test
 	void when_nullParametersInvocationHasArguments_then_FactoryConstructsFromContextIncludingArguments() {
-		var attribute = attribute(null, null, null, null, Object.class);
+		var attribute          = attribute(null, null, null, null, Object.class);
 		var invocationWithArgs = MethodInvocationUtils.create(new TestClass(), "publicVoidArgs", new Object[] { 1 });
-		var subscription = defaultBuilderUnderTest.constructAuthorizationSubscription(authentication,
+		var subscription       = defaultBuilderUnderTest.constructAuthorizationSubscription(authentication,
 				invocationWithArgs, attribute);
 		// @formatter:off
 		assertAll(() -> assertThat(subscription.getSubject(),
@@ -280,10 +281,10 @@ class AuthorizationSubscriptionBuilderServiceTests {
 
 	@Test
 	void when_nullParametersInvocationHasArgumentsThatCannotBeMappedToJson_then_FactoryConstructsFromContextExcludingProblematicArguments() {
-		var attribute = attribute(null, null, null, null, Object.class);
+		var attribute             = attribute(null, null, null, null, Object.class);
 		var invocationWithBadArgs = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
 				"publicVoidProblemArg", new Class<?>[] { BadForJackson.class }, new Object[] { new BadForJackson() });
-		var subscription = defaultBuilderUnderTest.constructAuthorizationSubscription(authentication,
+		var subscription          = defaultBuilderUnderTest.constructAuthorizationSubscription(authentication,
 				invocationWithBadArgs, attribute);
 		// @formatter:off
 		assertAll(() -> assertThat(subscription.getSubject(),
@@ -311,9 +312,10 @@ class AuthorizationSubscriptionBuilderServiceTests {
 	@Test
 	void when_reactive_nullParameters_then_FactoryConstructsFromContext() {
 		ServerWebExchange serverWebExchange = MockServerWebExchange.from(MockServerHttpRequest.get("/foo/bar"));
-		SecurityContext securityContext = new MockSecurityContext(authentication);
-		var attribute = attribute(null, null, null, null, Object.class);
-		var subscription = defaultBuilderUnderTest.reactiveConstructAuthorizationSubscription(invocation, attribute)
+		SecurityContext   securityContext   = new MockSecurityContext(authentication);
+		var               attribute         = attribute(null, null, null, null, Object.class);
+		var               subscription      = defaultBuilderUnderTest
+				.reactiveConstructAuthorizationSubscription(invocation, attribute)
 				.contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
 				.contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext))).block();
 		// @formatter:off
@@ -340,7 +342,7 @@ class AuthorizationSubscriptionBuilderServiceTests {
 
 	@Test
 	void when_reactive_nullParametersAndNoAuthn_then_FactoryConstructsFromContextAndAnonymous() {
-		var attribute = attribute(null, null, null, null, Object.class);
+		var attribute    = attribute(null, null, null, null, Object.class);
 		var subscription = defaultBuilderUnderTest.reactiveConstructAuthorizationSubscription(invocation, attribute)
 				.block();
 		// @formatter:off
@@ -368,7 +370,7 @@ class AuthorizationSubscriptionBuilderServiceTests {
 
 	@Test
 	void when_reactive_returnObjectInExpression_then_FactoryConstructsReturnObjectInSubscription() {
-		var attribute = attribute(null, null, "returnObject", null, Object.class);
+		var attribute    = attribute(null, null, "returnObject", null, Object.class);
 		var subscription = defaultBuilderUnderTest
 				.reactiveConstructAuthorizationSubscription(invocation, attribute, "the returnObject").block();
 		// @formatter:off
@@ -413,7 +415,7 @@ class AuthorizationSubscriptionBuilderServiceTests {
 
 	public static class BadForJackson {
 
-		@SuppressWarnings("unused")
+		@SuppressWarnings("unused") // Required for test
 		private String bad;
 
 	}

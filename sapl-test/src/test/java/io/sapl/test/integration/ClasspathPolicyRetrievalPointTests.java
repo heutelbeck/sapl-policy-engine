@@ -63,8 +63,8 @@ class ClasspathPolicyRetrievalPointTests {
 									ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription);
 									return ctx;
 								})
-				.blockFirst();
-		Assertions.assertThat(prpResult.getMatchingDocuments().size()).isEqualTo(2);
+				.blockFirst().getMatchingDocuments();
+		Assertions.assertThat(prpResult).hasSize(2);
 	}
 
 	@Test
@@ -140,8 +140,7 @@ class ClasspathPolicyRetrievalPointTests {
 		assertThat(result1.getMatchingDocuments().size(), is(1));
 		assertThat(result1.isErrorsInTarget(), is(false));
 
-		assertThat(result1.getMatchingDocuments().stream().findFirst().get().getPolicyElement().getSaplName(),
-				is("policy read"));
+		assertThat(result1.getMatchingDocuments().get(0).getPolicyElement().getSaplName(), is("policy read"));
 
 		var authzSubscription2 = AuthorizationSubscription.of("Willi", "eat", "icecream");
 
@@ -158,8 +157,7 @@ class ClasspathPolicyRetrievalPointTests {
 		assertThat(result2.isErrorsInTarget(), is(false));
 		assertThat(result2.isPrpValidState(), is(true));
 
-		assertThat(result2.getMatchingDocuments().stream().findFirst().get().getPolicyElement().getSaplName(),
-				is("policy eat icecream"));
+		assertThat(result2.getMatchingDocuments().get(0).getPolicyElement().getSaplName(), is("policy eat icecream"));
 	}
 
 	@Test
