@@ -20,7 +20,6 @@ import static org.mockito.Mockito.mock;
 
 import java.io.File;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -39,13 +38,6 @@ class PrpUpdateEventSourceAutoConfigurationTests {
 
 	@TempDir
 	File tempDir;
-
-	String existingFolder;
-
-	@BeforeEach
-	void beforeEach() {
-		existingFolder = tempDir.getAbsolutePath().toString();
-	}
 
 	@Test
 	void whenFilesystemPrpIsConfigured_thenOneIsCreated() {

@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -32,13 +31,6 @@ class EmbeddedPDPPropertiesValidationTests {
 
 	@TempDir
 	File tempDir;
-
-	String existingFolder;
-
-	@BeforeEach
-	void beforeEach() {
-		existingFolder = tempDir.getAbsolutePath().toString();
-	}
 
 	@EnableConfigurationProperties(EmbeddedPDPProperties.class)
 	static class EnablePropertiesInApplicationTestRunnerConfiguration {

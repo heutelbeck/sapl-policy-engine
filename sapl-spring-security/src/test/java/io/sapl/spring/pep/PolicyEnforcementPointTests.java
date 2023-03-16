@@ -43,7 +43,7 @@ class PolicyEnforcementPointTests {
 
 	@BeforeEach
 	void setUpMocks() {
-		pdp = mock(PolicyDecisionPoint.class);
+		pdp                = mock(PolicyDecisionPoint.class);
 		constraintHandlers = mock(ConstraintEnforcementService.class);
 	}
 
@@ -54,7 +54,7 @@ class PolicyEnforcementPointTests {
 				.thenReturn(Flux.empty());
 		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers);
 		var actual = pep.isPermitted(AuthorizationSubscription.of("subject", "action", "resource")).block();
-		assertThat(actual, is(true));
+		assertThat(actual, is(Boolean.TRUE));
 	}
 
 	@Test
@@ -64,7 +64,7 @@ class PolicyEnforcementPointTests {
 				.thenReturn(Flux.empty());
 		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers);
 		var actual = pep.isPermitted(AuthorizationSubscription.of("subject", "action", "resource")).block();
-		assertThat(actual, is(false));
+		assertThat(actual, is(Boolean.FALSE));
 	}
 
 	@Test
@@ -74,7 +74,7 @@ class PolicyEnforcementPointTests {
 				.thenReturn(Flux.empty());
 		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers);
 		var actual = pep.isPermitted(AuthorizationSubscription.of("subject", "action", "resource")).block();
-		assertThat(actual, is(false));
+		assertThat(actual, is(Boolean.FALSE));
 	}
 
 	@Test
@@ -84,7 +84,7 @@ class PolicyEnforcementPointTests {
 				.thenReturn(Flux.empty());
 		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers);
 		var actual = pep.isPermitted(AuthorizationSubscription.of("subject", "action", "resource")).block();
-		assertThat(actual, is(true));
+		assertThat(actual, is(Boolean.TRUE));
 	}
 
 	@Test
@@ -94,7 +94,7 @@ class PolicyEnforcementPointTests {
 				.thenReturn(Flux.error(new AccessDeniedException("FAILED OBLIGATION")));
 		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers);
 		var actual = pep.isPermitted(AuthorizationSubscription.of("subject", "action", "resource")).block();
-		assertThat(actual, is(false));
+		assertThat(actual, is(Boolean.FALSE));
 	}
 
 	@Test
@@ -105,12 +105,12 @@ class PolicyEnforcementPointTests {
 				.thenReturn(Flux.error(new AccessDeniedException("FAILED OBLIGATION")));
 		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers);
 		var actual = pep.isPermitted(AuthorizationSubscription.of("subject", "action", "resource")).block();
-		assertThat(actual, is(false));
+		assertThat(actual, is(Boolean.FALSE));
 	}
 
 	private Flux<AuthorizationDecision> decisionFluxOnePermitWithObligation() {
-		var json = JsonNodeFactory.instance;
-		var plus10000 = json.numberNode(10000L);
+		var json       = JsonNodeFactory.instance;
+		var plus10000  = json.numberNode(10000L);
 		var obligation = json.arrayNode();
 		obligation.add(plus10000);
 		return Flux.just(AuthorizationDecision.PERMIT.withObligations(obligation));
