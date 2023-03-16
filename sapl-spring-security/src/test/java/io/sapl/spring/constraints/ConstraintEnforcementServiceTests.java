@@ -59,7 +59,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Hooks;
 import reactor.test.StepVerifier;
 
-public class ConstraintEnforcementServiceTests {
+class ConstraintEnforcementServiceTests {
 
 	private final static ObjectMapper MAPPER = new ObjectMapper();
 

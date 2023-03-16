@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AdviceMode;
 
-public class ReactiveSaplMethodSecuritySelectorTests {
+class ReactiveSaplMethodSecuritySelectorTests {
 
 	@Test
 	void when_AdviceModeNotProxy_throwIllegalState() {

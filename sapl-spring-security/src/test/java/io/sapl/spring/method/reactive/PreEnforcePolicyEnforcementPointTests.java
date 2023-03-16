@@ -53,7 +53,7 @@ import io.sapl.spring.constraints.api.SubscriptionHandlerProvider;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
-public class PreEnforcePolicyEnforcementPointTests {
+class PreEnforcePolicyEnforcementPointTests {
 
 	private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
 

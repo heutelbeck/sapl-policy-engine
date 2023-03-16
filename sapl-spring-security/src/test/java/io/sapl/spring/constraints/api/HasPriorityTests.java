@@ -7,7 +7,7 @@ import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Test;
 
-public class HasPriorityTests {
+class HasPriorityTests {
 
 	@Test
 	void minimalPriorityIsZero() {

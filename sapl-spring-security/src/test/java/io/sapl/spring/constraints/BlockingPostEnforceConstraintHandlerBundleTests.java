@@ -16,7 +16,7 @@ import java.util.function.Predicate;
 
 import org.junit.jupiter.api.Test;
 
-public class BlockingPostEnforceConstraintHandlerBundleTests {
+class BlockingPostEnforceConstraintHandlerBundleTests {
 
 	@Test
 	void when_filterOptionalFalse_then_returnsEmpty() {

@@ -21,7 +21,7 @@ import java.util.function.Supplier;
 
 import org.aopalliance.intercept.MethodInvocation;
 
-public class MockMethodInvocation implements MethodInvocation {
+class MockMethodInvocation implements MethodInvocation {
 
 	private Method method;
 

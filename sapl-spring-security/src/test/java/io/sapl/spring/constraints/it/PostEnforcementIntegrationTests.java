@@ -45,7 +45,7 @@ import reactor.core.publisher.Flux;
 
 @SpringBootTest(classes = { Application.class, TestService.class, MethodSecurityConfiguration.class,
 		ConstraintHandlerOne.class, ConstraintHandlerTwo.class, FailingConstraintHandler.class })
-public class PostEnforcementIntegrationTests {
+class PostEnforcementIntegrationTests {
 	private static final String UNKNOWN_CONSTRAINT = "unknown constraint";
 	private static final String FAILING_CONSTRAINT = "failing constraint";
 	private static final String KNOWN_CONSTRAINT   = "known constraint";
@@ -174,6 +174,7 @@ public class PostEnforcementIntegrationTests {
 
 	@Test
 	void contextLoads() {
+		// NOOP
 	}
 
 	@Test

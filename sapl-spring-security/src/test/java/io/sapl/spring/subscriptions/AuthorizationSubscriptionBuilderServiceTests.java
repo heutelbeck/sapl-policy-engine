@@ -70,7 +70,7 @@ import io.sapl.spring.serialization.ServerHttpRequestSerializer;
 import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 
-public class AuthorizationSubscriptionBuilderServiceTests {
+class AuthorizationSubscriptionBuilderServiceTests {
 
 	private Authentication authentication;
 

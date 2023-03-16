@@ -59,7 +59,7 @@ public class AuthorizationManagerPolicyEnforcementPointTest {
 	@Test
 	public void check_pepReturnsFalse_shouldBeDenied() {
 		var actual = sut.check(AUTHENTICATION, mock(AuthorizationContext.class));
-		when(pep.isPermitted(any())).thenReturn(Mono.just(false));
+		when(pep.isPermitted(any())).thenReturn(Mono.just(Boolean.FALSE));
 
 		StepVerifier.create(actual).assertNext(authorization -> assertFalse(authorization.isGranted()))
 				.verifyComplete();
@@ -67,7 +67,7 @@ public class AuthorizationManagerPolicyEnforcementPointTest {
 
 	@Test
 	public void check_pepReturnsTrue_shouldBeGranted() {
-		when(pep.isPermitted(any())).thenReturn(Mono.just(true));
+		when(pep.isPermitted(any())).thenReturn(Mono.just(Boolean.TRUE));
 		var actual = sut.check(AUTHENTICATION, mock(AuthorizationContext.class));
 		StepVerifier.create(actual).assertNext(authorization -> assertTrue(authorization.isGranted())).verifyComplete();
 	}
