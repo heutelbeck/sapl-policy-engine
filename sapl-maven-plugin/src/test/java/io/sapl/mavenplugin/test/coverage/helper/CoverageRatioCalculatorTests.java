@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 
 import io.sapl.test.coverage.api.model.PolicySetHit;
 
-class CoverageRatioCalculatorTest {
+class CoverageRatioCalculatorTests {
 
 	@Test
 	void test_normalPath() {

@@ -38,7 +38,7 @@ import org.mockito.Mockito;
 
 import io.sapl.mavenplugin.test.coverage.model.SaplDocument;
 
-public class SaplDocumentReaderTest {
+class SaplDocumentReaderTests {
 
 	private MavenProjectStub project;
 
@@ -47,39 +47,39 @@ public class SaplDocumentReaderTest {
 	private SaplDocumentReader reader;
 
 	@BeforeEach
-	public void setup() {
+	void setup() {
 		project = new MavenProjectStub();
 		project.setRuntimeClasspathElements(List.of("target/classes"));
 		reader = new SaplDocumentReader();
 	}
 
 	@Test
-	public void test() throws MojoExecutionException {
+	void test() throws MojoExecutionException {
 		Collection<SaplDocument> documents = reader.retrievePolicyDocuments(new SilentLog(), project, policyPath);
 		assertEquals(2, documents.size());
 	}
 
 	@Test
-	public void test_nonExistentPath() {
+	void test_nonExistentPath() {
 		assertThrows(MojoExecutionException.class, () -> reader.retrievePolicyDocuments(new SilentLog(), project,
 				"src" + File.separator + "test" + File.separator + "resources" + File.separator + "policies"));
 	}
 
 	@Test
-	public void test_pathPointsToFile() {
+	void test_pathPointsToFile() {
 		assertThrows(MojoExecutionException.class, () -> reader.retrievePolicyDocuments(new SilentLog(), project,
 				"policies" + File.separator + "policy_1.sapl"));
 	}
 
 	@Test
-	public void test_FilePathWithDot() throws MojoExecutionException {
+	void test_FilePathWithDot() throws MojoExecutionException {
 		Collection<SaplDocument> documents = reader.retrievePolicyDocuments(new SilentLog(), project,
 				"." + File.separator + "policies");
 		assertEquals(2, documents.size());
 	}
 
 	@Test
-	public void test_File_IOException() {
+	void test_File_IOException() {
 		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
 			mockedFiles.when(() -> Files.readString(Mockito.any())).thenThrow(IOException.class);
 			assertThrows(MojoExecutionException.class,
@@ -88,7 +88,7 @@ public class SaplDocumentReaderTest {
 	}
 
 	@Test
-	public void test_DependencyResolutionRequiredException() throws DependencyResolutionRequiredException {
+	void test_DependencyResolutionRequiredException() throws DependencyResolutionRequiredException {
 		var project = mock(MavenProject.class);
 		when(project.getRuntimeClasspathElements()).thenThrow(DependencyResolutionRequiredException.class);
 		assertThrows(MojoExecutionException.class,

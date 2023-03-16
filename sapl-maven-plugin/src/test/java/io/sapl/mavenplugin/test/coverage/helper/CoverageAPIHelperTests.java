@@ -28,7 +28,7 @@ import io.sapl.mavenplugin.test.coverage.TestFileHelper;
 import io.sapl.test.coverage.api.CoverageAPIFactory;
 import io.sapl.test.coverage.api.model.PolicySetHit;
 
-class CoverageAPIHelperTest {
+class CoverageAPIHelperTests {
 
 	private Path baseDir;
 

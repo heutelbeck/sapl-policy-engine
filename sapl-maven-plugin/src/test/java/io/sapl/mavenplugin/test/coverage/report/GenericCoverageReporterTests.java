@@ -51,20 +51,20 @@ import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import io.sapl.test.coverage.api.model.PolicyHit;
 import io.sapl.test.coverage.api.model.PolicySetHit;
 
-public class GenericCoverageReporterTest {
+class GenericCoverageReporterTests {
 
 	private DefaultSAPLInterpreter INTERPRETER;
 
 	private GenericCoverageReporter reporter;
 
 	@BeforeEach
-	public void setup() {
+	void setup() {
 		this.reporter = new GenericCoverageReporter();
 		this.INTERPRETER = new DefaultSAPLInterpreter();
 	}
 
 	@Test
-	public void test_standard() throws IOException {
+	void test_standard() throws IOException {
 		// arrange
 		Path path = Paths.get("target/classes/policies/policy_1.sapl");
 		String sapl = Files.readString(path);
@@ -110,7 +110,7 @@ public class GenericCoverageReporterTest {
 	}
 
 	@Test
-	public void test_policySetNotHit() {
+	void test_policySetNotHit() {
 		// arrange
 		String sapl = "set \"set\" \ndeny-unless-permit \npolicy \"policy1\" \npermit";
 		Collection<SaplDocument> documents = List
@@ -134,7 +134,7 @@ public class GenericCoverageReporterTest {
 	}
 
 	@Test
-	public void test_policySetWithTarget() {
+	void test_policySetWithTarget() {
 		// arrange
 		String sapl = "set \"set\" \ndeny-unless-permit \nfor action == \"read\" \npolicy \"policy1\" \npermit";
 		Collection<SaplDocument> documents = List
@@ -161,7 +161,7 @@ public class GenericCoverageReporterTest {
 	}
 
 	@Test
-	public void test_policyWithInvalidType() {
+	void test_policyWithInvalidType() {
 		SAPL mockSAPL = Mockito.mock(SAPL.class);
 		Collection<SaplDocument> documents = List.of(new SaplDocument(Paths.get("test.sapl"), 5, mockSAPL));
 		PolicySetHit setHit = new PolicySetHit("set");
@@ -178,7 +178,7 @@ public class GenericCoverageReporterTest {
 	}
 
 	@Test
-	public void test_policySetWithValue() {
+	void test_policySetWithValue() {
 		// arrange
 		String sapl = "set \"set\" \ndeny-unless-permit \nvar temp = 1; \npolicy \"policy1\" \npermit";
 		Collection<SaplDocument> documents = List
@@ -205,7 +205,7 @@ public class GenericCoverageReporterTest {
 	}
 
 	@Test
-	public void test_policyWithoutTarget() {
+	void test_policyWithoutTarget() {
 		// arrange
 		String sapl = "policy \"policy1\" \npermit\nwhere\ntrue;";
 		Collection<SaplDocument> documents = List
@@ -233,7 +233,7 @@ public class GenericCoverageReporterTest {
 	}
 
 	@Test
-	public void test_policyWithUncoveredStatement() {
+	void test_policyWithUncoveredStatement() {
 		// arrange
 		String sapl = "policy \"policy1\" \npermit\nwhere\ntrue;\ntrue;";
 		Collection<SaplDocument> documents = List
@@ -261,7 +261,7 @@ public class GenericCoverageReporterTest {
 	}
 
 	@Test
-	public void test_policyBodyValueDefinition_lastStatementNotHit() {
+	void test_policyBodyValueDefinition_lastStatementNotHit() {
 		// arrange
 		String sapl = "policy \"policy1\" \npermit\nwhere\nfalse;\nvar id=1;";
 		Collection<SaplDocument> documents = List
@@ -289,7 +289,7 @@ public class GenericCoverageReporterTest {
 	}
 
 	@Test
-	public void test_policyBodyValueDefinitionFULLY_notDependingOnFollowingCondition() {
+	void test_policyBodyValueDefinitionFULLY_notDependingOnFollowingCondition() {
 		// arrange
 		String sapl = "policy \"policy1\" \npermit\nwhere\nvar id=1;\ntrue;";
 		Collection<SaplDocument> documents = List
@@ -317,7 +317,7 @@ public class GenericCoverageReporterTest {
 	}
 
 	@Test
-	public void test_policyBodyMultipleStatementsPerLine_markFullyWhenFully() {
+	void test_policyBodyMultipleStatementsPerLine_markFullyWhenFully() {
 		// arrange
 		String sapl = "policy \"policy1\" \npermit\nwhere\ntrue;true;";
 		Collection<SaplDocument> documents = List
@@ -351,7 +351,7 @@ public class GenericCoverageReporterTest {
 	}
 
 	@Test
-	public void test_policyBodyMultipleStatementsPerLine_markFullyWhenPartly() {
+	void test_policyBodyMultipleStatementsPerLine_markFullyWhenPartly() {
 		// arrange
 		String sapl = "policy \"policy1\" \npermit\nwhere\ntrue;true;";
 		Collection<SaplDocument> documents = List
@@ -384,7 +384,7 @@ public class GenericCoverageReporterTest {
 	}
 
 	@Test
-	public void test_policyBodyMultipleStatementsPerLine_markFullyWhenNever() {
+	void test_policyBodyMultipleStatementsPerLine_markFullyWhenNever() {
 		// arrange
 		String sapl = "policy \"policy1\" \npermit\nwhere\ntrue;true;";
 		Collection<SaplDocument> documents = List
@@ -401,7 +401,7 @@ public class GenericCoverageReporterTest {
 	}
 
 	@Test
-	public void test_policyBodyMultipleStatementsPerLine_markPartlyWhenFully() {
+	void test_policyBodyMultipleStatementsPerLine_markPartlyWhenFully() {
 		// arrange
 		String sapl = "policy \"policy1\" \npermit\nwhere\ntrue;true;";
 		Collection<SaplDocument> documents = List
@@ -435,7 +435,7 @@ public class GenericCoverageReporterTest {
 	}
 
 	@Test
-	public void test_policyBodyMultipleStatementsPerLine_markPartlyWhenPartly() {
+	void test_policyBodyMultipleStatementsPerLine_markPartlyWhenPartly() {
 		// arrange
 		String sapl = "policy \"policy1\" \npermit\nwhere\ntrue;true;";
 		Collection<SaplDocument> documents = List
@@ -467,7 +467,7 @@ public class GenericCoverageReporterTest {
 	}
 
 	@Test
-	public void test_policyBodyMultipleStatementsPerLine_markPartlyWhenNever() {
+	void test_policyBodyMultipleStatementsPerLine_markPartlyWhenNever() {
 		// arrange
 		String sapl = "policy \"policy1\" \npermit\nwhere\ntrue;true;";
 		Collection<SaplDocument> documents = List
@@ -482,7 +482,7 @@ public class GenericCoverageReporterTest {
 	}
 
 	@Test
-	public void test_policyBodyMultipleStatementsPerLine_markNeverWhenFully() {
+	void test_policyBodyMultipleStatementsPerLine_markNeverWhenFully() {
 		// arrange
 		String sapl = "policy \"policy1\" \npermit\nwhere\ntrue;true;";
 		Collection<SaplDocument> documents = List
@@ -514,7 +514,7 @@ public class GenericCoverageReporterTest {
 	}
 
 	@Test
-	public void test_policyBodyMultipleStatementsPerLine_markNeverWhenPartly() {
+	void test_policyBodyMultipleStatementsPerLine_markNeverWhenPartly() {
 		// arrange
 		String sapl = "policy \"policy1\" \npermit\nwhere\ntrue;true;";
 		Collection<SaplDocument> documents = List
@@ -544,7 +544,7 @@ public class GenericCoverageReporterTest {
 	}
 
 	@Test
-	public void test_policyBodyMultipleStatementsPerLine_markNeverWhenNever() {
+	void test_policyBodyMultipleStatementsPerLine_markNeverWhenNever() {
 		// arrange
 		String sapl = "policy \"policy1\" \npermit\nwhere\ntrue;true;";
 		Collection<SaplDocument> documents = List
@@ -573,7 +573,7 @@ public class GenericCoverageReporterTest {
 	}
 
 	@Test
-	public void test_policyBodyMultipleStatementsPerLine_WithValue_markFullyWhenFully() {
+	void test_policyBodyMultipleStatementsPerLine_WithValue_markFullyWhenFully() {
 		// arrange
 		String sapl = "policy \"policy1\" \npermit\nwhere\ntrue;var id=1;";
 		Collection<SaplDocument> documents = List
@@ -605,7 +605,7 @@ public class GenericCoverageReporterTest {
 	}
 
 	@Test
-	public void test_policyBodyMultipleStatementsPerLine_WithValue_markFullyWhenPartly() {
+	void test_policyBodyMultipleStatementsPerLine_WithValue_markFullyWhenPartly() {
 		// arrange
 		String sapl = "policy \"policy1\" \npermit\nwhere\ntrue;var id=1;";
 		Collection<SaplDocument> documents = List
@@ -635,7 +635,7 @@ public class GenericCoverageReporterTest {
 	}
 
 	@Test
-	public void test_policyBodyMultipleStatementsPerLine_WithValue_markFullyWhenNever() {
+	void test_policyBodyMultipleStatementsPerLine_WithValue_markFullyWhenNever() {
 		// cannot be reached due to isLastStatementHit if clause
 
 		SaplDocumentCoverageInformation coverage = new SaplDocumentCoverageInformation(null, 1);
@@ -644,7 +644,7 @@ public class GenericCoverageReporterTest {
 	}
 
 	@Test
-	public void test_policyBodyMultipleStatementsPerLine_WithValue_markNeverWhenFully() {
+	void test_policyBodyMultipleStatementsPerLine_WithValue_markNeverWhenFully() {
 		// cannot normally be reached due to isLastStatementHit if clause
 
 		SaplDocumentCoverageInformation coverage = new SaplDocumentCoverageInformation(null, 1);
@@ -653,7 +653,7 @@ public class GenericCoverageReporterTest {
 	}
 
 	@Test
-	public void test_policyBodyMultipleStatementsPerLine_WithValue_markNeverWhenPartly() {
+	void test_policyBodyMultipleStatementsPerLine_WithValue_markNeverWhenPartly() {
 		// arrange
 		String sapl = "policy \"policy1\" \npermit\nwhere\ntrue;var id=1;";
 		Collection<SaplDocument> documents = List
@@ -683,7 +683,7 @@ public class GenericCoverageReporterTest {
 	}
 
 	@Test
-	public void test_policyBodyMultipleStatementsPerLine_WithValue_markNeverWhenNever() {
+	void test_policyBodyMultipleStatementsPerLine_WithValue_markNeverWhenNever() {
 		// arrange
 		String sapl = "policy \"policy1\" \npermit\nwhere\ntrue;var id=1;";
 		Collection<SaplDocument> documents = List
@@ -712,7 +712,7 @@ public class GenericCoverageReporterTest {
 	}
 
 	@Test
-	public void whenUnknownLineCoveredValue_testExceptionsAreThrown() {
+	void whenUnknownLineCoveredValue_testExceptionsAreThrown() {
 		// arrange
 		String sapl = "policy \"policy1\" \npermit\nwhere\ntrue;var id=1;";
 		Collection<SaplDocument> documents = List
@@ -737,7 +737,7 @@ public class GenericCoverageReporterTest {
 	}
 
 	@Test
-	public void test_markLinesOfPolicyStatement_UnknwonStatementType() {
+	void test_markLinesOfPolicyStatement_UnknwonStatementType() {
 		var mockStatement = Mockito.mock(Statement.class);
 		EClass unknwonNewStatementType = SaplPackage.Literals.ENTITLEMENT;
 		Mockito.when(mockStatement.eClass()).thenReturn(unknwonNewStatementType);

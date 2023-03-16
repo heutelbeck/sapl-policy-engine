@@ -42,7 +42,7 @@ import org.mockito.Mockito;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 
-public class SonarLineCoverageReportGeneratorTest {
+class SonarLineCoverageReportGeneratorTests {
 
 	private SonarLineCoverageReportGenerator generator;
 
@@ -72,7 +72,7 @@ public class SonarLineCoverageReportGeneratorTest {
 	}
 
 	@Test
-	public void test() throws IOException, MojoExecutionException {
+	void test() throws IOException, MojoExecutionException {
 
 		generator.generateSonarLineCoverageReport(documents, new SilentLog(), Paths.get("target/sapl-coverage"),
 				"policies", Paths.get(".").toFile());
@@ -98,7 +98,7 @@ public class SonarLineCoverageReportGeneratorTest {
 	}
 
 	@Test
-	public void test_IOException() {
+	void test_IOException() {
 		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
 			mockedFiles.when(() -> Files.createFile(Mockito.any())).thenThrow(IOException.class);
 			assertThrows(MojoExecutionException.class, () -> generator.generateSonarLineCoverageReport(documents,
@@ -107,7 +107,7 @@ public class SonarLineCoverageReportGeneratorTest {
 	}
 
 	@Test
-	public void test_JAXBException() {
+	void test_JAXBException() {
 		try (MockedStatic<JAXBContext> jaxbContext = Mockito.mockStatic(JAXBContext.class)) {
 			jaxbContext.when(() -> JAXBContext.newInstance(Coverage.class, ObjectFactory.class))
 					.thenThrow(JAXBException.class);

@@ -55,12 +55,12 @@ class TreeWalkerTest {
 		}
 
 		private BasicGroupMockBuilder noSteps() {
-			when(mock.getSteps().isEmpty()).thenReturn(true);
+			when(mock.getSteps().isEmpty()).thenReturn(Boolean.TRUE);
 			return this;
 		}
 
 		private BasicGroupMockBuilder withSteps() {
-			when(mock.getSteps().isEmpty()).thenReturn(false);
+			when(mock.getSteps().isEmpty()).thenReturn(Boolean.FALSE);
 			return this;
 		}
 

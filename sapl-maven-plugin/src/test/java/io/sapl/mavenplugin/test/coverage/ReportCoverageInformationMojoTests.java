@@ -47,7 +47,7 @@ import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import io.sapl.test.coverage.api.model.PolicyHit;
 import io.sapl.test.coverage.api.model.PolicySetHit;
 
-class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
+class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
 	private SaplDocumentReader saplDocumentReader;
 

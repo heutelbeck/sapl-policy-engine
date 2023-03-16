@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
-class EnableCoverageCollectionMojoTest extends AbstractMojoTestCase {
+class EnableCoverageCollectionMojoTests extends AbstractMojoTestCase {
 
 	private Log log;
 
@@ -44,7 +44,7 @@ class EnableCoverageCollectionMojoTest extends AbstractMojoTestCase {
 	}
 
 	@Test
-	public void test_disableCoverage() throws Exception {
+	void test_disableCoverage() throws Exception {
 
 		Path pom = Paths.get("src", "test", "resources", "pom", "pom_withoutProject_coverageDisabled.xml");
 		var mojo = (EnableCoverageCollectionMojo) lookupMojo("enable-coverage-collection", pom.toFile());
@@ -54,7 +54,7 @@ class EnableCoverageCollectionMojoTest extends AbstractMojoTestCase {
 	}
 
 	@Test
-	public void test() throws Exception {
+	void test() throws Exception {
 		Path pom = Paths.get("src", "test", "resources", "pom", "pom_withoutProject.xml");
 		var mojo = (EnableCoverageCollectionMojo) lookupMojo("enable-coverage-collection", pom.toFile());
 		mojo.setLog(this.log);

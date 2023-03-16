@@ -44,7 +44,7 @@ import io.sapl.mavenplugin.test.coverage.report.model.LineCoveredValue;
 import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInformation;
 import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentLineCoverageInformation;
 
-public class HtmlLineCoverageReportGeneratorTest {
+class HtmlLineCoverageReportGeneratorTests {
 
 	private Path base;
 
@@ -87,20 +87,20 @@ public class HtmlLineCoverageReportGeneratorTest {
 	}
 
 	@Test
-	public void test() throws MojoExecutionException {
+	void test() throws MojoExecutionException {
 
 		generator.generateHtmlReport(documents, new SilentLog(), Paths.get("target/sapl-coverage"), policySetHitRatio,
 				policyHitRatio, policyConditionHitRatio);
 
-		assertEquals(true, base.resolve("assets/favicon.png").toFile().exists());
-		assertEquals(true, base.resolve("assets/logo-header.png").toFile().exists());
-		assertEquals(true, base.resolve("assets/main.css").toFile().exists());
-		assertEquals(true, base.resolve("policies/policy_1.sapl.html").toFile().exists());
-		assertEquals(true, base.resolve("index.html").toFile().exists());
+		assertEquals(Boolean.TRUE, base.resolve("assets/favicon.png").toFile().exists());
+		assertEquals(Boolean.TRUE, base.resolve("assets/logo-header.png").toFile().exists());
+		assertEquals(Boolean.TRUE, base.resolve("assets/main.css").toFile().exists());
+		assertEquals(Boolean.TRUE, base.resolve("policies/policy_1.sapl.html").toFile().exists());
+		assertEquals(Boolean.TRUE, base.resolve("index.html").toFile().exists());
 	}
 
 	@Test
-	public void whenUnknownLineCoveredValue_testExceptionsAreThrown() {
+	void whenUnknownLineCoveredValue_testExceptionsAreThrown() {
 
 		try (MockedStatic<LineCoveredValue> x = mockStatic(LineCoveredValue.class)) {
 			LineCoveredValue badApple = mock(LineCoveredValue.class);

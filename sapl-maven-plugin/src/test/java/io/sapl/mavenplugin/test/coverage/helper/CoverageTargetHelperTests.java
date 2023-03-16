@@ -39,14 +39,14 @@ import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import io.sapl.test.coverage.api.model.PolicyHit;
 import io.sapl.test.coverage.api.model.PolicySetHit;
 
-public class CoverageTargetHelperTest {
+class CoverageTargetHelperTests {
 
 	private Collection<SaplDocument> documents;
 
 	private CoverageTargetHelper helper;
 
 	@BeforeEach
-	public void setup() throws MojoExecutionException {
+	void setup() throws MojoExecutionException {
 		String policyPath = "policies";
 		MavenProjectStub project = new MavenProjectStub();
 		project.setRuntimeClasspathElements(List.of("target/classes"));
@@ -56,23 +56,23 @@ public class CoverageTargetHelperTest {
 	}
 
 	@Test
-	public void testPolicyRetrieval() {
+	void testPolicyRetrieval() {
 		CoverageTargets targets = helper.getCoverageTargets(this.documents);
 		assertEquals(1, targets.getPolicySets().size());
-		assertEquals(true, targets.isPolicySetHit(new PolicySetHit("testPolicies")));
+		assertEquals(Boolean.TRUE, targets.isPolicySetHit(new PolicySetHit("testPolicies")));
 		assertEquals(2, targets.getPolicies().size());
-		assertEquals(true, targets.isPolicyHit(new PolicyHit("testPolicies", "policy 1")));
-		assertEquals(true, targets.isPolicyHit(new PolicyHit("", "policy 2")));
+		assertEquals(Boolean.TRUE, targets.isPolicyHit(new PolicyHit("testPolicies", "policy 1")));
+		assertEquals(Boolean.TRUE, targets.isPolicyHit(new PolicyHit("", "policy 2")));
 		assertEquals(4, targets.getPolicyConditions().size());
-		assertEquals(true, targets.isPolicyConditionHit(new PolicyConditionHit("testPolicies", "policy 1", 0, true)));
-		assertEquals(true, targets.isPolicyConditionHit(new PolicyConditionHit("testPolicies", "policy 1", 0, false)));
-		assertEquals(true, targets.isPolicyConditionHit(new PolicyConditionHit("testPolicies", "policy 1", 2, true)));
-		assertEquals(true, targets.isPolicyConditionHit(new PolicyConditionHit("testPolicies", "policy 1", 2, false)));
+		assertEquals(Boolean.TRUE, targets.isPolicyConditionHit(new PolicyConditionHit("testPolicies", "policy 1", 0, true)));
+		assertEquals(Boolean.TRUE, targets.isPolicyConditionHit(new PolicyConditionHit("testPolicies", "policy 1", 0, false)));
+		assertEquals(Boolean.TRUE, targets.isPolicyConditionHit(new PolicyConditionHit("testPolicies", "policy 1", 2, true)));
+		assertEquals(Boolean.TRUE, targets.isPolicyConditionHit(new PolicyConditionHit("testPolicies", "policy 1", 2, false)));
 
 	}
 
 	@Test
-	public void test_newSAPLType() {
+	void test_newSAPLType() {
 		SAPL newPolicyTypeSAPL = Mockito.mock(SAPL.class);
 		PolicyElement newPolicyTypePolicyElement = Mockito.mock(PolicyElement.class);
 		Mockito.when(newPolicyTypeSAPL.getPolicyElement()).thenReturn(newPolicyTypePolicyElement);

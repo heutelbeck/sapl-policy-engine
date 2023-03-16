@@ -92,15 +92,15 @@ class NaiveImmutableParsedDocumentIndexTest {
 
 		var saplMock2 = mock(SAPL.class, RETURNS_DEEP_STUBS);
 		var valMock2  = mock(Val.class);
-		when(valMock2.isBoolean()).thenReturn(false);
-		when(valMock2.isError()).thenReturn(true);
+		when(valMock2.isBoolean()).thenReturn(Boolean.FALSE);
+		when(valMock2.isError()).thenReturn(Boolean.TRUE);
 		when(valMock2.getMessage()).thenReturn("Error Val");
 		when(saplMock2.getPolicyElement().getSaplName()).thenReturn("SAPL2");
 		when(saplMock2.matches()).thenReturn(Mono.just(valMock2));
 
 		var saplMock3 = mock(SAPL.class, RETURNS_DEEP_STUBS);
 		var valMock3  = mock(Val.class);
-		when(valMock3.isBoolean()).thenReturn(false);
+		when(valMock3.isBoolean()).thenReturn(Boolean.FALSE);
 		when(valMock3.getMessage()).thenReturn("i'm not a boolean");
 		when(saplMock3.getPolicyElement().getSaplName()).thenReturn("SAPL3");
 		when(saplMock3.matches()).thenReturn(Mono.just(valMock3));

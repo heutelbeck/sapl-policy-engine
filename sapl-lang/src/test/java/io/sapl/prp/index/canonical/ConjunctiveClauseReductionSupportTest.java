@@ -38,25 +38,25 @@ class ConjunctiveClauseReductionSupportTest {
 
 		literals.add(trueLiteral);
 		ConjunctiveClauseReductionSupport.reduceConstants(literals);
-		assertThat(literals.size() == 1, is(true));
+		assertThat(literals.size() == 1, is(Boolean.TRUE));
 
 		literals.add(trueLiteral);
 		ConjunctiveClauseReductionSupport.reduceConstants(literals);
-		assertThat(literals.size() == 1, is(true));
+		assertThat(literals.size() == 1, is(Boolean.TRUE));
 
 		literals.add(falseLiteral);
 		literals.add(trueLiteral);
 		ConjunctiveClauseReductionSupport.reduceConstants(literals);
-		assertThat(literals.size() == 1, is(true));
+		assertThat(literals.size() == 1, is(Boolean.TRUE));
 	}
 
 	@Test
 	void testReduceFormula() {
 		List<Literal> literals = new ArrayList<>();
 
-		assertThat(literals.isEmpty(), is(true));
+		assertThat(literals.isEmpty(), is(Boolean.TRUE));
 		ConjunctiveClauseReductionSupport.reduceFormula(literals);
-		assertThat(literals.isEmpty(), is(true));
+		assertThat(literals.isEmpty(), is(Boolean.TRUE));
 
 		var trueLiteral = new Literal(new Bool(true));
 		var falseLiteral = new Literal(new Bool(false));
@@ -65,24 +65,24 @@ class ConjunctiveClauseReductionSupportTest {
 
 		literals.add(trueLiteral);
 		ConjunctiveClauseReductionSupport.reduceFormula(literals);
-		assertThat(literals.size() == 1, is(true));
+		assertThat(literals.size() == 1, is(Boolean.TRUE));
 		literals.clear();
 
 		literals.add(falseLiteral);
 		ConjunctiveClauseReductionSupport.reduceFormula(literals);
-		assertThat(literals.size() == 1, is(true));
+		assertThat(literals.size() == 1, is(Boolean.TRUE));
 		literals.clear();
 
 		literals.add(trueLiteral);
 		literals.add(falseLiteral);
 		ConjunctiveClauseReductionSupport.reduceFormula(literals);
-		assertThat(literals.size() == 2, is(true));
+		assertThat(literals.size() == 2, is(Boolean.TRUE));
 		literals.clear();
 
 		literals.add(trueLiteral);
 		literals.add(trueNegatedLiteral);
 		ConjunctiveClauseReductionSupport.reduceFormula(literals);
-		assertThat(literals.size() == 1, is(true));
+		assertThat(literals.size() == 1, is(Boolean.TRUE));
 		literals.clear();
 
 		literals.add(trueNegatedLiteral);
@@ -90,7 +90,7 @@ class ConjunctiveClauseReductionSupportTest {
 		literals.add(falseNegatedLiteral);
 		literals.add(falseNegatedLiteral);
 		ConjunctiveClauseReductionSupport.reduceFormula(literals);
-		assertThat(literals.size() == 2, is(true));
+		assertThat(literals.size() == 2, is(Boolean.TRUE));
 		literals.clear();
 
 	}
