@@ -124,13 +124,13 @@ class EquivalenceAndHashUtilTest {
 		var iter1 = mock(Iterator.class);
 		when(eList1.size()).thenReturn(2);
 		when(eList1.iterator()).thenReturn(iter1);
-		when(iter1.hasNext()).thenReturn(true, true, false);
+		when(iter1.hasNext()).thenReturn(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE);
 		when(iter1.next()).thenReturn(objectMock, objectMock, objectMock);
 
 		var iter2 = mock(Iterator.class);
 		when(eList2.size()).thenReturn(2);
 		when(eList2.iterator()).thenReturn(iter2);
-		when(iter2.hasNext()).thenReturn(true, true, false);
+		when(iter2.hasNext()).thenReturn(Boolean.TRUE,Boolean.TRUE,Boolean.FALSE);
 		when(iter2.next()).thenReturn(objectMock, null, objectMock);
 
 		assertThat(EquivalenceAndHashUtil.featuresAreEquivalent(eList1, Collections.emptyMap(), eList2,

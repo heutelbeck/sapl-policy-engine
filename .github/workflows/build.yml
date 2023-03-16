@@ -26,7 +26,7 @@ jobs:
   tests:
     strategy:
       matrix:
-        java: [ '19' ]
+        java: [ '17' ]
         os: [ ubuntu-latest ]
 #        java: [ '11' , '17' ]
 #        os: [ubuntu-latest, windows-latest, macos-latest]

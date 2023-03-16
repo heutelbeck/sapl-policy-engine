@@ -78,27 +78,31 @@ public class ReportTextRenderUtil {
 	}
 
 	private static String errorReport(JsonNode errors) {
-		var report = "";
+		var report = new StringBuilder();
 		if (errors == null || !errors.isArray() || errors.size() == 0) {
-			return report;
+			return report.toString();
 		}
-		report += "Errors during evaluation:\n";
+		report.append("Errors during evaluation:\n");
 		for (var error : errors) {
-			report += " - " + error + "\n";
+			report.append(" - ");
+			report.append(error);
+			report.append("\n");
 		}
-		return report;
+		return report.toString();
 	}
 
 	private static String attributeReport(JsonNode attributes) {
-		var report = "";
+		var report = new StringBuilder();
 		if (attributes == null || !attributes.isArray() || attributes.size() == 0) {
-			return report;
+			return report.toString();
 		}
-		report += "Policy Information Point Data:\n";
+		report.append("Policy Information Point Data:\n");
 		for (var attribute : attributes) {
-			report += " - " + attribute + "\n";
+			report.append(" - ");
+			report.append(attribute);
+			report.append("\n");
 		}
-		return report;
+		return report.toString();
 	}
 
 	private static String policySetReport(JsonNode policySet) {

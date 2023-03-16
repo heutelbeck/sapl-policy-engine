@@ -28,7 +28,6 @@ import org.junit.jupiter.api.Timeout;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.interpreter.context.AuthorizationContext;
@@ -113,21 +112,21 @@ class IntegrationTest {
 		assertThat(result.getMatchingDocuments().size(), is(1));
 		assertThat(result.isErrorsInTarget(), is(false));
 
-		assertThat(result.getMatchingDocuments().stream().map(doc -> (SAPL) doc).findFirst().get().getPolicyElement()
-				.getSaplName(), is("policy read"));
+		assertThat(result.getMatchingDocuments().stream().findFirst().get().getPolicyElement().getSaplName(),
+				is("policy read"));
 
 		var authzSubscription2 = AuthorizationSubscription.of("Willi", "eat", "icecream");
 
-		result = prp.retrievePolicies()
-				.contextWrite(ctx -> setUpAuthorizationContext(ctx, authzSubscription2)).blockFirst();
+		result = prp.retrievePolicies().contextWrite(ctx -> setUpAuthorizationContext(ctx, authzSubscription2))
+				.blockFirst();
 
 		assertThat(result, notNullValue());
 		assertThat(result.getMatchingDocuments().size(), is(1));
 		assertThat(result.isErrorsInTarget(), is(false));
 		assertThat(result.isPrpValidState(), is(true));
 
-		assertThat(result.getMatchingDocuments().stream().map(doc -> (SAPL) doc).findFirst().get().getPolicyElement()
-				.getSaplName(), is("policy eat icecream"));
+		assertThat(result.getMatchingDocuments().stream().findFirst().get().getPolicyElement().getSaplName(),
+				is("policy eat icecream"));
 	}
 
 	@Test
