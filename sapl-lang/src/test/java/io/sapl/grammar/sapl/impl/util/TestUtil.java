@@ -15,7 +15,6 @@
  */
 package io.sapl.grammar.sapl.impl.util;
 
-import java.io.IOException;
 import java.util.function.Predicate;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -28,6 +27,7 @@ import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.Value;
 import io.sapl.interpreter.DocumentEvaluationResult;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import reactor.test.StepVerifier;
 
@@ -54,59 +54,48 @@ public class TestUtil {
 		return basicValue;
 	}
 
+	@SneakyThrows
 	public static void expressionEvaluatesTo(String expression, String... expected) {
 		if (DEBUG_TESTS) {
 			log.debug("Expression: {}", expression);
 			for (var e : expected)
 				log.debug("Expected  : {}", e);
 		}
-		try {
-			var expectations = new Val[expected.length];
-			var i            = 0;
-			for (var ex : expected) {
-				expectations[i++] = Val.ofJson(ex);
-			}
-			expressionEvaluatesTo(ParserUtil.expression(expression), expectations);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
+
+		var expectations = new Val[expected.length];
+		var i            = 0;
+		for (var ex : expected) {
+			expectations[i++] = Val.ofJson(ex);
 		}
+		expressionEvaluatesTo(ParserUtil.expression(expression), expectations);
 	}
 
+	@SneakyThrows
 	public static void expressionEvaluatesTo(String expression, Val... expected) {
 		if (DEBUG_TESTS) {
 			log.debug("Expression: {}", expression);
 			for (var e : expected)
 				log.debug("Expected  : {}", e);
 		}
-		try {
-			expressionEvaluatesTo(ParserUtil.expression(expression), expected);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+		expressionEvaluatesTo(ParserUtil.expression(expression), expected);
 	}
 
+	@SneakyThrows
 	public static void expressionErrors(String expression) {
 		if (DEBUG_TESTS) {
 			log.debug("Expression: {}", expression);
 			log.debug("Expected  : ERROR");
 		}
-		try {
-			expressionErrors(ParserUtil.expression(expression));
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+		expressionErrors(ParserUtil.expression(expression));
 	}
 
+	@SneakyThrows
 	public static void expressionErrors(String expression, String errorMessage) {
 		if (DEBUG_TESTS) {
 			log.debug("Expression: {}", expression);
 			log.debug("Expected  : ERROR[{}", errorMessage + "]");
 		}
-		try {
-			expressionErrors(ParserUtil.expression(expression), errorMessage);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+		expressionErrors(ParserUtil.expression(expression), errorMessage);
 	}
 
 	public static void expressionEvaluatesTo(Expression expression, Val... expected) {
@@ -130,12 +119,13 @@ public class TestUtil {
 	}
 
 	private static void logResult(Val result) {
-		if (DEBUG_TESTS)
+		if (DEBUG_TESTS) {
 			try {
 				log.debug("Actual    :\n{}",
 						MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(result.getTrace()));
 			} catch (JsonProcessingException e) {
 				log.debug("Error", e);
 			}
+		}
 	}
 }

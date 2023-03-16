@@ -108,19 +108,16 @@ class CoverageHitReaderTest {
 		// arrange
 		var hitPath = this.basedir.resolve("hits").resolve("_policyConditionHits.txt");
 		if (!Files.exists(hitPath)) {
-			if (hitPath.getParent() != null) {
-				Files.createDirectories(hitPath.getParent());
+			var parent = hitPath.getParent();
+			if (parent != null) {
+				Files.createDirectories(parent);
 			}
 			Files.createFile(hitPath);
 		}
-		Files.write(hitPath,
-				(new PolicyConditionHit("set1", "policy 1", 0, true).toString() + System.lineSeparator())
-						.getBytes(StandardCharsets.UTF_8),
-				StandardOpenOption.APPEND);
-		Files.write(hitPath,
-				(new PolicyConditionHit("set2", "policy 1", 0, true).toString() + System.lineSeparator())
-						.getBytes(StandardCharsets.UTF_8),
-				StandardOpenOption.APPEND);
+		Files.write(hitPath, (new PolicyConditionHit("set1", "policy 1", 0, true).toString() + System.lineSeparator())
+				.getBytes(StandardCharsets.UTF_8), StandardOpenOption.APPEND);
+		Files.write(hitPath, (new PolicyConditionHit("set2", "policy 1", 0, true).toString() + System.lineSeparator())
+				.getBytes(StandardCharsets.UTF_8), StandardOpenOption.APPEND);
 
 		// act
 		List<PolicyConditionHit> resultPolicyConditionHits = this.reader.readPolicyConditionHits();

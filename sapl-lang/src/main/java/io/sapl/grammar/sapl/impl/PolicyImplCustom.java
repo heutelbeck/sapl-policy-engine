@@ -64,14 +64,13 @@ public class PolicyImplCustom extends PolicyImpl {
 				|| decisionMustNotCarryConstraints(policyDecision)) {
 			return Flux.just(policyDecision);
 		}
-		var constraint               = constraints.get(constraintIndex).evaluate();
-		var decisionWithConstraint   = constraint.map(val -> merge.apply(policyDecision, val));
-		var withRemainingConstraints = decisionWithConstraint
+		var constraint             = constraints.get(constraintIndex).evaluate();
+		var decisionWithConstraint = constraint.map(val -> merge.apply(policyDecision, val));
+		return decisionWithConstraint
 				.switchMap(decision -> addConstraints(decision, constraints, constraintIndex + 1, merge));
-		return withRemainingConstraints;
 	}
 
-	private boolean decisionMustNotCarryConstraints(PolicyDecision policyDecision) {
+	private boolean decisionMustNotCarryConstraints(DocumentEvaluationResult policyDecision) {
 		var decision = policyDecision.getAuthorizationDecision().getDecision();
 		return decision == Decision.INDETERMINATE || decision == Decision.NOT_APPLICABLE;
 	}

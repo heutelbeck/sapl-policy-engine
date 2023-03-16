@@ -39,8 +39,9 @@ import reactor.test.StepVerifier;
 
 class StepApplyNullCheckAndErrorPropoagationTest {
 
-	static Collection<Step> data() throws InstantiationException, IllegalAccessException, IllegalArgumentException,
-			InvocationTargetException, NoSuchMethodException, SecurityException {
+	static Collection<Step> data()
+			throws InstantiationException, IllegalAccessException, 
+			InvocationTargetException, NoSuchMethodException {
 		var        reflections = new Reflections("io.sapl.grammar.sapl.impl");
 		var        classes     = reflections.getSubTypesOf(Step.class);
 		List<Step> instances   = new ArrayList<>(classes.size());

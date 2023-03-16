@@ -15,6 +15,7 @@
  */
 package io.sapl.extension.jwt;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import lombok.Setter;
@@ -62,15 +63,16 @@ public class TestMockServerDispatcher extends Dispatcher {
 
 	public TestMockServerDispatcher(String kidPath, Map<String, String> kidToPubKeyMap) {
 		this.kidPath        = kidPath;
-		this.kidToPubKeyMap = kidToPubKeyMap;
+		this.kidToPubKeyMap = new HashMap<>(kidToPubKeyMap);
 	}
 
 	@Override
 	public MockResponse dispatch(RecordedRequest request) {
-		if (!request.getPath().startsWith(kidPath))
+		var path = request.getPath();
+		if (path == null || !path.startsWith(kidPath))
 			return new MockResponse().setResponseCode(404);
 
-		String requestedId = request.getPath().substring(kidPath.length());
+		String requestedId = path.substring(kidPath.length());
 
 		if (!kidToPubKeyMap.containsKey(requestedId))
 			return new MockResponse().setResponseCode(404);

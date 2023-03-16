@@ -30,8 +30,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.mockwebserver.MockWebServer;
 
+@Slf4j
 public class KeyTestUtility {
 
 	private static final String MD5 = "MD5";
@@ -47,7 +49,7 @@ public class KeyTestUtility {
 			KeyPairGenerator keyGen = KeyPairGenerator.getInstance(RSA);
 			keyPair = keyGen.genKeyPair();
 		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
+			log.error("Failed to create key pair", e);
 		}
 		return keyPair;
 	}
@@ -84,7 +86,7 @@ public class KeyTestUtility {
 				mockServerKeys.put(KeyTestUtility.kid(keyPair),
 						KeyTestUtility.encodePublicKeyToBase64URLPrimary(keyPair));
 			} catch (NoSuchAlgorithmException | IOException e) {
-				e.printStackTrace();
+				log.error("Failed create mock server", e);
 			}
 		});
 		MockWebServer server = new MockWebServer();
@@ -121,7 +123,7 @@ public class KeyTestUtility {
 	}
 
 	static boolean areKeysEqual(RSAPublicKey publicKey, KeyPair keyPair) {
-		if (!keyPair.getPublic().getAlgorithm().equals(RSA))
+		if (!RSA.equals(keyPair.getPublic().getAlgorithm()))
 			return false;
 		RSAPublicKey other = (RSAPublicKey) keyPair.getPublic();
 		return areKeysEqual(publicKey, other);
@@ -132,7 +134,7 @@ public class KeyTestUtility {
 	}
 
 	/**
-	 * @return Base64 url-safe encoding of public key
+	 * @return Base64 URL safe encoding of public key
 	 */
 	static String encodePublicKeyToBase64URLPrimary(KeyPair keyPair) {
 		return Base64.getUrlEncoder().encodeToString(keyPair.getPublic().getEncoded());

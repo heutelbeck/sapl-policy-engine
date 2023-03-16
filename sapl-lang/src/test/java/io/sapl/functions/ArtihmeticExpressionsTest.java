@@ -75,9 +75,9 @@ class ArtihmeticExpressionsTest {
 
 	private void assertEvaluatesTo(String given, double expected) throws IOException {
 		var expression = ParserUtil.expression(given);
-		var actual     = expression.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)
-				.blockFirst();
-		assertThat(actual.decimalValue(), comparesEqualTo(BigDecimal.valueOf(expected)));
+		var actual     = expression.evaluate().contextWrite(MockUtil::setUpAuthorizationContext).blockFirst()
+				.decimalValue();
+		assertThat(actual, comparesEqualTo(BigDecimal.valueOf(expected)));
 	}
 
 }

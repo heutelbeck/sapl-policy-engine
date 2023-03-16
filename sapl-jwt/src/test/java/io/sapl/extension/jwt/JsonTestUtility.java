@@ -25,12 +25,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import lombok.Getter;
+import lombok.experimental.UtilityClass;
 import okhttp3.mockwebserver.MockWebServer;
 
-public class JsonTestUtility {
+@UtilityClass
+class JsonTestUtility {
 
-	@Getter
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
 	/**
@@ -105,7 +105,7 @@ public class JsonTestUtility {
 			valueNode.put(JWTKeyProvider.PUBLIC_KEY_URI_KEY, server.url("/").toString() + "public-keys/{id}");
 		}
 		if (method != null && method.length() > 0) {
-			if (method.equals("NONETEXT")) {
+			if ("NONETEXT".equals(method)) {
 				valueNode.set(JWTKeyProvider.PUBLIC_KEY_METHOD_KEY, jsonNode(Boolean.FALSE));
 			} else {
 				valueNode.put(JWTKeyProvider.PUBLIC_KEY_METHOD_KEY, method);
