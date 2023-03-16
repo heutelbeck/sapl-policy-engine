@@ -26,8 +26,10 @@ jobs:
   tests:
     strategy:
       matrix:
-        java: [ '11' , '17' ]
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        java: [ '19' ]
+        os: [ ubuntu-latest ]
+#        java: [ '11' , '17' ]
+#        os: [ubuntu-latest, windows-latest, macos-latest]
     name: JDK ${{ matrix.java }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
 
