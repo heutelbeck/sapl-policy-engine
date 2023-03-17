@@ -34,13 +34,21 @@ import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.unit.SaplUnitTestFixture;
+import lombok.Data;
 
 class G_PolicyWithComplexExpectStepTests {
+
+	private static final String BLACKENED_ICD11 = "ic\u2588\u2588\u2588\u2588\u2588\u2588\u2588";
+
+	private static final String BLACKENED_DIAGNOSIS = "\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588";
+
+	private static final String WILLI_HAS_ACCESSED_PATIENT_DATA = "Willi has accessed patient data (id=56) as an administrator.";
 
 	private SaplTestFixture fixture;
 
 	private ObjectMapper mapper;
 
+	@Data
 	static class SubjectDTO {
 		public String name      = "Willi";
 		public String authority = "ROLE_ADMIN";
@@ -48,8 +56,10 @@ class G_PolicyWithComplexExpectStepTests {
 
 	private Object subject = new SubjectDTO();
 
+	@Data
 	static class ActionDTO {
 
+		@Data
 		static class JavaDTO {
 			public String name = "findById";
 		}
@@ -59,6 +69,7 @@ class G_PolicyWithComplexExpectStepTests {
 
 	private Object action = new ActionDTO();
 
+	@Data
 	static class ResourceDTO {
 		public String id            = "56";
 		public String diagnosisText = "diagnosisText";
@@ -78,14 +89,14 @@ class G_PolicyWithComplexExpectStepTests {
 	void test_equals() {
 		var obligation = mapper.createObjectNode();
 		obligation.put("type", "logAccess");
-		obligation.put("message", "Willi has accessed patient data (id=56) as an administrator.");
+		obligation.put("message", WILLI_HAS_ACCESSED_PATIENT_DATA);
 		var obligations = mapper.createArrayNode();
 		obligations.add(obligation);
 
 		var resource = mapper.createObjectNode();
 		resource.put("id", "56");
-		resource.put("diagnosisText", "\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588");
-		resource.put("icd11Code", "ic\u2588\u2588\u2588\u2588\u2588\u2588\u2588");
+		resource.put("diagnosisText", BLACKENED_DIAGNOSIS);
+		resource.put("icd11Code", BLACKENED_ICD11);
 
 		var decision = new AuthorizationDecision(Decision.PERMIT).withObligations(obligations).withResource(resource);
 
@@ -110,9 +121,8 @@ class G_PolicyWithComplexExpectStepTests {
 					// check obligation
 					var containsExpectedObligation = false;
 					for (var node : dec.getObligations().get()) {
-						if (node.has("type") && node.get("type").asText().equals("logAccess") && node.has("message")
-								&& node.get("message").asText()
-										.equals("Willi has accessed patient data (id=56) as an administrator.")) {
+						if (node.has("type") && "logAccess".equals(node.get("type").asText()) && node.has("message")
+								&& WILLI_HAS_ACCESSED_PATIENT_DATA.equals(node.get("message").asText())) {
 							containsExpectedObligation = true;
 						}
 					}
@@ -120,11 +130,10 @@ class G_PolicyWithComplexExpectStepTests {
 					// check resource
 					var containsExpectedResource = false;
 					var resource         = dec.getResource().get();
-					if (resource.has("id") && resource.get("id").asText().equals("56") && resource.has("diagnosisText")
-							&& resource.get("diagnosisText").asText().equals(
-									"\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588")
-							&& resource.has("icd11Code") && resource.get("icd11Code").asText()
-									.equals("ic\u2588\u2588\u2588\u2588\u2588\u2588\u2588")) {
+					if (resource.has("id") && "56".equals(resource.get("id").asText()) && resource.has("diagnosisText")
+							&& BLACKENED_DIAGNOSIS.equals(resource.get("diagnosisText").asText())
+							&& resource.has("icd11Code")
+							&& BLACKENED_ICD11.equals(resource.get("icd11Code").asText())) {
 						containsExpectedResource = true;
 					}
 
@@ -143,9 +152,9 @@ class G_PolicyWithComplexExpectStepTests {
 						//// hasObligation(mapper.createObjectNode().put("foo", "bar")),
 						// or Predicate
 						hasObligationMatching((JsonNode obligation) -> {
-							if (obligation.has("type") && obligation.get("type").asText().equals("logAccess")
-									&& obligation.has("message") && obligation.get("message").asText()
-											.equals("Willi has accessed patient data (id=56) as an administrator.")) {
+							if (obligation.has("type") && "logAccess".equals(obligation.get("type").asText())
+									&& obligation.has("message")
+									&& WILLI_HAS_ACCESSED_PATIENT_DATA.equals(obligation.get("message").asText())) {
 								return true;
 							}
 							return false;
@@ -167,11 +176,10 @@ class G_PolicyWithComplexExpectStepTests {
 						// ObjectMapper().createObjectNode().put("foo", "bar")),
 						// or Predicate
 						isResourceMatching((JsonNode resource) -> resource.has("id")
-								&& resource.get("id").asText().equals("56") && resource.has("diagnosisText")
-								&& resource.get("diagnosisText").asText().equals(
-										"\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588")
-								&& resource.has("icd11Code") && resource.get("icd11Code").asText()
-										.equals("ic\u2588\u2588\u2588\u2588\u2588\u2588\u2588"))))
+								&& "56".equals(resource.get("id").asText()) && resource.has("diagnosisText")
+								&& BLACKENED_DIAGNOSIS.equals(resource.get("diagnosisText").asText())
+								&& resource.has("icd11Code")
+								&& BLACKENED_ICD11.equals(resource.get("icd11Code").asText()))))
 				.verify();
 
 	}
