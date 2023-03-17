@@ -50,8 +50,7 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 	public Flux<Val> applyFilterStatement(@NonNull Val unfilteredValue, int stepId,
 			@NonNull FilterStatement statement) {
 		return FilterAlgorithmUtil.applyFilterOnArray(unfilteredValue, stepId,
-				SelectorUtil.toArrayElementSelector(hasIndex(unfilteredValue)), statement, parameters(),
-				ArraySlicingStep.class);
+				SelectorUtil.toArrayElementSelector(hasIndex(unfilteredValue)), statement, ArraySlicingStep.class);
 	}
 
 	private BiFunction<Integer, Val, Boolean> hasIndex(Val parentVlue) {

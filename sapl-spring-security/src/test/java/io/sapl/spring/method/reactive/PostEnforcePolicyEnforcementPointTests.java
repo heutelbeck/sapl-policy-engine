@@ -68,6 +68,7 @@ import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
 import io.sapl.spring.serialization.ServerHttpRequestSerializer;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import lombok.Getter;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -128,8 +129,7 @@ class PostEnforcePolicyEnforcementPointTests {
 		when(handler.getExpressionParser()).thenReturn(parser);
 		attributeFactory                   = new SaplAttributeFactory(handler);
 		defaultAttribute                   = (PostEnforceAttribute) postEnforceAttributeFrom("'the subject'",
-				"'the action'",
-				"returnObject", "'the envirionment'", Integer.class);
+				"'the action'", "returnObject", "'the envirionment'", Integer.class);
 		pdp                                = mock(PolicyDecisionPoint.class);
 		globalRunnableProviders            = new LinkedList<>();
 		globalConsumerProviders            = new LinkedList<>();
@@ -363,27 +363,19 @@ class PostEnforcePolicyEnforcementPointTests {
 
 	}
 
+	@Getter
 	public static class BadForJackson {
 
-		@SuppressWarnings("unused")
 		private String bad;
 
 	}
 
-	private SaplAttribute postEnforceAttributeFrom(
-			String subject,
-			String action,
-			String resource,
-			String environment,
+	private SaplAttribute postEnforceAttributeFrom(String subject, String action, String resource, String environment,
 			Class<?> genericsType) {
 		return attributeFactory.attributeFrom(postEnforceFrom(subject, action, resource, environment, genericsType));
 	}
 
-	private PostEnforce postEnforceFrom(
-			String subject,
-			String action,
-			String resource,
-			String environment,
+	private PostEnforce postEnforceFrom(String subject, String action, String resource, String environment,
 			Class<?> genericsType) {
 		return new PostEnforce() {
 			@Override

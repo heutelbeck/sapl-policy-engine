@@ -48,7 +48,7 @@ public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 	public Flux<Val> applyFilterStatement(@NonNull Val unfilteredValue, int stepId,
 			@NonNull FilterStatement statement) {
 		return FilterAlgorithmUtil.applyFilterOnObject(unfilteredValue, stepId,
-				SelectorUtil.toObjectFieldSelector(this::hasKey), statement, parameters(), ArraySlicingStep.class);
+				SelectorUtil.toObjectFieldSelector(this::hasKey), statement, ArraySlicingStep.class);
 	}
 
 	private boolean hasKey(String key, Val value) {

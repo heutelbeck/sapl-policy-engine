@@ -40,7 +40,7 @@ public class WildcardStepImplCustom extends WildcardStepImpl {
 	public Flux<Val> applyFilterStatement(@NonNull Val unfilteredValue, int stepId,
 			@NonNull FilterStatement statement) {
 		return FilterAlgorithmUtil.applyFilter(unfilteredValue, stepId, WildcardStepImplCustom::wildcard, statement,
-				"*", WildcardStep.class);
+				WildcardStep.class);
 	}
 
 	public static Flux<Val> wildcard() {

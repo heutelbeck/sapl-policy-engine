@@ -415,7 +415,7 @@ class AuthorizationSubscriptionBuilderServiceTests {
 
 	public static class BadForJackson {
 
-		@SuppressWarnings("unused") // Required for test
+		@SuppressWarnings("unused") // for test
 		private String bad;
 
 	}
