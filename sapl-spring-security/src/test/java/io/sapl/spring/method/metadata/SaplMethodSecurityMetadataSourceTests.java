@@ -73,7 +73,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenAnnotationOnClassOnly_ThenReturnsAnnotationFromClass() throws NoSuchMethodException, SecurityException {
+	void whenAnnotationOnClassOnly_ThenReturnsAnnotationFromClass() throws NoSuchMethodException {
 
 		@PreEnforce(subject = "'onClass'")
 		class TestClass {

@@ -76,8 +76,9 @@ public class PolicyDecisionPointFactory {
 
 	public static EmbeddedPolicyDecisionPoint filesystemPolicyDecisionPoint(String path,
 			Collection<Object> policyInformationPoints, Collection<Object> functionLibraries,
-			List<AuthorizationSubscriptionInterceptor> subscriptionInterceptors,
-			List<TracedDecisionInterceptor> authorizationSubscriptionInterceptors) throws InitializationException {
+			Collection<AuthorizationSubscriptionInterceptor> subscriptionInterceptors,
+			Collection<TracedDecisionInterceptor> authorizationSubscriptionInterceptors)
+			throws InitializationException {
 		var fileSource            = new FileSystemVariablesAndCombinatorSource(path);
 		var configurationProvider = constructConfigurationProvider(fileSource, policyInformationPoints,
 				functionLibraries, subscriptionInterceptors, authorizationSubscriptionInterceptors);
@@ -101,8 +102,9 @@ public class PolicyDecisionPointFactory {
 
 	public static EmbeddedPolicyDecisionPoint resourcesPolicyDecisionPoint(String path,
 			Collection<Object> policyInformationPoints, Collection<Object> functionLibraries,
-			List<AuthorizationSubscriptionInterceptor> subscriptionInterceptors,
-			List<TracedDecisionInterceptor> authorizationSubscriptionInterceptors) throws InitializationException {
+			Collection<AuthorizationSubscriptionInterceptor> subscriptionInterceptors,
+			Collection<TracedDecisionInterceptor> authorizationSubscriptionInterceptors)
+			throws InitializationException {
 		ResourcesVariablesAndCombinatorSource resourcesSource;
 		resourcesSource = new ResourcesVariablesAndCombinatorSource(EmbeddedPolicyDecisionPoint.class, path,
 				new ObjectMapper());
