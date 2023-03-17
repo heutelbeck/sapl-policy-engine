@@ -1,5 +1,7 @@
 package io.sapl.interpreter;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -12,8 +14,6 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.grammar.sapl.Policy;
-import io.sapl.grammar.sapl.PolicyElement;
 import lombok.Getter;
 import lombok.ToString;
 
@@ -23,7 +23,11 @@ public class PolicyDecision implements DocumentEvaluationResult {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
-	final PolicyElement    document;
+	static {
+		MAPPER.registerModule(new Jdk8Module());
+	}
+
+	final String           documentName;
 	final Decision         entitlement;
 	final Optional<Val>    targetResult;
 	final Optional<Val>    whereResult;
@@ -32,10 +36,10 @@ public class PolicyDecision implements DocumentEvaluationResult {
 	final Optional<Val>    resource;
 	final Optional<String> errorMessage;
 
-	private PolicyDecision(PolicyElement document, Decision entitlement, Optional<Val> targetResult,
+	private PolicyDecision(String documentName, Decision entitlement, Optional<Val> targetResult,
 			Optional<Val> whereResult, List<Val> obligations, List<Val> advice, Optional<Val> resource,
 			Optional<String> errorMessage) {
-		this.document     = document;
+		this.documentName = documentName;
 		this.targetResult = targetResult;
 		this.whereResult  = whereResult;
 		this.resource     = resource;
@@ -43,48 +47,55 @@ public class PolicyDecision implements DocumentEvaluationResult {
 		this.errorMessage = errorMessage;
 		this.obligations.addAll(obligations);
 		this.advice.addAll(advice);
-		MAPPER.registerModule(new Jdk8Module());	
 	}
 
-	public static PolicyDecision ofTargetExpressionEvaluation(Policy policy, Val targetExpressionResult,
+	public List<Val> getObligations() {
+		return Collections.unmodifiableList(obligations);
+	}
+
+	public List<Val> getAdvice() {
+		return Collections.unmodifiableList(advice);
+	}
+
+	public static PolicyDecision ofTargetExpressionEvaluation(String policy, Val targetExpressionResult,
 			Decision entitlement) {
 		return new PolicyDecision(policy, entitlement, Optional.ofNullable(targetExpressionResult), Optional.empty(),
 				List.of(), List.of(), Optional.empty(), Optional.empty());
 	}
 
-	public static PolicyDecision ofImportError(Policy policy, Decision entitlement, String errorMessage) {
+	public static PolicyDecision ofImportError(String policy, Decision entitlement, String errorMessage) {
 		return new PolicyDecision(policy, entitlement, Optional.empty(), Optional.empty(), List.of(), List.of(),
 				Optional.empty(), Optional.ofNullable(errorMessage));
 	}
 
-	public static PolicyDecision fromWhereResult(PolicyElement document, Decision entitlement, Val whereResult) {
-		return new PolicyDecision(document, entitlement, Optional.empty(), Optional.ofNullable(whereResult), List.of(),
-				List.of(), Optional.empty(), Optional.empty());
+	public static PolicyDecision fromWhereResult(String documentName, Decision entitlement, Val whereResult) {
+		return new PolicyDecision(documentName, entitlement, Optional.empty(), Optional.ofNullable(whereResult),
+				List.of(), List.of(), Optional.empty(), Optional.empty());
 	}
 
 	public PolicyDecision withObligation(Val obligation) {
-		var policyDecison = new PolicyDecision(document, entitlement, targetResult, whereResult, obligations, advice,
-				resource, errorMessage);
+		var policyDecison = new PolicyDecision(documentName, entitlement, targetResult, whereResult, obligations,
+				advice, resource, errorMessage);
 		policyDecison.obligations.add(obligation);
 		return policyDecison;
 	}
 
 	public PolicyDecision withAdvice(Val advice) {
-		var policyDecison = new PolicyDecision(document, entitlement, targetResult, whereResult, obligations,
+		var policyDecison = new PolicyDecision(documentName, entitlement, targetResult, whereResult, obligations,
 				this.advice, resource, errorMessage);
 		policyDecison.advice.add(advice);
 		return policyDecison;
 	}
 
 	public PolicyDecision withResource(Val resource) {
-		return new PolicyDecision(document, entitlement, targetResult, whereResult, obligations, advice,
+		return new PolicyDecision(documentName, entitlement, targetResult, whereResult, obligations, advice,
 				Optional.ofNullable(resource), errorMessage);
 	}
 
 	@Override
 	public DocumentEvaluationResult withTargetResult(Val targetResult) {
-		return new PolicyDecision(document, entitlement, Optional.ofNullable(targetResult), whereResult, obligations,
-				advice, resource, errorMessage);
+		return new PolicyDecision(documentName, entitlement, Optional.ofNullable(targetResult), whereResult,
+				obligations, advice, resource, errorMessage);
 	}
 
 	public AuthorizationDecision getAuthorizationDecision() {
@@ -124,15 +135,15 @@ public class PolicyDecision implements DocumentEvaluationResult {
 		return array;
 	}
 
-	private boolean containsErrorOrUndefined(List<Val> values) {
-		return values.stream().filter(val -> val.isError() || val.isUndefined()).findAny().isPresent();
+	private boolean containsErrorOrUndefined(Collection<Val> values) {
+		return values.stream().anyMatch(val -> val.isError() || val.isUndefined());
 	}
 
 	@Override
 	public JsonNode getTrace() {
 		var trace = Val.JSON.objectNode();
 		trace.set("documentType", Val.JSON.textNode("policy"));
-		trace.set("policyName", Val.JSON.textNode(document.getSaplName()));
+		trace.set("policyName", Val.JSON.textNode(documentName));
 		trace.set("authorizationDecision", MAPPER.valueToTree(getAuthorizationDecision()));
 		if (entitlement != null)
 			trace.set("entitlement", Val.JSON.textNode(entitlement.toString()));
@@ -143,7 +154,7 @@ public class PolicyDecision implements DocumentEvaluationResult {
 			trace.set("obligations", listOfValToTraceArray(obligations));
 		if (!obligations.isEmpty())
 			trace.set("advice", listOfValToTraceArray(advice));
-		resource.ifPresent(resource -> trace.set("resource", resource.getTrace()));
+		resource.ifPresent(r -> trace.set("resource", r.getTrace()));
 		return trace;
 	}
 
