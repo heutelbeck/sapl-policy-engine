@@ -114,8 +114,10 @@ public class PolicyDecisionPointFactory {
 
 	private static PDPConfigurationProvider constructConfigurationProvider(
 			VariablesAndCombinatorSource combinatorProvider, Collection<Object> policyInformationPoints,
-			Collection<Object> functionLibraries, List<AuthorizationSubscriptionInterceptor> subscriptionInterceptors,
-			List<TracedDecisionInterceptor> authorizationSubscriptionInterceptors) throws InitializationException {
+			Collection<Object> functionLibraries,
+			Collection<AuthorizationSubscriptionInterceptor> subscriptionInterceptors,
+			Collection<TracedDecisionInterceptor> authorizationSubscriptionInterceptors)
+			throws InitializationException {
 		var functionCtx  = constructFunctionContext(functionLibraries);
 		var attributeCtx = constructAttributeContext(policyInformationPoints);
 		return new FixedFunctionsAndAttributesPDPConfigurationProvider(attributeCtx, functionCtx, combinatorProvider,

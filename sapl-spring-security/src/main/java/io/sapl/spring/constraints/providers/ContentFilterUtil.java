@@ -322,10 +322,10 @@ public class ContentFilterUtil {
 	}
 
 	private static void replace(DocumentContext jsonContext, String path, JsonNode action) {
-		jsonContext.map(path, replaceNode(jsonContext, action));
+		jsonContext.map(path, replaceNode(action));
 	}
 
-	private static MapFunction replaceNode(DocumentContext jsonContext, JsonNode action) {
+	private static MapFunction replaceNode(JsonNode action) {
 		return (original, configuration) -> {
 			if (!action.has(REPLACEMENT))
 				throw new IllegalArgumentException(NO_REPLACEMENT_SPECIFIED);
@@ -335,10 +335,10 @@ public class ContentFilterUtil {
 	}
 
 	private static void blacken(DocumentContext jsonContext, String path, JsonNode action) {
-		jsonContext.map(path, blackenNode(jsonContext, action));
+		jsonContext.map(path, blackenNode(action));
 	}
 
-	private static MapFunction blackenNode(DocumentContext jsonContext, JsonNode action) {
+	private static MapFunction blackenNode(JsonNode action) {
 		return (original, configuration) -> {
 
 			if (!(original instanceof String))

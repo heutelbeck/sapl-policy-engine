@@ -105,7 +105,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 		var pip    = attributeMetadata.getPolicyInformationPoint();
 		var method = attributeMetadata.getFunction();
 		return attributeFinderArguments(attributeMetadata, arguments, variables)
-				.switchMap(invokeAttributeFinderMethod(attributeName, attributeMetadata, pip, method));
+				.switchMap(invokeAttributeFinderMethod(attributeName, pip, method));
 	}
 
 	private AttributeFinderMetadata lookupAttribute(String attributeName, int numberOfParameters,
@@ -132,12 +132,12 @@ public class AnnotationAttributeContext implements AttributeContext {
 		var method = attributeMetadata.getFunction();
 
 		return attributeFinderArguments(attributeMetadata, leftHandValue, arguments, variables)
-				.switchMap(invokeAttributeFinderMethod(attributeName, attributeMetadata, pip, method));
+				.switchMap(invokeAttributeFinderMethod(attributeName, pip, method));
 	}
 
 	@SuppressWarnings("unchecked")
-	private Function<Object[], Publisher<? extends Val>> invokeAttributeFinderMethod(String attributeName,
-			AttributeFinderMetadata attributeMetadata, Object pip, Method method) {
+	private Function<Object[], Publisher<? extends Val>> invokeAttributeFinderMethod(String attributeName, Object pip,
+			Method method) {
 		return invocationParameters -> {
 			try {
 				return ((Flux<Val>) method.invoke(pip, invocationParameters)).map(val -> {
@@ -296,7 +296,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 	 *                                 inconsistencies.
 	 */
 	public final void loadPolicyInformationPoint(Object pip) throws InitializationException {
-		
+
 		var clazz         = pip.getClass();
 		var pipAnnotation = clazz.getAnnotation(PolicyInformationPoint.class);
 

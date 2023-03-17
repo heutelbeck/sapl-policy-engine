@@ -138,7 +138,7 @@ class CanonicalImmutableParsedDocumentIndexTest {
 
 		/* EMPTY */
 		prpUpdateEvent = new PrpUpdateEvent();
-		updatedIndex   = spyIndex.apply(prpUpdateEvent);
+		spyIndex.apply(prpUpdateEvent);
 		verify(spyIndex, times(0)).applyUpdate(any(), any());
 		verify(spyIndex, times(1)).recreateIndex(argThat(Map::isEmpty), eq(false));
 	}

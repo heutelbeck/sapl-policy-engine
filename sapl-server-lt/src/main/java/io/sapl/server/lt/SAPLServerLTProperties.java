@@ -16,6 +16,7 @@
 package io.sapl.server.lt;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -45,7 +46,7 @@ public class SAPLServerLTProperties {
 		return Collections.unmodifiableList(allowedApiKeys);
 	}
 
-	public void setAllowedApiKeys(List<String> allowedApiKeys) {
+	public void setAllowedApiKeys(Collection<String> allowedApiKeys) {
 		this.allowedApiKeys = new ArrayList<>(allowedApiKeys);
 	}
 }

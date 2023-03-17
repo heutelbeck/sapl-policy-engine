@@ -59,8 +59,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenInspectedHasNotAnnotationsAnywhere_ThenReturnsEmptycollection()
-			throws NoSuchMethodException, SecurityException {
+	void whenInspectedHasNotAnnotationsAnywhere_ThenReturnsEmptycollection() throws NoSuchMethodException {
 		var sut    = new SaplMethodSecurityMetadataSource(attributeFactory);
 		var method = NoAnnotations.class.getMethod("doSomething");
 		assertThat(sut.getAttributes(method, NoAnnotations.class), is(empty()));
