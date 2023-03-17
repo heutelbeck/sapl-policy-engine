@@ -93,7 +93,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenAnnotationOnMethodOnly_ThenReturnsThat() throws NoSuchMethodException, SecurityException {
+	void whenAnnotationOnMethodOnly_ThenReturnsThat() throws NoSuchMethodException {
 
 		class TestClass {
 

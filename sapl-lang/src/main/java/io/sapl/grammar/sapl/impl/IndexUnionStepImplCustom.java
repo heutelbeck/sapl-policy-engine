@@ -56,9 +56,13 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 	private BiFunction<Integer, Val, Boolean> hasIndex(Val parentVlue) {
 		return (index, __) -> {
 			var arraySize = parentVlue.getArrayNode().size();
-			return indices.stream().map(BigDecimal::intValue).map(i -> i < 0 ? i + arraySize : i)
+			return indices.stream().map(BigDecimal::intValue).map(i -> normalizeIndex(i, arraySize))
 					.anyMatch(i -> i.equals(index));
 		};
+	}
+
+	private int normalizeIndex(int i, int arraySize) {
+		return i < 0 ? i + arraySize : i;
 	}
 
 	private String parameters() {
