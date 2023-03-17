@@ -18,6 +18,8 @@ package io.sapl.extension.jwt;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.jetbrains.annotations.NotNull;
+
 import lombok.Setter;
 import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
@@ -37,6 +39,7 @@ public class TestMockServerDispatcher extends Dispatcher {
 		this.kidToPubKeyMap = new HashMap<>(kidToPubKeyMap);
 	}
 
+	@NotNull
 	@Override
 	public MockResponse dispatch(RecordedRequest request) {
 		var path = request.getPath();
@@ -70,19 +73,19 @@ public class TestMockServerDispatcher extends Dispatcher {
 
 	private MockResponse dispatchWrongKey() {
 		return new MockResponse()
-				.setBody(KeyTestUtility.encodePublicKeyToBase64URLPrimary(KeyTestUtility.generateRSAKeyPair()));
+				.setBody(Base64DataUtil.encodePublicKeyToBase64URLPrimary(Base64DataUtil.generateRSAKeyPair()));
 	}
 
 	private MockResponse dispatchInvalidKey(String requestedId) {
-		return new MockResponse().setBody(KeyTestUtility.base64Invalid(kidToPubKeyMap.get(requestedId)));
+		return new MockResponse().setBody(Base64DataUtil.base64Invalid(kidToPubKeyMap.get(requestedId)));
 	}
 
 	private MockResponse dispatchBogusKey() {
-		return new MockResponse().setBody(KeyTestUtility.base64Bogus());
+		return new MockResponse().setBody(Base64DataUtil.base64Bogus());
 	}
 
 	private MockResponse dispatchBasicKey(String requestedId) {
-		return new MockResponse().setBody(KeyTestUtility.base64Basic(kidToPubKeyMap.get(requestedId)));
+		return new MockResponse().setBody(Base64DataUtil.base64Basic(kidToPubKeyMap.get(requestedId)));
 	}
 
 }

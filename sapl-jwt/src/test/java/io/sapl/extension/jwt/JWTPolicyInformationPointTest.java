@@ -63,11 +63,11 @@ class JWTPolicyInformationPointTest {
 	@BeforeAll
 	public static void preSetup() throws IOException, NoSuchAlgorithmException {
 		Logger.getLogger(MockWebServer.class.getName()).setLevel(Level.OFF);
-		keyPair    = KeyTestUtility.generateRSAKeyPair();
-		keyPair2   = KeyTestUtility.generateRSAKeyPair();
+		keyPair    = Base64DataUtil.generateRSAKeyPair();
+		keyPair2   = Base64DataUtil.generateRSAKeyPair();
 		kid        = KeyTestUtility.kid(keyPair);
 		kid2       = KeyTestUtility.kid(keyPair2);
-		server     = KeyTestUtility.testServer("/public-keys/", keyPair);
+		server     = KeyTestUtility.testServer(keyPair);
 		dispatcher = (TestMockServerDispatcher) server.getDispatcher();
 		server.start();
 		builder = WebClient.builder();
@@ -165,7 +165,7 @@ class JWTPolicyInformationPointTest {
 	void validity_withWhitelist_multiTest_shouldBeTrustedThenTrustedThenUntrusted()
 			throws NoSuchAlgorithmException, IOException, JOSEException {
 
-		var keyPairs   = new KeyPair[] { keyPair, keyPair2, KeyTestUtility.generateRSAKeyPair() };
+		var keyPairs   = new KeyPair[] { keyPair, keyPair2, Base64DataUtil.generateRSAKeyPair() };
 		var variables  = JsonTestUtility.publicKeyWhitelistVariables(kid, keyPair, kid2, keyPair2);
 		var claims     = new JWTClaimsSet.Builder().build();
 		var validities = new ArrayList<Mono<Val>>();
@@ -223,7 +223,7 @@ class JWTPolicyInformationPointTest {
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var jwtNode   = MAPPER.createObjectNode().set(JWTPolicyInformationPoint.PUBLIC_KEY_VARIABLES_KEY,
 				JsonTestUtility.serverNode(server, null, "invalid TTL format"));
-		var variables = Map.<String, JsonNode>of("jwt", jwtNode);
+		var variables = Map.of("jwt", jwtNode);
 		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
 		var claims    = new JWTClaimsSet.Builder().build();
 		var source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);

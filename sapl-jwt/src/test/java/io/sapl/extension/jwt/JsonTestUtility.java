@@ -15,9 +15,7 @@
  */
 package io.sapl.extension.jwt;
 
-import java.io.IOException;
 import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Map;
 
@@ -57,11 +55,9 @@ class JsonTestUtility {
 	 * @param keyPair1 KeyPair of the first public key. Non textual, if null
 	 * @param keyPair2 KeyPair of the second public key. Bogus, if null
 	 * @return whitelist variables containing two public keys
-	 * @throws NoSuchAlgorithmException
-	 * @throws IOException
 	 */
 	static Map<String, JsonNode> publicKeyWhitelistVariables(String kid1, KeyPair keyPair1, String kid2,
-			KeyPair keyPair2) throws NoSuchAlgorithmException, IOException {
+			KeyPair keyPair2) {
 
 		ObjectNode keyNode   = MAPPER.createObjectNode();
 		ObjectNode valueNode = MAPPER.createObjectNode();
@@ -102,7 +98,7 @@ class JsonTestUtility {
 		ObjectNode valueNode = MAPPER.createObjectNode();
 
 		if (server != null) {
-			valueNode.put(JWTKeyProvider.PUBLIC_KEY_URI_KEY, server.url("/").toString() + "public-keys/{id}");
+			valueNode.put(JWTKeyProvider.PUBLIC_KEY_URI_KEY, server.url("/") + "public-keys/{id}");
 		}
 		if (method != null && method.length() > 0) {
 			if ("NONETEXT".equals(method)) {

@@ -18,9 +18,7 @@ package io.sapl.extension.jwt;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
-import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPublicKey;
@@ -30,29 +28,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.experimental.UtilityClass;
 import okhttp3.mockwebserver.MockWebServer;
 
-@Slf4j
+@UtilityClass
 public class KeyTestUtility {
 
-	private static final String MD5 = "MD5";
+	 static final String MD5 = "MD5";
 
-	private static final String RSA = "RSA";
+	 static final String RSA = "RSA";
 
-	/**
-	 * @return an RSA key pair
-	 */
-	static KeyPair generateRSAKeyPair() {
-		KeyPair keyPair = null;
-		try {
-			KeyPairGenerator keyGen = KeyPairGenerator.getInstance(RSA);
-			keyPair = keyGen.genKeyPair();
-		} catch (NoSuchAlgorithmException e) {
-			log.error("Failed to create key pair", e);
-		}
-		return keyPair;
-	}
 
 	/**
 	 * @return an invalid RSA public key
@@ -63,14 +48,12 @@ public class KeyTestUtility {
 
 	/**
 	 * @return a mock web server used for testing public key requests
-	 * @throws IOException
-	 * @throws NoSuchAlgorithmException
 	 */
-	static MockWebServer testServer(String keyPath, KeyPair keyPair) throws NoSuchAlgorithmException, IOException {
+	static MockWebServer testServer(KeyPair keyPair) throws NoSuchAlgorithmException, IOException {
 		Map<String, String> mockServerKeys = Map.of(KeyTestUtility.kid(keyPair),
-				KeyTestUtility.encodePublicKeyToBase64URLPrimary(keyPair));
+				Base64DataUtil.encodePublicKeyToBase64URLPrimary(keyPair));
 		MockWebServer       server         = new MockWebServer();
-		server.setDispatcher(new TestMockServerDispatcher(keyPath, mockServerKeys));
+		server.setDispatcher(new TestMockServerDispatcher("/public-keys/", mockServerKeys));
 		return server;
 	}
 
@@ -79,18 +62,18 @@ public class KeyTestUtility {
 	 * @throws IOException
 	 * @throws NoSuchAlgorithmException
 	 */
-	static MockWebServer testServer(String keyPath, Set<KeyPair> keyPairs) {
+	static MockWebServer testServer(Set<KeyPair> keyPairs) {
 		Map<String, String> mockServerKeys = new HashMap<String, String>();
 		keyPairs.forEach(keyPair -> {
 			try {
 				mockServerKeys.put(KeyTestUtility.kid(keyPair),
-						KeyTestUtility.encodePublicKeyToBase64URLPrimary(keyPair));
+						Base64DataUtil.encodePublicKeyToBase64URLPrimary(keyPair));
 			} catch (NoSuchAlgorithmException | IOException e) {
-				log.error("Failed create mock server", e);
+				throw new IllegalStateException("Failed create mock server", e);
 			}
 		});
 		MockWebServer server = new MockWebServer();
-		server.setDispatcher(new TestMockServerDispatcher(keyPath, mockServerKeys));
+		server.setDispatcher(new TestMockServerDispatcher("/public-keys/", mockServerKeys));
 		return server;
 	}
 
@@ -131,35 +114,6 @@ public class KeyTestUtility {
 
 	static boolean areKeysEqual(RSAPublicKey keyA, RSAPublicKey keyB) {
 		return keyA.getModulus().equals(keyB.getModulus()) && keyA.getPublicExponent().equals(keyB.getPublicExponent());
-	}
-
-	/**
-	 * @return Base64 URL safe encoding of public key
-	 */
-	static String encodePublicKeyToBase64URLPrimary(KeyPair keyPair) {
-		return Base64.getUrlEncoder().encodeToString(keyPair.getPublic().getEncoded());
-	}
-
-	/**
-	 * @return Base64 basic encoding of public key
-	 */
-	static String base64Basic(String encodedPubKey) {
-		return Base64.getEncoder().encodeToString(Base64.getUrlDecoder().decode(encodedPubKey));
-	}
-
-	/**
-	 * @return invalid Base64 encoding of public Key
-	 */
-	static String base64Invalid(String encodedPubKey) {
-		String ch = encodedPubKey.substring(encodedPubKey.length() / 2, encodedPubKey.length() / 2 + 1);
-		return encodedPubKey.replaceAll(ch, "#");
-	}
-
-	/**
-	 * @return Base64 url-safe encoding of bogus key
-	 */
-	static String base64Bogus() {
-		return Base64.getUrlEncoder().encodeToString("ThisIsAVeryBogusPublicKey".getBytes(StandardCharsets.UTF_8));
 	}
 
 	private static class InvalidRSAPublicKey implements RSAPublicKey {

@@ -59,11 +59,11 @@ class JWTKeyProviderTest {
 	@BeforeAll
 	public static void preSetup() throws IOException, NoSuchAlgorithmException {
 		Logger.getLogger(MockWebServer.class.getName()).setLevel(Level.OFF);
-		keyPair      = KeyTestUtility.generateRSAKeyPair();
+		keyPair      = Base64DataUtil.generateRSAKeyPair();
 		kid          = KeyTestUtility.kid(keyPair);
-		otherKeyPair = KeyTestUtility.generateRSAKeyPair();
+		otherKeyPair = Base64DataUtil.generateRSAKeyPair();
 		otherKid     = KeyTestUtility.kid(otherKeyPair);
-		server       = KeyTestUtility.testServer("/public-keys/", Set.of(keyPair, otherKeyPair));
+		server       = KeyTestUtility.testServer(Set.of(keyPair, otherKeyPair));
 		dispatcher   = (TestMockServerDispatcher) server.getDispatcher();
 		server.start();
 		builder = WebClient.builder();
@@ -117,7 +117,7 @@ class JWTKeyProviderTest {
 
 	@Test
 	void isCachedAndProvide_multipleKeys_shouldBeTwiceFalseThenPublicKeyThenTrueThenFalseThenPublicKeyTheTwiceTrueThenFalse()
-			throws NoSuchAlgorithmException, IOException, CachingException {
+			throws CachingException {
 
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var serverNode = JsonTestUtility.serverNode(server, null, null);
@@ -133,6 +133,8 @@ class JWTKeyProviderTest {
 		provider.cache(otherKid, secondRetrievedKey);
 		assertTrue(provider.isCached(kid));
 		assertTrue(provider.isCached(otherKid));
+		assert firstRetrievedKey != null;
+		assert secondRetrievedKey != null;
 		assertFalse(KeyTestUtility.areKeysEqual(firstRetrievedKey, secondRetrievedKey));
 	}
 
