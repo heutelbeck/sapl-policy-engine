@@ -120,7 +120,7 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 
 	private <T> Flux<T> decide(String path, ParameterizedTypeReference<T> type, Object authzSubscription) {
 		return rSocketRequester.route(path).data(authzSubscription).retrieveFlux(type)
-				.doOnError(error -> log.error("RSocket Connect Error : error {}", error));
+				.doOnError(error -> log.error("RSocket Connect Error : {}", error.getMessage(), error));
 	}
 
 	static RemoteRsocketPolicyDecisionPointBuilder builder() {
@@ -135,17 +135,12 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 			tcpClient = TcpClient.create();
 		}
 
-		public RemoteRsocketPolicyDecisionPointBuilder secureNoTrust() {
-			try {
-				log.warn("------------------------------------------------------------------");
-				log.warn("!!! ATTENTION: don't not use insecure sslContext in production !!!");
-				log.warn("------------------------------------------------------------------");
-				var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE)
-						.build();
-				return this.secure(sslContext);
-			} catch (SSLException e) {
-				throw new RuntimeException("unable to initialze insecure SSL context");
-			}
+		public RemoteRsocketPolicyDecisionPointBuilder secureNoTrust() throws SSLException {
+			log.warn("------------------------------------------------------------------");
+			log.warn("!!! ATTENTION: don't not use insecure sslContext in production !!!");
+			log.warn("------------------------------------------------------------------");
+			var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+			return this.secure(sslContext);
 		}
 
 		public RemoteRsocketPolicyDecisionPointBuilder secure() {

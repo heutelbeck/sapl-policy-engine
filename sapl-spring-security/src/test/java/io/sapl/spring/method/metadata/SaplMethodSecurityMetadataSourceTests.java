@@ -39,7 +39,7 @@ class SaplMethodSecurityMetadataSourceTests {
 
 	@BeforeEach
 	void beforeEach() {
-		var parser = new SpelExpressionParser();
+		var parser  = new SpelExpressionParser();
 		var handler = mock(MethodSecurityExpressionHandler.class);
 		when(handler.getExpressionParser()).thenReturn(parser);
 		attributeFactory = new SaplAttributeFactory(handler);
@@ -52,8 +52,8 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenInspectedIsObject_ThenReturnsEmptycollection() throws NoSuchMethodException, SecurityException {
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
+	void whenInspectedIsObject_ThenReturnsEmptycollection() throws NoSuchMethodException {
+		var sut    = new SaplMethodSecurityMetadataSource(attributeFactory);
 		var method = Object.class.getMethod("toString");
 		assertThat(sut.getAttributes(method, Object.class), is(empty()));
 	}
@@ -61,7 +61,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	@Test
 	void whenInspectedHasNotAnnotationsAnywhere_ThenReturnsEmptycollection()
 			throws NoSuchMethodException, SecurityException {
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var sut    = new SaplMethodSecurityMetadataSource(attributeFactory);
 		var method = NoAnnotations.class.getMethod("doSomething");
 		assertThat(sut.getAttributes(method, NoAnnotations.class), is(empty()));
 	}
@@ -85,8 +85,8 @@ class SaplMethodSecurityMetadataSourceTests {
 
 		}
 
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
-		var method = TestClass.class.getMethod("doSomething");
+		var                   sut        = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var                   method     = TestClass.class.getMethod("doSomething");
 		List<ConfigAttribute> attributes = new ArrayList<>(sut.getAttributes(method, TestClass.class));
 		assertThat((PreEnforceAttribute) attributes.get(0),
 				is(pojo(PreEnforceAttribute.class).where("getSubjectExpression",
@@ -104,8 +104,8 @@ class SaplMethodSecurityMetadataSourceTests {
 
 		}
 
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
-		var method = TestClass.class.getMethod("doSomething");
+		var                   sut        = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var                   method     = TestClass.class.getMethod("doSomething");
 		List<ConfigAttribute> attributes = new ArrayList<>(sut.getAttributes(method, TestClass.class));
 		assertThat((PreEnforceAttribute) attributes.get(0),
 				is(pojo(PreEnforceAttribute.class).where("getSubjectExpression",
@@ -125,8 +125,8 @@ class SaplMethodSecurityMetadataSourceTests {
 
 		}
 
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
-		var method = TestClass.class.getMethod("doSomething");
+		var                   sut        = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var                   method     = TestClass.class.getMethod("doSomething");
 		List<ConfigAttribute> attributes = new ArrayList<>(sut.getAttributes(method, TestClass.class));
 		assertThat((PreEnforceAttribute) attributes.get(0),
 				is(pojo(PreEnforceAttribute.class).where("getSubjectExpression",
@@ -151,8 +151,8 @@ class SaplMethodSecurityMetadataSourceTests {
 
 		}
 
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
-		var method = TestClass.class.getMethod("doSomething");
+		var                   sut        = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var                   method     = TestClass.class.getMethod("doSomething");
 		List<ConfigAttribute> attributes = new ArrayList<>(sut.getAttributes(method, TestClass.class));
 		assertThat((PreEnforceAttribute) attributes.get(0),
 				is(pojo(PreEnforceAttribute.class).where("getSubjectExpression",
@@ -177,8 +177,8 @@ class SaplMethodSecurityMetadataSourceTests {
 
 		}
 
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
-		var method = TestClass.class.getMethod("doSomething");
+		var                   sut        = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var                   method     = TestClass.class.getMethod("doSomething");
 		List<ConfigAttribute> attributes = new ArrayList<>(sut.getAttributes(method, TestClass.class));
 		assertThat((PreEnforceAttribute) attributes.get(0),
 				is(pojo(PreEnforceAttribute.class).where("getSubjectExpression",
@@ -204,8 +204,8 @@ class SaplMethodSecurityMetadataSourceTests {
 
 		}
 
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
-		var method = TestClass.class.getMethod("doSomething");
+		var                   sut        = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var                   method     = TestClass.class.getMethod("doSomething");
 		List<ConfigAttribute> attributes = new ArrayList<>(sut.getAttributes(method, TestClass.class));
 		assertThat((PreEnforceAttribute) attributes.get(0),
 				is(pojo(PreEnforceAttribute.class).where("getSubjectExpression",
@@ -225,8 +225,8 @@ class SaplMethodSecurityMetadataSourceTests {
 
 		}
 
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
-		var method = TestClass.class.getMethod("doSomething");
+		var                   sut        = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var                   method     = TestClass.class.getMethod("doSomething");
 		List<ConfigAttribute> attributes = new ArrayList<>(sut.getAttributes(method, TestClass.class));
 		assertThat((PreEnforceAttribute) attributes.get(0),
 				is(pojo(PreEnforceAttribute.class).where("getSubjectExpression",
@@ -244,8 +244,8 @@ class SaplMethodSecurityMetadataSourceTests {
 
 		}
 
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
-		var method = TestClass.class.getMethod("doSomething");
+		var                   sut        = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var                   method     = TestClass.class.getMethod("doSomething");
 		List<ConfigAttribute> attributes = new ArrayList<>(sut.getAttributes(method, TestClass.class));
 		assertThat((PostEnforceAttribute) attributes.get(0),
 				is(pojo(PostEnforceAttribute.class).where("getSubjectExpression",
@@ -264,8 +264,8 @@ class SaplMethodSecurityMetadataSourceTests {
 
 		}
 
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
-		var method = TestClass.class.getMethod("doSomething");
+		var                   sut        = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var                   method     = TestClass.class.getMethod("doSomething");
 		List<ConfigAttribute> attributes = new ArrayList<>(sut.getAttributes(method, TestClass.class));
 		assertThat((EnforceTillDeniedAttribute) attributes.get(0),
 				is(pojo(EnforceTillDeniedAttribute.class).where("getSubjectExpression",
@@ -284,8 +284,8 @@ class SaplMethodSecurityMetadataSourceTests {
 
 		}
 
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
-		var method = TestClass.class.getMethod("doSomething");
+		var                   sut        = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var                   method     = TestClass.class.getMethod("doSomething");
 		List<ConfigAttribute> attributes = new ArrayList<>(sut.getAttributes(method, TestClass.class));
 		assertThat((EnforceDropWhileDeniedAttribute) attributes.get(0),
 				is(pojo(EnforceDropWhileDeniedAttribute.class).where("getSubjectExpression",
@@ -304,8 +304,8 @@ class SaplMethodSecurityMetadataSourceTests {
 
 		}
 
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
-		var method = TestClass.class.getMethod("doSomething");
+		var                   sut        = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var                   method     = TestClass.class.getMethod("doSomething");
 		List<ConfigAttribute> attributes = new ArrayList<>(sut.getAttributes(method, TestClass.class));
 		assertThat((EnforceRecoverableIfDeniedAttribute) attributes.get(0),
 				is(pojo(EnforceRecoverableIfDeniedAttribute.class).where("getSubjectExpression",
@@ -327,8 +327,8 @@ class SaplMethodSecurityMetadataSourceTests {
 
 		}
 
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
-		var method = TestClass.class.getMethod("doSomething");
+		var                   sut        = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var                   method     = TestClass.class.getMethod("doSomething");
 		List<ConfigAttribute> attributes = new ArrayList<>(sut.getAttributes(method, TestClass.class));
 		assertThat((PostEnforceAttribute) attributes.get(0),
 				is(pojo(PostEnforceAttribute.class).where("getSubjectExpression",

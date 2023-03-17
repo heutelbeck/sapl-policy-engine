@@ -806,7 +806,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
 		var sut                = EnforceRecoverableIfDeniedPolicyEnforcementPoint.of(decisions, data,
 				constraintsService, Integer.class);
 
-		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4).expectErrorMatches(err -> err.getMessage().equals("ILLEGAL"))
+		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4).expectErrorMatches(err -> "ILLEGAL".equals(err.getMessage()))
 				.verify();
 		verify(handler, times(1)).accept(any());
 	}

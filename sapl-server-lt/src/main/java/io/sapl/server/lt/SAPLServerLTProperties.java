@@ -15,25 +15,37 @@
  */
 package io.sapl.server.lt;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import lombok.Data;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+import lombok.Data;
 
 @Data
 @ConfigurationProperties(prefix = "io.sapl.server-lt")
 public class SAPLServerLTProperties {
 
 	// authentication methods
-	private boolean allowNoAuth = false;
-	private boolean allowBasicAuth = true;
+	private boolean allowNoAuth     = false;
+	private boolean allowBasicAuth  = true;
 	private boolean allowApiKeyAuth = false;
 	private boolean allowOauth2Auth = false;
 
 	// Basic authentication
-	private String key = "";
+	private String key    = "";
 	private String secret = "";
 
 	// API Key authentication
-	private String apiKeyHeaderName = "API_KEY";
-	private List<String> allowedApiKeys = List.of();
+	private String       apiKeyHeaderName = "API_KEY";
+	private List<String> allowedApiKeys   = List.of();
+
+	public List<String> getAllowedApiKeys() {
+		return Collections.unmodifiableList(allowedApiKeys);
+	}
+
+	public void setAllowedApiKeys(List<String> allowedApiKeys) {
+		this.allowedApiKeys = new ArrayList<>(allowedApiKeys);
+	}
 }

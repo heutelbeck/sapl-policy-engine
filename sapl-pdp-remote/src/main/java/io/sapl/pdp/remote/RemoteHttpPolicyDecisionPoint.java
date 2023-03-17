@@ -84,7 +84,7 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 				.defaultHeaders(header -> header.setBasicAuth(clientKey, clientSecret)).build();
 	}
 
-	public RemoteHttpPolicyDecisionPoint(WebClient client) {
+	private RemoteHttpPolicyDecisionPoint(WebClient client) {
 		this.client = client;
 	}
 
@@ -141,17 +141,12 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 		public RemoteHttpPolicyDecisionPointBuilder() {
 		}
 
-		public RemoteHttpPolicyDecisionPointBuilder secureNoTrust() {
-			try {
-				log.warn("------------------------------------------------------------------");
-				log.warn("!!! ATTENTION: don't not use insecure sslContext in production !!!");
-				log.warn("------------------------------------------------------------------");
-				var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE)
-						.build();
-				return this.secure(sslContext);
-			} catch (SSLException e) {
-				throw new RuntimeException("unable to initialze insecure SSL context");
-			}
+		public RemoteHttpPolicyDecisionPointBuilder secureNoTrust() throws SSLException {
+			log.warn("------------------------------------------------------------------");
+			log.warn("!!! ATTENTION: don't not use insecure sslContext in production !!!");
+			log.warn("------------------------------------------------------------------");
+			var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+			return this.secure(sslContext);
 		}
 
 		public RemoteHttpPolicyDecisionPointBuilder secure() {
