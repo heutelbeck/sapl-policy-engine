@@ -15,13 +15,13 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class ReportBuilderUtil {
 	public static final String           PDP_COMBINING_ALGORITHM = "pdpCombiningAlgorithm";
-	private final static JsonNodeFactory JSON                    = JsonNodeFactory.instance;
+	private static final JsonNodeFactory JSON                    = JsonNodeFactory.instance;
 
 	public static JsonNode reduceTraceToReport(JsonNode trace) {
 		var report = JSON.objectNode();
 		report.set(PDPDecision.AUTHORIZATION_SUBSCRIPTION, trace.get(PDPDecision.AUTHORIZATION_SUBSCRIPTION));
 		report.set(PDPDecision.AUTHORIZATION_DECISION, trace.get(PDPDecision.AUTHORIZATION_DECISION));
-		report.set(PDPDecision.TIMESTAMP, trace.get(PDPDecision.TIMESTAMP));
+		report.set(PDPDecision.TIMESTAMP_STRING, trace.get(PDPDecision.TIMESTAMP_STRING));
 		var combinedDecision = trace.get(PDPDecision.COMBINED_DECISION);
 		if (combinedDecision != null) {
 			var pdpCombiningAlgorithm = combinedDecision.get(CombinedDecision.COMBINING_ALGORITHM);
@@ -31,9 +31,14 @@ public class ReportBuilderUtil {
 			}
 		}
 		report.set(PDPDecision.MATCHING_DOCUMENTS, trace.get(PDPDecision.MATCHING_DOCUMENTS));
-		if (trace.get(PDPDecision.MODIFICATIONS) != null) {
-			report.set(PDPDecision.MODIFICATIONS, trace.get(PDPDecision.MODIFICATIONS));
+		if (trace.get(PDPDecision.MODIFICATIONS_STRING) != null) {
+			report.set(PDPDecision.MODIFICATIONS_STRING, trace.get(PDPDecision.MODIFICATIONS_STRING));
 		}
+		
+		if(combinedDecision == null) {
+			return report;
+		}
+			
 		var evaluatedPolices = combinedDecision.get(CombinedDecision.EVALUATED_POLICIES);
 		if (evaluatedPolices != null && evaluatedPolices.isArray() && evaluatedPolices.size() > 0) {
 			report.set("documentReports", documentReports(evaluatedPolices));

@@ -19,7 +19,7 @@ public class ReportTextRenderUtil {
 				+ prettyPrintJson(jsonReport.get(PDPDecision.AUTHORIZATION_SUBSCRIPTION), prettyPrint, mapper) + "\n";
 		report += "Decision    : " + (prettyPrint ? "\n" : "")
 				+ prettyPrintJson(jsonReport.get(PDPDecision.AUTHORIZATION_DECISION), prettyPrint, mapper) + "\n";
-		report += "Timestamp   : " + jsonReport.get(PDPDecision.TIMESTAMP).textValue() + "\n";
+		report += "Timestamp   : " + jsonReport.get(PDPDecision.TIMESTAMP_STRING).textValue() + "\n";
 		report += "Algorithm   : " + jsonReport.get(ReportBuilderUtil.PDP_COMBINING_ALGORITHM) + "\n";
 		var topLevelError = jsonReport.get(CombinedDecision.ERROR);
 		if (topLevelError != null) {
@@ -31,7 +31,7 @@ public class ReportTextRenderUtil {
 		} else {
 			report += "Matches     : " + matchingDocuments + "\n";
 		}
-		var modifications = jsonReport.get(PDPDecision.MODIFICATIONS);
+		var modifications = jsonReport.get(PDPDecision.MODIFICATIONS_STRING);
 		if (modifications != null && modifications.isArray() && modifications.size() != 0) {
 			report += "There were interceptors invoked after the PDP which changed the decision:\n";
 			for (var mod : modifications) {
@@ -86,7 +86,7 @@ public class ReportTextRenderUtil {
 		for (var error : errors) {
 			report.append(" - ");
 			report.append(error);
-			report.append("\n");
+			report.append('\n');
 		}
 		return report.toString();
 	}
@@ -100,7 +100,7 @@ public class ReportTextRenderUtil {
 		for (var attribute : attributes) {
 			report.append(" - ");
 			report.append(attribute);
-			report.append("\n");
+			report.append('\n');
 		}
 		return report.toString();
 	}
