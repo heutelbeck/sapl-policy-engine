@@ -40,7 +40,6 @@ import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jwt.JWTClaimsSet;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.extension.jwt.TestMockServerDispatcher.DispatchMode;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import okhttp3.mockwebserver.MockWebServer;
 import reactor.core.publisher.Flux;

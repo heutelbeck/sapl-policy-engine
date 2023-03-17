@@ -34,7 +34,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import io.sapl.extension.jwt.JWTKeyProvider.CachingException;
-import io.sapl.extension.jwt.TestMockServerDispatcher.DispatchMode;
 import okhttp3.mockwebserver.MockWebServer;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
