@@ -5,5 +5,5 @@ import lombok.Value;
 @Value
 public class ExpressionArgument {
 	String name;
-	Val    value;
+	Traced value;
 }

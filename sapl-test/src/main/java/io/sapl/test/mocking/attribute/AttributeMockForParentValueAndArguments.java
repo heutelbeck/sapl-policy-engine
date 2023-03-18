@@ -26,6 +26,7 @@ import org.hamcrest.Matcher;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.Imports;
 import io.sapl.test.SaplTestException;
@@ -82,7 +83,7 @@ public class AttributeMockForParentValueAndArguments implements AttributeMock {
 		checkAtLeastOneMatchingMockReturnValueExists(matchingParameterSpecificMockReturnValues);
 
 		return Flux.combineLatest(args, (latestPublishedEventsPerArgument) -> {
-			var trace = new HashMap<String, Val>(latestPublishedEventsPerArgument.length + 1);
+			var trace = new HashMap<String, Traced>(latestPublishedEventsPerArgument.length + 1);
 			trace.put("attributeName", Val.of(attributeName));
 			for (int i = 0; i < latestPublishedEventsPerArgument.length; i++) {
 				trace.put("argument[" + i + "]", (Val) latestPublishedEventsPerArgument[i]);

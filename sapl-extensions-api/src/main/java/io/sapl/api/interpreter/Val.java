@@ -144,7 +144,7 @@ public class Val implements Traced {
 		return withTrace(new Trace(operation, arguments));
 	}
 
-	public Val withTrace(Class<?> operation, Map<String, Val> arguments) {
+	public Val withTrace(Class<?> operation, Map<String, Traced> arguments) {
 		return withTrace(new Trace(operation, arguments));
 	}
 

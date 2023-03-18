@@ -21,6 +21,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.core.TreeNode;
 
+import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.grammar.sapl.IndexStep;
@@ -47,7 +48,7 @@ public class IndexStepImplCustom extends IndexStepImpl {
 	@Override
 	public Flux<Val> apply(@NonNull Val parentValue) {
 		return Flux.just(applyToValue(parentValue).withTrace(IndexStep.class,
-				Map.of("parentValue", parentValue, "index", Val.of(index))));
+				Map.<String,Traced>of("parentValue", parentValue, "index", Val.of(index))));
 	}
 
 	public Val applyToValue(@NonNull Val parentValue) {

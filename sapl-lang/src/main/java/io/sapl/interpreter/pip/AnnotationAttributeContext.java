@@ -35,6 +35,7 @@ import org.reactivestreams.Publisher;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.EnvironmentAttribute;
@@ -141,7 +142,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 		return invocationParameters -> {
 			try {
 				return ((Flux<Val>) method.invoke(pip, invocationParameters)).map(val -> {
-					var trace = new HashMap<String, Val>();
+					var trace = new HashMap<String, Traced>();
 					trace.put("attribute", Val.of(attributeName));
 					for (int i = 0; i < invocationParameters.length; i++) {
 						if (invocationParameters[i] instanceof Val)

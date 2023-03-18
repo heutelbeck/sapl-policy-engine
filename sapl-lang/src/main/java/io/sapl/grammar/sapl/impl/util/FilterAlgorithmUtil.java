@@ -8,6 +8,7 @@ import java.util.function.Supplier;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
+import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.ConditionStep;
@@ -98,7 +99,7 @@ public class FilterAlgorithmUtil {
 	private static Function<Val, Flux<Val>> applyFilterIfConditionMet(Val elementValue, Val unfilteredValue, int stepId,
 			FilterStatement statement, String elementIdentifier) {
 		return conditionResult -> {
-			var trace = Map.of(UNFILTERED_VALUE, unfilteredValue, "conditionResult", conditionResult,
+			var trace = Map.<String,Traced>of(UNFILTERED_VALUE, unfilteredValue, "conditionResult", conditionResult,
 					elementIdentifier, elementValue);
 			if (conditionResult.isError()) {
 				return Flux.just(conditionResult.withTrace(ConditionStep.class, trace));

@@ -6,11 +6,14 @@ import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import lombok.Value;
 
 @Value
 public class Trace {
+	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+
 	Class<?>                 operation;
 	List<ExpressionArgument> arguments = new LinkedList<>();
 
@@ -18,7 +21,7 @@ public class Trace {
 		this.operation = operation;
 	}
 
-	public Trace(Class<?> operation, Val... arguments) {
+	public Trace(Class<?> operation, Traced... arguments) {
 		this.operation = operation;
 		var i = 0;
 		for (var argument : arguments) {
@@ -29,7 +32,7 @@ public class Trace {
 		}
 	}
 
-	public Trace(Class<?> operation, Map<String, Val> arguments) {
+	public Trace(Class<?> operation, Map<String, Traced> arguments) {
 		this.operation = operation;
 		for (var argument : arguments.entrySet()) {
 			this.arguments.add(new ExpressionArgument(argument.getKey(), argument.getValue()));
@@ -43,7 +46,7 @@ public class Trace {
 		}
 	}
 
-	public Trace(Val leftHandValue, Class<?> operation, Val... arguments) {
+	public Trace(Traced leftHandValue, Class<?> operation, Traced... arguments) {
 		this.operation = operation;
 		this.arguments.add(new ExpressionArgument("leftHandValue", leftHandValue));
 		var i = 0;
@@ -56,10 +59,10 @@ public class Trace {
 	}
 
 	public JsonNode getTrace() {
-		var jsonTrace = Val.JSON.objectNode();
-		jsonTrace.set("operator", Val.JSON.textNode(operation.getSimpleName()));
+		var jsonTrace = JSON.objectNode();
+		jsonTrace.set("operator", JSON.textNode(operation.getSimpleName()));
 		if (!arguments.isEmpty()) {
-			var args = Val.JSON.objectNode();
+			var args = JSON.objectNode();
 			for (var argument : arguments)
 				args.set(argument.getName(), argument.getValue().getTrace());
 			jsonTrace.set("arguments", args);

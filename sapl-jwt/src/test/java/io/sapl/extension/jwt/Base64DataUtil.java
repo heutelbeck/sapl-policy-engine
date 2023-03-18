@@ -3,7 +3,6 @@ package io.sapl.extension.jwt;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 
 import lombok.SneakyThrows;
