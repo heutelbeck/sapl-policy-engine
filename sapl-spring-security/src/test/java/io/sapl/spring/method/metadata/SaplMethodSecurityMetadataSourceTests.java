@@ -167,7 +167,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenAnnotationOnlyOnInterface_ThenReturnsThat() throws NoSuchMethodException, SecurityException {
+	void whenAnnotationOnlyOnInterface_ThenReturnsThat() throws NoSuchMethodException {
 
 		class TestClass implements TestInterfaceAnnotatedOnInterface {
 
@@ -193,8 +193,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenAnnotationOnInterfaceAnInterfaceMethod_ThenReturnsOnInterfaceMethod()
-			throws NoSuchMethodException, SecurityException {
+	void whenAnnotationOnInterfaceAnInterfaceMethod_ThenReturnsOnInterfaceMethod() throws NoSuchMethodException {
 
 		class TestClass implements TestInterfaceAnnotatedOnInterfaceAndMethod {
 
@@ -213,7 +212,7 @@ class SaplMethodSecurityMetadataSourceTests {
 
 	@Test
 	void whenAnnotationOnMethodAndClassAndOnInterfaceAndInterfaceMethod_ThenReturnsOnMetod()
-			throws NoSuchMethodException, SecurityException {
+			throws NoSuchMethodException {
 
 		@PreEnforce(subject = "'onClass'")
 		class TestClass implements TestInterfaceAnnotatedOnInterfaceAndMethod {
@@ -233,7 +232,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenAnnotationOnMethod_ThenReturnsOnMetodForPost() throws NoSuchMethodException, SecurityException {
+	void whenAnnotationOnMethod_ThenReturnsOnMetodForPost() throws NoSuchMethodException {
 
 		class TestClass {
 
@@ -252,8 +251,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenAnnotationOnMethod_ThenReturnsOnMetodForEnforceTillDenied()
-			throws NoSuchMethodException, SecurityException {
+	void whenAnnotationOnMethod_ThenReturnsOnMetodForEnforceTillDenied() throws NoSuchMethodException {
 
 		class TestClass {
 
@@ -272,8 +270,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenAnnotationOnMethod_ThenReturnsOnMetodForEnforceDropWhileDenied()
-			throws NoSuchMethodException, SecurityException {
+	void whenAnnotationOnMethod_ThenReturnsOnMetodForEnforceDropWhileDenied() throws NoSuchMethodException {
 
 		class TestClass {
 
@@ -292,8 +289,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenAnnotationOnMethod_ThenReturnsOnMetodForEnforceRecoverableIfDenied()
-			throws NoSuchMethodException, SecurityException {
+	void whenAnnotationOnMethod_ThenReturnsOnMetodForEnforceRecoverableIfDenied() throws NoSuchMethodException {
 
 		class TestClass {
 
@@ -321,7 +317,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenAnnotationOnDefaultMethodInInterface_ThenReturnsThat() throws NoSuchMethodException, SecurityException {
+	void whenAnnotationOnDefaultMethodInInterface_ThenReturnsThat() throws NoSuchMethodException {
 		class TestClass implements DefaultMethodInterface {
 
 		}
