@@ -148,7 +148,7 @@ public class Val implements Traced {
 		return withTrace(new Trace(operation, arguments));
 	}
 
-	public Val withParentTrace(Class<?> operation, Val parentValue) {
+	public Val withParentTrace(Class<?> operation, Traced parentValue) {
 		return withTrace(new Trace(operation, new ExpressionArgument("parentValue", parentValue)));
 	}
 
@@ -156,7 +156,7 @@ public class Val implements Traced {
 		return withTrace(new Trace(operation, arguments));
 	}
 
-	public Val withTrace(Val leftHandValue, Class<?> operation, Val... arguments) {
+	public Val withTrace(Traced leftHandValue, Class<?> operation, Traced... arguments) {
 		return withTrace(new Trace(leftHandValue, operation, arguments));
 	}
 
