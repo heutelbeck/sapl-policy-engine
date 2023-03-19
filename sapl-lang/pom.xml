@@ -28,7 +28,6 @@
 	<name>SAPL Language</name>
 	<artifactId>sapl-lang</artifactId>
 	<packaging>jar</packaging>
-
 	<dependencies>
 		<!-- SAPL APIs implemented or used by the SAPL language core -->
 		<dependency>
@@ -47,24 +46,11 @@
 			<version>${project.version}</version>
 			<optional>true</optional>
 		</dependency>
-
 		<!-- XText -->
-		<!-- 
-			XText introduces transitive dependencies on log4j 1.2.x 
-			these introduce CVE-2019-17571. Replace with log4j to slf4j 
-			bridge eliminating log4j completely. Also no dependency 
-			to log4j2 vulnerable to log4shell class of attacks.
-		-->
 		<dependency>
 			<groupId>org.eclipse.xtext</groupId>
 			<artifactId>org.eclipse.xtext</artifactId>
 			<version>${xtext.version}</version>
-			<exclusions>
-				<exclusion>
-					<groupId>log4j</groupId>
-					<artifactId>log4j</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.xtext</groupId>
@@ -81,12 +67,6 @@
 			<groupId>org.eclipse.emf</groupId>
 			<artifactId>org.eclipse.emf.mwe2.launch</artifactId>
 			<optional>true</optional>
-			<exclusions>
-				<exclusion>
-					<groupId>log4j</groupId>
-					<artifactId>log4j</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.xtext</groupId>
@@ -99,20 +79,11 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		
 		<!-- Logging -->
 		<dependency>
-			<!-- map log4j API to slf4j API -->
 			<groupId>org.slf4j</groupId>
-			<artifactId>log4j-over-slf4j</artifactId>
+			<artifactId>slf4j-api</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-simple</artifactId>
-			<!-- optional, as this is only required by the plugins at build time -->
-			<optional>true</optional>
-		</dependency>
-
 		<!-- Utility -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
@@ -123,7 +94,6 @@
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
 		</dependency>
-
 		<!-- Testing -->
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
@@ -196,25 +166,25 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<!-- override xtext guice 5.0.1 still causing problems for SAPL test libraries -->
-			<groupId>com.google.inject</groupId>
-			<artifactId>guice</artifactId>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-simple</artifactId>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
-
 	<build>
 		<plugins>
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>exec-maven-plugin</artifactId>
-				<version>3.0.0</version>
+				<version>3.1.0</version>
 				<dependencies>
 					<!-- Harmonize SLF4J dependencies during build -->
-					<dependency>
+<!--					<dependency>
 						<groupId>org.slf4j</groupId>
 						<artifactId>slf4j-api</artifactId>
 						<version>1.7.36</version>
 					</dependency>
+	-->
 				</dependencies>
 				<executions>
 					<execution>
@@ -222,7 +192,7 @@
 							Attention: the ?m2e annotations may break validation of release packages 
 							being pushed to maven central.
 						-->
-                        <?m2e ignore?>
+						<?m2e ignore?>
 						<id>mwe2GenerateEMFClasses</id>
 						<phase>generate-sources</phase>
 						<goals>
@@ -239,7 +209,7 @@
 							<classpathScope>compile</classpathScope>
 							<includePluginDependencies>true</includePluginDependencies>
 							<cleanupDaemonThreads>false
-							</cleanupDaemonThreads><!-- see https://bugs.eclipse.org/bugs/show_bug.cgi?id=475098#c3 -->
+							</cleanupDaemonThreads> <!-- see https://bugs.eclipse.org/bugs/show_bug.cgi?id=475098#c3 -->
 							<systemProperties>
 								<!-- Use custom logger configuration to make logs look like default 
 									maven logs. Attention: Setting this here spills over into the mwe2Launcher 
@@ -252,7 +222,7 @@
 						</configuration>
 					</execution>
 					<execution>
-                        <?m2e ignore?>
+						<?m2e ignore?>
 						<id>mwe2Launcher</id>
 						<phase>generate-sources</phase>
 						<goals>
@@ -268,7 +238,7 @@
 							<classpathScope>compile</classpathScope>
 							<includePluginDependencies>true</includePluginDependencies>
 							<cleanupDaemonThreads>false
-							</cleanupDaemonThreads><!-- see https://bugs.eclipse.org/bugs/show_bug.cgi?id=475098#c3 -->
+							</cleanupDaemonThreads> <!-- see https://bugs.eclipse.org/bugs/show_bug.cgi?id=475098#c3 -->
 						</configuration>
 					</execution>
 				</executions>
@@ -324,7 +294,7 @@
 				<version>1.9.1</version>
 				<executions>
 					<execution>
-                      	<?m2e execute onConfiguration,onIncremental?>
+						<?m2e execute onConfiguration,onIncremental?>
 						<id>add-source</id>
 						<phase>initialize</phase>
 						<goals>
@@ -349,7 +319,7 @@
 						</configuration>
 					</execution>
 					<execution>
-                        <?m2e execute onConfiguration,onIncremental?>
+						<?m2e execute onConfiguration,onIncremental?>
 						<id>add-test-source</id>
 						<phase>initialize</phase>
 						<goals>
