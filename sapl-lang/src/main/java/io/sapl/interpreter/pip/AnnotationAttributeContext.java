@@ -185,7 +185,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 	private Flux<Object[]> attributeFinderArguments(AttributeFinderMetadata attributeMetadata, Arguments arguments,
 			Map<String, JsonNode> variables) {
 
-		var numberOfInvocationParameters = numberOfInvokationParametersForAttribute(attributeMetadata, arguments);
+		var numberOfInvocationParameters = numberOfInvocationParametersForAttribute(attributeMetadata, arguments);
 
 		if (arguments == null) {
 			var invocationArguments = new Object[numberOfInvocationParameters];
@@ -224,7 +224,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 	private Flux<Object[]> attributeFinderArguments(AttributeFinderMetadata attributeMetadata, Val leftHandValue,
 			Arguments arguments, Map<String, JsonNode> variables) {
 
-		var numberOfInvocationParameters = numberOfInvokationParametersForAttribute(attributeMetadata, arguments);
+		var numberOfInvocationParameters = numberOfInvocationParametersForAttribute(attributeMetadata, arguments);
 
 		if (arguments == null) {
 			var invocationArguments = new Object[numberOfInvocationParameters];
