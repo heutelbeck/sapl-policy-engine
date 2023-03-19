@@ -31,7 +31,7 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 class AbstractSaplAttributeTests {
 
 	@Test
-	void whenCalled_thenGetAtributeAlwaysNull() {
+	void whenCalled_thenGetAttributeAlwaysNull() {
 		var sut = mock(AbstractSaplAttribute.class, Mockito.CALLS_REAL_METHODS);
 		assertThat(sut.getAttribute(), is(nullValue()));
 	}
@@ -81,7 +81,7 @@ class AbstractSaplAttributeTests {
 	}
 
 	@Test
-	void whenExpressionsSet_thenToStringcontainsThem() {
+	void whenExpressionsSet_thenToStringContainsThem() {
 		var sut = new AbstractPolicyBasedEnforcementAttributeMock(toExpression("19 + 1"), toExpression("1 ne 1"),
 				toExpression("2 > 1 ? 'a' : 'b'"), toExpression("workersHolder.salaryByWorkers['John']"), null);
 		var stringValue = sut.toString();
