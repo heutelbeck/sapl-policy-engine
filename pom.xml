@@ -114,9 +114,9 @@
 				<scope>import</scope>
 			</dependency>
 			<dependency>
-				<groupId>com.google.inject</groupId>
-				<artifactId>guice</artifactId>
-				<version>5.1.0</version>
+    			<groupId>com.google.guava</groupId>
+    			<artifactId>guava</artifactId>
+    			<version>31.1-jre</version>
 			</dependency>
 			<!-- Testing Scope Dependencies -->
 			<dependency>
