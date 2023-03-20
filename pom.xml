@@ -113,6 +113,11 @@
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
+			<dependency>
+				<groupId>com.google.inject</groupId>
+				<artifactId>guice</artifactId>
+				<version>5.1.0</version>
+			</dependency>
 			<!-- Testing Scope Dependencies -->
 			<dependency>
 				<groupId>com.spotify</groupId>
@@ -128,7 +133,7 @@
 				<groupId>com.spotify</groupId>
 				<artifactId>hamcrest-jackson</artifactId>
 				<version>${spotify.hamcrest.version}</version>
-			</dependency>			
+			</dependency>
 			<!-- Spring-Boot -->
 			<dependency>
 				<groupId>org.springframework.boot</groupId>

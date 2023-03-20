@@ -78,7 +78,7 @@ public class RemoteRsocketPolicyDecisionPointTests {
 	}
 
 	@Test
-	public void whenSubscribingIncludingErrors_thenAfterErrorsCloseConnectionsAndReconnection() {
+	void whenSubscribingIncludingErrors_thenAfterErrorsCloseConnectionsAndReconnection() {
 		// The first is propagated. The second results in an error. The third is dropped
 		// due to the errorprepareDecisions(
 		prepareDecisions(
@@ -171,12 +171,12 @@ public class RemoteRsocketPolicyDecisionPointTests {
 	static class ServerConfig {
 
 		@Bean
-		public ServerController serverController() {
+		ServerController serverController() {
 			return new ServerController();
 		}
 
 		@Bean
-		public RSocketMessageHandler serverMessageHandler() {
+		RSocketMessageHandler serverMessageHandler() {
 			RSocketMessageHandler handler    = new RSocketMessageHandler();
 			var                   strategies = RSocketStrategies.builder().encoder(new Jackson2JsonEncoder())
 					.encoder(new SimpleAuthenticationEncoder()).decoder(new Jackson2JsonDecoder()).build();
