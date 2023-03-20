@@ -124,6 +124,13 @@
 			<artifactId>commons-lang3</artifactId>
 		</dependency>
 
+		<!-- JSON schema validation -->
+		<dependency>
+			<groupId>com.networknt</groupId>
+			<artifactId>json-schema-validator</artifactId>
+			<version>1.0.56</version>
+		</dependency>
+
 		<!-- Testing -->
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
