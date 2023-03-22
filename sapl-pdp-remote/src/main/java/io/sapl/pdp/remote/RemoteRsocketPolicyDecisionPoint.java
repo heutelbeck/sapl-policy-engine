@@ -120,7 +120,7 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 
 	private <T> Flux<T> decide(String path, ParameterizedTypeReference<T> type, Object authzSubscription) {
 		return rSocketRequester.route(path).data(authzSubscription).retrieveFlux(type)
-				.doOnError(error -> log.error("RSocket Connect Error : {}", error.getMessage(), error));
+				.doOnError(error -> log.error("RSocket Connect Error : error {}", error.toString()));
 	}
 
 	static RemoteRsocketPolicyDecisionPointBuilder builder() {
