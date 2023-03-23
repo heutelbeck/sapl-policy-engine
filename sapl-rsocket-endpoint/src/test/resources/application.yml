@@ -1,5 +1,6 @@
 spring.main.banner-mode: OFF
 logging.level:
   root: ERROR
-  "[org.springframework]": ERROR
+  "[org.springframework]": OFF
   "[io.sapl]": ERROR
+spring.rsocket.server.port: 7000
