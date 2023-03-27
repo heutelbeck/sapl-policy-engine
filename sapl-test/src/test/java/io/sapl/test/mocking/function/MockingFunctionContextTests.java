@@ -55,7 +55,7 @@ class MockingFunctionContextTests {
 	}
 
 	@Test
-	void test_invalidFullname() {
+	void test_invalidFullName() {
 		assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> ctx.checkImportName("foo"));
 		assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> ctx.checkImportName("foo.bar.xxx"));
 	}

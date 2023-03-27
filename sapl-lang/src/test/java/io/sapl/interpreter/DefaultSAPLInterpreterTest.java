@@ -602,7 +602,7 @@ class DefaultSAPLInterpreterTest {
 	}
 
 	@Test
-	void subtemplateOnEmptyArray() {
+	void subTemplateOnEmptyArray() {
 		var policyDefinition = "policy \"test\" permit where [] :: { \"name\": \"foo\" } == [];";
 		var expected         = AuthorizationDecision.PERMIT;
 		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);

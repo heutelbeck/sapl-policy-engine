@@ -97,7 +97,7 @@ class ParameterTypeValidatorTest {
 
 	@ParameterizedTest
 	@MethodSource("data")
-	void theGivenValue_YieldsExpctedValidation(ValidationTestSpecification testSpec) {
+	void theGivenValue_YieldsExpectedValidation(ValidationTestSpecification testSpec) {
 		var parameter = mockParameter(testSpec.getGivenAnnotations());
 		if (testSpec.expectedToBeSuccessfullyValidated)
 			assertDoesNotThrow(() -> validateType(testSpec.getGivenValue(), parameter));

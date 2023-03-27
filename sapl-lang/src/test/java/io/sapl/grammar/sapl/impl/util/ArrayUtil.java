@@ -26,9 +26,9 @@ public class ArrayUtil {
 
 	private final static Equivalence<JsonNode> EQ = JsonNumEquals.getInstance();
 
-	public static Val numberArray(Integer... vals) {
+	public static Val numberArray(Integer... values) {
 		var array = Val.JSON.arrayNode();
-		for (var val : vals) {
+		for (var val : values) {
 			array.add(val);
 		}
 		return Val.of(array);

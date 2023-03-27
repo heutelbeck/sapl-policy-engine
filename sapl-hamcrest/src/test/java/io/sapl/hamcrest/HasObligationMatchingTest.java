@@ -54,7 +54,7 @@ class HasObligationMatchingTest {
 	}
 
 	@Test
-	void testConvenienceMatchierObligationString() {
+	void testConvenienceMatcherObligationString() {
 		ObjectMapper mapper     = new ObjectMapper();
 		ObjectNode   obligation = mapper.createObjectNode();
 		obligation.put("foo", "bar");

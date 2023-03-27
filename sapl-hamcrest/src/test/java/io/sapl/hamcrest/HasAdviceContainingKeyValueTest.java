@@ -102,13 +102,13 @@ class HasAdviceContainingKeyValueTest {
 	@Test
 	void test_emptyMatcher() {
 		ObjectMapper mapper       = new ObjectMapper();
-		ObjectNode   actualAdivce = mapper.createObjectNode();
-		actualAdivce.put("foo", "bar");
-		actualAdivce.put("key", "value");
-		ArrayNode actualAdivces = mapper.createArrayNode();
-		actualAdivces.add(actualAdivce);
+		ObjectNode   actualAdvice = mapper.createObjectNode();
+		actualAdvice.put("foo", "bar");
+		actualAdvice.put("key", "value");
+		ArrayNode actualAdviceArray = mapper.createArrayNode();
+		actualAdviceArray.add(actualAdvice);
 		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
-				Optional.of(actualAdivces));
+				Optional.of(actualAdviceArray));
 
 		var sut = Matchers.hasAdviceContainingKeyValue("key");
 
@@ -118,13 +118,13 @@ class HasAdviceContainingKeyValueTest {
 	@Test
 	void test_StringValueMatcher() {
 		ObjectMapper mapper       = new ObjectMapper();
-		ObjectNode   actualAdivce = mapper.createObjectNode();
-		actualAdivce.put("foo", "bar");
-		actualAdivce.put("key", "value");
-		ArrayNode actualAdivces = mapper.createArrayNode();
-		actualAdivces.add(actualAdivce);
+		ObjectNode   actualAdvice = mapper.createObjectNode();
+		actualAdvice.put("foo", "bar");
+		actualAdvice.put("key", "value");
+		ArrayNode actualAdviceArray = mapper.createArrayNode();
+		actualAdviceArray.add(actualAdvice);
 		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
-				Optional.of(actualAdivces));
+				Optional.of(actualAdviceArray));
 
 		var sut = Matchers.hasAdviceContainingKeyValue("key", "value");
 
@@ -134,13 +134,13 @@ class HasAdviceContainingKeyValueTest {
 	@Test
 	void test_MatchingKey_NotMatchingValue() {
 		ObjectMapper mapper       = new ObjectMapper();
-		ObjectNode   actualAdivce = mapper.createObjectNode();
-		actualAdivce.put("foo", "bar");
-		actualAdivce.put("key", "value");
-		ArrayNode actualAdivces = mapper.createArrayNode();
-		actualAdivces.add(actualAdivce);
+		ObjectNode   actualAdvice = mapper.createObjectNode();
+		actualAdvice.put("foo", "bar");
+		actualAdvice.put("key", "value");
+		ArrayNode actualAdviceArray = mapper.createArrayNode();
+		actualAdviceArray.add(actualAdvice);
 		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
-				Optional.of(actualAdivces));
+				Optional.of(actualAdviceArray));
 
 		var sut = Matchers.hasAdviceContainingKeyValue("key", "xxx");
 

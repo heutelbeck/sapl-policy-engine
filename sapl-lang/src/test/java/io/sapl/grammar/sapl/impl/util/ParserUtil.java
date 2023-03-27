@@ -74,7 +74,7 @@ public class ParserUtil {
 		return statement;
 	}
 
-	public static Entitlement entitilement(String sapl) throws IOException {
+	public static Entitlement entitlement(String sapl) throws IOException {
 		var resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
 		var resource    = (XtextResource) resourceSet.createResource(URI.createFileURI("policy:/default.sapl"));
 		resource.setEntryPoint(INJECTOR.getInstance(SAPLGrammarAccess.class).getEntitlementRule());

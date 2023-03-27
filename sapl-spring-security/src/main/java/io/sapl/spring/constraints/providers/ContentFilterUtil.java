@@ -50,8 +50,8 @@ public class ContentFilterUtil {
 	private static final String UNDEFINED_KEY_S          = "An action does not declare '%s'.";
 	private static final String VALUE_NOT_INTEGER_S      = "An action's '%s' is not an integer.";
 	private static final String VALUE_NOT_TEXTUAL_S      = "An action's '%s' is not textual.";
-	private static final String PATH_NOT_TEXTUAL         = "The contraint indicates a text node to be blackended. However, the node identified by the path is not a text note.";
-	private static final String NO_REPLACEMENT_SPECIFIED = "The contraint indicates a text node to be replaced. However, the action does not specify a 'replacement'.";
+	private static final String PATH_NOT_TEXTUAL         = "The constraint indicates a text node to be blackened. However, the node identified by the path is not a text note.";
+	private static final String NO_REPLACEMENT_SPECIFIED = "The constraint indicates a text node to be replaced. However, the action does not specify a 'replacement'.";
 	private static final String REPLACEMENT_NOT_TEXTUAL  = "'replacement' of 'blacken' action is not textual.";
 	private static final String UNKNOWN_ACTION_S         = "Unknown action type: '%s'.";
 	private static final String ACTION_NOT_AN_OBJECT     = "An action in 'actions' is not an object.";

@@ -210,7 +210,7 @@ class ApplyFilteringExtendedTest {
 	}
 
 	@Test
-	void replaceRecussiveKeyStepObject() {
+	void replaceRecursiveKeyStepObject() {
 		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] } "
 				+ "|- { @..key : filter.blacken }";
 		var expected   = "{ \"key\" : \"XXXXXX\", \"array1\" : [ { \"key\" : \"XXXXXX\" }, { \"key\" : \"XXXXXX\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] }";

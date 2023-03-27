@@ -27,8 +27,6 @@
 	</parent>
 	<artifactId>sapl-ide</artifactId>
 	<name>SAPL Generic IDE Integration</name>
-	<packaging>jar</packaging>
-
 	<dependencies>
 		<dependency>
 			<groupId>${project.groupId}</groupId>

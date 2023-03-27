@@ -72,7 +72,7 @@ class ApplyStepsRecursiveIndexTest {
 	}
 
 	@Test
-	void removeRecussiveIndexStepObject() {
+	void removeRecursiveIndexStepObject() {
 		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] } "
 				+ "|- { @..[0] : filter.remove }";
 		var expected   = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value3\" } ], \"array2\" : [ 2, 3, 4, 5 ] }";
@@ -80,7 +80,7 @@ class ApplyStepsRecursiveIndexTest {
 	}
 
 	@Test
-	void removeRecussiveIndexStepObjectDescend() {
+	void removeRecursiveIndexStepObjectDescend() {
 		var expression = "{ \"key\" : \"value1\", \"array1\" : [ [ 1,2,3 ], { \"key\" : \"value3\" } ], \"array2\" : [ [1,2,3], 2, 3, 4, 5 ] } "
 				+ "|- { @..[0][0] : filter.remove }";
 		var expected   = "{ \"key\" : \"value1\", \"array1\" : [ [ 2,3 ], { \"key\" : \"value3\" } ], \"array2\" : [ [2,3], 2, 3, 4, 5 ] }";

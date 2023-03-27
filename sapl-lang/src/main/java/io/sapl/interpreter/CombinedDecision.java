@@ -55,18 +55,18 @@ public class CombinedDecision implements Traced {
 	}
 
 	public CombinedDecision withEvaluationResult(DocumentEvaluationResult result) {
-		var newCombindedDecision = new CombinedDecision(authorizationDecision, combiningAlgorithm,
+		var newCombinedDecision = new CombinedDecision(authorizationDecision, combiningAlgorithm,
 				documentEvaluationResults, errorMessage);
-		newCombindedDecision.documentEvaluationResults.add(result);
-		return newCombindedDecision;
+		newCombinedDecision.documentEvaluationResults.add(result);
+		return newCombinedDecision;
 	}
 
 	public CombinedDecision withDecisionAndEvaluationResult(AuthorizationDecision authorizationDecision,
 			DocumentEvaluationResult result) {
-		var newCombindedDecision = new CombinedDecision(authorizationDecision, combiningAlgorithm,
+		var newCombinedDecision = new CombinedDecision(authorizationDecision, combiningAlgorithm,
 				documentEvaluationResults, errorMessage);
-		newCombindedDecision.documentEvaluationResults.add(result);
-		return newCombindedDecision;
+		newCombinedDecision.documentEvaluationResults.add(result);
+		return newCombinedDecision;
 	}
 
 	@Override

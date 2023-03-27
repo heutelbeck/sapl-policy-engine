@@ -48,7 +48,7 @@ class CoverageRatioCalculatorTests {
 	}
 
 	@Test
-	void test_EmptyTargetColletion() {
+	void test_EmptyTargetCollection() {
 		var calculator = new CoverageRatioCalculator();
 		List<PolicySetHit> targets = List.of();
 		var hits = List.of(new PolicySetHit("set1"), new PolicySetHit("set999"));

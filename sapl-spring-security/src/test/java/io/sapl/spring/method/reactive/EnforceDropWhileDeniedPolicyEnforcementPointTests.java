@@ -148,13 +148,13 @@ class EnforceDropWhileDeniedPolicyEnforcementPointTests {
 	}
 
 	@Test
-	void when_permit_thenPermitWithResourdeThenPermit_thenAllSignalsGetThroughWhileNoResourceElseResource() {
+	void when_permit_thenPermitWithResourceThenPermit_thenAllSignalsGetThroughWhileNoResourceElseResource() {
 		StepVerifier.withVirtualTime(
-				this::scenario_when_permit_thenPermitWithResourdeThenPermit_thenAllSignalsGetThroughWhileNoResourceElseResource)
+				this::scenario_when_permit_thenPermitWithResourceThenPermit_thenAllSignalsGetThroughWhileNoResourceElseResource)
 				.thenAwait(Duration.ofMillis(3000L)).expectNext(0, 1, 69, 4, 5, 6, 7, 8, 9).verifyComplete();
 	}
 
-	private Flux<Integer> scenario_when_permit_thenPermitWithResourdeThenPermit_thenAllSignalsGetThroughWhileNoResourceElseResource() {
+	private Flux<Integer> scenario_when_permit_thenPermitWithResourceThenPermit_thenAllSignalsGetThroughWhileNoResourceElseResource() {
 		var constraintsService = buildConstraintHandlerService();
 		var decisions          = Flux.just(AuthorizationDecision.PERMIT,
 				AuthorizationDecision.PERMIT.withResource(JSON.numberNode(69)), AuthorizationDecision.PERMIT)
@@ -164,7 +164,7 @@ class EnforceDropWhileDeniedPolicyEnforcementPointTests {
 	}
 
 	@Test
-	void when_permit_thenPermitWithResourdeThenPermit_typeMismatch_thenSignalsDuringMismatchGetDropped() {
+	void when_permit_thenPermitWithResourceThenPermit_typeMismatch_thenSignalsDuringMismatchGetDropped() {
 		StepVerifier.withVirtualTime(
 				this::scenario_when_permit_thenPermitWithResourdeThenPermit_typeMismatch_thenSignalsDuringMismatchGetDropped)
 				.thenAwait(Duration.ofMillis(3000L)).expectNext(0, 1, 4, 5, 6, 7, 8, 9).verifyComplete();
@@ -322,7 +322,7 @@ class EnforceDropWhileDeniedPolicyEnforcementPointTests {
 		};
 		globalMappingHandlerProviders.add(handler);
 		var constraintsService = buildConstraintHandlerService();
-		var decisions          = decisionFluxWithChangeingAdvice().delayElements(Duration.ofMillis(270L));
+		var decisions          = decisionFluxWithChangingAdvice().delayElements(Duration.ofMillis(270L));
 		var data               = Flux.range(0, 10).delayElements(Duration.ofMillis(50L));
 		return EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
 
@@ -571,7 +571,7 @@ class EnforceDropWhileDeniedPolicyEnforcementPointTests {
 
 		});
 		globalRequestHandlerProviders.add(handler);
-		var decisions          = decisionFluxWithChangeingAdvice();
+		var decisions          = decisionFluxWithChangingAdvice();
 		var constraintsService = buildConstraintHandlerService();
 		var data               = Flux.range(0, 10);
 		var sut                = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
@@ -927,7 +927,7 @@ class EnforceDropWhileDeniedPolicyEnforcementPointTests {
 		return Flux.just(AuthorizationDecision.PERMIT.withAdvice(advice));
 	}
 
-	public Flux<AuthorizationDecision> decisionFluxWithChangeingAdvice() {
+	public Flux<AuthorizationDecision> decisionFluxWithChangingAdvice() {
 		var json            = JsonNodeFactory.instance;
 		var advicePlus10000 = json.numberNode(10000L);
 		var advicePlus50000 = json.numberNode(50000L);
@@ -940,7 +940,7 @@ class EnforceDropWhileDeniedPolicyEnforcementPointTests {
 				AuthorizationDecision.PERMIT.withAdvice(secondAdvice));
 	}
 
-	public Flux<AuthorizationDecision> decisionFluxWithChangeingObligations() {
+	public Flux<AuthorizationDecision> decisionFluxWithChangingObligations() {
 		var json      = JsonNodeFactory.instance;
 		var plus10000 = json.numberNode(10000L);
 		var plus50000 = json.numberNode(50000L);

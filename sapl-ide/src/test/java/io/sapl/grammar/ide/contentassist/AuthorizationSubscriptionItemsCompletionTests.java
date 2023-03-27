@@ -23,7 +23,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 
 /**
- * Tests regarding the auto completion of the keywords subject, resource, action,
+ * Tests regarding the auto-completion of the keywords subject, resource, action,
  * environment
  */
 @SpringBootTest

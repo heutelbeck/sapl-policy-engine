@@ -29,11 +29,11 @@ public class CombiningAlgorithmUtil {
 
 	private static List<Flux<DocumentEvaluationResult>> eagerPolicyElementDecisionFluxes(
 			Collection<PolicyElement> policyElements) {
-		var policyDecsions = new ArrayList<Flux<DocumentEvaluationResult>>(policyElements.size());
+		var policyDecisions = new ArrayList<Flux<DocumentEvaluationResult>>(policyElements.size());
 		for (var policyElement : policyElements) {
-			policyDecsions.add(evaluatePolicyElementTargetAndPolicyIfApplicable(policyElement));
+			policyDecisions.add(evaluatePolicyElementTargetAndPolicyIfApplicable(policyElement));
 		}
-		return policyDecsions;
+		return policyDecisions;
 	}
 
 	private static Flux<DocumentEvaluationResult> evaluatePolicyElementTargetAndPolicyIfApplicable(

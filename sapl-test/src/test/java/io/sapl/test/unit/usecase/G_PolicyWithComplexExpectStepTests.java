@@ -162,7 +162,7 @@ class G_PolicyWithComplexExpectStepTests {
 
 						hasObligationContainingKeyValue("type", "logAccess"),
 
-						// check Adivce
+						// check Advice
 						// via .equals()
 						//// hasAdvice(mapper.createObjectNode().put("foo", "bar")),
 						// or Predicate

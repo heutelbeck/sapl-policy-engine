@@ -40,7 +40,7 @@ import lombok.NoArgsConstructor;
 class AnnotationFunctionContextTest {
 
 	@Test
-	void failToInitializeNonFuntionLibraryAnnotatedClass() {
+	void failToInitializeNonFunctionLibraryAnnotatedClass() {
 		assertThrows(InitializationException.class, () -> new AnnotationFunctionContext(""));
 	}
 
@@ -53,13 +53,13 @@ class AnnotationFunctionContextTest {
 	}
 
 	@Test
-	void givenMockLibraryWhenListingFucntionsTheMockFunctionIsAvailable() throws InitializationException {
+	void givenMockLibraryWhenListingFunctionsTheMockFunctionIsAvailable() throws InitializationException {
 		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
 		assertThat(context.providedFunctionsOfLibrary(MockLibrary.LIBRARY_NAME), hasItems(MockLibrary.FUNCTION_NAME));
 	}
 
 	@Test
-	void givenNoLibrariesWhanListingFunctionForALibraryCollectionIsEmpty() {
+	void givenNoLibrariesWhenListingFunctionForALibraryCollectionIsEmpty() {
 		assertThat(new AnnotationFunctionContext().providedFunctionsOfLibrary(null), empty());
 	}
 
@@ -110,7 +110,7 @@ class AnnotationFunctionContextTest {
 	}
 
 	@Test
-	void loadedFuntionShouldBeProvided() throws InitializationException {
+	void loadedFunctionShouldBeProvided() throws InitializationException {
 		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
 		assertAll(
 				() -> assertThat(context.isProvidedFunction(MockLibrary.LIBRARY_NAME + "." + MockLibrary.FUNCTION_NAME),

@@ -38,7 +38,7 @@ class EmbeddedPDPPropertiesValidationTests {
 	}
 
 	@Test
-	void whenValidProertiesArePresent_thenPropertiesLoad() {
+	void whenValidPropertiesArePresent_thenPropertiesLoad() {
 		contextRunner
 				.withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=FILEsystem",
 						"io.sapl.pdp.embedded.index=CaNoNiCaL", "io.sapl.pdp.embedded.configPath=" + tempDir,
@@ -47,7 +47,7 @@ class EmbeddedPDPPropertiesValidationTests {
 	}
 
 	@Test
-	void whenValidProertiesWithMissingPathsArePresent_thenPropertiesFallBackToDefaults() {
+	void whenValidPropertiesWithMissingPathsArePresent_thenPropertiesFallBackToDefaults() {
 		contextRunner
 				.withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=FILESYSTEM", "io.sapl.pdp.embedded.index=NAIVE")
 				.run(context -> {

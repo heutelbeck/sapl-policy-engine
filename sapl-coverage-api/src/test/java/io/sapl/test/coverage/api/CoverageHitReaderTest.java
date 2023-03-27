@@ -77,7 +77,7 @@ class CoverageHitReaderTest {
 	}
 
 	@Test
-	void testCoverageReading_Policys() throws Exception {
+	void testCoverageReading_Polices() throws Exception {
 		// arrange
 		var path = this.basedir.resolve("hits").resolve("_policyHits.txt");
 		if (!Files.exists(path)) {

@@ -27,7 +27,7 @@ import io.sapl.grammar.ide.AbstractSaplLanguageServerTest;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * This class uses the xtext test classes to test auto completion results.
+ * This class uses the xtext test classes to test auto-completion results.
  */
 @Slf4j
 @SpringBootTest

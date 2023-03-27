@@ -174,7 +174,7 @@ class DefaultSAPLInterpreterTransformationTest {
 	}
 
 	@Test
-	def void conditionSubtemplateFiltering() {
+	def void conditionSubTemplateFiltering() {
 		val authzSubscription = MAPPER.readValue('''
 			{
 				"resource":{
@@ -222,7 +222,7 @@ class DefaultSAPLInterpreterTransformationTest {
 
 		val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
 			Optional.empty(), Optional.empty())
-		assertThat("transformation with condition, subtemplate and simple filtering not working as expected",
+		assertThat("transformation with condition, sub-template and simple filtering not working as expected",
 			INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
 			equalTo(expectedAuthzDecision));
 	}

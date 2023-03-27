@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.grammar.sapl.impl.util.ParserUtil;
 
-class ArtihmeticExpressionsTest {
+class ArithmeticExpressionsTest {
 
 	@Test
 	void parentPriority() throws IOException {

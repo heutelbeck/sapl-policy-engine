@@ -35,14 +35,14 @@ import org.mockito.MockedStatic;
 class JarUtilTest {
 
 	@Test
-	void inferUrlOfRecourcesPathTest() {
+	void inferUrlOfResourcesPathTest() {
 		var result = JarUtil.inferUrlOfResourcesPath(getClass(), "/policies");
 		assertThat(result.toString().startsWith("file:"), is(true));
 		assertThat(result.toString().endsWith("policies"), is(true));
 	}
 
 	@Test
-	void inferUrlOfRecourcesPathTestWithMissingResource() {
+	void inferUrlOfResourcesPathTestWithMissingResource() {
 		assertThrows(RuntimeException.class, () -> JarUtil.inferUrlOfResourcesPath(getClass(), "/iDoNotExist"));
 	}
 

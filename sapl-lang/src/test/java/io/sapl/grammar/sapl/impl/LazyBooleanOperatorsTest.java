@@ -31,14 +31,14 @@ import reactor.test.StepVerifier;
 class LazyBooleanOperatorsTest {
 
 	@Test
-	void andEvaluationSouldfailInPolicyTargetExpression() {
+	void andEvaluationShouldFailInPolicyTargetExpression() {
 		var and = new AndImplCustom();
 		MockUtil.mockPolicyTargetExpressionContainerExpression(and);
 		StepVerifier.create(and.evaluate()).expectNextMatches(Val::isError).verifyComplete();
 	}
 
 	@Test
-	void andEvaluationSouldfailInPolicySetTargetExpression() {
+	void andEvaluationShouldFailInPolicySetTargetExpression() {
 		var and = new AndImplCustom();
 		MockUtil.mockPolicySetTargetExpressionContainerExpression(and);
 		StepVerifier.create(and.evaluate()).expectNextMatches(Val::isError).verifyComplete();
@@ -66,12 +66,12 @@ class LazyBooleanOperatorsTest {
 	}
 
 	@Test
-	void andEvaluationTrueAndTrueSouldBeTrue() {
+	void andEvaluationTrueAndTrueShouldBeTrue() {
 		expressionEvaluatesTo("true && true", "true");
 	}
 
 	@Test
-	void andEvaluationOfSequencesSouldReturnMathicingSequence() {
+	void andEvaluationOfSequencesShouldReturnMatchingSequence() {
 		var left  = mock(Expression.class);
 		var right = mock(Expression.class);
 		var and   = new AndImplCustom();
@@ -86,14 +86,14 @@ class LazyBooleanOperatorsTest {
 	}
 
 	@Test
-	void orEvaluationSouldfailInPolicyTargetExpression() {
+	void orEvaluationShouldFailInPolicyTargetExpression() {
 		var and = new OrImplCustom();
 		MockUtil.mockPolicyTargetExpressionContainerExpression(and);
 		StepVerifier.create(and.evaluate()).expectNextMatches(Val::isError).verifyComplete();
 	}
 
 	@Test
-	void orEvaluationSouldfailInPolicySetTargetExpression() {
+	void orEvaluationShouldFailInPolicySetTargetExpression() {
 		var and = new OrImplCustom();
 		MockUtil.mockPolicySetTargetExpressionContainerExpression(and);
 		StepVerifier.create(and.evaluate()).expectNextMatches(Val::isError).verifyComplete();
@@ -125,12 +125,12 @@ class LazyBooleanOperatorsTest {
 	}
 
 	@Test
-	void orEvaluationTrueAndTrueSouldBeTrue() {
+	void orEvaluationTrueAndTrueShouldBeTrue() {
 		expressionEvaluatesTo("true || true", "true");
 	}
 
 	@Test
-	void orEvaluationOfSequencesSouldReturnMathicingSequence() {
+	void orEvaluationOfSequencesShouldReturnMatchingSequence() {
 		var left  = mock(Expression.class);
 		var right = mock(Expression.class);
 		var or    = new OrImplCustom();

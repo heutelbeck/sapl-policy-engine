@@ -348,13 +348,13 @@ public class ConstraintEnforcementService {
 		if (constraints.isEmpty())
 			return handlers;
 
-		var prioritizedHandlers = new ArrayList<HandlerWithPriotiry<Function<Throwable, Throwable>>>();
+		var prioritizedHandlers = new ArrayList<HandlerWithPriority<Function<Throwable, Throwable>>>();
 
 		for (var constraint : constraints.get()) {
 			for (var provider : globalErrorMappingHandlerProviders) {
 				if (provider.isResponsible(constraint)) {
 					onHandlerFound.accept(constraint);
-					prioritizedHandlers.add(new HandlerWithPriotiry<Function<Throwable, Throwable>>(
+					prioritizedHandlers.add(new HandlerWithPriority<Function<Throwable, Throwable>>(
 							provider.getHandler(constraint), provider.getPriority()));
 				}
 			}
@@ -380,12 +380,12 @@ public class ConstraintEnforcementService {
 
 	@Data
 	@AllArgsConstructor
-	private static class HandlerWithPriotiry<T> implements Comparable<HandlerWithPriotiry<T>> {
+	private static class HandlerWithPriority<T> implements Comparable<HandlerWithPriority<T>> {
 		T   handler;
 		int priority;
 
 		@Override
-		public int compareTo(HandlerWithPriotiry<T> o) {
+		public int compareTo(HandlerWithPriority<T> o) {
 			return Integer.compare(o.priority, priority);
 		}
 	}
@@ -398,12 +398,12 @@ public class ConstraintEnforcementService {
 		if (constraints.isEmpty())
 			return handlers;
 
-		var prioritizedHandlers = new ArrayList<HandlerWithPriotiry<Function<T, T>>>();
+		var prioritizedHandlers = new ArrayList<HandlerWithPriority<Function<T, T>>>();
 		for (var constraint : constraints.get()) {
 			for (var provider : globalMappingHandlerProviders) {
 				if (provider.supports(clazz) && provider.isResponsible(constraint)) {
 					onHandlerFound.accept(constraint);
-					prioritizedHandlers.add(new HandlerWithPriotiry<Function<T, T>>(
+					prioritizedHandlers.add(new HandlerWithPriority<Function<T, T>>(
 							(Function<T, T>) provider.getHandler(constraint), provider.getPriority()));
 				}
 			}
@@ -671,7 +671,7 @@ public class ConstraintEnforcementService {
 	}
 
 	/**
-	 * Convenience method to replace the result of an resource access point (RAP)
+	 * Convenience method to replace the result of a resource access point (RAP)
 	 * with an alternative object containing the resource if present.
 	 * 
 	 * @param <T>            result type
@@ -723,7 +723,7 @@ public class ConstraintEnforcementService {
 	}
 
 	/**
-	 * Convenience method to convert a JSON to a JavaObject using the gloabl
+	 * Convenience method to convert a JSON to a JavaObject using the global
 	 * ObjectMapper.
 	 * 
 	 * @param <T>      type of the expected output

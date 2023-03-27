@@ -1,7 +1,7 @@
 # SAPL Spring Security Integration
 
 This package provides integration into Spring Security. It provides a number of infrastructure Beans to establish Policy
-Enforcement Points within a an application.
+Enforcement Points within an application.
 
 ## Dependencies
 
@@ -63,7 +63,7 @@ implementation has to be selected.
 
 ### PDP
 
-The package provides auto configuration for the PDP. Depending on the selected PDP implementation, folders, host,
+The package provides autoconfiguration for the PDP. Depending on the selected PDP implementation, folders, host,
 credentials can be configured using the matching properties.
 
 ### Method Security
@@ -113,7 +113,7 @@ public class MethodSecurityConfiguration extends SaplMethodSecurityConfiguration
 
 # Reactive Method Security PEP
 
-To activate reactive Spring Security annotations and the SAPL ..l add the following configuration class to your
+To activate reactive Spring Security annotations and add the following configuration class to your
 application.
 
 ```java
@@ -166,7 +166,7 @@ The `@PreEnforce` annotation can be combined with a @PostEnforce annotation, onl
 ## `@PostEnforce`
 
 The `@PostEnforce` annotation is typically used if the return object of a
-a protected method is required to make the decision, or if the return object can be modified via a transformation statement in a policy.
+protected method is required to make the decision, or if the return object can be modified via a transformation statement in a policy.
  
 As an AuthorizationSubscription has to be constructed supplying the resource to be modified, and this value has to be well-defined, this annotation is only applicable to methods returning a `Mono<>`.
 

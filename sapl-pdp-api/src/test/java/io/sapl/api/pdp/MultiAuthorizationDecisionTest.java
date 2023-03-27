@@ -124,7 +124,7 @@ class MultiAuthorizationDecisionTest {
 	}
 
 	@Test
-	void indeterminateDefaultDecisiontest() {
+	void indeterminateDefaultDecisionTest() {
 		var decision = MultiAuthorizationDecision.indeterminate();
 		assertEquals(Decision.INDETERMINATE, decision.getAuthorizationDecisionForSubscriptionWithId("").getDecision());
 	}

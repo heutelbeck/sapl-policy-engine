@@ -53,7 +53,7 @@ class HasAdviceTest {
 	}
 
 	@Test
-	void testConvenienceMatchierAdviceString() {
+	void testConvenienceMatcherAdviceString() {
 		ObjectMapper mapper = new ObjectMapper();
 		ObjectNode   advice = mapper.createObjectNode();
 		advice.put("foo", "bar");
@@ -74,12 +74,12 @@ class HasAdviceTest {
 		ArrayNode adviceArray = mapper.createArrayNode();
 		adviceArray.add(advice);
 
-		ObjectNode expectedadvice = mapper.createObjectNode();
-		expectedadvice.put("xxx", "xxx");
+		ObjectNode expectedAdvice = mapper.createObjectNode();
+		expectedAdvice.put("xxx", "xxx");
 		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
 				Optional.of(adviceArray));
 
-		var matcher = hasAdvice(expectedadvice);
+		var matcher = hasAdvice(expectedAdvice);
 
 		assertThat(dec, not(is(matcher)));
 	}

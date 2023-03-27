@@ -83,9 +83,9 @@ public class AuthorizationContext {
 		return ctx.put(ATTRIBUTE_CTX, attributeContext);
 	}
 
-	public static Context setVariables(@NonNull Context ctx, Map<String, JsonNode> environmentrVariables) {
+	public static Context setVariables(@NonNull Context ctx, Map<String, JsonNode> environmentVariables) {
 		Map<String, JsonNode> variables = new HashMap<>(ctx.getOrDefault(VARIABLES, new HashMap<>()));
-		for (var variable : environmentrVariables.entrySet()) {
+		for (var variable : environmentVariables.entrySet()) {
 			var name = variable.getKey();
 			assertVariableNameNotReserved(name);
 			variables.put(name, variable.getValue());
@@ -115,27 +115,27 @@ public class AuthorizationContext {
 		}
 	}
 
-	public Context setSubscriptionVariables(@NonNull Context ctx, AuthorizationSubscription authzSubscription) {
+	public Context setSubscriptionVariables(@NonNull Context ctx, AuthorizationSubscription authorizationSubscription) {
 
 		Map<String, JsonNode> variables = new HashMap<>(ctx.getOrDefault(VARIABLES, new HashMap<>()));
 
-		if (authzSubscription.getSubject() != null) {
-			variables.put(SUBJECT, authzSubscription.getSubject());
+		if (authorizationSubscription.getSubject() != null) {
+			variables.put(SUBJECT, authorizationSubscription.getSubject());
 		} else {
 			variables.put(SUBJECT, JSON.nullNode());
 		}
-		if (authzSubscription.getAction() != null) {
-			variables.put(ACTION, authzSubscription.getAction());
+		if (authorizationSubscription.getAction() != null) {
+			variables.put(ACTION, authorizationSubscription.getAction());
 		} else {
 			variables.put(ACTION, JSON.nullNode());
 		}
-		if (authzSubscription.getResource() != null) {
-			variables.put(RESOURCE, authzSubscription.getResource());
+		if (authorizationSubscription.getResource() != null) {
+			variables.put(RESOURCE, authorizationSubscription.getResource());
 		} else {
 			variables.put(RESOURCE, JSON.nullNode());
 		}
-		if (authzSubscription.getEnvironment() != null) {
-			variables.put(ENVIRONMENT, authzSubscription.getEnvironment());
+		if (authorizationSubscription.getEnvironment() != null) {
+			variables.put(ENVIRONMENT, authorizationSubscription.getEnvironment());
 		} else {
 			variables.put(ENVIRONMENT, JSON.nullNode());
 		}

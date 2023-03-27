@@ -62,7 +62,7 @@ public class AuthorizationManagerPolicyEnforcementPoint<T extends AuthorizationC
 	 * (PDP). <br>
 	 * The PDP returns its decision as a Flux which may change over time, but the reactive
 	 * Spring Security web filter framework only accepts a Mono. <br>
-	 * Consequently, only the PDP's first decision is used, meaning the request is only
+	 * Consequently, only the first PDP decision is used, meaning the request is only
 	 * authorized according to the status of the authentication and context at this moment
 	 * in time.
 	 * @param authentication the Authentication to check

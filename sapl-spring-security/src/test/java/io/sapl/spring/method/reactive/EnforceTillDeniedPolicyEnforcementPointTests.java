@@ -128,7 +128,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
 	}
 
 	@Test
-	void when_permitWithResource_thenReplaceAndComlpete() {
+	void when_permitWithResource_thenReplaceAndComplete() {
 		var constraintsService = buildConstraintHandlerService();
 		var decisions          = Flux.just(AuthorizationDecision.PERMIT.withResource(JSON.numberNode(69)));
 		var data               = Flux.just(1, 2, 3);
@@ -138,7 +138,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
 	}
 
 	@Test
-	void when_permitWithResource_typeMismatch_thenDenyAndComlpete() {
+	void when_permitWithResource_typeMismatch_thenDenyAndComplete() {
 		var constraintsService = buildConstraintHandlerService();
 		var decisions          = Flux.just(AuthorizationDecision.PERMIT.withResource(JSON.textNode("NOT A NUMBER")));
 		var data               = Flux.just(1, 2, 3);
@@ -223,7 +223,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
 		};
 		globalMappingHandlerProviders.add(handler);
 		var constraintsService = buildConstraintHandlerService();
-		var decisions          = decisionFluxWithChangeingAdvice().delayElements(Duration.ofMillis(270L));
+		var decisions          = decisionFluxWithChangingAdvice().delayElements(Duration.ofMillis(270L));
 		var data               = Flux.range(0, 10).delayElements(Duration.ofMillis(50L));
 		return EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
 
@@ -782,7 +782,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
 		return Flux.just(AuthorizationDecision.PERMIT.withAdvice(advice));
 	}
 
-	public Flux<AuthorizationDecision> decisionFluxWithChangeingAdvice() {
+	public Flux<AuthorizationDecision> decisionFluxWithChangingAdvice() {
 		var json            = JsonNodeFactory.instance;
 		var advicePlus10000 = json.numberNode(10000L);
 		var advicePlus50000 = json.numberNode(50000L);

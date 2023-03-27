@@ -52,7 +52,7 @@ class JsonTestUtility {
 	/**
 	 * @param kid1     the ID of the first KeyPair
 	 * @param kid2     the ID of the second KeyPair
-	 * @param keyPair1 KeyPair of the first public key. Non textual, if null
+	 * @param keyPair1 KeyPair of the first public key. Non-textual, if null
 	 * @param keyPair2 KeyPair of the second public key. Bogus, if null
 	 * @return whitelist variables containing two public keys
 	 */

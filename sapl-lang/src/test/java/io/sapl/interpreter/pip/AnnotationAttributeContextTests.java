@@ -587,7 +587,7 @@ class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	void when_varArgsEnvironmentAttribute_calledWithNoParams_evalsVarArgsWithEmptyParamArray()
+	void when_varArgsEnvironmentAttribute_calledWithNoParams_evaluatesVarArgsWithEmptyParamArray()
 			throws InitializationException, IOException {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
@@ -608,7 +608,7 @@ class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	void when_noArgsEnvironmentAttribute_called_evals() throws InitializationException, IOException {
+	void when_noArgsEnvironmentAttribute_called_evaluates() throws InitializationException, IOException {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
 
@@ -628,7 +628,7 @@ class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	void when_noArgsEnvironmentAttribute_calledAndFails_evalsToError()
+	void when_noArgsEnvironmentAttribute_calledAndFails_evaluatesToError()
 			throws InitializationException, IOException {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
@@ -649,7 +649,7 @@ class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	void when_noArgsAttribute_calledAndFails_evalsToError() throws InitializationException, IOException {
+	void when_noArgsAttribute_calledAndFails_evaluatesToError() throws InitializationException, IOException {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
 
@@ -673,7 +673,7 @@ class AnnotationAttributeContextTests {
 	}
 	
 	@Test
-	void when_noArgsAttribute_called_evals() throws InitializationException, IOException {
+	void when_noArgsAttribute_called_evaluates() throws InitializationException, IOException {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
 
@@ -693,7 +693,7 @@ class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	void when_unkownAttribute_called_evalsToError() throws InitializationException, IOException {
+	void when_unknownAttribute_called_evaluatesToError() throws InitializationException, IOException {
 		var attributeCtx = new AnnotationAttributeContext();
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("\"\".<test.envAttribute>");
@@ -789,17 +789,17 @@ class AnnotationAttributeContextTests {
 		var pip = new PIP();
 		var sut = new AnnotationAttributeContext(pip);
 
-		var expectedEnvirionmentTemplates = new String[] { "test.a(a1, a2)>", "test.a(varArgsParams...)>",
+		var expectedEnvironmentTemplates = new String[] { "test.a(a1, a2)>", "test.a(varArgsParams...)>",
 				"test.a2(a1, a2)>", "test.a2>" };
 		var actualEnvironmentTemplates    = sut.getEnvironmentAttributeCodeTemplates();
 		actualEnvironmentTemplates = sut.getEnvironmentAttributeCodeTemplates();
-		assertThat(actualEnvironmentTemplates, containsInAnyOrder(expectedEnvirionmentTemplates));
+		assertThat(actualEnvironmentTemplates, containsInAnyOrder(expectedEnvironmentTemplates));
 
-		var expectedNonEnvirionmentTemplates = new String[] { "test.x2(a1, a2)>", "test.x(varArgsParams...)>",
+		var expectedNonEnvironmentTemplates = new String[] { "test.x2(a1, a2)>", "test.x(varArgsParams...)>",
 				"test.x(a1, a2)>" };
 		var actualNonEnvironmentTemplates    = sut.getAttributeCodeTemplates();
 		actualNonEnvironmentTemplates = sut.getAttributeCodeTemplates();
-		assertThat(actualNonEnvironmentTemplates, containsInAnyOrder(expectedNonEnvirionmentTemplates));
+		assertThat(actualNonEnvironmentTemplates, containsInAnyOrder(expectedNonEnvironmentTemplates));
 
 		assertThat(sut.getAvailableLibraries(), containsInAnyOrder("test"));
 		assertThat(sut.getAllFullyQualifiedFunctions().size(), is(7));

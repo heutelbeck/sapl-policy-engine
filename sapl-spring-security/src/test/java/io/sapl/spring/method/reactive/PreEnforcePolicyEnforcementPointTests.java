@@ -112,7 +112,7 @@ class PreEnforcePolicyEnforcementPointTests {
 				.expectError(AccessDeniedException.class).verify();
 
 		// onErrorContinue is only invoked, if there is a recoverable operator upstream
-		// here there is no 'cause' event from the RAP that could be handed over to the
+		// here there is no cause event from the RAP that could be handed over to the
 		// errorAndCauseConsumer
 		verify(onErrorContinue, times(0)).accept(any(), any());
 		// the error can still be consumed via doOnError

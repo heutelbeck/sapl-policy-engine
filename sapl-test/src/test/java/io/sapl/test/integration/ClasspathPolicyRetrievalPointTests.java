@@ -142,7 +142,7 @@ class ClasspathPolicyRetrievalPointTests {
 
 		assertThat(result1.getMatchingDocuments().get(0).getPolicyElement().getSaplName(), is("policy read"));
 
-		var authzSubscription2 = AuthorizationSubscription.of("Willi", "eat", "icecream");
+		var authzSubscription2 = AuthorizationSubscription.of("Willi", "eat", "ice cream");
 
 		var result2 = prp.retrievePolicies().contextWrite(ctx -> {
 			ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
@@ -157,7 +157,7 @@ class ClasspathPolicyRetrievalPointTests {
 		assertThat(result2.isErrorsInTarget(), is(false));
 		assertThat(result2.isPrpValidState(), is(true));
 
-		assertThat(result2.getMatchingDocuments().get(0).getPolicyElement().getSaplName(), is("policy eat icecream"));
+		assertThat(result2.getMatchingDocuments().get(0).getPolicyElement().getSaplName(), is("policy eat ice cream"));
 	}
 
 	@Test

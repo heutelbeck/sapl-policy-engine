@@ -47,7 +47,7 @@ jobs:
       run: mvn -U -B --fail-at-end -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn org.jacoco:jacoco-maven-plugin:prepare-agent verify org.jacoco:jacoco-maven-plugin:report
 
     - name: Publish Test Report
-      # do not publish test results if PR is from a fork -> PRs from forks don't have access to the github token to access the checks api
+      # do not publish test results if PR is from a fork -> PRs from forks don't have access to the GitHub token to access the checks api
       # do not publish test results if PR is from dependabot -> PRs from dependabot are originated in the same repo but the GITHUB_TOKEN is read-only (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544)
       if: ${{ github.event.pull_request.base.repo.url == github.event.pull_request.head.repo.url && github.actor != 'dependabot[bot]'}}
       uses: scacap/action-surefire-report@v1

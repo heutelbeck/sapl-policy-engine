@@ -97,7 +97,7 @@ class ImmutableFileIndexTest {
 	}
 
 	@Test
-	void when_initializinWithDirectoryThatContainsUnreadableFile_then_updatesContainOnlyInconsistent() {
+	void when_initializingWithDirectoryThatContainsUnreadableFile_then_updatesContainOnlyInconsistent() {
 		try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
 			var mockPath = mock(Path.class);
 			when(mockPath.toAbsolutePath()).thenReturn(mockPath);
@@ -117,7 +117,7 @@ class ImmutableFileIndexTest {
 	}
 
 	@Test
-	void when_initializinWithDirectoryThatContainsValidSaplFile_then_updatesContainDocument() {
+	void when_initializingWithDirectoryThatContainsValidSaplFile_then_updatesContainDocument() {
 		var policy1 = POLICY_1;
 		var sapl1   = INTERPERETER.parse(policy1);
 

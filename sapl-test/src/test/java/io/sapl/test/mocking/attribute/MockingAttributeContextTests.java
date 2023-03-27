@@ -82,7 +82,7 @@ class MockingAttributeContextTests {
 	}
 
 	@Test
-	void test_dynamicMock_mockEmitCalledForInvalidFullname() {
+	void test_dynamicMock_mockEmitCalledForInvalidFullName() {
 		attrCtx.loadAttributeMock("test.test", Duration.ofSeconds(10), Val.of(1), Val.of(2));
 		assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> attrCtx.mockEmit("test.test", Val.of(1)));
 	}
@@ -201,7 +201,7 @@ class MockingAttributeContextTests {
 	}
 
 	@Test
-	void test_invalidFullname() {
+	void test_invalidFullName() {
 		assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> attrCtx.markAttributeMock("foo"));
 		assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> attrCtx.markAttributeMock("foo.bar.xxx"));
 	}

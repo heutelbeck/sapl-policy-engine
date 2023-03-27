@@ -53,9 +53,9 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 				SelectorUtil.toArrayElementSelector(hasIndex(unfilteredValue)), statement, ArraySlicingStep.class);
 	}
 
-	private BiFunction<Integer, Val, Boolean> hasIndex(Val parentVlue) {
+	private BiFunction<Integer, Val, Boolean> hasIndex(Val parentValue) {
 		return (index, __) -> {
-			var arraySize = parentVlue.getArrayNode().size();
+			var arraySize = parentValue.getArrayNode().size();
 			return indices.stream().map(BigDecimal::intValue).map(i -> normalizeIndex(i, arraySize))
 					.anyMatch(i -> i.equals(index));
 		};

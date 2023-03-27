@@ -69,7 +69,7 @@ public class MockUtil {
 			functionCtx.loadLibrary(new FilterFunctionLibrary());
 			functionCtx.loadLibrary(new TestFunctionLibrary());
 		} catch (InitializationException e) {
-			fail("The loading of function libraries for the test environemnt failed: " + e.getMessage());
+			fail("The loading of function libraries for the test environment failed: " + e.getMessage());
 		}
 
 		ctx = AuthorizationContext.setAttributeContext(ctx, attributeCtx);

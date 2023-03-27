@@ -41,7 +41,7 @@ class ApplyStepsRecursiveWildcardTest {
 	}
 
 	@Test
-	void apptlyToNull() {
+	void applyToNull() {
 		expressionEvaluatesTo("null..*", "[]");
 	}
 

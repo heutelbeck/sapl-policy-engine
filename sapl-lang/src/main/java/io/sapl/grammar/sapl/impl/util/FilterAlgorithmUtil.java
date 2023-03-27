@@ -145,7 +145,7 @@ public class FilterAlgorithmUtil {
 							Map.of(UNFILTERED_VALUE, unfilteredValue, "filterResult", val)));
 		}
 
-		// "|- each" may only applied to arrays
+		// "|- each" may only be applied to arrays
 		if (!unfilteredValue.isArray()) {
 			return Flux.just(Val.error(TYPE_MISMATCH_EACH_ON_NON_ARRAY + unfilteredValue.getValType())
 					.withTrace(FilterComponent.class, unfilteredValue));

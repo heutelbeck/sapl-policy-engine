@@ -45,7 +45,7 @@ class ApplyStepsExpressionTest {
 	}
 
 	@Test
-	void expressionStepOutOfBouonds2() {
+	void expressionStepOutOfBounds3() {
 		expressionErrors("[1,2,3][(1 - 100)]");
 	}
 

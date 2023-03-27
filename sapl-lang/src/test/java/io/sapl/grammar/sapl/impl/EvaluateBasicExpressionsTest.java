@@ -67,22 +67,22 @@ class EvaluateBasicExpressionsTest {
 	}
 
 	@Test
-	void evaluateBasicSubtemplateObject() {
-		var expression = "{ \"key\" : [1,2,3] } :: { \"newkey\" : @.key[1] }";
-		var expected   = "{ \"newkey\" : 2 }";
+	void evaluateBasicSubTemplateObject() {
+		var expression = "{ \"key\" : [1,2,3] } :: { \"newKey\" : @.key[1] }";
+		var expected   = "{ \"newKey\" : 2 }";
 		expressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
-	void evaluateBasicSubtemplateArray() {
-		var expression = "[{ \"key\" : [1,2,3] },{ \"key\" : [4,5,6] }]  :: { \"newkey\" : @.key[1] }";
-		var expected   = "[{ \"newkey\" : 2 }, { \"newkey\" : 5 }]";
+	void evaluateBasicSubTemplateArray() {
+		var expression = "[{ \"key\" : [1,2,3] },{ \"key\" : [4,5,6] }]  :: { \"newKey\" : @.key[1] }";
+		var expected   = "[{ \"newKey\" : 2 }, { \"newKey\" : 5 }]";
 		expressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
-	void evaluateBasicSubtemplateEmptyArray() {
-		var expression = "[]  :: { \"newkey\" : @.key[1] }";
+	void evaluateBasicSubTemplateEmptyArray() {
+		var expression = "[]  :: { \"newKey\" : @.key[1] }";
 		var expected   = "[]";
 		expressionEvaluatesTo(expression, expected);
 	}

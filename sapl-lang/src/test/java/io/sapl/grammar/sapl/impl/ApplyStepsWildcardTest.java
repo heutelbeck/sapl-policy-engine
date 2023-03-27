@@ -80,7 +80,7 @@ class ApplyStepsWildcardTest {
 	}
 
 	@Test
-	void replaceRecussiveWildcardStepObject() {
+	void replaceRecursiveWildcardStepObject() {
 		var expression = "{ \"a\" : 1, \"b\" : 2, \"c\" : 3, \"d\" : 4 , \"e\" : 5 } |- { @..* : mock.emptyString }";
 		var expected   = "{ \"a\" : \"\", \"b\" : \"\", \"c\" : \"\", \"d\" : \"\" , \"e\" : \"\" }";
 		expressionEvaluatesTo(expression, expected);

@@ -737,10 +737,10 @@ class GenericCoverageReporterTests {
 	}
 
 	@Test
-	void test_markLinesOfPolicyStatement_UnknwonStatementType() {
+	void test_markLinesOfPolicyStatement_UnknownStatementType() {
 		var mockStatement = Mockito.mock(Statement.class);
-		EClass unknwonNewStatementType = SaplPackage.Literals.ENTITLEMENT;
-		Mockito.when(mockStatement.eClass()).thenReturn(unknwonNewStatementType);
+		EClass unknownNewStatementType = SaplPackage.Literals.ENTITLEMENT;
+		Mockito.when(mockStatement.eClass()).thenReturn(unknownNewStatementType);
 		try (MockedStatic<NodeModelUtils> nodeModelUtilsMockedStatic = mockStatic(NodeModelUtils.class)) {
 			nodeModelUtilsMockedStatic.when(() -> NodeModelUtils.getNode(Mockito.any())).thenReturn(null);
 			assertThrows(SaplTestException.class, () -> this.reporter.markLinesOfPolicyStatement("set", "policy", 0,

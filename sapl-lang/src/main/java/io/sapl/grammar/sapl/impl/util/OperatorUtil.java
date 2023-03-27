@@ -45,9 +45,9 @@ public class OperatorUtil {
 	}
 
 	public static Flux<Val> arithmeticOperator(
-			UnaryOperator unarayOperator,
+			UnaryOperator unaryOperator,
 			Function<Val, Val> transformation) {
-		return operator(unarayOperator, Val::requireBigDecimal, transformation);
+		return operator(unaryOperator, Val::requireBigDecimal, transformation);
 	}
 
 	public static Flux<Val> booleanOperator(
@@ -63,10 +63,10 @@ public class OperatorUtil {
 	}
 
 	public static Flux<Val> operator(
-			UnaryOperator unarayOperator,
+			UnaryOperator unaryOperator,
 			Function<Val, Val> typeRequirement,
 			Function<Val, Val> transformation) {
-		return unarayOperator.getExpression().evaluate().map(typeRequirement)
+		return unaryOperator.getExpression().evaluate().map(typeRequirement)
 				.map(errorOrDo(transformation));
 	}
 
