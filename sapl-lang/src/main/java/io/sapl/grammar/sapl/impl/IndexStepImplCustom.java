@@ -21,7 +21,6 @@ import java.util.Map;
 
 import com.fasterxml.jackson.core.TreeNode;
 
-import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.grammar.sapl.IndexStep;

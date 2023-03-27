@@ -15,9 +15,6 @@
  */
 package io.sapl.prp.resources;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-
 import org.junit.jupiter.api.Test;
 
 import io.sapl.interpreter.InitializationException;

@@ -15,8 +15,6 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.stream.Collectors;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.ArraySlicingStep;
 import io.sapl.grammar.sapl.AttributeUnionStep;

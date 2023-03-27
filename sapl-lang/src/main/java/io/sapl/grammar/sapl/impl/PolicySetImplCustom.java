@@ -20,7 +20,6 @@ import java.util.HashSet;
 import java.util.Map;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.PolicyElement;
 import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DocumentEvaluationResult;
