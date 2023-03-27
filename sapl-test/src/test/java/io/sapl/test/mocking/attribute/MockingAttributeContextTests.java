@@ -156,7 +156,7 @@ class MockingAttributeContextTests {
 		var expression = Mockito.mock(Expression.class);
 		Mockito.when(expression.evaluate()).thenReturn(Flux.just(Val.TRUE));
 		var arguments = Mockito.mock(Arguments.class);
-		Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<Expression>(List.of(expression)));
+		Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<>(List.of(expression)));
 
 		StepVerifier.create(attrCtx.evaluateAttribute("foo.bar", Val.of(1), arguments, variables)).expectNext(Val.of(2))
 				.verifyComplete();
@@ -172,7 +172,7 @@ class MockingAttributeContextTests {
 		var expression = Mockito.mock(Expression.class);
 		Mockito.when(expression.evaluate()).thenReturn(Flux.just(Val.TRUE));
 		var arguments = Mockito.mock(Arguments.class);
-		Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<Expression>(List.of(expression)));
+		Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<>(List.of(expression)));
 
 		StepVerifier.create(attrCtx.evaluateAttribute("foo.bar", Val.of(1), arguments, variables)).expectNext(Val.of(0))
 				.verifyComplete();
@@ -194,7 +194,7 @@ class MockingAttributeContextTests {
 		var expression = Mockito.mock(Expression.class);
 		Mockito.when(expression.evaluate()).thenReturn(Flux.just(Val.TRUE));
 		var arguments = Mockito.mock(Arguments.class);
-		Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<Expression>(List.of(expression)));
+		Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<>(List.of(expression)));
 
 		StepVerifier.create(attrCtx.evaluateEnvironmentAttribute("foo.bar", arguments, variables)).expectNext(Val.of(2))
 				.verifyComplete();

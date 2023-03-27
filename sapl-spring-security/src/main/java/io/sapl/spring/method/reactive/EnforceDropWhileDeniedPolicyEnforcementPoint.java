@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import lombok.NonNull;
 import org.reactivestreams.Subscription;
 import org.springframework.security.access.AccessDeniedException;
 
@@ -92,7 +93,7 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 	}
 
 	@Override
-	public void subscribe(CoreSubscriber<? super T> actual) {
+	public void subscribe(@NonNull CoreSubscriber<? super T> actual) {
 		if (sink != null)
 			throw new IllegalStateException("Operator may only be subscribed once.");
 		ContextView context = actual.currentContext();

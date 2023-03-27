@@ -23,7 +23,7 @@ public class SAPLStandaloneSetupTests {
 
 	@Test
 	void standaloneNotNullTest() {
-		assertDoesNotThrow(() -> SAPLStandaloneSetup.doSetup());
+		assertDoesNotThrow(SAPLStandaloneSetup::doSetup);
 	}
 
 }

@@ -39,7 +39,7 @@ import reactor.core.publisher.Mono;
 
 /**
  * Val is the basic data type SAPL expressions evaluate to. A Val may contain a
- * Jackson JsonNode, an error, or may be undefined. Vals are immutable.
+ * Jackson JsonNode, an error, or may be undefined. Val is immutable.
  * 
  * @author Dominic Heutelbeck
  *
@@ -64,7 +64,7 @@ public class Val implements Traced {
 
 	/**
 	 * Convenience Instance of a ObjectMapper. Attention, this is not the same as
-	 * the gloablly available bean in Spring.
+	 * the globally available bean in Spring.
 	 */
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 

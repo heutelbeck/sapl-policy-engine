@@ -135,7 +135,7 @@ import org.springframework.test.context.ContextConfiguration;
 	}
 
 	@Test
-	void testCompletion_SuggestRenameedFunctionFromLibraryImport() {
+	void testCompletion_SuggestRenamedFunctionFromLibraryImport() {
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "import time.before as abc\npolicy \"test policy\" deny where var foo = 5;";
 			String cursor = "policy \"test policy\" deny where var foo = 5;";

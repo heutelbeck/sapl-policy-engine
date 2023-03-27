@@ -50,17 +50,17 @@ public class PolicyRetrievalResult {
 	}
 
 	public PolicyRetrievalResult withMatch(SAPL match) {
-		var matches = new ArrayList<SAPL>(matchingDocuments);
+		var matches = new ArrayList<>(matchingDocuments);
 		matches.add(match);
 		return new PolicyRetrievalResult(matches, errorsInTarget, prpValidState);
 	}
 
 	public PolicyRetrievalResult withError() {
-		return new PolicyRetrievalResult(new ArrayList<SAPL>(matchingDocuments), true, prpValidState);
+		return new PolicyRetrievalResult(new ArrayList<>(matchingDocuments), true, prpValidState);
 	}
 
 	public PolicyRetrievalResult withInvalidState() {
-		return new PolicyRetrievalResult(new ArrayList<SAPL>(matchingDocuments), errorsInTarget, false);
+		return new PolicyRetrievalResult(new ArrayList<>(matchingDocuments), errorsInTarget, false);
 	}
 
 }

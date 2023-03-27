@@ -75,7 +75,7 @@ public class MockUtil {
 		ctx = AuthorizationContext.setAttributeContext(ctx, attributeCtx);
 		ctx = AuthorizationContext.setFunctionContext(ctx, functionCtx);
 		ctx = AuthorizationContext.setVariable(ctx, "nullVariable", Val.NULL);
-		ctx = AuthorizationContext.setImports(ctx, new HashMap<String, String>());
+		ctx = AuthorizationContext.setImports(ctx, new HashMap<>());
 
 		return ctx;
 	}

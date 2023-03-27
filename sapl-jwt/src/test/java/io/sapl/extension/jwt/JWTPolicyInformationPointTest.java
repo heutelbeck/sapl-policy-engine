@@ -137,7 +137,7 @@ class JWTPolicyInformationPointTest {
 
 	@Test
 	void validity_withWhitelist_emptyEntry_shouldBeUntrusted()
-			throws NoSuchAlgorithmException, IOException, JOSEException {
+			throws JOSEException {
 
 		var variables = JsonTestUtility.publicKeyWhitelistVariables(kid, null, kid2, keyPair2);
 		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
@@ -150,7 +150,7 @@ class JWTPolicyInformationPointTest {
 
 	@Test
 	void validity_withWhitelist_bogusEntry_shouldBeUntrusted()
-			throws NoSuchAlgorithmException, IOException, JOSEException {
+			throws JOSEException {
 
 		var variables = JsonTestUtility.publicKeyWhitelistVariables(kid, keyPair, kid2, null);
 		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid2).build();

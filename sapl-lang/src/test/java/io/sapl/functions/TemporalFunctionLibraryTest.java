@@ -39,7 +39,7 @@ class TemporalFunctionLibraryTest {
 
 	@Test
 	void instantiate() {
-		assertDoesNotThrow(() -> new TemporalFunctionLibrary());
+		assertDoesNotThrow(TemporalFunctionLibrary::new);
 	}
 
 	@Test
@@ -279,7 +279,7 @@ class TemporalFunctionLibraryTest {
 	void zoneIdOfTest() {
 		var defaultZoneId = ZoneId.of("AET", ZoneId.SHORT_IDS);
 		try (MockedStatic<ZoneId> zoneIdMock = Mockito.mockStatic(ZoneId.class, Mockito.CALLS_REAL_METHODS)) {
-			zoneIdMock.when(() -> ZoneId.systemDefault()).thenReturn(defaultZoneId);
+			zoneIdMock.when(ZoneId::systemDefault).thenReturn(defaultZoneId);
 			assertThat(TemporalFunctionLibrary.dateTimeAtZone(Val.of("2021-11-08T13:12:35"), Val.of("")),
 					is(val("2021-11-08T02:12:35Z")));
 		}

@@ -48,7 +48,7 @@ class SonarLineCoverageReportGeneratorTests {
 
 	private Collection<SaplDocumentCoverageInformation> documents;
 
-	private Path base = Paths.get("target/sapl-coverage/sonar");
+	private final Path base = Paths.get("target/sapl-coverage/sonar");
 
 	@BeforeEach
 	void setup() {

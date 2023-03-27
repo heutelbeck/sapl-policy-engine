@@ -81,7 +81,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
 	}
 
 	private Flux<CombinedDecision> evaluateAndCombinePoliciesOfSet() {
-		return getAlgorithm().combinePolicies(new ArrayList<PolicyElement>(policies));
+		return getAlgorithm().combinePolicies(new ArrayList<>(policies));
 	}
 
 }

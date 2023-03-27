@@ -25,9 +25,9 @@ import reactor.util.function.Tuples;
 @UtilityClass
 public class FilterAlgorithmUtil {
 	private static final String UNFILTERED_VALUE = "unfilteredValue";
-	protected static final String TYPE_MISMATCH_CONDITION_NOT_BOOLEAN_S = "Type mismatch. Expected the condition expression to return a Boolean, but was '%s'.";
-	protected static final String TYPE_MISMATCH_UNFILTERED_UNDEFINED    = "Filters cannot be applied to undefined values.";
-	protected static final String TYPE_MISMATCH_EACH_ON_NON_ARRAY       = "Type mismatch error. Cannot use 'each' keyword with non-array values. Value type was: ";
+	static final String TYPE_MISMATCH_CONDITION_NOT_BOOLEAN_S = "Type mismatch. Expected the condition expression to return a Boolean, but was '%s'.";
+	static final String TYPE_MISMATCH_UNFILTERED_UNDEFINED    = "Filters cannot be applied to undefined values.";
+	static final String TYPE_MISMATCH_EACH_ON_NON_ARRAY       = "Type mismatch error. Cannot use 'each' keyword with non-array values. Value type was: ";
 
 	public static Flux<Val> applyFilter(@NonNull Val unfilteredValue, int stepId, Supplier<Flux<Val>> selector,
 			@NonNull FilterStatement statement, Class<?> operationType) {

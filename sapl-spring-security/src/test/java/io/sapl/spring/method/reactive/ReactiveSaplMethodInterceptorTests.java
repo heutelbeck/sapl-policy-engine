@@ -73,8 +73,6 @@ class ReactiveSaplMethodInterceptorTests {
 
 	private MethodInterceptor springSecurityMethodInterceptor;
 
-	private MethodSecurityMetadataSource metadataSource;
-
 	private MethodSecurityExpressionHandler handler;
 
 	private PolicyDecisionPoint pdp;
@@ -99,7 +97,7 @@ class ReactiveSaplMethodInterceptorTests {
 		PrePostAnnotationSecurityMetadataSource prePostSource = new PrePostAnnotationSecurityMetadataSource(
 				new ExpressionBasedAnnotationAttributeFactory(handler));
 		SaplMethodSecurityMetadataSource sapl = new SaplMethodSecurityMetadataSource(new SaplAttributeFactory(handler));
-		metadataSource = new DelegatingMethodSecurityMetadataSource(Arrays.asList(sapl, prePostSource));
+		MethodSecurityMetadataSource metadataSource = new DelegatingMethodSecurityMetadataSource(Arrays.asList(sapl, prePostSource));
 
 		pdp = mock(PolicyDecisionPoint.class);
 		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
@@ -157,7 +155,7 @@ class ReactiveSaplMethodInterceptorTests {
 	}
 
 	@Test
-	void when_nonReactiveType_then_fail() throws Throwable {
+	void when_nonReactiveType_then_fail() {
 		class TestClass {
 
 			@PreEnforce
@@ -174,7 +172,7 @@ class ReactiveSaplMethodInterceptorTests {
 	}
 
 	@Test
-	void when_postEnforceOnFlux_then_fail() throws Throwable {
+	void when_postEnforceOnFlux_then_fail() {
 		class TestClass {
 
 			@PostEnforce
@@ -217,7 +215,7 @@ class ReactiveSaplMethodInterceptorTests {
 	}
 
 	@Test
-	void when_prePostIsCombinedWithContinuousEnforce_then_fail() throws Throwable {
+	void when_prePostIsCombinedWithContinuousEnforce_then_fail() {
 
 		class TestClass {
 
@@ -240,7 +238,7 @@ class ReactiveSaplMethodInterceptorTests {
 	}
 
 	@Test
-	void when_moreThanOneContinuousAnnotation_then_fail() throws Throwable {
+	void when_moreThanOneContinuousAnnotation_then_fail() {
 
 		class TestClass {
 
@@ -264,7 +262,7 @@ class ReactiveSaplMethodInterceptorTests {
 	}
 
 	@Test
-	void when_saplAndSpringAnnotationsPresent_then_failsIfBothAreReturnedByMetadataSource() throws Throwable {
+	void when_saplAndSpringAnnotationsPresent_then_failsIfBothAreReturnedByMetadataSource() {
 
 		var conflictingAttributes = List.of(mock(PreEnforceAttribute.class), mock(PreInvocationAttribute.class));
 		var mockMetadataSource = mock(MethodSecurityMetadataSource.class);

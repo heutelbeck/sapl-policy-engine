@@ -25,7 +25,7 @@ import io.sapl.api.interpreter.Val;
 
 class FunctionMockAlwaysSameValueTests {
 
-	private Val alwaysReturnValue = Val.of("bar");
+	private final Val alwaysReturnValue = Val.of("bar");
 
 	@Test
 	void test() {

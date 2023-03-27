@@ -119,9 +119,9 @@ public class PostEnforcePolicyEnforcementPoint extends AbstractPolicyEnforcement
 
 			return result;
 		} catch (Throwable e) {
-			e = constraintHandlerBundle.handleAllOnErrorConstraints(e);
-			Exceptions.throwIfFatal(e);
-			throw new AccessDeniedException("Access Denied by PEP. Failed to enforce decision", e);
+			Throwable e1 = constraintHandlerBundle.handleAllOnErrorConstraints(e);
+			Exceptions.throwIfFatal(e1);
+			throw new AccessDeniedException("Access Denied by PEP. Failed to enforce decision", e1);
 		}
 	}
 

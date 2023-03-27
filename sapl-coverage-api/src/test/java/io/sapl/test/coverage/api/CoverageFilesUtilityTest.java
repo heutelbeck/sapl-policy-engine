@@ -72,7 +72,7 @@ class CoverageFilesUtilityTest {
 	}
 
 	@Test
-	void test_NoParent() throws IOException {
+	void test_NoParent() {
 		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
 			mockedFiles.when(() -> Files.exists(Mockito.any())).thenReturn(Boolean.FALSE);
 			Path path = Mockito.mock(Path.class);

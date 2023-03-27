@@ -51,7 +51,7 @@ public class TimePolicyInformationPointTests {
 		var clock      = mock(Clock.class);
 		when(clock.instant()).thenReturn(now, nowPlusOne, nowPlusTwo);
 		var sut = new TimePolicyInformationPoint(clock);
-		StepVerifier.withVirtualTime(() -> sut.now()).expectNext(Val.of(now.toString()))
+		StepVerifier.withVirtualTime(sut::now).expectNext(Val.of(now.toString()))
 				.thenAwait(Duration.ofSeconds(2))
 				.expectNext(Val.of(nowPlusOne.toString()), Val.of(nowPlusTwo.toString())).thenCancel().verify();
 	}
@@ -68,7 +68,7 @@ public class TimePolicyInformationPointTests {
 		var sut    = new TimePolicyInformationPoint(mock(Clock.class));
 		var zoneId = ZoneId.of("UTC");
 		try (MockedStatic<ZoneId> mock = mockStatic(ZoneId.class, Mockito.CALLS_REAL_METHODS)) {
-			mock.when(() -> ZoneId.systemDefault()).thenReturn(zoneId);
+			mock.when(ZoneId::systemDefault).thenReturn(zoneId);
 			StepVerifier.create(sut.systemTimeZone()).expectNext(Val.of("UTC")).verifyComplete();
 		}
 	}
@@ -351,21 +351,21 @@ public class TimePolicyInformationPointTests {
 	@Test
 	public void nowIsAfterTestAlwaysAfter() {
 		var now        = Instant.parse("2021-11-08T13:00:00Z");
-		var ckeckpoint = Val.of("2021-11-01T14:30:00Z");
+		var checkpoint = Val.of("2021-11-01T14:30:00Z");
 		var clock      = mock(Clock.class);
 		when(clock.instant()).thenReturn(now);
 		var sut = new TimePolicyInformationPoint(clock);
-		StepVerifier.withVirtualTime(() -> sut.nowIsAfter(ckeckpoint)).expectNext(Val.TRUE).verifyComplete();
+		StepVerifier.withVirtualTime(() -> sut.nowIsAfter(checkpoint)).expectNext(Val.TRUE).verifyComplete();
 	}
 
 	@Test
 	public void nowIsBeforeTest() {
 		var now        = Instant.parse("2021-11-08T13:00:00Z");
-		var ckeckpoint = Val.of("2021-11-08T14:30:00Z");
+		var checkpoint = Val.of("2021-11-08T14:30:00Z");
 		var clock      = mock(Clock.class);
 		when(clock.instant()).thenReturn(now);
 		var sut = new TimePolicyInformationPoint(clock);
-		StepVerifier.withVirtualTime(() -> sut.nowIsBefore(ckeckpoint)).expectNext(Val.TRUE)
+		StepVerifier.withVirtualTime(() -> sut.nowIsBefore(checkpoint)).expectNext(Val.TRUE)
 				.thenAwait(Duration.ofMinutes(91L)).expectNext(Val.FALSE).verifyComplete();
 	}
 

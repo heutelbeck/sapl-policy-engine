@@ -25,7 +25,7 @@ import io.sapl.test.SaplTestException;
 
 class FunctionMockSequenceTests {
 
-	private Val[] seq = new Val[] { Val.of(1), Val.of(2), Val.of(3) };
+	private final Val[] seq = new Val[] { Val.of(1), Val.of(2), Val.of(3) };
 
 	@Test
 	void test() {

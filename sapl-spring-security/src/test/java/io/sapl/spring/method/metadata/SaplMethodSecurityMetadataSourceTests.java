@@ -312,7 +312,7 @@ class SaplMethodSecurityMetadataSourceTests {
 		@PostEnforce(subject = "'onDefaultInterfaceMethod'")
 		default void doSomething() {
 
-		};
+		}
 
 	}
 

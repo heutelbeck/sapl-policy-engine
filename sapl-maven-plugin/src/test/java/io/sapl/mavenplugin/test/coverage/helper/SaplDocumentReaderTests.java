@@ -42,8 +42,6 @@ class SaplDocumentReaderTests {
 
 	private MavenProjectStub project;
 
-	private String policyPath = "policies";
-
 	private SaplDocumentReader reader;
 
 	@BeforeEach
@@ -55,6 +53,7 @@ class SaplDocumentReaderTests {
 
 	@Test
 	void test() throws MojoExecutionException {
+		String policyPath = "policies";
 		Collection<SaplDocument> documents = reader.retrievePolicyDocuments(new SilentLog(), project, policyPath);
 		assertEquals(2, documents.size());
 	}

@@ -58,7 +58,7 @@ class AttributeMockTimingTests {
 	@Test
 	void test_nullTiming() {
 		var mock = new AttributeMockTiming("test.test");
-		mock.loadAttributeMockWithTiming(null, new Val[] { Val.of(1) });
+		mock.loadAttributeMockWithTiming(null, Val.of(1));
 		assertThatExceptionOfType(SaplTestException.class)
 				.isThrownBy(() -> mock.evaluate("test.attribute", null, null, null));
 	}

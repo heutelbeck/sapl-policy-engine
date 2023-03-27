@@ -106,6 +106,7 @@ class AnnotationAttributeContextTests {
 
 			@Attribute
 			void x() {
+				/* NOOP */
 			}
 
 		}
@@ -341,7 +342,7 @@ class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	void when_differentNames_noCollision() throws InitializationException {
+	void when_differentNames_noCollision() {
 		@PolicyInformationPoint
 		class PIP {
 
@@ -363,7 +364,7 @@ class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	void when_envAndNonEnv_noCollision() throws InitializationException {
+	void when_envAndNonEnv_noCollision() {
 		@PolicyInformationPoint
 		class PIP {
 
@@ -385,7 +386,7 @@ class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	void when_varargAndNonVarArg_noCollision() throws InitializationException {
+	void when_varargAndNonVarArg_noCollision() {
 		@PolicyInformationPoint
 		class PIP {
 
@@ -407,7 +408,7 @@ class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	void when_twoVarArg_collision() throws InitializationException {
+	void when_twoVarArg_collision() {
 		@PolicyInformationPoint
 		class PIP {
 
@@ -429,7 +430,7 @@ class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	void when_sameNumberOFParams_collision() throws InitializationException {
+	void when_sameNumberOFParams_collision() {
 		@PolicyInformationPoint
 		class PIP {
 
@@ -451,7 +452,7 @@ class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	void when_evaluateUnknownAttribute_fails() throws InitializationException, IOException {
+	void when_evaluateUnknownAttribute_fails() throws IOException {
 		var attributeCtx = new AnnotationAttributeContext();
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
@@ -693,7 +694,7 @@ class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	void when_unknownAttribute_called_evaluatesToError() throws InitializationException, IOException {
+	void when_unknownAttribute_called_evaluatesToError() throws IOException {
 		var attributeCtx = new AnnotationAttributeContext();
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("\"\".<test.envAttribute>");
@@ -744,7 +745,7 @@ class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	void generatesCodeTemplates() throws InitializationException, IOException {
+	void generatesCodeTemplates() throws InitializationException {
 
 		@PolicyInformationPoint(name = "test")
 		class PIP {

@@ -28,9 +28,7 @@ class SpringContextTests {
 		ApplicationContext applicationContext = springContext.getApplicationContext();
 		springContext.setApplicationContext(null);
 
-		assertThrows(IllegalStateException.class, () -> {
-			SpringContext.getBean(Object.class);
-		});
+		assertThrows(IllegalStateException.class, () -> SpringContext.getBean(Object.class));
 
 		springContext.setApplicationContext(applicationContext);
 	}

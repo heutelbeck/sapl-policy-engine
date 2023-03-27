@@ -50,7 +50,7 @@ class JarUtilTest {
 	void getJarFilePathTest() {
 		var url    = JarUtil.inferUrlOfResourcesPath(getClass(), "/policies");
 		var result = JarUtil.getJarFilePath(url);
-		assertThat(result.toString().endsWith("policies"), is(true));
+		assertThat(result.endsWith("policies"), is(true));
 	}
 
 	@Test

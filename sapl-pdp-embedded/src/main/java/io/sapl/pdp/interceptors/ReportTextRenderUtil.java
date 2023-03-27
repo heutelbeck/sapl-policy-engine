@@ -14,40 +14,38 @@ import lombok.extern.slf4j.Slf4j;
 public class ReportTextRenderUtil {
 
 	public static String textReport(JsonNode jsonReport, boolean prettyPrint, ObjectMapper mapper) {
-		var report = "--- The PDP made a decision ---\n";
-		report += "Subscription: " + (prettyPrint ? "\n" : "")
-				+ prettyPrintJson(jsonReport.get(PDPDecision.AUTHORIZATION_SUBSCRIPTION), prettyPrint, mapper) + "\n";
-		report += "Decision    : " + (prettyPrint ? "\n" : "")
-				+ prettyPrintJson(jsonReport.get(PDPDecision.AUTHORIZATION_DECISION), prettyPrint, mapper) + "\n";
-		report += "Timestamp   : " + jsonReport.get(PDPDecision.TIMESTAMP_STRING).textValue() + "\n";
-		report += "Algorithm   : " + jsonReport.get(ReportBuilderUtil.PDP_COMBINING_ALGORITHM) + "\n";
+		StringBuilder report = new StringBuilder("--- The PDP made a decision ---\n");
+		report.append("Subscription: ").append(prettyPrint ? "\n" : "").append(prettyPrintJson(jsonReport.get(PDPDecision.AUTHORIZATION_SUBSCRIPTION), prettyPrint, mapper)).append("\n");
+		report.append("Decision    : ").append(prettyPrint ? "\n" : "").append(prettyPrintJson(jsonReport.get(PDPDecision.AUTHORIZATION_DECISION), prettyPrint, mapper)).append("\n");
+		report.append("Timestamp   : ").append(jsonReport.get(PDPDecision.TIMESTAMP_STRING).textValue()).append("\n");
+		report.append("Algorithm   : ").append(jsonReport.get(ReportBuilderUtil.PDP_COMBINING_ALGORITHM)).append("\n");
 		var topLevelError = jsonReport.get(CombinedDecision.ERROR);
 		if (topLevelError != null) {
-			report += "PDP Error   : " + topLevelError + "\n";
+			report.append("PDP Error   : ").append(topLevelError).append("\n");
 		}
 		var matchingDocuments = jsonReport.get(PDPDecision.MATCHING_DOCUMENTS);
 		if (matchingDocuments == null || !matchingDocuments.isArray() || matchingDocuments.size() == 0) {
-			report += "Matches     : NONE (i.e.,no policies/policy sets were set, or all target expressions evaluated to false or error.)\n";
+			report.append("Matches     : NONE (i.e.,no policies/policy sets were set, or all target expressions evaluated to false or error.)\n");
 		} else {
-			report += "Matches     : " + matchingDocuments + "\n";
+			report.append("Matches     : ").append(matchingDocuments).append("\n");
 		}
 		var modifications = jsonReport.get(PDPDecision.MODIFICATIONS_STRING);
 		if (modifications != null && modifications.isArray() && modifications.size() != 0) {
-			report += "There were interceptors invoked after the PDP which changed the decision:\n";
+			report.append("There were interceptors invoked after the PDP which changed the decision:\n");
 			for (var mod : modifications) {
-				report += " - " + mod + "\n";
+				report.append(" - ").append(mod).append("\n");
 			}
 		}
 		var documentReports = jsonReport.get("documentReports");
 		if (documentReports == null || !documentReports.isArray() || documentReports.size() == 0) {
-			report += "No policy or policy sets have been evaluated\n";
-			return report;
+			report.append("No policy or policy sets have been evaluated\n");
+			return report.toString();
 		}
 
 		for (var documentReport : documentReports) {
-			report += documentReport(documentReport);
+			report.append(documentReport(documentReport));
 		}
-		return report;
+		return report.toString();
 	}
 
 	private static String documentReport(JsonNode documentReport) {
@@ -106,29 +104,29 @@ public class ReportTextRenderUtil {
 	}
 
 	private static String policySetReport(JsonNode policySet) {
-		var report = "Policy Set Evaluation Result ===============\n";
-		report += "Name        : " + policySet.get("documentName") + "\n";
-		report += "Algorithm   : " + policySet.get(CombinedDecision.COMBINING_ALGORITHM) + "\n";
-		report += "Decision    : " + policySet.get(PDPDecision.AUTHORIZATION_DECISION) + "\n";
+		StringBuilder report = new StringBuilder("Policy Set Evaluation Result ===============\n");
+		report.append("Name        : ").append(policySet.get("documentName")).append("\n");
+		report.append("Algorithm   : ").append(policySet.get(CombinedDecision.COMBINING_ALGORITHM)).append("\n");
+		report.append("Decision    : ").append(policySet.get(PDPDecision.AUTHORIZATION_DECISION)).append("\n");
 		if (policySet.has("target"))
-			report += "Target      : " + policySet.get("target") + "\n";
+			report.append("Target      : ").append(policySet.get("target")).append("\n");
 		if (policySet.has("errorMessage"))
-			report += "Error       : " + policySet.get("errorMessage") + "\n";
+			report.append("Error       : ").append(policySet.get("errorMessage")).append("\n");
 		var evaluatedPolicies = policySet.get("evaluatedPolicies");
 		if (evaluatedPolicies != null && evaluatedPolicies.isArray()) {
 			for (var policyReport : evaluatedPolicies) {
-				report += indentText("   |", policyReport(policyReport));
+				report.append(indentText("   |", policyReport(policyReport)));
 			}
 		}
-		return report;
+		return report.toString();
 	}
 
 	private String indentText(String indentation, String text) {
-		var indented = "";
+		StringBuilder indented = new StringBuilder();
 		for (var line : text.split("\n")) {
-			indented += indentation + line.replace("\r", "") + "\n";
+			indented.append(indentation).append(line.replace("\r", "")).append("\n");
 		}
-		return indented;
+		return indented.toString();
 	}
 
 	public static String prettyPrintJson(JsonNode json, boolean prettyPrint, ObjectMapper mapper) {

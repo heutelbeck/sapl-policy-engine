@@ -38,9 +38,9 @@ import lombok.Data;
 
 class G_PolicyWithComplexExpectStepTests {
 
-	private static final String BLACKENED_ICD11 = "ic\u2588\u2588\u2588\u2588\u2588\u2588\u2588";
+	private static final String BLACKENED_ICD11 = "ic███████";
 
-	private static final String BLACKENED_DIAGNOSIS = "\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588";
+	private static final String BLACKENED_DIAGNOSIS = "█████████████";
 
 	private static final String WILLI_HAS_ACCESSED_PATIENT_DATA = "Willi has accessed patient data (id=56) as an administrator.";
 
@@ -54,7 +54,7 @@ class G_PolicyWithComplexExpectStepTests {
 		public String authority = "ROLE_ADMIN";
 	}
 
-	private Object subject = new SubjectDTO();
+	private final Object subject = new SubjectDTO();
 
 	@Data
 	static class ActionDTO {
@@ -65,18 +65,18 @@ class G_PolicyWithComplexExpectStepTests {
 		}
 
 		public JavaDTO java = new JavaDTO();
-	};
+	}
 
-	private Object action = new ActionDTO();
+	private final Object action = new ActionDTO();
 
 	@Data
 	static class ResourceDTO {
 		public String id            = "56";
 		public String diagnosisText = "diagnosisText";
 		public String icd11Code     = "icd11Code";
-	};
+	}
 
-	private Object resource = new ResourceDTO();
+	private final Object resource = new ResourceDTO();
 
 	@BeforeEach
 	public void setUp() throws InitializationException {
@@ -152,12 +152,9 @@ class G_PolicyWithComplexExpectStepTests {
 						//// hasObligation(mapper.createObjectNode().put("foo", "bar")),
 						// or Predicate
 						hasObligationMatching((JsonNode obligation) -> {
-							if (obligation.has("type") && "logAccess".equals(obligation.get("type").asText())
+							return obligation.has("type") && "logAccess".equals(obligation.get("type").asText())
 									&& obligation.has("message")
-									&& WILLI_HAS_ACCESSED_PATIENT_DATA.equals(obligation.get("message").asText())) {
-								return true;
-							}
-							return false;
+									&& WILLI_HAS_ACCESSED_PATIENT_DATA.equals(obligation.get("message").asText());
 						}),
 
 						hasObligationContainingKeyValue("type", "logAccess"),

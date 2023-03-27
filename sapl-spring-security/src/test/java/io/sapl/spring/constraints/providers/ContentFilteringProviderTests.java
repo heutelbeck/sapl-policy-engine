@@ -246,7 +246,7 @@ class ContentFilteringProviderTests {
 		var original   = MAPPER.readTree("{ \"key1\" : \"value1\", \"key2\" : \"value2\" }");
 
 		assertThat((JsonNode) handler.apply(original),
-				is(jsonObject().where("key1", is(jsonText("v\u2588\u2588\u2588\u25881")))));
+				is(jsonObject().where("key1", is(jsonText("v████1")))));
 	}
 
 	@Test
@@ -269,7 +269,7 @@ class ContentFilteringProviderTests {
 		var original   = MAPPER.readTree("{ \"key1\" : \"value1\", \"key2\" : \"value2\" }");
 
 		assertThat((JsonNode) handler.apply(original),
-				is(jsonObject().where("key1", is(jsonText("\u2588\u2588\u2588\u2588\u2588\u2588")))));
+				is(jsonObject().where("key1", is(jsonText("██████")))));
 	}
 
 	@Test

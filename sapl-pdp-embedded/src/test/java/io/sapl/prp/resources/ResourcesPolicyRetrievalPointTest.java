@@ -26,7 +26,7 @@ import io.sapl.pdp.PolicyDecisionPointFactory;
 class ResourcesPolicyRetrievalPointTest {
 
 	@Test
-	void loadPolicies() throws IOException, URISyntaxException, InitializationException {
+	void loadPolicies() throws InitializationException {
 		PolicyDecisionPointFactory.resourcesPolicyDecisionPoint();
 	}
 

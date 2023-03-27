@@ -120,7 +120,7 @@ class AnnotationFunctionContextTest {
 	}
 
 	@Test
-	void libsTest() throws InitializationException {
+	void libsTest() {
 		AnnotationFunctionContext context = new AnnotationFunctionContext();
 		assertThat(context.evaluate("i.am.not.a.function"), valError());
 	}
@@ -150,7 +150,7 @@ class AnnotationFunctionContextTest {
 	}
 
 	@Test
-	void loadedLibrariesReturnEmptyListWhenNotLoaded() throws InitializationException {
+	void loadedLibrariesReturnEmptyListWhenNotLoaded() {
 		AnnotationFunctionContext context = new AnnotationFunctionContext();
 		assertThat(context.getAvailableLibraries().size(), is(0));
 	}

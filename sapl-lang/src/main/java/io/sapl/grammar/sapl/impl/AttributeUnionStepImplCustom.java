@@ -56,7 +56,7 @@ public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 	}
 
 	private String parameters() {
-		return "[" + (attributes == null ? "" : attributes.stream().collect(Collectors.joining(","))) + "]";
+		return "[" + (attributes == null ? "" : String.join(",", attributes)) + "]";
 	}
 
 }

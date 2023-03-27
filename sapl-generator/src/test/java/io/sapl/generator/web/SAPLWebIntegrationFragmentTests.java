@@ -112,7 +112,7 @@ class SAPLWebIntegrationFragmentTests {
 
 	@Test
 	void setAllKeywordsSetsField() {
-		Set<String> expectedValue = new HashSet<String>();
+		Set<String> expectedValue = new HashSet<>();
 		expectedValue.add("test");
 
 		SAPLWebIntegrationFragment fragment = new SAPLWebIntegrationFragment();
@@ -163,7 +163,7 @@ class SAPLWebIntegrationFragmentTests {
 
 	@Test
 	void generateCreatesKeywordHighlightingInReverseOrder() {
-		Set<String> keywords = new HashSet<String>();
+		Set<String> keywords = new HashSet<>();
 		keywords.add("a");
 		keywords.add("a-a");
 		keywords.add("a-b");
@@ -186,7 +186,7 @@ class SAPLWebIntegrationFragmentTests {
 
 	@Test
 	void generateCreatesKeywordHighlightingWithoutDashInNonWords() {
-		Set<String> keywords = new HashSet<String>();
+		Set<String> keywords = new HashSet<>();
 		keywords.add("a-a");
 
 		SAPLWebIntegrationFragment fragment = createDefaultFragment(Boolean.TRUE);

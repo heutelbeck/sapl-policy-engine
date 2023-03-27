@@ -35,7 +35,7 @@ import reactor.core.publisher.SignalType;
 class ClasspathVariablesAndCombinatorSourceTests {
 
 	@Test
-	void doTest() throws InterruptedException {
+	void doTest() {
 		var configProvider = new ClasspathVariablesAndCombinatorSource("policiesIT", new ObjectMapper(), null, null);
 		assertThat(configProvider.getCombiningAlgorithm().blockFirst().get())
 				.isInstanceOf(DenyUnlessPermitCombiningAlgorithmImplCustom.class);

@@ -221,7 +221,7 @@ class TimesParameterCalledVerificationTests {
 	}
 
 	@Test
-	void test_Exception_CountOfExpectedParamterNotEqualsFunctionCallParametersCount() {
+	void test_Exception_CountOfExpectedParameterNotEqualsFunctionCallParametersCount() {
 		var runInfo = new MockRunInformation("foo");
 		runInfo.saveCall(new MockCall(Val.of("bar"), Val.of(1)));
 		runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(2)));

@@ -198,7 +198,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 		}
 		var argumentFluxes = validatedArguments(attributeMetadata, arguments);
 
-		var combined = Flux.<Val, Object[]>combineLatest(argumentFluxes, argumentValues -> {
+		return Flux.<Val, Object[]>combineLatest(argumentFluxes, argumentValues -> {
 			var invocationArguments = new Object[numberOfInvocationParameters];
 			var argumentIndex       = 0;
 			if (attributeMetadata.isAttributeWithVariableParameter())
@@ -218,7 +218,6 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 			return invocationArguments;
 		});
-		return combined;
 	}
 
 	private Flux<Object[]> attributeFinderArguments(AttributeFinderMetadata attributeMetadata, Val leftHandValue,

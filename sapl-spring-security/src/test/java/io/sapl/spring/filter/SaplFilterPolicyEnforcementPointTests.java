@@ -90,7 +90,7 @@ class SaplFilterPolicyEnforcementPointTests {
 
 	@Test
 	@WithMockUser
-	void whenPermitAndObligationFails_thenAccessDeniedException() throws IOException, ServletException {
+	void whenPermitAndObligationFails_thenAccessDeniedException() {
 		var sut = new SaplFilterPolicyEnforcementPoint(pdp, constraintHandlers, mapper);
 		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
 		doReturn(Flux.error(new AccessDeniedException("ERROR"))).when(bundle).wrap(any());
@@ -104,7 +104,7 @@ class SaplFilterPolicyEnforcementPointTests {
 
 	@Test
 	@WithMockUser
-	void whenPermitAndResourceSet_thenAccessDeniedException() throws IOException, ServletException {
+	void whenPermitAndResourceSet_thenAccessDeniedException() {
 		var sut = new SaplFilterPolicyEnforcementPoint(pdp, constraintHandlers, mapper);
 		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisionFluxOnePermitWithResource());
 		var request = new MockHttpServletRequest();
@@ -122,7 +122,7 @@ class SaplFilterPolicyEnforcementPointTests {
 
 	@Test
 	@WithMockUser
-	void whenEmptyAnswer_thenAccessDeniedException() throws IOException, ServletException {
+	void whenEmptyAnswer_thenAccessDeniedException() {
 		var sut = new SaplFilterPolicyEnforcementPoint(pdp, constraintHandlers, mapper);
 		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.empty());
 		var request = new MockHttpServletRequest();

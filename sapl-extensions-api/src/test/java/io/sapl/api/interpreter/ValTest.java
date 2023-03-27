@@ -120,7 +120,7 @@ class ValTest {
 	@Test
 	void gerValueFromError() {
 		var value = Val.error(ERROR_MESSAGE);
-		assertThrows(NoSuchElementException.class, () -> value.get());
+		assertThrows(NoSuchElementException.class, value::get);
 	}
 
 	@Test
@@ -402,14 +402,14 @@ class ValTest {
 	void getBoolean() {
 		var value = Val.of("");
 		assertAll(() -> assertEquals(Boolean.TRUE, Val.TRUE.getBoolean()),
-				() -> assertThrows(PolicyEvaluationException.class, () -> value.getBoolean()));
+				() -> assertThrows(PolicyEvaluationException.class, value::getBoolean));
 	}
 
 	@Test
 	void getLong() {
 		var value = Val.of("");
 		assertAll(() -> assertEquals(123L, Val.of(123L).getLong()),
-				() -> assertThrows(PolicyEvaluationException.class, () -> value.getLong()));
+				() -> assertThrows(PolicyEvaluationException.class, value::getLong));
 	}
 
 	@Test
@@ -469,9 +469,9 @@ class ValTest {
 		var errorValue       = Val.error();
 		var emptyStringValue = Val.of("");
 		assertAll(() -> assertEquals(BigDecimal.valueOf(100D), Val.of(100D).decimalValue()),
-				() -> assertThrows(PolicyEvaluationException.class, () -> errorValue.decimalValue()),
+				() -> assertThrows(PolicyEvaluationException.class, errorValue::decimalValue),
 				() -> assertThrows(PolicyEvaluationException.class, Val.UNDEFINED::decimalValue),
-				() -> assertThrows(PolicyEvaluationException.class, () -> emptyStringValue.decimalValue()));
+				() -> assertThrows(PolicyEvaluationException.class, emptyStringValue::decimalValue));
 	}
 
 	@Test
@@ -479,9 +479,9 @@ class ValTest {
 		var errorValue       = Val.error();
 		var emptyStringValue = Val.of("");
 		assertAll(() -> assertThat(Val.ofEmptyObject().getObjectNode(), is(jsonObject())),
-				() -> assertThrows(PolicyEvaluationException.class, () -> errorValue.getObjectNode()),
+				() -> assertThrows(PolicyEvaluationException.class, errorValue::getObjectNode),
 				() -> assertThrows(PolicyEvaluationException.class, Val.UNDEFINED::getObjectNode),
-				() -> assertThrows(PolicyEvaluationException.class, () -> emptyStringValue.getObjectNode()));
+				() -> assertThrows(PolicyEvaluationException.class, emptyStringValue::getObjectNode));
 	}
 
 	@Test
@@ -489,16 +489,16 @@ class ValTest {
 		var errorValue       = Val.error();
 		var emptyStringValue = Val.of("");
 		assertAll(() -> assertThat(Val.ofEmptyArray().getArrayNode(), is(jsonArray())),
-				() -> assertThrows(PolicyEvaluationException.class, () -> errorValue.getArrayNode()),
+				() -> assertThrows(PolicyEvaluationException.class, errorValue::getArrayNode),
 				() -> assertThrows(PolicyEvaluationException.class, Val.UNDEFINED::getArrayNode),
-				() -> assertThrows(PolicyEvaluationException.class, () -> emptyStringValue.getArrayNode()));
+				() -> assertThrows(PolicyEvaluationException.class, emptyStringValue::getArrayNode));
 	}
 
 	@Test
 	void getJsonNode() {
 		var errorValue = Val.error();
 		assertAll(() -> assertThat(Val.ofEmptyArray().getJsonNode(), is(jsonArray())),
-				() -> assertThrows(PolicyEvaluationException.class, () -> errorValue.getJsonNode()),
+				() -> assertThrows(PolicyEvaluationException.class, errorValue::getJsonNode),
 				() -> assertThrows(PolicyEvaluationException.class, Val.UNDEFINED::getJsonNode));
 	}
 

@@ -126,7 +126,7 @@ class CoverageHitRecorderTest {
 	}
 
 	@Test
-	void testCoverageWriting_FileNotExist() throws Exception {
+	void testCoverageWriting_FileNotExist() {
 		// arrange
 		// simulate something deletes expected files during runtime
 		this.recorder.cleanCoverageHitFiles();

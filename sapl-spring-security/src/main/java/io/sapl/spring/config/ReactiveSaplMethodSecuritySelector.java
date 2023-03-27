@@ -18,6 +18,7 @@ package io.sapl.spring.config;
 import java.util.ArrayList;
 import java.util.List;
 
+import lombok.NonNull;
 import org.springframework.context.annotation.AdviceMode;
 import org.springframework.context.annotation.AdviceModeImportSelector;
 import org.springframework.context.annotation.AutoProxyRegistrar;
@@ -29,7 +30,7 @@ import org.springframework.context.annotation.AutoProxyRegistrar;
 public class ReactiveSaplMethodSecuritySelector extends AdviceModeImportSelector<EnableReactiveSaplMethodSecurity> {
 
 	@Override
-	protected String[] selectImports(AdviceMode adviceMode) {
+	protected String[] selectImports(@NonNull AdviceMode adviceMode) {
 		if (adviceMode == AdviceMode.PROXY) {
 			return getProxyImports();
 		}

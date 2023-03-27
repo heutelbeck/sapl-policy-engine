@@ -28,7 +28,7 @@ import io.sapl.api.interpreter.Val;
 
 class FunctionMockFunctionResultTests {
 
-	private Function<Val[], Val> returns = (call) -> {
+	private final Function<Val[], Val> returns = (call) -> {
 		var param0 = call[0].get().asDouble();
 		var param1 = call[1].get().asDouble();
 		return param0 % param1 == 0 ? Val.of(true) : Val.of(false);

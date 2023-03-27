@@ -148,10 +148,9 @@ class PostEnforcePolicyEnforcementPointTests {
 				subscriptionBuilderFactory);
 		var methodInvocation     = MethodInvocationUtils.create(new TestClass(), DO_SOMETHING);
 		var attribute            = new PostEnforceAttribute(null, null, null, null, null);
-		var originalReturnObject = ORIGINAL_RETURN_OBJECT;
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
 		assertThrows(AccessDeniedException.class,
-				() -> sut.after(authentication, methodInvocation, attribute, originalReturnObject));
+				() -> sut.after(authentication, methodInvocation, attribute, ORIGINAL_RETURN_OBJECT));
 	}
 
 	@Test
@@ -161,10 +160,9 @@ class PostEnforcePolicyEnforcementPointTests {
 				() -> constraintEnforcementService, subscriptionBuilderFactory);
 		var methodInvocation             = MethodInvocationUtils.create(new TestClass(), DO_SOMETHING);
 		var attribute                    = new PostEnforceAttribute(null, null, null, null, null);
-		var originalReturnObject         = ORIGINAL_RETURN_OBJECT;
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
 		assertThrows(AccessDeniedException.class,
-				() -> sut.after(authentication, methodInvocation, attribute, originalReturnObject));
+				() -> sut.after(authentication, methodInvocation, attribute, ORIGINAL_RETURN_OBJECT));
 	}
 
 	@Test
@@ -185,10 +183,9 @@ class PostEnforcePolicyEnforcementPointTests {
 				subscriptionBuilderFactory);
 		var methodInvocation     = MethodInvocationUtils.create(new TestClass(), DO_SOMETHING);
 		var attribute            = new PostEnforceAttribute(null, null, null, null, null);
-		var originalReturnObject = ORIGINAL_RETURN_OBJECT;
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.DENY));
 		assertThrows(AccessDeniedException.class,
-				() -> sut.after(authentication, methodInvocation, attribute, originalReturnObject));
+				() -> sut.after(authentication, methodInvocation, attribute, ORIGINAL_RETURN_OBJECT));
 	}
 
 	@Test
@@ -197,11 +194,10 @@ class PostEnforcePolicyEnforcementPointTests {
 				subscriptionBuilderFactory);
 		var methodInvocation     = MethodInvocationUtils.create(new TestClass(), DO_SOMETHING);
 		var attribute            = new PostEnforceAttribute(null, null, null, null, null);
-		var originalReturnObject = ORIGINAL_RETURN_OBJECT;
 		when(pdp.decide(any(AuthorizationSubscription.class)))
 				.thenReturn(Flux.just(AuthorizationDecision.NOT_APPLICABLE));
 		assertThrows(AccessDeniedException.class,
-				() -> sut.after(authentication, methodInvocation, attribute, originalReturnObject));
+				() -> sut.after(authentication, methodInvocation, attribute, ORIGINAL_RETURN_OBJECT));
 	}
 
 	@Test
@@ -210,11 +206,10 @@ class PostEnforcePolicyEnforcementPointTests {
 				subscriptionBuilderFactory);
 		var methodInvocation     = MethodInvocationUtils.create(new TestClass(), DO_SOMETHING);
 		var attribute            = new PostEnforceAttribute(null, null, null, null, null);
-		var originalReturnObject = ORIGINAL_RETURN_OBJECT;
 		when(pdp.decide(any(AuthorizationSubscription.class)))
 				.thenReturn(Flux.just(AuthorizationDecision.INDETERMINATE));
 		assertThrows(AccessDeniedException.class,
-				() -> sut.after(authentication, methodInvocation, attribute, originalReturnObject));
+				() -> sut.after(authentication, methodInvocation, attribute, ORIGINAL_RETURN_OBJECT));
 	}
 
 	@Test
@@ -223,10 +218,9 @@ class PostEnforcePolicyEnforcementPointTests {
 				subscriptionBuilderFactory);
 		var methodInvocation     = MethodInvocationUtils.create(new TestClass(), DO_SOMETHING);
 		var attribute            = new PostEnforceAttribute(null, null, null, null, null);
-		var originalReturnObject = ORIGINAL_RETURN_OBJECT;
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.empty());
 		assertThrows(AccessDeniedException.class,
-				() -> sut.after(authentication, methodInvocation, attribute, originalReturnObject));
+				() -> sut.after(authentication, methodInvocation, attribute, ORIGINAL_RETURN_OBJECT));
 	}
 
 	@Test
@@ -235,11 +229,10 @@ class PostEnforcePolicyEnforcementPointTests {
 				subscriptionBuilderFactory);
 		var methodInvocation     = MethodInvocationUtils.create(new TestClass(), DO_SOMETHING);
 		var attribute            = new PostEnforceAttribute(null, null, null, null, null);
-		var originalReturnObject = ORIGINAL_RETURN_OBJECT;
 		var expectedReturnObject = CHANGED_RETURN_OBJECT;
 		when(pdp.decide(any(AuthorizationSubscription.class)))
 				.thenReturn(Flux.just(AuthorizationDecision.PERMIT.withResource(JSON.textNode(expectedReturnObject))));
-		assertThat(sut.after(authentication, methodInvocation, attribute, originalReturnObject),
+		assertThat(sut.after(authentication, methodInvocation, attribute, ORIGINAL_RETURN_OBJECT),
 				is(expectedReturnObject));
 	}
 
@@ -249,12 +242,11 @@ class PostEnforcePolicyEnforcementPointTests {
 				subscriptionBuilderFactory);
 		var methodInvocation     = MethodInvocationUtils.create(new TestClass(), DO_SOMETHING);
 		var attribute            = new PostEnforceAttribute(null, null, null, null, null);
-		var originalReturnObject = ORIGINAL_RETURN_OBJECT;
 		var replacementResource  = JSON.arrayNode();
 		when(pdp.decide(any(AuthorizationSubscription.class)))
 				.thenReturn(Flux.just(AuthorizationDecision.PERMIT.withResource(replacementResource)));
 		assertThrows(AccessDeniedException.class,
-				() -> sut.after(authentication, methodInvocation, attribute, originalReturnObject));
+				() -> sut.after(authentication, methodInvocation, attribute, ORIGINAL_RETURN_OBJECT));
 	}
 
 	@Test

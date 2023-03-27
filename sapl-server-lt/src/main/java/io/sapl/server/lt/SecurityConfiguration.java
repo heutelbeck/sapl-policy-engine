@@ -198,7 +198,7 @@ public class SecurityConfiguration {
 		auth.setOrder(PayloadInterceptorOrder.AUTHENTICATION.getOrder());
 		security.addPayloadInterceptor(auth);
 
-		// Confgure ApiKey authentication
+		// Configure ApiKey authentication
 		if (pdpProperties.isAllowApiKeyAuth()) {
 			ReactiveAuthenticationManager    manager           = new ApiKeyReactiveAuthenticationManager();
 			AuthenticationPayloadInterceptor apikeyInterceptor = new AuthenticationPayloadInterceptor(manager);

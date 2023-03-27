@@ -635,7 +635,7 @@ class EagerOperatorsTest {
 	}
 
 	@Test
-	void evaluateElementOfNumbersTrue2() throws IOException {
+	void evaluateElementOfNumbersTrue2() {
 		expressionEvaluatesTo("1 in [2, 1.000]", "true");
 	}
 

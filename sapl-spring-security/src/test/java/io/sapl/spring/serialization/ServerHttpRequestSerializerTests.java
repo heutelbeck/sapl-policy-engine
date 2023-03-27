@@ -39,7 +39,7 @@ import com.fasterxml.jackson.databind.util.TokenBuffer;
 
 class ServerHttpRequestSerializerTests {
 
-	private ObjectMapper mapper = new ObjectMapper();
+	private final ObjectMapper mapper = new ObjectMapper();
 
 	private JsonNode serialize(ServerHttpRequest invocation) throws IOException {
 		TokenBuffer jsonGenerator = new TokenBuffer(mapper, false);
@@ -78,7 +78,7 @@ class ServerHttpRequestSerializerTests {
 
 	@Test
 	void whenHeadersSet_thenItIsTheSameInJson() throws IOException {
-		var request = MockServerHttpRequest.get("/foo/bar").header("header1", new String[] { "value1a", "value1b" })
+		var request = MockServerHttpRequest.get("/foo/bar").header("header1", "value1a", "value1b")
 				.header("header2", "value2").build();
 		var actual = serialize(request);
 		assertThat(

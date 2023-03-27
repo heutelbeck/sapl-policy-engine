@@ -595,7 +595,7 @@ class DefaultSAPLInterpreterTest {
 	}
 
 	@Test
-	void filterExtended() throws IOException {
+	void filterExtended() {
 		var policyDefinition = "policy \"test\" permit transform [\"foo\", \"bars\"] |- {each @.<sapl.pip.test.echo> : simple.length}";
 		var expected         = AuthorizationDecision.INDETERMINATE;
 		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);

@@ -140,7 +140,7 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 
 		if (array.isEmpty()) {
 			return Flux.just(unfilteredValue.withTrace(RecursiveKeyStep.class,
-					Map.<String,Traced>of("unfilteredValue", unfilteredValue, "key", Val.of(id))));
+					Map.of("unfilteredValue", unfilteredValue, "key", Val.of(id))));
 		}
 		var elementFluxes = new ArrayList<Flux<Val>>(array.size());
 		var elements      = array.elements();

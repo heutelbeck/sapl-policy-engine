@@ -63,7 +63,7 @@ public class KeyTestUtility {
 	 * @throws NoSuchAlgorithmException
 	 */
 	static MockWebServer testServer(Set<KeyPair> keyPairs) {
-		Map<String, String> mockServerKeys = new HashMap<String, String>();
+		Map<String, String> mockServerKeys = new HashMap<>();
 		keyPairs.forEach(keyPair -> {
 			try {
 				mockServerKeys.put(KeyTestUtility.kid(keyPair),

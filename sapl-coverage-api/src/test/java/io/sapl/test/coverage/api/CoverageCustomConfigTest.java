@@ -61,7 +61,7 @@ class CoverageCustomConfigTest {
 			Files.createFile(path);
 		}
 		Files.write(path,
-				(new PolicySetHit("set1").toString() + System.lineSeparator()).getBytes(StandardCharsets.UTF_8),
+				(new PolicySetHit("set1") + System.lineSeparator()).getBytes(StandardCharsets.UTF_8),
 				StandardOpenOption.APPEND);
 
 		// act
@@ -73,7 +73,7 @@ class CoverageCustomConfigTest {
 	}
 
 	@Test
-	void testSystemPropertyConfig_Recorder() throws IOException {
+	void testSystemPropertyConfig_Recorder() {
 		// act
 		recorder.createCoverageHitFiles();
 

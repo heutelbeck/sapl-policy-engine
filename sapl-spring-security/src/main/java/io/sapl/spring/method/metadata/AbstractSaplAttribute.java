@@ -57,13 +57,12 @@ public abstract class AbstractSaplAttribute implements SaplAttribute {
 	 */
 	@Override
 	public String toString() {
-		String sb = '[' + getClass().getSimpleName() + ": subject='"
+		return '[' + getClass().getSimpleName() + ": subject='"
 				+ (subjectExpression == null ? "null" : subjectExpression.getExpressionString()) + "', action='"
 				+ (actionExpression == null ? "null" : actionExpression.getExpressionString()) + "', resource='"
 				+ (resourceExpression == null ? "null" : resourceExpression.getExpressionString()) + "', environment='"
 				+ (environmentExpression == null ? "null" : environmentExpression.getExpressionString())
 				+ "', genericsType='" + (genericsType == null ? "null" : genericsType.getSimpleName()) + "']";
-		return sb;
 	}
 
 }

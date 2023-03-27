@@ -37,7 +37,7 @@ import io.sapl.grammar.sapl.Step;
 import io.sapl.grammar.sapl.impl.util.ParserUtil;
 import reactor.test.StepVerifier;
 
-class StepApplyNullCheckAndErrorPropoagationTest {
+class StepApplyNullCheckAndErrorPropagationTest {
 
 	static Collection<Step> data()
 			throws InstantiationException, IllegalAccessException, 

@@ -727,9 +727,7 @@ class GenericCoverageReporterTests {
 					LineCoveredValue.PARTLY, LineCoveredValue.NEVER, LineCoveredValue.IRRELEVANT, badApple });
 
 			try (MockedConstruction<SaplDocumentLineCoverageInformation> mocked = Mockito
-					.mockConstruction(SaplDocumentLineCoverageInformation.class, (mock, context) -> {
-						when(mock.getCoveredValue()).thenReturn(badApple);
-					})) {
+					.mockConstruction(SaplDocumentLineCoverageInformation.class, (mock, context) -> when(mock.getCoveredValue()).thenReturn(badApple))) {
 
 				assertThrows(SaplTestException.class, () -> reporter.calcDocumentCoverage(documents, hits));
 			}

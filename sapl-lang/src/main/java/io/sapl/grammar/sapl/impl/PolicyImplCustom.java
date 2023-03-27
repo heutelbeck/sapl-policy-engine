@@ -35,10 +35,10 @@ public class PolicyImplCustom extends PolicyImpl {
 		var afterWhere      = whereResult
 				.map(where -> PolicyDecision.fromWhereResult(getSaplName(), entitlement.getDecision(), where));
 		var withObligations = afterWhere
-				.switchMap(decision -> addConstraints(decision, obligations, 0, (d, val) -> d.withObligation(val)));
+				.switchMap(decision -> addConstraints(decision, obligations, 0, PolicyDecision::withObligation));
 		var withAdvice      = withObligations
-				.switchMap(decision -> addConstraints(decision, advice, 0, (d, val) -> d.withAdvice(val)));
-		return withAdvice.switchMap(decision -> addResource(decision));
+				.switchMap(decision -> addConstraints(decision, advice, 0, PolicyDecision::withAdvice));
+		return withAdvice.switchMap(this::addResource);
 	}
 
 	@Override

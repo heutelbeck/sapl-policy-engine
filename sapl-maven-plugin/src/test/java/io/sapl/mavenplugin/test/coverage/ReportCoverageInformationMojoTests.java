@@ -57,8 +57,6 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
 	private CoverageRatioCalculator ratioCalculator;
 
-	private GenericCoverageReporter reporter;
-
 	private SonarLineCoverageReportGenerator sonarReporter;
 
 	private HtmlLineCoverageReportGenerator htmlReporter;
@@ -74,7 +72,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 		coverageTargetHelper = mock(CoverageTargetHelper.class);
 		coverageAPIHelper    = mock(CoverageAPIHelper.class);
 		ratioCalculator      = mock(CoverageRatioCalculator.class);
-		reporter             = mock(GenericCoverageReporter.class);
+		GenericCoverageReporter reporter = mock(GenericCoverageReporter.class);
 		sonarReporter        = mock(SonarLineCoverageReportGenerator.class);
 		htmlReporter         = mock(HtmlLineCoverageReportGenerator.class);
 		log                  = mock(Log.class);

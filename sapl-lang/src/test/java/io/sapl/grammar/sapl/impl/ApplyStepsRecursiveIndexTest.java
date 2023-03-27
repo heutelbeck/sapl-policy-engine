@@ -65,7 +65,7 @@ class ApplyStepsRecursiveIndexTest {
 	}
 
 	@Test
-	void applyToObject() throws JsonProcessingException {
+	void applyToObject() {
 		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}..[0]";
 		var expected   = "[ { \"key\" : \"value2\" }, 1 ]";
 		expressionEvaluatesTo(expression, expected);

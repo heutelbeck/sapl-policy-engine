@@ -150,7 +150,7 @@ class CanonicalImmutableParsedDocumentIndexTest {
 	}
 
 	@Test
-	void test_return_empty_result_when_error_occurs() throws Exception {
+	void test_return_empty_result_when_error_occurs() {
 		InputStream resourceAsStream = getClass().getClassLoader()
 				.getResourceAsStream("it/error/policy_with_error.sapl");
 		SAPL        withError        = interpreter.parse(resourceAsStream);

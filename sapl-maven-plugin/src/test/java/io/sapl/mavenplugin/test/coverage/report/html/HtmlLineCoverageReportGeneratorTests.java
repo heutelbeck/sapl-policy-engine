@@ -48,11 +48,11 @@ class HtmlLineCoverageReportGeneratorTests {
 
 	private Path base;
 
-	private float policySetHitRatio = 100;
+	private final float policySetHitRatio = 100;
 
-	private float policyHitRatio = 66.6f;
+	private final float policyHitRatio = 66.6f;
 
-	private float policyConditionHitRatio = 43.9f;
+	private final float policyConditionHitRatio = 43.9f;
 
 	private HtmlLineCoverageReportGenerator generator;
 
@@ -109,9 +109,7 @@ class HtmlLineCoverageReportGeneratorTests {
 					LineCoveredValue.PARTLY, LineCoveredValue.NEVER, LineCoveredValue.IRRELEVANT, badApple });
 
 			try (MockedConstruction<SaplDocumentLineCoverageInformation> mocked = Mockito
-					.mockConstruction(SaplDocumentLineCoverageInformation.class, (mock, context) -> {
-						when(mock.getCoveredValue()).thenReturn(badApple);
-					})) {
+					.mockConstruction(SaplDocumentLineCoverageInformation.class, (mock, context) -> when(mock.getCoveredValue()).thenReturn(badApple))) {
 				base = Paths.get("target/sapl-coverage/html");
 				TestFileHelper.deleteDirectory(base.toFile());
 
@@ -140,7 +138,7 @@ class HtmlLineCoverageReportGeneratorTests {
 		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
 			mockedFiles.when(() -> Files.writeString(Mockito.any(), Mockito.any())).thenReturn(Path.of(""));
 			mockedFiles.when(() -> Files.readAllLines(Mockito.any())).thenReturn(List.of(""));
-			mockedFiles.when(() -> Files.copy(Mockito.any(), Mockito.any())).thenReturn(0l);
+			mockedFiles.when(() -> Files.copy(Mockito.any(), Mockito.any())).thenReturn(0L);
 
 			Path mockedPath = Mockito.mock(Path.class);
 			Mockito.when(mockedPath.getFileName()).thenReturn(null);

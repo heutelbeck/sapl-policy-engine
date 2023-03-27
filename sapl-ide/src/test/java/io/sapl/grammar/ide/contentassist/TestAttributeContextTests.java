@@ -32,9 +32,7 @@ class TestAttributeContextTests {
 	@Test
 	void isProvidedFunctionThrowsUnsupportedOperationException() {
 		var context = new TestAttributeContext();
-		assertThrows(UnsupportedOperationException.class, () -> {
-			context.isProvidedFunction("");
-		});
+		assertThrows(UnsupportedOperationException.class, () -> context.isProvidedFunction(""));
 	}
 
 	@Test
@@ -61,25 +59,19 @@ class TestAttributeContextTests {
 	@Test
 	void getDocumentationThrowsUnsupportedOperationException() {
 		var context = new TestAttributeContext();
-		assertThrows(UnsupportedOperationException.class, () -> {
-			context.getDocumentation();
-		});
+		assertThrows(UnsupportedOperationException.class, context::getDocumentation);
 	}
 
 	@Test
 	void evaluateAttributeThrowsUnsupportedOperationException() {
 		var context = new TestAttributeContext();
-		assertThrows(UnsupportedOperationException.class, () -> {
-			context.evaluateAttribute(null, null, null, null);
-		});
+		assertThrows(UnsupportedOperationException.class, () -> context.evaluateAttribute(null, null, null, null));
 	}
 
 	@Test
 	void evaluateEnvironmentAttributeThrowsUnsupportedOperationException() {
 		var context = new TestAttributeContext();
-		assertThrows(UnsupportedOperationException.class, () -> {
-			context.evaluateEnvironmentAttribute(null, null, null);
-		});
+		assertThrows(UnsupportedOperationException.class, () -> context.evaluateEnvironmentAttribute(null, null, null));
 	}
 
 	@Test

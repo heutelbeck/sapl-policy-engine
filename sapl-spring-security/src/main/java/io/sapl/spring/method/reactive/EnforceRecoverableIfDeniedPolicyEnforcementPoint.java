@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import lombok.NonNull;
 import org.reactivestreams.Subscription;
 import org.springframework.security.access.AccessDeniedException;
 
@@ -101,7 +102,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 	}
 
 	@Override
-	public void subscribe(CoreSubscriber<? super Tuple2<Optional<T>, Optional<Throwable>>> actual) {
+	public void subscribe(@NonNull CoreSubscriber<? super Tuple2<Optional<T>, Optional<Throwable>>> actual) {
 		if (sink != null)
 			throw new IllegalStateException("Operator may only be subscribed once.");
 		var context = actual.currentContext();

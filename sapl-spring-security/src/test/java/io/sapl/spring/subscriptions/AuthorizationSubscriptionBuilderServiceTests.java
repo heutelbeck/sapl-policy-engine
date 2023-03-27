@@ -184,8 +184,7 @@ class AuthorizationSubscriptionBuilderServiceTests {
 	}
 
 	@Test
-	void when_nullParametersAndAnonymousAuthentication_then_FactoryConstructsFromContextAndNoAuthn()
-			throws JsonProcessingException {
+	void when_nullParametersAndAnonymousAuthentication_then_FactoryConstructsFromContextAndNoAuthn() {
 		var attribute    = attribute(null, null, null, null, Object.class);
 		var anonymous    = new AnonymousAuthenticationToken("key", "anonymous",
 				AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
@@ -252,7 +251,7 @@ class AuthorizationSubscriptionBuilderServiceTests {
 	@Test
 	void when_nullParametersInvocationHasArguments_then_FactoryConstructsFromContextIncludingArguments() {
 		var attribute          = attribute(null, null, null, null, Object.class);
-		var invocationWithArgs = MethodInvocationUtils.create(new TestClass(), "publicVoidArgs", new Object[] { 1 });
+		var invocationWithArgs = MethodInvocationUtils.create(new TestClass(), "publicVoidArgs", 1);
 		var subscription       = defaultBuilderUnderTest.constructAuthorizationSubscription(authentication,
 				invocationWithArgs, attribute);
 		// @formatter:off
@@ -403,12 +402,15 @@ class AuthorizationSubscriptionBuilderServiceTests {
 	public static class TestClass {
 
 		public void publicVoid() {
+			/* NOOP */
 		}
 
 		public void publicVoidArgs(Integer x) {
+			/* NOOP */
 		}
 
 		public void publicVoidProblemArg(BadForJackson param) {
+			/* NOOP */
 		}
 
 	}

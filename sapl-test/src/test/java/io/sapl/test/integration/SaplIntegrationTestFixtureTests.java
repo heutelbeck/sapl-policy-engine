@@ -31,7 +31,7 @@ import io.sapl.test.SaplTestFixture;
 
 class SaplIntegrationTestFixtureTests {
 
-	private ObjectMapper mapper = new ObjectMapper();
+	private final ObjectMapper mapper = new ObjectMapper();
 
 	@Test
 	void test() {

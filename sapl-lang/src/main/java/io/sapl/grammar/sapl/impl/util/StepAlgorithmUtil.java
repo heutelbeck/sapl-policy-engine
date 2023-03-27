@@ -93,12 +93,12 @@ public class StepAlgorithmUtil {
 	}
 
 	private static Function<Val, Val> applySelectionToElement(Val elementValue, String stepParameters,
-			Class<?> operationType, Val parentValue, String elementIdentidier) {
+			Class<?> operationType, Val parentValue, String elementIdentifier) {
 		return conditionResult -> {
 			var trace = new HashMap<String, Traced>();
 			trace.put("parentValue", parentValue);
 			trace.put("stepParameters", Val.of(stepParameters));
-			trace.put(elementIdentidier, elementValue.withTrace(operationType, Map.of("from", parentValue)));
+			trace.put(elementIdentifier, elementValue.withTrace(operationType, Map.of("from", parentValue)));
 			trace.put("conditionResult", conditionResult);
 			if (conditionResult.isError()) {
 				return conditionResult.withTrace(operationType, trace);

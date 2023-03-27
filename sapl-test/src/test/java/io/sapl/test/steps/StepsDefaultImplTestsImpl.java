@@ -69,9 +69,9 @@ class StepsDefaultImplTestsImpl extends StepsDefaultImpl {
 					}));
 
 			for (AttributeMockReturnValues mock : this.mockedAttributeValues) {
-				String fullname = mock.getFullName();
+				String fullName = mock.getFullName();
 				for (var val : mock.getMockReturnValues()) {
-					this.steps = this.steps.then(() -> this.mockingAttributeContext.mockEmit(fullname, val));
+					this.steps = this.steps.then(() -> this.mockingAttributeContext.mockEmit(fullName, val));
 				}
 			}
 		} else {

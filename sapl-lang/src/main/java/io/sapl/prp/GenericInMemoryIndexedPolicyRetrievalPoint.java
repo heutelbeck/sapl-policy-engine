@@ -38,7 +38,7 @@ public class GenericInMemoryIndexedPolicyRetrievalPoint implements PolicyRetriev
 
 	@Override
 	public Flux<PolicyRetrievalResult> retrievePolicies() {
-		return Flux.from(index).flatMap(idx -> idx.retrievePolicies());
+		return Flux.from(index).flatMap(ImmutableParsedDocumentIndex::retrievePolicies);
 	}
 
 	@Override

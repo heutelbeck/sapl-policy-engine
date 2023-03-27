@@ -77,7 +77,7 @@ class TreeWalkerTest {
 	}
 
 	@Test
-	void traverse_should_call_walk_when_node_has_no_filters_steps_and_subtemplate() {
+	void traverse_should_call_walk_when_node_has_no_filters_steps_and_subTemplate() {
 		var allFalse = BasicGroupMockBuilder.newBuilder().noFilter().noSteps().noTemplate().build();
 		var allTrue = BasicGroupMockBuilder.newBuilder().withFilter().withSteps().withTemplate().build();
 		var noTemplate = BasicGroupMockBuilder.newBuilder().withFilter().withSteps().noTemplate().build();

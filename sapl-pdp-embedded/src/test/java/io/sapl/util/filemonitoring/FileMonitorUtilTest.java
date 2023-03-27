@@ -55,7 +55,7 @@ class FileMonitorUtilTest {
 	}
 
 	@Test
-	void return_no_event_for_non_existent_directory() throws Exception {
+	void return_no_event_for_non_existent_directory() {
 		Flux<FileEvent> monitorFlux = FileMonitorUtil.monitorDirectory("src/test/resources/not_existing_dir",
 				__ -> true);
 
@@ -64,7 +64,7 @@ class FileMonitorUtilTest {
 	}
 
 	@Test
-	void return_no_event_when_nothing_changes() throws Exception {
+	void return_no_event_when_nothing_changes() {
 		Flux<FileEvent> monitorFlux = FileMonitorUtil.monitorDirectory("src/test/resources/policies", __ -> true);
 		StepVerifier.create(monitorFlux).expectNextCount(0L).thenCancel().verify();
 	}

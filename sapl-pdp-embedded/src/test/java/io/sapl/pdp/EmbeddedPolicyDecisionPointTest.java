@@ -203,10 +203,7 @@ class EmbeddedPolicyDecisionPointTest {
 
 			if (ad1.getDecision() != Decision.DENY)
 				return false;
-			if (ad2.getDecision() != Decision.DENY)
-				return false;
-
-			return true;
+			return ad2.getDecision() == Decision.DENY;
 		}).thenCancel().verify();
 	}
 

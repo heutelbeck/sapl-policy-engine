@@ -46,7 +46,7 @@ public class ContentFilterUtil {
 	private static final String LEQ                      = "<=";
 	private static final String REGEX                    = "=~";
 	private static final String TYPE                     = "type";
-	private static final String BLACK_SQUARE             = "\u2588";
+	private static final String BLACK_SQUARE             = "█";
 	private static final String UNDEFINED_KEY_S          = "An action does not declare '%s'.";
 	private static final String VALUE_NOT_INTEGER_S      = "An action's '%s' is not an integer.";
 	private static final String VALUE_NOT_TEXTUAL_S      = "An action's '%s' is not textual.";
@@ -165,7 +165,7 @@ public class ContentFilterUtil {
 		if (REGEX.equals(type))
 			return regexCondition(condition, path, jsonPathConfiguration, objectMapper);
 
-		throw new IllegalStateException("Not a valid predicate condition: " + condition.toString());
+		throw new IllegalStateException("Not a valid predicate condition: " + condition);
 	}
 
 	private static Predicate<Object> regexCondition(JsonNode condition, String path,

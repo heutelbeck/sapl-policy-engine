@@ -113,7 +113,7 @@ class ApplyFilteringExtendedTest {
 	}
 
 	@Test
-	void emptyStringEachNoArray() throws IOException {
+	void emptyStringEachNoArray() {
 		expressionErrors("[ {}, true ] |- { each @[0] : mock.emptyString }");
 	}
 

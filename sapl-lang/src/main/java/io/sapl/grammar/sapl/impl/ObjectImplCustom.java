@@ -69,9 +69,7 @@ public class ObjectImplCustom extends ObjectImpl {
 			IntStream.range(0, values.length).forEach(idx -> {
 				var key   = keys.get(idx);
 				var value = ((Val) values[idx]);
-				value.ifDefined(val -> {
-					result.set(key, val);
-				});
+				value.ifDefined(val -> result.set(key, val));
 				tracedValues.put(key, value);
 			});
 			return Val.of(result).withTrace(Object.class, tracedValues);

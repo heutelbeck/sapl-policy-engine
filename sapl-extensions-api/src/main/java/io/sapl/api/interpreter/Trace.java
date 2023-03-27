@@ -1,9 +1,6 @@
 package io.sapl.api.interpreter;
 
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -41,9 +38,7 @@ public class Trace {
 
 	public Trace(Class<?> operation, ExpressionArgument... arguments) {
 		this.operation = operation;
-		for (var argument : arguments) {
-			this.arguments.add(argument);
-		}
+		this.arguments.addAll(Arrays.asList(arguments));
 	}
 
 	public Trace(Traced leftHandValue, Class<?> operation, Traced... arguments) {

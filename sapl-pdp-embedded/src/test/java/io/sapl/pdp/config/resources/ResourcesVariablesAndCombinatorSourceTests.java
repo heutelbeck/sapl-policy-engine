@@ -101,7 +101,7 @@ class ResourcesVariablesAndCombinatorSourceTests {
 	}
 
 	@Test
-	void ifExecutedInJarAndConfigFileBroken_thenPropagateException() throws URISyntaxException, MalformedURLException {
+	void ifExecutedInJarAndConfigFileBroken_thenPropagateException() throws MalformedURLException {
 		var url = new URL("jar:" + ClassLoader.getSystemResource("broken_config_in_jar.jar") + "!/policies");
 		try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
 			mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);

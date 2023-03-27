@@ -37,7 +37,7 @@ import com.fasterxml.jackson.databind.util.TokenBuffer;
 
 class MethodInvocationSerializerTests {
 
-	private ObjectMapper mapper = new ObjectMapper();
+	private final ObjectMapper mapper = new ObjectMapper();
 
 	private JsonNode serialize(MethodInvocation invocation) throws IOException {
 		TokenBuffer        jsonGenerator      = new TokenBuffer(mapper, false);

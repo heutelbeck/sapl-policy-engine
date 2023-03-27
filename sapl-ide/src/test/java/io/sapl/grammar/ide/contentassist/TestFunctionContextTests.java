@@ -31,9 +31,7 @@ class TestFunctionContextTests {
 	@Test
 	void isProvidedFunctionThrowsUnsupportedOperationException() {
 		var context = new TestFunctionContext();
-		assertThrows(UnsupportedOperationException.class, () -> {
-			context.isProvidedFunction("");
-		});
+		assertThrows(UnsupportedOperationException.class, () -> context.isProvidedFunction(""));
 	}
 
 	@Test
@@ -60,17 +58,13 @@ class TestFunctionContextTests {
 	@Test
 	void getDocumentationThrowsUnsupportedOperationException() {
 		var context = new TestFunctionContext();
-		assertThrows(UnsupportedOperationException.class, () -> {
-			context.getDocumentation();
-		});
+		assertThrows(UnsupportedOperationException.class, context::getDocumentation);
 	}
 
 	@Test
 	void evaluateThrowsUnsupportedOperationException() {
 		var context = new TestFunctionContext();
-		assertThrows(UnsupportedOperationException.class, () -> {
-			context.evaluate(null, null, null, null);
-		});
+		assertThrows(UnsupportedOperationException.class, () -> context.evaluate(null, null, null, null));
 	}
 
 	@Test
@@ -90,7 +84,7 @@ class TestFunctionContextTests {
 	}
 
 	@Test
-	void getDocumentedCodeTemplatesReturnsAllKnownDocumetedCodeTemplates() {
+	void getDocumentedCodeTemplatesReturnsAllKnownDocumentedCodeTemplates() {
 		var                 context   = new TestFunctionContext();
 		Map<String, String> functions = context.getDocumentedCodeTemplates();
 		assertThat(functions, IsMapContaining.hasEntry("filter.blacken", "documentation"));

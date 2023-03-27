@@ -56,7 +56,7 @@ class FileSystemVariablesAndCombinatorSourceTest {
 	}
 
 	@Test
-	void return_empty_optional_for_exception_during_config_load() throws Exception {
+	void return_empty_optional_for_exception_during_config_load() {
 		var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources/broken_config");
 		var algo = configProvider.getCombiningAlgorithm().blockFirst();
 		var variables = configProvider.getVariables().blockFirst();
