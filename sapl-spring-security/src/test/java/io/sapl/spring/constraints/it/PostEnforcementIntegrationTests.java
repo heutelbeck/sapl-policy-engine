@@ -237,7 +237,7 @@ class PostEnforcementIntegrationTests {
 
 	@Test
 	@WithMockUser(USER)
-	void when_testServiceCalledAndDecisionContainsUnenforcableObligation_then_pdpMethodThrowsAccessDeniedButWasInvoked() {
+	void when_testServiceCalledAndDecisionContainsUnenforceableObligation_then_pdpMethodThrowsAccessDeniedButWasInvoked() {
 		var obligations = JSON.arrayNode();
 		obligations.add(JSON.textNode(UNKNOWN_CONSTRAINT));
 		var decision = AuthorizationDecision.PERMIT.withObligations(obligations);
@@ -260,7 +260,7 @@ class PostEnforcementIntegrationTests {
 
 	@Test
 	@WithMockUser(USER)
-	void when_testServiceCalledAndDecisionContainsUnenforcableAdvice_then_accessGranted() {
+	void when_testServiceCalledAndDecisionContainsUnenforceableAdvice_then_accessGranted() {
 		var advice = JSON.arrayNode();
 		advice.add(JSON.textNode(UNKNOWN_CONSTRAINT));
 		var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
@@ -282,7 +282,7 @@ class PostEnforcementIntegrationTests {
 
 	@Test
 	@WithMockUser(USER)
-	void when_testServiceCalledAndDecisionContainsEnforcableObligation_then_pdpMethodReturnsNormallyAndHandlersAreInvoked() {
+	void when_testServiceCalledAndDecisionContainsEnforceableObligation_then_pdpMethodReturnsNormallyAndHandlersAreInvoked() {
 		var obligations = JSON.arrayNode();
 		obligations.add(JSON.textNode(KNOWN_CONSTRAINT));
 		var decision = AuthorizationDecision.PERMIT.withObligations(obligations);
@@ -294,7 +294,7 @@ class PostEnforcementIntegrationTests {
 
 	@Test
 	@WithMockUser(USER)
-	void when_testServiceCalledAndDecisionDenyContainsEnforcableObligation_then_acceddDeniedButConstraintsHandled() {
+	void when_testServiceCalledAndDecisionDenyContainsEnforc3ableObligation_then_accessDeniedButConstraintsHandled() {
 		var obligations = JSON.arrayNode();
 		obligations.add(JSON.textNode(KNOWN_CONSTRAINT));
 		var decision = AuthorizationDecision.DENY.withObligations(obligations);
@@ -307,7 +307,7 @@ class PostEnforcementIntegrationTests {
 
 	@Test
 	@WithMockUser(USER)
-	void when_testServiceCalledAndDecisionContainsEnforcableAdvice_then_pdpMethodReturnsNormallyAndHandlersAreInvoked() {
+	void when_testServiceCalledAndDecisionContainsEnforceableAdvice_then_pdpMethodReturnsNormallyAndHandlersAreInvoked() {
 		var advice = JSON.arrayNode();
 		advice.add(JSON.textNode(KNOWN_CONSTRAINT));
 		var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
@@ -320,7 +320,7 @@ class PostEnforcementIntegrationTests {
 
 	@Test
 	@WithMockUser(USER)
-	void when_testServiceCalledAndDecisionContainsEnforcableObligationsAndAdvice_then_pdpMethodReturnsNormallyAndHandlersAreInvoked() {
+	void when_testServiceCalledAndDecisionContainsEnforceableObligationsAndAdvice_then_pdpMethodReturnsNormallyAndHandlersAreInvoked() {
 		var advice = JSON.arrayNode();
 		advice.add(JSON.textNode(KNOWN_CONSTRAINT));
 		var obligations = JSON.arrayNode();

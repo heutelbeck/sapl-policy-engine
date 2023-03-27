@@ -140,7 +140,7 @@ class PostEnforcePolicyEnforcementPointTests {
 	}
 
 	@Test
-	void when_errorDuringBundleConmstruction_then_AccessDenied() {
+	void when_errorDuringBundleConstruction_then_AccessDenied() {
 		var constraintEnforcementService = mock(ConstraintEnforcementService.class);
 		when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
 				.thenThrow(new IllegalStateException("TEST FAILURE"));

@@ -178,20 +178,20 @@ class ReactiveSaplMethodInterceptorTests {
 		class TestClass {
 
 			@PostEnforce
-			public Flux<Integer> fluxIntegrer() {
+			public Flux<Integer> fluxInteger() {
 				return Flux.just(1);
 			}
 
 		}
 		var testInstance = new TestClass();
-		var invocation = MockMethodInvocation.of(testInstance, TestClass.class, "fluxIntegrer",
-				testInstance::fluxIntegrer, null, null);
+		var invocation = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
+				testInstance::fluxInteger, null, null);
 		assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
 		verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
 	}
 
 	@Test
-	void when_saplAndSpringAnnotationsPresent_then_thisDoesNotFailBecauseDelegationgSourceDoesOnlyReturnOne()
+	void when_saplAndSpringAnnotationsPresent_then_thisDoesNotFailBecauseDelegationSourceDoesOnlyReturnOne()
 			throws Throwable {
 
 		// This test should fail if at one point in time the delegating source changes
@@ -217,7 +217,7 @@ class ReactiveSaplMethodInterceptorTests {
 	}
 
 	@Test
-	void when_prePostIsCombinedWithContiniousEnforce_then_fail() throws Throwable {
+	void when_prePostIsCombinedWithContinuousEnforce_then_fail() throws Throwable {
 
 		class TestClass {
 
@@ -240,7 +240,7 @@ class ReactiveSaplMethodInterceptorTests {
 	}
 
 	@Test
-	void when_moreThanOneContiniousAnnotation_then_fail() throws Throwable {
+	void when_moreThanOneContinuousAnnotation_then_fail() throws Throwable {
 
 		class TestClass {
 
@@ -370,7 +370,7 @@ class ReactiveSaplMethodInterceptorTests {
 
 	@Test
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	void when_onlyEnforceRevocerableIfDenied_then_enforceRecoverableIfDeniedPEPIsCalled() throws Throwable {
+	void when_onlyEnforceRecoverableIfDenied_then_enforceRecoverableIfDeniedPEPIsCalled() throws Throwable {
 		class TestClass {
 
 			@EnforceRecoverableIfDenied

@@ -55,7 +55,7 @@ import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 class ReactiveSaplMethodSecurityConfigurationTests {
 
 	@Test
-	void setImportMetadataWithNullAnnotation_doesNotThrowNullpointer() {
+	void setImportMetadataWithNullAnnotation_doesNotThrowNullPointer() {
 		var sut = new ReactiveSaplMethodSecurityConfiguration(mock(PolicyDecisionPoint.class),
 				mock(ConstraintEnforcementService.class), mock(ObjectMapper.class));
 		var mockMetadata = mock(AnnotationMetadata.class);
@@ -65,7 +65,7 @@ class ReactiveSaplMethodSecurityConfigurationTests {
 
 	@Test
 	void whenRan_thenBeansArePresent() {
-		new ApplicationContextRunner().withUserConfiguration(SecurityCongiguration.class)
+		new ApplicationContextRunner().withUserConfiguration(SecurityConfiguration.class)
 				.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
 				.withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
 				.withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
@@ -80,7 +80,7 @@ class ReactiveSaplMethodSecurityConfigurationTests {
 
 	@Test
 	void whenRanWithAuthorityDefaults_thenBeansArePresent() {
-		new ApplicationContextRunner().withUserConfiguration(SecurityCongiguration.class)
+		new ApplicationContextRunner().withUserConfiguration(SecurityConfiguration.class)
 				.withBean(GrantedAuthorityDefaults.class, () -> new GrantedAuthorityDefaults("SOMETHING_"))
 				.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
 				.withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
@@ -96,7 +96,7 @@ class ReactiveSaplMethodSecurityConfigurationTests {
 
 	@Test
 	void whenRan_thenAuthorizationSubscriptionBuilderServiceCanLazyLoadMapper() {
-		new ApplicationContextRunner().withUserConfiguration(SecurityCongiguration.class)
+		new ApplicationContextRunner().withUserConfiguration(SecurityConfiguration.class)
 				.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
 				.withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
 				.withBean(ObjectMapper.class, () -> {
@@ -130,7 +130,7 @@ class ReactiveSaplMethodSecurityConfigurationTests {
 	}
 
 	@EnableReactiveSaplMethodSecurity
-	public static class SecurityCongiguration {
+	public static class SecurityConfiguration {
 
 	}
 

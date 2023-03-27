@@ -52,14 +52,14 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenInspectedIsObject_ThenReturnsEmptycollection() throws NoSuchMethodException {
+	void whenInspectedIsObject_ThenReturnsEmptyCollection() throws NoSuchMethodException {
 		var sut    = new SaplMethodSecurityMetadataSource(attributeFactory);
 		var method = Object.class.getMethod("toString");
 		assertThat(sut.getAttributes(method, Object.class), is(empty()));
 	}
 
 	@Test
-	void whenInspectedHasNotAnnotationsAnywhere_ThenReturnsEmptycollection() throws NoSuchMethodException {
+	void whenInspectedHasNotAnnotationsAnywhere_ThenReturnsEmptyCollection() throws NoSuchMethodException {
 		var sut    = new SaplMethodSecurityMetadataSource(attributeFactory);
 		var method = NoAnnotations.class.getMethod("doSomething");
 		assertThat(sut.getAttributes(method, NoAnnotations.class), is(empty()));
@@ -113,7 +113,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenAnnotationOnMethodAndClass_ThenReturnsOnMetod() throws NoSuchMethodException {
+	void whenAnnotationOnMethodAndClass_ThenReturnsOnMethod() throws NoSuchMethodException {
 
 		@PreEnforce(subject = "'onClass'")
 		class TestClass {
@@ -211,7 +211,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenAnnotationOnMethodAndClassAndOnInterfaceAndInterfaceMethod_ThenReturnsOnMetod()
+	void whenAnnotationOnMethodAndClassAndOnInterfaceAndInterfaceMethod_ThenReturnsOnMethod()
 			throws NoSuchMethodException {
 
 		@PreEnforce(subject = "'onClass'")
@@ -232,7 +232,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenAnnotationOnMethod_ThenReturnsOnMetodForPost() throws NoSuchMethodException {
+	void whenAnnotationOnMethod_ThenReturnsOnMethodForPost() throws NoSuchMethodException {
 
 		class TestClass {
 
@@ -251,7 +251,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenAnnotationOnMethod_ThenReturnsOnMetodForEnforceTillDenied() throws NoSuchMethodException {
+	void whenAnnotationOnMethod_ThenReturnsOnMethodForEnforceTillDenied() throws NoSuchMethodException {
 
 		class TestClass {
 
@@ -270,7 +270,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenAnnotationOnMethod_ThenReturnsOnMetodForEnforceDropWhileDenied() throws NoSuchMethodException {
+	void whenAnnotationOnMethod_ThenReturnsOnMethodForEnforceDropWhileDenied() throws NoSuchMethodException {
 
 		class TestClass {
 
@@ -289,7 +289,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenAnnotationOnMethod_ThenReturnsOnMetodForEnforceRecoverableIfDenied() throws NoSuchMethodException {
+	void whenAnnotationOnMethod_ThenReturnsOnMethodForEnforceRecoverableIfDenied() throws NoSuchMethodException {
 
 		class TestClass {
 

@@ -123,7 +123,7 @@ Afterwards you can check if the service is online under: http://localhost:8080/a
 
 Also, a volume is created for persisting the PDP configuration and policies.
 
-Depending on your host OS and virtualisation environment, these volumes may be located at:
+Depending on your host OS and virtualization environment, these volumes may be located at:
 
 * Docker Desktop on Windows WSL2: `\\wsl$\docker-desktop-data\version-pack-data\community\docker\volumes\sapl-server-lt\_data`
 * Docker Desktop on Windows Hyper-V: `C:\Users\Public\Documents\Hyper-V\Virtual hard disks\sapl-server-lt\_data`
@@ -132,7 +132,7 @@ Depending on your host OS and virtualisation environment, these volumes may be l
 
 ### Running on Kubernetes
 
-This section will describe the deployment on a baremetal Kubernetes installation which has Port 80 and 443 exposed to the Internet 
+This section will describe the deployment on a bare metal Kubernetes installation which has Port 80 and 443 exposed to the Internet 
 as well as Desktop Docker on Windows and will use the Kubernetes nginx-ingress-controller as well as cert-manager to manage the Let's Encrypt certificates (Only if Ports are exposed to the Internet so Let's Encrypt can access the URL)
 
 #### Prerequisites
@@ -157,7 +157,7 @@ wget https://raw.githubusercontent.com/heutelbeck/sapl-policy-engine/master/sapl
 kubectl apply -f clusterissuer.yml -n your-namespace
 ```
 
-#### Baremetal Kubernetes
+#### Bare Metal Kubernetes
 
 This section assumes that the Kubernetes is installed on a Linux OS i.e. Ubuntu
 

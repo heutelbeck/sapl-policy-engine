@@ -74,17 +74,17 @@ public class PolicyDecision implements DocumentEvaluationResult {
 	}
 
 	public PolicyDecision withObligation(Val obligation) {
-		var policyDecison = new PolicyDecision(documentName, entitlement, targetResult, whereResult, obligations,
+		var policyDecision = new PolicyDecision(documentName, entitlement, targetResult, whereResult, obligations,
 				advice, resource, errorMessage);
-		policyDecison.obligations.add(obligation);
-		return policyDecison;
+		policyDecision.obligations.add(obligation);
+		return policyDecision;
 	}
 
 	public PolicyDecision withAdvice(Val advice) {
-		var policyDecison = new PolicyDecision(documentName, entitlement, targetResult, whereResult, obligations,
+		var policyDecision = new PolicyDecision(documentName, entitlement, targetResult, whereResult, obligations,
 				this.advice, resource, errorMessage);
-		policyDecison.advice.add(advice);
-		return policyDecison;
+		policyDecision.advice.add(advice);
+		return policyDecision;
 	}
 
 	public PolicyDecision withResource(Val resource) {
@@ -158,9 +158,9 @@ public class PolicyDecision implements DocumentEvaluationResult {
 		return trace;
 	}
 
-	private JsonNode listOfValToTraceArray(List<Val> vals) {
+	private JsonNode listOfValToTraceArray(List<Val> values) {
 		var arrayNode = Val.JSON.arrayNode();
-		vals.forEach(val -> arrayNode.add(val.getTrace()));
+		values.forEach(val -> arrayNode.add(val.getTrace()));
 		return arrayNode;
 	}
 

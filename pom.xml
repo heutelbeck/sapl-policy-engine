@@ -349,27 +349,6 @@
 				<!-- To check every build: <executions><execution><goals><goal>check</goal></goals></execution></executions> -->
 			</plugin>
 			<plugin>
-				<groupId>org.commonjava.maven.plugins</groupId>
-				<artifactId>directory-maven-plugin</artifactId>
-				<version>1.0</version>
-				<executions>
-					<execution>
-						<id>directories</id>
-						<goals>
-							<goal>directory-of</goal>
-						</goals>
-						<phase>validate</phase>
-						<configuration>
-							<property>sapl.basedir</property>
-							<project>
-								<groupId>io.sapl</groupId>
-								<artifactId>sapl-policy-engine</artifactId>
-							</project>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
 				<groupId>io.spring.javaformat</groupId>
 				<artifactId>spring-javaformat-maven-plugin</artifactId>
 			</plugin>

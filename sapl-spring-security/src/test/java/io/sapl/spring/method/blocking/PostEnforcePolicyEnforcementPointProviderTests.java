@@ -34,7 +34,7 @@ import io.sapl.spring.method.metadata.PostEnforceAttribute;
 class PostEnforcePolicyEnforcementPointProviderTests {
 
 	@Test
-	void whenPostsentedWithNonSupported_thenItSaysSo() {
+	void whenPostWithNonSupported_thenItSaysSo() {
 		var advice = mock(PostEnforcePolicyEnforcementPoint.class);
 		var sut = new PostEnforcePolicyEnforcementPointProvider(advice);
 		assertThat(sut.supports(mock(ConfigAttribute.class))).isFalse();
@@ -42,7 +42,7 @@ class PostEnforcePolicyEnforcementPointProviderTests {
 	}
 
 	@Test
-	void whenPostsentedWithSupported_thenItSaysSo() {
+	void whenPostWithSupported_thenItSaysSo() {
 		var advice = mock(PostEnforcePolicyEnforcementPoint.class);
 		var sut = new PostEnforcePolicyEnforcementPointProvider(advice);
 		assertThat(sut.supports(mock(PostEnforceAttribute.class))).isTrue();

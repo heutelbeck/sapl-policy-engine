@@ -129,7 +129,7 @@ class PostEnforcePolicyEnforcementPointTests {
 		when(handler.getExpressionParser()).thenReturn(parser);
 		attributeFactory                   = new SaplAttributeFactory(handler);
 		defaultAttribute                   = (PostEnforceAttribute) postEnforceAttributeFrom("'the subject'",
-				"'the action'", "returnObject", "'the envirionment'", Integer.class);
+				"'the action'", "returnObject", "'the environment'", Integer.class);
 		pdp                                = mock(PolicyDecisionPoint.class);
 		globalRunnableProviders            = new LinkedList<>();
 		globalConsumerProviders            = new LinkedList<>();

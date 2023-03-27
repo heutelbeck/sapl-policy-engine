@@ -59,7 +59,7 @@ public interface SAPLInterpreter {
 	 * @param saplDocumentSource    the String representing the SAPL document
 	 * @param attributeContext      the PDP's AttributeContext
 	 * @param functionContext       the PDP's FunctionContext
-	 * @param environmentrVariables map containing the PDP's environment variables
+	 * @param environmentVariables  map containing the PDP's environment variables
 	 * @return A {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
 	Flux<AuthorizationDecision> evaluate(
@@ -67,7 +67,7 @@ public interface SAPLInterpreter {
 			String saplDocumentSource,
 			AttributeContext attributeContext,
 			FunctionContext functionContext,
-			Map<String, JsonNode> environmentrVariables);
+			Map<String, JsonNode> environmentVariables);
 
 	/**
 	 * Method which analyzes a String containing a SAPL document.

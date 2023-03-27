@@ -15,7 +15,7 @@
  */
 package io.sapl.prp;
 
-class PolicyRetrievalresultTest {
+class PolicyRetrievalResultTest {
 
 	// TODO do test
 

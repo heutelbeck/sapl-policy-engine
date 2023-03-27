@@ -42,8 +42,8 @@ public class PolicySetImplCustom extends PolicySetImpl {
 			return Flux.just(PolicySetDecision.error(getSaplName(),
 					"Inconsistent policy set. Names of policies in set are not unique."));
 		}
-		var combindedDecisions = evaluateValueDefinitionsAndPolicies(0);
-		return combindedDecisions.map(combined -> PolicySetDecision.of(combined, getSaplName()));
+		var combinedDecisions = evaluateValueDefinitionsAndPolicies(0);
+		return combinedDecisions.map(combined -> PolicySetDecision.of(combined, getSaplName()));
 	}
 
 	@Override

@@ -122,7 +122,7 @@ class SaplFilterPolicyEnforcementPointTests {
 
 	@Test
 	@WithMockUser
-	void whenEmptyAnswert_thenAccessDeniedException() throws IOException, ServletException {
+	void whenEmptyAnswer_thenAccessDeniedException() throws IOException, ServletException {
 		var sut = new SaplFilterPolicyEnforcementPoint(pdp, constraintHandlers, mapper);
 		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.empty());
 		var request = new MockHttpServletRequest();

@@ -52,7 +52,7 @@ class PrpUpdateEventSourceAutoConfigurationTests {
 	}
 
 	@Test
-	void whenReourcesPrpIsConfigured_thenOneIsCreated() {
+	void whenResourcesPrpIsConfigured_thenOneIsCreated() {
 		contextRunner
 				.withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=RESOURCES", "io.sapl.pdp.embedded.index=NAIVE",
 						"io.sapl.pdp.embedded.configPath=/", "io.sapl.pdp.embedded.policiesPath=/")
