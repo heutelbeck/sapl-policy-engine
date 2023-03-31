@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-FROM adoptopenjdk/openjdk11:alpine
+FROM adoptopenjdk/openjdk17:alpine
 LABEL org.opencontainers.image.source=https://github.com/heutelbeck/sapl-policy-engine/sapl-server-lt
 RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
