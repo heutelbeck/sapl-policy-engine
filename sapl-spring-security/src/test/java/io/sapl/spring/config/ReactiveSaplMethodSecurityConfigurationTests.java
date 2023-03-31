@@ -22,8 +22,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -51,6 +49,7 @@ import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
 import io.sapl.spring.serialization.ServerHttpRequestSerializer;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import jakarta.servlet.http.HttpServletRequest;
 
 class ReactiveSaplMethodSecurityConfigurationTests {
 

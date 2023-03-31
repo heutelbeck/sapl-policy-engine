@@ -139,7 +139,7 @@
 			</dependency>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
-				<artifactId>sapl-editor-for-vaadin</artifactId>
+				<artifactId>sapl-editor-vaadin</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>

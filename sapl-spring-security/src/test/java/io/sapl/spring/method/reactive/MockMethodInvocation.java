@@ -19,8 +19,9 @@ import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Method;
 import java.util.function.Supplier;
 
-import lombok.NonNull;
 import org.aopalliance.intercept.MethodInvocation;
+
+import lombok.NonNull;
 
 class MockMethodInvocation implements MethodInvocation {
 

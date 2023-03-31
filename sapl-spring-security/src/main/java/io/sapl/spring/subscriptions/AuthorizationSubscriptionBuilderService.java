@@ -17,8 +17,6 @@ package io.sapl.spring.subscriptions;
 
 import java.util.Optional;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.EvaluationException;
@@ -41,6 +39,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.spring.method.metadata.SaplAttribute;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;

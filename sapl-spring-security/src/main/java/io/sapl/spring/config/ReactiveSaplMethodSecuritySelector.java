@@ -18,10 +18,11 @@ package io.sapl.spring.config;
 import java.util.ArrayList;
 import java.util.List;
 
-import lombok.NonNull;
 import org.springframework.context.annotation.AdviceMode;
 import org.springframework.context.annotation.AdviceModeImportSelector;
 import org.springframework.context.annotation.AutoProxyRegistrar;
+
+import lombok.NonNull;
 
 /**
  * Adds ReactiveSaplMethodSecurityConfiguration to the imports

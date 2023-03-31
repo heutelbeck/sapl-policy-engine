@@ -104,7 +104,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 						policyRetrievalResult.getMatchingDocuments()));
 			}
 			var policyElements = policyRetrievalResult.getMatchingDocuments().stream().map(SAPL::getPolicyElement)
-					.collect(Collectors.<PolicyElement>toList());
+					.toList();
 			return documentsCombinator.combinePolicies(policyElements).map(combinedDecision -> PDPDecision
 					.of(authzSubscription, combinedDecision, policyRetrievalResult.getMatchingDocuments()));
 		};

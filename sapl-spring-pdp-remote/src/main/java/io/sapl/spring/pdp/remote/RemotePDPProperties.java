@@ -15,12 +15,11 @@
  */
 package io.sapl.spring.pdp.remote;
 
-import javax.validation.constraints.NotEmpty;
-
 import org.hibernate.validator.constraints.URL;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
+import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
 
 @Data

@@ -29,8 +29,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import javax.validation.constraints.NotNull;
-
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -45,6 +43,7 @@ import io.sapl.grammar.sapl.impl.util.ParserUtil;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
+import jakarta.validation.constraints.NotNull;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import reactor.util.context.Context;

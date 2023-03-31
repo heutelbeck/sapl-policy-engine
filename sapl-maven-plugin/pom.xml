@@ -39,11 +39,13 @@
 			<groupId>org.apache.maven</groupId>
 			<artifactId>maven-plugin-api</artifactId>
 			<version>${maven.version}</version>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.maven</groupId>
 			<artifactId>maven-core</artifactId>
 			<version>${maven.version}</version>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.maven.plugin-tools</groupId>
@@ -57,9 +59,16 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
+    		<groupId>jakarta.xml.bind</groupId>
+    		<artifactId>jakarta.xml.bind-api</artifactId>
+		</dependency>
+<!--
+		<dependency>
 			<groupId>javax.xml.bind</groupId>
 			<artifactId>jaxb-api</artifactId>
+		    <version>2.3.1</version>
 		</dependency>
+		-->
 		<dependency>
 			<groupId>javax.activation</groupId>
 			<artifactId>activation</artifactId>
@@ -140,7 +149,7 @@
 			    <?m2e ignore?>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-plugin-plugin</artifactId>
-				<version>3.6.0</version>
+				<version>3.8.1</version>
 			</plugin>
 
 			<plugin>

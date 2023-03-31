@@ -24,12 +24,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 
 import io.sapl.grammar.ide.AbstractSaplLanguageServerTest;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * This class uses the xtext test classes to test auto-completion results.
  */
-@Slf4j
 @SpringBootTest
 @ContextConfiguration(classes = SAPLIdeSpringTestConfiguration.class)
 public class CompletionTests extends AbstractSaplLanguageServerTest {
@@ -38,15 +36,14 @@ public class CompletionTests extends AbstractSaplLanguageServerTest {
 			final CompletionList completionList) {
 		var actualMethods = completionList.getItems().stream().map(CompletionItem::getLabel)
 				.collect(Collectors.toList());
-		log.info("actual: {}", actualMethods);
 		if (!actualMethods.containsAll(expectedProposals))
 			throw new AssertionError("Expected: " + expectedProposals + " but got " + actualMethods);
 	}
 
 	protected void assertDoesNotContainProposals(final Collection<String> unwantedProposals,
 			final CompletionList completionList) {
-		Collection<CompletionItem> completionItems = completionList.getItems();
-		Collection<String> availableProposals = completionItems.stream().map(CompletionItem::getLabel)
+		Collection<CompletionItem> completionItems    = completionList.getItems();
+		Collection<String>         availableProposals = completionItems.stream().map(CompletionItem::getLabel)
 				.collect(Collectors.toSet());
 
 		for (String unwantedProposal : unwantedProposals) {

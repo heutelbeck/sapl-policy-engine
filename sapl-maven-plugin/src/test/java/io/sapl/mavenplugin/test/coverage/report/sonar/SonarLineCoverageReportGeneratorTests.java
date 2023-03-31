@@ -26,21 +26,20 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 
-import io.sapl.mavenplugin.test.coverage.report.sonar.model.Coverage;
-import io.sapl.mavenplugin.test.coverage.report.sonar.model.ObjectFactory;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.testing.SilentLog;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import io.sapl.mavenplugin.test.coverage.TestFileHelper;
 import io.sapl.mavenplugin.test.coverage.report.model.LineCoveredValue;
 import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInformation;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
-
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
+import io.sapl.mavenplugin.test.coverage.report.sonar.model.Coverage;
+import io.sapl.mavenplugin.test.coverage.report.sonar.model.ObjectFactory;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBException;
 
 class SonarLineCoverageReportGeneratorTests {
 

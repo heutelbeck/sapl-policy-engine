@@ -21,19 +21,18 @@ import java.math.BigInteger;
 import java.nio.file.Path;
 import java.util.Collection;
 
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.logging.Log;
+
 import io.sapl.mavenplugin.test.coverage.PathHelper;
 import io.sapl.mavenplugin.test.coverage.report.model.LineCoveredValue;
 import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInformation;
 import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentLineCoverageInformation;
 import io.sapl.mavenplugin.test.coverage.report.sonar.model.Coverage;
 import io.sapl.mavenplugin.test.coverage.report.sonar.model.ObjectFactory;
-
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.logging.Log;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBException;
+import jakarta.xml.bind.Marshaller;
 
 public class SonarLineCoverageReportGenerator {
 
