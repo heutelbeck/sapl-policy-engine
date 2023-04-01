@@ -35,6 +35,9 @@ import io.sapl.grammar.sapl.SAPL;
 import io.sapl.grammar.sapl.impl.OnlyOneApplicableCombiningAlgorithmImplCustom;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.interpreter.context.AuthorizationContext;
+import io.sapl.interpreter.functions.AnnotationFunctionContext;
+import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.prp.PolicyRetrievalResult;
 import reactor.test.StepVerifier;
 
@@ -124,7 +127,12 @@ class OnlyOneApplicableTest {
 
 	private void verifyDocumentsCombinator(PolicyRetrievalResult given, AuthorizationDecision expected) {
 		StepVerifier.create(
-				combinator.combinePolicies(given.getPolicyElements()).map(CombinedDecision::getAuthorizationDecision))
+				combinator.combinePolicies(given.getPolicyElements())
+						.map(CombinedDecision::getAuthorizationDecision)
+						.contextWrite(
+								ctx -> AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext()))
+						.contextWrite(
+								ctx -> AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext())))
 				.expectNext(expected).verifyComplete();
 	}
 

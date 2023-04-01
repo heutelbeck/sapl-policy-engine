@@ -33,7 +33,7 @@ import reactor.core.publisher.Mono;
 public class FunctionUtil {
 
 	public Flux<Val[]> combineArgumentFluxes(Arguments arguments) {
-		if (arguments == null || arguments.getArgs().size() == 0)
+		if (arguments == null || arguments.getArgs().isEmpty())
 			return Mono.just(new Val[0]).flux();
 
 		return combine(argumentFluxes(arguments));

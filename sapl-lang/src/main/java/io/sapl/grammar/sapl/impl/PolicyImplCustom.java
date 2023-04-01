@@ -23,6 +23,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.Decision;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.Policy;
+import io.sapl.grammar.sapl.impl.util.ImportsUtil;
 import io.sapl.interpreter.DocumentEvaluationResult;
 import io.sapl.interpreter.PolicyDecision;
 import reactor.core.publisher.Flux;
@@ -31,14 +32,23 @@ public class PolicyImplCustom extends PolicyImpl {
 
 	@Override
 	public Flux<DocumentEvaluationResult> evaluate() {
-		var whereResult     = body == null ? Flux.just(Val.TRUE.withTrace(Policy.class)) : body.evaluate();
+		var whereResult     = body == null ? Flux.just(Val.TRUE.withTrace(Policy.class))
+				: body.evaluate();
 		var afterWhere      = whereResult
 				.map(where -> PolicyDecision.fromWhereResult(getSaplName(), entitlement.getDecision(), where));
 		var withObligations = afterWhere
 				.switchMap(decision -> addConstraints(decision, obligations, 0, PolicyDecision::withObligation));
 		var withAdvice      = withObligations
 				.switchMap(decision -> addConstraints(decision, advice, 0, PolicyDecision::withAdvice));
-		return withAdvice.switchMap(this::addResource);
+
+		Flux<DocumentEvaluationResult> withResource = withAdvice.switchMap(this::addResource);
+		
+		return withResource.contextWrite(ctx -> ImportsUtil.loadImportsIntoContext(this, ctx))
+				.onErrorResume(this::importFailure);
+	}
+
+	private Flux<DocumentEvaluationResult> importFailure(Throwable error) {
+		return Flux.just(importError(error.getMessage()));
 	}
 
 	@Override
