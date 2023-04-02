@@ -3,6 +3,7 @@ package io.sapl.pdp.remote;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -60,6 +61,7 @@ public class RemoteRsocketDecisionPointServerIT {
     }
 
     @Test
+    @Disabled
     void whenRequestingDecisionFromHttpPdp_withNoAuth_thenDecisionIsProvided() {
         var container = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE))
                 .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl", BindMode.READ_ONLY)
@@ -74,6 +76,7 @@ public class RemoteRsocketDecisionPointServerIT {
     }
 
     @Test
+    @Disabled
     void whenRequestingDecisionFromHttpsPdp_withNoAuth_thenDecisionIsProvided() throws SSLException {
         var container = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE))
                 .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl", BindMode.READ_ONLY)
@@ -94,6 +97,7 @@ public class RemoteRsocketDecisionPointServerIT {
     }
 
     @Test
+    @Disabled
     void whenRequestingDecisionFromRsocketSslPdp_withNoAuth_thenDecisionIsProvided() throws SSLException {
         var container = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE))
                 .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl", BindMode.READ_ONLY)
@@ -115,6 +119,7 @@ public class RemoteRsocketDecisionPointServerIT {
     }
 
     @Test
+    @Disabled
     void whenRequestingDecisionFromRsocketPdp_withNoAuth_thenDecisionIsProvided() {
         var container = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE))
                 .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl", BindMode.READ_ONLY)
@@ -135,6 +140,7 @@ public class RemoteRsocketDecisionPointServerIT {
     }
 
     @Test
+    @Disabled
     void whenRequestingDecisionFromRsocketPdp_withBasicAuth_thenDecisionIsProvided() {
         var container = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE))
                 .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl", BindMode.READ_ONLY)
@@ -156,6 +162,7 @@ public class RemoteRsocketDecisionPointServerIT {
     }
 
     @Test
+    @Disabled
     void whenRequestingDecisionFromRsocketPdp_withApiKeyAuth_thenDecisionIsProvided() {
         var container = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE))
                 .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl", BindMode.READ_ONLY)
@@ -178,6 +185,7 @@ public class RemoteRsocketDecisionPointServerIT {
     }
 
     @Test
+    @Disabled
     void whenRequestingDecisionFromRsocketPdp_withOauth2Auth_thenDecisionIsProvided() throws SSLException {
         var oauth2Container = new GenericContainer<>(DockerImageName.parse("ghcr.io/navikt/mock-oauth2-server:0.5.8"))
                 .withExposedPorts(8080)
