@@ -140,7 +140,7 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 		public RemoteHttpPolicyDecisionPointBuilder() {
 		}
 
-		public RemoteHttpPolicyDecisionPointBuilder secureNoTrust() throws SSLException {
+		public RemoteHttpPolicyDecisionPointBuilder withUnsecureSSL() throws SSLException {
 			log.warn("------------------------------------------------------------------");
 			log.warn("!!! ATTENTION: don't not use insecure sslContext in production !!!");
 			log.warn("------------------------------------------------------------------");

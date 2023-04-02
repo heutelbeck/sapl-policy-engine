@@ -135,7 +135,7 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 			tcpClient = TcpClient.create();
 		}
 
-		public RemoteRsocketPolicyDecisionPointBuilder secureNoTrust() throws SSLException {
+		public RemoteRsocketPolicyDecisionPointBuilder withUnsecureSSL() throws SSLException {
 			log.warn("------------------------------------------------------------------");
 			log.warn("!!! ATTENTION: don't not use insecure sslContext in production !!!");
 			log.warn("------------------------------------------------------------------");
