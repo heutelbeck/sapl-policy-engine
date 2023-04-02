@@ -55,6 +55,12 @@ jobs:
     - name: Run tests
       run: mvn -B package javadoc:jar # package, as the maven plugin loads resources from the dependency packages
 
+    - name: Build SAPL Server LT image for Integration Tests
+      run: mvn -B dockerfile:build -pl sapl-server-lt -P docker -DskipTests
+
+    - name: Execute integration-tests
+      run: mvn failsafe:integration-test failsafe:verify
+
   analyze:
     needs: [tests]
     name: Code analysis and coverage

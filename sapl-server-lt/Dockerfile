@@ -25,4 +25,5 @@ ENV spring_profiles_active=docker
 ARG JAR_FILE
 ADD ${JAR_FILE} /pdp/pdp.jar
 EXPOSE 8443
+EXPOSE 7000
 ENTRYPOINT ["java","-Dloader.path=file:/pdp/data/lib","-Djava.security.egd=file:/dev/./urandom", "-jar","/pdp/pdp.jar"]
