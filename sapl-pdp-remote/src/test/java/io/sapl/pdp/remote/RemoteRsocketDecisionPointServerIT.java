@@ -22,6 +22,8 @@ import reactor.test.StepVerifier;
 
 import javax.net.ssl.SSLException;
 
+import static org.junit.Assert.assertTrue;
+
 
 @DirtiesContext
 @Testcontainers
@@ -61,7 +63,11 @@ public class RemoteRsocketDecisionPointServerIT {
     }
 
     @Test
-    @Disabled
+    void dummyTest(){
+        assertTrue(true);
+    }
+
+    @Test
     void whenRequestingDecisionFromHttpPdp_withNoAuth_thenDecisionIsProvided() {
         var container = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE))
                 .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl", BindMode.READ_ONLY)
@@ -76,7 +82,6 @@ public class RemoteRsocketDecisionPointServerIT {
     }
 
     @Test
-    @Disabled
     void whenRequestingDecisionFromHttpsPdp_withNoAuth_thenDecisionIsProvided() throws SSLException {
         var container = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE))
                 .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl", BindMode.READ_ONLY)
