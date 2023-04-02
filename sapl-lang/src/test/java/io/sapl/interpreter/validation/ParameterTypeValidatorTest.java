@@ -33,12 +33,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javax.inject.Inject;
-
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import com.google.common.collect.Sets;
+import com.google.inject.Inject;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Array;
