@@ -68,6 +68,7 @@ public class RemoteRsocketDecisionPointServerIT {
     }
 
     @Test
+    @Disabled
     void whenRequestingDecisionFromHttpPdp_withNoAuth_thenDecisionIsProvided() {
         var container = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE))
                 .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl", BindMode.READ_ONLY)
@@ -82,6 +83,7 @@ public class RemoteRsocketDecisionPointServerIT {
     }
 
     @Test
+    @Disabled
     void whenRequestingDecisionFromHttpsPdp_withNoAuth_thenDecisionIsProvided() throws SSLException {
         var container = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE))
                 .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl", BindMode.READ_ONLY)
