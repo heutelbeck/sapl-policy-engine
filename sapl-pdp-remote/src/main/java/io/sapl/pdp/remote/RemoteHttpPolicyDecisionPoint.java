@@ -40,6 +40,7 @@ import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -132,13 +133,11 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 		return new RemoteHttpPolicyDecisionPointBuilder();
 	}
 
+	@NoArgsConstructor
 	public static class RemoteHttpPolicyDecisionPointBuilder {
 		private String                                         baseUrl    = "https://localhost:8443";
 		private HttpClient                                     httpClient = HttpClient.create();
 		private Function<WebClient.Builder, WebClient.Builder> authenticationCustomizer;
-
-		public RemoteHttpPolicyDecisionPointBuilder() {
-		}
 
 		public RemoteHttpPolicyDecisionPointBuilder withUnsecureSSL() throws SSLException {
 			log.warn("------------------------------------------------------------------");

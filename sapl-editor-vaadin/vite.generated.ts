@@ -5,29 +5,64 @@
  * This file will be overwritten on every run. Any custom changes should be made to vite.config.ts
  */
 import path from 'path';
-import { readFileSync, existsSync, writeFileSync } from 'fs';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync
+} from 'fs';
+import {createHash} from 'crypto';
 import * as net from 'net';
 
-import { processThemeResources } from './target/plugins/application-theme-plugin/theme-handle';
-import { rewriteCssUrls } from './target/plugins/theme-loader/theme-loader-utils';
+import {
+  processThemeResources
+} from './target/plugins/application-theme-plugin/theme-handle.js';
+import {
+  rewriteCssUrls
+} from './target/plugins/theme-loader/theme-loader-utils.js';
 import settings from './target/vaadin-dev-server-settings.json';
-import { defineConfig, mergeConfig, PluginOption, ResolvedConfig, UserConfigFn, OutputOptions, AssetInfo, ChunkInfo } from 'vite';
-import { getManifest } from 'workbox-build';
+import {
+  AssetInfo,
+  ChunkInfo,
+  defineConfig,
+  mergeConfig,
+  OutputOptions,
+  PluginOption,
+  ResolvedConfig,
+  UserConfigFn
+} from 'vite';
+import {getManifest} from 'workbox-build';
 
 import * as rollup from 'rollup';
 import brotli from 'rollup-plugin-brotli';
 import replace from '@rollup/plugin-replace';
 import checker from 'vite-plugin-checker';
-import postcssLit from './target/plugins/rollup-plugin-postcss-lit-custom/rollup-plugin-postcss-lit.js';
+import postcssLit
+  from './target/plugins/rollup-plugin-postcss-lit-custom/rollup-plugin-postcss-lit.js';
+
+import { createRequire } from 'module';
+
+// Make `require` compatible with ES modules
+const require = createRequire(import.meta.url);
 
 const appShellUrl = '.';
 
 const frontendFolder = path.resolve(__dirname, settings.frontendFolder);
 const themeFolder = path.resolve(frontendFolder, settings.themeFolder);
 const frontendBundleFolder = path.resolve(__dirname, settings.frontendBundleOutput);
-const addonFrontendFolder = path.resolve(__dirname, settings.addonFrontendFolder);
+const devBundleFolder = path.resolve(__dirname, settings.devBundleOutput);
+const devBundle = !!process.env.devBundle;
+const jarResourcesFolder = path.resolve(__dirname, settings.jarResourcesFolder);
+const generatedFlowImportsFolder = path.resolve(__dirname, settings.generatedFlowImportsFolder);
 const themeResourceFolder = path.resolve(__dirname, settings.themeResourceFolder);
-const statsFile = path.resolve(frontendBundleFolder, '..', 'config', 'stats.json');
+const projectPackageJsonFile = path.resolve(__dirname, 'package.json');
+
+const buildOutputFolder = devBundle ? devBundleFolder : frontendBundleFolder;
+const statsFolder = path.resolve(__dirname, devBundle ? settings.devBundleStatsOutput : settings.statsOutput);
+const statsFile = path.resolve(statsFolder, 'stats.json');
+const nodeModulesFolder = path.resolve(__dirname, 'node_modules');
+const webComponentTags = '';
 
 const projectStaticAssetsFolders = [
   path.resolve(__dirname, 'src', 'main', 'resources', 'META-INF', 'resources'),
@@ -40,11 +75,12 @@ const themeProjectFolders = projectStaticAssetsFolders.map((folder) => path.reso
 
 const themeOptions = {
   devMode: false,
-  // The following matches folder 'target/flow-frontend/themes/'
+  useDevBundle: devBundle,
+  // The following matches folder 'frontend/generated/themes/'
   // (not 'frontend/themes') for theme in JAR that is copied there
   themeResourceFolder: path.resolve(themeResourceFolder, settings.themeFolder),
   themeProjectFolders: themeProjectFolders,
-  projectStaticAssetsOutputFolder: path.resolve(__dirname, settings.staticOutput),
+  projectStaticAssetsOutputFolder: devBundle ? path.resolve(devBundleFolder, '../assets') : path.resolve(__dirname, settings.staticOutput),
   frontendGeneratedFolder: path.resolve(frontendFolder, settings.generatedFolder)
 };
 
@@ -69,7 +105,7 @@ function injectManifestToSWPlugin(): rollup.Plugin {
     async transform(code, id) {
       if (/sw\.(ts|js)$/.test(id)) {
         const { manifestEntries } = await getManifest({
-          globDirectory: frontendBundleFolder,
+          globDirectory: buildOutputFolder,
           globPatterns: ['**/*'],
           globIgnores: ['**/*.br'],
           manifestTransforms: [rewriteManifestIndexHtmlUrl],
@@ -101,13 +137,13 @@ function buildSWPlugin(opts): PluginOption {
       return includedPluginNames.includes(p.name)
     });
     plugins.push(
-      replace({
-        values: {
-          'process.env.NODE_ENV': JSON.stringify(config.mode),
-          ...config.define,
-        },
-        preventAssignment: true
-      })
+        replace({
+          values: {
+            'process.env.NODE_ENV': JSON.stringify(config.mode),
+            ...config.define,
+          },
+          preventAssignment: true
+        })
     );
     if (additionalPlugins) {
       plugins.push(...additionalPlugins);
@@ -119,7 +155,7 @@ function buildSWPlugin(opts): PluginOption {
 
     try {
       return await bundle[action]({
-        file: path.resolve(frontendBundleFolder, 'sw.js'),
+        file: path.resolve(buildOutputFolder, 'sw.js'),
         format: 'es',
         exports: 'none',
         sourcemap: config.command === 'serve' || config.build.sourcemap,
@@ -168,31 +204,121 @@ function statsExtracterPlugin(): PluginOption {
     enforce: 'post',
     async writeBundle(options: OutputOptions, bundle: { [fileName: string]: AssetInfo | ChunkInfo }) {
       const modules = Object.values(bundle).flatMap((b) => (b.modules ? Object.keys(b.modules) : []));
-      const nodeModulesFolders = modules.filter((id) => id.includes('node_modules'));
+      const nodeModulesFolders = modules
+          .map((id) => id.replace(/\\/g, '/'))
+          .filter((id) => id.startsWith(nodeModulesFolder.replace(/\\/g, '/')))
+          .map(id => id.substring(nodeModulesFolder.length + 1));
       const npmModules = nodeModulesFolders
-        .map((id) => id.replace(/.*node_modules./, ''))
-        .map((id) => {
-          const parts = id.split('/');
-          if (id.startsWith('@')) {
-            return parts[0] + '/' + parts[1];
-          } else {
-            return parts[0];
-          }
-        })
-        .sort()
-        .filter((value, index, self) => self.indexOf(value) === index);
+          .map((id) => id.replace(/\\/g, '/'))
+          .map((id) => {
+            const parts = id.split('/');
+            if (id.startsWith('@')) {
+              return parts[0] + '/' + parts[1];
+            } else {
+              return parts[0];
+            }
+          })
+          .sort()
+          .filter((value, index, self) => self.indexOf(value) === index);
+      const npmModuleAndVersion = Object.fromEntries(npmModules.map((module) => [module, getVersion(module)]));
 
-      writeFileSync(statsFile, JSON.stringify({ npmModules }, null, 1));
+      mkdirSync(path.dirname(statsFile), { recursive: true });
+      const projectPackageJson = JSON.parse(readFileSync(projectPackageJsonFile, { encoding: 'utf-8' }));
+
+      const entryScripts = Object.values(bundle).filter(bundle => bundle.isEntry).map(bundle => bundle.fileName);
+      //After dev-bundle build add used Flow frontend imports JsModule/JavaScript/CssImport
+      const generatedImports = readFileSync(path.resolve(generatedFlowImportsFolder, "generated-flow-imports.js"), {encoding: 'utf-8'})
+          .split("\n")
+          .filter((line: string) => line.startsWith("import"))
+          .map((line: string) => line.substring(line.indexOf("'")+1, line.lastIndexOf("'")))
+          .map((line: string) => line.includes('?') ? line.substring(0, line.lastIndexOf('?')) : line);
+
+      const frontendFiles: Record<string, string> = { };
+
+      const projectFileExtensions = ['.js', '.js.map', '.ts', '.ts.map', '.tsx', '.tsx.map', '.css', '.css.map'];
+
+      // collects project's frontend resources in frontend folder, excluding
+      // 'generated' sub-folder
+      modules.map((id) => id.replace(/\\/g, '/'))
+          .filter((id) => id.startsWith(frontendFolder.replace(/\\/g, '/')))
+          .filter((id) => !id.startsWith(themeOptions.frontendGeneratedFolder.replace(/\\/g, '/')))
+          .map(id => id.substring(frontendFolder.length + 1))
+          .map((line: string) => line.includes('?') ? line.substring(0, line.lastIndexOf('?')) : line)
+          .forEach((line: string) => {
+        // \r\n from windows made files may be used so change to \n
+        const filePath = path.resolve(frontendFolder, line);
+        if (projectFileExtensions.includes(path.extname(filePath))) {
+          const fileBuffer = readFileSync(filePath, {encoding: 'utf-8'}).replace(/\r\n/g, '\n');
+          frontendFiles[line] = createHash('sha256').update(fileBuffer, 'utf8').digest("hex");
+        }
+      });
+
+      // collects frontend resources from the JARs
+      generatedImports.filter((line: string) => line.includes("generated/jar-resources")).forEach((line: string) => {
+        let filename = line.substring(line.indexOf("generated"));
+        // \r\n from windows made files may be used ro remove to be only \n
+        const fileBuffer = readFileSync(path.resolve(frontendFolder, filename), {encoding: 'utf-8'}).replace(/\r\n/g, '\n');
+        const hash = createHash('sha256').update(fileBuffer, 'utf8').digest("hex");
+
+        const fileKey = line.substring(line.indexOf("jar-resources/") + 14);
+        frontendFiles[fileKey] = hash;
+      });
+      // If a index.ts exists hash it to be able to see if it changes.
+      if (existsSync(path.resolve(frontendFolder, "index.ts"))) {
+        const fileBuffer = readFileSync(path.resolve(frontendFolder, "index.ts"), {encoding: 'utf-8'}).replace(/\r\n/g, '\n');
+        frontendFiles[`index.ts`] = createHash('sha256').update(fileBuffer, 'utf8').digest("hex");
+      }
+
+      const themeJsonContents: Record<string, string> = { };
+      const themesFolder = path.resolve(jarResourcesFolder, "themes");
+      if (existsSync(themesFolder)) {
+        readdirSync(themesFolder).forEach((themeFolder) => {
+          const themeJson = path.resolve(themesFolder, themeFolder, "theme.json");
+          if (existsSync(themeJson)) {
+            themeJsonContents[path.basename(themeFolder)] = readFileSync(themeJson, {encoding: 'utf-8'}).replace(/\r\n/g, '\n');
+          }
+        });
+      }
+
+      const projectThemeJson = path.resolve(frontendFolder, settings.themeFolder, settings.themeName, "theme.json")
+      if (existsSync(projectThemeJson)) {
+        const themeJson = readFileSync(projectThemeJson, {encoding: 'utf-8'}).replace(/\r\n/g, '\n');
+        themeJsonContents[ settings.themeName ] = themeJson;
+        const themeJsonObject = JSON.parse(themeJson);
+        if (themeJsonObject.parent) {
+          const parentThemeJson = path.resolve(frontendFolder, settings.themeFolder, themeJsonObject.parent, "theme.json");
+          if (existsSync(parentThemeJson)) {
+            themeJsonContents[ themeJsonObject.parent ] = readFileSync(parentThemeJson, {encoding: 'utf-8'}).replace(/\r\n/g, '\n');
+          }
+        }
+      }
+
+      let webComponents: string[] = [];
+      if (webComponentTags) {
+        webComponents = webComponentTags.split(";");
+      }
+
+      const stats = {
+        packageJsonDependencies: projectPackageJson.dependencies,
+        npmModules: npmModuleAndVersion,
+        bundleImports: generatedImports,
+        frontendHashes: frontendFiles,
+        themeJsonContents: themeJsonContents,
+        entryScripts,
+        webComponents,
+        packageJsonHash: projectPackageJson?.vaadin?.hash
+      };
+      writeFileSync(statsFile, JSON.stringify(stats, null, 1));
     }
   };
 }
 function vaadinBundlesPlugin(): PluginOption {
   type ExportInfo =
-    | string
-    | {
-        namespace?: string;
-        source: string;
-      };
+      | string
+      | {
+    namespace?: string;
+    source: string;
+  };
 
   type ExposeInfo = {
     exports: ExportInfo[];
@@ -209,7 +335,7 @@ function vaadinBundlesPlugin(): PluginOption {
 
   const disabledMessage = 'Vaadin component dependency bundles are disabled.';
 
-  const modulesDirectory = path.resolve(__dirname, 'node_modules').replace(/\\/g, '/');
+  const modulesDirectory = nodeModulesFolder.replace(/\\/g, '/');
 
   let vaadinBundleJson: BundleJson;
 
@@ -308,16 +434,16 @@ function vaadinBundlesPlugin(): PluginOption {
     },
     async config(config) {
       return mergeConfig(
-        {
-          optimizeDeps: {
-            exclude: [
-              // Vaadin bundle
-              '@vaadin/bundles',
-              ...Object.keys(vaadinBundleJson.packages)
-            ]
-          }
-        },
-        config
+          {
+            optimizeDeps: {
+              exclude: [
+                // Vaadin bundle
+                '@vaadin/bundles',
+                ...Object.keys(vaadinBundleJson.packages)
+              ]
+            }
+          },
+          config
       );
     },
     load(rawId) {
@@ -375,10 +501,10 @@ function themePlugin(opts): PluginOption {
       // this may happen for example during Java hot reload when updating
       // @Theme annotation value
       if (path.resolve(themeOptions.frontendGeneratedFolder, "theme.js") === importer &&
-            !existsSync(path.resolve(themeOptions.frontendGeneratedFolder, id))) {
-          console.debug('Generate theme file ' + id + ' not existing. Processing theme resource');
-          processThemeResources(fullThemeOptions, console);
-          return;
+          !existsSync(path.resolve(themeOptions.frontendGeneratedFolder, id))) {
+        console.debug('Generate theme file ' + id + ' not existing. Processing theme resource');
+        processThemeResources(fullThemeOptions, console);
+        return;
       }
       if (!id.startsWith(settings.themeFolder)) {
         return;
@@ -419,7 +545,7 @@ function lenientLitImportPlugin(): PluginOption {
         let decoratorMatch;
         while ((decoratorMatch = code.match(decoratorImport))) {
           console.warn(
-            `Warning: the file ${id} imports from '${decoratorMatch[3]}' when it should import from '${decoratorMatch[3]}.js'`
+              `Warning: the file ${id} imports from '${decoratorMatch[3]}' when it should import from '${decoratorMatch[3]}.js'`
           );
           code = code.replace(decoratorImport, 'import $1 from $2$3.js$4');
         }
@@ -429,7 +555,7 @@ function lenientLitImportPlugin(): PluginOption {
         let directiveMatch;
         while ((directiveMatch = code.match(directiveImport))) {
           console.warn(
-            `Warning: the file ${id} imports from '${directiveMatch[3]}${directiveMatch[4]}' when it should import from '${directiveMatch[3]}${directiveMatch[4]}.js'`
+              `Warning: the file ${id} imports from '${directiveMatch[3]}${directiveMatch[4]}' when it should import from '${directiveMatch[3]}${directiveMatch[4]}.js'`
           );
           code = code.replace(directiveImport, 'import $1 from $2$3$4.js$5');
         }
@@ -460,23 +586,10 @@ let spaMiddlewareForceRemoved = false;
 
 const allowedFrontendFolders = [
   frontendFolder,
-  addonFrontendFolder,
-  path.resolve(addonFrontendFolder, '..', 'frontend'), // Contains only generated-flow-imports
-  path.resolve(__dirname, 'node_modules')
+  path.resolve(generatedFlowImportsFolder), // Contains only generated-flow-imports
+  nodeModulesFolder
 ];
 
-function setHmrPortToServerPort(): PluginOption {
-  return {
-    name: 'set-hmr-port-to-server-port',
-    configResolved(config) {
-      if (config.server.strictPort && config.server.hmr !== false) {
-        if (config.server.hmr === true) config.server.hmr = {};
-        config.server.hmr = config.server.hmr || {};
-        config.server.hmr.clientPort = config.server.port;
-      }
-    }
-  };
-}
 function showRecompileReason(): PluginOption {
   return {
     name: 'vaadin:why-you-compile',
@@ -485,6 +598,34 @@ function showRecompileReason(): PluginOption {
     }
   };
 }
+
+const DEV_MODE_START_REGEXP = /\/\*[\*!]\s+vaadin-dev-mode:start/;
+const DEV_MODE_CODE_REGEXP =
+  /\/\*[\*!]\s+vaadin-dev-mode:start([\s\S]*)vaadin-dev-mode:end\s+\*\*\//i;
+
+function preserveUsageStats() {
+  return {
+    name: 'vaadin:preserve-usage-stats',
+
+    transform(src: string, id: string) {
+      if (id.includes('vaadin-usage-statistics')) {
+        if (src.includes('vaadin-dev-mode:start')) {
+          const newSrc = src.replace(DEV_MODE_START_REGEXP, '/*! vaadin-dev-mode:start');
+          if (newSrc === src) {
+            console.error('Comment replacement failed to change anything');
+          } else if (!newSrc.match(DEV_MODE_CODE_REGEXP)) {
+            console.error('New comment fails to match original regexp');
+          } else {
+            return { code: newSrc };
+          }
+        }
+      }
+
+      return { code: src };
+    },
+  };
+}
+
 
 export const vaadinConfig: UserConfigFn = (env) => {
   const devMode = env.mode === 'development';
@@ -500,6 +641,7 @@ export const vaadinConfig: UserConfigFn = (env) => {
     base: '',
     resolve: {
       alias: {
+        '@vaadin/flow-frontend': jarResourcesFolder,
         Frontend: frontendFolder
       },
       preserveSymlinks: true
@@ -516,15 +658,25 @@ export const vaadinConfig: UserConfigFn = (env) => {
       }
     },
     build: {
-      outDir: frontendBundleFolder,
+      outDir: buildOutputFolder,
+      emptyOutDir: devBundle,
       assetsDir: 'VAADIN/build',
       rollupOptions: {
         input: {
           indexhtml: path.resolve(frontendFolder, 'index.html'),
 
-          ...hasExportedWebComponents
-            ? { webcomponenthtml: path.resolve(frontendFolder, 'web-component.html') }
-            : {}
+          ...(hasExportedWebComponents ? { webcomponenthtml: path.resolve(frontendFolder, 'web-component.html') } : {})
+        },
+        onwarn: (warning: rollup.RollupWarning, defaultHandler: rollup.WarningHandler) => {
+          const ignoreEvalWarning = [
+            'generated/jar-resources/FlowClient.js',
+            'generated/jar-resources/vaadin-spreadsheet/spreadsheet-export.js',
+            '@vaadin/charts/src/helpers.js'
+          ];
+          if (warning.code === 'EVAL' && warning.id && !!ignoreEvalWarning.find((id) => warning.id.endsWith(id))) {
+            return;
+          }
+          defaultHandler(warning);
         }
       }
     },
@@ -544,33 +696,33 @@ export const vaadinConfig: UserConfigFn = (env) => {
       ]
     },
     plugins: [
-      !devMode && brotli(),
+      !devMode && !devBundle && brotli(),
       devMode && vaadinBundlesPlugin(),
-      devMode && setHmrPortToServerPort(),
       devMode && showRecompileReason(),
       settings.offlineEnabled && buildSWPlugin({ devMode }),
       !devMode && statsExtracterPlugin(),
+      devBundle && preserveUsageStats(),
       themePlugin({devMode}),
       lenientLitImportPlugin(),
       postcssLit({
-        include: ['**/*.css', '**/*.css\?*'],
+        include: ['**/*.css', /.*\/.*\.css\?.*/],
         exclude: [
           `${themeFolder}/**/*.css`,
-          `${themeFolder}/**/*.css\?*`,
+          new RegExp(`${themeFolder}/.*/.*\\.css\\?.*`),
           `${themeResourceFolder}/**/*.css`,
-          `${themeResourceFolder}/**/*.css\?*`,
-          '**/*\?html-proxy*'
+          new RegExp(`${themeResourceFolder}/.*/.*\\.css\\?.*`),
+          new RegExp(".*/.*\\?html-proxy.*")
         ]
       }),
       {
-        name: 'vaadin:force-remove-spa-middleware',
+        name: 'vaadin:force-remove-html-middleware',
         transformIndexHtml: {
           enforce: 'pre',
           transform(_html, { server }) {
             if (server && !spaMiddlewareForceRemoved) {
               server.middlewares.stack = server.middlewares.stack.filter((mw) => {
                 const handleName = '' + mw.handle;
-                return !handleName.includes('viteSpaFallbackMiddleware');
+                return !handleName.includes('viteHtmlFallbackMiddleware');
               });
               spaMiddlewareForceRemoved = true;
             }
@@ -633,3 +785,8 @@ export const vaadinConfig: UserConfigFn = (env) => {
 export const overrideVaadinConfig = (customConfig: UserConfigFn) => {
   return defineConfig((env) => mergeConfig(vaadinConfig(env), customConfig(env)));
 };
+function getVersion(module: string):string {
+  const packageJson = path.resolve(nodeModulesFolder, module, 'package.json');
+  return JSON.parse(readFileSync(packageJson, {encoding: 'utf-8'})).version;
+}
+
