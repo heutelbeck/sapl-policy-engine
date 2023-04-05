@@ -237,6 +237,25 @@ public class ConstraintEnforcementService {
 		return bundle;
 	}
 
+	/**
+	 * This Methods provides a blocking constraint handler for use in AccessManagers
+	 * for servlet-based filtering. Only ON_DECISION handlers are feasible here.
+	 * 
+	 * @param decision a decision
+	 * @return a BlockingPreEnforceConstraintHandlerBundle with handlers for all
+	 *         constraints in the decision, or throws AccessDeniedException, if
+	 *         bundle cannot be constructed.
+	 */
+	public BlockingPreEnforceConstraintHandlerBundle accessManagerBundleFor(AuthorizationDecision decision) {
+		var unhandledObligations = Sets.newHashSet(decision.getObligations().orElseGet(mapper::createArrayNode));
+		var bundle               = new BlockingPreEnforceConstraintHandlerBundle(
+				runnableHandlersForSignal(Signal.ON_DECISION, decision, unhandledObligations), __ -> {
+											});
+		if (!unhandledObligations.isEmpty())
+			throw new AccessDeniedException("No handler for obligation: " + unhandledObligations);
+		return bundle;
+	}
+
 	private Consumer<MethodInvocation> methodInvocationHandlers(AuthorizationDecision decision,
 			HashSet<JsonNode> unhandledObligations) {
 		var obligationHandlers = obligation(constructMethodInvocationHandlersForConstraints(decision.getObligations(),

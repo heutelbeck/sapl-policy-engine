@@ -1,5 +1,6 @@
 package io.sapl.spring.constraints.it;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -21,6 +22,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.context.ApplicationContext;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -221,7 +223,8 @@ public class PreEnforcementIntegrationTests {
 	}
 
 	@Test
-	void contextLoads() {
+	void contextLoads(ApplicationContext context) {
+	    assertThat(context).isNotNull();
 	}
 
 	@Test

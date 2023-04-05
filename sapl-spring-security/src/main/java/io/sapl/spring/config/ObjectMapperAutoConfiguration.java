@@ -17,6 +17,8 @@ package io.sapl.spring.config;
 
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,17 +34,20 @@ import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
 import io.sapl.spring.serialization.ServerHttpRequestSerializer;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * This configuration provides a Jackson ObjectMapper bean, if missing.
  *
- * In addition, the JDK8 Module is added for properly handling Optional and serializers
- * for HttpServletRequest and MethodInvocation are added.
+ * In addition, the JDK8 Module is added for properly handling Optional and
+ * serializers for HttpServletRequest and MethodInvocation are added.
  *
- * These serializers are used in building authorization subscriptions, if no explicit
- * values for the fields of the subscription (e.g., action, resource) are provided.
+ * These serializers are used in building authorization subscriptions, if no
+ * explicit values for the fields of the subscription (e.g., action, resource)
+ * are provided.
  */
-@Configuration
+@Slf4j
+@AutoConfiguration
 public class ObjectMapperAutoConfiguration {
 
 	@Bean
@@ -58,18 +63,57 @@ public class ObjectMapperAutoConfiguration {
 	 *
 	 */
 	@Configuration
-	public static class ModuleRegistrationConfiguration {
+	public static class BasicModuleRegistrationConfiguration {
 
 		@Autowired
 		void configureObjectMapper(final ObjectMapper mapper) {
+			log.debug("Add basic SAPL serializer modules to ObjectMapper");
 			var module = new SimpleModule();
-			module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
 			module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
-			module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
 			mapper.registerModule(module);
 			mapper.registerModule(new Jdk8Module());
 			mapper.registerModule(new JavaTimeModule());
-		    mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+			mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+		}
+
+	}
+
+	/**
+	 * Register serializers for Servlet-based authorization subscriptions.
+	 * 
+	 * @author Dominic Heutelbeck
+	 *
+	 */
+	@Configuration
+	@ConditionalOnClass(HttpServletRequest.class)
+	public static class ServletModuleRegistrationConfiguration {
+
+		@Autowired
+		void configureObjectMapper(final ObjectMapper mapper) {
+			log.debug("Servlet-based environment detected. Add HttpServletRequestSerializer to ObjectMapper.");
+			var module = new SimpleModule();
+			module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
+			mapper.registerModule(module);
+		}
+
+	}
+
+	/**
+	 * Register serializers for Webflux-based authorization subscriptions.
+	 * 
+	 * @author Dominic Heutelbeck
+	 *
+	 */
+	@Configuration
+	@ConditionalOnClass(ServerHttpRequest.class)
+	public static class WebfluxModuleRegistrationConfiguration {
+
+		@Autowired
+		void configureObjectMapper(final ObjectMapper mapper) {
+			log.debug("Webflux environment detected. Add Deploy ServerHttpRequestSerializer to ObjectMapper.");
+			var module = new SimpleModule();
+			module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
+			mapper.registerModule(module);
 		}
 
 	}

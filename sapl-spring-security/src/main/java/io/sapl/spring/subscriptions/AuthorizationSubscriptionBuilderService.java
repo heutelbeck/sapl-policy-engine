@@ -28,6 +28,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.web.server.authorization.AuthorizationContext;
+import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.server.ServerWebExchange;
@@ -49,6 +50,7 @@ import reactor.util.context.ContextView;
  * This class contains the logic for SpEL expression evaluation and retrieving
  * request information from the application context or method invocation.
  */
+@Component
 @RequiredArgsConstructor
 public class AuthorizationSubscriptionBuilderService {
 
@@ -82,13 +84,6 @@ public class AuthorizationSubscriptionBuilderService {
 			SaplAttribute attribute) {
 		return Mono.deferContextual(contextView -> constructAuthorizationSubscriptionFromContextView(methodInvocation,
 				attribute, contextView, Optional.empty()));
-	}
-
-	public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(
-			Mono<Authentication> authentication, @NonNull AuthorizationContext context) {
-		var request = context.getExchange().getRequest();
-		return authentication.defaultIfEmpty(ANONYMOUS)
-				.map(authn -> AuthorizationSubscription.of(authn, request, request, mapper));
 	}
 
 	public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
@@ -146,8 +141,8 @@ public class AuthorizationSubscriptionBuilderService {
 
 		subject.remove("credentials");
 		var principal = subject.get("principal");
-		if (principal instanceof ObjectNode)
-			((ObjectNode) principal).remove("password");
+		if (principal instanceof ObjectNode objectPrincipal)
+			objectPrincipal.remove("password");
 
 		return subject;
 	}
