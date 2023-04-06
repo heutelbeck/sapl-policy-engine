@@ -21,8 +21,6 @@ import static com.spotify.hamcrest.jackson.JsonMatchers.jsonNull;
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonObject;
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonText;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -51,7 +49,6 @@ import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.util.MethodInvocationUtils;
-import org.springframework.security.web.server.authorization.AuthorizationContext;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.server.ServerWebExchange;
@@ -68,12 +65,13 @@ import jakarta.servlet.http.HttpServletRequest;
 import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 
-class AuthorizationSubscriptionBuilderServiceTests {
+class WebfluxAuthorizationSubscriptionBuilderServiceTests {
 
-	private Authentication                          authentication;
-	private AuthorizationSubscriptionBuilderService defaultBuilderUnderTest;
-	private MethodInvocation                        invocation;
-	private ObjectMapper                            mapper;
+	private Authentication                                 authentication;
+	private WebfluxAuthorizationSubscriptionBuilderService defaultWebfluxBuilderUnderTest;
+	private WebAuthorizationSubscriptionBuilderService     defaultWebBuilderUnderTest;
+	private MethodInvocation                               invocation;
+	private ObjectMapper                                   mapper;
 
 	@BeforeEach
 	void beforeEach() {
@@ -85,10 +83,13 @@ class AuthorizationSubscriptionBuilderServiceTests {
 		mapper.registerModule(module);
 		var user = new User("the username", "the password", true, true, true, true,
 				AuthorityUtils.createAuthorityList("ROLE_USER"));
-		authentication          = new UsernamePasswordAuthenticationToken(user, "the credentials");
-		defaultBuilderUnderTest = new AuthorizationSubscriptionBuilderService(
+		authentication                 = new UsernamePasswordAuthenticationToken(user, "the credentials");
+		defaultWebfluxBuilderUnderTest = new WebfluxAuthorizationSubscriptionBuilderService(
 				new DefaultMethodSecurityExpressionHandler(), mapper);
-		invocation              = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "publicVoid",
+		defaultWebBuilderUnderTest     = new WebAuthorizationSubscriptionBuilderService(
+				new DefaultMethodSecurityExpressionHandler(), mapper);
+		invocation                     = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
+				"publicVoid",
 				null, null);
 	}
 
@@ -114,7 +115,7 @@ class AuthorizationSubscriptionBuilderServiceTests {
 	@Test
 	void when_expressionsAreProvided_then_SubscriptionContainsResult() {
 		var attribute    = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'", Object.class);
-		var subscription = defaultBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
+		var subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
 				attribute);
 		assertAll(() -> assertThat(subscription.getSubject(), is(jsonText("a subject"))),
 				() -> assertThat(subscription.getAction(), is(jsonText("an action"))),
@@ -127,7 +128,8 @@ class AuthorizationSubscriptionBuilderServiceTests {
 		var attribute  = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'", Object.class);
 		var mockMapper = mock(ObjectMapper.class);
 		when(mockMapper.valueToTree(any())).thenThrow(new EvaluationException("ERROR"));
-		var sut = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(), mockMapper);
+		var sut = new WebAuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(),
+				mockMapper);
 		assertThrows(IllegalArgumentException.class,
 				() -> sut.constructAuthorizationSubscription(authentication, invocation, attribute));
 	}
@@ -135,7 +137,7 @@ class AuthorizationSubscriptionBuilderServiceTests {
 	@Test
 	void when_nullParameters_then_FactoryConstructsFromContext() {
 		var attribute    = attribute(null, null, null, null, Object.class);
-		var subscription = defaultBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
+		var subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
 				attribute);
 		// @formatter:off
 		assertAll(() -> assertThat(subscription.getSubject(),
@@ -162,7 +164,8 @@ class AuthorizationSubscriptionBuilderServiceTests {
 	@Test
 	void when_returnObjectResourceAndNulls_then_FactoryConstructsFromContextWithReturnObjectInResource() {
 		var attribute    = attribute(null, null, "returnObject", null, Object.class);
-		var subscription = defaultBuilderUnderTest.constructAuthorizationSubscriptionWithReturnObject(authentication,
+		var subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscriptionWithReturnObject(
+				authentication,
 				invocation, attribute, "the returnObject");
 		// @formatter:off
 		assertAll(() -> assertThat(subscription.getSubject(),
@@ -186,7 +189,8 @@ class AuthorizationSubscriptionBuilderServiceTests {
 		var attribute    = attribute(null, null, null, null, Object.class);
 		var anonymous    = new AnonymousAuthenticationToken("key", "anonymous",
 				AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
-		var subscription = defaultBuilderUnderTest.constructAuthorizationSubscription(anonymous, invocation, attribute);
+		var subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(anonymous, invocation,
+				attribute);
 
 		// @formatter:off
 		assertAll(() -> assertThat(subscription.getSubject(),
@@ -220,7 +224,8 @@ class AuthorizationSubscriptionBuilderServiceTests {
 			when(requestAttributes.getRequest()).thenReturn(request);
 			theMock.when(RequestContextHolder::getRequestAttributes).thenReturn(requestAttributes);
 			var attribute    = attribute(null, null, null, null, Object.class);
-			var subscription = defaultBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
+			var subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication,
+					invocation,
 					attribute);
 			// @formatter:off
 			assertAll(() -> assertThat(subscription.getSubject(),
@@ -250,7 +255,7 @@ class AuthorizationSubscriptionBuilderServiceTests {
 	void when_nullParametersInvocationHasArguments_then_FactoryConstructsFromContextIncludingArguments() {
 		var attribute          = attribute(null, null, null, null, Object.class);
 		var invocationWithArgs = MethodInvocationUtils.create(new TestClass(), "publicVoidArgs", 1);
-		var subscription       = defaultBuilderUnderTest.constructAuthorizationSubscription(authentication,
+		var subscription       = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication,
 				invocationWithArgs, attribute);
 		// @formatter:off
 		assertAll(() -> assertThat(subscription.getSubject(),
@@ -281,7 +286,7 @@ class AuthorizationSubscriptionBuilderServiceTests {
 		var attribute             = attribute(null, null, null, null, Object.class);
 		var invocationWithBadArgs = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
 				"publicVoidProblemArg", new Class<?>[] { BadForJackson.class }, new Object[] { new BadForJackson() });
-		var subscription          = defaultBuilderUnderTest.constructAuthorizationSubscription(authentication,
+		var subscription          = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication,
 				invocationWithBadArgs, attribute);
 		// @formatter:off
 		assertAll(() -> assertThat(subscription.getSubject(),
@@ -311,7 +316,7 @@ class AuthorizationSubscriptionBuilderServiceTests {
 		ServerWebExchange serverWebExchange = MockServerWebExchange.from(MockServerHttpRequest.get("/foo/bar"));
 		SecurityContext   securityContext   = new MockSecurityContext(authentication);
 		var               attribute         = attribute(null, null, null, null, Object.class);
-		var               subscription      = defaultBuilderUnderTest
+		var               subscription      = defaultWebfluxBuilderUnderTest
 				.reactiveConstructAuthorizationSubscription(invocation, attribute)
 				.contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
 				.contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext))).block();
@@ -340,7 +345,8 @@ class AuthorizationSubscriptionBuilderServiceTests {
 	@Test
 	void when_reactive_nullParametersAndNoAuthn_then_FactoryConstructsFromContextAndAnonymous() {
 		var attribute    = attribute(null, null, null, null, Object.class);
-		var subscription = defaultBuilderUnderTest.reactiveConstructAuthorizationSubscription(invocation, attribute)
+		var subscription = defaultWebfluxBuilderUnderTest
+				.reactiveConstructAuthorizationSubscription(invocation, attribute)
 				.block();
 		// @formatter:off
 		assertAll(() -> assertThat(subscription.getSubject(),
@@ -368,7 +374,7 @@ class AuthorizationSubscriptionBuilderServiceTests {
 	@Test
 	void when_reactive_returnObjectInExpression_then_FactoryConstructsReturnObjectInSubscription() {
 		var attribute    = attribute(null, null, "returnObject", null, Object.class);
-		var subscription = defaultBuilderUnderTest
+		var subscription = defaultWebfluxBuilderUnderTest
 				.reactiveConstructAuthorizationSubscription(invocation, attribute, "the returnObject").block();
 		// @formatter:off
 		assertAll(() -> assertThat(subscription.getSubject(),

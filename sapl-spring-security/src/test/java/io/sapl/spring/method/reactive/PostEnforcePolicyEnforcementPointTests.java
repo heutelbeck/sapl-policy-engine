@@ -65,7 +65,7 @@ import io.sapl.spring.method.metadata.SaplAttributeFactory;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
 import io.sapl.spring.serialization.ServerHttpRequestSerializer;
-import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.WebfluxAuthorizationSubscriptionBuilderService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.Getter;
 import reactor.core.publisher.Flux;
@@ -76,7 +76,7 @@ class PostEnforcePolicyEnforcementPointTests {
 
 	private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	private AuthorizationSubscriptionBuilderService subscriptionBuilderService;
+	private WebfluxAuthorizationSubscriptionBuilderService subscriptionBuilderService;
 
 	private MethodInvocation invocation;
 
@@ -116,7 +116,7 @@ class PostEnforcePolicyEnforcementPointTests {
 		module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
 		module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
 		mapper.registerModule(module);
-		subscriptionBuilderService = new AuthorizationSubscriptionBuilderService(
+		subscriptionBuilderService = new WebfluxAuthorizationSubscriptionBuilderService(
 				new DefaultMethodSecurityExpressionHandler(), mapper);
 		var testClass = new TestClass();
 		resourceAccessPoint = testClass.publicInteger();

@@ -47,7 +47,7 @@ import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.method.metadata.PreEnforceAttribute;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
-import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.WebAuthorizationSubscriptionBuilderService;
 import jakarta.servlet.http.HttpServletRequest;
 import reactor.core.publisher.Flux;
 
@@ -55,13 +55,13 @@ class PreEnforcePolicyEnforcementPointTests {
 
 	static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	ObjectFactory<PolicyDecisionPoint>                     pdpFactory;
-	ObjectFactory<ConstraintEnforcementService>            constraintHandlerFactory;
-	ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory;
-	PolicyDecisionPoint                                    pdp;
-	ConstraintEnforcementService                           constraintEnforcementService;
-	Authentication                                         authentication;
-	AuthorizationSubscriptionBuilderService                subscriptionBuilder;
+	ObjectFactory<PolicyDecisionPoint>                        pdpFactory;
+	ObjectFactory<ConstraintEnforcementService>               constraintHandlerFactory;
+	ObjectFactory<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderFactory;
+	PolicyDecisionPoint                                       pdp;
+	ConstraintEnforcementService                              constraintEnforcementService;
+	Authentication                                            authentication;
+	WebAuthorizationSubscriptionBuilderService                subscriptionBuilder;
 
 	@BeforeEach
 	void beforeEach() {
@@ -70,7 +70,7 @@ class PreEnforcePolicyEnforcementPointTests {
 		constraintEnforcementService = mock(ConstraintEnforcementService.class);
 		constraintHandlerFactory     = () -> constraintEnforcementService;
 		authentication               = new UsernamePasswordAuthenticationToken("principal", "credentials");
-		subscriptionBuilder          = new AuthorizationSubscriptionBuilderService(
+		subscriptionBuilder          = new WebAuthorizationSubscriptionBuilderService(
 				new DefaultMethodSecurityExpressionHandler(), configureObjectMapper());
 		subscriptionBuilderFactory   = () -> subscriptionBuilder;
 	}
@@ -118,7 +118,7 @@ class PreEnforcePolicyEnforcementPointTests {
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.DENY));
 		assertThat(sut.before(authentication, methodInvocation, attribute), is(false));
 	}
-	
+
 	@Test
 	void whenBeforeAndDecideNull_thenReturnFalse() {
 		var mockBundle = mock(BlockingPreEnforceConstraintHandlerBundle.class);
@@ -141,7 +141,7 @@ class PreEnforcePolicyEnforcementPointTests {
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
 		assertThat(sut.before(authentication, methodInvocation, attribute), is(false));
 	}
-	
+
 	@Test
 	void whenBeforeAndDecidePermit_thenReturnTrue() {
 		var mockBundle = mock(BlockingPreEnforceConstraintHandlerBundle.class);

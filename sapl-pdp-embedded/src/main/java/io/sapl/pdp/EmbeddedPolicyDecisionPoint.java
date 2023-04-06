@@ -18,7 +18,6 @@ package io.sapl.pdp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.reactivestreams.Publisher;
 
@@ -31,7 +30,6 @@ import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.TracedDecision;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
-import io.sapl.grammar.sapl.PolicyElement;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.context.AuthorizationContext;

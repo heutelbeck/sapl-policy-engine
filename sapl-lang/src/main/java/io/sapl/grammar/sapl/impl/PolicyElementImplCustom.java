@@ -16,7 +16,6 @@
 package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.PolicyElement;
 import io.sapl.grammar.sapl.impl.util.ImportsUtil;
 import reactor.core.publisher.Mono;

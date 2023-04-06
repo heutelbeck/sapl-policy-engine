@@ -40,7 +40,7 @@ import io.sapl.spring.constraints.it.PostEnforcementIntegrationTests.FailingCons
 import io.sapl.spring.constraints.it.PostEnforcementIntegrationTests.MethodSecurityConfiguration;
 import io.sapl.spring.constraints.it.PostEnforcementIntegrationTests.TestService;
 import io.sapl.spring.method.metadata.PostEnforce;
-import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.WebAuthorizationSubscriptionBuilderService;
 import reactor.core.publisher.Flux;
 
 @SpringBootTest(classes = { Application.class, TestService.class, MethodSecurityConfiguration.class,
@@ -79,7 +79,7 @@ class PostEnforcementIntegrationTests {
 		public MethodSecurityConfiguration(ObjectFactory<PolicyDecisionPoint> pdpFactory,
 				ObjectFactory<ConstraintEnforcementService> constraintHandlerFactory,
 				ObjectFactory<ObjectMapper> objectMapperFactory,
-				ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory) {
+				ObjectFactory<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderFactory) {
 			super(pdpFactory, constraintHandlerFactory, objectMapperFactory, subscriptionBuilderFactory);
 		}
 

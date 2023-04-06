@@ -29,7 +29,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.WebAuthorizationSubscriptionBuilderService;
 
 class SaplMethodSecurityConfigurationTests {
 
@@ -60,9 +60,9 @@ class SaplMethodSecurityConfigurationTests {
 	public static class PrePostEnablingConfiguration extends SaplMethodSecurityConfiguration {
 
 		public PrePostEnablingConfiguration(ObjectFactory<PolicyDecisionPoint> pdpFactory,
-											ObjectFactory<ConstraintEnforcementService> constraintHandlerFactory,
-											ObjectFactory<ObjectMapper> objectMapperFactory,
-											ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory) {
+				ObjectFactory<ConstraintEnforcementService> constraintHandlerFactory,
+				ObjectFactory<ObjectMapper> objectMapperFactory,
+				ObjectFactory<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderFactory) {
 			super(pdpFactory, constraintHandlerFactory, objectMapperFactory, subscriptionBuilderFactory);
 		}
 
@@ -73,9 +73,9 @@ class SaplMethodSecurityConfigurationTests {
 	public static class NoPrePostEnablingConfiguration extends SaplMethodSecurityConfiguration {
 
 		public NoPrePostEnablingConfiguration(ObjectFactory<PolicyDecisionPoint> pdpFactory,
-											  ObjectFactory<ConstraintEnforcementService> constraintHandlerFactory,
-											  ObjectFactory<ObjectMapper> objectMapperFactory,
-											  ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory) {
+				ObjectFactory<ConstraintEnforcementService> constraintHandlerFactory,
+				ObjectFactory<ObjectMapper> objectMapperFactory,
+				ObjectFactory<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderFactory) {
 			super(pdpFactory, constraintHandlerFactory, objectMapperFactory, subscriptionBuilderFactory);
 		}
 

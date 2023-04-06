@@ -18,8 +18,8 @@ package io.sapl.spring.config;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -85,7 +85,7 @@ public class ObjectMapperAutoConfiguration {
 	 *
 	 */
 	@Configuration
-	@ConditionalOnClass(HttpServletRequest.class)
+	@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 	public static class ServletModuleRegistrationConfiguration {
 
 		@Autowired
@@ -105,7 +105,7 @@ public class ObjectMapperAutoConfiguration {
 	 *
 	 */
 	@Configuration
-	@ConditionalOnClass(ServerHttpRequest.class)
+	@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
 	public static class WebfluxModuleRegistrationConfiguration {
 
 		@Autowired

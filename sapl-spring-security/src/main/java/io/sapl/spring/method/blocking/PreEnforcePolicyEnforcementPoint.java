@@ -24,7 +24,8 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.method.metadata.PreEnforceAttribute;
-import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.WebAuthorizationSubscriptionBuilderService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -32,14 +33,31 @@ import lombok.extern.slf4j.Slf4j;
  * blocking methods.
  */
 @Slf4j
-public class PreEnforcePolicyEnforcementPoint extends AbstractPolicyEnforcementPoint {
+@RequiredArgsConstructor
+public class PreEnforcePolicyEnforcementPoint {
+	private final ObjectFactory<PolicyDecisionPoint>                        pdpFactory;
+	private final ObjectFactory<ConstraintEnforcementService>               constraintEnforcementServiceFactory;
+	private final ObjectFactory<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderFactory;
 
-	public PreEnforcePolicyEnforcementPoint(ObjectFactory<PolicyDecisionPoint> pdpFactory,
-			ObjectFactory<ConstraintEnforcementService> constraintHandlerFactory,
-			ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory) {
-		super(pdpFactory, constraintHandlerFactory, subscriptionBuilderFactory);
+	private PolicyDecisionPoint pdp;
+	private ConstraintEnforcementService constraintEnforcementService;
+	private WebAuthorizationSubscriptionBuilderService subscriptionBuilder;
+
+	/**
+	 * Lazy loading of dependencies decouples security infrastructure from domain logic in
+	 * initialization. This avoids beans to become not eligible for Bean post-processing.
+	 */
+	private void lazyLoadDependencies() {
+		if (pdp == null)
+			pdp = pdpFactory.getObject();
+
+		if (constraintEnforcementService == null)
+			constraintEnforcementService = constraintEnforcementServiceFactory.getObject();
+
+		if (subscriptionBuilder == null)
+			subscriptionBuilder = subscriptionBuilderFactory.getObject();
 	}
-
+	
 	public boolean before(
 			Authentication authentication,
 			MethodInvocation methodInvocation,
@@ -78,7 +96,7 @@ public class PreEnforcePolicyEnforcementPoint extends AbstractPolicyEnforcementP
 			log.warn("Access Denied by PEP. No constraint handler bundle.");
 			return false;
 		}
-		
+
 		try {
 			blockingPreEnforceBundle.handleOnDecisionConstraints();
 			blockingPreEnforceBundle.handleMethodInvocationHandlers(methodInvocation);

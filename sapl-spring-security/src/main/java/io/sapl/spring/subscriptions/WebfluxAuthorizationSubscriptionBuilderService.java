@@ -27,10 +27,6 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.web.server.authorization.AuthorizationContext;
-import org.springframework.stereotype.Component;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.server.ServerWebExchange;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -40,8 +36,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.spring.method.metadata.SaplAttribute;
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.NonNull;
+//import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 import reactor.util.context.ContextView;
@@ -50,9 +45,8 @@ import reactor.util.context.ContextView;
  * This class contains the logic for SpEL expression evaluation and retrieving
  * request information from the application context or method invocation.
  */
-@Component
 @RequiredArgsConstructor
-public class AuthorizationSubscriptionBuilderService {
+public class WebfluxAuthorizationSubscriptionBuilderService {
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
@@ -62,23 +56,6 @@ public class AuthorizationSubscriptionBuilderService {
 	private final MethodSecurityExpressionHandler expressionHandler;
 
 	private final ObjectMapper mapper;
-
-	public AuthorizationSubscription constructAuthorizationSubscriptionWithReturnObject(Authentication authentication,
-			MethodInvocation methodInvocation, SaplAttribute attribute, Object returnObject) {
-		var evaluationCtx = expressionHandler.createEvaluationContext(authentication, methodInvocation);		
-		expressionHandler.setReturnObject(returnObject, evaluationCtx);
-		evaluationCtx.setVariable("authentication", authentication);
-		evaluationCtx.setVariable("methodInvocation", methodInvocation);
-		return constructAuthorizationSubscription(authentication, methodInvocation, attribute, evaluationCtx);
-	}
-
-	public AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
-			MethodInvocation methodInvocation, SaplAttribute attribute) {
-		var evaluationCtx = expressionHandler.createEvaluationContext(authentication, methodInvocation);
-		evaluationCtx.setVariable("authentication", authentication);
-		evaluationCtx.setVariable("methodInvocation", methodInvocation);
-		return constructAuthorizationSubscription(authentication, methodInvocation, attribute, evaluationCtx);
-	}
 
 	public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
 			SaplAttribute attribute) {
@@ -113,17 +90,7 @@ public class AuthorizationSubscriptionBuilderService {
 
 		var subject     = retrieveSubject(authentication, attribute, evaluationCtx);
 		var action      = retrieveAction(methodInvocation, attribute, evaluationCtx, serverHttpRequest);
-		var resource    = retrieveResource(methodInvocation, attribute, evaluationCtx);
-		var environment = retrieveEnvironment(attribute, evaluationCtx);
-		return new AuthorizationSubscription(mapper.valueToTree(subject), mapper.valueToTree(action),
-				mapper.valueToTree(resource), mapper.valueToTree(environment));
-	}
-
-	private AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
-			MethodInvocation methodInvocation, SaplAttribute attribute, EvaluationContext evaluationCtx) {
-		var subject     = retrieveSubject(authentication, attribute, evaluationCtx);
-		var action      = retrieveAction(methodInvocation, attribute, evaluationCtx, retrieveRequestObject());
-		var resource    = retrieveResource(methodInvocation, attribute, evaluationCtx);
+		var resource    = retrieveResource(methodInvocation, attribute, evaluationCtx, serverHttpRequest);
 		var environment = retrieveEnvironment(attribute, evaluationCtx);
 		return new AuthorizationSubscription(mapper.valueToTree(subject), mapper.valueToTree(action),
 				mapper.valueToTree(resource), mapper.valueToTree(environment));
@@ -155,13 +122,6 @@ public class AuthorizationSubscriptionBuilderService {
 		}
 	}
 
-	private static Optional<HttpServletRequest> retrieveRequestObject() {
-		var requestAttributes = RequestContextHolder.getRequestAttributes();
-		var httpRequest       = requestAttributes != null ? ((ServletRequestAttributes) requestAttributes).getRequest()
-				: null;
-		return Optional.ofNullable(httpRequest);
-	}
-
 	private Object retrieveAction(MethodInvocation mi, SaplAttribute attr, EvaluationContext ctx,
 			Optional<?> requestObject) {
 		if (attr.getActionExpression() == null)
@@ -190,17 +150,17 @@ public class AuthorizationSubscriptionBuilderService {
 		return actionNode;
 	}
 
-	private Object retrieveResource(MethodInvocation mi, SaplAttribute attr, EvaluationContext ctx) {
+	private Object retrieveResource(MethodInvocation mi, SaplAttribute attr, EvaluationContext ctx,
+			Optional<ServerHttpRequest> serverHttpRequest) {
 		if (attr.getResourceExpression() == null)
-			return retrieveResource(mi);
+			return retrieveResource(mi, serverHttpRequest);
 		return evaluateToJson(attr.getResourceExpression(), ctx);
 	}
 
-	private Object retrieveResource(MethodInvocation mi) {
-		var resourceNode       = mapper.createObjectNode();
-		var httpServletRequest = retrieveRequestObject();
+	private Object retrieveResource(MethodInvocation mi, Optional<ServerHttpRequest> serverHttpRequest) {
+		var resourceNode = mapper.createObjectNode();
 		// The action is in the context of an HTTP request. Adding it to the resource.
-		httpServletRequest.ifPresent(servletRequest -> resourceNode.set("http", mapper.valueToTree(servletRequest)));
+		serverHttpRequest.ifPresent(request -> resourceNode.set("http", mapper.valueToTree(request)));
 		var java = (ObjectNode) mapper.valueToTree(mi);
 		resourceNode.set("java", java);
 		return resourceNode;

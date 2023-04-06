@@ -48,14 +48,14 @@ import io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptor;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
 import io.sapl.spring.serialization.ServerHttpRequestSerializer;
-import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.WebfluxAuthorizationSubscriptionBuilderService;
 import jakarta.servlet.http.HttpServletRequest;
 
 class ReactiveSaplMethodSecurityConfigurationTests {
 
 	@Test
 	void setImportMetadataWithNullAnnotation_doesNotThrowNullPointer() {
-		var sut = new ReactiveSaplMethodSecurityConfiguration(mock(PolicyDecisionPoint.class),
+		var sut          = new ReactiveSaplMethodSecurityConfiguration(mock(PolicyDecisionPoint.class),
 				mock(ConstraintEnforcementService.class), mock(ObjectMapper.class));
 		var mockMetadata = mock(AnnotationMetadata.class);
 		when(mockMetadata.getAnnotationAttributes(any())).thenReturn(null);
@@ -72,7 +72,7 @@ class ReactiveSaplMethodSecurityConfigurationTests {
 					assertThat(context).hasSingleBean(MethodSecurityMetadataSourceAdvisor.class);
 					assertThat(context).hasSingleBean(DelegatingMethodSecurityMetadataSource.class);
 					assertThat(context).hasSingleBean(ReactiveSaplMethodInterceptor.class);
-					assertThat(context).hasSingleBean(AuthorizationSubscriptionBuilderService.class);
+					assertThat(context).hasSingleBean(WebfluxAuthorizationSubscriptionBuilderService.class);
 					assertThat(context).hasSingleBean(MethodSecurityExpressionHandler.class);
 				});
 	}
@@ -88,7 +88,7 @@ class ReactiveSaplMethodSecurityConfigurationTests {
 					assertThat(context).hasSingleBean(MethodSecurityMetadataSourceAdvisor.class);
 					assertThat(context).hasSingleBean(DelegatingMethodSecurityMetadataSource.class);
 					assertThat(context).hasSingleBean(ReactiveSaplMethodInterceptor.class);
-					assertThat(context).hasSingleBean(AuthorizationSubscriptionBuilderService.class);
+					assertThat(context).hasSingleBean(WebfluxAuthorizationSubscriptionBuilderService.class);
 					assertThat(context).hasSingleBean(MethodSecurityExpressionHandler.class);
 				});
 	}
@@ -99,7 +99,7 @@ class ReactiveSaplMethodSecurityConfigurationTests {
 				.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
 				.withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
 				.withBean(ObjectMapper.class, () -> {
-					var mapper = new ObjectMapper();
+					var  mapper = new ObjectMapper();
 					SimpleModule module = new SimpleModule();
 					module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
 					module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
@@ -112,8 +112,8 @@ class ReactiveSaplMethodSecurityConfigurationTests {
 					var attribute = attribute(null, null, null, null, Object.class);
 					var authentication = new AnonymousAuthenticationToken("key", "anonymous",
 							AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
-					var actual = context.getBean(AuthorizationSubscriptionBuilderService.class)
-							.constructAuthorizationSubscription(authentication, invocation, attribute);
+					var actual = context.getBean(WebfluxAuthorizationSubscriptionBuilderService.class)
+							.reactiveConstructAuthorizationSubscription(invocation, attribute);
 					assertNotNull(actual);
 				});
 	}

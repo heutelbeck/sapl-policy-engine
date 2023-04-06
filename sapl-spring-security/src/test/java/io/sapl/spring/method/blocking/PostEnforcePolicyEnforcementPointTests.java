@@ -56,7 +56,8 @@ import io.sapl.spring.constraints.api.SubscriptionHandlerProvider;
 import io.sapl.spring.method.metadata.PostEnforceAttribute;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
-import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.WebAuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.WebfluxAuthorizationSubscriptionBuilderService;
 import jakarta.servlet.http.HttpServletRequest;
 import reactor.core.publisher.Flux;
 
@@ -74,7 +75,7 @@ class PostEnforcePolicyEnforcementPointTests {
 
 	ObjectFactory<ConstraintEnforcementService> constraintHandlerFactory;
 
-	ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory;
+	ObjectFactory<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderFactory;
 
 	PolicyDecisionPoint pdp;
 
@@ -82,7 +83,7 @@ class PostEnforcePolicyEnforcementPointTests {
 
 	Authentication authentication;
 
-	AuthorizationSubscriptionBuilderService subscriptionBuilder;
+	WebAuthorizationSubscriptionBuilderService subscriptionBuilder;
 
 	List<RunnableConstraintHandlerProvider> globalRunnableProviders;
 
@@ -133,7 +134,7 @@ class PostEnforcePolicyEnforcementPointTests {
 		constraintHandlerFactory = () -> constraintHandlers;
 
 		authentication             = new UsernamePasswordAuthenticationToken("principal", "credentials");
-		subscriptionBuilder        = new AuthorizationSubscriptionBuilderService(
+		subscriptionBuilder        = new WebAuthorizationSubscriptionBuilderService(
 				new DefaultMethodSecurityExpressionHandler(), mapper);
 		subscriptionBuilderFactory = () -> subscriptionBuilder;
 	}

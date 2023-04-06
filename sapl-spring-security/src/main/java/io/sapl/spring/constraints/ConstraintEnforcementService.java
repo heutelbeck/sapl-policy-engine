@@ -373,7 +373,7 @@ public class ConstraintEnforcementService {
 			for (var provider : globalErrorMappingHandlerProviders) {
 				if (provider.isResponsible(constraint)) {
 					onHandlerFound.accept(constraint);
-					prioritizedHandlers.add(new HandlerWithPriority<Function<Throwable, Throwable>>(
+					prioritizedHandlers.add(new HandlerWithPriority<>(
 							provider.getHandler(constraint), provider.getPriority()));
 				}
 			}
@@ -422,7 +422,7 @@ public class ConstraintEnforcementService {
 			for (var provider : globalMappingHandlerProviders) {
 				if (provider.supports(clazz) && provider.isResponsible(constraint)) {
 					onHandlerFound.accept(constraint);
-					prioritizedHandlers.add(new HandlerWithPriority<Function<T, T>>(
+					prioritizedHandlers.add(new HandlerWithPriority<>(
 							(Function<T, T>) provider.getHandler(constraint), provider.getPriority()));
 				}
 			}
@@ -700,15 +700,16 @@ public class ConstraintEnforcementService {
 	 */
 	public <T> T replaceResultIfResourceDefinitionIsPresentInDecision(AuthorizationDecision authzDecision,
 			T originalResult, Class<T> clazz) {
-		var mustReplaceResource = authzDecision.getResource().isPresent();
+		var resource            = authzDecision.getResource();
+		var mustReplaceResource = resource.isPresent();
 
 		if (!mustReplaceResource)
 			return originalResult;
 
 		try {
-			return unmarshallResource(authzDecision.getResource().get(), clazz);
+			return unmarshallResource(resource.get(), clazz);
 		} catch (JsonProcessingException | IllegalArgumentException e) {
-			var message = String.format("Cannot map resource %s to type %s", authzDecision.getResource().get(),
+			var message = String.format("Cannot map resource %s to type %s", resource.get(),
 					clazz.getSimpleName());
 			log.warn(message);
 			throw new AccessDeniedException(message, e);

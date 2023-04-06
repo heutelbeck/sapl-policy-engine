@@ -24,7 +24,6 @@ import java.util.Collections;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.security.access.ConfigAttribute;
 import org.springframework.security.access.method.AbstractMethodSecurityMetadataSource;
-import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.util.ClassUtils;
 
 import lombok.RequiredArgsConstructor;

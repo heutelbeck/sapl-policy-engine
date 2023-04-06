@@ -62,7 +62,7 @@ import io.sapl.spring.method.metadata.SaplMethodSecurityMetadataSource;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
 import io.sapl.spring.serialization.ServerHttpRequestSerializer;
-import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.WebfluxAuthorizationSubscriptionBuilderService;
 import jakarta.servlet.http.HttpServletRequest;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -80,7 +80,7 @@ class ReactiveSaplMethodInterceptorTests {
 
 	private ObjectMapper mapper;
 
-	private AuthorizationSubscriptionBuilderService subscriptionBuilder;
+	private WebfluxAuthorizationSubscriptionBuilderService subscriptionBuilder;
 
 	private PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint;
 
@@ -107,7 +107,7 @@ class ReactiveSaplMethodInterceptorTests {
 		module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
 		module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
 		mapper.registerModule(module);
-		subscriptionBuilder = mock(AuthorizationSubscriptionBuilderService.class);
+		subscriptionBuilder = mock(WebfluxAuthorizationSubscriptionBuilderService.class);
 		when(subscriptionBuilder.reactiveConstructAuthorizationSubscription(any(MethodInvocation.class), any()))
 				.thenReturn(Mono.just(AuthorizationSubscription.of("the subject", "the action", "the resource")));
 		preEnforcePolicyEnforcementPoint = mock(PreEnforcePolicyEnforcementPoint.class);

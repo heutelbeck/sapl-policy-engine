@@ -28,7 +28,8 @@ import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.BlockingPostEnforceConstraintHandlerBundle;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.method.metadata.PostEnforceAttribute;
-import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.WebAuthorizationSubscriptionBuilderService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.Exceptions;
 
@@ -36,14 +37,32 @@ import reactor.core.Exceptions;
  * Method post-invocation handling based on a SAPL policy decision point.
  */
 @Slf4j
-public class PostEnforcePolicyEnforcementPoint extends AbstractPolicyEnforcementPoint {
+@RequiredArgsConstructor
+public class PostEnforcePolicyEnforcementPoint {
+	
+	private final ObjectFactory<PolicyDecisionPoint> pdpFactory;
+	private final ObjectFactory<ConstraintEnforcementService> constraintEnforcementServiceFactory;
+	private final ObjectFactory<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderFactory;
 
-	public PostEnforcePolicyEnforcementPoint(ObjectFactory<PolicyDecisionPoint> pdpFactory,
-			ObjectFactory<ConstraintEnforcementService> constraintHandlerFactory,
-			ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory) {
-		super(pdpFactory, constraintHandlerFactory, subscriptionBuilderFactory);
+	private PolicyDecisionPoint pdp;
+	private ConstraintEnforcementService constraintEnforcementService;
+	private WebAuthorizationSubscriptionBuilderService subscriptionBuilder;
+
+	/**
+	 * Lazy loading of dependencies decouples security infrastructure from domain logic in
+	 * initialization. This avoids beans to become not eligible for Bean post-processing.
+	 */
+	protected void lazyLoadDependencies() {
+		if (pdp == null)
+			pdp = pdpFactory.getObject();
+
+		if (constraintEnforcementService == null)
+			constraintEnforcementService = constraintEnforcementServiceFactory.getObject();
+
+		if (subscriptionBuilder == null)
+			subscriptionBuilder = subscriptionBuilderFactory.getObject();
 	}
-
+	
 	@SuppressWarnings("unchecked") // is actually checked, warning is false positive
 	public Object after(Authentication authentication, MethodInvocation methodInvocation,
 			PostEnforceAttribute postEnforceAttribute, Object returnedObject) {
