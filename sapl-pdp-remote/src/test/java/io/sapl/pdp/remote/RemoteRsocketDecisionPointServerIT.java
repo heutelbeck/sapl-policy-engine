@@ -4,7 +4,6 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,6 +21,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import javax.net.ssl.SSLException;
+import java.net.UnknownHostException;
 
 
 @Slf4j
@@ -153,18 +153,12 @@ public class RemoteRsocketDecisionPointServerIT {
     }
 
     @Test
-    void whenRequestingDecisionFromRsocketPdp_withOauth2Auth_thenDecisionIsProvided() {
+    void whenRequestingDecisionFromRsocketPdp_withOauth2Auth_thenDecisionIsProvided() throws UnknownHostException {
         var oauth2Container = new GenericContainer<>(DockerImageName.parse("ghcr.io/navikt/mock-oauth2-server:0.5.8"))
                 .withExposedPorts(8080)
                 .waitingFor(Wait.forListeningPort());
         oauth2Container.start();
 
-        /*
-        String dockerInternalName = "host-gateway";
-        if ( System.getProperty("os.name").toLowerCase().startsWith("win") ){
-            dockerInternalName = "host.docker.internal";
-        }
-         */
         var container = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE))
                 .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl", BindMode.READ_ONLY)
                 .withExposedPorts(SAPL_SERVER_RSOCKET_PORT)
@@ -175,8 +169,8 @@ public class RemoteRsocketDecisionPointServerIT {
                 .withEnv("spring_rsocket_server_ssl_enabled", "False")
                 .withEnv("io_sapl_server-lt_allowNoAuth", "False")
                 .withEnv("io_sapl_server-lt_allowOauth2Auth", "True")
-                //.withExtraHost("auth-host", dockerInternalName)
-                .withEnv("spring_security_oauth2_resourceserver_jwt_issuer-uri", "http://gateway.docker.internal:"
+                .withExtraHost("auth-host", "host-gateway")
+                .withEnv("spring_security_oauth2_resourceserver_jwt_issuer-uri", "http://auth-host:"
                         + oauth2Container.getMappedPort(8080) + "/default");
         container.start();
 
@@ -185,7 +179,7 @@ public class RemoteRsocketDecisionPointServerIT {
             public Mono<ClientRegistration> findByRegistrationId(String registrationId) {
                 return Mono.just(ClientRegistration
                         .withRegistrationId("saplPdp")
-                        .tokenUri("http://gateway.docker.internal:" + oauth2Container.getMappedPort(8080) + "/default/token")
+                        .tokenUri("http://auth-host:" + oauth2Container.getMappedPort(8080) + "/default/token")
                         .clientId("0oa62xybztegSdqtZ5d7")
                         .clientSecret("v6WUqDre1B4WMejey-6sklb5kZW7C5RB2iftv_sq")
                         .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)

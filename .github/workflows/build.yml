@@ -135,11 +135,12 @@ jobs:
     - name: Build SAPL Server LT image
       run: mvn -B dockerfile:build -pl sapl-server-lt -P docker -DskipTests
 
+    - name: Add hosts to /etc/hosts
+      run: sudo sh -c 'echo "127.0.0.1 auth-host" >> /etc/hosts'
+
     - name: Execute integration-tests
       run:  mvn -B failsafe:integration-test -DskipITs=false
 
-    - name: show ip config
-      run: cat /etc/hosts && ifconfig -a
     - name: Push image
       run: mvn -B dockerfile:push -pl sapl-server-lt -P docker -DskipTests
 

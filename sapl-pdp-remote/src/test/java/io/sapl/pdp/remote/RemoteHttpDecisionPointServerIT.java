@@ -148,7 +148,6 @@ public class RemoteHttpDecisionPointServerIT {
     }
 
     @Test
-    @Disabled
     void whenRequestingDecisionFromHttpsPdp_withOauth2Auth_thenDecisionIsProvided() throws SSLException {
         var oauth2Container = new GenericContainer<>(DockerImageName.parse("ghcr.io/navikt/mock-oauth2-server:0.5.8"))
                 .withExposedPorts(8080)
@@ -165,7 +164,8 @@ public class RemoteHttpDecisionPointServerIT {
                 .withEnv("server_ssl_enabled", "True")
                 .withEnv("io_sapl_server-lt_allowNoAuth", "False")
                 .withEnv("io_sapl_server-lt_allowOauth2Auth", "True")
-                .withEnv("spring_security_oauth2_resourceserver_jwt_issuer-uri", "http://host.docker.internal:"
+                .withExtraHost("auth-host", "host-gateway")
+                .withEnv("spring_security_oauth2_resourceserver_jwt_issuer-uri", "http://auth-host:"
                         + oauth2Container.getMappedPort(8080) + "/default");
         container.start();
 
@@ -174,7 +174,7 @@ public class RemoteHttpDecisionPointServerIT {
             public Mono<ClientRegistration> findByRegistrationId(String registrationId) {
                 return Mono.just(ClientRegistration
                         .withRegistrationId("saplPdp")
-                        .tokenUri("http://host.docker.internal:" + oauth2Container.getMappedPort(8080) + "/default/token")
+                        .tokenUri("http://auth-host:" + oauth2Container.getMappedPort(8080) + "/default/token")
                         .clientId("0oa62xybztegSdqtZ5d7")
                         .clientSecret("v6WUqDre1B4WMejey-6sklb5kZW7C5RB2iftv_sq")
                         .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
