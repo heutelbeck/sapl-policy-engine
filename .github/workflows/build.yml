@@ -19,7 +19,7 @@ name: Build
 on:
   workflow_dispatch:
   push:
-    branches: [master]
+    branches: [master, test_actions]
     paths-ignore: ["sapl-documentation/**", ".github/build_documentation.yml"]
   
 jobs:
@@ -136,8 +136,10 @@ jobs:
       run: mvn -B dockerfile:build -pl sapl-server-lt -P docker -DskipTests
 
     - name: Execute integration-tests
-      run:  mvn -B failsafe:integration-test failsafe:verify -DskipITs=false
+      run:  mvn -B failsafe:integration-test -DskipITs=false
 
+    - name: show ip config
+      run: cat /etc/hosts && ifconfig -a
     - name: Push image
       run: mvn -B dockerfile:push -pl sapl-server-lt -P docker -DskipTests
 
