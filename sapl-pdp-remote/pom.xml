@@ -34,7 +34,6 @@
 
 	<properties>
 		<version.testcontainers>1.17.3</version.testcontainers>
-		<skipTests>true</skipTests>
 	</properties>
 
 	<dependencyManagement>
@@ -157,7 +156,7 @@
 				<artifactId>maven-failsafe-plugin</artifactId>
 				<version>3.0.0-M7</version>
 				<configuration>
-					<skipITs>${skipTests}</skipITs>
+					<skipITs>${skipITs}</skipITs>
 				</configuration>
 				<executions>
 					<execution>
