@@ -40,7 +40,7 @@ import lombok.NoArgsConstructor;
 class AnnotationFunctionContextTest {
 
 	@Test
-	void failToInitializeNonFuntionLibraryAnnotatedClass() {
+	void failToInitializeNonFunctionLibraryAnnotatedClass() {
 		assertThrows(InitializationException.class, () -> new AnnotationFunctionContext(""));
 	}
 
@@ -53,13 +53,13 @@ class AnnotationFunctionContextTest {
 	}
 
 	@Test
-	void givenMockLibraryWhenListingFucntionsTheMockFunctionIsAvailable() throws InitializationException {
+	void givenMockLibraryWhenListingFunctionsTheMockFunctionIsAvailable() throws InitializationException {
 		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
 		assertThat(context.providedFunctionsOfLibrary(MockLibrary.LIBRARY_NAME), hasItems(MockLibrary.FUNCTION_NAME));
 	}
 
 	@Test
-	void givenNoLibrariesWhanListingFunctionForALibraryCollectionIsEmpty() {
+	void givenNoLibrariesWhenListingFunctionForALibraryCollectionIsEmpty() {
 		assertThat(new AnnotationFunctionContext().providedFunctionsOfLibrary(null), empty());
 	}
 
@@ -110,7 +110,7 @@ class AnnotationFunctionContextTest {
 	}
 
 	@Test
-	void loadedFuntionShouldBeProvided() throws InitializationException {
+	void loadedFunctionShouldBeProvided() throws InitializationException {
 		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
 		assertAll(
 				() -> assertThat(context.isProvidedFunction(MockLibrary.LIBRARY_NAME + "." + MockLibrary.FUNCTION_NAME),
@@ -196,6 +196,14 @@ class AnnotationFunctionContextTest {
 	}
 
 	@Test
+	void codeTemplatesAreGeneratedFromSchema() throws InitializationException {
+		var context = new AnnotationFunctionContext(new SchemaAnnotatedLibrary());
+		var actualTemplates = context.getCodeTemplates();
+		actualTemplates = context.getCodeTemplates();
+		assertThat(actualTemplates, containsInAnyOrder("schemaAnnotation.validSchema()", "schemaAnnotation.validSchema().name", "schemaAnnotation.validSchema().age"));
+	}
+
+	@Test
 	void documentationIsAddedToTheLibrary() throws InitializationException {
 		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
 		var templates = context.getDocumentedCodeTemplates(); 
@@ -249,6 +257,24 @@ class AnnotationFunctionContextTest {
 		@Function
 		public static Val varArgs(@Text Val... args) {
 			return Val.UNDEFINED;
+		}
+
+	}
+
+	@FunctionLibrary(name = "schemaAnnotation")
+	public static class SchemaAnnotatedLibrary {
+
+		private static final String VALID_SCHEMA = "{ " +
+				"  \"type\": \"object\", " +
+				"  \"properties\": { " +
+				"    \"name\": { \"type\": \"string\" }, " +
+				"    \"age\": { \"type\": \"integer\" } " +
+				"  }" +
+				"}";
+
+		@Function(schema = "{\"name\": {\"type\": \"string\"}, \"age\": {\"type\": \"number\"}}")
+		public static Val validSchema() {
+			return Val.of(VALID_SCHEMA);
 		}
 
 	}

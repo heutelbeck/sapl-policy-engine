@@ -17,13 +17,7 @@ package io.sapl.interpreter.functions;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
@@ -122,6 +116,11 @@ public class AnnotationFunctionContext implements FunctionContext {
 		return invokeFunction(metadata, new Object[] { parameters });
 	}
 
+	private Val getSchemaPaths(Method method){
+		Function funAnnotation = method.getAnnotation(Function.class);
+		return Val.of(funAnnotation.schema());
+	}
+
 	private Val invokeFunction(FunctionMetadata metadata, Object... parameters) {
 		try {
 			return (Val) metadata.getFunction().invoke(metadata.getLibrary(), parameters);
@@ -174,6 +173,8 @@ public class AnnotationFunctionContext implements FunctionContext {
 		if (funName.isEmpty())
 			funName = method.getName();
 
+		String funSchema = funAnnotation.schema();
+
 		if (!Val.class.isAssignableFrom(method.getReturnType()))
 			throw new InitializationException(ILLEGAL_RETURN_TYPE_FOR_IMPORT, method.getReturnType().getName());
 
@@ -187,7 +188,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 			}
 		}
 
-		FunctionMetadata funMeta = new FunctionMetadata(libName, funName, library, parameters, method);
+		FunctionMetadata funMeta = new FunctionMetadata(libName, funName, funSchema, library, parameters, method);
 		functions.put(funMeta.fullyQualifiedName(), funMeta);
 		libMeta.documentation.put(funMeta.getDocumentationCodeTemplate(), funAnnotation.docs());
 
@@ -224,6 +225,8 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 		String functionName;
 
+		String functionSchema;
+
 		Object library;
 
 		int numberOfParameters;
@@ -243,6 +246,24 @@ public class AnnotationFunctionContext implements FunctionContext {
 			if (getNumberOfParameters() == 0)
 				sb.append("()");
 			return sb.toString();
+		}
+
+		public List<String> getCodeTemplatesWithSchemaPaths(){
+			StringBuilder sb;
+			var codeTemplatesWithSchemaPaths = new ArrayList<String>();
+			var funCodeTemplate = getCodeTemplate();
+			var schema = getFunctionSchema();
+			if (schema.length() > 0){
+				var paths = SchemaPaths.flattenSchema(schema);
+				for (var path : paths){
+					sb = new StringBuilder();
+					sb.append(funCodeTemplate);
+					sb.append(".");
+					sb.append(path);
+					codeTemplatesWithSchemaPaths.add(sb.toString());
+				}
+			}
+			return codeTemplatesWithSchemaPaths;
 		}
 
 		@Override
@@ -267,7 +288,10 @@ public class AnnotationFunctionContext implements FunctionContext {
 		if (codeTemplateCache == null) {
 			codeTemplateCache = new LinkedList<>();
 			for (var entry : functions.entrySet()) {
+				var value = entry.getValue();
 				codeTemplateCache.add(entry.getValue().getCodeTemplate());
+				var temp = value.getCodeTemplatesWithSchemaPaths();
+				codeTemplateCache.addAll(temp);
 			}
 			Collections.sort(codeTemplateCache);
 		}

@@ -16,6 +16,7 @@ public class AttributeFinderMetadata implements LibraryEntryMetadata {
 	Method  function;
 	String  libraryName;
 	String  functionName;
+	String  functionSchema;
 	boolean environmentAttribute;
 	boolean attributeWithVariableParameter;
 	boolean varArgsParameters;
@@ -38,6 +39,11 @@ public class AttributeFinderMetadata implements LibraryEntryMetadata {
 
 		sb.append('>');
 		return sb.toString();
+	}
+
+	@Override
+	public String getFunctionSchema() {
+		return functionSchema;
 	}
 
 	@Override

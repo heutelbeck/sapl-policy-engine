@@ -131,6 +131,13 @@
 			<version>1.0.56</version>
 		</dependency>
 
+		<!-- JSON flattening -->
+		<dependency>
+			<groupId>com.github.wnameless.json</groupId>
+			<artifactId>json-flattener</artifactId>
+			<version>0.14.0</version>
+		</dependency>
+
 		<!-- Testing -->
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>

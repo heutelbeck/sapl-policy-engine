@@ -388,7 +388,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 		if (parameterUnderInspection < parameterCount && parameterTypeIsArrayOfVal(method, parameterUnderInspection)) {
 			if (parameterUnderInspection + 1 == parameterCount)
-				return new AttributeFinderMetadata(policyInformationPoint, method, pipName, attributeName,
+				return new AttributeFinderMetadata(policyInformationPoint, method, pipName, attributeName, "",
 						isEnvironmentAttribute, requiresVariables, true, 0);
 			else
 				throw new InitializationException("The method " + method.getName()
@@ -406,7 +406,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 						"The method " + method.getName() + " declared a non Val as a parameter");
 			}
 		}
-		return new AttributeFinderMetadata(policyInformationPoint, method, pipName, attributeName,
+		return new AttributeFinderMetadata(policyInformationPoint, method, pipName, attributeName, "",
 				isEnvironmentAttribute, requiresVariables, false, numberOfInnerAttributeParameters);
 	}
 

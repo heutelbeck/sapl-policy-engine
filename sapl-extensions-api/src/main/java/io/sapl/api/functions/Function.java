@@ -39,4 +39,9 @@ public @interface Function {
 	 */
 	String docs() default "";
 
+	/**
+	 * @return function schema
+	 */
+	String schema() default "";
+
 }

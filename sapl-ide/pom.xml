@@ -98,12 +98,7 @@
 			<version>1.0.56</version>
 		</dependency>
 
-		<!-- A library for JSON flattening -->
-		<dependency>
-			<groupId>com.github.wnameless.json</groupId>
-			<artifactId>json-flattener</artifactId>
-			<version>0.14.0</version>
-		</dependency>
+
         <dependency>
             <groupId>io.sapl</groupId>
             <artifactId>sapl-pdp-embedded</artifactId>

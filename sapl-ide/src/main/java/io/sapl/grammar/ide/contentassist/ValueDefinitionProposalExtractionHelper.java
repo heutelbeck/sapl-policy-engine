@@ -56,8 +56,7 @@ public class ValueDefinitionProposalExtractionHelper {
         
         for (var schema : saplSchemas) {
             var subscriptionElement = schema.getSubscriptionElement();
-            var schemaExpression = schema.getSchemaExpression();
-            var codeTemplates = schemaProposals.getCodeTemplates(schemaExpression);
+            var codeTemplates = schemaProposals.getCodeTemplates(schema.getSchemaExpression());
             var templates = constructProposals(subscriptionElement, codeTemplates);
             proposals.addAll(templates);
         }
