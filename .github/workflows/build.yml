@@ -136,7 +136,7 @@ jobs:
       run: mvn -B dockerfile:build -pl sapl-server-lt -P docker -DskipTests
 
     - name: Execute integration-tests
-      run:  mvn -B failsafe:integration-test failsafe:verify -DskipTests=false
+      run:  mvn -B failsafe:integration-test failsafe:verify -DskipITs=false
 
     - name: Push image
       run: mvn -B dockerfile:push -pl sapl-server-lt -P docker -DskipTests
