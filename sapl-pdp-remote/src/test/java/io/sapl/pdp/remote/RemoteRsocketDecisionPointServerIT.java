@@ -175,7 +175,7 @@ public class RemoteRsocketDecisionPointServerIT {
                 .withEnv("spring_rsocket_server_ssl_enabled", "False")
                 .withEnv("io_sapl_server-lt_allowNoAuth", "False")
                 .withEnv("io_sapl_server-lt_allowOauth2Auth", "True")
-                .withExtraHost("auth-host", dockerInternalName)
+                //.withExtraHost("auth-host", dockerInternalName)
                 .withEnv("spring_security_oauth2_resourceserver_jwt_issuer-uri", "http://gateway.docker.internal:"
                         + oauth2Container.getMappedPort(8080) + "/default");
         container.start();
