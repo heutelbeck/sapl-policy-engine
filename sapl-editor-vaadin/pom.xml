@@ -29,7 +29,7 @@
     <artifactId>sapl-editor-vaadin</artifactId>
 
     <name>SAPL Editor for Vaadin</name>
-    
+
     <description>SAPL and JSON Editor Components for Vaadin 24</description>
 
     <properties>
@@ -89,9 +89,9 @@
     <dependencies>
         <dependency>
             <groupId>com.vaadin</groupId>
-            <!-- Try to keep transitive dependencies in add-ons to minium.
+            <!-- Try to keep transitive dependencies in add-ons to minimum.
                  Usually flow-server is enough, but if you extend an existing
-                 component, add that directly as well or change to 
+                 component, add that directly as well or change to
                  vaadin/vaadin-core (worse option)
             -->
             <artifactId>flow-server</artifactId>
@@ -198,7 +198,7 @@
                                 <resource>
                                     <directory>${project.build.directory}/xtext/META-INF/resources/xtext/${xtext.version}</directory>
                                     <includes>
-                                        <include>xtext.js</include>
+                                        <include>xtext-codemirror.js</include>
                                     </includes>
                                     <filtering>false</filtering>
                                 </resource>
@@ -228,9 +228,30 @@
             </plugin>
 
             <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>io.sapl.converter.TransformFilesToESM</mainClass>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
+                <version>3.1.0</version>
                 <configuration>
+                    <excludes>
+                        <exclude>io/sapl/converter/**</exclude>
+                    </excludes>
                     <archive>
                         <index>true</index>
                         <manifest>
@@ -288,7 +309,7 @@
                     <artifactId>flow-server-production-mode</artifactId>
                 </dependency>
             </dependencies>
-            
+
             <build>
                 <plugins>
                     <plugin>
@@ -308,5 +329,3 @@
 
     </profiles>
 </project>
-
-

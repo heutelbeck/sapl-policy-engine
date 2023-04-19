@@ -534,7 +534,7 @@ export const XTextAnnotationsStyles = css`
   background-color: #ddd;
 }
 .xtext-marker_write {
-  background-color: yellow;
+  background-color: #ffee0059;
 }  
 `
 
@@ -587,6 +587,7 @@ export const ReadOnlyStyle = css`
 .cm-s-readOnly .cm-header {color: blue;}
 .cm-s-readOnly .cm-quote {color: #090;}
 .cm-s-readOnly .cm-error {color: #f00;}
+.annotations-gutter {background: #f0f0f0;}
 `
 
 export const DarkStyle = css`
@@ -619,5 +620,5 @@ export const DarkStyle = css`
 .cm-s-dracula span.cm-variable-3, .cm-s-dracula span.cm-type { color: #ffb86c; }
 .cm-s-dracula .CodeMirror-activeline-background { background: rgba(255,255,255,0.1); }
 .cm-s-dracula .CodeMirror-matchingbracket { text-decoration: underline; color: white !important; }
-.CodeMirror-gutter.annotations-gutter { width: 16px; background: #282a36; }
+.cm-s-dracula .annotations-gutter { background: #282a36; }
 `
