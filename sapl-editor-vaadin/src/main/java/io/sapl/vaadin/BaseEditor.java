@@ -15,36 +15,40 @@
  */
 package io.sapl.vaadin;
 
-import com.vaadin.flow.component.ClientCallable;
-import com.vaadin.flow.component.Component;
-import com.vaadin.flow.dom.Element;
-
 import java.util.ArrayList;
 import java.util.List;
 
+import com.vaadin.flow.component.ClientCallable;
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.dom.Element;
+import com.vaadin.flow.dom.ElementConstants;
+
 public class BaseEditor extends Component {
 
-	private static final String IsReadOnlyKey = "isReadOnly";
-    private String document;
-    private final List<DocumentChangedListener> documentChangedListeners;
-	private final List<EditorClickedListener> editorClickedListeners;
+	private static final String                 IS_READ_ONLY_KEY = "isReadOnly";
+	private String                              document;
+	private final List<DocumentChangedListener> documentChangedListeners;
+	private final List<EditorClickedListener>   editorClickedListeners;
 
-    public BaseEditor() {
+	public BaseEditor() {
+		super();
 		this.documentChangedListeners = new ArrayList<>();
-		this.editorClickedListeners = new ArrayList<>();
-    }
-    
-    protected static void applyBaseConfiguration(Element element, BaseEditorConfiguration config) {
-    	element.setProperty("hasLineNumbers", config.isHasLineNumbers());
+		this.editorClickedListeners   = new ArrayList<>();
+		getElement().getStyle().set(ElementConstants.STYLE_WIDTH, "100%");
+		getElement().getStyle().set(ElementConstants.STYLE_HEIGHT, "100%");
+	}
+
+	protected static void applyBaseConfiguration(Element element, BaseEditorConfiguration config) {
+		element.setProperty("hasLineNumbers", config.isHasLineNumbers());
 		element.setProperty("autoCloseBrackets", config.isAutoCloseBrackets());
 		element.setProperty("matchBrackets", config.isMatchBrackets());
 		element.setProperty("textUpdateDelay", config.getTextUpdateDelay());
-		element.setProperty(IsReadOnlyKey, config.isReadOnly());
+		element.setProperty(IS_READ_ONLY_KEY, config.isReadOnly());
 		element.setProperty("isLint", config.isLint());
 		element.setProperty("isDarkTheme", config.isDarkTheme());
-    }
+	}
 
-    @ClientCallable
+	@ClientCallable
 	protected void onDocumentChanged(String newValue) {
 		document = newValue;
 		for (DocumentChangedListener listener : documentChangedListeners) {
@@ -58,8 +62,8 @@ public class BaseEditor extends Component {
 			listener.onEditorClicked(new EditorClickedEvent(line, content));
 		}
 	}
-    
-    /**
+
+	/**
 	 * Sets the current document for the editor.
 	 * 
 	 * @param document The current document.
@@ -90,8 +94,8 @@ public class BaseEditor extends Component {
 	}
 
 	/**
-	 * Registers an editor clicked listener. The editor clicked event will be
-	 * raised when the editor was clicked.
+	 * Registers an editor clicked listener. The editor clicked event will be raised
+	 * when the editor was clicked.
 	 *
 	 * @param listener The listener that will be called upon event invocation.
 	 */
@@ -124,7 +128,7 @@ public class BaseEditor extends Component {
 	 */
 	public void setReadOnly(Boolean isReadOnly) {
 		Element element = getElement();
-		element.setProperty(IsReadOnlyKey, isReadOnly);
+		element.setProperty(IS_READ_ONLY_KEY, isReadOnly);
 	}
 
 	/**
@@ -134,7 +138,7 @@ public class BaseEditor extends Component {
 	 */
 	public Boolean isReadOnly() {
 		Element element = getElement();
-		return element.getProperty(IsReadOnlyKey, false);
+		return element.getProperty(IS_READ_ONLY_KEY, false);
 	}
 
 	/**
@@ -156,7 +160,8 @@ public class BaseEditor extends Component {
 	}
 
 	/**
-	 * This function returns a Boolean to whether the editor uses the Dark Theme or not.
+	 * This function returns a Boolean to whether the editor uses the Dark Theme or
+	 * not.
 	 *
 	 * @return Enabled or disabled Dark Theme as a Boolean.
 	 */
@@ -166,7 +171,8 @@ public class BaseEditor extends Component {
 	}
 
 	/**
-	 * This function returns a Boolean whether if the editor has linting enabled or not.
+	 * This function returns a Boolean whether if the editor has linting enabled or
+	 * not.
 	 *
 	 * @return Enabled or disabled lint as a Boolean.
 	 */
