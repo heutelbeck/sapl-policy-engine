@@ -70,7 +70,7 @@
 		<junit.version>5.7.2</junit.version>
 		<lombok.version>1.18.26</lombok.version>
 		<spotify.hamcrest.version>1.3.1</spotify.hamcrest.version>
-		<springboot.version>3.0.5</springboot.version>
+		<springboot.version>3.0.6</springboot.version>
 		<vaadin.version>24.0.4</vaadin.version>
 		<reactornetty.version>1.0.23</reactornetty.version>
 		<rsocket.version>1.1.3</rsocket.version>
@@ -452,6 +452,41 @@
 			</build>
 		</profile>
 	</profiles>
+	
+	<repositories>
+        <repository>
+            <id>central</id>
+            <url>https://repo.maven.apache.org/maven2</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>Vaadin Directory</id>
+            <url>https://maven.vaadin.com/vaadin-addons</url>
+        </repository>
+        <!-- Repository needed for prerelease versions of Vaadin -->
+        <repository>
+            <id>Vaadin prereleases</id>
+            <url>https://maven.vaadin.com/vaadin-prereleases</url>
+        </repository>
+    </repositories>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>central</id>
+            <url>https://repo.maven.apache.org/maven2</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </pluginRepository>
+        <!-- Repository needed for prerelease versions of Vaadin -->
+        <pluginRepository>
+            <id>Vaadin prereleases</id>
+            <url>https://maven.vaadin.com/vaadin-prereleases</url>
+        </pluginRepository>
+    </pluginRepositories>
+    
 	<distributionManagement>
 		<snapshotRepository>
 			<id>ossrh</id>
