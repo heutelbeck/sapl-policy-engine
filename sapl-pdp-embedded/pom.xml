@@ -45,10 +45,6 @@
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
 		</dependency>
-		<dependency>
-			<groupId>io.projectreactor</groupId>
-			<artifactId>reactor-tools</artifactId>
-		</dependency>
 		<!-- Testing -->
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
