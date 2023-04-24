@@ -80,13 +80,13 @@ jobs:
       run: sudo sh -c 'echo "127.0.0.1 auth-host" >> /etc/hosts'
 
     - name: Execute integration-tests
-      run:  mvn -B failsafe:integration-test -DskipITs=false
+      run:  mvn -B package failsafe:integration-test -DskipITs=false
 
     - name: Clean up local repository before caching 
       run: rm -rf ~/.m2/repository/io/sapl
 
   analyze:
-    needs: [integrationTests]
+    needs: [tests]
     name: Code analysis and coverage
     runs-on: ubuntu-latest
     steps:
@@ -126,7 +126,7 @@ jobs:
         keep_minimum_runs: 6
 
   dockerize:
-    needs: [analyze]
+    needs: [analyze, integrationTests]
     name: Deliver server images
     runs-on: ubuntu-latest
     steps:
