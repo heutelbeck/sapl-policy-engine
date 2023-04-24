@@ -172,7 +172,7 @@ jobs:
       run: rm -rf ~/.m2/repository/io/sapl
 
   deploy:
-    needs: [analyze]
+    needs: [analyze, integrationTests]
     name: Deploy to central
     runs-on: ubuntu-latest
     steps:
