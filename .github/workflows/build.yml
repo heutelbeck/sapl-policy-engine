@@ -55,7 +55,7 @@ jobs:
   
   integrationTests:
     needs: [tests]
-    name: Deliver server images
+    name: Integration Tests
     runs-on: ubuntu-latest
     steps:
     - name: Check out
