@@ -68,6 +68,7 @@
 
             <!-- First unpack the files from the JAR -->
             <plugin>
+				<?m2e ignore?>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <version>3.5.0</version>

@@ -135,8 +135,8 @@ class RemoteHttpPolicyDecisionPointTests {
 
 	@Test
 	void whenSubscribingMultiDecide_thenGetResults() throws JsonProcessingException {
-		var decision1 = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.PERMIT);
-		var decision2 = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.DENY);
+		var decision1     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.PERMIT);
+		var decision2     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.DENY);
 		var indeterminate = IdentifiableAuthorizationDecision.INDETERMINATE;
 
 		prepareDecisions(new IdentifiableAuthorizationDecision[] { decision1, decision2, null });
@@ -179,7 +179,7 @@ class RemoteHttpPolicyDecisionPointTests {
 	@Test
 	void constructWithSslContext() throws SSLException {
 		var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
-		var pdp = RemotePolicyDecisionPoint.builder()
+		var pdp        = RemotePolicyDecisionPoint.builder()
 				.http()
 				.baseUrl("http://localhost")
 				.basicAuth("secret", "key")
