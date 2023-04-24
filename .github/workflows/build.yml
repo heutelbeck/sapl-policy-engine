@@ -52,9 +52,41 @@ jobs:
 
     - name: Run tests
       run: mvn -B package javadoc:jar # package, as the maven plugin loads resources from the dependency packages
+  
+  integrationTests:
+    needs: [tests]
+    name: Deliver server images
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out
+      uses: actions/checkout@v3
+      with:
+        lfs: true
+        fetch-depth: 0
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'adopt'
+        java-version: 17
+        cache: 'maven'
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Add hosts to /etc/hosts
+      run: sudo sh -c 'echo "127.0.0.1 auth-host" >> /etc/hosts'
+
+    - name: Execute integration-tests
+      run:  mvn -B failsafe:integration-test -DskipITs=false
+
+    - name: Clean up local repository before caching 
+      run: rm -rf ~/.m2/repository/io/sapl
 
   analyze:
-    needs: [tests]
+    needs: [integrationTests]
     name: Code analysis and coverage
     runs-on: ubuntu-latest
     steps:
@@ -132,12 +164,6 @@ jobs:
 
     - name: Build SAPL Server LT image
       run: mvn -B dockerfile:build -pl sapl-server-lt -P docker -DskipTests
-
-    - name: Add hosts to /etc/hosts
-      run: sudo sh -c 'echo "127.0.0.1 auth-host" >> /etc/hosts'
-
-    - name: Execute integration-tests
-      run:  mvn -B failsafe:integration-test -DskipITs=false
 
     - name: Push image
       run: mvn -B dockerfile:push -pl sapl-server-lt -P docker -DskipTests
