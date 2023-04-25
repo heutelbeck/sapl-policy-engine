@@ -50,7 +50,7 @@ jobs:
         node-version: '18'
 
     - name: Run tests
-     run: mvn -B package javadoc:jar
+      run: mvn -B package javadoc:jar
   
   analyze:
     needs: [tests]
