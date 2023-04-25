@@ -80,11 +80,11 @@ jobs:
     - name: Add auth-host to /etc/hosts for OAuth Integration Iests
       run: sudo sh -c 'echo "127.0.0.1 auth-host" >> /etc/hosts'
       
-    #- name: Build Modules
-    #  run: mvn -B install -DskipTests
+    - name: Build Modules
+      run: mvn -B install -DskipTests
 
-    #- name: Build SAPL Server LT image
-    #  run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests
+    - name: Build SAPL Server LT image
+      run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests
 
     #- name: Run analysis (Unit Tests, IT, JaCoCo, Sonar)
     #  env:
@@ -92,7 +92,7 @@ jobs:
     #  run: mvn -B clean verify sonar:sonar failsafe:integration-test -Pcoverage,it -Dsonar.login=${SONAR_TOKEN}
 
     - name: Run Tests (Unit Tests, IT)
-      run: mvn -B clean verify -Pit
+      run: mvn -B verify -Pit
       
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@v2
