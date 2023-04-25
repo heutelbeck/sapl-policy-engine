@@ -76,6 +76,17 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: '18'
+
+    - name: Configure servers
+      uses: s4u/maven-settings-action@v2.8.0
+      with:
+        githubServer: false
+        servers: |
+          [{
+              "id": "ghcr.io",
+              "username": "${{ secrets.GHUB_USERNAME }}",
+              "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
+           }]
     
     - name: Add auth-host to /etc/hosts for OAuth Integration Iests
       run: sudo sh -c 'echo "127.0.0.1 auth-host" >> /etc/hosts'
