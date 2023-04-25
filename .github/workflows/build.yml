@@ -102,7 +102,7 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: mvn -B verify sonar:sonar failsafe:integration-test -Pcoverage,it -Dsonar.login=${SONAR_TOKEN}
 
-    - name: Push image
+    - name: Push SAPL Server LT Image
       run: mvn -B dockerfile:push -pl sapl-server-lt -P docker -DskipTests
       
     - name: Delete workflow runs
