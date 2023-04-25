@@ -157,16 +157,15 @@
 			<id>docker</id>
 			<build>
 				<plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-                <configuration>
-                    <image>
-                        <publish>true</publish>
-                    </image>
-                </configuration>
-            </plugin>
-            <!--					
+		            <plugin>
+        		        <groupId>org.springframework.boot</groupId>
+                		<artifactId>spring-boot-maven-plugin</artifactId>
+		                <configuration>
+        		            <image>
+                		        <publish>true</publish>
+                    		</image>
+                		</configuration>
+            		</plugin>
 					<plugin>
 						<groupId>com.spotify</groupId>
 						<artifactId>dockerfile-maven-plugin</artifactId>
@@ -188,7 +187,6 @@
 							</buildArgs>
 						</configuration>
 					</plugin>
-		-->
 				</plugins>
 			</build>
 		</profile>
