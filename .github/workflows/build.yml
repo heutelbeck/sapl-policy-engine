@@ -91,7 +91,7 @@ jobs:
         keep_minimum_runs: 6
 
   dockerize:
-    needs: [analyze, integrationTests]
+    needs: [analyze]
     name: Deliver server images
     runs-on: ubuntu-latest
     steps:
