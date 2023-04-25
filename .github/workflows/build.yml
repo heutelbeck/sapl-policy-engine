@@ -50,8 +50,8 @@ jobs:
       with:
         node-version: '18'
 
-    - name: Run tests
-      run: mvn -B package javadoc:jar # package, as the maven plugin loads resources from the dependency packages
+    #- name: Run tests
+    # run: mvn -B package javadoc:jar # package, as the maven plugin loads resources from the dependency packages
   
   analyze:
     needs: [tests]
@@ -77,7 +77,13 @@ jobs:
       with:
         node-version: '18'
 
-    - name: Run analysis (JaCoCo, Sonar)
+    - name: Build Modules
+      run: mvn -B install -DskipTests
+
+    #- name: Build SAPL Server LT image
+    #  run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests
+
+    - name: Run analysis (Unit Tests, IT, JaCoCo, Sonar)
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: mvn -B clean verify sonar:sonar -Pcoverage,it -Dsonar.login=${SONAR_TOKEN}
@@ -89,6 +95,9 @@ jobs:
         repository: ${{ github.repository }}
         retain_days: 1
         keep_minimum_runs: 6
+
+    - name: Clean up local repository before caching 
+      run: rm -rf ~/.m2/repository/io/sapl
 
   dockerize:
     needs: [analyze]
@@ -128,10 +137,7 @@ jobs:
       run: mvn -B install -DskipTests
 
     - name: Build SAPL Server LT image
-      run: mvn -B dockerfile:build -pl sapl-server-lt -P docker -DskipTests
-
-    - name: Push image
-      run: mvn -B dockerfile:push -pl sapl-server-lt -P docker -DskipTests
+      run: mvn -B spring-boot:build-image -pl sapl-server-lt -P docker -DskipTests
 
     - name: Clean up local repository before caching 
       run: rm -rf ~/.m2/repository/io/sapl

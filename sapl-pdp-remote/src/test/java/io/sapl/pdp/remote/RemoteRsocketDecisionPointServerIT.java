@@ -61,7 +61,8 @@ class RemoteRsocketDecisionPointServerIT {
 	void whenRequestingDecisionFromRsocketSslPdp_withNoAuth_thenDecisionIsProvided() throws SSLException {
 		try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
 				var container = baseContainer
-						.withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl",
+					.withImagePullPolicy(PullPolicyUtil.neverPull())
+					.withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl",
 								BindMode.READ_ONLY)
 						.withExposedPorts(SAPL_SERVER_RSOCKET_PORT)
 						.waitingFor(Wait.forListeningPort())
@@ -86,6 +87,7 @@ class RemoteRsocketDecisionPointServerIT {
 	void whenRequestingDecisionFromRsocketPdp_withNoAuth_thenDecisionIsProvided() {
 		try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
 				var container = baseContainer
+						.withImagePullPolicy(PullPolicyUtil.neverPull())
 						.withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl",
 								BindMode.READ_ONLY)
 						.withExposedPorts(SAPL_SERVER_RSOCKET_PORT)
@@ -110,6 +112,7 @@ class RemoteRsocketDecisionPointServerIT {
 	void whenRequestingDecisionFromRsocketPdp_withBasicAuth_thenDecisionIsProvided() {
 		try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
 				var container = baseContainer
+						.withImagePullPolicy(PullPolicyUtil.neverPull())
 						.withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl",
 								BindMode.READ_ONLY)
 						.withExposedPorts(SAPL_SERVER_RSOCKET_PORT)
@@ -136,6 +139,7 @@ class RemoteRsocketDecisionPointServerIT {
 		var SAPL_API_KEY = "abD12344cdefDuwg8721";
 		try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
 				var container = baseContainer
+						.withImagePullPolicy(PullPolicyUtil.neverPull())
 						.withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl",
 								BindMode.READ_ONLY)
 						.withExposedPorts(SAPL_SERVER_RSOCKET_PORT)
@@ -170,6 +174,7 @@ class RemoteRsocketDecisionPointServerIT {
 
 			try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
 					var container = baseContainer
+							.withImagePullPolicy(PullPolicyUtil.neverPull())
 							.withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl",
 									BindMode.READ_ONLY)
 							.withExposedPorts(SAPL_SERVER_RSOCKET_PORT)

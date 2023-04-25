@@ -13,6 +13,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.images.AbstractImagePullPolicy;
+import org.testcontainers.images.ImageData;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
@@ -63,6 +65,7 @@ class RemoteHttpDecisionPointServerIT {
 	void whenRequestingDecisionFromHttpPdp_withNoAuth_thenDecisionIsProvided() {
 		try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
 				var container = baseContainer
+						.withImagePullPolicy(PullPolicyUtil.neverPull())
 						.withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl",
 								BindMode.READ_ONLY)
 						.withExposedPorts(SAPL_SERVER_HTTP_PORT)
@@ -83,6 +86,7 @@ class RemoteHttpDecisionPointServerIT {
 	void whenRequestingDecisionFromHttpsPdp_withNoAuth_thenDecisionIsProvided() throws SSLException {
 		try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
 				var container = baseContainer
+						.withImagePullPolicy(PullPolicyUtil.neverPull())
 						.withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl",
 								BindMode.READ_ONLY)
 						.withExposedPorts(SAPL_SERVER_HTTPS_PORT)
@@ -107,6 +111,7 @@ class RemoteHttpDecisionPointServerIT {
 	void whenRequestingDecisionFromHttpsPdp_withBasicAuth_thenDecisionIsProvided() throws SSLException {
 		try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
 				var container = baseContainer
+						.withImagePullPolicy(PullPolicyUtil.neverPull())
 						.withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl",
 								BindMode.READ_ONLY)
 						.withExposedPorts(SAPL_SERVER_HTTPS_PORT)
@@ -133,6 +138,7 @@ class RemoteHttpDecisionPointServerIT {
 		var SAPL_API_KEY = "abD12344cdefDuwg8721";
 		try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
 				var container = baseContainer
+						.withImagePullPolicy(PullPolicyUtil.neverPull())
 						.withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl",
 								BindMode.READ_ONLY)
 						.withExposedPorts(SAPL_SERVER_HTTPS_PORT)
@@ -167,6 +173,7 @@ class RemoteHttpDecisionPointServerIT {
 
 			try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
 					var container = baseContainer
+							.withImagePullPolicy(PullPolicyUtil.neverPull())
 							.withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl",
 									BindMode.READ_ONLY)
 							.withExposedPorts(SAPL_SERVER_HTTPS_PORT)
