@@ -89,10 +89,10 @@ jobs:
     #- name: Run analysis (Unit Tests, IT, JaCoCo, Sonar)
     #  env:
     #    SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-    #  run: mvn -B clean verify sonar:sonar failsafe:integration-test -Pcoverage -Dsonar.login=${SONAR_TOKEN}
+    #  run: mvn -B clean verify sonar:sonar failsafe:integration-test -Pcoverage,it -Dsonar.login=${SONAR_TOKEN}
 
     - name: Run Tests (Unit Tests, IT)
-      run: mvn -B clean test failsafe:integration-test
+      run: mvn -B clean verify -Pit
       
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@v2
