@@ -1,7 +1,7 @@
 import { LitElement, html } from 'lit';
 import { CodeMirrorStyles, CodeMirrorLintStyles, CodeMirrorHintStyles, XTextAnnotationsStyles, AutocompleteWidgetStyle, ReadOnlyStyle, HeightFix, DarkStyle } from './shared-styles.js';
-import "./sapl-mode-esm";
-import { exports } from "./xtext-codemirror-esm";
+import "./sapl-mode";
+import { exports } from "./xtext-codemirror";
 
 class SAPLEditor extends LitElement {
 
