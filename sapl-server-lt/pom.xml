@@ -32,6 +32,18 @@
 
 	<name>SAPL Server LT</name>
 
+    <dependencyManagement>
+        <dependencies>
+           	<dependency>
+				<groupId>io.sapl</groupId>
+				<artifactId>sapl-bom</artifactId>
+                <version>${project.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+        </dependencies>
+    </dependencyManagement>
+    
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -52,18 +64,23 @@
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-spring-pdp-embedded</artifactId>
-			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-webflux-endpoint</artifactId>
-			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-jwt</artifactId>
-			<version>${project.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>io.sapl</groupId>
+    	    <artifactId>sapl-mqtt-pip</artifactId>
+		</dependency>				
+		<dependency>
+			<groupId>io.sapl</groupId>
+			<artifactId>sapl-mqtt-functions</artifactId>
+		</dependency>						
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
