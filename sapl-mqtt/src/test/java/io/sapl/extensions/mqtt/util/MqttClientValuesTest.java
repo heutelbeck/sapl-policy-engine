@@ -26,7 +26,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.hivemq.client.internal.mqtt.reactor.MqttReactorClient;
 import com.hivemq.client.mqtt.mqtt5.message.connect.connack.Mqtt5ConnAck;
 
-import io.sapl.extensions.mqtt.util.MqttClientValues;
 import reactor.core.publisher.Mono;
 
 class MqttClientValuesTest {

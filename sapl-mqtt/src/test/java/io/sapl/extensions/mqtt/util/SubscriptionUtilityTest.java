@@ -30,9 +30,6 @@ import com.hivemq.client.mqtt.mqtt5.message.subscribe.Mqtt5Subscribe;
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAck;
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAckReasonCode;
 
-import io.sapl.extensions.mqtt.util.MqttClientValues;
-import io.sapl.extensions.mqtt.util.SubscriptionUtility;
-
 class SubscriptionUtilityTest {
 
 	@Test

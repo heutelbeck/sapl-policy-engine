@@ -103,11 +103,11 @@ public class SaplMqttClient {
 	 * subscribed topics.
 	 * 
 	 * @param topic  A string or array of topic(s) for subscription.
-	 * @param config The configuration specified in the PDP configuration file.
+	 * @param variables The configuration specified in the PDP configuration file.
 	 * @return A {@link Flux} of messages of the subscribed topic(s).
 	 */
-	protected Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, JsonNode> config) {
-		return buildSaplMqttMessageFlux(topic, config, null, Val.UNDEFINED);
+	protected Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, JsonNode> variables) {
+		return buildSaplMqttMessageFlux(topic, variables, null, Val.UNDEFINED);
 	}
 
 	/**
@@ -115,14 +115,14 @@ public class SaplMqttClient {
 	 * subscribed topics.
 	 * 
 	 * @param topic  A string or array of topic(s) for subscription.
-	 * @param config The configuration specified in the PDP configuration file.
+	 * @param variables The configuration specified in the PDP configuration file.
 	 * @param qos    A {@link Flux} of the quality of service level of the mqtt
 	 *               subscription to the broker. Possible values: 0, 1, 2. This
 	 *               variable may be null.
 	 * @return A {@link Flux} of messages of the subscribed topic(s).
 	 */
-	protected Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, JsonNode> config, Val qos) {
-		return buildSaplMqttMessageFlux(topic, config, qos, Val.UNDEFINED);
+	protected Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, JsonNode> variables, Val qos) {
+		return buildSaplMqttMessageFlux(topic, variables, qos, Val.UNDEFINED);
 	}
 
 	/**
@@ -130,7 +130,7 @@ public class SaplMqttClient {
 	 * subscribed topics.
 	 * 
 	 * @param topic         A string or array of topic(s) for subscription.
-	 * @param config        The configuration specified in the PDP configuration
+	 * @param variables        The configuration specified in the PDP configuration
 	 *                      file.
 	 * @param qos           A {@link Flux} of the quality of service level of the
 	 *                      mqtt subscription to the broker. Possible values: 0, 1,
@@ -144,11 +144,11 @@ public class SaplMqttClient {
 	 *                      different brokers. This variable may be null.
 	 * @return A {@link Flux} of messages of the subscribed topic(s).
 	 */
-	protected Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, JsonNode> config, Val qos,
+	protected Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, JsonNode> variables, Val qos,
 			Val mqttPipConfig) {
 		// building mqtt message flux
 		try {
-			var pipMqttClientConfig = config.isEmpty() ? null : config.get(ENVIRONMENT_MQTT_PIP_CONFIG);
+			var pipMqttClientConfig = variables.isEmpty() ? null : variables.get(ENVIRONMENT_MQTT_PIP_CONFIG);
 			var messageFlux         = buildMqttMessageFlux(topic, qos, mqttPipConfig, pipMqttClientConfig);
 			return addDefaultValueToMessageFlux(pipMqttClientConfig, mqttPipConfig, messageFlux)
 					.onErrorResume(error -> {

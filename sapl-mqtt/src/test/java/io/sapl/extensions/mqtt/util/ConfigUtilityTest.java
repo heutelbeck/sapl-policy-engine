@@ -33,7 +33,6 @@ import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.extensions.mqtt.util.ConfigUtility;
 
 class ConfigUtilityTest {
 
