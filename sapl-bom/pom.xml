@@ -162,6 +162,16 @@
     	        <artifactId>sapl-mqtt</artifactId>
 				<version>${project.version}</version>
 	        </dependency>
+	        <dependency>
+				<groupId>${project.groupId}</groupId>
+    	        <artifactId>sapl-mqtt-pip</artifactId>
+				<version>${project.version}</version>
+	        </dependency>
+	        <dependency>
+				<groupId>${project.groupId}</groupId>
+    	        <artifactId>sapl-mqtt-functions</artifactId>
+				<version>${project.version}</version>
+	        </dependency>
 		</dependencies>
 	</dependencyManagement>
 

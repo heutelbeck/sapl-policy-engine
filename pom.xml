@@ -98,7 +98,8 @@
 		<module>sapl-coverage-api</module>
 		<module>sapl-maven-plugin</module>
 		<module>sapl-jwt</module>
-		<module>sapl-mqtt</module>
+		<module>sapl-mqtt-pip</module>
+		<module>sapl-mqtt-functions</module>
 		<module>sapl-pdp-embedded</module>
 		<module>sapl-pdp-remote</module>
 		<module>sapl-spring-pdp-embedded</module>
