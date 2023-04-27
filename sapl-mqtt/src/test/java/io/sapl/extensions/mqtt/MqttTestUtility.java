@@ -17,7 +17,6 @@ import com.hivemq.configuration.service.InternalConfigurations;
 import com.hivemq.embedded.EmbeddedHiveMQ;
 import com.hivemq.migration.meta.PersistenceType;
 
-import io.sapl.api.interpreter.Val;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 
@@ -36,23 +35,16 @@ class MqttTestUtility {
 				.withDataFolder(dataDir)
 				.withExtensionsFolder(extensionsDir)
 				.build();
-//
-//		InternalConfigurations.PAYLOAD_PERSISTENCE_TYPE.set(PersistenceType.FILE);
-//		InternalConfigurations.RETAINED_MESSAGE_PERSISTENCE_TYPE.set(PersistenceType.FILE);
+
+		InternalConfigurations.PAYLOAD_PERSISTENCE_TYPE.set(PersistenceType.FILE);
+		InternalConfigurations.RETAINED_MESSAGE_PERSISTENCE_TYPE.set(PersistenceType.FILE);
 
 		return broker;
 	}
 
 	@SneakyThrows
 	public static EmbeddedHiveMQ startBroker(EmbeddedHiveMQ broker) {
-		try {
-			System.out.println("XXXXXXXXXXXXXXXXXXX");
-			broker.start().get();
-			System.out.println("-----------XXXXXXXXXXXXXXXXXXX");
-		} catch (Throwable e) {
-			e.printStackTrace();
-			throw e;
-		}
+		broker.start().get();
 		return broker;
 	}
 
