@@ -35,24 +35,8 @@ import io.sapl.grammar.ide.AbstractSaplLanguageServerTest;
 @ContextConfiguration(classes = SAPLIdeSpringTestConfiguration.class)
 public class CompletionTests extends AbstractSaplLanguageServerTest {
 
-	protected void assertEqualProposals(final List<String> expectedProposals,
-									    final CompletionList completionList) {
-		List<String> actualMethods = getActualMethods(completionList);
-		Set<String> actualSet = new HashSet<>(actualMethods);
-		Set<String> expectedSet = new HashSet<>(expectedProposals);
-
-		if(!actualSet.equals(expectedSet))
-			throw new AssertionError("Expected: " + expectedProposals + " but got " + actualMethods);
-	}
-
-	protected void assertProposalsSimple(final List<String> expectedProposals,
-			final CompletionList completionList) {
-		var actualMethods = getActualMethods(completionList);
-		if (!actualMethods.containsAll(expectedProposals))
-			throw new AssertionError("Expected: " + expectedProposals + " but got " + actualMethods);
-	}
-
-	private List<String> getActualMethods(CompletionList completionList) {
+	protected void assertProposalsSimple(final Collection<String> expectedProposals,
+										 final CompletionList completionList) {
 		var actualMethods = completionList.getItems().stream().map(CompletionItem::getLabel)
 				.collect(Collectors.toList());
 		if (!actualMethods.containsAll(expectedProposals))
@@ -60,7 +44,7 @@ public class CompletionTests extends AbstractSaplLanguageServerTest {
 	}
 
 	protected void assertDoesNotContainProposals(final Collection<String> unwantedProposals,
-			final CompletionList completionList) {
+												 final CompletionList completionList) {
 		Collection<CompletionItem> completionItems    = completionList.getItems();
 		Collection<String>         availableProposals = completionItems.stream().map(CompletionItem::getLabel)
 				.collect(Collectors.toSet());

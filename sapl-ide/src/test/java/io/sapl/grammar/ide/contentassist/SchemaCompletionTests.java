@@ -60,7 +60,7 @@
                         it.setColumn(policy.length());
                         it.setAssertCompletionList(completionList -> {
                             var expected = List.of("schema");
-                            assertEqualProposals(expected, completionList);
+                            assertProposalsSimple(expected, completionList);
                         });
                     });
                 }

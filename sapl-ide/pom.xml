@@ -77,6 +77,13 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- Utility -->
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<scope>provided</scope>
+		</dependency>
+
 		<!-- A library for JSON schema validation -->
 		<dependency>
 			<groupId>com.networknt</groupId>
@@ -84,6 +91,12 @@
 			<version>1.0.56</version>
 		</dependency>
 
+		<!-- A library for JSON flattening -->
+		<dependency>
+			<groupId>com.github.wnameless.json</groupId>
+			<artifactId>json-flattener</artifactId>
+			<version>0.14.0</version>
+		</dependency>
 
         <dependency>
             <groupId>io.sapl</groupId>

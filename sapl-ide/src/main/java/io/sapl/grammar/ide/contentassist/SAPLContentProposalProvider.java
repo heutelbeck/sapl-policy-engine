@@ -104,10 +104,14 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 				handleBasicProposals(feature, context, acceptor);
 				return;
 
-		case "step":
-			handleStepProposals(feature, context, acceptor);
-			return;
-		default:
+			case "policy":
+				handlePolicyProposals(feature, context, acceptor);
+				return;
+
+			case "step":
+				handleStepProposals(feature, context, acceptor);
+				return;
+			default:
 		}
 
 		super._createProposals(assignment, context, acceptor);
