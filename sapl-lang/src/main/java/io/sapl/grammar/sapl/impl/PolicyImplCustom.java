@@ -23,6 +23,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.Decision;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.Policy;
+import io.sapl.grammar.sapl.impl.util.ImportsUtil;
 import io.sapl.interpreter.DocumentEvaluationResult;
 import io.sapl.interpreter.PolicyDecision;
 import reactor.core.publisher.Flux;
@@ -31,25 +32,34 @@ public class PolicyImplCustom extends PolicyImpl {
 
 	@Override
 	public Flux<DocumentEvaluationResult> evaluate() {
-		var whereResult     = body == null ? Flux.just(Val.TRUE.withTrace(Policy.class)) : body.evaluate();
+		var whereResult     = body == null ? Flux.just(Val.TRUE.withTrace(Policy.class))
+				: body.evaluate();
 		var afterWhere      = whereResult
-				.map(where -> PolicyDecision.fromWhereResult(this, entitlement.getDecision(), where));
+				.map(where -> PolicyDecision.fromWhereResult(getSaplName(), entitlement.getDecision(), where));
 		var withObligations = afterWhere
-				.switchMap(decision -> addConstraints(decision, obligations, 0, (d, val) -> d.withObligation(val)));
+				.switchMap(decision -> addConstraints(decision, obligations, 0, PolicyDecision::withObligation));
 		var withAdvice      = withObligations
-				.switchMap(decision -> addConstraints(decision, advice, 0, (d, val) -> d.withAdvice(val)));
-		return withAdvice.switchMap(decision -> addResource(decision));
+				.switchMap(decision -> addConstraints(decision, advice, 0, PolicyDecision::withAdvice));
+
+		Flux<DocumentEvaluationResult> withResource = withAdvice.switchMap(this::addResource);
+		
+		return withResource.contextWrite(ctx -> ImportsUtil.loadImportsIntoContext(this, ctx))
+				.onErrorResume(this::importFailure);
+	}
+
+	private Flux<DocumentEvaluationResult> importFailure(Throwable error) {
+		return Flux.just(importError(error.getMessage()));
 	}
 
 	@Override
 	public DocumentEvaluationResult targetResult(Val targetValue) {
-		return PolicyDecision.ofTargetExpressionEvaluation(this, targetValue, getEntitlement().getDecision());
+		return PolicyDecision.ofTargetExpressionEvaluation(getSaplName(), targetValue, getEntitlement().getDecision());
 
 	}
 
 	@Override
 	public DocumentEvaluationResult importError(String errorMessage) {
-		return PolicyDecision.ofImportError(this, getEntitlement().getDecision(), errorMessage);
+		return PolicyDecision.ofImportError(getSaplName(), getEntitlement().getDecision(), errorMessage);
 	}
 
 	private Flux<PolicyDecision> addResource(PolicyDecision policyDecision) {
@@ -64,14 +74,13 @@ public class PolicyImplCustom extends PolicyImpl {
 				|| decisionMustNotCarryConstraints(policyDecision)) {
 			return Flux.just(policyDecision);
 		}
-		var constraint               = constraints.get(constraintIndex).evaluate();
-		var decisionWithConstraint   = constraint.map(val -> merge.apply(policyDecision, val));
-		var withRemainingConstraints = decisionWithConstraint
+		var constraint             = constraints.get(constraintIndex).evaluate();
+		var decisionWithConstraint = constraint.map(val -> merge.apply(policyDecision, val));
+		return decisionWithConstraint
 				.switchMap(decision -> addConstraints(decision, constraints, constraintIndex + 1, merge));
-		return withRemainingConstraints;
 	}
 
-	private boolean decisionMustNotCarryConstraints(PolicyDecision policyDecision) {
+	private boolean decisionMustNotCarryConstraints(DocumentEvaluationResult policyDecision) {
 		var decision = policyDecision.getAuthorizationDecision().getDecision();
 		return decision == Decision.INDETERMINATE || decision == Decision.NOT_APPLICABLE;
 	}

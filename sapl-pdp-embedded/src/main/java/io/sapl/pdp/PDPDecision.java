@@ -21,8 +21,8 @@ import lombok.Value;
 @Getter
 @ToString
 public class PDPDecision implements TracedDecision {
-	public static final String MODIFICATIONS              = "modifications";
-	public static final String TIMESTAMP                  = "timestamp";
+	public static final String MODIFICATIONS_STRING       = "modifications";
+	public static final String TIMESTAMP_STRING           = "timestamp";
 	public static final String COMBINED_DECISION          = "combinedDecision";
 	public static final String MATCHING_DOCUMENTS         = "matchingDocuments";
 	public static final String AUTHORIZATION_DECISION     = "authorizationDecision";
@@ -30,6 +30,10 @@ public class PDPDecision implements TracedDecision {
 	public static final String OPERATOR                   = "operator";
 
 	public static final ObjectMapper MAPPER = new ObjectMapper();
+
+	static {
+		MAPPER.registerModule(new Jdk8Module());
+	}
 
 	AuthorizationSubscription authorizationSubscription;
 	List<SAPL>                matchingDocuments = new LinkedList<>();
@@ -50,7 +54,6 @@ public class PDPDecision implements TracedDecision {
 		this.timestamp                 = timestamp;
 		this.matchingDocuments.addAll(matchingDocuments);
 		this.modifications.addAll(modifications);
-		MAPPER.registerModule(new Jdk8Module());
 	}
 
 	public static PDPDecision of(AuthorizationSubscription authorizationSubscription, CombinedDecision combinedDecision,
@@ -89,9 +92,9 @@ public class PDPDecision implements TracedDecision {
 		matchingDocuments.forEach(doc -> matches.add(Val.JSON.textNode(doc.getPolicyElement().getSaplName())));
 		trace.set(MATCHING_DOCUMENTS, matches);
 		trace.set(COMBINED_DECISION, combinedDecision.getTrace());
-		trace.set(TIMESTAMP, Val.JSON.textNode(timestamp.toString()));
+		trace.set(TIMESTAMP_STRING, Val.JSON.textNode(timestamp.toString()));
 		if (!modifications.isEmpty()) {
-			trace.set(MODIFICATIONS, getModificationsTrace());
+			trace.set(MODIFICATIONS_STRING, getModificationsTrace());
 		}
 		return trace;
 	}

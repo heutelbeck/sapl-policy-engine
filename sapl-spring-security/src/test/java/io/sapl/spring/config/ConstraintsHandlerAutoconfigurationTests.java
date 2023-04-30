@@ -17,8 +17,6 @@ package io.sapl.spring.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -33,6 +31,7 @@ import io.sapl.spring.constraints.providers.ContentFilteringProvider;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
 import io.sapl.spring.serialization.ServerHttpRequestSerializer;
+import jakarta.servlet.http.HttpServletRequest;
 
 class ConstraintsHandlerAutoconfigurationTests {
 

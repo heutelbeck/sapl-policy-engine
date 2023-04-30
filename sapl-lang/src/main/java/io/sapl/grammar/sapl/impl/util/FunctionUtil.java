@@ -33,7 +33,7 @@ import reactor.core.publisher.Mono;
 public class FunctionUtil {
 
 	public Flux<Val[]> combineArgumentFluxes(Arguments arguments) {
-		if (arguments == null || arguments.getArgs().size() == 0)
+		if (arguments == null || arguments.getArgs().isEmpty())
 			return Mono.just(new Val[0]).flux();
 
 		return combine(argumentFluxes(arguments));
@@ -53,14 +53,12 @@ public class FunctionUtil {
 	}
 
 	public Mono<Val> evaluateFunctionMono(String unresolvedFunctionName, Val... parameters) {
-		return Mono.deferContextual(ctx -> Mono.just(AuthorizationContext.functionContext(ctx)
-				.evaluate(resolveAbsoluteFunctionName(unresolvedFunctionName, AuthorizationContext.getImports(ctx)),
-						parameters)));
+		return Mono.deferContextual(ctx -> Mono.just(AuthorizationContext.functionContext(ctx).evaluate(
+				resolveAbsoluteFunctionName(unresolvedFunctionName, AuthorizationContext.getImports(ctx)),
+				parameters)));
 	}
 
-	public Mono<Val> evaluateFunctionWithLeftHandArgumentMono(
-			Iterable<String> fsteps,
-			Val leftHandArgument,
+	public Mono<Val> evaluateFunctionWithLeftHandArgumentMono(Iterable<String> fsteps, Val leftHandArgument,
 			Val... parameters) {
 		Val[] mergedParameters = new Val[parameters.length + 1];
 		mergedParameters[0] = leftHandArgument;

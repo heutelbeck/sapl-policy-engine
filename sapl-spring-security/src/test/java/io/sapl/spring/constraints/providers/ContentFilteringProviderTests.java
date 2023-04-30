@@ -27,7 +27,6 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -35,7 +34,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-public class ContentFilteringProviderTests {
+class ContentFilteringProviderTests {
 	private final static ObjectMapper MAPPER = new ObjectMapper();
 
 	@Test
@@ -52,42 +51,42 @@ public class ContentFilteringProviderTests {
 	}
 
 	@Test
-	void when_constraintNonObject_then_notResponsible() throws JsonMappingException, JsonProcessingException {
+	void when_constraintNonObject_then_notResponsible() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree("123");
 		assertThat(sut.isResponsible(constraint), is(false));
 	}
 
 	@Test
-	void when_constraintNoType_then_notResponsible() throws JsonMappingException, JsonProcessingException {
+	void when_constraintNoType_then_notResponsible() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree("{ }");
 		assertThat(sut.isResponsible(constraint), is(false));
 	}
 
 	@Test
-	void when_constraintTypeNonTextual_then_notResponsible() throws JsonMappingException, JsonProcessingException {
+	void when_constraintTypeNonTextual_then_notResponsible() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree("{ \"type\" : 123 }");
 		assertThat(sut.isResponsible(constraint), is(false));
 	}
 
 	@Test
-	void when_constraintWrongType_then_notResponsible() throws JsonMappingException, JsonProcessingException {
+	void when_constraintWrongType_then_notResponsible() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree("{ \"type\" : \"unrelatedType\" }");
 		assertThat(sut.isResponsible(constraint), is(false));
 	}
 
 	@Test
-	void when_constraintTypeCorrect_then_isResponsible() throws JsonMappingException, JsonProcessingException {
+	void when_constraintTypeCorrect_then_isResponsible() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree("{ \"type\" : \"filterJsonContent\" }");
 		assertThat(sut.isResponsible(constraint), is(true));
 	}
 
 	@Test
-	void when_noActionsSpecified_then_isIdentity() throws JsonMappingException, JsonProcessingException {
+	void when_noActionsSpecified_then_isIdentity() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree("{ \"type\" : \"filterJsonContent\" }");
 		var handler    = sut.getHandler(constraint);
@@ -97,10 +96,10 @@ public class ContentFilteringProviderTests {
 	}
 
 	@Test
-	void when_noActionType_then_Error() throws JsonMappingException, JsonProcessingException {
+	void when_noActionType_then_Error() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
-		var constraint = MAPPER.readTree(
-				"{ \"type\" : \"filterJsonContent\", \"actions\" : [ { \"path\" : \"$.key1\"} ] }");
+		var constraint = MAPPER
+				.readTree("{ \"type\" : \"filterJsonContent\", \"actions\" : [ { \"path\" : \"$.key1\"} ] }");
 		var handler    = sut.getHandler(constraint);
 		var original   = MAPPER.readTree("{ \"key1\" : \"value1\", \"key2\" : \"value2\" }");
 
@@ -108,10 +107,10 @@ public class ContentFilteringProviderTests {
 	}
 
 	@Test
-	void when_noActionPath_then_Error() throws JsonMappingException, JsonProcessingException {
+	void when_noActionPath_then_Error() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
-		var constraint = MAPPER.readTree(
-				"{ \"type\" : \"filterJsonContent\", \"actions\" : [ { \"type\" : \"delete\" } ] }");
+		var constraint = MAPPER
+				.readTree("{ \"type\" : \"filterJsonContent\", \"actions\" : [ { \"type\" : \"delete\" } ] }");
 		var handler    = sut.getHandler(constraint);
 		var original   = MAPPER.readTree("{ \"key1\" : \"value1\", \"key2\" : \"value2\" }");
 
@@ -119,10 +118,9 @@ public class ContentFilteringProviderTests {
 	}
 
 	@Test
-	void when_actionNotAnObject_then_Error() throws JsonMappingException, JsonProcessingException {
+	void when_actionNotAnObject_then_Error() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
-		var constraint = MAPPER.readTree(
-				"{ \"type\" : \"filterJsonContent\", \"actions\" : [ 123 ] }");
+		var constraint = MAPPER.readTree("{ \"type\" : \"filterJsonContent\", \"actions\" : [ 123 ] }");
 		var handler    = sut.getHandler(constraint);
 		var original   = MAPPER.readTree("{ \"key1\" : \"value1\", \"key2\" : \"value2\" }");
 
@@ -130,10 +128,9 @@ public class ContentFilteringProviderTests {
 	}
 
 	@Test
-	void when_actionsNotAnArray_then_Error() throws JsonMappingException, JsonProcessingException {
+	void when_actionsNotAnArray_then_Error() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
-		var constraint = MAPPER.readTree(
-				"{ \"type\" : \"filterJsonContent\", \"actions\" : 123 }");
+		var constraint = MAPPER.readTree("{ \"type\" : \"filterJsonContent\", \"actions\" : 123 }");
 		var handler    = sut.getHandler(constraint);
 		var original   = MAPPER.readTree("{ \"key1\" : \"value1\", \"key2\" : \"value2\" }");
 
@@ -141,7 +138,7 @@ public class ContentFilteringProviderTests {
 	}
 
 	@Test
-	void when_actionPathNotTextual_then_Error() throws JsonMappingException, JsonProcessingException {
+	void when_actionPathNotTextual_then_Error() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree(
 				"{ \"type\" : \"filterJsonContent\", \"actions\" : [ { \"type\" : \"delete\", \"path\" : 123} ] }");
@@ -152,7 +149,7 @@ public class ContentFilteringProviderTests {
 	}
 
 	@Test
-	void when_actionTypeNotTextual_then_Error() throws JsonMappingException, JsonProcessingException {
+	void when_actionTypeNotTextual_then_Error() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree(
 				"{ \"type\" : \"filterJsonContent\", \"actions\" : [ { \"type\" : 123, \"path\" : \"$.key1\"} ] }");
@@ -163,7 +160,7 @@ public class ContentFilteringProviderTests {
 	}
 
 	@Test
-	void when_unknownAction_then_Error() throws JsonMappingException, JsonProcessingException {
+	void when_unknownAction_then_Error() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree(
 				"{ \"type\" : \"filterJsonContent\", \"actions\" : [ { \"type\" : \"unknown action\", \"path\" : \"$.key1\"} ] }");
@@ -174,7 +171,7 @@ public class ContentFilteringProviderTests {
 	}
 
 	@Test
-	void when_blackenHasNonTextualReplacement_then_Error() throws JsonMappingException, JsonProcessingException {
+	void when_blackenHasNonTextualReplacement_then_Error() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree(
 				"{ \"type\" : \"filterJsonContent\", \"actions\" : [ { \"type\" : \"blacken\", \"path\" : \"$.key1\", \"replacement\": 123} ] }");
@@ -185,7 +182,7 @@ public class ContentFilteringProviderTests {
 	}
 
 	@Test
-	void when_blackenTargetsNonTextualNode_then_Error() throws JsonMappingException, JsonProcessingException {
+	void when_blackenTargetsNonTextualNode_then_Error() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree(
 				"{ \"type\" : \"filterJsonContent\", \"actions\" : [ { \"type\" : \"blacken\", \"path\" : \"$.key1\"} ] }");
@@ -196,7 +193,7 @@ public class ContentFilteringProviderTests {
 	}
 
 	@Test
-	void when_blackenDiscloseRightNonInteger_then_Error() throws JsonMappingException, JsonProcessingException {
+	void when_blackenDiscloseRightNonInteger_then_Error() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree(
 				"{ \"type\" : \"filterJsonContent\", \"actions\" : [ { \"type\" : \"blacken\", \"path\" : \"$.key1\", \"replacement\" : \"X\", \"discloseRight\" : null, \"discloseLeft\" : 1 } ] }");
@@ -207,7 +204,7 @@ public class ContentFilteringProviderTests {
 	}
 
 	@Test
-	void when_blackenDiscloseLeftNonInteger_then_Error() throws JsonMappingException, JsonProcessingException {
+	void when_blackenDiscloseLeftNonInteger_then_Error() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree(
 				"{ \"type\" : \"filterJsonContent\", \"actions\" : [ { \"type\" : \"blacken\", \"path\" : \"$.key1\", \"replacement\" : \"X\", \"discloseRight\" : 1, \"discloseLeft\" : \"wrongType\" } ] }");
@@ -218,7 +215,7 @@ public class ContentFilteringProviderTests {
 	}
 
 	@Test
-	void when_blacken_then_textIsBlackened() throws JsonMappingException, JsonProcessingException {
+	void when_blacken_then_textIsBlackened() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree(
 				"{ \"type\" : \"filterJsonContent\", \"actions\" : [ { \"type\" : \"blacken\", \"path\" : \"$.key1\", \"replacement\" : \"X\", \"discloseRight\" : 1, \"discloseLeft\" : 1 } ] }");
@@ -229,7 +226,7 @@ public class ContentFilteringProviderTests {
 	}
 
 	@Test
-	void when_multipleActions_then_allAreExecuted() throws JsonMappingException, JsonProcessingException {
+	void when_multipleActions_then_allAreExecuted() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree(
 				"{ \"type\" : \"filterJsonContent\", \"actions\" : [ { \"type\" : \"blacken\", \"path\" : \"$.key1\", \"replacement\" : \"X\", \"discloseRight\" : 1, \"discloseLeft\" : 1 }, { \"type\" : \"delete\", \"path\" : \"$.key2\"} ] }");
@@ -241,9 +238,7 @@ public class ContentFilteringProviderTests {
 	}
 
 	@Test
-	void when_blackenWithDefaultReplacement_then_textIsBlackened()
-			throws JsonMappingException,
-				JsonProcessingException {
+	void when_blackenWithDefaultReplacement_then_textIsBlackened() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree(
 				"{ \"type\" : \"filterJsonContent\", \"actions\" : [ { \"type\" : \"blacken\", \"path\" : \"$.key1\", \"discloseRight\" : 1, \"discloseLeft\" : 1 } ] }");
@@ -251,13 +246,11 @@ public class ContentFilteringProviderTests {
 		var original   = MAPPER.readTree("{ \"key1\" : \"value1\", \"key2\" : \"value2\" }");
 
 		assertThat((JsonNode) handler.apply(original),
-				is(jsonObject().where("key1", is(jsonText("v\u2588\u2588\u2588\u25881")))));
+				is(jsonObject().where("key1", is(jsonText("v████1")))));
 	}
 
 	@Test
-	void when_stringToBlackenIsShorterThanDisclosedRange_then_textDoesNotChange()
-			throws JsonMappingException,
-				JsonProcessingException {
+	void when_stringToBlackenIsShorterThanDisclosedRange_then_textDoesNotChange() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree(
 				"{ \"type\" : \"filterJsonContent\", \"actions\" : [ { \"type\" : \"blacken\", \"path\" : \"$.key1\", \"discloseRight\" : 2, \"discloseLeft\" : 5 } ] }");
@@ -268,9 +261,7 @@ public class ContentFilteringProviderTests {
 	}
 
 	@Test
-	void when_blackenWithNoParameters_then_textIsBlackenedNoCharsDisclosed()
-			throws JsonMappingException,
-				JsonProcessingException {
+	void when_blackenWithNoParameters_then_textIsBlackenedNoCharsDisclosed() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree(
 				"{ \"type\" : \"filterJsonContent\", \"actions\" : [ { \"type\" : \"blacken\", \"path\" : \"$.key1\" } ] }");
@@ -278,11 +269,11 @@ public class ContentFilteringProviderTests {
 		var original   = MAPPER.readTree("{ \"key1\" : \"value1\", \"key2\" : \"value2\" }");
 
 		assertThat((JsonNode) handler.apply(original),
-				is(jsonObject().where("key1", is(jsonText("\u2588\u2588\u2588\u2588\u2588\u2588")))));
+				is(jsonObject().where("key1", is(jsonText("██████")))));
 	}
 
 	@Test
-	void when_deleteActionSpecified_then_dataIsRemovedFromJson() throws JsonMappingException, JsonProcessingException {
+	void when_deleteActionSpecified_then_dataIsRemovedFromJson() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree(
 				"{ \"type\" : \"filterJsonContent\", \"actions\" : [ { \"type\" : \"delete\", \"path\" : \"$.key1\"} ] }");
@@ -294,7 +285,7 @@ public class ContentFilteringProviderTests {
 	}
 
 	@Test
-	void when_replaceActionHasNoReplacement_then_Error() throws JsonMappingException, JsonProcessingException {
+	void when_replaceActionHasNoReplacement_then_Error() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree(
 				"{ \"type\" : \"filterJsonContent\", \"actions\" : [ { \"type\" : \"replace\", \"path\" : \"$.key1\" } ] }");
@@ -305,7 +296,7 @@ public class ContentFilteringProviderTests {
 	}
 
 	@Test
-	void when_replaceActionSpecified_then_dataIsReplaced() throws JsonMappingException, JsonProcessingException {
+	void when_replaceActionSpecified_then_dataIsReplaced() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree(
 				"{ \"type\" : \"filterJsonContent\", \"actions\" : [ { \"type\" : \"replace\", \"path\" : \"$.key1\", \"replacement\" : { \"I\" : \"am\", \"replaced\" : \"value\"} } ] }");
@@ -318,7 +309,7 @@ public class ContentFilteringProviderTests {
 	}
 
 	@Test
-	void when_replaceInMap_then_dataIsReplaced() throws JsonMappingException, JsonProcessingException {
+	void when_replaceInMap_then_dataIsReplaced() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree(
 				"{ \"type\" : \"filterJsonContent\", \"actions\" : [ { \"type\" : \"replace\", \"path\" : \"$.key1\", \"replacement\" : \"replaced\" } ] }");
@@ -337,7 +328,7 @@ public class ContentFilteringProviderTests {
 	}
 
 	@Test
-	void when_replaceInPoJo_then_dataIsReplaced() throws JsonMappingException, JsonProcessingException {
+	void when_replaceInPoJo_then_dataIsReplaced() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree(
 				"{ \"type\" : \"filterJsonContent\", \"actions\" : [ { \"type\" : \"replace\", \"path\" : \"$.name\", \"replacement\" : \"Alice\" } ] }");
@@ -349,7 +340,7 @@ public class ContentFilteringProviderTests {
 	}
 
 	@Test
-	void when_replaceInPoJoAndMarshallingFails_then_Error() throws JsonMappingException, JsonProcessingException {
+	void when_replaceInPoJoAndMarshallingFails_then_Error() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree(
 				"{ \"type\" : \"filterJsonContent\", \"actions\" : [ { \"type\" : \"replace\", \"path\" : \"$.age\", \"replacement\" : \"Alice\" } ] }");

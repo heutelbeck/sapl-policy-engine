@@ -49,7 +49,8 @@ public class HasObligation extends TypeSafeDiagnosingMatcher<AuthorizationDecisi
 
 	@Override
 	protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
-		if (decision.getObligations().isEmpty()) {
+		var obligations = decision.getObligations();
+		if (obligations.isEmpty()) {
 			mismatchDescription.appendText("decision didn't contain any obligations");
 			return false;
 		}
@@ -58,17 +59,15 @@ public class HasObligation extends TypeSafeDiagnosingMatcher<AuthorizationDecisi
 			return true;
 		}
 
-		boolean containsObligation = false;
-
-		for (JsonNode node : decision.getObligations().get()) {
+		var containsObligation = false;
+		for (JsonNode node : obligations.get()) {
 			if (this.jsonMatcher.get().matches(node))
 				containsObligation = true;
 		}
 
 		if (containsObligation) {
 			return true;
-		}
-		else {
+		} else {
 			mismatchDescription.appendText("no obligation matched");
 			return false;
 		}

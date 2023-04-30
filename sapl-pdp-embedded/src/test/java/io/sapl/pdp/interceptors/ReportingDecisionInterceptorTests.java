@@ -40,9 +40,6 @@ public class ReportingDecisionInterceptorTests {
 			var one       = interpreter.parse(setOne);
 			return Flux.just(new PolicyRetrievalResult().withMatch(permitAll).withMatch(error).withMatch(attribute)
 					.withMatch(one));
-//			public String          vpp4i             = "policy \"vp4island_observer\" permit where jwt.parseJwt(subject).GivenName == \"Diegus\";";
-//			var vpp       = interpreter.parse(vpp4i);
-//			return Flux.just(new PolicyRetrievalResult().withMatch(vpp));
 		}
 
 		@Override
@@ -69,7 +66,7 @@ public class ReportingDecisionInterceptorTests {
 			var cAlg         = new DenyOverridesCombiningAlgorithmImplCustom();
 			var dInterceptor = new ReportingDecisionInterceptor(new ObjectMapper(), false, true, true, true);
 			return Flux
-					.just(new PDPConfiguration(new AnnotationAttributeContext(new Object[] { new ReportingTestPIP() }),
+					.just(new PDPConfiguration(new AnnotationAttributeContext(new ReportingTestPIP()),
 							new AnnotationFunctionContext(), Map.of(), cAlg, dInterceptor, x -> x));
 		}
 
@@ -81,7 +78,7 @@ public class ReportingDecisionInterceptorTests {
 	}
 
 	@Test
-	public void runReportingTest() throws Exception {
+	public void runReportingTest() {
 		// var mapper = new ObjectMapper();
 		// var subJwt =
 		// "{\"subject\":\"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJEaWVnbyIsImlhdCI6MTY3MTUyMzY2MSwiZXhwIjoxNzAzMDU5NjYxLCJhdWQiOiJuZXZlcmdvYmFjay5jbG91ZCIsInN1YiI6IkRpZWdvIEJ1cmxhbmRvIiwiR2l2ZW5OYW1lIjoiRGllZ3VzIn0.2uURYR6TbPbkAI77lj5xEKYbrWp7eU6ocq7UdvSrJnA\",\"action\":\"what\",\"resource\":\"with

@@ -28,8 +28,7 @@ import reactor.core.publisher.Flux;
 @PolicyInformationPoint(name = TestPIP.NAME, description = TestPIP.DESCRIPTION)
 public class TestPIP {
 
-	public static final String NAME = "test";
-
+	public static final String NAME        = "test";
 	public static final String DESCRIPTION = "Policy information Point for testing";
 
 	@Attribute

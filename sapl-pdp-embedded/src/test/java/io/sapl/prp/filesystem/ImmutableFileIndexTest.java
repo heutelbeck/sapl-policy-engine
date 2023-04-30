@@ -51,7 +51,7 @@ import io.sapl.util.filemonitoring.FileChangedEvent;
 import io.sapl.util.filemonitoring.FileCreatedEvent;
 import io.sapl.util.filemonitoring.FileDeletedEvent;
 
-public class ImmutableFileIndexTest {
+class ImmutableFileIndexTest {
 
 	private final static SAPLInterpreter INTERPERETER = new DefaultSAPLInterpreter();
 
@@ -72,12 +72,12 @@ public class ImmutableFileIndexTest {
 	@Test
 	void when_initializingWithEmptyDirectory_then_updatesAreEmpty() {
 		try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
-			var mockPaths = List.of();
+			var mockPaths           = List.of();
 			var mockDirectoryStream = mock(DirectoryStream.class);
 			when(mockDirectoryStream.iterator()).thenReturn(mockPaths.iterator());
 			mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
 					.thenReturn(mockDirectoryStream);
-			var sut = new ImmutableFileIndex(PATH, INTERPERETER);
+			var sut           = new ImmutableFileIndex(PATH, INTERPERETER);
 			var actualUpdates = sut.getUpdateEvent();
 			assertThat(actualUpdates.getUpdates(), is(emptyArray()));
 		}
@@ -88,7 +88,7 @@ public class ImmutableFileIndexTest {
 		try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
 			mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
 					.thenThrow(new IOException());
-			var sut = new ImmutableFileIndex(PATH, INTERPERETER);
+			var sut           = new ImmutableFileIndex(PATH, INTERPERETER);
 			var actualUpdates = sut.getUpdateEvent();
 			assertThat(actualUpdates.getUpdates(), is(arrayWithSize(1)));
 			assertThat(actualUpdates.getUpdates(), arrayContainingInAnyOrder(
@@ -97,18 +97,18 @@ public class ImmutableFileIndexTest {
 	}
 
 	@Test
-	void when_initializinWithDirectoryThatContainsUnreadableFile_then_updatesContainOnlyInconsistent() {
+	void when_initializingWithDirectoryThatContainsUnreadableFile_then_updatesContainOnlyInconsistent() {
 		try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
 			var mockPath = mock(Path.class);
 			when(mockPath.toAbsolutePath()).thenReturn(mockPath);
 			when(mockPath.toString()).thenReturn("mockedPath");
-			var mockPaths = List.of(mockPath);
+			var mockPaths           = List.of(mockPath);
 			var mockDirectoryStream = mock(DirectoryStream.class);
 			when(mockDirectoryStream.iterator()).thenReturn(mockPaths.iterator());
 			mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
 					.thenReturn(mockDirectoryStream);
 			mockedFiles.when(() -> Files.readString(any())).thenThrow(new IOException());
-			var sut = new ImmutableFileIndex(PATH, INTERPERETER);
+			var sut           = new ImmutableFileIndex(PATH, INTERPERETER);
 			var actualUpdates = sut.getUpdateEvent();
 			assertThat(actualUpdates.getUpdates(), is(arrayWithSize(1)));
 			assertThat(actualUpdates.getUpdates(),
@@ -117,15 +117,15 @@ public class ImmutableFileIndexTest {
 	}
 
 	@Test
-	void when_initializinWithDirectoryThatContainsValidSaplFile_then_updatesContainDocument() {
+	void when_initializingWithDirectoryThatContainsValidSaplFile_then_updatesContainDocument() {
 		var policy1 = POLICY_1;
-		var sapl1 = INTERPERETER.parse(policy1);
+		var sapl1   = INTERPERETER.parse(policy1);
 
 		try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
 			var mockPath = mock(Path.class);
 			when(mockPath.toAbsolutePath()).thenReturn(mockPath);
 			when(mockPath.toString()).thenReturn("mockedPath");
-			var mockPaths = List.of(mockPath);
+			var mockPaths           = List.of(mockPath);
 			var mockDirectoryStream = mock(DirectoryStream.class);
 			when(mockDirectoryStream.iterator()).thenReturn(mockPaths.iterator());
 			mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
@@ -135,7 +135,7 @@ public class ImmutableFileIndexTest {
 			var mockInterpreter = mock(SAPLInterpreter.class);
 			when(mockInterpreter.parse(eq(policy1))).thenReturn(sapl1);
 
-			var sut = new ImmutableFileIndex(PATH, mockInterpreter);
+			var sut           = new ImmutableFileIndex(PATH, mockInterpreter);
 			var actualUpdates = sut.getUpdateEvent();
 
 			assertThat(actualUpdates.getUpdates(), is(arrayWithSize(1)));
@@ -152,7 +152,7 @@ public class ImmutableFileIndexTest {
 	void when_initializingWithEmptyDirectory_and_update_then_updatePublish() {
 		try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
 			// Setup initial Index
-			var mockPaths = List.of();
+			var mockPaths           = List.of();
 			var mockDirectoryStream = mock(DirectoryStream.class);
 			when(mockDirectoryStream.iterator()).thenReturn(mockPaths.iterator());
 			mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
@@ -160,8 +160,8 @@ public class ImmutableFileIndexTest {
 
 			// 1st event load valid policy
 			var mockInterpreter = mock(SAPLInterpreter.class);
-			var mockFile = mockPolicyFile(POLICY_1_NAME, POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
-			var event = mock(FileCreatedEvent.class);
+			var mockFile        = mockPolicyFile(POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
+			var event           = mock(FileCreatedEvent.class);
 			when(event.getFile()).thenReturn(mockFile);
 
 			// act
@@ -183,7 +183,7 @@ public class ImmutableFileIndexTest {
 	void when_initializingWithEmptyDirectory_and_updateAddAndRemove_then_updateWithdraw() {
 		try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
 			// Setup initial Index
-			var mockPaths = List.of();
+			var mockPaths           = List.of();
 			var mockDirectoryStream = mock(DirectoryStream.class);
 			when(mockDirectoryStream.iterator()).thenReturn(mockPaths.iterator());
 			mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
@@ -191,7 +191,7 @@ public class ImmutableFileIndexTest {
 
 			// 1st event load valid policy
 			var mockInterpreter = mock(SAPLInterpreter.class);
-			var mockFile = mockPolicyFile(POLICY_1_NAME, POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
+			var mockFile        = mockPolicyFile(POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
 
 			var sut = new ImmutableFileIndex(PATH, mockInterpreter);
 
@@ -221,7 +221,7 @@ public class ImmutableFileIndexTest {
 	void when_initializingWithEmptyDirectory_and_updateAddAndChange_then_update() {
 		try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
 			// Setup initial Index
-			var mockPaths = List.of();
+			var mockPaths           = List.of();
 			var mockDirectoryStream = mock(DirectoryStream.class);
 			when(mockDirectoryStream.iterator()).thenReturn(mockPaths.iterator());
 			mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
@@ -229,7 +229,7 @@ public class ImmutableFileIndexTest {
 
 			// 1st event load valid policy
 			var mockInterpreter = mock(SAPLInterpreter.class);
-			var mockFile = mockPolicyFile(POLICY_1_NAME, POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
+			var mockFile        = mockPolicyFile(POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
 
 			var sut = new ImmutableFileIndex(PATH, mockInterpreter);
 
@@ -260,7 +260,7 @@ public class ImmutableFileIndexTest {
 	void when_initializingWithEmptyDirectory_and_updateAddAndAddNameCollision_then_Inconsistent() {
 		try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
 			// Setup initial Index
-			var mockPaths = List.of();
+			var mockPaths           = List.of();
 			var mockDirectoryStream = mock(DirectoryStream.class);
 			when(mockDirectoryStream.iterator()).thenReturn(mockPaths.iterator());
 			mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
@@ -268,7 +268,7 @@ public class ImmutableFileIndexTest {
 
 			// 1st event load valid policy
 			var mockInterpreter = mock(SAPLInterpreter.class);
-			var mockFile = mockPolicyFile(POLICY_1_NAME, POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
+			var mockFile        = mockPolicyFile(POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
 
 			var sut = new ImmutableFileIndex(PATH, mockInterpreter);
 
@@ -277,9 +277,8 @@ public class ImmutableFileIndexTest {
 			sut = sut.afterFileEvent(event1);
 
 			// create policy with name collision
-			var mockFile2 = mockPolicyFile(POLICY_1_NAME, POLICY_1, SAPL_1, "alternatePath", mockedFiles,
-					mockInterpreter);
-			var event2 = mock(FileCreatedEvent.class);
+			var mockFile2 = mockPolicyFile(POLICY_1, SAPL_1, "alternatePath", mockedFiles, mockInterpreter);
+			var event2    = mock(FileCreatedEvent.class);
 			when(event2.getFile()).thenReturn(mockFile2);
 			sut = sut.afterFileEvent(event2);
 
@@ -299,7 +298,7 @@ public class ImmutableFileIndexTest {
 	void when_initializingWithEmptyDirectory_and_updateAddAndAddNameCollisionAddAnotherUnrelatedPolicy_then_PublishNewOne() {
 		try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
 			// Setup initial Index
-			var mockPaths = List.of();
+			var mockPaths           = List.of();
 			var mockDirectoryStream = mock(DirectoryStream.class);
 			when(mockDirectoryStream.iterator()).thenReturn(mockPaths.iterator());
 			mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
@@ -307,7 +306,7 @@ public class ImmutableFileIndexTest {
 
 			// 1st event load valid policy
 			var mockInterpreter = mock(SAPLInterpreter.class);
-			var mockFile = mockPolicyFile(POLICY_1_NAME, POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
+			var mockFile        = mockPolicyFile(POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
 
 			var sut = new ImmutableFileIndex(PATH, mockInterpreter);
 
@@ -316,16 +315,14 @@ public class ImmutableFileIndexTest {
 			sut = sut.afterFileEvent(event1);
 
 			// create policy with name collision
-			var mockFile2 = mockPolicyFile(POLICY_1_NAME, POLICY_1, SAPL_1, "alternatePath", mockedFiles,
-					mockInterpreter);
-			var event2 = mock(FileCreatedEvent.class);
+			var mockFile2 = mockPolicyFile(POLICY_1, SAPL_1, "alternatePath", mockedFiles, mockInterpreter);
+			var event2    = mock(FileCreatedEvent.class);
 			when(event2.getFile()).thenReturn(mockFile2);
 			sut = sut.afterFileEvent(event2);
 
 			// add unrelated policy
-			var mockFile3 = mockPolicyFile(POLICY_2_NAME, POLICY_2, SAPL_2, POLICY_2_NAME, mockedFiles,
-					mockInterpreter);
-			var event3 = mock(FileCreatedEvent.class);
+			var mockFile3 = mockPolicyFile(POLICY_2, SAPL_2, POLICY_2_NAME, mockedFiles, mockInterpreter);
+			var event3    = mock(FileCreatedEvent.class);
 			when(event3.getFile()).thenReturn(mockFile3);
 			sut = sut.afterFileEvent(event3);
 
@@ -345,7 +342,7 @@ public class ImmutableFileIndexTest {
 	void when_initializingWithEmptyDirectory_and_updateAddAndAddNameCollisionAndRemoveInitial_then_Consistent() {
 		try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
 			// Setup initial Index
-			var mockPaths = List.of();
+			var mockPaths           = List.of();
 			var mockDirectoryStream = mock(DirectoryStream.class);
 			when(mockDirectoryStream.iterator()).thenReturn(mockPaths.iterator());
 			mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
@@ -353,7 +350,7 @@ public class ImmutableFileIndexTest {
 
 			// 1st event load valid policy
 			var mockInterpreter = mock(SAPLInterpreter.class);
-			var mockFile = mockPolicyFile(POLICY_1_NAME, POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
+			var mockFile        = mockPolicyFile(POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
 
 			var sut = new ImmutableFileIndex(PATH, mockInterpreter);
 
@@ -362,9 +359,8 @@ public class ImmutableFileIndexTest {
 			sut = sut.afterFileEvent(event1);
 
 			// create policy with name collision
-			var mockFile2 = mockPolicyFile(POLICY_1_NAME, POLICY_1, SAPL_1, "alternatePath", mockedFiles,
-					mockInterpreter);
-			var event2 = mock(FileCreatedEvent.class);
+			var mockFile2 = mockPolicyFile(POLICY_1, SAPL_1, "alternatePath", mockedFiles, mockInterpreter);
+			var event2    = mock(FileCreatedEvent.class);
 			when(event2.getFile()).thenReturn(mockFile2);
 			sut = sut.afterFileEvent(event2);
 
@@ -391,7 +387,7 @@ public class ImmutableFileIndexTest {
 	void when_initializingWithEmptyDirectory_and_updateAddAndAddNameCollisionAndRemoveNewColliding_then_Consistent() {
 		try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
 			// Setup initial Index
-			var mockPaths = List.of();
+			var mockPaths           = List.of();
 			var mockDirectoryStream = mock(DirectoryStream.class);
 			when(mockDirectoryStream.iterator()).thenReturn(mockPaths.iterator());
 			mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
@@ -399,7 +395,7 @@ public class ImmutableFileIndexTest {
 
 			// 1st event load valid policy
 			var mockInterpreter = mock(SAPLInterpreter.class);
-			var mockFile = mockPolicyFile(POLICY_1_NAME, POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
+			var mockFile        = mockPolicyFile(POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
 
 			var sut = new ImmutableFileIndex(PATH, mockInterpreter);
 
@@ -408,9 +404,8 @@ public class ImmutableFileIndexTest {
 			sut = sut.afterFileEvent(event1);
 
 			// create policy with name collision
-			var mockFile2 = mockPolicyFile(POLICY_1_NAME, POLICY_1, SAPL_1, "alternatePath", mockedFiles,
-					mockInterpreter);
-			var event2 = mock(FileCreatedEvent.class);
+			var mockFile2 = mockPolicyFile(POLICY_1, SAPL_1, "alternatePath", mockedFiles, mockInterpreter);
+			var event2    = mock(FileCreatedEvent.class);
 			when(event2.getFile()).thenReturn(mockFile2);
 			sut = sut.afterFileEvent(event2);
 
@@ -435,7 +430,7 @@ public class ImmutableFileIndexTest {
 	void when_initializingWithEmptyDirectory_and_addInvalidAndRemoveInvalid_then_FirstInconsistentThenConsistent() {
 		try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
 			// Setup initial Index
-			var mockPaths = List.of();
+			var mockPaths           = List.of();
 			var mockDirectoryStream = mock(DirectoryStream.class);
 			when(mockDirectoryStream.iterator()).thenReturn(mockPaths.iterator());
 			mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
@@ -443,8 +438,7 @@ public class ImmutableFileIndexTest {
 
 			// 1st event load invalid policy
 			var mockInterpreter = mock(SAPLInterpreter.class);
-			var mockFile = mockInvalidPolicyFile(POLICY_1_NAME, POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles,
-					mockInterpreter);
+			var mockFile        = mockInvalidPolicyFile(POLICY_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
 
 			var sut = new ImmutableFileIndex(PATH, mockInterpreter);
 
@@ -480,7 +474,7 @@ public class ImmutableFileIndexTest {
 	void when_initializingWithEmptyDirectory_and_tryUnloadingNonExisting_then_nothing() {
 		try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
 			// Setup initial Index
-			var mockPaths = List.of();
+			var mockPaths           = List.of();
 			var mockDirectoryStream = mock(DirectoryStream.class);
 			when(mockDirectoryStream.iterator()).thenReturn(mockPaths.iterator());
 			mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
@@ -488,7 +482,7 @@ public class ImmutableFileIndexTest {
 
 			// 1st event load valid policy
 			var mockInterpreter = mock(SAPLInterpreter.class);
-			var mockFile = mockPolicyFile(POLICY_1_NAME, POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
+			var mockFile        = mockPolicyFile(POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
 
 			var sut = new ImmutableFileIndex(PATH, mockInterpreter);
 
@@ -504,7 +498,7 @@ public class ImmutableFileIndexTest {
 		}
 	}
 
-	private File mockPolicyFile(String name, String document, SAPL sapl, String path, MockedStatic<Files> mockedFiles,
+	private File mockPolicyFile(String document, SAPL sapl, String path, MockedStatic<Files> mockedFiles,
 			SAPLInterpreter mockInterpreter) {
 		var mockPath = mock(Path.class);
 		when(mockPath.toAbsolutePath()).thenReturn(mockPath);
@@ -512,19 +506,19 @@ public class ImmutableFileIndexTest {
 		var mockFile = mock(File.class);
 		when(mockFile.toPath()).thenReturn(mockPath);
 		mockedFiles.when(() -> Files.readString(eq(mockPath))).thenReturn(document);
-		when(mockInterpreter.parse(eq(document))).thenReturn(sapl);
+		when(mockInterpreter.parse(document)).thenReturn(sapl);
 		return mockFile;
 	}
 
-	private File mockInvalidPolicyFile(String name, String document, SAPL sapl, String path,
-			MockedStatic<Files> mockedFiles, SAPLInterpreter mockInterpreter) {
+	private File mockInvalidPolicyFile(String document, String path, MockedStatic<Files> mockedFiles,
+			SAPLInterpreter mockInterpreter) {
 		var mockPath = mock(Path.class);
 		when(mockPath.toAbsolutePath()).thenReturn(mockPath);
 		when(mockPath.toString()).thenReturn(path);
 		var mockFile = mock(File.class);
 		when(mockFile.toPath()).thenReturn(mockPath);
 		mockedFiles.when(() -> Files.readString(eq(mockPath))).thenReturn(document);
-		when(mockInterpreter.parse(eq(document))).thenThrow(new PolicyEvaluationException());
+		when(mockInterpreter.parse(document)).thenThrow(new PolicyEvaluationException());
 		return mockFile;
 	}
 

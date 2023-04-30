@@ -46,7 +46,7 @@ import io.sapl.spring.method.metadata.SaplMethodSecurityMetadataSource;
 import io.sapl.spring.method.reactive.PostEnforcePolicyEnforcementPoint;
 import io.sapl.spring.method.reactive.PreEnforcePolicyEnforcementPoint;
 import io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptor;
-import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.WebfluxAuthorizationSubscriptionBuilderService;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
@@ -97,7 +97,7 @@ public class ReactiveSaplMethodSecurityConfiguration implements ImportAware {
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	ReactiveSaplMethodInterceptor securityMethodInterceptor(MethodSecurityMetadataSource source,
 			MethodSecurityExpressionHandler handler,
-			AuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService,
+			WebfluxAuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService,
 			PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint,
 			PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint) {
 		var springSecurityPostAdvice = new ExpressionBasedPostInvocationAdvice(handler);
@@ -121,15 +121,15 @@ public class ReactiveSaplMethodSecurityConfiguration implements ImportAware {
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	protected PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint(PolicyDecisionPoint pdp,
 			ConstraintEnforcementService constraintHandlerService,
-			AuthorizationSubscriptionBuilderService subscriptionBuilder) {
+			WebfluxAuthorizationSubscriptionBuilderService subscriptionBuilder) {
 		return new PostEnforcePolicyEnforcementPoint(pdp, constraintHandlerService, subscriptionBuilder);
 	}
 
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	protected AuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService(
+	protected WebfluxAuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService(
 			MethodSecurityExpressionHandler methodSecurityHandler) {
-		return new AuthorizationSubscriptionBuilderService(methodSecurityHandler, mapper);
+		return new WebfluxAuthorizationSubscriptionBuilderService(methodSecurityHandler, mapper);
 	}
 
 	@Bean

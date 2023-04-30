@@ -15,20 +15,11 @@
  */
 package io.sapl.pdp.remote;
 
-import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.Unpooled;
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
-import io.netty.util.CharsetUtil;
-import io.rsocket.metadata.AuthMetadataCodec;
-import io.rsocket.metadata.WellKnownAuthType;
-import io.rsocket.metadata.WellKnownMimeType;
-import io.rsocket.transport.netty.client.TcpClientTransport;
-import io.sapl.api.pdp.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
+import java.time.Duration;
+import java.util.function.Function;
+
+import javax.net.ssl.SSLException;
+
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
@@ -43,21 +34,36 @@ import org.springframework.security.rsocket.metadata.SimpleAuthenticationEncoder
 import org.springframework.security.rsocket.metadata.UsernamePasswordMetadata;
 import org.springframework.util.MimeType;
 import org.springframework.util.MimeTypeUtils;
+
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.Unpooled;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import io.netty.util.CharsetUtil;
+import io.rsocket.metadata.AuthMetadataCodec;
+import io.rsocket.metadata.WellKnownAuthType;
+import io.rsocket.metadata.WellKnownMimeType;
+import io.rsocket.transport.netty.client.TcpClientTransport;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
+import io.sapl.api.pdp.MultiAuthorizationDecision;
+import io.sapl.api.pdp.MultiAuthorizationSubscription;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.netty.tcp.TcpClient;
 import reactor.retry.Backoff;
 import reactor.retry.Repeat;
 
-import javax.net.ssl.SSLException;
-import java.time.Duration;
-import java.util.function.Function;
-
 @Slf4j
-@SuppressWarnings({"unused", "UnnecessarilyFullyQualified"})
 public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 
-	private static final String DECIDE = "decide";
-	private static final String MULTI_DECIDE = "multi-decide";
+	private static final String DECIDE           = "decide";
+	private static final String MULTI_DECIDE     = "multi-decide";
 	private static final String MULTI_DECIDE_ALL = "multi-decide-all";
 
 	private final RSocketRequester rSocketRequester;
@@ -105,48 +111,36 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 
 	@Override
 	public Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthzSubscription) {
-		var type = new ParameterizedTypeReference<MultiAuthorizationDecision>() {};
+		var type = new ParameterizedTypeReference<MultiAuthorizationDecision>() {
+		};
 		return decide(MULTI_DECIDE_ALL, type, multiAuthzSubscription)
 				.onErrorResume(__ -> Flux.just(MultiAuthorizationDecision.indeterminate())).repeatWhen(repeat())
 				.distinctUntilChanged();
 	}
 
-	private <T> Flux<T> decide(String path,
-							   ParameterizedTypeReference<T> type,
-							   Object authzSubscription) {
-		return rSocketRequester
-				.route(path)
-				.data(authzSubscription)
-				.retrieveFlux(type)
-				.doOnError(error -> log.error("RSocket Connect Error : error {}", error));
+	private <T> Flux<T> decide(String path, ParameterizedTypeReference<T> type, Object authzSubscription) {
+		return rSocketRequester.route(path).data(authzSubscription).retrieveFlux(type)
+				.doOnError(error -> log.error("RSocket Connect Error : error {}", error.getMessage(), error));
 	}
 
-	static RemoteRsocketPolicyDecisionPointBuilder builder(){
+	static RemoteRsocketPolicyDecisionPointBuilder builder() {
 		return new RemoteRsocketPolicyDecisionPointBuilder();
 	}
 
 	static class RemoteRsocketPolicyDecisionPointBuilder {
-		private TcpClient tcpClient;
+		private TcpClient                                                    tcpClient;
 		private Function<RSocketRequester.Builder, RSocketRequester.Builder> authenticationCustomizer;
-
 
 		public RemoteRsocketPolicyDecisionPointBuilder() {
 			tcpClient = TcpClient.create();
 		}
 
-		public RemoteRsocketPolicyDecisionPointBuilder secureNoTrust() {
-			try {
-				log.warn("------------------------------------------------------------------");
-				log.warn("!!! ATTENTION: don't not use insecure sslContext in production !!!");
-				log.warn("------------------------------------------------------------------");
-				var sslContext = SslContextBuilder
-						.forClient()
-						.trustManager(InsecureTrustManagerFactory.INSTANCE)
-						.build();
-				return this.secure(sslContext);
-			} catch (SSLException e) {
-				throw new RuntimeException("unable to initialze insecure SSL context");
-			}
+		public RemoteRsocketPolicyDecisionPointBuilder withUnsecureSSL() throws SSLException {
+			log.warn("------------------------------------------------------------------");
+			log.warn("!!! ATTENTION: don't not use insecure sslContext in production !!!");
+			log.warn("------------------------------------------------------------------");
+			var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+			return this.secure(sslContext);
 		}
 
 		public RemoteRsocketPolicyDecisionPointBuilder secure() {
@@ -169,11 +163,11 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 			return this;
 		}
 
-		private RemoteRsocketPolicyDecisionPointBuilder setApplyAuthenticationFunction(Function<RSocketRequester.Builder, RSocketRequester.Builder> applyFunction){
-			if ( this.authenticationCustomizer == null ) {
+		private RemoteRsocketPolicyDecisionPointBuilder setApplyAuthenticationFunction(
+				Function<RSocketRequester.Builder, RSocketRequester.Builder> applyFunction) {
+			if (this.authenticationCustomizer == null) {
 				this.authenticationCustomizer = applyFunction;
 			} else {
-				// TODO: replace by custom Exception Class
 				throw new RuntimeException(this.getClass().getName() + ": authentication method already defined");
 			}
 			return this;
@@ -181,30 +175,25 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 
 		public RemoteRsocketPolicyDecisionPointBuilder basicAuth(String username, String password) {
 			return setApplyAuthenticationFunction(builder -> {
-				MimeType authenticationMimeType = MimeTypeUtils.parseMimeType(WellKnownMimeType.MESSAGE_RSOCKET_AUTHENTICATION.getString());
-				UsernamePasswordMetadata credentials = new UsernamePasswordMetadata(username, password);
+				MimeType                 authenticationMimeType = MimeTypeUtils
+						.parseMimeType(WellKnownMimeType.MESSAGE_RSOCKET_AUTHENTICATION.getString());
+				UsernamePasswordMetadata credentials            = new UsernamePasswordMetadata(username, password);
 				builder.setupMetadata(credentials, authenticationMimeType);
 				return builder;
 			});
 		}
 
-		public RemoteRsocketPolicyDecisionPointBuilder oauth2(ReactiveClientRegistrationRepository clientRegistrationRepository, String registrationId) {
+		public RemoteRsocketPolicyDecisionPointBuilder oauth2(
+				ReactiveClientRegistrationRepository clientRegistrationRepository, String registrationId) {
 			return setApplyAuthenticationFunction(builder -> {
-				var client = new WebClientReactiveClientCredentialsTokenResponseClient();
-				var tokenStr= clientRegistrationRepository
-						.findByRegistrationId(registrationId)
-						.map(OAuth2ClientCredentialsGrantRequest::new)
-						.flatMap(client::getTokenResponse)
-						.map(OAuth2AccessTokenResponse::getAccessToken)
-						.map(OAuth2AccessToken::getTokenValue)
-						.block();
-				var token = AuthMetadataCodec.encodeMetadata(
-						ByteBufAllocator.DEFAULT,
-						WellKnownAuthType.BEARER,
-						Unpooled.copiedBuffer(tokenStr, CharsetUtil.UTF_8)
-				);
-				MimeType authenticationMimeType =
-						MimeTypeUtils.parseMimeType(WellKnownMimeType.MESSAGE_RSOCKET_AUTHENTICATION.getString());
+				var      client                 = new WebClientReactiveClientCredentialsTokenResponseClient();
+				var      tokenStr               = clientRegistrationRepository.findByRegistrationId(registrationId)
+						.map(OAuth2ClientCredentialsGrantRequest::new).flatMap(client::getTokenResponse)
+						.map(OAuth2AccessTokenResponse::getAccessToken).map(OAuth2AccessToken::getTokenValue).block();
+				var      token                  = AuthMetadataCodec.encodeMetadata(ByteBufAllocator.DEFAULT,
+						WellKnownAuthType.BEARER, Unpooled.copiedBuffer(tokenStr, CharsetUtil.UTF_8));
+				MimeType authenticationMimeType = MimeTypeUtils
+						.parseMimeType(WellKnownMimeType.MESSAGE_RSOCKET_AUTHENTICATION.getString());
 				return builder.setupMetadata(token, authenticationMimeType);
 			});
 		}
@@ -215,25 +204,18 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 
 		public RemoteRsocketPolicyDecisionPointBuilder apiKey(String headerName, String apikey) {
 			return setApplyAuthenticationFunction(
-					builder -> builder.setupMetadata(apikey, MimeType.valueOf("messaging/" + headerName))
-			);
+					builder -> builder.setupMetadata(apikey, MimeType.valueOf("messaging/" + headerName)));
 		}
 
-		public RemoteRsocketPolicyDecisionPoint build(){
-			RSocketStrategies rSocketStrategies = RSocketStrategies.builder()
-					.encoder(new Jackson2JsonEncoder())
-					.encoder(new SimpleAuthenticationEncoder())
-					.decoder(new Jackson2JsonDecoder())
-					.build();
+		public RemoteRsocketPolicyDecisionPoint build() {
+			RSocketStrategies rSocketStrategies = RSocketStrategies.builder().encoder(new Jackson2JsonEncoder())
+					.encoder(new SimpleAuthenticationEncoder()).decoder(new Jackson2JsonDecoder()).build();
 
-			var builder = RSocketRequester.builder()
-					.rsocketStrategies(rSocketStrategies);
-			if (authenticationCustomizer != null){
+			var builder = RSocketRequester.builder().rsocketStrategies(rSocketStrategies);
+			if (authenticationCustomizer != null) {
 				builder = authenticationCustomizer.apply(builder);
 			}
-			var rSocketRequester = builder.transport(
-					TcpClientTransport.create(tcpClient)
-			);
+			var rSocketRequester = builder.transport(TcpClientTransport.create(tcpClient));
 			return new RemoteRsocketPolicyDecisionPoint(rSocketRequester);
 		}
 	}

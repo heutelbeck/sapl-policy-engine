@@ -88,7 +88,7 @@ class ApplyStepsKeyTest {
 	}
 
 	@Test
-	void filterEmptyrray() {
+	void filterEmptyArray() {
 		var expression = "[] |- { @.key : mock.nil}";
 		var expected   = "[]";
 		expressionEvaluatesTo(expression, expected);

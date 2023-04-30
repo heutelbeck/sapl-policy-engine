@@ -22,13 +22,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.mocking.MockCall;
 import io.sapl.test.verification.MockRunInformation;
 import io.sapl.test.verification.MockingVerification;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 

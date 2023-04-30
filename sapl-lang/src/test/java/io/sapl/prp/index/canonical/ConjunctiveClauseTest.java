@@ -88,7 +88,7 @@ class ConjunctiveClauseTest {
 	void testIsImmutable() {
 		var c1 = new ConjunctiveClause(new Literal(new Bool(true)), new Literal(new Bool(false)));
 		var boolMock = mock(Bool.class);
-		when(boolMock.isImmutable()).thenReturn(false);
+		when(boolMock.isImmutable()).thenReturn(Boolean.FALSE);
 		var c2 = new ConjunctiveClause(new Literal(new Bool(true)), new Literal(boolMock));
 
 		assertThat(c1.isImmutable(), is(true));

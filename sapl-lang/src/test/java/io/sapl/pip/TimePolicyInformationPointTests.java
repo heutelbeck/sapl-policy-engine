@@ -35,46 +35,46 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import reactor.test.StepVerifier;
 
-public class TimePolicyInformationPointTests {
+class TimePolicyInformationPointTests {
 
 	@Test
-	public void contextIsAbleToLoadTimePolicyInformationPoint() {
+	void contextIsAbleToLoadTimePolicyInformationPoint() {
 		var sut = new TimePolicyInformationPoint(mock(Clock.class));
 		assertDoesNotThrow(() -> new AnnotationAttributeContext(sut));
 	}
 
 	@Test
-	public void now_EmitsUpdates() {
+	void now_EmitsUpdates() {
 		var now        = Instant.parse("2021-11-08T13:00:00Z");
 		var nowPlusOne = Instant.parse("2021-11-08T13:00:01Z");
 		var nowPlusTwo = Instant.parse("2021-11-08T13:00:02Z");
 		var clock      = mock(Clock.class);
 		when(clock.instant()).thenReturn(now, nowPlusOne, nowPlusTwo);
 		var sut = new TimePolicyInformationPoint(clock);
-		StepVerifier.withVirtualTime(() -> sut.now()).expectNext(Val.of(now.toString()))
+		StepVerifier.withVirtualTime(sut::now).expectNext(Val.of(now.toString()))
 				.thenAwait(Duration.ofSeconds(2))
 				.expectNext(Val.of(nowPlusOne.toString()), Val.of(nowPlusTwo.toString())).thenCancel().verify();
 	}
 
 	@Test
-	public void now_zeroDelay_Fails() {
+	void now_zeroDelay_Fails() {
 		var clock = mock(Clock.class);
 		var sut   = new TimePolicyInformationPoint(clock);
 		StepVerifier.withVirtualTime(() -> sut.now(Val.of(0L))).expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
-	public void systemTimeZone_isRetrieved() {
+	void systemTimeZone_isRetrieved() {
 		var sut    = new TimePolicyInformationPoint(mock(Clock.class));
 		var zoneId = ZoneId.of("UTC");
 		try (MockedStatic<ZoneId> mock = mockStatic(ZoneId.class, Mockito.CALLS_REAL_METHODS)) {
-			mock.when(() -> ZoneId.systemDefault()).thenReturn(zoneId);
+			mock.when(ZoneId::systemDefault).thenReturn(zoneId);
 			StepVerifier.create(sut.systemTimeZone()).expectNext(Val.of("UTC")).verifyComplete();
 		}
 	}
 
 	@Test
-	public void nowIsAfterTest() {
+	void nowIsAfterTest() {
 		var startingTime = Instant.parse("2021-11-08T13:00:00Z");
 		var checkpoint   = Val.of("2021-11-08T14:30:00Z");
 		var clock        = mock(Clock.class);
@@ -85,7 +85,7 @@ public class TimePolicyInformationPointTests {
 	}
 
 	@Test
-	public void localTimeIsAlwaysAfterMidnightTest() {
+	void localTimeIsAlwaysAfterMidnightTest() {
 		var startingTime = Instant.parse("2021-11-08T13:00:00Z");
 		var checkpoint   = Val.of(LocalTime.MIN.toString());
 		var clock        = mock(Clock.class);
@@ -95,7 +95,7 @@ public class TimePolicyInformationPointTests {
 	}
 
 	@Test
-	public void localTimeIsNeverAfterMaxTimeTest() {
+	void localTimeIsNeverAfterMaxTimeTest() {
 		var startingTime = Instant.parse("2021-11-08T13:00:00Z");
 		var checkpoint   = Val.of(LocalTime.MAX.toString());
 		var clock        = mock(Clock.class);
@@ -105,7 +105,7 @@ public class TimePolicyInformationPointTests {
 	}
 
 	@Test
-	public void localTimeIsNeverBetweenForNullSizeIntervalTest() {
+	void localTimeIsNeverBetweenForNullSizeIntervalTest() {
 		var startingTime = Instant.parse("2021-11-08T13:00:00Z");
 		var start        = Val.of("12:00");
 		var end          = Val.of("12:00");
@@ -116,7 +116,7 @@ public class TimePolicyInformationPointTests {
 	}
 
 	@Test
-	public void localTimeIsAlwaysBetweenForMinMaxIntervalTest() {
+	void localTimeIsAlwaysBetweenForMinMaxIntervalTest() {
 		var startingTime = Instant.parse("2021-11-08T13:00:00Z");
 		var start        = Val.of(LocalTime.MIN.toString());
 		var end          = Val.of(LocalTime.MAX.toString());
@@ -127,7 +127,7 @@ public class TimePolicyInformationPointTests {
 	}
 
 	@Test
-	public void localTimeIntervalStartsAtMinButNotTillMaxTest() {
+	void localTimeIntervalStartsAtMinButNotTillMaxTest() {
 		var startingTime = Instant.parse("2021-11-08T13:00:00Z");
 		var start        = Val.of(LocalTime.MIN.toString());
 		var end          = Val.of("22:00");
@@ -139,7 +139,7 @@ public class TimePolicyInformationPointTests {
 	}
 
 	@Test
-	public void localTimeIntervalStartsAtMaxButNotTillMinTest() {
+	void localTimeIntervalStartsAtMaxButNotTillMinTest() {
 		var startingTime = Instant.parse("2021-11-08T13:00:00Z");
 		var start        = Val.of(LocalTime.MAX.toString());
 		var end          = Val.of("14:00");
@@ -151,7 +151,7 @@ public class TimePolicyInformationPointTests {
 	}
 
 	@Test
-	public void localTimeIsAlwaysBetweenForMaxMinIntervalTest() {
+	void localTimeIsAlwaysBetweenForMaxMinIntervalTest() {
 		var startingTime = Instant.parse("2021-11-08T13:00:00Z");
 		var start        = Val.of(LocalTime.MAX.toString());
 		var end          = Val.of(LocalTime.MIN.toString());
@@ -162,7 +162,7 @@ public class TimePolicyInformationPointTests {
 	}
 
 	@Test
-	public void localTimeBetweenStartingBeforeIntervalTest() {
+	void localTimeBetweenStartingBeforeIntervalTest() {
 		var startingTime = Instant.parse("2021-11-08T13:00:00Z");
 		var start        = Val.of("14:00:00");
 		var end          = Val.of("15:00");
@@ -184,7 +184,7 @@ public class TimePolicyInformationPointTests {
 	}
 
 	@Test
-	public void localTimeBetweenStartingBeforeIntervalReversedTest() {
+	void localTimeBetweenStartingBeforeIntervalReversedTest() {
 		var startingTime = Instant.parse("2021-11-08T13:00:00Z");
 		var start        = Val.of("15:00");
 		var end          = Val.of("14:00:00");
@@ -206,7 +206,7 @@ public class TimePolicyInformationPointTests {
 	}
 
 	@Test
-	public void localTimeBetweenStartingInsideOfIntervalTest() {
+	void localTimeBetweenStartingInsideOfIntervalTest() {
 		var startingTime = Instant.parse("2021-11-08T15:00:00Z");
 		var start        = Val.of("14:00:00");
 		var end          = Val.of("16:00");
@@ -227,7 +227,7 @@ public class TimePolicyInformationPointTests {
 	}
 
 	@Test
-	public void localTimeBetweenStartingAfterIntervalTest() {
+	void localTimeBetweenStartingAfterIntervalTest() {
 		var startingTime = Instant.parse("2021-11-08T18:00:00Z");
 		var start        = Val.of("14:00:00");
 		var end          = Val.of("16:00");
@@ -249,7 +249,7 @@ public class TimePolicyInformationPointTests {
 	}
 
 	@Test
-	public void startingTimeIsAfterStartingAfterTest() {
+	void startingTimeIsAfterStartingAfterTest() {
 		var startingTime = Instant.parse("2021-11-08T13:00:00Z");
 		var checkpoint   = Val.of("12:00");
 		var clock        = mock(Clock.class);
@@ -268,7 +268,7 @@ public class TimePolicyInformationPointTests {
 	}
 
 	@Test
-	public void startingTimeIsBeforeStartingAfterTest() {
+	void startingTimeIsBeforeStartingAfterTest() {
 		var startingTime = Instant.parse("2021-11-08T11:00:00Z");
 		var checkpoint   = Val.of("12:00");
 		var clock        = mock(Clock.class);
@@ -288,7 +288,7 @@ public class TimePolicyInformationPointTests {
 	}
 
 	@Test
-	public void startingTimeIBeforeStartingBeforeTest() {
+	void startingTimeIBeforeStartingBeforeTest() {
 		var startingTime = Instant.parse("2021-11-08T11:00:00Z");
 		var checkpoint   = Val.of("12:00");
 		var clock        = mock(Clock.class);
@@ -308,7 +308,7 @@ public class TimePolicyInformationPointTests {
 	}
 
 	@Test
-	public void nowIsBetweenStartAfterIntervalTest() {
+	void nowIsBetweenStartAfterIntervalTest() {
 		var startingTime  = Instant.parse("2021-11-08T13:00:40Z");
 		var intervalStart = Val.of("2021-11-08T13:00:05Z");
 		var intervalEnd   = Val.of("2021-11-08T13:00:10Z");
@@ -322,7 +322,7 @@ public class TimePolicyInformationPointTests {
 	}
 
 	@Test
-	public void nowIsBetweenStartBetweenTest() {
+	void nowIsBetweenStartBetweenTest() {
 		var startingTime  = Instant.parse("2021-11-08T13:00:05Z");
 		var intervalStart = Val.of("2021-11-08T13:00:00Z");
 		var intervalEnd   = Val.of("2021-11-08T13:00:10Z");
@@ -335,7 +335,7 @@ public class TimePolicyInformationPointTests {
 	}
 
 	@Test
-	public void nowIsBetweenStartBeforeTest() {
+	void nowIsBetweenStartBeforeTest() {
 		var startingTime  = Instant.parse("2021-11-08T13:00:00Z");
 		var intervalStart = Val.of("2021-11-08T13:00:05Z");
 		var intervalEnd   = Val.of("2021-11-08T13:00:10Z");
@@ -349,28 +349,28 @@ public class TimePolicyInformationPointTests {
 	}
 
 	@Test
-	public void nowIsAfterTestAlwaysAfter() {
+	void nowIsAfterTestAlwaysAfter() {
 		var now        = Instant.parse("2021-11-08T13:00:00Z");
-		var ckeckpoint = Val.of("2021-11-01T14:30:00Z");
+		var checkpoint = Val.of("2021-11-01T14:30:00Z");
 		var clock      = mock(Clock.class);
 		when(clock.instant()).thenReturn(now);
 		var sut = new TimePolicyInformationPoint(clock);
-		StepVerifier.withVirtualTime(() -> sut.nowIsAfter(ckeckpoint)).expectNext(Val.TRUE).verifyComplete();
+		StepVerifier.withVirtualTime(() -> sut.nowIsAfter(checkpoint)).expectNext(Val.TRUE).verifyComplete();
 	}
 
 	@Test
-	public void nowIsBeforeTest() {
+	void nowIsBeforeTest() {
 		var now        = Instant.parse("2021-11-08T13:00:00Z");
-		var ckeckpoint = Val.of("2021-11-08T14:30:00Z");
+		var checkpoint = Val.of("2021-11-08T14:30:00Z");
 		var clock      = mock(Clock.class);
 		when(clock.instant()).thenReturn(now);
 		var sut = new TimePolicyInformationPoint(clock);
-		StepVerifier.withVirtualTime(() -> sut.nowIsBefore(ckeckpoint)).expectNext(Val.TRUE)
+		StepVerifier.withVirtualTime(() -> sut.nowIsBefore(checkpoint)).expectNext(Val.TRUE)
 				.thenAwait(Duration.ofMinutes(91L)).expectNext(Val.FALSE).verifyComplete();
 	}
 
 	@Test
-	public void toggleTest() {
+	void toggleTest() {
 		var sut = new TimePolicyInformationPoint(mock(Clock.class));
 		StepVerifier.withVirtualTime(() -> sut.toggle(Val.of(5_000L), Val.of(1_000L))).expectNext(Val.TRUE)
 				.thenAwait(Duration.ofMillis(5_0000L)).expectNext(Val.FALSE).thenAwait(Duration.ofMillis(1_000L))

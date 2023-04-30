@@ -15,8 +15,6 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.stream.Collectors;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.ArraySlicingStep;
 import io.sapl.grammar.sapl.AttributeUnionStep;
@@ -48,7 +46,7 @@ public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 	public Flux<Val> applyFilterStatement(@NonNull Val unfilteredValue, int stepId,
 			@NonNull FilterStatement statement) {
 		return FilterAlgorithmUtil.applyFilterOnObject(unfilteredValue, stepId,
-				SelectorUtil.toObjectFieldSelector(this::hasKey), statement, parameters(), ArraySlicingStep.class);
+				SelectorUtil.toObjectFieldSelector(this::hasKey), statement, ArraySlicingStep.class);
 	}
 
 	private boolean hasKey(String key, Val value) {
@@ -56,7 +54,7 @@ public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 	}
 
 	private String parameters() {
-		return "[" + (attributes == null ? "" : attributes.stream().collect(Collectors.joining(","))) + "]";
+		return "[" + (attributes == null ? "" : String.join(",", attributes)) + "]";
 	}
 
 }

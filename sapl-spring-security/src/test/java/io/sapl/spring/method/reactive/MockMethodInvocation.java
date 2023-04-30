@@ -21,7 +21,9 @@ import java.util.function.Supplier;
 
 import org.aopalliance.intercept.MethodInvocation;
 
-public class MockMethodInvocation implements MethodInvocation {
+import lombok.NonNull;
+
+class MockMethodInvocation implements MethodInvocation {
 
 	private Method method;
 
@@ -54,17 +56,17 @@ public class MockMethodInvocation implements MethodInvocation {
 	}
 
 	@Override
-	public Object[] getArguments() {
+	public Object @NonNull [] getArguments() {
 		return this.arguments;
 	}
 
 	@Override
-	public Method getMethod() {
+	public @NonNull Method getMethod() {
 		return this.method;
 	}
 
 	@Override
-	public AccessibleObject getStaticPart() {
+	public @NonNull AccessibleObject getStaticPart() {
 		throw new UnsupportedOperationException("mock method not implemented");
 	}
 

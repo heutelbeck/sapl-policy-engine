@@ -55,12 +55,12 @@ class TreeWalkerTest {
 		}
 
 		private BasicGroupMockBuilder noSteps() {
-			when(mock.getSteps().isEmpty()).thenReturn(true);
+			when(mock.getSteps().isEmpty()).thenReturn(Boolean.TRUE);
 			return this;
 		}
 
 		private BasicGroupMockBuilder withSteps() {
-			when(mock.getSteps().isEmpty()).thenReturn(false);
+			when(mock.getSteps().isEmpty()).thenReturn(Boolean.FALSE);
 			return this;
 		}
 
@@ -77,7 +77,7 @@ class TreeWalkerTest {
 	}
 
 	@Test
-	void traverse_should_call_walk_when_node_has_no_filters_steps_and_subtemplate() {
+	void traverse_should_call_walk_when_node_has_no_filters_steps_and_subTemplate() {
 		var allFalse = BasicGroupMockBuilder.newBuilder().noFilter().noSteps().noTemplate().build();
 		var allTrue = BasicGroupMockBuilder.newBuilder().withFilter().withSteps().withTemplate().build();
 		var noTemplate = BasicGroupMockBuilder.newBuilder().withFilter().withSteps().noTemplate().build();

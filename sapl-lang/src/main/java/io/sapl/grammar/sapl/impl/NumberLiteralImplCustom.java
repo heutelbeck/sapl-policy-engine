@@ -15,6 +15,7 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.NumberLiteral;
 import reactor.core.publisher.Flux;

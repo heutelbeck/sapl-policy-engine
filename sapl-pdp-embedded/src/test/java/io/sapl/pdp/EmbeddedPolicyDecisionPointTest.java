@@ -65,7 +65,7 @@ class EmbeddedPolicyDecisionPointTest {
 		var embeddedPdp  = new EmbeddedPolicyDecisionPoint(providerMock, prpMock);
 
 		when(providerMock.pdpConfiguration()).thenReturn(Flux.just(configMock));
-		when(configMock.isValid()).thenReturn(false);
+		when(configMock.isValid()).thenReturn(Boolean.FALSE);
 
 		var empty = new AuthorizationSubscription(JSON.nullNode(), JSON.nullNode(), JSON.nullNode(), JSON.nullNode());
 
@@ -112,7 +112,7 @@ class EmbeddedPolicyDecisionPointTest {
 		var embeddedPdp = new EmbeddedPolicyDecisionPoint(provider, prpMock);
 
 		when(prpMock.retrievePolicies()).thenReturn(Flux.just(prpResult));
-		when(prpResult.isPrpValidState()).thenReturn(false);
+		when(prpResult.isPrpValidState()).thenReturn(Boolean.FALSE);
 
 		var simpleAuthzSubscription = new AuthorizationSubscription(JSON.textNode("willi"), JSON.textNode("read"),
 				JSON.textNode("something"), JSON.nullNode());
@@ -147,8 +147,9 @@ class EmbeddedPolicyDecisionPointTest {
 		final MultiAuthorizationSubscription multiAuthzSubscription = new MultiAuthorizationSubscription();
 
 		final Flux<MultiAuthorizationDecision> flux = pdp.decideAll(multiAuthzSubscription);
-		StepVerifier.create(flux).expectNextMatches(mad -> mad.getAuthorizationDecisionForSubscriptionWithId("")
-				.getDecision().equals(Decision.INDETERMINATE)).thenCancel().verify();
+		StepVerifier.create(flux).expectNextMatches(
+				mad -> mad.getAuthorizationDecisionForSubscriptionWithId("").getDecision() == Decision.INDETERMINATE)
+				.thenCancel().verify();
 	}
 
 	@Test
@@ -157,7 +158,7 @@ class EmbeddedPolicyDecisionPointTest {
 				.addAuthorizationSubscription("id", "willi", "read", "something");
 
 		final Flux<IdentifiableAuthorizationDecision> flux = pdp.decide(multiAuthzSubscription);
-		StepVerifier.create(flux).expectNextMatches(iad -> iad.getAuthorizationSubscriptionId().equals("id")
+		StepVerifier.create(flux).expectNextMatches(iad -> "id".equals(iad.getAuthorizationSubscriptionId())
 				&& iad.getAuthorizationDecision().equals(AuthorizationDecision.DENY)).thenCancel().verify();
 	}
 
@@ -169,17 +170,17 @@ class EmbeddedPolicyDecisionPointTest {
 
 		final Flux<IdentifiableAuthorizationDecision> flux = pdp.decide(multiAuthzSubscription);
 		StepVerifier.create(flux).expectNextMatches(iad -> {
-			if (iad.getAuthorizationSubscriptionId().equals("id1")) {
+			if ("id1".equals(iad.getAuthorizationSubscriptionId())) {
 				return iad.getAuthorizationDecision().equals(AuthorizationDecision.PERMIT);
-			} else if (iad.getAuthorizationSubscriptionId().equals("id2")) {
+			} else if ("id2".equals(iad.getAuthorizationSubscriptionId())) {
 				return iad.getAuthorizationDecision().equals(AuthorizationDecision.DENY);
 			} else {
 				throw new IllegalStateException("Invalid subscription id: " + iad.getAuthorizationSubscriptionId());
 			}
 		}).expectNextMatches(iad -> {
-			if (iad.getAuthorizationSubscriptionId().equals("id1")) {
+			if ("id1".equals(iad.getAuthorizationSubscriptionId())) {
 				return iad.getAuthorizationDecision().equals(AuthorizationDecision.DENY);
-			} else if (iad.getAuthorizationSubscriptionId().equals("id2")) {
+			} else if ("id2".equals(iad.getAuthorizationSubscriptionId())) {
 				return iad.getAuthorizationDecision().equals(AuthorizationDecision.DENY);
 			} else {
 				throw new IllegalStateException("Invalid subscription id: " + iad.getAuthorizationSubscriptionId());
@@ -202,10 +203,7 @@ class EmbeddedPolicyDecisionPointTest {
 
 			if (ad1.getDecision() != Decision.DENY)
 				return false;
-			if (ad2.getDecision() != Decision.DENY)
-				return false;
-
-			return true;
+			return ad2.getDecision() == Decision.DENY;
 		}).thenCancel().verify();
 	}
 

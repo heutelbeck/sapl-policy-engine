@@ -64,7 +64,7 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 			return Flux.just(Val.error(NO_CONDITION_EXPRESSION).withParentTrace(ConditionStep.class, parentValue));
 		}
 		return FilterAlgorithmUtil.applyFilter(parentValue, stepId, expression::evaluate, statement,
-				"conditional filter", ConditionStep.class);
+				ConditionStep.class);
 	}
 
 }

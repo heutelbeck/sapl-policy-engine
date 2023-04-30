@@ -17,17 +17,17 @@ package io.sapl.grammar.web;
 
 import org.junit.jupiter.api.Test;
 
-public class SaplServletTests {
+class SaplServletTests {
 
 	@Test
-	public void canInitAndDestroyServletWithoutException() {
+	void canInitAndDestroyServletWithoutException() {
 		var servlet = new SAPLServlet();
 		servlet.init();
 		servlet.destroy();
 	}
 
 	@Test
-	public void canJustDestroyServletWithoutException() {
+	void canJustDestroyServletWithoutException() {
 		var servlet = new SAPLServlet();
 		servlet.destroy();
 	}

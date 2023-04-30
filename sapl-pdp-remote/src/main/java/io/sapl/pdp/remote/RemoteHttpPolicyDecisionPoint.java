@@ -15,13 +15,11 @@
  */
 package io.sapl.pdp.remote;
 
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
-import io.sapl.api.pdp.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
+import java.time.Duration;
+import java.util.function.Function;
+
+import javax.net.ssl.SSLException;
+
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -31,17 +29,26 @@ import org.springframework.security.oauth2.client.InMemoryReactiveOAuth2Authoriz
 import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
 import org.springframework.security.oauth2.client.web.reactive.function.client.ServerOAuth2AuthorizedClientExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
+
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
+import io.sapl.api.pdp.MultiAuthorizationDecision;
+import io.sapl.api.pdp.MultiAuthorizationSubscription;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.netty.http.client.HttpClient;
 import reactor.retry.Backoff;
 import reactor.retry.Repeat;
 
-import javax.net.ssl.SSLException;
-import java.time.Duration;
-import java.util.function.Function;
-
 @Slf4j
-@SuppressWarnings({"unused", "UnnecessarilyFullyQualified"})
 public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 
 	private static final String DECIDE = "/api/pdp/decide";
@@ -77,7 +84,7 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 				.defaultHeaders(header -> header.setBasicAuth(clientKey, clientSecret)).build();
 	}
 
-	public RemoteHttpPolicyDecisionPoint(WebClient client) {
+	private RemoteHttpPolicyDecisionPoint(WebClient client) {
 		this.client = client;
 	}
 
@@ -122,39 +129,28 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 				.doOnError(error -> log.error("Error : {}", error.getMessage()));
 	}
 
-	public static RemoteHttpPolicyDecisionPointBuilder builder(){
+	public static RemoteHttpPolicyDecisionPointBuilder builder() {
 		return new RemoteHttpPolicyDecisionPointBuilder();
 	}
 
+	@NoArgsConstructor
 	public static class RemoteHttpPolicyDecisionPointBuilder {
-		private String baseUrl = "https://localhost:8443";
-		private SslContext sslContext;
-		private HttpClient httpClient = HttpClient.create();
+		private String                                         baseUrl    = "https://localhost:8443";
+		private HttpClient                                     httpClient = HttpClient.create();
 		private Function<WebClient.Builder, WebClient.Builder> authenticationCustomizer;
 
-		public RemoteHttpPolicyDecisionPointBuilder() {
-		}
-
-		public RemoteHttpPolicyDecisionPointBuilder secureNoTrust() {
-			try {
-				log.warn("------------------------------------------------------------------");
-				log.warn("!!! ATTENTION: don't not use insecure sslContext in production !!!");
-				log.warn("------------------------------------------------------------------");
-				var sslContext = SslContextBuilder
-						.forClient()
-						.trustManager(InsecureTrustManagerFactory.INSTANCE)
-						.build();
-				return this.secure(sslContext);
-			} catch (SSLException e) {
-				throw new RuntimeException("unable to initialze insecure SSL context");
-			}
+		public RemoteHttpPolicyDecisionPointBuilder withUnsecureSSL() throws SSLException {
+			log.warn("------------------------------------------------------------------");
+			log.warn("!!! ATTENTION: don't not use insecure sslContext in production !!!");
+			log.warn("------------------------------------------------------------------");
+			var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+			return this.secure(sslContext);
 		}
 
 		public RemoteHttpPolicyDecisionPointBuilder secure() {
 			this.httpClient = httpClient.secure();
 			return this;
 		}
-
 
 		public RemoteHttpPolicyDecisionPointBuilder secure(SslContext sslContext) {
 			this.httpClient = httpClient.secure(spec -> spec.sslContext(sslContext));
@@ -166,8 +162,8 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 			return this;
 		}
 
-		private void setApplyAuthenticationFunction(Function<WebClient.Builder, WebClient.Builder> applyFunction){
-			if ( this.authenticationCustomizer == null ) {
+		private void setApplyAuthenticationFunction(Function<WebClient.Builder, WebClient.Builder> applyFunction) {
+			if (this.authenticationCustomizer == null) {
 				this.authenticationCustomizer = applyFunction;
 			} else {
 				throw new RuntimeException(this.getClass().getName() + ": authentication method already defined");
@@ -176,8 +172,7 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 
 		public RemoteHttpPolicyDecisionPointBuilder basicAuth(String clientKey, String clientSecret) {
 			setApplyAuthenticationFunction(
-					builder -> builder.defaultHeaders(header -> header.setBasicAuth(clientKey, clientSecret))
-			);
+					builder -> builder.defaultHeaders(header -> header.setBasicAuth(clientKey, clientSecret)));
 			return this;
 		}
 
@@ -186,30 +181,28 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 		}
 
 		public RemoteHttpPolicyDecisionPointBuilder apiKey(String headerName, String apikey) {
-			setApplyAuthenticationFunction(
-					builder -> builder.defaultHeaders(header -> header.add(headerName, apikey))
-			);
+			setApplyAuthenticationFunction(builder -> builder.defaultHeaders(header -> header.add(headerName, apikey)));
 			return this;
 		}
 
-		public RemoteHttpPolicyDecisionPointBuilder oauth2(ReactiveClientRegistrationRepository clientRegistrationRepository, String registrationId) {
-			InMemoryReactiveOAuth2AuthorizedClientService clientService = new InMemoryReactiveOAuth2AuthorizedClientService(clientRegistrationRepository);
-			AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager authorizedClientManager =
-					new AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager(clientRegistrationRepository, clientService);
-			var oauth2FilterFunction = new ServerOAuth2AuthorizedClientExchangeFilterFunction(authorizedClientManager);
+		public RemoteHttpPolicyDecisionPointBuilder oauth2(
+				ReactiveClientRegistrationRepository clientRegistrationRepository, String registrationId) {
+			InMemoryReactiveOAuth2AuthorizedClientService                clientService           = new InMemoryReactiveOAuth2AuthorizedClientService(
+					clientRegistrationRepository);
+			AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager authorizedClientManager = new AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager(
+					clientRegistrationRepository, clientService);
+			var                                                          oauth2FilterFunction    = new ServerOAuth2AuthorizedClientExchangeFilterFunction(
+					authorizedClientManager);
 			oauth2FilterFunction.setDefaultClientRegistrationId(registrationId);
-			setApplyAuthenticationFunction(
-					builder -> builder.filter(oauth2FilterFunction)
-			);
+			setApplyAuthenticationFunction(builder -> builder.filter(oauth2FilterFunction));
 			return this;
 		}
 
-		public RemoteHttpPolicyDecisionPoint build(){
+		public RemoteHttpPolicyDecisionPoint build() {
 			WebClient.Builder builder = WebClient.builder()
-					.clientConnector(new ReactorClientHttpConnector(this.httpClient))
-					.baseUrl(this.baseUrl);
+					.clientConnector(new ReactorClientHttpConnector(this.httpClient)).baseUrl(this.baseUrl);
 
-			if ( this.authenticationCustomizer != null ){
+			if (this.authenticationCustomizer != null) {
 				builder = authenticationCustomizer.apply(builder);
 			}
 			return new RemoteHttpPolicyDecisionPoint(builder.build());

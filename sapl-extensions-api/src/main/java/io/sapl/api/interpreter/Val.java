@@ -34,13 +34,12 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.fge.jackson.JsonNumEquals;
 
-import io.sapl.api.interpreter.Trace.ExpressionArgument;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
  * Val is the basic data type SAPL expressions evaluate to. A Val may contain a
- * Jackson JsonNode, an error, or may be undefined. Vals are immutable.
+ * Jackson JsonNode, an error, or may be undefined. Val is immutable.
  * 
  * @author Dominic Heutelbeck
  *
@@ -65,7 +64,7 @@ public class Val implements Traced {
 
 	/**
 	 * Convenience Instance of a ObjectMapper. Attention, this is not the same as
-	 * the gloablly available bean in Spring.
+	 * the globally available bean in Spring.
 	 */
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -122,13 +121,6 @@ public class Val implements Traced {
 		this.trace        = trace;
 	}
 
-	private Val(JsonNode value, String errorMessage, Trace trace) {
-		this.value        = value;
-		this.errorMessage = errorMessage;
-		this.secret       = false;
-		this.trace        = trace;
-	}
-
 	private Val(JsonNode value) {
 		this.value        = value;
 		this.errorMessage = null;
@@ -152,11 +144,11 @@ public class Val implements Traced {
 		return withTrace(new Trace(operation, arguments));
 	}
 
-	public Val withTrace(Class<?> operation, Map<String, Val> arguments) {
+	public Val withTrace(Class<?> operation, Map<String, Traced> arguments) {
 		return withTrace(new Trace(operation, arguments));
 	}
 
-	public Val withParentTrace(Class<?> operation, Val parentValue) {
+	public Val withParentTrace(Class<?> operation, Traced parentValue) {
 		return withTrace(new Trace(operation, new ExpressionArgument("parentValue", parentValue)));
 	}
 
@@ -164,7 +156,7 @@ public class Val implements Traced {
 		return withTrace(new Trace(operation, arguments));
 	}
 
-	public Val withTrace(Val leftHandValue, Class<?> operation, Val... arguments) {
+	public Val withTrace(Traced leftHandValue, Class<?> operation, Traced... arguments) {
 		return withTrace(new Trace(leftHandValue, operation, arguments));
 	}
 
@@ -397,7 +389,7 @@ public class Val implements Traced {
 		if (isError()) {
 			return "ERROR[" + errorMessage + "]";
 		}
-		return value != null ? value.toString() : "undefined";
+		return value != null ? value.toString() : UNDEFINED_TEXT;
 	}
 
 	public Optional<JsonNode> optional() {

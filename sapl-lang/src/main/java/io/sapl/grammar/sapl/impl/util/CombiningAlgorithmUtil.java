@@ -2,6 +2,7 @@ package io.sapl.grammar.sapl.impl.util;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
 
@@ -27,12 +28,12 @@ public class CombiningAlgorithmUtil {
 	}
 
 	private static List<Flux<DocumentEvaluationResult>> eagerPolicyElementDecisionFluxes(
-			List<PolicyElement> policyElements) {
-		var policyDecsions = new ArrayList<Flux<DocumentEvaluationResult>>(policyElements.size());
+			Collection<PolicyElement> policyElements) {
+		var policyDecisions = new ArrayList<Flux<DocumentEvaluationResult>>(policyElements.size());
 		for (var policyElement : policyElements) {
-			policyDecsions.add(evaluatePolicyElementTargetAndPolicyIfApplicable(policyElement));
+			policyDecisions.add(evaluatePolicyElementTargetAndPolicyIfApplicable(policyElement));
 		}
-		return policyDecsions;
+		return policyDecisions;
 	}
 
 	private static Flux<DocumentEvaluationResult> evaluatePolicyElementTargetAndPolicyIfApplicable(

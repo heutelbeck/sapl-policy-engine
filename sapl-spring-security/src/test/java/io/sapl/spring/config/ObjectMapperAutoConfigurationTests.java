@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-import org.springframework.mock.web.MockHttpServletRequest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -33,8 +32,6 @@ class ObjectMapperAutoConfigurationTests {
 		contextRunner.run(context -> {
 			assertThat(context).hasNotFailed();
 			assertThat(context).hasSingleBean(ObjectMapper.class);
-			var mapper = context.getBean(ObjectMapper.class);
-			assertThat(mapper.writeValueAsString(new MockHttpServletRequest())).isNotEmpty();
 		});
 	}
 

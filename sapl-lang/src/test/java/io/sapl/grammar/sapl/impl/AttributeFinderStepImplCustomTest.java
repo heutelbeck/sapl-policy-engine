@@ -69,7 +69,7 @@ class AttributeFinderStepImplCustomTest {
 	}
 
 	@Test
-	void evaluateAttributeInFilterSelction() {
+	void evaluateAttributeInFilterSelection() {
 		expressionErrors("123 |- { @.<test.numbers> : mock.nil }");
 	}
 

@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.SAPL;
-import io.sapl.grammar.sapl.impl.SAPLImplCustom;
+import io.sapl.grammar.sapl.impl.util.ImportsUtil;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.prp.PolicyRetrievalResult;
@@ -128,7 +128,7 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
 			if (targetExpression == null) {
 				targetFormula = new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
 			} else {
-				Map<String, String> imports = SAPLImplCustom.fetchImports(sapl, attributeCtx, functionCtx);
+				var imports = ImportsUtil.fetchImports(sapl, attributeCtx, functionCtx);
 				targetFormula = TreeWalker.walk(targetExpression, imports);
 			}
 

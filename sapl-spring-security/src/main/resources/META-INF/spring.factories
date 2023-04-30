@@ -1,5 +1,0 @@
-org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  io.sapl.spring.config.SaplFilterPolicyEnforcementPointAutoConfiguration,\
-  io.sapl.spring.config.ObjectMapperAutoConfiguration,\
-  io.sapl.spring.config.ConstraintsHandlerAutoconfiguration,\
-  io.sapl.spring.config.PolicyEnforcementPointAutoConfiguration

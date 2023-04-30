@@ -110,9 +110,9 @@ public class FunctionMockAlwaysSameForParameters implements FunctionMock {
 	@Getter
 	static class ParameterSpecificMockReturnValue {
 
-		private List<Matcher<Val>> matchers;
+		private final List<Matcher<Val>> matchers;
 
-		private Val alwaysMockReturnValue;
+		private final Val alwaysMockReturnValue;
 
 		public ParameterSpecificMockReturnValue(List<Matcher<Val>> matchers, Val alwaysMockReturnValue) {
 			this.matchers              = matchers;

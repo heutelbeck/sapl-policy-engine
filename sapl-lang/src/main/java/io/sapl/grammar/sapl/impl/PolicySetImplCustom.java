@@ -20,7 +20,6 @@ import java.util.HashSet;
 import java.util.Map;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.PolicyElement;
 import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DocumentEvaluationResult;
@@ -39,24 +38,24 @@ public class PolicySetImplCustom extends PolicySetImpl {
 	@Override
 	public Flux<DocumentEvaluationResult> evaluate() {
 		if (!policyNamesAreUnique()) {
-			return Flux.just(
-					PolicySetDecision.error(this, "Inconsistent policy set. Names of policies in set are not unique."));
+			return Flux.just(PolicySetDecision.error(getSaplName(),
+					"Inconsistent policy set. Names of policies in set are not unique."));
 		}
-		var combindedDecisions = evaluateValueDefinitionsAndPolicies(0);
-		return combindedDecisions.map(combined -> PolicySetDecision.of(combined, this));
+		var combinedDecisions = evaluateValueDefinitionsAndPolicies(0);
+		return combinedDecisions.map(combined -> PolicySetDecision.of(combined, getSaplName()));
 	}
 
 	@Override
 	public DocumentEvaluationResult targetResult(Val targetValue) {
 		if (targetValue.isError())
-			return PolicySetDecision.ofTargetError(this, targetValue, this.algorithm.getName());
-		return PolicySetDecision.notApplicable(this, targetValue, this.algorithm.getName());
+			return PolicySetDecision.ofTargetError(getSaplName(), targetValue, this.algorithm.getName());
+		return PolicySetDecision.notApplicable(getSaplName(), targetValue, this.algorithm.getName());
 
 	}
 
 	@Override
 	public DocumentEvaluationResult importError(String errorMessage) {
-		return PolicySetDecision.ofImportError(this, errorMessage, this.algorithm.getName());
+		return PolicySetDecision.ofImportError(getSaplName(), errorMessage, this.algorithm.getName());
 	}
 
 	private boolean policyNamesAreUnique() {
@@ -81,7 +80,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
 	}
 
 	private Flux<CombinedDecision> evaluateAndCombinePoliciesOfSet() {
-		return getAlgorithm().combinePolicies(new ArrayList<PolicyElement>(policies));
+		return getAlgorithm().combinePolicies(new ArrayList<>(policies));
 	}
 
 }

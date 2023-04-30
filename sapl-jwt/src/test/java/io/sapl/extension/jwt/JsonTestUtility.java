@@ -15,9 +15,7 @@
  */
 package io.sapl.extension.jwt;
 
-import java.io.IOException;
 import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Map;
 
@@ -25,12 +23,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import lombok.Getter;
+import lombok.experimental.UtilityClass;
 import okhttp3.mockwebserver.MockWebServer;
 
-public class JsonTestUtility {
+@UtilityClass
+class JsonTestUtility {
 
-	@Getter
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
 	/**
@@ -54,14 +52,12 @@ public class JsonTestUtility {
 	/**
 	 * @param kid1     the ID of the first KeyPair
 	 * @param kid2     the ID of the second KeyPair
-	 * @param keyPair1 KeyPair of the first public key. Non textual, if null
+	 * @param keyPair1 KeyPair of the first public key. Non-textual, if null
 	 * @param keyPair2 KeyPair of the second public key. Bogus, if null
 	 * @return whitelist variables containing two public keys
-	 * @throws NoSuchAlgorithmException
-	 * @throws IOException
 	 */
 	static Map<String, JsonNode> publicKeyWhitelistVariables(String kid1, KeyPair keyPair1, String kid2,
-			KeyPair keyPair2) throws NoSuchAlgorithmException, IOException {
+			KeyPair keyPair2) {
 
 		ObjectNode keyNode   = MAPPER.createObjectNode();
 		ObjectNode valueNode = MAPPER.createObjectNode();
@@ -102,11 +98,11 @@ public class JsonTestUtility {
 		ObjectNode valueNode = MAPPER.createObjectNode();
 
 		if (server != null) {
-			valueNode.put(JWTKeyProvider.PUBLIC_KEY_URI_KEY, server.url("/").toString() + "public-keys/{id}");
+			valueNode.put(JWTKeyProvider.PUBLIC_KEY_URI_KEY, server.url("/") + "public-keys/{id}");
 		}
 		if (method != null && method.length() > 0) {
-			if (method.equals("NONETEXT")) {
-				valueNode.set(JWTKeyProvider.PUBLIC_KEY_METHOD_KEY, jsonNode(false));
+			if ("NONETEXT".equals(method)) {
+				valueNode.set(JWTKeyProvider.PUBLIC_KEY_METHOD_KEY, jsonNode(Boolean.FALSE));
 			} else {
 				valueNode.put(JWTKeyProvider.PUBLIC_KEY_METHOD_KEY, method);
 			}

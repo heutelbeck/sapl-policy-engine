@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.stream.IntStream;
 
+import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Pair;
 import reactor.core.publisher.Flux;
@@ -63,14 +64,12 @@ public class ObjectImplCustom extends ObjectImpl {
 		// of values passed to the combinator function
 		return Flux.combineLatest(valueFluxes, values -> {
 			var result       = Val.JSON.objectNode();
-			var tracedValues = new HashMap<String, Val>();
+			var tracedValues = new HashMap<String, Traced>();
 			// omit undefined fields
 			IntStream.range(0, values.length).forEach(idx -> {
 				var key   = keys.get(idx);
 				var value = ((Val) values[idx]);
-				value.ifDefined(val -> {
-					result.set(key, val);
-				});
+				value.ifDefined(val -> result.set(key, val));
 				tracedValues.put(key, value);
 			});
 			return Val.of(result).withTrace(Object.class, tracedValues);

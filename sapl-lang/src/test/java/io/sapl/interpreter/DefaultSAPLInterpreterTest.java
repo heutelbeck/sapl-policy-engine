@@ -20,7 +20,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
@@ -628,14 +627,14 @@ class DefaultSAPLInterpreterTest {
 	}
 
 	@Test
-	void filterExtended() throws IOException {
+	void filterExtended() {
 		var policyDefinition = "policy \"test\" permit transform [\"foo\", \"bars\"] |- {each @.<sapl.pip.test.echo> : simple.length}";
 		var expected         = AuthorizationDecision.INDETERMINATE;
 		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
-	void subtemplateOnEmptyArray() {
+	void subTemplateOnEmptyArray() {
 		var policyDefinition = "policy \"test\" permit where [] :: { \"name\": \"foo\" } == [];";
 		var expected         = AuthorizationDecision.PERMIT;
 		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);

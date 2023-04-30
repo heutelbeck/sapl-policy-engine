@@ -23,17 +23,17 @@ import org.junit.jupiter.api.Test;
 class BasicFunctionImplTest {
 
 	@Test
-	void basicSuccessfullEvaluationNull() {
+	void basicSuccessfulEvaluationNull() {
 		expressionEvaluatesTo("mock.nil()", "null");
 	}
 
 	@Test
-	void basicSuccessfullEvaluationError() {
+	void basicSuccessfulEvaluationError() {
 		expressionErrors("mock.error()");
 	}
 
 	@Test
-	void basicSuccessfullEvaluationExceptionToError() {
+	void basicSuccessfulEvaluationExceptionToError() {
 		expressionErrors("mock.exception()");
 	}
 

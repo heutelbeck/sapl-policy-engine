@@ -29,8 +29,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import javax.validation.constraints.NotNull;
-
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -45,20 +43,21 @@ import io.sapl.grammar.sapl.impl.util.ParserUtil;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
+import jakarta.validation.constraints.NotNull;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import reactor.util.context.Context;
 
-public class AnnotationAttributeContextTests {
+class AnnotationAttributeContextTests {
 
 	@Test
-	public void when_classHasNoAnnotation_fail() {
+	void when_classHasNoAnnotation_fail() {
 		assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(
 				"I am an instance of a class without @PolicyInformationPoint annotation"));
 	}
 
 	@Test
-	public void when_classHasNoAttributesDeclared_fail() {
+	void when_classHasNoAttributesDeclared_fail() {
 		@PolicyInformationPoint
 		class PIP {
 
@@ -68,7 +67,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_pipWithSameNameExists_fail() {
+	void when_pipWithSameNameExists_fail() {
 		@PolicyInformationPoint(name = "somePip")
 		class PIP {
 
@@ -84,7 +83,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_firstParameterOfAttributeIllegal_fail() {
+	void when_firstParameterOfAttributeIllegal_fail() {
 		@PolicyInformationPoint
 		class PIP {
 
@@ -100,12 +99,13 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_returnTypeIllegal_fail() {
+	void when_returnTypeIllegal_fail() {
 		@PolicyInformationPoint
 		class PIP {
 
 			@Attribute
-			public void x() {
+			void x() {
+				/* NOOP */
 			}
 
 		}
@@ -115,7 +115,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_returnTypeIllegalFluxType_fail() {
+	void when_returnTypeIllegalFluxType_fail() {
 		@PolicyInformationPoint
 		class PIP {
 
@@ -131,7 +131,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_returnTypeIllegalGenericVal_fail() {
+	void when_returnTypeIllegalGenericVal_fail() {
 		@PolicyInformationPoint
 		class PIP {
 
@@ -147,7 +147,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_firstAndOnlyParameterVal_loadSuccessful() {
+	void when_firstAndOnlyParameterVal_loadSuccessful() {
 		@PolicyInformationPoint
 		class PIP {
 
@@ -163,19 +163,19 @@ public class AnnotationAttributeContextTests {
 		assertDoesNotThrow(() -> ctx.loadPolicyInformationPoint(pip));
 		assertThat(ctx.getAvailableLibraries().contains("PIP"), is(true));
 		assertThat(ctx.providedFunctionsOfLibrary("PIP").contains("x"), is(true));
-		assertThat(ctx.isProvidedFunction("PIP.x"), is(true));
+		assertThat(ctx.isProvidedFunction("PIP.x"), is(Boolean.TRUE));
 		assertThat(new ArrayList<>(ctx.getDocumentation()).get(0).getName(), is("PIP"));
 	}
 
 	@Test
-	public void when_noPip_providedIsEmpty() {
+	void when_noPip_providedIsEmpty() {
 		var ctx = new AnnotationAttributeContext();
 		assertThat(ctx.providedFunctionsOfLibrary("PIP").isEmpty(), is(true));
 		assertThat(ctx.getDocumentation().isEmpty(), is(true));
 	}
 
 	@Test
-	public void when_firstAndOnlyParameterVariablesMap_loadSuccessful() {
+	void when_firstAndOnlyParameterVariablesMap_loadSuccessful() {
 		@PolicyInformationPoint
 		class PIP {
 
@@ -192,7 +192,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_firstAndOnlyParameterMapWithBadKeyType_fail() {
+	void when_firstAndOnlyParameterMapWithBadKeyType_fail() {
 		@PolicyInformationPoint
 		class PIP {
 
@@ -208,7 +208,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_firstAndOnlyParameterMapWithBadValueType_fail() {
+	void when_firstAndOnlyParameterMapWithBadValueType_fail() {
 		@PolicyInformationPoint
 		class PIP {
 
@@ -224,7 +224,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_firstAndOnlyParameterOfEnvAttributeVal_loadSuccessful() {
+	void when_firstAndOnlyParameterOfEnvAttributeVal_loadSuccessful() {
 		@PolicyInformationPoint
 		class PIP {
 
@@ -241,7 +241,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_firstAndOnlyParameterNotAVal_fail() {
+	void when_firstAndOnlyParameterNotAVal_fail() {
 		@PolicyInformationPoint
 		class PIP {
 
@@ -257,7 +257,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_someParamBAdType_fail() {
+	void when_someParamBAdType_fail() {
 		@PolicyInformationPoint
 		class PIP {
 
@@ -273,7 +273,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_firstAndOnlyParameterIsVarArgsOfVal_loadSuccessful() {
+	void when_firstAndOnlyParameterIsVarArgsOfVal_loadSuccessful() {
 		@PolicyInformationPoint
 		class PIP {
 
@@ -290,7 +290,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_firstAndOnlyParameterIsArrayOfVal_loadSuccessful() {
+	void when_firstAndOnlyParameterIsArrayOfVal_loadSuccessful() {
 		@PolicyInformationPoint
 		class PIP {
 
@@ -307,7 +307,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_arrayFollowedBYSomething_failImport() {
+	void when_arrayFollowedBYSomething_failImport() {
 		@PolicyInformationPoint
 		class PIP {
 
@@ -324,7 +324,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_firstAndOnlyParameterIsVarArgsString_fail() {
+	void when_firstAndOnlyParameterIsVarArgsString_fail() {
 		@PolicyInformationPoint
 		class PIP {
 
@@ -341,7 +341,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_differentNames_noCollision() throws InitializationException {
+	void when_differentNames_noCollision() {
 		@PolicyInformationPoint
 		class PIP {
 
@@ -363,7 +363,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_envAndNonEnv_noCollision() throws InitializationException {
+	void when_envAndNonEnv_noCollision() {
 		@PolicyInformationPoint
 		class PIP {
 
@@ -385,7 +385,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_varargAndNonVarArg_noCollision() throws InitializationException {
+	void when_varargAndNonVarArg_noCollision() {
 		@PolicyInformationPoint
 		class PIP {
 
@@ -407,7 +407,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_twoVarArg_collision() throws InitializationException {
+	void when_twoVarArg_collision() {
 		@PolicyInformationPoint
 		class PIP {
 
@@ -429,7 +429,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_sameNumberOFParams_collision() throws InitializationException {
+	void when_sameNumberOFParams_collision() {
 		@PolicyInformationPoint
 		class PIP {
 
@@ -451,7 +451,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_evaluateUnknownAttribute_fails() throws InitializationException, IOException {
+	void when_evaluateUnknownAttribute_fails() throws IOException {
 		var attributeCtx = new AnnotationAttributeContext();
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
@@ -460,7 +460,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_varArgsWithVariablesEnvironmentAttribute_evaluates() throws InitializationException, IOException {
+	void when_varArgsWithVariablesEnvironmentAttribute_evaluates() throws InitializationException, IOException {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
 
@@ -480,7 +480,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_varArgsWithVariablesAttribute_evaluates() throws InitializationException, IOException {
+	void when_varArgsWithVariablesAttribute_evaluates() throws InitializationException, IOException {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
 
@@ -500,7 +500,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_varArgsWithVariablesAndTwoAttributes_evaluates() throws InitializationException, IOException {
+	void when_varArgsWithVariablesAndTwoAttributes_evaluates() throws InitializationException, IOException {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
 
@@ -521,7 +521,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_varArgsNoVariablesEnvironmentAttribute_evaluates() throws InitializationException, IOException {
+	void when_varArgsNoVariablesEnvironmentAttribute_evaluates() throws InitializationException, IOException {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
 
@@ -541,7 +541,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_varsAndParamEnvironmentAttribute_evaluates() throws InitializationException, IOException {
+	void when_varsAndParamEnvironmentAttribute_evaluates() throws InitializationException, IOException {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
 
@@ -561,7 +561,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_varArgsAndTwoParamEnvironmentAttribute_evaluatesExactParameterMatch()
+	void when_varArgsAndTwoParamEnvironmentAttribute_evaluatesExactParameterMatch()
 			throws InitializationException, IOException {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
@@ -587,7 +587,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_varArgsEnvironmentAttribute_calledWithNoParams_evalsVarArgsWithEmptyParamArray()
+	void when_varArgsEnvironmentAttribute_calledWithNoParams_evaluatesVarArgsWithEmptyParamArray()
 			throws InitializationException, IOException {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
@@ -608,7 +608,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_noArgsEnvironmentAttribute_called_evals() throws InitializationException, IOException {
+	void when_noArgsEnvironmentAttribute_called_evaluates() throws InitializationException, IOException {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
 
@@ -628,7 +628,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_noArgsEnvironmentAttribute_calledAndFails_evalsToError()
+	void when_noArgsEnvironmentAttribute_calledAndFails_evaluatesToError()
 			throws InitializationException, IOException {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
@@ -649,7 +649,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_noArgsAttribute_calledAndFails_evalsToError() throws InitializationException, IOException {
+	void when_noArgsAttribute_calledAndFails_evaluatesToError() throws InitializationException, IOException {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
 
@@ -673,7 +673,7 @@ public class AnnotationAttributeContextTests {
 	}
 	
 	@Test
-	public void when_noArgsAttribute_called_evals() throws InitializationException, IOException {
+	void when_noArgsAttribute_called_evaluates() throws InitializationException, IOException {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
 
@@ -693,7 +693,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_unkownAttribute_called_evalsToError() throws InitializationException, IOException {
+	void when_unknownAttribute_called_evaluatesToError() throws IOException {
 		var attributeCtx = new AnnotationAttributeContext();
 		var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 		var expression   = ParserUtil.expression("\"\".<test.envAttribute>");
@@ -702,7 +702,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_twoParamEnvironmentAttribute_calledWithOneParam_evaluatesToError()
+	void when_twoParamEnvironmentAttribute_calledWithOneParam_evaluatesToError()
 			throws InitializationException, IOException {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
@@ -723,7 +723,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_varArgsWithVariablesEnvironmentAttributeAndBadParamType_evaluatesToError()
+	void when_varArgsWithVariablesEnvironmentAttributeAndBadParamType_evaluatesToError()
 			throws InitializationException, IOException {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
@@ -744,7 +744,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void generatesCodeTemplates() throws InitializationException, IOException {
+	void generatesCodeTemplates() throws InitializationException {
 
 		@PolicyInformationPoint(name = "test")
 		class PIP {
@@ -789,17 +789,17 @@ public class AnnotationAttributeContextTests {
 		var pip = new PIP();
 		var sut = new AnnotationAttributeContext(pip);
 
-		var expectedEnvirionmentTemplates = new String[] { "test.a(a1, a2)>", "test.a(varArgsParams...)>",
+		var expectedEnvironmentTemplates = new String[] { "test.a(a1, a2)>", "test.a(varArgsParams...)>",
 				"test.a2(a1, a2)>", "test.a2>" };
 		var actualEnvironmentTemplates    = sut.getEnvironmentAttributeCodeTemplates();
 		actualEnvironmentTemplates = sut.getEnvironmentAttributeCodeTemplates();
-		assertThat(actualEnvironmentTemplates, containsInAnyOrder(expectedEnvirionmentTemplates));
+		assertThat(actualEnvironmentTemplates, containsInAnyOrder(expectedEnvironmentTemplates));
 
-		var expectedNonEnvirionmentTemplates = new String[] { "test.x2(a1, a2)>", "test.x(varArgsParams...)>",
+		var expectedNonEnvironmentTemplates = new String[] { "test.x2(a1, a2)>", "test.x(varArgsParams...)>",
 				"test.x(a1, a2)>" };
 		var actualNonEnvironmentTemplates    = sut.getAttributeCodeTemplates();
 		actualNonEnvironmentTemplates = sut.getAttributeCodeTemplates();
-		assertThat(actualNonEnvironmentTemplates, containsInAnyOrder(expectedNonEnvirionmentTemplates));
+		assertThat(actualNonEnvironmentTemplates, containsInAnyOrder(expectedNonEnvironmentTemplates));
 
 		assertThat(sut.getAvailableLibraries(), containsInAnyOrder("test"));
 		assertThat(sut.getAllFullyQualifiedFunctions().size(), is(7));
@@ -808,7 +808,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void when_environmentAttributeButOnlyNonEnvAttributePresent_fail()
+	void when_environmentAttributeButOnlyNonEnvAttributePresent_fail()
 			throws InitializationException, IOException {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
@@ -839,7 +839,7 @@ public class AnnotationAttributeContextTests {
 	}
 
 	@Test
-	public void addsDocumentedAttributeCodeTemplates() throws InitializationException {
+	void addsDocumentedAttributeCodeTemplates() throws InitializationException {
 
 		final String pipName        = "test";
 		final String pipDescription = "description";

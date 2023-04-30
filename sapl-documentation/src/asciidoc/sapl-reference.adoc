@@ -1572,7 +1572,6 @@ A decision value (`NOT_APPLICABLE`, `INDETERMINATE`, `PERMIT` or `DENY`) can als
 |don't care
 |`INDETERMINATE`
 
-// Todo: In XACML, Policy set can also be not applicable if evaluation of target is indeterminate and combining algorithm evaluates to not-applicable. Would be a part for the PRP (set errorsInTarget Flag)
 |===
 
 === Authorization Subscription

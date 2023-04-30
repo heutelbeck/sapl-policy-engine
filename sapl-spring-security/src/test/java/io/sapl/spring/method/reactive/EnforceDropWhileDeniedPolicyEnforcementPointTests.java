@@ -54,7 +54,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Hooks;
 import reactor.test.StepVerifier;
 
-public class EnforceDropWhileDeniedPolicyEnforcementPointTests {
+class EnforceDropWhileDeniedPolicyEnforcementPointTests {
 
 	private final static ObjectMapper MAPPER = new ObjectMapper();
 
@@ -148,14 +148,13 @@ public class EnforceDropWhileDeniedPolicyEnforcementPointTests {
 	}
 
 	@Test
-	void when_permit_thenPermitWithResourdeThenPermit_thenAllSignalsGetThroughWhileNoResourceElseResource() {
+	void when_permit_thenPermitWithResourceThenPermit_thenAllSignalsGetThroughWhileNoResourceElseResource() {
 		StepVerifier.withVirtualTime(
-				this::scenario_when_permit_thenPermitWithResourdeThenPermit_thenAllSignalsGetThroughWhileNoResourceElseResource)
+				this::scenario_when_permit_thenPermitWithResourceThenPermit_thenAllSignalsGetThroughWhileNoResourceElseResource)
 				.thenAwait(Duration.ofMillis(3000L)).expectNext(0, 1, 69, 4, 5, 6, 7, 8, 9).verifyComplete();
 	}
 
-	private Flux<Integer>
-			scenario_when_permit_thenPermitWithResourdeThenPermit_thenAllSignalsGetThroughWhileNoResourceElseResource() {
+	private Flux<Integer> scenario_when_permit_thenPermitWithResourceThenPermit_thenAllSignalsGetThroughWhileNoResourceElseResource() {
 		var constraintsService = buildConstraintHandlerService();
 		var decisions          = Flux.just(AuthorizationDecision.PERMIT,
 				AuthorizationDecision.PERMIT.withResource(JSON.numberNode(69)), AuthorizationDecision.PERMIT)
@@ -165,14 +164,13 @@ public class EnforceDropWhileDeniedPolicyEnforcementPointTests {
 	}
 
 	@Test
-	void when_permit_thenPermitWithResourdeThenPermit_typeMismatch_thenSignalsDuringMismatchGetDropped() {
+	void when_permit_thenPermitWithResourceThenPermit_typeMismatch_thenSignalsDuringMismatchGetDropped() {
 		StepVerifier.withVirtualTime(
 				this::scenario_when_permit_thenPermitWithResourdeThenPermit_typeMismatch_thenSignalsDuringMismatchGetDropped)
 				.thenAwait(Duration.ofMillis(3000L)).expectNext(0, 1, 4, 5, 6, 7, 8, 9).verifyComplete();
 	}
 
-	private Flux<Integer>
-			scenario_when_permit_thenPermitWithResourdeThenPermit_typeMismatch_thenSignalsDuringMismatchGetDropped() {
+	private Flux<Integer> scenario_when_permit_thenPermitWithResourdeThenPermit_typeMismatch_thenSignalsDuringMismatchGetDropped() {
 		var constraintsService = buildConstraintHandlerService();
 		var decisions          = Flux.just(AuthorizationDecision.PERMIT,
 				AuthorizationDecision.PERMIT.withResource(JSON.textNode("NOT A NUMBER")), AuthorizationDecision.PERMIT)
@@ -324,7 +322,7 @@ public class EnforceDropWhileDeniedPolicyEnforcementPointTests {
 		};
 		globalMappingHandlerProviders.add(handler);
 		var constraintsService = buildConstraintHandlerService();
-		var decisions          = decisionFluxWithChangeingAdvice().delayElements(Duration.ofMillis(270L));
+		var decisions          = decisionFluxWithChangingAdvice().delayElements(Duration.ofMillis(270L));
 		var data               = Flux.range(0, 10).delayElements(Duration.ofMillis(50L));
 		return EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
 
@@ -573,7 +571,7 @@ public class EnforceDropWhileDeniedPolicyEnforcementPointTests {
 
 		});
 		globalRequestHandlerProviders.add(handler);
-		var decisions          = decisionFluxWithChangeingAdvice();
+		var decisions          = decisionFluxWithChangingAdvice();
 		var constraintsService = buildConstraintHandlerService();
 		var data               = Flux.range(0, 10);
 		var sut                = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
@@ -746,7 +744,7 @@ public class EnforceDropWhileDeniedPolicyEnforcementPointTests {
 		var sut                = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
 				Integer.class);
 
-		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4).expectErrorMatches(err -> err.getMessage().equals("ILLEGAL"))
+		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4).expectErrorMatches(err -> "ILLEGAL".equals(err.getMessage()))
 				.verify();
 		verify(handler, times(1)).accept(any());
 	}
@@ -929,7 +927,7 @@ public class EnforceDropWhileDeniedPolicyEnforcementPointTests {
 		return Flux.just(AuthorizationDecision.PERMIT.withAdvice(advice));
 	}
 
-	public Flux<AuthorizationDecision> decisionFluxWithChangeingAdvice() {
+	public Flux<AuthorizationDecision> decisionFluxWithChangingAdvice() {
 		var json            = JsonNodeFactory.instance;
 		var advicePlus10000 = json.numberNode(10000L);
 		var advicePlus50000 = json.numberNode(50000L);
@@ -942,7 +940,7 @@ public class EnforceDropWhileDeniedPolicyEnforcementPointTests {
 				AuthorizationDecision.PERMIT.withAdvice(secondAdvice));
 	}
 
-	public Flux<AuthorizationDecision> decisionFluxWithChangeingObligations() {
+	public Flux<AuthorizationDecision> decisionFluxWithChangingObligations() {
 		var json      = JsonNodeFactory.instance;
 		var plus10000 = json.numberNode(10000L);
 		var plus50000 = json.numberNode(50000L);

@@ -15,9 +15,6 @@
  */
 package io.sapl.prp.resources;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-
 import org.junit.jupiter.api.Test;
 
 import io.sapl.interpreter.InitializationException;
@@ -26,7 +23,7 @@ import io.sapl.pdp.PolicyDecisionPointFactory;
 class ResourcesPolicyRetrievalPointTest {
 
 	@Test
-	void loadPolicies() throws IOException, URISyntaxException, InitializationException {
+	void loadPolicies() throws InitializationException {
 		PolicyDecisionPointFactory.resourcesPolicyDecisionPoint();
 	}
 

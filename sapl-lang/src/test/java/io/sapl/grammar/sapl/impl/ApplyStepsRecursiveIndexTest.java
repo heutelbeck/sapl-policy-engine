@@ -20,8 +20,6 @@ import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 
 import org.junit.jupiter.api.Test;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-
 class ApplyStepsRecursiveIndexTest {
 
 	@Test
@@ -65,14 +63,14 @@ class ApplyStepsRecursiveIndexTest {
 	}
 
 	@Test
-	void applyToObject() throws JsonProcessingException {
+	void applyToObject() {
 		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}..[0]";
 		var expected   = "[ { \"key\" : \"value2\" }, 1 ]";
 		expressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
-	void removeRecussiveIndexStepObject() {
+	void removeRecursiveIndexStepObject() {
 		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] } "
 				+ "|- { @..[0] : filter.remove }";
 		var expected   = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value3\" } ], \"array2\" : [ 2, 3, 4, 5 ] }";
@@ -80,7 +78,7 @@ class ApplyStepsRecursiveIndexTest {
 	}
 
 	@Test
-	void removeRecussiveIndexStepObjectDescend() {
+	void removeRecursiveIndexStepObjectDescend() {
 		var expression = "{ \"key\" : \"value1\", \"array1\" : [ [ 1,2,3 ], { \"key\" : \"value3\" } ], \"array2\" : [ [1,2,3], 2, 3, 4, 5 ] } "
 				+ "|- { @..[0][0] : filter.remove }";
 		var expected   = "{ \"key\" : \"value1\", \"array1\" : [ [ 2,3 ], { \"key\" : \"value3\" } ], \"array2\" : [ [2,3], 2, 3, 4, 5 ] }";

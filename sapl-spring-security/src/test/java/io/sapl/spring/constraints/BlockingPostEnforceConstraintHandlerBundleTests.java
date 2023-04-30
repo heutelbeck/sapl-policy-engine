@@ -12,18 +12,19 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 import org.junit.jupiter.api.Test;
 
-public class BlockingPostEnforceConstraintHandlerBundleTests {
+class BlockingPostEnforceConstraintHandlerBundleTests {
 
 	@Test
 	void when_filterOptionalFalse_then_returnsEmpty() {
 		var filter = (Predicate<Object>) o -> false;
 		// @formatter:off
 		var sut    = new BlockingPostEnforceConstraintHandlerBundle<Optional<String>>(
-							() -> {},__ -> {}, x -> x, __ -> {}, x -> x, filter);
+							() -> {},__ -> {}, Function.identity(), __ -> {}, Function.identity(), filter);
 		// @formatter:on
 		var result = sut.handleAllOnNextConstraints(Optional.of("Hello"));
 		assertThat(result, is(emptyOptional()));
@@ -34,7 +35,7 @@ public class BlockingPostEnforceConstraintHandlerBundleTests {
 		var filter = (Predicate<Object>) o -> true;
 		// @formatter:off
 		var sut    = new BlockingPostEnforceConstraintHandlerBundle<Optional<String>>(
-							() -> {},__ -> {}, x -> x, __ -> {}, x -> x, filter);
+							() -> {},__ -> {}, Function.identity(), __ -> {},Function.identity(), filter);
 		// @formatter:on
 		var result = sut.handleAllOnNextConstraints(Optional.of("Hello"));
 		assertThat(result, is(optionalWithValue(is("Hello"))));
@@ -46,7 +47,7 @@ public class BlockingPostEnforceConstraintHandlerBundleTests {
 		var filter = (Predicate<Object>) o -> ((String) o).startsWith("A");
 		// @formatter:off
 		var sut    = new BlockingPostEnforceConstraintHandlerBundle<List<String>>(
-							() -> {},__ -> {}, x -> x, __ -> {}, x -> x, filter);
+							() -> {},__ -> {}, Function.identity(), __ -> {}, Function.identity(), filter);
 		// @formatter:on
 		var result = sut.handleAllOnNextConstraints(List.of("Alice", "Bob", "Ada", "Adam", "Donald"));
 		assertThat(result, contains("Alice", "Ada", "Adam"));
@@ -57,7 +58,7 @@ public class BlockingPostEnforceConstraintHandlerBundleTests {
 		var filter = (Predicate<Object>) o -> ((String) o).startsWith("A");
 		// @formatter:off
 		var sut    = new BlockingPostEnforceConstraintHandlerBundle<String[]>(
-							() -> {},__ -> {}, x -> x, __ -> {}, x -> x, filter);
+							() -> {},__ -> {}, Function.identity(), __ -> {}, Function.identity(), filter);
 		// @formatter:on
 		var result = sut.handleAllOnNextConstraints(new String[] { "Alice", "Bob", "Ada", "Adam", "Donald" });
 		assertThat(result, arrayContaining("Alice", "Ada", "Adam"));
@@ -68,7 +69,7 @@ public class BlockingPostEnforceConstraintHandlerBundleTests {
 		var filter = (Predicate<Object>) o -> ((String) o).startsWith("A");
 		// @formatter:off
 		var sut    = new BlockingPostEnforceConstraintHandlerBundle<Set<String>>(
-							() -> {},__ -> {}, x -> x, __ -> {}, x -> x, filter);
+							() -> {},__ -> {}, Function.identity(), __ -> {}, Function.identity(), filter);
 		// @formatter:on
 		var result = sut.handleAllOnNextConstraints(Set.of("Alice", "Bob", "Ada", "Adam", "Donald"));
 		assertThat(result, containsInAnyOrder("Alice", "Ada", "Adam"));
@@ -79,7 +80,7 @@ public class BlockingPostEnforceConstraintHandlerBundleTests {
 		var filter = (Predicate<Object>) o -> ((String) o).startsWith("A");
 		// @formatter:off
 		var sut    = new BlockingPostEnforceConstraintHandlerBundle<String>(
-							() -> {},__ -> {}, x -> x, __ -> {}, x -> x, filter);
+							() -> {},__ -> {}, Function.identity(), __ -> {}, Function.identity(), filter);
 		// @formatter:on
 		var result = sut.handleAllOnNextConstraints("Bob");
 		assertThat(result, is(nullValue()));
@@ -90,7 +91,7 @@ public class BlockingPostEnforceConstraintHandlerBundleTests {
 		var filter = (Predicate<Object>) o -> ((String) o).startsWith("A");
 		// @formatter:off
 		var sut    = new BlockingPostEnforceConstraintHandlerBundle<String>(
-							() -> {},__ -> {}, x -> x, __ -> {}, x -> x, filter);
+							() -> {},__ -> {}, Function.identity(), __ -> {}, Function.identity(), filter);
 		// @formatter:on
 		var result = sut.handleAllOnNextConstraints("Alice");
 		assertThat(result, is("Alice"));

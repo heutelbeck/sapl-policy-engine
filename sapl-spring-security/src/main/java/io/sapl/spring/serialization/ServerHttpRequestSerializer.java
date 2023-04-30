@@ -64,7 +64,7 @@ public class ServerHttpRequestSerializer extends JsonSerializer<ServerHttpReques
 			gen.writeStringField(LOCAL_ADDRESS, localAddress.toString());
 			gen.writeNumberField(LOCAL_PORT, localAddress.getPort());
 		}
-		gen.writeStringField(METHOD, value.getMethodValue());
+		gen.writeStringField(METHOD, value.getMethod().name());
 		gen.writeStringField(CONTEXT_PATH, String.valueOf(value.getPath()));
 		gen.writeStringField(REQUESTED_URI, String.valueOf(value.getURI()));
 		writeHeaders(value, gen);

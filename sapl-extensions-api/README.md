@@ -39,7 +39,7 @@ The internal data model of the SAPL engine uses the `Val` class. `Val` is a mona
 
 ## Custom Function Library
 
-By developing a custom function library, a PDP can be extended to interpret policies making use of these functions. An example of a custom function library can be found in the `sapl-geo` module. There, a number of functions are implemented, enabling the processing of GEO JSON Objects. So, for example, a function can test if a point is contained within a polygon using a geographic coordinate system to implement features like geo-fencing. Whenever an application domain makes repeated use of specific JSON schemes and its semantics require some domain-specific processing for the reasoning within SAPL policies, implementing a custom function library can be helpful and significantly improve the readability, maintainability, and expressiveness of the policies.
+By developing a custom function library, a PDP can be extended to interpret policies making use of these functions. An example of a custom function library can be found in the `sapl-geo` module. There, a number of functions are implemented, enabling the processing of GEO JSON Objects. So, for example, a function can test if a point is contained within a polygon using a geographic coordinate system to implement features like geofencing. Whenever an application domain makes repeated use of specific JSON schemes and its semantics require some domain-specific processing for the reasoning within SAPL policies, implementing a custom function library can be helpful and significantly improve the readability, maintainability, and expressiveness of the policies.
 
 Each function library is a Java class and has to define a namespace in which its functions reside. This behavior is similar to Java packages, and analogous functions can be imported into SAPL policies to provide shorthand access. Methods of the class can be exposed as SAPL functions.
 
@@ -169,7 +169,7 @@ public Flux<Val> attribute(@Object Val leftHandObjectOfTheAttribute, Map<String,
 }
 ```
 
-Additionally, using Java variable argument lists, it is possible to declare attributes with a variable number of attributes. If a method wants to use variable arguments, the method must not declare any other parameters besides the optional left-hand or variables parameters. If an attribute is overloaded, an implementation with an exact match of the number of arguments takes precedence over a variable arguments implementation.
+Additionally, using Java variable argument lists, it is possible to declare attributes with a variable number of attributes. If a method wants to use variable arguments, the method must not declare any other parameters besides the optional left-hand or variables parameters. If an attribute is overloaded, an implementation with an exact match of the number of arguments takes precedence over an implementation with a variable number of arguments.
 
 ```java
 /* subject.<user.attribute("AA","BB","CC")> */
@@ -207,7 +207,7 @@ In a simple Java application, a PDP is instantiated using the `PolicyDecisionPoi
 	PolicyDecisionPoint pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(path, List.of(new EchoPIP()), List.of(new SimpleFunctionLibrary()));
 ```
 
-When using the Spring Security integration, PIPs and function libraries can be registered with the application context as beans. The SAPL auto-configuration will pick them up automatically if present is their packages are configured to be scanned by Spring. E.e., a PIP may be annotated with `@Component` or  `@Service`.
+When using the Spring Security integration, PIPs and function libraries can be registered with the application context as beans. The SAPL autoconfiguration will pick them up automatically if present is their packages are configured to be scanned by Spring. E.e., a PIP may be annotated with `@Component` or  `@Service`.
 
 ### Registering with a SAPL Server
 

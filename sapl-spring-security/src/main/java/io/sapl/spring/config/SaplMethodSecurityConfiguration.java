@@ -42,7 +42,7 @@ import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPoint;
 import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPointVoter;
 import io.sapl.spring.method.metadata.SaplAttributeFactory;
 import io.sapl.spring.method.metadata.SaplMethodSecurityMetadataSource;
-import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.WebAuthorizationSubscriptionBuilderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -69,11 +69,11 @@ public class SaplMethodSecurityConfiguration extends GlobalMethodSecurityConfigu
 
 	protected final ObjectFactory<ObjectMapper> objectMapperFactory;
 
-	protected final ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory;
+	protected final ObjectFactory<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderFactory;
 
 	@Bean
-	protected AuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService() {
-		return new AuthorizationSubscriptionBuilderService(getExpressionHandler(), objectMapperFactory.getObject());
+	protected WebAuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService() {
+		return new WebAuthorizationSubscriptionBuilderService(getExpressionHandler(), objectMapperFactory.getObject());
 	}
 
 	@Override

@@ -50,7 +50,7 @@ public class BasicExpressionImplCustom extends BasicExpressionImpl {
 
 	private Function<? super Val, Publisher<? extends Val>> resolveSteps(EList<Step> steps, int stepId) {
 		if (steps == null || stepId == steps.size()) {
-			return value -> resolveFilterOrSubTemplate(value);
+			return this::resolveFilterOrSubTemplate;
 		}
 		return value -> steps.get(stepId).apply(value).switchMap(resolveSteps(steps, stepId + 1));
 	}

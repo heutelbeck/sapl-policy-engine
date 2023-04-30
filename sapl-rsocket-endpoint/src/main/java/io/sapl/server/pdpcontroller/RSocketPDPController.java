@@ -1,14 +1,18 @@
 package io.sapl.server.pdpcontroller;
 
-import io.sapl.api.pdp.*;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.stereotype.Controller;
+
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
+import io.sapl.api.pdp.MultiAuthorizationDecision;
+import io.sapl.api.pdp.MultiAuthorizationSubscription;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-@Slf4j
 @Controller
 @RequiredArgsConstructor
 public class RSocketPDPController {
@@ -16,12 +20,14 @@ public class RSocketPDPController {
 
 	/**
 	 * Delegates to {@link PolicyDecisionPoint#decide(AuthorizationSubscription)}.
-	 * @param authzSubscription the authorization subscription to be processed by the PDP.
+	 * 
+	 * @param authzSubscription the authorization subscription to be processed by
+	 *                          the PDP.
 	 * @return a flux emitting the current authorization decisions.
 	 * @see PolicyDecisionPoint#decide(AuthorizationSubscription)
 	 */
 	@MessageMapping("decide")
-	 Flux<AuthorizationDecision> requestStream(AuthorizationSubscription authzSubscription) {
+	Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
 		return pdp.decide(authzSubscription).onErrorResume(error -> Flux.just(AuthorizationDecision.INDETERMINATE));
 	}
 
@@ -40,12 +46,14 @@ public class RSocketPDPController {
 	}
 
 	/**
-	 * Delegates to {@link PolicyDecisionPoint#decide(MultiAuthorizationSubscription)}.
-	 * @param multiAuthzSubscription the authorization multi-subscription to be processed
-	 * by the PDP.
+	 * Delegates to
+	 * {@link PolicyDecisionPoint#decide(MultiAuthorizationSubscription)}.
+	 * 
+	 * @param multiAuthzSubscription the authorization multi-subscription to be
+	 *                               processed by the PDP.
 	 * @return a flux emitting authorization decisions related to the individual
-	 * subscriptions contained in the given {@code multiAuthzSubscription} as soon as they
-	 * are available.
+	 *         subscriptions contained in the given {@code multiAuthzSubscription}
+	 *         as soon as they are available.
 	 * @see PolicyDecisionPoint#decide(MultiAuthorizationSubscription)
 	 */
 	@MessageMapping("multi-decide")
@@ -55,12 +63,14 @@ public class RSocketPDPController {
 	}
 
 	/**
-	 * Delegates to {@link PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)}.
-	 * @param multiAuthzSubscription the authorization multi-subscription to be processed
-	 * by the PDP.
-	 * @return a flux emitting multi-decisions containing authorization decisions for all
-	 * the individual authorization subscriptions contained in the given
-	 * {@code multiAuthzSubscription}.
+	 * Delegates to
+	 * {@link PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)}.
+	 * 
+	 * @param multiAuthzSubscription the authorization multi-subscription to be
+	 *                               processed by the PDP.
+	 * @return a flux emitting multi-decisions containing authorization decisions
+	 *         for all the individual authorization subscriptions contained in the
+	 *         given {@code multiAuthzSubscription}.
 	 * @see PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)
 	 */
 	@MessageMapping("multi-decide-all")

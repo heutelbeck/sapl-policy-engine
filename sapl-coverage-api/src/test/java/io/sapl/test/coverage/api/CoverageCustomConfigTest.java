@@ -16,6 +16,7 @@
 package io.sapl.test.coverage.api;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -29,7 +30,7 @@ import org.junit.jupiter.api.Test;
 
 import io.sapl.test.coverage.api.model.PolicySetHit;
 
-public class CoverageCustomConfigTest {
+class CoverageCustomConfigTest {
 
 	private Path basedir;
 
@@ -39,8 +40,8 @@ public class CoverageCustomConfigTest {
 
 	@BeforeEach
 	void setup() {
-		basedir = Paths.get("temp").resolve("sapl-coverage");
-		this.reader = new CoverageHitAPIFile(basedir);
+		basedir       = Paths.get("temp").resolve("sapl-coverage");
+		this.reader   = new CoverageHitAPIFile(basedir);
 		this.recorder = new CoverageHitAPIFile(basedir);
 	}
 
@@ -53,24 +54,26 @@ public class CoverageCustomConfigTest {
 	void testSystemPropertyConfig_Reader() throws IOException {
 		Path path = this.basedir.resolve("hits").resolve("_policySetHits.txt");
 		if (!Files.exists(path)) {
-			if (path.getParent() != null) {
-				Files.createDirectories(path.getParent());
+			var parent = path.getParent();
+			if (parent != null) {
+				Files.createDirectories(parent);
 			}
 			Files.createFile(path);
 		}
-		Files.write(path, (new PolicySetHit("set1").toString() + System.lineSeparator()).getBytes(),
+		Files.write(path,
+				(new PolicySetHit("set1") + System.lineSeparator()).getBytes(StandardCharsets.UTF_8),
 				StandardOpenOption.APPEND);
 
 		// act
 		List<PolicySetHit> resultPolicySetHits = reader.readPolicySetHits();
 
 		// assert
-		Assertions.assertThat(resultPolicySetHits.size()).isEqualTo(1);
+		Assertions.assertThat(resultPolicySetHits).hasSize(1);
 		Assertions.assertThat(resultPolicySetHits.get(0).getPolicySetId()).isEqualTo("set1");
 	}
 
 	@Test
-	void testSystemPropertyConfig_Recorder() throws IOException {
+	void testSystemPropertyConfig_Recorder() {
 		// act
 		recorder.createCoverageHitFiles();
 

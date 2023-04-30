@@ -23,7 +23,7 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.method.metadata.PostEnforceAttribute;
-import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.WebfluxAuthorizationSubscriptionBuilderService;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -35,7 +35,7 @@ public class PostEnforcePolicyEnforcementPoint {
 
 	private final ConstraintEnforcementService constraintHandlerService;
 
-	private final AuthorizationSubscriptionBuilderService subscriptionBuilder;
+	private final WebfluxAuthorizationSubscriptionBuilderService subscriptionBuilder;
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public Mono<?> postEnforceOneDecisionOnResourceAccessPoint(Mono<?> resourceAccessPoint, MethodInvocation invocation,

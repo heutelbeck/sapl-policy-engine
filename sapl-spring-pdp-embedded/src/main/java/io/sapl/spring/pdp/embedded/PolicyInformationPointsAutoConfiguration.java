@@ -18,6 +18,7 @@ package io.sapl.spring.pdp.embedded;
 import java.time.Clock;
 
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 
 import io.sapl.pip.TimePolicyInformationPoint;
@@ -26,8 +27,14 @@ import io.sapl.pip.TimePolicyInformationPoint;
 public class PolicyInformationPointsAutoConfiguration {
 
 	@Bean
-	TimePolicyInformationPoint timePolicyInformationPoint() {
-		return new TimePolicyInformationPoint(Clock.systemUTC());
+	@ConditionalOnMissingBean
+	Clock clock() {
+		return Clock.systemUTC();
+	}
+
+	@Bean
+	TimePolicyInformationPoint timePolicyInformationPoint(Clock clock) {
+		return new TimePolicyInformationPoint(clock);
 	}
 
 }

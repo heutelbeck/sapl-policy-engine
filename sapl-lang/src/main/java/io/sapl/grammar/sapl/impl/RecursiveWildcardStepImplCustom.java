@@ -87,7 +87,7 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 		// Basically just apply filter to top-level matches and do recursion with steps.
 		// @.* is basically equivalent to @..* here.
 		return FilterAlgorithmUtil.applyFilter(unfilteredValue, stepId, WildcardStepImplCustom::wildcard, statement,
-				"..*", WildcardStep.class);
+				WildcardStep.class);
 	}
 
 }

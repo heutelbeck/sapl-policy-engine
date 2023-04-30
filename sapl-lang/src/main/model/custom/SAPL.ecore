@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" name="sapl" nsURI="http://sapl.io/sapl/SAPL" nsPrefix="sapl">
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" name="sapl" nsURI="https://sapl.io/sapl/SAPL" nsPrefix="sapl">
   <eClassifiers xsi:type="ecore:EClass" name="SAPL" eSuperTypes="#//Matchable #//EvaluableDocument">
     <eStructuralFeatures xsi:type="ecore:EReference" name="imports" upperBound="-1"
         eType="#//Import" containment="true"/>
@@ -334,7 +334,7 @@
   <eClassifiers xsi:type="ecore:EDataType" name="ValMono" instanceTypeName="reactor.core.publisher.Mono&lt;io.sapl.api.interpreter.Val>"/>
   <eClassifiers xsi:type="ecore:EDataType" name="PolicyElementList" instanceTypeName="java.util.List&lt;io.sapl.grammar.sapl.PolicyElement>"/>
   <eClassifiers xsi:type="ecore:EClass" name="CombiningAlgorithm" abstract="true">
-    <eOperations name="combinePolicies" lowerBound="1" eType="#//CombindeDecisionFlux">
+    <eOperations name="combinePolicies" lowerBound="1" eType="#//CombinedDecisionFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
         <details key="documentation" value="Method which evaluates multiple policies within a policy set against an authorization subscription object, combines the results and creates and returns a corresponding authorization decision object. The method is supposed to be used to determine an authorization decision for the SAPL documents known to the PDP. Imports are obtained from the SAPL document.&#xA;@param policies policies of the set currently matching the ongoing authorization subscription.&#xA;@return a {@link Flux} of {@link AuthorizationDecision} objects containing the combined decision, the combined obligation and advice and a transformed resource if applicable. A new authorization decision object is only pushed if it is different from the previous one."/>
       </eAnnotations>
@@ -356,7 +356,7 @@
   <eClassifiers xsi:type="ecore:EDataType" name="PolicyRetrievalResult" instanceClassName="io.sapl.prp.PolicyRetrievalResult"/>
   <eClassifiers xsi:type="ecore:EDataType" name="DocumentEvaluationResultFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.interpreter.DocumentEvaluationResult>"
       serializable="false"/>
-  <eClassifiers xsi:type="ecore:EDataType" name="CombindeDecisionFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.interpreter.CombinedDecision>"
+  <eClassifiers xsi:type="ecore:EDataType" name="CombinedDecisionFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.interpreter.CombinedDecision>"
       serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="DocumentEvaluationResult" instanceClassName="io.sapl.interpreter.DocumentEvaluationResult"
       serializable="false"/>

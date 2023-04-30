@@ -17,6 +17,7 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.Map;
 
+import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.ExpressionStep;
 import io.sapl.grammar.sapl.FilterStatement;
@@ -89,7 +90,7 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 	}
 
 	private Val extractValueAt(Val parentValue, Val index) {
-		var trace = Map.of("parentValue", parentValue, "expressionResult", index);
+		var trace = Map.<String,Traced>of("parentValue", parentValue, "expressionResult", index);
 		if (index.isError()) {
 			return index.withTrace(ExpressionStep.class, trace);
 		}
@@ -107,7 +108,7 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 	}
 
 	private Val extractKey(Val parentValue, Val key) {
-		var trace = Map.of("parentValue", parentValue, "expressionResult", key);
+		var trace = Map.<String,Traced>of("parentValue", parentValue, "expressionResult", key);
 		if (key.isError()) {
 			return key.withTrace(ExpressionStep.class, trace);
 		}

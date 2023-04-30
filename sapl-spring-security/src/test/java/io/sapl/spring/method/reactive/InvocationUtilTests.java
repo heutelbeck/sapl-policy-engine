@@ -24,7 +24,7 @@ import java.io.IOException;
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.Test;
 
-public class InvocationUtilTests {
+class InvocationUtilTests {
 
 	@Test
 	void sneakyThrows() throws Throwable {

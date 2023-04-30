@@ -15,13 +15,15 @@
  */
 package io.sapl.test.coverage.api;
 
+import static io.sapl.test.coverage.api.CoverageAPIFactory.constructCoverageHitRecorder;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -37,30 +39,28 @@ class CoverageAPIFactoryTest {
 
 		Path hitDir = Paths.get("target/tmp/hits");
 
-		Assertions.assertThat(countFilesInDir(hitDir)).isEqualTo(0);
+		assertThat(countFilesInDir(hitDir)).isZero();
 
-		CoverageAPIFactory.constructCoverageHitRecorder(Paths.get("target/tmp"));
+		constructCoverageHitRecorder(Paths.get("target/tmp"));
 
-		Assertions.assertThat(countFilesInDir(hitDir)).isEqualTo(3);
+		assertThat(countFilesInDir(hitDir)).isEqualTo(3);
 	}
 
 	private int countFilesInDir(Path path) throws IOException {
-		int count = 0;
+		var count = new AtomicInteger(0);
 		if (!path.toFile().exists()) {
-			return count;
+			return count.getPlain();
 		}
-		try (DirectoryStream<Path> stream = Files.newDirectoryStream(path, "*.txt")) {
-			for (@SuppressWarnings("unused") Path value : stream) {
-				count++;
-			}
+		try (var stream = Files.newDirectoryStream(path, "*.txt")) {
+			stream.forEach(__ -> count.incrementAndGet());
 		}
-		return count;
+		return count.getPlain();
 	}
 
 	@Test
 	void test_reader() {
 		var object = CoverageAPIFactory.constructCoverageHitReader(Paths.get(""));
-		Assertions.assertThat(object).isNotNull();
+		assertThat(object).isNotNull();
 	}
 
 }

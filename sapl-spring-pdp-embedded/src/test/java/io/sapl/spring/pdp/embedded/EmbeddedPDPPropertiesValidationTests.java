@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -33,20 +32,13 @@ class EmbeddedPDPPropertiesValidationTests {
 	@TempDir
 	File tempDir;
 
-	String existingFolder;
-
-	@BeforeEach
-	void beforeEach() {
-		existingFolder = tempDir.getAbsolutePath().toString();
-	}
-
 	@EnableConfigurationProperties(EmbeddedPDPProperties.class)
 	static class EnablePropertiesInApplicationTestRunnerConfiguration {
 
 	}
 
 	@Test
-	void whenValidProertiesArePresent_thenPropertiesLoad() {
+	void whenValidPropertiesArePresent_thenPropertiesLoad() {
 		contextRunner
 				.withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=FILEsystem",
 						"io.sapl.pdp.embedded.index=CaNoNiCaL", "io.sapl.pdp.embedded.configPath=" + tempDir,
@@ -55,7 +47,7 @@ class EmbeddedPDPPropertiesValidationTests {
 	}
 
 	@Test
-	void whenValidProertiesWithMissingPathsArePresent_thenPropertiesFallBackToDefaults() {
+	void whenValidPropertiesWithMissingPathsArePresent_thenPropertiesFallBackToDefaults() {
 		contextRunner
 				.withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=FILESYSTEM", "io.sapl.pdp.embedded.index=NAIVE")
 				.run(context -> {

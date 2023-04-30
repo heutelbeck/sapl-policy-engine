@@ -28,8 +28,6 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.BeforeEach;
@@ -64,16 +62,15 @@ import io.sapl.spring.method.metadata.SaplMethodSecurityMetadataSource;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
 import io.sapl.spring.serialization.ServerHttpRequestSerializer;
-import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.WebfluxAuthorizationSubscriptionBuilderService;
+import jakarta.servlet.http.HttpServletRequest;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-public class ReactiveSaplMethodInterceptorTests {
+class ReactiveSaplMethodInterceptorTests {
 
 	private MethodInterceptor springSecurityMethodInterceptor;
-
-	private MethodSecurityMetadataSource metadataSource;
 
 	private MethodSecurityExpressionHandler handler;
 
@@ -83,7 +80,7 @@ public class ReactiveSaplMethodInterceptorTests {
 
 	private ObjectMapper mapper;
 
-	private AuthorizationSubscriptionBuilderService subscriptionBuilder;
+	private WebfluxAuthorizationSubscriptionBuilderService subscriptionBuilder;
 
 	private PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint;
 
@@ -99,7 +96,7 @@ public class ReactiveSaplMethodInterceptorTests {
 		PrePostAnnotationSecurityMetadataSource prePostSource = new PrePostAnnotationSecurityMetadataSource(
 				new ExpressionBasedAnnotationAttributeFactory(handler));
 		SaplMethodSecurityMetadataSource sapl = new SaplMethodSecurityMetadataSource(new SaplAttributeFactory(handler));
-		metadataSource = new DelegatingMethodSecurityMetadataSource(Arrays.asList(sapl, prePostSource));
+		MethodSecurityMetadataSource metadataSource = new DelegatingMethodSecurityMetadataSource(Arrays.asList(sapl, prePostSource));
 
 		pdp = mock(PolicyDecisionPoint.class);
 		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
@@ -110,7 +107,7 @@ public class ReactiveSaplMethodInterceptorTests {
 		module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
 		module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
 		mapper.registerModule(module);
-		subscriptionBuilder = mock(AuthorizationSubscriptionBuilderService.class);
+		subscriptionBuilder = mock(WebfluxAuthorizationSubscriptionBuilderService.class);
 		when(subscriptionBuilder.reactiveConstructAuthorizationSubscription(any(MethodInvocation.class), any()))
 				.thenReturn(Mono.just(AuthorizationSubscription.of("the subject", "the action", "the resource")));
 		preEnforcePolicyEnforcementPoint = mock(PreEnforcePolicyEnforcementPoint.class);
@@ -157,7 +154,7 @@ public class ReactiveSaplMethodInterceptorTests {
 	}
 
 	@Test
-	void when_nonReactiveType_then_fail() throws Throwable {
+	void when_nonReactiveType_then_fail() {
 		class TestClass {
 
 			@PreEnforce
@@ -174,24 +171,24 @@ public class ReactiveSaplMethodInterceptorTests {
 	}
 
 	@Test
-	void when_postEnforceOnFlux_then_fail() throws Throwable {
+	void when_postEnforceOnFlux_then_fail() {
 		class TestClass {
 
 			@PostEnforce
-			public Flux<Integer> fluxIntegrer() {
+			public Flux<Integer> fluxInteger() {
 				return Flux.just(1);
 			}
 
 		}
 		var testInstance = new TestClass();
-		var invocation = MockMethodInvocation.of(testInstance, TestClass.class, "fluxIntegrer",
-				testInstance::fluxIntegrer, null, null);
+		var invocation = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
+				testInstance::fluxInteger, null, null);
 		assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
 		verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
 	}
 
 	@Test
-	void when_saplAndSpringAnnotationsPresent_then_thisDoesNotFailBecauseDelegationgSourceDoesOnlyReturnOne()
+	void when_saplAndSpringAnnotationsPresent_then_thisDoesNotFailBecauseDelegationSourceDoesOnlyReturnOne()
 			throws Throwable {
 
 		// This test should fail if at one point in time the delegating source changes
@@ -217,7 +214,7 @@ public class ReactiveSaplMethodInterceptorTests {
 	}
 
 	@Test
-	void when_prePostIsCombinedWithContiniousEnforce_then_fail() throws Throwable {
+	void when_prePostIsCombinedWithContinuousEnforce_then_fail() {
 
 		class TestClass {
 
@@ -240,7 +237,7 @@ public class ReactiveSaplMethodInterceptorTests {
 	}
 
 	@Test
-	void when_moreThanOneContiniousAnnotation_then_fail() throws Throwable {
+	void when_moreThanOneContinuousAnnotation_then_fail() {
 
 		class TestClass {
 
@@ -264,7 +261,7 @@ public class ReactiveSaplMethodInterceptorTests {
 	}
 
 	@Test
-	void when_saplAndSpringAnnotationsPresent_then_failsIfBothAreReturnedByMetadataSource() throws Throwable {
+	void when_saplAndSpringAnnotationsPresent_then_failsIfBothAreReturnedByMetadataSource() {
 
 		var conflictingAttributes = List.of(mock(PreEnforceAttribute.class), mock(PreInvocationAttribute.class));
 		var mockMetadataSource = mock(MethodSecurityMetadataSource.class);
@@ -370,7 +367,7 @@ public class ReactiveSaplMethodInterceptorTests {
 
 	@Test
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	void when_onlyEnforceRevocerableIfDenied_then_enforceRecoverableIfDeniedPEPIsCalled() throws Throwable {
+	void when_onlyEnforceRecoverableIfDenied_then_enforceRecoverableIfDeniedPEPIsCalled() throws Throwable {
 		class TestClass {
 
 			@EnforceRecoverableIfDenied

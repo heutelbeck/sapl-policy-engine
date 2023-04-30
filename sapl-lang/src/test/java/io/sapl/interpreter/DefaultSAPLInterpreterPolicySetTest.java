@@ -101,7 +101,7 @@ class DefaultSAPLInterpreterPolicySetTest {
 	}
 
 	@Test
-	void denyOverridesPermitAndIntederminateAndDeny() {
+	void denyOverridesPermitAndIndeterminateAndDeny() {
 		var policySet = "set \"tests\" deny-overrides " +   //
 				"policy \"testp1\" permit " +               //
 				"policy \"testp2\" permit \"a\" < 5 " +     //

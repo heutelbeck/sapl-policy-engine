@@ -18,8 +18,6 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 
-import java.io.IOException;
-
 import org.junit.jupiter.api.Test;
 
 class EagerOperatorsTest {
@@ -635,7 +633,7 @@ class EagerOperatorsTest {
 	}
 
 	@Test
-	void evaluateElementOfNumbersTrue2() throws IOException {
+	void evaluateElementOfNumbersTrue2() {
 		expressionEvaluatesTo("1 in [2, 1.000]", "true");
 	}
 

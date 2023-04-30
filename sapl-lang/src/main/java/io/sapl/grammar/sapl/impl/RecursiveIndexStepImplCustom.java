@@ -22,6 +22,7 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
+import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.grammar.sapl.RecursiveIndexStep;
@@ -117,7 +118,7 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 									statement.isEach())
 							.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, parentValue))
 							.map(filteredValue -> {
-								var trace = new HashMap<String, Val>();
+								var trace = new HashMap<String, Traced>();
 								trace.put("unfiltered", element);
 								trace.put("filtered", filteredValue);
 								return filteredValue.withTrace(RecursiveIndexStep.class, trace);

@@ -15,6 +15,7 @@
  */
 package io.sapl.pdp.config.fixed;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -50,8 +51,8 @@ public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPC
 
 	public FixedFunctionsAndAttributesPDPConfigurationProvider(AttributeContext attributeCtx,
 			FunctionContext functionCtx, VariablesAndCombinatorSource variablesAndCombinatorSource,
-			List<AuthorizationSubscriptionInterceptor> subscriptionInterceptors,
-			List<TracedDecisionInterceptor> decisionInterceptors) {
+			Collection<AuthorizationSubscriptionInterceptor> subscriptionInterceptors,
+			Collection<TracedDecisionInterceptor> decisionInterceptors) {
 		this.attributeCtx                 = attributeCtx;
 		this.functionCtx                  = functionCtx;
 		this.variablesAndCombinatorSource = variablesAndCombinatorSource;

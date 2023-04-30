@@ -19,11 +19,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
 
+import org.hamcrest.Matcher;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.verification.MockRunInformation.CallWithMetadata;
-
-import org.hamcrest.Matcher;
 
 /**
  * Verify that this mock was called n times with the specified list of Matcher.

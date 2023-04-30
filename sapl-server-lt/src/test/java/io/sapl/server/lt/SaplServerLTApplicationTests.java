@@ -34,7 +34,7 @@ class SaplServerLTApplicationTests {
 	}
 
 	private void runNoArgs() {
-		SpringApplication.run(SAPLServerLTApplication.class, new String[] {});
+		SpringApplication.run(SAPLServerLTApplication.class);
 	}
 
 }

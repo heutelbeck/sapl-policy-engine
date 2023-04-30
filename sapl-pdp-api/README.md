@@ -82,7 +82,7 @@ To use a PDP two implementations of the API are supplied. First, a completely em
    </dependency>
 ```
 
-The library with Spring auto configuration support:
+The library with Spring autoconfiguration support:
 
 ```xml
    <dependency>

@@ -114,13 +114,13 @@ class AnnotationFunctionContextTest {
 		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
 		assertAll(
 				() -> assertThat(context.isProvidedFunction(MockLibrary.LIBRARY_NAME + "." + MockLibrary.FUNCTION_NAME),
-						is(true)),
-				() -> assertThat(context.isProvidedFunction(MockLibrary.LIBRARY_NAME + ".helloTwoArgs"), is(true)),
-				() -> assertThat(context.isProvidedFunction(MockLibrary.LIBRARY_NAME + ".helloVarArgs"), is(true)));
+						is(Boolean.TRUE)),
+				() -> assertThat(context.isProvidedFunction(MockLibrary.LIBRARY_NAME + ".helloTwoArgs"), is(Boolean.TRUE)),
+				() -> assertThat(context.isProvidedFunction(MockLibrary.LIBRARY_NAME + ".helloVarArgs"), is(Boolean.TRUE)));
 	}
 
 	@Test
-	void libsTest() throws InitializationException {
+	void libsTest() {
 		AnnotationFunctionContext context = new AnnotationFunctionContext();
 		assertThat(context.evaluate("i.am.not.a.function"), valError());
 	}
@@ -146,11 +146,11 @@ class AnnotationFunctionContextTest {
 	@Test
 	void loadedLibrariesShouldBeReturned() throws InitializationException {
 		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
-		assertThat(context.getAvailableLibraries().contains(MockLibrary.LIBRARY_NAME), is(true));
+		assertThat(context.getAvailableLibraries().contains(MockLibrary.LIBRARY_NAME), is(Boolean.TRUE));
 	}
 
 	@Test
-	void loadedLibrariesReturnEmptyListWhenNotLoaded() throws InitializationException {
+	void loadedLibrariesReturnEmptyListWhenNotLoaded() {
 		AnnotationFunctionContext context = new AnnotationFunctionContext();
 		assertThat(context.getAvailableLibraries().size(), is(0));
 	}

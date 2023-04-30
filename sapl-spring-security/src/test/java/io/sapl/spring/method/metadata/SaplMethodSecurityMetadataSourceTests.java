@@ -39,7 +39,7 @@ class SaplMethodSecurityMetadataSourceTests {
 
 	@BeforeEach
 	void beforeEach() {
-		var parser = new SpelExpressionParser();
+		var parser  = new SpelExpressionParser();
 		var handler = mock(MethodSecurityExpressionHandler.class);
 		when(handler.getExpressionParser()).thenReturn(parser);
 		attributeFactory = new SaplAttributeFactory(handler);
@@ -52,16 +52,15 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenInspectedIsObject_ThenReturnsEmptycollection() throws NoSuchMethodException, SecurityException {
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
+	void whenInspectedIsObject_ThenReturnsEmptyCollection() throws NoSuchMethodException {
+		var sut    = new SaplMethodSecurityMetadataSource(attributeFactory);
 		var method = Object.class.getMethod("toString");
 		assertThat(sut.getAttributes(method, Object.class), is(empty()));
 	}
 
 	@Test
-	void whenInspectedHasNotAnnotationsAnywhere_ThenReturnsEmptycollection()
-			throws NoSuchMethodException, SecurityException {
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
+	void whenInspectedHasNotAnnotationsAnywhere_ThenReturnsEmptyCollection() throws NoSuchMethodException {
+		var sut    = new SaplMethodSecurityMetadataSource(attributeFactory);
 		var method = NoAnnotations.class.getMethod("doSomething");
 		assertThat(sut.getAttributes(method, NoAnnotations.class), is(empty()));
 	}
@@ -74,7 +73,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenAnnotationOnClassOnly_ThenReturnsAnnotationFromClass() throws NoSuchMethodException, SecurityException {
+	void whenAnnotationOnClassOnly_ThenReturnsAnnotationFromClass() throws NoSuchMethodException {
 
 		@PreEnforce(subject = "'onClass'")
 		class TestClass {
@@ -85,8 +84,8 @@ class SaplMethodSecurityMetadataSourceTests {
 
 		}
 
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
-		var method = TestClass.class.getMethod("doSomething");
+		var                   sut        = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var                   method     = TestClass.class.getMethod("doSomething");
 		List<ConfigAttribute> attributes = new ArrayList<>(sut.getAttributes(method, TestClass.class));
 		assertThat((PreEnforceAttribute) attributes.get(0),
 				is(pojo(PreEnforceAttribute.class).where("getSubjectExpression",
@@ -94,7 +93,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenAnnotationOnMethodOnly_ThenReturnsThat() throws NoSuchMethodException, SecurityException {
+	void whenAnnotationOnMethodOnly_ThenReturnsThat() throws NoSuchMethodException {
 
 		class TestClass {
 
@@ -104,8 +103,8 @@ class SaplMethodSecurityMetadataSourceTests {
 
 		}
 
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
-		var method = TestClass.class.getMethod("doSomething");
+		var                   sut        = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var                   method     = TestClass.class.getMethod("doSomething");
 		List<ConfigAttribute> attributes = new ArrayList<>(sut.getAttributes(method, TestClass.class));
 		assertThat((PreEnforceAttribute) attributes.get(0),
 				is(pojo(PreEnforceAttribute.class).where("getSubjectExpression",
@@ -114,7 +113,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenAnnotationOnMethodAndClass_ThenReturnsOnMetod() throws NoSuchMethodException, SecurityException {
+	void whenAnnotationOnMethodAndClass_ThenReturnsOnMethod() throws NoSuchMethodException {
 
 		@PreEnforce(subject = "'onClass'")
 		class TestClass {
@@ -125,8 +124,8 @@ class SaplMethodSecurityMetadataSourceTests {
 
 		}
 
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
-		var method = TestClass.class.getMethod("doSomething");
+		var                   sut        = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var                   method     = TestClass.class.getMethod("doSomething");
 		List<ConfigAttribute> attributes = new ArrayList<>(sut.getAttributes(method, TestClass.class));
 		assertThat((PreEnforceAttribute) attributes.get(0),
 				is(pojo(PreEnforceAttribute.class).where("getSubjectExpression",
@@ -142,7 +141,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenAnnotationOnlyOnInterfaceMethod_ThenReturnsThat() throws NoSuchMethodException, SecurityException {
+	void whenAnnotationOnlyOnInterfaceMethod_ThenReturnsThat() throws NoSuchMethodException {
 
 		class TestClass implements TestInterfaceAnnotatedOnMethod {
 
@@ -151,8 +150,8 @@ class SaplMethodSecurityMetadataSourceTests {
 
 		}
 
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
-		var method = TestClass.class.getMethod("doSomething");
+		var                   sut        = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var                   method     = TestClass.class.getMethod("doSomething");
 		List<ConfigAttribute> attributes = new ArrayList<>(sut.getAttributes(method, TestClass.class));
 		assertThat((PreEnforceAttribute) attributes.get(0),
 				is(pojo(PreEnforceAttribute.class).where("getSubjectExpression",
@@ -168,7 +167,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenAnnotationOnlyOnInterface_ThenReturnsThat() throws NoSuchMethodException, SecurityException {
+	void whenAnnotationOnlyOnInterface_ThenReturnsThat() throws NoSuchMethodException {
 
 		class TestClass implements TestInterfaceAnnotatedOnInterface {
 
@@ -177,8 +176,8 @@ class SaplMethodSecurityMetadataSourceTests {
 
 		}
 
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
-		var method = TestClass.class.getMethod("doSomething");
+		var                   sut        = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var                   method     = TestClass.class.getMethod("doSomething");
 		List<ConfigAttribute> attributes = new ArrayList<>(sut.getAttributes(method, TestClass.class));
 		assertThat((PreEnforceAttribute) attributes.get(0),
 				is(pojo(PreEnforceAttribute.class).where("getSubjectExpression",
@@ -194,8 +193,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenAnnotationOnInterfaceAnInterfaceMethod_ThenReturnsOnInterfaceMethod()
-			throws NoSuchMethodException, SecurityException {
+	void whenAnnotationOnInterfaceAnInterfaceMethod_ThenReturnsOnInterfaceMethod() throws NoSuchMethodException {
 
 		class TestClass implements TestInterfaceAnnotatedOnInterfaceAndMethod {
 
@@ -204,8 +202,8 @@ class SaplMethodSecurityMetadataSourceTests {
 
 		}
 
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
-		var method = TestClass.class.getMethod("doSomething");
+		var                   sut        = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var                   method     = TestClass.class.getMethod("doSomething");
 		List<ConfigAttribute> attributes = new ArrayList<>(sut.getAttributes(method, TestClass.class));
 		assertThat((PreEnforceAttribute) attributes.get(0),
 				is(pojo(PreEnforceAttribute.class).where("getSubjectExpression",
@@ -213,8 +211,8 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenAnnotationOnMethodAndClassAndOnInterfaceAndInterfaceMethod_ThenReturnsOnMetod()
-			throws NoSuchMethodException, SecurityException {
+	void whenAnnotationOnMethodAndClassAndOnInterfaceAndInterfaceMethod_ThenReturnsOnMethod()
+			throws NoSuchMethodException {
 
 		@PreEnforce(subject = "'onClass'")
 		class TestClass implements TestInterfaceAnnotatedOnInterfaceAndMethod {
@@ -225,8 +223,8 @@ class SaplMethodSecurityMetadataSourceTests {
 
 		}
 
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
-		var method = TestClass.class.getMethod("doSomething");
+		var                   sut        = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var                   method     = TestClass.class.getMethod("doSomething");
 		List<ConfigAttribute> attributes = new ArrayList<>(sut.getAttributes(method, TestClass.class));
 		assertThat((PreEnforceAttribute) attributes.get(0),
 				is(pojo(PreEnforceAttribute.class).where("getSubjectExpression",
@@ -234,7 +232,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenAnnotationOnMethod_ThenReturnsOnMetodForPost() throws NoSuchMethodException, SecurityException {
+	void whenAnnotationOnMethod_ThenReturnsOnMethodForPost() throws NoSuchMethodException {
 
 		class TestClass {
 
@@ -244,8 +242,8 @@ class SaplMethodSecurityMetadataSourceTests {
 
 		}
 
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
-		var method = TestClass.class.getMethod("doSomething");
+		var                   sut        = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var                   method     = TestClass.class.getMethod("doSomething");
 		List<ConfigAttribute> attributes = new ArrayList<>(sut.getAttributes(method, TestClass.class));
 		assertThat((PostEnforceAttribute) attributes.get(0),
 				is(pojo(PostEnforceAttribute.class).where("getSubjectExpression",
@@ -253,8 +251,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenAnnotationOnMethod_ThenReturnsOnMetodForEnforceTillDenied()
-			throws NoSuchMethodException, SecurityException {
+	void whenAnnotationOnMethod_ThenReturnsOnMethodForEnforceTillDenied() throws NoSuchMethodException {
 
 		class TestClass {
 
@@ -264,8 +261,8 @@ class SaplMethodSecurityMetadataSourceTests {
 
 		}
 
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
-		var method = TestClass.class.getMethod("doSomething");
+		var                   sut        = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var                   method     = TestClass.class.getMethod("doSomething");
 		List<ConfigAttribute> attributes = new ArrayList<>(sut.getAttributes(method, TestClass.class));
 		assertThat((EnforceTillDeniedAttribute) attributes.get(0),
 				is(pojo(EnforceTillDeniedAttribute.class).where("getSubjectExpression",
@@ -273,8 +270,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenAnnotationOnMethod_ThenReturnsOnMetodForEnforceDropWhileDenied()
-			throws NoSuchMethodException, SecurityException {
+	void whenAnnotationOnMethod_ThenReturnsOnMethodForEnforceDropWhileDenied() throws NoSuchMethodException {
 
 		class TestClass {
 
@@ -284,8 +280,8 @@ class SaplMethodSecurityMetadataSourceTests {
 
 		}
 
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
-		var method = TestClass.class.getMethod("doSomething");
+		var                   sut        = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var                   method     = TestClass.class.getMethod("doSomething");
 		List<ConfigAttribute> attributes = new ArrayList<>(sut.getAttributes(method, TestClass.class));
 		assertThat((EnforceDropWhileDeniedAttribute) attributes.get(0),
 				is(pojo(EnforceDropWhileDeniedAttribute.class).where("getSubjectExpression",
@@ -293,8 +289,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenAnnotationOnMethod_ThenReturnsOnMetodForEnforceRecoverableIfDenied()
-			throws NoSuchMethodException, SecurityException {
+	void whenAnnotationOnMethod_ThenReturnsOnMethodForEnforceRecoverableIfDenied() throws NoSuchMethodException {
 
 		class TestClass {
 
@@ -304,8 +299,8 @@ class SaplMethodSecurityMetadataSourceTests {
 
 		}
 
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
-		var method = TestClass.class.getMethod("doSomething");
+		var                   sut        = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var                   method     = TestClass.class.getMethod("doSomething");
 		List<ConfigAttribute> attributes = new ArrayList<>(sut.getAttributes(method, TestClass.class));
 		assertThat((EnforceRecoverableIfDeniedAttribute) attributes.get(0),
 				is(pojo(EnforceRecoverableIfDeniedAttribute.class).where("getSubjectExpression",
@@ -317,18 +312,18 @@ class SaplMethodSecurityMetadataSourceTests {
 		@PostEnforce(subject = "'onDefaultInterfaceMethod'")
 		default void doSomething() {
 
-		};
+		}
 
 	}
 
 	@Test
-	void whenAnnotationOnDefaultMethodInInterface_ThenReturnsThat() throws NoSuchMethodException, SecurityException {
+	void whenAnnotationOnDefaultMethodInInterface_ThenReturnsThat() throws NoSuchMethodException {
 		class TestClass implements DefaultMethodInterface {
 
 		}
 
-		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
-		var method = TestClass.class.getMethod("doSomething");
+		var                   sut        = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var                   method     = TestClass.class.getMethod("doSomething");
 		List<ConfigAttribute> attributes = new ArrayList<>(sut.getAttributes(method, TestClass.class));
 		assertThat((PostEnforceAttribute) attributes.get(0),
 				is(pojo(PostEnforceAttribute.class).where("getSubjectExpression",

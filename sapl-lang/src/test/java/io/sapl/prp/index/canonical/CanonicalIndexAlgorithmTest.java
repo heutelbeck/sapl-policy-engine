@@ -55,7 +55,7 @@ class CanonicalIndexAlgorithmTest {
 	@Test
 	void return_matching_context_when_predicate_is_referenced_in_candidates() {
 		var matchingCtx = mock(CanonicalIndexMatchingContext.class);
-		when(matchingCtx.isPredicateReferencedInCandidates(any())).thenReturn(true);
+		when(matchingCtx.isPredicateReferencedInCandidates(any())).thenReturn(Boolean.TRUE);
 
 		var predicate = new Predicate(new Bool(true));
 
@@ -73,8 +73,8 @@ class CanonicalIndexAlgorithmTest {
 		var p2 = new Predicate(new Bool(false));
 
 		var matchingCtx = mock(CanonicalIndexMatchingContext.class);
-		when(matchingCtx.isPredicateReferencedInCandidates(p1)).thenReturn(false);
-		when(matchingCtx.isPredicateReferencedInCandidates(p2)).thenReturn(true);
+		when(matchingCtx.isPredicateReferencedInCandidates(p1)).thenReturn(Boolean.FALSE);
+		when(matchingCtx.isPredicateReferencedInCandidates(p2)).thenReturn(Boolean.TRUE);
 
 		var dataContainer = mock(CanonicalIndexDataContainer.class);
 		when(dataContainer.getPredicateOrder()).thenReturn(ImmutableList.copyOf(Arrays.asList(p1, p2)));
@@ -320,10 +320,10 @@ class CanonicalIndexAlgorithmTest {
 				.thenReturn(new HashSet<>(Arrays.asList(c1, c2, c3)));
 
 		var matchingCtx = mock(CanonicalIndexMatchingContext.class);
-		when(matchingCtx.isRemainingCandidate(eq(0))).thenReturn(true);
-		when(matchingCtx.isRemainingCandidate(eq(1))).thenReturn(true);
-		when(matchingCtx.isRemainingCandidate(eq(2))).thenReturn(false);
-		when(matchingCtx.areAllFunctionsEliminated(eq(1), anyInt())).thenReturn(true);
+		when(matchingCtx.isRemainingCandidate(0)).thenReturn(Boolean.TRUE);
+		when(matchingCtx.isRemainingCandidate(1)).thenReturn(Boolean.TRUE);
+		when(matchingCtx.isRemainingCandidate(2)).thenReturn(Boolean.FALSE);
+		when(matchingCtx.areAllFunctionsEliminated(eq(1), anyInt())).thenReturn(Boolean.TRUE);
 
 		var orphanedCandidates = CanonicalIndexAlgorithm.findOrphanedCandidates(satisfiableCandidates, matchingCtx,
 				dataContainer);
@@ -334,7 +334,7 @@ class CanonicalIndexAlgorithmTest {
 	}
 
 	private List<ConjunctiveClause> createDummyClauseList(int numberOfLiterals) {
-		List<Literal> literals = new ArrayList<>();
+		List<Literal> literals = new ArrayList<>(numberOfLiterals);
 		for (int i = 0; i < numberOfLiterals; i++) {
 			literals.add(new Literal(new Bool(false)));
 		}

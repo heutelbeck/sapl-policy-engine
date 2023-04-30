@@ -58,8 +58,8 @@ public class TimePolicyInformationPoint {
 	@EnvironmentAttribute(docs = "Emits the current date and time as an ISO8601 String in UTC. The first time is emitted instantly. After that the time is updated once every second.")
 	public Flux<Val> now(@Number Val updateIntervalInMillis) {
 		try {
-			var intervall = valMsToNonZeroDuration(updateIntervalInMillis);
-			return instantNow(intervall).map(ISO_FORMATTER::format).map(Val::of);
+			var interval = valMsToNonZeroDuration(updateIntervalInMillis);
+			return instantNow(interval).map(ISO_FORMATTER::format).map(Val::of);
 		} catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}

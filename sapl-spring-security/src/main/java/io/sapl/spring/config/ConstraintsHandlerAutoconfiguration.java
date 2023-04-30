@@ -15,8 +15,8 @@
  */
 package io.sapl.spring.config;
 
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,7 +31,7 @@ import io.sapl.spring.constraints.providers.ContentFilteringProvider;
  * @author Dominic Heutelbeck
  * @since 2.0.0
  */
-@Configuration
+@AutoConfiguration
 @Import(value = { ConstraintEnforcementService.class })
 public class ConstraintsHandlerAutoconfiguration {
 	@Bean

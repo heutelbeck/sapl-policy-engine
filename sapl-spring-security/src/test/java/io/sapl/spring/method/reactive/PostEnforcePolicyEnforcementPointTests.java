@@ -29,8 +29,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,16 +65,18 @@ import io.sapl.spring.method.metadata.SaplAttributeFactory;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
 import io.sapl.spring.serialization.ServerHttpRequestSerializer;
-import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.WebfluxAuthorizationSubscriptionBuilderService;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.Getter;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-public class PostEnforcePolicyEnforcementPointTests {
+class PostEnforcePolicyEnforcementPointTests {
 
 	private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	private AuthorizationSubscriptionBuilderService subscriptionBuilderService;
+	private WebfluxAuthorizationSubscriptionBuilderService subscriptionBuilderService;
 
 	private MethodInvocation invocation;
 
@@ -116,7 +116,7 @@ public class PostEnforcePolicyEnforcementPointTests {
 		module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
 		module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
 		mapper.registerModule(module);
-		subscriptionBuilderService = new AuthorizationSubscriptionBuilderService(
+		subscriptionBuilderService = new WebfluxAuthorizationSubscriptionBuilderService(
 				new DefaultMethodSecurityExpressionHandler(), mapper);
 		var testClass = new TestClass();
 		resourceAccessPoint = testClass.publicInteger();
@@ -128,8 +128,7 @@ public class PostEnforcePolicyEnforcementPointTests {
 		when(handler.getExpressionParser()).thenReturn(parser);
 		attributeFactory                   = new SaplAttributeFactory(handler);
 		defaultAttribute                   = (PostEnforceAttribute) postEnforceAttributeFrom("'the subject'",
-				"'the action'",
-				"returnObject", "'the envirionment'", Integer.class);
+				"'the action'", "returnObject", "'the environment'", Integer.class);
 		pdp                                = mock(PolicyDecisionPoint.class);
 		globalRunnableProviders            = new LinkedList<>();
 		globalConsumerProviders            = new LinkedList<>();
@@ -363,27 +362,19 @@ public class PostEnforcePolicyEnforcementPointTests {
 
 	}
 
+	@Getter
 	public static class BadForJackson {
 
-		@SuppressWarnings("unused")
 		private String bad;
 
 	}
 
-	private SaplAttribute postEnforceAttributeFrom(
-			String subject,
-			String action,
-			String resource,
-			String environment,
+	private SaplAttribute postEnforceAttributeFrom(String subject, String action, String resource, String environment,
 			Class<?> genericsType) {
 		return attributeFactory.attributeFrom(postEnforceFrom(subject, action, resource, environment, genericsType));
 	}
 
-	private PostEnforce postEnforceFrom(
-			String subject,
-			String action,
-			String resource,
-			String environment,
+	private PostEnforce postEnforceFrom(String subject, String action, String resource, String environment,
 			Class<?> genericsType) {
 		return new PostEnforce() {
 			@Override

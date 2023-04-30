@@ -15,7 +15,7 @@
  */
 package io.sapl.test.coverage.api;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 
@@ -24,18 +24,24 @@ import org.junit.jupiter.api.Test;
 class SaplTestExceptionTest {
 
 	@Test
-	void test() {
-		assertThrows(SaplTestException.class, () -> {
-			throw new SaplTestException();
-		});
+	void defaultConstructor() {
+		var exception = new SaplTestException();
+		assertThat(exception.getMessage()).isNull();
+		assertThat(exception.getCause()).isNull();
+	}
 
-		assertThrows(SaplTestException.class, () -> {
-			throw new SaplTestException("Test");
-		});
+	@Test
+	void messageConstructor() {
+		var exception = new SaplTestException("Test");
+		assertThat(exception.getMessage()).isEqualTo("Test");
+		assertThat(exception.getCause()).isNull();
+	}
 
-		assertThrows(SaplTestException.class, () -> {
-			throw new SaplTestException("Test", new IOException());
-		});
+	@Test
+	void messageAndCauseConstructor() {
+		var exception = new SaplTestException("Test", new IOException());
+		assertThat(exception.getMessage()).isEqualTo("Test");
+		assertThat(exception.getCause()).isInstanceOfAny(IOException.class);
 	}
 
 }

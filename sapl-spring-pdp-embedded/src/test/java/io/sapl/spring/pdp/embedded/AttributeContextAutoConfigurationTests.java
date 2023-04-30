@@ -62,9 +62,7 @@ class AttributeContextAutoConfigurationTests {
 	@Test
 	void whenBadLibraryIsPresent_thenContextFailsToLoad() {
 		contextRunner.withBean(BadPolicyInformationPointLibrary.class, BadPolicyInformationPointLibrary::new)
-				.run(context -> {
-					assertThat(context).hasFailed();
-				});
+				.run(context -> assertThat(context).hasFailed());
 	}
 
 	@PolicyInformationPoint
@@ -72,6 +70,7 @@ class AttributeContextAutoConfigurationTests {
 
 		@Attribute
 		void iAmABadSignatureAttribute(Integer i, Float f) {
+			/* NOOP */
 		}
 
 	}

@@ -38,9 +38,9 @@ import io.sapl.api.pdp.Decision;
 class HasAdviceContainingKeyValueTest {
 
 	@Test
-	public void test() {
+	void test() {
 		ObjectMapper mapper = new ObjectMapper();
-		ObjectNode advice = mapper.createObjectNode();
+		ObjectNode   advice = mapper.createObjectNode();
 		advice.put("foo", "bar");
 		advice.put("key", "value");
 		ArrayNode adviceArray = mapper.createArrayNode();
@@ -55,9 +55,9 @@ class HasAdviceContainingKeyValueTest {
 	}
 
 	@Test
-	public void test_neg() {
+	void test_neg() {
 		ObjectMapper mapper = new ObjectMapper();
-		ObjectNode advice = mapper.createObjectNode();
+		ObjectNode   advice = mapper.createObjectNode();
 		advice.put("foo", "bar");
 		advice.put("key", "value");
 		ArrayNode adviceArray = mapper.createArrayNode();
@@ -72,25 +72,25 @@ class HasAdviceContainingKeyValueTest {
 	}
 
 	@Test
-	public void test_nullDecision() {
+	void test_nullDecision() {
 		var sut = Matchers.hasAdviceContainingKeyValue("key", jsonText("value"));
-
 		assertThat(null, not(is(sut)));
 	}
 
 	@Test
-	public void test_nullKey() {
-		assertThrows(NullPointerException.class, () -> Matchers.hasAdviceContainingKeyValue(null, jsonText("value")));
+	void test_nullKey() {
+		var text = jsonText("value");
+		assertThrows(NullPointerException.class, () -> Matchers.hasAdviceContainingKeyValue(null, text));
 	}
 
 	@Test
-	public void test_nullValue() {
+	void test_nullValue() {
 		assertThrows(NullPointerException.class,
 				() -> Matchers.hasAdviceContainingKeyValue("key", (Matcher<JsonNode>) null));
 	}
 
 	@Test
-	public void test_emptyAdvice() {
+	void test_emptyAdvice() {
 		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
 				Optional.empty());
 
@@ -100,15 +100,15 @@ class HasAdviceContainingKeyValueTest {
 	}
 
 	@Test
-	public void test_emptyMatcher() {
-		ObjectMapper mapper = new ObjectMapper();
-		ObjectNode actualAdivce = mapper.createObjectNode();
-		actualAdivce.put("foo", "bar");
-		actualAdivce.put("key", "value");
-		ArrayNode actualAdivces = mapper.createArrayNode();
-		actualAdivces.add(actualAdivce);
+	void test_emptyMatcher() {
+		ObjectMapper mapper       = new ObjectMapper();
+		ObjectNode   actualAdvice = mapper.createObjectNode();
+		actualAdvice.put("foo", "bar");
+		actualAdvice.put("key", "value");
+		ArrayNode actualAdviceArray = mapper.createArrayNode();
+		actualAdviceArray.add(actualAdvice);
 		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
-				Optional.of(actualAdivces));
+				Optional.of(actualAdviceArray));
 
 		var sut = Matchers.hasAdviceContainingKeyValue("key");
 
@@ -116,15 +116,15 @@ class HasAdviceContainingKeyValueTest {
 	}
 
 	@Test
-	public void test_StringValueMatcher() {
-		ObjectMapper mapper = new ObjectMapper();
-		ObjectNode actualAdivce = mapper.createObjectNode();
-		actualAdivce.put("foo", "bar");
-		actualAdivce.put("key", "value");
-		ArrayNode actualAdivces = mapper.createArrayNode();
-		actualAdivces.add(actualAdivce);
+	void test_StringValueMatcher() {
+		ObjectMapper mapper       = new ObjectMapper();
+		ObjectNode   actualAdvice = mapper.createObjectNode();
+		actualAdvice.put("foo", "bar");
+		actualAdvice.put("key", "value");
+		ArrayNode actualAdviceArray = mapper.createArrayNode();
+		actualAdviceArray.add(actualAdvice);
 		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
-				Optional.of(actualAdivces));
+				Optional.of(actualAdviceArray));
 
 		var sut = Matchers.hasAdviceContainingKeyValue("key", "value");
 
@@ -132,15 +132,15 @@ class HasAdviceContainingKeyValueTest {
 	}
 
 	@Test
-	public void test_MatchingKey_NotMatchingValue() {
-		ObjectMapper mapper = new ObjectMapper();
-		ObjectNode actualAdivce = mapper.createObjectNode();
-		actualAdivce.put("foo", "bar");
-		actualAdivce.put("key", "value");
-		ArrayNode actualAdivces = mapper.createArrayNode();
-		actualAdivces.add(actualAdivce);
+	void test_MatchingKey_NotMatchingValue() {
+		ObjectMapper mapper       = new ObjectMapper();
+		ObjectNode   actualAdvice = mapper.createObjectNode();
+		actualAdvice.put("foo", "bar");
+		actualAdvice.put("key", "value");
+		ArrayNode actualAdviceArray = mapper.createArrayNode();
+		actualAdviceArray.add(actualAdvice);
 		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
-				Optional.of(actualAdivces));
+				Optional.of(actualAdviceArray));
 
 		var sut = Matchers.hasAdviceContainingKeyValue("key", "xxx");
 
@@ -149,7 +149,7 @@ class HasAdviceContainingKeyValueTest {
 
 	@Test
 	void testDescriptionForMatcherEmptyMatcher() {
-		var sut = Matchers.hasAdviceContainingKeyValue("key");
+		var                     sut         = Matchers.hasAdviceContainingKeyValue("key");
 		final StringDescription description = new StringDescription();
 		sut.describeTo(description);
 		assertThat(description.toString(), is("the decision has an advice containing key key with any value"));
@@ -157,7 +157,7 @@ class HasAdviceContainingKeyValueTest {
 
 	@Test
 	void testDescriptionForMatcher() {
-		var sut = Matchers.hasAdviceContainingKeyValue("key", jsonText("value"));
+		var                     sut         = Matchers.hasAdviceContainingKeyValue("key", jsonText("value"));
 		final StringDescription description = new StringDescription();
 		sut.describeTo(description);
 		assertThat(description.toString(),

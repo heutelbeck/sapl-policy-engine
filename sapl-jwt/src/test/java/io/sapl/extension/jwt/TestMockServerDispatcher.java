@@ -15,7 +15,10 @@
  */
 package io.sapl.extension.jwt;
 
+import java.util.HashMap;
 import java.util.Map;
+
+import org.jetbrains.annotations.NotNull;
 
 import lombok.Setter;
 import okhttp3.mockwebserver.Dispatcher;
@@ -23,35 +26,6 @@ import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.RecordedRequest;
 
 public class TestMockServerDispatcher extends Dispatcher {
-
-	public enum DispatchMode {
-
-		/**
-		 * Dispatcher returns the true Base64Url-encoded key, matching the kid
-		 */
-		True,
-		/**
-		 * Dispatcher returns the true Base64-encoded key, matching the kid
-		 */
-		Basic,
-		/**
-		 * Dispatcher returns a wrong Base64Url-encoded key, not matching the kid
-		 */
-		Wrong,
-		/**
-		 * Dispatcher returns the key with Base64(Url) encoding errors
-		 */
-		Invalid,
-		/**
-		 * Dispatcher returns bogus data, not resembling an encoded key
-		 */
-		Bogus,
-		/**
-		 * Dispatcher always returns 404 - unknown
-		 */
-		Unknown
-
-	}
 
 	private final String kidPath;
 
@@ -62,15 +36,17 @@ public class TestMockServerDispatcher extends Dispatcher {
 
 	public TestMockServerDispatcher(String kidPath, Map<String, String> kidToPubKeyMap) {
 		this.kidPath        = kidPath;
-		this.kidToPubKeyMap = kidToPubKeyMap;
+		this.kidToPubKeyMap = new HashMap<>(kidToPubKeyMap);
 	}
 
+	@NotNull
 	@Override
 	public MockResponse dispatch(RecordedRequest request) {
-		if (!request.getPath().startsWith(kidPath))
+		var path = request.getPath();
+		if (path == null || !path.startsWith(kidPath))
 			return new MockResponse().setResponseCode(404);
 
-		String requestedId = request.getPath().substring(kidPath.length());
+		String requestedId = path.substring(kidPath.length());
 
 		if (!kidToPubKeyMap.containsKey(requestedId))
 			return new MockResponse().setResponseCode(404);
@@ -97,19 +73,19 @@ public class TestMockServerDispatcher extends Dispatcher {
 
 	private MockResponse dispatchWrongKey() {
 		return new MockResponse()
-				.setBody(KeyTestUtility.encodePublicKeyToBase64URLPrimary(KeyTestUtility.generateRSAKeyPair()));
+				.setBody(Base64DataUtil.encodePublicKeyToBase64URLPrimary(Base64DataUtil.generateRSAKeyPair()));
 	}
 
 	private MockResponse dispatchInvalidKey(String requestedId) {
-		return new MockResponse().setBody(KeyTestUtility.base64Invalid(kidToPubKeyMap.get(requestedId)));
+		return new MockResponse().setBody(Base64DataUtil.base64Invalid(kidToPubKeyMap.get(requestedId)));
 	}
 
 	private MockResponse dispatchBogusKey() {
-		return new MockResponse().setBody(KeyTestUtility.base64Bogus());
+		return new MockResponse().setBody(Base64DataUtil.base64Bogus());
 	}
 
 	private MockResponse dispatchBasicKey(String requestedId) {
-		return new MockResponse().setBody(KeyTestUtility.base64Basic(kidToPubKeyMap.get(requestedId)));
+		return new MockResponse().setBody(Base64DataUtil.base64Basic(kidToPubKeyMap.get(requestedId)));
 	}
 
 }

@@ -68,6 +68,7 @@ class PDPControllerTest {
 
 		verify(pdp, times(1)).decide(subscription);
 	}
+
 	@Test
 	void decideOnceValidBody() {
 		when(pdp.decide((AuthorizationSubscription) any(AuthorizationSubscription.class))).thenReturn(Flux
@@ -84,6 +85,7 @@ class PDPControllerTest {
 
 		verify(pdp, times(1)).decide(subscription);
 	}
+
 	@Test
 	void decideWithValidProcessingError() {
 		when(pdp.decide((AuthorizationSubscription) any(AuthorizationSubscription.class)))
@@ -100,7 +102,7 @@ class PDPControllerTest {
 
 		verify(pdp, times(1)).decide(subscription);
 	}
-	
+
 	@Test
 	void decideOnceWithValidProcessingError() {
 		when(pdp.decide((AuthorizationSubscription) any(AuthorizationSubscription.class)))
@@ -198,7 +200,7 @@ class PDPControllerTest {
 
 		verify(pdp, times(1)).decideAll(multiAuthzSubscription);
 	}
-	
+
 	@Test
 	void oneMultiAllDecisions() {
 		when(pdp.decideAll((MultiAuthorizationSubscription) any(MultiAuthorizationSubscription.class)))
@@ -220,6 +222,7 @@ class PDPControllerTest {
 
 		verify(pdp, times(1)).decideAll(multiAuthzSubscription);
 	}
+
 	@Test
 	void subscribeToMultiAllDecisionsProcessingError() {
 		when(pdp.decideAll((MultiAuthorizationSubscription) any(MultiAuthorizationSubscription.class)))
@@ -239,6 +242,7 @@ class PDPControllerTest {
 
 		verify(pdp, times(1)).decideAll(multiAuthzSubscription);
 	}
+
 	@Test
 	void oneMultiAllDecisionsProcessingError() {
 		when(pdp.decideAll((MultiAuthorizationSubscription) any(MultiAuthorizationSubscription.class)))

@@ -24,7 +24,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 
 import java.net.MalformedURLException;
-import java.net.URISyntaxException;
 import java.net.URL;
 
 import org.junit.jupiter.api.Test;
@@ -32,7 +31,7 @@ import org.mockito.MockedStatic;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.sapl.grammar.sapl.DenyUnlessPermitCombiningAlgorithm;
+import io.sapl.grammar.sapl.DenyOverridesCombiningAlgorithm;
 import io.sapl.grammar.sapl.PermitUnlessDenyCombiningAlgorithm;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.util.JarUtil;
@@ -75,7 +74,7 @@ class ResourcesVariablesAndCombinatorSourceTests {
 		var variables = configProvider.getVariables().blockFirst();
 		configProvider.dispose();
 
-		assertThat(algo.get() instanceof DenyUnlessPermitCombiningAlgorithm, is(true));
+		assertThat(algo.get() instanceof DenyOverridesCombiningAlgorithm, is(true));
 		assertThat(variables.get().size(), is(0));
 	}
 
@@ -101,7 +100,7 @@ class ResourcesVariablesAndCombinatorSourceTests {
 	}
 
 	@Test
-	void ifExecutedInJarAndConfigFileBroken_thenPropagateException() throws URISyntaxException, MalformedURLException {
+	void ifExecutedInJarAndConfigFileBroken_thenPropagateException() throws MalformedURLException {
 		var url = new URL("jar:" + ClassLoader.getSystemResource("broken_config_in_jar.jar") + "!/policies");
 		try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
 			mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);
@@ -121,7 +120,7 @@ class ResourcesVariablesAndCombinatorSourceTests {
 			var variables = configProvider.getVariables().blockFirst();
 			configProvider.dispose();
 
-			assertThat(algo.get() instanceof DenyUnlessPermitCombiningAlgorithm, is(true));
+			assertThat(algo.get() instanceof DenyOverridesCombiningAlgorithm, is(true));
 			assertThat(variables.get().size(), is(0));
 		}
 	}

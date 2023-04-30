@@ -1,0 +1,27 @@
+{
+	"algorithm": "DENY_UNLESS_PERMIT",
+	"variables": {
+		"mqttPipConfig": {
+			"defaultMessage" : "defaultMessage",
+			"defaultBrokerConfigName": "production",
+			"brokerConfig": [
+				{
+					"name": "production",
+					"brokerAddress": "localhost",
+					"brokerPort": 1883,
+					"clientId": "mqttPipDefault",
+					"username": "",
+					"password": ""
+				},
+				{
+					"name": "broker1",
+					"brokerAddress": "localhost",
+					"brokerPort": 1883,
+					"clientId": "mqttPip1",
+					"username": "",
+					"password": ""
+				}
+			]
+		}
+	}
+}

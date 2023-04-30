@@ -53,6 +53,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.Maps;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -90,7 +91,7 @@ class CanonicalImmutableParsedDocumentIndexTest {
 
 	@BeforeEach
 	void setUp() {
-		bindings = new HashMap<>();
+		bindings = Maps.newHashMapWithExpectedSize(getVariables().size());
 		for (String variable : getVariables()) {
 			bindings.put(variable, null);
 		}
@@ -137,7 +138,7 @@ class CanonicalImmutableParsedDocumentIndexTest {
 
 		/* EMPTY */
 		prpUpdateEvent = new PrpUpdateEvent();
-		updatedIndex   = spyIndex.apply(prpUpdateEvent);
+		spyIndex.apply(prpUpdateEvent);
 		verify(spyIndex, times(0)).applyUpdate(any(), any());
 		verify(spyIndex, times(1)).recreateIndex(argThat(Map::isEmpty), eq(false));
 	}
@@ -149,7 +150,7 @@ class CanonicalImmutableParsedDocumentIndexTest {
 	}
 
 	@Test
-	void test_return_empty_result_when_error_occurs() throws Exception {
+	void test_return_empty_result_when_error_occurs() {
 		InputStream resourceAsStream = getClass().getClassLoader()
 				.getResourceAsStream("it/error/policy_with_error.sapl");
 		SAPL        withError        = interpreter.parse(resourceAsStream);
@@ -162,14 +163,13 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		ImmutableParsedDocumentIndex updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
 		// when
-		PolicyRetrievalResult result = updatedIndex.retrievePolicies()
-				.contextWrite(ctx -> {
-					ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
-					ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
-					ctx = AuthorizationContext.setVariables(ctx, variables);
-					ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
-					return ctx;
-				}).block();
+		PolicyRetrievalResult result = updatedIndex.retrievePolicies().contextWrite(ctx -> {
+			ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+			ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+			ctx = AuthorizationContext.setVariables(ctx, variables);
+			ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
+			return ctx;
+		}).block();
 
 		// then
 		assertNotNull(result);
@@ -201,19 +201,18 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
 		ImmutableParsedDocumentIndex updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
-		bindings.put("x0", false);
-		bindings.put("x1", false);
-		bindings.put("x2", true);
+		bindings.put("x0", Boolean.FALSE);
+		bindings.put("x1", Boolean.FALSE);
+		bindings.put("x2", Boolean.TRUE);
 
 		// when
-		PolicyRetrievalResult result = updatedIndex.retrievePolicies()
-				.contextWrite(ctx -> {
-					ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
-					ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
-					ctx = AuthorizationContext.setVariables(ctx, variables);
-					ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
-					return ctx;
-				}).block();
+		PolicyRetrievalResult result = updatedIndex.retrievePolicies().contextWrite(ctx -> {
+			ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+			ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+			ctx = AuthorizationContext.setVariables(ctx, variables);
+			ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
+			return ctx;
+		}).block();
 
 		// then
 		assertNotNull(result);
@@ -236,14 +235,13 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		ImmutableParsedDocumentIndex updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
 		// when
-		PolicyRetrievalResult result = updatedIndex.retrievePolicies()
-				.contextWrite(ctx -> {
-					ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
-					ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
-					ctx = AuthorizationContext.setVariables(ctx, variables);
-					ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
-					return ctx;
-				}).block();
+		PolicyRetrievalResult result = updatedIndex.retrievePolicies().contextWrite(ctx -> {
+			ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+			ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+			ctx = AuthorizationContext.setVariables(ctx, variables);
+			ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
+			return ctx;
+		}).block();
 
 		// then
 		assertNotNull(result);
@@ -264,18 +262,17 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
 		ImmutableParsedDocumentIndex updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
-		bindings.put("x0", false);
-		bindings.put("x1", false);
+		bindings.put("x0", Boolean.FALSE);
+		bindings.put("x1", Boolean.FALSE);
 
 		// when
-		PolicyRetrievalResult result = updatedIndex.retrievePolicies()
-				.contextWrite(ctx -> {
-					ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
-					ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
-					ctx = AuthorizationContext.setVariables(ctx, variables);
-					ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
-					return ctx;
-				}).block();
+		PolicyRetrievalResult result = updatedIndex.retrievePolicies().contextWrite(ctx -> {
+			ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+			ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+			ctx = AuthorizationContext.setVariables(ctx, variables);
+			ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
+			return ctx;
+		}).block();
 
 		// then
 		assertNotNull(result);
@@ -297,8 +294,8 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
 		ImmutableParsedDocumentIndex updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
-		bindings.put("x0", true);
-		bindings.put("x1", true);
+		bindings.put("x0", Boolean.TRUE);
+		bindings.put("x1", Boolean.TRUE);
 
 		updates.clear();
 		updates.add(new Update(Type.WITHDRAW, document, definition));
@@ -307,14 +304,13 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		updatedIndex   = updatedIndex.apply(prpUpdateEvent);
 
 		// when
-		PolicyRetrievalResult result = updatedIndex.retrievePolicies()
-				.contextWrite(ctx -> {
-					ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
-					ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
-					ctx = AuthorizationContext.setVariables(ctx, variables);
-					ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
-					return ctx;
-				}).block();
+		PolicyRetrievalResult result = updatedIndex.retrievePolicies().contextWrite(ctx -> {
+			ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+			ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+			ctx = AuthorizationContext.setVariables(ctx, variables);
+			ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
+			return ctx;
+		}).block();
 
 		// then
 		assertNotNull(result);
@@ -334,17 +330,16 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
 		ImmutableParsedDocumentIndex updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
-		bindings.put("x0", false);
+		bindings.put("x0", Boolean.FALSE);
 
 		// when
-		PolicyRetrievalResult result = updatedIndex.retrievePolicies()
-				.contextWrite(ctx -> {
-					ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
-					ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
-					ctx = AuthorizationContext.setVariables(ctx, variables);
-					ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
-					return ctx;
-				}).block();
+		PolicyRetrievalResult result = updatedIndex.retrievePolicies().contextWrite(ctx -> {
+			ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+			ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+			ctx = AuthorizationContext.setVariables(ctx, variables);
+			ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
+			return ctx;
+		}).block();
 
 		// then
 		assertNotNull(result);

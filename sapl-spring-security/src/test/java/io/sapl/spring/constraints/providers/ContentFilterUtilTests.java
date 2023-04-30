@@ -5,14 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-public class ContentFilterUtilTests {
+class ContentFilterUtilTests {
 	private final static ObjectMapper MAPPER = new ObjectMapper();
 
 	@Data
@@ -24,11 +23,11 @@ public class ContentFilterUtilTests {
 	}
 
 	@Test
-	void test() throws JsonMappingException, JsonProcessingException {
-		var constraint = MAPPER.readTree(
-				"{ \"conditions\" : [ { \"path\":\"$.a\",\"type\" : \"=~\", \"value\" : \"^.BC$\"}] }");
+	void test() throws JsonProcessingException {
+		var constraint = MAPPER
+				.readTree("{ \"conditions\" : [ { \"path\":\"$.a\",\"type\" : \"=~\", \"value\" : \"^.BC$\"}] }");
 		var condition  = ContentFilterUtil.predicateFromConditions(constraint, MAPPER);
-		var data = new DataPoint("ABC",100);
+		var data       = new DataPoint("ABC", 100);
 		assertTrue(condition.test(data));
 	}
 }

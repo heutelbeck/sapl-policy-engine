@@ -29,13 +29,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.WebAuthorizationSubscriptionBuilderService;
 
 class SaplMethodSecurityConfigurationTests {
 
 	@Test
 	void whenRan_thenFilterBeansArePresent() {
-		new ApplicationContextRunner().withUserConfiguration(NoPrePostEnablingCongiguration.class)
+		new ApplicationContextRunner().withUserConfiguration(NoPrePostEnablingConfiguration.class)
 				.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
 				.withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
 				.withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
@@ -46,7 +46,7 @@ class SaplMethodSecurityConfigurationTests {
 
 	@Test
 	void whenRanWithPrePost_thenFilterBeansArePresent() {
-		new ApplicationContextRunner().withUserConfiguration(PrePostEnablingCongiguration.class)
+		new ApplicationContextRunner().withUserConfiguration(PrePostEnablingConfiguration.class)
 				.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
 				.withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
 				.withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
@@ -57,12 +57,12 @@ class SaplMethodSecurityConfigurationTests {
 
 	@Configuration
 	@EnableGlobalMethodSecurity(prePostEnabled = true)
-	public static class PrePostEnablingCongiguration extends SaplMethodSecurityConfiguration {
+	public static class PrePostEnablingConfiguration extends SaplMethodSecurityConfiguration {
 
-		public PrePostEnablingCongiguration(ObjectFactory<PolicyDecisionPoint> pdpFactory,
+		public PrePostEnablingConfiguration(ObjectFactory<PolicyDecisionPoint> pdpFactory,
 				ObjectFactory<ConstraintEnforcementService> constraintHandlerFactory,
 				ObjectFactory<ObjectMapper> objectMapperFactory,
-				ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory) {
+				ObjectFactory<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderFactory) {
 			super(pdpFactory, constraintHandlerFactory, objectMapperFactory, subscriptionBuilderFactory);
 		}
 
@@ -70,12 +70,12 @@ class SaplMethodSecurityConfigurationTests {
 
 	@Configuration
 	@EnableGlobalMethodSecurity()
-	public static class NoPrePostEnablingCongiguration extends SaplMethodSecurityConfiguration {
+	public static class NoPrePostEnablingConfiguration extends SaplMethodSecurityConfiguration {
 
-		public NoPrePostEnablingCongiguration(ObjectFactory<PolicyDecisionPoint> pdpFactory,
+		public NoPrePostEnablingConfiguration(ObjectFactory<PolicyDecisionPoint> pdpFactory,
 				ObjectFactory<ConstraintEnforcementService> constraintHandlerFactory,
 				ObjectFactory<ObjectMapper> objectMapperFactory,
-				ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory) {
+				ObjectFactory<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderFactory) {
 			super(pdpFactory, constraintHandlerFactory, objectMapperFactory, subscriptionBuilderFactory);
 		}
 

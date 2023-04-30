@@ -37,7 +37,7 @@ import io.sapl.api.pdp.Decision;
 class IsResourceTest {
 
 	@Test
-	public void test() {
+	void test() {
 		ObjectMapper mapper = new ObjectMapper();
 		ObjectNode resource = mapper.createObjectNode();
 		resource.put("foo", "bar");
@@ -49,7 +49,7 @@ class IsResourceTest {
 	}
 
 	@Test
-	public void test_neg() {
+	void test_neg() {
 		ObjectMapper mapper = new ObjectMapper();
 		ObjectNode expectedResource = mapper.createObjectNode();
 		expectedResource.put("foo", "bar");
@@ -63,7 +63,7 @@ class IsResourceTest {
 	}
 
 	@Test
-	public void test_nullDecision() {
+	void test_nullDecision() {
 		ObjectMapper mapper = new ObjectMapper();
 		ObjectNode resource = mapper.createObjectNode();
 		resource.put("foo", "bar");
@@ -74,7 +74,7 @@ class IsResourceTest {
 	}
 
 	@Test
-	public void test_emptyResource() {
+	void test_emptyResource() {
 		ObjectMapper mapper = new ObjectMapper();
 		ObjectNode resource = mapper.createObjectNode();
 		resource.put("foo", "bar");
@@ -86,7 +86,7 @@ class IsResourceTest {
 	}
 
 	@Test
-	public void test_emptyMatcher() {
+	void test_emptyMatcher() {
 		ObjectMapper mapper = new ObjectMapper();
 		ObjectNode resource = mapper.createObjectNode();
 		resource.put("foo", "bar");
@@ -98,7 +98,7 @@ class IsResourceTest {
 	}
 
 	@Test
-	public void test_nullJsonNode() {
+	void test_nullJsonNode() {
 		assertThrows(NullPointerException.class, () -> isResource((ObjectNode) null));
 	}
 

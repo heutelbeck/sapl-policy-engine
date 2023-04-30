@@ -30,6 +30,7 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.constraints.ReactiveTypeConstraintHandlerBundle;
+import lombok.NonNull;
 import lombok.SneakyThrows;
 import reactor.core.CoreSubscriber;
 import reactor.core.Disposable;
@@ -101,7 +102,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 	}
 
 	@Override
-	public void subscribe(CoreSubscriber<? super Tuple2<Optional<T>, Optional<Throwable>>> actual) {
+	public void subscribe(@NonNull CoreSubscriber<? super Tuple2<Optional<T>, Optional<Throwable>>> actual) {
 		if (sink != null)
 			throw new IllegalStateException("Operator may only be subscribed once.");
 		var context = actual.currentContext();

@@ -53,8 +53,7 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 	public Flux<Val> applyFilterStatement(@NonNull Val unfilteredValue, int stepId,
 			@NonNull FilterStatement statement) {
 		return FilterAlgorithmUtil.applyFilterOnArray(unfilteredValue, stepId,
-				SelectorUtil.toArrayElementSelector(isInSlice(unfilteredValue)), statement, parameters(),
-				ArraySlicingStep.class);
+				SelectorUtil.toArrayElementSelector(isInSlice(unfilteredValue)), statement, ArraySlicingStep.class);
 	}
 
 	private String parameters() {

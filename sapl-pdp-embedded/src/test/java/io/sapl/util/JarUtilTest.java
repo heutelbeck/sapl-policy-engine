@@ -32,41 +32,41 @@ import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
-public class JarUtilTest {
+class JarUtilTest {
 
 	@Test
-	public void inferUrlOfRecourcesPathTest() {
+	void inferUrlOfResourcesPathTest() {
 		var result = JarUtil.inferUrlOfResourcesPath(getClass(), "/policies");
 		assertThat(result.toString().startsWith("file:"), is(true));
 		assertThat(result.toString().endsWith("policies"), is(true));
 	}
 
 	@Test
-	public void inferUrlOfRecourcesPathTestWithMissingResource() {
+	void inferUrlOfResourcesPathTestWithMissingResource() {
 		assertThrows(RuntimeException.class, () -> JarUtil.inferUrlOfResourcesPath(getClass(), "/iDoNotExist"));
 	}
 
 	@Test
-	public void getJarFilePathTest() {
-		var url = JarUtil.inferUrlOfResourcesPath(getClass(), "/policies");
+	void getJarFilePathTest() {
+		var url    = JarUtil.inferUrlOfResourcesPath(getClass(), "/policies");
 		var result = JarUtil.getJarFilePath(url);
-		assertThat(result.toString().endsWith("policies"), is(true));
+		assertThat(result.endsWith("policies"), is(true));
 	}
 
 	@Test
-	public void readStringFromZipEntryTest() throws IOException {
-		var url = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/policies");
+	void readStringFromZipEntryTest() throws IOException {
+		var url       = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/policies");
 		var pathOfJar = JarUtil.getJarFilePath(url);
 		try (var jarFile = new ZipFile(pathOfJar)) {
-			var entry = jarFile.getEntry("policies/pdp.json");
+			var entry    = jarFile.getEntry("policies/pdp.json");
 			var contents = JarUtil.readStringFromZipEntry(jarFile, entry);
 			assertThat(contents.length(), is(not(0)));
 		}
 	}
 
 	@Test
-	public void readStringFromZipEntryTestWithErrorPropagation() throws IOException {
-		var url = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/policies");
+	void readStringFromZipEntryTestWithErrorPropagation() throws IOException {
+		var url       = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/policies");
 		var pathOfJar = JarUtil.getJarFilePath(url);
 		try (MockedStatic<IOUtils> mock = mockStatic(IOUtils.class)) {
 			mock.when(() -> IOUtils.toString(any(InputStream.class), any(Charset.class))).thenThrow(new IOException());

@@ -15,7 +15,7 @@
  */
 package io.sapl.prp.index.canonical;
 
-import static io.sapl.grammar.sapl.impl.util.ParserUtil.entitilement;
+import static io.sapl.grammar.sapl.impl.util.ParserUtil.entitlement;
 import static io.sapl.grammar.sapl.impl.util.ParserUtil.expression;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -50,8 +50,8 @@ class EquivalenceAndHashUtilTest {
 
 		var exp1 = expression("exp");
 		var exp2 = expression("exp");
-		var ent1 = entitilement("permit");
-		var ent2 = entitilement("deny");
+		var ent1 = entitlement("permit");
+		var ent2 = entitlement("deny");
 
 		var hash1 = EquivalenceAndHashUtil.semanticHash(exp1, Collections.emptyMap());
 		var hash2 = EquivalenceAndHashUtil.semanticHash(exp2, Collections.emptyMap());
@@ -76,8 +76,8 @@ class EquivalenceAndHashUtilTest {
 		var exp1 = expression("exp1");
 		var exp2 = expression("exp1");
 		var exp3 = expression("exp2");
-		var ent1 = entitilement("permit");
-		var ent2 = entitilement("deny");
+		var ent1 = entitlement("permit");
+		var ent2 = entitlement("deny");
 
 		assertThat(EquivalenceAndHashUtil.areEquivalent(exp1, Collections.emptyMap(), exp2, Collections.emptyMap()),
 				is(true));
@@ -124,13 +124,13 @@ class EquivalenceAndHashUtilTest {
 		var iter1 = mock(Iterator.class);
 		when(eList1.size()).thenReturn(2);
 		when(eList1.iterator()).thenReturn(iter1);
-		when(iter1.hasNext()).thenReturn(true, true, false);
+		when(iter1.hasNext()).thenReturn(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE);
 		when(iter1.next()).thenReturn(objectMock, objectMock, objectMock);
 
 		var iter2 = mock(Iterator.class);
 		when(eList2.size()).thenReturn(2);
 		when(eList2.iterator()).thenReturn(iter2);
-		when(iter2.hasNext()).thenReturn(true, true, false);
+		when(iter2.hasNext()).thenReturn(Boolean.TRUE,Boolean.TRUE,Boolean.FALSE);
 		when(iter2.next()).thenReturn(objectMock, null, objectMock);
 
 		assertThat(EquivalenceAndHashUtil.featuresAreEquivalent(eList1, Collections.emptyMap(), eList2,

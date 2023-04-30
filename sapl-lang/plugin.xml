@@ -41,7 +41,7 @@
    <extension point="org.eclipse.emf.ecore.generated_package">
       <!-- @generated SAPL -->
       <package
-            uri="http://sapl.io/sapl/SAPL"
+            uri="https://sapl.io/sapl/SAPL"
             class="io.sapl.grammar.sapl.SaplPackage"
             genModel="src/main/model/custom/SAPL.genmodel"/>
    </extension>

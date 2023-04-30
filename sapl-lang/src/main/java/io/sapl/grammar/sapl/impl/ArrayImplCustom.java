@@ -81,7 +81,7 @@ public class ArrayImplCustom extends ArrayImpl {
 		}
 		if (error != null)
 			return error.withTrace(Array.class, tracedValues.toArray(new Val[0]));
-		
+
 		return Val.of(resultArr).withTrace(Array.class, tracedValues.toArray(new Val[0]));
 	}
 

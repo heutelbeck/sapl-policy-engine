@@ -18,6 +18,7 @@ package io.sapl.grammar.sapl.impl;
 import java.util.ArrayList;
 import java.util.Map;
 
+import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.grammar.sapl.KeyStep;
@@ -131,7 +132,7 @@ public class KeyStepImplCustom extends KeyStepImpl {
 		var i             = 0;
 		while (elements.hasNext()) {
 			var element = Val.of(elements.next()).withTrace(KeyStep.class,
-					Map.of("unfilteredValue", unfilteredValue, "index", Val.of(i++)));
+					Map.<String,Traced>of("unfilteredValue", unfilteredValue, "index", Val.of(i++)));
 			if (element.isObject()) {
 				// array element is an object. apply this step to the object.
 				elementFluxes.add(applyFilterStatementToObject(id, element, stepId, statement)

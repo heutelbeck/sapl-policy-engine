@@ -64,11 +64,9 @@ public class SAPLSyntaxErrorMessageProvider extends SyntaxErrorMessageProvider {
 		SyntaxErrorMessage message = null;
 		if (exception instanceof MismatchedTokenException) {
 			message = handleMismatchedTokenException(context, (MismatchedTokenException) exception);
-		}
-		else if (exception instanceof NoViableAltException) {
+		} else if (exception instanceof NoViableAltException) {
 			message = handleNoViableAltException(context, (NoViableAltException) exception);
-		}
-		else if (exception instanceof EarlyExitException) {
+		} else if (exception instanceof EarlyExitException) {
 			message = handleEarlyExitException(context, (EarlyExitException) exception);
 		}
 
@@ -81,29 +79,24 @@ public class SAPLSyntaxErrorMessageProvider extends SyntaxErrorMessageProvider {
 	public SyntaxErrorMessage handleMismatchedTokenException(IParserErrorContext context,
 			MismatchedTokenException exception) {
 		EObject currentContext = context.getCurrentContext();
-		INode node = context.getCurrentNode();
-		String tokenText = NodeModelUtils.getTokenText(node).toLowerCase();
+		INode   node           = context.getCurrentNode();
+		String  tokenText      = NodeModelUtils.getTokenText(node).toLowerCase();
 
 		if (currentContext instanceof PolicySet) {
 			return new SyntaxErrorMessage(INCOMPLETE_SET_NAME, Diagnostic.SYNTAX_DIAGNOSTIC);
-		}
-		else if (currentContext instanceof Policy) {
+		} else if (currentContext instanceof Policy) {
 			if (VAR_ID.equals(tokenText)) {
 				return new SyntaxErrorMessage(INCOMPLETE_VARIABLE_NAME, Diagnostic.SYNTAX_DIAGNOSTIC);
-			}
-			else if (exception.token == Token.EOF_TOKEN) {
+			} else if (exception.token == Token.EOF_TOKEN) {
 				return new SyntaxErrorMessage(INCOMPLETE_POLICY_NAME, Diagnostic.SYNTAX_DIAGNOSTIC);
 			}
-		}
-		else if (currentContext instanceof PolicyBody) {
+		} else if (currentContext instanceof PolicyBody) {
 			if (tokenText.contains(VAR_ID) && !tokenText.contains(SEMICOLON_ID)) {
 				return new SyntaxErrorMessage(INCOMPLETE_VARIABLE_CLOSE, Diagnostic.SYNTAX_DIAGNOSTIC);
-			}
-			else {
+			} else {
 				return new SyntaxErrorMessage(INCOMPLETE_DOCUMENT, Diagnostic.SYNTAX_DIAGNOSTIC);
 			}
-		}
-		else if (currentContext instanceof ValueDefinition) {
+		} else if (currentContext instanceof ValueDefinition) {
 			return new SyntaxErrorMessage(INCOMPLETE_VARIABLE_VALUE, Diagnostic.SYNTAX_DIAGNOSTIC);
 		}
 
@@ -115,12 +108,11 @@ public class SAPLSyntaxErrorMessageProvider extends SyntaxErrorMessageProvider {
 
 	public SyntaxErrorMessage handleNoViableAltException(IParserErrorContext context, NoViableAltException exception) {
 		EObject currentContext = context.getCurrentContext();
-		INode node = context.getCurrentNode();
+		INode   node           = context.getCurrentNode();
 
 		if (currentContext instanceof SAPL) {
 			return new SyntaxErrorMessage(INCOMPLETE_IMPORT_ALIAS_SET_POLICY, Diagnostic.SYNTAX_DIAGNOSTIC);
-		}
-		else if (currentContext instanceof PolicySet) {
+		} else if (currentContext instanceof PolicySet) {
 			return new SyntaxErrorMessage(INCOMPLETE_SET_ENTITLEMENT, Diagnostic.SYNTAX_DIAGNOSTIC);
 		}
 		else if (currentContext instanceof Policy) {
@@ -135,11 +127,11 @@ public class SAPLSyntaxErrorMessageProvider extends SyntaxErrorMessageProvider {
 
 		EObject grammarElement = node.getGrammarElement();
 		if (grammarElement instanceof RuleCall) {
-			RuleCall ruleCall = (RuleCall) grammarElement;
-			EObject container = ruleCall.eContainer();
+			RuleCall ruleCall  = (RuleCall) grammarElement;
+			EObject  container = ruleCall.eContainer();
 			if (container instanceof Assignment) {
 				Assignment assignment = (Assignment) container;
-				String feature = assignment.getFeature();
+				String     feature    = assignment.getFeature();
 				if ("imports".equals(feature)) {
 					return new SyntaxErrorMessage(INCOMPLETE_IMPORT, Diagnostic.SYNTAX_DIAGNOSTIC);
 				}

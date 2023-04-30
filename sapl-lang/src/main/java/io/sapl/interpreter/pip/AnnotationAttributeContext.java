@@ -35,6 +35,7 @@ import org.reactivestreams.Publisher;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.EnvironmentAttribute;
@@ -105,7 +106,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 		var pip    = attributeMetadata.getPolicyInformationPoint();
 		var method = attributeMetadata.getFunction();
 		return attributeFinderArguments(attributeMetadata, arguments, variables)
-				.switchMap(invokeAttributeFinderMethod(attributeName, attributeMetadata, pip, method));
+				.switchMap(invokeAttributeFinderMethod(attributeName, pip, method));
 	}
 
 	private AttributeFinderMetadata lookupAttribute(String attributeName, int numberOfParameters,
@@ -132,16 +133,16 @@ public class AnnotationAttributeContext implements AttributeContext {
 		var method = attributeMetadata.getFunction();
 
 		return attributeFinderArguments(attributeMetadata, leftHandValue, arguments, variables)
-				.switchMap(invokeAttributeFinderMethod(attributeName, attributeMetadata, pip, method));
+				.switchMap(invokeAttributeFinderMethod(attributeName, pip, method));
 	}
 
 	@SuppressWarnings("unchecked")
-	private Function<Object[], Publisher<? extends Val>> invokeAttributeFinderMethod(String attributeName,
-			AttributeFinderMetadata attributeMetadata, Object pip, Method method) {
+	private Function<Object[], Publisher<? extends Val>> invokeAttributeFinderMethod(String attributeName, Object pip,
+			Method method) {
 		return invocationParameters -> {
 			try {
 				return ((Flux<Val>) method.invoke(pip, invocationParameters)).map(val -> {
-					var trace = new HashMap<String, Val>();
+					var trace = new HashMap<String, Traced>();
 					trace.put("attribute", Val.of(attributeName));
 					for (int i = 0; i < invocationParameters.length; i++) {
 						if (invocationParameters[i] instanceof Val)
@@ -184,10 +185,10 @@ public class AnnotationAttributeContext implements AttributeContext {
 	private Flux<Object[]> attributeFinderArguments(AttributeFinderMetadata attributeMetadata, Arguments arguments,
 			Map<String, JsonNode> variables) {
 
-		var numberOfInvokationParameters = numberOfInvokationParametersForAttribute(attributeMetadata, arguments);
+		var numberOfInvocationParameters = numberOfInvocationParametersForAttribute(attributeMetadata, arguments);
 
 		if (arguments == null) {
-			var invocationArguments = new Object[numberOfInvokationParameters];
+			var invocationArguments = new Object[numberOfInvocationParameters];
 			var argumentIndex       = 0;
 			if (attributeMetadata.isAttributeWithVariableParameter())
 				invocationArguments[argumentIndex++] = variables;
@@ -197,8 +198,8 @@ public class AnnotationAttributeContext implements AttributeContext {
 		}
 		var argumentFluxes = validatedArguments(attributeMetadata, arguments);
 
-		var combined = Flux.<Val, Object[]>combineLatest(argumentFluxes, argumentValues -> {
-			var invocationArguments = new Object[numberOfInvokationParameters];
+		return Flux.<Val, Object[]>combineLatest(argumentFluxes, argumentValues -> {
+			var invocationArguments = new Object[numberOfInvocationParameters];
 			var argumentIndex       = 0;
 			if (attributeMetadata.isAttributeWithVariableParameter())
 				invocationArguments[argumentIndex++] = variables;
@@ -210,23 +211,22 @@ public class AnnotationAttributeContext implements AttributeContext {
 				}
 				invocationArguments[argumentIndex] = varArgsParameter;
 			} else {
-				for (var valueIndex = 0; argumentIndex < numberOfInvokationParameters;) {
+				for (var valueIndex = 0; argumentIndex < numberOfInvocationParameters;) {
 					invocationArguments[argumentIndex++] = argumentValues[valueIndex++];
 				}
 			}
 
 			return invocationArguments;
 		});
-		return combined;
 	}
 
 	private Flux<Object[]> attributeFinderArguments(AttributeFinderMetadata attributeMetadata, Val leftHandValue,
 			Arguments arguments, Map<String, JsonNode> variables) {
 
-		var numberOfInvokationParameters = numberOfInvokationParametersForAttribute(attributeMetadata, arguments);
+		var numberOfInvocationParameters = numberOfInvocationParametersForAttribute(attributeMetadata, arguments);
 
 		if (arguments == null) {
-			var invocationArguments = new Object[numberOfInvokationParameters];
+			var invocationArguments = new Object[numberOfInvocationParameters];
 			var argumentIndex       = 0;
 			invocationArguments[argumentIndex++] = leftHandValue;
 			if (attributeMetadata.isAttributeWithVariableParameter())
@@ -239,7 +239,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 		var argumentFluxes = validatedArguments(attributeMetadata, arguments);
 
 		var combined = Flux.<Val, Object[]>combineLatest(argumentFluxes, argumentValues -> {
-			var invocationArguments = new Object[numberOfInvokationParameters];
+			var invocationArguments = new Object[numberOfInvocationParameters];
 			var argumentIndex       = 0;
 			invocationArguments[argumentIndex++] = leftHandValue;
 
@@ -253,7 +253,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 				}
 				invocationArguments[argumentIndex] = varArgsParameter;
 			} else {
-				for (var valueIndex = 0; argumentIndex < numberOfInvokationParameters;) {
+				for (var valueIndex = 0; argumentIndex < numberOfInvocationParameters;) {
 					invocationArguments[argumentIndex++] = argumentValues[valueIndex++];
 				}
 			}
@@ -263,7 +263,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 		return combined;
 	}
 
-	private int numberOfInvokationParametersForAttribute(AttributeFinderMetadata attributeMetadata,
+	private int numberOfInvocationParametersForAttribute(AttributeFinderMetadata attributeMetadata,
 			Arguments arguments) {
 
 		var numberOfArguments = 0;
@@ -296,7 +296,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 	 *                                 inconsistencies.
 	 */
 	public final void loadPolicyInformationPoint(Object pip) throws InitializationException {
-		
+
 		var clazz         = pip.getClass();
 		var pipAnnotation = clazz.getAnnotation(PolicyInformationPoint.class);
 
@@ -336,14 +336,14 @@ public class AnnotationAttributeContext implements AttributeContext {
 	}
 
 	private void importAttribute(Object policyInformationPoint, String pipName,
-			PolicyInformationPointDocumentation pipDocumentation, Method method, boolean isEnvironemtntAttribute,
+			PolicyInformationPointDocumentation pipDocumentation, Method method, boolean isEnvironmentAttribute,
 			String attributeName, String documentation) throws InitializationException {
 
 		if (attributeName.isBlank())
 			attributeName = method.getName();
 
 		var metadata        = metadataOf(policyInformationPoint, method, pipName, attributeName,
-				isEnvironemtntAttribute);
+				isEnvironmentAttribute);
 		var name            = metadata.fullyQualifiedName();
 		var namedAttributes = attributeMetadataByAttributeName.computeIfAbsent(name, k -> new ArrayList<>());
 		assertNoNameCollision(namedAttributes, metadata);

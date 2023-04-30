@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
 
-class ApplyStepsEscapedkeyTests {
+class ApplyStepsEscapedKeyTests {
 
 	@Test
 	void keyStepPropagatesErrors() {
@@ -87,7 +87,7 @@ class ApplyStepsEscapedkeyTests {
 	}
 
 	@Test
-	void filterEmptyrray() {
+	void filterEmptyArray() {
 		var expression = "[] |- { @.\"k e y\" : mock.nil}";
 		var expected   = "[]";
 		expressionEvaluatesTo(expression, expected);

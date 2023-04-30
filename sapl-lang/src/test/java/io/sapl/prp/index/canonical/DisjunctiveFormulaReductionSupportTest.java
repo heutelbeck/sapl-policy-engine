@@ -34,105 +34,105 @@ class DisjunctiveFormulaReductionSupportTest {
 	void testReduceConstants() {
 		List<ConjunctiveClause> clauses = new ArrayList<>();
 
-		assertThat(clauses.isEmpty(), is(true));
+		assertThat(clauses.isEmpty(), is(Boolean.TRUE));
 		DisjunctiveFormulaReductionSupport.reduceConstants(clauses);
-		assertThat(clauses.isEmpty(), is(true));
+		assertThat(clauses.isEmpty(), is(Boolean.TRUE));
 
-		var trueLiteral = new Literal(new Bool(true));
+		var trueLiteral  = new Literal(new Bool(true));
 		var falseLiteral = new Literal(new Bool(false));
-		var c1 = new ConjunctiveClause(trueLiteral);
-		var c2 = new ConjunctiveClause(falseLiteral);
+		var c1           = new ConjunctiveClause(trueLiteral);
+		var c2           = new ConjunctiveClause(falseLiteral);
 
 		clauses.add(c1);
 		DisjunctiveFormulaReductionSupport.reduceConstants(clauses);
-		assertThat(clauses.size() == 1, is(true));
+		assertThat(clauses.size() == 1, is(Boolean.TRUE));
 		clauses.clear();
 
 		clauses.add(c2);
 		DisjunctiveFormulaReductionSupport.reduceConstants(clauses);
-		assertThat(clauses.size() == 1, is(true));
+		assertThat(clauses.size() == 1, is(Boolean.TRUE));
 		clauses.clear();
 
 		clauses.add(c1);
 		clauses.add(c2);
 		DisjunctiveFormulaReductionSupport.reduceConstants(clauses);
-		assertThat(clauses.size() == 1, is(true));
+		assertThat(clauses.size() == 1, is(Boolean.TRUE));
 		clauses.clear();
 
 		clauses.add(c2);
 		clauses.add(c2);
 		DisjunctiveFormulaReductionSupport.reduceConstants(clauses);
-		assertThat(clauses.size() == 1, is(true));
+		assertThat(clauses.size() == 1, is(Boolean.TRUE));
 	}
 
 	@Test
 	void testReduceFormula() {
 		List<ConjunctiveClause> clauses = new ArrayList<>();
 
-		assertThat(clauses.isEmpty(), is(true));
+		assertThat(clauses.isEmpty(), is(Boolean.TRUE));
 		DisjunctiveFormulaReductionSupport.reduceFormula(clauses);
-		assertThat(clauses.isEmpty(), is(true));
+		assertThat(clauses.isEmpty(), is(Boolean.TRUE));
 
-		var trueLiteral = new Literal(new Bool(true));
-		var falseLiteral = new Literal(new Bool(false));
-		var trueNegatedLiteral = new Literal(new Bool(true), true);
+		var trueLiteral         = new Literal(new Bool(true));
+		var falseLiteral        = new Literal(new Bool(false));
+		var trueNegatedLiteral  = new Literal(new Bool(true), true);
 		var falseNegatedLiteral = new Literal(new Bool(false), true);
-		var c1 = new ConjunctiveClause(trueLiteral);
-		var c2 = new ConjunctiveClause(falseLiteral);
-		var c3 = new ConjunctiveClause(trueNegatedLiteral);
-		var c4 = new ConjunctiveClause(falseNegatedLiteral);
-		var c5 = new ConjunctiveClause(trueLiteral, trueNegatedLiteral);
+		var c1                  = new ConjunctiveClause(trueLiteral);
+		var c2                  = new ConjunctiveClause(falseLiteral);
+		var c3                  = new ConjunctiveClause(trueNegatedLiteral);
+		var c4                  = new ConjunctiveClause(falseNegatedLiteral);
+		var c5                  = new ConjunctiveClause(trueLiteral, trueNegatedLiteral);
 
 		clauses.add(c1);
 		DisjunctiveFormulaReductionSupport.reduceFormula(clauses);
-		assertThat(clauses.size() == 1, is(true));
+		assertThat(clauses.size() == 1, is(Boolean.TRUE));
 		clauses.clear();
 
 		clauses.add(c2);
 		DisjunctiveFormulaReductionSupport.reduceFormula(clauses);
-		assertThat(clauses.size() == 1, is(true));
+		assertThat(clauses.size() == 1, is(Boolean.TRUE));
 		clauses.clear();
 
 		clauses.add(c1);
 		clauses.add(c1);
 		DisjunctiveFormulaReductionSupport.reduceFormula(clauses);
-		assertThat(clauses.size() == 1, is(true));
+		assertThat(clauses.size() == 1, is(Boolean.TRUE));
 		clauses.clear();
 
 		clauses.add(c2);
 		clauses.add(c2);
 		DisjunctiveFormulaReductionSupport.reduceFormula(clauses);
-		assertThat(clauses.size() == 1, is(true));
+		assertThat(clauses.size() == 1, is(Boolean.TRUE));
 		clauses.clear();
 
 		clauses.add(c1);
 		clauses.add(c3);
 		DisjunctiveFormulaReductionSupport.reduceFormula(clauses);
-		assertThat(clauses.size() == 2, is(true));
+		assertThat(clauses.size() == 2, is(Boolean.TRUE));
 		clauses.clear();
 
 		clauses.add(c1);
 		clauses.add(c4);
 		DisjunctiveFormulaReductionSupport.reduceFormula(clauses);
-		assertThat(clauses.size() == 2, is(true));
+		assertThat(clauses.size() == 2, is(Boolean.TRUE));
 		clauses.clear();
 
 		clauses.add(c3);
 		clauses.add(c4);
 		DisjunctiveFormulaReductionSupport.reduceFormula(clauses);
-		assertThat(clauses.size() == 2, is(true));
+		assertThat(clauses.size() == 2, is(Boolean.TRUE));
 		clauses.clear();
 
 		clauses.add(c1);
 		clauses.add(c5);
 		DisjunctiveFormulaReductionSupport.reduceFormula(clauses);
-		assertThat(clauses.size() == 1, is(true));
+		assertThat(clauses.size() == 1, is(Boolean.TRUE));
 		clauses.clear();
 
 		clauses.add(c5);
 		clauses.add(c1);
 		DisjunctiveFormulaReductionSupport.reduceFormula(clauses);
-		assertThat(clauses.size() == 1, is(true));
+		assertThat(clauses.size() == 1, is(Boolean.TRUE));
 		clauses.clear();
 	}
 
@@ -140,14 +140,14 @@ class DisjunctiveFormulaReductionSupportTest {
 	@SuppressWarnings("unchecked")
 	void testReduceFormulaStep() {
 		var clauseMock = mock(ConjunctiveClause.class);
-		when(clauseMock.isSubsetOf(any())).thenReturn(true, false, true);
+		when(clauseMock.isSubsetOf(any())).thenReturn(Boolean.TRUE, Boolean.FALSE, Boolean.TRUE);
 		var clauseMock2 = mock(ConjunctiveClause.class);
-		when(clauseMock2.isSubsetOf(any())).thenReturn(true, false, true);
+		when(clauseMock2.isSubsetOf(any())).thenReturn(Boolean.TRUE, Boolean.FALSE, Boolean.TRUE);
 
 		var pointerMock = mock(ListIterator.class);
 		var forwardMock = mock(ListIterator.class);
 		when(forwardMock.next()).thenReturn(clauseMock2, null, clauseMock2, clauseMock2);
-		when(forwardMock.hasNext()).thenReturn(true, true, true, false);
+		when(forwardMock.hasNext()).thenReturn(Boolean.TRUE, Boolean.TRUE, Boolean.TRUE, Boolean.FALSE);
 
 		var listMock = mock(List.class);
 		when(listMock.listIterator(anyInt())).thenReturn(forwardMock);

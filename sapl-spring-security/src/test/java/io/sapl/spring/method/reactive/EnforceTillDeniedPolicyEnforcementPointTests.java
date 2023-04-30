@@ -54,7 +54,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Hooks;
 import reactor.test.StepVerifier;
 
-public class EnforceTillDeniedPolicyEnforcementPointTests {
+class EnforceTillDeniedPolicyEnforcementPointTests {
 
 	private final static ObjectMapper MAPPER = new ObjectMapper();
 
@@ -128,7 +128,7 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 	}
 
 	@Test
-	void when_permitWithResource_thenReplaceAndComlpete() {
+	void when_permitWithResource_thenReplaceAndComplete() {
 		var constraintsService = buildConstraintHandlerService();
 		var decisions          = Flux.just(AuthorizationDecision.PERMIT.withResource(JSON.numberNode(69)));
 		var data               = Flux.just(1, 2, 3);
@@ -138,7 +138,7 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 	}
 
 	@Test
-	void when_permitWithResource_typeMismatch_thenDenyAndComlpete() {
+	void when_permitWithResource_typeMismatch_thenDenyAndComplete() {
 		var constraintsService = buildConstraintHandlerService();
 		var decisions          = Flux.just(AuthorizationDecision.PERMIT.withResource(JSON.textNode("NOT A NUMBER")));
 		var data               = Flux.just(1, 2, 3);
@@ -223,7 +223,7 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 		};
 		globalMappingHandlerProviders.add(handler);
 		var constraintsService = buildConstraintHandlerService();
-		var decisions          = decisionFluxWithChangeingAdvice().delayElements(Duration.ofMillis(270L));
+		var decisions          = decisionFluxWithChangingAdvice().delayElements(Duration.ofMillis(270L));
 		var data               = Flux.range(0, 10).delayElements(Duration.ofMillis(50L));
 		return EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
 
@@ -567,7 +567,7 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 		var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
 				Integer.class);
 
-		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4).expectErrorMatches(err -> err.getMessage().equals("ILLEGAL"))
+		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4).expectErrorMatches(err -> "ILLEGAL".equals(err.getMessage()))
 				.verify();
 		verify(handler, times(1)).accept(any());
 	}
@@ -782,7 +782,7 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 		return Flux.just(AuthorizationDecision.PERMIT.withAdvice(advice));
 	}
 
-	public Flux<AuthorizationDecision> decisionFluxWithChangeingAdvice() {
+	public Flux<AuthorizationDecision> decisionFluxWithChangingAdvice() {
 		var json            = JsonNodeFactory.instance;
 		var advicePlus10000 = json.numberNode(10000L);
 		var advicePlus50000 = json.numberNode(50000L);

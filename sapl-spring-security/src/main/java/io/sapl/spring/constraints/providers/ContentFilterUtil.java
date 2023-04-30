@@ -46,12 +46,12 @@ public class ContentFilterUtil {
 	private static final String LEQ                      = "<=";
 	private static final String REGEX                    = "=~";
 	private static final String TYPE                     = "type";
-	private static final String BLACK_SQUARE             = "\u2588";
+	private static final String BLACK_SQUARE             = "█";
 	private static final String UNDEFINED_KEY_S          = "An action does not declare '%s'.";
 	private static final String VALUE_NOT_INTEGER_S      = "An action's '%s' is not an integer.";
 	private static final String VALUE_NOT_TEXTUAL_S      = "An action's '%s' is not textual.";
-	private static final String PATH_NOT_TEXTUAL         = "The contraint indicates a text node to be blackended. However, the node identified by the path is not a text note.";
-	private static final String NO_REPLACEMENT_SPECIFIED = "The contraint indicates a text node to be replaced. However, the action does not specify a 'replacement'.";
+	private static final String PATH_NOT_TEXTUAL         = "The constraint indicates a text node to be blackened. However, the node identified by the path is not a text note.";
+	private static final String NO_REPLACEMENT_SPECIFIED = "The constraint indicates a text node to be replaced. However, the action does not specify a 'replacement'.";
 	private static final String REPLACEMENT_NOT_TEXTUAL  = "'replacement' of 'blacken' action is not textual.";
 	private static final String UNKNOWN_ACTION_S         = "Unknown action type: '%s'.";
 	private static final String ACTION_NOT_AN_OBJECT     = "An action in 'actions' is not an object.";
@@ -165,7 +165,7 @@ public class ContentFilterUtil {
 		if (REGEX.equals(type))
 			return regexCondition(condition, path, jsonPathConfiguration, objectMapper);
 
-		throw new IllegalStateException("Not a valid predicate condition: " + condition.toString());
+		throw new IllegalStateException("Not a valid predicate condition: " + condition);
 	}
 
 	private static Predicate<Object> regexCondition(JsonNode condition, String path,
@@ -322,10 +322,10 @@ public class ContentFilterUtil {
 	}
 
 	private static void replace(DocumentContext jsonContext, String path, JsonNode action) {
-		jsonContext.map(path, replaceNode(jsonContext, action));
+		jsonContext.map(path, replaceNode(action));
 	}
 
-	private static MapFunction replaceNode(DocumentContext jsonContext, JsonNode action) {
+	private static MapFunction replaceNode(JsonNode action) {
 		return (original, configuration) -> {
 			if (!action.has(REPLACEMENT))
 				throw new IllegalArgumentException(NO_REPLACEMENT_SPECIFIED);
@@ -335,10 +335,10 @@ public class ContentFilterUtil {
 	}
 
 	private static void blacken(DocumentContext jsonContext, String path, JsonNode action) {
-		jsonContext.map(path, blackenNode(jsonContext, action));
+		jsonContext.map(path, blackenNode(action));
 	}
 
-	private static MapFunction blackenNode(DocumentContext jsonContext, JsonNode action) {
+	private static MapFunction blackenNode(JsonNode action) {
 		return (original, configuration) -> {
 
 			if (!(original instanceof String))

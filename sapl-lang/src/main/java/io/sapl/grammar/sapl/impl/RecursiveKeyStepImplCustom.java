@@ -22,6 +22,7 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
+import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.grammar.sapl.RecursiveKeyStep;
@@ -105,7 +106,7 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 		while (fields.hasNext()) {
 			var field = fields.next();
 			var key   = field.getKey();
-			var trace = new HashMap<String, Val>();
+			var trace = new HashMap<String, Traced>();
 			trace.put("unfilteredValue", unfilteredValue);
 			trace.put("key", Val.of(id));
 			trace.put("[\"+key+\"]", Val.of(key));
@@ -145,7 +146,7 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 		var elements      = array.elements();
 		var index         = 0;
 		while (elements.hasNext()) {
-			var trace = new HashMap<String, Val>();
+			var trace = new HashMap<String, Traced>();
 			trace.put("unfilteredValue", unfilteredValue);
 			trace.put("key", Val.of(id));
 			trace.put("index", Val.of(index++));

@@ -32,6 +32,18 @@
 
 	<name>SAPL Server LT</name>
 
+    <dependencyManagement>
+        <dependencies>
+           	<dependency>
+				<groupId>io.sapl</groupId>
+				<artifactId>sapl-bom</artifactId>
+                <version>${project.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+        </dependencies>
+    </dependencyManagement>
+    
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -42,20 +54,33 @@
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-rsocket</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-messaging</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-spring-pdp-embedded</artifactId>
-			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-webflux-endpoint</artifactId>
-			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-jwt</artifactId>
-			<version>${project.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>io.sapl</groupId>
+    	    <artifactId>sapl-mqtt-pip</artifactId>
+		</dependency>				
+		<dependency>
+			<groupId>io.sapl</groupId>
+			<artifactId>sapl-mqtt-functions</artifactId>
+		</dependency>						
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
@@ -78,12 +103,10 @@
 		<dependency>
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-oauth2-resource-server</artifactId>
-			<version>5.7.3</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-oauth2-jose</artifactId>
-			<version>5.7.3</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -117,7 +140,7 @@
 				</executions>
 				<configuration>
 					<image>
-						<name>${docker-registry-url}${project.artifactId}:${project.version}</name>
+						<name>${docker-registry-url}/${project.artifactId}:${project.version}</name>
 					</image>
 					<layout>ZIP</layout>
 					<excludes>
@@ -151,6 +174,15 @@
 			<id>docker</id>
 			<build>
 				<plugins>
+		            <plugin>
+        		        <groupId>org.springframework.boot</groupId>
+                		<artifactId>spring-boot-maven-plugin</artifactId>
+		                <configuration>
+        		            <image>
+                		        <publish>true</publish>
+                    		</image>
+                		</configuration>
+            		</plugin>
 					<plugin>
 						<groupId>com.spotify</groupId>
 						<artifactId>dockerfile-maven-plugin</artifactId>

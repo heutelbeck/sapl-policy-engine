@@ -1,0 +1,14 @@
+set "mqttFunctionsPolicySet"
+first-applicable
+
+policy "allTopicsMatchMultilevelWildcardTopic"
+permit
+  subject == "firstSubject"
+where
+  mqtt.isMatchingAllTopics(resource, ["first/second/third", "first/second/fourth"]);
+
+policy "atLeastOneTopicMatchesMultilevelWildcardTopic"
+permit
+  subject == "secondSubject"
+where
+  mqtt.isMatchingAtLeastOneTopic(resource, ["first/second/third", "first/third"]);

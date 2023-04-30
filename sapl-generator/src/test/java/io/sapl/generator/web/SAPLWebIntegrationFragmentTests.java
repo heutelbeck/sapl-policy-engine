@@ -38,8 +38,7 @@ class SAPLWebIntegrationFragmentTests {
 		WebProjectConfig webProjectConfig;
 		if (needsAssets) {
 			webProjectConfig = new TestWebProjectConfig();
-		}
-		else {
+		} else {
 			webProjectConfig = new WebProjectConfig();
 		}
 		XtextProjectConfig projectConfig = new XtextProjectConfig();
@@ -57,7 +56,7 @@ class SAPLWebIntegrationFragmentTests {
 	}
 
 	@Test
-	public void setHighlightingModuleNameSetsField() {
+	void setHighlightingModuleNameSetsField() {
 		String expectedValue = "myModule";
 
 		SAPLWebIntegrationFragment fragment = new SAPLWebIntegrationFragment();
@@ -70,7 +69,7 @@ class SAPLWebIntegrationFragmentTests {
 	}
 
 	@Test
-	public void setHighlightingPathSetsField() {
+	void setHighlightingPathSetsField() {
 		String expectedValue = "myPath";
 
 		SAPLWebIntegrationFragment fragment = new SAPLWebIntegrationFragment();
@@ -83,7 +82,7 @@ class SAPLWebIntegrationFragmentTests {
 	}
 
 	@Test
-	public void setKeywordsFilterSetsField() {
+	void setKeywordsFilterSetsField() {
 		String expectedValue = "myFilter";
 
 		SAPLWebIntegrationFragment fragment = new SAPLWebIntegrationFragment();
@@ -96,24 +95,24 @@ class SAPLWebIntegrationFragmentTests {
 	}
 
 	@Test
-	public void getWordKeywordsReturnsEmptyList() {
-		SAPLWebIntegrationFragment fragment = new SAPLWebIntegrationFragment();
-		ArrayList<String> wordKeywords = fragment.getWordKeywords();
+	void getWordKeywordsReturnsEmptyList() {
+		SAPLWebIntegrationFragment fragment     = new SAPLWebIntegrationFragment();
+		ArrayList<String>          wordKeywords = fragment.getWordKeywords();
 		if (wordKeywords != null && wordKeywords.size() != 0)
 			fail("getWordKeywords did not return empty list.");
 	}
 
 	@Test
-	public void getNonWordKeywordsReturnsEmptyList() {
-		SAPLWebIntegrationFragment fragment = new SAPLWebIntegrationFragment();
-		ArrayList<String> nonWordKeywords = fragment.getNonWordKeywords();
+	void getNonWordKeywordsReturnsEmptyList() {
+		SAPLWebIntegrationFragment fragment        = new SAPLWebIntegrationFragment();
+		ArrayList<String>          nonWordKeywords = fragment.getNonWordKeywords();
 		if (nonWordKeywords != null && nonWordKeywords.size() != 0)
 			fail("getNonWordKeywords did not return empty list.");
 	}
 
 	@Test
-	public void setAllKeywordsSetsField() {
-		Set<String> expectedValue = new HashSet<String>();
+	void setAllKeywordsSetsField() {
+		Set<String> expectedValue = new HashSet<>();
 		expectedValue.add("test");
 
 		SAPLWebIntegrationFragment fragment = new SAPLWebIntegrationFragment();
@@ -125,7 +124,7 @@ class SAPLWebIntegrationFragmentTests {
 	}
 
 	@Test
-	public void setLanguageSetsField() {
+	void setLanguageSetsField() {
 		IXtextGeneratorLanguage expectedValue = new XtextGeneratorLanguage();
 
 		SAPLWebIntegrationFragment fragment = new SAPLWebIntegrationFragment();
@@ -137,7 +136,7 @@ class SAPLWebIntegrationFragmentTests {
 	}
 
 	@Test
-	public void setProjectConfigSetsField() {
+	void setProjectConfigSetsField() {
 		IXtextProjectConfig expectedValue = new XtextProjectConfig();
 
 		SAPLWebIntegrationFragment fragment = new SAPLWebIntegrationFragment();
@@ -149,10 +148,10 @@ class SAPLWebIntegrationFragmentTests {
 	}
 
 	@Test
-	public void generateRemovesJsSuffixFromModuleName() {
+	void generateRemovesJsSuffixFromModuleName() {
 		String expectedValue = "myModule";
 
-		SAPLWebIntegrationFragment fragment = createDefaultFragment(false);
+		SAPLWebIntegrationFragment fragment = createDefaultFragment(Boolean.FALSE);
 		fragment.setHighlightingModuleName("myModule.js");
 
 		fragment.generate();
@@ -163,14 +162,14 @@ class SAPLWebIntegrationFragmentTests {
 	}
 
 	@Test
-	public void generateCreatesKeywordHighlightingInReverseOrder() {
-		Set<String> keywords = new HashSet<String>();
+	void generateCreatesKeywordHighlightingInReverseOrder() {
+		Set<String> keywords = new HashSet<>();
 		keywords.add("a");
 		keywords.add("a-a");
 		keywords.add("a-b");
 		keywords.add("b");
 
-		SAPLWebIntegrationFragment fragment = createDefaultFragment(true);
+		SAPLWebIntegrationFragment fragment = createDefaultFragment(Boolean.TRUE);
 		fragment.setAllKeywords(keywords);
 		fragment.setGenerateJsHighlighting(true);
 
@@ -186,17 +185,17 @@ class SAPLWebIntegrationFragmentTests {
 	}
 
 	@Test
-	public void generateCreatesKeywordHighlightingWithoutDashInNonWords() {
-		Set<String> keywords = new HashSet<String>();
+	void generateCreatesKeywordHighlightingWithoutDashInNonWords() {
+		Set<String> keywords = new HashSet<>();
 		keywords.add("a-a");
 
-		SAPLWebIntegrationFragment fragment = createDefaultFragment(true);
+		SAPLWebIntegrationFragment fragment = createDefaultFragment(Boolean.TRUE);
 		fragment.setAllKeywords(keywords);
 		fragment.setGenerateJsHighlighting(true);
 
 		fragment.generate();
 
-		List<String> words = fragment.getWordKeywords();
+		List<String> words    = fragment.getWordKeywords();
 		List<String> nonWords = fragment.getNonWordKeywords();
 
 		if (!words.contains("a-a"))

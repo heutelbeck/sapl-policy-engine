@@ -1,5 +1,6 @@
 package io.sapl.spring.constraints.it;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -21,6 +22,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.context.ApplicationContext;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -46,7 +48,7 @@ import io.sapl.spring.constraints.it.PreEnforcementIntegrationTests.MethodSecuri
 import io.sapl.spring.constraints.it.PreEnforcementIntegrationTests.SuccessfulMethodInvocationConstraintHandler;
 import io.sapl.spring.constraints.it.PreEnforcementIntegrationTests.TestService;
 import io.sapl.spring.method.metadata.PreEnforce;
-import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.WebAuthorizationSubscriptionBuilderService;
 import reactor.core.publisher.Flux;
 
 @SpringBootTest(classes = { Application.class, TestService.class, MethodSecurityConfiguration.class,
@@ -88,7 +90,7 @@ public class PreEnforcementIntegrationTests {
 		public MethodSecurityConfiguration(ObjectFactory<PolicyDecisionPoint> pdpFactory,
 				ObjectFactory<ConstraintEnforcementService> constraintHandlerFactory,
 				ObjectFactory<ObjectMapper> objectMapperFactory,
-				ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory) {
+				ObjectFactory<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderFactory) {
 			super(pdpFactory, constraintHandlerFactory, objectMapperFactory, subscriptionBuilderFactory);
 		}
 
@@ -221,7 +223,8 @@ public class PreEnforcementIntegrationTests {
 	}
 
 	@Test
-	void contextLoads() {
+	void contextLoads(ApplicationContext context) {
+	    assertThat(context).isNotNull();
 	}
 
 	@Test
@@ -283,7 +286,7 @@ public class PreEnforcementIntegrationTests {
 
 	@Test
 	@WithMockUser(USER)
-	void when_testServiceCalledAndDecisionContainsUnenforcableObligation_then_pdpMethodThrowsAccessDenied() {
+	void when_testServiceCalledAndDecisionContainsUnenforceableObligation_then_pdpMethodThrowsAccessDenied() {
 		var obligations = JSON.arrayNode();
 		obligations.add(JSON.textNode(UNKNOWN_CONSTRAINT));
 		var decision = AuthorizationDecision.PERMIT.withObligations(obligations);
@@ -306,7 +309,7 @@ public class PreEnforcementIntegrationTests {
 
 	@Test
 	@WithMockUser(USER)
-	void when_testServiceCalledAndDecisionContainsUnenforcableAdvice_then_pdpMethodInvoked() {
+	void when_testServiceCalledAndDecisionContainsUnenforceableAdvice_then_pdpMethodInvoked() {
 		var advice = JSON.arrayNode();
 		advice.add(JSON.textNode(UNKNOWN_CONSTRAINT));
 		var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
@@ -326,7 +329,7 @@ public class PreEnforcementIntegrationTests {
 
 	@Test
 	@WithMockUser(USER)
-	void when_testServiceCalledAndDecisionContainsEnforcableObligation_then_pdpMethodReturnsNormallyAndHandlersAreInvoked() {
+	void when_testServiceCalledAndDecisionContainsEnforceableObligation_then_pdpMethodReturnsNormallyAndHandlersAreInvoked() {
 		var obligations = JSON.arrayNode();
 		obligations.add(JSON.textNode(KNOWN_CONSTRAINT));
 		var decision = AuthorizationDecision.PERMIT.withObligations(obligations);
@@ -338,7 +341,7 @@ public class PreEnforcementIntegrationTests {
 
 	@Test
 	@WithMockUser(USER)
-	void when_testServiceCalledAndDecisionDenyContainsEnforcableObligation_then_acceddDeniedButConstraintsHandled() {
+	void when_testServiceCalledAndDecisionDenyContainsEnforceableObligation_then_accessDeniedButConstraintsHandled() {
 		var obligations = JSON.arrayNode();
 		obligations.add(JSON.textNode(KNOWN_CONSTRAINT));
 		var decision = AuthorizationDecision.DENY.withObligations(obligations);
@@ -351,7 +354,7 @@ public class PreEnforcementIntegrationTests {
 
 	@Test
 	@WithMockUser(USER)
-	void when_testServiceCalledAndDecisionContainsEnforcableAdvice_then_pdpMethodReturnsNormallyAndHandlersAreInvoked() {
+	void when_testServiceCalledAndDecisionContainsEnforceableAdvice_then_pdpMethodReturnsNormallyAndHandlersAreInvoked() {
 		var advice = JSON.arrayNode();
 		advice.add(JSON.textNode(KNOWN_CONSTRAINT));
 		var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
@@ -364,7 +367,7 @@ public class PreEnforcementIntegrationTests {
 
 	@Test
 	@WithMockUser(USER)
-	void when_testServiceCalledAndDecisionContainsEnforcableObligationsAndAdvice_then_pdpMethodReturnsNormallyAndHandlersAreInvoked() {
+	void when_testServiceCalledAndDecisionContainsEnforceableObligationsAndAdvice_then_pdpMethodReturnsNormallyAndHandlersAreInvoked() {
 		var advice = JSON.arrayNode();
 		advice.add(JSON.textNode(KNOWN_CONSTRAINT));
 		var obligations = JSON.arrayNode();
@@ -378,7 +381,7 @@ public class PreEnforcementIntegrationTests {
 
 	@Test
 	@WithMockUser(USER)
-	void when_testServiceCalledAndDecisionContainsEnforcableMethodInvocationMaipulatingObligation_then_pdpMethodReturnsNormallyWithModifiedArgument() {
+	void when_testServiceCalledAndDecisionContainsEnforceableMethodInvocationManipulatingObligation_then_pdpMethodReturnsNormallyWithModifiedArgument() {
 		var obligations = JSON.arrayNode();
 		obligations.add(JSON.textNode(SUCCESSFUL_METHOD_INVOCATION_CONSTRAINT));
 		var decision = AuthorizationDecision.PERMIT.withObligations(obligations);

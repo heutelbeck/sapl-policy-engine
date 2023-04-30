@@ -72,7 +72,7 @@ public class HtmlLineCoverageReportGenerator {
 			Collection<SaplDocumentCoverageInformation> documents, Path basedir) throws IOException {
 
 		// @formatter:off
-		ContainerTag mainSite =
+		ContainerTag<?> mainSite =
 			html(
 				head(
 					meta().withCharset("utf-8"),
@@ -151,13 +151,13 @@ public class HtmlLineCoverageReportGenerator {
 		List<HtmlPolicyLineModel> models = createHtmlPolicyLineModel(lines, document);
 
 		Path filename = document.getPathToDocument().getFileName();
-		ContainerTag policySite = createPolicySite_CodeMirror(filename != null ? filename.toString() : "", models);
+		ContainerTag<?> policySite = createPolicySiteCodeMirror(filename != null ? filename.toString() : "", models);
 
 		Path policyPath = basedir.resolve("html").resolve("policies").resolve(filename + ".html");
 		createFile(policyPath, policySite.renderFormatted());
 	}
 
-	private ContainerTag createPolicySite_CodeMirror(String filename, List<HtmlPolicyLineModel> models)
+	private ContainerTag<?> createPolicySiteCodeMirror(String filename, List<HtmlPolicyLineModel> models)
 			throws IOException {
 
 		StringBuilder wholeTextOfPolicy = new StringBuilder();
@@ -300,28 +300,28 @@ public class HtmlLineCoverageReportGenerator {
 		Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
 	}
 
-	private ContainerTag getJquery() {
+	private ContainerTag<?> getJquery() {
 		return script().withSrc("https://code.jquery.com/jquery-3.2.1.slim.min.js")
 				.attr(new Attribute("integrity",
 						"sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"))
 				.attr(new Attribute("crossorigin", "anonymous"));
 	}
 
-	private ContainerTag getPopper() {
+	private ContainerTag<?> getPopper() {
 		return script().withSrc("https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js")
 				.attr(new Attribute("integrity",
 						"sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"))
 				.attr(new Attribute("crossorigin", "anonymous"));
 	}
 
-	private ContainerTag getBootstrapJs() {
+	private ContainerTag<?> getBootstrapJs() {
 		return script().withSrc("https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js")
 				.attr(new Attribute("integrity",
 						"sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"))
 				.attr(new Attribute("crossorigin", "anonymous"));
 	}
 
-	private EmptyTag getBootstrapCss() {
+	private EmptyTag<?> getBootstrapCss() {
 		return link().withRel("stylesheet")
 				.withHref("https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css")
 				.attr(new Attribute("integrity",

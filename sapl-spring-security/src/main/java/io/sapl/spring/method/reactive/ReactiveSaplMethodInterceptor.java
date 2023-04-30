@@ -41,7 +41,7 @@ import io.sapl.spring.method.metadata.EnforceTillDeniedAttribute;
 import io.sapl.spring.method.metadata.PostEnforceAttribute;
 import io.sapl.spring.method.metadata.PreEnforceAttribute;
 import io.sapl.spring.method.metadata.SaplAttribute;
-import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.WebfluxAuthorizationSubscriptionBuilderService;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -77,7 +77,7 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 	private final ObjectMapper mapper;
 
 	@NonNull
-	private final AuthorizationSubscriptionBuilderService subscriptionBuilder;
+	private final WebfluxAuthorizationSubscriptionBuilderService subscriptionBuilder;
 
 	@NonNull
 	private final PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint;

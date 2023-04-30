@@ -58,7 +58,7 @@ class PreEnforcePolicyEnforcementPointVoterTests {
 	@Test
 	void whenAdviceBeforePermit_thenVoteAccessGranted() {
 		var advice = mock(PreEnforcePolicyEnforcementPoint.class);
-		when(advice.before(any(), any(), any())).thenReturn(true);
+		when(advice.before(any(), any(), any())).thenReturn(Boolean.TRUE);
 		var sut = new PreEnforcePolicyEnforcementPointVoter(advice);
 		var attributes = new ArrayList<ConfigAttribute>();
 		attributes.add(mock(PreEnforceAttribute.class));
@@ -69,7 +69,7 @@ class PreEnforcePolicyEnforcementPointVoterTests {
 	@Test
 	void whenAdviceBeforeDeny_thenVoteAccessDenied() {
 		var advice = mock(PreEnforcePolicyEnforcementPoint.class);
-		when(advice.before(any(), any(), any())).thenReturn(false);
+		when(advice.before(any(), any(), any())).thenReturn(Boolean.FALSE);
 		var sut = new PreEnforcePolicyEnforcementPointVoter(advice);
 		var attributes = new ArrayList<ConfigAttribute>();
 		attributes.add(mock(ConfigAttribute.class));

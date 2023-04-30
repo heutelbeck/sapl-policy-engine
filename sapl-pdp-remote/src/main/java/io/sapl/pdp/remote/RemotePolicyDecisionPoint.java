@@ -15,7 +15,6 @@
  */
 package io.sapl.pdp.remote;
 
-@SuppressWarnings("unused")
 public class RemotePolicyDecisionPoint {
 
     public static RemotePolicyDecisionPoint builder(){

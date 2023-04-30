@@ -34,7 +34,8 @@ import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.grammar.ide.contentassist.ValueDefinitionProposalExtractionHelper.ProposalType;
 
 /**
- * This class enhances the auto-completion proposals that the language server offers.
+ * This class enhances the auto-completion proposals that the language server
+ * offers.
  */
 public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
@@ -70,9 +71,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		String keyValue = keyword.getValue();
 
 		// remove all short keywords unless they are explicitly allowed
-		if (!allowedKeywords.contains(keyValue)) {
-			if (keyValue.length() < 3)
-				return;
+		if (!allowedKeywords.contains(keyValue) && (keyValue.length() < 3)) {
+			return;
 		}
 
 		super._createProposals(keyword, context, acceptor);
@@ -83,9 +83,9 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 									final IIdeContentProposalAcceptor acceptor) {
 		lazyLoadDependencies();
 
-		ParserRule parserRule = GrammarUtil.containingParserRule(assignment);
-		String parserRuleName = parserRule.getName().toLowerCase();
-		String feature = assignment.getFeature().toLowerCase();
+		ParserRule parserRule     = GrammarUtil.containingParserRule(assignment);
+		String     parserRuleName = parserRule.getName().toLowerCase();
+		String     feature        = assignment.getFeature().toLowerCase();
 
 		switch (parserRuleName) {
 			case "numberliteral":
@@ -104,13 +104,10 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 				handleBasicProposals(feature, context, acceptor);
 				return;
 
-			case "policy":
-				handlePolicyProposals(feature, context, acceptor);
-				return;
-
-			case "step":
-				handleStepProposals(feature, context, acceptor);
-				return;
+		case "step":
+			handleStepProposals(feature, context, acceptor);
+			return;
+		default:
 		}
 
 		super._createProposals(assignment, context, acceptor);
@@ -135,8 +132,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			proposals.addAll(functionContext.getAvailableLibraries());
 			addDocumentationToImportProposals(proposals, context, acceptor);
 			addDocumentationToTemplates(proposals, context, acceptor);
-		}
-		else {
+		} else {
 			proposals = Set.of();
 		}
 
@@ -194,7 +190,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			addSimpleProposals(authzSubProposals, context, acceptor);
 		}
 	}
-	
+
 	private void addDocumentationToImportProposals(Collection<String> proposals, ContentAssistContext context,
 			IIdeContentProposalAcceptor acceptor) {
 		var documentedAttributeCodeTemplates = attributeContext.getDocumentedAttributeCodeTemplates();
@@ -210,7 +206,6 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			}
 		}
 	}
-
 
 	private void addDocumentationToTemplates(Collection<String> templates, ContentAssistContext context,
 			IIdeContentProposalAcceptor acceptor) {
@@ -235,8 +230,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
 
 	private void addProposalsWithImportsForTemplates(Collection<String> templates, ContentAssistContext context,
-													 IIdeContentProposalAcceptor acceptor) {
-		var sapl = Objects.requireNonNullElse(
+			IIdeContentProposalAcceptor acceptor) {
+		var sapl    = Objects.requireNonNullElse(
 				TreeNavigationHelper.goToFirstParent(context.getCurrentModel(), SAPL.class),
 				SaplFactory.eINSTANCE.createSAPL());
 		var imports = Objects.requireNonNullElse(sapl.getImports(), List.<Import>of());
@@ -245,23 +240,21 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			if (SaplPackage.Literals.WILDCARD_IMPORT.isSuperTypeOf(anImport.eClass())) {
 				var wildCard = (WildcardImport) anImport;
 				addProposalsWithWildcard(wildCard, templates, context, acceptor);
-				continue;
-			}
-			if (SaplPackage.Literals.LIBRARY_IMPORT.isSuperTypeOf(anImport.eClass())) {
+			} else if (SaplPackage.Literals.LIBRARY_IMPORT.isSuperTypeOf(anImport.eClass())) {
 				var wildCard = (LibraryImport) anImport;
 				addProposalsWithLibraryImport(wildCard, templates, context, acceptor);
-				continue;
+			} else {
+				addProposalsWithImport(anImport, templates, context, acceptor);
 			}
-			addProposalsWithImport(anImport, templates, context, acceptor);
 		}
 
 	}
 
 	private void addProposalsWithImport(Import anImport, Collection<String> templates, ContentAssistContext context,
-										IIdeContentProposalAcceptor acceptor) {
-		var steps = anImport.getLibSteps();
+			IIdeContentProposalAcceptor acceptor) {
+		var steps        = anImport.getLibSteps();
 		var functionName = anImport.getFunctionName();
-		var prefix = importPrefixFromSteps(steps) + functionName;
+		var prefix       = importPrefixFromSteps(steps) + functionName;
 		for (var template : templates)
 			if (template.startsWith(prefix))
 				addSimpleProposal(functionName + template.substring(prefix.length()), context, acceptor);
@@ -281,7 +274,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 											   final ContentAssistContext context, final IIdeContentProposalAcceptor acceptor) {
 
 		var shortPrefix = String.join(".", libImport.getLibSteps());
-		var prefix = shortPrefix + '.';
+		var prefix      = shortPrefix + '.';
 		for (var template : templates)
 			if (template.startsWith(prefix))
 				addSimpleProposal(libImport.getLibAlias() + '.' + template.substring(prefix.length()), context,
@@ -315,8 +308,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			entry.setKind(ContentAssistEntry.KIND_TEXT);
 			entry.setDescription("policy name");
 			acceptor.accept(entry, 0);
-		}
-		else if ("body".equals(feature)) {
+		} else if ("body".equals(feature)) {
 			addSimpleProposals(authzSubProposals, context, acceptor);
 		}
 	}

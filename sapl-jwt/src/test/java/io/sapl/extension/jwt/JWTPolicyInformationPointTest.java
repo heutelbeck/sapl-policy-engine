@@ -33,47 +33,41 @@ import org.junit.jupiter.api.Test;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jwt.JWTClaimsSet;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.extension.jwt.TestMockServerDispatcher.DispatchMode;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import okhttp3.mockwebserver.MockWebServer;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-public class JWTPolicyInformationPointTest {
+class JWTPolicyInformationPointTest {
 
-	private static KeyPair keyPair;
+	private static final ObjectMapper MAPPER = new ObjectMapper();
 
-	private static KeyPair keyPair2;
-
-	private static String kid;
-
-	private static String kid2;
-
-	private static WebClient.Builder builder;
-
-	private static MockWebServer server;
-
+	private static KeyPair                  keyPair;
+	private static KeyPair                  keyPair2;
+	private static String                   kid;
+	private static String                   kid2;
+	private static WebClient.Builder        builder;
+	private static MockWebServer            server;
 	private static TestMockServerDispatcher dispatcher;
-
-	private JWTPolicyInformationPoint jwtPolicyInformationPoint;
-
-	private JWTKeyProvider provider;
+	private JWTPolicyInformationPoint       jwtPolicyInformationPoint;
+	private JWTKeyProvider                  provider;
 
 	@BeforeAll
 	public static void preSetup() throws IOException, NoSuchAlgorithmException {
 		Logger.getLogger(MockWebServer.class.getName()).setLevel(Level.OFF);
-		keyPair    = KeyTestUtility.generateRSAKeyPair();
-		keyPair2   = KeyTestUtility.generateRSAKeyPair();
+		keyPair    = Base64DataUtil.generateRSAKeyPair();
+		keyPair2   = Base64DataUtil.generateRSAKeyPair();
 		kid        = KeyTestUtility.kid(keyPair);
 		kid2       = KeyTestUtility.kid(keyPair2);
-		server     = KeyTestUtility.testServer("/public-keys/", keyPair);
+		server     = KeyTestUtility.testServer(keyPair);
 		dispatcher = (TestMockServerDispatcher) server.getDispatcher();
 		server.start();
 		builder = WebClient.builder();
@@ -85,22 +79,22 @@ public class JWTPolicyInformationPointTest {
 	}
 
 	@BeforeEach
-	public void setup() {
+	void setup() {
 		provider                  = new JWTKeyProvider(builder);
 		jwtPolicyInformationPoint = new JWTPolicyInformationPoint(provider);
 	}
 
 	@Test
-	public void contextIsAbleToLoadJWTPolicyInformationPoint() {
+	void contextIsAbleToLoadJWTPolicyInformationPoint() {
 		assertDoesNotThrow(() -> new AnnotationAttributeContext(jwtPolicyInformationPoint));
 	}
-	
+
 	/*
 	 * TEST INVALID KEY
 	 */
 
 	@Test
-	public void validity_withInvalidKey_shouldBeUntrusted() throws JOSEException {
+	void validity_withInvalidKey_shouldBeUntrusted() throws JOSEException {
 		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
 		var claims    = new JWTClaimsSet.Builder().build();
@@ -116,14 +110,14 @@ public class JWTPolicyInformationPointTest {
 	 */
 
 	@Test
-	public void validity_withWrongValueType_shouldBeMalformed() {
+	void validity_withWrongValueType_shouldBeMalformed() {
 		var flux = jwtPolicyInformationPoint.validity(Val.of(50_000L), null);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.MALFORMED.toString()))
 				.verifyComplete();
 	}
 
 	@Test
-	public void validity_withMalformedToken_shouldBeMalformed() {
+	void validity_withMalformedToken_shouldBeMalformed() {
 		var source = Val.of("MALFORMED TOKEN");
 		var flux   = jwtPolicyInformationPoint.validity(source, null);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.MALFORMED.toString()))
@@ -131,7 +125,7 @@ public class JWTPolicyInformationPointTest {
 	}
 
 	@Test
-	public void validity_ofNull_shouldBeMalformed() {
+	void validity_ofNull_shouldBeMalformed() {
 		var flux = jwtPolicyInformationPoint.validity(null, null);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.MALFORMED.toString()))
 				.verifyComplete();
@@ -142,8 +136,8 @@ public class JWTPolicyInformationPointTest {
 	 */
 
 	@Test
-	public void validity_withWhitelist_emptyEntry_shouldBeUntrusted()
-			throws NoSuchAlgorithmException, IOException, JOSEException {
+	void validity_withWhitelist_emptyEntry_shouldBeUntrusted()
+			throws JOSEException {
 
 		var variables = JsonTestUtility.publicKeyWhitelistVariables(kid, null, kid2, keyPair2);
 		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
@@ -155,8 +149,8 @@ public class JWTPolicyInformationPointTest {
 	}
 
 	@Test
-	public void validity_withWhitelist_bogusEntry_shouldBeUntrusted()
-			throws NoSuchAlgorithmException, IOException, JOSEException {
+	void validity_withWhitelist_bogusEntry_shouldBeUntrusted()
+			throws JOSEException {
 
 		var variables = JsonTestUtility.publicKeyWhitelistVariables(kid, keyPair, kid2, null);
 		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid2).build();
@@ -168,10 +162,10 @@ public class JWTPolicyInformationPointTest {
 	}
 
 	@Test
-	public void validity_withWhitelist_multiTest_shouldBeTrustedThenTrustedThenUntrusted()
+	void validity_withWhitelist_multiTest_shouldBeTrustedThenTrustedThenUntrusted()
 			throws NoSuchAlgorithmException, IOException, JOSEException {
 
-		var keyPairs   = new KeyPair[] { keyPair, keyPair2, KeyTestUtility.generateRSAKeyPair() };
+		var keyPairs   = new KeyPair[] { keyPair, keyPair2, Base64DataUtil.generateRSAKeyPair() };
 		var variables  = JsonTestUtility.publicKeyWhitelistVariables(kid, keyPair, kid2, keyPair2);
 		var claims     = new JWTClaimsSet.Builder().build();
 		var validities = new ArrayList<Mono<Val>>();
@@ -191,7 +185,7 @@ public class JWTPolicyInformationPointTest {
 	 */
 
 	@Test
-	public void validity_withEmptyEnvironment_shouldBeUntrusted() throws JOSEException {
+	void validity_withEmptyEnvironment_shouldBeUntrusted() throws JOSEException {
 		var variables = Map.<String, JsonNode>of();
 		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
 		var claims    = new JWTClaimsSet.Builder().build();
@@ -202,8 +196,8 @@ public class JWTPolicyInformationPointTest {
 	}
 
 	@Test
-	public void validity_withUriEnvironmentMissingServer_shouldBeUntrusted() throws JOSEException {
-		var variables = Map.<String, JsonNode>of("jwt", JsonTestUtility.getMAPPER().createObjectNode());
+	void validity_withUriEnvironmentMissingServer_shouldBeUntrusted() throws JOSEException {
+		var variables = Map.<String, JsonNode>of("jwt", MAPPER.createObjectNode());
 		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
 		var claims    = new JWTClaimsSet.Builder().build();
 		var source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -213,7 +207,7 @@ public class JWTPolicyInformationPointTest {
 	}
 
 	@Test
-	public void validity_withUriEnvironment_usingWrongKey_shouldBeUntrusted() throws JOSEException {
+	void validity_withUriEnvironment_usingWrongKey_shouldBeUntrusted() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.Wrong);
 		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
@@ -225,14 +219,11 @@ public class JWTPolicyInformationPointTest {
 	}
 
 	@Test
-	public void validity_withUriEnvironmentAndInvalidCachingTTL_usingBase64Url_shouldBeUntrusted()
-			throws JOSEException {
-
+	void validity_withUriEnvironmentAndInvalidCachingTTL_usingBase64Url_shouldBeUntrusted() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
-		var jwtNode   = JsonTestUtility.getMAPPER().createObjectNode().set(
-				JWTPolicyInformationPoint.PUBLIC_KEY_VARIABLES_KEY,
+		var jwtNode   = MAPPER.createObjectNode().set(JWTPolicyInformationPoint.PUBLIC_KEY_VARIABLES_KEY,
 				JsonTestUtility.serverNode(server, null, "invalid TTL format"));
-		var variables = Map.<String, JsonNode>of("jwt", jwtNode);
+		var variables = Map.of("jwt", jwtNode);
 		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
 		var claims    = new JWTClaimsSet.Builder().build();
 		var source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -246,7 +237,7 @@ public class JWTPolicyInformationPointTest {
 	 */
 
 	@Test
-	public void validity_withoutKeyID_shouldBeIncomplete() throws JOSEException {
+	void validity_withoutKeyID_shouldBeIncomplete() throws JOSEException {
 		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).build();
 		var claims = new JWTClaimsSet.Builder().build();
 		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -256,7 +247,7 @@ public class JWTPolicyInformationPointTest {
 	}
 
 	@Test
-	public void validity_withEmptyKeyID_shouldBeIncomplete() throws JOSEException {
+	void validity_withEmptyKeyID_shouldBeIncomplete() throws JOSEException {
 		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID("").build();
 		var claims = new JWTClaimsSet.Builder().build();
 		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -266,7 +257,7 @@ public class JWTPolicyInformationPointTest {
 	}
 
 	@Test
-	public void validity_withCriticalHeader_shouldBeIncompatible() throws JOSEException {
+	void validity_withCriticalHeader_shouldBeIncompatible() throws JOSEException {
 		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).criticalParams(Set.of("critparam")).build();
 		var claims = new JWTClaimsSet.Builder().build();
 		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -280,7 +271,7 @@ public class JWTPolicyInformationPointTest {
 	 */
 
 	@Test
-	public void validity_withWrongAlgorithm_shouldBeIncompatible() throws JOSEException {
+	void validity_withWrongAlgorithm_shouldBeIncompatible() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var variables = Map.<String, JsonNode>of();
 		var header    = new JWSHeader.Builder(JWSAlgorithm.PS512).keyID(kid).build();
@@ -292,7 +283,7 @@ public class JWTPolicyInformationPointTest {
 	}
 
 	@Test
-	public void valid_withWrongAlgorithm_shouldBeFalse() throws JOSEException {
+	void valid_withWrongAlgorithm_shouldBeFalse() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var variables = Map.<String, JsonNode>of();
 		var header    = new JWSHeader.Builder(JWSAlgorithm.PS512).keyID(kid).build();
@@ -303,7 +294,7 @@ public class JWTPolicyInformationPointTest {
 	}
 
 	@Test
-	public void validity_withTamperedPayload_withUriEnvironment_shouldBeUntrusted() throws JOSEException {
+	void validity_withTamperedPayload_withUriEnvironment_shouldBeUntrusted() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var variables      = JsonTestUtility.publicKeyUriVariables(server, null);
 		var header         = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
@@ -321,7 +312,7 @@ public class JWTPolicyInformationPointTest {
 	 */
 
 	@Test
-	public void validity_withNbfAfterExp_shouldBeNeverValid() throws JOSEException {
+	void validity_withNbfAfterExp_shouldBeNeverValid() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
@@ -334,7 +325,7 @@ public class JWTPolicyInformationPointTest {
 	}
 
 	@Test
-	public void validity_withExpBeforeNow_shouldBeExpired() throws JOSEException {
+	void validity_withExpBeforeNow_shouldBeExpired() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
@@ -346,7 +337,7 @@ public class JWTPolicyInformationPointTest {
 	}
 
 	@Test
-	public void validity_withExpAfterNow_shouldBeValidThenExpired() throws JOSEException {
+	void validity_withExpAfterNow_shouldBeValidThenExpired() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
@@ -359,7 +350,7 @@ public class JWTPolicyInformationPointTest {
 	}
 
 	@Test
-	public void validity_withNbfAfterNow_shouldBeImmatureThenValid() throws JOSEException {
+	void validity_withNbfAfterNow_shouldBeImmatureThenValid() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
@@ -372,7 +363,7 @@ public class JWTPolicyInformationPointTest {
 	}
 
 	@Test
-	public void validity_withNbfBeforeNow_shouldBeValid() throws JOSEException {
+	void validity_withNbfBeforeNow_shouldBeValid() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
@@ -384,7 +375,7 @@ public class JWTPolicyInformationPointTest {
 	}
 
 	@Test
-	public void validity_withNbfAfterNowAndExpAfterNbf_shouldBeImmatureThenValidThenExpired() throws JOSEException {
+	void validity_withNbfAfterNowAndExpAfterNbf_shouldBeImmatureThenValidThenExpired() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();

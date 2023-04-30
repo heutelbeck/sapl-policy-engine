@@ -28,13 +28,13 @@ class EntitlementTest {
 
 	@Test
 	void permitIsPermit() throws IOException {
-		var permit = ParserUtil.entitilement("permit");
+		var permit = ParserUtil.entitlement("permit");
 		assertEquals(permit.getDecision(), Decision.PERMIT);
 	}
 
 	@Test
 	void denyIsDeny() throws IOException {
-		var deny = ParserUtil.entitilement("deny");
+		var deny = ParserUtil.entitlement("deny");
 		assertEquals(deny.getDecision(), Decision.DENY);
 	}
 

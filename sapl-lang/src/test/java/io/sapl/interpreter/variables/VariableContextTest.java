@@ -59,7 +59,7 @@ class VariableContextTest {
 	private static final Map<String, JsonNode> EMPTY_MAP = new HashMap<>();
 
 	@Test
-	void emtpyInitializationTest() {
+	void emptyInitializationTest() {
 		var ctx = new VariableContext(EMPTY_MAP);
 		assertThat(ctx, notNullValue());
 	}
@@ -74,7 +74,7 @@ class VariableContextTest {
 	}
 
 	@Test
-	void emptyauthzSubscriptionInitializationTest() {
+	void emptyAuthzSubscriptionInitializationTest() {
 		var ctx = new VariableContext(EMPTY_MAP).forAuthorizationSubscription(EMPTY_AUTH_SUBSCRIPTION);
 		assertAll(() -> assertThat(ctx, notNullValue()), () -> assertThat(ctx.get("subject"), is(valNull())),
 				() -> assertThat(ctx.get("action"), is(valNull())),

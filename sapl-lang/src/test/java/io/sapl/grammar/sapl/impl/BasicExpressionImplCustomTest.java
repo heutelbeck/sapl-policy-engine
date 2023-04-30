@@ -32,17 +32,17 @@ class BasicExpressionImplCustomTest {
 	}
 
 	@Test
-	void subtemplateNoArray() {
+	void subTemplateNoArray() {
 		expressionEvaluatesTo("null :: { \"name\" : @ }", "{ \"name\" : null }");
 	}
 
 	@Test
-	void subtemplateArray() {
+	void subTemplateArray() {
 		expressionEvaluatesTo("[true, false] :: null", "[ null,null ]");
 	}
 
 	@Test
-	void subtemplateEmptyArray() {
+	void subTemplateEmptyArray() {
 		expressionEvaluatesTo("[] :: null", "[]");
 	}
 

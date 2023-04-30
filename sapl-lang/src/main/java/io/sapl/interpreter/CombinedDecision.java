@@ -55,18 +55,18 @@ public class CombinedDecision implements Traced {
 	}
 
 	public CombinedDecision withEvaluationResult(DocumentEvaluationResult result) {
-		var newCombindedDecision = new CombinedDecision(authorizationDecision, combiningAlgorithm,
+		var newCombinedDecision = new CombinedDecision(authorizationDecision, combiningAlgorithm,
 				documentEvaluationResults, errorMessage);
-		newCombindedDecision.documentEvaluationResults.add(result);
-		return newCombindedDecision;
+		newCombinedDecision.documentEvaluationResults.add(result);
+		return newCombinedDecision;
 	}
 
 	public CombinedDecision withDecisionAndEvaluationResult(AuthorizationDecision authorizationDecision,
 			DocumentEvaluationResult result) {
-		var newCombindedDecision = new CombinedDecision(authorizationDecision, combiningAlgorithm,
+		var newCombinedDecision = new CombinedDecision(authorizationDecision, combiningAlgorithm,
 				documentEvaluationResults, errorMessage);
-		newCombindedDecision.documentEvaluationResults.add(result);
-		return newCombindedDecision;
+		newCombinedDecision.documentEvaluationResults.add(result);
+		return newCombinedDecision;
 	}
 
 	@Override
@@ -74,8 +74,7 @@ public class CombinedDecision implements Traced {
 		var trace = Val.JSON.objectNode();
 		trace.set(COMBINING_ALGORITHM, Val.JSON.textNode(combiningAlgorithm));
 		trace.set(AUTHORIZATION_DECISION, MAPPER.valueToTree(getAuthorizationDecision()));
-		if (errorMessage.isPresent())
-			trace.set(ERROR, Val.JSON.textNode(errorMessage.get()));
+		errorMessage.ifPresent(s -> trace.set(ERROR, Val.JSON.textNode(s)));
 		trace.set(EVALUATED_POLICIES, listOfTracedToJsonArray(documentEvaluationResults));
 		return trace;
 	}

@@ -19,7 +19,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 import io.sapl.test.mocking.MockCall;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 

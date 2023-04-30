@@ -1,4 +1,3 @@
-io.sapl.spring.config.SaplFilterPolicyEnforcementPointAutoConfiguration
 io.sapl.spring.config.ObjectMapperAutoConfiguration
 io.sapl.spring.config.ConstraintsHandlerAutoconfiguration
-io.sapl.spring.config.PolicyEnforcementPointAutoConfiguration
+io.sapl.spring.config.AuthorizationManagerConfiguration

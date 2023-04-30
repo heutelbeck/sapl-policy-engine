@@ -38,9 +38,9 @@ import io.sapl.api.pdp.Decision;
 class HasAdviceTest {
 
 	@Test
-	public void test() {
+	void test() {
 		ObjectMapper mapper = new ObjectMapper();
-		ObjectNode advice = mapper.createObjectNode();
+		ObjectNode   advice = mapper.createObjectNode();
 		advice.put("foo", "bar");
 		ArrayNode adviceArray = mapper.createArrayNode();
 		adviceArray.add(advice);
@@ -53,9 +53,9 @@ class HasAdviceTest {
 	}
 
 	@Test
-	public void testConvenienceMatchierAdviceString() {
+	void testConvenienceMatcherAdviceString() {
 		ObjectMapper mapper = new ObjectMapper();
-		ObjectNode advice = mapper.createObjectNode();
+		ObjectNode   advice = mapper.createObjectNode();
 		advice.put("foo", "bar");
 		ArrayNode adviceArray = mapper.createArrayNode();
 		adviceArray.add(advice);
@@ -67,49 +67,49 @@ class HasAdviceTest {
 	}
 
 	@Test
-	public void test_neg() {
+	void test_neg() {
 		ObjectMapper mapper = new ObjectMapper();
-		ObjectNode advice = mapper.createObjectNode();
+		ObjectNode   advice = mapper.createObjectNode();
 		advice.put("foo", "bar");
 		ArrayNode adviceArray = mapper.createArrayNode();
 		adviceArray.add(advice);
 
-		ObjectNode expectedadvice = mapper.createObjectNode();
-		expectedadvice.put("xxx", "xxx");
+		ObjectNode expectedAdvice = mapper.createObjectNode();
+		expectedAdvice.put("xxx", "xxx");
 		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
 				Optional.of(adviceArray));
 
-		var matcher = hasAdvice(expectedadvice);
+		var matcher = hasAdvice(expectedAdvice);
 
 		assertThat(dec, not(is(matcher)));
 	}
 
 	@Test
-	public void test_nullDecision() {
+	void test_nullDecision() {
 		ObjectMapper mapper = new ObjectMapper();
-		ObjectNode advice = mapper.createObjectNode();
+		ObjectNode   advice = mapper.createObjectNode();
 		advice.put("foo", "bar");
 		var matcher = hasAdvice(advice);
 		assertThat(null, not(is(matcher)));
 	}
 
 	@Test
-	public void test_emptyAdvice() {
+	void test_emptyAdvice() {
 		ObjectMapper mapper = new ObjectMapper();
-		ObjectNode advice = mapper.createObjectNode();
+		ObjectNode   advice = mapper.createObjectNode();
 		advice.put("foo", "bar");
-		var matcher = hasAdvice(advice);
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
+		var                   matcher = hasAdvice(advice);
+		AuthorizationDecision dec     = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
 				Optional.empty());
 		assertThat(dec, not(is(matcher)));
 	}
 
 	@Test
-	public void test_numberEqualTest() {
-		ObjectMapper mapper = new ObjectMapper();
-		ObjectNode expectedAdvice = mapper.createObjectNode();
+	void test_numberEqualTest() {
+		ObjectMapper mapper         = new ObjectMapper();
+		ObjectNode   expectedAdvice = mapper.createObjectNode();
 		expectedAdvice.put("foo", 1);
-		var matcher = hasAdvice(expectedAdvice);
+		var        matcher      = hasAdvice(expectedAdvice);
 		ObjectNode actualAdvice = mapper.createObjectNode();
 		actualAdvice.put("foo", 1f);
 		ArrayNode actualAdviceArray = mapper.createArrayNode();
@@ -120,9 +120,9 @@ class HasAdviceTest {
 	}
 
 	@Test
-	public void test_emptyMatcher() {
-		ObjectMapper mapper = new ObjectMapper();
-		ObjectNode actualAdvice = mapper.createObjectNode();
+	void test_emptyMatcher() {
+		ObjectMapper mapper       = new ObjectMapper();
+		ObjectNode   actualAdvice = mapper.createObjectNode();
 		actualAdvice.put("foo", 1);
 		ArrayNode actualAdviceArray = mapper.createArrayNode();
 		actualAdviceArray.add(actualAdvice);
@@ -135,13 +135,13 @@ class HasAdviceTest {
 	}
 
 	@Test
-	public void test_nullJsonNode() {
+	void test_nullJsonNode() {
 		assertThrows(NullPointerException.class, () -> hasAdvice((ObjectNode) null));
 	}
 
 	@Test
 	void testDescriptionForMatcherEmptyMatcher() {
-		var sut = new HasAdvice();
+		var                     sut         = new HasAdvice();
 		final StringDescription description = new StringDescription();
 		sut.describeTo(description);
 		assertThat(description.toString(), is("the decision has an advice equals any advice"));
@@ -149,7 +149,7 @@ class HasAdviceTest {
 
 	@Test
 	void testDescriptionForMatcher() {
-		var sut = hasAdvice(jsonText("value"));
+		var                     sut         = hasAdvice(jsonText("value"));
 		final StringDescription description = new StringDescription();
 		sut.describeTo(description);
 		assertThat(description.toString(),
