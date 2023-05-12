@@ -123,7 +123,7 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 				.doOnError(error -> log.error("RSocket Connect Error : error {}", error.getMessage(), error));
 	}
 
-	static RemoteRsocketPolicyDecisionPointBuilder builder() {
+	public static RemoteRsocketPolicyDecisionPointBuilder builder() {
 		return new RemoteRsocketPolicyDecisionPointBuilder();
 	}
 
