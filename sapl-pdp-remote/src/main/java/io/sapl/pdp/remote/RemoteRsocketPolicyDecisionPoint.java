@@ -127,7 +127,7 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 		return new RemoteRsocketPolicyDecisionPointBuilder();
 	}
 
-	static class RemoteRsocketPolicyDecisionPointBuilder {
+	public static class RemoteRsocketPolicyDecisionPointBuilder {
 		private TcpClient                                                    tcpClient;
 		private Function<RSocketRequester.Builder, RSocketRequester.Builder> authenticationCustomizer;
 
