@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.context.AuthorizationContext;
-import io.sapl.interpreter.functions.SchemaPaths;
+import io.sapl.interpreter.functions.SchemaTemplates;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +41,7 @@ public class SchemaProposals {
     private Flux<String> getCodeTemplates(Val v) {
         List<String> schema = new ArrayList<>();
         try {
-            schema = SchemaPaths.flattenSchema(v.getText());
+            schema = SchemaTemplates.schemaTemplates(v.getText());
         } catch (Exception e) {
             log.info("Could not flatten schema: {}", v.getText());
         }

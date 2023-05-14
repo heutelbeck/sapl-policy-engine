@@ -1,6 +1,8 @@
 package io.sapl.interpreter.pip;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -63,6 +65,11 @@ public class AttributeFinderMetadata implements LibraryEntryMetadata {
 
 		sb.append('>');
 		return sb.toString();
+	}
+
+	@Override
+	public List<String> getSchemaTemplates() {
+		return new ArrayList<>();
 	}
 
 }

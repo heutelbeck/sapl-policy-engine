@@ -196,11 +196,19 @@ class AnnotationFunctionContextTest {
 	}
 
 	@Test
-	void codeTemplatesAreGeneratedFromSchema() throws InitializationException {
-		var context = new AnnotationFunctionContext(new SchemaAnnotatedLibrary());
+	void codeTemplatesAreGeneratedFromVerboseSchema() throws InitializationException {
+		var context = new AnnotationFunctionContext(new FunctionLibraryWithVerboseSchemaAnnotation());
 		var actualTemplates = context.getCodeTemplates();
-		actualTemplates = context.getCodeTemplates();
-		assertThat(actualTemplates, containsInAnyOrder("schemaAnnotation.validSchema()", "schemaAnnotation.validSchema().name", "schemaAnnotation.validSchema().age"));
+		assertThat(actualTemplates, containsInAnyOrder("schemaVerbose.schemaFromJson()",
+				"schemaVerbose.schemaFromJson().name", "schemaVerbose.schemaFromJson().age"));
+	}
+
+	@Test
+	void codeTemplatesAreGeneratedFromSchemaFile() throws InitializationException {
+		var context = new AnnotationFunctionContext(new FunctionLibraryWithSchemaAnnotationInFile());
+		var actualTemplates = context.getCodeTemplates();
+		assertThat(actualTemplates, containsInAnyOrder("schemaInFile.schemaFromFile()",
+				"schemaInFile.schemaFromFile().name", "schemaInFile.schemaFromFile().age"));
 	}
 
 	@Test
@@ -261,22 +269,18 @@ class AnnotationFunctionContextTest {
 
 	}
 
-	@FunctionLibrary(name = "schemaAnnotation")
-	public static class SchemaAnnotatedLibrary {
-
-		private static final String VALID_SCHEMA = "{ " +
-				"  \"type\": \"object\", " +
-				"  \"properties\": { " +
-				"    \"name\": { \"type\": \"string\" }, " +
-				"    \"age\": { \"type\": \"integer\" } " +
-				"  }" +
-				"}";
-
+	@FunctionLibrary(name = "schemaVerbose")
+	public static class FunctionLibraryWithVerboseSchemaAnnotation {
 		@Function(schema = "{\"name\": {\"type\": \"string\"}, \"age\": {\"type\": \"number\"}}")
-		public static Val validSchema() {
-			return Val.of(VALID_SCHEMA);
+		public static Val schemaFromJson() {
+			return Val.of(true);
 		}
+	}
 
+	@FunctionLibrary(name = "schemaInFile")
+	public static class FunctionLibraryWithSchemaAnnotationInFile {
+		@Function(schema = "~/src/test/resources/schemas/person_schema.json")
+		public static Val schemaFromFile() { return Val.of(true); }
 	}
 
 	@FunctionLibrary

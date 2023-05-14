@@ -92,7 +92,7 @@
                 }
 
                 /**
-                 * Tests regarding the policy body
+                 * Tests regarding variable annotation in policy body
                  */
 
                 @Test
@@ -270,8 +270,6 @@
                         });
                     });
                 }
-
-
 
             }
 

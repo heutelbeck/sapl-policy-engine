@@ -17,7 +17,14 @@ package io.sapl.interpreter.functions;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
@@ -114,11 +121,6 @@ public class AnnotationFunctionContext implements FunctionContext {
 			}
 		}
 		return invokeFunction(metadata, new Object[] { parameters });
-	}
-
-	private Val getSchemaPaths(Method method){
-		Function funAnnotation = method.getAnnotation(Function.class);
-		return Val.of(funAnnotation.schema());
 	}
 
 	private Val invokeFunction(FunctionMetadata metadata, Object... parameters) {
@@ -248,22 +250,21 @@ public class AnnotationFunctionContext implements FunctionContext {
 			return sb.toString();
 		}
 
-		public List<String> getCodeTemplatesWithSchemaPaths(){
+		@Override
+		public List<String> getSchemaTemplates(){
 			StringBuilder sb;
-			var codeTemplatesWithSchemaPaths = new ArrayList<String>();
+			var schemaTemplates = new ArrayList<String>();
 			var funCodeTemplate = getCodeTemplate();
 			var schema = getFunctionSchema();
 			if (schema.length() > 0){
-				var paths = SchemaPaths.flattenSchema(schema);
+				var paths = SchemaTemplates.schemaTemplates(schema);
 				for (var path : paths){
 					sb = new StringBuilder();
-					sb.append(funCodeTemplate);
-					sb.append(".");
-					sb.append(path);
-					codeTemplatesWithSchemaPaths.add(sb.toString());
+					sb.append(funCodeTemplate).append(".").append(path);
+					schemaTemplates.add(sb.toString());
 				}
 			}
-			return codeTemplatesWithSchemaPaths;
+			return schemaTemplates;
 		}
 
 		@Override
@@ -290,7 +291,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 			for (var entry : functions.entrySet()) {
 				var value = entry.getValue();
 				codeTemplateCache.add(entry.getValue().getCodeTemplate());
-				var temp = value.getCodeTemplatesWithSchemaPaths();
+				var temp = value.getSchemaTemplates();
 				codeTemplateCache.addAll(temp);
 			}
 			Collections.sort(codeTemplateCache);
