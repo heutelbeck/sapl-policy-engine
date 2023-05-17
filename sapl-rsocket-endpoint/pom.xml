@@ -23,7 +23,7 @@
 	<parent>
 		<artifactId>sapl-policy-engine</artifactId>
 		<groupId>io.sapl</groupId>
-		<version>2.1.0-SNAPSHOT</version>
+		<version>3.0.0-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>sapl-rsocket-endpoint</artifactId>
