@@ -81,7 +81,7 @@
 		<jacoco.version>0.8.9</jacoco.version>
 		<sonar.version>3.9.1.2184</sonar.version>
 		<sonar.host.url>https://sonar.ftk.de</sonar.host.url>
-		<failsafe.version>3.0.0</failsafe.version>
+		<failsafe.version>3.1.0</failsafe.version>
 		<docker-registry-url>ghcr.io/heutelbeck</docker-registry-url>
 		<sonar.exclusions>**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/*</sonar.exclusions>
 	</properties>
@@ -278,7 +278,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-surefire-plugin</artifactId>
-					<version>3.0.0</version>
+					<version>3.1.0</version>
 				</plugin>
 				<plugin>
 					<groupId>com.mycila</groupId>
