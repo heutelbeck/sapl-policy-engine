@@ -15,7 +15,6 @@ import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.springframework.aop.framework.ReflectiveMethodInvocation;
-import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -24,37 +23,33 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.config.SaplMethodSecurityConfiguration;
-import io.sapl.spring.constraints.ConstraintEnforcementService;
+import io.sapl.spring.config.EnableSaplMethodSecurity;
 import io.sapl.spring.constraints.api.MethodInvocationConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
-import io.sapl.spring.constraints.it.PreEnforcementIntegrationTests.Application;
-import io.sapl.spring.constraints.it.PreEnforcementIntegrationTests.ConstraintHandlerOne;
-import io.sapl.spring.constraints.it.PreEnforcementIntegrationTests.ConstraintHandlerTwo;
-import io.sapl.spring.constraints.it.PreEnforcementIntegrationTests.FailingConstraintHandler;
-import io.sapl.spring.constraints.it.PreEnforcementIntegrationTests.MethodSecurityConfiguration;
-import io.sapl.spring.constraints.it.PreEnforcementIntegrationTests.SuccessfulMethodInvocationConstraintHandler;
-import io.sapl.spring.constraints.it.PreEnforcementIntegrationTests.TestService;
+import io.sapl.spring.constraints.it.PreEnforcementConstraintsTests.Application;
+import io.sapl.spring.constraints.it.PreEnforcementConstraintsTests.ConstraintHandlerOne;
+import io.sapl.spring.constraints.it.PreEnforcementConstraintsTests.ConstraintHandlerTwo;
+import io.sapl.spring.constraints.it.PreEnforcementConstraintsTests.FailingConstraintHandler;
+import io.sapl.spring.constraints.it.PreEnforcementConstraintsTests.MethodSecurityConfiguration;
+import io.sapl.spring.constraints.it.PreEnforcementConstraintsTests.SuccessfulMethodInvocationConstraintHandler;
+import io.sapl.spring.constraints.it.PreEnforcementConstraintsTests.TestService;
 import io.sapl.spring.method.metadata.PreEnforce;
-import io.sapl.spring.subscriptions.WebAuthorizationSubscriptionBuilderService;
 import reactor.core.publisher.Flux;
 
 @SpringBootTest(classes = { Application.class, TestService.class, MethodSecurityConfiguration.class,
 		ConstraintHandlerOne.class, ConstraintHandlerTwo.class, FailingConstraintHandler.class,
 		SuccessfulMethodInvocationConstraintHandler.class, SuccessfulMethodInvocationConstraintHandler.class })
-public class PreEnforcementIntegrationTests {
+class PreEnforcementConstraintsTests {
 	private static final String UNKNOWN_CONSTRAINT                      = "unknown constraint";
 	private static final String FAILING_CONSTRAINT                      = "failing constraint";
 	private static final String KNOWN_CONSTRAINT                        = "known constraint";
@@ -84,16 +79,8 @@ public class PreEnforcementIntegrationTests {
 	}
 
 	@TestConfiguration
-	@EnableGlobalMethodSecurity(prePostEnabled = true)
-	static class MethodSecurityConfiguration extends SaplMethodSecurityConfiguration {
-
-		public MethodSecurityConfiguration(ObjectFactory<PolicyDecisionPoint> pdpFactory,
-				ObjectFactory<ConstraintEnforcementService> constraintHandlerFactory,
-				ObjectFactory<ObjectMapper> objectMapperFactory,
-				ObjectFactory<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderFactory) {
-			super(pdpFactory, constraintHandlerFactory, objectMapperFactory, subscriptionBuilderFactory);
-		}
-
+	@EnableSaplMethodSecurity
+	static class MethodSecurityConfiguration {
 	}
 
 	@Component
@@ -224,7 +211,7 @@ public class PreEnforcementIntegrationTests {
 
 	@Test
 	void contextLoads(ApplicationContext context) {
-	    assertThat(context).isNotNull();
+		assertThat(context).isNotNull();
 	}
 
 	@Test
@@ -403,10 +390,10 @@ public class PreEnforcementIntegrationTests {
 
 	@Test
 	@WithMockUser(USER)
-	void when_testDecisionHasResource_then_accessDenied() {
-		var decision = AuthorizationDecision.PERMIT.withResource(JSON.textNode("replacement will make it fail"));
+	void when_testDecisionHasResource_then_replaced() {
+		var decision = AuthorizationDecision.PERMIT.withResource(JSON.textNode("replacement"));
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
-		assertThrows(AccessDeniedException.class, () -> service.execute("test"));
-		verify(service, times(0)).execute(any());
+		assertEquals("replacement", service.execute("test"));
+		verify(service, times(1)).execute(any());
 	}
 }

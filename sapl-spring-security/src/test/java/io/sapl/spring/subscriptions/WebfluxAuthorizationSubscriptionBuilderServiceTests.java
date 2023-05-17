@@ -34,6 +34,8 @@ import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.context.ApplicationContext;
 import org.springframework.expression.EvaluationException;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -56,7 +58,7 @@ import org.springframework.web.server.ServerWebExchange;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
-import io.sapl.spring.method.metadata.PreEnforceAttribute;
+import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
@@ -74,6 +76,7 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
 	private ObjectMapper                                   mapper;
 
 	@BeforeEach
+	@SuppressWarnings("unchecked")
 	void beforeEach() {
 		mapper = new ObjectMapper();
 		SimpleModule module = new SimpleModule();
@@ -86,9 +89,17 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
 		authentication                 = new UsernamePasswordAuthenticationToken(user, "the credentials");
 		defaultWebfluxBuilderUnderTest = new WebfluxAuthorizationSubscriptionBuilderService(
 				new DefaultMethodSecurityExpressionHandler(), mapper);
-		defaultWebBuilderUnderTest     = new WebAuthorizationSubscriptionBuilderService(
-				new DefaultMethodSecurityExpressionHandler(), mapper);
-		invocation                     = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
+		var mockExpressionHandlerProvider = mock(ObjectProvider.class);
+		when(mockExpressionHandlerProvider.getIfAvailable(any()))
+				.thenReturn(new DefaultMethodSecurityExpressionHandler());
+		var mockMapperProvider = mock(ObjectProvider.class);
+		when(mockMapperProvider.getIfAvailable(any())).thenReturn(mapper);
+		var mockDefaultsProvider = mock(ObjectProvider.class);
+		var mockContext          = mock(ApplicationContext.class);
+		defaultWebBuilderUnderTest = new WebAuthorizationSubscriptionBuilderService(
+				mockExpressionHandlerProvider, mockMapperProvider,
+				mockDefaultsProvider, mockContext);
+		invocation                 = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
 				"publicVoid",
 				null, null);
 	}
@@ -124,12 +135,22 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
 	}
 
 	@Test
+	@SuppressWarnings("unchecked")
 	void when_expressionResultCannotBeMarshalledToJson_then_FactoryThrows() {
 		var attribute  = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'", Object.class);
 		var mockMapper = mock(ObjectMapper.class);
 		when(mockMapper.valueToTree(any())).thenThrow(new EvaluationException("ERROR"));
-		var sut = new WebAuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(),
-				mockMapper);
+
+		var mockExpressionHandlerProvider = mock(ObjectProvider.class);
+		when(mockExpressionHandlerProvider.getIfAvailable(any()))
+				.thenReturn(new DefaultMethodSecurityExpressionHandler());
+		var mockMapperProvider = mock(ObjectProvider.class);
+		when(mockMapperProvider.getIfAvailable(any())).thenReturn(mockMapper);
+		var mockDefaultsProvider = mock(ObjectProvider.class);
+		var mockContext          = mock(ApplicationContext.class);
+		var sut                  = new WebAuthorizationSubscriptionBuilderService(
+				mockExpressionHandlerProvider, mockMapperProvider,
+				mockDefaultsProvider, mockContext);
 		assertThrows(IllegalArgumentException.class,
 				() -> sut.constructAuthorizationSubscription(authentication, invocation, attribute));
 	}
@@ -394,7 +415,7 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
 	}
 
 	private SaplAttribute attribute(String subject, String action, String resource, String environment, Class<?> type) {
-		return new PreEnforceAttribute(parameterToExpression(subject), parameterToExpression(action),
+		return new SaplAttribute(PreEnforce.class, parameterToExpression(subject), parameterToExpression(action),
 				parameterToExpression(resource), parameterToExpression(environment), type);
 	}
 

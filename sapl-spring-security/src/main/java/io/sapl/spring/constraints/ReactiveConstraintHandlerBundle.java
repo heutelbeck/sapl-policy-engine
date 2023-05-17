@@ -16,9 +16,9 @@
 package io.sapl.spring.constraints;
 
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.LongConsumer;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 
 import org.aopalliance.intercept.MethodInvocation;
 import org.reactivestreams.Subscription;
@@ -40,24 +40,21 @@ import reactor.core.publisher.Mono;
  */
 @NoArgsConstructor
 @AllArgsConstructor
-public class ReactiveTypeConstraintHandlerBundle<T> {
+public class ReactiveConstraintHandlerBundle<T> {
 
-	// @formatter:off
-	private static final Runnable NOP = () -> {};
-
-	private Runnable                       onDecisionHandlers       = NOP;
-	private Runnable                       onCancelHandlers         = NOP;
-	private Runnable                       onCompleteHandlers       = NOP;
-	private Runnable                       onTerminateHandlers      = NOP;
-	private Runnable                       afterTerminateHandlers   = NOP;
-	private Consumer<Subscription>         onSubscribeHandlers      = __->{};
-	private LongConsumer                   onRequestHandlers        = __->{};
-	private Consumer<T>                    doOnNextHandlers         = __->{};
-	private Function<T, T>                 onNextMapHandlers        = x->x;
-	private Consumer<Throwable>            doOnErrorHandlers        = __->{};
-	private Function<Throwable, Throwable> onErrorMapHandlers       = x->x;
-	private Predicate<Object>              filterPredicateHandlers  = __->true;
-	private Consumer<MethodInvocation>     methodInvocationHandlers = __->{};
+	private Runnable                   onDecisionHandlers       = FunctionUtil.noop();
+	private Runnable                   onCancelHandlers         = FunctionUtil.noop();
+	private Runnable                   onCompleteHandlers       = FunctionUtil.noop();
+	private Runnable                   onTerminateHandlers      = FunctionUtil.noop();
+	private Runnable                   afterTerminateHandlers   = FunctionUtil.noop();
+	private Consumer<Subscription>     onSubscribeHandlers      = FunctionUtil.sink();
+	private LongConsumer               onRequestHandlers        = FunctionUtil.longSink();
+	private Consumer<T>                doOnNextHandlers         = FunctionUtil.sink();
+	private UnaryOperator<T>           onNextMapHandlers        = UnaryOperator.identity();
+	private Consumer<Throwable>        doOnErrorHandlers        = FunctionUtil.sink();
+	private UnaryOperator<Throwable>   onErrorMapHandlers       = UnaryOperator.identity();
+	private Predicate<Object>          filterPredicateHandlers  = FunctionUtil.all();
+	private Consumer<MethodInvocation> methodInvocationHandlers = FunctionUtil.sink();
 	// @formatter:on
 
 	/**

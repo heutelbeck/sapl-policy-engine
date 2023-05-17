@@ -18,67 +18,32 @@ package io.sapl.spring.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import org.aopalliance.intercept.MethodInterceptor;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.subscriptions.WebAuthorizationSubscriptionBuilderService;
 
 class SaplMethodSecurityConfigurationTests {
 
 	@Test
 	void whenRan_thenFilterBeansArePresent() {
-		new ApplicationContextRunner().withUserConfiguration(NoPrePostEnablingConfiguration.class)
+		new ApplicationContextRunner().withUserConfiguration(OnlyBlockingSaplMethodSecurityConfiguration.class)
 				.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
 				.withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
 				.withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
 					assertThat(context).hasNotFailed();
-					assertThat(context).hasSingleBean(MethodInterceptor.class);
-				});
-	}
-
-	@Test
-	void whenRanWithPrePost_thenFilterBeansArePresent() {
-		new ApplicationContextRunner().withUserConfiguration(PrePostEnablingConfiguration.class)
-				.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
-				.withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
-				.withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
-					assertThat(context).hasNotFailed();
-					assertThat(context).hasSingleBean(MethodInterceptor.class);
+					assertThat(context).hasBean("postEnforcePolicyEnforcementPoint");
+					assertThat(context).hasBean("preEnforcePolicyEnforcementPoint");
 				});
 	}
 
 	@Configuration
-	@EnableGlobalMethodSecurity(prePostEnabled = true)
-	public static class PrePostEnablingConfiguration extends SaplMethodSecurityConfiguration {
-
-		public PrePostEnablingConfiguration(ObjectFactory<PolicyDecisionPoint> pdpFactory,
-				ObjectFactory<ConstraintEnforcementService> constraintHandlerFactory,
-				ObjectFactory<ObjectMapper> objectMapperFactory,
-				ObjectFactory<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderFactory) {
-			super(pdpFactory, constraintHandlerFactory, objectMapperFactory, subscriptionBuilderFactory);
-		}
-
-	}
-
-	@Configuration
-	@EnableGlobalMethodSecurity()
-	public static class NoPrePostEnablingConfiguration extends SaplMethodSecurityConfiguration {
-
-		public NoPrePostEnablingConfiguration(ObjectFactory<PolicyDecisionPoint> pdpFactory,
-				ObjectFactory<ConstraintEnforcementService> constraintHandlerFactory,
-				ObjectFactory<ObjectMapper> objectMapperFactory,
-				ObjectFactory<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderFactory) {
-			super(pdpFactory, constraintHandlerFactory, objectMapperFactory, subscriptionBuilderFactory);
-		}
-
+	@EnableSaplMethodSecurity
+	public static class OnlyBlockingSaplMethodSecurityConfiguration {
 	}
 
 }

@@ -1,126 +1,110 @@
-/*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package io.sapl.spring.config;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.springframework.beans.factory.ObjectFactory;
+import org.springframework.aop.Advisor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Role;
-import org.springframework.security.access.AccessDecisionManager;
-import org.springframework.security.access.AfterInvocationProvider;
-import org.springframework.security.access.intercept.AfterInvocationManager;
-import org.springframework.security.access.intercept.AfterInvocationProviderManager;
-import org.springframework.security.access.method.MethodSecurityMetadataSource;
-import org.springframework.security.access.vote.AbstractAccessDecisionManager;
-import org.springframework.security.access.vote.AffirmativeBased;
-import org.springframework.security.config.annotation.method.configuration.GlobalMethodSecurityConfiguration;
+import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
+import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
+import org.springframework.security.authorization.AuthorizationEventPublisher;
+import org.springframework.security.config.core.GrantedAuthorityDefaults;
+import org.springframework.security.core.context.SecurityContextHolderStrategy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.micrometer.observation.ObservationRegistry;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
+import io.sapl.spring.method.blocking.PolicyEnforcementPointAroundMethodInterceptor;
 import io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPoint;
-import io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPointProvider;
 import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPoint;
-import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPointVoter;
-import io.sapl.spring.method.metadata.SaplAttributeFactory;
-import io.sapl.spring.method.metadata.SaplMethodSecurityMetadataSource;
+import io.sapl.spring.method.metadata.SaplAttributeRegistry;
 import io.sapl.spring.subscriptions.WebAuthorizationSubscriptionBuilderService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * This configuration class adds blocking SAPL
- * {@link io.sapl.spring.method.metadata.PreEnforce} and
- * {@link io.sapl.spring.method.metadata.PostEnforce} annotations to the global
- * method security configuration.
- *
- * Classes may extend this class to customize the defaults, but must be sure to
- * specify the
- * {@link org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity}
- * annotation on the subclass.
- */
 @Slf4j
-@RequiredArgsConstructor
 @Configuration(proxyBeanMethods = false)
 @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-public class SaplMethodSecurityConfiguration extends GlobalMethodSecurityConfiguration {
-
-	protected final ObjectFactory<PolicyDecisionPoint> pdpFactory;
-
-	protected final ObjectFactory<ConstraintEnforcementService> constraintHandlerFactory;
-
-	protected final ObjectFactory<ObjectMapper> objectMapperFactory;
-
-	protected final ObjectFactory<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderFactory;
+final class SaplMethodSecurityConfiguration {
 
 	@Bean
-	protected WebAuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService() {
-		return new WebAuthorizationSubscriptionBuilderService(getExpressionHandler(), objectMapperFactory.getObject());
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+	WebAuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService(
+			ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider,
+			ObjectProvider<ObjectMapper> mapperProvider, ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
+			ApplicationContext context) {
+		return new WebAuthorizationSubscriptionBuilderService(expressionHandlerProvider, mapperProvider,
+				defaultsProvider, context);
 	}
 
-	@Override
-	protected AccessDecisionManager accessDecisionManager() {
-		log.debug("Blocking SAPL method level pre-invocation security activated.");
-		var baseManager = super.accessDecisionManager();
+	@Bean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+	Advisor preEnforcePolicyEnforcementPoint(ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
+			ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider,
+			ObjectProvider<SecurityContextHolderStrategy> strategyProvider,
+			ObjectProvider<AuthorizationEventPublisher> eventPublisherProvider,
+			ObjectProvider<ObservationRegistry> registryProvider, ApplicationContext context,
+			PolicyDecisionPoint policyDecisionPoint, SaplAttributeRegistry attributeRegistry,
+			ConstraintEnforcementService constraintEnforcementService,
+			WebAuthorizationSubscriptionBuilderService subscriptionBuilder) {
 
-		var decisionVoters = new ArrayList<>(((AbstractAccessDecisionManager) baseManager).getDecisionVoters());
-
-		var policyAdvice = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
-				subscriptionBuilderFactory);
-		decisionVoters.add(new PreEnforcePolicyEnforcementPointVoter(policyAdvice));
-		var manager = new AffirmativeBased(decisionVoters);
-		manager.setAllowIfAllAbstainDecisions(true);
-		return manager;
+		log.info("Deploy PreEnforcePolicyEnforcementPoint");
+		var policyEnforcementPoint = new PreEnforcePolicyEnforcementPoint(policyDecisionPoint, attributeRegistry,
+				constraintEnforcementService, subscriptionBuilder);
+		var preEnforce             = PolicyEnforcementPointAroundMethodInterceptor.preEnforce(policyEnforcementPoint);
+//		// strategyProvider.ifAvailable(preEnforce::setSecurityContextHolderStrategy);
+//		// eventPublisherProvider.ifAvailable(postAuthorize::setAuthorizationEventPublisher);
+//		var manager      = new PreEnforcePolicyEnforcementPoint(policyDecisionPoint, attributeRegistry,
+//				constraintEnforcementService, subscriptionBuilder);
+//		var preAuthorize = AuthorizationManagerBeforeMethodInterceptor.preAuthorize(manager(manager, registryProvider));
+//		strategyProvider.ifAvailable(preAuthorize::setSecurityContextHolderStrategy);
+//		eventPublisherProvider.ifAvailable(preAuthorize::setAuthorizationEventPublisher);
+		return preEnforce;
 	}
 
-	@Override
-	protected AfterInvocationManager afterInvocationManager() {
-		log.debug("Blocking SAPL method level after-invocation security activated.");
-		var advice   = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
-				subscriptionBuilderFactory);
-		var provider = new PostEnforcePolicyEnforcementPointProvider(advice);
+	@Bean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+	Advisor postEnforcePolicyEnforcementPoint(ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
+			ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider,
+			ObjectProvider<SecurityContextHolderStrategy> strategyProvider,
+			ObjectProvider<AuthorizationEventPublisher> eventPublisherProvider,
+			ObjectProvider<ObservationRegistry> registryProvider, ApplicationContext context,
+			PolicyDecisionPoint policyDecisionPoint, SaplAttributeRegistry attributeRegistry,
+			ConstraintEnforcementService constraintEnforcementService,
+			WebAuthorizationSubscriptionBuilderService subscriptionBuilder) {
 
-		var baseManager = super.afterInvocationManager();
-		if (baseManager == null) {
-			var invocationProviderManager = new AfterInvocationProviderManager();
-			var afterInvocationProviders  = new ArrayList<AfterInvocationProvider>();
-			afterInvocationProviders.add(provider);
-			invocationProviderManager.setProviders(afterInvocationProviders);
-			return invocationProviderManager;
-		}
-
-		var                           invocationProviderManager = (AfterInvocationProviderManager) baseManager;
-		List<AfterInvocationProvider> originalProviders         = invocationProviderManager.getProviders();
-		List<AfterInvocationProvider> afterInvocationProviders  = new ArrayList<>();
-		afterInvocationProviders.add(provider);
-		afterInvocationProviders.addAll(originalProviders);
-		invocationProviderManager.setProviders(afterInvocationProviders);
-		return invocationProviderManager;
-
+		log.info("Deploy PostEnforcePolicyEnforcementPoint");
+		var policyEnforcementPoint = new PostEnforcePolicyEnforcementPoint(policyDecisionPoint, attributeRegistry,
+				constraintEnforcementService, subscriptionBuilder);
+		var postEnforce            = PolicyEnforcementPointAroundMethodInterceptor.postEnforce(policyEnforcementPoint);
+//		// strategyProvider.ifAvailable(preEnforce::setSecurityContextHolderStrategy);
+//		// eventPublisherProvider.ifAvailable(postAuthorize::setAuthorizationEventPublisher);
+//		var manager      = new PreEnforcePolicyEnforcementPoint(policyDecisionPoint, attributeRegistry,
+//				constraintEnforcementService, subscriptionBuilder);
+//		var preAuthorize = AuthorizationManagerBeforeMethodInterceptor.preAuthorize(manager(manager, registryProvider));
+//		strategyProvider.ifAvailable(preAuthorize::setSecurityContextHolderStrategy);
+//		eventPublisherProvider.ifAvailable(preAuthorize::setAuthorizationEventPublisher);
+		return postEnforce;
 	}
 
-	@Override
-	protected MethodSecurityMetadataSource customMethodSecurityMetadataSource() {
-		log.debug("SAPL MethodSecurityMetadataSource deployed.");
-		return new SaplMethodSecurityMetadataSource(new SaplAttributeFactory(getExpressionHandler()));
+	@Bean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+	SaplAttributeRegistry saplAttributeRegistry(ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
+			ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider, ApplicationContext context) {
+		var exprProvider = expressionHandlerProvider
+				.getIfAvailable(() -> defaultExpressionHandler(defaultsProvider, context));
+		return new SaplAttributeRegistry(exprProvider);
+	}
+
+	private static MethodSecurityExpressionHandler defaultExpressionHandler(
+			ObjectProvider<GrantedAuthorityDefaults> defaultsProvider, ApplicationContext context) {
+		DefaultMethodSecurityExpressionHandler handler = new DefaultMethodSecurityExpressionHandler();
+		defaultsProvider.ifAvailable(d -> handler.setDefaultRolePrefix(d.getRolePrefix()));
+		handler.setApplicationContext(context);
+		return handler;
 	}
 
 }

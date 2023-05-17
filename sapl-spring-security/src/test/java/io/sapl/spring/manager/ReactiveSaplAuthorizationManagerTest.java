@@ -40,7 +40,7 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.BlockingPreEnforceConstraintHandlerBundle;
+import io.sapl.spring.constraints.BlockingConstraintHandlerBundle;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.serialization.ServerHttpRequestSerializer;
 import reactor.core.publisher.Flux;
@@ -52,12 +52,12 @@ class ReactiveSaplAuthorizationManagerTest {
 	private final static Mono<Authentication> AUTHENTICATION = Mono
 			.just(new TestingAuthenticationToken("user", "password", "ROLE_1", "ROLE_2"));
 
-	private ObjectMapper                              mapper;
-	private PolicyDecisionPoint                       pdp;
-	private ConstraintEnforcementService              constraintHandlers;
-	private BlockingPreEnforceConstraintHandlerBundle bundle;
-	private ReactiveSaplAuthorizationManager          sut;
-	private AuthorizationContext                      ctx;
+	private ObjectMapper                       mapper;
+	private PolicyDecisionPoint                pdp;
+	private ConstraintEnforcementService       constraintHandlers;
+	private BlockingConstraintHandlerBundle<?> bundle;
+	private ReactiveSaplAuthorizationManager   sut;
+	private AuthorizationContext               ctx;
 
 	@BeforeEach
 	void setUpMocks() {
@@ -70,7 +70,7 @@ class ReactiveSaplAuthorizationManagerTest {
 		pdp                = mock(PolicyDecisionPoint.class);
 		constraintHandlers = mock(ConstraintEnforcementService.class);
 
-		bundle = mock(BlockingPreEnforceConstraintHandlerBundle.class);
+		bundle = mock(BlockingConstraintHandlerBundle.class);
 		doReturn(bundle).when(constraintHandlers).accessManagerBundleFor(any());
 
 		sut = new ReactiveSaplAuthorizationManager(pdp, constraintHandlers, mapper);

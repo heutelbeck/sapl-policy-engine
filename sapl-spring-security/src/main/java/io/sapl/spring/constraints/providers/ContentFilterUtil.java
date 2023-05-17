@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -59,7 +60,7 @@ public class ContentFilterUtil {
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	public static Function<Object, Object> getHandler(JsonNode constraint, ObjectMapper objectMapper) {
+	public static UnaryOperator<Object> getHandler(JsonNode constraint, ObjectMapper objectMapper) {
 		var predicate      = ContentFilterUtil.predicateFromConditions(constraint, objectMapper);
 		var transformation = ContentFilterUtil.getTransformationHandler(constraint, objectMapper);
 
@@ -267,7 +268,7 @@ public class ContentFilterUtil {
 				|| constraint.get(CONDITIONS).isEmpty();
 	}
 
-	public static Function<Object, Object> getTransformationHandler(JsonNode constraint, ObjectMapper objectMapper) {
+	public static UnaryOperator<Object> getTransformationHandler(JsonNode constraint, ObjectMapper objectMapper) {
 		return original -> {
 			var actions               = constraint.get(ACTIONS);
 			var jsonPathConfiguration = Configuration.builder()

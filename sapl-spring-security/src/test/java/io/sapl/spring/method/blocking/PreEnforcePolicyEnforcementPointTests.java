@@ -16,209 +16,175 @@
 package io.sapl.spring.method.blocking;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import org.aopalliance.intercept.MethodInvocation;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.ObjectFactory;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.util.MethodInvocationUtils;
+import java.util.Optional;
+import java.util.function.UnaryOperator;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.stereotype.Service;
+
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.BlockingPreEnforceConstraintHandlerBundle;
+import io.sapl.spring.config.EnableSaplMethodSecurity;
+import io.sapl.spring.constraints.BlockingConstraintHandlerBundle;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.method.metadata.PreEnforceAttribute;
-import io.sapl.spring.serialization.HttpServletRequestSerializer;
-import io.sapl.spring.serialization.MethodInvocationSerializer;
-import io.sapl.spring.subscriptions.WebAuthorizationSubscriptionBuilderService;
-import jakarta.servlet.http.HttpServletRequest;
+import io.sapl.spring.constraints.FunctionUtil;
+import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPointTests.Application;
+import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPointTests.MethodSecurityConfiguration;
+import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPointTests.TestService;
+import io.sapl.spring.method.metadata.PreEnforce;
 import reactor.core.publisher.Flux;
 
+@SpringBootTest(classes = { Application.class, MethodSecurityConfiguration.class, TestService.class })
 class PreEnforcePolicyEnforcementPointTests {
 
-	static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+	private static final JsonNodeFactory JSON                   = JsonNodeFactory.instance;
+	private static final String          USER                   = "user";
+	private static final String          ORIGINAL_RETURN_OBJECT = "original return object";
+	private static final String          CHANGED_RETURN_OBJECT  = "changed return object";
+	@MockBean
+	private PolicyDecisionPoint          pdp;
 
-	ObjectFactory<PolicyDecisionPoint>                        pdpFactory;
-	ObjectFactory<ConstraintEnforcementService>               constraintHandlerFactory;
-	ObjectFactory<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderFactory;
-	PolicyDecisionPoint                                       pdp;
-	ConstraintEnforcementService                              constraintEnforcementService;
-	Authentication                                            authentication;
-	WebAuthorizationSubscriptionBuilderService                subscriptionBuilder;
+	@MockBean
+	private ConstraintEnforcementService constraintEnforcementService;
 
-	@BeforeEach
-	void beforeEach() {
-		pdp                          = mock(PolicyDecisionPoint.class);
-		pdpFactory                   = () -> pdp;
-		constraintEnforcementService = mock(ConstraintEnforcementService.class);
-		constraintHandlerFactory     = () -> constraintEnforcementService;
-		authentication               = new UsernamePasswordAuthenticationToken("principal", "credentials");
-		subscriptionBuilder          = new WebAuthorizationSubscriptionBuilderService(
-				new DefaultMethodSecurityExpressionHandler(), configureObjectMapper());
-		subscriptionBuilderFactory   = () -> subscriptionBuilder;
+	@Autowired
+	TestService testService;
+
+	@SpringBootApplication
+	static class Application {
+		public static void main(String... args) {
+			SpringApplication.run(Application.class, args);
+		}
 	}
 
-	private ObjectMapper configureObjectMapper() {
-		var mapper = new ObjectMapper();
-		var module = new SimpleModule();
-		module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
-		module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
-		mapper.registerModule(module);
-		return mapper;
+	@TestConfiguration
+	@EnableSaplMethodSecurity
+	static class MethodSecurityConfiguration {
 	}
 
-	@Test
-	@SuppressWarnings("unchecked")
-	void when_triggeredTwice_factoriesOnlyCalledOnce() {
-		var mockBundle = mock(BlockingPreEnforceConstraintHandlerBundle.class);
-		when(constraintEnforcementService.blockingPreEnforceBundleFor(any())).thenReturn(mockBundle);
-		var mock = (ObjectFactory<ConstraintEnforcementService>) mock(ObjectFactory.class);
-		when(mock.getObject()).thenReturn(constraintEnforcementService);
-		var sut              = new PreEnforcePolicyEnforcementPoint(pdpFactory, mock, subscriptionBuilderFactory);
-		var methodInvocation = MethodInvocationUtils.create(new TestClass(), "doSomething");
-		var attribute        = new PreEnforceAttribute(null, null, null, null, null);
-		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.DENY));
-		sut.before(authentication, methodInvocation, attribute);
-		sut.before(authentication, methodInvocation, attribute);
-		verify(mock, times(1)).getObject();
-	}
-
-	@Test
-	void whenCreated_thenNotNull() {
-		var sut = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
-				subscriptionBuilderFactory);
-		assertThat(sut, notNullValue());
-	}
-
-	@Test
-	void whenBeforeAndDecideDeny_thenReturnFalse() {
-		var mockBundle = mock(BlockingPreEnforceConstraintHandlerBundle.class);
-		when(constraintEnforcementService.blockingPreEnforceBundleFor(any())).thenReturn(mockBundle);
-		var sut              = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
-				subscriptionBuilderFactory);
-		var methodInvocation = MethodInvocationUtils.create(new TestClass(), "doSomething");
-		var attribute        = new PreEnforceAttribute(null, null, null, null, null);
-		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.DENY));
-		assertThat(sut.before(authentication, methodInvocation, attribute), is(false));
-	}
-
-	@Test
-	void whenBeforeAndDecideNull_thenReturnFalse() {
-		var mockBundle = mock(BlockingPreEnforceConstraintHandlerBundle.class);
-		when(constraintEnforcementService.blockingPreEnforceBundleFor(any())).thenReturn(mockBundle);
-		var sut              = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
-				subscriptionBuilderFactory);
-		var methodInvocation = MethodInvocationUtils.create(new TestClass(), "doSomething");
-		var attribute        = new PreEnforceAttribute(null, null, null, null, null);
-		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(null);
-		assertThat(sut.before(authentication, methodInvocation, attribute), is(false));
-	}
-
-	@Test
-	void whenBeforeAndDecidePermitButBundleNull_thenReturnFalse() {
-		when(constraintEnforcementService.blockingPreEnforceBundleFor(any())).thenReturn(null);
-		var sut              = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
-				subscriptionBuilderFactory);
-		var methodInvocation = MethodInvocationUtils.create(new TestClass(), "doSomething");
-		var attribute        = new PreEnforceAttribute(null, null, null, null, null);
-		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-		assertThat(sut.before(authentication, methodInvocation, attribute), is(false));
-	}
-
-	@Test
-	void whenBeforeAndDecidePermit_thenReturnTrue() {
-		var mockBundle = mock(BlockingPreEnforceConstraintHandlerBundle.class);
-		when(constraintEnforcementService.blockingPreEnforceBundleFor(any())).thenReturn(mockBundle);
-		var sut              = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
-				subscriptionBuilderFactory);
-		var methodInvocation = MethodInvocationUtils.create(new TestClass(), "doSomething");
-		var attribute        = new PreEnforceAttribute(null, null, null, null, null);
-		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-		assertThat(sut.before(authentication, methodInvocation, attribute), is(true));
-	}
-
-	@Test
-	void when_BeforeAndDecidePermit_and_obligationsFail_then_ReturnFalse() {
-		var mockBundle = mock(BlockingPreEnforceConstraintHandlerBundle.class);
-		doThrow(new AccessDeniedException("FAILURE IN CONSTRAINTS")).when(mockBundle).handleOnDecisionConstraints();
-		when(constraintEnforcementService.blockingPreEnforceBundleFor(any())).thenReturn(mockBundle);
-		var sut              = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
-				subscriptionBuilderFactory);
-		var methodInvocation = MethodInvocationUtils.create(new TestClass(), "doSomething");
-		var attribute        = new PreEnforceAttribute(null, null, null, null, null);
-		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-		assertThat(sut.before(authentication, methodInvocation, attribute), is(false));
-	}
-
-	@Test
-	void whenBeforeAndDecideNotApplicable_thenReturnFalse() {
-		var mockBundle = mock(BlockingPreEnforceConstraintHandlerBundle.class);
-		when(constraintEnforcementService.blockingPreEnforceBundleFor(any())).thenReturn(mockBundle);
-		var sut              = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
-				subscriptionBuilderFactory);
-		var methodInvocation = MethodInvocationUtils.create(new TestClass(), "doSomething");
-		var attribute        = new PreEnforceAttribute(null, null, null, null, null);
-		when(pdp.decide(any(AuthorizationSubscription.class)))
-				.thenReturn(Flux.just(AuthorizationDecision.NOT_APPLICABLE));
-		assertThat(sut.before(authentication, methodInvocation, attribute), is(false));
-	}
-
-	@Test
-	void whenBeforeAndDecideIndeterminate_thenReturnFalse() {
-		var mockBundle = mock(BlockingPreEnforceConstraintHandlerBundle.class);
-		when(constraintEnforcementService.blockingPreEnforceBundleFor(any())).thenReturn(mockBundle);
-		var sut              = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
-				subscriptionBuilderFactory);
-		var methodInvocation = MethodInvocationUtils.create(new TestClass(), "doSomething");
-		var attribute        = new PreEnforceAttribute(null, null, null, null, null);
-		when(pdp.decide(any(AuthorizationSubscription.class)))
-				.thenReturn(Flux.just(AuthorizationDecision.INDETERMINATE));
-		assertThat(sut.before(authentication, methodInvocation, attribute), is(false));
-	}
-
-	@Test
-	void whenBeforeAndDecideEmpty_thenReturnFalse() {
-		var sut              = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
-				subscriptionBuilderFactory);
-		var methodInvocation = MethodInvocationUtils.create(new TestClass(), "doSomething");
-		var attribute        = new PreEnforceAttribute(null, null, null, null, null);
-		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.empty());
-		assertThat(sut.before(authentication, methodInvocation, attribute), is(false));
-	}
-
-	@Test
-	void whenBeforeAndDecidePermitWithResource_thenReturnFalse() {
-		var sut              = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
-				subscriptionBuilderFactory);
-		var methodInvocation = MethodInvocationUtils.create(new TestClass(), "doSomething");
-		var attribute        = new PreEnforceAttribute(null, null, null, null, null);
-		when(pdp.decide(any(AuthorizationSubscription.class)))
-				.thenReturn(Flux.just(AuthorizationDecision.PERMIT.withResource(JSON.arrayNode())));
-		assertThat(sut.before(authentication, methodInvocation, attribute), is(false));
-	}
-
-	static class TestClass {
-
-		public void doSomething() {
+	@Service
+	static class TestService {
+		@PreEnforce
+		public String doSomething() {
+			return ORIGINAL_RETURN_OBJECT;
 		}
 
+		@PreEnforce
+		public Optional<String> doSomethingOptional() {
+			return Optional.of("I did something!");
+		}
+
+		@PreEnforce
+		public Optional<String> doSomethingOptionalEmpty() {
+			return Optional.empty();
+		}
+	}
+
+	@Test
+	@WithMockUser(USER)
+	void whenBeforeAndDecideDeny_thenReturnFalse() throws Throwable {
+		when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any())).thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
+		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.DENY));
+		assertThrows(AccessDeniedException.class, () -> testService.doSomething());
+	}
+
+	@Test
+	@WithMockUser(USER)
+	void whenBeforeAndDecideNull_thenReturnFalse() throws Throwable {
+		when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any())).thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
+		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(null);
+		assertThrows(AccessDeniedException.class, () -> testService.doSomething());
+	}
+
+	@Test
+	@WithMockUser(USER)
+	void whenBeforeAndDecidePermitButBundleNull_thenReturnFalse() throws Throwable {
+		when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any())).thenReturn(null);
+		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+		assertThrows(AccessDeniedException.class, () -> testService.doSomething());
+	}
+
+	@Test
+	@WithMockUser(USER)
+	void whenBeforeAndDecidePermit_thenReturnTrue() throws Throwable {
+		when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any())).thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
+		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+		assertThat(testService.doSomething(), is(ORIGINAL_RETURN_OBJECT));
+	}
+
+	@Test
+	@WithMockUser(USER)
+	void when_BeforeAndDecidePermit_and_obligationsFail_then_ReturnFalse() throws Throwable {
+		var mockBundle = BlockingConstraintHandlerBundle.preEnforceConstraintHandlerBundle(
+				() -> {
+					throw new AccessDeniedException("INTENDED FAILURE IN TEST");
+				},
+				FunctionUtil.sink(),
+				UnaryOperator.identity(),
+				FunctionUtil.sink(),
+				UnaryOperator.identity(),
+				FunctionUtil.all(),
+				FunctionUtil.sink(),
+				UnaryOperator.identity());
+		when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any())).thenReturn(mockBundle);
+		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+		assertThrows(AccessDeniedException.class, () -> testService.doSomething());
+	}
+
+	@Test
+	@WithMockUser(USER)
+	void whenBeforeAndDecideNotApplicable_thenReturnFalse() throws Throwable {
+		when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any())).thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
+		when(pdp.decide(any(AuthorizationSubscription.class)))
+				.thenReturn(Flux.just(AuthorizationDecision.NOT_APPLICABLE));
+		assertThrows(AccessDeniedException.class, () -> testService.doSomething());
+	}
+
+	@Test
+	@WithMockUser(USER)
+	void whenBeforeAndDecideIndeterminate_thenReturnFalse() throws Throwable {
+		when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any())).thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
+		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.INDETERMINATE));
+		assertThrows(AccessDeniedException.class, () -> testService.doSomething());
+	}
+
+	@Test
+	@WithMockUser(USER)
+	void whenBeforeAndDecideEmpty_thenReturnFalse() throws Throwable {
+		when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any())).thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
+		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.empty());
+		assertThrows(AccessDeniedException.class, () -> testService.doSomething());
+	}
+
+	@Test
+	@WithMockUser(USER)
+	void when_AfterAndDecideIsPermitWithResourceAndMethodReturnsOptional_then_ReturnTheReplacementObject()
+			throws Throwable {
+		var replaceBundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(
+				FunctionUtil.noop(), FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(),
+				UnaryOperator.identity(), FunctionUtil.all(),
+				x -> CHANGED_RETURN_OBJECT);
+
+		when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any())).thenReturn(replaceBundle);
+		when(pdp.decide(any(AuthorizationSubscription.class)))
+				.thenReturn(Flux.just(AuthorizationDecision.PERMIT.withResource(JSON.textNode(CHANGED_RETURN_OBJECT))));
+		assertThat(testService.doSomethingOptional(), is(Optional.of(CHANGED_RETURN_OBJECT)));
 	}
 
 }

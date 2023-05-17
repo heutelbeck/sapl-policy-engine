@@ -97,8 +97,8 @@ public class WebfluxAuthorizationSubscriptionBuilderService {
 	}
 
 	private JsonNode retrieveSubject(Authentication authentication, SaplAttribute attr, EvaluationContext ctx) {
-		if (attr.getSubjectExpression() != null)
-			return evaluateToJson(attr.getSubjectExpression(), ctx);
+		if (attr.subjectExpression() != null)
+			return evaluateToJson(attr.subjectExpression(), ctx);
 
 		ObjectNode subject = mapper.valueToTree(authentication);
 
@@ -124,9 +124,9 @@ public class WebfluxAuthorizationSubscriptionBuilderService {
 
 	private Object retrieveAction(MethodInvocation mi, SaplAttribute attr, EvaluationContext ctx,
 			Optional<?> requestObject) {
-		if (attr.getActionExpression() == null)
+		if (attr.actionExpression() == null)
 			return retrieveAction(mi, requestObject);
-		return evaluateToJson(attr.getActionExpression(), ctx);
+		return evaluateToJson(attr.actionExpression(), ctx);
 	}
 
 	private Object retrieveAction(MethodInvocation mi, Optional<?> requestObject) {
@@ -152,9 +152,9 @@ public class WebfluxAuthorizationSubscriptionBuilderService {
 
 	private Object retrieveResource(MethodInvocation mi, SaplAttribute attr, EvaluationContext ctx,
 			Optional<ServerHttpRequest> serverHttpRequest) {
-		if (attr.getResourceExpression() == null)
+		if (attr.resourceExpression() == null)
 			return retrieveResource(mi, serverHttpRequest);
-		return evaluateToJson(attr.getResourceExpression(), ctx);
+		return evaluateToJson(attr.resourceExpression(), ctx);
 	}
 
 	private Object retrieveResource(MethodInvocation mi, Optional<ServerHttpRequest> serverHttpRequest) {
@@ -167,9 +167,9 @@ public class WebfluxAuthorizationSubscriptionBuilderService {
 	}
 
 	private Object retrieveEnvironment(SaplAttribute attr, EvaluationContext ctx) {
-		if (attr.getEnvironmentExpression() == null)
+		if (attr.environmentExpression() == null)
 			return null;
-		return evaluateToJson(attr.getEnvironmentExpression(), ctx);
+		return evaluateToJson(attr.environmentExpression(), ctx);
 	}
 
 }

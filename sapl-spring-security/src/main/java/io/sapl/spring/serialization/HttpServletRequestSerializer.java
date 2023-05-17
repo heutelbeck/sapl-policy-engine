@@ -32,32 +32,32 @@ import jakarta.servlet.http.HttpServletRequest;
 @JsonComponent
 public class HttpServletRequestSerializer extends JsonSerializer<HttpServletRequest> {
 
-	static final String PARAMETERS = "parameters";
-	static final String LOCALES = "locales";
-	static final String LOCALE = "locale";
-	static final String COOKIES = "cookies";
-	static final String HEADERS = "headers";
-	static final String SERVLET_PATH = "servletPath";
-	static final String REQUEST_URL = "requestURL";
-	static final String REQUESTED_URI = "requestedURI";
+	static final String PARAMETERS           = "parameters";
+	static final String LOCALES              = "locales";
+	static final String LOCALE               = "locale";
+	static final String COOKIES              = "cookies";
+	static final String HEADERS              = "headers";
+	static final String SERVLET_PATH         = "servletPath";
+	static final String REQUEST_URL          = "requestURL";
+	static final String REQUESTED_URI        = "requestedURI";
 	static final String REQUESTED_SESSION_ID = "requestedSessionId";
-	static final String QUERY_STRING = "queryString";
-	static final String CONTEXT_PATH = "contextPath";
-	static final String METHOD = "method";
-	static final String AUTH_TYPE = "authType";
-	static final String LOCAL_PORT = "localPort";
-	static final String LOCAL_ADDRESS = "localAddress";
-	static final String LOCAL_NAME = "localName";
-	static final String IS_SECURE = "isSecure";
-	static final String REMOTE_PORT = "remotePort";
-	static final String REMOTE_HOST = "remoteHost";
-	static final String REMOTE_ADDRESS = "remoteAddress";
-	static final String SERVER_PORT = "serverPort";
-	static final String SERVER_NAME = "serverName";
-	static final String SCHEME = "scheme";
-	static final String PROTOCOL = "protocol";
-	static final String CONTENT_TYPE = "Content-Type";
-	static final String CHARACTER_ENCODING = "characterEncoding";
+	static final String QUERY_STRING         = "queryString";
+	static final String CONTEXT_PATH         = "contextPath";
+	static final String METHOD               = "method";
+	static final String AUTH_TYPE            = "authType";
+	static final String LOCAL_PORT           = "localPort";
+	static final String LOCAL_ADDRESS        = "localAddress";
+	static final String LOCAL_NAME           = "localName";
+	static final String IS_SECURE            = "isSecure";
+	static final String REMOTE_PORT          = "remotePort";
+	static final String REMOTE_HOST          = "remoteHost";
+	static final String REMOTE_ADDRESS       = "remoteAddress";
+	static final String SERVER_PORT          = "serverPort";
+	static final String SERVER_NAME          = "serverName";
+	static final String SCHEME               = "scheme";
+	static final String PROTOCOL             = "protocol";
+	static final String CONTENT_TYPE         = "Content-Type";
+	static final String CHARACTER_ENCODING   = "characterEncoding";
 
 	@Override
 	public void serialize(HttpServletRequest value, JsonGenerator gen, SerializerProvider serializers)
@@ -102,7 +102,7 @@ public class HttpServletRequestSerializer extends JsonSerializer<HttpServletRequ
 		if (headerNames.hasMoreElements()) {
 			gen.writeObjectFieldStart(HEADERS);
 			while (headerNames.hasMoreElements()) {
-				String name = headerNames.nextElement();
+				String              name    = headerNames.nextElement();
 				Enumeration<String> headers = value.getHeaders(name);
 				if (headerNames.hasMoreElements()) {
 					gen.writeArrayFieldStart(name);

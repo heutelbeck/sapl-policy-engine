@@ -34,17 +34,17 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 @JsonComponent
 public class MethodInvocationSerializer extends JsonSerializer<MethodInvocation> {
 
-	static final String SIMPLE_NAME = "simpleName";
-	static final String INSTANCEOF = "instanceof";
-	static final String SYNCHRONIZED = "synchronized";
-	static final String STATIC = "static";
-	static final String PUBLIC = "public";
-	static final String PROTECTED = "protected";
-	static final String PRIVATE = "private";
-	static final String FINAL = "final";
-	static final String MODIFIERS = "modifiers";
+	static final String SIMPLE_NAME         = "simpleName";
+	static final String INSTANCEOF          = "instanceof";
+	static final String SYNCHRONIZED        = "synchronized";
+	static final String STATIC              = "static";
+	static final String PUBLIC              = "public";
+	static final String PROTECTED           = "protected";
+	static final String PRIVATE             = "private";
+	static final String FINAL               = "final";
+	static final String MODIFIERS           = "modifiers";
 	static final String DECLARING_TYPE_NAME = "declaringTypeName";
-	static final String NAME = "name";
+	static final String NAME                = "name";
 
 	@Override
 	public void serialize(MethodInvocation value, JsonGenerator gen, SerializerProvider serializers)
@@ -97,8 +97,7 @@ public class MethodInvocationSerializer extends JsonSerializer<MethodInvocation>
 			writeClass(gen, clazz);
 			writeInterfaces(gen, clazz);
 			clazz = clazz.getSuperclass();
-		}
-		while (clazz != null);
+		} while (clazz != null);
 	}
 
 	private void writeClass(JsonGenerator gen, Class<?> clazz) throws IOException {

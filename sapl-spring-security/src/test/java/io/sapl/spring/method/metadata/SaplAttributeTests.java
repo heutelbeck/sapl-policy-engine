@@ -21,24 +21,18 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.mockito.Mockito.mock;
+
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 
-class AbstractSaplAttributeTests {
-
-	@Test
-	void whenCalled_thenGetAttributeAlwaysNull() {
-		var sut = mock(AbstractSaplAttribute.class, Mockito.CALLS_REAL_METHODS);
-		assertThat(sut.getAttribute(), is(nullValue()));
-	}
+class SaplAttributeTests {
 
 	@Test
 	void whenToStringCalled_thenStringContainsTheKeywords() {
-		var sut = new AbstractPolicyBasedEnforcementAttributeMock(null, null, null, null, null);
+		var sut         = new SaplAttribute(null, null, null, null, null, null);
 		var stringValue = sut.toString();
 		assertAll(() -> assertThat(stringValue, containsString("subject")),
 				() -> assertThat(stringValue, containsString("action")),
@@ -49,7 +43,7 @@ class AbstractSaplAttributeTests {
 
 	@Test
 	void whenPassingNonNull_thenStringContainsTheKeywords() {
-		var sut = new AbstractPolicyBasedEnforcementAttributeMock(toExpression("19 + 1"), toExpression("1 ne 1"),
+		var sut         = new SaplAttribute(PreEnforce.class, toExpression("19 + 1"), toExpression("1 ne 1"),
 				toExpression("2 > 1 ? 'a' : 'b'"), toExpression("workersHolder.salaryByWorkers['John']"),
 				Integer.class);
 		var stringValue = sut.toString();
@@ -62,46 +56,42 @@ class AbstractSaplAttributeTests {
 
 	@Test
 	void whenPassingNull_thenExpressionsAreNull() {
-		var sut = new AbstractPolicyBasedEnforcementAttributeMock(null, null, null, null, null);
-		assertAll(() -> assertThat(sut.getSubjectExpression(), is(nullValue())),
-				() -> assertThat(sut.getActionExpression(), is(nullValue())),
-				() -> assertThat(sut.getResourceExpression(), is(nullValue())),
-				() -> assertThat(sut.getGenericsType(), is(nullValue())),
-				() -> assertThat(sut.getEnvironmentExpression(), is(nullValue())));
+		var sut = new SaplAttribute(null, null, null, null, null, null);
+		assertAll(() -> assertThat(sut.subjectExpression(), is(nullValue())),
+				() -> assertThat(sut.actionExpression(), is(nullValue())),
+				() -> assertThat(sut.resourceExpression(), is(nullValue())),
+				() -> assertThat(sut.genericsType(), is(nullValue())),
+				() -> assertThat(sut.environmentExpression(), is(nullValue())));
 	}
 
 	@Test
 	void whenExpressions_thenExpressionsAreSet() {
-		var sut = new AbstractPolicyBasedEnforcementAttributeMock(toExpression("19 + 1"), toExpression("1 ne 1"),
-				toExpression("2 > 1 ? 'a' : 'b'"), toExpression("workersHolder.salaryByWorkers['John']"), null);
-		assertAll(() -> assertThat(sut.getSubjectExpression(), is(notNullValue())),
-				() -> assertThat(sut.getActionExpression(), is(notNullValue())),
-				() -> assertThat(sut.getResourceExpression(), is(notNullValue())),
-				() -> assertThat(sut.getEnvironmentExpression(), is(notNullValue())));
+		var sut = new SaplAttribute(PostEnforce.class, toExpression("19 + 1"), toExpression("1 ne 1"),
+				toExpression("2 > 1 ? 'a' : 'b'"), toExpression("workersHolder.salaryByWorkers['John']"), String.class);
+		assertAll(() -> assertThat(sut.subjectExpression(), is(notNullValue())),
+				() -> assertThat(sut.actionExpression(), is(notNullValue())),
+				() -> assertThat(sut.resourceExpression(), is(notNullValue())),
+				() -> assertThat(sut.environmentExpression(), is(notNullValue())),
+				() -> assertThat(sut.annotationType(), is(PostEnforce.class)),
+				() -> assertThat(sut.genericsType(), is(String.class)));
 	}
 
 	@Test
 	void whenExpressionsSet_thenToStringContainsThem() {
-		var sut = new AbstractPolicyBasedEnforcementAttributeMock(toExpression("19 + 1"), toExpression("1 ne 1"),
-				toExpression("2 > 1 ? 'a' : 'b'"), toExpression("workersHolder.salaryByWorkers['John']"), null);
+		var sut         = new SaplAttribute(EnforceTillDenied.class, toExpression("19 + 1"),
+				toExpression("1 ne 1"),
+				toExpression("2 > 1 ? 'a' : 'b'"), toExpression("workersHolder.salaryByWorkers['John']"), Map.class);
 		var stringValue = sut.toString();
 		assertAll(() -> assertThat(stringValue, containsString("19 + 1")),
 				() -> assertThat(stringValue, containsString("1 ne 1")),
 				() -> assertThat(stringValue, containsString("2 > 1 ? 'a' : 'b'")),
-				() -> assertThat(stringValue, containsString("workersHolder.salaryByWorkers['John']")));
+				() -> assertThat(stringValue, containsString("workersHolder.salaryByWorkers['John']")),
+				() -> assertThat(sut.annotationType(), is(EnforceTillDenied.class)),
+				() -> assertThat(sut.genericsType(), is(Map.class)));
 	}
 
 	private static Expression toExpression(String expression) {
 		return new SpelExpressionParser().parseExpression(expression);
-	}
-
-	protected static class AbstractPolicyBasedEnforcementAttributeMock extends AbstractSaplAttribute {
-
-		public AbstractPolicyBasedEnforcementAttributeMock(Expression subjectExpression, Expression actionExpression,
-				Expression resourceExpression, Expression environmentExpression, Class<?> genericsType) {
-			super(subjectExpression, actionExpression, resourceExpression, environmentExpression, genericsType);
-		}
-
 	}
 
 }

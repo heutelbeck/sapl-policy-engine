@@ -38,17 +38,16 @@ class MockMethodInvocation implements MethodInvocation {
 		try {
 			Method method = clazz.getMethod(methodName, classArgs);
 			return new MockMethodInvocation(targetObject, method, proceedSupplier, args);
-		}
-		catch (NoSuchMethodException ex) {
+		} catch (NoSuchMethodException ex) {
 			return null;
 		}
 	}
 
 	public MockMethodInvocation(Object targetObject, Method method, Supplier<Object> proceedSupplier,
 			Object... arguments) {
-		this.targetObject = targetObject;
-		this.method = method;
-		this.arguments = (arguments != null) ? arguments : new Object[0];
+		this.targetObject    = targetObject;
+		this.method          = method;
+		this.arguments       = (arguments != null) ? arguments : new Object[0];
 		this.proceedSupplier = proceedSupplier;
 	}
 

@@ -20,7 +20,6 @@ import java.util.List;
 
 import org.springframework.context.annotation.AdviceMode;
 import org.springframework.context.annotation.AdviceModeImportSelector;
-import org.springframework.context.annotation.AutoProxyRegistrar;
 
 import lombok.NonNull;
 
@@ -46,7 +45,6 @@ public class ReactiveSaplMethodSecuritySelector extends AdviceModeImportSelector
 	 */
 	private String[] getProxyImports() {
 		List<String> result = new ArrayList<>();
-		result.add(AutoProxyRegistrar.class.getName());
 		result.add(ReactiveSaplMethodSecurityConfiguration.class.getName());
 		return result.toArray(new String[0]);
 	}

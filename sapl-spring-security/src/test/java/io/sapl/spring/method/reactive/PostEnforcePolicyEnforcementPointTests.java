@@ -22,22 +22,21 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.lang.annotation.Annotation;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscription;
-import org.springframework.expression.ExpressionParser;
+import org.springframework.expression.Expression;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
-import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 import org.springframework.security.util.MethodInvocationUtils;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -59,9 +58,7 @@ import io.sapl.spring.constraints.api.RequestHandlerProvider;
 import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.SubscriptionHandlerProvider;
 import io.sapl.spring.method.metadata.PostEnforce;
-import io.sapl.spring.method.metadata.PostEnforceAttribute;
 import io.sapl.spring.method.metadata.SaplAttribute;
-import io.sapl.spring.method.metadata.SaplAttributeFactory;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
 import io.sapl.spring.serialization.ServerHttpRequestSerializer;
@@ -84,9 +81,7 @@ class PostEnforcePolicyEnforcementPointTests {
 
 	private Mono<Integer> resourceAccessPoint;
 
-	private SaplAttributeFactory attributeFactory;
-
-	private PostEnforceAttribute defaultAttribute;
+	private SaplAttribute defaultAttribute;
 
 	private PolicyDecisionPoint pdp;
 
@@ -123,12 +118,8 @@ class PostEnforcePolicyEnforcementPointTests {
 		invocation          = MethodInvocationUtils.createFromClass(testClass, TestClass.class, "publicInteger", null,
 				null);
 
-		var handler = mock(MethodSecurityExpressionHandler.class);
-		var parser  = mock(ExpressionParser.class);
-		when(handler.getExpressionParser()).thenReturn(parser);
-		attributeFactory                   = new SaplAttributeFactory(handler);
-		defaultAttribute                   = (PostEnforceAttribute) postEnforceAttributeFrom("'the subject'",
-				"'the action'", "returnObject", "'the environment'", Integer.class);
+		defaultAttribute                   = postEnforceAttributeFrom("'the subject'", "'the action'", "returnObject",
+				"'the environment'", Integer.class);
 		pdp                                = mock(PolicyDecisionPoint.class);
 		globalRunnableProviders            = new LinkedList<>();
 		globalConsumerProviders            = new LinkedList<>();
@@ -166,18 +157,17 @@ class PostEnforcePolicyEnforcementPointTests {
 	}
 
 	@Test
-	@SuppressWarnings("unchecked")
 	void when_Permit_AccessIsGranted() {
 		var constraintsService = buildConstraintHandlerService();
 		var decisions          = Flux.just(AuthorizationDecision.PERMIT);
 		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
 		var sut = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
-				.postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute);
-		StepVerifier.create((Mono<Integer>) sut).expectNext(420).verifyComplete();
+				.postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute)
+				.cast(Integer.class);
+		StepVerifier.create(sut).expectNext(420).verifyComplete();
 	}
 
 	@Test
-	@SuppressWarnings("unchecked")
 	void when_PermitWithObligations_and_allObligationsSucceed_then_AccessIsGranted() {
 		var handler = spy(new SubscriptionHandlerProvider() {
 
@@ -201,15 +191,15 @@ class PostEnforcePolicyEnforcementPointTests {
 		var decisions          = decisionFluxOnePermitWithObligation();
 		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
 		var sut = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
-				.postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute);
+				.postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute)
+				.cast(Integer.class);
 
-		StepVerifier.create((Mono<Integer>) sut).expectNext(420).verifyComplete();
+		StepVerifier.create(sut).expectNext(420).verifyComplete();
 
 		verify(handler, times(1)).accept(any());
 	}
 
 	@Test
-	@SuppressWarnings("unchecked")
 	void when_PermitWithObligations_then_ObligationsAreApplied_and_AccessIsGranted() {
 		var handler = spy(new MappingConstraintHandlerProvider<Integer>() {
 
@@ -224,7 +214,7 @@ class PostEnforcePolicyEnforcementPointTests {
 			}
 
 			@Override
-			public Function<Integer, Integer> getHandler(JsonNode constraint) {
+			public UnaryOperator<Integer> getHandler(JsonNode constraint) {
 				return s -> s + constraint.asInt();
 			}
 		});
@@ -233,9 +223,10 @@ class PostEnforcePolicyEnforcementPointTests {
 		var decisions          = decisionFluxOnePermitWithObligation();
 		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
 		var sut = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
-				.postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute);
+				.postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute)
+				.cast(Integer.class);
 
-		StepVerifier.create((Mono<Integer>) sut).expectNext(10420).verifyComplete();
+		StepVerifier.create(sut).expectNext(10420).verifyComplete();
 
 		verify(handler, times(1)).getHandler(any());
 	}
@@ -255,7 +246,7 @@ class PostEnforcePolicyEnforcementPointTests {
 			}
 
 			@Override
-			public Function<Integer, Integer> getHandler(JsonNode constraint) {
+			public UnaryOperator<Integer> getHandler(JsonNode constraint) {
 				return s -> {
 					throw new IllegalArgumentException("I FAILED TO OBLIGE");
 				};
@@ -278,7 +269,6 @@ class PostEnforcePolicyEnforcementPointTests {
 	}
 
 	@Test
-	@SuppressWarnings("unchecked")
 	void when_PermitWithResource_thenAccessIsGrantedAndOnlyResourceFromPolicyInStream() {
 		var handler = spy(new MappingConstraintHandlerProvider<Integer>() {
 
@@ -293,7 +283,7 @@ class PostEnforcePolicyEnforcementPointTests {
 			}
 
 			@Override
-			public Function<Integer, Integer> getHandler(JsonNode constraint) {
+			public UnaryOperator<Integer> getHandler(JsonNode constraint) {
 				return s -> s + constraint.asInt();
 			}
 		});
@@ -308,16 +298,16 @@ class PostEnforcePolicyEnforcementPointTests {
 
 		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
 		var sut = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
-				.postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute);
+				.postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute)
+				.cast(Integer.class);
 
-		StepVerifier.create((Mono<Integer>) sut).expectNext(0).verifyComplete();
+		StepVerifier.create(sut).expectNext(0).verifyComplete();
 
 		verify(onErrorContinue, times(0)).accept(any(), any());
 		verify(doOnError, times(0)).accept(any());
 	}
 
 	@Test
-	@SuppressWarnings("unchecked")
 	void when_PermitWithResource_and_typeMismatch_thenAccessIsGrantedAndOnlyResourceFromPolicyInStream() {
 
 		var constraintsService = buildConstraintHandlerService();
@@ -328,9 +318,10 @@ class PostEnforcePolicyEnforcementPointTests {
 
 		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
 		var sut = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
-				.postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute);
+				.postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute)
+				.doOnError(doOnError).onErrorContinue(onErrorContinue).cast(Integer.class);
 
-		StepVerifier.create((Mono<Integer>) sut.doOnError(doOnError).onErrorContinue(onErrorContinue))
+		StepVerifier.create(sut)
 				.expectError(AccessDeniedException.class).verify();
 
 		verify(onErrorContinue, times(0)).accept(any(), any());
@@ -371,42 +362,11 @@ class PostEnforcePolicyEnforcementPointTests {
 
 	private SaplAttribute postEnforceAttributeFrom(String subject, String action, String resource, String environment,
 			Class<?> genericsType) {
-		return attributeFactory.attributeFrom(postEnforceFrom(subject, action, resource, environment, genericsType));
+		return new SaplAttribute(PostEnforce.class, toExpression(subject), toExpression(action), toExpression(resource),
+				toExpression(environment), genericsType);
 	}
 
-	private PostEnforce postEnforceFrom(String subject, String action, String resource, String environment,
-			Class<?> genericsType) {
-		return new PostEnforce() {
-			@Override
-			public Class<? extends Annotation> annotationType() {
-				return PostEnforce.class;
-			}
-
-			@Override
-			public String subject() {
-				return subject;
-			}
-
-			@Override
-			public String action() {
-				return action;
-			}
-
-			@Override
-			public String resource() {
-				return resource;
-			}
-
-			@Override
-			public String environment() {
-				return environment;
-			}
-
-			@Override
-			public Class<?> genericsType() {
-				return genericsType;
-			}
-		};
+	private static Expression toExpression(String expression) {
+		return new SpelExpressionParser().parseExpression(expression);
 	}
-
 }

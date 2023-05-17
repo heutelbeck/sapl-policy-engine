@@ -16,7 +16,7 @@
 package io.sapl.spring.constraints.providers;
 
 import java.util.Objects;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -51,7 +51,7 @@ public class ContentFilteringProvider implements MappingConstraintHandlerProvide
 	}
 
 	@Override
-	public Function<Object, Object> getHandler(JsonNode constraint) {
+	public UnaryOperator<Object> getHandler(JsonNode constraint) {
 		return ContentFilterUtil.getHandler(constraint, objectMapper);
 	}
 }

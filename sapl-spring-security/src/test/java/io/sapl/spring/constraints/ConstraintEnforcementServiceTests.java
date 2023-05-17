@@ -27,9 +27,9 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.LongConsumer;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.BeforeAll;
@@ -509,7 +509,7 @@ class ConstraintEnforcementServiceTests {
 			}
 
 			@Override
-			public Function<String, String> getHandler(JsonNode constraint) {
+			public UnaryOperator<String> getHandler(JsonNode constraint) {
 				return this::apply;
 			}
 
@@ -547,7 +547,7 @@ class ConstraintEnforcementServiceTests {
 								}
 
 								@Override
-								public Function<String, String> getHandler(JsonNode constraint) {
+								public UnaryOperator<String> getHandler(JsonNode constraint) {
 									return this::apply;
 								}
 
@@ -573,7 +573,7 @@ class ConstraintEnforcementServiceTests {
 								}
 
 								@Override
-								public Function<String, String> getHandler(JsonNode constraint) {
+								public UnaryOperator<String> getHandler(JsonNode constraint) {
 									return this::apply;
 								}
 
@@ -618,7 +618,7 @@ class ConstraintEnforcementServiceTests {
 								}
 
 								@Override
-								public Function<String, String> getHandler(JsonNode constraint) {
+								public UnaryOperator<String> getHandler(JsonNode constraint) {
 									return this::apply;
 								}
 
@@ -644,7 +644,7 @@ class ConstraintEnforcementServiceTests {
 								}
 
 								@Override
-								public Function<String, String> getHandler(JsonNode constraint) {
+								public UnaryOperator<String> getHandler(JsonNode constraint) {
 									return this::apply;
 								}
 
@@ -689,7 +689,7 @@ class ConstraintEnforcementServiceTests {
 								}
 
 								@Override
-								public Function<String, String> getHandler(JsonNode constraint) {
+								public UnaryOperator<String> getHandler(JsonNode constraint) {
 									return this::apply;
 								}
 
@@ -717,7 +717,7 @@ class ConstraintEnforcementServiceTests {
 								}
 
 								@Override
-								public Function<String, String> getHandler(JsonNode constraint) {
+								public UnaryOperator<String> getHandler(JsonNode constraint) {
 									return this::apply;
 								}
 
@@ -813,7 +813,7 @@ class ConstraintEnforcementServiceTests {
 			}
 
 			@Override
-			public Function<Throwable, Throwable> getHandler(JsonNode constraint) {
+			public UnaryOperator<Throwable> getHandler(JsonNode constraint) {
 				return this::apply;
 			}
 
@@ -1028,7 +1028,7 @@ class ConstraintEnforcementServiceTests {
 		globalInvocationHandlerProviders.add(provider);
 		var service  = buildConstraintHandlerService();
 		var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
-		var bundle   = service.blockingPreEnforceBundleFor(decision);
+		var bundle   = service.blockingPreEnforceBundleFor(decision, Object.class);
 		assertThrows(AccessDeniedException.class,
 				() -> bundle.handleMethodInvocationHandlers(mock(MethodInvocation.class)));
 		verify(provider, times(0)).accept(any());

@@ -60,7 +60,7 @@ class FileMonitorUtilTest {
 				__ -> true);
 
 		StepVerifier.create(monitorFlux).expectNextCount(0L).thenCancel().verify();
-		monitorFlux.take(1L).subscribe(System.out::println);
+		monitorFlux.take(1L).subscribe();
 	}
 
 	@Test
