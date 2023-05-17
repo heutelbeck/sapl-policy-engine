@@ -30,7 +30,7 @@ import reactor.test.StepVerifier;
 @ActiveProfiles(profiles = "quiet")
 class RemoteRsocketDecisionPointServerIT {
 	private static final int    SAPL_SERVER_RSOCKET_PORT = 7000;
-	private static final String CONTAINER_IMAGE          = "ghcr.io/heutelbeck/sapl-server-lt:2.1.0-SNAPSHOT";
+	private static final String CONTAINER_IMAGE          = "ghcr.io/heutelbeck/sapl-server-lt:3.0.0-SNAPSHOT";
 
 	AuthorizationSubscription permittedSubscription = AuthorizationSubscription.of(
 			"Willi",
