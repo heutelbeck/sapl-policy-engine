@@ -54,4 +54,5 @@ public class ContentFilteringProvider implements MappingConstraintHandlerProvide
 	public UnaryOperator<Object> getHandler(JsonNode constraint) {
 		return ContentFilterUtil.getHandler(constraint, objectMapper);
 	}
+
 }

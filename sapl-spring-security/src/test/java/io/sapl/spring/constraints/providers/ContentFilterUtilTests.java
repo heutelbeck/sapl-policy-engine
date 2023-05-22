@@ -24,8 +24,17 @@ class ContentFilterUtilTests {
 
 	@Test
 	void test() throws JsonProcessingException {
-		var constraint = MAPPER
-				.readTree("{ \"conditions\" : [ { \"path\":\"$.a\",\"type\" : \"=~\", \"value\" : \"^.BC$\"}] }");
+		var constraint = MAPPER.readTree("""
+				{
+					"conditions" : [
+						{
+							"path" : "$.a",
+							"type" : "=~", 
+							"value" : "^.BC$"
+						}
+					] 
+				}
+				""");
 		var condition  = ContentFilterUtil.predicateFromConditions(constraint, MAPPER);
 		var data       = new DataPoint("ABC", 100);
 		assertTrue(condition.test(data));

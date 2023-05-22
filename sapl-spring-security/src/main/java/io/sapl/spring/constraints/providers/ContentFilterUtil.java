@@ -1,17 +1,18 @@
 package io.sapl.spring.constraints.providers;
 
 import java.lang.reflect.Array;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.reactivestreams.Publisher;
+import org.springframework.security.access.AccessDeniedException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -22,85 +23,89 @@ import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.MapFunction;
+import com.jayway.jsonpath.PathNotFoundException;
 import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider;
 
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+@Slf4j
 @UtilityClass
 public class ContentFilterUtil {
 
-	private static final String DISCLOSE_LEFT            = "discloseLeft";
-	private static final String DISCLOSE_RIGHT           = "discloseRight";
-	private static final String REPLACEMENT              = "replacement";
-	private static final String REPLACE                  = "replace";
-	private static final String BLACKEN                  = "blacken";
-	private static final String DELETE                   = "delete";
-	private static final String PATH                     = "path";
-	private static final String ACTIONS                  = "actions";
-	private static final String CONDITIONS               = "conditions";
-	private static final String VALUE                    = "value";
-	private static final String EQUALS                   = "==";
-	private static final String NEQ                      = "!=";
-	private static final String GEQ                      = ">=";
-	private static final String LEQ                      = "<=";
-	private static final String REGEX                    = "=~";
-	private static final String TYPE                     = "type";
-	private static final String BLACK_SQUARE             = "█";
-	private static final String UNDEFINED_KEY_S          = "An action does not declare '%s'.";
-	private static final String VALUE_NOT_INTEGER_S      = "An action's '%s' is not an integer.";
-	private static final String VALUE_NOT_TEXTUAL_S      = "An action's '%s' is not textual.";
-	private static final String PATH_NOT_TEXTUAL         = "The constraint indicates a text node to be blackened. However, the node identified by the path is not a text note.";
-	private static final String NO_REPLACEMENT_SPECIFIED = "The constraint indicates a text node to be replaced. However, the action does not specify a 'replacement'.";
-	private static final String REPLACEMENT_NOT_TEXTUAL  = "'replacement' of 'blacken' action is not textual.";
-	private static final String UNKNOWN_ACTION_S         = "Unknown action type: '%s'.";
-	private static final String ACTION_NOT_AN_OBJECT     = "An action in 'actions' is not an object.";
-	private static final String ACTIONS_NOT_AN_ARRAY     = "'actions' is not an array.";
+	private static final String NOT_A_VALID_PREDICATE_CONDITION = "Not a valid predicate condition: ";
+	private static final String DISCLOSE_LEFT                   = "discloseLeft";
+	private static final String DISCLOSE_RIGHT                  = "discloseRight";
+	private static final String REPLACEMENT                     = "replacement";
+	private static final String REPLACE                         = "replace";
+	private static final String BLACKEN                         = "blacken";
+	private static final String DELETE                          = "delete";
+	private static final String PATH                            = "path";
+	private static final String ACTIONS                         = "actions";
+	private static final String CONDITIONS                      = "conditions";
+	private static final String VALUE                           = "value";
+	private static final String EQUALS                          = "==";
+	private static final String NEQ                             = "!=";
+	private static final String GEQ                             = ">=";
+	private static final String LEQ                             = "<=";
+	private static final String GT                              = ">";
+	private static final String LT                              = "<";
+	private static final String REGEX                           = "=~";
+	private static final String TYPE                            = "type";
+	private static final String BLACK_SQUARE                    = "█";
+	private static final String UNDEFINED_KEY_S                 = "An action does not declare '%s'.";
+	private static final String VALUE_NOT_INTEGER_S             = "An action's '%s' is not an integer.";
+	private static final String VALUE_NOT_TEXTUAL_S             = "An action's '%s' is not textual.";
+	private static final String PATH_NOT_TEXTUAL                = "The constraint indicates a text node to be blackened. However, the node identified by the path is not a text note.";
+	private static final String NO_REPLACEMENT_SPECIFIED        = "The constraint indicates a text node to be replaced. However, the action does not specify a 'replacement'.";
+	private static final String REPLACEMENT_NOT_TEXTUAL         = "'replacement' of 'blacken' action is not textual.";
+	private static final String UNKNOWN_ACTION_S                = "Unknown action type: '%s'.";
+	private static final String ACTION_NOT_AN_OBJECT            = "An action in 'actions' is not an object.";
+	private static final String ACTIONS_NOT_AN_ARRAY            = "'actions' is not an array.";
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	public static UnaryOperator<Object> getHandler(JsonNode constraint, ObjectMapper objectMapper) {
-		var predicate      = ContentFilterUtil.predicateFromConditions(constraint, objectMapper);
-		var transformation = ContentFilterUtil.getTransformationHandler(constraint, objectMapper);
+		var predicate      = predicateFromConditions(constraint, objectMapper);
+		var transformation = getTransformationHandler(constraint, objectMapper);
 
 		return payload -> {
 			if (payload == null)
 				return null;
-			if (payload instanceof Optional)
-				return ((Optional<?>) payload).map(x -> mapElement(x, transformation, predicate));
-			if (payload instanceof List)
-				return mapListContents((List<?>) payload, transformation, predicate);
-			if (payload instanceof Set)
-				return mapSetContents((Set<?>) payload, transformation, predicate);
-			if (payload instanceof Publisher)
-				return mapPublisherContents((Publisher<?>) payload, transformation, predicate);
-
-			if (payload.getClass().isArray()) {
-				var filteredAsList = mapListContents((List<?>) payload, transformation, predicate);
+			if (payload instanceof Optional<?> optional)
+				return optional.map(x -> mapElement(x, transformation, predicate));
+			if (payload instanceof List<?> list)
+				return mapListContents(list, transformation, predicate);
+			if (payload instanceof Set<?> set)
+				return mapSetContents(set, transformation, predicate);
+			if (payload instanceof Publisher<?> publisher)
+				return mapPublisherContents(publisher, transformation, predicate);
+			if (payload instanceof Object[] array) {
+				var filteredAsList = mapListContents(Arrays.asList(array), transformation, predicate);
 				var resultArray    = Array.newInstance(payload.getClass().getComponentType(), filteredAsList.size());
 
 				var i = 0;
-				for (var x : filteredAsList)
+				for (var x : filteredAsList) {
 					Array.set(resultArray, i++, x);
-
+				}
 				return resultArray;
 			}
 
 			return mapElement(payload, transformation, predicate);
-
 		};
 	}
 
-	private static Object mapPublisherContents(Publisher<?> payload, Function<Object, Object> transformation,
+	private static Object mapPublisherContents(Publisher<?> payload, UnaryOperator<Object> transformation,
 			Predicate<Object> predicate) {
-		if (payload instanceof Mono) {
-			return ((Mono<?>) payload).map(element -> mapElement(element, transformation, predicate));
+		if (payload instanceof Mono<?> mono) {
+			return mono.map(element -> mapElement(element, transformation, predicate));
 		}
 		return ((Flux<?>) payload).map(element -> mapElement(element, transformation, predicate));
 	}
 
-	private static Object mapElement(Object payload, Function<Object, Object> transformation,
+	private static Object mapElement(Object payload, UnaryOperator<Object> transformation,
 			Predicate<Object> predicate) {
 		if (predicate.test(payload))
 			return transformation.apply(payload);
@@ -108,45 +113,69 @@ public class ContentFilterUtil {
 		return payload;
 	}
 
-	private static List<?> mapListContents(Collection<?> payload, Function<Object, Object> transformation,
+	private static List<?> mapListContents(Collection<?> payload, UnaryOperator<Object> transformation,
 			Predicate<Object> predicate) {
-		return payload.stream().map(o -> mapElement(o, transformation, predicate)).collect(Collectors.toList());
+		return payload.stream().map(o -> mapElement(o, transformation, predicate)).toList();
 	}
 
-	private static Set<?> mapSetContents(Collection<?> payload, Function<Object, Object> transformation,
+	private static Set<?> mapSetContents(Collection<?> payload, UnaryOperator<Object> transformation,
 			Predicate<Object> predicate) {
 		return payload.stream().map(o -> mapElement(o, transformation, predicate)).collect(Collectors.toSet());
 	}
 
 	public static Predicate<Object> predicateFromConditions(JsonNode constraint, ObjectMapper objectMapper) {
-		Predicate<Object> predicate = __ -> true;
-		if (noConditionsArrayPresent(constraint))
+		assertConstraintIsAnObjectNode(constraint);
+		Predicate<Object> predicate = anything -> true;
+		if (noConditionsPresent(constraint))
 			return predicate;
+
+		assertConditionsIsAnArrayNode(constraint);
+
 		var conditions = (ArrayNode) constraint.get(CONDITIONS);
 		for (var condition : conditions) {
 			var newPredicate      = conditionToPredicate(condition, objectMapper);
 			var previousPredicate = predicate;
 			predicate = x -> previousPredicate.test(x) && newPredicate.test(x);
 		}
-		return predicate;
+		return mapPathNotFoundToAccessDeniedException(predicate);
+	}
+
+	private static void assertConstraintIsAnObjectNode(JsonNode constraint) {
+		if (constraint == null || !constraint.isObject())
+			throw new IllegalArgumentException("Not a valid constraint. Expected a JSON Object");
+
+	}
+
+	private static Predicate<Object> mapPathNotFoundToAccessDeniedException(Predicate<Object> predicate) {
+		return x -> {
+			try {
+				return predicate.test(x);
+			} catch (PathNotFoundException e) {
+				log.warn(
+						"Error evaluating a constraint predicate. The path defined in the constraint is not present in the data.",
+						e);
+				throw new AccessDeniedException("Constraint enforcement failed.");
+			}
+		};
 	}
 
 	private static Predicate<Object> conditionToPredicate(JsonNode condition, ObjectMapper objectMapper) {
 		if (!condition.isObject())
-			throwConditionValidationError(condition);
+			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition.toString());
 
 		if (!condition.has(PATH) || !condition.get(PATH).isTextual())
-			throwConditionValidationError(condition);
+			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition.toString());
 
 		var path = condition.get(PATH).textValue();
 
-		if (!condition.has(TYPE) || !condition.get(TYPE).isTextual())
-			throwConditionValidationError(condition);
+		if (!condition.has(TYPE) ||
+				!condition.get(TYPE).isTextual())
+			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition.toString());
 
 		var type = condition.get(TYPE).textValue();
 
 		if (!condition.has(VALUE))
-			throwConditionValidationError(condition);
+			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition.toString());
 
 		var jsonPathConfiguration = Configuration.builder().jsonProvider(new JacksonJsonNodeJsonProvider(objectMapper))
 				.build();
@@ -155,7 +184,7 @@ public class ContentFilterUtil {
 			return equalsCondition(condition, path, jsonPathConfiguration, objectMapper);
 
 		if (NEQ.equals(type))
-			return x -> !equalsCondition(condition, path, jsonPathConfiguration, objectMapper).test(x);
+			return Predicate.not(equalsCondition(condition, path, jsonPathConfiguration, objectMapper));
 
 		if (GEQ.equals(type))
 			return geqCondition(condition, path, jsonPathConfiguration, objectMapper);
@@ -163,17 +192,23 @@ public class ContentFilterUtil {
 		if (LEQ.equals(type))
 			return leqCondition(condition, path, jsonPathConfiguration, objectMapper);
 
+		if (LT.equals(type))
+			return ltCondition(condition, path, jsonPathConfiguration, objectMapper);
+
+		if (GT.equals(type))
+			return gtCondition(condition, path, jsonPathConfiguration, objectMapper);
+
 		if (REGEX.equals(type))
 			return regexCondition(condition, path, jsonPathConfiguration, objectMapper);
 
-		throw new IllegalStateException("Not a valid predicate condition: " + condition);
+		throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition);
 	}
 
 	private static Predicate<Object> regexCondition(JsonNode condition, String path,
 			Configuration jsonPathConfiguration, ObjectMapper objectMapper) {
 
-		if (!condition.has(VALUE) || !condition.get(VALUE).isTextual())
-			throwConditionValidationError(condition);
+		if (!condition.get(VALUE).isTextual())
+			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition.toString());
 
 		var regex = Pattern.compile(condition.get(VALUE).textValue());
 
@@ -187,8 +222,8 @@ public class ContentFilterUtil {
 
 	private static Predicate<Object> leqCondition(JsonNode condition, String path, Configuration jsonPathConfiguration,
 			ObjectMapper objectMapper) {
-		if (!condition.has(VALUE) || !condition.get(VALUE).isNumber())
-			throwConditionValidationError(condition);
+		if (!condition.get(VALUE).isNumber())
+			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition.toString());
 
 		var value = condition.get(VALUE).asDouble();
 
@@ -196,14 +231,14 @@ public class ContentFilterUtil {
 			var node = getNodeAtPath(original, path, jsonPathConfiguration, objectMapper);
 			if (!node.isNumber())
 				return false;
-			return value <= node.asDouble();
+			return node.asDouble() <= value;
 		};
 	}
 
 	private static Predicate<Object> geqCondition(JsonNode condition, String path, Configuration jsonPathConfiguration,
 			ObjectMapper objectMapper) {
-		if (!condition.has(VALUE) || !condition.get(VALUE).isNumber())
-			throwConditionValidationError(condition);
+		if (!condition.get(VALUE).isNumber())
+			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition.toString());
 
 		var value = condition.get(VALUE).asDouble();
 
@@ -211,15 +246,43 @@ public class ContentFilterUtil {
 			var node = getNodeAtPath(original, path, jsonPathConfiguration, objectMapper);
 			if (!node.isNumber())
 				return false;
-			return value >= node.asDouble();
+			return node.asDouble() >= value;
 		};
 	}
 
+	private static Predicate<Object> ltCondition(JsonNode condition, String path, Configuration jsonPathConfiguration,
+			ObjectMapper objectMapper) {
+		if (!condition.get(VALUE).isNumber())
+			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition.toString());
+
+		var value = condition.get(VALUE).asDouble();
+
+		return original -> {
+			var node = getNodeAtPath(original, path, jsonPathConfiguration, objectMapper);
+			if (!node.isNumber())
+				return false;
+			return node.asDouble() < value;
+		};
+	}
+
+
+	private static Predicate<Object> gtCondition(JsonNode condition, String path, Configuration jsonPathConfiguration,
+			ObjectMapper objectMapper) {
+		if (!condition.get(VALUE).isNumber())
+			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition.toString());
+
+		var value = condition.get(VALUE).asDouble();
+
+		return original -> {
+			var node = getNodeAtPath(original, path, jsonPathConfiguration, objectMapper);
+			if (!node.isNumber())
+				return false;
+			return node.asDouble() > value;
+		};
+	}
+	
 	private static Predicate<Object> numberEqCondition(JsonNode condition, String path,
 			Configuration jsonPathConfiguration, ObjectMapper objectMapper) {
-		if (!condition.has(VALUE) || !condition.get(VALUE).isNumber())
-			throwConditionValidationError(condition);
-
 		var value = condition.get(VALUE).asDouble();
 
 		return original -> {
@@ -232,15 +295,12 @@ public class ContentFilterUtil {
 
 	private static Predicate<Object> equalsCondition(JsonNode condition, String path,
 			Configuration jsonPathConfiguration, ObjectMapper objectMapper) {
-		if (!condition.has(VALUE))
-			throwConditionValidationError(condition);
-
 		var valueNode = condition.get(VALUE);
 		if (valueNode.isNumber())
 			return numberEqCondition(condition, path, jsonPathConfiguration, objectMapper);
 
 		if (!valueNode.isTextual())
-			throwConditionValidationError(condition);
+			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition.toString());
 
 		var value = valueNode.textValue();
 
@@ -259,13 +319,14 @@ public class ContentFilterUtil {
 		return (JsonNode) jsonContext.read(path);
 	}
 
-	void throwConditionValidationError(JsonNode condition) {
-		throw new IllegalStateException("Not a valid predicate condition: " + condition.toString());
+	private static boolean noConditionsPresent(JsonNode constraint) {
+		return !constraint.has(CONDITIONS);
 	}
 
-	private static boolean noConditionsArrayPresent(JsonNode constraint) {
-		return !constraint.isObject() || !constraint.has(CONDITIONS) || !constraint.get(CONDITIONS).isArray()
-				|| constraint.get(CONDITIONS).isEmpty();
+	private static void assertConditionsIsAnArrayNode(JsonNode constraint) {
+		var conditions = constraint.get(CONDITIONS);
+		if (!conditions.isArray())
+			throw new IllegalArgumentException("'conditions' not an array: " + conditions.toString());
 	}
 
 	public static UnaryOperator<Object> getTransformationHandler(JsonNode constraint, ObjectMapper objectMapper) {
@@ -302,6 +363,15 @@ public class ContentFilterUtil {
 
 		var path       = getTextualValueOfActionKey(action, PATH);
 		var actionType = getTextualValueOfActionKey(action, TYPE).trim().toLowerCase();
+
+		try {
+			jsonContext.read(path);
+		} catch (PathNotFoundException e) {
+			log.warn(
+					"Error evaluating a constraint predicate. The path defined in the constraint is not present in the data.",
+					e);
+			throw new AccessDeniedException("Constraint enforcement failed.");
+		}
 
 		if (DELETE.equals(actionType)) {
 			jsonContext.delete(path);
