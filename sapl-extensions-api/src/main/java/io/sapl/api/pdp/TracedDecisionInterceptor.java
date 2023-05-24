@@ -15,15 +15,29 @@
  */
 package io.sapl.api.pdp;
 
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
+/**
+ * Classes implementing this interface can be wired into the PDP to intercept
+ * any TracedDecision and potentially modify it before handing it downstream.
+ * 
+ * The priority defines the evaluation sequence if multiple interceptor classes
+ * are present. No assumptions can be made about the evaluation sequence of
+ * interceptors with identical priority.
+ */
 @FunctionalInterface
 public interface TracedDecisionInterceptor
-		extends Function<TracedDecision, TracedDecision>, Comparable<TracedDecisionInterceptor> {
+		extends UnaryOperator<TracedDecision>, Comparable<TracedDecisionInterceptor> {
+	/**
+	 * @return the interceptor priority
+	 */
 	default Integer getPriority() {
 		return 0;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	default int compareTo(TracedDecisionInterceptor other) {
 		return getPriority().compareTo(other.getPriority());

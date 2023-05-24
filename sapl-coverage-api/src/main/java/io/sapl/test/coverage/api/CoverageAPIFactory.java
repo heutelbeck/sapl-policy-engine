@@ -19,6 +19,9 @@ import java.nio.file.Path;
 
 import lombok.experimental.UtilityClass;
 
+/**
+ * Factory for {@link CoverageHitReader} and {@link CoverageHitRecorder}.
+ */
 @UtilityClass
 public class CoverageAPIFactory {
 

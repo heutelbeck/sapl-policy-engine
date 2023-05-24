@@ -22,6 +22,9 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+/**
+ * Configuration properties for the embedded PDP.
+ */
 @Data
 @Validated
 @ConfigurationProperties(prefix = "io.sapl.pdp.embedded")
@@ -74,20 +77,41 @@ public class EmbeddedPDPProperties {
 	 * located.
 	 *
 	 * If the pdpConfigType is set to RESOURCES, / is the root of the context path.
-	 * For FILESYSTEM, it must be a valid path on the system's filesystem.
+	 * For FILESYSTEM, it must be a valid path on the system's file system.
 	 */
 	@NotEmpty
 	private String policiesPath = "/policies";
 
+	/**
+	 * Indicate whether to load policies from the resources or the file system.
+	 */
 	public enum PDPDataSource {
 
-		RESOURCES, FILESYSTEM
+		/**
+		 * Indicates to load static policies from the resources bundled in the JAR.
+		 */
+		RESOURCES,
+		/**
+		 * Indicates to load policies dynamically from a monitored folder on the file
+		 * system.
+		 */
+		FILESYSTEM
 
 	}
 
+	/**
+	 * Selects the indexing algorithm.
+	 */
 	public enum IndexType {
 
-		NAIVE, CANONICAL
+		/**
+		 * Simple default index. 
+		 */
+		NAIVE,
+		/**
+		 * High-performance policy index for large collections of policies.
+		 */
+		CANONICAL
 
 	}
 
@@ -104,8 +128,8 @@ public class EmbeddedPDPProperties {
 	private boolean printTrace = false;
 
 	/**
-	 * If this property is set to true, the JSON evaluation report is logged on
-	 * each decision.
+	 * If this property is set to true, the JSON evaluation report is logged on each
+	 * decision.
 	 */
 	private boolean printJsonReport = false;
 

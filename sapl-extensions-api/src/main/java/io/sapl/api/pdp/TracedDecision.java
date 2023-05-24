@@ -17,8 +17,22 @@ package io.sapl.api.pdp;
 
 import io.sapl.api.interpreter.Traced;
 
+/**
+ * A decision which is potentially changed by interceptors. Interceptors should
+ * add an explanation into the trace.
+ */
 public interface TracedDecision extends Traced {
+	/**
+	 * @return the decision.
+	 */
 	AuthorizationDecision getAuthorizationDecision();
 
+	/**
+	 * Add an explanation to a modified decision.
+	 * 
+	 * @param authzDecision the modified decision
+	 * @param explanation   the explanation
+	 * @return the modified decision with explanation
+	 */
 	TracedDecision modified(AuthorizationDecision authzDecision, String explanation);
 }

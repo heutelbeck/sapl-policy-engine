@@ -15,14 +15,16 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import java.io.Serializable;
 import java.util.Collection;
 
 import io.sapl.interpreter.functions.LibraryDocumentation;
 import lombok.Value;
 
+/**
+ * Holds the documentation for all deployed function libraries.
+ */
 @Value
-public class FunctionLibrariesDocumentation implements Serializable {
+public class FunctionLibrariesDocumentation {
 
 	Collection<LibraryDocumentation> documentation;
 

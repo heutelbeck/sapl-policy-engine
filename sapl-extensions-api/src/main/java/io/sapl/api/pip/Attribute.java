@@ -20,12 +20,24 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * Marker annotation, declaring a function in a class to be an attribute finder.
+ * 
+ * The name defaults to the method name if not explicitly declared as a
+ * parameter.
+ */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Attribute {
 
+	/**
+	 * @return name of the attribute.
+	 */
 	String name() default "";
 
+	/**
+	 * @return attribute documentation
+	 */
 	String docs() default "";
 
 }

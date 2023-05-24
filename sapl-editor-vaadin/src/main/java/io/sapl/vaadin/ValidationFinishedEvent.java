@@ -15,16 +15,13 @@
  */
 package io.sapl.vaadin;
 
-import java.util.Arrays;
+import lombok.Value;
 
+/**
+ * Event triggered when the validation of the editor contents finishes. Contains
+ * identified issues.
+ */
+@Value
 public class ValidationFinishedEvent {
-	private Issue[] issues;
-	
-	public ValidationFinishedEvent(Issue[] issues) {
-		this.issues = Arrays.copyOf(issues, issues.length);
-	}
-	
-	public Issue[] getIssues() {
-		return Arrays.copyOf(issues, issues.length);
-	}
+	Issue[] issues;
 }

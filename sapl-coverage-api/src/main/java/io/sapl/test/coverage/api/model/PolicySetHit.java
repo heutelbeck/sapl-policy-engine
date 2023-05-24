@@ -19,6 +19,9 @@ import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
+/**
+ * A set of policy hits.
+ */
 @Getter
 @EqualsAndHashCode
 @AllArgsConstructor
@@ -34,6 +37,11 @@ public class PolicySetHit {
 		return policySetId;
 	}
 
+	/**
+	 * Loads a {@link PolicySetHit} from a String.
+	 * @param policySetToStringResult input String
+	 * @return the PolicySetHit.
+	 */
 	public static PolicySetHit fromString(String policySetToStringResult) {
 		return new PolicySetHit(policySetToStringResult);
 	}

@@ -15,8 +15,14 @@
  */
 package io.sapl.vaadin;
 
+/**
+ * Listener interface for editor click events.
+ */
 @FunctionalInterface
 public interface EditorClickedListener {
 
+    /**
+     * @param event the click event
+     */
     void onEditorClicked(EditorClickedEvent event);
 }

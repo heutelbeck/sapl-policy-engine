@@ -21,6 +21,9 @@ import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import io.sapl.test.coverage.api.model.PolicyHit;
 import io.sapl.test.coverage.api.model.PolicySetHit;
 
+/**
+ * Interface for reading policy hits.
+ */
 public interface CoverageHitReader {
 
 	/**

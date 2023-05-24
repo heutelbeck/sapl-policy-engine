@@ -23,6 +23,9 @@ import org.eclipse.xtext.testing.AbstractLanguageServerTest;
  */
 public class AbstractSaplLanguageServerTest extends AbstractLanguageServerTest {
 
+	/**
+	 * Instantiates the test.
+	 */
 	public AbstractSaplLanguageServerTest() {
 		super("sapl");
 	}

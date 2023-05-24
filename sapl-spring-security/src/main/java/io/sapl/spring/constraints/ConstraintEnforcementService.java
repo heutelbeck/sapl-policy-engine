@@ -224,7 +224,9 @@ public class ConstraintEnforcementService {
 	}
 
 	/**
+	 * @param <T>      the return type of the protected Resource Access Point
 	 * @param decision a decision
+	 * @param clazz    the return type of the protected Resource Access Point
 	 * @return a BlockingPreEnforceConstraintHandlerBundle with handlers for all
 	 *         constraints in the decision, or throws AccessDeniedException, if
 	 *         bundle cannot be constructed.

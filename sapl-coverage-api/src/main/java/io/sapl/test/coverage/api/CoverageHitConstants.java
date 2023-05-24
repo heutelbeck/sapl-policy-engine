@@ -17,8 +17,18 @@ package io.sapl.test.coverage.api;
 
 import lombok.experimental.UtilityClass;
 
+/**
+ * Utility class holding String constants for hit recording.
+ */
 @UtilityClass
 public class CoverageHitConstants {
+	/**
+	 * Delimiter in Strings
+	 */
 	public static final String DELIMITER = "||";
+
+	/**
+	 * Regular expression representation of the delimiter.
+	 */
 	public static final String DELIMITER_MATCH_REGEX = "\\|\\|";
 }

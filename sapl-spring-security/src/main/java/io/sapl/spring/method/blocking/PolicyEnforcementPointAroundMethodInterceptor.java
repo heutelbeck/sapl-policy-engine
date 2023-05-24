@@ -34,11 +34,14 @@ import io.sapl.spring.method.metadata.EnforceTillDenied;
 import io.sapl.spring.method.metadata.PostEnforce;
 import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptor;
+import lombok.Getter;
 
 public class PolicyEnforcementPointAroundMethodInterceptor
 		implements Ordered, MethodInterceptor, PointcutAdvisor, AopInfrastructureBean {
 
+	@Getter
 	private final Pointcut          pointcut;
+	@Getter
 	private final int               order;
 	private final MethodInterceptor policyEnforcementPoint;
 
@@ -98,16 +101,6 @@ public class PolicyEnforcementPointAroundMethodInterceptor
 	@Override
 	public boolean isPerInstance() {
 		return false;
-	}
-
-	@Override
-	public Pointcut getPointcut() {
-		return pointcut;
-	}
-
-	@Override
-	public int getOrder() {
-		return order;
 	}
 
 	@Override

@@ -15,7 +15,6 @@
  */
 package io.sapl.interpreter.functions;
 
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -24,10 +23,14 @@ import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * A library documentation contains documentation information extracted from the
+ * annotations in function libraries or Policy Information Points.
+ */
 @Data
 @NoArgsConstructor
 @RequiredArgsConstructor
-public class LibraryDocumentation implements Serializable {
+public class LibraryDocumentation {
 
 	@NonNull
 	String name;

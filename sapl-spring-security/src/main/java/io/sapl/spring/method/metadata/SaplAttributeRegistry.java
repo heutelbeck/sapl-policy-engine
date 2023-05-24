@@ -52,11 +52,14 @@ public class SaplAttributeRegistry {
 	}
 
 	/**
-	 * Returns an {@link Optional<SaplExpressionAttribute>} for the
+	 * Returns an {@link "Optional<SaplExpressionAttribute>"} for the
 	 * {@link MethodInvocation}.
 	 * 
-	 * @param mi the {@link MethodInvocation} to use
-	 * @return the {@link Optional<SaplAttribute>} to use
+	 * @param <T>
+	 * 
+	 * @param mi             the {@link MethodInvocation} to use
+	 * @param annotationType the annotation type.
+	 * @return the {@link "Optional<SaplAttribute>"} to use
 	 */
 	public <T extends Annotation> Optional<SaplAttribute> getSaplAttributeForAnnotationType(MethodInvocation mi,
 			Class<T> annotationType) {
@@ -114,12 +117,15 @@ public class SaplAttributeRegistry {
 	}
 
 	/**
-	 * Returns an {@link Optional<SaplAttribute>} for the method and the target
+	 * Returns an {@link "Optional<SaplAttribute>"} for the method and the target
 	 * class.
 	 * 
-	 * @param method      the method
-	 * @param targetClass the target class
-	 * @return the {@link Optional<SaplAttribute>} to use
+	 * @param <T>
+	 * 
+	 * @param method         the method
+	 * @param targetClass    the target class
+	 * @param annotationType the annotation type
+	 * @return the {@link "Optional<SaplAttribute>"} to use
 	 */
 	public <T extends Annotation> Optional<SaplAttribute> getAttribute(Method method, Class<?> targetClass,
 			Class<T> annotationType) {

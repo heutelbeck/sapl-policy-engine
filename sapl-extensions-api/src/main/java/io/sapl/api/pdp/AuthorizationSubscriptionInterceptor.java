@@ -15,16 +15,31 @@
  */
 package io.sapl.api.pdp;
 
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
+/**
+ * Classes implementing this interface can be wired into the PDP to intercept
+ * any AuthorizationSubscription and potentially modify it before handing it
+ * downstream.
+ * 
+ * The priority defines the evaluation sequence if multiple interceptor classes
+ * are present. No assumptions can be made about the evaluation sequence of
+ * interceptors with identical priority.
+ */
 @FunctionalInterface
 public interface AuthorizationSubscriptionInterceptor
-		extends Function<AuthorizationSubscription, AuthorizationSubscription>,
+		extends UnaryOperator<AuthorizationSubscription>,
 		Comparable<AuthorizationSubscriptionInterceptor> {
+	/**
+	 * @return the interceptor priority
+	 */
 	default Integer getPriority() {
 		return 0;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	default int compareTo(AuthorizationSubscriptionInterceptor other) {
 		return getPriority().compareTo(other.getPriority());

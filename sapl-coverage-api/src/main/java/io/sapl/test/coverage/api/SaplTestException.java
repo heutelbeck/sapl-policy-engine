@@ -17,6 +17,9 @@ package io.sapl.test.coverage.api;
 
 import lombok.experimental.StandardException;
 
+/**
+ * Indicates a failure during tests.
+ */
 @StandardException
 public class SaplTestException extends RuntimeException {
 

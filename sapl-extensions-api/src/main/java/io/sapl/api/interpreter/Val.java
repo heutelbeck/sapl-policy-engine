@@ -42,7 +42,6 @@ import reactor.core.publisher.Mono;
  * Jackson JsonNode, an error, or may be undefined. Val is immutable.
  * 
  * @author Dominic Heutelbeck
- *
  */
 public class Val implements Traced {
 
@@ -128,34 +127,83 @@ public class Val implements Traced {
 		this.trace        = null;
 	}
 
+	/**
+	 * @return marks a value to be a secret.
+	 */
 	public Val asSecret() {
 		return new Val(value, errorMessage, true);
 	}
 
+	/**
+	 * @param trace a trace
+	 * @return the Val with attached trace.
+	 */
 	public Val withTrace(Trace trace) {
 		return new Val(value, errorMessage, secret, trace);
 	}
 
+	/**
+	 * Attaches a trace to the Val.
+	 * 
+	 * @param operation traced operation
+	 * @return the Val with attached trace
+	 */
 	public Val withTrace(Class<?> operation) {
 		return withTrace(new Trace(operation));
 	}
 
+	/**
+	 * Attaches a trace to the Val including arguments.
+	 * 
+	 * @param operation traced operation
+	 * @param arguments the arguments
+	 * @return the Val with attached trace
+	 */
 	public Val withTrace(Class<?> operation, Val... arguments) {
 		return withTrace(new Trace(operation, arguments));
 	}
 
+	/**
+	 * Attaches a trace to the Val including arguments.
+	 * 
+	 * @param operation traced operation
+	 * @param arguments the arguments with parameter names
+	 * @return the Val with attached trace
+	 */
 	public Val withTrace(Class<?> operation, Map<String, Traced> arguments) {
 		return withTrace(new Trace(operation, arguments));
 	}
 
+	/**
+	 * Attaches a trace to the Val parent value.
+	 * 
+	 * @param operation   traced operation
+	 * @param parentValue the parent value
+	 * @return the Val with attached trace
+	 */
 	public Val withParentTrace(Class<?> operation, Traced parentValue) {
 		return withTrace(new Trace(operation, new ExpressionArgument("parentValue", parentValue)));
 	}
 
+	/**
+	 * Attaches a trace to the Val including arguments.
+	 * 
+	 * @param operation traced operation
+	 * @param arguments the arguments with parameter names
+	 * @return the Val with attached trace
+	 */
 	public Val withTrace(Class<?> operation, ExpressionArgument... arguments) {
 		return withTrace(new Trace(operation, arguments));
 	}
 
+	/**
+	 * Attaches a trace to the Val including arguments for attribute finders.
+	 * 
+	 * @param leftHandValue left hand value of attribute finder
+	 * @param operation     traced operation
+	 * @param arguments     the arguments with parameter names
+	 * @return the Val with attached trace
+	 */
 	public Val withTrace(Traced leftHandValue, Class<?> operation, Traced... arguments) {
 		return withTrace(new Trace(leftHandValue, operation, arguments));
 	}
@@ -558,6 +606,12 @@ public class Val implements Traced {
 		throw new PolicyEvaluationException(ARITHMETIC_OPERATION_TYPE_MISMATCH_S, typeOf(this));
 	}
 
+	/**
+	 * Validation method to ensure a Val is a JSON array.
+	 * 
+	 * @param value a Val
+	 * @return the input Val, or an error, if the input is not an array.
+	 */
 	public static Val requireArrayNode(Val value) {
 		if (value.isError()) {
 			return value;
@@ -568,6 +622,12 @@ public class Val implements Traced {
 		return value;
 	}
 
+	/**
+	 * Converts Val to a Flux of ObjectNode.
+	 * 
+	 * @param value a Val
+	 * @return a Flux only containing the ObjectNode value or an error if Val not ObjectNode.
+	 */
 	public static Flux<ObjectNode> toObjectNode(Val value) {
 		if (value.isUndefined() || !value.get().isObject()) {
 			return Flux.error(new PolicyEvaluationException(OBJECT_OPERATION_TYPE_MISMATCH_S, typeOf(value)));
@@ -575,6 +635,12 @@ public class Val implements Traced {
 		return Flux.just((ObjectNode) value.get());
 	}
 
+	/**
+	 * Validation method to ensure a Val is a JSON object.
+	 * 
+	 * @param value a Val
+	 * @return the input Val, or an error, if the input is not an object.
+	 */
 	public static Val requireObjectNode(Val value) {
 		if (value.isError()) {
 			return value;
@@ -585,6 +651,12 @@ public class Val implements Traced {
 		return value;
 	}
 
+	/**
+	 * Converts Val to a Flux of String.
+	 * 
+	 * @param value a Val
+	 * @return a Flux only containing the String value an error if Val not textual.
+	 */
 	public static Flux<String> toText(Val value) {
 		if (value.isUndefined() || !value.get().isTextual()) {
 			return Flux.error(new PolicyEvaluationException(TEXT_OPERATION_TYPE_MISMATCH_S, typeOf(value)));
@@ -592,6 +664,12 @@ public class Val implements Traced {
 		return Flux.just(value.get().textValue());
 	}
 
+	/**
+	 * Validation method to ensure a Val is a textual value.
+	 * 
+	 * @param value a Val
+	 * @return the input Val, or an error, if the input is not textual.
+	 */
 	public static Val requireText(Val value) {
 		if (value.isError()) {
 			return value;
@@ -602,6 +680,13 @@ public class Val implements Traced {
 		return value;
 	}
 
+	/**
+	 * Converts Val to a Flux of BigDecimal.
+	 * 
+	 * @param value a Val
+	 * @return a Flux only containing the number value as BigDecimal or an error if
+	 *         Val not a number.
+	 */
 	public static Flux<BigDecimal> toBigDecimal(Val value) {
 		if (value.isUndefined() || !value.get().isNumber()) {
 			return Flux.error(new PolicyEvaluationException(ARITHMETIC_OPERATION_TYPE_MISMATCH_S, typeOf(value)));
@@ -609,6 +694,12 @@ public class Val implements Traced {
 		return Flux.just(value.get().decimalValue());
 	}
 
+	/**
+	 * Validation method to ensure a val is a numerical value.
+	 * 
+	 * @param value a Val
+	 * @return the input Val, or an error, if the input is not a number.
+	 */
 	public static Val requireBigDecimal(Val value) {
 		if (value.isError()) {
 			return value;
@@ -619,6 +710,12 @@ public class Val implements Traced {
 		return value;
 	}
 
+	/**
+	 * Validation method to ensure a val is a numerical value.
+	 * 
+	 * @param value a Val
+	 * @return the input Val, or an error, if the input is not a number.
+	 */
 	public static Val requireNumber(Val value) {
 		return requireBigDecimal(value);
 	}
@@ -641,6 +738,10 @@ public class Val implements Traced {
 		return typeOf(this);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
 	public JsonNode getTrace() {
 		JsonNode val;
 		if (isSecret())
@@ -660,5 +761,5 @@ public class Val implements Traced {
 		}
 		return traceJson;
 	}
-	
+
 }

@@ -15,39 +15,49 @@
  */
 package io.sapl.vaadin;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.vaadin.flow.component.ClientCallable;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.dependency.NpmPackage;
 import com.vaadin.flow.dom.Element;
+
 import elemental.json.JsonArray;
 import elemental.json.JsonObject;
 
-import java.util.ArrayList;
-import java.util.List;
-
+/**
+ * An editor component for SAPL documents supporting code-completion,
+ * syntax-highlighting, and linting.
+ */
 @Tag("sapl-editor")
 @JsModule("./sapl-editor.js")
 @NpmPackage(value = "jquery", version = "3.4.1")
 @NpmPackage(value = "codemirror", version = "5.52.2")
 public class SaplEditor extends BaseEditor {
 
-	private final List<ValidationFinishedListener> validationFinishedListeners;
-	
+	private final transient List<ValidationFinishedListener> validationFinishedListeners;
+
+	/**
+	 * Creates an editor component.
+	 * 
+	 * @param config the editor settings-
+	 */
 	public SaplEditor(SaplEditorConfiguration config) {
 		this.validationFinishedListeners = new ArrayList<>();
-		
+
 		Element element = getElement();
 		applyBaseConfiguration(element, config);
 	}
-	
+
 	@ClientCallable
 	protected void onValidation(JsonArray jsonIssues) {
-		int length = jsonIssues.length();
+		int         length = jsonIssues.length();
 		List<Issue> issues = new ArrayList<Issue>(length);
 		for (int i = 0; i < length; i++) {
 			JsonObject jsonIssue = jsonIssues.getObject(i);
-			Issue issue = new Issue(jsonIssue);
+			Issue      issue     = new Issue(jsonIssue);
 			issues.add(issue);
 		}
 
@@ -55,8 +65,8 @@ public class SaplEditor extends BaseEditor {
 			Issue[] issueArray = issues.toArray(new Issue[0]);
 			listener.onValidationFinished(new ValidationFinishedEvent(issueArray));
 		}
-    }
-	
+	}
+
 	/**
 	 * Registers a validation finished listener. The validation changed event will
 	 * be raised after the document was changed and the validation took place. The

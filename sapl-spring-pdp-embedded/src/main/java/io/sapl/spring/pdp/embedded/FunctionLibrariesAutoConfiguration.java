@@ -25,6 +25,9 @@ import io.sapl.functions.LoggingFunctionLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
 
+/**
+ * This configuration deploys the default function libraries for the PDP.
+ */
 @AutoConfiguration
 public class FunctionLibrariesAutoConfiguration {
 

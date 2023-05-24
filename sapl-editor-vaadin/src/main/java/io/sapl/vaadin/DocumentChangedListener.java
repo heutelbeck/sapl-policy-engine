@@ -15,7 +15,13 @@
  */
 package io.sapl.vaadin;
 
+/**
+ * Listener interface for editor value changes.
+ */
 @FunctionalInterface
 public interface DocumentChangedListener {
+	/**
+	 * @param event the change event.
+	 */
 	void onDocumentChanged(DocumentChangedEvent event);
 }

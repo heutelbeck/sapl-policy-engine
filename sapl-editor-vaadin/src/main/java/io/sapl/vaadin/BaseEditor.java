@@ -23,6 +23,9 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.dom.ElementConstants;
 
+/**
+ * Base class for SAPL and JSON editors.
+ */
 public class BaseEditor extends Component {
 
 	private static final String                 IS_READ_ONLY_KEY = "isReadOnly";
@@ -30,6 +33,9 @@ public class BaseEditor extends Component {
 	private final List<DocumentChangedListener> documentChangedListeners;
 	private final List<EditorClickedListener>   editorClickedListeners;
 
+	/**
+	 * Creates the editor.
+	 */
 	public BaseEditor() {
 		super();
 		this.documentChangedListeners = new ArrayList<>();

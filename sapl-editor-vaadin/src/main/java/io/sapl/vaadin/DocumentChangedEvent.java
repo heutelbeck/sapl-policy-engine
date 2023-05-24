@@ -15,14 +15,12 @@
  */
 package io.sapl.vaadin;
 
+import lombok.Value;
+
+/**
+ * Event indicating a value change in the editor.
+ */
+@Value
 public class DocumentChangedEvent {
-	private final String newValue;
-	
-	public DocumentChangedEvent(String newValue) {
-		this.newValue = newValue;
-	}
-	
-	public String getNewValue() {
-		return this.newValue;
-	}
+	String newValue;
 }

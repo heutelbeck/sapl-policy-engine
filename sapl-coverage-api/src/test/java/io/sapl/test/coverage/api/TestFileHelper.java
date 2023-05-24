@@ -19,9 +19,19 @@ import java.io.File;
 
 import lombok.experimental.UtilityClass;
 
+/**
+ * Utility class for reusable file operations.
+ */
 @UtilityClass
 public class TestFileHelper {
 
+	/**
+	 * Deletes a directory.
+	 * 
+	 * @param directoryToBeDeleted a directory
+	 * @return true if and only if the file or directory is successfully deleted;
+	 *         false otherwise
+	 */
 	public static boolean deleteDirectory(File directoryToBeDeleted) {
 		File[] allContents = directoryToBeDeleted.listFiles();
 		if (allContents != null) {

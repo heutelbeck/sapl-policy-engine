@@ -20,6 +20,9 @@ import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
+/**
+ * Documents a policy hit during testing.
+ */
 @Getter
 @EqualsAndHashCode
 @AllArgsConstructor
@@ -42,6 +45,12 @@ public class PolicyHit {
 		return policySetId + CoverageHitConstants.DELIMITER + policyId;
 	}
 
+	/**
+	 * Converts a String to PolicyHit.
+	 * 
+	 * @param policyToStringResult a condition result expressed in a String
+	 * @return the expressed PolicyHit
+	 */
 	public static PolicyHit fromString(String policyToStringResult) {
 		String[] split = policyToStringResult.split(CoverageHitConstants.DELIMITER_MATCH_REGEX);
 		return new PolicyHit(split[0], split[1]);

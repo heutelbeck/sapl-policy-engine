@@ -21,13 +21,26 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * Marker annotation, declaring a function in a class to be a Policy Information
+ * Point.
+ * 
+ * The name defaults to the class name if not explicitly declared as a
+ * parameter.
+ */
 @Inherited
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface PolicyInformationPoint {
 
+	/**
+	 * @return name of the Policy Information Point.
+	 */
 	String name() default "";
 
+	/**
+	 * @return Policy Information Point documentation.
+	 */
 	String description() default "";
 
 }

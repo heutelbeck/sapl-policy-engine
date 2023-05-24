@@ -15,7 +15,13 @@
  */
 package io.sapl.vaadin;
 
+/**
+ * Listener interface for editor validation events.
+ */
 @FunctionalInterface
 public interface ValidationFinishedListener {
+	/**
+	 * @param event the validation event.
+	 */
 	void onValidationFinished(ValidationFinishedEvent event);
 }

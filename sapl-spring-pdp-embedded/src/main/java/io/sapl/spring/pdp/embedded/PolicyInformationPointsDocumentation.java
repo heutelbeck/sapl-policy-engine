@@ -15,14 +15,16 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import java.io.Serializable;
 import java.util.Collection;
 
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import lombok.Value;
 
+/**
+ * Holds the documentation for all deployed Policy Information Points.
+ */
 @Value
-public class PolicyInformationPointsDocumentation implements Serializable {
+public class PolicyInformationPointsDocumentation {
 
 	Collection<PolicyInformationPointDocumentation> documentation;
 
