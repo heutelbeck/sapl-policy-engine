@@ -15,9 +15,11 @@
  */
 package io.sapl.spring.config;
 
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Role;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -34,12 +36,15 @@ import io.sapl.spring.constraints.providers.ContentFilteringProvider;
 @AutoConfiguration
 @Import(value = { ConstraintEnforcementService.class })
 public class ConstraintsHandlerAutoconfiguration {
+	
 	@Bean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	ContentFilteringProvider jsonNodeContentFilteringProvider(ObjectMapper objectMapper) {
 		return new ContentFilteringProvider(objectMapper);
 	}
 
 	@Bean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	ContentFilterPredicateProvider contentFilterPredicateProvider(ObjectMapper objectMapper) {
 		return new ContentFilterPredicateProvider(objectMapper);
 	}

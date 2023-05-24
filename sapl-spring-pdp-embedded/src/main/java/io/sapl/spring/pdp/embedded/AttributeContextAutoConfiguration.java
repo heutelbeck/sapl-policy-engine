@@ -17,11 +17,13 @@ package io.sapl.spring.pdp.embedded;
 
 import java.util.Collection;
 
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Role;
 
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.interpreter.InitializationException;
@@ -42,6 +44,7 @@ public class AttributeContextAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	AttributeContext attributeContext() throws InitializationException {
 		var ctx = new AnnotationAttributeContext();
 		for (var entry : policyInformationPoints) {

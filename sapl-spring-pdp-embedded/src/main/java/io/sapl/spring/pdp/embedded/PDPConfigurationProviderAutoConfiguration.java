@@ -17,9 +17,11 @@ package io.sapl.spring.pdp.embedded;
 
 import java.util.List;
 
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Role;
 
 import io.sapl.api.pdp.AuthorizationSubscriptionInterceptor;
 import io.sapl.api.pdp.TracedDecisionInterceptor;
@@ -44,6 +46,7 @@ public class PDPConfigurationProviderAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	PDPConfigurationProvider pdpConfigurationProvider() {
 		log.info(
 				"Deploying PDP configuration provider with AttributeContext: {} FunctionContext: {} VariablesAndCombinatorSource: {} #SubscriptionIntercptors: {} #DecisionInterceptors: {}",

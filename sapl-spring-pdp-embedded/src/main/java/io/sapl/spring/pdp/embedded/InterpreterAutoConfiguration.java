@@ -15,8 +15,10 @@
  */
 package io.sapl.spring.pdp.embedded;
 
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Role;
 
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
@@ -25,6 +27,7 @@ import io.sapl.interpreter.SAPLInterpreter;
 public class InterpreterAutoConfiguration {
 
 	@Bean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	SAPLInterpreter parser() {
 		return new DefaultSAPLInterpreter();
 	}

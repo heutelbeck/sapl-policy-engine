@@ -15,9 +15,11 @@
  */
 package io.sapl.spring.config;
 
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Role;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -37,6 +39,7 @@ public class AuthorizationManagerConfiguration {
 	private final ObjectMapper                 mapper;
 
 	@Bean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 	SaplAuthorizationManager saplAuthorizationManager() {
 		log.debug("Servlet-based environment detected. Deploy SaplAuthorizationManager.");
@@ -44,6 +47,7 @@ public class AuthorizationManagerConfiguration {
 	}
 
 	@Bean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
 	ReactiveSaplAuthorizationManager reactiveSaplAuthorizationManager() {
 		log.debug("Webflux environment detected. Deploy ReactiveSaplAuthorizationManager.");

@@ -15,10 +15,12 @@
  */
 package io.sapl.spring.pdp.embedded;
 
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Role;
 
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.SAPLInterpreter;
@@ -40,6 +42,7 @@ public class PrpUpdateEventSourceAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	PrpUpdateEventSource prpUpdateSource() throws InitializationException {
 		var policiesFolder = pdpProperties.getPoliciesPath();
 		if (pdpProperties.getPdpConfigType() == EmbeddedPDPProperties.PDPDataSource.FILESYSTEM) {

@@ -26,11 +26,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.core.MethodClassKey;
+import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.expression.Expression;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.util.ClassUtils;
 
 import lombok.NonNull;
 
@@ -80,6 +82,26 @@ public class SaplAttributeRegistry {
 	}
 
 	/**
+	 * See
+	 * {@link org.springframework.security.access.prepost.PrePostAnnotationSecurityMetadataSource
+	 * #findAnnotation(Method, Class)} the logic is the same as for @PreAuthorize
+	 * and @PostAuthorize.
+	 */
+	private <A extends Annotation> A findAnnotation(Method method, Class<?> targetClass, Class<A> annotationClass) {
+		// The method may be on an interface, but we need attributes from the target
+		// class. If the target class is null, the method will be unchanged.
+		Method specificMethod = ClassUtils.getMostSpecificMethod(method, targetClass);
+		A      annotation     = AnnotationUtils.findAnnotation(specificMethod, annotationClass);
+		if (annotation != null)
+			return annotation;
+
+		// Check the class-level (note declaringClass, not targetClass, which may not
+		// actually implement the method)
+		annotation = AnnotationUtils.findAnnotation(specificMethod.getDeclaringClass(), annotationClass);
+		return annotation;
+	}
+
+	/**
 	 * @param mi the {@link MethodInvocation} to use
 	 * @return a list of all SaplAttributes.
 	 */
@@ -113,9 +135,10 @@ public class SaplAttributeRegistry {
 
 	public <T extends Annotation> SaplAttribute resolveAttribute(Method method, Class<?> targetClass,
 			Class<T> annotationType) {
-		var specificMethod = AopUtils.getMostSpecificMethod(method, targetClass);
-		var annotation     = AuthorizationAnnotationUtils
-				.findAuthorizeAnnotationOnMethodOrDeclaringClass(specificMethod, annotationType);
+//		var specificMethod = AopUtils.getMostSpecificMethod(method, targetClass);
+//		var annotation     = AuthorizationAnnotationUtils
+//				.findAuthorizeAnnotationOnMethodOrDeclaringClass(specificMethod, annotationType);
+		var annotation = findAnnotation(method, targetClass, annotationType);
 		if (annotation == null) {
 			return SaplAttribute.NULL_ATTRIBUTE;
 		}

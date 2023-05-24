@@ -15,9 +15,11 @@
  */
 package io.sapl.spring.pdp.embedded;
 
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Role;
 
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
@@ -29,6 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 public class DocumentationAutoConfiguration {
 
 	@Bean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	PolicyInformationPointsDocumentation pipDocumentation(AttributeContext attributeCtx) {
 		log.info("Provisioning PIP Documentation Bean");
 		for (var doc : attributeCtx.getDocumentation()) {
@@ -38,6 +41,7 @@ public class DocumentationAutoConfiguration {
 	}
 
 	@Bean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	FunctionLibrariesDocumentation functionDocumentation(FunctionContext functionCtx) {
 		log.info("Provisioning Function Libraries Documentation Bean");
 		for (var doc : functionCtx.getDocumentation()) {

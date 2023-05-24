@@ -15,10 +15,12 @@
  */
 package io.sapl.spring.pdp.embedded;
 
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Role;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.functions.FunctionContext;
@@ -49,6 +51,7 @@ public class PRPAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	PolicyRetrievalPoint policyRetrievalPoint() throws PolicyEvaluationException {
 		log.info("Using index type: {}", pdpProperties.getIndex());
 		ImmutableParsedDocumentIndex seedIndex;

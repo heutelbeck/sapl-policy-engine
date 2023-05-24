@@ -151,7 +151,7 @@ class SaplAttributeRegistryTests {
 
 		var sut = new SaplAttributeRegistry();
 		var mi  = MethodInvocationUtils.createFromClass(TestClass.class, "doSomething");
-		assertThrows(AnnotationConfigurationException.class, () -> sut.getAllSaplAttributes(mi));
+		expectSubjectExpressionStringInAttribute(TestClass.class, "'onMethod'");
 	}
 
 	@Test

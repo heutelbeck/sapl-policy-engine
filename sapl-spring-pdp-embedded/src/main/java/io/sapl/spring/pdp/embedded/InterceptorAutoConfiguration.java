@@ -15,9 +15,11 @@
  */
 package io.sapl.spring.pdp.embedded;
 
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Role;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -33,6 +35,7 @@ public class InterceptorAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	ReportingDecisionInterceptor reportingDecisionInterceptor() {
 		return new ReportingDecisionInterceptor(mapper, properties.isPrettyPrintReports(), properties.isPrintTrace(),
 				properties.isPrintJsonReport(), properties.isPrintTextReport());
