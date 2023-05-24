@@ -20,10 +20,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsMapContaining.hasValue;
 import static org.hamcrest.collection.IsMapWithSize.anEmptyMap;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.core.annotation.AnnotationConfigurationException;
 import org.springframework.expression.Expression;
 import org.springframework.security.util.MethodInvocationUtils;
 
@@ -149,8 +147,6 @@ class SaplAttributeRegistryTests {
 			}
 		}
 
-		var sut = new SaplAttributeRegistry();
-		var mi  = MethodInvocationUtils.createFromClass(TestClass.class, "doSomething");
 		expectSubjectExpressionStringInAttribute(TestClass.class, "'onMethod'");
 	}
 

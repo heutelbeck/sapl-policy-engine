@@ -23,9 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.spring.constraints.api.MappingConstraintHandlerProvider;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 @RequiredArgsConstructor
 public class ContentFilteringProvider implements MappingConstraintHandlerProvider<Object> {
 
@@ -36,7 +34,6 @@ public class ContentFilteringProvider implements MappingConstraintHandlerProvide
 
 	@Override
 	public boolean isResponsible(JsonNode constraint) {
-		log.error("Responsible   ? {}",constraint);
 		if (constraint == null || !constraint.isObject())
 			return false;
 
