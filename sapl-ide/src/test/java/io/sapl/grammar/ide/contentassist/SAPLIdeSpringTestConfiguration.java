@@ -24,7 +24,7 @@ import io.sapl.interpreter.pip.AttributeContext;
 
 @ComponentScan
 @Configuration
-public class SAPLIdeSpringTestConfiguration {
+class SAPLIdeSpringTestConfiguration {
 
 	@Bean
 	FunctionContext functionContext() {

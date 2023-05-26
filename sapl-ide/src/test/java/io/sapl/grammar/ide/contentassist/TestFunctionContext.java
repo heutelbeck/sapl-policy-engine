@@ -25,7 +25,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.functions.LibraryDocumentation;
 
-public class TestFunctionContext implements FunctionContext {
+class TestFunctionContext implements FunctionContext {
 
 	private final Map<String, Set<String>> availableLibraries;
 

@@ -21,15 +21,23 @@ import org.eclipse.emf.ecore.EStructuralFeature;
 
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Utiltiy to log eObjects to the console.
+ */
 @Slf4j
 public class EObjectUtil {
 
+	/**
+	 * Log the structure of an eObject for debugging of tests.
+	 * 
+	 * @param eObject an eObject
+	 */
 	public static void dump(EObject eObject) {
 		dumpEObjectTree(eObject, 0);
 	}
 
 	@SuppressWarnings("unchecked")
-	public static void dumpEObjectTree(EObject eObject, int indent) {
+	private static void dumpEObjectTree(EObject eObject, int indent) {
 		log(indent, "Type: {}", eObject == null ? null : eObject.eClass().getName());
 		if (eObject == null) {
 			return;
@@ -55,7 +63,7 @@ public class EObjectUtil {
 		}
 	}
 
-	public static void log(int indent, String message, Object... arguments) {
+	private static void log(int indent, String message, Object... arguments) {
 		log.trace("|  ".repeat(Math.max(0, indent - 1)) + "|- ".repeat(Math.min(1, indent)) + message, arguments);
 	}
 

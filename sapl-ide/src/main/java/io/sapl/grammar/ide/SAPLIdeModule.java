@@ -24,6 +24,9 @@ import io.sapl.grammar.ide.contentassist.SAPLContentProposalProvider;
  */
 public class SAPLIdeModule extends AbstractSAPLIdeModule {
 
+	/**
+	 * @return the IdeContentProposalProvider
+	 */
 	public Class<? extends IdeContentProposalProvider> bindIdeContentProposalProvider() {
 		return SAPLContentProposalProvider.class;
 	}

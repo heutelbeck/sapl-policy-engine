@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import org.junit.jupiter.api.Test;
 
-public class SAPLStandaloneSetupTests {
+class SAPLStandaloneSetupTests {
 
 	@Test
 	void standaloneNotNullTest() {

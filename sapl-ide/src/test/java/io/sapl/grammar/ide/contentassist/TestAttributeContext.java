@@ -30,7 +30,7 @@ import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import reactor.core.publisher.Flux;
 
-public class TestAttributeContext implements AttributeContext {
+class TestAttributeContext implements AttributeContext {
 
 	private final Map<String, Set<String>> availableLibraries;
 

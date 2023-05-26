@@ -22,6 +22,9 @@ import com.google.common.base.Equivalence;
 
 import io.sapl.api.interpreter.Val;
 
+/**
+ * Test Utility class with methods to manage number arrays.
+ */
 public class ArrayUtil {
 
 	private final static Equivalence<JsonNode> EQ = JsonNumEquals.getInstance();
@@ -40,8 +43,7 @@ public class ArrayUtil {
 			for (int i = from; i <= to; i++) {
 				array.add(i);
 			}
-		}
-		else {
+		} else {
 			for (int i = from; i >= to; i--) {
 				array.add(i);
 			}
