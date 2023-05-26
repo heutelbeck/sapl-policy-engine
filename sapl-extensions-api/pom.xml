@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com)
+    Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -29,7 +29,6 @@
 	<organization>
 		<name>Dominic Heutelbeck</name>
 	</organization>
-	<inceptionYear>2020</inceptionYear>
 	<licenses>
 		<license>
 			<name>Apache 2.0</name>

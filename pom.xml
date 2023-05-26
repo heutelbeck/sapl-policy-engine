@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright © 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+    Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -48,7 +48,11 @@
 			<id>heutelbeck</id>
 		</developer>
 	</developers>
-	<inceptionYear>2017-2023</inceptionYear>
+  <organization>
+    <name>Dominic HEutelbeck</name>
+	<url>https://heutelbeck.com</url>
+  </organization>
+	<inceptionYear>2023</inceptionYear>
 	<licenses>
 		<license>
 			<name>Apache 2.0</name>
