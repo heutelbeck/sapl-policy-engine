@@ -25,7 +25,7 @@ import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.RecordedRequest;
 
-public class TestMockServerDispatcher extends Dispatcher {
+class TestMockServerDispatcher extends Dispatcher {
 
 	private final String kidPath;
 

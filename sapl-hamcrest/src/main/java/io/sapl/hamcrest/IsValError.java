@@ -23,20 +23,34 @@ import org.hamcrest.TypeSafeDiagnosingMatcher;
 
 import io.sapl.api.interpreter.Val;
 
+/**
+ * Val Matcher to check for error Val values.
+ */
 public class IsValError extends TypeSafeDiagnosingMatcher<Val> {
 
 	private final Matcher<? super String> stringMatcher;
 
+	/**
+	 * Val Matcher to check for error Val values with a given String matcher.
+	 * 
+	 * @param stringMatcher
+	 */
 	public IsValError(Matcher<? super String> stringMatcher) {
 		super(Val.class);
 		this.stringMatcher = Objects.requireNonNull(stringMatcher);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void describeTo(Description description) {
 		description.appendText("an error with message that ").appendDescriptionOf(stringMatcher);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	protected boolean matchesSafely(Val item, Description mismatchDescription) {
 		if (!item.isError()) {
@@ -46,8 +60,7 @@ public class IsValError extends TypeSafeDiagnosingMatcher<Val> {
 		var message = item.getMessage();
 		if (stringMatcher.matches(message)) {
 			return true;
-		}
-		else {
+		} else {
 			mismatchDescription.appendText("was an error with a message that ");
 			stringMatcher.describeMismatch(message, mismatchDescription);
 			return false;

@@ -43,6 +43,11 @@ public class HttpServiceContext implements IServiceContext {
 
 	private HttpSessionWrapper sessionWrapper;
 
+	/**
+	 * Creates the Context.
+	 * 
+	 * @param request a HttpServletRequest
+	 */
 	public HttpServiceContext(HttpServletRequest request) {
 		this.request = request;
 		this.initializeParameters();
@@ -107,6 +112,9 @@ public class HttpServiceContext implements IServiceContext {
 		return sessionWrapper;
 	}
 
+	/**
+	 * @return the request
+	 */
 	public HttpServletRequest getRequest() {
 		return request;
 	}

@@ -26,15 +26,26 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
 
+/**
+ * A Matcher for examining Val objects.
+ */
 public class IsVal extends TypeSafeDiagnosingMatcher<Val> {
 
 	private final Optional<Matcher<? super JsonNode>> jsonMatcher;
 
+	/**
+	 * Creates a Val matcher checking the contents with a JsonNode matcher.
+	 * 
+	 * @param jsonMatcher a JsonNode matcher.
+	 */
 	public IsVal(Matcher<? super JsonNode> jsonMatcher) {
 		super(Val.class);
 		this.jsonMatcher = Optional.of(Objects.requireNonNull(jsonMatcher));
 	}
 
+	/**
+	 * Creates a Val matcher checking if the object is a Val.
+	 */
 	public IsVal() {
 		super(Val.class);
 		this.jsonMatcher = Optional.empty();
@@ -59,8 +70,7 @@ public class IsVal extends TypeSafeDiagnosingMatcher<Val> {
 		var json = item.get();
 		if (jsonMatcher.isEmpty() || jsonMatcher.get().matches(json)) {
 			return true;
-		}
-		else {
+		} else {
 			mismatchDescription.appendText("was val that ");
 			jsonMatcher.get().describeMismatch(json, mismatchDescription);
 			return false;

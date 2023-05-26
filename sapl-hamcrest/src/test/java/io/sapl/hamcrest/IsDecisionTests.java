@@ -30,7 +30,7 @@ import org.junit.jupiter.api.Test;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 
-class IsDecisionTest {
+class IsDecisionTests {
 
 	@Test
 	void testPermit() {

@@ -26,18 +26,34 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 
+/**
+ * Matcher for examining the obligation contained in an AuthorizationDecision.
+ */
 public class HasObligationContainingKeyValue extends TypeSafeDiagnosingMatcher<AuthorizationDecision> {
 
 	private final String key;
 
 	private final Optional<Matcher<? super JsonNode>> valueMatcher;
 
+	/**
+	 * Checks for the presence of an obligation containing a field with the given
+	 * key and a value matching a matcher.
+	 * 
+	 * @param key   a key
+	 * @param value a value matcher.
+	 */
 	public HasObligationContainingKeyValue(String key, Matcher<? super JsonNode> value) {
 		super(AuthorizationDecision.class);
 		this.key          = Objects.requireNonNull(key);
 		this.valueMatcher = Optional.of(Objects.requireNonNull(value));
 	}
 
+	/**
+	 * Checks for the presence of an obligation containing a field with the given
+	 * key.
+	 * 
+	 * @param key a key
+	 */
 	public HasObligationContainingKeyValue(String key) {
 		super(AuthorizationDecision.class);
 		this.key          = Objects.requireNonNull(key);

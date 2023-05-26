@@ -25,10 +25,18 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 
+/**
+ * Matcher for examining the advice contained in an AuthorizationDecision.
+ */
 public class HasAdviceMatching extends TypeSafeDiagnosingMatcher<AuthorizationDecision> {
 
 	private final Predicate<? super JsonNode> predicate;
 
+	/**
+	 * Checks for the presence of an advice fulfilling a predicate.
+	 * 
+	 * @param jsonPredicate a JsonNode Predicate.
+	 */
 	public HasAdviceMatching(Predicate<? super JsonNode> jsonPredicate) {
 		super(AuthorizationDecision.class);
 		this.predicate = Objects.requireNonNull(jsonPredicate);

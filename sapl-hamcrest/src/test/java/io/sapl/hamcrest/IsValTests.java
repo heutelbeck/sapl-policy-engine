@@ -34,7 +34,7 @@ import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
 
-class IsValTest {
+class IsValTests {
 
 	private static final Val VALUE = Val.of("test value");
 

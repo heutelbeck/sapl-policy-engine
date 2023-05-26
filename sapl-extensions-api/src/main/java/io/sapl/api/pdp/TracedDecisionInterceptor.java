@@ -35,9 +35,6 @@ public interface TracedDecisionInterceptor
 		return 0;
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
 	@Override
 	default int compareTo(TracedDecisionInterceptor other) {
 		return getPriority().compareTo(other.getPriority());

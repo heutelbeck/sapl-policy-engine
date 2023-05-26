@@ -46,7 +46,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-class JWTPolicyInformationPointTest {
+class JWTPolicyInformationPointTests {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 

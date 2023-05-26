@@ -24,7 +24,7 @@ import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-public class Base64DataUtil {
+class Base64DataUtil {
 	/**
 	 * @return Base64 URL safe encoding of public key
 	 */

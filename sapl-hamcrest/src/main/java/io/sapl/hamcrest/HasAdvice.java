@@ -26,15 +26,26 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 
+/**
+ * Matcher for examining the advice contained in an AuthorizationDecision.
+ */
 public class HasAdvice extends TypeSafeDiagnosingMatcher<AuthorizationDecision> {
 
 	private final Optional<Matcher<? super JsonNode>> jsonMatcher;
 
+	/**
+	 * Checks for the presence of any advice matching a matcher.
+	 * 
+	 * @param jsonMatcher matcher for advice objects.
+	 */
 	public HasAdvice(Matcher<? super JsonNode> jsonMatcher) {
 		super(AuthorizationDecision.class);
 		this.jsonMatcher = Optional.of(Objects.requireNonNull(jsonMatcher));
 	}
 
+	/**
+	 * Checks for the presence of any advice.
+	 */
 	public HasAdvice() {
 		super(AuthorizationDecision.class);
 		this.jsonMatcher = Optional.empty();

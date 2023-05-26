@@ -25,11 +25,20 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 
-public class IsResourceMatching extends TypeSafeDiagnosingMatcher<AuthorizationDecision> {
+/**
+ * Matcher class for AuthorizationDecision objects inspecting the resource
+ * object.
+ */
+public class HasResourceMatching extends TypeSafeDiagnosingMatcher<AuthorizationDecision> {
 
 	private final Predicate<? super JsonNode> predicate;
 
-	public IsResourceMatching(Predicate<? super JsonNode> jsonPredicate) {
+	/**
+	 * Checks if the resource fulfills a Predicate.
+	 * 
+	 * @param jsonPredicate a predicate on the Resource
+	 */
+	public HasResourceMatching(Predicate<? super JsonNode> jsonPredicate) {
 		super(AuthorizationDecision.class);
 		this.predicate = Objects.requireNonNull(jsonPredicate);
 	}

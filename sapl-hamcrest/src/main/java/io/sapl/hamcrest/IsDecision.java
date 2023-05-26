@@ -24,15 +24,26 @@ import org.hamcrest.TypeSafeDiagnosingMatcher;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 
+/**
+ * A Matcher for AuthorizationDecision objects.
+ */
 public class IsDecision extends TypeSafeDiagnosingMatcher<AuthorizationDecision> {
 
 	private final Optional<Decision> expectedDecision;
 
+	/**
+	 * Creates a matcher expecting a specific Decision in the AuthorizationDecision.
+	 * 
+	 * @param expected expected Decision
+	 */
 	public IsDecision(Decision expected) {
 		super(AuthorizationDecision.class);
 		this.expectedDecision = Optional.of(Objects.requireNonNull(expected));
 	}
 
+	/**
+	 * Creates a matcher checking, if the object is an AuthorizationDecision.
+	 */
 	public IsDecision() {
 		super(AuthorizationDecision.class);
 		this.expectedDecision = Optional.empty();
@@ -49,8 +60,7 @@ public class IsDecision extends TypeSafeDiagnosingMatcher<AuthorizationDecision>
 	protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
 		if (this.expectedDecision.isEmpty() || this.expectedDecision.get() == decision.getDecision()) {
 			return true;
-		}
-		else {
+		} else {
 			mismatchDescription.appendText("was decision of " + decision.getDecision().name());
 			return false;
 		}

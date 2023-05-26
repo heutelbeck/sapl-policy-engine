@@ -27,8 +27,17 @@ import jakarta.servlet.http.HttpSession;
 public class HttpSessionWrapper implements ISession {
 	private final HttpSession session;
 
-	@SuppressWarnings("unchecked")
+	/**
+	 * Create the Session Wrapper.
+	 * 
+	 * @param session a session
+	 */
+	public HttpSessionWrapper(HttpSession session) {
+		this.session = session;
+	}
+
 	@Override
+	@SuppressWarnings("unchecked")
 	public <T> T get(Object key) {
 		return (T) session.getAttribute(key.toString());
 	}
@@ -57,10 +66,9 @@ public class HttpSessionWrapper implements ISession {
 		session.removeAttribute(key.toString());
 	}
 
-	public HttpSessionWrapper(HttpSession session) {
-		this.session = session;
-	}
-
+	/**
+	 * @return the session
+	 */
 	public HttpSession getSession() {
 		return session;
 	}

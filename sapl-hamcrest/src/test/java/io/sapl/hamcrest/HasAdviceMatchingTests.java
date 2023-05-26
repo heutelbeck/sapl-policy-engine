@@ -34,7 +34,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 
-class HasAdviceMatchingTest {
+class HasAdviceMatchingTests {
 
 	@Test
 	void test() {

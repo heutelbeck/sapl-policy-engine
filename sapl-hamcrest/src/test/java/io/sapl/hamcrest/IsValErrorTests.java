@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
 
-class IsValErrorTest {
+class IsValErrorTests {
 
 	private static final String MESSAGE = "test message";
 

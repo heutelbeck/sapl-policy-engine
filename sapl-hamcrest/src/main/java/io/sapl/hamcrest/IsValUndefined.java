@@ -20,23 +20,34 @@ import org.hamcrest.TypeSafeDiagnosingMatcher;
 
 import io.sapl.api.interpreter.Val;
 
+/**
+ * Val Matcher to check for undefined Val values.
+ */
 public class IsValUndefined extends TypeSafeDiagnosingMatcher<Val> {
 
+	/**
+	 * Creates a Val Matcher to check for undefined Val values.
+	 */
 	public IsValUndefined() {
 		super(Val.class);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void describeTo(Description description) {
 		description.appendText("undefined");
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	protected boolean matchesSafely(Val item, Description mismatchDescription) {
 		if (item.isUndefined()) {
 			return true;
-		}
-		else {
+		} else {
 			mismatchDescription.appendText("a Val that is ").appendValue(item);
 			return false;
 		}

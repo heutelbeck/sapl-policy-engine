@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
 
-class IsValUndefinedTest {
+class IsValUndefinedTests {
 
 	@Test
 	void testTypeFalseError() {

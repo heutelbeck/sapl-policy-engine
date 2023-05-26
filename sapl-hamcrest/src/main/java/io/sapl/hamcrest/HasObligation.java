@@ -26,15 +26,26 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 
+/**
+ * Matcher for examining the obligation contained in an AuthorizationDecision.
+ */
 public class HasObligation extends TypeSafeDiagnosingMatcher<AuthorizationDecision> {
 
 	private final Optional<Matcher<? super JsonNode>> jsonMatcher;
 
+	/**
+	 * Checks for the presence of any obligation matching a matcher.
+	 * 
+	 * @param jsonMatcher matcher for obligation objects.
+	 */
 	public HasObligation(Matcher<? super JsonNode> jsonMatcher) {
 		super(AuthorizationDecision.class);
 		this.jsonMatcher = Optional.of(Objects.requireNonNull(jsonMatcher));
 	}
 
+	/**
+	 * Checks for the presence of any obligation.
+	 */
 	public HasObligation() {
 		super(AuthorizationDecision.class);
 		this.jsonMatcher = Optional.empty();

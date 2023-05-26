@@ -24,6 +24,9 @@ import org.apache.maven.plugin.logging.Log;
 
 import lombok.experimental.UtilityClass;
 
+/**
+ * Utility Class for file operations
+ */
 @UtilityClass
 public class PathHelper {
 

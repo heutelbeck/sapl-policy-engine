@@ -25,8 +25,14 @@ import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.apache.maven.plugin.testing.stubs.MavenProjectStub;
 
+/**
+ * Maven test Stub 
+ */
 public class SaplMavenPluginTestMavenProjectStub extends MavenProjectStub {
 
+	/**
+	 * Create Stub
+	 */
 	public SaplMavenPluginTestMavenProjectStub() {
 		MavenXpp3Reader pomReader = new MavenXpp3Reader();
 		Model model;

@@ -38,7 +38,7 @@ import okhttp3.mockwebserver.MockWebServer;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-class JWTKeyProviderTest {
+class JWTKeyProviderTests {
 
 	private static String kid;
 

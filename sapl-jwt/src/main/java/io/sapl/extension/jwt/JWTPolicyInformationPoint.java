@@ -132,6 +132,13 @@ public class JWTPolicyInformationPoint {
 		this.keyProvider = jwtKeyProvider;
 	}
 
+	/**
+	 * Checks the validity of a JWT token. Will update based on validity times of the token.
+	 * 
+	 * @param rawToken a raw JWT Token
+	 * @param variables SAPL variables
+	 * @return a TRUE Val, iff the token is valid. 
+	 */
 	@Attribute
 	public Flux<Val> valid(@Text Val rawToken, Map<String, JsonNode> variables) {
 		return validityState(rawToken, variables).map(ValidityState.VALID::equals).map(Val::of);
@@ -175,7 +182,7 @@ public class JWTPolicyInformationPoint {
 
 		return validateSignature(signedJwt, variables).flatMapMany(isValid -> {
 
-			if (!isValid)
+			if (Boolean.FALSE.equals(isValid))
 				return Flux.just(ValidityState.UNTRUSTED);
 
 			return validateTime(claims);

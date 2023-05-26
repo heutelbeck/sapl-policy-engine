@@ -18,7 +18,7 @@ package io.sapl.test.unit.usecase;
 import static io.sapl.hamcrest.Matchers.hasObligationContainingKeyValue;
 import static io.sapl.hamcrest.Matchers.hasObligationMatching;
 import static io.sapl.hamcrest.Matchers.isPermit;
-import static io.sapl.hamcrest.Matchers.isResourceMatching;
+import static io.sapl.hamcrest.Matchers.hasResourceMatching;
 import static org.hamcrest.CoreMatchers.allOf;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -172,7 +172,7 @@ class G_PolicyWithComplexExpectStepTests {
 						//// isResourceEquals(new
 						// ObjectMapper().createObjectNode().put("foo", "bar")),
 						// or Predicate
-						isResourceMatching((JsonNode resource) -> resource.has("id")
+						hasResourceMatching((JsonNode resource) -> resource.has("id")
 								&& "56".equals(resource.get("id").asText()) && resource.has("diagnosisText")
 								&& BLACKENED_DIAGNOSIS.equals(resource.get("diagnosisText").asText())
 								&& resource.has("icd11Code")

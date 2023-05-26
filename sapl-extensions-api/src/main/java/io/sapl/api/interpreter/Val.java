@@ -552,9 +552,6 @@ public class Val implements Traced {
 		return Val.of(!notEqualBool(left, right));
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj) {
@@ -1020,9 +1017,6 @@ public class Val implements Traced {
 		return typeOf(this);
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
 	@Override
 	public JsonNode getTrace() {
 		JsonNode val;

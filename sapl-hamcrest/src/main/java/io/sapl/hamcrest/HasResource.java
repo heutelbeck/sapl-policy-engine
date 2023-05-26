@@ -26,16 +26,28 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 
-public class IsResource extends TypeSafeDiagnosingMatcher<AuthorizationDecision> {
+/**
+ * Matcher class for AuthorizationDecision objects inspecting the resource
+ * object.
+ */
+public class HasResource extends TypeSafeDiagnosingMatcher<AuthorizationDecision> {
 
 	private final Optional<Matcher<? super JsonNode>> jsonMatcher;
 
-	public IsResource(Matcher<? super JsonNode> jsonMatcher) {
+	/**
+	 * Checks if the resource matches a JsonNode Matcher.
+	 * 
+	 * @param jsonMatcher matcher for the resource.
+	 */
+	public HasResource(Matcher<? super JsonNode> jsonMatcher) {
 		super(AuthorizationDecision.class);
 		this.jsonMatcher = Optional.of(Objects.requireNonNull(jsonMatcher));
 	}
 
-	public IsResource() {
+	/**
+	 * Checks for the presence of a resource.
+	 */
+	public HasResource() {
 		super(AuthorizationDecision.class);
 		this.jsonMatcher = Optional.empty();
 	}

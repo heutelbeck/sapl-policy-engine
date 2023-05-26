@@ -37,9 +37,6 @@ public interface AuthorizationSubscriptionInterceptor
 		return 0;
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
 	@Override
 	default int compareTo(AuthorizationSubscriptionInterceptor other) {
 		return getPriority().compareTo(other.getPriority());

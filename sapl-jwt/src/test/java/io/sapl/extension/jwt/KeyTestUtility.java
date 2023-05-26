@@ -32,12 +32,11 @@ import lombok.experimental.UtilityClass;
 import okhttp3.mockwebserver.MockWebServer;
 
 @UtilityClass
-public class KeyTestUtility {
+class KeyTestUtility {
 
-	 static final String MD5 = "MD5";
+	static final String MD5 = "MD5";
 
-	 static final String RSA = "RSA";
-
+	static final String RSA = "RSA";
 
 	/**
 	 * @return an invalid RSA public key

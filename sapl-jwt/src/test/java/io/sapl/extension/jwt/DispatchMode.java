@@ -15,7 +15,7 @@
  */
 package io.sapl.extension.jwt;
 
-public enum DispatchMode {
+enum DispatchMode {
 
 	/**
 	 * Dispatcher returns the true Base64Url-encoded key, matching the kid
