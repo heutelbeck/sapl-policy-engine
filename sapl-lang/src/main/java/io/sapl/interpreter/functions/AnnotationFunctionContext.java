@@ -257,7 +257,8 @@ public class AnnotationFunctionContext implements FunctionContext {
 			var funCodeTemplate = getCodeTemplate();
 			var schema = getFunctionSchema();
 			if (schema.length() > 0){
-				var paths = SchemaTemplates.schemaTemplates(schema);
+				SchemaTemplates schemaTemplate = new SchemaTemplates();
+				var paths = schemaTemplate.schemaTemplates(schema);
 				for (var path : paths){
 					sb = new StringBuilder();
 					sb.append(funCodeTemplate).append(".").append(path);

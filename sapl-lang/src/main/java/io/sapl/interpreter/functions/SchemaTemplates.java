@@ -2,11 +2,14 @@ package io.sapl.interpreter.functions;
 
 import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.wnameless.json.flattener.JsonFlattener;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -34,13 +37,17 @@ public class SchemaTemplates {
 
     private static final String ENUM_KEYWORD = "enum\\[\\d+]";
 
-    public static List<String> schemaTemplates(String source){
-        if (isValidJson(source))
-            return flattenSchemaFromJson(source);
-        return flattenSchemaFromFile(source);
+    public JsonNode schemaAsJson(String schema) throws IllegalArgumentException {
+        return convertToJson(schema);
     }
 
-    private static List<String> flattenSchemaFromFile(String filePath){
+    public List<String> schemaTemplates(String source){
+        if (isValidJson(source))
+            return flattenSchemaFromJson(source);
+        return this.flattenSchemaFromFile(source);
+    }
+
+    private List<String> flattenSchemaFromFile(String filePath){
         String schema = getSchemaFromFile(filePath);
         if(schema.equals(""))
             return new ArrayList<>();
@@ -61,44 +68,45 @@ public class SchemaTemplates {
                 .toList();
     }
 
-
     private static boolean isValidJson(String json) {
-        ObjectMapper mapper = new ObjectMapper()
-                .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
         try {
-            mapper.readTree(json);
-        } catch (JacksonException e) {
+            JsonNode jsonNode = convertToJson(json);
+            return true;
+        } catch (IllegalArgumentException e) {
             return false;
         }
-        return true;
     }
 
-    private static String getSchemaFromFile(String filePath){
-        String schema;
-        Path schemaPath = resolveHomeFolderIfPresent(filePath);
+    private static JsonNode convertToJson(String json){
+        ObjectMapper mapper = new ObjectMapper()
+                .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
 
         try {
-            schema = Files.readString(schemaPath);
-        } catch (IOException e) {
-            schema = "";
+            return mapper.readTree(json);
+        } catch (JacksonException e) {
+            throw new IllegalArgumentException(json + " is not a valid JsonNode.");
+        }
+    }
+
+    private String getSchemaFromFile(final String fileName) {
+        String fileAsString;
+
+        InputStream ioStream = this.getClass()
+                .getClassLoader()
+                .getResourceAsStream(fileName);
+
+        if (ioStream == null) {
+            throw new IllegalArgumentException(fileName + " was not found.");
         }
 
-        return schema;
+        try {
+            fileAsString = new String(ioStream.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new IllegalArgumentException(fileName + " is not a valid text file.");
+        }
+
+        return fileAsString;
     }
-
-    private static Path resolveHomeFolderIfPresent(String filePath) {
-        filePath = filePath.replace("/", File.separator);
-
-        if (filePath.startsWith("~" + File.separator))
-            return Path.of(getUserDirProperty() + filePath.substring(1));
-
-        return Path.of(filePath);
-    }
-
-    private static String getUserDirProperty() {
-        return System.getProperty("user.dir");
-    }
-
 
     private static List<String> correctJsonPathForEnums(String unwantedEnumMatch, Map<String, Object> flattenJson) {
         List<String> paths = new ArrayList<>();

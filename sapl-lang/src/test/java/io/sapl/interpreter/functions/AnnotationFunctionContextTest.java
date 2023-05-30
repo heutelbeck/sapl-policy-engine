@@ -212,6 +212,14 @@ class AnnotationFunctionContextTest {
 	}
 
 	@Test
+	void codeTemplatesAreGeneratedFromSchemaAsVariable() throws InitializationException {
+		var context = new AnnotationFunctionContext(new FunctionLibraryWithSchemaAnnotationAsVariable());
+		var actualTemplates = context.getCodeTemplates();
+		assertThat(actualTemplates, containsInAnyOrder("schemaInVariable.schemaFromVariable()",
+				"schemaInVariable.schemaFromVariable().name", "schemaInVariable.schemaFromVariable().age"));
+	}
+
+	@Test
 	void documentationIsAddedToTheLibrary() throws InitializationException {
 		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
 		var templates = context.getDocumentedCodeTemplates(); 
@@ -279,8 +287,15 @@ class AnnotationFunctionContextTest {
 
 	@FunctionLibrary(name = "schemaInFile")
 	public static class FunctionLibraryWithSchemaAnnotationInFile {
-		@Function(schema = "~/src/test/resources/schemas/person_schema.json")
+		@Function(schema = "schemas/person_schema.json")
 		public static Val schemaFromFile() { return Val.of(true); }
+	}
+
+	@FunctionLibrary(name = "schemaInVariable")
+	public static class FunctionLibraryWithSchemaAnnotationAsVariable {
+		static final String person_schema = "{\"name\": {\"type\": \"string\"}, \"age\": {\"type\": \"number\"}}";
+		@Function(schema = person_schema)
+		public static Val schemaFromVariable() { return Val.of(true); }
 	}
 
 	@FunctionLibrary

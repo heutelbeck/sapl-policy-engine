@@ -41,7 +41,8 @@ public class SchemaProposals {
     private Flux<String> getCodeTemplates(Val v) {
         List<String> schema = new ArrayList<>();
         try {
-            schema = SchemaTemplates.schemaTemplates(v.getText());
+            SchemaTemplates schemaTemplate = new SchemaTemplates();
+            schema = schemaTemplate.schemaTemplates(v.getText());
         } catch (Exception e) {
             log.info("Could not flatten schema: {}", v.getText());
         }
