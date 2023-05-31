@@ -53,8 +53,6 @@ import reactor.core.publisher.Mono;
  *
  * The {@link #check check} method is then called by the Spring Security
  * framework whenever a request needs to be authorized.
- *
- * @param <T> {@link org.springframework.security.web.server.authorization.AuthorizationContext}
  */
 @RequiredArgsConstructor
 public class ReactiveSaplAuthorizationManager implements ReactiveAuthorizationManager<AuthorizationContext> {
@@ -105,7 +103,7 @@ public class ReactiveSaplAuthorizationManager implements ReactiveAuthorizationMa
 		return authzDecision.getDecision() == Decision.PERMIT;
 	}
 
-	public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(
+	private Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(
 			Mono<Authentication> authentication, @NonNull AuthorizationContext context) {
 		var request = context.getExchange().getRequest();
 		return authentication.defaultIfEmpty(ANONYMOUS)

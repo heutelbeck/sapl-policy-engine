@@ -30,6 +30,11 @@ import io.sapl.spring.manager.SaplAuthorizationManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Deploys an AuthorizationManager for setting up the HTTP filter chain.
+ * Depending on the web runtime, either a blocking or a reactive manager is
+ * created.
+ */
 @Slf4j
 @AutoConfiguration
 @RequiredArgsConstructor

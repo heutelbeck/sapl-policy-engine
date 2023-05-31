@@ -31,6 +31,9 @@ import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * {@link AuthorizationManager} for the HTTP filter chain. 
+ */
 @RequiredArgsConstructor
 public class SaplAuthorizationManager implements AuthorizationManager<RequestAuthorizationContext> {
 

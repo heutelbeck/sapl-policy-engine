@@ -43,6 +43,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class BlockingConstraintHandlerBundle<T> {
 
+	/**
+	 * Utility bundle that does nothing.
+	 */
 	public static final BlockingConstraintHandlerBundle<Object> BLOCKING_NOOP = new BlockingConstraintHandlerBundle<>(
 			FunctionUtil.noop(),
 			FunctionUtil.sink(),
@@ -62,6 +65,22 @@ public class BlockingConstraintHandlerBundle<T> {
 	private final Predicate<Object>          filterPredicateHandlers;
 	private final UnaryOperator<T>           replaceResourceHandler;
 
+	/**
+	 * Factory method for creating a bundle for use in a @PostEnforce PEP.
+	 * 
+	 * @param <T>                     payload type
+	 * @param onDecisionHandlers      Handlers to be executed after each decision.
+	 * @param doOnNextHandlers        Handlers to be executed when data is emitted
+	 *                                by the RAP.
+	 * @param onNextMapHandlers       Handlers mapping the RAP output.
+	 * @param doOnErrorHandlers       Handlers executed on an error.
+	 * @param onErrorMapHandlers      Handlers mapping an error.
+	 * @param filterPredicateHandlers Handlers for filtering content from List,
+	 *                                Obligation, array types.
+	 * @param replaceResourceHandler  Handler for replacing the RAP output by a
+	 *                                value provided by the PDP.
+	 * @return a constraint handler bundle.
+	 */
 	public static <T> BlockingConstraintHandlerBundle<T> postEnforceConstraintHandlerBundle(
 			Runnable onDecisionHandlers,
 			Consumer<T> doOnNextHandlers,
@@ -75,6 +94,24 @@ public class BlockingConstraintHandlerBundle<T> {
 				replaceResourceHandler);
 	}
 
+	/**
+	 * Factory method for creating a bundle for use in a @PreEnforce PEP.
+	 * 
+	 * @param <T>                      payload type
+	 * @param onDecisionHandlers       Handlers to be executed after each decision.
+	 * @param doOnNextHandlers         Handlers to be executed when data is emitted
+	 *                                 by the RAP.
+	 * @param onNextMapHandlers        Handlers mapping the RAP output.
+	 * @param doOnErrorHandlers        Handlers executed on an error.
+	 * @param onErrorMapHandlers       Handlers mapping an error.
+	 * @param filterPredicateHandlers  Handlers for filtering content from List,
+	 *                                 Obligation, array types.
+	 * @param methodInvocationHandlers Handlers for manipulating the method
+	 *                                 invocation.
+	 * @param replaceResourceHandler   Handler for replacing the RAP output by a
+	 *                                 value provided by the PDP.
+	 * @return a constraint handler bundle.
+	 */
 	public static <T> BlockingConstraintHandlerBundle<T> preEnforceConstraintHandlerBundle(
 			Runnable onDecisionHandlers,
 			Consumer<T> doOnNextHandlers,
@@ -89,6 +126,14 @@ public class BlockingConstraintHandlerBundle<T> {
 				replaceResourceHandler);
 	}
 
+	/**
+	 * Factory method for creating a bundle for use in an an AuthorizationManager
+	 * PEP.
+	 * 
+	 * @param <T>                payload type
+	 * @param onDecisionHandlers Handlers to be executed after each decision.
+	 * @return a constraint handler bundle.
+	 */
 	public static <T> BlockingConstraintHandlerBundle<T> accessManagerConstraintHandlerBundle(
 			Runnable onDecisionHandlers) {
 		return new BlockingConstraintHandlerBundle<>(onDecisionHandlers, FunctionUtil.sink(), FunctionUtil.sink(),

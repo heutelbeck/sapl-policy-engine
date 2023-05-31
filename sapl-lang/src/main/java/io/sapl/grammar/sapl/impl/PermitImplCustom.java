@@ -17,6 +17,9 @@ package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.pdp.Decision;
 
+/**
+ * The PERMIT entitlement.
+ */
 public class PermitImplCustom extends PermitImpl {
 
 	@Override

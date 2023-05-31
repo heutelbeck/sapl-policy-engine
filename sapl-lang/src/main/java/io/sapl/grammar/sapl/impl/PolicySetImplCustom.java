@@ -31,9 +31,9 @@ public class PolicySetImplCustom extends PolicySetImpl {
 
 	/**
 	 * Evaluates the body of the policy set within the given evaluation context and
-	 * returns a {@link Flux} of {@link SAPLDecision} objects.
+	 * returns a {@link Flux} of {@link DocumentEvaluationResult} objects.
 	 * 
-	 * @return A {@link Flux} of {@link SAPLDecision} objects.
+	 * @return A {@link Flux} of {@link DocumentEvaluationResult} objects.
 	 */
 	@Override
 	public Flux<DocumentEvaluationResult> evaluate() {

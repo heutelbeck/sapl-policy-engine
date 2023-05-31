@@ -186,7 +186,7 @@ public class Matchers {
 	/**
 	 * Tests for a Val object containing a JSON matching a JsonNode matcher.
 	 *
-	 * @param jsonMatcher a Matcher<? super JsonNode>
+	 * @param jsonMatcher a {@code Matcher<? super JsonNode>}
 	 * @return a matcher checking if an object is a Val matching a JsonNode matcher.
 	 */
 	public static Matcher<Val> val(Matcher<? super JsonNode> jsonMatcher) {

@@ -17,6 +17,9 @@ package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.pdp.Decision;
 
+/**
+ * The DENY entitlement.
+ */
 public class DenyImplCustom extends DenyImpl {
 
 	@Override
