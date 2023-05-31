@@ -27,6 +27,9 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.validation.JsonObject;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.functions.Function;
@@ -196,27 +199,29 @@ class AnnotationFunctionContextTest {
 	}
 
 	@Test
-	void codeTemplatesAreGeneratedFromVerboseSchema() throws InitializationException {
-		var context = new AnnotationFunctionContext(new FunctionLibraryWithVerboseSchemaAnnotation());
+	void codeTemplatesAreGeneratedFromSchemas() throws InitializationException {
+		var context = new AnnotationFunctionContext(new SchemaLibrary());
 		var actualTemplates = context.getCodeTemplates();
-		assertThat(actualTemplates, containsInAnyOrder("schemaVerbose.schemaFromJson()",
-				"schemaVerbose.schemaFromJson().name", "schemaVerbose.schemaFromJson().age"));
+		assertThat(actualTemplates, containsInAnyOrder(
+				"schema.schemaFromFile()", "schema.schemaFromFile().name",
+				"schema.schemaFromJson()", "schema.schemaFromJson().name",
+				"schema.schemaInParameterAnnotation(jsonObject)"));
 	}
 
 	@Test
-	void codeTemplatesAreGeneratedFromSchemaFile() throws InitializationException {
-		var context = new AnnotationFunctionContext(new FunctionLibraryWithSchemaAnnotationInFile());
-		var actualTemplates = context.getCodeTemplates();
-		assertThat(actualTemplates, containsInAnyOrder("schemaInFile.schemaFromFile()",
-				"schemaInFile.schemaFromFile().name", "schemaInFile.schemaFromFile().age"));
+	void typeAnnotationSchemaMatchesParameter() throws InitializationException, JsonProcessingException {
+		var context = new AnnotationFunctionContext(new SchemaLibrary());
+		var mapper = new ObjectMapper();
+		var parameter = mapper.readTree("{\"name\": \"Joe\"}");
+		assertThat(context.evaluate("schema.schemaInParameterAnnotation", Val.of(parameter)), is(Val.of(true)));
 	}
 
 	@Test
-	void codeTemplatesAreGeneratedFromSchemaAsVariable() throws InitializationException {
-		var context = new AnnotationFunctionContext(new FunctionLibraryWithSchemaAnnotationAsVariable());
-		var actualTemplates = context.getCodeTemplates();
-		assertThat(actualTemplates, containsInAnyOrder("schemaInVariable.schemaFromVariable()",
-				"schemaInVariable.schemaFromVariable().name", "schemaInVariable.schemaFromVariable().age"));
+	void typeAnnotationSchemaDoesNotMatchParameter() throws InitializationException, JsonProcessingException {
+		var context = new AnnotationFunctionContext(new SchemaLibrary());
+		var mapper = new ObjectMapper();
+		var parameter = mapper.readTree("{\"name\": 23}");
+		assertThat(context.evaluate("schema.schemaInParameterAnnotation", Val.of(parameter)), valError());
 	}
 
 	@Test
@@ -277,25 +282,27 @@ class AnnotationFunctionContextTest {
 
 	}
 
-	@FunctionLibrary(name = "schemaVerbose")
-	public static class FunctionLibraryWithVerboseSchemaAnnotation {
-		@Function(schema = "{\"name\": {\"type\": \"string\"}, \"age\": {\"type\": \"number\"}}")
-		public static Val schemaFromJson() {
-			return Val.of(true);
-		}
-	}
+	@FunctionLibrary(name = "schema")
+	public static class SchemaLibrary {
 
-	@FunctionLibrary(name = "schemaInFile")
-	public static class FunctionLibraryWithSchemaAnnotationInFile {
+		static final String PERSON_SCHEMA = "{" +
+				"  \"$schema\": \"http://json-schema.org/draft-07/schema#\"," +
+				"  \"$id\": \"https://example.com/schemas/regions\"," +
+				"  \"type\": \"object\"," +
+				"  \"properties\": {" +
+				"  \"name\": { \"type\": \"string\" }" +
+				"  }" +
+				"}";
+
 		@Function(schema = "schemas/person_schema.json")
 		public static Val schemaFromFile() { return Val.of(true); }
-	}
 
-	@FunctionLibrary(name = "schemaInVariable")
-	public static class FunctionLibraryWithSchemaAnnotationAsVariable {
-		static final String person_schema = "{\"name\": {\"type\": \"string\"}, \"age\": {\"type\": \"number\"}}";
-		@Function(schema = person_schema)
-		public static Val schemaFromVariable() { return Val.of(true); }
+		@Function(schema = PERSON_SCHEMA)
+		public static Val schemaFromJson() { return Val.of(true); }
+
+		@Function
+		public static Val schemaInParameterAnnotation(@JsonObject(schema = PERSON_SCHEMA) Val jsonObject) { return Val.of(true); }
+
 	}
 
 	@FunctionLibrary

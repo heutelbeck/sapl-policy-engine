@@ -30,6 +30,7 @@ import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Long;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
+import io.sapl.functions.SchemaValidationLibrary;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 
@@ -90,7 +91,14 @@ public class ParameterTypeValidator {
 				|| (Bool.class.isAssignableFrom(annotation.getClass()) && node.isBoolean())
 				|| (Text.class.isAssignableFrom(annotation.getClass()) && node.isTextual())
 				|| (Array.class.isAssignableFrom(annotation.getClass()) && node.isArray())
-				|| (JsonObject.class.isAssignableFrom(annotation.getClass()) && node.isObject());
+				|| (JsonObject.class.isAssignableFrom(annotation.getClass()) && node.isObject()) && nodeCompliantWithSchema(node, annotation);
+	}
+
+	private static boolean nodeCompliantWithSchema(JsonNode node, Annotation annotation){
+		String schema = ((JsonObject) annotation).schema();
+		if (schema == null || schema.equals(""))
+			return true;
+		return SchemaValidationLibrary.isCompliantWithSchema(node, schema);
 	}
 
 	private static boolean hasValidationAnnotations(Parameter parameterType) {

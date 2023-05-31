@@ -59,7 +59,7 @@ class ParameterTypeValidatorTest {
 
 	private static final Set<Class<?>> TEST_ANNOTATIONS = Sets.union(VALIDATION_ANNOTATIONS, UNRELATED_ANNOTATIONS);
 
-	private static final Set<Set<Class<?>>> ANOTATION_POWERSET = Sets.powerSet(TEST_ANNOTATIONS);
+	private static final Set<Set<Class<?>>> ANNOTATION_POWERSET = Sets.powerSet(TEST_ANNOTATIONS);
 
 	// @formatter:off
 	private static final Map<Val, Class<?>[]> TEST_CASES = Map.of(
@@ -72,7 +72,7 @@ class ParameterTypeValidatorTest {
 			Val.of(Integer.MAX_VALUE),			new Class<?>[] { Number.class, Long.class, Int.class }, 
 			Val.ofEmptyObject(),				new Class<?>[] { JsonObject.class }, 
 			Val.TRUE, 							new Class<?>[] { Bool.class }, 
-			Val.ofEmptyArray(),					new Class<?>[] { Array.class }, 
+			Val.ofEmptyArray(),					new Class<?>[] { Array.class },
 			Val.of(""), 						new Class<?>[] { Text.class });
 	// @formatter:on
 
@@ -82,7 +82,7 @@ class ParameterTypeValidatorTest {
 			var           givenValue                          = testCase.getKey();
 			Set<Class<?>> annotationsImplyingValidityForGiven = Stream.of(testCase.getValue())
 					.collect(Collectors.toCollection(HashSet::new));
-			for (var givenAnnotations : ANOTATION_POWERSET) {
+			for (var givenAnnotations : ANNOTATION_POWERSET) {
 				var intersection                      = Sets.intersection(annotationsImplyingValidityForGiven,
 						givenAnnotations);
 				var givenWithoutUnrelated             = Sets.difference(givenAnnotations, UNRELATED_ANNOTATIONS);

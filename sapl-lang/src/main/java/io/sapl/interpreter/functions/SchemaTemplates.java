@@ -1,23 +1,18 @@
 package io.sapl.interpreter.functions;
 
 import com.fasterxml.jackson.core.JacksonException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.wnameless.json.flattener.JsonFlattener;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 
 public class SchemaTemplates {
 
@@ -36,10 +31,6 @@ public class SchemaTemplates {
             "java\\.?");
 
     private static final String ENUM_KEYWORD = "enum\\[\\d+]";
-
-    public JsonNode schemaAsJson(String schema) throws IllegalArgumentException {
-        return convertToJson(schema);
-    }
 
     public List<String> schemaTemplates(String source){
         if (isValidJson(source))
@@ -70,7 +61,7 @@ public class SchemaTemplates {
 
     private static boolean isValidJson(String json) {
         try {
-            JsonNode jsonNode = convertToJson(json);
+            convertToJson(json);
             return true;
         } catch (IllegalArgumentException e) {
             return false;
@@ -78,8 +69,7 @@ public class SchemaTemplates {
     }
 
     private static JsonNode convertToJson(String json){
-        ObjectMapper mapper = new ObjectMapper()
-                .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
+        ObjectMapper mapper = new ObjectMapper();
 
         try {
             return mapper.readTree(json);

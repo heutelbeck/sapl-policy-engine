@@ -3,7 +3,6 @@
   "$id": "https://example.com/schemas/regions",
   "type": "object",
   "properties": {
-    "name": { "type": "string" },
-	"age": { "type": "integer" }
+    "name": { "type": "string" }
   }
 }
