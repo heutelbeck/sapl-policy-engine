@@ -166,7 +166,7 @@ public class ConstraintEnforcementService {
 		var unhandledObligations = Sets.newHashSet(decision.getObligations().orElseGet(mapper::createArrayNode));
 
 		// @formatter:off
-		var bundle = new ReactiveConstraintHandlerBundle<T>(
+		var bundle = new ReactiveConstraintHandlerBundle<>(
 				runnableHandlersForSignal(Signal.ON_DECISION, decision, unhandledObligations),
 				runnableHandlersForSignal(Signal.ON_CANCEL, decision, unhandledObligations),
 				runnableHandlersForSignal(Signal.ON_COMPLETE, decision, unhandledObligations),

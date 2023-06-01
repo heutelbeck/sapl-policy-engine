@@ -543,10 +543,9 @@ public class Val implements Traced {
 		if (this == obj) {
 			return true;
 		}
-		if (!(obj instanceof Val)) {
+		if (!(obj instanceof Val other)) {
 			return false;
 		}
-		Val other = (Val) obj;
 		if (isError() != other.isError()) {
 			return false;
 		}

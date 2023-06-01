@@ -149,9 +149,8 @@ public class XtextServlet extends HttpServlet {
 			response.setStatus(HttpServletResponse.SC_OK);
 			response.setCharacterEncoding(getEncoding(service, result));
 			response.setHeader("Cache-Control", "no-cache");
-			if (result instanceof IUnwrappableServiceResult
+			if (result instanceof IUnwrappableServiceResult unwrapResult
 					&& ((IUnwrappableServiceResult) result).getContent() != null) {
-				IUnwrappableServiceResult unwrapResult = ((IUnwrappableServiceResult) result);
 				String contentType;
 				if (unwrapResult.getContentType() != null) {
 					contentType = unwrapResult.getContentType();

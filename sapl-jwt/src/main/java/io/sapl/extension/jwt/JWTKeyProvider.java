@@ -24,6 +24,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import org.springframework.http.HttpStatusCode;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClient.ResponseSpec;
@@ -169,7 +170,7 @@ public class JWTKeyProvider {
 			response = webClient.get().uri(publicKeyURI, kid).retrieve();
 		}
 
-		return response.onStatus(status -> status.isError(), this::handleHttpError).bodyToMono(String.class)
+		return response.onStatus(HttpStatusCode::isError, this::handleHttpError).bodyToMono(String.class)
 				.map(JWTEncodingDecodingUtils::encodedX509ToRSAPublicKey).filter(Optional::isPresent)
 				.map(Optional::get);
 	}

@@ -136,10 +136,12 @@ public class HtmlLineCoverageReportGenerator {
 	}
 
 	private void generateCustomCSS(Path basedir) throws IOException {
-		String css = ".coverage-green span { background-color: #ccffcc; }\n"
-				+ ".coverage-yellow span { background-color: #ffffcc; }\n"
-				+ ".coverage-red span { background-color: #ffaaaa; }\n"
-				+ ".CodeMirror { height: calc(100% - 50px) !important; }\n";
+		String css = """
+				.coverage-green span { background-color: #ccffcc; }
+				.coverage-yellow span { background-color: #ffffcc; }
+				.coverage-red span { background-color: #ffaaaa; }
+				.CodeMirror { height: calc(100% - 50px) !important; }
+				""";
 		Path cssPath = basedir.resolve("html").resolve("assets").resolve("main.css");
 		createFile(cssPath, css);
 	}

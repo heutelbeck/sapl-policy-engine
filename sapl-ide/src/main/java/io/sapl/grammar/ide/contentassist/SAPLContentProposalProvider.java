@@ -180,8 +180,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			}
 
 			// look up all defined variables in the policy
-			if (model instanceof PolicyBody) {
-				var                policyBody    = (PolicyBody) model;
+			if (model instanceof PolicyBody policyBody) {
 				Collection<String> definedValues = new HashSet<>();
 
 				int currentOffset = context.getOffset();
@@ -190,8 +189,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 				// variables
 				for (var statement : policyBody.getStatements()) {
 					// add any encountered valuable to the list of proposals
-					if (statement instanceof ValueDefinition) {
-						var valueDefinition = (ValueDefinition) statement;
+					if (statement instanceof ValueDefinition valueDefinition) {
 
 						// check if variable definition is happening after cursor
 						INode valueDefinitionNode   = NodeModelUtils.getNode(valueDefinition);
