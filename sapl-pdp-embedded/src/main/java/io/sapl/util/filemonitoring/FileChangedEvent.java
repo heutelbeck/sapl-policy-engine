@@ -17,11 +17,4 @@ package io.sapl.util.filemonitoring;
 
 import java.io.File;
 
-import lombok.Value;
-
-@Value
-public class FileChangedEvent implements FileEvent {
-
-	File file;
-
-}
+public record FileChangedEvent(File file) implements FileEvent {}

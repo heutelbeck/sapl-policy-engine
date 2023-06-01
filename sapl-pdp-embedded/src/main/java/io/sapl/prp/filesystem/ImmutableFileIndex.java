@@ -127,8 +127,8 @@ class ImmutableFileIndex {
 	}
 
 	public ImmutableFileIndex afterFileEvent(FileEvent event) {
-		var fileName = event.getFile().getName();
-		var path = event.getFile().toPath().toAbsolutePath();
+		var fileName = event.file().getName();
+		var path = event.file().toPath().toAbsolutePath();
 		var newIndex = new ImmutableFileIndex(this);
 		if (event instanceof FileDeletedEvent) {
 			log.info("Unloading deleted SAPL document: {}", fileName);

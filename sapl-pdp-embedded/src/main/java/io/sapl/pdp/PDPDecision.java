@@ -31,7 +31,6 @@ import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.CombinedDecision;
 import lombok.Getter;
 import lombok.ToString;
-import lombok.Value;
 
 @Getter
 @ToString
@@ -56,11 +55,7 @@ public class PDPDecision implements TracedDecision {
 	Instant                   timestamp;
 	LinkedList<Modification>  modifications     = new LinkedList<>();
 
-	@Value
-	private static class Modification {
-		AuthorizationDecision authorizationDecision;
-		String                explanation;
-	}
+	private record Modification(AuthorizationDecision authorizationDecision, String explanation) {	}
 
 	private PDPDecision(AuthorizationSubscription authorizationSubscription, List<SAPL> matchingDocuments,
 			CombinedDecision combinedDecision, Instant timestamp, List<Modification> modifications) {
@@ -86,7 +81,7 @@ public class PDPDecision implements TracedDecision {
 	public AuthorizationDecision getAuthorizationDecision() {
 		if (modifications.isEmpty())
 			return combinedDecision.getAuthorizationDecision();
-		return modifications.peekLast().getAuthorizationDecision();
+		return modifications.peekLast().authorizationDecision();
 	}
 
 	@Override
@@ -118,8 +113,8 @@ public class PDPDecision implements TracedDecision {
 		var modificationTrace = Val.JSON.arrayNode();
 		for (var mod : modifications) {
 			var modJson = Val.JSON.objectNode();
-			modJson.set(AUTHORIZATION_DECISION, MAPPER.valueToTree(mod.getAuthorizationDecision()));
-			modJson.set("explanation", Val.JSON.textNode(mod.getExplanation()));
+			modJson.set(AUTHORIZATION_DECISION, MAPPER.valueToTree(mod.authorizationDecision()));
+			modJson.set("explanation", Val.JSON.textNode(mod.explanation()));
 			modificationTrace.add(modJson);
 		}
 		return modificationTrace;

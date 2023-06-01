@@ -15,11 +15,7 @@
  */
 package io.sapl.mavenplugin.test.coverage.report;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
@@ -252,15 +248,15 @@ public class GenericCoverageReporter {
 			var line = coverage.getLine(i);
 			var coveredValue = line.getCoveredValue();
 			assertValidCoveredValue(coveredValue);
-			switch (coveredValue) {
-				case NEVER ->
-					// if this condition or the condition evaluated before on the same line
-					// was never hit, then this or the next condition cannot be evaluated too
-					// thus this change from NEVER -> PARTLY cannot happen
-						throw new SaplTestException(String.format(ERROR_UNEXPECTED_ENUM_VALUE, line.getCoveredValue()));
+			// if this condition or the condition evaluated before on the same line
+			// was never hit, then this or the next condition cannot be evaluated too
+			// thus this change from NEVER -> PARTLY cannot happen
+			if (Objects.requireNonNull(coveredValue) == LineCoveredValue.NEVER) {
+				throw new SaplTestException(String.format(ERROR_UNEXPECTED_ENUM_VALUE, line.getCoveredValue()));
 
 				// only add branches
-				default -> coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches() + 1,
+			} else {
+				coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches() + 1,
 						line.getBranchesToCover() + 2);
 			}
 		}

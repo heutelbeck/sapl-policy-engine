@@ -64,9 +64,8 @@ public class BaseEditor extends Component {
 
 	@ClientCallable
 	protected void onEditorClicked(Integer line, String content) {
-		for (EditorClickedListener listener : editorClickedListeners) {
+		for (EditorClickedListener listener : editorClickedListeners)
 			listener.onEditorClicked(new EditorClickedEvent(line, content));
-		}
 	}
 
 	/**

@@ -162,7 +162,7 @@ class ImmutableFileIndexTest {
 			var mockInterpreter = mock(SAPLInterpreter.class);
 			var mockFile        = mockPolicyFile(POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
 			var event           = mock(FileCreatedEvent.class);
-			when(event.getFile()).thenReturn(mockFile);
+			when(event.file()).thenReturn(mockFile);
 
 			// act
 			var sut = new ImmutableFileIndex(PATH, mockInterpreter);
@@ -196,13 +196,13 @@ class ImmutableFileIndexTest {
 			var sut = new ImmutableFileIndex(PATH, mockInterpreter);
 
 			var event1 = mock(FileCreatedEvent.class);
-			when(event1.getFile()).thenReturn(mockFile);
+			when(event1.file()).thenReturn(mockFile);
 			sut = sut.afterFileEvent(event1);
 
 			// remove document again
 
 			var event2 = mock(FileDeletedEvent.class);
-			when(event2.getFile()).thenReturn(mockFile);
+			when(event2.file()).thenReturn(mockFile);
 			sut = sut.afterFileEvent(event2);
 
 			var actualUpdates = sut.getUpdateEvent();
@@ -234,13 +234,13 @@ class ImmutableFileIndexTest {
 			var sut = new ImmutableFileIndex(PATH, mockInterpreter);
 
 			var event1 = mock(FileCreatedEvent.class);
-			when(event1.getFile()).thenReturn(mockFile);
+			when(event1.file()).thenReturn(mockFile);
 			sut = sut.afterFileEvent(event1);
 
 			// change document again
 
 			var event2 = mock(FileChangedEvent.class);
-			when(event2.getFile()).thenReturn(mockFile);
+			when(event2.file()).thenReturn(mockFile);
 			sut = sut.afterFileEvent(event2);
 
 			var actualUpdates = sut.getUpdateEvent();
@@ -273,13 +273,13 @@ class ImmutableFileIndexTest {
 			var sut = new ImmutableFileIndex(PATH, mockInterpreter);
 
 			var event1 = mock(FileCreatedEvent.class);
-			when(event1.getFile()).thenReturn(mockFile);
+			when(event1.file()).thenReturn(mockFile);
 			sut = sut.afterFileEvent(event1);
 
 			// create policy with name collision
 			var mockFile2 = mockPolicyFile(POLICY_1, SAPL_1, "alternatePath", mockedFiles, mockInterpreter);
 			var event2    = mock(FileCreatedEvent.class);
-			when(event2.getFile()).thenReturn(mockFile2);
+			when(event2.file()).thenReturn(mockFile2);
 			sut = sut.afterFileEvent(event2);
 
 			var actualUpdates = sut.getUpdateEvent();
@@ -311,19 +311,19 @@ class ImmutableFileIndexTest {
 			var sut = new ImmutableFileIndex(PATH, mockInterpreter);
 
 			var event1 = mock(FileCreatedEvent.class);
-			when(event1.getFile()).thenReturn(mockFile);
+			when(event1.file()).thenReturn(mockFile);
 			sut = sut.afterFileEvent(event1);
 
 			// create policy with name collision
 			var mockFile2 = mockPolicyFile(POLICY_1, SAPL_1, "alternatePath", mockedFiles, mockInterpreter);
 			var event2    = mock(FileCreatedEvent.class);
-			when(event2.getFile()).thenReturn(mockFile2);
+			when(event2.file()).thenReturn(mockFile2);
 			sut = sut.afterFileEvent(event2);
 
 			// add unrelated policy
 			var mockFile3 = mockPolicyFile(POLICY_2, SAPL_2, POLICY_2_NAME, mockedFiles, mockInterpreter);
 			var event3    = mock(FileCreatedEvent.class);
-			when(event3.getFile()).thenReturn(mockFile3);
+			when(event3.file()).thenReturn(mockFile3);
 			sut = sut.afterFileEvent(event3);
 
 			var actualUpdates = sut.getUpdateEvent();
@@ -355,18 +355,18 @@ class ImmutableFileIndexTest {
 			var sut = new ImmutableFileIndex(PATH, mockInterpreter);
 
 			var event1 = mock(FileCreatedEvent.class);
-			when(event1.getFile()).thenReturn(mockFile);
+			when(event1.file()).thenReturn(mockFile);
 			sut = sut.afterFileEvent(event1);
 
 			// create policy with name collision
 			var mockFile2 = mockPolicyFile(POLICY_1, SAPL_1, "alternatePath", mockedFiles, mockInterpreter);
 			var event2    = mock(FileCreatedEvent.class);
-			when(event2.getFile()).thenReturn(mockFile2);
+			when(event2.file()).thenReturn(mockFile2);
 			sut = sut.afterFileEvent(event2);
 
 			// remove initially added document
 			var event3 = mock(FileDeletedEvent.class);
-			when(event3.getFile()).thenReturn(mockFile);
+			when(event3.file()).thenReturn(mockFile);
 			sut = sut.afterFileEvent(event3);
 
 			var actualUpdates = sut.getUpdateEvent();
@@ -400,18 +400,18 @@ class ImmutableFileIndexTest {
 			var sut = new ImmutableFileIndex(PATH, mockInterpreter);
 
 			var event1 = mock(FileCreatedEvent.class);
-			when(event1.getFile()).thenReturn(mockFile);
+			when(event1.file()).thenReturn(mockFile);
 			sut = sut.afterFileEvent(event1);
 
 			// create policy with name collision
 			var mockFile2 = mockPolicyFile(POLICY_1, SAPL_1, "alternatePath", mockedFiles, mockInterpreter);
 			var event2    = mock(FileCreatedEvent.class);
-			when(event2.getFile()).thenReturn(mockFile2);
+			when(event2.file()).thenReturn(mockFile2);
 			sut = sut.afterFileEvent(event2);
 
 			// remove initially added document
 			var event3 = mock(FileDeletedEvent.class);
-			when(event3.getFile()).thenReturn(mockFile2);
+			when(event3.file()).thenReturn(mockFile2);
 			sut = sut.afterFileEvent(event3);
 
 			var actualUpdates = sut.getUpdateEvent();
@@ -443,7 +443,7 @@ class ImmutableFileIndexTest {
 			var sut = new ImmutableFileIndex(PATH, mockInterpreter);
 
 			var event1 = mock(FileCreatedEvent.class);
-			when(event1.getFile()).thenReturn(mockFile);
+			when(event1.file()).thenReturn(mockFile);
 			sut = sut.afterFileEvent(event1);
 
 			// @formatter:off
@@ -455,7 +455,7 @@ class ImmutableFileIndexTest {
 
 			// remove initially added document
 			var event3 = mock(FileDeletedEvent.class);
-			when(event3.getFile()).thenReturn(mockFile);
+			when(event3.file()).thenReturn(mockFile);
 			sut = sut.afterFileEvent(event3);
 
 			var actualUpdates = sut.getUpdateEvent();
@@ -488,7 +488,7 @@ class ImmutableFileIndexTest {
 
 			// remove non existent document from index
 			var event3 = mock(FileDeletedEvent.class);
-			when(event3.getFile()).thenReturn(mockFile);
+			when(event3.file()).thenReturn(mockFile);
 			sut = sut.afterFileEvent(event3);
 
 			var actualUpdates = sut.getUpdateEvent();

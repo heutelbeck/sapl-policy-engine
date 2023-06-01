@@ -42,7 +42,7 @@ public class ParameterTypeValidator {
 			Text.class, Array.class, JsonObject.class);
 
 	public static void validateType(Val parameterValue, Parameter parameterType) throws IllegalParameterType {
-		if (!hasValidationAnnotations(parameterType))
+		if (hasNoValidationAnnotations(parameterType))
 			return;
 
 		if (parameterValue.isError())
@@ -57,7 +57,7 @@ public class ParameterTypeValidator {
 	}
 
 	public static Flux<Val> validateType(Flux<Val> parameterFlux, Parameter parameterType) {
-		if (!hasValidationAnnotations(parameterType))
+		if (hasNoValidationAnnotations(parameterType))
 			return parameterFlux;
 		return parameterFlux.map(mapInvalidToError(parameterType));
 	}
@@ -93,12 +93,12 @@ public class ParameterTypeValidator {
 				|| (JsonObject.class.isAssignableFrom(annotation.getClass()) && node.isObject());
 	}
 
-	private static boolean hasValidationAnnotations(Parameter parameterType) {
+	private static boolean hasNoValidationAnnotations(Parameter parameterType) {
 		for (var annotation : parameterType.getAnnotations())
 			if (isTypeValidationAnnotation(annotation))
-				return true;
+				return false;
 
-		return false;
+		return true;
 	}
 
 	private static boolean isTypeValidationAnnotation(Annotation annotation) {

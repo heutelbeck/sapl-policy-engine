@@ -15,13 +15,7 @@
  */
 package io.sapl.vaadin;
 
-import lombok.Value;
-
 /**
  * Event triggered when a specific line is clicked in the editor.
  */
-@Value
-public class EditorClickedEvent {
-	Integer line;
-	String  content;
-}
+public record EditorClickedEvent(Integer line, String content) {}
