@@ -28,17 +28,17 @@ import java.lang.annotation.Target;
  * {@link org.reactivestreams.Publisher Publisher}, i.e., a
  * {@link reactor.core.publisher.Flux Flux} or a
  * {@link reactor.core.publisher.Mono Mono}.
- *
+ * <p>
  * The publisher returned by the method is wrapped by the PEP. The PEP starts
  * processing, i.e, sending a subscription to the PDP, upon subscription time.
- *
+ * <p>
  * The established PEP also wires in matching handlers for obligations and
  * advice into the matching signal paths of the publisher.
- *
+ * <p>
  * The PEP will stay subscribed to the decisions of the PDP the decision and its
  * obligations and advice throughout the entire lifecycle of the publisher or
  * until access is denied, when an AccessDeniedException is raised.
- *
+ * <p>
  * The parameters subject, action, resource, and environment can be used to
  * explicitly set the corresponding keys in the SAPL authorization subscription,
  * assuming that the Spring context and ObjectMapper are configured to be able

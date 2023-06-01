@@ -115,7 +115,7 @@ public interface GivenStep {
 			TimesCalledVerification verification);
 	/**
 	 * Mock the return value of a Function in the SAPL policy
-	 *
+	 * <p>
 	 * You can apply some complex logic in this lambda to return a {@link Val} dependent
 	 * on the function parameter values Parameter to this Lambda-Expression is a
 	 * {@link io.sapl.test.mocking.MockCall} representing the call of your function. You can access the
@@ -142,7 +142,7 @@ public interface GivenStep {
 
 	/**
 	 * Mock the return value of a Function in the SAPL policy
-	 *
+	 * <p>
 	 * You can apply some complex logic in this lambda to return a {@link Val} dependent
 	 * on the function parameter values Parameter to this Lambda-Expression is a
 	 * {@link io.sapl.test.mocking.MockCall} representing the call of your function. You can access the
@@ -181,7 +181,7 @@ public interface GivenStep {
 	/**
 	 * Mock the return value of a PIP in the SAPL policy when the parentValue matches the
 	 * expectation
-	 *
+	 * <p>
 	 * Example:
 	 *
 	 * <pre>
@@ -201,7 +201,7 @@ public interface GivenStep {
 	 * Mock the return value of a PIP in the SAPL policy when the parentValue matches the
 	 * expectation and return the returnValue when the latest combined argument values are
 	 * matching the expectations
-	 *
+	 * <p>
 	 *
 	 * Example:
 	 *

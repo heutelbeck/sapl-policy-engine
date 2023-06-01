@@ -26,7 +26,7 @@ import reactor.core.publisher.Flux;
 
 /**
  * Implementation of an array in SAPL.
- *
+ * <p>
  * Grammar: Array returns Value: {Array} '[' (items+=Expression (','
  * items+=Expression)*)? ']' ;
  */
@@ -34,10 +34,10 @@ public class ArrayImplCustom extends ArrayImpl {
 
 	/**
 	 * The semantics of evaluating an array is as follows:
-	 *
+	 * <p>
 	 * An array may contain a list of expressions. To get the values of the
 	 * individual expressions, these have to be recursively evaluated.
-	 *
+	 * <p>
 	 * Returning a Flux this means to subscribe to all expression result Fluxes and
 	 * to combineLatest into a new array each time one of the expression Fluxes
 	 * emits a new value.

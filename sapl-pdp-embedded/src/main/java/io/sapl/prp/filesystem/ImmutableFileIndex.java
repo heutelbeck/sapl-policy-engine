@@ -176,7 +176,7 @@ class ImmutableFileIndex {
 	final void load(Path filePath) {
 		var newDocument = new Document(filePath, interpreter);
 		documentsByPath.put(newDocument.getAbsolutePath(), newDocument);
-		if (!newDocument.isValid()) {
+		if (newDocument.isInvalid()) {
 			numberOfInvalidDocuments++;
 			return;
 		}
@@ -221,7 +221,7 @@ class ImmutableFileIndex {
 		if (oldDocument.isPublished())
 			addWithdrawUpdate(oldDocument);
 
-		if (!oldDocument.isValid()) {
+		if (oldDocument.isInvalid()) {
 			numberOfInvalidDocuments--;
 			return;
 		}
@@ -294,8 +294,8 @@ class ImmutableFileIndex {
 			return path.toAbsolutePath().toString();
 		}
 
-		public boolean isValid() {
-			return parsedDocument != null;
+		public boolean isInvalid() {
+			return parsedDocument == null;
 		}
 
 	}

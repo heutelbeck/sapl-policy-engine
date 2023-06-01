@@ -18,8 +18,6 @@ package io.sapl.extensions.mqtt;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;

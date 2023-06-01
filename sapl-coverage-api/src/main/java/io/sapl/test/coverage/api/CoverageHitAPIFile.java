@@ -83,7 +83,7 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
 	}
 
 	private void appendLineToFile(Path filePathPolicySetHits, String lineToAdd) throws IOException {
-		Files.write(filePathPolicySetHits, (lineToAdd + System.lineSeparator()).getBytes(StandardCharsets.UTF_8),
+		Files.writeString(filePathPolicySetHits, lineToAdd + System.lineSeparator(),
 				StandardOpenOption.APPEND);
 	}
 

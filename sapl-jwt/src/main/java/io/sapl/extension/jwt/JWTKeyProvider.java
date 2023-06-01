@@ -47,7 +47,7 @@ public class JWTKeyProvider {
 
 	static final String PUBLIC_KEY_URI_KEY     = "uri";
 	static final String PUBLIC_KEY_METHOD_KEY  = "method";
-	static final String KEY_CACHING_TTL_MILLIS = "keyCachingTTLmillis";
+	static final String KEY_CACHING_TTL_MILLIS = "keyCachingTtlMillis";
 	static final long   DEFAULT_CACHING_TTL    = 300000L;
 
 	/**
@@ -77,7 +77,7 @@ public class JWTKeyProvider {
 	/**
 	 * Fetches the public key of a server.
 	 * 
-	 * @param kid              the key Id
+	 * @param kid              the key id
 	 * @param jPublicKeyServer the key server
 	 * @return the public key
 	 * @throws CachingException on error
@@ -106,7 +106,7 @@ public class JWTKeyProvider {
 			}
 		}
 
-		setTTLmillis(lTTL);
+		setTtlMillis(lTTL);
 		return fetchPublicKey(kid, sUri, sMethod);
 	}
 
@@ -139,10 +139,10 @@ public class JWTKeyProvider {
 	/**
 	 * Sets the cache TTL.
 	 * 
-	 * @param newTTLmillis time to live for cache entries.
+	 * @param newTtlMillis time to live for cache entries.
 	 */
-	public void setTTLmillis(long newTTLmillis) {
-		lastTTL = newTTLmillis >= 0L ? newTTLmillis : DEFAULT_CACHING_TTL;
+	public void setTtlMillis(long newTtlMillis) {
+		lastTTL = newTtlMillis >= 0L ? newTtlMillis : DEFAULT_CACHING_TTL;
 	}
 
 	/**
@@ -180,7 +180,7 @@ public class JWTKeyProvider {
 	}
 
 	/**
-	 * remove all keys from cache, that are older than TTLmillis before now
+	 * remove all keys from cache, that are older than ttlMillis before now
 	 */
 	private void pruneCache() {
 		var pruneTime   = new Date().toInstant().minusMillis(lastTTL);

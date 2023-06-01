@@ -86,7 +86,7 @@ class JWTKeyProviderTests {
 	@Test
 	void isCached_notCachedThenCachedThenNotCached_shouldBeFalseThenTrueThenFalse() {
 		var pubKey = (RSAPublicKey) keyPair.getPublic();
-		provider.setTTLmillis(JWTTestUtility.synchronousTimeUnit);
+		provider.setTtlMillis(JWTTestUtility.synchronousTimeUnit);
 		assertFalse(provider.isCached(kid));
 		provider.cache(kid, pubKey);
 		assertTrue(provider.isCached(kid));

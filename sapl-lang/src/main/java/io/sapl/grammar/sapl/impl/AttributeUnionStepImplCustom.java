@@ -28,9 +28,9 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the application of an attribute union step to a previous object
  * value, e.g. 'person["firstName", "lastName"]'.
- *
+ * <p>
  * Grammar: Step: '[' Subscript ']' ;
- *
+ * <p>
  * Subscript returns Step: {AttributeUnionStep} attributes+=STRING ','
  * attributes+=STRING (',' attributes+=STRING)* ;
  */

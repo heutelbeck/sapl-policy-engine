@@ -24,8 +24,8 @@ import io.sapl.grammar.sapl.SaplPackage;
 
 /**
  * This class contains custom validation rules.
- *
- * See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation
+ * <p>
+ * See <a href="https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation">Validation</a>
  */
 public class SAPLValidator extends AbstractSAPLValidator {
 

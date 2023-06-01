@@ -27,7 +27,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import lombok.Value;
 
 /**
- * An policy evaluation trace.
+ * A policy evaluation trace.
  */
 @Value
 public class Trace {
@@ -89,7 +89,7 @@ public class Trace {
 	/**
 	 * Creates a trace for an attribute finder operation and its arguments.
 	 * 
-	 * @param leftHandValue
+	 * @param leftHandValue the left hand input value of the attribute finder
 	 * @param operation     class implementing the traced operation.
 	 * @param arguments     traced arguments.
 	 */

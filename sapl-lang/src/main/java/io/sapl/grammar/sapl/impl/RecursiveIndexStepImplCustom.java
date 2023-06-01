@@ -37,7 +37,7 @@ import reactor.util.function.Tuples;
 /**
  * Implements the application of a recursive index step to a previous array
  * value, e.g. {@code 'arr..[2]'}.
- *
+ * <p>
  * Grammar: {@code Step: '..' ({RecursiveIndexStep} '[' index=JSONNUMBER ']') ;}
  * 
  * @author Dominic Heutelbeck

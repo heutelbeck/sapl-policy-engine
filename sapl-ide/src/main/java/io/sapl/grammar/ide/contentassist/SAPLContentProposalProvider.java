@@ -97,26 +97,27 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		String     feature        = assignment.getFeature().toLowerCase();
 
 		switch (parserRuleName) {
-		case "numberliteral":
-		case "stringliteral":
-			return;
-
-		case "import":
-			handleImportProposals(feature, context, acceptor);
-			return;
-
-		case "basic":
-			handleBasicProposals(feature, context, acceptor);
-			return;
-
-		case "policy":
-			handlePolicyProposals(feature, context, acceptor);
-			return;
-
-		case "step":
-			handleStepProposals(feature, context, acceptor);
-			return;
-		default:
+			case "numberliteral", "stringliteral" -> {
+				return;
+			}
+			case "import" -> {
+				handleImportProposals(feature, context, acceptor);
+				return;
+			}
+			case "basic" -> {
+				handleBasicProposals(feature, context, acceptor);
+				return;
+			}
+			case "policy" -> {
+				handlePolicyProposals(feature, context, acceptor);
+				return;
+			}
+			case "step" -> {
+				handleStepProposals(feature, context, acceptor);
+				return;
+			}
+			default -> {
+			}
 		}
 
 		super._createProposals(assignment, context, acceptor);

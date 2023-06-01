@@ -21,8 +21,7 @@ import io.sapl.api.interpreter.Val;
 import lombok.NoArgsConstructor;
 
 /**
- * Function library implementing the blacken, replace, and remove filter
- * functions.
+ * Function library implementing blacken, replace, and remove filter functions.
  */
 @NoArgsConstructor
 @FunctionLibrary(name = FilterFunctionLibrary.NAME, description = FilterFunctionLibrary.DESCRIPTION)

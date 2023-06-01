@@ -20,9 +20,9 @@ import reactor.core.publisher.Flux;
 
 /**
  * Implements the evaluation of values.
- *
+ * <p>
  * Grammar: {BasicValue} value=Value steps+=Step*;
- *
+ * <p>
  * Value: Object | Array | NumberLiteral | StringLiteral | BooleanLiteral |
  * NullLiteral | UndefinedLiteral ;
  */

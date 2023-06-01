@@ -21,7 +21,7 @@ import reactor.core.publisher.Flux;
 
 /**
  * Implements the evaluation of expression groups.
- *
+ * <p>
  * Grammar: {BasicGroup} '(' expression=Expression ')' steps+=Step*;
  */
 public class BasicGroupImplCustom extends BasicGroupImpl {

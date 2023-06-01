@@ -134,8 +134,7 @@ public class XtextServlet extends HttpServlet {
 		HttpServiceContext serviceContext = new HttpServiceContext(request);
 		Injector injector = getInjector(serviceContext);
 		XtextServiceDispatcher serviceDispatcher = injector.getInstance(XtextServiceDispatcher.class);
-		XtextServiceDispatcher.ServiceDescriptor service = serviceDispatcher.getService(serviceContext);
-		return service;
+		return serviceDispatcher.getService(serviceContext);
 	}
 
 	/**
@@ -153,7 +152,7 @@ public class XtextServlet extends HttpServlet {
 			if (result instanceof IUnwrappableServiceResult
 					&& ((IUnwrappableServiceResult) result).getContent() != null) {
 				IUnwrappableServiceResult unwrapResult = ((IUnwrappableServiceResult) result);
-				String contentType = null;
+				String contentType;
 				if (unwrapResult.getContentType() != null) {
 					contentType = unwrapResult.getContentType();
 				} else {
@@ -183,7 +182,7 @@ public class XtextServlet extends HttpServlet {
 	 */
 	protected Injector getInjector(HttpServiceContext serviceContext)
 			throws InvalidRequestException.UnknownLanguageException {
-		IResourceServiceProvider resourceServiceProvider = null;
+		IResourceServiceProvider resourceServiceProvider;
 		String parameter = serviceContext.getParameter("resource");
 		if (parameter == null) {
 			parameter = "";

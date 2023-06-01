@@ -105,7 +105,7 @@ public class Matchers {
 	 *
 	 * @param floatValue the number to check for
 	 * @return a matcher checking if an object is a Val object containing a JSON
-	 *         number with an Float.
+	 *         number with a Float.
 	 */
 	public static Matcher<Val> val(float floatValue) {
 		return new IsVal(jsonFloat(floatValue));
@@ -166,7 +166,7 @@ public class Matchers {
 	 *
 	 * @param doubleValue the number to check for
 	 * @return a matcher checking if an object is a Val object containing a JSON
-	 *         number with an double.
+	 *         number with a double.
 	 */
 	public static Matcher<Val> val(double doubleValue) {
 		return new IsVal(jsonDouble(doubleValue));
@@ -177,7 +177,7 @@ public class Matchers {
 	 *
 	 * @param longValue the number to check for
 	 * @return a matcher checking if an object is a Val object containing a JSON
-	 *         number with an long.
+	 *         number with a long.
 	 */
 	public static Matcher<Val> val(long longValue) {
 		return new IsVal(jsonLong(longValue));
@@ -216,7 +216,7 @@ public class Matchers {
 	 * Tests for a Val error with a text matching a String matcher.
 	 * 
 	 * @param stringMatcher a string matcher
-	 * @return a matcher for a Val error a text matching a String matcher..
+	 * @return a matcher for a Val error a text matching a String matcher.
 	 */
 	public static Matcher<Val> valError(Matcher<? super String> stringMatcher) {
 		return new IsValError(stringMatcher);

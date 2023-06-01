@@ -21,7 +21,7 @@ import java.util.function.UnaryOperator;
  * Classes implementing this interface can be wired into the PDP to intercept
  * any AuthorizationSubscription and potentially modify it before handing it
  * downstream.
- * 
+ * <p>
  * The priority defines the evaluation sequence if multiple interceptor classes
  * are present. No assumptions can be made about the evaluation sequence of
  * interceptors with identical priority.

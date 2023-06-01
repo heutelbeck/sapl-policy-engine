@@ -28,7 +28,7 @@ import lombok.experimental.UtilityClass;
 public class XtextCodemirrorConverter {
 
 	/**
-	 * @param originalCode
+	 * @param originalCode the original code
 	 * @return code in ESM
 	 */
 	public String convertToESM(String originalCode) {

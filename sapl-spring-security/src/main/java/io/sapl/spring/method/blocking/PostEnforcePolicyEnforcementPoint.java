@@ -47,7 +47,7 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
 	private static final String ACCESS_DENIED_BY_PEP = "Access Denied by PEP.";
 
-	private Supplier<Authentication> authentication = getAuthentication(
+	private final Supplier<Authentication> authentication = getAuthentication(
 			SecurityContextHolder.getContextHolderStrategy());
 
 	private final PolicyDecisionPoint                        pdp;
@@ -108,7 +108,7 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
 	private <T> Object enforceDecision(boolean isOptional, Object returnedObjectForAuthzSubscription,
 			Class<T> returnType, AuthorizationDecision authzDecision) {
-		BlockingConstraintHandlerBundle<T> constraintHandlerBundle = null;
+		BlockingConstraintHandlerBundle<T> constraintHandlerBundle;
 		try {
 			constraintHandlerBundle = constraintEnforcementService.blockingPostEnforceBundleFor(authzDecision,
 					returnType);

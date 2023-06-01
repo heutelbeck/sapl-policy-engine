@@ -119,7 +119,7 @@ public class BaseEditor extends Component {
 	}
 
 	/**
-	 * Removes a registered editor cliked listener.
+	 * Removes a registered editor clicked listener.
 	 *
 	 * @param listener The registered listener that should be removed.
 	 */
@@ -130,7 +130,7 @@ public class BaseEditor extends Component {
 	/**
 	 * This function enables or disables the read-only mode of the editor.
 	 *
-	 * @param isReadOnly
+	 * @param isReadOnly set to true if editor should be read only
 	 */
 	public void setReadOnly(Boolean isReadOnly) {
 		Element element = getElement();
@@ -158,7 +158,7 @@ public class BaseEditor extends Component {
 	/**
 	 * This function enables or disables the Dark Theme of the editor.
 	 *
-	 * @param isDarkTheme
+	 * @param isDarkTheme set to true if editor should be in dark theme
 	 */
 	public void setDarkTheme(Boolean isDarkTheme) {
 		Element element = getElement();

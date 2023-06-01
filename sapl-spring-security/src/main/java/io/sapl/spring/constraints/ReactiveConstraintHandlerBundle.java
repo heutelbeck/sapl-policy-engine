@@ -32,7 +32,7 @@ import reactor.core.publisher.Mono;
  * 
  * This bundle aggregates all constraint handlers for a specific decision which
  * are useful in a reactive scenario.
- * 
+ * <p>
  * 
  * @author Dominic Heutelbeck
  *
@@ -132,8 +132,8 @@ public class ReactiveConstraintHandlerBundle<T> {
 	/**
 	 * Runs all method invocation handlers. These handlers may modify the
 	 * methodInvocation.
-	 * 
-	 * @param methodInvocation
+	 *
+	 * @param methodInvocation the method invocation to examine and potentially modify
 	 */
 	public void handleMethodInvocationHandlers(MethodInvocation methodInvocation) {
 		methodInvocationHandlers.accept(methodInvocation);

@@ -38,10 +38,10 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * This configuration provides a Jackson ObjectMapper bean, if missing.
- *
+ * <p>
  * In addition, the JDK8 Module is added for properly handling Optional and
  * serializers for HttpServletRequest and MethodInvocation are added.
- *
+ * <p>
  * These serializers are used in building authorization subscriptions, if no
  * explicit values for the fields of the subscription (e.g., action, resource)
  * are provided.

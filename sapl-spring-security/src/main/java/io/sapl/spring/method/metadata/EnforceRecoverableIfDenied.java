@@ -28,23 +28,23 @@ import java.lang.annotation.Target;
  * {@link org.reactivestreams.Publisher Publisher}, i.e., a
  * {@link reactor.core.publisher.Flux Flux} or a
  * {@link reactor.core.publisher.Mono Mono}.
- *
+ * <p>
  * The publisher returned by the method is wrapped by the PEP. The PEP starts
  * processing, i.e, sending a subscription to the PDP, upon subscription time.
- *
+ * <p>
  * The established PEP also wires in matching handlers for obligations and
  * advice into the matching signal paths of the publisher.
- *
+ * <p>
  * Subscribe to the resource after the first decision, make it a hot source.
  * Filter out all events from the data stream wile the most recent decision is
  * not PERMIT. However, on a non-permit signal an AccessDeniedException
  * downstream. Enable the client to recover and wait for the resource to become
  * available again.
- *
+ * <p>
  * Keep the subscription alive as long as the client does.
- *
+ * <p>
  * The client is aware of access denied events.
- *
+ * <p>
  *
  * The parameters subject, action, resource, and environment can be used to
  * explicitly set the corresponding keys in the SAPL authorization subscription,

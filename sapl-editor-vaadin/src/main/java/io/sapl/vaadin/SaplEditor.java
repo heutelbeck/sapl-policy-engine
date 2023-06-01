@@ -72,7 +72,7 @@ public class SaplEditor extends BaseEditor {
 	 * be raised after the document was changed and the validation took place. The
 	 * event object contains a list with all validation issues of the document.
 	 * 
-	 * @param listener
+	 * @param listener the event listener
 	 */
 	public void addValidationFinishedListener(ValidationFinishedListener listener) {
 		this.validationFinishedListeners.add(listener);

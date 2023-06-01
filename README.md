@@ -2,8 +2,6 @@
 
 # The Streaming Attribute Policy Language (SAPL) and the Streaming Attribute Authorization Engine (SAAE)
 
-
-
 ## Maven Dependencies
 
 ### Add the Maven Central snapshot repository to your `pom.xml`, if you want to use SNAPSHOT versions of the engine:

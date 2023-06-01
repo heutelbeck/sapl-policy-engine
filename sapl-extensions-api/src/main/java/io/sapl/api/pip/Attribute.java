@@ -22,7 +22,7 @@ import java.lang.annotation.Target;
 
 /**
  * Marker annotation, declaring a function in a class to be an attribute finder.
- * 
+ * <p>
  * The name defaults to the method name if not explicitly declared as a
  * parameter.
  */

@@ -21,7 +21,7 @@ import reactor.core.publisher.Flux;
 
 /**
  * Implements the evaluation of functions.
- *
+ * <p>
  * Grammar: {BasicFunction} fsteps+=ID ('.' fsteps+=ID)* arguments=Arguments
  * steps+=Step*; {Arguments} '(' (args+=Expression (',' args+=Expression)*)?
  * ')';

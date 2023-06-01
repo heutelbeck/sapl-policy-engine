@@ -176,21 +176,21 @@ public class ContentFilterUtil {
 
 	private static Predicate<Object> conditionToPredicate(JsonNode condition, ObjectMapper objectMapper) {
 		if (!condition.isObject())
-			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition.toString());
+			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition);
 
 		if (!condition.has(PATH) || !condition.get(PATH).isTextual())
-			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition.toString());
+			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition);
 
 		var path = condition.get(PATH).textValue();
 
 		if (!condition.has(TYPE) ||
 				!condition.get(TYPE).isTextual())
-			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition.toString());
+			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition);
 
 		var type = condition.get(TYPE).textValue();
 
 		if (!condition.has(VALUE))
-			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition.toString());
+			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition);
 
 		var jsonPathConfiguration = Configuration.builder().jsonProvider(new JacksonJsonNodeJsonProvider(objectMapper))
 				.build();
@@ -223,7 +223,7 @@ public class ContentFilterUtil {
 			Configuration jsonPathConfiguration, ObjectMapper objectMapper) {
 
 		if (!condition.get(VALUE).isTextual())
-			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition.toString());
+			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition);
 
 		var regex = Pattern.compile(condition.get(VALUE).textValue());
 
@@ -238,7 +238,7 @@ public class ContentFilterUtil {
 	private static Predicate<Object> leqCondition(JsonNode condition, String path, Configuration jsonPathConfiguration,
 			ObjectMapper objectMapper) {
 		if (!condition.get(VALUE).isNumber())
-			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition.toString());
+			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition);
 
 		var value = condition.get(VALUE).asDouble();
 
@@ -253,7 +253,7 @@ public class ContentFilterUtil {
 	private static Predicate<Object> geqCondition(JsonNode condition, String path, Configuration jsonPathConfiguration,
 			ObjectMapper objectMapper) {
 		if (!condition.get(VALUE).isNumber())
-			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition.toString());
+			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition);
 
 		var value = condition.get(VALUE).asDouble();
 
@@ -268,7 +268,7 @@ public class ContentFilterUtil {
 	private static Predicate<Object> ltCondition(JsonNode condition, String path, Configuration jsonPathConfiguration,
 			ObjectMapper objectMapper) {
 		if (!condition.get(VALUE).isNumber())
-			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition.toString());
+			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition);
 
 		var value = condition.get(VALUE).asDouble();
 
@@ -284,7 +284,7 @@ public class ContentFilterUtil {
 	private static Predicate<Object> gtCondition(JsonNode condition, String path, Configuration jsonPathConfiguration,
 			ObjectMapper objectMapper) {
 		if (!condition.get(VALUE).isNumber())
-			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition.toString());
+			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition);
 
 		var value = condition.get(VALUE).asDouble();
 
@@ -315,7 +315,7 @@ public class ContentFilterUtil {
 			return numberEqCondition(condition, path, jsonPathConfiguration, objectMapper);
 
 		if (!valueNode.isTextual())
-			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition.toString());
+			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition);
 
 		var value = valueNode.textValue();
 
@@ -331,7 +331,7 @@ public class ContentFilterUtil {
 			ObjectMapper objectMapper) {
 		var originalJsonNode = objectMapper.valueToTree(original);
 		var jsonContext      = JsonPath.using(jsonPathConfiguration).parse(originalJsonNode);
-		return (JsonNode) jsonContext.read(path);
+		return jsonContext.read(path);
 	}
 
 	private static boolean noConditionsPresent(JsonNode constraint) {
@@ -341,7 +341,7 @@ public class ContentFilterUtil {
 	private static void assertConditionsIsAnArrayNode(JsonNode constraint) {
 		var conditions = constraint.get(CONDITIONS);
 		if (!conditions.isArray())
-			throw new IllegalArgumentException("'conditions' not an array: " + conditions.toString());
+			throw new IllegalArgumentException("'conditions' not an array: " + conditions);
 	}
 
 	public static UnaryOperator<Object> getTransformationHandler(JsonNode constraint, ObjectMapper objectMapper) {

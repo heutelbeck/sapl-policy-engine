@@ -60,8 +60,8 @@ public class HttpServiceContext implements IServiceContext {
 				contentType = request.getContentType().split(";(\\s*)");
 			}
 			if (contentType != null && "application/x-www-form-urlencoded".equals(contentType[0])) {
-				String charset = null;
-				if (contentType != null && contentType.length >= 2 && contentType[1].startsWith("charset=")) {
+				String charset;
+				if (contentType.length >= 2 && contentType[1].startsWith("charset=")) {
 					charset = (contentType[1]).substring("charset=".length());
 				} else {
 					charset = Charset.defaultCharset().toString();

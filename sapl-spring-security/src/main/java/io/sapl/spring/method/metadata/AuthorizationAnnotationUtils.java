@@ -30,13 +30,13 @@ import lombok.experimental.UtilityClass;
  * A wrapper around {@link AnnotationUtils} that checks for, and errors on,
  * conflicting annotations. This is specifically important for Spring Security
  * annotations which are not designed to be repeatable.
- *
+ * <p>
  * There are numerous ways that two annotations of the same type may be attached
  * to the same method. For example, a class may implement a method defined in
  * two separate interfaces. If both of those interfaces have a `@PreAuthorize`
  * annotation, then it's unclear which `@PreAuthorize` expression Spring
  * Security should use.
- *
+ * <p>
  * Another way is when one of Spring Security's annotations is used as a
  * meta-annotation. In that case, two custom annotations can be declared, each
  * with their own `@PreAuthorize` declaration. If both custom annotations are
@@ -52,7 +52,7 @@ final class AuthorizationAnnotationUtils {
 	 * First lookup the annotation on the method, then on the class.
 	 * 
 	 * @param <A>            The annotation type.
-	 * @param method
+	 * @param method		the method to examine
 	 * @param annotationType The annotation type to lookup, e.g., @PreEnforce
 	 * @return the annotation if found or, {@code null} otherwise
 	 */
@@ -67,7 +67,7 @@ final class AuthorizationAnnotationUtils {
 	 * Perform an exhaustive search on the type hierarchy of the given
 	 * {@link Method} for the annotation of type {@code annotationType}, including
 	 * any annotations using {@code annotationType} as a meta-annotation.
-	 *
+	 * <p>
 	 * If more than one is found, then throw an error.
 	 * 
 	 * @param method         the method declaration to search from
@@ -92,7 +92,7 @@ final class AuthorizationAnnotationUtils {
 	 * Perform an exhaustive search on the type hierarchy of the given {@link Class}
 	 * for the annotation of type {@code annotationType}, including any annotations
 	 * using {@code annotationType} as a meta-annotation.
-	 *
+	 * <p>
 	 * If more than one is found, then throw an error.
 	 * 
 	 * @param type           the type to search from

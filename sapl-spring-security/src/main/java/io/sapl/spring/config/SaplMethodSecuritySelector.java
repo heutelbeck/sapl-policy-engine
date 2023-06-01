@@ -37,7 +37,7 @@ final class SaplMethodSecuritySelector implements ImportSelector {
 	private final ImportSelector autoProxy = new AutoProxyRegistrarSelector();
 
 	@Override
-	public String[] selectImports(@NonNull AnnotationMetadata importMetadata) {
+	public String @lombok.NonNull [] selectImports(@NonNull AnnotationMetadata importMetadata) {
 		if (!importMetadata.hasAnnotation(EnableSaplMethodSecurity.class.getName())) {
 			return new String[0];
 		}
@@ -58,7 +58,6 @@ final class SaplMethodSecuritySelector implements ImportSelector {
 			return switch (adviceMode) {
 			case PROXY -> IMPORTS;
 			case ASPECTJ -> ASPECTJ_IMPORTS;
-			default -> throw new IllegalStateException("AdviceMode '" + adviceMode + "' is not supported");
 			};
 		}
 

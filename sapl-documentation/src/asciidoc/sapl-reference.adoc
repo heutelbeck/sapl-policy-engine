@@ -753,7 +753,7 @@ In any policy an arbitrary number of advice expressions, all introduced with the
 
 ==== Transformation
 
-An *optional* transformation statement is preluded with the keyword `transform` and followed by an expression. If a transformation statement is supplied and the policy evaluates to `permit`, the result of evaluating the expression will be returned as the `resource` in the authorization decision object.
+An *optional* transformation statement starts with the keyword `transform` and followed by an expression. If a transformation statement is supplied and the policy evaluates to `permit`, the result of evaluating the expression will be returned as the `resource` in the authorization decision object.
 
 Accordingly, a transformation statement might be used to hide certain information (e.g., _a doctor can access patient data but should not see bank account details_). This can be reached by applying a filter to the original resource, which removes or blackens certain attributes. Thus, SAPL allows for *fine-grained* or *field-level* access control without the need to treat each attribute as a resource and write a specific  policy for it.
 

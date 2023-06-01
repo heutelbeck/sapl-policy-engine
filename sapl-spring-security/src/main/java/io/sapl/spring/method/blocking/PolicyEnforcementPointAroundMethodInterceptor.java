@@ -17,6 +17,7 @@ package io.sapl.spring.method.blocking;
 
 import java.lang.annotation.Annotation;
 
+import lombok.NonNull;
 import org.aopalliance.aop.Advice;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
@@ -94,7 +95,7 @@ public class PolicyEnforcementPointAroundMethodInterceptor
 	}
 
 	@Override
-	public Advice getAdvice() {
+	public @NonNull Advice getAdvice() {
 		return this;
 	}
 
@@ -104,7 +105,7 @@ public class PolicyEnforcementPointAroundMethodInterceptor
 	}
 
 	@Override
-	public Object invoke(MethodInvocation invocation) throws Throwable {
+	public Object invoke(@NonNull MethodInvocation invocation) throws Throwable {
 		return policyEnforcementPoint.invoke(invocation);
 	}
 }

@@ -28,7 +28,7 @@ import lombok.RequiredArgsConstructor;
  * annotations in function libraries or Policy Information Points.
  */
 @Data
-@NoArgsConstructor
+@NoArgsConstructor(force = true)
 @RequiredArgsConstructor
 public class LibraryDocumentation {
 

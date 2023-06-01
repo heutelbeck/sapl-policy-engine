@@ -21,14 +21,6 @@ import java.util.function.Predicate;
 
 import lombok.experimental.UtilityClass;
 
-/**
- * Collection of utility functions as defaults for when no specific constraint
- * handlers are defined.
- */
-/**
- * @author dominic
- *
- */
 @UtilityClass
 public class FunctionUtil {
 
@@ -38,7 +30,7 @@ public class FunctionUtil {
 	 * @param <T> payload type
 	 * @return A {@link Consumer} doing nothing.
 	 */
-	public static final <T> Consumer<T> sink() {
+	public static <T> Consumer<T> sink() {
 		return t -> {
 		};
 	}
@@ -48,7 +40,7 @@ public class FunctionUtil {
 	 * 
 	 * @return A {@link LongConsumer} doing nothing.
 	 */
-	public static final LongConsumer longSink() {
+	public static LongConsumer longSink() {
 		return t -> {
 		};
 	}
@@ -59,7 +51,7 @@ public class FunctionUtil {
 	 * @param <T> the payload type
 	 * @return a predicate that always returns {@code true}
 	 */
-	public static final <T> Predicate<T> all() {
+	public static <T> Predicate<T> all() {
 		return t -> true;
 	}
 
@@ -68,7 +60,7 @@ public class FunctionUtil {
 	 * 
 	 * @return A {@link Runnable} doing nothing.
 	 */
-	public static final Runnable noop() {
+	public static Runnable noop() {
 		return () -> {
 		};
 	}

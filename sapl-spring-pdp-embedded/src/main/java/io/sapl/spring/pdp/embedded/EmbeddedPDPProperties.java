@@ -32,13 +32,13 @@ public class EmbeddedPDPProperties {
 
 	/**
 	 * Selects the source of configuration and policies:
-	 *
+	 * <p>
 	 * The options are:
-	 *
+	 * <p>
 	 * - RESOURCES : Loads a fixed set of documents and pdp.json from the bundled
 	 * resource. These will be loaded once and cannot be updated at runtime of the
 	 * system.
-	 *
+	 * <p>
 	 * - FILESYSTEM: Monitors directories for documents and configuration. Will
 	 * automatically update any changes made to the documents and configuration at
 	 * runtime. Changes will directly be reflected in the decisions made in already
@@ -49,12 +49,12 @@ public class EmbeddedPDPProperties {
 
 	/**
 	 * Selects the indexing algorithm used by the PDP.
-	 *
+	 * <p>
 	 * The options are:
-	 *
+	 * <p>
 	 * - NAIVE : A simple implementation for systems with small numbers of
 	 * documents.
-	 *
+	 * <p>
 	 * - CANONICAL : An improved index for systems with large numbers of documents.
 	 * Takes more time to update and initialize but significantly reduces retrieval
 	 * time.
@@ -65,7 +65,7 @@ public class EmbeddedPDPProperties {
 	/**
 	 * This property sets the path to the folder where the pdp.json configuration
 	 * file is located.
-	 *
+	 * <p>
 	 * If the pdpConfigType is set to RESOURCES, / is the root of the context path.
 	 * For FILESYSTEM, it must be a valid path on the system's filesystem.
 	 */
@@ -75,7 +75,7 @@ public class EmbeddedPDPProperties {
 	/**
 	 * This property sets the path to the folder where the *.sapl documents are
 	 * located.
-	 *
+	 * <p>
 	 * If the pdpConfigType is set to RESOURCES, / is the root of the context path.
 	 * For FILESYSTEM, it must be a valid path on the system's file system.
 	 */

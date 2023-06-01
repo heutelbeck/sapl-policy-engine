@@ -224,21 +224,14 @@ public class HtmlLineCoverageReportGenerator {
 			var coveredValue = line.getCoveredValue();
 			assertValidCoveredValue(coveredValue);
 			switch (coveredValue) {
-			case FULLY:
-				model.setCssClass("coverage-green");
-				break;
-			case NEVER:
-				model.setCssClass("coverage-red");
-				break;
-			case PARTLY:
-				model.setCssClass("coverage-yellow");
-				model.setPopoverContent(String.format("%d of %d branches covered", line.getCoveredBranches(),
-						line.getBranchesToCover()));
-				break;
-			case IRRELEVANT:
-			default:
-				model.setCssClass("");
-				break;
+				case FULLY -> model.setCssClass("coverage-green");
+				case NEVER -> model.setCssClass("coverage-red");
+				case PARTLY -> {
+					model.setCssClass("coverage-yellow");
+					model.setPopoverContent(String.format("%d of %d branches covered", line.getCoveredBranches(),
+							line.getBranchesToCover()));
+				}
+				default -> model.setCssClass("");
 			}
 			models.add(model);
 		}

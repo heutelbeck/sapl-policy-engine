@@ -25,7 +25,7 @@ import reactor.core.publisher.Flux;
 
 /**
  * Implements the eager boolean AND operator, written as '&amp;' in Expressions.
- *
+ * <p>
  * Grammar: Multiplication returns Expression: Comparison (('&amp;'
  * {EagerAnd.left=current}) right=Comparison)* ;
  */

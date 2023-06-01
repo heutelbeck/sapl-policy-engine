@@ -18,11 +18,11 @@ package io.sapl.spring.method.blocking;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+import lombok.NonNull;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
-import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextHolderStrategy;
@@ -54,7 +54,7 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
 
 	private static final String ACCESS_DENIED_BY_PEP = "Access Denied by PEP.";
 
-	private Supplier<Authentication> authentication = getAuthentication(
+	private final Supplier<Authentication> authentication = getAuthentication(
 			SecurityContextHolder.getContextHolderStrategy());
 
 	private final PolicyDecisionPoint                        policyDecisionPoint;
@@ -63,7 +63,7 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
 	private final WebAuthorizationSubscriptionBuilderService subscriptionBuilder;
 
 	@Override
-	public Object invoke(MethodInvocation methodInvocation) throws Throwable {
+	public Object invoke(@NonNull MethodInvocation methodInvocation) throws Throwable {
 
 		var attribute = attributeRegistry.getSaplAttributeForAnnotationType(methodInvocation, PreEnforce.class);
 		if (attribute.isEmpty()) {

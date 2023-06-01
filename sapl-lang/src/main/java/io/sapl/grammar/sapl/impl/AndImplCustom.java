@@ -25,7 +25,7 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the lazy boolean AND operator, written as '&amp;&amp;' in
  * Expressions.
- *
+ * <p>
  * Grammar: Multiplication returns Expression: Comparison (({And.left=current}
  * '&amp;&amp;') right=Comparison)* ;
  */

@@ -25,7 +25,7 @@ import reactor.core.publisher.Flux;
 
 /**
  * Checks for a left value being greater than a right value.
- *
+ * <p>
  * Grammar: {@code Comparison returns Expression: Prefixed (({More.left=current}
  * '&gt;') right=Prefixed)? ;}
  */

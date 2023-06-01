@@ -58,7 +58,7 @@ import reactor.core.publisher.Mono;
  *		                    "publicKeyServer": {
  *                                               "uri":    "http://authz-server:9000/public-key/{id}",
  *                                               "method": "POST",
- *                                               "keyCachingTTLmillis": 300000
+ *                                               "keyCachingTtlMillis": 300000
  *                                             },
  *					        "whitelist" : {
  *								            "key id" : "public key"

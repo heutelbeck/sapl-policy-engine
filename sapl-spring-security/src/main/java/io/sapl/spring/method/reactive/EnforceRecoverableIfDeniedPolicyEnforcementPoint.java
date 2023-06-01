@@ -41,14 +41,14 @@ import reactor.util.function.Tuples;
 /**
  * The EnforceDropWhileDeniedPolicyEnforcementPoint implements continuous policy
  * enforcement on a Flux resource access point.
- *
+ * <p>
  * After an initial PERMIT, the PEP subscribes to the resource access point and
  * forwards events downstream until a non-PERMIT decision from the PDP is
  * received. Then, all events are dropped until a new PERMIT signal arrives.
- *
+ * <p>
  * Whenever a decision is received, the handling of obligations and advice are
  * updated accordingly.
- *
+ * <p>
  * The PEP does not permit onErrorContinue() downstream.
  *
  * @param <T> type of the FLux contents

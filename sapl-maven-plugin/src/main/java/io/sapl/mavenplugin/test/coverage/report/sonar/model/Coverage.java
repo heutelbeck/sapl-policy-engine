@@ -42,7 +42,7 @@ import lombok.Generated;
  * <p>
  * The following schema fragment specifies the expected content contained within this
  * class.
- *
+ * <p>
  * {@code
  * <pre>
 * <complexType>

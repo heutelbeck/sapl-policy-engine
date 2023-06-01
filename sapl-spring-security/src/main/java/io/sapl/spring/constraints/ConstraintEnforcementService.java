@@ -202,7 +202,7 @@ public class ConstraintEnforcementService {
 		var unhandledObligations = Sets.newHashSet(decision.getObligations().orElseGet(mapper::createArrayNode));
 
 		// @formatter:off
-		var bundle = BlockingConstraintHandlerBundle.<T>postEnforceConstraintHandlerBundle(
+		var bundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(
 				runnableHandlersForSignal(Signal.ON_DECISION, decision, unhandledObligations),
 				onNextHandlers(decision, unhandledObligations, clazz),
 				mapNextHandlers(decision, unhandledObligations, clazz), 
@@ -234,7 +234,7 @@ public class ConstraintEnforcementService {
 	public <T> BlockingConstraintHandlerBundle<T> blockingPreEnforceBundleFor(
 			AuthorizationDecision decision, Class<T> clazz) {
 		var unhandledObligations = Sets.newHashSet(decision.getObligations().orElseGet(mapper::createArrayNode));
-		var bundle               = BlockingConstraintHandlerBundle.<T>preEnforceConstraintHandlerBundle(
+		var bundle               = BlockingConstraintHandlerBundle.preEnforceConstraintHandlerBundle(
 				runnableHandlersForSignal(Signal.ON_DECISION, decision, unhandledObligations),
 				onNextHandlers(decision, unhandledObligations, clazz),
 				mapNextHandlers(decision, unhandledObligations, clazz),
@@ -251,7 +251,7 @@ public class ConstraintEnforcementService {
 	}
 
 	/**
-	 * This Methods provides a blocking constraint handler for use in AccessManagers
+	 * This Method provides a blocking constraint handler for use in AccessManagers
 	 * for servlet-based filtering. Only ON_DECISION handlers are feasible here.
 	 * 
 	 * @param decision a decision

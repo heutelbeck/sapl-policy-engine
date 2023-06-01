@@ -25,7 +25,7 @@ import reactor.core.publisher.Flux;
 
 /**
  * Checks for non equality of two values.
- *
+ * <p>
  * Grammar: {@code Comparison returns Expression: Prefixed
  * (({NotEquals.left=current} '!=') * right=Prefixed)? ;}
  */

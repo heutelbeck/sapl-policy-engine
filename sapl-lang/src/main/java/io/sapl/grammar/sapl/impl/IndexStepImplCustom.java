@@ -33,9 +33,9 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the application of an index step to a previous array value, e.g.
  * 'arr[2]'.
- *
+ * <p>
  * Grammar: {@code Step: '[' Subscript ']' ;
- *
+ * <p>
  * Subscript returns Step: {IndexStep} index=JSONNUMBER ;}
  */
 public class IndexStepImplCustom extends IndexStepImpl {

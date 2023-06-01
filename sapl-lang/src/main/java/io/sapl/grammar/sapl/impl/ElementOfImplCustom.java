@@ -28,7 +28,7 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the evaluation of the 'in-array' operation. It checks if a value
  * is contained in an array.
- *
+ * <p>
  * Grammar: {@code Comparison returns Expression: Prefixed
  * (({ElementOf.left=current} 'in') right=Prefixed)? ;}
  */

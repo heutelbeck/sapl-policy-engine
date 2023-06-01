@@ -37,21 +37,21 @@ import reactor.core.publisher.Flux;
 /**
  * This algorithm is used if a DENY decision should prevail a PERMIT without
  * setting a default decision.
- *
+ * <p>
  * It works as follows:
- *
+ * <p>
  * - If any policy document evaluates to DENY, the decision is a DENY.
- *
+ * <p>
  * - Otherwise:
- *
+ * <p>
  * a) If there is any INDETERMINATE or there is a transformation uncertainty
  * (multiple policies evaluate to PERMIT and at least one of them has a
  * transformation statement), the decision is INDETERMINATE.
- *
+ * <p>
  * b) Otherwise:
- *
+ * <p>
  * i) If there is any PERMIT the decision is PERMIT.
- *
+ * <p>
  * ii) Otherwise the decision is NOT_APPLICABLE.
  */
 public class DenyOverridesCombiningAlgorithmImplCustom extends DenyOverridesCombiningAlgorithmImpl {

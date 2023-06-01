@@ -22,9 +22,10 @@ import org.eclipse.xtext.generator.IGeneratorContext;
 
 /**
  * Generates code from your model files on save.
- *
+ * <p>
  * See
- * https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#code-generation
+ * <a href="https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#code-generation">
+ *     Code Generation</a>
  */
 public class SAPLGenerator extends AbstractGenerator {
 

@@ -35,13 +35,13 @@ import reactor.core.publisher.Flux;
 /**
  * This strict algorithm is used if the decision should be a DENY except for
  * there is a PERMIT. It ensures that any decision is either DENY or PERMIT.
- *
+ * <p>
  * It works as follows:
- *
+ * <p>
  * - If any policy document evaluates to PERMIT and there is no transformation
  * uncertainty (multiple policies evaluate to PERMIT and at least one of them
  * has a transformation statement), the decision is PERMIT.
- *
+ * <p>
  * - Otherwise the decision is a DENY.
  */
 public class DenyUnlessPermitCombiningAlgorithmImplCustom extends DenyUnlessPermitCombiningAlgorithmImpl {

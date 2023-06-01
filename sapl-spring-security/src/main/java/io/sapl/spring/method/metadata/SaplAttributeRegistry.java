@@ -79,17 +79,11 @@ public class SaplAttributeRegistry {
 
 	private <T extends Annotation> boolean hasAnnotation(Method method, Class<?> targetClass, Class<T> annotationType) {
 		var specificMethod = AopUtils.getMostSpecificMethod(method, targetClass);
-		var annoatation    = AuthorizationAnnotationUtils
+		var annotation    = AuthorizationAnnotationUtils
 				.findAuthorizeAnnotationOnMethodOrDeclaringClass(specificMethod, annotationType);
-		return annoatation != null;
+		return annotation != null;
 	}
 
-	/**
-	 * See
-	 * {@link org.springframework.security.access.prepost.PrePostAnnotationSecurityMetadataSource
-	 * #findAnnotation(Method, Class)} the logic is the same as for @PreAuthorize
-	 * and @PostAuthorize.
-	 */
 	private <A extends Annotation> A findAnnotation(Method method, Class<?> targetClass, Class<A> annotationClass) {
 		// The method may be on an interface, but we need attributes from the target
 		// class. If the target class is null, the method will be unchanged.
@@ -106,7 +100,7 @@ public class SaplAttributeRegistry {
 
 	/**
 	 * @param mi the {@link MethodInvocation} to use
-	 * @return a list of all SaplAttributes.
+	 * @return a Map of all SaplAttributes by type.
 	 */
 	public Map<Class<? extends Annotation>, SaplAttribute> getAllSaplAttributes(MethodInvocation mi) {
 		var attributes = new HashMap<Class<? extends Annotation>, SaplAttribute>();
@@ -141,9 +135,6 @@ public class SaplAttributeRegistry {
 
 	public <T extends Annotation> SaplAttribute resolveAttribute(Method method, Class<?> targetClass,
 			Class<T> annotationType) {
-//		var specificMethod = AopUtils.getMostSpecificMethod(method, targetClass);
-//		var annotation     = AuthorizationAnnotationUtils
-//				.findAuthorizeAnnotationOnMethodOrDeclaringClass(specificMethod, annotationType);
 		var annotation = findAnnotation(method, targetClass, annotationType);
 		if (annotation == null) {
 			return SaplAttribute.NULL_ATTRIBUTE;

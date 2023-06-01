@@ -27,7 +27,7 @@ import reactor.core.publisher.Flux;
 
 /**
  * Implementation of an object in SAPL.
- *
+ * <p>
  * Grammar: Object returns Value: {Object} '{' (members+=Pair (','
  * members+=Pair)*)? '}' ;
  */
@@ -35,10 +35,10 @@ public class ObjectImplCustom extends ObjectImpl {
 
 	/**
 	 * The semantics of evaluating an object is as follows:
-	 *
+	 * <p>
 	 * An object may contain a list of attribute name-value pairs. To get the values
 	 * of the individual attributes, these have to be recursively evaluated.
-	 *
+	 * <p>
 	 * Returning a Flux this means to subscribe to all attribute-value expression
 	 * result Fluxes and to combineLatest into a new object each time one of the
 	 * expression Fluxes emits a new value.

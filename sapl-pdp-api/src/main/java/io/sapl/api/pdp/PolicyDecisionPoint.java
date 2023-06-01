@@ -22,7 +22,7 @@ import reactor.core.publisher.Flux;
  * authorization subscription, retrieve matching policies from the policy retrieval point,
  * evaluate the policies while potentially consulting external resources (e.g., through
  * attribute finders), and return a {@link Flux} of authorization decision objects.
- *
+ * <p>
  * This interface offers methods to hand over an authorization subscription to the policy
  * decision point, differing in the construction of the underlying authorization
  * subscription object.

@@ -27,17 +27,17 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the expression subscript of an array (or object), written as
  * '[(Expression)]'.
- *
+ * <p>
  * Returns the value of an attribute with a key or an array item with an index
  * specified by an expression. Expression must evaluate to a string or a number.
  * If Expression evaluates to a string, the selection can only be applied to an
  * object. If Expression evaluates to a number, the selection can only be
  * applied to an array.
- *
+ * <p>
  * Example: The expression step can be used to refer to custom variables
  * (object.array[(anIndex+2)]) or apply custom functions
  * (object.array[(max_value(object.array))]).
- *
+ * <p>
  * Grammar: Step: ... | '[' Subscript ']' | ... Subscript returns Step: ... |
  * {ExpressionStep} '(' expression=Expression ')' | ...
  */

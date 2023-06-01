@@ -26,7 +26,7 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the application of a wildcard step to a previous value, e.g
  * 'value.*'.
- *
+ * <p>
  * Grammar: Step: '.' ({WildcardStep} '*') ;
  */
 public class WildcardStepImplCustom extends WildcardStepImpl {

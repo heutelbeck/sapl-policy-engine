@@ -34,7 +34,7 @@ import lombok.RequiredArgsConstructor;
  * 
  * This bundle aggregates all constraint handlers for a specific decision which
  * are useful in a blocking PostEnforce scenario.
- * 
+ * <p>
  * 
  * @author Dominic Heutelbeck
  *
@@ -127,7 +127,7 @@ public class BlockingConstraintHandlerBundle<T> {
 	}
 
 	/**
-	 * Factory method for creating a bundle for use in an an AuthorizationManager
+	 * Factory method for creating a bundle for use in an AuthorizationManager
 	 * PEP.
 	 * 
 	 * @param <T>                payload type
@@ -145,7 +145,7 @@ public class BlockingConstraintHandlerBundle<T> {
 	 * o Runs all method invocation handlers. These handlers may modify the
 	 * methodInvocation.
 	 * 
-	 * @param methodInvocation
+	 * @param methodInvocation the method invocation to examine and potentially modify
 	 */
 	public void handleMethodInvocationHandlers(MethodInvocation methodInvocation) {
 		methodInvocationHandlers.accept(methodInvocation);

@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import lombok.NonNull;
 import org.reactivestreams.Subscription;
 import org.springframework.security.access.AccessDeniedException;
 
@@ -38,18 +39,18 @@ import reactor.core.publisher.Flux;
 /**
  * The EnforceTillDeniedPolicyEnforcementPoint implements continuous policy
  * enforcement on a Flux resource access point.
- *
+ * <p>
  * If the initial decision of the PDP is not PERMIT, an AccessDeniedException is
  * signaled downstream without subscribing to resource access point.
- *
+ * <p>
  * After an initial PERMIT, the PEP subscribes to the resource access point and
  * forwards events downstream until a non-PERMIT decision from the PDP is
  * received. Then, an AccessDeniedException is signaled downstream and the PDP
  * and resource access point subscriptions are cancelled.
- *
+ * <p>
  * Whenever a decision is received, the handling of obligations and advice are
  * updated accordingly.
- *
+ * <p>
  * The PEP does not permit onErrorContinue() downstream.
  *
  * @param <T> type of the FLux contents
@@ -96,7 +97,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 	}
 
 	@Override
-	public void subscribe(CoreSubscriber<? super T> subscriber) {
+	public void subscribe(@NonNull CoreSubscriber<? super T> subscriber) {
 		if (sink != null)
 			throw new IllegalStateException("Operator may only be subscribed once.");
 		var context = subscriber.currentContext();

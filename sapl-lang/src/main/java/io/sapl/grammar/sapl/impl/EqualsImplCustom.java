@@ -25,7 +25,7 @@ import reactor.core.publisher.Flux;
 
 /**
  * Checks for equality of two values.
- *
+ * <p>
  * Grammar: Comparison returns Expression: Prefixed (({Equals.left=current}
  * '==') right=Prefixed)? ;
  */

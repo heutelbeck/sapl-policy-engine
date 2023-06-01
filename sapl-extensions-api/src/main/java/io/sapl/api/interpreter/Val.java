@@ -37,20 +37,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * Val is the basic data type SAPL expressions evaluate to. A Val may contain a
- * Jackson JsonNode, an error, or may be undefined. Val is immutable.
- * 
- * @author Dominic Heutelbeck
- */
-/**
- * @author dominic
- *
- */
-/**
- * @author dominic
- *
- */
-/**
  * @author dominic
  *
  */
@@ -244,7 +230,7 @@ public class Val implements Traced {
 	}
 
 	/**
-	 * @return a Val with a an unknown error.
+	 * @return a Val with an unknown error.
 	 */
 	public static Val error() {
 		return new Val(UNKNOWN_ERROR);
@@ -495,7 +481,7 @@ public class Val implements Traced {
 	/**
 	 * @param <X>               error type
 	 * @param exceptionSupplier a supplier for a Throwable.
-	 * @return the value of the Val, if defined. Else the supplied Thworable is
+	 * @return the value of the Val, if defined. Else the supplied Throwable is
 	 *         thrown.
 	 * @throws X an Exception if value undefined.
 	 */
@@ -619,7 +605,7 @@ public class Val implements Traced {
 	}
 
 	/**
-	 * @return a Flux only containing the Val with the a JSON null value.
+	 * @return a Flux only containing the Val with a JSON null value.
 	 */
 	public static Flux<Val> fluxOfNull() {
 		return Flux.just(NULL);
@@ -644,7 +630,7 @@ public class Val implements Traced {
 
 	/**
 	 * @param val a Boolean value
-	 * @return Flux only containing the a Val with the boolean value.
+	 * @return Flux only containing a Val with the boolean value.
 	 */
 	public static Flux<Val> fluxOf(boolean val) {
 		return Flux.just(of(val));
@@ -652,7 +638,7 @@ public class Val implements Traced {
 
 	/**
 	 * @param val a Long value
-	 * @return Flux only containing the a Val with the Long value.
+	 * @return Flux only containing a Val with the Long value.
 	 */
 	public static Flux<Val> fluxOf(long val) {
 		return Flux.just(of(val));
@@ -752,7 +738,7 @@ public class Val implements Traced {
 
 	/**
 	 * @return if the Val is Boolean, the Boolean value is returned. Else throws a
-	 *         PolicyEvaluiationException.
+	 *         PolicyEvaluationException.
 	 */
 	public boolean getBoolean() {
 		if (isBoolean()) {
@@ -763,7 +749,7 @@ public class Val implements Traced {
 
 	/**
 	 * @return if the Val is a number, the number is returned as Long. Else throws a
-	 *         PolicyEvaluiationException.
+	 *         PolicyEvaluationException.
 	 */
 	public long getLong() {
 		if (isNumber()) {
@@ -801,7 +787,7 @@ public class Val implements Traced {
 
 	/**
 	 * @param value a Val
-	 * @return a Flux of the the value of the Val as an JsonNode. Or a Flux with an
+	 * @return a Flux of the value of the Val as an JsonNode. Or a Flux with an
 	 *         error.
 	 */
 	public static Flux<JsonNode> toJsonNode(Val value) {
@@ -841,7 +827,7 @@ public class Val implements Traced {
 
 	/**
 	 * @param value a Val
-	 * @return a Flux of the the value of the Val as an ArrayNode. Or a Flux with an
+	 * @return a Flux of the value of the Val an ArrayNode. Or a Flux with an
 	 *         error.
 	 */
 	public static Flux<ArrayNode> toArrayNode(Val value) {

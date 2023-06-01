@@ -31,11 +31,11 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the application of an array slicing step to a previous array
  * value, e.g. {@code 'arr[4:12:2]'}.
- *
+ * <p>
  * Grammar:
- *
+ * <p>
  * {@code Step: '[' Subscript ']' ;
- *
+ * <p>
  * Subscript returns Step: {ArraySlicingStep} index=JSONNUMBER? ':'
  * to=JSONNUMBER? (':' step=JSONNUMBER)? ;}
  */

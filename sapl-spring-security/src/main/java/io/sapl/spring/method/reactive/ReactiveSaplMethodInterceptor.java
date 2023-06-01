@@ -73,7 +73,7 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 	private final PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint;
 
 	@Override
-	public Object invoke(final MethodInvocation invocation) throws Throwable {
+	public Object invoke(final MethodInvocation invocation) {
 		var method         = invocation.getMethod();
 		var saplAttributes = source.getAllSaplAttributes(invocation);
 
@@ -214,8 +214,8 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 
 	@SafeVarargs
 	private boolean hasAnyAnnotationOfType(Map<Class<? extends Annotation>, SaplAttribute> config,
-			Class<? extends Annotation>... annoatationTypes) {
-		for (var annotationType : annoatationTypes)
+			Class<? extends Annotation>... annotationTypes) {
+		for (var annotationType : annotationTypes)
 			if (config.containsKey(annotationType))
 				return true;
 		return false;

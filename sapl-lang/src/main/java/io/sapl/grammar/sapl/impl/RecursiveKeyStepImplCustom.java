@@ -37,7 +37,7 @@ import reactor.util.function.Tuples;
 /**
  * Implements the application of a recursive key step to a previous value, e.g.
  * {@code 'obj..name' or 'arr..["name"]'}.
- *
+ * <p>
  * Grammar: {@code Step: '..' ({RecursiveKeyStep} (id=ID | '[' id=STRING ']'))
  * ;}
  */

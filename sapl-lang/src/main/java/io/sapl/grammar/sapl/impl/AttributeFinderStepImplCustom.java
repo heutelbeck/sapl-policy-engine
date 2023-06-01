@@ -31,7 +31,7 @@ import reactor.core.publisher.Flux;
 
 /**
  * Implements the application of an attribute finder step to a previous value.
- *
+ * <p>
  * Grammar: Step: &#39;.&#39; ({AttributeFinderStep} &#39;&lt;&#39; idSteps+=ID
  * (&#39;.&#39; idSteps+=ID)* &#39;&gt;&#39;) ;
  */

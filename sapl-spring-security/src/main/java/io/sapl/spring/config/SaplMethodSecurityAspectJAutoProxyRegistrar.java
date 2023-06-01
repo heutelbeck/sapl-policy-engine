@@ -15,12 +15,12 @@
  */
 package io.sapl.spring.config;
 
+import lombok.NonNull;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.context.annotation.ImportBeanDefinitionRegistrar;
 import org.springframework.core.type.AnnotationMetadata;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -47,7 +47,7 @@ class SaplMethodSecurityAspectJAutoProxyRegistrar implements ImportBeanDefinitio
 	 * on the importing {@code @Configuration} class.
 	 */
 	@Override
-	public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata, BeanDefinitionRegistry registry) {
+	public void registerBeanDefinitions(@NonNull AnnotationMetadata importingClassMetadata, @NonNull BeanDefinitionRegistry registry) {
 		log.info("registerBeanDefinitions");
 		// TODO: ...
 		registerBeanDefinition("preFilterAuthorizationMethodInterceptor",

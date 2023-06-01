@@ -26,7 +26,7 @@ import reactor.core.publisher.Flux;
 
 /**
  * Checks for a value matching a regular expression.
- *
+ * <p>
  * Grammar: {@code Comparison returns Expression: Prefixed
  * (({Regex.left=current} '=~') right=Prefixed)? ;}
  */

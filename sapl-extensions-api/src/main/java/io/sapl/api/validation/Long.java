@@ -22,7 +22,7 @@ import java.lang.annotation.Target;
 
 /**
  * This annotation triggers parameter type validation of functions or attribute finders.
- * This annotation ensures, the parameter is an long.
+ * This annotation ensures, the parameter is a long.
  */
 @Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.RUNTIME)

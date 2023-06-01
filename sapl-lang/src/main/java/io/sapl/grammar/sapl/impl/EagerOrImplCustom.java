@@ -25,7 +25,7 @@ import reactor.core.publisher.Flux;
 
 /**
  * Implements the eager logical OR operation, noted as '|' in the grammar.
- *
+ * <p>
  * Grammar: Addition returns Expression: Multiplication (('|'
  * {EagerOr.left=current}) right=Multiplication)* ;
  */
