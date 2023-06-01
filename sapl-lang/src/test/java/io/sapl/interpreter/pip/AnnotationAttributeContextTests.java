@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.validation.JsonObject;
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -744,6 +746,53 @@ class AnnotationAttributeContextTests {
 	}
 
 	@Test
+	void when_argWithParamSchema_validatesCorrectly()
+			throws InitializationException, IOException {
+
+		final String PERSON_SCHEMA_IN_ERROR_MESSAGE = "{" +
+				"  \\\"$schema\\\": \\\"http://json-schema.org/draft-07/schema#\\\"," +
+				"  \\\"$id\\\": \\\"https://example.com/schemas/regions\\\"," +
+				"  \\\"type\\\": \\\"object\\\"," +
+				"  \\\"properties\\\": {" +
+				"  \\\"name\\\": { \\\"type\\\": \\\"string\\\" }" +
+				"  }" +
+				"}";
+
+		@PolicyInformationPoint(name = "test")
+		class PIP {
+
+			static final String PERSON_SCHEMA = "{" +
+					"  \"$schema\": \"http://json-schema.org/draft-07/schema#\"," +
+					"  \"$id\": \"https://example.com/schemas/regions\"," +
+					"  \"type\": \"object\"," +
+					"  \"properties\": {" +
+					"  \"name\": { \"type\": \"string\" }" +
+					"  }" +
+					"}";
+
+			@EnvironmentAttribute
+			public Flux<Val> envAttribute(Map<String, JsonNode> variable, @JsonObject(schema=PERSON_SCHEMA) Val a1) {
+				return Flux.just(a1);
+			}
+
+		}
+
+		var pip          = new PIP();
+		var attributeCtx = new AnnotationAttributeContext(pip);
+		var variable    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
+
+		var validExpression   = ParserUtil.expression("<test.envAttribute({\"name\": \"Joe\"})>");
+		var expected = new ObjectMapper().readTree("{\"name\": \"Joe\"}\")>");
+		StepVerifier.create(validExpression.evaluate().contextWrite(this.constructContext(attributeCtx, variable)))
+				.expectNext(Val.of(expected)).verifyComplete();
+
+		var invalidExpression   = ParserUtil.expression("<test.envAttribute({\"name\": 23})>");
+		var errorText = String.format("Illegal parameter type. Got: OBJECT Expected: @io.sapl.api.validation.JsonObject(schema=\"%s\") ", PERSON_SCHEMA_IN_ERROR_MESSAGE);
+		StepVerifier.create(invalidExpression.evaluate().contextWrite(this.constructContext(attributeCtx, variable)))
+				.expectNextMatches(valErrorText(errorText)).verifyComplete();
+	}
+
+	@Test
 	void generatesCodeTemplates() throws InitializationException {
 
 		@PolicyInformationPoint(name = "test")
@@ -805,6 +854,58 @@ class AnnotationAttributeContextTests {
 		assertThat(sut.getAllFullyQualifiedFunctions().size(), is(7));
 		assertThat(sut.getAllFullyQualifiedFunctions(),
 				containsInAnyOrder("test.x2", "test.a", "test.a", "test.a2", "test.a2", "test.x", "test.x"));
+	}
+
+	@Test
+	void generatesCodeTemplatesFromAttributeSchema() throws InitializationException {
+
+		@PolicyInformationPoint(name = "test")
+		class PIP {
+
+			static final String PERSON_SCHEMA = "{" +
+					"  \"$schema\": \"http://json-schema.org/draft-07/schema#\"," +
+					"  \"$id\": \"https://example.com/schemas/regions\"," +
+					"  \"type\": \"object\"," +
+					"  \"properties\": {" +
+					"  \"name\": { \"type\": \"string\" }" +
+					"  }" +
+					"}";
+
+			@EnvironmentAttribute(schema = "schemas/person_schema.json")
+			public Flux<Val> a() {
+				return Flux.empty();
+			}
+
+			@EnvironmentAttribute(schema = PERSON_SCHEMA)
+			public Flux<Val> a2() {
+				return Flux.empty();
+			}
+
+			@Attribute(schema = "schemas/person_schema.json")
+			public Flux<Val> x(Val leftHand, Val a1) {
+				return Flux.just(a1);
+			}
+
+			@Attribute(schema = PERSON_SCHEMA)
+			public Flux<Val> x2(Val leftHand, Val a1) {
+				return Flux.just(a1);
+			}
+
+		}
+
+		var pip = new PIP();
+		var sut = new AnnotationAttributeContext(pip);
+
+		var expectedEnvironmentTemplates = new String[] { "test.a>", "test.a>.name", "test.a2>", "test.a2>.name" };
+		var actualEnvironmentTemplates    = sut.getEnvironmentAttributeCodeTemplates();
+		actualEnvironmentTemplates = sut.getEnvironmentAttributeCodeTemplates();
+		assertThat(actualEnvironmentTemplates, containsInAnyOrder(expectedEnvironmentTemplates));
+
+		var expectedNonEnvironmentTemplates = new String[] { "test.x(a1)>", "test.x(a1)>.name", "test.x2(a1)>", "test.x2(a1)>.name" };
+		var actualNonEnvironmentTemplates    = sut.getAttributeCodeTemplates();
+		actualNonEnvironmentTemplates = sut.getAttributeCodeTemplates();
+		assertThat(actualNonEnvironmentTemplates, containsInAnyOrder(expectedNonEnvironmentTemplates));
+
 	}
 
 	@Test

@@ -4,6 +4,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.sapl.interpreter.functions.SchemaTemplates;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -69,7 +70,20 @@ public class AttributeFinderMetadata implements LibraryEntryMetadata {
 
 	@Override
 	public List<String> getSchemaTemplates() {
-		return new ArrayList<>();
+		StringBuilder sb;
+		var schemaTemplates = new ArrayList<String>();
+		var funCodeTemplate = getCodeTemplate();
+		var schema = getFunctionSchema();
+		if (schema.length() > 0){
+			SchemaTemplates schemaTemplate = new SchemaTemplates();
+			var paths = schemaTemplate.schemaTemplates(schema);
+			for (var path : paths){
+				sb = new StringBuilder();
+				sb.append(funCodeTemplate).append(".").append(path);
+				schemaTemplates.add(sb.toString());
+			}
+		}
+		return schemaTemplates;
 	}
 
 }

@@ -320,12 +320,14 @@ public class AnnotationAttributeContext implements AttributeContext {
 			if (method.isAnnotationPresent(Attribute.class)) {
 				foundAtLeastOneSuppliedAttributeInPip = true;
 				var annotation = method.getAnnotation(Attribute.class);
-				importAttribute(pip, pipName, pipDocumentation, method, false, annotation.name(), annotation.docs());
+				importAttribute(pip, pipName, pipDocumentation, method, false, annotation.name(),
+						annotation.schema(), annotation.docs());
 			}
 			if (method.isAnnotationPresent(EnvironmentAttribute.class)) {
 				foundAtLeastOneSuppliedAttributeInPip = true;
 				var annotation = method.getAnnotation(EnvironmentAttribute.class);
-				importAttribute(pip, pipName, pipDocumentation, method, true, annotation.name(), annotation.docs());
+				importAttribute(pip, pipName, pipDocumentation, method, true, annotation.name(),
+						annotation.schema(), annotation.docs());
 			}
 		}
 
@@ -337,12 +339,12 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 	private void importAttribute(Object policyInformationPoint, String pipName,
 			PolicyInformationPointDocumentation pipDocumentation, Method method, boolean isEnvironmentAttribute,
-			String attributeName, String documentation) throws InitializationException {
+			String attributeName, String functionSchema, String documentation) throws InitializationException {
 
 		if (attributeName.isBlank())
 			attributeName = method.getName();
 
-		var metadata        = metadataOf(policyInformationPoint, method, pipName, attributeName,
+		var metadata        = metadataOf(policyInformationPoint, method, pipName, attributeName, functionSchema,
 				isEnvironmentAttribute);
 		var name            = metadata.fullyQualifiedName();
 		var namedAttributes = attributeMetadataByAttributeName.computeIfAbsent(name, k -> new ArrayList<>());
@@ -368,7 +370,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 	}
 
 	private AttributeFinderMetadata metadataOf(Object policyInformationPoint, Method method, String pipName,
-			String attributeName, boolean isEnvironmentAttribute) throws InitializationException {
+			String attributeName, String functionSchema, boolean isEnvironmentAttribute) throws InitializationException {
 
 		assertValidReturnType(method);
 
@@ -388,7 +390,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 		if (parameterUnderInspection < parameterCount && parameterTypeIsArrayOfVal(method, parameterUnderInspection)) {
 			if (parameterUnderInspection + 1 == parameterCount)
-				return new AttributeFinderMetadata(policyInformationPoint, method, pipName, attributeName, "",
+				return new AttributeFinderMetadata(policyInformationPoint, method, pipName, attributeName, functionSchema,
 						isEnvironmentAttribute, requiresVariables, true, 0);
 			else
 				throw new InitializationException("The method " + method.getName()
@@ -406,7 +408,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 						"The method " + method.getName() + " declared a non Val as a parameter");
 			}
 		}
-		return new AttributeFinderMetadata(policyInformationPoint, method, pipName, attributeName, "",
+		return new AttributeFinderMetadata(policyInformationPoint, method, pipName, attributeName, functionSchema,
 				isEnvironmentAttribute, requiresVariables, false, numberOfInnerAttributeParameters);
 	}
 
@@ -490,8 +492,11 @@ public class AnnotationAttributeContext implements AttributeContext {
 			var templates = new LinkedList<String>();
 			for (var entry : attributeMetadataByAttributeName.entrySet())
 				for (var attribute : entry.getValue())
-					if (attribute.environmentAttribute)
+					if (attribute.environmentAttribute){
 						templates.add(attribute.getCodeTemplate());
+						templates.addAll(attribute.getSchemaTemplates());
+					}
+
 			Collections.sort(templates);
 			templatesCacheEnvironment = Collections.unmodifiableList(templates);
 		}
@@ -504,8 +509,10 @@ public class AnnotationAttributeContext implements AttributeContext {
 			var templates = new LinkedList<String>();
 			for (var entry : attributeMetadataByAttributeName.entrySet())
 				for (var attribute : entry.getValue())
-					if (!attribute.environmentAttribute)
+					if (!attribute.environmentAttribute){
 						templates.add(attribute.getCodeTemplate());
+						templates.addAll(attribute.getSchemaTemplates());
+					}
 			Collections.sort(templates);
 			templatesCache = Collections.unmodifiableList(templates);
 		}

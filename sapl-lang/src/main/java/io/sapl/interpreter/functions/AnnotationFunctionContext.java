@@ -292,8 +292,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 			for (var entry : functions.entrySet()) {
 				var value = entry.getValue();
 				codeTemplateCache.add(entry.getValue().getCodeTemplate());
-				var temp = value.getSchemaTemplates();
-				codeTemplateCache.addAll(temp);
+				codeTemplateCache.addAll(value.getSchemaTemplates());
 			}
 			Collections.sort(codeTemplateCache);
 		}

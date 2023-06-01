@@ -28,4 +28,5 @@ public @interface EnvironmentAttribute {
 
 	String docs() default "";
 
+    String schema() default "";
 }
