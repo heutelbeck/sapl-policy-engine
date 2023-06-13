@@ -32,9 +32,11 @@ public class SchemaTemplates {
 
     private static final String ENUM_KEYWORD = "enum\\[\\d+]";
 
-    public List<String> schemaTemplates(String source){
-        if (isValidJson(source))
-            return flattenSchemaFromJson(source);
+    public List<String> schemaTemplatesFromJson(String source){
+        return flattenSchemaFromJson(source);
+    }
+
+    public List<String> schemaTemplatesFromFile(String source){
         return this.flattenSchemaFromFile(source);
     }
 

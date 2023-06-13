@@ -42,7 +42,7 @@ public class SchemaProposals {
         List<String> schema = new ArrayList<>();
         try {
             SchemaTemplates schemaTemplate = new SchemaTemplates();
-            schema = schemaTemplate.schemaTemplates(v.getText());
+            schema = schemaTemplate.schemaTemplatesFromJson(v.getText());
         } catch (Exception e) {
             log.info("Could not flatten schema: {}", v.getText());
         }

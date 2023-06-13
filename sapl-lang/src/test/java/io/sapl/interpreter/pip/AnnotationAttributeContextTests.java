@@ -31,6 +31,7 @@ import java.util.function.Predicate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.validation.JsonObject;
+import io.sapl.api.validation.Schema;
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -749,15 +750,6 @@ class AnnotationAttributeContextTests {
 	void when_argWithParamSchema_validatesCorrectly()
 			throws InitializationException, IOException {
 
-		final String PERSON_SCHEMA_IN_ERROR_MESSAGE = "{" +
-				"  \\\"$schema\\\": \\\"http://json-schema.org/draft-07/schema#\\\"," +
-				"  \\\"$id\\\": \\\"https://example.com/schemas/regions\\\"," +
-				"  \\\"type\\\": \\\"object\\\"," +
-				"  \\\"properties\\\": {" +
-				"  \\\"name\\\": { \\\"type\\\": \\\"string\\\" }" +
-				"  }" +
-				"}";
-
 		@PolicyInformationPoint(name = "test")
 		class PIP {
 
@@ -771,7 +763,7 @@ class AnnotationAttributeContextTests {
 					"}";
 
 			@EnvironmentAttribute
-			public Flux<Val> envAttribute(Map<String, JsonNode> variable, @JsonObject(schema=PERSON_SCHEMA) Val a1) {
+			public Flux<Val> envAttribute(Map<String, JsonNode> variable, @Schema(schema=PERSON_SCHEMA) Val a1) {
 				return Flux.just(a1);
 			}
 
@@ -787,9 +779,10 @@ class AnnotationAttributeContextTests {
 				.expectNext(Val.of(expected)).verifyComplete();
 
 		var invalidExpression   = ParserUtil.expression("<test.envAttribute({\"name\": 23})>");
-		var errorText = String.format("Illegal parameter type. Got: OBJECT Expected: @io.sapl.api.validation.JsonObject(schema=\"%s\") ", PERSON_SCHEMA_IN_ERROR_MESSAGE);
+		String errorMessage = "Illegal parameter type. Parameter does not comply with required schema. " +
+				"Got: {\"name\":23} Expected schema: {  \"$schema\": \"http://json-schema.org/draft-07/schema#\",  \"$id\": \"https://example.com/schemas/regions\",  \"type\": \"object\",  \"properties\": {  \"name\": { \"type\": \"string\" }  }}";
 		StepVerifier.create(invalidExpression.evaluate().contextWrite(this.constructContext(attributeCtx, variable)))
-				.expectNextMatches(valErrorText(errorText)).verifyComplete();
+				.expectNextMatches(valErrorText(errorMessage)).verifyComplete();
 	}
 
 	@Test
@@ -871,7 +864,7 @@ class AnnotationAttributeContextTests {
 					"  }" +
 					"}";
 
-			@EnvironmentAttribute(schema = "schemas/person_schema.json")
+			@EnvironmentAttribute(pathToSchema = "schemas/person_schema.json")
 			public Flux<Val> a() {
 				return Flux.empty();
 			}
@@ -881,7 +874,7 @@ class AnnotationAttributeContextTests {
 				return Flux.empty();
 			}
 
-			@Attribute(schema = "schemas/person_schema.json")
+			@Attribute(pathToSchema = "schemas/person_schema.json")
 			public Flux<Val> x(Val leftHand, Val a1) {
 				return Flux.just(a1);
 			}

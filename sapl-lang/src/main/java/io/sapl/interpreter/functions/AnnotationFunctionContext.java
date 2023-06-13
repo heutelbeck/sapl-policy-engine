@@ -176,6 +176,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 			funName = method.getName();
 
 		String funSchema = funAnnotation.schema();
+		String funPathToSchema = funAnnotation.pathToSchema();
 
 		if (!Val.class.isAssignableFrom(method.getReturnType()))
 			throw new InitializationException(ILLEGAL_RETURN_TYPE_FOR_IMPORT, method.getReturnType().getName());
@@ -190,7 +191,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 			}
 		}
 
-		FunctionMetadata funMeta = new FunctionMetadata(libName, funName, funSchema, library, parameters, method);
+		FunctionMetadata funMeta = new FunctionMetadata(libName, funName, funSchema, funPathToSchema, library, parameters, method);
 		functions.put(funMeta.fullyQualifiedName(), funMeta);
 		libMeta.documentation.put(funMeta.getDocumentationCodeTemplate(), funAnnotation.docs());
 
@@ -223,11 +224,15 @@ public class AnnotationFunctionContext implements FunctionContext {
 	@AllArgsConstructor
 	public static class FunctionMetadata implements LibraryEntryMetadata {
 
+		private static final String MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED = "Please only provide either a schema or a schemaPath annotation.";
+
 		String libraryName;
 
 		String functionName;
 
 		String functionSchema;
+
+		String functionPathToSchema;
 
 		Object library;
 
@@ -253,12 +258,21 @@ public class AnnotationFunctionContext implements FunctionContext {
 		@Override
 		public List<String> getSchemaTemplates(){
 			StringBuilder sb;
+			List<String> paths;
 			var schemaTemplates = new ArrayList<String>();
 			var funCodeTemplate = getCodeTemplate();
 			var schema = getFunctionSchema();
-			if (schema.length() > 0){
+			var pathToSchema = getFunctionPathToSchema();
+			if (schema.length() > 0 && pathToSchema.length() > 0)
+				throw new IllegalArgumentException(MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED);
+			if (schema.length() > 0 || pathToSchema.length() > 0){
 				SchemaTemplates schemaTemplate = new SchemaTemplates();
-				var paths = schemaTemplate.schemaTemplates(schema);
+
+				if (schema.length() > 0)
+					paths = schemaTemplate.schemaTemplatesFromJson(schema);
+				else
+					paths = schemaTemplate.schemaTemplatesFromFile(pathToSchema);
+
 				for (var path : paths){
 					sb = new StringBuilder();
 					sb.append(funCodeTemplate).append(".").append(path);

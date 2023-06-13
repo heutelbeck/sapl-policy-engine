@@ -321,13 +321,13 @@ public class AnnotationAttributeContext implements AttributeContext {
 				foundAtLeastOneSuppliedAttributeInPip = true;
 				var annotation = method.getAnnotation(Attribute.class);
 				importAttribute(pip, pipName, pipDocumentation, method, false, annotation.name(),
-						annotation.schema(), annotation.docs());
+						annotation.schema(), annotation.pathToSchema(), annotation.docs());
 			}
 			if (method.isAnnotationPresent(EnvironmentAttribute.class)) {
 				foundAtLeastOneSuppliedAttributeInPip = true;
 				var annotation = method.getAnnotation(EnvironmentAttribute.class);
 				importAttribute(pip, pipName, pipDocumentation, method, true, annotation.name(),
-						annotation.schema(), annotation.docs());
+						annotation.schema(), annotation.pathToSchema(), annotation.docs());
 			}
 		}
 
@@ -339,13 +339,13 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 	private void importAttribute(Object policyInformationPoint, String pipName,
 			PolicyInformationPointDocumentation pipDocumentation, Method method, boolean isEnvironmentAttribute,
-			String attributeName, String functionSchema, String documentation) throws InitializationException {
+			String attributeName, String functionSchema, String functionPathToSchema, String documentation) throws InitializationException {
 
 		if (attributeName.isBlank())
 			attributeName = method.getName();
 
 		var metadata        = metadataOf(policyInformationPoint, method, pipName, attributeName, functionSchema,
-				isEnvironmentAttribute);
+				functionPathToSchema, isEnvironmentAttribute);
 		var name            = metadata.fullyQualifiedName();
 		var namedAttributes = attributeMetadataByAttributeName.computeIfAbsent(name, k -> new ArrayList<>());
 		assertNoNameCollision(namedAttributes, metadata);
@@ -370,7 +370,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 	}
 
 	private AttributeFinderMetadata metadataOf(Object policyInformationPoint, Method method, String pipName,
-			String attributeName, String functionSchema, boolean isEnvironmentAttribute) throws InitializationException {
+			String attributeName, String functionSchema, String functionPathToSchema, boolean isEnvironmentAttribute) throws InitializationException {
 
 		assertValidReturnType(method);
 
@@ -391,7 +391,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 		if (parameterUnderInspection < parameterCount && parameterTypeIsArrayOfVal(method, parameterUnderInspection)) {
 			if (parameterUnderInspection + 1 == parameterCount)
 				return new AttributeFinderMetadata(policyInformationPoint, method, pipName, attributeName, functionSchema,
-						isEnvironmentAttribute, requiresVariables, true, 0);
+						functionPathToSchema, isEnvironmentAttribute, requiresVariables, true, 0);
 			else
 				throw new InitializationException("The method " + method.getName()
 						+ " has an array of Val as a parameter, which indicates a variable number of arguments."
@@ -409,7 +409,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 			}
 		}
 		return new AttributeFinderMetadata(policyInformationPoint, method, pipName, attributeName, functionSchema,
-				isEnvironmentAttribute, requiresVariables, false, numberOfInnerAttributeParameters);
+				functionPathToSchema, isEnvironmentAttribute, requiresVariables, false, numberOfInnerAttributeParameters);
 	}
 
 	private void assertFirstParameterIsVal(Method method) throws InitializationException {

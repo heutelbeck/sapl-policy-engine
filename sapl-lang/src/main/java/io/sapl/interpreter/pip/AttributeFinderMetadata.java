@@ -15,11 +15,14 @@ import lombok.Data;
 @AllArgsConstructor
 public class AttributeFinderMetadata implements LibraryEntryMetadata {
 
+	private static final String MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED = "Please only provide either a schema or a schemaPath annotation.";
+
 	Object  policyInformationPoint;
 	Method  function;
 	String  libraryName;
 	String  functionName;
 	String  functionSchema;
+	String  functionPathToSchema;
 	boolean environmentAttribute;
 	boolean attributeWithVariableParameter;
 	boolean varArgsParameters;
@@ -71,12 +74,20 @@ public class AttributeFinderMetadata implements LibraryEntryMetadata {
 	@Override
 	public List<String> getSchemaTemplates() {
 		StringBuilder sb;
+		List<String> paths;
 		var schemaTemplates = new ArrayList<String>();
 		var funCodeTemplate = getCodeTemplate();
 		var schema = getFunctionSchema();
-		if (schema.length() > 0){
+		var pathToSchema = getFunctionPathToSchema();
+		if (schema.length() > 0 && pathToSchema.length() > 0)
+			throw new IllegalArgumentException(MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED);
+		if (schema.length() > 0 || pathToSchema.length() > 0){
 			SchemaTemplates schemaTemplate = new SchemaTemplates();
-			var paths = schemaTemplate.schemaTemplates(schema);
+
+			if (schema.length() > 0)
+				paths = schemaTemplate.schemaTemplatesFromJson(schema);
+			else
+				paths = schemaTemplate.schemaTemplatesFromFile(pathToSchema);
 			for (var path : paths){
 				sb = new StringBuilder();
 				sb.append(funCodeTemplate).append(".").append(path);

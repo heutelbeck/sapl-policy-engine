@@ -13,22 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.pip;
+package io.sapl.api.validation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target(ElementType.METHOD)
+@Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface EnvironmentAttribute {
-
-	String name() default "";
-
-	String docs() default "";
+public @interface Schema {
 
     String schema() default "";
 
-    String pathToSchema() default "";
+    String errorText() default "";
+
 }

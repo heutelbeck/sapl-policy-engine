@@ -17,6 +17,8 @@ package io.sapl.interpreter.validation;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Parameter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -29,6 +31,7 @@ import io.sapl.api.validation.Int;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Long;
 import io.sapl.api.validation.Number;
+import io.sapl.api.validation.Schema;
 import io.sapl.api.validation.Text;
 import io.sapl.functions.SchemaValidationLibrary;
 import lombok.experimental.UtilityClass;
@@ -39,8 +42,10 @@ public class ParameterTypeValidator {
 
 	private static final String ILLEGAL_PARAMETER_TYPE = "Illegal parameter type. Got: %s Expected: %s";
 
+	private static final String NON_COMPLIANT_WITH_SCHEMA = "Illegal parameter type. Parameter does not comply with required schema. Got: %s Expected schema: %s";
+
 	private static final Set<Class<?>> VALIDATION_ANNOTATIONS = Set.of(Number.class, Int.class, Long.class, Bool.class,
-			Text.class, Array.class, JsonObject.class);
+			Text.class, Array.class, JsonObject.class, Schema.class);
 
 	public static void validateType(Val parameterValue, Parameter parameterType) throws IllegalParameterType {
 		if (!hasValidationAnnotations(parameterType))
@@ -76,12 +81,42 @@ public class ParameterTypeValidator {
 
 	private static void validateJsonNodeType(JsonNode node, Parameter parameterType) throws IllegalParameterType {
 		Annotation[] annotations = parameterType.getAnnotations();
-		for (Annotation annotation : annotations)
+		validateComplianceWithSchema(node, annotations);
+
+		for (Annotation annotation : annotations) {
+			if (Schema.class.isAssignableFrom(annotation.getClass()) && annotations.length > 1)
+				continue;
+			else if (Schema.class.isAssignableFrom(annotation.getClass()) && annotations.length == 1)
+				return;
 			if (nodeContentsMatchesTypeGivenByAnnotation(node, annotation))
 				return;
+		}
 
 		throw new IllegalParameterType(
 				String.format(ILLEGAL_PARAMETER_TYPE, node.getNodeType().toString(), listAllowedTypes(annotations)));
+	}
+
+	private static void validateComplianceWithSchema(JsonNode node, Annotation[] annotations) throws IllegalParameterType {
+		Schema schemaAnnotation = null;
+		String errorText;
+
+		if (schemaAnnotationExistsAndIsMovedToTheFront(annotations))
+			schemaAnnotation = (Schema) annotations[0];
+
+		if (schemaAnnotation == null)
+			return;
+
+		if (nodeCompliantWithSchema(node, schemaAnnotation))
+			return;
+
+		errorText = schemaAnnotation.errorText();
+		if (!errorText.equals(""))
+			throw new IllegalParameterType(errorText);
+
+		var test = String.format(NON_COMPLIANT_WITH_SCHEMA, node.toString(), schemaAnnotation.schema());
+		throw new IllegalParameterType(
+				String.format(NON_COMPLIANT_WITH_SCHEMA, node.toString(), schemaAnnotation.schema()));
+
 	}
 
 	private static boolean nodeContentsMatchesTypeGivenByAnnotation(JsonNode node, Annotation annotation) {
@@ -91,11 +126,11 @@ public class ParameterTypeValidator {
 				|| (Bool.class.isAssignableFrom(annotation.getClass()) && node.isBoolean())
 				|| (Text.class.isAssignableFrom(annotation.getClass()) && node.isTextual())
 				|| (Array.class.isAssignableFrom(annotation.getClass()) && node.isArray())
-				|| (JsonObject.class.isAssignableFrom(annotation.getClass()) && node.isObject()) && nodeCompliantWithSchema(node, annotation);
+				|| (JsonObject.class.isAssignableFrom(annotation.getClass()) && node.isObject());
 	}
 
 	private static boolean nodeCompliantWithSchema(JsonNode node, Annotation annotation){
-		String schema = ((JsonObject) annotation).schema();
+		String schema = ((Schema) annotation).schema();
 		if (schema == null || schema.equals(""))
 			return true;
 		return SchemaValidationLibrary.isCompliantWithSchema(node, schema);
@@ -124,6 +159,35 @@ public class ParameterTypeValidator {
 				builder.append(annotation).append(' ');
 		}
 		return builder.toString();
+	}
+
+	private static boolean schemaAnnotationExistsAndIsMovedToTheFront(Annotation[] annotations) throws IllegalParameterType{
+		int index = indexOfSchemaAnnotation(annotations);
+		Annotation schemaAnnotation;
+
+		if (index != -1) {
+			schemaAnnotation = annotations[index];
+			for (int i = index; i > 0; i--)
+				annotations[i] = annotations[i - 1];
+			annotations[0] = schemaAnnotation;
+			return true;
+		}
+
+		return false;
+	}
+
+	private static int indexOfSchemaAnnotation(Annotation[] annotations) throws IllegalParameterType{
+		int numberOfSchemaAnnotations = 0;
+		int index = -1;
+
+		for (int i = 0; i < annotations.length; i++) {
+			if (Schema.class.isAssignableFrom(annotations[i].getClass())) {
+				index = i;
+				break;
+			}
+		}
+
+		return index;
 	}
 
 }

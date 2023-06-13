@@ -52,7 +52,6 @@ public class SchemaValidationLibrary {
 
     @Function(docs = ISCOMPLIANTWITHSCHEMA_DOC)
     public static boolean isCompliantWithSchema(JsonNode node, String schema){
-        var test = jsonSchemaFromString(schema).validate(node);
         return jsonSchemaFromString(schema).validate(node).isEmpty();
     }
 
