@@ -113,7 +113,6 @@ public class ParameterTypeValidator {
 		if (!errorText.equals(""))
 			throw new IllegalParameterType(errorText);
 
-		var test = String.format(NON_COMPLIANT_WITH_SCHEMA, node.toString(), schemaAnnotation.schema());
 		throw new IllegalParameterType(
 				String.format(NON_COMPLIANT_WITH_SCHEMA, node.toString(), schemaAnnotation.schema()));
 
@@ -176,8 +175,7 @@ public class ParameterTypeValidator {
 		return false;
 	}
 
-	private static int indexOfSchemaAnnotation(Annotation[] annotations) throws IllegalParameterType{
-		int numberOfSchemaAnnotations = 0;
+	private static int indexOfSchemaAnnotation(Annotation[] annotations){
 		int index = -1;
 
 		for (int i = 0; i < annotations.length; i++) {

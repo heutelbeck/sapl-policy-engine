@@ -115,8 +115,8 @@ public class SAPLSyntaxErrorMessageProvider extends SyntaxErrorMessageProvider {
 		} else if (currentContext instanceof PolicySet) {
 			return new SyntaxErrorMessage(INCOMPLETE_SET_ENTITLEMENT, Diagnostic.SYNTAX_DIAGNOSTIC);
 		}
-		else if (currentContext instanceof Policy) {
-			Entitlement entitlement = ((Policy) currentContext).getEntitlement();
+		else if (currentContext instanceof Policy policy) {
+			Entitlement entitlement = policy.getEntitlement();
 			if (entitlement == null)
 				return new SyntaxErrorMessage(INCOMPLETE_POLICY_ENTITLEMENT, Diagnostic.SYNTAX_DIAGNOSTIC);
 			return new SyntaxErrorMessage(INCOMPLETE_VARIABLE_NAME, Diagnostic.SYNTAX_DIAGNOSTIC);
