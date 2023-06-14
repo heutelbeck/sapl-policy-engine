@@ -22,7 +22,6 @@ import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.LoggingFunctionLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
-import io.sapl.functions.SchemaTestFunctionLibrary;
 
 
 @AutoConfiguration
@@ -46,11 +45,6 @@ public class FunctionLibrariesAutoConfiguration {
 	@Bean
 	LoggingFunctionLibrary loggingFunctionLibrary() {
 		return new LoggingFunctionLibrary();
-	}
-
-	@Bean
-	SchemaTestFunctionLibrary schemaTestFunctionLibrary() {
-		return new SchemaTestFunctionLibrary();
 	}
 
 }
