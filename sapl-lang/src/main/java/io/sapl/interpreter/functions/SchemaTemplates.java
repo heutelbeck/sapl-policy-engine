@@ -1,18 +1,11 @@
 package io.sapl.interpreter.functions;
 
-import com.fasterxml.jackson.core.JacksonException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.wnameless.json.flattener.JsonFlattener;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class SchemaTemplates {
 
@@ -59,25 +52,6 @@ public class SchemaTemplates {
                 .filter(path -> !stringMatchesUnwantedJsonKeyword(path))
                 .map(SchemaTemplates::removeUnwantedKeywordsFromPath)
                 .toList();
-    }
-
-    private static boolean isValidJson(String json) {
-        try {
-            convertToJson(json);
-            return true;
-        } catch (IllegalArgumentException e) {
-            return false;
-        }
-    }
-
-    private static JsonNode convertToJson(String json){
-        ObjectMapper mapper = new ObjectMapper();
-
-        try {
-            return mapper.readTree(json);
-        } catch (JacksonException e) {
-            throw new IllegalArgumentException(json + " is not a valid JsonNode.");
-        }
     }
 
     private String getSchemaFromFile(final String fileName) {

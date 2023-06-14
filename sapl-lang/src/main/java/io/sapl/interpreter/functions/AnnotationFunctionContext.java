@@ -64,6 +64,8 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 	private List<String> codeTemplateCache;
 
+	private List<String> jsonSchemaCache;
+
 	/**
 	 * Create context from a list of function libraries.
 	 * 
@@ -263,8 +265,10 @@ public class AnnotationFunctionContext implements FunctionContext {
 			var funCodeTemplate = getCodeTemplate();
 			var schema = getFunctionSchema();
 			var pathToSchema = getFunctionPathToSchema();
+
 			if (schema.length() > 0 && pathToSchema.length() > 0)
 				throw new IllegalArgumentException(MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED);
+
 			if (schema.length() > 0 || pathToSchema.length() > 0){
 				SchemaTemplates schemaTemplate = new SchemaTemplates();
 

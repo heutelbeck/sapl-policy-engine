@@ -248,6 +248,15 @@ class AnnotationFunctionContextTest {
 	}
 
 	@Test
+	void customErrorForSchemaInParameterAnnotation() throws InitializationException, JsonProcessingException {
+		var context = new AnnotationFunctionContext(new AnnotationLibrary());
+		var mapper = new ObjectMapper();
+		var parameter = mapper.readTree("{\"name\": 23}");
+		assertThat(context.evaluate("annotation.customErrorForSchemaInParameterAnnotation", Val.of(parameter)),
+				valError("Parameter jsonObject needs to comply with the given schema."));
+	}
+
+	@Test
 	void documentationIsAddedToTheLibrary() throws InitializationException {
 		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
 		var templates = context.getDocumentedCodeTemplates(); 
@@ -334,6 +343,10 @@ class AnnotationFunctionContextTest {
 
 		@Function
 		public static Val jsonValueSchemaInParameterAnnotation(@Schema(schema = "{\"type\": \"string\"}") Val jsonObject) { return Val.of(true); }
+
+		@Function
+		public static Val customErrorForSchemaInParameterAnnotation(@Schema(schema = PERSON_SCHEMA,
+				errorText = "Parameter jsonObject needs to comply with the given schema.") Val jsonObject) { return Val.of(true); }
 
 	}
 
