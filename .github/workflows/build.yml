@@ -18,7 +18,7 @@ name: Build
 on:
   workflow_dispatch:
   push:
-    branches: [master, test_actions]
+    branches: [master, test_actions, json_schema_contentassist]
     paths-ignore: ["sapl-documentation/**", ".github/build_documentation.yml"]
 
 jobs:
