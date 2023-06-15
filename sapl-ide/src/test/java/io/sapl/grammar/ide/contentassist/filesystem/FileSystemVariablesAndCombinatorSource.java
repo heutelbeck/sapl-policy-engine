@@ -15,8 +15,6 @@
  */
 package io.sapl.grammar.ide.contentassist.filesystem;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
@@ -29,14 +27,15 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 import static io.sapl.util.filemonitoring.FileMonitorUtil.monitorDirectory;
 import static io.sapl.util.filemonitoring.FileMonitorUtil.resolveHomeFolderIfPresent;
@@ -107,7 +106,7 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
 				log.info("Error reading variables from file system: {}", e.getMessage());
 			}
 
-		Optional optSchemaMap = Optional.ofNullable(schemaMap);
+		Optional<Map<String, JsonNode>> optSchemaMap = Optional.ofNullable(schemaMap);
 
 		return Flux.just(optSchemaMap);
 	}

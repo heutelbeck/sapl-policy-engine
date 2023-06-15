@@ -16,7 +16,7 @@ public class ValueDefinitionProposalExtractionHelper {
     private final VariablesAndCombinatorSource variablesAndCombinatorSource;
     private final ContentAssistContext context;
     private final Collection<String> authzSubProposals = Set.of("subject", "action", "resource", "environment");
-    public enum ProposalType {VALUE, SCHEMA};
+    public enum ProposalType {VALUE, SCHEMA}
 
     public Collection<String> getProposals(EObject model, ProposalType proposalType){
         int currentOffset = context.getOffset();
@@ -71,13 +71,13 @@ public class ValueDefinitionProposalExtractionHelper {
 
     private Collection<String> getProposalsFromStatement(ProposalType proposalType, int currentOffset, Statement statement) {
         Collection<String> proposals = new HashSet<>();
-        if (statement instanceof ValueDefinition) {
+        if (statement instanceof ValueDefinition valueDefStatement) {
 
             List<String> currentProposals;
             if (proposalType == ProposalType.SCHEMA)
-                currentProposals = getSchemaFromStatement(currentOffset, (ValueDefinition) statement);
+                currentProposals = getSchemaFromStatement(currentOffset, valueDefStatement);
             else
-                currentProposals = getValueFromStatement(currentOffset, (ValueDefinition) statement);
+                currentProposals = getValueFromStatement(currentOffset, valueDefStatement);
 
             proposals.addAll(currentProposals);
         }

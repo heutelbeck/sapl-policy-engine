@@ -88,14 +88,14 @@
 		<dependency>
 			<groupId>com.networknt</groupId>
 			<artifactId>json-schema-validator</artifactId>
-			<version>1.0.56</version>
+			<version>1.0.84</version>
 		</dependency>
 
 		<!-- A library for JSON flattening -->
 		<dependency>
 			<groupId>com.github.wnameless.json</groupId>
 			<artifactId>json-flattener</artifactId>
-			<version>0.14.0</version>
+			<version>0.16.4</version>
 		</dependency>
 
         <dependency>

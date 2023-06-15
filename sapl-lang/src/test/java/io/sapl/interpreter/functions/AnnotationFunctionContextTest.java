@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.validation.Bool;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Schema;
 import org.junit.jupiter.api.Test;
@@ -217,6 +218,14 @@ class AnnotationFunctionContextTest {
 	}
 
 	@Test
+	void typeAnnotationSchemaIsEmpty() throws InitializationException, JsonProcessingException {
+		var context = new AnnotationFunctionContext(new AnnotationLibrary());
+		var mapper = new ObjectMapper();
+		var parameter = mapper.readTree("{\"name\": \"Joe\"}");
+		assertThat(context.evaluate("annotation.emptySchemaInParameterAnnotation", Val.of(parameter)), is(Val.of(true)));
+	}
+
+	@Test
 	void typeAnnotationSchemaDoesNotMatchParameter() throws InitializationException, JsonProcessingException {
 		var context = new AnnotationFunctionContext(new AnnotationLibrary());
 		var mapper = new ObjectMapper();
@@ -227,7 +236,6 @@ class AnnotationFunctionContextTest {
 	@Test
 	void typeAnnotationJsonValueSchemaMatchesParameter() throws InitializationException, JsonProcessingException {
 		var context = new AnnotationFunctionContext(new AnnotationLibrary());
-		var mapper = new ObjectMapper();
 		assertThat(context.evaluate("annotation.jsonValueSchemaInParameterAnnotation", Val.of("test")), is(Val.of(true)));
 	}
 
@@ -245,6 +253,22 @@ class AnnotationFunctionContextTest {
 		var mapper = new ObjectMapper();
 		var parameter = mapper.readTree("{\"name\": \"Joe\"}");
 		assertThat(context.evaluate("annotation.multipleParameterAnnotationsWithSchemaAtTheEnd", Val.of(parameter)), is(Val.of(true)));
+	}
+
+	@Test
+	void multipleParameterAnnotationsWithNonmatchingSchemaAtTheFront() throws InitializationException, JsonProcessingException {
+		var context = new AnnotationFunctionContext(new AnnotationLibrary());
+		var mapper = new ObjectMapper();
+		var parameter = mapper.readTree("{\"name\": \"Joe\"}");
+		assertThat(context.evaluate("annotation.multipleParameterAnnotationsWithNonmatchingSchemaAtTheFront", Val.of(true)), is(Val.of(true)));
+	}
+
+	@Test
+	void multipleParameterAnnotationsWithNonmatchingSchemaAtTheEnd() throws InitializationException, JsonProcessingException {
+		var context = new AnnotationFunctionContext(new AnnotationLibrary());
+		var mapper = new ObjectMapper();
+		var parameter = mapper.readTree("{\"name\": \"Joe\"}");
+		assertThat(context.evaluate("annotation.multipleParameterAnnotationsWithNonmatchingSchemaAtTheEnd", Val.of(true)), is(Val.of(true)));
 	}
 
 	@Test
@@ -332,14 +356,26 @@ class AnnotationFunctionContextTest {
 		@Function(schema = PERSON_SCHEMA)
 		public static Val schemaFromJson() { return Val.of(true); }
 
+		@Function(schema = PERSON_SCHEMA, pathToSchema = "schemas/person_schema.json")
+		public static Val multipleSchemaFunctionAnnotations() { return Val.of(true); }
+
 		@Function
 		public static Val schemaInParameterAnnotation(@Schema(schema = PERSON_SCHEMA) Val jsonObject) { return Val.of(true); }
+
+		@Function
+		public static Val emptySchemaInParameterAnnotation(@Schema(schema = "") Val jsonObject) { return Val.of(true); }
 
 		@Function
 		public static Val multipleParameterAnnotationsWithSchemaAtTheFront(@Schema(schema = PERSON_SCHEMA) @JsonObject Val jsonObject) { return Val.of(true); }
 
 		@Function
 		public static Val multipleParameterAnnotationsWithSchemaAtTheEnd(@JsonObject @Schema(schema = PERSON_SCHEMA) Val jsonObject) { return Val.of(true); }
+
+		@Function
+		public static Val multipleParameterAnnotationsWithNonmatchingSchemaAtTheFront(@Schema(schema = PERSON_SCHEMA) @Bool Val jsonObject) { return Val.of(true); }
+
+		@Function
+		public static Val multipleParameterAnnotationsWithNonmatchingSchemaAtTheEnd(@Bool @Schema(schema = PERSON_SCHEMA) Val jsonObject) { return Val.of(true); }
 
 		@Function
 		public static Val jsonValueSchemaInParameterAnnotation(@Schema(schema = "{\"type\": \"string\"}") Val jsonObject) { return Val.of(true); }

@@ -64,8 +64,6 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 	private List<String> codeTemplateCache;
 
-	private List<String> jsonSchemaCache;
-
 	/**
 	 * Create context from a list of function libraries.
 	 * 

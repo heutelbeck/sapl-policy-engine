@@ -15,12 +15,24 @@
  */
 package io.sapl.interpreter.pip;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.interpreter.Val;
+import io.sapl.api.pip.Attribute;
+import io.sapl.api.pip.EnvironmentAttribute;
+import io.sapl.api.pip.PolicyInformationPoint;
+import io.sapl.api.validation.Bool;
+import io.sapl.api.validation.Schema;
+import io.sapl.api.validation.Text;
+import io.sapl.grammar.sapl.impl.util.ParserUtil;
+import io.sapl.interpreter.InitializationException;
+import io.sapl.interpreter.context.AuthorizationContext;
+import io.sapl.interpreter.functions.AnnotationFunctionContext;
+import jakarta.validation.constraints.NotNull;
+import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
+import reactor.util.context.Context;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -29,27 +41,12 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.api.validation.JsonObject;
-import io.sapl.api.validation.Schema;
-import org.junit.jupiter.api.Test;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.pip.Attribute;
-import io.sapl.api.pip.EnvironmentAttribute;
-import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.api.validation.Bool;
-import io.sapl.api.validation.Text;
-import io.sapl.grammar.sapl.impl.util.ParserUtil;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.context.AuthorizationContext;
-import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import jakarta.validation.constraints.NotNull;
-import reactor.core.publisher.Flux;
-import reactor.test.StepVerifier;
-import reactor.util.context.Context;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class AnnotationAttributeContextTests {
 
