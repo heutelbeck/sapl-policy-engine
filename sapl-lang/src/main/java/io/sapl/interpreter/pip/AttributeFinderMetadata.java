@@ -105,7 +105,7 @@ public class AttributeFinderMetadata implements LibraryEntryMetadata {
 				paths = schemaTemplate.schemaTemplatesFromFile(pathToSchema);
 			for (var path : paths){
 				sb = new StringBuilder();
-				sb.append(funCodeTemplate).append(".").append(path);
+				sb.append(funCodeTemplate).append('.').append(path);
 				schemaTemplates.add(sb.toString());
 			}
 		}

@@ -259,7 +259,6 @@ class AnnotationFunctionContextTest {
 	void multipleParameterAnnotationsWithNonmatchingSchemaAtTheFront() throws InitializationException, JsonProcessingException {
 		var context = new AnnotationFunctionContext(new AnnotationLibrary());
 		var mapper = new ObjectMapper();
-		var parameter = mapper.readTree("{\"name\": \"Joe\"}");
 		assertThat(context.evaluate("annotation.multipleParameterAnnotationsWithNonmatchingSchemaAtTheFront", Val.of(true)), is(Val.of(true)));
 	}
 
@@ -267,7 +266,6 @@ class AnnotationFunctionContextTest {
 	void multipleParameterAnnotationsWithNonmatchingSchemaAtTheEnd() throws InitializationException, JsonProcessingException {
 		var context = new AnnotationFunctionContext(new AnnotationLibrary());
 		var mapper = new ObjectMapper();
-		var parameter = mapper.readTree("{\"name\": \"Joe\"}");
 		assertThat(context.evaluate("annotation.multipleParameterAnnotationsWithNonmatchingSchemaAtTheEnd", Val.of(true)), is(Val.of(true)));
 	}
 

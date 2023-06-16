@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.Assignment;
@@ -63,12 +64,17 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
 	private FunctionContext functionContext;
 
+	private VariablesAndCombinatorSource variablesAndCombinatorSource;
+
 	private void lazyLoadDependencies() {
 		if (attributeContext == null) {
 			attributeContext = SpringContext.getBean(AttributeContext.class);
 		}
 		if (functionContext == null) {
 			functionContext = SpringContext.getBean(FunctionContext.class);
+		}
+		if (variablesAndCombinatorSource == null) {
+			variablesAndCombinatorSource = SpringContext.getBean(VariablesAndCombinatorSource.class);
 		}
 	}
 
@@ -102,6 +108,10 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			}
 			case "import" -> {
 				handleImportProposals(feature, context, acceptor);
+				return;
+			}
+			case "schema" -> {
+				handleSchemaProposals(feature, context, acceptor);
 				return;
 			}
 			case "basic" -> {
@@ -153,6 +163,22 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		addSimpleProposals(proposals, context, acceptor);
 	}
 
+	private void handleSchemaProposals(String feature, ContentAssistContext context,
+									   IIdeContentProposalAcceptor acceptor) {
+
+		EObject model = context.getCurrentModel();
+
+		if ("subscriptionelement".equals(feature)) {
+			addSimpleProposals(authzSubProposals, context, acceptor);
+			return;
+		}
+
+		if ("schemaexpression".equals(feature)) {
+			Collection<String> validSchemas = getValidSchemas(context, model);
+			addSimpleProposals(validSchemas, context, acceptor);
+		}
+	}
+
 	private void handleBasicProposals(String feature, ContentAssistContext context,
 			IIdeContentProposalAcceptor acceptor) {
 
@@ -164,6 +190,9 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		}
 
 		if ("fsteps".equals(feature)) {
+			Collection<String> definedSchemas = getValidSchemas(context, model);
+			addSimpleProposals(definedSchemas, context, acceptor);
+
 			var templates = functionContext.getCodeTemplates();
 			addDocumentationToTemplates(templates, context, acceptor);
 			addSimpleProposals(templates, context, acceptor);
@@ -174,6 +203,11 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		if ("value".equals(feature)) {
 			// try to resolve for available variables
 
+			var helper = new ValueDefinitionProposalExtractionHelper(variablesAndCombinatorSource, context);
+			var definedValues = helper.getProposals(model, ValueDefinitionProposalExtractionHelper.ProposalType.VALUE);
+			// add variables to list of proposals
+			addSimpleProposals(definedValues, context, acceptor);
+
 			// try to move up to the policy body
 			if (model.eContainer() instanceof Condition) {
 				model = TreeNavigationHelper.goToFirstParent(model, PolicyBody.class);
@@ -181,7 +215,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
 			// look up all defined variables in the policy
 			if (model instanceof PolicyBody policyBody) {
-				Collection<String> definedValues = new HashSet<>();
+				Collection<String> definedValuesPolicyBody = new HashSet<>();
 
 				int currentOffset = context.getOffset();
 
@@ -196,7 +230,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 						int   valueDefinitionOffset = valueDefinitionNode.getOffset();
 
 						if (currentOffset > valueDefinitionOffset) {
-							definedValues.add(valueDefinition.getName());
+							definedValuesPolicyBody.add(valueDefinition.getName());
 						} else {
 							break;
 						}
@@ -204,7 +238,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 				}
 
 				// add variables to list of proposals
-				addSimpleProposals(definedValues, context, acceptor);
+				addSimpleProposals(definedValuesPolicyBody, context, acceptor);
 			}
 			// add authorization subscriptions proposals
 			addSimpleProposals(authzSubProposals, context, acceptor);
@@ -241,6 +275,11 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 				}
 			}
 		}
+	}
+
+	private Collection<String> getValidSchemas(ContentAssistContext context, EObject model) {
+		var helper = new ValueDefinitionProposalExtractionHelper(variablesAndCombinatorSource, context);
+		return helper.getProposals(model, ValueDefinitionProposalExtractionHelper.ProposalType.SCHEMA);
 	}
 
 	private void addProposalsWithImportsForTemplates(Collection<String> templates, ContentAssistContext context,
