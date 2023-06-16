@@ -85,7 +85,7 @@ public class ParameterTypeValidator {
             else if (Schema.class.isAssignableFrom(annotation.getClass()) && !nodeCompliantWithSchema(node, annotation)) {
                 var schemaAnnotation = (Schema) annotation;
                 errorText = schemaAnnotation.errorText();
-                if ("".equals(errorText))
+                if (!"".equals(errorText))
                     throw new IllegalParameterType(errorText);
                 throw new IllegalParameterType(
                         String.format(NON_COMPLIANT_WITH_SCHEMA, node.toString(), schemaAnnotation.schema()));
