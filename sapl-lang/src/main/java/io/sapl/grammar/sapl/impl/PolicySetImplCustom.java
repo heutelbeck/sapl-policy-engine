@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,9 +31,9 @@ public class PolicySetImplCustom extends PolicySetImpl {
 
 	/**
 	 * Evaluates the body of the policy set within the given evaluation context and
-	 * returns a {@link Flux} of {@link SAPLDecision} objects.
+	 * returns a {@link Flux} of {@link DocumentEvaluationResult} objects.
 	 * 
-	 * @return A {@link Flux} of {@link SAPLDecision} objects.
+	 * @return A {@link Flux} of {@link DocumentEvaluationResult} objects.
 	 */
 	@Override
 	public Flux<DocumentEvaluationResult> evaluate() {

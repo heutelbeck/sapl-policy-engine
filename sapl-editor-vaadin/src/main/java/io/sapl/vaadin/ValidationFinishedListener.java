@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,13 @@
  */
 package io.sapl.vaadin;
 
+/**
+ * Listener interface for editor validation events.
+ */
 @FunctionalInterface
 public interface ValidationFinishedListener {
+	/**
+	 * @param event the validation event.
+	 */
 	void onValidationFinished(ValidationFinishedEvent event);
 }

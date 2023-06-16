@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.method.metadata.PostEnforceAttribute;
+import io.sapl.spring.method.metadata.SaplAttribute;
 import io.sapl.spring.subscriptions.WebfluxAuthorizationSubscriptionBuilderService;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
@@ -38,8 +38,9 @@ public class PostEnforcePolicyEnforcementPoint {
 	private final WebfluxAuthorizationSubscriptionBuilderService subscriptionBuilder;
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public Mono<?> postEnforceOneDecisionOnResourceAccessPoint(Mono<?> resourceAccessPoint, MethodInvocation invocation,
-			PostEnforceAttribute postEnforceAttribute) {
+	public Mono<Object> postEnforceOneDecisionOnResourceAccessPoint(Mono<?> resourceAccessPoint,
+			MethodInvocation invocation,
+			SaplAttribute postEnforceAttribute) {
 		return resourceAccessPoint.flatMap(result -> {
 			Mono<AuthorizationDecision> dec = postEnforceDecision(invocation, postEnforceAttribute, result);
 			return dec.flatMap(decision -> {
@@ -48,13 +49,13 @@ public class PostEnforcePolicyEnforcementPoint {
 					finalResourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
 
 				return constraintHandlerService.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
-						(Flux) finalResourceAccessPoint, postEnforceAttribute.getGenericsType()).onErrorStop().next();
+						(Flux) finalResourceAccessPoint, postEnforceAttribute.genericsType()).onErrorStop().next();
 			});
 		});
 	}
 
 	private Mono<AuthorizationDecision> postEnforceDecision(MethodInvocation invocation,
-			PostEnforceAttribute postEnforceAttribute, Object returnedObject) {
+			SaplAttribute postEnforceAttribute, Object returnedObject) {
 		return subscriptionBuilder
 				.reactiveConstructAuthorizationSubscription(invocation, postEnforceAttribute, returnedObject)
 				.flatMapMany(pdp::decide).next();

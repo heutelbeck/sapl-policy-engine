@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,21 +29,21 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 @JsonComponent
 public class ServerHttpRequestSerializer extends JsonSerializer<ServerHttpRequest> {
 
-	static final String PARAMETERS = "parameters";
-	static final String COOKIES = "cookies";
-	static final String HEADERS = "headers";
-	static final String REQUESTED_URI = "requestedURI";
-	static final String CONTEXT_PATH = "contextPath";
-	static final String METHOD = "method";
-	static final String LOCAL_PORT = "localPort";
-	static final String LOCAL_ADDRESS = "localAddress";
-	static final String LOCAL_NAME = "localName";
-	static final String REMOTE_PORT = "remotePort";
-	static final String REMOTE_HOST = "remoteHost";
+	static final String PARAMETERS     = "parameters";
+	static final String COOKIES        = "cookies";
+	static final String HEADERS        = "headers";
+	static final String REQUESTED_URI  = "requestedURI";
+	static final String CONTEXT_PATH   = "contextPath";
+	static final String METHOD         = "method";
+	static final String LOCAL_PORT     = "localPort";
+	static final String LOCAL_ADDRESS  = "localAddress";
+	static final String LOCAL_NAME     = "localName";
+	static final String REMOTE_PORT    = "remotePort";
+	static final String REMOTE_HOST    = "remoteHost";
 	static final String REMOTE_ADDRESS = "remoteAddress";
-	static final String SERVER_PORT = "serverPort";
-	static final String SERVER_NAME = "serverName";
-	static final String SCHEME = "scheme";
+	static final String SERVER_PORT    = "serverPort";
+	static final String SERVER_NAME    = "serverName";
+	static final String SCHEME         = "scheme";
 
 	@Override
 	public void serialize(ServerHttpRequest value, JsonGenerator gen, SerializerProvider serializers)

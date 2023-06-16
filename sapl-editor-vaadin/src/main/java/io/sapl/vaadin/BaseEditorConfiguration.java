@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,11 +22,11 @@ import lombok.Data;
  */
 @Data
 public class BaseEditorConfiguration {
-	private boolean hasLineNumbers = true;
+	private boolean hasLineNumbers    = true;
 	private boolean autoCloseBrackets = true;
-	private boolean matchBrackets = true;
-	private int textUpdateDelay = 500;
-	private boolean readOnly = false;
-	private boolean lint = true;
-	private boolean darkTheme = false;
+	private boolean matchBrackets     = true;
+	private int     textUpdateDelay   = 500;
+	private boolean readOnly          = false;
+	private boolean lint              = true;
+	private boolean darkTheme         = false;
 }

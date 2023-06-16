@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the lazy boolean AND operator, written as '&amp;&amp;' in
  * Expressions.
- *
+ * <p>
  * Grammar: Multiplication returns Expression: Comparison (({And.left=current}
  * '&amp;&amp;') right=Comparison)* ;
  */

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ import reactor.util.function.Tuples;
 /**
  * Implements the application of a recursive key step to a previous value, e.g.
  * {@code 'obj..name' or 'arr..["name"]'}.
- *
+ * <p>
  * Grammar: {@code Step: '..' ({RecursiveKeyStep} (id=ID | '[' id=STRING ']'))
  * ;}
  */

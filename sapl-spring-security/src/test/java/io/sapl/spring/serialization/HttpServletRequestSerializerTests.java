@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ class HttpServletRequestSerializerTests {
 	private final ObjectMapper mapper = new ObjectMapper();
 
 	private JsonNode serialize(HttpServletRequest invocation) throws IOException {
-		TokenBuffer jsonGenerator = new TokenBuffer(mapper, false);
+		TokenBuffer        jsonGenerator      = new TokenBuffer(mapper, false);
 		SerializerProvider serializerProvider = mapper.getSerializerProvider();
 		new HttpServletRequestSerializer().serialize(invocation, jsonGenerator, serializerProvider);
 		jsonGenerator.flush();
@@ -57,7 +57,7 @@ class HttpServletRequestSerializerTests {
 	@Test
 	void whenProtocolSet_thenItIsTheSameInJson() throws IOException {
 		var expected = "HTTP/2";
-		var request = new MockHttpServletRequest();
+		var request  = new MockHttpServletRequest();
 		request.setProtocol(expected);
 		var result = serialize(request);
 		assertThat(result, is(jsonObject().where(HttpServletRequestSerializer.PROTOCOL, is(jsonText(expected)))));
@@ -117,7 +117,7 @@ class HttpServletRequestSerializerTests {
 	@Test
 	void whenServerNameSet_thenItIsTheSameInJson() throws IOException {
 		var expected = "sapl.io";
-		var request = new MockHttpServletRequest();
+		var request  = new MockHttpServletRequest();
 		request.setServerName(expected);
 		var result = serialize(request);
 		assertThat(result, is(jsonObject().where(HttpServletRequestSerializer.SERVER_NAME, is(jsonText(expected)))));
@@ -126,7 +126,7 @@ class HttpServletRequestSerializerTests {
 	@Test
 	void whenServerPortSet_thenItIsTheSameInJson() throws IOException {
 		var expected = 443;
-		var request = new MockHttpServletRequest();
+		var request  = new MockHttpServletRequest();
 		request.setServerPort(expected);
 		var result = serialize(request);
 		assertThat(result, is(jsonObject().where(HttpServletRequestSerializer.SERVER_PORT, is(jsonInt(expected)))));
@@ -135,7 +135,7 @@ class HttpServletRequestSerializerTests {
 	@Test
 	void whenRemoteAddressSet_thenItIsTheSameInJson() throws IOException {
 		var expected = "123.022.233.121";
-		var request = new MockHttpServletRequest();
+		var request  = new MockHttpServletRequest();
 		request.setRemoteAddr(expected);
 		var result = serialize(request);
 		assertThat(result, is(jsonObject().where(HttpServletRequestSerializer.REMOTE_ADDRESS, is(jsonText(expected)))));
@@ -144,7 +144,7 @@ class HttpServletRequestSerializerTests {
 	@Test
 	void whenRemotePortSet_thenItIsTheSameInJson() throws IOException {
 		var expected = 8443;
-		var request = new MockHttpServletRequest();
+		var request  = new MockHttpServletRequest();
 		request.setRemotePort(expected);
 		var result = serialize(request);
 		assertThat(result, is(jsonObject().where(HttpServletRequestSerializer.REMOTE_PORT, is(jsonInt(expected)))));
@@ -153,7 +153,7 @@ class HttpServletRequestSerializerTests {
 	@Test
 	void whenRemoteHostSet_thenItIsTheSameInJson() throws IOException {
 		var expected = "demo.sapl.io";
-		var request = new MockHttpServletRequest();
+		var request  = new MockHttpServletRequest();
 		request.setRemoteHost(expected);
 		var result = serialize(request);
 		assertThat(result, is(jsonObject().where(HttpServletRequestSerializer.REMOTE_HOST, is(jsonText(expected)))));
@@ -162,7 +162,7 @@ class HttpServletRequestSerializerTests {
 	@Test
 	void whenSecureSet_thenItIsTheSameInJson() throws IOException {
 		var expected = true;
-		var request = new MockHttpServletRequest();
+		var request  = new MockHttpServletRequest();
 		request.setSecure(expected);
 		var result = serialize(request);
 		assertThat(result, is(jsonObject().where(HttpServletRequestSerializer.IS_SECURE, is(jsonBoolean(expected)))));
@@ -171,7 +171,7 @@ class HttpServletRequestSerializerTests {
 	@Test
 	void whenLocalNameSet_thenItIsTheSameInJson() throws IOException {
 		var expected = "localhostname";
-		var request = new MockHttpServletRequest();
+		var request  = new MockHttpServletRequest();
 		request.setLocalName(expected);
 		var result = serialize(request);
 		assertThat(result, is(jsonObject().where(HttpServletRequestSerializer.LOCAL_NAME, is(jsonText(expected)))));
@@ -180,7 +180,7 @@ class HttpServletRequestSerializerTests {
 	@Test
 	void whenLocalAddressSet_thenItIsTheSameInJson() throws IOException {
 		var expected = "98.99.100.1";
-		var request = new MockHttpServletRequest();
+		var request  = new MockHttpServletRequest();
 		request.setLocalAddr(expected);
 		var result = serialize(request);
 		assertThat(result, is(jsonObject().where(HttpServletRequestSerializer.LOCAL_ADDRESS, is(jsonText(expected)))));
@@ -189,7 +189,7 @@ class HttpServletRequestSerializerTests {
 	@Test
 	void whenLocalPortSet_thenItIsTheSameInJson() throws IOException {
 		var expected = 8083;
-		var request = new MockHttpServletRequest();
+		var request  = new MockHttpServletRequest();
 		request.setLocalPort(expected);
 		var result = serialize(request);
 		assertThat(result, is(jsonObject().where(HttpServletRequestSerializer.LOCAL_PORT, is(jsonInt(expected)))));
@@ -198,7 +198,7 @@ class HttpServletRequestSerializerTests {
 	@Test
 	void whenMethodNameSet_thenItIsTheSameInJson() throws IOException {
 		var expected = "GET";
-		var request = new MockHttpServletRequest();
+		var request  = new MockHttpServletRequest();
 		request.setMethod(expected);
 		var result = serialize(request);
 		assertThat(result, is(jsonObject().where(HttpServletRequestSerializer.METHOD, is(jsonText(expected)))));
@@ -207,7 +207,7 @@ class HttpServletRequestSerializerTests {
 	@Test
 	void whenContextPathSet_thenItIsTheSameInJson() throws IOException {
 		var expected = "/a/b/c";
-		var request = new MockHttpServletRequest();
+		var request  = new MockHttpServletRequest();
 		request.setContextPath(expected);
 		var result = serialize(request);
 		assertThat(result, is(jsonObject().where(HttpServletRequestSerializer.CONTEXT_PATH, is(jsonText(expected)))));
@@ -216,7 +216,7 @@ class HttpServletRequestSerializerTests {
 	@Test
 	void whenEncodingSet_thenItIsTheSameInJson() throws IOException {
 		var expected = StandardCharsets.US_ASCII.toString();
-		var request = new MockHttpServletRequest();
+		var request  = new MockHttpServletRequest();
 		request.setCharacterEncoding(expected);
 		var result = serialize(request);
 		assertThat(result,
@@ -226,7 +226,7 @@ class HttpServletRequestSerializerTests {
 	@Test
 	void whenContentTypeSet_thenItIsTheSameInJson() throws IOException {
 		var expected = MediaType.APPLICATION_JSON_VALUE;
-		var request = new MockHttpServletRequest();
+		var request  = new MockHttpServletRequest();
 		request.setContentType(expected);
 		var result = serialize(request);
 		assertThat(result, is(jsonObject().where(HttpServletRequestSerializer.CONTENT_TYPE, is(jsonText(expected)))));
@@ -235,7 +235,7 @@ class HttpServletRequestSerializerTests {
 	@Test
 	void whenAuthTypeSet_thenItIsTheSameInJson() throws IOException {
 		var expected = "basic";
-		var request = new MockHttpServletRequest();
+		var request  = new MockHttpServletRequest();
 		request.setAuthType(expected);
 		var result = serialize(request);
 		assertThat(result, is(jsonObject().where(HttpServletRequestSerializer.AUTH_TYPE, is(jsonText(expected)))));
@@ -244,7 +244,7 @@ class HttpServletRequestSerializerTests {
 	@Test
 	void whenQuerySet_thenItIsTheSameInJson() throws IOException {
 		var expected = "a=b";
-		var request = new MockHttpServletRequest();
+		var request  = new MockHttpServletRequest();
 		request.setQueryString(expected);
 		var result = serialize(request);
 		assertThat(result, is(jsonObject().where(HttpServletRequestSerializer.QUERY_STRING, is(jsonText(expected)))));
@@ -253,7 +253,7 @@ class HttpServletRequestSerializerTests {
 	@Test
 	void whenSessionIdSet_thenItIsTheSameInJson() throws IOException {
 		var expected = "0xaaabbbd1233425fff";
-		var request = new MockHttpServletRequest();
+		var request  = new MockHttpServletRequest();
 		request.setRequestedSessionId(expected);
 		var result = serialize(request);
 		assertThat(result,
@@ -263,7 +263,7 @@ class HttpServletRequestSerializerTests {
 	@Test
 	void whenRequestedUriIsSet_thenItIsTheSameInJson() throws IOException {
 		var expected = "https://localhorst";
-		var request = new MockHttpServletRequest();
+		var request  = new MockHttpServletRequest();
 		request.setRequestURI(expected);
 		var result = serialize(request);
 		assertThat(result, is(jsonObject().where(HttpServletRequestSerializer.REQUESTED_URI, is(jsonText(expected)))));
@@ -272,15 +272,15 @@ class HttpServletRequestSerializerTests {
 	@Test
 	void whenRequestUrlIsSet_thenItIsTheSameInJson() throws IOException {
 		var expected = "http://localhost";
-		var request = new MockHttpServletRequest();
-		var result = serialize(request);
+		var request  = new MockHttpServletRequest();
+		var result   = serialize(request);
 		assertThat(result, is(jsonObject().where(HttpServletRequestSerializer.REQUEST_URL, is(jsonText(expected)))));
 	}
 
 	@Test
 	void whenLocaleSet_thenItIsTheSameInJson() throws IOException {
 		var expected = Locale.GERMAN.toString();
-		var request = new MockHttpServletRequest();
+		var request  = new MockHttpServletRequest();
 		request.setPreferredLocales(List.of(Locale.GERMAN, Locale.UK));
 		var result = serialize(request);
 		assertThat(result,

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,8 +31,14 @@ public class StandardFunctionLibrary {
 
 	private static final String ON_ERROR_MAP_DOC = "onErrorMap(guardedExpression, fallbackExpression): If the guarded expression evaluates to an error, return the evaluation result of the fallbackExpression.";
 
+	/**
+	 * Library name and prefix
+	 */
 	public static final String NAME = "standard";
 
+	/**
+	 * Library description
+	 */
 	public static final String DESCRIPTION = "This library contains the mandatory functions for the SAPL implementation.";
 
 	private static final String LENGTH_DOC = "length(JSON_VALUE): For STRING it returns the length of the STRING. "
@@ -67,12 +73,12 @@ public class StandardFunctionLibrary {
 
 		return parameter;
 	}
-	
+
 	@Function(docs = ON_ERROR_MAP_DOC)
 	public static Val onErrorMap(Val guardedExpression, Val fallbackValue) {
-		if(guardedExpression.isError())
+		if (guardedExpression.isError())
 			return fallbackValue;
-		
+
 		return guardedExpression;
 	}
 

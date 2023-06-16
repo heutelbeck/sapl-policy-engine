@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import org.springframework.http.HttpStatusCode;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClient.ResponseSpec;
@@ -35,6 +36,9 @@ import lombok.experimental.StandardException;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
+/**
+ * Class for retrieving public keys from the JWT Authorization Server
+ */
 @Slf4j
 public class JWTKeyProvider {
 
@@ -44,37 +48,49 @@ public class JWTKeyProvider {
 
 	static final String PUBLIC_KEY_URI_KEY     = "uri";
 	static final String PUBLIC_KEY_METHOD_KEY  = "method";
-	static final String KEY_CACHING_TTL_MILLIS = "keyCachingTTLmillis";
+	static final String KEY_CACHING_TTL_MILLIS = "keyCachingTtlMillis";
 	static final long   DEFAULT_CACHING_TTL    = 300000L;
 
+	/**
+	 * Exception indication a caching error.
+	 */
 	@StandardException
 	public static class CachingException extends Exception {
 
 	}
 
 	private final Map<String, RSAPublicKey> keyCache;
+	private final Queue<CacheEntry>         cachingTimes;
+	private final WebClient                 webClient;
+	private long                            lastTTL = DEFAULT_CACHING_TTL;
 
-	private final Queue<CacheEntry> cachingTimes;
-
-	private final WebClient webClient;
-
-	private long lastTTL = DEFAULT_CACHING_TTL;
-
+	/**
+	 * Creates a JWTKeyProvider.
+	 * 
+	 * @param builder a WebClient builder.
+	 */
 	public JWTKeyProvider(WebClient.Builder builder) {
 		webClient    = builder.build();
-		keyCache     = new ConcurrentHashMap<>();     // HashMap<String,
-														// RSAPublicKey>();
-		cachingTimes = new ConcurrentLinkedQueue<>(); // PriorityQueue<CacheEntry>();
+		keyCache     = new ConcurrentHashMap<>();
+		cachingTimes = new ConcurrentLinkedQueue<>();
 	}
 
+	/**
+	 * Fetches the public key of a server.
+	 * 
+	 * @param kid              the key id
+	 * @param jPublicKeyServer the key server
+	 * @return the public key
+	 * @throws CachingException on error
+	 */
 	public Mono<RSAPublicKey> provide(String kid, JsonNode jPublicKeyServer) throws CachingException {
 
 		var jUri = jPublicKeyServer.get(PUBLIC_KEY_URI_KEY);
 		if (jUri == null)
 			return Mono.empty();
 
-		var      sMethod = "GET";
-		JsonNode jMethod = jPublicKeyServer.get(PUBLIC_KEY_METHOD_KEY);
+		var sMethod = "GET";
+		var jMethod = jPublicKeyServer.get(PUBLIC_KEY_METHOD_KEY);
 		if (jMethod != null && jMethod.isTextual())
 			sMethod = jMethod.textValue();
 
@@ -83,16 +99,24 @@ public class JWTKeyProvider {
 		var jTTL = jPublicKeyServer.get(KEY_CACHING_TTL_MILLIS);
 		// nested if-statement in order to cover all possible branches during testing
 		// (eg. null && canConvertToLong not possible)
-		if (jTTL != null)
-			if (jTTL.canConvertToLong())
+		if (jTTL != null) {
+			if (jTTL.canConvertToLong()) {
 				lTTL = jTTL.longValue();
-			else
+			} else {
 				throw new CachingException(JWT_KEY_CACHING_ERROR + jTTL);
+			}
+		}
 
-		setTTLmillis(lTTL);
+		setTtlMillis(lTTL);
 		return fetchPublicKey(kid, sUri, sMethod);
 	}
 
+	/**
+	 * Put public key into cache.
+	 * 
+	 * @param kid    key id
+	 * @param pubKey public key
+	 */
 	public void cache(String kid, RSAPublicKey pubKey) {
 
 		if (isCached(kid))
@@ -102,13 +126,24 @@ public class JWTKeyProvider {
 		cachingTimes.add(new CacheEntry(kid));
 	}
 
+	/**
+	 * Checks if the key is in the cache.
+	 * 
+	 * @param kid key id
+	 * @return true, if the cache contains the key with the given id.
+	 */
 	public boolean isCached(String kid) {
 		pruneCache();
 		return keyCache.containsKey(kid);
 	}
 
-	public void setTTLmillis(long newTTLmillis) {
-		lastTTL = newTTLmillis >= 0L ? newTTLmillis : DEFAULT_CACHING_TTL;
+	/**
+	 * Sets the cache TTL.
+	 * 
+	 * @param newTtlMillis time to live for cache entries.
+	 */
+	public void setTtlMillis(long newTtlMillis) {
+		lastTTL = newTtlMillis >= 0L ? newTtlMillis : DEFAULT_CACHING_TTL;
 	}
 
 	/**
@@ -135,7 +170,7 @@ public class JWTKeyProvider {
 			response = webClient.get().uri(publicKeyURI, kid).retrieve();
 		}
 
-		return response.onStatus(status -> status.isError(), this::handleHttpError).bodyToMono(String.class)
+		return response.onStatus(HttpStatusCode::isError, this::handleHttpError).bodyToMono(String.class)
 				.map(JWTEncodingDecodingUtils::encodedX509ToRSAPublicKey).filter(Optional::isPresent)
 				.map(Optional::get);
 	}
@@ -146,7 +181,7 @@ public class JWTKeyProvider {
 	}
 
 	/**
-	 * remove all keys from cache, that are older than TTLmillis before now
+	 * remove all keys from cache, that are older than ttlMillis before now
 	 */
 	private void pruneCache() {
 		var pruneTime   = new Date().toInstant().minusMillis(lastTTL);

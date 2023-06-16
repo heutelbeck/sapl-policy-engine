@@ -1,4 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
 <ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" name="sapl" nsURI="https://sapl.io/sapl/SAPL" nsPrefix="sapl">
   <eClassifiers xsi:type="ecore:EClass" name="SAPL" eSuperTypes="#//Matchable #//EvaluableDocument">
@@ -336,7 +353,7 @@
   <eClassifiers xsi:type="ecore:EClass" name="CombiningAlgorithm" abstract="true">
     <eOperations name="combinePolicies" lowerBound="1" eType="#//CombinedDecisionFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
-        <details key="documentation" value="Method which evaluates multiple policies within a policy set against an authorization subscription object, combines the results and creates and returns a corresponding authorization decision object. The method is supposed to be used to determine an authorization decision for the SAPL documents known to the PDP. Imports are obtained from the SAPL document.&#xA;@param policies policies of the set currently matching the ongoing authorization subscription.&#xA;@return a {@link Flux} of {@link AuthorizationDecision} objects containing the combined decision, the combined obligation and advice and a transformed resource if applicable. A new authorization decision object is only pushed if it is different from the previous one."/>
+        <details key="documentation" value="Method which evaluates multiple policies within a policy set against an authorization subscription object, combines the results and creates and returns a corresponding authorization decision object. The method is supposed to be used to determine an authorization decision for the SAPL documents known to the PDP. Imports are obtained from the SAPL document.&#xA;@param policies policies of the set currently matching the ongoing authorization subscription.&#xA;@return a {@link Flux} of {@link io.sapl.api.pdp.AuthorizationDecision} objects containing the combined decision, the combined obligation and advice and a transformed resource if applicable. A new authorization decision object is only pushed if it is different from the previous one."/>
       </eAnnotations>
       <eParameters name="policies" eType="#//PolicyElementList"/>
     </eOperations>

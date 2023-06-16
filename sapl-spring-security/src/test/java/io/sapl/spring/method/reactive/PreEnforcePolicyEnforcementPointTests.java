@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -277,7 +277,7 @@ class PreEnforcePolicyEnforcementPointTests {
 			}
 
 			@Override
-			public Function<Integer, Integer> getHandler(JsonNode constraint) {
+			public UnaryOperator<Integer> getHandler(JsonNode constraint) {
 				return s -> {
 					if (s == 2)
 						throw new IllegalArgumentException("I FAILED TO OBLIGE");
@@ -317,7 +317,7 @@ class PreEnforcePolicyEnforcementPointTests {
 			}
 
 			@Override
-			public Function<Integer, Integer> getHandler(JsonNode constraint) {
+			public UnaryOperator<Integer> getHandler(JsonNode constraint) {
 				return s -> s + constraint.asInt();
 			}
 		});

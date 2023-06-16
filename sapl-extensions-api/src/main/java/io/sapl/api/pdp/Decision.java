@@ -1,5 +1,5 @@
 /*
- * Copyright © 2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,15 +17,15 @@ package io.sapl.api.pdp;
 
 /**
  * The different possible outcomes of a SAPL decision.
- *
+ * <p>
  * PERMIT grants access to the resource, while respecting potential obligations,
  * advises, or resource transformation.
- *
+ * <p>
  * DENY denies access to the resource.
- *
+ * <p>
  * INDETERMINATE means that an error occurred during the decision process.
  * Access must be denied in this case.
- *
+ * <p>
  * NOT_APPLICABLE means no policies were found matching the authorization
  * subscription. Access must be denied in this case.
  */

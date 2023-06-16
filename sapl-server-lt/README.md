@@ -119,7 +119,7 @@ Alternatively the container can be run without Docker Volume which gives you eas
 docker run -d --name sapl-server-lt -p 8080:8080 -v c:\sapl\policies:/pdp/data ghcr.io/heutelbeck/sapl-server-lt:2.1.0-snapshot
 ```
 
-Afterwards you can check if the service is online under: http://localhost:8080/actuator/health.
+Afterward you can check if the service is online under: http://localhost:8080/actuator/health.
 
 Also, a volume is created for persisting the PDP configuration and policies.
 

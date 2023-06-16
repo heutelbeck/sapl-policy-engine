@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,8 +32,10 @@ import reactor.core.Exceptions;
 
 public class SaplUnitTestFixture extends SaplTestFixtureTemplate {
 
-	private static final String ERROR_MESSAGE_MISSING_SAPL_DOCUMENT_NAME = "Before constructing a test case you have to specify the filename where to find your SAPL policy!"
-			+ "\n\nProbably you forgot to call \".setSaplDocumentName(\"\")\"";
+	private static final String ERROR_MESSAGE_MISSING_SAPL_DOCUMENT_NAME = """
+			Before constructing a test case you have to specify the filename where to find your SAPL policy!
+
+			Probably you forgot to call ".setSaplDocumentName("")\"""";
 
 	private final String saplDocumentName;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -132,7 +132,7 @@ public class KeyStepImplCustom extends KeyStepImpl {
 		var i             = 0;
 		while (elements.hasNext()) {
 			var element = Val.of(elements.next()).withTrace(KeyStep.class,
-					Map.<String,Traced>of("unfilteredValue", unfilteredValue, "index", Val.of(i++)));
+					Map.of("unfilteredValue", unfilteredValue, "index", Val.of(i++)));
 			if (element.isObject()) {
 				// array element is an object. apply this step to the object.
 				elementFluxes.add(applyFilterStatementToObject(id, element, stepId, statement)

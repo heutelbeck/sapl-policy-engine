@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package io.sapl.interpreter.context;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -117,23 +118,11 @@ public class AuthorizationContext {
 
 	public Context setSubscriptionVariables(@NonNull Context ctx, AuthorizationSubscription authorizationSubscription) {
 
-		Map<String, JsonNode> variables = new HashMap<>(ctx.getOrDefault(VARIABLES, new HashMap<>()));
+		Map<String, JsonNode> variables = new HashMap<>(Objects.requireNonNull(ctx.getOrDefault(VARIABLES, new HashMap<>())));
 
-		if (authorizationSubscription.getSubject() != null) {
-			variables.put(SUBJECT, authorizationSubscription.getSubject());
-		} else {
-			variables.put(SUBJECT, JSON.nullNode());
-		}
-		if (authorizationSubscription.getAction() != null) {
-			variables.put(ACTION, authorizationSubscription.getAction());
-		} else {
-			variables.put(ACTION, JSON.nullNode());
-		}
-		if (authorizationSubscription.getResource() != null) {
-			variables.put(RESOURCE, authorizationSubscription.getResource());
-		} else {
-			variables.put(RESOURCE, JSON.nullNode());
-		}
+		variables.put(SUBJECT, authorizationSubscription.getSubject());
+		variables.put(ACTION, authorizationSubscription.getAction());
+		variables.put(RESOURCE, authorizationSubscription.getResource());
 		if (authorizationSubscription.getEnvironment() != null) {
 			variables.put(ENVIRONMENT, authorizationSubscription.getEnvironment());
 		} else {

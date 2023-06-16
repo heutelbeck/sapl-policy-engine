@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,48 +15,40 @@
  */
 package io.sapl.spring.config;
 
-import java.util.Arrays;
-
+import org.springframework.aop.Advisor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.ImportAware;
 import org.springframework.context.annotation.Role;
-import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
-import org.springframework.security.access.expression.method.ExpressionBasedAnnotationAttributeFactory;
-import org.springframework.security.access.expression.method.ExpressionBasedPostInvocationAdvice;
-import org.springframework.security.access.expression.method.ExpressionBasedPreInvocationAdvice;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
-import org.springframework.security.access.intercept.aopalliance.MethodSecurityMetadataSourceAdvisor;
-import org.springframework.security.access.method.AbstractMethodSecurityMetadataSource;
-import org.springframework.security.access.method.DelegatingMethodSecurityMetadataSource;
-import org.springframework.security.access.method.MethodSecurityMetadataSource;
-import org.springframework.security.access.prepost.PrePostAdviceReactiveMethodInterceptor;
-import org.springframework.security.access.prepost.PrePostAnnotationSecurityMetadataSource;
 import org.springframework.security.config.core.GrantedAuthorityDefaults;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.method.metadata.SaplAttributeFactory;
-import io.sapl.spring.method.metadata.SaplMethodSecurityMetadataSource;
+import io.sapl.spring.method.blocking.PolicyEnforcementPointAroundMethodInterceptor;
+import io.sapl.spring.method.metadata.SaplAttributeRegistry;
 import io.sapl.spring.method.reactive.PostEnforcePolicyEnforcementPoint;
 import io.sapl.spring.method.reactive.PreEnforcePolicyEnforcementPoint;
 import io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptor;
 import io.sapl.spring.subscriptions.WebfluxAuthorizationSubscriptionBuilderService;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
- * Sets up automatic PEP generation for Methods with reactive return types. Bean can be
- * customized by sub classing.
+ * Sets up automatic PEP generation for Methods with reactive return types. Bean
+ * can be customized by sub classing.
  */
+@Slf4j
 @RequiredArgsConstructor
 @Configuration(proxyBeanMethods = false)
-public class ReactiveSaplMethodSecurityConfiguration implements ImportAware {
+public class ReactiveSaplMethodSecurityConfiguration {
 
 	@NonNull
 	private final PolicyDecisionPoint pdp;
@@ -67,48 +59,51 @@ public class ReactiveSaplMethodSecurityConfiguration implements ImportAware {
 	@NonNull
 	private final ObjectMapper mapper;
 
-	private int advisorOrder;
-
 	private GrantedAuthorityDefaults grantedAuthorityDefaults;
 
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	MethodSecurityMetadataSourceAdvisor methodSecurityInterceptor(AbstractMethodSecurityMetadataSource source) {
-		MethodSecurityMetadataSourceAdvisor advisor = new MethodSecurityMetadataSourceAdvisor(
-				"securityMethodInterceptor", source, "methodMetadataSource");
-		advisor.setOrder(this.advisorOrder);
-		return advisor;
-	}
-
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	DelegatingMethodSecurityMetadataSource methodMetadataSource(
-			MethodSecurityExpressionHandler methodSecurityExpressionHandler) {
-		ExpressionBasedAnnotationAttributeFactory attributeFactory = new ExpressionBasedAnnotationAttributeFactory(
-				methodSecurityExpressionHandler);
-		PrePostAnnotationSecurityMetadataSource prePostSource = new PrePostAnnotationSecurityMetadataSource(
-				attributeFactory);
-		SaplMethodSecurityMetadataSource sapl = new SaplMethodSecurityMetadataSource(
-				new SaplAttributeFactory(methodSecurityExpressionHandler));
-		return new DelegatingMethodSecurityMetadataSource(Arrays.asList(sapl, prePostSource));
-	}
-
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	ReactiveSaplMethodInterceptor securityMethodInterceptor(MethodSecurityMetadataSource source,
+	Advisor reactiveSaplMethodSecurityPolicyEnforcementPoint(SaplAttributeRegistry source,
 			MethodSecurityExpressionHandler handler,
 			WebfluxAuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService,
 			PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint,
 			PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint) {
-		var springSecurityPostAdvice = new ExpressionBasedPostInvocationAdvice(handler);
-		var springSecurityPreAdvice = new ExpressionBasedPreInvocationAdvice();
-		springSecurityPreAdvice.setExpressionHandler(handler);
-		var springPrePostInterceptor = new PrePostAdviceReactiveMethodInterceptor(source, springSecurityPreAdvice,
-				springSecurityPostAdvice);
-		return new ReactiveSaplMethodInterceptor(springPrePostInterceptor, source, handler, pdp,
+
+		log.info("Deploy ReactiveSaplMethodInterceptor");
+		var policyEnforcementPoint = new ReactiveSaplMethodInterceptor(source, handler, pdp,
+				constraintHandlerService, mapper, authorizationSubscriptionBuilderService,
+				preEnforcePolicyEnforcementPoint, postEnforcePolicyEnforcementPoint);
+		var reactive               = PolicyEnforcementPointAroundMethodInterceptor.reactive(policyEnforcementPoint);
+//		// strategyProvider.ifAvailable(preEnforce::setSecurityContextHolderStrategy);
+//		// eventPublisherProvider.ifAvailable(postAuthorize::setAuthorizationEventPublisher);
+//		var manager      = new PreEnforcePolicyEnforcementPoint(policyDecisionPoint, attributeRegistry,
+//				constraintEnforcementService, subscriptionBuilder);
+//		var preAuthorize = AuthorizationManagerBeforeMethodInterceptor.preAuthorize(manager(manager, registryProvider));
+//		strategyProvider.ifAvailable(preAuthorize::setSecurityContextHolderStrategy);
+//		eventPublisherProvider.ifAvailable(preAuthorize::setAuthorizationEventPublisher);
+		return reactive;
+	}
+
+	@Bean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+	ReactiveSaplMethodInterceptor securityMethodInterceptor(SaplAttributeRegistry source,
+			MethodSecurityExpressionHandler handler,
+			WebfluxAuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService,
+			PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint,
+			PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint) {
+		return new ReactiveSaplMethodInterceptor(source, handler, pdp,
 				constraintHandlerService, mapper, authorizationSubscriptionBuilderService,
 				preEnforcePolicyEnforcementPoint, postEnforcePolicyEnforcementPoint);
 	}
+
+//	private final SaplAttributeRegistry source;
+//	private final MethodSecurityExpressionHandler handler;
+//	private final PolicyDecisionPoint pdp;
+//	private final ConstraintEnforcementService constraintHandlerService;
+//	private final ObjectMapper mapper;
+//	private final WebfluxAuthorizationSubscriptionBuilderService subscriptionBuilder;
+//	private final PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint;
+//	private final PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint;
 
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
@@ -142,12 +137,21 @@ public class ReactiveSaplMethodSecurityConfiguration implements ImportAware {
 		return handler;
 	}
 
-	@Override
-	public void setImportMetadata(AnnotationMetadata importMetadata) {
-		var annotationAttributes = importMetadata
-				.getAnnotationAttributes(EnableReactiveSaplMethodSecurity.class.getName());
-		if (annotationAttributes != null)
-			this.advisorOrder = (int) annotationAttributes.get("order");
+	@Bean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+	SaplAttributeRegistry saplAttributeRegistry(ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
+			ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider, ApplicationContext context) {
+		var exprProvider = expressionHandlerProvider
+				.getIfAvailable(() -> defaultExpressionHandler(defaultsProvider, context));
+		return new SaplAttributeRegistry(exprProvider);
+	}
+
+	private static MethodSecurityExpressionHandler defaultExpressionHandler(
+			ObjectProvider<GrantedAuthorityDefaults> defaultsProvider, ApplicationContext context) {
+		DefaultMethodSecurityExpressionHandler handler = new DefaultMethodSecurityExpressionHandler();
+		defaultsProvider.ifAvailable(d -> handler.setDefaultRolePrefix(d.getRolePrefix()));
+		handler.setApplicationContext(context);
+		return handler;
 	}
 
 	@Autowired(required = false)

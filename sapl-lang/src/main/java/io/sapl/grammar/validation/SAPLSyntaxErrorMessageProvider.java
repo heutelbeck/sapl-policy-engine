@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -123,11 +123,9 @@ public class SAPLSyntaxErrorMessageProvider extends SyntaxErrorMessageProvider {
 		}
 
 		EObject grammarElement = node.getGrammarElement();
-		if (grammarElement instanceof RuleCall) {
-			RuleCall ruleCall  = (RuleCall) grammarElement;
+		if (grammarElement instanceof RuleCall ruleCall) {
 			EObject  container = ruleCall.eContainer();
-			if (container instanceof Assignment) {
-				Assignment assignment = (Assignment) container;
+			if (container instanceof Assignment assignment) {
 				String     feature    = assignment.getFeature();
 				if ("imports".equals(feature)) {
 					return new SyntaxErrorMessage(INCOMPLETE_IMPORT, Diagnostic.SYNTAX_DIAGNOSTIC);

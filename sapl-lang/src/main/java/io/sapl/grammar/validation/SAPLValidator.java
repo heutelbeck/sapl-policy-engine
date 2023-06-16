@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,8 +24,8 @@ import io.sapl.grammar.sapl.SaplPackage;
 
 /**
  * This class contains custom validation rules.
- *
- * See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation
+ * <p>
+ * See <a href="https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation">Validation</a>
  */
 public class SAPLValidator extends AbstractSAPLValidator {
 

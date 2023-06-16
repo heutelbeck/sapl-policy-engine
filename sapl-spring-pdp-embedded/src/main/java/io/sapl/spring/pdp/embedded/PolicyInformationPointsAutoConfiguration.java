@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,11 @@ package io.sapl.spring.pdp.embedded;
 
 import java.time.Clock;
 
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Role;
 
 import io.sapl.pip.TimePolicyInformationPoint;
 
@@ -28,11 +30,13 @@ public class PolicyInformationPointsAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	Clock clock() {
 		return Clock.systemUTC();
 	}
 
 	@Bean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	TimePolicyInformationPoint timePolicyInformationPoint(Clock clock) {
 		return new TimePolicyInformationPoint(clock);
 	}

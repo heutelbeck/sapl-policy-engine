@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,9 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.dom.ElementConstants;
 
+/**
+ * Base class for SAPL and JSON editors.
+ */
 public class BaseEditor extends Component {
 
 	private static final String                 IS_READ_ONLY_KEY = "isReadOnly";
@@ -30,6 +33,9 @@ public class BaseEditor extends Component {
 	private final List<DocumentChangedListener> documentChangedListeners;
 	private final List<EditorClickedListener>   editorClickedListeners;
 
+	/**
+	 * Creates the editor.
+	 */
 	public BaseEditor() {
 		super();
 		this.documentChangedListeners = new ArrayList<>();
@@ -58,9 +64,8 @@ public class BaseEditor extends Component {
 
 	@ClientCallable
 	protected void onEditorClicked(Integer line, String content) {
-		for (EditorClickedListener listener : editorClickedListeners) {
+		for (EditorClickedListener listener : editorClickedListeners)
 			listener.onEditorClicked(new EditorClickedEvent(line, content));
-		}
 	}
 
 	/**
@@ -113,7 +118,7 @@ public class BaseEditor extends Component {
 	}
 
 	/**
-	 * Removes a registered editor cliked listener.
+	 * Removes a registered editor clicked listener.
 	 *
 	 * @param listener The registered listener that should be removed.
 	 */
@@ -124,7 +129,7 @@ public class BaseEditor extends Component {
 	/**
 	 * This function enables or disables the read-only mode of the editor.
 	 *
-	 * @param isReadOnly
+	 * @param isReadOnly set to true if editor should be read only
 	 */
 	public void setReadOnly(Boolean isReadOnly) {
 		Element element = getElement();
@@ -152,7 +157,7 @@ public class BaseEditor extends Component {
 	/**
 	 * This function enables or disables the Dark Theme of the editor.
 	 *
-	 * @param isDarkTheme
+	 * @param isDarkTheme set to true if editor should be in dark theme
 	 */
 	public void setDarkTheme(Boolean isDarkTheme) {
 		Element element = getElement();

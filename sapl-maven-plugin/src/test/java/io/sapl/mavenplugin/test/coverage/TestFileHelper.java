@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,9 +19,18 @@ import java.io.File;
 
 import lombok.experimental.UtilityClass;
 
+/**
+ * Utility Class for deleting directories.
+ */
 @UtilityClass
 public class TestFileHelper {
 
+	/**
+	 * Delete a directory.
+	 * 
+	 * @param directoryToBeDeleted a directory
+	 * @return true on success.
+	 */
 	public static boolean deleteDirectory(File directoryToBeDeleted) {
 		File[] allContents = directoryToBeDeleted.listFiles();
 		if (allContents != null) {

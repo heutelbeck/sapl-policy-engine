@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,34 +15,42 @@
  */
 package io.sapl.spring.pdp.embedded;
 
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Role;
 
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.LoggingFunctionLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
 
-
+/**
+ * This configuration deploys the default function libraries for the PDP.
+ */
 @AutoConfiguration
 public class FunctionLibrariesAutoConfiguration {
 
 	@Bean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	FilterFunctionLibrary filterFunctionLibrary() {
 		return new FilterFunctionLibrary();
 	}
 
 	@Bean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	StandardFunctionLibrary standardFunctionLibrary() {
 		return new StandardFunctionLibrary();
 	}
 
 	@Bean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	TemporalFunctionLibrary temporalFunctionLibrary() {
 		return new TemporalFunctionLibrary();
 	}
 
 	@Bean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	LoggingFunctionLibrary loggingFunctionLibrary() {
 		return new LoggingFunctionLibrary();
 	}

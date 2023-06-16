@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ import reactor.core.publisher.Flux;
  * e.g. {@code 'arr[4, 7, 11]'.}
  *
  * Grammar:{@code  Step: '[' Subscript ']' ;
- *
+ * <p>
  * Subscript returns Step: {IndexUnionStep} indices+=JSONNUMBER ','
  * indices+=JSONNUMBER (',' indices+=JSONNUMBER)* ;}
  */

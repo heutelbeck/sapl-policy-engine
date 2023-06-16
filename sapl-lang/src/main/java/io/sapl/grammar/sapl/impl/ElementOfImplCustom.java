@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the evaluation of the 'in-array' operation. It checks if a value
  * is contained in an array.
- *
+ * <p>
  * Grammar: {@code Comparison returns Expression: Prefixed
  * (({ElementOf.left=current} 'in') right=Prefixed)? ;}
  */

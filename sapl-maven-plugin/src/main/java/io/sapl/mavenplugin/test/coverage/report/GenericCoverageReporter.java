@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,11 +15,7 @@
  */
 package io.sapl.mavenplugin.test.coverage.report;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
@@ -223,29 +219,26 @@ public class GenericCoverageReporter {
 			var coveredValue = line.getCoveredValue();
 			assertValidCoveredValue(coveredValue);
 			switch (coveredValue) {
-			case PARTLY:
-				// don't change LineCoveredValue. If previous statement only PARTLY, then
-				// whole line partly.
-				// But mark this part of the line as fully covered by adding +2 to
-				// coveredBranches and branchesToCover
-				coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches() + 2,
-						line.getBranchesToCover() + 2);
-				break;
-			case NEVER:
-				// if this condition or the condition evaluated before on the same line
-				// was never hit, then this or the next condition cannot have been
-				// evaluated
-				// thus this change from NEVER -> FULLY cannot happen
-				throw new SaplTestException(String.format(ERROR_UNEXPECTED_ENUM_VALUE, line.getCoveredValue()));
-			case IRRELEVANT:
-			case FULLY:
+				case PARTLY ->
+					// don't change LineCoveredValue. If previous statement only PARTLY, then
+					// whole line partly.
+					// But mark this part of the line as fully covered by adding +2 to
+					// coveredBranches and branchesToCover
+						coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches() + 2,
+								line.getBranchesToCover() + 2);
+				case NEVER ->
+					// if this condition or the condition evaluated before on the same line
+					// was never hit, then this or the next condition cannot have been
+					// evaluated
+					// thus this change from NEVER -> FULLY cannot happen
+						throw new SaplTestException(String.format(ERROR_UNEXPECTED_ENUM_VALUE, line.getCoveredValue()));
+
 				// don't do anything. Already FULLY
-			default:
-				// mark this line as fully covered by adding +2 to coveredBranches and
-				// branchesToCover
-				coverage.markLine(i, LineCoveredValue.FULLY, line.getCoveredBranches() + 2,
-						line.getBranchesToCover() + 2);
-				break;
+				default ->
+					// mark this line as fully covered by adding +2 to coveredBranches and
+					// branchesToCover
+						coverage.markLine(i, LineCoveredValue.FULLY, line.getCoveredBranches() + 2,
+								line.getBranchesToCover() + 2);
 			}
 		}
 	}
@@ -255,20 +248,16 @@ public class GenericCoverageReporter {
 			var line = coverage.getLine(i);
 			var coveredValue = line.getCoveredValue();
 			assertValidCoveredValue(coveredValue);
-			switch (coveredValue) {
-			case NEVER:
-				// if this condition or the condition evaluated before on the same line
-				// was never hit, then this or the next condition cannot be evaluated too
-				// thus this change from NEVER -> PARTLY cannot happen
+			// if this condition or the condition evaluated before on the same line
+			// was never hit, then this or the next condition cannot be evaluated too
+			// thus this change from NEVER -> PARTLY cannot happen
+			if (Objects.requireNonNull(coveredValue) == LineCoveredValue.NEVER) {
 				throw new SaplTestException(String.format(ERROR_UNEXPECTED_ENUM_VALUE, line.getCoveredValue()));
-			case IRRELEVANT:
-			case FULLY:
-			case PARTLY:
+
 				// only add branches
-			default:
+			} else {
 				coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches() + 1,
 						line.getBranchesToCover() + 2);
-				break;
 			}
 		}
 	}
@@ -279,16 +268,11 @@ public class GenericCoverageReporter {
 			var coveredValue = line.getCoveredValue();
 			assertValidCoveredValue(coveredValue);
 			switch (coveredValue) {
-			case FULLY:
-			case PARTLY:
-			case NEVER:
-				// only add branches
-				coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches(), line.getBranchesToCover() + 2);
-				break;
-			case IRRELEVANT:
-			default:
-				coverage.markLine(i, LineCoveredValue.NEVER, line.getCoveredBranches(), line.getBranchesToCover() + 2);
-				break;
+				case FULLY, PARTLY, NEVER ->
+					// only add branches
+						coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches(), line.getBranchesToCover() + 2);
+				default ->
+						coverage.markLine(i, LineCoveredValue.NEVER, line.getCoveredBranches(), line.getBranchesToCover() + 2);
 			}
 		}
 	}

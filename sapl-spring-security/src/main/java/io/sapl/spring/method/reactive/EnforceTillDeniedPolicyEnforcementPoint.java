@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import lombok.NonNull;
 import org.reactivestreams.Subscription;
 import org.springframework.security.access.AccessDeniedException;
 
@@ -29,27 +30,27 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.constraints.ReactiveTypeConstraintHandlerBundle;
+import io.sapl.spring.constraints.ReactiveConstraintHandlerBundle;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.CoreSubscriber;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 
 /**
- * The EnforceTillDeniedPolicyEnforcementPoint implements continuous policy enforcement on
- * a Flux resource access point.
- *
- * If the initial decision of the PDP is not PERMIT, an AccessDeniedException is signaled
- * downstream without subscribing to resource access point.
- *
- * After an initial PERMIT, the PEP subscribes to the resource access point and forwards
- * events downstream until a non-PERMIT decision from the PDP is received. Then, an
- * AccessDeniedException is signaled downstream and the PDP and resource access point
- * subscriptions are cancelled.
- *
- * Whenever a decision is received, the handling of obligations and advice are updated
- * accordingly.
- *
+ * The EnforceTillDeniedPolicyEnforcementPoint implements continuous policy
+ * enforcement on a Flux resource access point.
+ * <p>
+ * If the initial decision of the PDP is not PERMIT, an AccessDeniedException is
+ * signaled downstream without subscribing to resource access point.
+ * <p>
+ * After an initial PERMIT, the PEP subscribes to the resource access point and
+ * forwards events downstream until a non-PERMIT decision from the PDP is
+ * received. Then, an AccessDeniedException is signaled downstream and the PDP
+ * and resource access point subscriptions are cancelled.
+ * <p>
+ * Whenever a decision is received, the handling of obligations and advice are
+ * updated accordingly.
+ * <p>
  * The PEP does not permit onErrorContinue() downstream.
  *
  * @param <T> type of the FLux contents
@@ -73,16 +74,16 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
 	final AtomicReference<AuthorizationDecision> latestDecision = new AtomicReference<>();
 
-	final AtomicReference<ReactiveTypeConstraintHandlerBundle<T>> constraintHandler = new AtomicReference<>();
+	final AtomicReference<ReactiveConstraintHandlerBundle<T>> constraintHandler = new AtomicReference<>();
 
 	final AtomicBoolean stopped = new AtomicBoolean(false);
 
 	private EnforceTillDeniedPolicyEnforcementPoint(Flux<AuthorizationDecision> decisions, Flux<T> resourceAccessPoint,
 			ConstraintEnforcementService constraintsService, Class<T> clazz) {
-		this.decisions = decisions;
+		this.decisions           = decisions;
 		this.resourceAccessPoint = resourceAccessPoint;
-		this.constraintsService = constraintsService;
-		this.clazz = clazz;
+		this.constraintsService  = constraintsService;
+		this.clazz               = clazz;
 	}
 
 	public static <V> Flux<V> of(Flux<AuthorizationDecision> decisions, Flux<V> resourceAccessPoint,
@@ -96,25 +97,24 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 	}
 
 	@Override
-	public void subscribe(CoreSubscriber<? super T> subscriber) {
+	public void subscribe(@NonNull CoreSubscriber<? super T> subscriber) {
 		if (sink != null)
 			throw new IllegalStateException("Operator may only be subscribed once.");
 		var context = subscriber.currentContext();
-		sink = new EnforcementSink<>();
+		sink                = new EnforcementSink<>();
 		resourceAccessPoint = resourceAccessPoint.contextWrite(context);
 		Flux.create(sink).subscribe(subscriber);
 		decisionsSubscription.set(decisions.doOnNext(this::handleNextDecision).contextWrite(context).subscribe());
 	}
 
 	private void handleNextDecision(AuthorizationDecision decision) {
-		var previousDecision = latestDecision.getAndSet(decision);
-		ReactiveTypeConstraintHandlerBundle<T> newBundle;
+		var                                previousDecision = latestDecision.getAndSet(decision);
+		ReactiveConstraintHandlerBundle<T> newBundle;
 		try {
 			newBundle = constraintsService.reactiveTypeBundleFor(decision, clazz);
 			constraintHandler.set(newBundle);
-		}
-		catch (AccessDeniedException e) {
-			constraintHandler.set(new ReactiveTypeConstraintHandlerBundle<>());
+		} catch (AccessDeniedException e) {
+			constraintHandler.set(new ReactiveConstraintHandlerBundle<>());
 			sink.error(e);
 			disposeDecisionsAndResourceAccessPoint();
 			return;
@@ -127,11 +127,11 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 			return;
 		}
 
-		if (decision.getResource().isPresent()) {
+		var resource = decision.getResource();
+		if (resource.isPresent()) {
 			try {
-				sink.next(constraintsService.unmarshallResource(decision.getResource().get(), clazz));
-			}
-			catch (JsonProcessingException | IllegalArgumentException e) {
+				sink.next(constraintsService.unmarshallResource(resource.get(), clazz));
+			} catch (JsonProcessingException | IllegalArgumentException e) {
 				sink.error(new AccessDeniedException("Error replacing stream with resource. Ending Stream.", e));
 			}
 			sink.complete();
@@ -151,8 +151,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 	private void handleSubscribe(Subscription s) {
 		try {
 			constraintHandler.get().handleOnSubscribeConstraints(s);
-		}
-		catch (Throwable t) {
+		} catch (Throwable t) {
 			sink.error(t);
 			disposeDecisionsAndResourceAccessPoint();
 		}
@@ -177,8 +176,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 			var transformedValue = constraintHandler.get().handleAllOnNextConstraints(value);
 			if (transformedValue != null)
 				sink.next(transformedValue);
-		}
-		catch (Throwable t) {
+		} catch (Throwable t) {
 			sink.error(t);
 			disposeDecisionsAndResourceAccessPoint();
 		}
@@ -187,8 +185,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 	private void handleRequest(Long value) {
 		try {
 			constraintHandler.get().handleOnRequestConstraints(value);
-		}
-		catch (Throwable t) {
+		} catch (Throwable t) {
 			sink.error(t);
 			disposeDecisionsAndResourceAccessPoint();
 		}
@@ -200,8 +197,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 		try {
 			constraintHandler.get().handleOnCompleteConstraints();
 			sink.complete();
-		}
-		catch (Throwable t) {
+		} catch (Throwable t) {
 			sink.error(t);
 			sink.complete();
 		}
@@ -211,8 +207,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 	private void handleCancel() {
 		try {
 			constraintHandler.get().handleOnCancelConstraints();
-		}
-		catch (Throwable t) {
+		} catch (Throwable t) {
 			log.warn("Failed to handle obligation during onCancel. Error is dropped and Flux is canceled. "
 					+ "No information is leaked, however take actions to mitigate error.", t);
 		}
@@ -222,8 +217,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 	private void handleError(Throwable error) {
 		try {
 			sink.error(constraintHandler.get().handleAllOnErrorConstraints(error));
-		}
-		catch (Throwable t) {
+		} catch (Throwable t) {
 			sink.error(t);
 			disposeDecisionsAndResourceAccessPoint();
 		}
@@ -232,8 +226,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 	private Throwable handleAccessDenied(Throwable error) {
 		try {
 			return constraintHandler.get().handleAllOnErrorConstraints(error);
-		}
-		catch (Throwable t) {
+		} catch (Throwable t) {
 			disposeDecisionsAndResourceAccessPoint();
 			return t;
 		}

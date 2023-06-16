@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,8 +19,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.Decision;
 import io.sapl.grammar.sapl.Condition;
 import io.sapl.grammar.sapl.PolicyBody;
 import io.sapl.grammar.sapl.ValueDefinition;

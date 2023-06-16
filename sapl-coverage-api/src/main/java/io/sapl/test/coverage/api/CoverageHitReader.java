@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,9 @@ import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import io.sapl.test.coverage.api.model.PolicyHit;
 import io.sapl.test.coverage.api.model.PolicySetHit;
 
+/**
+ * Interface for reading policy hits.
+ */
 public interface CoverageHitReader {
 
 	/**

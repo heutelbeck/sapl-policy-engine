@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,11 +31,11 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the application of an array slicing step to a previous array
  * value, e.g. {@code 'arr[4:12:2]'}.
- *
+ * <p>
  * Grammar:
- *
+ * <p>
  * {@code Step: '[' Subscript ']' ;
- *
+ * <p>
  * Subscript returns Step: {ArraySlicingStep} index=JSONNUMBER? ':'
  * to=JSONNUMBER? (':' step=JSONNUMBER)? ;}
  */

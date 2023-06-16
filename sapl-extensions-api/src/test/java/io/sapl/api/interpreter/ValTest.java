@@ -1,5 +1,5 @@
 /*
- * Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@ import static com.spotify.hamcrest.jackson.IsJsonObject.jsonObject;
 import static com.spotify.hamcrest.jackson.IsJsonText.jsonText;
 import static com.spotify.hamcrest.optional.OptionalMatchers.emptyOptional;
 import static com.spotify.hamcrest.optional.OptionalMatchers.optionalWithValue;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -576,12 +575,6 @@ class ValTest {
 				() -> assertEquals(Val.of(10), Val.of(10).filter(json -> json.intValue() > 5)),
 				() -> assertEquals(Val.UNDEFINED, Val.of(10).filter(json -> json.intValue() < 5)),
 				() -> assertThrows(NullPointerException.class, () -> tenValue.filter(null)));
-	}
-
-	@Test
-	void map() {
-		assertAll(() -> assertThat(Val.of(10).map(json -> json.intValue() * 2), is(optionalWithValue(is(equalTo(20))))),
-				() -> assertThat(Val.UNDEFINED.map(json -> json), is(emptyOptional())));
 	}
 
 }

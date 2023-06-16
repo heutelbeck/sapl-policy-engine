@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,9 +25,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
-import java.util.List;
-
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,13 +32,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.springframework.http.server.reactive.ServerHttpRequest;
-import org.springframework.security.access.expression.method.ExpressionBasedAnnotationAttributeFactory;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
-import org.springframework.security.access.method.DelegatingMethodSecurityMetadataSource;
-import org.springframework.security.access.method.MethodSecurityMetadataSource;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.access.prepost.PreInvocationAttribute;
-import org.springframework.security.access.prepost.PrePostAnnotationSecurityMetadataSource;
 import org.springframework.security.util.MethodInvocationUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -56,9 +48,7 @@ import io.sapl.spring.method.metadata.EnforceRecoverableIfDenied;
 import io.sapl.spring.method.metadata.EnforceTillDenied;
 import io.sapl.spring.method.metadata.PostEnforce;
 import io.sapl.spring.method.metadata.PreEnforce;
-import io.sapl.spring.method.metadata.PreEnforceAttribute;
-import io.sapl.spring.method.metadata.SaplAttributeFactory;
-import io.sapl.spring.method.metadata.SaplMethodSecurityMetadataSource;
+import io.sapl.spring.method.metadata.SaplAttributeRegistry;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
 import io.sapl.spring.serialization.ServerHttpRequestSerializer;
@@ -88,20 +78,16 @@ class ReactiveSaplMethodInterceptorTests {
 
 	private ReactiveSaplMethodInterceptor defaultSut;
 
+	private SaplAttributeRegistry metadataSource;
+
 	@BeforeEach
 	void beforeEach() {
 		springSecurityMethodInterceptor = mock(MethodInterceptor.class);
-		handler = mock(MethodSecurityExpressionHandler.class);
-
-		PrePostAnnotationSecurityMetadataSource prePostSource = new PrePostAnnotationSecurityMetadataSource(
-				new ExpressionBasedAnnotationAttributeFactory(handler));
-		SaplMethodSecurityMetadataSource sapl = new SaplMethodSecurityMetadataSource(new SaplAttributeFactory(handler));
-		MethodSecurityMetadataSource metadataSource = new DelegatingMethodSecurityMetadataSource(Arrays.asList(sapl, prePostSource));
-
-		pdp = mock(PolicyDecisionPoint.class);
+		handler                         = mock(MethodSecurityExpressionHandler.class);
+		pdp                             = mock(PolicyDecisionPoint.class);
 		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
 		constraintHandlerService = mock(ConstraintEnforcementService.class);
-		mapper = new ObjectMapper();
+		mapper                   = new ObjectMapper();
 		SimpleModule module = new SimpleModule();
 		module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
 		module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
@@ -110,9 +96,11 @@ class ReactiveSaplMethodInterceptorTests {
 		subscriptionBuilder = mock(WebfluxAuthorizationSubscriptionBuilderService.class);
 		when(subscriptionBuilder.reactiveConstructAuthorizationSubscription(any(MethodInvocation.class), any()))
 				.thenReturn(Mono.just(AuthorizationSubscription.of("the subject", "the action", "the resource")));
-		preEnforcePolicyEnforcementPoint = mock(PreEnforcePolicyEnforcementPoint.class);
+		preEnforcePolicyEnforcementPoint  = mock(PreEnforcePolicyEnforcementPoint.class);
 		postEnforcePolicyEnforcementPoint = mock(PostEnforcePolicyEnforcementPoint.class);
-		defaultSut = new ReactiveSaplMethodInterceptor(springSecurityMethodInterceptor, metadataSource, handler, pdp,
+		metadataSource                    = new SaplAttributeRegistry();
+
+		defaultSut = new ReactiveSaplMethodInterceptor(metadataSource, handler, pdp,
 				constraintHandlerService, mapper, subscriptionBuilder, preEnforcePolicyEnforcementPoint,
 				postEnforcePolicyEnforcementPoint);
 	}
@@ -127,10 +115,9 @@ class ReactiveSaplMethodInterceptorTests {
 			}
 
 		}
-		var invocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "monoInteger", null,
-				null);
+		var invocation = MethodInvocationUtils.create(new TestClass(), "monoInteger");
 		assertThat(defaultSut.invoke(invocation), is(nullValue()));
-		verify(springSecurityMethodInterceptor, times(1)).invoke(any());
+		verify(springSecurityMethodInterceptor, times(0)).invoke(any());
 	}
 
 	@Test
@@ -145,7 +132,7 @@ class ReactiveSaplMethodInterceptorTests {
 
 		}
 		var testInstance = new TestClass();
-		var invocation = MockMethodInvocation.of(testInstance, TestClass.class, "monoInteger",
+		var invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "monoInteger",
 				testInstance::monoInteger, null, null);
 		when(preEnforcePolicyEnforcementPoint.enforce(any(), any(), any())).thenReturn(Flux.just(2));
 		var actual = (Mono<Integer>) defaultSut.invoke(invocation);
@@ -164,7 +151,8 @@ class ReactiveSaplMethodInterceptorTests {
 
 		}
 		var testInstance = new TestClass();
-		var invocation = MockMethodInvocation.of(testInstance, TestClass.class, "integer", testInstance::integer, null,
+		var invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "integer", testInstance::integer,
+				null,
 				null);
 		assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
 		verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
@@ -181,7 +169,7 @@ class ReactiveSaplMethodInterceptorTests {
 
 		}
 		var testInstance = new TestClass();
-		var invocation = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
+		var invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
 				testInstance::fluxInteger, null, null);
 		assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
 		verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
@@ -191,26 +179,23 @@ class ReactiveSaplMethodInterceptorTests {
 	void when_saplAndSpringAnnotationsPresent_then_thisDoesNotFailBecauseDelegationSourceDoesOnlyReturnOne()
 			throws Throwable {
 
-		// This test should fail if at one point in time the delegating source changes
-		// behavior and returns attributes from more than one source
-
 		class TestClass {
 
-			@PreAuthorize(value = "")
 			@PreEnforce
+			@PreAuthorize(value = "")
 			public Flux<Integer> fluxInteger() {
 				return Flux.just(1);
 			}
 
 		}
-		var testInstance = new TestClass();
-		MethodInvocation invocation = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
+		var              testInstance = new TestClass();
+		MethodInvocation invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
 				testInstance::fluxInteger, null, null);
 
 		Flux<Object> expected = Flux.just(2);
 		when(preEnforcePolicyEnforcementPoint.enforce(any(), any(), any())).thenReturn(expected);
-		assertThat(defaultSut.invoke(invocation), is(expected));
-		verify(preEnforcePolicyEnforcementPoint, times(1)).enforce(any(), any(), any());
+		assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
+		verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
 	}
 
 	@Test
@@ -226,8 +211,8 @@ class ReactiveSaplMethodInterceptorTests {
 
 		}
 
-		var testInstance = new TestClass();
-		MethodInvocation invocation = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
+		var              testInstance = new TestClass();
+		MethodInvocation invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
 				testInstance::fluxInteger, null, null);
 
 		Flux<Object> expected = Flux.just(2);
@@ -250,8 +235,8 @@ class ReactiveSaplMethodInterceptorTests {
 
 		}
 
-		var testInstance = new TestClass();
-		MethodInvocation invocation = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
+		var              testInstance = new TestClass();
+		MethodInvocation invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
 				testInstance::fluxInteger, null, null);
 
 		Flux<Object> expected = Flux.just(2);
@@ -263,27 +248,19 @@ class ReactiveSaplMethodInterceptorTests {
 	@Test
 	void when_saplAndSpringAnnotationsPresent_then_failsIfBothAreReturnedByMetadataSource() {
 
-		var conflictingAttributes = List.of(mock(PreEnforceAttribute.class), mock(PreInvocationAttribute.class));
-		var mockMetadataSource = mock(MethodSecurityMetadataSource.class);
-		when(mockMetadataSource.getAttributes(any(), any())).thenReturn(conflictingAttributes);
-
-		var sut = new ReactiveSaplMethodInterceptor(springSecurityMethodInterceptor, mockMetadataSource, handler, pdp,
-				constraintHandlerService, mapper, subscriptionBuilder, preEnforcePolicyEnforcementPoint,
-				postEnforcePolicyEnforcementPoint);
-
 		class TestClass {
 
-			@PreAuthorize(value = "")
 			@PreEnforce
+			@PreAuthorize(value = "")
 			public Flux<Integer> fluxInteger() {
 				return Flux.just(1);
 			}
 
 		}
 		var testInstance = new TestClass();
-		var invocation = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
+		var invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
 				testInstance::fluxInteger, null, null);
-		assertThrows(IllegalStateException.class, () -> sut.invoke(invocation));
+		assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
 		verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
 	}
 
@@ -298,10 +275,10 @@ class ReactiveSaplMethodInterceptorTests {
 			}
 
 		}
-		var testInstance = new TestClass();
-		var invocation = MockMethodInvocation.of(testInstance, TestClass.class, "monoInteger",
+		var     testInstance = new TestClass();
+		var     invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "monoInteger",
 				testInstance::monoInteger, null, null);
-		Mono<?> expected = Mono.just(4);
+		Mono<?> expected     = Mono.just(4);
 		when(postEnforcePolicyEnforcementPoint.postEnforceOneDecisionOnResourceAccessPoint(any(), any(), any()))
 				.thenAnswer(__ -> expected);
 		var actual = defaultSut.invoke(invocation);
@@ -322,10 +299,10 @@ class ReactiveSaplMethodInterceptorTests {
 			}
 
 		}
-		var testInstance = new TestClass();
-		var invocation = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
+		var          testInstance = new TestClass();
+		var          invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
 				testInstance::fluxInteger, null, null);
-		Flux<Object> expected = Flux.just(2);
+		Flux<Object> expected     = Flux.just(2);
 
 		try (MockedStatic<EnforceTillDeniedPolicyEnforcementPoint> mockPEP = Mockito
 				.mockStatic(EnforceTillDeniedPolicyEnforcementPoint.class)) {
@@ -349,10 +326,10 @@ class ReactiveSaplMethodInterceptorTests {
 			}
 
 		}
-		var testInstance = new TestClass();
-		var invocation = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
+		var          testInstance = new TestClass();
+		var          invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
 				testInstance::fluxInteger, null, null);
-		Flux<Object> expected = Flux.just(2);
+		Flux<Object> expected     = Flux.just(2);
 
 		try (MockedStatic<EnforceDropWhileDeniedPolicyEnforcementPoint> mockPEP = Mockito
 				.mockStatic(EnforceDropWhileDeniedPolicyEnforcementPoint.class)) {
@@ -376,10 +353,10 @@ class ReactiveSaplMethodInterceptorTests {
 			}
 
 		}
-		var testInstance = new TestClass();
-		var invocation = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
+		var          testInstance = new TestClass();
+		var          invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
 				testInstance::fluxInteger, null, null);
-		Flux<Object> expected = Flux.just(2);
+		Flux<Object> expected     = Flux.just(2);
 
 		try (MockedStatic<EnforceRecoverableIfDeniedPolicyEnforcementPoint> mockPEP = Mockito
 				.mockStatic(EnforceRecoverableIfDeniedPolicyEnforcementPoint.class)) {

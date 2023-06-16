@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,11 @@
  */
 package io.sapl.server.lt;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
@@ -24,7 +27,8 @@ import org.springframework.test.context.ActiveProfiles;
 class SAPLServerLTDockerTests {
 
 	@Test
-	void contextLoads() {
+	void contextLoads(ApplicationContext context) {
+	    assertThat(context).isNotNull();
 	}
 
 }

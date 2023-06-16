@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,16 +21,20 @@ import io.sapl.api.interpreter.Val;
 import lombok.NoArgsConstructor;
 
 /**
- * Function library implementing the blacken, replace, and remove filter functions. 
- * 
- * @author Dominic Heutelbeck
+ * Function library implementing blacken, replace, and remove filter functions.
  */
 @NoArgsConstructor
 @FunctionLibrary(name = FilterFunctionLibrary.NAME, description = FilterFunctionLibrary.DESCRIPTION)
 public class FilterFunctionLibrary {
 
+	/**
+	 * Library name and prefix
+	 */
 	public static final String NAME = "filter";
 
+	/**
+	 * Library description 
+	 */
 	public static final String DESCRIPTION = "Essential functions for content filtering.";
 
 	private static final String DEFAULT_REPLACEMENT = "X";
@@ -69,13 +73,24 @@ public class FilterFunctionLibrary {
 
 	private static final int MAXIMAL_NUMBER_OF_PARAMETERS_FOR_BLACKEN = 4;
 
+	/**
+	 * Replaces a section of a text with a fixed character.
+	 * 
+	 * @param parameters STRING (original textual Val), DISCLOSE_LEFT leave this
+	 *                   number of characters original on the left side of the
+	 *                   string, DISCLOSE_RIGHT leave this number of characters
+	 *                   original on the right side of the string, REPLACEMENT the
+	 *                   replacement characters, defaulting to X.
+	 * @return the original Text value with the indicated characters replaced with
+	 *         the replacement characters.
+	 */
 	@Function(docs = BLACKEN_DOC)
 	public static Val blacken(Val... parameters) {
 		validateNumberOfParametersIsAtMostFour(parameters);
 		var originalString = extractOriginalTextFromParameters(parameters);
-		var replacement = extractReplacementStringFromParametersOrUseDefault(parameters);
-		var discloseRight = extractNumberOfCharactersToDiscloseOnTheRightSideFromParametersOrUseDefault(parameters);
-		int discloseLeft = extractNumberOfCharactersToDiscloseOnTheLeftSideFromParametersOrUseDefault(parameters);
+		var replacement    = extractReplacementStringFromParametersOrUseDefault(parameters);
+		var discloseRight  = extractNumberOfCharactersToDiscloseOnTheRightSideFromParametersOrUseDefault(parameters);
+		int discloseLeft   = extractNumberOfCharactersToDiscloseOnTheLeftSideFromParametersOrUseDefault(parameters);
 		return blacken(originalString, replacement, discloseRight, discloseLeft);
 	}
 
@@ -141,11 +156,24 @@ public class FilterFunctionLibrary {
 		}
 	}
 
+	/**
+	 * Replaces the original with another value.
+	 * 
+	 * @param original    the original value, which is ignored.
+	 * @param replacement a replacement value.
+	 * @return the replacement value.
+	 */
 	@Function(docs = REPLACE_DOC)
 	public static Val replace(Val original, Val replacement) {
 		return replacement;
 	}
 
+	/**
+	 * Replaces any value with UNDEFINED.
+	 * 
+	 * @param original some value
+	 * @return Val.UNDEFINED
+	 */
 	@Function(docs = REMOVE_DOC)
 	public static Val remove(Val original) {
 		return Val.UNDEFINED;

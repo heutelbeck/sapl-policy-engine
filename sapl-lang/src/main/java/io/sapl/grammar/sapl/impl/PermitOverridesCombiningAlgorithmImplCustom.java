@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,23 +37,23 @@ import reactor.core.publisher.Flux;
 /**
  * This algorithm is used if a PERMIT decision should prevail a DENY without
  * setting a default decision.
- *
+ * <p>
  * It works as follows:
- *
+ * <p>
  * 1. If any policy document evaluates to PERMIT and there is no transformation
  * uncertainty (multiple policies evaluate to PERMIT and at least one of them
  * has a transformation statement), the decision is PERMIT.
- *
+ * <p>
  * 2. Otherwise:
- *
+ * <p>
  * a) If there is any INDETERMINATE or there is a transformation uncertainty
  * (multiple policies evaluate to PERMIT and at least one of them has a
  * transformation statement), the decision is INDETERMINATE.
- *
+ * <p>
  * b) Otherwise:
- *
+ * <p>
  * i) If there is any DENY the decision is a DENY.
- *
+ * <p>
  * ii) Otherwise the decision is NOT_APPLICABLE.
  */
 public class PermitOverridesCombiningAlgorithmImplCustom extends PermitOverridesCombiningAlgorithmImpl {

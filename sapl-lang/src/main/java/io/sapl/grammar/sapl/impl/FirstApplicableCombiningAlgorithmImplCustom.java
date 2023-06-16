@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,21 +32,21 @@ import reactor.core.publisher.Flux;
  * "default" can be specified by creating a last policy without any conditions.
  * If a decision is found, errors which might occur in later policies are
  * ignored.
- *
+ * <p>
  * Since there is no order in the policy documents known to the PDP, the PDP
  * cannot be configured with this algorithm. first-applicable might only be used
  * for policy combination inside a policy set.
- *
+ * <p>
  * It works as follows:
- *
+ * <p>
  * Each policy is evaluated in the order specified in the policy set.
- *
+ * <p>
  * If it evaluates to INDETERMINATE, the decision is INDETERMINATE.
- *
+ * <p>
  * If it evaluates to PERMIT or DENY, the decision is PERMIT or DENY
- *
+ * <p>
  * If it evaluates to NOT_APPLICABLE, the next policy is evaluated.
- *
+ * <p>
  * If no policy with a decision different from NOT_APPLICABLE has been found,
  * the decision of the policy set is NOT_APPLICABLE.
  *

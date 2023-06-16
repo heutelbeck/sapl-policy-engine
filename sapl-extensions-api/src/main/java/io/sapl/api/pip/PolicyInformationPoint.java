@@ -1,5 +1,5 @@
 /*
- * Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,13 +21,26 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * Marker annotation, declaring a function in a class to be a Policy Information
+ * Point.
+ * <p>
+ * The name defaults to the class name if not explicitly declared as a
+ * parameter.
+ */
 @Inherited
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface PolicyInformationPoint {
 
+	/**
+	 * @return name of the Policy Information Point.
+	 */
 	String name() default "";
 
+	/**
+	 * @return Policy Information Point documentation.
+	 */
 	String description() default "";
 
 }

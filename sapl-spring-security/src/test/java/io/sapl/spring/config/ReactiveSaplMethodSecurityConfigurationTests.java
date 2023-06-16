@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,25 +16,17 @@
 package io.sapl.spring.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
-import org.springframework.security.access.intercept.aopalliance.MethodSecurityMetadataSourceAdvisor;
-import org.springframework.security.access.method.DelegatingMethodSecurityMetadataSource;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.config.core.GrantedAuthorityDefaults;
-import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.util.MethodInvocationUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,8 +34,9 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.method.metadata.PreEnforceAttribute;
+import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.method.metadata.SaplAttribute;
+import io.sapl.spring.method.metadata.SaplAttributeRegistry;
 import io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptor;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
@@ -54,23 +47,13 @@ import jakarta.servlet.http.HttpServletRequest;
 class ReactiveSaplMethodSecurityConfigurationTests {
 
 	@Test
-	void setImportMetadataWithNullAnnotation_doesNotThrowNullPointer() {
-		var sut          = new ReactiveSaplMethodSecurityConfiguration(mock(PolicyDecisionPoint.class),
-				mock(ConstraintEnforcementService.class), mock(ObjectMapper.class));
-		var mockMetadata = mock(AnnotationMetadata.class);
-		when(mockMetadata.getAnnotationAttributes(any())).thenReturn(null);
-		assertDoesNotThrow(() -> sut.setImportMetadata(mockMetadata));
-	}
-
-	@Test
 	void whenRan_thenBeansArePresent() {
 		new ApplicationContextRunner().withUserConfiguration(SecurityConfiguration.class)
 				.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
 				.withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
 				.withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
 					assertThat(context).hasNotFailed();
-					assertThat(context).hasSingleBean(MethodSecurityMetadataSourceAdvisor.class);
-					assertThat(context).hasSingleBean(DelegatingMethodSecurityMetadataSource.class);
+					assertThat(context).hasSingleBean(SaplAttributeRegistry.class);
 					assertThat(context).hasSingleBean(ReactiveSaplMethodInterceptor.class);
 					assertThat(context).hasSingleBean(WebfluxAuthorizationSubscriptionBuilderService.class);
 					assertThat(context).hasSingleBean(MethodSecurityExpressionHandler.class);
@@ -85,8 +68,7 @@ class ReactiveSaplMethodSecurityConfigurationTests {
 				.withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
 				.withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
 					assertThat(context).hasNotFailed();
-					assertThat(context).hasSingleBean(MethodSecurityMetadataSourceAdvisor.class);
-					assertThat(context).hasSingleBean(DelegatingMethodSecurityMetadataSource.class);
+					assertThat(context).hasSingleBean(SaplAttributeRegistry.class);
 					assertThat(context).hasSingleBean(ReactiveSaplMethodInterceptor.class);
 					assertThat(context).hasSingleBean(WebfluxAuthorizationSubscriptionBuilderService.class);
 					assertThat(context).hasSingleBean(MethodSecurityExpressionHandler.class);
@@ -110,8 +92,6 @@ class ReactiveSaplMethodSecurityConfigurationTests {
 					var invocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
 							"publicVoid", null, null);
 					var attribute = attribute(null, null, null, null, Object.class);
-					var authentication = new AnonymousAuthenticationToken("key", "anonymous",
-							AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
 					var actual = context.getBean(WebfluxAuthorizationSubscriptionBuilderService.class)
 							.reactiveConstructAuthorizationSubscription(invocation, attribute);
 					assertNotNull(actual);
@@ -119,7 +99,7 @@ class ReactiveSaplMethodSecurityConfigurationTests {
 	}
 
 	private SaplAttribute attribute(String subject, String action, String resource, String environment, Class<?> type) {
-		return new PreEnforceAttribute(parameterToExpression(subject), parameterToExpression(action),
+		return new SaplAttribute(PreEnforce.class, parameterToExpression(subject), parameterToExpression(action),
 				parameterToExpression(resource), parameterToExpression(environment), type);
 	}
 

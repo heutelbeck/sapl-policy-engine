@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,8 +30,9 @@ public class PolicyConditionHit {
 
 	/**
 	 * Identifier of {@link io.sapl.grammar.sapl.PolicySet} of hit
-	 * {@link io.sapl.grammar.sapl.Policy}. Empty if {@link io.sapl.grammar.sapl.Policy}
-	 * isn't in a {@link io.sapl.grammar.sapl.PolicySet}.
+	 * {@link io.sapl.grammar.sapl.Policy}. Empty if
+	 * {@link io.sapl.grammar.sapl.Policy} isn't in a
+	 * {@link io.sapl.grammar.sapl.PolicySet}.
 	 */
 	String policySetId;
 
@@ -57,8 +58,14 @@ public class PolicyConditionHit {
 				+ conditionStatementId + CoverageHitConstants.DELIMITER + conditionResult;
 	}
 
+	/**
+	 * Converts a String to PolicyConditionHit.
+	 * 
+	 * @param policyConditionToStringResult a condition result expressed in a String
+	 * @return the expressed PolicyConditionHit
+	 */
 	public static PolicyConditionHit fromString(String policyConditionToStringResult) {
-		String[] split = policyConditionToStringResult.split(CoverageHitConstants.DELIMITER_MATCH_REGEX);
+		var split = policyConditionToStringResult.split(CoverageHitConstants.DELIMITER_MATCH_REGEX);
 		return new PolicyConditionHit(split[0], split[1], Integer.parseInt(split[2]), Boolean.parseBoolean(split[3]));
 	}
 

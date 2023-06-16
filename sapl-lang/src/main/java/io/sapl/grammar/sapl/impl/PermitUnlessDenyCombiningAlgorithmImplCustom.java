@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,13 +35,13 @@ import reactor.core.publisher.Flux;
 /**
  * This generous algorithm is used if the decision should be a PERMIT except for
  * there is a DENY. It ensures that any decision is either a DENY or a PERMIT.
- *
+ * <p>
  * It works as follows:
- *
+ * <p>
  * If any policy document evaluates to DENY or if there is a transformation
  * uncertainty (multiple policies evaluate to PERMIT and at least one of them
  * has a transformation statement), the decision is a DENY.
- *
+ * <p>
  * Otherwise, the decision is PERMIT.
  */
 public class PermitUnlessDenyCombiningAlgorithmImplCustom extends PermitUnlessDenyCombiningAlgorithmImpl {

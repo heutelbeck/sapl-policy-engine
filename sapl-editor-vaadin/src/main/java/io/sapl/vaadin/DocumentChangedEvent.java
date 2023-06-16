@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,14 +15,12 @@
  */
 package io.sapl.vaadin;
 
+import lombok.Value;
+
+/**
+ * Event indicating a value change in the editor.
+ */
+@Value
 public class DocumentChangedEvent {
-	private final String newValue;
-	
-	public DocumentChangedEvent(String newValue) {
-		this.newValue = newValue;
-	}
-	
-	public String getNewValue() {
-		return this.newValue;
-	}
+	String newValue;
 }

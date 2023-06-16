@@ -1,3 +1,18 @@
+/*
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.grammar.web.servlet;
 
 
@@ -28,6 +43,11 @@ public class HttpServiceContext implements IServiceContext {
 
 	private HttpSessionWrapper sessionWrapper;
 
+	/**
+	 * Creates the Context.
+	 * 
+	 * @param request a HttpServletRequest
+	 */
 	public HttpServiceContext(HttpServletRequest request) {
 		this.request = request;
 		this.initializeParameters();
@@ -40,8 +60,8 @@ public class HttpServiceContext implements IServiceContext {
 				contentType = request.getContentType().split(";(\\s*)");
 			}
 			if (contentType != null && "application/x-www-form-urlencoded".equals(contentType[0])) {
-				String charset = null;
-				if (contentType != null && contentType.length >= 2 && contentType[1].startsWith("charset=")) {
+				String charset;
+				if (contentType.length >= 2 && contentType[1].startsWith("charset=")) {
 					charset = (contentType[1]).substring("charset=".length());
 				} else {
 					charset = Charset.defaultCharset().toString();
@@ -92,6 +112,9 @@ public class HttpServiceContext implements IServiceContext {
 		return sessionWrapper;
 	}
 
+	/**
+	 * @return the request
+	 */
 	public HttpServletRequest getRequest() {
 		return request;
 	}

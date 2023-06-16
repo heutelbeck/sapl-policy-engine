@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -127,8 +127,8 @@ class ImmutableFileIndex {
 	}
 
 	public ImmutableFileIndex afterFileEvent(FileEvent event) {
-		var fileName = event.getFile().getName();
-		var path = event.getFile().toPath().toAbsolutePath();
+		var fileName = event.file().getName();
+		var path = event.file().toPath().toAbsolutePath();
 		var newIndex = new ImmutableFileIndex(this);
 		if (event instanceof FileDeletedEvent) {
 			log.info("Unloading deleted SAPL document: {}", fileName);
@@ -176,7 +176,7 @@ class ImmutableFileIndex {
 	final void load(Path filePath) {
 		var newDocument = new Document(filePath, interpreter);
 		documentsByPath.put(newDocument.getAbsolutePath(), newDocument);
-		if (!newDocument.isValid()) {
+		if (newDocument.isInvalid()) {
 			numberOfInvalidDocuments++;
 			return;
 		}
@@ -221,7 +221,7 @@ class ImmutableFileIndex {
 		if (oldDocument.isPublished())
 			addWithdrawUpdate(oldDocument);
 
-		if (!oldDocument.isValid()) {
+		if (oldDocument.isInvalid()) {
 			numberOfInvalidDocuments--;
 			return;
 		}
@@ -294,8 +294,8 @@ class ImmutableFileIndex {
 			return path.toAbsolutePath().toString();
 		}
 
-		public boolean isValid() {
-			return parsedDocument != null;
+		public boolean isInvalid() {
+			return parsedDocument == null;
 		}
 
 	}

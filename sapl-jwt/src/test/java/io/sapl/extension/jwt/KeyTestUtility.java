@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,12 +32,11 @@ import lombok.experimental.UtilityClass;
 import okhttp3.mockwebserver.MockWebServer;
 
 @UtilityClass
-public class KeyTestUtility {
+class KeyTestUtility {
 
-	 static final String MD5 = "MD5";
+	static final String MD5 = "MD5";
 
-	 static final String RSA = "RSA";
-
+	static final String RSA = "RSA";
 
 	/**
 	 * @return an invalid RSA public key

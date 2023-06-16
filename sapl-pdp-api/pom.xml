@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright © 2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+    Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@
 	<parent>
 		<groupId>io.sapl</groupId>
 		<artifactId>sapl-policy-engine</artifactId>
-		<version>2.1.0-SNAPSHOT</version>
+		<version>3.0.0-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>sapl-pdp-api</artifactId>
@@ -33,8 +33,6 @@
 	<organization>
 		<name>Dominic Heutelbeck</name>
 	</organization>
-
-	<inceptionYear>2021</inceptionYear>
 
 	<licenses>
 		<license>

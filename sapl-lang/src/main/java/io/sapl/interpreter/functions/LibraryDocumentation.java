@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
  */
 package io.sapl.interpreter.functions;
 
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -24,10 +23,14 @@ import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * A library documentation contains documentation information extracted from the
+ * annotations in function libraries or Policy Information Points.
+ */
 @Data
-@NoArgsConstructor
+@NoArgsConstructor(force = true)
 @RequiredArgsConstructor
-public class LibraryDocumentation implements Serializable {
+public class LibraryDocumentation {
 
 	@NonNull
 	String name;

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,18 +26,33 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 
+/**
+ * Matcher for examining the advice contained in an AuthorizationDecision.
+ */
 public class HasAdviceContainingKeyValue extends TypeSafeDiagnosingMatcher<AuthorizationDecision> {
 
 	private final String key;
 
 	private final Optional<Matcher<? super JsonNode>> valueMatcher;
 
+	/**
+	 * Checks for the presence of an advice containing a field with the given key
+	 * and a value matching a matcher.
+	 * 
+	 * @param key   a key
+	 * @param value a value matcher.
+	 */
 	public HasAdviceContainingKeyValue(String key, Matcher<? super JsonNode> value) {
 		super(AuthorizationDecision.class);
 		this.key          = Objects.requireNonNull(key);
 		this.valueMatcher = Optional.of(Objects.requireNonNull(value));
 	}
 
+	/**
+	 * Checks for the presence of an advice containing a field with the given key.
+	 * 
+	 * @param key a key
+	 */
 	public HasAdviceContainingKeyValue(String key) {
 		super(AuthorizationDecision.class);
 		this.key          = Objects.requireNonNull(key);
@@ -62,13 +77,10 @@ public class HasAdviceContainingKeyValue extends TypeSafeDiagnosingMatcher<Autho
 
 		var containsAdvice = false;
 
-		// iterate over all advice
 		for (JsonNode advice : optionalAdvice.get()) {
 			var iterator = advice.fields();
-			// iterate over fields in this advice
 			while (iterator.hasNext()) {
 				var entry = iterator.next();
-				// check if key/value exists
 				if (entry.getKey().equals(this.key)
 						&& (this.valueMatcher.isEmpty() || this.valueMatcher.get().matches(entry.getValue()))) {
 					containsAdvice = true;

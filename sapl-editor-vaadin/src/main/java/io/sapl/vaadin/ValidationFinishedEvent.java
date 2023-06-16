@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,16 +15,13 @@
  */
 package io.sapl.vaadin;
 
-import java.util.Arrays;
+import lombok.Value;
 
+/**
+ * Event triggered when the validation of the editor contents finishes. Contains
+ * identified issues.
+ */
+@Value
 public class ValidationFinishedEvent {
-	private Issue[] issues;
-	
-	public ValidationFinishedEvent(Issue[] issues) {
-		this.issues = Arrays.copyOf(issues, issues.length);
-	}
-	
-	public Issue[] getIssues() {
-		return Arrays.copyOf(issues, issues.length);
-	}
+	Issue[] issues;
 }

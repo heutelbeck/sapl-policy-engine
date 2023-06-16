@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import reactor.core.publisher.Flux;
 
-public class TestAttributeContext implements AttributeContext {
+class TestAttributeContext implements AttributeContext {
 
 	private final Map<String, Set<String>> availableLibraries;
 

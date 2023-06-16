@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.BlockingPreEnforceConstraintHandlerBundle;
+import io.sapl.spring.constraints.BlockingConstraintHandlerBundle;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import jakarta.servlet.ServletException;
@@ -48,11 +48,11 @@ import reactor.core.publisher.Flux;
 
 class SaplAuthorizationManagerTests {
 
-	private ObjectMapper                              mapper;
-	private PolicyDecisionPoint                       pdp;
-	private ConstraintEnforcementService              constraintHandlers;
-	private BlockingPreEnforceConstraintHandlerBundle bundle;
-	private Authentication                            authentication;
+	private ObjectMapper                       mapper;
+	private PolicyDecisionPoint                pdp;
+	private ConstraintEnforcementService       constraintHandlers;
+	private BlockingConstraintHandlerBundle<?> bundle;
+	private Authentication                     authentication;
 
 	@BeforeEach
 	void setUpMocks() {
@@ -64,7 +64,7 @@ class SaplAuthorizationManagerTests {
 		authentication     = mock(Authentication.class);
 		pdp                = mock(PolicyDecisionPoint.class);
 		constraintHandlers = mock(ConstraintEnforcementService.class);
-		bundle             = mock(BlockingPreEnforceConstraintHandlerBundle.class);
+		bundle             = mock(BlockingConstraintHandlerBundle.class);
 		doReturn(bundle).when(constraintHandlers).accessManagerBundleFor(any());
 	}
 

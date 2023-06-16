@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,11 +31,11 @@ import reactor.core.publisher.Flux;
 /**
  * Superclass of basic expressions providing a method to evaluate the steps,
  * filter and sub template possibly being part of the basic expression.
- *
+ * <p>
  * Grammar:
  * {@code BasicExpression returns Expression: Basic (FILTER filter=FilterComponent |
  * SUBTEMPLATE subtemplate=BasicExpression)? ;
- *
+ * <p>
  * Basic returns BasicExpression: {BasicGroup} '(' expression=Expression ')'
  * steps+=Step* | {BasicValue} value=Value steps+=Step* | {BasicFunction}
  * fsteps+=ID ('.' fsteps+=ID)* arguments=Arguments steps+=Step* |

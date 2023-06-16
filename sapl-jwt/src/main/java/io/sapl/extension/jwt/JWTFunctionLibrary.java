@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ import io.sapl.api.validation.Text;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Library of functions for evaluating Json Web Tokens (JWT)
+ * Library of functions for evaluating JSON Web Tokens (JWT)
  * <p>
  * Functions may be used in target expressions of SAPL policies. Since target
  * expressions need to be evaluated quickly for indexing and selecting policies,
@@ -56,6 +56,10 @@ public class JWTFunctionLibrary {
 
 	private final ObjectMapper mapper;
 
+	/**
+	 * @param rawToken a raw JWT token.
+	 * @return the contents of the JWT token as a Val.
+	 */
 	@Function
 	public Val parseJwt(@Text Val rawToken) {
 		try {

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -136,10 +136,12 @@ public class HtmlLineCoverageReportGenerator {
 	}
 
 	private void generateCustomCSS(Path basedir) throws IOException {
-		String css = ".coverage-green span { background-color: #ccffcc; }\n"
-				+ ".coverage-yellow span { background-color: #ffffcc; }\n"
-				+ ".coverage-red span { background-color: #ffaaaa; }\n"
-				+ ".CodeMirror { height: calc(100% - 50px) !important; }\n";
+		String css = """
+				.coverage-green span { background-color: #ccffcc; }
+				.coverage-yellow span { background-color: #ffffcc; }
+				.coverage-red span { background-color: #ffaaaa; }
+				.CodeMirror { height: calc(100% - 50px) !important; }
+				""";
 		Path cssPath = basedir.resolve("html").resolve("assets").resolve("main.css");
 		createFile(cssPath, css);
 	}
@@ -224,21 +226,14 @@ public class HtmlLineCoverageReportGenerator {
 			var coveredValue = line.getCoveredValue();
 			assertValidCoveredValue(coveredValue);
 			switch (coveredValue) {
-			case FULLY:
-				model.setCssClass("coverage-green");
-				break;
-			case NEVER:
-				model.setCssClass("coverage-red");
-				break;
-			case PARTLY:
-				model.setCssClass("coverage-yellow");
-				model.setPopoverContent(String.format("%d of %d branches covered", line.getCoveredBranches(),
-						line.getBranchesToCover()));
-				break;
-			case IRRELEVANT:
-			default:
-				model.setCssClass("");
-				break;
+				case FULLY -> model.setCssClass("coverage-green");
+				case NEVER -> model.setCssClass("coverage-red");
+				case PARTLY -> {
+					model.setCssClass("coverage-yellow");
+					model.setPopoverContent(String.format("%d of %d branches covered", line.getCoveredBranches(),
+							line.getBranchesToCover()));
+				}
+				default -> model.setCssClass("");
 			}
 			models.add(model);
 		}

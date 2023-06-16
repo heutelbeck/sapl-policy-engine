@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,8 +26,8 @@ import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.LongConsumer;
+import java.util.function.UnaryOperator;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -216,7 +216,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
 			}
 
 			@Override
-			public Function<Integer, Integer> getHandler(JsonNode constraint) {
+			public UnaryOperator<Integer> getHandler(JsonNode constraint) {
 				return number -> number + constraint.asInt();
 			}
 
@@ -244,7 +244,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
 			}
 
 			@Override
-			public Function<Integer, Integer> getHandler(JsonNode constraint) {
+			public UnaryOperator<Integer> getHandler(JsonNode constraint) {
 				return number -> (number % 2 == 0) ? number : null;
 			}
 
@@ -312,7 +312,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
 			}
 
 			@Override
-			public Function<Throwable, Throwable> getHandler(JsonNode constraint) {
+			public UnaryOperator<Throwable> getHandler(JsonNode constraint) {
 				return this::apply;
 			}
 

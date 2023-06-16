@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,13 +15,7 @@
  */
 package io.sapl.prp.index.canonical;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Objects;
+import java.util.*;
 
 import lombok.NonNull;
 
@@ -81,7 +75,7 @@ public class DisjunctiveFormula {
 		if (clauses.size() != other.clauses.size()) {
 			return false;
 		}
-		return (clauses.containsAll(other.clauses) && other.clauses.containsAll(clauses));
+		return (new HashSet<>(clauses).containsAll(other.clauses) && new HashSet<>(other.clauses).containsAll(clauses));
 
 		// return hashCode() == other.hashCode();
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -193,12 +193,12 @@ public class AnnotationAttributeContext implements AttributeContext {
 			if (attributeMetadata.isAttributeWithVariableParameter())
 				invocationArguments[argumentIndex++] = variables;
 			if (attributeMetadata.isVarArgsParameters())
-				invocationArguments[argumentIndex++] = new Val[0];
+				invocationArguments[argumentIndex] = new Val[0];
 			return Flux.<Object[]>just(invocationArguments);
 		}
 		var argumentFluxes = validatedArguments(attributeMetadata, arguments);
 
-		return Flux.<Val, Object[]>combineLatest(argumentFluxes, argumentValues -> {
+		return Flux.combineLatest(argumentFluxes, argumentValues -> {
 			var invocationArguments = new Object[numberOfInvocationParameters];
 			var argumentIndex       = 0;
 			if (attributeMetadata.isAttributeWithVariableParameter())
@@ -232,13 +232,13 @@ public class AnnotationAttributeContext implements AttributeContext {
 			if (attributeMetadata.isAttributeWithVariableParameter())
 				invocationArguments[argumentIndex++] = variables;
 			if (attributeMetadata.isVarArgsParameters())
-				invocationArguments[argumentIndex++] = new Val[0];
+				invocationArguments[argumentIndex] = new Val[0];
 			return Flux.<Object[]>just(invocationArguments);
 		}
 
 		var argumentFluxes = validatedArguments(attributeMetadata, arguments);
 
-		var combined = Flux.<Val, Object[]>combineLatest(argumentFluxes, argumentValues -> {
+		return Flux.combineLatest(argumentFluxes, argumentValues -> {
 			var invocationArguments = new Object[numberOfInvocationParameters];
 			var argumentIndex       = 0;
 			invocationArguments[argumentIndex++] = leftHandValue;
@@ -260,7 +260,6 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 			return invocationArguments;
 		});
-		return combined;
 	}
 
 	private int numberOfInvocationParametersForAttribute(AttributeFinderMetadata attributeMetadata,

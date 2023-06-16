@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ class ServerHttpRequestSerializerTests {
 	private final ObjectMapper mapper = new ObjectMapper();
 
 	private JsonNode serialize(ServerHttpRequest invocation) throws IOException {
-		TokenBuffer jsonGenerator = new TokenBuffer(mapper, false);
+		TokenBuffer        jsonGenerator      = new TokenBuffer(mapper, false);
 		SerializerProvider serializerProvider = mapper.getSerializerProvider();
 		new ServerHttpRequestSerializer().serialize(invocation, jsonGenerator, serializerProvider);
 		jsonGenerator.flush();
@@ -53,7 +53,7 @@ class ServerHttpRequestSerializerTests {
 	void whenParametersSet_thenItIsTheSameInJson() throws IOException {
 		var request = MockServerHttpRequest.get("/foo/bar").queryParam("key1", "value1a", "value1b")
 				.queryParam("key2", "value2").build();
-		var actual = serialize(request);
+		var actual  = serialize(request);
 		assertThat(
 				actual, is(
 						jsonObject()
@@ -69,7 +69,7 @@ class ServerHttpRequestSerializerTests {
 	void whenCookiesSet_thenItIsTheSameInJson() throws IOException {
 		var request = MockServerHttpRequest.get("/foo/bar")
 				.cookie(new HttpCookie("name1", "value1"), new HttpCookie("name2", "value2")).build();
-		var actual = serialize(request);
+		var actual  = serialize(request);
 		assertThat(actual,
 				is(jsonObject().where(HttpServletRequestSerializer.COOKIES, is(jsonArray(containsInAnyOrder(
 						jsonObject().where("name", is(jsonText("name1"))).where("value", is(jsonText("value1"))),
@@ -80,7 +80,7 @@ class ServerHttpRequestSerializerTests {
 	void whenHeadersSet_thenItIsTheSameInJson() throws IOException {
 		var request = MockServerHttpRequest.get("/foo/bar").header("header1", "value1a", "value1b")
 				.header("header2", "value2").build();
-		var actual = serialize(request);
+		var actual  = serialize(request);
 		assertThat(
 				actual, is(
 						jsonObject()
@@ -95,11 +95,11 @@ class ServerHttpRequestSerializerTests {
 
 	@Test
 	void whenRemoteAddressSet_thenItIsTheSameInJson() throws IOException {
-		var expectedIp = "123.22.233.121";
+		var expectedIp   = "123.22.233.121";
 		var expectedPort = 443;
-		var request = MockServerHttpRequest.get("/foo/bar")
+		var request      = MockServerHttpRequest.get("/foo/bar")
 				.remoteAddress(new InetSocketAddress(expectedIp, expectedPort)).build();
-		var actual = serialize(request);
+		var actual       = serialize(request);
 		assertThat(actual, is(jsonObject().where(HttpServletRequestSerializer.REMOTE_ADDRESS,
 				is(jsonText("/" + expectedIp + ":" + expectedPort)))));
 	}
@@ -107,9 +107,10 @@ class ServerHttpRequestSerializerTests {
 	@Test
 	void whenRemoteHostSet_thenItIsTheSameInJson() throws IOException {
 		var expectedHostname = "localhost";
-		var request = MockServerHttpRequest.get("/foo/bar").remoteAddress(new InetSocketAddress(expectedHostname, 443))
+		var request          = MockServerHttpRequest.get("/foo/bar")
+				.remoteAddress(new InetSocketAddress(expectedHostname, 443))
 				.build();
-		var actual = serialize(request);
+		var actual           = serialize(request);
 		assertThat(actual,
 				is(jsonObject().where(HttpServletRequestSerializer.REMOTE_HOST, is(jsonText(expectedHostname)))));
 	}
@@ -117,54 +118,55 @@ class ServerHttpRequestSerializerTests {
 	@Test
 	void whenLocalNameSet_thenItIsTheSameInJson() throws IOException {
 		var expectedHostname = "localhost";
-		var request = MockServerHttpRequest.get("/foo/bar").localAddress(new InetSocketAddress(expectedHostname, 443))
+		var request          = MockServerHttpRequest.get("/foo/bar")
+				.localAddress(new InetSocketAddress(expectedHostname, 443))
 				.build();
-		var actual = serialize(request);
+		var actual           = serialize(request);
 		assertThat(actual,
 				is(jsonObject().where(HttpServletRequestSerializer.LOCAL_NAME, is(jsonText(expectedHostname)))));
 	}
 
 	@Test
 	void whenLocalAddressSet_thenItIsTheSameInJson() throws IOException {
-		var expectedIp = "123.22.233.121";
+		var expectedIp   = "123.22.233.121";
 		var expectedPort = 443;
-		var request = MockServerHttpRequest.get("/foo/bar")
+		var request      = MockServerHttpRequest.get("/foo/bar")
 				.localAddress(new InetSocketAddress(expectedIp, expectedPort)).build();
-		var actual = serialize(request);
+		var actual       = serialize(request);
 		assertThat(actual, is(jsonObject().where(HttpServletRequestSerializer.LOCAL_ADDRESS,
 				is(jsonText("/" + expectedIp + ":" + expectedPort)))));
 	}
 
 	@Test
 	void whenLocalPortSet_thenItIsTheSameInJson() throws IOException {
-		var expectedIp = "123.22.233.121";
+		var expectedIp   = "123.22.233.121";
 		var expectedPort = 443;
-		var request = MockServerHttpRequest.get("/foo/bar")
+		var request      = MockServerHttpRequest.get("/foo/bar")
 				.localAddress(new InetSocketAddress(expectedIp, expectedPort)).build();
-		var actual = serialize(request);
+		var actual       = serialize(request);
 		assertThat(actual, is(jsonObject().where(HttpServletRequestSerializer.LOCAL_PORT, is(jsonInt(expectedPort)))));
 	}
 
 	@Test
 	void whenMethodNameSet_thenItIsTheSameInJson() throws IOException {
 		var request = MockServerHttpRequest.get("/foo/bar").build();
-		var actual = serialize(request);
+		var actual  = serialize(request);
 		assertThat(actual, is(jsonObject().where(HttpServletRequestSerializer.METHOD, is(jsonText("GET")))));
 	}
 
 	@Test
 	void whenContextPathSet_thenItIsTheSameInJson() throws IOException {
 		var expected = "/a/b/c";
-		var request = MockServerHttpRequest.get(expected).build();
-		var actual = serialize(request);
+		var request  = MockServerHttpRequest.get(expected).build();
+		var actual   = serialize(request);
 		assertThat(actual, is(jsonObject().where(HttpServletRequestSerializer.CONTEXT_PATH, is(jsonText(expected)))));
 	}
 
 	@Test
 	void whenRequestedUriIsSet_thenItIsTheSameInJson() throws IOException {
 		var expected = "https://localhost";
-		var request = MockServerHttpRequest.get(expected).build();
-		var actual = serialize(request);
+		var request  = MockServerHttpRequest.get(expected).build();
+		var actual   = serialize(request);
 		assertThat(actual, is(jsonObject().where(HttpServletRequestSerializer.REQUESTED_URI, is(jsonText(expected)))));
 	}
 

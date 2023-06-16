@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,17 +32,17 @@ import reactor.core.publisher.Flux;
  * error. A PERMIT or DENY decision will only be returned if there is exactly
  * one policy set or policy with matching target expression and if this policy
  * document evaluates to PERMIT or DENY.
- *
+ * <p>
  * It works as follows:
- *
+ * <p>
  * 1. If any target evaluation results in an error (INDETERMINATE) or if more
  * than one policy documents have a matching target, the decision is
  * INDETERMINATE.
- *
+ * <p>
  * 2. Otherwise:
- *
+ * <p>
  * a) If there is no matching policy document, the decision is NOT_APPLICABLE.
- *
+ * <p>
  * b) Otherwise, i.e., there is exactly one matching policy document, the
  * decision is the result of evaluating this policy document.
  *
