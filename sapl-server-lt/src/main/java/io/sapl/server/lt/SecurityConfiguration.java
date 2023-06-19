@@ -15,6 +15,8 @@
  */
 package io.sapl.server.lt;
 
+import static org.springframework.security.config.Customizer.withDefaults;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -30,6 +32,8 @@ import org.springframework.security.config.annotation.rsocket.RSocketSecurity;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.config.web.server.ServerHttpSecurity.CsrfSpec;
+import org.springframework.security.config.web.server.ServerHttpSecurity.FormLoginSpec;
 import org.springframework.security.core.userdetails.MapReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -69,14 +73,14 @@ public class SecurityConfiguration {
 	@Bean
 	@Profile("local")
 	SecurityWebFilterChain securityFilterChainLocal(ServerHttpSecurity http) {
-		http = http.csrf().disable();
+		http = http.csrf(CsrfSpec::disable);
 
 		if (pdpProperties.isAllowNoAuth()) {
 			log.info("configuring NoAuth authentication");
-			http = http.authorizeExchange().pathMatchers("/**").permitAll().and();
+			http = http.authorizeExchange(exchange -> exchange.pathMatchers("/**").permitAll());
 		} else {
 			// any other request requires the user to be authenticated
-			http = http.authorizeExchange().anyExchange().authenticated().and();
+			http = http.authorizeExchange(exchange -> exchange.anyExchange().authenticated());
 		}
 
 		if (pdpProperties.isAllowApiKeyAuth()) {
@@ -89,7 +93,7 @@ public class SecurityConfiguration {
 
 		if (pdpProperties.isAllowBasicAuth()) {
 			log.info("configuring BasicAuth authentication");
-			http = http.httpBasic().and();
+			http = http.httpBasic(withDefaults());
 		}
 
 		if (pdpProperties.isAllowOauth2Auth()) {
@@ -97,13 +101,17 @@ public class SecurityConfiguration {
 			http = http.oauth2ResourceServer(ServerHttpSecurity.OAuth2ResourceServerSpec::jwt);
 		}
 
-		return http.formLogin().disable().build();
+		return http.formLogin(FormLoginSpec::disable).build();
 	}
 
 	@Bean
 	@Profile("docker")
 	SecurityWebFilterChain securityFilterChainDocker(ServerHttpSecurity http) {
-		return http.csrf().disable().authorizeExchange().pathMatchers("/**").permitAll().and().build();
+		// @formatter:off
+		return http.csrf(CsrfSpec::disable)
+				   .authorizeExchange(exchange -> exchange.pathMatchers("/**").permitAll())
+				   .build();
+		// @formatter:on
 	}
 
 	@Bean

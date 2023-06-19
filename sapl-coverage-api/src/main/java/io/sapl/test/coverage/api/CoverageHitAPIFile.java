@@ -16,14 +16,12 @@
 package io.sapl.test.coverage.api;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.sapl.test.coverage.api.model.PolicyConditionHit;
@@ -89,18 +87,17 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
 
 	@Override
 	public List<PolicySetHit> readPolicySetHits() {
-		return readFileLines(filePathPolicySetHits).stream().map(PolicySetHit::fromString).collect(Collectors.toList());
+		return readFileLines(filePathPolicySetHits).stream().map(PolicySetHit::fromString).toList();
 	}
 
 	@Override
 	public List<PolicyHit> readPolicyHits() {
-		return readFileLines(filePathPolicyHits).stream().map(PolicyHit::fromString).collect(Collectors.toList());
+		return readFileLines(filePathPolicyHits).stream().map(PolicyHit::fromString).toList();
 	}
 
 	@Override
 	public List<PolicyConditionHit> readPolicyConditionHits() {
-		return readFileLines(filePathPolicyConditionHits).stream().map(PolicyConditionHit::fromString)
-				.collect(Collectors.toList());
+		return readFileLines(filePathPolicyConditionHits).stream().map(PolicyConditionHit::fromString).toList();
 	}
 
 	private List<String> readFileLines(Path filePathPolicySetHits) {

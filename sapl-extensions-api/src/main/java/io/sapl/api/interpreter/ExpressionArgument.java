@@ -15,13 +15,7 @@
  */
 package io.sapl.api.interpreter;
 
-import lombok.Value;
-
 /**
  * Traced expression argument value.
  */
-@Value
-public class ExpressionArgument {
-	String name;
-	Traced value;
-}
+public record ExpressionArgument(String name, Traced value) {}

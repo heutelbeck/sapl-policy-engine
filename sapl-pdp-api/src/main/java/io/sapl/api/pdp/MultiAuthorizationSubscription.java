@@ -192,12 +192,12 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 	public String toString() {
 		final StringBuilder sb = new StringBuilder("MultiAuthorizationSubscription {");
 		for (IdentifiableAuthorizationSubscription subscription : this) {
-			sb.append("\n\t[").append("SUBSCRIPTION-ID: ").append(subscription.getAuthorizationSubscriptionId())
-					.append(" | ").append("SUBJECT: ").append(subscription.getAuthorizationSubscription().getSubject())
-					.append(" | ").append("ACTION: ").append(subscription.getAuthorizationSubscription().getAction())
+			sb.append("\n\t[").append("SUBSCRIPTION-ID: ").append(subscription.authorizationSubscriptionId())
+					.append(" | ").append("SUBJECT: ").append(subscription.authorizationSubscription().getSubject())
+					.append(" | ").append("ACTION: ").append(subscription.authorizationSubscription().getAction())
 					.append(" | ").append("RESOURCE: ")
-					.append(subscription.getAuthorizationSubscription().getResource()).append(" | ")
-					.append("ENVIRONMENT: ").append(subscription.getAuthorizationSubscription().getEnvironment())
+					.append(subscription.authorizationSubscription().getResource()).append(" | ")
+					.append("ENVIRONMENT: ").append(subscription.authorizationSubscription().getEnvironment())
 					.append(']');
 		}
 		sb.append("\n}");

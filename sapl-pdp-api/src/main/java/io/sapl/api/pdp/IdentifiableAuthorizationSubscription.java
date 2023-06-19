@@ -16,7 +16,6 @@
 package io.sapl.api.pdp;
 
 import lombok.NonNull;
-import lombok.Value;
 
 /**
  * Holds an {@link AuthorizationSubscription SAPL authorization subscription} together
@@ -27,13 +26,5 @@ import lombok.Value;
  * @see AuthorizationSubscription
  * @see IdentifiableAuthorizationDecision
  */
-@Value
-public class IdentifiableAuthorizationSubscription {
-
-	@NonNull
-	String authorizationSubscriptionId;
-
-	@NonNull
-	AuthorizationSubscription authorizationSubscription;
-
-}
+public record IdentifiableAuthorizationSubscription(@NonNull String authorizationSubscriptionId,
+													@NonNull AuthorizationSubscription authorizationSubscription) {}

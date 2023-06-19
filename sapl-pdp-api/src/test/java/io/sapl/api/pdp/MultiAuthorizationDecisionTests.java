@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-class MultiAuthorizationDecisionTest {
+class MultiAuthorizationDecisionTests {
 
 	private static final String SUBSCRIPTION_ID = "SUBSCRIPTION-ID";
 

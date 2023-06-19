@@ -35,7 +35,7 @@ public class EmbeddedPDPProperties {
 	 * <p>
 	 * The options are:
 	 * <p>
-	 * - RESOURCES : Loads a fixed set of documents and pdp.json from the bundled
+	 * - RESOURCES: Loads a fixed set of documents and pdp.json from the bundled
 	 * resource. These will be loaded once and cannot be updated at runtime of the
 	 * system.
 	 * <p>
@@ -67,7 +67,7 @@ public class EmbeddedPDPProperties {
 	 * file is located.
 	 * <p>
 	 * If the pdpConfigType is set to RESOURCES, / is the root of the context path.
-	 * For FILESYSTEM, it must be a valid path on the system's filesystem.
+	 * For FILESYSTEM, it must be a valid path on the system's file system.
 	 */
 	@NotEmpty
 	private String configPath = "/policies";
