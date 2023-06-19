@@ -280,7 +280,6 @@ public class ContentFilterUtil {
 		};
 	}
 
-
 	private static Predicate<Object> gtCondition(JsonNode condition, String path, Configuration jsonPathConfiguration,
 			ObjectMapper objectMapper) {
 		if (!condition.get(VALUE).isNumber())
@@ -295,7 +294,7 @@ public class ContentFilterUtil {
 			return node.asDouble() > value;
 		};
 	}
-	
+
 	private static Predicate<Object> numberEqCondition(JsonNode condition, String path,
 			Configuration jsonPathConfiguration, ObjectMapper objectMapper) {
 		var value = condition.get(VALUE).asDouble();
@@ -427,14 +426,20 @@ public class ContentFilterUtil {
 	private static MapFunction blackenNode(JsonNode action) {
 		return (original, configuration) -> {
 
-			if (!(original instanceof String))
+			String originalString;
+			if (original instanceof String stringValue) {
+				originalString = stringValue;
+			} else if (original instanceof JsonNode json && json.isTextual()) {
+				originalString = json.textValue();
+			} else {
 				throw new IllegalArgumentException(PATH_NOT_TEXTUAL);
+			}
 
 			var replacementString = determineReplacementString(action);
 			var discloseRight     = getIntegerValueOfActionKeyOrDefaultToZero(action, DISCLOSE_RIGHT);
 			var discloseLeft      = getIntegerValueOfActionKeyOrDefaultToZero(action, DISCLOSE_LEFT);
 
-			return JSON.textNode(blacken((String) original, replacementString, discloseRight, discloseLeft));
+			return JSON.textNode(blacken(originalString, replacementString, discloseRight, discloseLeft));
 		};
 	}
 
