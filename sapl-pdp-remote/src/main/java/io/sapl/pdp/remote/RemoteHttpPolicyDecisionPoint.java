@@ -20,6 +20,8 @@ import java.util.function.Function;
 
 import javax.net.ssl.SSLException;
 
+import io.netty.channel.ChannelOption;
+import reactor.util.annotation.Nullable;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -159,6 +161,11 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 
 		public RemoteHttpPolicyDecisionPointBuilder baseUrl(String baseUrl) {
 			this.baseUrl = baseUrl;
+			return this;
+		}
+
+		public <O> RemoteHttpPolicyDecisionPointBuilder option(ChannelOption<O> key, @Nullable O value){
+			this.httpClient = this.httpClient.option(key, value);
 			return this;
 		}
 
