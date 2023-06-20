@@ -26,6 +26,7 @@ import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHa
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.authentication.UserDetailsRepositoryReactiveAuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.rsocket.EnableRSocketSecurity;
 import org.springframework.security.config.annotation.rsocket.PayloadInterceptorOrder;
 import org.springframework.security.config.annotation.rsocket.RSocketSecurity;
@@ -98,7 +99,9 @@ public class SecurityConfiguration {
 
 		if (pdpProperties.isAllowOauth2Auth()) {
 			log.info("configuring Oauth2 authentication");
-			http = http.oauth2ResourceServer(ServerHttpSecurity.OAuth2ResourceServerSpec::jwt);
+			http = http.oauth2ResourceServer(oauth2 -> oauth2
+					.jwt(Customizer.withDefaults())
+			);
 		}
 
 		return http.formLogin(FormLoginSpec::disable).build();
