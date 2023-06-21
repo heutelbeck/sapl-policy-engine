@@ -24,7 +24,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Role;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
-import org.springframework.security.authorization.AuthorizationEventPublisher;
 import org.springframework.security.config.core.GrantedAuthorityDefaults;
 import org.springframework.security.core.context.SecurityContextHolderStrategy;
 
@@ -60,24 +59,15 @@ class SaplMethodSecurityConfiguration {
 	Advisor preEnforcePolicyEnforcementPoint(ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
 			ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider,
 			ObjectProvider<SecurityContextHolderStrategy> strategyProvider,
-			ObjectProvider<AuthorizationEventPublisher> eventPublisherProvider,
 			ObjectProvider<ObservationRegistry> registryProvider, ApplicationContext context,
 			PolicyDecisionPoint policyDecisionPoint, SaplAttributeRegistry attributeRegistry,
 			ConstraintEnforcementService constraintEnforcementService,
 			WebAuthorizationSubscriptionBuilderService subscriptionBuilder) {
 
-		log.info("Deploy PreEnforcePolicyEnforcementPoint");
+		log.debug("Deploy @PreEnforce Policy Enforcement Point");
 		var policyEnforcementPoint = new PreEnforcePolicyEnforcementPoint(policyDecisionPoint, attributeRegistry,
 				constraintEnforcementService, subscriptionBuilder);
-		var preEnforce             = PolicyEnforcementPointAroundMethodInterceptor.preEnforce(policyEnforcementPoint);
-//		// strategyProvider.ifAvailable(preEnforce::setSecurityContextHolderStrategy);
-//		// eventPublisherProvider.ifAvailable(postAuthorize::setAuthorizationEventPublisher);
-//		var manager      = new PreEnforcePolicyEnforcementPoint(policyDecisionPoint, attributeRegistry,
-//				constraintEnforcementService, subscriptionBuilder);
-//		var preAuthorize = AuthorizationManagerBeforeMethodInterceptor.preAuthorize(manager(manager, registryProvider));
-//		strategyProvider.ifAvailable(preAuthorize::setSecurityContextHolderStrategy);
-//		eventPublisherProvider.ifAvailable(preAuthorize::setAuthorizationEventPublisher);
-		return preEnforce;
+		return PolicyEnforcementPointAroundMethodInterceptor.preEnforce(policyEnforcementPoint);
 	}
 
 	@Bean
@@ -85,33 +75,24 @@ class SaplMethodSecurityConfiguration {
 	Advisor postEnforcePolicyEnforcementPoint(ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
 			ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider,
 			ObjectProvider<SecurityContextHolderStrategy> strategyProvider,
-			ObjectProvider<AuthorizationEventPublisher> eventPublisherProvider,
 			ObjectProvider<ObservationRegistry> registryProvider, ApplicationContext context,
 			PolicyDecisionPoint policyDecisionPoint, SaplAttributeRegistry attributeRegistry,
 			ConstraintEnforcementService constraintEnforcementService,
 			WebAuthorizationSubscriptionBuilderService subscriptionBuilder) {
 
-		log.info("Deploy PostEnforcePolicyEnforcementPoint");
+		log.debug("Deploy @PostEnforce Policy Enforcement Point");
 		var policyEnforcementPoint = new PostEnforcePolicyEnforcementPoint(policyDecisionPoint, attributeRegistry,
 				constraintEnforcementService, subscriptionBuilder);
-		var postEnforce            = PolicyEnforcementPointAroundMethodInterceptor.postEnforce(policyEnforcementPoint);
-//		// strategyProvider.ifAvailable(preEnforce::setSecurityContextHolderStrategy);
-//		// eventPublisherProvider.ifAvailable(postAuthorize::setAuthorizationEventPublisher);
-//		var manager      = new PreEnforcePolicyEnforcementPoint(policyDecisionPoint, attributeRegistry,
-//				constraintEnforcementService, subscriptionBuilder);
-//		var preAuthorize = AuthorizationManagerBeforeMethodInterceptor.preAuthorize(manager(manager, registryProvider));
-//		strategyProvider.ifAvailable(preAuthorize::setSecurityContextHolderStrategy);
-//		eventPublisherProvider.ifAvailable(preAuthorize::setAuthorizationEventPublisher);
-		return postEnforce;
+		return PolicyEnforcementPointAroundMethodInterceptor.postEnforce(policyEnforcementPoint);
 	}
 
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	SaplAttributeRegistry saplAttributeRegistry(ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
 			ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider, ApplicationContext context) {
-		var exprProvider = expressionHandlerProvider
+		var expressionProvider = expressionHandlerProvider
 				.getIfAvailable(() -> defaultExpressionHandler(defaultsProvider, context));
-		return new SaplAttributeRegistry(exprProvider);
+		return new SaplAttributeRegistry(expressionProvider);
 	}
 
 	private static MethodSecurityExpressionHandler defaultExpressionHandler(

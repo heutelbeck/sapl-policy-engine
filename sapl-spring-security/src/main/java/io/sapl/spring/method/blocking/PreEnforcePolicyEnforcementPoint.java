@@ -54,7 +54,7 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
 
 	private static final String ACCESS_DENIED_BY_PEP = "Access Denied by PEP.";
 
-	private final Supplier<Authentication> authentication = getAuthentication(
+	private final Supplier<Authentication> authenticationSupplier = getAuthentication(
 			SecurityContextHolder.getContextHolderStrategy());
 
 	private final PolicyDecisionPoint                        policyDecisionPoint;
@@ -119,30 +119,30 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
 
 	private AuthorizationDecision getAuthorizationFromPolicyDecisionPoint(
 			MethodInvocation methodInvocation, SaplAttribute attribute) {
-		var authzSubscription = subscriptionBuilder.constructAuthorizationSubscription(authentication.get(),
+		var authzSubscription = subscriptionBuilder.constructAuthorizationSubscription(authenticationSupplier.get(),
 				methodInvocation, attribute);
 
 		log.debug("AuthzSubscription: {}", authzSubscription);
 
 		var authzDecisions = policyDecisionPoint.decide(authzSubscription);
 		if (authzDecisions == null) {
-			log.warn("Access Denied by PEP. PDP returned null. {}", attribute);
+			log.warn("PDP returned null. Access Denied by @PreEnforce PEP. {}", attribute);
 			throw new AccessDeniedException(ACCESS_DENIED_BY_PEP);
 		}
 
 		var authzDecision = authzDecisions.blockFirst();
 		if (authzDecision == null) {
-			log.warn("Access Denied by PEP. PDP did not return a decision. {}", attribute);
+			log.warn("PDP did not return a decision. Access Denied by @PreEnforce PEP. {}", attribute);
 			throw new AccessDeniedException(ACCESS_DENIED_BY_PEP);
 		}
 
-		log.debug("AuthzDecision    : {}", authzDecision);
+		log.debug("@PreEnforce AuthzDecision : {}", authzDecision);
 		return authzDecision;
 	}
 
 	private static Supplier<Authentication> getAuthentication(SecurityContextHolderStrategy strategy) {
 		return () -> {
-			Authentication authentication = strategy.getContext().getAuthentication();
+			var authentication = strategy.getContext().getAuthentication();
 			if (authentication == null) {
 				throw new AuthenticationCredentialsNotFoundException(
 						"An Authentication object was not found in the SecurityContext");
