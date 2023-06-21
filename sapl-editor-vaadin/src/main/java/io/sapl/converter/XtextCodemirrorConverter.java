@@ -73,7 +73,7 @@ public class XtextCodemirrorConverter {
 		var uniqueImportsBuilder = new StringBuilder();
 		for (var importEntry : uniqueImports) {
 			if (!importEntry.contains("xtext") && !importEntry.contains("  ")) {
-				uniqueImportsBuilder.append(importEntry).append("\n");
+				uniqueImportsBuilder.append(importEntry).append('\n');
 			}
 		}
 

@@ -73,7 +73,8 @@ class SaplAuthorizationManagerTests {
 		var sut = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
 		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
 		var ctx = mock(RequestAuthorizationContext.class);
-		assertThat(sut.check(() -> authentication, ctx)).matches(dec -> dec.isGranted());
+		assertThat(sut.check(() -> authentication, ctx))
+				.matches(org.springframework.security.authorization.AuthorizationDecision::isGranted);
 		verify(bundle, times(1)).handleOnDecisionConstraints();
 	}
 

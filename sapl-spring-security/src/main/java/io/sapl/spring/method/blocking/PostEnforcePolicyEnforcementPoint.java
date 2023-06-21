@@ -35,17 +35,13 @@ import io.sapl.spring.method.metadata.PostEnforce;
 import io.sapl.spring.method.metadata.SaplAttributeRegistry;
 import io.sapl.spring.subscriptions.WebAuthorizationSubscriptionBuilderService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.Exceptions;
 
 /**
  * Method post-invocation handling based on a SAPL policy decision point.
  */
-@Slf4j
 @RequiredArgsConstructor
 public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
-
-	private static final String ACCESS_DENIED_BY_PEP = "Access Denied by PEP.";
 
 	private Supplier<Authentication> authentication = getAuthentication(
 			SecurityContextHolder.getContextHolderStrategy());
@@ -86,15 +82,14 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
 		var authzDecisions = pdp.decide(authzSubscription);
 		if (authzDecisions == null) {
-			log.warn("PDP returned null. Access Denied by @PostEnforce PEP. {}", attribute);
-			throw new AccessDeniedException(ACCESS_DENIED_BY_PEP);
+			throw new AccessDeniedException(String.format("Access Denied by @PostEnforce PEP. PDP returned null. %s", attribute));
 		}
 
 		var authzDecision = authzDecisions.blockFirst();
 
 		if (authzDecision == null) {
-			log.warn("PDP did not return a decision. Access Denied by @PostEnforce PEP. {}", attribute);
-			throw new AccessDeniedException(ACCESS_DENIED_BY_PEP);
+			throw new AccessDeniedException(String.format("Access Denied by @PostEnforce PEP. PDP decision stream was empty. %s",
+					attribute));
 		}
 
 		return enforceDecision(isOptional, returnedObjectForAuthzSubscription, returnType, authzDecision);
@@ -108,11 +103,13 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
 					returnType);
 		} catch (Throwable e) {
 			Exceptions.throwIfFatal(e);
-			throw new AccessDeniedException(ACCESS_DENIED_BY_PEP);
+			throw new AccessDeniedException(
+					"Access Denied by @PostEnforce PEP. Failed to construct constraint handlers for decision.", e);
 		}
 
 		if (blockingPostEnforceBundle == null) {
-			throw new AccessDeniedException(ACCESS_DENIED_BY_PEP);
+			throw new AccessDeniedException(
+					"Access Denied by @PostEnforce PEP. Failed to construct constraint handlers for decision. The ConstraintEnforcementService unexpectedly returned null");
 		}
 
 		try {
@@ -120,7 +117,7 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
 			var isNotPermit = authzDecision.getDecision() != Decision.PERMIT;
 			if (isNotPermit)
-				throw new AccessDeniedException(ACCESS_DENIED_BY_PEP);
+				throw new AccessDeniedException("Access Denied. Action not permitted.");
 
 			var result = blockingPostEnforceBundle.handleAllOnNextConstraints(returnedObjectForAuthzSubscription);
 

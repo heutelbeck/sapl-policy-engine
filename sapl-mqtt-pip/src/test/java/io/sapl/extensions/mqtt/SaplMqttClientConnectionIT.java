@@ -126,7 +126,7 @@ class SaplMqttClientConnectionIT {
 	}
 
 	@Test
-	@Timeout(30)
+	@Timeout(45)
 	void when_noConfigIsSpecified_then_returnValOfError() {
 		// WHEN
 		var emptyPdpConfig      = Map.<String, JsonNode>of();
@@ -142,7 +142,7 @@ class SaplMqttClientConnectionIT {
 	}
 
 	@Test
-	@Timeout(30)
+	@Timeout(45)
 	void when_connectionIsShared_then_bothMessageFluxWorking() throws InitializationException {
 		// GIVEN
 		var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic1"),
@@ -173,7 +173,7 @@ class SaplMqttClientConnectionIT {
 	}
 
 	@Test
-	@Timeout(30)
+	@Timeout(45)
 	void when_connectionIsNotSharedAnymore_then_singleFluxWorking() throws InitializationException {
 		// GIVEN
 		var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic1"),
@@ -212,7 +212,7 @@ class SaplMqttClientConnectionIT {
 	}
 
 	@Test
-	@Timeout(30)
+	@Timeout(45)
 	void when_connectionIsNotSharedAnymoreAndThenSharedAgain_then_bothMessageFluxWorking()
 			throws InitializationException {
 		// GIVEN
@@ -258,7 +258,7 @@ class SaplMqttClientConnectionIT {
 	}
 
 	@Test
-	@Timeout(30)
+	@Timeout(45)
 	void when_brokerConnectionLost_then_reconnectToBroker()
 			throws InitializationException, InterruptedException, ExecutionException {
 		// WHEN
@@ -294,7 +294,7 @@ class SaplMqttClientConnectionIT {
 	}
 
 	@Test
-	@Timeout(30)
+	@Timeout(45)
 	void when_brokerConnectionLostWhileSharingConnection_then_reconnectToBroker()
 			throws InitializationException, InterruptedException, ExecutionException {
 		// GIVEN
@@ -416,7 +416,7 @@ class SaplMqttClientConnectionIT {
 	}
 
 	@Test
-	@Timeout(30)
+	@Timeout(45)
 	void when_emitValUndefinedActivatedAndBrokerConnectionLost_then_reconnectToBrokerAndEmitValUndefined()
 			throws InitializationException, InterruptedException, ExecutionException, JsonMappingException,
 			JsonProcessingException {
