@@ -165,7 +165,7 @@ public class SaplMqttClient {
 
 		var mqttMessageFlux = buildFluxOfConfigParams(qos, mqttPipConfig, pipMqttClientConfig)
 				.map(params -> getConnectionAndSubscription(topic, pipMqttClientConfig, params))
-				.flatMap(this::connectAndSubscribe)
+				.switchMap(this::connectAndSubscribe).doOnNext(x->log.error("->"+x))
 				.map(this::getValFromMqttPublishMessage)
 				.share()
 				.retryWhen(getRetrySpec(pipMqttClientConfig)
