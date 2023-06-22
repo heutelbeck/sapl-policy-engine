@@ -82,7 +82,6 @@ class SaplMqttClientExceptionIT {
 	}
 
 	@Test
-	@Disabled
 	void when_exceptionOccursInTheMessageFlux_then_returnFluxWithValOfError() {
 		// GIVEN
 		var topics = "topic";
