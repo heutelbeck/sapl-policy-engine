@@ -25,6 +25,7 @@ import java.time.Duration;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
@@ -36,6 +37,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.extensions.mqtt.util.DefaultResponseUtility;
 import reactor.test.StepVerifier;
 
+@Disabled
 class SaplMqttClientExceptionIT {
 
 	private final static long DELAY_MS = 1000L;

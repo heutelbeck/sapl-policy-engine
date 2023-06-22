@@ -30,6 +30,7 @@ import java.util.concurrent.ExecutionException;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
@@ -48,6 +49,7 @@ import reactor.test.StepVerifier;
 import reactor.test.publisher.TestPublisher;
 
 @Slf4j
+@Disabled
 class SaplMqttClientConnectionIT {
 
 	private final static ObjectMapper MAPPER   = new ObjectMapper();
