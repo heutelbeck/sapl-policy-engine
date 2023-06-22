@@ -86,13 +86,14 @@ class SaplMqttClientExceptionIT {
 		// GIVEN
 		var topics = "topic";
 
-		// WHEN
-		var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), buildVariables());
-
+	
 		try (MockedStatic<DefaultResponseUtility> defaultResponseUtilityMockedStatic = Mockito
 				.mockStatic(DefaultResponseUtility.class)) {
 			defaultResponseUtilityMockedStatic.when(() -> DefaultResponseUtility.getDefaultResponseConfig(any(), any()))
 					.thenThrow(new RuntimeException("Error in stream"));
+			// WHEN
+			var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), buildVariables());
+
 			// THEN
 			StepVerifier.create(saplMqttMessageFlux)
 					.thenAwait(Duration.ofMillis(1 * DELAY_MS))
