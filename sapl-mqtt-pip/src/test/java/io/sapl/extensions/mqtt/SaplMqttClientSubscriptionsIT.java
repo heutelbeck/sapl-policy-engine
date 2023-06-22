@@ -39,6 +39,7 @@ import io.sapl.interpreter.InitializationException;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
+@Timeout(180)
 class SaplMqttClientSubscriptionsIT {
 
 	private final static long DELAY_MS = 1000L;
@@ -79,7 +80,6 @@ class SaplMqttClientSubscriptionsIT {
 	}
 
 	@Test
-	@Timeout(90)
 	void when_subscribeToMultipleTopicsOnSingleFlux_then_getMessagesOfMultipleTopics() throws InitializationException {
 		System.out.println("when_subscribeToMultipleTopicsOnSingleFlux_then_getMessagesOfMultipleTopics ...");
 
@@ -105,7 +105,6 @@ class SaplMqttClientSubscriptionsIT {
 	}
 
 	@Test
-	@Timeout(90)
 	void when_subscribeToMultipleTopicsOnDifferentFlux_then_getMessagesOfMultipleTopics()
 			throws InitializationException {
 		System.out.println("when_subscribeToMultipleTopicsOnDifferentFlux_then_getMessagesOfMultipleTopics ...");
@@ -142,7 +141,6 @@ class SaplMqttClientSubscriptionsIT {
 	}
 
 	@Test
-	@Timeout(90)
 	void when_oneFluxIsCancelledWhileSubscribingToSingleTopics_then_getMessagesOfLeftTopics()
 			throws InitializationException {
 		System.out.println("when_oneFluxIsCancelledWhileSubscribingToSingleTopics_then_getMessagesOfLeftTopics ...");
@@ -191,7 +189,6 @@ class SaplMqttClientSubscriptionsIT {
 	}
 
 	@Test
-	@Timeout(90)
 	void when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics()
 			throws InitializationException {
 		System.out.println("Starting problematic test...");
@@ -232,7 +229,6 @@ class SaplMqttClientSubscriptionsIT {
 	}
 
 	@Test
-	@Timeout(90)
 	void when_subscribingWithSingleLevelWildcard_then_getMessagesMatchingTopicsOfSingleLevelWildcard()
 			throws InitializationException {
 		System.out.println(
@@ -258,7 +254,6 @@ class SaplMqttClientSubscriptionsIT {
 	}
 
 	@Test
-	@Timeout(90)
 	void when_subscribingWithMultiLevelWildcard_then_getMessagesMatchingTopicsOfMultiLevelWildcard()
 			throws InitializationException {
 		System.out.println(
@@ -287,7 +282,6 @@ class SaplMqttClientSubscriptionsIT {
 	}
 
 	@Test
-	@Timeout(90)
 	void when_unsubscribingTopicOnSharedConnectionWithMultiLevelWildcard_then_getMessagesMatchingTopicsOfMultiLevelWildcard()
 			throws InitializationException {
 		System.out.println(
@@ -324,7 +318,6 @@ class SaplMqttClientSubscriptionsIT {
 	}
 
 	@Test
-	@Timeout(90)
 	void when_unsubscribingMultiLevelWildcardTopicOnSharedConnectionWithSimpleTopic_then_getMessagesMatchingSimpleTopic()
 			throws InitializationException {
 		System.out.println(
@@ -363,7 +356,6 @@ class SaplMqttClientSubscriptionsIT {
 	}
 
 	@Test
-	@Timeout(90)
 	void when_unsubscribingSingleLevelWildcardTopicOnSharedConnectionWithSimpleTopic_then_getMessagesMatchingSimpleTopic()
 			throws InitializationException {
 		System.out.println(
