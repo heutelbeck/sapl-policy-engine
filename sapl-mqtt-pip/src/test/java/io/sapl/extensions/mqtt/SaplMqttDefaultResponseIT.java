@@ -32,7 +32,6 @@ import java.util.Map;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -50,7 +49,6 @@ import lombok.SneakyThrows;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
-@Disabled
 class SaplMqttDefaultResponseIT {
 
 	private final static long DELAY_MS = 1000L;
