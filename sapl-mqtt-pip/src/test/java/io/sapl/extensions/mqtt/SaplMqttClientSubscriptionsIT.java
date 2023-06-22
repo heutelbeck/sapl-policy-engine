@@ -182,6 +182,7 @@ class SaplMqttClientSubscriptionsIT {
 	@Timeout(90)
 	void when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics()
 			throws InitializationException {
+		System.out.println("Starting problematic test...");
 		// GIVEN
 		var topicsFirstFlux  = JSON.arrayNode().add("topic1").add("topic2");
 		var topicsSecondFlux = JSON.arrayNode().add("topic2").add("topic3");
@@ -195,6 +196,7 @@ class SaplMqttClientSubscriptionsIT {
 		// WHEN
 		var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
 				.filter(val -> !val.isUndefined());
+		System.out.println("Starting verification...");
 
 		// THEN
 		StepVerifier.create(saplMqttMessageFluxMerge)
@@ -214,6 +216,7 @@ class SaplMqttClientSubscriptionsIT {
 				.expectNext(Val.of("message2"))
 				.thenCancel()
 				.verify();
+		System.out.println("Done verification...");
 	}
 
 	@Test
