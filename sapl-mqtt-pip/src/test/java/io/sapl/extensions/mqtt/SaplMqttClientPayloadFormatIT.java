@@ -28,7 +28,6 @@ import java.util.Objects;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
@@ -45,7 +44,6 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.InitializationException;
 import reactor.test.StepVerifier;
 
-@Disabled
 class SaplMqttClientPayloadFormatIT {
 
 	private final static String BYTE_ARRAY_TOPIC = "byteArrayTopic";
