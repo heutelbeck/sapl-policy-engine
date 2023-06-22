@@ -198,7 +198,9 @@ class SaplMqttClientSubscriptionsIT {
 		var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topicsFirstFlux),
 				buildVariables()).doOnCancel(() -> System.out.println("1 cancel"));
 		var saplMqttMessageFluxSecond = saplMqttClient
-				.buildSaplMqttMessageFlux(Val.of(topicsSecondFlux), buildVariables())
+				.buildSaplMqttMessageFlux(Val.of(topicsSecondFlux), buildVariables()).doOnNext(x ->{
+					System.out.println("2nd Next: '"+x+"' "+x.getClass().getSimpleName());	
+				})
 				.doOnCancel(() -> System.out.println("2* cancel"))
 				.takeUntil(value -> "message2".equals(value.getText())).doOnCancel(() -> System.out.println("2 cancel"))
 				.doOnComplete(() -> System.out.println("2 complete")).log();
