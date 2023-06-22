@@ -28,6 +28,8 @@ import com.vaadin.flow.dom.ElementConstants;
  */
 public class BaseEditor extends Component {
 
+	private static final long serialVersionUID = 1211948611116128730L;
+
 	private static final String                 IS_READ_ONLY_KEY = "isReadOnly";
 	private String                              document;
 	private final List<DocumentChangedListener> documentChangedListeners;

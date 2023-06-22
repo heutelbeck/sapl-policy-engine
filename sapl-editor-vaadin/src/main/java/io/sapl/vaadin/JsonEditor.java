@@ -30,6 +30,8 @@ import com.vaadin.flow.dom.Element;
 @NpmPackage(value = "codemirror", version = "5.52.2")
 public class JsonEditor extends BaseEditor {
 
+	private static final long serialVersionUID = 5820153273838122172L;
+
 	/**
 	 * Creates the editor component.
 	 * 

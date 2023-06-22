@@ -15,11 +15,13 @@
  */
 package io.sapl.vaadin;
 
+import java.io.Serializable;
+
 /**
  * Listener interface for editor click events.
  */
 @FunctionalInterface
-public interface EditorClickedListener {
+public interface EditorClickedListener extends Serializable {
 
     /**
      * @param event the click event

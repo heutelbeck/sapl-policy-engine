@@ -136,7 +136,7 @@ class SaplMqttClientSubscriptionsIT {
 		var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic"),
 				buildVariables());
 		var saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic"), buildVariables())
-				.takeUntil(value -> value.getText().equals("message"));
+				.takeUntil(value -> "message".equals(value.getText()));
 
 		// WHEN
 		var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
@@ -168,7 +168,7 @@ class SaplMqttClientSubscriptionsIT {
 				buildVariables());
 		var saplMqttMessageFluxSecond = saplMqttClient
 				.buildSaplMqttMessageFlux(Val.of(topicsSecondFlux), buildVariables())
-				.takeUntil(value -> value.getText().equals("message2"));
+				.takeUntil(value -> "message2".equals(value.getText()));
 
 		// WHEN
 		var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
@@ -253,7 +253,7 @@ class SaplMqttClientSubscriptionsIT {
 				buildVariables());
 		var saplMqttMessageFluxSecond = saplMqttClient
 				.buildSaplMqttMessageFlux(Val.of("level1/level2"), buildVariables())
-				.takeUntil(value -> value.getText().equals("message1"));
+				.takeUntil(value -> "message1".equals(value.getText()));
 
 		// WHEN
 		var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
@@ -284,7 +284,7 @@ class SaplMqttClientSubscriptionsIT {
 				buildVariables());
 		var saplMqttMessageFluxSecond = saplMqttClient
 				.buildSaplMqttMessageFlux(Val.of("level1/#"), buildVariables())
-				.takeUntil(value -> value.getText().equals("message1"));
+				.takeUntil(value -> "message1".equals(value.getText()));
 
 		// WHEN
 		var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
@@ -317,7 +317,7 @@ class SaplMqttClientSubscriptionsIT {
 				Val.of("level1/level2/level3"), buildVariables());
 		var saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(
 				Val.of("level1/+/level3"), buildVariables())
-				.takeUntil(value -> value.getText().equals("message1"));
+				.takeUntil(value -> "message1".equals(value.getText()));
 
 		// WHEN
 		var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)

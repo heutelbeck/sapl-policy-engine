@@ -15,11 +15,13 @@
  */
 package io.sapl.vaadin;
 
+import java.io.Serializable;
+
 /**
  * Listener interface for editor value changes.
  */
 @FunctionalInterface
-public interface DocumentChangedListener {
+public interface DocumentChangedListener extends Serializable {
 	/**
 	 * @param event the change event.
 	 */

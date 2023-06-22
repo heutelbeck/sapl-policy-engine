@@ -54,7 +54,7 @@ public class TransformFilesToESM {
 			try {
 				String   content = Files.readString(file.toPath());
 				String[] terms   = content.trim().split("\\s+");
-				if (!terms[0].equals("import")) {
+				if (! "import".equals(terms[0])) {
 					String result = converter.convert(content);
 					Files.write(file.toPath(), result.getBytes());
 				}

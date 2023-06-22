@@ -354,7 +354,7 @@ class SaplMqttClientConnectionIT {
 				buildVariables());
 		var saplMqttMessageFluxSecond = saplMqttClient
 				.buildSaplMqttMessageFlux(Val.of(topicsSecondFlux), buildVariables())
-				.takeUntil(value -> value.getText().equals("message2"));
+				.takeUntil(value -> "message2".equals(value.getText()));
 
 		// WHEN
 		var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond);
