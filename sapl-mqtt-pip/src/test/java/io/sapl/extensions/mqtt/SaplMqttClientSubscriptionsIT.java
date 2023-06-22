@@ -91,14 +91,12 @@ class SaplMqttClientSubscriptionsIT {
 				.filter(val -> !val.isUndefined());
 
 		// THEN
-		StepVerifier.create(saplMqttMessageFlux.doOnNext(e -> System.out.println("next: "+e)))
+		StepVerifier.create(saplMqttMessageFlux)
 				.thenAwait(Duration.ofMillis(2 * DELAY_MS))
 				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
 				.expectNext(Val.of("message1"))
-				.then(() -> System.out.println("got message1"))
 				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false)))
 				.expectNext(Val.of("message2"))
-				.then(() -> System.out.println("got message2"))
 				.thenCancel()
 				.verify();
 		System.out.println("when_subscribeToMultipleTopicsOnSingleFlux_then_getMessagesOfMultipleTopics ... done");
@@ -173,7 +171,7 @@ class SaplMqttClientSubscriptionsIT {
 
 	}
 
-//	@Test
+	@Test
 //	@Timeout(150)
 	void stressIt() throws InitializationException {
 		for (int i = 0; i < 100; i++) {
@@ -191,16 +189,19 @@ class SaplMqttClientSubscriptionsIT {
 	@Test
 	void when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics()
 			throws InitializationException {
+		System.out.println("when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics...");
 		System.out.println("Starting problematic test...");
 		// GIVEN
 		var topicsFirstFlux  = JSON.arrayNode().add("topic1").add("topic2");
 		var topicsSecondFlux = JSON.arrayNode().add("topic2").add("topic3");
 
 		var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topicsFirstFlux),
-				buildVariables());
+				buildVariables()).doOnCancel(() -> System.out.println("1 cancel"));
 		var saplMqttMessageFluxSecond = saplMqttClient
 				.buildSaplMqttMessageFlux(Val.of(topicsSecondFlux), buildVariables())
-				.takeUntil(value -> "message2".equals(value.getText()));
+				.doOnCancel(() -> System.out.println("2* cancel"))
+				.takeUntil(value -> "message2".equals(value.getText())).doOnCancel(() -> System.out.println("2 cancel"))
+				.doOnComplete(() -> System.out.println("2 complete")).log();
 
 		// WHEN
 		var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
@@ -208,7 +209,7 @@ class SaplMqttClientSubscriptionsIT {
 		System.out.println("Starting verification...");
 
 		// THEN
-		StepVerifier.create(saplMqttMessageFluxMerge)
+		StepVerifier.create(saplMqttMessageFluxMerge.doOnNext(e -> System.out.println("next: " + e)))
 				.thenAwait(Duration.ofMillis(2 * DELAY_MS))
 				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
 				.expectNext(Val.of("message1"))
@@ -226,6 +227,8 @@ class SaplMqttClientSubscriptionsIT {
 				.thenCancel()
 				.verify();
 		System.out.println("Done verification...");
+		System.out.println(
+				"when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics... done");
 	}
 
 	@Test
