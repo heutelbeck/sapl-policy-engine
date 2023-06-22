@@ -60,15 +60,22 @@ class SaplMqttClientSubscriptionsIT {
 
 	@BeforeEach
 	void beforeEach() {
+		System.out.println("Before 1 .. build and start broker");
 		this.mqttBroker     = buildAndStartBroker(configDir, dataDir, extensionsDir);
+		System.out.println("Before 2 .. start client");
 		this.mqttClient     = startClient();
+		System.out.println("Before 3 .. create sapl client");
 		this.saplMqttClient = new SaplMqttClient();
+		System.out.println("Before 4 ... done");
 	}
 
 	@AfterEach
 	void afterEach() {
+		System.out.println("After 1 disconnect");
 		mqttClient.disconnect();
+		System.out.println("After 2 stop");
 		stopBroker(mqttBroker);
+		System.out.println("After 3 done");
 	}
 
 	@Test
@@ -154,6 +161,21 @@ class SaplMqttClientSubscriptionsIT {
 				.expectNoEvent(Duration.ofMillis(2 * DELAY_MS))
 				.thenCancel()
 				.verify();
+	}
+
+//	@Test
+//	@Timeout(150)
+	void stressIt() throws InitializationException {
+		for (int i = 0; i < 100; i++) {
+			System.out.println("A");
+			afterEach();
+			System.out.println("B");
+			beforeEach();
+			System.out.println("i="+i);
+			when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics();
+			System.out.println("C");
+
+		}
 	}
 
 	@Test

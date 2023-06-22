@@ -45,16 +45,18 @@ class MqttTestUtility {
 	final static ObjectMapper MAPPER = new ObjectMapper();
 
 	public static EmbeddedHiveMQ buildBroker(Path configDir, Path dataDir, Path extensionsDir) {
-		var broker = EmbeddedHiveMQ.builder()
+		InternalConfigurations.PAYLOAD_PERSISTENCE_TYPE.set(PersistenceType.FILE);
+		InternalConfigurations.RETAINED_MESSAGE_PERSISTENCE_TYPE.set(PersistenceType.FILE);
+		InternalConfigurations.PERSISTENCE_SHUTDOWN_TIMEOUT.set(1);
+		InternalConfigurations.PERSISTENCE_SHUTDOWN_GRACE_PERIOD.set(10);
+		InternalConfigurations.PERSISTENCE_CLOSE_RETRIES.set(1);
+		InternalConfigurations.PERSISTENCE_CLOSE_RETRY_INTERVAL.set(10);
+
+		return EmbeddedHiveMQ.builder()
 				.withConfigurationFolder(configDir)
 				.withDataFolder(dataDir)
 				.withExtensionsFolder(extensionsDir)
 				.build();
-
-		InternalConfigurations.PAYLOAD_PERSISTENCE_TYPE.set(PersistenceType.FILE);
-		InternalConfigurations.RETAINED_MESSAGE_PERSISTENCE_TYPE.set(PersistenceType.FILE);
-
-		return broker;
 	}
 
 	@SneakyThrows
@@ -69,10 +71,14 @@ class MqttTestUtility {
 
 	public static void stopBroker(EmbeddedHiveMQ broker) {
 		try {
+			System.out.println("Stop 1 stop.get");
 			broker.stop().get();
+			System.out.println("Stop 2 close");
 			broker.close();
+			System.out.println("Stop 3 done");
 		} catch (ExecutionException | IllegalStateException | InterruptedException e) {
 			// NOP ignore if broker already closed
+			System.out.println("Stop 2 error " + e.getMessage());
 		}
 	}
 
