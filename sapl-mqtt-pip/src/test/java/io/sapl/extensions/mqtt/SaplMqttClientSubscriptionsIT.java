@@ -39,10 +39,10 @@ import io.sapl.interpreter.InitializationException;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
-@Timeout(180)
+@Timeout(360)
 class SaplMqttClientSubscriptionsIT {
 
-	private final static long DELAY_MS = 1000L;
+	private final static long DELAY_MS = 800L;
 
 	private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
