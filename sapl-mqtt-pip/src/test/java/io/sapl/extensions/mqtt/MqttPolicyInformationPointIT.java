@@ -27,7 +27,6 @@ import java.util.concurrent.ExecutionException;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -48,7 +47,6 @@ import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
 import io.sapl.pdp.PolicyDecisionPointFactory;
 import reactor.test.StepVerifier;
 
-@Disabled
 class MqttPolicyInformationPointIT {
 
 	private static final String          MESSAGE        = "message";
