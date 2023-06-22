@@ -181,7 +181,7 @@ class SaplMqttClientSubscriptionsIT {
 		}
 	}
 
-	//@Test
+	@Test
 	void when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics()
 			throws InitializationException {
 		log.error("when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics...");
