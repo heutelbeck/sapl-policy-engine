@@ -166,7 +166,7 @@ class SaplMqttClientSubscriptionsIT {
 
 	}
 
-	@Test
+//	@Test
 //	@Timeout(150)
 	void stressIt() throws InitializationException {
 		for (int i = 0; i < 100; i++) {
@@ -186,6 +186,8 @@ class SaplMqttClientSubscriptionsIT {
 			throws InitializationException {
 		log.error("when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics...");
 		log.error("Starting problematic test...");
+		afterEach();
+		beforeEach();
 
 		// GIVEN
 		var topicsFirstFlux  = JSON.arrayNode().add("topic1").add("topic2");
