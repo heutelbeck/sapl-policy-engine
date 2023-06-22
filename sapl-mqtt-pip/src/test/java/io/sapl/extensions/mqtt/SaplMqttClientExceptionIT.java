@@ -16,12 +16,12 @@
 package io.sapl.extensions.mqtt;
 
 import static io.sapl.extensions.mqtt.MqttTestUtility.buildAndStartBroker;
-import static io.sapl.extensions.mqtt.MqttTestUtility.buildVariables;
 import static io.sapl.extensions.mqtt.MqttTestUtility.stopBroker;
 import static org.mockito.ArgumentMatchers.any;
 
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Map;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,7 +40,7 @@ import reactor.test.StepVerifier;
 //@Disabled // This one ?
 class SaplMqttClientExceptionIT {
 
-	private final static long DELAY_MS = 1000L;
+	private final static long DELAY_MS = 500L;
 
 	@TempDir
 	Path configDir;
@@ -82,18 +82,20 @@ class SaplMqttClientExceptionIT {
 	}
 
 	@Test
+	@Disabled // This test causes side effects and makes
+				// SaplMqttClientSubscriptionsIT.when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics
+				// fail by timeout
 	void when_exceptionOccursInTheMessageFlux_then_returnFluxWithValOfError() {
 		// GIVEN
 		var topics = "topic";
 
-	
+		// WHEN
+		var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), Map.of());
+
 		try (MockedStatic<DefaultResponseUtility> defaultResponseUtilityMockedStatic = Mockito
 				.mockStatic(DefaultResponseUtility.class)) {
 			defaultResponseUtilityMockedStatic.when(() -> DefaultResponseUtility.getDefaultResponseConfig(any(), any()))
 					.thenThrow(new RuntimeException("Error in stream"));
-			// WHEN
-			var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), buildVariables());
-
 			// THEN
 			StepVerifier.create(saplMqttMessageFlux)
 					.thenAwait(Duration.ofMillis(1 * DELAY_MS))
