@@ -19,8 +19,6 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
@@ -47,9 +45,9 @@ public class MqttPolicyInformationPoint {
 	 * subscribed topics. Within this method the subscription of topics is 'at most
 	 * once' by default. Example for sapl attribute: {@code topic.<mqtt.messages>}
 	 *
-	 * @param topic  A string or array of topic(s) for subscription.
+	 * @param topic     A string or array of topic(s) for subscription.
 	 * @param variables Specified environment variables for configuration of the
-	 *               included mqtt client.
+	 *                  included mqtt client.
 	 * @return A {@link Flux} of messages of the subscribed topic(s).
 	 */
 	@Attribute(name = "messages", docs = "Subscribes to topic(s) with certain quality of service level")
@@ -62,11 +60,11 @@ public class MqttPolicyInformationPoint {
 	 * subscribed topics. Example for sapl attribute:
 	 * {@code topic.<mqtt.messages(0)>}
 	 *
-	 * @param topic  A string or array of topic(s) for subscription.
+	 * @param topic     A string or array of topic(s) for subscription.
 	 * @param variables Specified environment variables for configuration of the
-	 *               included mqtt client.
-	 * @param qos    The quality of service level of the mqtt subscription to the
-	 *               broker. Possible values: 0, 1, 2.
+	 *                  included mqtt client.
+	 * @param qos       The quality of service level of the mqtt subscription to the
+	 *                  broker. Possible values: 0, 1, 2.
 	 * @return A {@link Flux} of messages of the subscribed topic(s).
 	 */
 	@Attribute(name = "messages", docs = "Subscribes to topic(s) with certain quality of service level")
@@ -80,13 +78,18 @@ public class MqttPolicyInformationPoint {
 	 * {@code topic.<mqtt.messages(0, resource.mqttPipConfig)>}
 	 *
 	 * @param topic         A string or array of topic(s) for subscription.
-	 * @param variables        Specified environment variables for configuration of the
+	 * @param variables     Specified environment variables for configuration of the
 	 *                      included mqtt client.
 	 * @param qos           The quality of service level of the mqtt subscription to
 	 *                      the broker. Possible values: 0, 1, 2.
-	 * @param mqttPipConfig An {@link ArrayNode} of {@link ObjectNode}s or only a
-	 *                      single {@link ObjectNode} containing configurations for
-	 *                      the pip as a mqtt client. Each {@link ObjectNode}
+	 * @param mqttPipConfig An {@link com.fasterxml.jackson.databind.node.ArrayNode}
+	 *                      of
+	 *                      {@link com.fasterxml.jackson.databind.node.ObjectNode}s
+	 *                      or only a single
+	 *                      {@link com.fasterxml.jackson.databind.node.ObjectNode}
+	 *                      containing configurations for the pip as a mqtt client.
+	 *                      Each
+	 *                      {@link com.fasterxml.jackson.databind.node.ObjectNode}
 	 *                      specifies the configuration of a single mqtt client.
 	 *                      Therefore, it is possible for the pip to build multiple
 	 *                      mqtt clients, that is the pip can subscribe to topics by

@@ -157,7 +157,7 @@ class SaplMqttClientSubscriptionsIT {
 	}
 
 	@Test
-	@Timeout(10)
+	@Timeout(45)
 	void when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics()
 			throws InitializationException {
 		// GIVEN

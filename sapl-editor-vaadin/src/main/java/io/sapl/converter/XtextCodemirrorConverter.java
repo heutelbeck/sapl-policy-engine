@@ -38,7 +38,7 @@ public class XtextCodemirrorConverter {
 		var imports            = extractImports(importPattern, originalCode);
 		var codeWithoutImports = originalCode.replaceAll(importPattern, "");
 
-		codeWithoutImports = codeWithoutImports.replaceAll("CodeMirrorEditorContext", "EditorContext");
+		codeWithoutImports = codeWithoutImports.replace("CodeMirrorEditorContext", "EditorContext");
 
 		var exports   = extractExports(codeWithoutImports);
 		var functions = codeWithoutImports.replaceAll(exportPattern, "");

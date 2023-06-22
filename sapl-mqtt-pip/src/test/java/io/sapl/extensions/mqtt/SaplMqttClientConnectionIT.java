@@ -35,7 +35,6 @@ import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
@@ -180,7 +179,7 @@ class SaplMqttClientConnectionIT {
 				buildVariables());
 		var saplMqttMessageFluxSecond = saplMqttClient
 				.buildSaplMqttMessageFlux(Val.of("topic2"), buildVariables())
-				.takeUntil((message) -> message.getText().equals("lastMessage"));
+				.takeUntil(message -> "lastMessage".equals(message.getText()));
 
 		// WHEN
 		var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond);
@@ -220,7 +219,7 @@ class SaplMqttClientConnectionIT {
 				buildVariables());
 		var saplMqttMessageFluxSecond = saplMqttClient
 				.buildSaplMqttMessageFlux(Val.of("topic2"), buildVariables())
-				.takeUntil((message) -> message.getText().equals("lastMessage"));
+				.takeUntil(message -> "lastMessage".equals(message.getText()));
 		var testPublisher             = TestPublisher.create();
 
 		// WHEN
@@ -334,12 +333,8 @@ class SaplMqttClientConnectionIT {
 						"message2", true)))
 				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic1",
 						"message1", true)))
-				.consumeNextWith(value -> {
-					assert value.getText().equals("message2") || value.getText().equals("message1");
-				})
-				.consumeNextWith(value -> {
-					assert value.getText().equals("message2") || value.getText().equals("message1");
-				})
+				.expectNextMatches(value -> "message2".equals(value.getText()) || "message1".equals(value.getText()))
+				.expectNextMatches(value -> "message2".equals(value.getText()) || "message1".equals(value.getText()))
 				.thenCancel()
 				.verify();
 
@@ -418,8 +413,7 @@ class SaplMqttClientConnectionIT {
 	@Test
 	@Timeout(45)
 	void when_emitValUndefinedActivatedAndBrokerConnectionLost_then_reconnectToBrokerAndEmitValUndefined()
-			throws InitializationException, InterruptedException, ExecutionException, JsonMappingException,
-			JsonProcessingException {
+			throws JsonProcessingException {
 		// GIVEN
 		var secondaryBroker              = buildBroker(secondaryConfigDir, secondaryDataDir, secondaryExtensionsDir);
 		var mqttPipConfigForUndefinedVal = MAPPER.readTree("""

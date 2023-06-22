@@ -106,17 +106,13 @@ class MqttTestUtility {
 				""");
 	}
 
-	public static Map<String, JsonNode> buildVariables(JsonNode pipConfig) {
+	public static Map<String, JsonNode> buildVariables() {
 		return Map.of(
 				"action", MAPPER.nullNode(),
 				"environment", MAPPER.nullNode(),
 				"mqttPipConfig", defaultMqttPipConfig(),
 				"resource", MAPPER.nullNode(),
 				"subject", MAPPER.nullNode());
-	}
-
-	public static Map<String, JsonNode> buildVariables() {
-		return buildVariables(defaultMqttPipConfig());
 	}
 
 	public static Mqtt5Publish buildMqttPublishMessage(String topic, String payload, boolean retain) {

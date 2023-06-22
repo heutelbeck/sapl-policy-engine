@@ -27,7 +27,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.reactivestreams.Publisher;
-import org.springframework.security.access.AccessDeniedException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -42,11 +41,9 @@ import com.jayway.jsonpath.PathNotFoundException;
 import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider;
 
 import lombok.experimental.UtilityClass;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-@Slf4j
 @UtilityClass
 public class ContentFilterUtil {
 
@@ -157,7 +154,7 @@ public class ContentFilterUtil {
 
 	private static void assertConstraintIsAnObjectNode(JsonNode constraint) {
 		if (constraint == null || !constraint.isObject())
-			throw new IllegalArgumentException("Not a valid constraint. Expected a JSON Object");
+			throw new AccessConstraintViolationException("Not a valid constraint. Expected a JSON Object");
 
 	}
 
@@ -166,31 +163,30 @@ public class ContentFilterUtil {
 			try {
 				return predicate.test(x);
 			} catch (PathNotFoundException e) {
-				log.warn(
+				throw new AccessConstraintViolationException(
 						"Error evaluating a constraint predicate. The path defined in the constraint is not present in the data.",
 						e);
-				throw new AccessDeniedException("Constraint enforcement failed.");
 			}
 		};
 	}
 
 	private static Predicate<Object> conditionToPredicate(JsonNode condition, ObjectMapper objectMapper) {
 		if (!condition.isObject())
-			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition);
+			throw new AccessConstraintViolationException(NOT_A_VALID_PREDICATE_CONDITION + condition);
 
 		if (!condition.has(PATH) || !condition.get(PATH).isTextual())
-			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition);
+			throw new AccessConstraintViolationException(NOT_A_VALID_PREDICATE_CONDITION + condition);
 
 		var path = condition.get(PATH).textValue();
 
 		if (!condition.has(TYPE) ||
 				!condition.get(TYPE).isTextual())
-			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition);
+			throw new AccessConstraintViolationException(NOT_A_VALID_PREDICATE_CONDITION + condition);
 
 		var type = condition.get(TYPE).textValue();
 
 		if (!condition.has(VALUE))
-			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition);
+			throw new AccessConstraintViolationException(NOT_A_VALID_PREDICATE_CONDITION + condition);
 
 		var jsonPathConfiguration = Configuration.builder().jsonProvider(new JacksonJsonNodeJsonProvider(objectMapper))
 				.build();
@@ -216,14 +212,14 @@ public class ContentFilterUtil {
 		if (REGEX.equals(type))
 			return regexCondition(condition, path, jsonPathConfiguration, objectMapper);
 
-		throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition);
+		throw new AccessConstraintViolationException(NOT_A_VALID_PREDICATE_CONDITION + condition);
 	}
 
 	private static Predicate<Object> regexCondition(JsonNode condition, String path,
 			Configuration jsonPathConfiguration, ObjectMapper objectMapper) {
 
 		if (!condition.get(VALUE).isTextual())
-			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition);
+			throw new AccessConstraintViolationException(NOT_A_VALID_PREDICATE_CONDITION + condition);
 
 		var regex = Pattern.compile(condition.get(VALUE).textValue());
 
@@ -238,7 +234,7 @@ public class ContentFilterUtil {
 	private static Predicate<Object> leqCondition(JsonNode condition, String path, Configuration jsonPathConfiguration,
 			ObjectMapper objectMapper) {
 		if (!condition.get(VALUE).isNumber())
-			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition);
+			throw new AccessConstraintViolationException(NOT_A_VALID_PREDICATE_CONDITION + condition);
 
 		var value = condition.get(VALUE).asDouble();
 
@@ -253,7 +249,7 @@ public class ContentFilterUtil {
 	private static Predicate<Object> geqCondition(JsonNode condition, String path, Configuration jsonPathConfiguration,
 			ObjectMapper objectMapper) {
 		if (!condition.get(VALUE).isNumber())
-			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition);
+			throw new AccessConstraintViolationException(NOT_A_VALID_PREDICATE_CONDITION + condition);
 
 		var value = condition.get(VALUE).asDouble();
 
@@ -268,7 +264,7 @@ public class ContentFilterUtil {
 	private static Predicate<Object> ltCondition(JsonNode condition, String path, Configuration jsonPathConfiguration,
 			ObjectMapper objectMapper) {
 		if (!condition.get(VALUE).isNumber())
-			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition);
+			throw new AccessConstraintViolationException(NOT_A_VALID_PREDICATE_CONDITION + condition);
 
 		var value = condition.get(VALUE).asDouble();
 
@@ -283,7 +279,7 @@ public class ContentFilterUtil {
 	private static Predicate<Object> gtCondition(JsonNode condition, String path, Configuration jsonPathConfiguration,
 			ObjectMapper objectMapper) {
 		if (!condition.get(VALUE).isNumber())
-			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition);
+			throw new AccessConstraintViolationException(NOT_A_VALID_PREDICATE_CONDITION + condition);
 
 		var value = condition.get(VALUE).asDouble();
 
@@ -314,7 +310,7 @@ public class ContentFilterUtil {
 			return numberEqCondition(condition, path, jsonPathConfiguration, objectMapper);
 
 		if (!valueNode.isTextual())
-			throw new IllegalArgumentException(NOT_A_VALID_PREDICATE_CONDITION + condition);
+			throw new AccessConstraintViolationException(NOT_A_VALID_PREDICATE_CONDITION + condition);
 
 		var value = valueNode.textValue();
 
@@ -340,7 +336,7 @@ public class ContentFilterUtil {
 	private static void assertConditionsIsAnArrayNode(JsonNode constraint) {
 		var conditions = constraint.get(CONDITIONS);
 		if (!conditions.isArray())
-			throw new IllegalArgumentException("'conditions' not an array: " + conditions);
+			throw new AccessConstraintViolationException("'conditions' not an array: " + conditions);
 	}
 
 	public static UnaryOperator<Object> getTransformationHandler(JsonNode constraint, ObjectMapper objectMapper) {
@@ -352,7 +348,7 @@ public class ContentFilterUtil {
 				return original;
 
 			if (!actions.isArray())
-				throw new IllegalArgumentException(ACTIONS_NOT_AN_ARRAY);
+				throw new AccessConstraintViolationException(ACTIONS_NOT_AN_ARRAY);
 
 			var originalJsonNode = objectMapper.valueToTree(original);
 
@@ -366,14 +362,15 @@ public class ContentFilterUtil {
 			try {
 				return objectMapper.treeToValue(modifiedJsonNode, original.getClass());
 			} catch (JsonProcessingException e) {
-				throw (new RuntimeException("Error converting modified object to original class type.", e));
+				throw new AccessConstraintViolationException("Error converting modified object to original class type.",
+						e);
 			}
 		};
 	}
 
 	private static void applyAction(DocumentContext jsonContext, JsonNode action) {
 		if (!action.isObject())
-			throw new IllegalArgumentException(ACTION_NOT_AN_OBJECT);
+			throw new AccessConstraintViolationException(ACTION_NOT_AN_OBJECT);
 
 		var path       = getTextualValueOfActionKey(action, PATH);
 		var actionType = getTextualValueOfActionKey(action, TYPE).trim().toLowerCase();
@@ -381,10 +378,9 @@ public class ContentFilterUtil {
 		try {
 			jsonContext.read(path);
 		} catch (PathNotFoundException e) {
-			log.warn(
-					"Error evaluating a constraint predicate. The path defined in the constraint is not present in the data.",
+			throw new AccessConstraintViolationException(
+					"Constraint enforcement failed. Error evaluating a constraint predicate. The path defined in the constraint is not present in the data.",
 					e);
-			throw new AccessDeniedException("Constraint enforcement failed.");
 		}
 
 		if (DELETE.equals(actionType)) {
@@ -402,7 +398,7 @@ public class ContentFilterUtil {
 			return;
 		}
 
-		throw new IllegalArgumentException(String.format(UNKNOWN_ACTION_S, actionType));
+		throw new AccessConstraintViolationException(String.format(UNKNOWN_ACTION_S, actionType));
 
 	}
 
@@ -413,7 +409,7 @@ public class ContentFilterUtil {
 	private static MapFunction replaceNode(JsonNode action) {
 		return (original, configuration) -> {
 			if (!action.has(REPLACEMENT))
-				throw new IllegalArgumentException(NO_REPLACEMENT_SPECIFIED);
+				throw new AccessConstraintViolationException(NO_REPLACEMENT_SPECIFIED);
 
 			return action.get(REPLACEMENT);
 		};
@@ -432,7 +428,7 @@ public class ContentFilterUtil {
 			} else if (original instanceof JsonNode json && json.isTextual()) {
 				originalString = json.textValue();
 			} else {
-				throw new IllegalArgumentException(PATH_NOT_TEXTUAL);
+				throw new AccessConstraintViolationException(PATH_NOT_TEXTUAL);
 			}
 
 			var replacementString = determineReplacementString(action);
@@ -452,7 +448,7 @@ public class ContentFilterUtil {
 		if (replacementNode.isTextual())
 			return replacementNode.textValue();
 
-		throw new IllegalArgumentException(REPLACEMENT_NOT_TEXTUAL);
+		throw new AccessConstraintViolationException(REPLACEMENT_NOT_TEXTUAL);
 	}
 
 	private static String blacken(String originalString, String replacement, int discloseRight, int discloseLeft) {
@@ -476,7 +472,7 @@ public class ContentFilterUtil {
 		var value = getValueOfActionKey(action, key);
 
 		if (!value.isTextual())
-			throw new IllegalArgumentException(String.format(VALUE_NOT_TEXTUAL_S, key));
+			throw new AccessConstraintViolationException(String.format(VALUE_NOT_TEXTUAL_S, key));
 
 		return value.textValue();
 	}
@@ -488,14 +484,14 @@ public class ContentFilterUtil {
 		var value = action.get(key);
 
 		if (!value.canConvertToInt())
-			throw new IllegalArgumentException(String.format(VALUE_NOT_INTEGER_S, key));
+			throw new AccessConstraintViolationException(String.format(VALUE_NOT_INTEGER_S, key));
 
 		return value.intValue();
 	}
 
 	private static JsonNode getValueOfActionKey(JsonNode action, String key) {
 		if (!action.hasNonNull(key))
-			throw new IllegalArgumentException(String.format(UNDEFINED_KEY_S, key));
+			throw new AccessConstraintViolationException(String.format(UNDEFINED_KEY_S, key));
 
 		return action.get(key);
 	}
