@@ -184,6 +184,9 @@ class SaplMqttClientSubscriptionsIT {
 	@Test
 	void when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics()
 			throws InitializationException {
+		log.error("---------------------------------------------------------------------------------------");
+		log.error("---------------------------------------------------------------------------------------");
+		log.error("---------------------------------------------------------------------------------------");
 		log.error("when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics...");
 		log.error("Starting problematic test...");
 
@@ -247,6 +250,9 @@ class SaplMqttClientSubscriptionsIT {
 		log.error("Done verification...");
 		log.error(
 				"when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics... done");
+		log.error("---------------------------------------------------------------------------------------");
+		log.error("---------------------------------------------------------------------------------------");
+		log.error("---------------------------------------------------------------------------------------");
 	}
 
 	@Test
