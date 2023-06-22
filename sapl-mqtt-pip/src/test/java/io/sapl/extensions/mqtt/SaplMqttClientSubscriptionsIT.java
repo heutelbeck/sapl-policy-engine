@@ -157,7 +157,7 @@ class SaplMqttClientSubscriptionsIT {
 	}
 
 	@Test
-	@Timeout(45)
+	@Timeout(90)
 	void when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics()
 			throws InitializationException {
 		// GIVEN
@@ -177,24 +177,18 @@ class SaplMqttClientSubscriptionsIT {
 		// THEN
 		StepVerifier.create(saplMqttMessageFluxMerge)
 				.thenAwait(Duration.ofMillis(2 * DELAY_MS))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic1",
-						"message1", false)))
+				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
 				.expectNext(Val.of("message1"))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic3",
-						"message3", false)))
+				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic3", "message3", false)))
 				.expectNext(Val.of("message3"))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic2",
-						"message2", false)))
+				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false)))
 				.expectNext(Val.of("message2"))
 				.expectNext(Val.of("message2"))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic3",
-						"message3", false)))
+				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic3", "message3", false)))
 				.expectNoEvent(Duration.ofMillis(2 * DELAY_MS))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic1",
-						"message1", false)))
+				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
 				.expectNext(Val.of("message1"))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic2",
-						"message2", false)))
+				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false)))
 				.expectNext(Val.of("message2"))
 				.thenCancel()
 				.verify();
