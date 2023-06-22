@@ -106,6 +106,7 @@
 		<module>sapl-maven-plugin</module>
 		<module>sapl-jwt</module>
 		-->
+		<module>sapl-bom</module>
 		<module>sapl-pdp-embedded</module>
 		<module>sapl-pdp-remote</module>
 		<module>sapl-mqtt-pip</module>
@@ -120,7 +121,6 @@
 		<module>sapl-server-lt</module>
 		<module>sapl-editor-vaadin</module>
 		<module>sapl-vaadin-theme</module>
-		<module>sapl-bom</module>
 		-->
 	</modules>
 	<dependencyManagement>
