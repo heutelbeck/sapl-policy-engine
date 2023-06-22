@@ -41,7 +41,7 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 @Slf4j
-@Timeout(360)
+@Timeout(30)
 class SaplMqttClientSubscriptionsIT {
 
 	private final static long DELAY_MS = 800L;

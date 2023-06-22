@@ -93,19 +93,24 @@
 	<modules>
 		<module>sapl-pdp-api</module>
 		<module>sapl-extensions-api</module>
+		<!--
 		<module>sapl-hamcrest</module>
+		-->
 		<module>sapl-generator</module>
 		<module>sapl-lang</module>
+		<!--
 		<module>sapl-ide</module>
 		<module>sapl-web</module>
 		<module>sapl-test</module>
 		<module>sapl-coverage-api</module>
 		<module>sapl-maven-plugin</module>
 		<module>sapl-jwt</module>
-		<module>sapl-mqtt-pip</module>
-		<module>sapl-mqtt-functions</module>
+		-->
 		<module>sapl-pdp-embedded</module>
 		<module>sapl-pdp-remote</module>
+		<module>sapl-mqtt-pip</module>
+		<!--
+		<module>sapl-mqtt-functions</module>
 		<module>sapl-spring-pdp-embedded</module>
 		<module>sapl-spring-pdp-remote</module>
 		<module>sapl-spring-security</module>
@@ -116,6 +121,7 @@
 		<module>sapl-editor-vaadin</module>
 		<module>sapl-vaadin-theme</module>
 		<module>sapl-bom</module>
+		-->
 	</modules>
 	<dependencyManagement>
 		<dependencies>
