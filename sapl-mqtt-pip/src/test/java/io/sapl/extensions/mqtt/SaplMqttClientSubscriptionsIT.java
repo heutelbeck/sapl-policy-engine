@@ -74,7 +74,7 @@ class SaplMqttClientSubscriptionsIT {
 		stopBroker(mqttBroker);
 	}
 
-	//@Test
+	@Test
 	void when_subscribeToMultipleTopicsOnSingleFlux_then_getMessagesOfMultipleTopics() throws InitializationException {
 		log.error("when_subscribeToMultipleTopicsOnSingleFlux_then_getMessagesOfMultipleTopics ...");
 
@@ -97,7 +97,7 @@ class SaplMqttClientSubscriptionsIT {
 		log.error("when_subscribeToMultipleTopicsOnSingleFlux_then_getMessagesOfMultipleTopics ... done");
 	}
 
-	//	@Test
+	@Test
 	void when_subscribeToMultipleTopicsOnDifferentFlux_then_getMessagesOfMultipleTopics()
 			throws InitializationException {
 		log.error("when_subscribeToMultipleTopicsOnDifferentFlux_then_getMessagesOfMultipleTopics ...");
@@ -133,7 +133,7 @@ class SaplMqttClientSubscriptionsIT {
 		log.error("when_subscribeToMultipleTopicsOnDifferentFlux_then_getMessagesOfMultipleTopics ... done");
 	}
 
-	//@Test
+	@Test
 	void when_oneFluxIsCancelledWhileSubscribingToSingleTopics_then_getMessagesOfLeftTopics()
 			throws InitializationException {
 		log.error("when_oneFluxIsCancelledWhileSubscribingToSingleTopics_then_getMessagesOfLeftTopics ...");
@@ -213,33 +213,33 @@ class SaplMqttClientSubscriptionsIT {
 				.thenAwait(Duration.ofMillis(2 * DELAY_MS))
 				.then(() -> {
 					log.error("publish topic1 message1");
-					mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false));	
+					mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false));
 				})
 				.expectNext(Val.of("message1"))
 				.then(() -> {
 					log.error("publish topic3 message3");
-					mqttClient.publish(buildMqttPublishMessage("topic3", "message3", false));	
+					mqttClient.publish(buildMqttPublishMessage("topic3", "message3", false));
 				})
 				.expectNext(Val.of("message3"))
 				.then(() -> {
 					log.error("publish topic2 message2");
-					mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false));	
+					mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false));
 				})
 				.expectNext(Val.of("message2"))
 				.expectNext(Val.of("message2"))
 				.then(() -> {
 					log.error("publish topic3 message3");
-					mqttClient.publish(buildMqttPublishMessage("topic3", "message3", false));	
+					mqttClient.publish(buildMqttPublishMessage("topic3", "message3", false));
 				})
 				.expectNoEvent(Duration.ofMillis(2 * DELAY_MS))
 				.then(() -> {
 					log.error("publish topic1 message1");
-					mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false));	
+					mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false));
 				})
 				.expectNext(Val.of("message1"))
 				.then(() -> {
 					log.error("publish topic2 message2");
-					mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false));	
+					mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false));
 				})
 				.expectNext(Val.of("message2"))
 				.thenCancel()
@@ -249,7 +249,7 @@ class SaplMqttClientSubscriptionsIT {
 				"when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics... done");
 	}
 
-	//@Test
+	@Test
 	void when_subscribingWithSingleLevelWildcard_then_getMessagesMatchingTopicsOfSingleLevelWildcard()
 			throws InitializationException {
 		log.error(
@@ -274,7 +274,7 @@ class SaplMqttClientSubscriptionsIT {
 				"when_subscribingWithSingleLevelWildcard_then_getMessagesMatchingTopicsOfSingleLevelWildcard ... done");
 	}
 
-	//@Test
+	@Test
 	void when_subscribingWithMultiLevelWildcard_then_getMessagesMatchingTopicsOfMultiLevelWildcard()
 			throws InitializationException {
 		log.error(
@@ -302,7 +302,7 @@ class SaplMqttClientSubscriptionsIT {
 
 	}
 
-	//@Test
+	@Test
 	void when_unsubscribingTopicOnSharedConnectionWithMultiLevelWildcard_then_getMessagesMatchingTopicsOfMultiLevelWildcard()
 			throws InitializationException {
 		log.error(
@@ -338,7 +338,7 @@ class SaplMqttClientSubscriptionsIT {
 
 	}
 
-	//@Test
+	@Test
 	void when_unsubscribingMultiLevelWildcardTopicOnSharedConnectionWithSimpleTopic_then_getMessagesMatchingSimpleTopic()
 			throws InitializationException {
 		log.error(
@@ -376,7 +376,7 @@ class SaplMqttClientSubscriptionsIT {
 
 	}
 
-	//	@Test
+	@Test
 	void when_unsubscribingSingleLevelWildcardTopicOnSharedConnectionWithSimpleTopic_then_getMessagesMatchingSimpleTopic()
 			throws InitializationException {
 		log.error(
