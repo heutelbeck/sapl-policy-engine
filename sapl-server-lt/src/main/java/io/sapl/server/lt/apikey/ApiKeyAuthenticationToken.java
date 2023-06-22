@@ -16,6 +16,7 @@
 package io.sapl.server.lt.apikey;
 
 import java.util.Collection;
+import java.util.List;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -36,7 +37,7 @@ public class ApiKeyAuthenticationToken implements Authentication {
 
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities() {
-		return null;
+		return List.of();
 	}
 
 	@Override
@@ -66,6 +67,6 @@ public class ApiKeyAuthenticationToken implements Authentication {
 
 	@Override
 	public String getName() {
-		return principal;
+		return getPrincipal().toString();
 	}
 }

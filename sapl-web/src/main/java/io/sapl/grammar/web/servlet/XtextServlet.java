@@ -58,8 +58,6 @@ import jakarta.servlet.http.HttpServletResponse;
  */
 public class XtextServlet extends HttpServlet {
 
-	private static final long serialVersionUID = -6273795508296110114L;
-
 	private final Logger LOG = Logger.getLogger(this.getClass());
 
 	private final IResourceServiceProvider.Registry serviceProviderRegistry = IResourceServiceProvider.Registry.INSTANCE;
