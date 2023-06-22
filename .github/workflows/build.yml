@@ -54,7 +54,8 @@ jobs:
       run: mvn -B package javadoc:jar
   
   analyze:
-    needs: [tests]
+    # temporarly deactivate requirement for debugging tests...
+    # needs: [tests]
     name: Code Analysis, Test Coverage, Integration Tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
