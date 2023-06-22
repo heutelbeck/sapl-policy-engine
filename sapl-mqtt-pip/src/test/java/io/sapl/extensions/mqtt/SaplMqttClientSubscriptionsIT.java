@@ -91,14 +91,14 @@ class SaplMqttClientSubscriptionsIT {
 				.filter(val -> !val.isUndefined());
 
 		// THEN
-		StepVerifier.create(saplMqttMessageFlux)
+		StepVerifier.create(saplMqttMessageFlux.doOnNext(e -> System.out.println("next: "+e)))
 				.thenAwait(Duration.ofMillis(2 * DELAY_MS))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic1",
-						"message1", false)))
+				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
 				.expectNext(Val.of("message1"))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic2",
-						"message2", false)))
+				.then(() -> System.out.println("got message1"))
+				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false)))
 				.expectNext(Val.of("message2"))
+				.then(() -> System.out.println("got message2"))
 				.thenCancel()
 				.verify();
 		System.out.println("when_subscribeToMultipleTopicsOnSingleFlux_then_getMessagesOfMultipleTopics ... done");
