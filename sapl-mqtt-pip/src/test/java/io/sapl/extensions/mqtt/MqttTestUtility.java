@@ -71,14 +71,10 @@ class MqttTestUtility {
 
 	public static void stopBroker(EmbeddedHiveMQ broker) {
 		try {
-			System.out.println("Stop 1 stop.get");
 			broker.stop().get();
-			System.out.println("Stop 2 close");
 			broker.close();
-			System.out.println("Stop 3 done");
 		} catch (ExecutionException | IllegalStateException | InterruptedException e) {
 			// NOP ignore if broker already closed
-			System.out.println("Stop 2 error " + e.getMessage());
 		}
 	}
 

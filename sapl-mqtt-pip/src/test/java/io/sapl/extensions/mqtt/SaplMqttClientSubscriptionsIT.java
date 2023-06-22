@@ -36,9 +36,11 @@ import com.hivemq.embedded.EmbeddedHiveMQ;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.InitializationException;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
+@Slf4j
 @Timeout(360)
 class SaplMqttClientSubscriptionsIT {
 
@@ -61,27 +63,20 @@ class SaplMqttClientSubscriptionsIT {
 
 	@BeforeEach
 	void beforeEach() {
-		System.out.println("Before 1 .. build and start broker");
-		this.mqttBroker = buildAndStartBroker(configDir, dataDir, extensionsDir);
-		System.out.println("Before 2 .. start client");
-		this.mqttClient = startClient();
-		System.out.println("Before 3 .. create sapl client");
+		this.mqttBroker     = buildAndStartBroker(configDir, dataDir, extensionsDir);
+		this.mqttClient     = startClient();
 		this.saplMqttClient = new SaplMqttClient();
-		System.out.println("Before 4 ... done");
 	}
 
 	@AfterEach
 	void afterEach() {
-		System.out.println("After 1 disconnect");
 		mqttClient.disconnect();
-		System.out.println("After 2 stop");
 		stopBroker(mqttBroker);
-		System.out.println("After 3 done");
 	}
 
 	@Test
 	void when_subscribeToMultipleTopicsOnSingleFlux_then_getMessagesOfMultipleTopics() throws InitializationException {
-		System.out.println("when_subscribeToMultipleTopicsOnSingleFlux_then_getMessagesOfMultipleTopics ...");
+		log.error("when_subscribeToMultipleTopicsOnSingleFlux_then_getMessagesOfMultipleTopics ...");
 
 		// GIVEN
 		var topics = JSON.arrayNode().add("topic1").add("topic2");
@@ -99,13 +94,13 @@ class SaplMqttClientSubscriptionsIT {
 				.expectNext(Val.of("message2"))
 				.thenCancel()
 				.verify();
-		System.out.println("when_subscribeToMultipleTopicsOnSingleFlux_then_getMessagesOfMultipleTopics ... done");
+		log.error("when_subscribeToMultipleTopicsOnSingleFlux_then_getMessagesOfMultipleTopics ... done");
 	}
 
 	@Test
 	void when_subscribeToMultipleTopicsOnDifferentFlux_then_getMessagesOfMultipleTopics()
 			throws InitializationException {
-		System.out.println("when_subscribeToMultipleTopicsOnDifferentFlux_then_getMessagesOfMultipleTopics ...");
+		log.error("when_subscribeToMultipleTopicsOnDifferentFlux_then_getMessagesOfMultipleTopics ...");
 
 		// GIVEN
 		var topicsFirstFlux  = JSON.arrayNode().add("topic1").add("topic2");
@@ -135,13 +130,13 @@ class SaplMqttClientSubscriptionsIT {
 				.expectNext(Val.of("message3"))
 				.thenCancel()
 				.verify();
-		System.out.println("when_subscribeToMultipleTopicsOnDifferentFlux_then_getMessagesOfMultipleTopics ... done");
+		log.error("when_subscribeToMultipleTopicsOnDifferentFlux_then_getMessagesOfMultipleTopics ... done");
 	}
 
 	@Test
 	void when_oneFluxIsCancelledWhileSubscribingToSingleTopics_then_getMessagesOfLeftTopics()
 			throws InitializationException {
-		System.out.println("when_oneFluxIsCancelledWhileSubscribingToSingleTopics_then_getMessagesOfLeftTopics ...");
+		log.error("when_oneFluxIsCancelledWhileSubscribingToSingleTopics_then_getMessagesOfLeftTopics ...");
 
 		// GIVEN
 		var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic"),
@@ -175,13 +170,13 @@ class SaplMqttClientSubscriptionsIT {
 //	@Timeout(150)
 	void stressIt() throws InitializationException {
 		for (int i = 0; i < 100; i++) {
-			System.out.println("A");
+			log.error("A");
 			afterEach();
-			System.out.println("B");
+			log.error("B");
 			beforeEach();
-			System.out.println("i=" + i);
+			log.error("i=" + i);
 			when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics();
-			System.out.println("C");
+			log.error("C");
 
 		}
 	}
@@ -189,32 +184,32 @@ class SaplMqttClientSubscriptionsIT {
 	@Test
 	void when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics()
 			throws InitializationException {
-		System.out.println("when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics...");
-		System.out.println("Starting problematic test...");
-		afterEach();
-		beforeEach();
+		log.error("when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics...");
+		log.error("Starting problematic test...");
 
 		// GIVEN
 		var topicsFirstFlux  = JSON.arrayNode().add("topic1").add("topic2");
 		var topicsSecondFlux = JSON.arrayNode().add("topic2").add("topic3");
 
 		var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topicsFirstFlux),
-				buildVariables()).doOnCancel(() -> System.out.println("1 cancel"));
+				buildVariables()).doOnCancel(() -> log.error("1st cancel")).doOnNext(x -> {
+													log.error("1st Next: " + x);
+												});
 		var saplMqttMessageFluxSecond = saplMqttClient
-				.buildSaplMqttMessageFlux(Val.of(topicsSecondFlux), buildVariables()).doOnNext(x ->{
-					System.out.println("2nd Next: '"+x+"' "+x.getClass().getSimpleName());	
-				})
-				.doOnCancel(() -> System.out.println("2* cancel"))
-				.takeUntil(value -> "message2".equals(value.getText())).doOnCancel(() -> System.out.println("2 cancel"))
-				.doOnComplete(() -> System.out.println("2 complete")).log();
+				.buildSaplMqttMessageFlux(Val.of(topicsSecondFlux), buildVariables()).doOnNext(x -> {
+													log.error("2nd Next: " + x);
+												})
+				.takeUntil(value -> "message2".equals(value.getText())).doOnCancel(() -> log.error("2 cancel"))
+				.doOnCancel(() -> log.error("2nd cancel"))
+				.doOnComplete(() -> log.error("2nd complete"));
 
 		// WHEN
 		var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
 				.filter(val -> !val.isUndefined());
-		System.out.println("Starting verification...");
+		log.error("Starting verification...");
 
 		// THEN
-		StepVerifier.create(saplMqttMessageFluxMerge.doOnNext(e -> System.out.println("next: " + e)))
+		StepVerifier.create(saplMqttMessageFluxMerge.doOnNext(e -> log.error("mer next: " + e)))
 				.thenAwait(Duration.ofMillis(2 * DELAY_MS))
 				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
 				.expectNext(Val.of("message1"))
@@ -231,15 +226,15 @@ class SaplMqttClientSubscriptionsIT {
 				.expectNext(Val.of("message2"))
 				.thenCancel()
 				.verify();
-		System.out.println("Done verification...");
-		System.out.println(
+		log.error("Done verification...");
+		log.error(
 				"when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics... done");
 	}
 
 	@Test
 	void when_subscribingWithSingleLevelWildcard_then_getMessagesMatchingTopicsOfSingleLevelWildcard()
 			throws InitializationException {
-		System.out.println(
+		log.error(
 				"when_subscribingWithSingleLevelWildcard_then_getMessagesMatchingTopicsOfSingleLevelWildcard ...");
 
 		// GIVEN
@@ -257,14 +252,14 @@ class SaplMqttClientSubscriptionsIT {
 				.expectNext(Val.of("message1"))
 				.thenCancel()
 				.verify();
-		System.out.println(
+		log.error(
 				"when_subscribingWithSingleLevelWildcard_then_getMessagesMatchingTopicsOfSingleLevelWildcard ... done");
 	}
 
 	@Test
 	void when_subscribingWithMultiLevelWildcard_then_getMessagesMatchingTopicsOfMultiLevelWildcard()
 			throws InitializationException {
-		System.out.println(
+		log.error(
 				"when_subscribingWithMultiLevelWildcard_then_getMessagesMatchingTopicsOfMultiLevelWildcard ...");
 
 		// GIVEN
@@ -284,7 +279,7 @@ class SaplMqttClientSubscriptionsIT {
 				.expectNext(Val.of("message2"))
 				.thenCancel()
 				.verify();
-		System.out.println(
+		log.error(
 				"when_subscribingWithMultiLevelWildcard_then_getMessagesMatchingTopicsOfMultiLevelWildcard ... done");
 
 	}
@@ -292,7 +287,7 @@ class SaplMqttClientSubscriptionsIT {
 	@Test
 	void when_unsubscribingTopicOnSharedConnectionWithMultiLevelWildcard_then_getMessagesMatchingTopicsOfMultiLevelWildcard()
 			throws InitializationException {
-		System.out.println(
+		log.error(
 				"when_unsubscribingTopicOnSharedConnectionWithMultiLevelWildcard_then_getMessagesMatchingTopicsOfMultiLevelWildcard ...");
 
 		// GIVEN
@@ -320,7 +315,7 @@ class SaplMqttClientSubscriptionsIT {
 				.expectNoEvent(Duration.ofMillis(2 * DELAY_MS))
 				.thenCancel()
 				.verify();
-		System.out.println(
+		log.error(
 				"when_unsubscribingTopicOnSharedConnectionWithMultiLevelWildcard_then_getMessagesMatchingTopicsOfMultiLevelWildcard ... done");
 
 	}
@@ -328,7 +323,7 @@ class SaplMqttClientSubscriptionsIT {
 	@Test
 	void when_unsubscribingMultiLevelWildcardTopicOnSharedConnectionWithSimpleTopic_then_getMessagesMatchingSimpleTopic()
 			throws InitializationException {
-		System.out.println(
+		log.error(
 				"when_unsubscribingMultiLevelWildcardTopicOnSharedConnectionWithSimpleTopic_then_getMessagesMatchingSimpleTopic ...");
 
 		// GIVEN
@@ -358,7 +353,7 @@ class SaplMqttClientSubscriptionsIT {
 				.expectNoEvent(Duration.ofMillis(2 * DELAY_MS))
 				.thenCancel()
 				.verify();
-		System.out.println(
+		log.error(
 				"when_unsubscribingMultiLevelWildcardTopicOnSharedConnectionWithSimpleTopic_then_getMessagesMatchingSimpleTopic ... done");
 
 	}
@@ -366,7 +361,7 @@ class SaplMqttClientSubscriptionsIT {
 	@Test
 	void when_unsubscribingSingleLevelWildcardTopicOnSharedConnectionWithSimpleTopic_then_getMessagesMatchingSimpleTopic()
 			throws InitializationException {
-		System.out.println(
+		log.error(
 				"when_unsubscribingSingleLevelWildcardTopicOnSharedConnectionWithSimpleTopic_then_getMessagesMatchingSimpleTopic ...");
 
 		// GIVEN
@@ -396,7 +391,7 @@ class SaplMqttClientSubscriptionsIT {
 				.expectNoEvent(Duration.ofMillis(2 * DELAY_MS))
 				.thenCancel()
 				.verify();
-		System.out.println(
+		log.error(
 				"when_unsubscribingSingleLevelWildcardTopicOnSharedConnectionWithSimpleTopic_then_getMessagesMatchingSimpleTopic ... done");
 
 	}
