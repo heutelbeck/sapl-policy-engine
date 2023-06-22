@@ -27,10 +27,8 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class TransformFilesToESM {
 
-	private final String FRONTEND_FOLDER_PATH = "/META-INF/frontend/";
-
-	private final String SAPL_MODE_FILENAME = "sapl-mode.js";
-
+	private final String FRONTEND_FOLDER_PATH      = "/META-INF/frontend/";
+	private final String SAPL_MODE_FILENAME        = "sapl-mode.js";
 	private final String XTEXT_CODEMIRROR_FILENAME = "xtext-codemirror.js";
 
 	/**
@@ -54,7 +52,7 @@ public class TransformFilesToESM {
 			try {
 				String   content = Files.readString(file.toPath());
 				String[] terms   = content.trim().split("\\s+");
-				if (! "import".equals(terms[0])) {
+				if (!"import".equals(terms[0])) {
 					String result = converter.convert(content);
 					Files.write(file.toPath(), result.getBytes());
 				}
