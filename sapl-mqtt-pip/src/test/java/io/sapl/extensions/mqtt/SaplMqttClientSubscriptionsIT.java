@@ -166,7 +166,7 @@ class SaplMqttClientSubscriptionsIT {
 
 	}
 
-	@Test
+//	@Test
 //	@Timeout(150)
 	void stressIt() throws InitializationException {
 		for (int i = 0; i < 4; i++) {
@@ -181,7 +181,7 @@ class SaplMqttClientSubscriptionsIT {
 		}
 	}
 
-	//@Test
+	@Test
 	void when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics()
 			throws InitializationException {
 		log.error("when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics...");
@@ -211,18 +211,36 @@ class SaplMqttClientSubscriptionsIT {
 		// THEN
 		StepVerifier.create(saplMqttMessageFluxMerge.doOnNext(e -> log.error("mer next: " + e)))
 				.thenAwait(Duration.ofMillis(2 * DELAY_MS))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
+				.then(() -> {
+					log.error("publish topic1 message1");
+					mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false));	
+				})
 				.expectNext(Val.of("message1"))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic3", "message3", false)))
+				.then(() -> {
+					log.error("publish topic3 message3");
+					mqttClient.publish(buildMqttPublishMessage("topic3", "message3", false));	
+				})
 				.expectNext(Val.of("message3"))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false)))
+				.then(() -> {
+					log.error("publish topic2 message2");
+					mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false));	
+				})
 				.expectNext(Val.of("message2"))
 				.expectNext(Val.of("message2"))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic3", "message3", false)))
+				.then(() -> {
+					log.error("publish topic3 message3");
+					mqttClient.publish(buildMqttPublishMessage("topic3", "message3", false));	
+				})
 				.expectNoEvent(Duration.ofMillis(2 * DELAY_MS))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
+				.then(() -> {
+					log.error("publish topic1 message1");
+					mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false));	
+				})
 				.expectNext(Val.of("message1"))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false)))
+				.then(() -> {
+					log.error("publish topic2 message2");
+					mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false));	
+				})
 				.expectNext(Val.of("message2"))
 				.thenCancel()
 				.verify();
