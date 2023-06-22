@@ -93,9 +93,7 @@
 	<modules>
 		<module>sapl-pdp-api</module>
 		<module>sapl-extensions-api</module>
-		<!--
 		<module>sapl-hamcrest</module>
-		-->
 		<module>sapl-generator</module>
 		<module>sapl-lang</module>
 		<!--
