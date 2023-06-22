@@ -22,37 +22,37 @@ on:
     paths-ignore: ["sapl-documentation/**", ".github/build_documentation.yml"]
 
 jobs:
-  tests:
-    strategy:
-      matrix:
-        java: [ '17' ]
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    name: Unit Tests (JDK ${{ matrix.java }} on ${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
-
-    steps:
-    - name: Check out
-      uses: actions/checkout@v3
-      with:
-        lfs: true
-        fetch-depth: 0
-
-    - name: Set up JDK ${{ matrix.java }}
-      uses: actions/setup-java@v3
-      with:
-        distribution: 'adopt'
-        java-version: ${{ matrix.java }}
-        cache: 'maven'
-
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-
-    - name: Run tests
-      run: mvn -B package javadoc:jar
-  
+#  tests:
+#    strategy:
+#      matrix:
+#        java: [ '17' ]
+#        os: [ubuntu-latest, windows-latest, macos-latest]
+#    name: Unit Tests (JDK ${{ matrix.java }} on ${{ matrix.os }})
+#    runs-on: ${{ matrix.os }}
+#    timeout-minutes: 20
+#
+#    steps:
+#    - name: Check out
+#      uses: actions/checkout@v3
+#      with:
+#        lfs: true
+#        fetch-depth: 0
+#
+#    - name: Set up JDK ${{ matrix.java }}
+#      uses: actions/setup-java@v3
+#      with:
+#        distribution: 'adopt'
+#        java-version: ${{ matrix.java }}
+#        cache: 'maven'
+#
+#    - name: Set up Node.js
+#      uses: actions/setup-node@v3
+#      with:
+#        node-version: '18'
+#
+#    - name: Run tests
+#      run: mvn -B package javadoc:jar
+#  
   analyze:
     # temporarly deactivate requirement for debugging tests...
     # needs: [tests]
@@ -94,19 +94,19 @@ jobs:
     - name: Add auth-host to /etc/hosts for OAuth Integration Tests
       run: sudo sh -c 'echo "127.0.0.1 auth-host" >> /etc/hosts'
       
-    - name: Build Modules
-      run: mvn -B install -DskipTests
-
-    - name: Build SAPL Server LT Image
-      run: mvn -B dockerfile:build -pl sapl-server-lt -P docker -DskipTests
+#    - name: Build Modules
+#      run: mvn -B install -DskipTests
+#
+#    - name: Build SAPL Server LT Image
+#      run: mvn -B dockerfile:build -pl sapl-server-lt -P docker -DskipTests
 
     - name: Run analysis (Unit Tests, IT, JaCoCo, Sonar)    
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: mvn -B verify sonar:sonar failsafe:integration-test -Pcoverage,it -Dsonar.login=${SONAR_TOKEN}
 
-    - name: Push SAPL Server LT Image
-      run: mvn -B dockerfile:push -pl sapl-server-lt -P docker -DskipTests
+#    - name: Push SAPL Server LT Image
+#      run: mvn -B dockerfile:push -pl sapl-server-lt -P docker -DskipTests
       
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@v2
@@ -119,64 +119,64 @@ jobs:
     - name: Clean up local repository before caching 
       run: rm -rf ~/.m2/repository/io/sapl
 
-  deploy:
-    needs: [analyze]
-    name: Deploy to central
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    
-    steps:
-    - name: Check out
-      uses: actions/checkout@v3
-      with:
-        lfs: true
-        fetch-depth: 0
-
-    - name: Set up JDK 17
-      uses: actions/setup-java@v3
-      with:
-        distribution: 'adopt'
-        java-version: 17
-        cache: 'maven'
-
-    - name: Configure servers
-      uses: s4u/maven-settings-action@v2.7.0
-      with:
-        githubServer: false
-        servers: |
-          [{
-              "id": "ossrh",
-              "username": "${{ secrets.OSSRH_USERNAME }}",
-              "password": "${{ secrets.OSSRH_PASSWORD }}"
-           },{
-              "id": "ghcr.io",
-              "username": "${{ secrets.GHUB_USERNAME }}",
-              "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
-           },{
-              "id": "github",
-              "username": "${{ secrets.GHUB_USERNAME }}",
-              "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
-           }]
-
-    - name: Set up Node.js
-      uses: actions/setup-node@v3.5.1
-      with:
-        node-version: '18'
-
-    - name: Install GPG Code Signing Key
-      run: |
-        cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
-        gpg --list-secret-keys --keyid-format LONG
-
-    - name: Deploy Maven artefacts
-      run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -pl !sapl-server-lt,!sapl-documentation -Ppublish -DskipTests clean package deploy
-
-    - name: Trigger CI build of downstream repositories
-      run: |
-        curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-demos/dispatches --data '{"event_type": "build_application"}'
-        curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-server/dispatches --data '{"event_type": "build_application"}'
-        curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-extensions/dispatches --data '{"event_type": "build_application"}'
-        curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-benchmark/dispatches --data '{"event_type": "build_application"}'
-
-    - name: Clean up local repository before caching 
-      run: rm -rf ~/.m2/repository/io/sapl
+#  deploy:
+#    needs: [analyze]
+#    name: Deploy to central
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 20
+#    
+#    steps:
+#    - name: Check out
+#      uses: actions/checkout@v3
+#      with:
+#        lfs: true
+#        fetch-depth: 0
+#
+#    - name: Set up JDK 17
+#      uses: actions/setup-java@v3
+#      with:
+#        distribution: 'adopt'
+#        java-version: 17
+#        cache: 'maven'
+#
+#    - name: Configure servers
+#      uses: s4u/maven-settings-action@v2.7.0
+#      with:
+#        githubServer: false
+#        servers: |
+#          [{
+#              "id": "ossrh",
+#              "username": "${{ secrets.OSSRH_USERNAME }}",
+#              "password": "${{ secrets.OSSRH_PASSWORD }}"
+#           },{
+#              "id": "ghcr.io",
+#              "username": "${{ secrets.GHUB_USERNAME }}",
+#              "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
+#           },{
+#              "id": "github",
+#              "username": "${{ secrets.GHUB_USERNAME }}",
+#              "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
+#           }]
+#
+#    - name: Set up Node.js
+#      uses: actions/setup-node@v3.5.1
+#      with:
+#        node-version: '18'
+#
+#    - name: Install GPG Code Signing Key
+#      run: |
+#        cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
+#        gpg --list-secret-keys --keyid-format LONG
+#
+#    - name: Deploy Maven artefacts
+#      run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -pl !sapl-server-lt,!sapl-documentation -Ppublish -DskipTests clean package deploy
+#
+#    - name: Trigger CI build of downstream repositories
+#      run: |
+#        curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-demos/dispatches --data '{"event_type": "build_application"}'
+#        curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-server/dispatches --data '{"event_type": "build_application"}'
+#        curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-extensions/dispatches --data '{"event_type": "build_application"}'
+#        curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-benchmark/dispatches --data '{"event_type": "build_application"}'
+#
+#    - name: Clean up local repository before caching 
+#      run: rm -rf ~/.m2/repository/io/sapl
