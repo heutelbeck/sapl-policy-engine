@@ -8,6 +8,7 @@
     </appender>
   
     <logger name="com.hivemq" level="OFF" />
+    <logger name="reactor.core" level="OFF" />
 
     <root level="ERROR">
         <appender-ref ref="CONSOLE"/>
