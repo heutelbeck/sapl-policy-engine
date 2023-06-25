@@ -130,7 +130,6 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 				.bodyValue(authzSubscription).retrieve().bodyToFlux(type).mapNotNull(ServerSentEvent::data)
 				.doOnError(error -> log.error("Error : {}", error.getMessage()));
 	}
-
 	public static RemoteHttpPolicyDecisionPointBuilder builder() {
 		return new RemoteHttpPolicyDecisionPointBuilder();
 	}
