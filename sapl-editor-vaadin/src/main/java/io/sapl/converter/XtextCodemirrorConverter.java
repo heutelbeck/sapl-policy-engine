@@ -38,7 +38,7 @@ public class XtextCodemirrorConverter {
 		var imports            = extractImports(importPattern, originalCode);
 		var codeWithoutImports = originalCode.replaceAll(importPattern, "");
 
-		codeWithoutImports = codeWithoutImports.replace("CodeMirrorEditorContext", "EditorContext");
+		codeWithoutImports = codeWithoutImports.replaceAll("CodeMirrorEditorContext", "EditorContext");
 
 		var exports   = extractExports(codeWithoutImports);
 		var functions = codeWithoutImports.replaceAll(exportPattern, "");
@@ -73,7 +73,7 @@ public class XtextCodemirrorConverter {
 		var uniqueImportsBuilder = new StringBuilder();
 		for (var importEntry : uniqueImports) {
 			if (!importEntry.contains("xtext") && !importEntry.contains("  ")) {
-				uniqueImportsBuilder.append(importEntry).append('\n');
+				uniqueImportsBuilder.append(importEntry).append("\n");
 			}
 		}
 
