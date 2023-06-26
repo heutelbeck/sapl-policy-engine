@@ -49,12 +49,11 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
 	@Override
 	public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
-		return decideTraced(authzSubscription).map(TracedDecision::getAuthorizationDecision);
+		return decideTraced(authzSubscription).map(TracedDecision::getAuthorizationDecision).distinctUntilChanged();
 	}
 
 	public Flux<TracedDecision> decideTraced(AuthorizationSubscription authzSubscription) {
-		return configurationProvider.pdpConfiguration().switchMap(decideSubscription(authzSubscription))
-				.distinctUntilChanged();
+		return configurationProvider.pdpConfiguration().switchMap(decideSubscription(authzSubscription));
 	}
 
 	private Function<? super PDPConfiguration, Publisher<? extends TracedDecision>> decideSubscription(
