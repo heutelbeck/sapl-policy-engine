@@ -15,10 +15,8 @@
  */
 package io.sapl.mavenplugin.test.coverage;
 
+import lombok.experimental.StandardException;
+
+@StandardException
 public class SaplTestException extends RuntimeException {
-
-	public SaplTestException(String message) {
-		super(message);
-	}
-
 }

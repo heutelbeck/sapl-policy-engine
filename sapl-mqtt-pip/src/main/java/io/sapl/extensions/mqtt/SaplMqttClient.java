@@ -100,7 +100,7 @@ public class SaplMqttClient {
 	 * This method returns a reactive stream of mqtt messages of one or many
 	 * subscribed topics.
 	 * 
-	 * @param topic  A string or array of topic(s) for subscription.
+	 * @param topic     A string or array of topic(s) for subscription.
 	 * @param variables The configuration specified in the PDP configuration file.
 	 * @return A {@link Flux} of messages of the subscribed topic(s).
 	 */
@@ -112,11 +112,11 @@ public class SaplMqttClient {
 	 * This method returns a reactive stream of mqtt messages of one or many
 	 * subscribed topics.
 	 * 
-	 * @param topic  A string or array of topic(s) for subscription.
+	 * @param topic     A string or array of topic(s) for subscription.
 	 * @param variables The configuration specified in the PDP configuration file.
-	 * @param qos    A {@link Flux} of the quality of service level of the mqtt
-	 *               subscription to the broker. Possible values: 0, 1, 2. This
-	 *               variable may be null.
+	 * @param qos       A {@link Flux} of the quality of service level of the mqtt
+	 *                  subscription to the broker. Possible values: 0, 1, 2. This
+	 *                  variable may be null.
 	 * @return A {@link Flux} of messages of the subscribed topic(s).
 	 */
 	protected Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, JsonNode> variables, Val qos) {
@@ -128,7 +128,7 @@ public class SaplMqttClient {
 	 * subscribed topics.
 	 * 
 	 * @param topic         A string or array of topic(s) for subscription.
-	 * @param variables        The configuration specified in the PDP configuration
+	 * @param variables     The configuration specified in the PDP configuration
 	 *                      file.
 	 * @param qos           A {@link Flux} of the quality of service level of the
 	 *                      mqtt subscription to the broker. Possible values: 0, 1,
@@ -165,7 +165,7 @@ public class SaplMqttClient {
 
 		var mqttMessageFlux = buildFluxOfConfigParams(qos, mqttPipConfig, pipMqttClientConfig)
 				.map(params -> getConnectionAndSubscription(topic, pipMqttClientConfig, params))
-				.flatMap(this::connectAndSubscribe)
+				.switchMap(this::connectAndSubscribe)
 				.map(this::getValFromMqttPublishMessage)
 				.share()
 				.retryWhen(getRetrySpec(pipMqttClientConfig)

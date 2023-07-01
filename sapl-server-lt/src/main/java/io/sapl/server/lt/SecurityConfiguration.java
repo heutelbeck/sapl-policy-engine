@@ -15,12 +15,8 @@
  */
 package io.sapl.server.lt;
 
-import io.sapl.server.lt.apikey.ApiKeyAuthenticationConverter;
-import io.sapl.server.lt.apikey.ApiKeyPayloadExchangeAuthenticationConverter;
-import io.sapl.server.lt.apikey.ApiKeyReactiveAuthenticationManager;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import static org.springframework.security.config.Customizer.withDefaults;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -30,12 +26,15 @@ import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHa
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.authentication.UserDetailsRepositoryReactiveAuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.rsocket.EnableRSocketSecurity;
 import org.springframework.security.config.annotation.rsocket.PayloadInterceptorOrder;
 import org.springframework.security.config.annotation.rsocket.RSocketSecurity;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.config.web.server.ServerHttpSecurity.CsrfSpec;
+import org.springframework.security.config.web.server.ServerHttpSecurity.FormLoginSpec;
 import org.springframework.security.core.userdetails.MapReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -63,7 +62,6 @@ import lombok.extern.slf4j.Slf4j;
 @EnableRSocketSecurity
 @EnableWebFluxSecurity
 @RequiredArgsConstructor
-@SuppressWarnings("UnnecessarilyFullyQualified")
 public class SecurityConfiguration {
 
 	private final SAPLServerLTProperties pdpProperties;
@@ -76,14 +74,14 @@ public class SecurityConfiguration {
 	@Bean
 	@Profile("local")
 	SecurityWebFilterChain securityFilterChainLocal(ServerHttpSecurity http) {
-		http = http.csrf().disable();
+		http = http.csrf(CsrfSpec::disable);
 
 		if (pdpProperties.isAllowNoAuth()) {
 			log.info("configuring NoAuth authentication");
-			http = http.authorizeExchange().pathMatchers("/**").permitAll().and();
+			http = http.authorizeExchange(exchange -> exchange.pathMatchers("/**").permitAll());
 		} else {
 			// any other request requires the user to be authenticated
-			http = http.authorizeExchange().anyExchange().authenticated().and();
+			http = http.authorizeExchange(exchange -> exchange.anyExchange().authenticated());
 		}
 
 		if (pdpProperties.isAllowApiKeyAuth()) {
@@ -96,21 +94,27 @@ public class SecurityConfiguration {
 
 		if (pdpProperties.isAllowBasicAuth()) {
 			log.info("configuring BasicAuth authentication");
-			http = http.httpBasic().and();
+			http = http.httpBasic(withDefaults());
 		}
 
 		if (pdpProperties.isAllowOauth2Auth()) {
 			log.info("configuring Oauth2 authentication");
-			http = http.oauth2ResourceServer(ServerHttpSecurity.OAuth2ResourceServerSpec::jwt);
+			http = http.oauth2ResourceServer(oauth2 -> oauth2
+					.jwt(Customizer.withDefaults())
+			);
 		}
 
-		return http.formLogin().disable().build();
+		return http.formLogin(FormLoginSpec::disable).build();
 	}
 
 	@Bean
 	@Profile("docker")
 	SecurityWebFilterChain securityFilterChainDocker(ServerHttpSecurity http) {
-		return http.csrf().disable().authorizeExchange().pathMatchers("/**").permitAll().and().build();
+		// @formatter:off
+		return http.csrf(CsrfSpec::disable)
+				   .authorizeExchange(exchange -> exchange.pathMatchers("/**").permitAll())
+				   .build();
+		// @formatter:on
 	}
 
 	@Bean

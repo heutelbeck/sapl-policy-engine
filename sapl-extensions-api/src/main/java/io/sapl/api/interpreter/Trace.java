@@ -116,7 +116,7 @@ public class Trace {
 		if (!arguments.isEmpty()) {
 			var args = JSON.objectNode();
 			for (var argument : arguments)
-				args.set(argument.getName(), argument.getValue().getTrace());
+				args.set(argument.name(), argument.value().getTrace());
 			jsonTrace.set("arguments", args);
 		}
 		return jsonTrace;

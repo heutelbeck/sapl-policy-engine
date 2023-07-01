@@ -48,6 +48,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequiredArgsConstructor
 @Configuration(proxyBeanMethods = false)
+@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 public class ReactiveSaplMethodSecurityConfiguration {
 
 	@NonNull
@@ -64,24 +65,16 @@ public class ReactiveSaplMethodSecurityConfiguration {
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	Advisor reactiveSaplMethodSecurityPolicyEnforcementPoint(SaplAttributeRegistry source,
-			MethodSecurityExpressionHandler handler,
+			MethodSecurityExpressionHandler expressionHandler,
 			WebfluxAuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService,
 			PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint,
 			PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint) {
 
-		log.info("Deploy ReactiveSaplMethodInterceptor");
-		var policyEnforcementPoint = new ReactiveSaplMethodInterceptor(source, handler, pdp,
+		log.debug("Deploy ReactiveSaplMethodInterceptor");
+		var policyEnforcementPoint = new ReactiveSaplMethodInterceptor(source, expressionHandler, pdp,
 				constraintHandlerService, mapper, authorizationSubscriptionBuilderService,
 				preEnforcePolicyEnforcementPoint, postEnforcePolicyEnforcementPoint);
-		var reactive               = PolicyEnforcementPointAroundMethodInterceptor.reactive(policyEnforcementPoint);
-//		// strategyProvider.ifAvailable(preEnforce::setSecurityContextHolderStrategy);
-//		// eventPublisherProvider.ifAvailable(postAuthorize::setAuthorizationEventPublisher);
-//		var manager      = new PreEnforcePolicyEnforcementPoint(policyDecisionPoint, attributeRegistry,
-//				constraintEnforcementService, subscriptionBuilder);
-//		var preAuthorize = AuthorizationManagerBeforeMethodInterceptor.preAuthorize(manager(manager, registryProvider));
-//		strategyProvider.ifAvailable(preAuthorize::setSecurityContextHolderStrategy);
-//		eventPublisherProvider.ifAvailable(preAuthorize::setAuthorizationEventPublisher);
-		return reactive;
+		return PolicyEnforcementPointAroundMethodInterceptor.reactive(policyEnforcementPoint);
 	}
 
 	@Bean
@@ -95,15 +88,6 @@ public class ReactiveSaplMethodSecurityConfiguration {
 				constraintHandlerService, mapper, authorizationSubscriptionBuilderService,
 				preEnforcePolicyEnforcementPoint, postEnforcePolicyEnforcementPoint);
 	}
-
-//	private final SaplAttributeRegistry source;
-//	private final MethodSecurityExpressionHandler handler;
-//	private final PolicyDecisionPoint pdp;
-//	private final ConstraintEnforcementService constraintHandlerService;
-//	private final ObjectMapper mapper;
-//	private final WebfluxAuthorizationSubscriptionBuilderService subscriptionBuilder;
-//	private final PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint;
-//	private final PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint;
 
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)

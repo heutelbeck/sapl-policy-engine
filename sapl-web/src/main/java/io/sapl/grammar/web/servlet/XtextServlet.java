@@ -18,7 +18,6 @@ package io.sapl.grammar.web.servlet;
 import java.io.IOException;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.xtext.resource.IResourceServiceProvider;
 import org.eclipse.xtext.web.server.IServiceContext;
@@ -37,6 +36,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * An HTTP servlet for publishing the Xtext services. Include this into your web
@@ -56,11 +56,8 @@ import jakarta.servlet.http.HttpServletResponse;
  * Use the {@code WebServlet} annotation to register your servlet. The default
  * URL pattern for Xtext services is {@code "/xtext-service/*"}.
  */
+@Slf4j
 public class XtextServlet extends HttpServlet {
-
-	private static final long serialVersionUID = -6273795508296110114L;
-
-	private final Logger LOG = Logger.getLogger(this.getClass());
 
 	private final IResourceServiceProvider.Registry serviceProviderRegistry = IResourceServiceProvider.Registry.INSTANCE;
 
@@ -71,16 +68,16 @@ public class XtextServlet extends HttpServlet {
 		try {
 			super.service(req, resp);
 		} catch (InvalidRequestException.ResourceNotFoundException exception) {
-			LOG.trace("Invalid request (" + req.getRequestURI() + "): " + exception.getMessage());
+			log.trace("Invalid request (" + req.getRequestURI() + "): " + exception.getMessage());
 			resp.sendError(HttpServletResponse.SC_NOT_FOUND, exception.getMessage());
 		} catch (InvalidRequestException.InvalidDocumentStateException exception) {
-			LOG.trace("Invalid request (" + req.getRequestURI() + "): " + exception.getMessage());
+			log.trace("Invalid request (" + req.getRequestURI() + "): " + exception.getMessage());
 			resp.sendError(HttpServletResponse.SC_CONFLICT, exception.getMessage());
 		} catch (InvalidRequestException.PermissionDeniedException exception) {
-			LOG.trace("Invalid request (" + req.getRequestURI() + "): " + exception.getMessage());
+			log.trace("Invalid request (" + req.getRequestURI() + "): " + exception.getMessage());
 			resp.sendError(HttpServletResponse.SC_FORBIDDEN, exception.getMessage());
 		} catch (InvalidRequestException exception) {
-			LOG.trace("Invalid request (" + req.getRequestURI() + "): " + exception.getMessage());
+			log.trace("Invalid request (" + req.getRequestURI() + "): " + exception.getMessage());
 			resp.sendError(HttpServletResponse.SC_BAD_REQUEST, exception.getMessage());
 		}
 	}

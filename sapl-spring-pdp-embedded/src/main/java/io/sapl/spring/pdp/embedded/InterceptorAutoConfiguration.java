@@ -18,6 +18,7 @@ package io.sapl.spring.pdp.embedded;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
 
@@ -28,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 
 @AutoConfiguration
 @RequiredArgsConstructor
+@EnableConfigurationProperties(EmbeddedPDPProperties.class)
 public class InterceptorAutoConfiguration {
 
 	private final ObjectMapper          mapper;

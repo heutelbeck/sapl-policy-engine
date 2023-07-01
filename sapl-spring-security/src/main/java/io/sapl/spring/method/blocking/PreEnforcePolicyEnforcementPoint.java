@@ -18,7 +18,6 @@ package io.sapl.spring.method.blocking;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-import lombok.NonNull;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.security.access.AccessDeniedException;
@@ -35,8 +34,8 @@ import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import io.sapl.spring.method.metadata.SaplAttributeRegistry;
 import io.sapl.spring.subscriptions.WebAuthorizationSubscriptionBuilderService;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.Exceptions;
 
 /**
@@ -48,13 +47,10 @@ import reactor.core.Exceptions;
  * @author Dominic Heutelbeck
  * @since 3.0.0
  */
-@Slf4j
 @RequiredArgsConstructor
 public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
-	private static final String ACCESS_DENIED_BY_PEP = "Access Denied by PEP.";
-
-	private final Supplier<Authentication> authentication = getAuthentication(
+	private final Supplier<Authentication> authenticationSupplier = getAuthentication(
 			SecurityContextHolder.getContextHolderStrategy());
 
 	private final PolicyDecisionPoint                        policyDecisionPoint;
@@ -84,16 +80,16 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
 		var blockingPreEnforceBundle = constraintEnforcementService.blockingPreEnforceBundleFor(authzDecision,
 				bundleReturnType);
 		if (blockingPreEnforceBundle == null) {
-			throw new AccessDeniedException(ACCESS_DENIED_BY_PEP);
+			throw new AccessDeniedException(
+					"Access Denied by @PreEnforce PEP. Failed to construct constraint handlers for decision. The ConstraintEnforcementService unexpectedly returned null");
 		}
 
 		try {
 			blockingPreEnforceBundle.handleOnDecisionConstraints();
 
 			var notGranted = authzDecision.getDecision() != Decision.PERMIT;
-			if (notGranted) {
-				throw new AccessDeniedException(ACCESS_DENIED_BY_PEP);
-			}
+			if (notGranted)
+				throw new AccessDeniedException("Access Denied. Action not permitted.");
 
 			blockingPreEnforceBundle.handleMethodInvocationHandlers(methodInvocation);
 
@@ -119,30 +115,27 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
 
 	private AuthorizationDecision getAuthorizationFromPolicyDecisionPoint(
 			MethodInvocation methodInvocation, SaplAttribute attribute) {
-		var authzSubscription = subscriptionBuilder.constructAuthorizationSubscription(authentication.get(),
+		var authzSubscription = subscriptionBuilder.constructAuthorizationSubscription(authenticationSupplier.get(),
 				methodInvocation, attribute);
-
-		log.debug("AuthzSubscription: {}", authzSubscription);
 
 		var authzDecisions = policyDecisionPoint.decide(authzSubscription);
 		if (authzDecisions == null) {
-			log.warn("Access Denied by PEP. PDP returned null. {}", attribute);
-			throw new AccessDeniedException(ACCESS_DENIED_BY_PEP);
+			throw new AccessDeniedException(
+					String.format("Access Denied by @PreEnforce PEP. PDP returned null. %s", attribute));
 		}
 
 		var authzDecision = authzDecisions.blockFirst();
 		if (authzDecision == null) {
-			log.warn("Access Denied by PEP. PDP did not return a decision. {}", attribute);
-			throw new AccessDeniedException(ACCESS_DENIED_BY_PEP);
+			throw new AccessDeniedException(
+					String.format("Access Denied by @PreEnforce PEP. PDP decision stream was empty. %s", attribute));
 		}
 
-		log.debug("AuthzDecision    : {}", authzDecision);
 		return authzDecision;
 	}
 
 	private static Supplier<Authentication> getAuthentication(SecurityContextHolderStrategy strategy) {
 		return () -> {
-			Authentication authentication = strategy.getContext().getAuthentication();
+			var authentication = strategy.getContext().getAuthentication();
 			if (authentication == null) {
 				throw new AuthenticationCredentialsNotFoundException(
 						"An Authentication object was not found in the SecurityContext");

@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
-class IdentifiableAuthorizationDecisionTest {
+class IdentifiableAuthorizationDecisionTests {
 
 	@Test
 	void subjectActionResourceDefaultMapper() {

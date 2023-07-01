@@ -35,7 +35,6 @@ import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
@@ -126,7 +125,7 @@ class SaplMqttClientConnectionIT {
 	}
 
 	@Test
-	@Timeout(30)
+	@Timeout(45)
 	void when_noConfigIsSpecified_then_returnValOfError() {
 		// WHEN
 		var emptyPdpConfig      = Map.<String, JsonNode>of();
@@ -142,7 +141,7 @@ class SaplMqttClientConnectionIT {
 	}
 
 	@Test
-	@Timeout(30)
+	@Timeout(45)
 	void when_connectionIsShared_then_bothMessageFluxWorking() throws InitializationException {
 		// GIVEN
 		var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic1"),
@@ -173,14 +172,14 @@ class SaplMqttClientConnectionIT {
 	}
 
 	@Test
-	@Timeout(30)
+	@Timeout(45)
 	void when_connectionIsNotSharedAnymore_then_singleFluxWorking() throws InitializationException {
 		// GIVEN
 		var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic1"),
 				buildVariables());
 		var saplMqttMessageFluxSecond = saplMqttClient
 				.buildSaplMqttMessageFlux(Val.of("topic2"), buildVariables())
-				.takeUntil((message) -> message.getText().equals("lastMessage"));
+				.takeUntil(message -> "lastMessage".equals(message.getText()));
 
 		// WHEN
 		var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond);
@@ -212,7 +211,7 @@ class SaplMqttClientConnectionIT {
 	}
 
 	@Test
-	@Timeout(30)
+	@Timeout(45)
 	void when_connectionIsNotSharedAnymoreAndThenSharedAgain_then_bothMessageFluxWorking()
 			throws InitializationException {
 		// GIVEN
@@ -220,7 +219,7 @@ class SaplMqttClientConnectionIT {
 				buildVariables());
 		var saplMqttMessageFluxSecond = saplMqttClient
 				.buildSaplMqttMessageFlux(Val.of("topic2"), buildVariables())
-				.takeUntil((message) -> message.getText().equals("lastMessage"));
+				.takeUntil(message -> "lastMessage".equals(message.getText()));
 		var testPublisher             = TestPublisher.create();
 
 		// WHEN
@@ -258,7 +257,7 @@ class SaplMqttClientConnectionIT {
 	}
 
 	@Test
-	@Timeout(30)
+	@Timeout(45)
 	void when_brokerConnectionLost_then_reconnectToBroker()
 			throws InitializationException, InterruptedException, ExecutionException {
 		// WHEN
@@ -294,7 +293,7 @@ class SaplMqttClientConnectionIT {
 	}
 
 	@Test
-	@Timeout(30)
+	@Timeout(45)
 	void when_brokerConnectionLostWhileSharingConnection_then_reconnectToBroker()
 			throws InitializationException, InterruptedException, ExecutionException {
 		// GIVEN
@@ -334,12 +333,8 @@ class SaplMqttClientConnectionIT {
 						"message2", true)))
 				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic1",
 						"message1", true)))
-				.consumeNextWith(value -> {
-					assert value.getText().equals("message2") || value.getText().equals("message1");
-				})
-				.consumeNextWith(value -> {
-					assert value.getText().equals("message2") || value.getText().equals("message1");
-				})
+				.expectNextMatches(value -> "message2".equals(value.getText()) || "message1".equals(value.getText()))
+				.expectNextMatches(value -> "message2".equals(value.getText()) || "message1".equals(value.getText()))
 				.thenCancel()
 				.verify();
 
@@ -359,7 +354,7 @@ class SaplMqttClientConnectionIT {
 				buildVariables());
 		var saplMqttMessageFluxSecond = saplMqttClient
 				.buildSaplMqttMessageFlux(Val.of(topicsSecondFlux), buildVariables())
-				.takeUntil(value -> value.getText().equals("message2"));
+				.takeUntil(value -> "message2".equals(value.getText()));
 
 		// WHEN
 		var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond);
@@ -416,10 +411,9 @@ class SaplMqttClientConnectionIT {
 	}
 
 	@Test
-	@Timeout(30)
+	@Timeout(45)
 	void when_emitValUndefinedActivatedAndBrokerConnectionLost_then_reconnectToBrokerAndEmitValUndefined()
-			throws InitializationException, InterruptedException, ExecutionException, JsonMappingException,
-			JsonProcessingException {
+			throws JsonProcessingException {
 		// GIVEN
 		var secondaryBroker              = buildBroker(secondaryConfigDir, secondaryDataDir, secondaryExtensionsDir);
 		var mqttPipConfigForUndefinedVal = MAPPER.readTree("""

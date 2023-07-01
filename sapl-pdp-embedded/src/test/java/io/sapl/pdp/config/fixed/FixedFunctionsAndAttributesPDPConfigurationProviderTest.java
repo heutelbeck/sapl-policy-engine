@@ -40,10 +40,10 @@ class FixedFunctionsAndAttributesPDPConfigurationProviderTest {
 		var config   = provider.pdpConfiguration().blockFirst();
 		provider.dispose();
 
-		assertThat(config.getDocumentsCombinator() instanceof DenyUnlessPermitCombiningAlgorithm, is(true));
-		assertThat(config.getAttributeContext(), is(attrCtx));
-		assertThat(config.getFunctionContext(), is(funcCtx));
-		assertThat(config.getVariables(), notNullValue());
+		assertThat(config.documentsCombinator() instanceof DenyUnlessPermitCombiningAlgorithm, is(true));
+		assertThat(config.attributeContext(), is(attrCtx));
+		assertThat(config.functionContext(), is(funcCtx));
+		assertThat(config.variables(), notNullValue());
 		assertThat(config.isValid(), is(true));
 	}
 

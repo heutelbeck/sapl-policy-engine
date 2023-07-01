@@ -15,11 +15,13 @@
  */
 package io.sapl.vaadin;
 
+import java.io.Serializable;
+
 /**
  * Listener interface for editor validation events.
  */
 @FunctionalInterface
-public interface ValidationFinishedListener {
+public interface ValidationFinishedListener extends Serializable {
 	/**
 	 * @param event the validation event.
 	 */

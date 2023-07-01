@@ -54,7 +54,6 @@ class ReactiveSaplAuthorizationManagerTest {
 
 	private ObjectMapper                       mapper;
 	private PolicyDecisionPoint                pdp;
-	private ConstraintEnforcementService       constraintHandlers;
 	private BlockingConstraintHandlerBundle<?> bundle;
 	private ReactiveSaplAuthorizationManager   sut;
 	private AuthorizationContext               ctx;
@@ -67,8 +66,8 @@ class ReactiveSaplAuthorizationManagerTest {
 		module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
 		mapper.registerModule(module);
 
-		pdp                = mock(PolicyDecisionPoint.class);
-		constraintHandlers = mock(ConstraintEnforcementService.class);
+		pdp = mock(PolicyDecisionPoint.class);
+		var constraintHandlers = mock(ConstraintEnforcementService.class);
 
 		bundle = mock(BlockingConstraintHandlerBundle.class);
 		doReturn(bundle).when(constraintHandlers).accessManagerBundleFor(any());
@@ -84,7 +83,8 @@ class ReactiveSaplAuthorizationManagerTest {
 	@Test
 	void when_PdpPermit_then_IsGranted() {
 		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-		StepVerifier.create(sut.check(AUTHENTICATION, ctx)).expectNextMatches(dec -> dec.isGranted()).verifyComplete();
+		StepVerifier.create(sut.check(AUTHENTICATION, ctx))
+			.expectNextMatches(org.springframework.security.authorization.AuthorizationDecision::isGranted).verifyComplete();
 		verify(bundle, times(1)).handleOnDecisionConstraints();
 	}
 

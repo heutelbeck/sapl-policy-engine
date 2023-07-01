@@ -17,6 +17,4 @@ package io.sapl.util.filemonitoring;
 
 import java.io.File;
 
-import lombok.Value;
-
 public record FileDeletedEvent(File file) implements FileEvent {}

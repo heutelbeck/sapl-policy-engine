@@ -36,7 +36,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.spring.method.metadata.SaplAttribute;
-//import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 import reactor.util.context.ContextView;

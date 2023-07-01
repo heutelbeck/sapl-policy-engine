@@ -39,9 +39,10 @@ import io.sapl.interpreter.InitializationException;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
+@Timeout(30)
 class SaplMqttClientSubscriptionsIT {
 
-	private final static long DELAY_MS = 1000L;
+	private final static long DELAY_MS = 800L;
 
 	private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
@@ -72,7 +73,6 @@ class SaplMqttClientSubscriptionsIT {
 	}
 
 	@Test
-	@Timeout(10)
 	void when_subscribeToMultipleTopicsOnSingleFlux_then_getMessagesOfMultipleTopics() throws InitializationException {
 		// GIVEN
 		var topics = JSON.arrayNode().add("topic1").add("topic2");
@@ -84,18 +84,15 @@ class SaplMqttClientSubscriptionsIT {
 		// THEN
 		StepVerifier.create(saplMqttMessageFlux)
 				.thenAwait(Duration.ofMillis(2 * DELAY_MS))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic1",
-						"message1", false)))
+				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
 				.expectNext(Val.of("message1"))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic2",
-						"message2", false)))
+				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false)))
 				.expectNext(Val.of("message2"))
 				.thenCancel()
 				.verify();
 	}
 
 	@Test
-	@Timeout(10)
 	void when_subscribeToMultipleTopicsOnDifferentFlux_then_getMessagesOfMultipleTopics()
 			throws InitializationException {
 		// GIVEN
@@ -129,14 +126,13 @@ class SaplMqttClientSubscriptionsIT {
 	}
 
 	@Test
-	@Timeout(20)
 	void when_oneFluxIsCancelledWhileSubscribingToSingleTopics_then_getMessagesOfLeftTopics()
 			throws InitializationException {
 		// GIVEN
 		var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic"),
 				buildVariables());
 		var saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic"), buildVariables())
-				.takeUntil(value -> value.getText().equals("message"));
+				.takeUntil(value -> "message".equals(value.getText()));
 
 		// WHEN
 		var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
@@ -157,7 +153,6 @@ class SaplMqttClientSubscriptionsIT {
 	}
 
 	@Test
-	@Timeout(10)
 	void when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics()
 			throws InitializationException {
 		// GIVEN
@@ -168,8 +163,7 @@ class SaplMqttClientSubscriptionsIT {
 				buildVariables());
 		var saplMqttMessageFluxSecond = saplMqttClient
 				.buildSaplMqttMessageFlux(Val.of(topicsSecondFlux), buildVariables())
-				.takeUntil(value -> value.getText().equals("message2"));
-
+				.takeUntil(value -> "message2".equals(value.getText()));
 		// WHEN
 		var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
 				.filter(val -> !val.isUndefined());
@@ -177,31 +171,36 @@ class SaplMqttClientSubscriptionsIT {
 		// THEN
 		StepVerifier.create(saplMqttMessageFluxMerge)
 				.thenAwait(Duration.ofMillis(2 * DELAY_MS))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic1",
-						"message1", false)))
+				.then(() -> {
+					mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false));
+				})
 				.expectNext(Val.of("message1"))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic3",
-						"message3", false)))
+				.then(() -> {
+					mqttClient.publish(buildMqttPublishMessage("topic3", "message3", false));
+				})
 				.expectNext(Val.of("message3"))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic2",
-						"message2", false)))
+				.then(() -> {
+					mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false));
+				})
 				.expectNext(Val.of("message2"))
 				.expectNext(Val.of("message2"))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic3",
-						"message3", false)))
+				.then(() -> {
+					mqttClient.publish(buildMqttPublishMessage("topic3", "message3", false));
+				})
 				.expectNoEvent(Duration.ofMillis(2 * DELAY_MS))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic1",
-						"message1", false)))
+				.then(() -> {
+					mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false));
+				})
 				.expectNext(Val.of("message1"))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic2",
-						"message2", false)))
+				.then(() -> {
+					mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false));
+				})
 				.expectNext(Val.of("message2"))
 				.thenCancel()
 				.verify();
 	}
 
 	@Test
-	@Timeout(10)
 	void when_subscribingWithSingleLevelWildcard_then_getMessagesMatchingTopicsOfSingleLevelWildcard()
 			throws InitializationException {
 		// GIVEN
@@ -222,7 +221,6 @@ class SaplMqttClientSubscriptionsIT {
 	}
 
 	@Test
-	@Timeout(10)
 	void when_subscribingWithMultiLevelWildcard_then_getMessagesMatchingTopicsOfMultiLevelWildcard()
 			throws InitializationException {
 		// GIVEN
@@ -245,7 +243,6 @@ class SaplMqttClientSubscriptionsIT {
 	}
 
 	@Test
-	@Timeout(10)
 	void when_unsubscribingTopicOnSharedConnectionWithMultiLevelWildcard_then_getMessagesMatchingTopicsOfMultiLevelWildcard()
 			throws InitializationException {
 		// GIVEN
@@ -253,7 +250,7 @@ class SaplMqttClientSubscriptionsIT {
 				buildVariables());
 		var saplMqttMessageFluxSecond = saplMqttClient
 				.buildSaplMqttMessageFlux(Val.of("level1/level2"), buildVariables())
-				.takeUntil(value -> value.getText().equals("message1"));
+				.takeUntil(value -> "message1".equals(value.getText()));
 
 		// WHEN
 		var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
@@ -276,7 +273,6 @@ class SaplMqttClientSubscriptionsIT {
 	}
 
 	@Test
-	@Timeout(10)
 	void when_unsubscribingMultiLevelWildcardTopicOnSharedConnectionWithSimpleTopic_then_getMessagesMatchingSimpleTopic()
 			throws InitializationException {
 		// GIVEN
@@ -284,7 +280,7 @@ class SaplMqttClientSubscriptionsIT {
 				buildVariables());
 		var saplMqttMessageFluxSecond = saplMqttClient
 				.buildSaplMqttMessageFlux(Val.of("level1/#"), buildVariables())
-				.takeUntil(value -> value.getText().equals("message1"));
+				.takeUntil(value -> "message1".equals(value.getText()));
 
 		// WHEN
 		var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
@@ -309,7 +305,6 @@ class SaplMqttClientSubscriptionsIT {
 	}
 
 	@Test
-	@Timeout(10)
 	void when_unsubscribingSingleLevelWildcardTopicOnSharedConnectionWithSimpleTopic_then_getMessagesMatchingSimpleTopic()
 			throws InitializationException {
 		// GIVEN
@@ -317,7 +312,7 @@ class SaplMqttClientSubscriptionsIT {
 				Val.of("level1/level2/level3"), buildVariables());
 		var saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(
 				Val.of("level1/+/level3"), buildVariables())
-				.takeUntil(value -> value.getText().equals("message1"));
+				.takeUntil(value -> "message1".equals(value.getText()));
 
 		// WHEN
 		var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)

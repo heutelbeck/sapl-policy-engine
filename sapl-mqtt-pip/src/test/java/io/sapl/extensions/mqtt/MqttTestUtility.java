@@ -45,16 +45,18 @@ class MqttTestUtility {
 	final static ObjectMapper MAPPER = new ObjectMapper();
 
 	public static EmbeddedHiveMQ buildBroker(Path configDir, Path dataDir, Path extensionsDir) {
-		var broker = EmbeddedHiveMQ.builder()
+		InternalConfigurations.PAYLOAD_PERSISTENCE_TYPE.set(PersistenceType.FILE);
+		InternalConfigurations.RETAINED_MESSAGE_PERSISTENCE_TYPE.set(PersistenceType.FILE);
+		InternalConfigurations.PERSISTENCE_SHUTDOWN_TIMEOUT.set(1);
+		InternalConfigurations.PERSISTENCE_SHUTDOWN_GRACE_PERIOD.set(10);
+		InternalConfigurations.PERSISTENCE_CLOSE_RETRIES.set(1);
+		InternalConfigurations.PERSISTENCE_CLOSE_RETRY_INTERVAL.set(10);
+
+		return EmbeddedHiveMQ.builder()
 				.withConfigurationFolder(configDir)
 				.withDataFolder(dataDir)
 				.withExtensionsFolder(extensionsDir)
 				.build();
-
-		InternalConfigurations.PAYLOAD_PERSISTENCE_TYPE.set(PersistenceType.FILE);
-		InternalConfigurations.RETAINED_MESSAGE_PERSISTENCE_TYPE.set(PersistenceType.FILE);
-
-		return broker;
 	}
 
 	@SneakyThrows
@@ -106,17 +108,13 @@ class MqttTestUtility {
 				""");
 	}
 
-	public static Map<String, JsonNode> buildVariables(JsonNode pipConfig) {
+	public static Map<String, JsonNode> buildVariables() {
 		return Map.of(
 				"action", MAPPER.nullNode(),
 				"environment", MAPPER.nullNode(),
 				"mqttPipConfig", defaultMqttPipConfig(),
 				"resource", MAPPER.nullNode(),
 				"subject", MAPPER.nullNode());
-	}
-
-	public static Map<String, JsonNode> buildVariables() {
-		return buildVariables(defaultMqttPipConfig());
 	}
 
 	public static Mqtt5Publish buildMqttPublishMessage(String topic, String payload, boolean retain) {

@@ -42,12 +42,9 @@ import lombok.extern.slf4j.Slf4j;
 public class PRPAutoConfiguration {
 
 	private final EmbeddedPDPProperties pdpProperties;
-
-	private final PrpUpdateEventSource eventSource;
-
-	private final FunctionContext functionContext;
-
-	private final AttributeContext attributeContext;
+	private final PrpUpdateEventSource  eventSource;
+	private final FunctionContext       functionContext;
+	private final AttributeContext      attributeContext;
 
 	@Bean
 	@ConditionalOnMissingBean

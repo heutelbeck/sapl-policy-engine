@@ -29,7 +29,6 @@ import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
-import org.springframework.security.access.AccessDeniedException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -138,7 +137,7 @@ class ContentFilteringProviderTests {
 					"key2" : "value2"
 				}
 				""");
-		assertThrows(IllegalArgumentException.class, () -> handler.apply(original));
+		assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
 	}
 
 	@Test
@@ -157,7 +156,7 @@ class ContentFilteringProviderTests {
 					"key2" : "value2"
 				}
 				""");
-		assertThrows(IllegalArgumentException.class, () -> handler.apply(original));
+		assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
 	}
 
 	@Test
@@ -176,7 +175,7 @@ class ContentFilteringProviderTests {
 					"key2" : "value2"
 				}
 				""");
-		assertThrows(IllegalArgumentException.class, () -> handler.apply(original));
+		assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
 	}
 
 	@Test
@@ -195,7 +194,7 @@ class ContentFilteringProviderTests {
 					"key2" : "value2"
 				}
 				""");
-		assertThrows(IllegalArgumentException.class, () -> handler.apply(original));
+		assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
 	}
 
 	@Test
@@ -217,7 +216,7 @@ class ContentFilteringProviderTests {
 					"key2" : "value2"
 				}
 				""");
-		assertThrows(IllegalArgumentException.class, () -> handler.apply(original));
+		assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
 	}
 
 	@Test
@@ -239,7 +238,7 @@ class ContentFilteringProviderTests {
 					"key2" : "value2"
 				}
 				""");
-		assertThrows(IllegalArgumentException.class, () -> handler.apply(original));
+		assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
 	}
 
 	@Test
@@ -261,7 +260,7 @@ class ContentFilteringProviderTests {
 					"key2" : "value2"
 				}
 				""");
-		assertThrows(IllegalArgumentException.class, () -> handler.apply(original));
+		assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
 	}
 
 	@Test
@@ -286,7 +285,7 @@ class ContentFilteringProviderTests {
 					"key2" : "value2"
 				}
 				""");
-		assertThrows(IllegalArgumentException.class, () -> handler.apply(original));
+		assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
 	}
 
 	@Test
@@ -310,7 +309,7 @@ class ContentFilteringProviderTests {
 					"key2" : "value2"
 				}
 				""");
-		assertThrows(IllegalArgumentException.class, () -> handler.apply(original));
+		assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
 	}
 
 	@Test
@@ -337,7 +336,7 @@ class ContentFilteringProviderTests {
 					"key2" : "value2"
 				}
 				""");
-		assertThrows(IllegalArgumentException.class, () -> handler.apply(original));
+		assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
 	}
 
 	@Test
@@ -364,7 +363,7 @@ class ContentFilteringProviderTests {
 					"key2" : "value2"
 				}
 				""");
-		assertThrows(IllegalArgumentException.class, () -> handler.apply(original));
+		assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
 	}
 
 	@Test
@@ -555,11 +554,11 @@ class ContentFilteringProviderTests {
 					"key2" : "value2"
 				}
 				""");
-		assertThrows(AccessDeniedException.class, () -> handler.apply(original));
+		assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
 	}
 
 	@Test
-	void when_malformedConditionNotObject_then_IllegalArgumentException() throws JsonProcessingException {
+	void when_malformedConditionNotObject_then_AccessConstraintViolationException() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree("""
 				{
@@ -573,11 +572,11 @@ class ContentFilteringProviderTests {
 					"conditions" : [ 1 ]
 				}
 				""");
-		assertThrows(IllegalArgumentException.class, () -> sut.getHandler(constraint));
+		assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
 	}
 
 	@Test
-	void when_malformedConditionNoPath_then_IllegalArgumentException() throws JsonProcessingException {
+	void when_malformedConditionNoPath_then_AccessConstraintViolationException() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree("""
 				{
@@ -591,11 +590,11 @@ class ContentFilteringProviderTests {
 					"conditions" : [ {} ]
 				}
 				""");
-		assertThrows(IllegalArgumentException.class, () -> sut.getHandler(constraint));
+		assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
 	}
 
 	@Test
-	void when_malformedConditionGEQNotANmber_then_IllegalArgumentException() throws JsonProcessingException {
+	void when_malformedConditionGEQNotANmber_then_AccessConstraintViolationException() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree("""
 				{
@@ -615,11 +614,11 @@ class ContentFilteringProviderTests {
 					]
 				}
 				""");
-		assertThrows(IllegalArgumentException.class, () -> sut.getHandler(constraint));
+		assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
 	}
 
 	@Test
-	void when_malformedConditionLeqNotANmber_then_IllegalArgumentException() throws JsonProcessingException {
+	void when_malformedConditionLeqNotANmber_then_AccessConstraintViolationException() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree("""
 				{
@@ -639,11 +638,11 @@ class ContentFilteringProviderTests {
 					]
 				}
 				""");
-		assertThrows(IllegalArgumentException.class, () -> sut.getHandler(constraint));
+		assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
 	}
 
 	@Test
-	void when_malformedConditionLtNotANmber_then_IllegalArgumentException() throws JsonProcessingException {
+	void when_malformedConditionLtNotANmber_then_AccessConstraintViolationException() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree("""
 				{
@@ -663,11 +662,11 @@ class ContentFilteringProviderTests {
 					]
 				}
 				""");
-		assertThrows(IllegalArgumentException.class, () -> sut.getHandler(constraint));
+		assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
 	}
 
 	@Test
-	void when_malformedConditionGtNotANmber_then_IllegalArgumentException() throws JsonProcessingException {
+	void when_malformedConditionGtNotANmber_then_AccessConstraintViolationException() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree("""
 				{
@@ -687,11 +686,11 @@ class ContentFilteringProviderTests {
 					]
 				}
 				""");
-		assertThrows(IllegalArgumentException.class, () -> sut.getHandler(constraint));
+		assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
 	}
 
 	@Test
-	void when_malformedConditionEqNotNumberOrText_then_IllegalArgumentException() throws JsonProcessingException {
+	void when_malformedConditionEqNotNumberOrText_then_AccessConstraintViolationException() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree("""
 				{
@@ -711,11 +710,11 @@ class ContentFilteringProviderTests {
 					]
 				}
 				""");
-		assertThrows(IllegalArgumentException.class, () -> sut.getHandler(constraint));
+		assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
 	}
 
 	@Test
-	void when_malformedConditionRegexNotText_then_IllegalArgumentException() throws JsonProcessingException {
+	void when_malformedConditionRegexNotText_then_AccessConstraintViolationException() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree("""
 				{
@@ -735,17 +734,17 @@ class ContentFilteringProviderTests {
 					]
 				}
 				""");
-		assertThrows(IllegalArgumentException.class, () -> sut.getHandler(constraint));
+		assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
 	}
 
 	@Test
-	void when_constraintNull_then_IllegalArgumentException() throws JsonProcessingException {
+	void when_constraintNull_then_AccessConstraintViolationException() throws JsonProcessingException {
 		var sut = new ContentFilteringProvider(MAPPER);
-		assertThrows(IllegalArgumentException.class, () -> sut.getHandler(null));
+		assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(null));
 	}
 
 	@Test
-	void when_malformedConditionTypeNonTextual_then_IllegalArgumentException() throws JsonProcessingException {
+	void when_malformedConditionTypeNonTextual_then_AccessConstraintViolationException() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree("""
 				{
@@ -765,18 +764,18 @@ class ContentFilteringProviderTests {
 					]
 				}
 				""");
-		assertThrows(IllegalArgumentException.class, () -> sut.getHandler(constraint));
+		assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
 	}
 
 	@Test
-	void when_malformedConstrintNonObject_then_IllegalArgumentException() throws JsonProcessingException {
+	void when_malformedConstrintNonObject_then_AccessConstraintViolationException() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree("123");
-		assertThrows(IllegalArgumentException.class, () -> sut.getHandler(constraint));
+		assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
 	}
 
 	@Test
-	void when_malformedConstrintConditionsNotArray_then_IllegalArgumentException() throws JsonProcessingException {
+	void when_malformedConstrintConditionsNotArray_then_AccessConstraintViolationException() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree("""
 				{
@@ -790,7 +789,7 @@ class ContentFilteringProviderTests {
 					"conditions" : 123
 				}
 				""");
-		assertThrows(IllegalArgumentException.class, () -> sut.getHandler(constraint));
+		assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
 	}
 
 	@Test
@@ -826,7 +825,7 @@ class ContentFilteringProviderTests {
 	}
 
 	@Test
-	void when_malformedConditionTypeunknown_then_IllegalArgumentException() throws JsonProcessingException {
+	void when_malformedConditionTypeunknown_then_AccessConstraintViolationException() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree("""
 				{
@@ -846,11 +845,11 @@ class ContentFilteringProviderTests {
 					]
 				}
 				""");
-		assertThrows(IllegalArgumentException.class, () -> sut.getHandler(constraint));
+		assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
 	}
 
 	@Test
-	void when_malformedConditionValueMissing_then_IllegalArgumentException() throws JsonProcessingException {
+	void when_malformedConditionValueMissing_then_AccessConstraintViolationException() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree("""
 				{
@@ -869,11 +868,11 @@ class ContentFilteringProviderTests {
 					]
 				}
 				""");
-		assertThrows(IllegalArgumentException.class, () -> sut.getHandler(constraint));
+		assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
 	}
 
 	@Test
-	void when_malformedConditionPathValueMissing_then_IllegalArgumentException() throws JsonProcessingException {
+	void when_malformedConditionPathValueMissing_then_AccessConstraintViolationException() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree("""
 				{
@@ -892,11 +891,11 @@ class ContentFilteringProviderTests {
 					]
 				}
 				""");
-		assertThrows(IllegalArgumentException.class, () -> sut.getHandler(constraint));
+		assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
 	}
 
 	@Test
-	void when_malformedConditionTypeMissing_then_IllegalArgumentException() throws JsonProcessingException {
+	void when_malformedConditionTypeMissing_then_AccessConstraintViolationException() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree("""
 				{
@@ -915,11 +914,11 @@ class ContentFilteringProviderTests {
 					]
 				}
 				""");
-		assertThrows(IllegalArgumentException.class, () -> sut.getHandler(constraint));
+		assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
 	}
 
 	@Test
-	void when_malformedConditionPathNonTextual_then_IllegalArgumentException() throws JsonProcessingException {
+	void when_malformedConditionPathNonTextual_then_AccessConstraintViolationException() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree("""
 				{
@@ -939,11 +938,11 @@ class ContentFilteringProviderTests {
 					]
 				}
 				""");
-		assertThrows(IllegalArgumentException.class, () -> sut.getHandler(constraint));
+		assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
 	}
 
 	@Test
-	void when_predicatePathNotExisting_then_AccessDeniedException() throws JsonProcessingException {
+	void when_predicatePathNotExisting_then_AccessConstraintViolationException() throws JsonProcessingException {
 		var sut        = new ContentFilteringProvider(MAPPER);
 		var constraint = MAPPER.readTree("""
 				{
@@ -970,7 +969,7 @@ class ContentFilteringProviderTests {
 					"key2" : "value2"
 				}
 				""");
-		assertThrows(AccessDeniedException.class, () -> handler.apply(original));
+		assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
 	}
 
 	@Test
@@ -1947,7 +1946,7 @@ class ContentFilteringProviderTests {
 					"key2" : "value2"
 				}
 				""");
-		assertThrows(IllegalArgumentException.class, () -> handler.apply(original));
+		assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
 	}
 
 	@Test

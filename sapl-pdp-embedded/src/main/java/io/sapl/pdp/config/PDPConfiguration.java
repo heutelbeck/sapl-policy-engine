@@ -25,17 +25,11 @@ import io.sapl.api.pdp.TracedDecision;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
-import lombok.Value;
 
-@Value
-public class PDPConfiguration {
-
-	AttributeContext                                               attributeContext;
-	FunctionContext                                                functionContext;
-	Map<String, JsonNode>                                          variables;
-	CombiningAlgorithm                                             documentsCombinator;
-	Function<TracedDecision, TracedDecision>                       decisionInterceptorChain;
-	Function<AuthorizationSubscription, AuthorizationSubscription> subscriptionInterceptorChain;
+public record PDPConfiguration(AttributeContext attributeContext, FunctionContext functionContext,
+							   Map<String, JsonNode> variables, CombiningAlgorithm documentsCombinator,
+							   Function<TracedDecision, TracedDecision> decisionInterceptorChain,
+							   Function<AuthorizationSubscription, AuthorizationSubscription> subscriptionInterceptorChain) {
 
 	public boolean isValid() {
 		return attributeContext != null && functionContext != null && variables != null && documentsCombinator != null

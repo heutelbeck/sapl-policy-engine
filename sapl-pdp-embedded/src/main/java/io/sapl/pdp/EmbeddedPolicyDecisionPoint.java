@@ -49,22 +49,21 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
 	@Override
 	public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
-		return decideTraced(authzSubscription).map(TracedDecision::getAuthorizationDecision);
+		return decideTraced(authzSubscription).map(TracedDecision::getAuthorizationDecision).distinctUntilChanged();
 	}
 
 	public Flux<TracedDecision> decideTraced(AuthorizationSubscription authzSubscription) {
-		return configurationProvider.pdpConfiguration().switchMap(decideSubscription(authzSubscription))
-				.distinctUntilChanged();
+		return configurationProvider.pdpConfiguration().switchMap(decideSubscription(authzSubscription));
 	}
 
 	private Function<? super PDPConfiguration, Publisher<? extends TracedDecision>> decideSubscription(
 			AuthorizationSubscription authzSubscription) {
 		return pdpConfiguration -> {
-			var combiningAlgorithm = pdpConfiguration.getDocumentsCombinator();
+			var combiningAlgorithm = pdpConfiguration.documentsCombinator();
 			if (pdpConfiguration.isValid()) {
-				var subscription = pdpConfiguration.getSubscriptionInterceptorChain().apply(authzSubscription);
-				return retrieveAndCombineDocuments(pdpConfiguration.getDocumentsCombinator(), subscription)
-						.map(pdpConfiguration.getDecisionInterceptorChain())
+				var subscription = pdpConfiguration.subscriptionInterceptorChain().apply(authzSubscription);
+				return retrieveAndCombineDocuments(pdpConfiguration.documentsCombinator(), subscription)
+						.map(pdpConfiguration.decisionInterceptorChain())
 						.contextWrite(buildSubscriptionScopedContext(pdpConfiguration, authzSubscription));
 			} else {
 				var decision = CombinedDecision.error(
@@ -78,9 +77,9 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 	private Function<Context, Context> buildSubscriptionScopedContext(PDPConfiguration pdpConfiguration,
 			AuthorizationSubscription authzSubscription) {
 		return ctx -> {
-			ctx = AuthorizationContext.setAttributeContext(ctx, pdpConfiguration.getAttributeContext());
-			ctx = AuthorizationContext.setFunctionContext(ctx, pdpConfiguration.getFunctionContext());
-			ctx = AuthorizationContext.setVariables(ctx, pdpConfiguration.getVariables());
+			ctx = AuthorizationContext.setAttributeContext(ctx, pdpConfiguration.attributeContext());
+			ctx = AuthorizationContext.setFunctionContext(ctx, pdpConfiguration.functionContext());
+			ctx = AuthorizationContext.setVariables(ctx, pdpConfiguration.variables());
 			ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription);
 			return ctx;
 		};
@@ -133,9 +132,9 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		final List<Flux<IdentifiableAuthorizationDecision>> identifiableAuthzDecisionFluxes = new ArrayList<>();
 		for (IdentifiableAuthorizationSubscription identifiableAuthzSubscription : multiDecision) {
 			final String                                  subscriptionId                = identifiableAuthzSubscription
-					.getAuthorizationSubscriptionId();
+					.authorizationSubscriptionId();
 			final AuthorizationSubscription               authzSubscription             = identifiableAuthzSubscription
-					.getAuthorizationSubscription();
+					.authorizationSubscription();
 			final Flux<IdentifiableAuthorizationDecision> identifiableAuthzDecisionFlux = decide(authzSubscription)
 					.map(authzDecision -> new IdentifiableAuthorizationDecision(subscriptionId, authzDecision));
 			identifiableAuthzDecisionFluxes.add(identifiableAuthzDecisionFlux);

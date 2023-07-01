@@ -22,10 +22,8 @@ import com.vaadin.flow.component.ClientCallable;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.dependency.NpmPackage;
-import com.vaadin.flow.dom.Element;
 
 import elemental.json.JsonArray;
-import elemental.json.JsonObject;
 
 /**
  * An editor component for SAPL documents supporting code-completion,
@@ -37,7 +35,7 @@ import elemental.json.JsonObject;
 @NpmPackage(value = "codemirror", version = "5.52.2")
 public class SaplEditor extends BaseEditor {
 
-	private final transient List<ValidationFinishedListener> validationFinishedListeners;
+	private List<ValidationFinishedListener> validationFinishedListeners = new ArrayList<>();
 
 	/**
 	 * Creates an editor component.
@@ -45,24 +43,22 @@ public class SaplEditor extends BaseEditor {
 	 * @param config the editor settings-
 	 */
 	public SaplEditor(SaplEditorConfiguration config) {
-		this.validationFinishedListeners = new ArrayList<>();
-
-		Element element = getElement();
+		var element = getElement();
 		applyBaseConfiguration(element, config);
 	}
 
 	@ClientCallable
 	protected void onValidation(JsonArray jsonIssues) {
-		int         length = jsonIssues.length();
-		List<Issue> issues = new ArrayList<>(length);
+		var length = jsonIssues.length();
+		var issues = new ArrayList<>(length);
 		for (int i = 0; i < length; i++) {
-			JsonObject jsonIssue = jsonIssues.getObject(i);
-			Issue      issue     = new Issue(jsonIssue);
+			var jsonIssue = jsonIssues.getObject(i);
+			var issue     = new Issue(jsonIssue);
 			issues.add(issue);
 		}
 
 		for (ValidationFinishedListener listener : validationFinishedListeners) {
-			Issue[] issueArray = issues.toArray(new Issue[0]);
+			var issueArray = issues.toArray(new Issue[0]);
 			listener.onValidationFinished(new ValidationFinishedEvent(issueArray));
 		}
 	}
