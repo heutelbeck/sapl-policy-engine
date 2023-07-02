@@ -16,6 +16,7 @@
 package io.sapl.api.pdp;
 
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * The policy decision point is the component in the system, which will take an
@@ -40,6 +41,14 @@ public interface PolicyDecisionPoint {
 	Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription);
 
 	/**
+	 * Takes an authorization subscription object and returns a {@link Mono} emitting
+	 * the matching authorization decision.
+	 * @param authzSubscription the SAPL authorization subscription object
+	 * @return an authorization decisions for the given authorization subscription.
+	 */
+	Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authzSubscription);
+
+	/**
 	 * Multi-subscription variant of {@link #decide(AuthorizationSubscription)}.
 	 * @param multiAuthzSubscription the multi-subscription object containing the
 	 * subjects, actions, resources, and environments of the authorization subscriptions
@@ -60,5 +69,4 @@ public interface PolicyDecisionPoint {
 	 * subscription is available.
 	 */
 	Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthzSubscription);
-
 }

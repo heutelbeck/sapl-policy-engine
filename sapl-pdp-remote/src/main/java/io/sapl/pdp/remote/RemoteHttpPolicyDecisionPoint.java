@@ -21,6 +21,7 @@ import java.util.function.Function;
 import javax.net.ssl.SSLException;
 
 import io.netty.channel.ChannelOption;
+import reactor.core.publisher.Mono;
 import reactor.util.annotation.Nullable;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
@@ -55,9 +56,13 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 
 	private static final String DECIDE = "/api/pdp/decide";
 
+	private static final String DECIDE_ONCE = "/api/pdp/decide-once";
+
 	private static final String MULTI_DECIDE = "/api/pdp/multi-decide";
 
 	private static final String MULTI_DECIDE_ALL = "/api/pdp/multi-decide-all";
+
+	private static final String MULTI_DECIDE_ALL_ONCE = "/api/pdp/multi-decide-all-once";
 
 	private final WebClient client;
 
@@ -104,6 +109,16 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 		return decide(DECIDE, type, authzSubscription)
 				.onErrorResume(__ -> Flux.just(AuthorizationDecision.INDETERMINATE)).repeatWhen(repeat())
 				.distinctUntilChanged();
+	}
+
+	@Override
+	public Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authzSubscription) {
+		var type = new ParameterizedTypeReference<AuthorizationDecision>() {};
+		return client.post().uri(DECIDE_ONCE)
+				.accept(MediaType.APPLICATION_JSON)
+				.contentType(MediaType.APPLICATION_JSON)
+				.bodyValue(authzSubscription).retrieve().bodyToMono(type)
+				.doOnError(error -> log.error("Error : {}", error.getMessage()));
 	}
 
 	@Override

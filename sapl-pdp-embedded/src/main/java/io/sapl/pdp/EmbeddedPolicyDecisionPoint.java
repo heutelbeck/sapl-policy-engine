@@ -39,6 +39,7 @@ import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 
 @RequiredArgsConstructor
@@ -50,6 +51,11 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 	@Override
 	public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
 		return decideTraced(authzSubscription).map(TracedDecision::getAuthorizationDecision).distinctUntilChanged();
+	}
+
+	@Override
+	public Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authzSubscription) {
+		return Mono.from(decide(authzSubscription));
 	}
 
 	public Flux<TracedDecision> decideTraced(AuthorizationSubscription authzSubscription) {
