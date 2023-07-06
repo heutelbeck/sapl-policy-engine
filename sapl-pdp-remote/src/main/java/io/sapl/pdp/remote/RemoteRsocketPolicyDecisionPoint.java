@@ -55,6 +55,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.netty.tcp.TcpClient;
 import reactor.retry.Backoff;
 import reactor.retry.Repeat;
@@ -63,6 +64,8 @@ import reactor.retry.Repeat;
 public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 
 	private static final String DECIDE           = "decide";
+
+	private static final String DECIDE_ONCE           = "decide-once";
 	private static final String MULTI_DECIDE     = "multi-decide";
 	private static final String MULTI_DECIDE_ALL = "multi-decide-all";
 
@@ -98,6 +101,13 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 		return decide(DECIDE, type, authzSubscription)
 				.onErrorResume(__ -> Flux.just(AuthorizationDecision.INDETERMINATE)).repeatWhen(repeat())
 				.distinctUntilChanged();
+	}
+
+	@Override
+	public Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authzSubscription) {
+		var type = new ParameterizedTypeReference<AuthorizationDecision>() {};
+		return rSocketRequester.route(DECIDE_ONCE).data(authzSubscription).retrieveMono(type)
+				.doOnError(error -> log.error("RSocket Connect Error : error {}", error.getMessage(), error));
 	}
 
 	@Override
