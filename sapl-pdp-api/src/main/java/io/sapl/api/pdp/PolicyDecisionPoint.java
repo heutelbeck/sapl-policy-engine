@@ -42,11 +42,13 @@ public interface PolicyDecisionPoint {
 
 	/**
 	 * Takes an authorization subscription object and returns a {@link Mono} emitting
-	 * the matching authorization decision.
+	 * the first matching authorization decision.
 	 * @param authzSubscription the SAPL authorization subscription object
 	 * @return an authorization decisions for the given authorization subscription.
 	 */
-	Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authzSubscription);
+	 default Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authzSubscription) {
+			return Mono.from(decide(authzSubscription));
+	 }
 
 	/**
 	 * Multi-subscription variant of {@link #decide(AuthorizationSubscription)}.
