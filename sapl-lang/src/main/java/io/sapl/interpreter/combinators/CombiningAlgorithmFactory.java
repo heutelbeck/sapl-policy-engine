@@ -31,17 +31,23 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class CombiningAlgorithmFactory {
 
+	private static final CombiningAlgorithm PERMIT_UNLESS_DENY_ALGORITHM  = new PermitUnlessDenyCombiningAlgorithmImplCustom();
+	private static final CombiningAlgorithm PPERMIT_OVERRIDES_ALGORITHM   = new PermitOverridesCombiningAlgorithmImplCustom();
+	private static final CombiningAlgorithm DENY_OVERRIDES_ALGORITHM      = new DenyOverridesCombiningAlgorithmImplCustom();
+	private static final CombiningAlgorithm ONLY_ONE_APPLICABLE_ALGORITHM = new OnlyOneApplicableCombiningAlgorithmImplCustom();
+	private static final CombiningAlgorithm DENY_UNLESS_PERMIT_ALGORITHM  = new DenyUnlessPermitCombiningAlgorithmImplCustom();
+
 	public static CombiningAlgorithm getCombiningAlgorithm(PolicyDocumentCombiningAlgorithm algorithm) {
 		if (algorithm == PERMIT_UNLESS_DENY)
-			return new PermitUnlessDenyCombiningAlgorithmImplCustom();
+			return PERMIT_UNLESS_DENY_ALGORITHM;
 		if (algorithm == PERMIT_OVERRIDES)
-			return new PermitOverridesCombiningAlgorithmImplCustom();
+			return PPERMIT_OVERRIDES_ALGORITHM;
 		if (algorithm == DENY_OVERRIDES)
-			return new DenyOverridesCombiningAlgorithmImplCustom();
+			return DENY_OVERRIDES_ALGORITHM;
 		if (algorithm == ONLY_ONE_APPLICABLE)
-			return new OnlyOneApplicableCombiningAlgorithmImplCustom();
+			return ONLY_ONE_APPLICABLE_ALGORITHM;
 
-		return new DenyUnlessPermitCombiningAlgorithmImplCustom();
+		return DENY_UNLESS_PERMIT_ALGORITHM;
 	}
 
 }
