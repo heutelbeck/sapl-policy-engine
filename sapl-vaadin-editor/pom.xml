@@ -28,6 +28,8 @@
         <version>3.0.0-SNAPSHOT</version>
     </parent>
 
+    <version>3.0.1-SNAPSHOT</version>
+
     <artifactId>sapl-vaadin-editor</artifactId>
 
     <name>SAPL Vaadin Code Editors</name>
@@ -53,8 +55,15 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>sapl-web</artifactId>
-            <version>${project.version}</version>
-        </dependency>  
+            <version>3.0.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>sapl-test-web</artifactId>
+            <version>3.0.0-SNAPSHOT</version>
+        </dependency>
+
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
@@ -109,6 +118,14 @@
                                     <outputDirectory>${project.build.directory}/sapl</outputDirectory>
                                     <includes>static/**/*</includes>
                                 </artifactItem>
+                                <artifactItem>
+                                    <groupId>io.sapl</groupId>
+                                    <artifactId>sapl-test-web</artifactId>
+                                    <version>3.0.0-SNAPSHOT</version>
+                                    <overWrite>true</overWrite>
+                                    <outputDirectory>${project.build.directory}/sapl-test</outputDirectory>
+                                    <includes>static/**/*</includes>
+                                </artifactItem>
                             </artifactItems>
                         </configuration>
                     </execution>
@@ -152,6 +169,13 @@
                                     <directory>${project.build.directory}/sapl/static</directory>
                                     <includes>
                                         <include>sapl-mode.js</include>
+                                    </includes>
+                                    <filtering>false</filtering>
+                                </resource>
+                                <resource>
+                                    <directory>${project.build.directory}/sapl-test/static</directory>
+                                    <includes>
+                                        <include>sapl-test-mode.js</include>
                                     </includes>
                                     <filtering>false</filtering>
                                 </resource>

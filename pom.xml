@@ -110,6 +110,9 @@
 		<module>sapl-ide</module>
 		<module>sapl-web</module>
 		<module>sapl-test</module>
+		<module>sapl-test-lang</module>
+		<module>sapl-test-ide</module>
+		<module>sapl-test-web</module>
 		<module>sapl-coverage-api</module>
 		<module>sapl-maven-plugin</module>
 		<module>sapl-jwt</module>

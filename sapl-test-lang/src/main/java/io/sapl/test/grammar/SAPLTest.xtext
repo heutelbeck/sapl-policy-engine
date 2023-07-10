@@ -1,0 +1,72 @@
+grammar io.sapl.test.^grammar.SAPLTest with org.eclipse.xtext.common.Terminals
+
+generate sAPLTest "http://www.sapl.io/test/grammar/SAPLTest"
+
+SAPLTest:
+    (elements+=TestSuite)*;
+
+terminal IMPORT_NAME: ('a'..'z')+'.'('a'..'z'|'A'..'Z'|'0'..'9')+;
+
+TestSuite:
+	policy=ID 'tests' '{'
+		(testCases+=TestCase)+
+	'}';
+
+WhenStep:
+	 'when' authorizationSubscription=AuthorizationSubscription;
+
+FunctionParameterMatcher:
+    {Equals} 'is' value=Val |
+    {Any} 'any' |
+    {UsingVal} 'val' value=INT;
+
+AuthorizationDecisionMatcher:
+    {IsPermit} 'permit' |
+    {Obligation} 'obligation' value=STRING;
+
+FunctionParameters:
+    'matching' matchers+=FunctionParameterMatcher+;
+
+Val:
+    {IntVal} value=INT |
+    {StringVal} value=STRING |
+    {BoolVal} (isTrue?='true' | 'false');
+
+GivenStep:
+	{Function} 'function' importName=IMPORT_NAME ('parameters' parameters=FunctionParameters)? 'returns' returnValue=Val ('called' timesCalled=INT 'times')? |
+	{FunctionInvokedOnce} 'function' importName=IMPORT_NAME 'returns' returnValue+=Val+ 'once' |
+	{Attribute} 'attribute' importName=IMPORT_NAME ('returns' return+=Val+ ('for' duration=INT)?)? |
+	{VirtualTime} 'virtualTime';
+
+FunctionLibrary:
+	'FilterFunctionLibrary'|'LoggingFunctionLibrary'|'StandardFunctionLibrary'|'TemporalFunctionLibrary';
+
+AuthorizationDecision:
+	'permit'|'deny'|'indeterminate'|'notApplicable';
+
+
+ExpectStep:
+	{Next} 'next' expectedDecision=AuthorizationDecision (count=INT 'times')? |
+	{NextWithMatcher} 'matching' matcher+=AuthorizationDecisionMatcher+ |
+	{ThenAttribute} 'then' attribute=IMPORT_NAME 'returns' returnValue=Val |
+	{Await} 'await' duration=INT |
+	{NoEvent} 'none' duration=INT;
+
+AuthorizationSubscription:
+	{AuthzSubscription} subject=ID 'attempts' action=ID 'on' resource=ID |
+	{JsonString} json=ID;
+
+FixtureRegistration:
+	{Pip} 'PIP' pip=ID |
+	{Library} 'functionLibrary' library=FunctionLibrary |
+	{Variable} 'variable' 'key' key=ID 'value' value=ID;
+
+ExpectOrVerifyStep:
+	{SingleExpect} decision=AuthorizationDecision |
+	{RepeatedExpect} expect+=ExpectStep+ ('then' decision=AuthorizationDecision)?;
+
+TestCase:
+	('given' given+=GivenStep+)? ('register' register+=FixtureRegistration+)? whenStep=WhenStep 'expect' expect=ExpectOrVerifyStep';';
+
+
+
