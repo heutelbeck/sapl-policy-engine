@@ -17,6 +17,7 @@ package io.sapl.api.interpreter;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -30,16 +31,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.NumericNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.github.fge.jackson.JsonNumEquals;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-/**
- * @author dominic
- *
- */
 public class Val implements Traced {
 
 	static final String ERROR_TEXT                           = "ERROR";
@@ -83,6 +80,8 @@ public class Val implements Traced {
 	 * Constant 'null' Val.
 	 */
 	public static final Val NULL = Val.of(JSON.nullNode());
+
+	private static final NumericAwareComparator NUMBERIC_AWARE_COMPARATOR = new NumericAwareComparator();
 
 	private final JsonNode value;
 	private final String   errorMessage;
@@ -555,13 +554,60 @@ public class Val implements Traced {
 		if (isDefined() != other.isDefined()) {
 			return false;
 		}
-
-		return JsonNumEquals.getInstance().equivalent(value, other.value);
+		if(value==null) {
+			return true;
+		}
+		
+		return value.equals(NUMBERIC_AWARE_COMPARATOR, other.get());
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(JsonNumEquals.getInstance().hash(value), errorMessage);
+		if (value == null)
+			return Objects.hash(errorMessage);
+
+		return Objects.hash(hashCode(value), errorMessage);
+	}
+
+	private static int hashCode(JsonNode json) {
+		if (json.isNumber())
+			return json.decimalValue().stripTrailingZeros().hashCode();
+
+		if (!json.isContainerNode())
+			return json.hashCode();
+
+		if (json.size() == 0)
+			return 0;
+
+		if (json.isArray())
+			return hashCode((ArrayNode) json);
+
+		return hashCode((ObjectNode) json);
+	}
+
+	public static int hashCode(ArrayNode arrayNode) {
+		if (arrayNode == null)
+			return 0;
+
+		int hash = 1;
+
+		for (JsonNode element : arrayNode)
+			hash = 31 * hash + (element == null ? 0 : hashCode(element));
+
+		return hash;
+	}
+
+	public static int hashCode(ObjectNode objectNode) {
+		var fieldIterator = objectNode.fields();
+		var hash          = 0;
+
+		Map.Entry<String, JsonNode> entry;
+		while (fieldIterator.hasNext()) {
+			entry = fieldIterator.next();
+			hash  = 31 * hash + (entry.getKey().hashCode() ^ hashCode(entry.getValue()));
+		}
+
+		return hash;
 	}
 
 	@Override
@@ -826,8 +872,7 @@ public class Val implements Traced {
 
 	/**
 	 * @param value a Val
-	 * @return a Flux of the value of the Val an ArrayNode. Or a Flux with an
-	 *         error.
+	 * @return a Flux of the value of the Val an ArrayNode. Or a Flux with an error.
 	 */
 	public static Flux<ArrayNode> toArrayNode(Val value) {
 		if (value.isUndefined() || !value.get().isArray()) {
@@ -1021,6 +1066,19 @@ public class Val implements Traced {
 			traceJson.set("trace", trace.getTrace());
 		}
 		return traceJson;
+	}
+
+	private static class NumericAwareComparator implements Comparator<JsonNode> {
+		@Override
+		public int compare(JsonNode o1, JsonNode o2) {
+			if (o1.equals(o2)) {
+				return 0;
+			}
+			if ((o1 instanceof NumericNode) && (o2 instanceof NumericNode)) {
+				return o1.decimalValue().compareTo(o2.decimalValue());
+			}
+			return 1;
+		}
 	}
 
 }
