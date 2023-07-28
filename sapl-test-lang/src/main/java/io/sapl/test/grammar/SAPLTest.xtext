@@ -36,7 +36,10 @@ GivenStep:
 	{Function} 'function' importName=IMPORT_NAME ('parameters' parameters=FunctionParameters)? 'returns' returnValue=Val ('called' timesCalled=INT 'times')? |
 	{FunctionInvokedOnce} 'function' importName=IMPORT_NAME 'returns' returnValue+=Val+ 'once' |
 	{Attribute} 'attribute' importName=IMPORT_NAME ('returns' return+=Val+ ('for' duration=INT)?)? |
-	{VirtualTime} 'virtualTime';
+	{VirtualTime} 'virtualTime' |
+    {Pip} 'PIP' pip=ID |
+    {Library} 'functionLibrary' library=FunctionLibrary |
+    {Variable} 'variable' 'key' key=ID 'value' value=ID;
 
 FunctionLibrary:
 	'FilterFunctionLibrary'|'LoggingFunctionLibrary'|'StandardFunctionLibrary'|'TemporalFunctionLibrary';
@@ -44,29 +47,32 @@ FunctionLibrary:
 AuthorizationDecision:
 	'permit'|'deny'|'indeterminate'|'notApplicable';
 
-
-ExpectStep:
-	{Next} 'next' expectedDecision=AuthorizationDecision (count=INT 'times')? |
-	{NextWithMatcher} 'matching' matcher+=AuthorizationDecisionMatcher+ |
-	{ThenAttribute} 'then' attribute=IMPORT_NAME 'returns' returnValue=Val |
-	{Await} 'await' duration=INT |
-	{NoEvent} 'none' duration=INT;
-
 AuthorizationSubscription:
-	{AuthzSubscription} subject=ID 'attempts' action=ID 'on' resource=ID |
+	{AuthorizationSubscriptionObject} subject=ID 'attempts' action=ID 'on' resource=ID |
 	{JsonString} json=ID;
 
-FixtureRegistration:
-	{Pip} 'PIP' pip=ID |
-	{Library} 'functionLibrary' library=FunctionLibrary |
-	{Variable} 'variable' 'key' key=ID 'value' value=ID;
+ExpectedAmount:
+    {Once} 'once' |
+    {Multiple} amount=INT 'times';
 
-ExpectOrVerifyStep:
-	{SingleExpect} decision=AuthorizationDecision |
-	{RepeatedExpect} expect+=ExpectStep+ ('then' decision=AuthorizationDecision)?;
+ExpectOrAdjustmentStep:
+    ExpectStep | AdjustmentStep;
+
+ExpectStep returns ExpectOrAdjustmentStep:
+	{Next} 'expect' expectedDecision=AuthorizationDecision amount=ExpectedAmount |
+	{NextWithMatcher} 'matching' matcher+=AuthorizationDecisionMatcher+ |
+	{NoEvent} 'no event for' duration=INT 'seconds';
+
+AdjustmentStep returns ExpectOrAdjustmentStep:
+    {AttributeAdjustment} 'let' attribute=IMPORT_NAME 'return' returnValue=Val |
+	{Await} 'wait for' duration=INT 'seconds';
+
+ExpectChain:
+	{SingleExpect} 'expect''single' decision=AuthorizationDecision |
+	{RepeatedExpect} expectSteps+=ExpectOrAdjustmentStep ('then' expectSteps+=ExpectOrAdjustmentStep)*;
 
 TestCase:
-	('given' given+=GivenStep+)? ('register' register+=FixtureRegistration+)? whenStep=WhenStep 'expect' expect=ExpectOrVerifyStep';';
+	('given' givenSteps+=GivenStep ('and' givenSteps+=GivenStep)*)? whenStep=WhenStep 'then' expect=ExpectChain';';
 
 
 

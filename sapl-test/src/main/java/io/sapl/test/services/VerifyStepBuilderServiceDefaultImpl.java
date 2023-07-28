@@ -20,24 +20,23 @@ public final class VerifyStepBuilderServiceDefaultImpl implements VerifyStepBuil
         if (expect instanceof SingleExpect singleExpect) {
             return interpretSingleExpect(expectOrVerifyStep, singleExpect);
         } else if (expect instanceof RepeatedExpect repeatedExpect) {
-            for (io.sapl.test.grammar.sAPLTest.ExpectStep concreteExpect : repeatedExpect.getExpect()) {
-                if (concreteExpect instanceof Next nextExpect) {
-                    final var count = nextExpect.getCount();
-                    final var acutalCount = count == 0 ? 1 : count;
+            for (var expectOrAdjustment : repeatedExpect.getExpectSteps()) {
+                if (expectOrAdjustment instanceof Next nextExpect) {
+                    final var actualAmount = nextExpect.getAmount() instanceof Multiple multiple ? multiple.getAmount() : 1;
 
                     expectOrVerifyStep = switch (nextExpect.getExpectedDecision()) {
-                        case "permit" -> expectOrVerifyStep.expectNextPermit(acutalCount);
-                        case "deny" -> expectOrVerifyStep.expectNextDeny(acutalCount);
-                        case "indeterminate" -> expectOrVerifyStep.expectNextIndeterminate(acutalCount);
-                        default -> expectOrVerifyStep.expectNextNotApplicable(acutalCount);
+                        case "permit" -> expectOrVerifyStep.expectNextPermit(actualAmount);
+                        case "deny" -> expectOrVerifyStep.expectNextDeny(actualAmount);
+                        case "indeterminate" -> expectOrVerifyStep.expectNextIndeterminate(actualAmount);
+                        default -> expectOrVerifyStep.expectNextNotApplicable(actualAmount);
                     };
-                } else if (concreteExpect instanceof NextWithMatcher nextWithMatcher) {
+                } else if (expectOrAdjustment instanceof NextWithMatcher nextWithMatcher) {
                     expectOrVerifyStep = constructNextWithMatcher(expectOrVerifyStep, nextWithMatcher);
-                } else if (concreteExpect instanceof ThenAttribute thenAttribute) {
-                    expectOrVerifyStep = expectOrVerifyStep.thenAttribute(thenAttribute.getAttribute(), getValFromReturnValue(thenAttribute.getReturnValue()));
-                } else if (concreteExpect instanceof Await await) {
+                } else if (expectOrAdjustment instanceof AttributeAdjustment attributeAdjustment) {
+                    expectOrVerifyStep = expectOrVerifyStep.thenAttribute(attributeAdjustment.getAttribute(), getValFromReturnValue(attributeAdjustment.getReturnValue()));
+                } else if (expectOrAdjustment instanceof Await await) {
                     expectOrVerifyStep = expectOrVerifyStep.thenAwait(Duration.ofSeconds(await.getDuration()));
-                } else if (concreteExpect instanceof NoEvent noEvent) {
+                } else if (expectOrAdjustment instanceof NoEvent noEvent) {
                     expectOrVerifyStep = expectOrVerifyStep.expectNoEvent(Duration.ofSeconds(noEvent.getDuration()));
                 }
             }

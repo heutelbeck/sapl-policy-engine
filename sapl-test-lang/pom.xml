@@ -71,7 +71,7 @@
 							</includes>
 						</fileset>
 						<fileset>
-							<directory>${basedir}model/generated/</directory>
+							<directory>${basedir}/model/generated/</directory>
 						</fileset>
 					</filesets>
 				</configuration>

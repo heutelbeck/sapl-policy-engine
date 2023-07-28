@@ -1,7 +1,7 @@
 package io.sapl.test.services;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.test.grammar.sAPLTest.AuthzSubscription;
+import io.sapl.test.grammar.sAPLTest.AuthorizationSubscriptionObject;
 import io.sapl.test.grammar.sAPLTest.TestCase;
 import io.sapl.test.interfaces.ExpectStepBuilder;
 import io.sapl.test.steps.ExpectStep;
@@ -11,13 +11,13 @@ public final class ExpectStepBuilderDefaultImpl implements ExpectStepBuilder {
 
     @Override
     public ExpectStep constructExpectStep(TestCase testCase, WhenStep whenStep) {
-        if (testCase.getWhenStep().getAuthorizationSubscription() instanceof AuthzSubscription authzSubscription) {
-            return whenStep.when(getAuthorizationSubscriptionFromDSL(authzSubscription));
+        if (testCase.getWhenStep().getAuthorizationSubscription() instanceof AuthorizationSubscriptionObject authorizationSubscription) {
+            return whenStep.when(getAuthorizationSubscriptionFromDSL(authorizationSubscription));
         }
         return null;
     }
 
-    private AuthorizationSubscription getAuthorizationSubscriptionFromDSL(AuthzSubscription authorizationSubscription) {
+    private AuthorizationSubscription getAuthorizationSubscriptionFromDSL(AuthorizationSubscriptionObject authorizationSubscription) {
         return AuthorizationSubscription.of(authorizationSubscription.getSubject(), authorizationSubscription.getAction(), authorizationSubscription.getResource());
     }
 }

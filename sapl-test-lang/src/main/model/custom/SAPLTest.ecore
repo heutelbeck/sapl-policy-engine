@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" name="sAPLTest" nsURI="http://www.sapl.io/test/grammar/SAPLTest" nsPrefix="sAPLTest">
+  <eClassifiers xsi:type="ecore:EClass" name="SAPLTest">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="elements" upperBound="-1"
+        eType="#//TestSuite" containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="TestSuite">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="policy" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="testCases" upperBound="-1"
+        eType="#//TestCase" containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="WhenStep">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="authorizationSubscription"
+        eType="#//AuthorizationSubscription" containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="FunctionParameterMatcher"/>
+  <eClassifiers xsi:type="ecore:EClass" name="AuthorizationDecisionMatcher"/>
+  <eClassifiers xsi:type="ecore:EClass" name="FunctionParameters">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="matchers" upperBound="-1"
+        eType="#//FunctionParameterMatcher" containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Val"/>
+  <eClassifiers xsi:type="ecore:EClass" name="GivenStep"/>
+  <eClassifiers xsi:type="ecore:EClass" name="AuthorizationSubscription"/>
+  <eClassifiers xsi:type="ecore:EClass" name="ExpectedAmount"/>
+  <eClassifiers xsi:type="ecore:EClass" name="ExpectOrAdjustmentStep"/>
+  <eClassifiers xsi:type="ecore:EClass" name="ExpectChain"/>
+  <eClassifiers xsi:type="ecore:EClass" name="TestCase">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="givenSteps" upperBound="-1"
+        eType="#//GivenStep" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="whenStep" eType="#//WhenStep"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="expect" eType="#//ExpectChain"
+        containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Equals" eSuperTypes="#//FunctionParameterMatcher">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="value" eType="#//Val" containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Any" eSuperTypes="#//FunctionParameterMatcher"/>
+  <eClassifiers xsi:type="ecore:EClass" name="UsingVal" eSuperTypes="#//FunctionParameterMatcher">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="IsPermit" eSuperTypes="#//AuthorizationDecisionMatcher"/>
+  <eClassifiers xsi:type="ecore:EClass" name="Obligation" eSuperTypes="#//AuthorizationDecisionMatcher">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="IntVal" eSuperTypes="#//Val">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="StringVal" eSuperTypes="#//Val">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="BoolVal" eSuperTypes="#//Val">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="isTrue" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Function" eSuperTypes="#//GivenStep">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="importName" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="parameters" eType="#//FunctionParameters"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="returnValue" eType="#//Val"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="timesCalled" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="FunctionInvokedOnce" eSuperTypes="#//GivenStep">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="importName" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="returnValue" upperBound="-1"
+        eType="#//Val" containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Attribute" eSuperTypes="#//GivenStep">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="importName" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="return" upperBound="-1"
+        eType="#//Val" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="duration" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="VirtualTime" eSuperTypes="#//GivenStep"/>
+  <eClassifiers xsi:type="ecore:EClass" name="Pip" eSuperTypes="#//GivenStep">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="pip" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Library" eSuperTypes="#//GivenStep">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="library" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Variable" eSuperTypes="#//GivenStep">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="key" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="AuthorizationSubscriptionObject" eSuperTypes="#//AuthorizationSubscription">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="subject" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="action" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="resource" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="JsonString" eSuperTypes="#//AuthorizationSubscription">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="json" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Once" eSuperTypes="#//ExpectedAmount"/>
+  <eClassifiers xsi:type="ecore:EClass" name="Multiple" eSuperTypes="#//ExpectedAmount">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="amount" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Next" eSuperTypes="#//ExpectOrAdjustmentStep">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="expectedDecision" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="amount" eType="#//ExpectedAmount"
+        containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="NextWithMatcher" eSuperTypes="#//ExpectOrAdjustmentStep">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="matcher" upperBound="-1"
+        eType="#//AuthorizationDecisionMatcher" containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="NoEvent" eSuperTypes="#//ExpectOrAdjustmentStep">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="duration" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="AttributeAdjustment" eSuperTypes="#//ExpectOrAdjustmentStep">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="attribute" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="returnValue" eType="#//Val"
+        containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Await" eSuperTypes="#//ExpectOrAdjustmentStep">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="duration" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="SingleExpect" eSuperTypes="#//ExpectChain">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="decision" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="RepeatedExpect" eSuperTypes="#//ExpectChain">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="expectSteps" upperBound="-1"
+        eType="#//ExpectOrAdjustmentStep" containment="true"/>
+  </eClassifiers>
+</ecore:EPackage>

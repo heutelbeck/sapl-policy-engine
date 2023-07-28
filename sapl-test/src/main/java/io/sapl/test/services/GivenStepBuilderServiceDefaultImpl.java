@@ -19,6 +19,7 @@ import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.steps.WhenStep;
 import io.sapl.test.unit.SaplUnitTestFixture;
 import java.time.Duration;
+import java.util.List;
 import org.eclipse.emf.common.util.EList;
 import org.hamcrest.Matcher;
 
@@ -32,10 +33,10 @@ public final class GivenStepBuilderServiceDefaultImpl implements GivenStepBuilde
 
     @Override
     public WhenStep constructWhenStep(TestCase testCase, SaplUnitTestFixture fixture) throws InitializationException {
-        final var givenSteps = testCase.getGiven();
-        final var fixtureRegistrations = testCase.getRegister();
+        final var givenSteps = testCase.getGivenSteps();
+        final var fixtureRegistrations = givenSteps.stream().filter(givenStep -> givenStep instanceof Pip || givenStep instanceof Library).toList();
 
-        if (givenSteps.isEmpty() && fixtureRegistrations.isEmpty()) {
+        if (givenSteps.isEmpty()) {
             return fixture.constructTestCase();
         }
 
@@ -125,11 +126,11 @@ public final class GivenStepBuilderServiceDefaultImpl implements GivenStepBuilde
             return initial.givenFunctionOnce(importName, returnValues);
     }
 
-    private void handleFixtureRegistrations(SaplUnitTestFixture fixture, EList<FixtureRegistration> fixtureRegistrations) throws InitializationException {
+    private void handleFixtureRegistrations(SaplUnitTestFixture fixture, List<GivenStep> fixtureRegistrations) throws InitializationException {
         if (fixtureRegistrations == null) {
             return;
         }
-        for (FixtureRegistration fixtureRegistration : fixtureRegistrations) {
+        for (var fixtureRegistration : fixtureRegistrations) {
             if (fixtureRegistration instanceof Library library) {
                 fixture.registerFunctionLibrary(getFunctionLibrary(library.getLibrary()));
             } else if (fixtureRegistration instanceof Pip) {
