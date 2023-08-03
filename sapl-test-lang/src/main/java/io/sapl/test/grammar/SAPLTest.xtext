@@ -2,6 +2,8 @@ grammar io.sapl.test.^grammar.SAPLTest with org.eclipse.xtext.common.Terminals
 
 generate sAPLTest "http://www.sapl.io/test/grammar/SAPLTest"
 
+import "http://www.eclipse.org/emf/2002/Ecore" as ecore
+
 SAPLTest:
     (elements+=TestSuite)*;
 
@@ -33,9 +35,9 @@ Val:
     {BoolVal} (isTrue?='true' | 'false');
 
 GivenStep:
-	{Function} 'function' importName=IMPORT_NAME ('parameters' parameters=FunctionParameters)? 'returns' returnValue=Val ('called' timesCalled=INT 'times')? |
-	{FunctionInvokedOnce} 'function' importName=IMPORT_NAME 'returns' returnValue+=Val+ 'once' |
-	{Attribute} 'attribute' importName=IMPORT_NAME ('returns' return+=Val+ ('for' duration=INT)?)? |
+	{Function} 'function' importName=IMPORT_NAME ('parameters' parameters=FunctionParameters)? 'returns' returnValue=Val ('and' 'is' 'invoked' amount=NumericAmount)? |
+	{FunctionInvokedOnce} 'function' importName=IMPORT_NAME ('returns' return+=Val (',' return+=Val)* 'once' |
+	{Attribute} 'attribute' importName=IMPORT_NAME ('returns' return+=Val (',' return+=Val)* ('for' amount=TemporalAmount)?)? |
 	{VirtualTime} 'virtualTime' |
     {Pip} 'PIP' pip=ID |
     {Library} 'functionLibrary' library=FunctionLibrary |
@@ -51,28 +53,30 @@ AuthorizationSubscription:
 	{AuthorizationSubscriptionObject} subject=ID 'attempts' action=ID 'on' resource=ID |
 	{JsonString} json=ID;
 
-ExpectedAmount:
+NumericAmount:
     {Once} 'once' |
     {Multiple} amount=INT 'times';
+
+TemporalAmount: seconds=INT's';
 
 ExpectOrAdjustmentStep:
     ExpectStep | AdjustmentStep;
 
 ExpectStep returns ExpectOrAdjustmentStep:
-	{Next} 'expect' expectedDecision=AuthorizationDecision amount=ExpectedAmount |
+	{Next} 'expect' expectedDecision=AuthorizationDecision amount=NumericAmount |
 	{NextWithMatcher} 'matching' matcher+=AuthorizationDecisionMatcher+ |
 	{NoEvent} 'no event for' duration=INT 'seconds';
 
 AdjustmentStep returns ExpectOrAdjustmentStep:
     {AttributeAdjustment} 'let' attribute=IMPORT_NAME 'return' returnValue=Val |
-	{Await} 'wait for' duration=INT 'seconds';
+	{Await} 'wait' amount=TemporalAmount;
 
 ExpectChain:
 	{SingleExpect} 'expect''single' decision=AuthorizationDecision |
 	{RepeatedExpect} expectSteps+=ExpectOrAdjustmentStep ('then' expectSteps+=ExpectOrAdjustmentStep)*;
 
 TestCase:
-	('given' givenSteps+=GivenStep ('and' givenSteps+=GivenStep)*)? whenStep=WhenStep 'then' expect=ExpectChain';';
+	'scenario' name=STRING ('given' givenSteps+=GivenStep ('and' givenSteps+=GivenStep)*)? whenStep=WhenStep 'then' expect=ExpectChain';';
 
 
 

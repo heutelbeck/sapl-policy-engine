@@ -10,7 +10,6 @@ import io.sapl.test.utils.ClasspathHelper;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.concurrent.atomic.AtomicInteger;
 import reactor.core.Exceptions;
 
 public final class TestBuilderServiceDefaultImpl {
@@ -29,14 +28,13 @@ public final class TestBuilderServiceDefaultImpl {
         this.saplTestDslInterpreter = saplTestDslInterpreter;
     }
 
-    public void buildTest() {
+    public void buildTest(final String fileName) {
 
-        final var input = findFileOnClasspath("test.sapltest");
+        final var input = findFileOnClasspath(fileName);
         final var saplTest = saplTestDslInterpreter.loadAsResource(input);
 
         saplTest.getElements().forEach(testSuite -> {
-            AtomicInteger counter = new AtomicInteger(1);
-            testSuite.getTestCases().forEach(testCase -> testProvider.addTestCase("test" + counter.getAndIncrement(), () -> {
+            testSuite.getTestCases().forEach(testCase -> testProvider.addTestCase(testCase.getName(), () -> {
                 final var fixture = new SaplUnitTestFixture(testSuite.getPolicy());
 
                 final var givenOrWhenStep = givenStepBuilder.constructWhenStep(testCase, fixture);

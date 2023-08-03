@@ -28,6 +28,7 @@
     <genClasses ecoreClass="SAPLTest.ecore#//ExpectOrAdjustmentStep"/>
     <genClasses ecoreClass="SAPLTest.ecore#//ExpectChain"/>
     <genClasses ecoreClass="SAPLTest.ecore#//TestCase">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute SAPLTest.ecore#//TestCase/name"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPLTest.ecore#//TestCase/givenSteps"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPLTest.ecore#//TestCase/whenStep"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPLTest.ecore#//TestCase/expect"/>

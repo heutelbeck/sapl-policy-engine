@@ -28,7 +28,7 @@ public class Runner {
         final var verifyStepBuilder = new VerifyStepBuilderServiceDefaultImpl();
         final var saplInterpreter = new SaplTestInterpreterDefaultImpl();
 
-        new TestBuilderServiceDefaultImpl(testProvider, givenStepBuilder, expectStepBuilder, verifyStepBuilder, saplInterpreter).buildTest();
+        new TestBuilderServiceDefaultImpl(testProvider, givenStepBuilder, expectStepBuilder, verifyStepBuilder, saplInterpreter).buildTest("test.sapltest");
     }
 
     private static TestExecutionSummary executeTests(String className, SummaryGeneratingListener testExecutionListener) {

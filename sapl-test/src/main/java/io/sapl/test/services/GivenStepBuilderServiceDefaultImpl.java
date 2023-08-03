@@ -20,6 +20,7 @@ import io.sapl.test.steps.WhenStep;
 import io.sapl.test.unit.SaplUnitTestFixture;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import org.eclipse.emf.common.util.EList;
 import org.hamcrest.Matcher;
 
@@ -67,20 +68,24 @@ public final class GivenStepBuilderServiceDefaultImpl implements GivenStepBuilde
             return initial.givenAttribute(importName);
         } else {
             final var values = attribute.getReturn().stream().map(this::getValFromReturnValue).toArray(Val[]::new);
-            final var duration = Duration.ofSeconds(attribute.getDuration());
 
-            if (duration.isZero()) {
+            final var duration = Duration.ofSeconds(Optional.ofNullable(attribute.getAmount()).map(TemporalAmount::getSeconds).orElse(0));
+            if(duration.isZero()) {
                 return initial.givenAttribute(importName, values);
-            } else {
-                return initial.givenAttribute(importName, duration, values);
             }
+            return initial.givenAttribute(importName, duration, values);
         }
     }
 
     private GivenOrWhenStep interpretFunction(GivenOrWhenStep initial, Function function) {
         final var importName = function.getImportName();
         final var returnValue = getValFromReturnValue(function.getReturnValue());
-        final var timesCalled = function.getTimesCalled();
+        var timesCalled = 0;
+        if(function.getAmount() instanceof Multiple multiple) {
+            timesCalled = multiple.getAmount();
+        } else if(function.getAmount() instanceof Once) {
+            timesCalled = 1;
+        }
         final var parameters = interpretFunctionParameters(function.getParameters());
 
         if (timesCalled == 0) {

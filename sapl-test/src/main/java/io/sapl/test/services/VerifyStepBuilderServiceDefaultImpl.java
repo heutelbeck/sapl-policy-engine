@@ -35,7 +35,7 @@ public final class VerifyStepBuilderServiceDefaultImpl implements VerifyStepBuil
                 } else if (expectOrAdjustment instanceof AttributeAdjustment attributeAdjustment) {
                     expectOrVerifyStep = expectOrVerifyStep.thenAttribute(attributeAdjustment.getAttribute(), getValFromReturnValue(attributeAdjustment.getReturnValue()));
                 } else if (expectOrAdjustment instanceof Await await) {
-                    expectOrVerifyStep = expectOrVerifyStep.thenAwait(Duration.ofSeconds(await.getDuration()));
+                    expectOrVerifyStep = expectOrVerifyStep.thenAwait(Duration.ofSeconds(await.getAmount().getSeconds()));
                 } else if (expectOrAdjustment instanceof NoEvent noEvent) {
                     expectOrVerifyStep = expectOrVerifyStep.expectNoEvent(Duration.ofSeconds(noEvent.getDuration()));
                 }
