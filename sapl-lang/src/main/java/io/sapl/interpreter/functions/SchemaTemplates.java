@@ -1,5 +1,8 @@
 package io.sapl.interpreter.functions;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.wnameless.json.flattener.JsonFlattener;
 
 import java.io.IOException;
@@ -33,11 +36,36 @@ public class SchemaTemplates {
         return this.flattenSchemaFromFile(source);
     }
 
-    private List<String> flattenSchemaFromFile(String filePath){
-        String schema = getSchemaFromFile(filePath);
+    private List<String> flattenSchemaFromFile(String schemaFilePath){
+        String schema = getSchemaFromFile(schemaFilePath);
         if(schema.equals(""))
             return new ArrayList<>();
-        return flattenSchemaFromJson(schema);
+        //return flattenSchemaFromJson(schema);
+        return generatePaths(schema);
+    }
+
+    private static List<String> generatePaths(String schema){
+        List<String> paths = new ArrayList<>();
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode schemaNode = mapper.readTree(schema);
+            processSchema(schemaNode, "#", paths);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void processSchema(JsonNode schemaNode, String currentPath, List<String> paths) {
+        if (schemaNode.isObject()){
+            var fields = schemaNode.fields();
+            fields.forEachRemaining(field -> {
+                var propertyPath = currentPath + field.getKey();
+                paths.add(propertyPath);
+                processSchema(field.getValue(), propertyPath, paths);
+            });
+        } else if (schemaNode.isArray()){
+            // TODO
+        }
     }
 
     private static List<String> flattenSchemaFromJson(String schema) {
