@@ -1,6 +1,9 @@
 package io.sapl.test.services;
 
 import static io.sapl.hamcrest.Matchers.hasObligation;
+import static io.sapl.hamcrest.Matchers.isDeny;
+import static io.sapl.hamcrest.Matchers.isIndeterminate;
+import static io.sapl.hamcrest.Matchers.isNotApplicable;
 import static io.sapl.hamcrest.Matchers.isPermit;
 import static org.hamcrest.Matchers.allOf;
 
@@ -51,10 +54,15 @@ public final class VerifyStepBuilderServiceDefaultImpl implements VerifyStepBuil
         }
 
         final var actualMatchers = matchers.stream().map(matcher -> {
-            if(matcher instanceof IsPermit) {
-                return isPermit();
-            } else if(matcher instanceof Obligation obligation) {
-                return hasObligation(obligation.getValue());
+            if(matcher instanceof AuthorizationDecisionMatcher authorizationDecisionMatcher) {
+                return switch (authorizationDecisionMatcher.getDecision()) {
+                    case "permit" -> isPermit();
+                    case "deny" -> isDeny();
+                    case "indeterminate" -> isIndeterminate();
+                    default -> isNotApplicable();
+                };
+            } else if(matcher instanceof ObligationMatcher obligationMatcher) {
+                return hasObligation(obligationMatcher.getValue());
             }
             return null;
         }).toArray(Matcher[]::new);

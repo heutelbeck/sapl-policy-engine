@@ -17,17 +17,16 @@ TestSuite:
 WhenStep:
 	 'when' authorizationSubscription=AuthorizationSubscription;
 
-FunctionParameterMatcher:
-    {Equals} 'is' value=Val |
-    {Any} 'any' |
-    {UsingVal} 'val' value=INT;
+ExpectMatcher:
+    {AuthorizationDecisionMatcher} decision=AuthorizationDecision |
+    {ObligationMatcher} 'obligation' value=STRING;
 
-AuthorizationDecisionMatcher:
-    {IsPermit} 'permit' |
-    {Obligation} 'obligation' value=STRING;
+FunctionParameterMatcher:
+    {Equals} value=Val |
+    {Any} 'any';
 
 FunctionParameters:
-    'matching' matchers+=FunctionParameterMatcher+;
+    matchers+=FunctionParameterMatcher (',' matchers+=FunctionParameterMatcher)*;
 
 Val:
     {IntVal} value=INT |
@@ -35,9 +34,10 @@ Val:
     {BoolVal} (isTrue?='true' | 'false');
 
 GivenStep:
-	{Function} 'function' importName=IMPORT_NAME ('parameters' parameters=FunctionParameters)? 'returns' returnValue=Val ('and' 'is' 'invoked' amount=NumericAmount)? |
-	{FunctionInvokedOnce} 'function' importName=IMPORT_NAME ('returns' return+=Val (',' return+=Val)* 'once' |
+	{Function} 'function' importName=IMPORT_NAME ('called with' parameters=FunctionParameters)? 'returns' returnValue=Val ('and' 'is' 'invoked' amount=NumericAmount)? |
+	{FunctionInvokedOnce} 'function' importName=IMPORT_NAME 'returns' return+=Val (',' return+=Val)* 'once' |
 	{Attribute} 'attribute' importName=IMPORT_NAME ('returns' return+=Val (',' return+=Val)* ('for' amount=TemporalAmount)?)? |
+	{AttributeWithParameters} 'attribute' importName=IMPORT_NAME 'with' 'parent' 'value' parentMatcher=FunctionParameterMatcher ('and' 'parameters' parameters+=Val (',' parameters+=Val)+)? 'returns' return=Val |
 	{VirtualTime} 'virtualTime' |
     {Pip} 'PIP' pip=ID |
     {Library} 'functionLibrary' library=FunctionLibrary |
@@ -64,7 +64,7 @@ ExpectOrAdjustmentStep:
 
 ExpectStep returns ExpectOrAdjustmentStep:
 	{Next} 'expect' expectedDecision=AuthorizationDecision amount=NumericAmount |
-	{NextWithMatcher} 'matching' matcher+=AuthorizationDecisionMatcher+ |
+	{NextWithMatcher} 'expect' 'decision' 'matching' matcher+=ExpectMatcher (',' matcher+=ExpectMatcher)* |
 	{NoEvent} 'no event for' duration=INT 'seconds';
 
 AdjustmentStep returns ExpectOrAdjustmentStep:
@@ -72,7 +72,8 @@ AdjustmentStep returns ExpectOrAdjustmentStep:
 	{Await} 'wait' amount=TemporalAmount;
 
 ExpectChain:
-	{SingleExpect} 'expect''single' decision=AuthorizationDecision |
+	{SingleExpect} 'expect' 'single' decision=AuthorizationDecision |
+	{TestException} 'expect' 'exception' |
 	{RepeatedExpect} expectSteps+=ExpectOrAdjustmentStep ('then' expectSteps+=ExpectOrAdjustmentStep)*;
 
 TestCase:

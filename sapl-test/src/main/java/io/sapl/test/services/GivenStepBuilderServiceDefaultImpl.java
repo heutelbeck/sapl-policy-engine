@@ -1,6 +1,11 @@
 package io.sapl.test.services;
 
 import static io.sapl.hamcrest.Matchers.anyVal;
+import static io.sapl.hamcrest.Matchers.val;
+import static io.sapl.test.Imports.arguments;
+import static io.sapl.test.Imports.parentValue;
+import static io.sapl.test.Imports.whenAttributeParams;
+import static io.sapl.test.Imports.whenParentValue;
 import static org.hamcrest.CoreMatchers.is;
 
 import io.sapl.api.interpreter.Val;
@@ -8,7 +13,6 @@ import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.LoggingFunctionLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
-import io.sapl.hamcrest.Matchers;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.test.Imports;
 
@@ -54,7 +58,10 @@ public final class GivenStepBuilderServiceDefaultImpl implements GivenStepBuilde
                 fixtureWithMocks = interpretFunctionInvokedOnce(fixtureWithMocks, functionInvokedOnce);
             } else if (givenStep instanceof Attribute attribute) {
                 fixtureWithMocks = interpretAttribute(fixtureWithMocks, attribute);
-            } else if (givenStep instanceof VirtualTime) {
+            } else if (givenStep instanceof AttributeWithParameters attributeWithParameters) {
+                fixtureWithMocks = interpretAttributeWithParameters(fixtureWithMocks, attributeWithParameters);
+            }
+            else if (givenStep instanceof VirtualTime) {
                 fixtureWithMocks = fixtureWithMocks.withVirtualTime();
             }
         }
@@ -75,6 +82,18 @@ public final class GivenStepBuilderServiceDefaultImpl implements GivenStepBuilde
             }
             return initial.givenAttribute(importName, duration, values);
         }
+    }
+
+    private GivenOrWhenStep interpretAttributeWithParameters(GivenOrWhenStep initial, AttributeWithParameters attributeWithParameters) {
+        final var importName = attributeWithParameters.getImportName();
+        final var parentValueMatcher = getFunctionParameterMatcherMatcherFunction(attributeWithParameters.getParentMatcher());
+        final var returnValue = getValFromReturnValue(attributeWithParameters.getReturn());
+        final var arguments = attributeWithParameters.getParameters();
+        if(arguments.isEmpty()) {
+            return initial.givenAttribute(importName, whenParentValue(parentValueMatcher), returnValue);
+        }
+        final var args = arguments.stream().map(this::getValMatcherFromVal).toArray(Matcher[]::new);
+        return initial.givenAttribute(importName, whenAttributeParams(parentValue(parentValueMatcher), arguments(args)), returnValue);
     }
 
     private GivenOrWhenStep interpretFunction(GivenOrWhenStep initial, Function function) {
@@ -107,23 +126,23 @@ public final class GivenStepBuilderServiceDefaultImpl implements GivenStepBuilde
             return null;
         }
 
-        final var matchers = functionParameters.getMatchers().stream().map(matcher -> {
-            if (matcher instanceof Equals equals) {
-                return is(getValFromReturnValue(equals.getValue()));
-            } else if (matcher instanceof Any) {
-                return anyVal();
-            } else if(matcher instanceof UsingVal val) {
-                return Matchers.val(val.getValue());
-            }
-            return null;
-        }).toArray(Matcher[]::new);
+        final var matchers = functionParameters.getMatchers().stream().map(this::getFunctionParameterMatcherMatcherFunction).toArray(Matcher[]::new);
 
         return new FunctionParameters(matchers);
     }
 
+    private Matcher<Val> getFunctionParameterMatcherMatcherFunction(FunctionParameterMatcher functionParameterMatcher) {
+        if (functionParameterMatcher instanceof Equals equals) {
+            return is(getValFromReturnValue(equals.getValue()));
+        } else if (functionParameterMatcher instanceof Any) {
+            return anyVal();
+        }
+        return null;
+    }
+
     private GivenOrWhenStep interpretFunctionInvokedOnce(GivenOrWhenStep initial, FunctionInvokedOnce function) {
         final var importName = function.getImportName();
-        final var returnValues = function.getReturnValue().stream().map(this::getValFromReturnValue).toArray(Val[]::new);
+        final var returnValues = function.getReturn().stream().map(this::getValFromReturnValue).toArray(Val[]::new);
 
         if (returnValues.length == 1) {
             return initial.givenFunctionOnce(importName, returnValues[0]);
@@ -161,6 +180,17 @@ public final class GivenStepBuilderServiceDefaultImpl implements GivenStepBuilde
             return Val.of(stringVal.getValue());
         } else if (value instanceof BoolVal boolVal) {
             return Val.of(boolVal.isIsTrue());
+        }
+        return null;
+    }
+
+    private Matcher<Val> getValMatcherFromVal(io.sapl.test.grammar.sAPLTest.Val value) {
+        if (value instanceof IntVal intVal) {
+            return val(intVal.getValue());
+        } else if (value instanceof StringVal stringVal) {
+            return val(stringVal.getValue());
+        } else if (value instanceof BoolVal boolVal) {
+            return val(boolVal.isIsTrue());
         }
         return null;
     }

@@ -1,5 +1,7 @@
 package io.sapl.test.services;
 
+import io.sapl.test.SaplTestException;
+import io.sapl.test.grammar.sAPLTest.TestException;
 import io.sapl.test.interfaces.ExpectStepBuilder;
 import io.sapl.test.interfaces.GivenStepBuilder;
 import io.sapl.test.interfaces.SaplTestDslInterpreter;
@@ -10,6 +12,7 @@ import io.sapl.test.utils.ClasspathHelper;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import org.assertj.core.api.Assertions;
 import reactor.core.Exceptions;
 
 public final class TestBuilderServiceDefaultImpl {
@@ -33,17 +36,20 @@ public final class TestBuilderServiceDefaultImpl {
         final var input = findFileOnClasspath(fileName);
         final var saplTest = saplTestDslInterpreter.loadAsResource(input);
 
-        saplTest.getElements().forEach(testSuite -> {
-            testSuite.getTestCases().forEach(testCase -> testProvider.addTestCase(testCase.getName(), () -> {
-                final var fixture = new SaplUnitTestFixture(testSuite.getPolicy());
+        saplTest.getElements().forEach(testSuite -> testSuite.getTestCases().forEach(testCase -> testProvider.addTestCase(testCase.getName(), () -> {
+            final var fixture = new SaplUnitTestFixture(testSuite.getPolicy());
 
-                final var givenOrWhenStep = givenStepBuilder.constructWhenStep(testCase, fixture);
-                final var expectStep = expectStepBuilder.constructExpectStep(testCase, givenOrWhenStep);
+            if(testCase.getExpect() instanceof TestException) {
+                Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() ->
+                        givenStepBuilder.constructWhenStep(testCase, fixture));
+            } else {
+                final var whenStep = givenStepBuilder.constructWhenStep(testCase, fixture);
+                final var expectStep = expectStepBuilder.constructExpectStep(testCase, whenStep);
                 final var verifyStep = verifyStepBuilder.constructVerifyStep(testCase, expectStep);
 
                 verifyStep.verify();
-            }));
-        });
+            }
+        })));
     }
 
     private String findFileOnClasspath(String filename) {
