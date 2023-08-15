@@ -7,6 +7,9 @@ import static io.sapl.hamcrest.Matchers.isNotApplicable;
 import static io.sapl.hamcrest.Matchers.isPermit;
 import static org.hamcrest.Matchers.allOf;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.test.grammar.sAPLTest.*;
@@ -71,7 +74,24 @@ public final class VerifyStepBuilderServiceDefaultImpl implements VerifyStepBuil
     }
 
     private VerifyStep interpretSingleExpect(ExpectStep givenOrWhenStep, SingleExpect singleExpect) {
-        return givenOrWhenStep.expect(getAuthorizationDecisionFromDSL(singleExpect.getDecision()));
+        var authorizationDecision = getAuthorizationDecisionFromDSL(singleExpect.getDecision());
+        final var obligationElements = singleExpect.getObligationElements();
+        final var resourceElements = singleExpect.getResourceElements();
+
+        final var mapper = new ObjectMapper();
+        if(obligationElements != null && !obligationElements.isEmpty()) {
+            ObjectNode obligation = mapper.createObjectNode();
+            obligationElements.forEach(obligationElement -> obligation.put(obligationElement.getKey(), obligationElement.getValue()));
+            ArrayNode obligations = mapper.createArrayNode();
+            obligations.add(obligation);
+            authorizationDecision = authorizationDecision.withObligations(obligations);
+        }
+        if(resourceElements != null && !resourceElements.isEmpty()) {
+            ObjectNode resource = mapper.createObjectNode();
+            resourceElements.forEach(obligationElement -> resource.put(obligationElement.getKey(), obligationElement.getValue()));
+            authorizationDecision = authorizationDecision.withResource(resource);
+        }
+        return givenOrWhenStep.expect(authorizationDecision);
     }
 
     private AuthorizationDecision getAuthorizationDecisionFromDSL(String decision) {

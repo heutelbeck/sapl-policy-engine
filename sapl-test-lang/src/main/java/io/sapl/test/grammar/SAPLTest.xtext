@@ -49,8 +49,12 @@ FunctionLibrary:
 AuthorizationDecision:
 	'permit'|'deny'|'indeterminate'|'notApplicable';
 
+AuthorizationSubscriptionElement:
+    {Plain} value=ID |
+    {Structured} elements+=JsonElement (',' elements+=JsonElement)*;
+
 AuthorizationSubscription:
-	{AuthorizationSubscriptionObject} subject=ID 'attempts' action=ID 'on' resource=ID |
+	{AuthorizationSubscriptionObject} subject=AuthorizationSubscriptionElement 'attempts' action=AuthorizationSubscriptionElement 'on' resource=AuthorizationSubscriptionElement |
 	{JsonString} json=ID;
 
 NumericAmount:
@@ -71,8 +75,11 @@ AdjustmentStep returns ExpectOrAdjustmentStep:
     {AttributeAdjustment} 'let' attribute=IMPORT_NAME 'return' returnValue=Val |
 	{Await} 'wait' amount=TemporalAmount;
 
+JsonElement:
+    'key' key=STRING 'value' value=STRING;
+
 ExpectChain:
-	{SingleExpect} 'expect' 'single' decision=AuthorizationDecision |
+	{SingleExpect} 'expect' 'single' decision=AuthorizationDecision ('and' 'obligation' 'containing' obligationElements+=JsonElement (',' obligationElements+=JsonElement)*)? ('and' 'resource' 'containing' resourceElements+=JsonElement (',' resourceElements+=JsonElement)*)?|
 	{TestException} 'expect' 'exception' |
 	{RepeatedExpect} expectSteps+=ExpectOrAdjustmentStep ('then' expectSteps+=ExpectOrAdjustmentStep)*;
 
