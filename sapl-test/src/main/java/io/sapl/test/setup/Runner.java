@@ -1,9 +1,15 @@
 package io.sapl.test.setup;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.test.interpreter.SaplTestInterpreterDefaultImpl;
+import io.sapl.test.services.AttributeInterpreter;
 import io.sapl.test.services.ExpectStepBuilderDefaultImpl;
+import io.sapl.test.services.FunctionInterpreter;
 import io.sapl.test.services.GivenStepBuilderServiceDefaultImpl;
+import io.sapl.test.services.MatcherInterpreter;
 import io.sapl.test.services.TestBuilderServiceDefaultImpl;
+import io.sapl.test.services.TestFixtureBuilder;
+import io.sapl.test.services.ValInterpreter;
 import io.sapl.test.services.VerifyStepBuilderServiceDefaultImpl;
 import java.io.PrintWriter;
 import org.junit.platform.launcher.listeners.SummaryGeneratingListener;
@@ -22,13 +28,23 @@ public class Runner {
     }
 
     private static void buildTests(Object pip) {
+        final var objectMapper = new ObjectMapper();
         final var testProvider = new TestProviderDefaultImpl();
-        final var givenStepBuilder = new GivenStepBuilderServiceDefaultImpl(pip);
-        final var expectStepBuilder = new ExpectStepBuilderDefaultImpl();
-        final var verifyStepBuilder = new VerifyStepBuilderServiceDefaultImpl();
+        final var testFixtureBuilder = new TestFixtureBuilder(pip);
+
+        final var valInterpreter = new ValInterpreter();
+        final var matcherInterpreter = new MatcherInterpreter(valInterpreter);
+
+        final var attributeInterpreter = new AttributeInterpreter(valInterpreter, matcherInterpreter);
+        final var functionInterpreter = new FunctionInterpreter(valInterpreter, matcherInterpreter);
+
+        final var givenStepBuilder = new GivenStepBuilderServiceDefaultImpl(functionInterpreter, attributeInterpreter);
+        final var expectStepBuilder = new ExpectStepBuilderDefaultImpl(objectMapper);
+        final var verifyStepBuilder = new VerifyStepBuilderServiceDefaultImpl(valInterpreter);
         final var saplInterpreter = new SaplTestInterpreterDefaultImpl();
 
-        new TestBuilderServiceDefaultImpl(testProvider, givenStepBuilder, expectStepBuilder, verifyStepBuilder, saplInterpreter).buildTest("test.sapltest");
+        new TestBuilderServiceDefaultImpl(testProvider, testFixtureBuilder, givenStepBuilder, expectStepBuilder, verifyStepBuilder, saplInterpreter)
+                .buildTest("test.sapltest");
     }
 
     private static TestExecutionSummary executeTests(String className, SummaryGeneratingListener testExecutionListener) {

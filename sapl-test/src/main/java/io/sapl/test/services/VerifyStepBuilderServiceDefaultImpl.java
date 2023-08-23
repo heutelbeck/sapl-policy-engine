@@ -10,16 +10,20 @@ import static org.hamcrest.Matchers.allOf;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.test.grammar.sAPLTest.*;
 import io.sapl.test.interfaces.VerifyStepBuilder;
 import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.VerifyStep;
 import java.time.Duration;
+import lombok.RequiredArgsConstructor;
 import org.hamcrest.Matcher;
 
+@RequiredArgsConstructor
 public final class VerifyStepBuilderServiceDefaultImpl implements VerifyStepBuilder {
+
+    private final ValInterpreter valInterpreter;
+
     @Override
     public VerifyStep constructVerifyStep(TestCase testCase, ExpectStep expectOrVerifyStep) {
         final var expect = testCase.getExpect();
@@ -39,7 +43,7 @@ public final class VerifyStepBuilderServiceDefaultImpl implements VerifyStepBuil
                 } else if (expectOrAdjustment instanceof NextWithMatcher nextWithMatcher) {
                     expectOrVerifyStep = constructNextWithMatcher(expectOrVerifyStep, nextWithMatcher);
                 } else if (expectOrAdjustment instanceof AttributeAdjustment attributeAdjustment) {
-                    expectOrVerifyStep = expectOrVerifyStep.thenAttribute(attributeAdjustment.getAttribute(), getValFromReturnValue(attributeAdjustment.getReturnValue()));
+                    expectOrVerifyStep = expectOrVerifyStep.thenAttribute(attributeAdjustment.getAttribute(), valInterpreter.getValFromReturnValue(attributeAdjustment.getReturnValue()));
                 } else if (expectOrAdjustment instanceof Await await) {
                     expectOrVerifyStep = expectOrVerifyStep.thenAwait(Duration.ofSeconds(await.getAmount().getSeconds()));
                 } else if (expectOrAdjustment instanceof NoEvent noEvent) {
@@ -52,19 +56,19 @@ public final class VerifyStepBuilderServiceDefaultImpl implements VerifyStepBuil
 
     private ExpectStep constructNextWithMatcher(ExpectStep expectStep, NextWithMatcher nextWithMatcher) {
         final var matchers = nextWithMatcher.getMatcher();
-        if(matchers.isEmpty()) {
+        if (matchers.isEmpty()) {
             return expectStep;
         }
 
         final var actualMatchers = matchers.stream().map(matcher -> {
-            if(matcher instanceof AuthorizationDecisionMatcher authorizationDecisionMatcher) {
+            if (matcher instanceof AuthorizationDecisionMatcher authorizationDecisionMatcher) {
                 return switch (authorizationDecisionMatcher.getDecision()) {
                     case "permit" -> isPermit();
                     case "deny" -> isDeny();
                     case "indeterminate" -> isIndeterminate();
                     default -> isNotApplicable();
                 };
-            } else if(matcher instanceof ObligationMatcher obligationMatcher) {
+            } else if (matcher instanceof ObligationMatcher obligationMatcher) {
                 return hasObligation(obligationMatcher.getValue());
             }
             return null;
@@ -79,14 +83,14 @@ public final class VerifyStepBuilderServiceDefaultImpl implements VerifyStepBuil
         final var resourceElements = singleExpect.getResourceElements();
 
         final var mapper = new ObjectMapper();
-        if(obligationElements != null && !obligationElements.isEmpty()) {
+        if (obligationElements != null && !obligationElements.isEmpty()) {
             ObjectNode obligation = mapper.createObjectNode();
             obligationElements.forEach(obligationElement -> obligation.put(obligationElement.getKey(), obligationElement.getValue()));
             ArrayNode obligations = mapper.createArrayNode();
             obligations.add(obligation);
             authorizationDecision = authorizationDecision.withObligations(obligations);
         }
-        if(resourceElements != null && !resourceElements.isEmpty()) {
+        if (resourceElements != null && !resourceElements.isEmpty()) {
             ObjectNode resource = mapper.createObjectNode();
             resourceElements.forEach(obligationElement -> resource.put(obligationElement.getKey(), obligationElement.getValue()));
             authorizationDecision = authorizationDecision.withResource(resource);
@@ -101,16 +105,5 @@ public final class VerifyStepBuilderServiceDefaultImpl implements VerifyStepBuil
             case "indeterminate" -> AuthorizationDecision.INDETERMINATE;
             default -> AuthorizationDecision.NOT_APPLICABLE;
         };
-    }
-
-    private Val getValFromReturnValue(io.sapl.test.grammar.sAPLTest.Val value) {
-        if (value instanceof IntVal intVal) {
-            return Val.of(intVal.getValue());
-        } else if (value instanceof StringVal stringVal) {
-            return Val.of(stringVal.getValue());
-        } else if (value instanceof BoolVal boolVal) {
-            return Val.of(boolVal.isIsTrue());
-        }
-        return null;
     }
 }

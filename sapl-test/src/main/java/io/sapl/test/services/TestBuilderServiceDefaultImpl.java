@@ -1,7 +1,9 @@
 package io.sapl.test.services;
 
 import io.sapl.test.SaplTestException;
+import io.sapl.test.grammar.sAPLTest.TestCase;
 import io.sapl.test.grammar.sAPLTest.TestException;
+import io.sapl.test.grammar.sAPLTest.TestSuite;
 import io.sapl.test.interfaces.ExpectStepBuilder;
 import io.sapl.test.interfaces.GivenStepBuilder;
 import io.sapl.test.interfaces.SaplTestDslInterpreter;
@@ -9,55 +11,81 @@ import io.sapl.test.interfaces.TestProvider;
 import io.sapl.test.interfaces.VerifyStepBuilder;
 import io.sapl.test.unit.SaplUnitTestFixture;
 import io.sapl.test.utils.ClasspathHelper;
-import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
+import lombok.RequiredArgsConstructor;
 import org.assertj.core.api.Assertions;
-import reactor.core.Exceptions;
 
+@RequiredArgsConstructor
 public final class TestBuilderServiceDefaultImpl {
 
     private final TestProvider testProvider;
+    private final TestFixtureBuilder testFixtureBuilder;
     private final GivenStepBuilder givenStepBuilder;
     private final ExpectStepBuilder expectStepBuilder;
     private final VerifyStepBuilder verifyStepBuilder;
     private final SaplTestDslInterpreter saplTestDslInterpreter;
 
-    public TestBuilderServiceDefaultImpl(TestProvider testProvider, GivenStepBuilder givenStepBuilder, ExpectStepBuilder expectStepBuilder, VerifyStepBuilder verifyStepBuilder, SaplTestDslInterpreter saplTestDslInterpreter) {
-        this.testProvider = testProvider;
-        this.givenStepBuilder = givenStepBuilder;
-        this.expectStepBuilder = expectStepBuilder;
-        this.verifyStepBuilder = verifyStepBuilder;
-        this.saplTestDslInterpreter = saplTestDslInterpreter;
-    }
 
     public void buildTest(final String fileName) {
 
+        if (fileName == null) {
+            return;
+        }
+
         final var input = findFileOnClasspath(fileName);
+
+        if (input == null) {
+            return;
+        }
+
         final var saplTest = saplTestDslInterpreter.loadAsResource(input);
 
-        saplTest.getElements().forEach(testSuite -> testSuite.getTestCases().forEach(testCase -> testProvider.addTestCase(testCase.getName(), () -> {
-            final var fixture = new SaplUnitTestFixture(testSuite.getPolicy());
+        if (saplTest == null) {
+            return;
+        }
 
-            if(testCase.getExpect() instanceof TestException) {
+        final var testSuites = saplTest.getElements();
+
+        if (testSuites == null || testSuites.isEmpty()) {
+            return;
+        }
+
+        testSuites.forEach(testSuite -> {
+            final var testCases = testSuite.getTestCases();
+            if (testCases == null || testCases.isEmpty()) {
+                return;
+            }
+            testCases.forEach(testCase -> addDynamicTestCase(testSuite, testCase));
+        });
+    }
+
+    private void addDynamicTestCase(TestSuite testSuite, TestCase testCase) {
+        testProvider.addTestCase(testCase.getName(), () -> {
+            final var fixture = new SaplUnitTestFixture(testSuite.getPolicy());
+            final var givenSteps = testCase.getGivenSteps();
+
+            final var testFixture = testFixtureBuilder.buildTestFixture(givenSteps, fixture);
+
+            if (testCase.getExpect() instanceof TestException) {
                 Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() ->
-                        givenStepBuilder.constructWhenStep(testCase, fixture));
+                        givenStepBuilder.constructWhenStep(givenSteps, testFixture));
             } else {
-                final var whenStep = givenStepBuilder.constructWhenStep(testCase, fixture);
+
+                final var whenStep = givenStepBuilder.constructWhenStep(givenSteps, testFixture);
                 final var expectStep = expectStepBuilder.constructExpectStep(testCase, whenStep);
                 final var verifyStep = verifyStepBuilder.constructVerifyStep(testCase, expectStep);
 
                 verifyStep.verify();
             }
-        })));
+        });
     }
 
-    private String findFileOnClasspath(String filename) {
-        Path path = ClasspathHelper.findPathOnClasspath(getClass().getClassLoader(), filename);
+    private String findFileOnClasspath(final String filename) {
+        final var path = ClasspathHelper.findPathOnClasspath(getClass().getClassLoader(), filename);
         try {
             return Files.readString(path);
-        } catch (IOException e) {
-            throw Exceptions.propagate(e);
+        } catch (Exception e) {
+            return null;
         }
     }
 }

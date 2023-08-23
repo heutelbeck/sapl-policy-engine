@@ -1,10 +1,10 @@
 package io.sapl.test.interfaces;
 
-import io.sapl.interpreter.InitializationException;
-import io.sapl.test.grammar.sAPLTest.TestCase;
+import io.sapl.test.grammar.sAPLTest.GivenStep;
+import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.steps.WhenStep;
-import io.sapl.test.unit.SaplUnitTestFixture;
+import java.util.List;
 
 public interface GivenStepBuilder {
-    WhenStep constructWhenStep(TestCase testCase, SaplUnitTestFixture fixture) throws InitializationException;
+    WhenStep constructWhenStep(List<GivenStep> givenSteps, GivenOrWhenStep fixture);
 }

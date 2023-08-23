@@ -21,12 +21,12 @@ ExpectMatcher:
     {AuthorizationDecisionMatcher} decision=AuthorizationDecision |
     {ObligationMatcher} 'obligation' value=STRING;
 
-FunctionParameterMatcher:
+ParameterMatcher:
     {Equals} value=Val |
     {Any} 'any';
 
 FunctionParameters:
-    matchers+=FunctionParameterMatcher (',' matchers+=FunctionParameterMatcher)*;
+    matchers+=ParameterMatcher (',' matchers+=ParameterMatcher)*;
 
 Val:
     {IntVal} value=INT |
@@ -37,7 +37,7 @@ GivenStep:
 	{Function} 'function' importName=IMPORT_NAME ('called with' parameters=FunctionParameters)? 'returns' returnValue=Val ('and' 'is' 'invoked' amount=NumericAmount)? |
 	{FunctionInvokedOnce} 'function' importName=IMPORT_NAME 'returns' return+=Val (',' return+=Val)* 'once' |
 	{Attribute} 'attribute' importName=IMPORT_NAME ('returns' return+=Val (',' return+=Val)* ('for' amount=TemporalAmount)?)? |
-	{AttributeWithParameters} 'attribute' importName=IMPORT_NAME 'with' 'parent' 'value' parentMatcher=FunctionParameterMatcher ('and' 'parameters' parameters+=Val (',' parameters+=Val)+)? 'returns' return=Val |
+	{AttributeWithParameters} 'attribute' importName=IMPORT_NAME 'with' 'parent' 'value' parentMatcher=ParameterMatcher ('and' 'parameters' parameters+=Val (',' parameters+=Val)+)? 'returns' return=Val |
 	{VirtualTime} 'virtualTime' |
     {Pip} 'PIP' pip=ID |
     {Library} 'functionLibrary' library=FunctionLibrary |
@@ -54,8 +54,7 @@ AuthorizationSubscriptionElement:
     {Structured} elements+=JsonElement (',' elements+=JsonElement)*;
 
 AuthorizationSubscription:
-	{AuthorizationSubscriptionObject} subject=AuthorizationSubscriptionElement 'attempts' action=AuthorizationSubscriptionElement 'on' resource=AuthorizationSubscriptionElement |
-	{JsonString} json=ID;
+	subject=AuthorizationSubscriptionElement 'attempts' action=AuthorizationSubscriptionElement 'on' resource=AuthorizationSubscriptionElement;
 
 NumericAmount:
     {Once} 'once' |
@@ -79,7 +78,7 @@ JsonElement:
     'key' key=STRING 'value' value=STRING;
 
 ExpectChain:
-	{SingleExpect} 'expect' 'single' decision=AuthorizationDecision ('and' 'obligation' 'containing' obligationElements+=JsonElement (',' obligationElements+=JsonElement)*)? ('and' 'resource' 'containing' resourceElements+=JsonElement (',' resourceElements+=JsonElement)*)?|
+	{SingleExpect} 'expect' 'single' decision=AuthorizationDecision ('with' 'obligation' obligationElements+=JsonElement (',' obligationElements+=JsonElement)*)? ('with' 'resource' resourceElements+=JsonElement (',' resourceElements+=JsonElement)*)?|
 	{TestException} 'expect' 'exception' |
 	{RepeatedExpect} expectSteps+=ExpectOrAdjustmentStep ('then' expectSteps+=ExpectOrAdjustmentStep)*;
 
