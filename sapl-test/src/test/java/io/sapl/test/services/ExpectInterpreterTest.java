@@ -1,0 +1,539 @@
+package io.sapl.test.services;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.hamcrest.HasObligation;
+import io.sapl.hamcrest.IsDecision;
+import io.sapl.hamcrest.Matchers;
+import io.sapl.test.grammar.sAPLTest.*;
+import io.sapl.test.steps.ExpectOrVerifyStep;
+import io.sapl.test.steps.VerifyStep;
+import java.time.Duration;
+import java.util.List;
+import org.hamcrest.Matcher;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.mockito.Answers;
+import org.mockito.MockedStatic;
+
+class ExpectInterpreterTest {
+
+    private ValInterpreter valInterpreterMock;
+    private AuthorizationDecisionInterpreter authorizationDecisionInterpreterMock;
+    private ExpectOrVerifyStep expectOrVerifyStepMock;
+    private ExpectInterpreter expectInterpreter;
+
+    @BeforeEach
+    void setUp() {
+        valInterpreterMock = mock(ValInterpreter.class);
+        authorizationDecisionInterpreterMock = mock(AuthorizationDecisionInterpreter.class);
+        expectOrVerifyStepMock = mock(ExpectOrVerifyStep.class);
+        expectInterpreter = new ExpectInterpreter(valInterpreterMock, authorizationDecisionInterpreterMock);
+    }
+
+    @Nested
+    @DisplayName("Single expect")
+    class SingleExpectTest {
+        @Test
+        void interpretSingleExpect_callsAuthorizationDecisionInterpreter_returnsVerifyStep() {
+            final var obligationElementsMock = Helper.mockEList(List.<JsonElement>of());
+            final var resourceElementsMock = Helper.mockEList(List.<JsonElement>of());
+            final var singleExpectMock = mock(SingleExpect.class);
+
+            when(singleExpectMock.getObligationElements()).thenReturn(obligationElementsMock);
+            when(singleExpectMock.getResourceElements()).thenReturn(resourceElementsMock);
+
+            when(singleExpectMock.getDecision()).thenReturn("decision");
+
+            final var authorizationDecisionMock = mock(AuthorizationDecision.class);
+
+            when(authorizationDecisionInterpreterMock.constructAuthorizationDecision("decision", obligationElementsMock, resourceElementsMock)).thenReturn(authorizationDecisionMock);
+
+            final var verifyStepMock = mock(VerifyStep.class);
+            when(expectOrVerifyStepMock.expect(authorizationDecisionMock)).thenReturn(verifyStepMock);
+
+            final var result = expectInterpreter.interpretSingleExpect(expectOrVerifyStepMock, singleExpectMock);
+
+            assertEquals(verifyStepMock, result);
+        }
+    }
+
+    @Nested
+    @DisplayName("Repeated expect")
+    class RepeatedExpectTest {
+
+        @Nested
+        @DisplayName("error cases")
+        class ErrorCasesTest {
+            @Test
+            void interpretRepeatedExpect_doesNothingForExpectStepsBeingNull_returnsInitialVerifyStep() {
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+                when(repeatedExpectMock.getExpectSteps()).thenReturn(null);
+
+                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
+
+                assertEquals(expectOrVerifyStepMock, result);
+                verifyNoInteractions(expectOrVerifyStepMock);
+            }
+
+            @Test
+            void interpretRepeatedExpect_doesNothingForExpectStepsBeingEmpty_returnsInitialVerifyStep() {
+                final var repeatedExpectStepsMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of());
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+                when(repeatedExpectMock.getExpectSteps()).thenReturn(repeatedExpectStepsMock);
+
+                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
+
+                assertEquals(expectOrVerifyStepMock, result);
+                verifyNoInteractions(expectOrVerifyStepMock);
+            }
+
+            @Test
+            void interpretRepeatedExpect_doesNothingForUnknownExpectStep_returnsInitialVerifyStep() {
+                final var unknownExpectOrAdjustmentStepMock = mock(ExpectOrAdjustmentStep.class);
+                final var repeatedExpectStepsMock = Helper.mockEList(List.of(unknownExpectOrAdjustmentStepMock));
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+                when(repeatedExpectMock.getExpectSteps()).thenReturn(repeatedExpectStepsMock);
+
+                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
+
+                assertEquals(expectOrVerifyStepMock, result);
+                verifyNoInteractions(expectOrVerifyStepMock);
+            }
+        }
+
+        @Nested
+        @DisplayName("expect next")
+        class ExpectNextTest {
+            @Test
+            void interpretRepeatedExpect_constructsNextPermitWithUnknownAmount_returnsVerifyStepWithNextPermitOnce() {
+                final var nextMock = mock(Next.class);
+                final var expectOrAdjustmentStepsMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of(nextMock));
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+
+                when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
+
+                final var numericAmountMock = mock(NumericAmount.class);
+                when(nextMock.getAmount()).thenReturn(numericAmountMock);
+
+                when(nextMock.getExpectedDecision()).thenReturn("permit");
+
+                when(expectOrVerifyStepMock.expectNextPermit(1)).thenReturn(expectOrVerifyStepMock);
+
+                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
+
+                assertEquals(expectOrVerifyStepMock, result);
+            }
+
+            @Test
+            void interpretRepeatedExpect_constructsNextDenyWithNumericAmountBeingMultiple_returnsVerifyStepWithNextPermitOnce() {
+                final var nextMock = mock(Next.class);
+                final var expectOrAdjustmentStepsMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of(nextMock));
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+
+                when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
+
+                final var multipleMock = mock(Multiple.class);
+                when(nextMock.getAmount()).thenReturn(multipleMock);
+                when(multipleMock.getAmount()).thenReturn(3);
+
+                when(nextMock.getExpectedDecision()).thenReturn("deny");
+
+                when(expectOrVerifyStepMock.expectNextDeny(3)).thenReturn(expectOrVerifyStepMock);
+
+                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
+
+                assertEquals(expectOrVerifyStepMock, result);
+            }
+
+            @Test
+            void interpretRepeatedExpect_constructsNextIndeterminateWithNumericAmountBeingOnce_returnsVerifyStepWithNextPermitOnce() {
+                final var nextMock = mock(Next.class);
+                final var expectOrAdjustmentStepsMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of(nextMock));
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+
+                when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
+
+                final var onceMock = mock(Once.class);
+                when(nextMock.getAmount()).thenReturn(onceMock);
+
+                when(nextMock.getExpectedDecision()).thenReturn("indeterminate");
+
+                when(expectOrVerifyStepMock.expectNextIndeterminate(1)).thenReturn(expectOrVerifyStepMock);
+
+                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
+
+                assertEquals(expectOrVerifyStepMock, result);
+            }
+
+            @Test
+            void interpretRepeatedExpect_constructsNextNotApplicableWithNumericAmountBeingOnce_returnsVerifyStepWithNextPermitOnce() {
+                final var nextMock = mock(Next.class);
+                final var expectOrAdjustmentStepsMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of(nextMock));
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+
+                when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
+
+                final var onceMock = mock(Once.class);
+                when(nextMock.getAmount()).thenReturn(onceMock);
+
+                when(nextMock.getExpectedDecision()).thenReturn("notApplicable");
+
+                when(expectOrVerifyStepMock.expectNextNotApplicable(1)).thenReturn(expectOrVerifyStepMock);
+
+                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
+
+                assertEquals(expectOrVerifyStepMock, result);
+            }
+
+            @Test
+            void interpretRepeatedExpect_constructsNextNotApplicableForUnknownDecisionWithNumericAmountBeingMultiple_returnsVerifyStepWithNextPermitOnce() {
+                final var nextMock = mock(Next.class);
+                final var expectOrAdjustmentStepsMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of(nextMock));
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+
+                when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
+
+                final var multipleMock = mock(Multiple.class);
+                when(nextMock.getAmount()).thenReturn(multipleMock);
+                when(multipleMock.getAmount()).thenReturn(5);
+
+                when(nextMock.getExpectedDecision()).thenReturn("notApplicable");
+
+                when(expectOrVerifyStepMock.expectNextNotApplicable(5)).thenReturn(expectOrVerifyStepMock);
+
+                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
+
+                assertEquals(expectOrVerifyStepMock, result);
+            }
+        }
+
+        @Nested
+        @DisplayName("expect next with matcher")
+        class ExpectNextWithMatcherTest {
+            private MockedStatic<Matchers> saplMatchersMockedStatic;
+            private MockedStatic<org.hamcrest.Matchers> hamcrestMatchersMockedStatic;
+
+            @BeforeEach
+            void setUp() {
+                saplMatchersMockedStatic = mockStatic(Matchers.class, Answers.RETURNS_SMART_NULLS);
+                hamcrestMatchersMockedStatic = mockStatic(org.hamcrest.Matchers.class, Answers.RETURNS_SMART_NULLS);
+            }
+
+            @AfterEach
+            void tearDown() {
+                saplMatchersMockedStatic.close();
+                hamcrestMatchersMockedStatic.close();
+            }
+
+            @Test
+            void interpretRepeatedExpect_doesNothingForNullMatchers_returnsInitialVerifyStep() {
+                final var nextWithMatcherMock = mock(NextWithMatcher.class);
+                final var expectOrAdjustmentStepsMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of(nextWithMatcherMock));
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+
+                when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
+
+                when(nextWithMatcherMock.getMatcher()).thenReturn(null);
+
+                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
+
+                assertEquals(expectOrVerifyStepMock, result);
+                verifyNoInteractions(expectOrVerifyStepMock);
+            }
+
+            @Test
+            void interpretRepeatedExpect_doesNothingForEmptyMatchers_returnsInitialVerifyStep() {
+                final var nextWithMatcherMock = mock(NextWithMatcher.class);
+                final var expectOrAdjustmentStepsMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of(nextWithMatcherMock));
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+
+                when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
+
+                final var matchersMock = Helper.mockEList(List.<ExpectMatcher>of());
+                when(nextWithMatcherMock.getMatcher()).thenReturn(matchersMock);
+
+                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
+
+                assertEquals(expectOrVerifyStepMock, result);
+                verifyNoInteractions(expectOrVerifyStepMock);
+            }
+
+            @Test
+            void interpretRepeatedExpect_doesNothingForEmptyMatcherArrayAfterMapping_returnsInitialVerifyStep() {
+                final var nextWithMatcherMock = mock(NextWithMatcher.class);
+                final var expectOrAdjustmentStepsMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of(nextWithMatcherMock));
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+
+                when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
+
+                final var expectMatcherMock = mock(ExpectMatcher.class);
+                final var matchersMock = Helper.mockEList(List.of(expectMatcherMock));
+                when(nextWithMatcherMock.getMatcher()).thenReturn(matchersMock);
+
+                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
+
+                assertEquals(expectOrVerifyStepMock, result);
+                verifyNoInteractions(expectOrVerifyStepMock);
+            }
+
+            @Test
+            void interpretRepeatedExpect_correctlyMapsSingleAuthorizationDecisionMatcherWithDecisionPermit_returnsAdjustedVerifyStep() {
+                final var nextWithMatcherMock = mock(NextWithMatcher.class);
+                final var expectOrAdjustmentStepsMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of(nextWithMatcherMock));
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+
+                when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
+
+                final var authorizationDecisionMatcherMock = mock(AuthorizationDecisionMatcher.class);
+                final var matchersMock = Helper.mockEList(List.<ExpectMatcher>of(authorizationDecisionMatcherMock));
+                when(nextWithMatcherMock.getMatcher()).thenReturn(matchersMock);
+
+                when(authorizationDecisionMatcherMock.getDecision()).thenReturn("permit");
+
+                final var isPermitMock = mock(IsDecision.class);
+                saplMatchersMockedStatic.when(Matchers::isPermit).thenReturn(isPermitMock);
+
+                when(expectOrVerifyStepMock.expectNext(isPermitMock)).thenReturn(expectOrVerifyStepMock);
+
+                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
+
+                assertEquals(expectOrVerifyStepMock, result);
+            }
+
+            @Test
+            void interpretRepeatedExpect_correctlyMapsSingleAuthorizationDecisionMatcherWithDecisionDeny_returnsAdjustedVerifyStep() {
+                final var nextWithMatcherMock = mock(NextWithMatcher.class);
+                final var expectOrAdjustmentStepsMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of(nextWithMatcherMock));
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+
+                when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
+
+                final var authorizationDecisionMatcherMock = mock(AuthorizationDecisionMatcher.class);
+                final var matchersMock = Helper.mockEList(List.<ExpectMatcher>of(authorizationDecisionMatcherMock));
+                when(nextWithMatcherMock.getMatcher()).thenReturn(matchersMock);
+
+                when(authorizationDecisionMatcherMock.getDecision()).thenReturn("deny");
+
+                final var isDenyMock = mock(IsDecision.class);
+                saplMatchersMockedStatic.when(Matchers::isDeny).thenReturn(isDenyMock);
+
+                when(expectOrVerifyStepMock.expectNext(isDenyMock)).thenReturn(expectOrVerifyStepMock);
+
+                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
+
+                assertEquals(expectOrVerifyStepMock, result);
+            }
+
+            @Test
+            void interpretRepeatedExpect_correctlyMapsSingleAuthorizationDecisionMatcherWithDecisionIndeterminate_returnsAdjustedVerifyStep() {
+                final var nextWithMatcherMock = mock(NextWithMatcher.class);
+                final var expectOrAdjustmentStepsMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of(nextWithMatcherMock));
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+
+                when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
+
+                final var authorizationDecisionMatcherMock = mock(AuthorizationDecisionMatcher.class);
+                final var matchersMock = Helper.mockEList(List.<ExpectMatcher>of(authorizationDecisionMatcherMock));
+                when(nextWithMatcherMock.getMatcher()).thenReturn(matchersMock);
+
+                when(authorizationDecisionMatcherMock.getDecision()).thenReturn("indeterminate");
+
+                final var isIndeterminateMock = mock(IsDecision.class);
+                saplMatchersMockedStatic.when(Matchers::isIndeterminate).thenReturn(isIndeterminateMock);
+
+                when(expectOrVerifyStepMock.expectNext(isIndeterminateMock)).thenReturn(expectOrVerifyStepMock);
+
+                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
+
+                assertEquals(expectOrVerifyStepMock, result);
+            }
+
+            @Test
+            void interpretRepeatedExpect_correctlyMapsSingleAuthorizationDecisionMatcherWithDecisionNotApplicable_returnsAdjustedVerifyStep() {
+                final var nextWithMatcherMock = mock(NextWithMatcher.class);
+                final var expectOrAdjustmentStepsMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of(nextWithMatcherMock));
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+
+                when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
+
+                final var authorizationDecisionMatcherMock = mock(AuthorizationDecisionMatcher.class);
+                final var matchersMock = Helper.mockEList(List.<ExpectMatcher>of(authorizationDecisionMatcherMock));
+                when(nextWithMatcherMock.getMatcher()).thenReturn(matchersMock);
+
+                when(authorizationDecisionMatcherMock.getDecision()).thenReturn("notApplicable");
+
+                final var isNotApplicableMock = mock(IsDecision.class);
+                saplMatchersMockedStatic.when(Matchers::isNotApplicable).thenReturn(isNotApplicableMock);
+
+                when(expectOrVerifyStepMock.expectNext(isNotApplicableMock)).thenReturn(expectOrVerifyStepMock);
+
+                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
+
+                assertEquals(expectOrVerifyStepMock, result);
+            }
+
+            @Test
+            void interpretRepeatedExpect_correctlyMapsSingleAuthorizationDecisionMatcherWithUnknownDecision_returnsAdjustedVerifyStep() {
+                final var nextWithMatcherMock = mock(NextWithMatcher.class);
+                final var expectOrAdjustmentStepsMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of(nextWithMatcherMock));
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+
+                when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
+
+                final var authorizationDecisionMatcherMock = mock(AuthorizationDecisionMatcher.class);
+                final var matchersMock = Helper.mockEList(List.<ExpectMatcher>of(authorizationDecisionMatcherMock));
+                when(nextWithMatcherMock.getMatcher()).thenReturn(matchersMock);
+
+                when(authorizationDecisionMatcherMock.getDecision()).thenReturn("foo");
+
+                final var isNotApplicableMock = mock(IsDecision.class);
+                saplMatchersMockedStatic.when(Matchers::isNotApplicable).thenReturn(isNotApplicableMock);
+
+                when(expectOrVerifyStepMock.expectNext(isNotApplicableMock)).thenReturn(expectOrVerifyStepMock);
+
+                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
+
+                assertEquals(expectOrVerifyStepMock, result);
+            }
+
+            @Test
+            void interpretRepeatedExpect_correctlyMapsSingleObligationMatcher_returnsAdjustedVerifyStep() {
+                final var nextWithMatcherMock = mock(NextWithMatcher.class);
+                final var expectOrAdjustmentStepsMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of(nextWithMatcherMock));
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+
+                when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
+
+                final var obligationMatcherMock = mock(ObligationMatcher.class);
+                final var matchersMock = Helper.mockEList(List.<ExpectMatcher>of(obligationMatcherMock));
+                when(nextWithMatcherMock.getMatcher()).thenReturn(matchersMock);
+
+                when(obligationMatcherMock.getValue()).thenReturn("foo");
+
+                final Matcher<AuthorizationDecision> hasObligationMatcherMock = mock(HasObligation.class);
+                saplMatchersMockedStatic.when(() -> Matchers.hasObligation("foo")).thenReturn(hasObligationMatcherMock);
+
+                when(expectOrVerifyStepMock.expectNext(hasObligationMatcherMock)).thenReturn(expectOrVerifyStepMock);
+
+                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
+
+                assertEquals(expectOrVerifyStepMock, result);
+            }
+
+            @Test
+            void interpretRepeatedExpect_correctlyMapsMultipleMixedMatchersAndFiltersNullResults_returnsAdjustedVerifyStep() {
+                final var nextWithMatcherMock = mock(NextWithMatcher.class);
+                final var expectOrAdjustmentStepsMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of(nextWithMatcherMock));
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+
+                when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
+
+                final var obligationMatcherMock = mock(ObligationMatcher.class);
+                final var invalidMatcherMock = mock(ExpectMatcher.class);
+                final var authorizationDecisionMatcherMock = mock(AuthorizationDecisionMatcher.class);
+
+
+                final var matchersMock = Helper.mockEList(List.of(obligationMatcherMock, invalidMatcherMock, authorizationDecisionMatcherMock));
+                when(nextWithMatcherMock.getMatcher()).thenReturn(matchersMock);
+
+                when(obligationMatcherMock.getValue()).thenReturn("foo");
+
+                final var hasObligationMatcherMock = mock(HasObligation.class);
+                saplMatchersMockedStatic.when(() -> Matchers.hasObligation("foo")).thenReturn(hasObligationMatcherMock);
+
+                when(authorizationDecisionMatcherMock.getDecision()).thenReturn("unknown");
+
+                final var isNotApplicableMock = mock(IsDecision.class);
+                saplMatchersMockedStatic.when(Matchers::isNotApplicable).thenReturn(isNotApplicableMock);
+
+                final var allOfMock = mock(Matcher.class);
+                hamcrestMatchersMockedStatic.when(() -> org.hamcrest.Matchers.allOf(new Matcher[] {hasObligationMatcherMock, isNotApplicableMock})).thenReturn(allOfMock);
+
+                when(expectOrVerifyStepMock.expectNext(allOfMock)).thenReturn(expectOrVerifyStepMock);
+
+                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
+
+                assertEquals(expectOrVerifyStepMock, result);
+            }
+        }
+
+        @Nested
+        @DisplayName("attribute adjustment")
+        class AttributeAdjustmentTest {
+            @Test
+            void interpretRepeatedExpect_interpretsAttributeAdjustment_returnsAdjustedVerifyStep() {
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+
+                final var attributeAdjustmentMock = mock(AttributeAdjustment.class);
+                final var eListMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of(attributeAdjustmentMock));
+                when(repeatedExpectMock.getExpectSteps()).thenReturn(eListMock);
+
+                final var valMock = mock(Val.class);
+                when(attributeAdjustmentMock.getReturnValue()).thenReturn(valMock);
+                final var saplValMock = mock(io.sapl.api.interpreter.Val.class);
+                when(valInterpreterMock.getValFromReturnValue(valMock)).thenReturn(saplValMock);
+
+                when(attributeAdjustmentMock.getAttribute()).thenReturn("foo");
+                when(expectOrVerifyStepMock.thenAttribute("foo", saplValMock)).thenReturn(expectOrVerifyStepMock);
+
+                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
+
+                assertEquals(expectOrVerifyStepMock, result);
+            }
+        }
+
+        @Nested
+        @DisplayName("await")
+        class AwaitTest {
+            @Test
+            void interpretRepeatedExpect_interpretsAwait_returnsAdjustedVerifyStep() {
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+
+                final var awaitMock = mock(Await.class);
+                final var eListMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of(awaitMock));
+                when(repeatedExpectMock.getExpectSteps()).thenReturn(eListMock);
+
+                final var temporalAmountMock = mock(TemporalAmount.class);
+                when(awaitMock.getAmount()).thenReturn(temporalAmountMock);
+
+                when(temporalAmountMock.getSeconds()).thenReturn(5);
+
+                when(expectOrVerifyStepMock.thenAwait(Duration.ofSeconds(5))).thenReturn(expectOrVerifyStepMock);
+
+                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
+
+                assertEquals(expectOrVerifyStepMock, result);
+            }
+        }
+
+        @Nested
+        @DisplayName("no event")
+        class NoEventTest {
+            @Test
+            void interpretRepeatedExpect_interpretsAwait_returnsAdjustedVerifyStep() {
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+
+                final var noEventMock = mock(NoEvent.class);
+                final var eListMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of(noEventMock));
+                when(repeatedExpectMock.getExpectSteps()).thenReturn(eListMock);
+
+                when(noEventMock.getDuration()).thenReturn(3);
+
+                when(expectOrVerifyStepMock.expectNoEvent(Duration.ofSeconds(3))).thenReturn(expectOrVerifyStepMock);
+
+                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
+
+                assertEquals(expectOrVerifyStepMock, result);
+            }
+        }
+    }
+}

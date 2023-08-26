@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
@@ -25,7 +26,7 @@ import io.sapl.test.interfaces.GivenStepBuilder;
 import io.sapl.test.interfaces.SaplTestDslInterpreter;
 import io.sapl.test.interfaces.TestProvider;
 import io.sapl.test.interfaces.VerifyStepBuilder;
-import io.sapl.test.steps.ExpectStep;
+import io.sapl.test.steps.ExpectOrVerifyStep;
 import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.steps.VerifyStep;
 import io.sapl.test.steps.WhenStep;
@@ -241,11 +242,11 @@ class TestBuilderServiceDefaultImplTest {
             final var whenStepMock = mock(WhenStep.class);
             when(givenStepBuilderMock.constructWhenStep(givenSteps, testFixture)).thenReturn(whenStepMock);
 
-            final var expectStepMock = mock(ExpectStep.class);
-            when(expectStepBuilderMock.constructExpectStep(testCase, whenStepMock)).thenReturn(expectStepMock);
+            final var expectOrVerifyStepMock = mock(ExpectOrVerifyStep.class);
+            when(expectStepBuilderMock.constructExpectStep(testCase, whenStepMock)).thenReturn(expectOrVerifyStepMock);
 
             final var verifyStepMock = mock(VerifyStep.class);
-            when(verifyStepBuilderMock.constructVerifyStep(testCase, expectStepMock)).thenReturn(verifyStepMock);
+            when(verifyStepBuilderMock.constructVerifyStep(testCase, expectOrVerifyStepMock)).thenReturn(verifyStepMock);
             return verifyStepMock;
         }
 
@@ -253,6 +254,50 @@ class TestBuilderServiceDefaultImplTest {
             final var executableArgumentCaptor = ArgumentCaptor.forClass(Executable.class);
             verify(testProviderMock, times(1)).addTestCase(eq(testCaseName), executableArgumentCaptor.capture());
             executableArgumentCaptor.getValue().execute();
+        }
+
+        @Test
+        void buildTest_handlesMultipleTestSuitesWithMultipleTestCasesPerSuite() {
+            final var pathMock = mock(Path.class);
+            final var saplTestMock = mock(SAPLTest.class);
+
+            classpathHelperMockedStatic.when(() -> ClasspathHelper.findPathOnClasspath(any(ClassLoader.class), eq("filename"))).thenReturn(pathMock);
+            filesMockedStatic.when(() -> Files.readString(pathMock)).thenReturn("testCase");
+
+            when(saplTestDslInterpreterMock.loadAsResource("testCase")).thenReturn(saplTestMock);
+
+            testSuiteMock = mock(TestSuite.class);
+            final var testSuite2Mock = mock(TestSuite.class);
+            final var testSuites = Helper.mockEList(List.of(testSuiteMock, testSuite2Mock));
+            when(saplTestMock.getElements()).thenReturn(testSuites);
+
+            final var testCase1Mock = mock(TestCase.class);
+            final var testCase2Mock = mock(TestCase.class);
+            final var testCase3Mock = mock(TestCase.class);
+            final var testCase4Mock = mock(TestCase.class);
+            final var testCase5Mock = mock(TestCase.class);
+
+            final var testSuiteTestCases = Helper.mockEList(List.of(testCase1Mock, testCase2Mock));
+            final var testSuite2TestCases = Helper.mockEList(List.of(testCase3Mock, testCase4Mock, testCase5Mock));
+
+            when(testSuiteMock.getTestCases()).thenReturn(testSuiteTestCases);
+            when(testSuite2Mock.getTestCases()).thenReturn(testSuite2TestCases);
+
+            when(testCase1Mock.getName()).thenReturn("testCase1");
+            when(testCase2Mock.getName()).thenReturn("testCase2");
+            when(testCase3Mock.getName()).thenReturn("testCase3");
+            when(testCase4Mock.getName()).thenReturn("testCase4");
+            when(testCase5Mock.getName()).thenReturn("testCase5");
+
+            doNothing().when(testProviderMock).addTestCase(any(), any());
+
+            testBuilderServiceDefaultImpl.buildTest("filename");
+
+            verify(testProviderMock, times(1)).addTestCase(eq("testCase1"), any(Executable.class));
+            verify(testProviderMock, times(1)).addTestCase(eq("testCase2"), any(Executable.class));
+            verify(testProviderMock, times(1)).addTestCase(eq("testCase3"), any(Executable.class));
+            verify(testProviderMock, times(1)).addTestCase(eq("testCase4"), any(Executable.class));
+            verify(testProviderMock, times(1)).addTestCase(eq("testCase5"), any(Executable.class));
         }
 
         @Test
@@ -346,7 +391,5 @@ class TestBuilderServiceDefaultImplTest {
             verify(verifyStep2Mock, times(1)).verify();
         }
     }
-
-    //TODO add Test case that check multiple TestSuites with multiple TestCases per Suite
 
 }

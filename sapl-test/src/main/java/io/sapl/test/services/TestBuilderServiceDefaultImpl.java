@@ -9,6 +9,7 @@ import io.sapl.test.interfaces.GivenStepBuilder;
 import io.sapl.test.interfaces.SaplTestDslInterpreter;
 import io.sapl.test.interfaces.TestProvider;
 import io.sapl.test.interfaces.VerifyStepBuilder;
+import io.sapl.test.steps.ExpectOrVerifyStep;
 import io.sapl.test.unit.SaplUnitTestFixture;
 import io.sapl.test.utils.ClasspathHelper;
 import java.nio.file.Files;
@@ -27,11 +28,6 @@ public final class TestBuilderServiceDefaultImpl {
 
 
     public void buildTest(final String fileName) {
-
-        if (fileName == null) {
-            return;
-        }
-
         final var input = findFileOnClasspath(fileName);
 
         if (input == null) {
@@ -73,7 +69,7 @@ public final class TestBuilderServiceDefaultImpl {
 
                 final var whenStep = givenStepBuilder.constructWhenStep(givenSteps, testFixture);
                 final var expectStep = expectStepBuilder.constructExpectStep(testCase, whenStep);
-                final var verifyStep = verifyStepBuilder.constructVerifyStep(testCase, expectStep);
+                final var verifyStep = verifyStepBuilder.constructVerifyStep(testCase, (ExpectOrVerifyStep) expectStep);
 
                 verifyStep.verify();
             }
@@ -81,7 +77,12 @@ public final class TestBuilderServiceDefaultImpl {
     }
 
     private String findFileOnClasspath(final String filename) {
+        if (filename == null) {
+            return null;
+        }
+
         final var path = ClasspathHelper.findPathOnClasspath(getClass().getClassLoader(), filename);
+
         try {
             return Files.readString(path);
         } catch (Exception e) {

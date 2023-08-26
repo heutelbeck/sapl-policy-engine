@@ -2,15 +2,7 @@ package io.sapl.test.setup;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.test.interpreter.SaplTestInterpreterDefaultImpl;
-import io.sapl.test.services.AttributeInterpreter;
-import io.sapl.test.services.ExpectStepBuilderDefaultImpl;
-import io.sapl.test.services.FunctionInterpreter;
-import io.sapl.test.services.GivenStepBuilderServiceDefaultImpl;
-import io.sapl.test.services.MatcherInterpreter;
-import io.sapl.test.services.TestBuilderServiceDefaultImpl;
-import io.sapl.test.services.TestFixtureBuilder;
-import io.sapl.test.services.ValInterpreter;
-import io.sapl.test.services.VerifyStepBuilderServiceDefaultImpl;
+import io.sapl.test.services.*;
 import java.io.PrintWriter;
 import org.junit.platform.launcher.listeners.SummaryGeneratingListener;
 import org.junit.platform.launcher.listeners.TestExecutionSummary;
@@ -37,10 +29,12 @@ public class Runner {
 
         final var attributeInterpreter = new AttributeInterpreter(valInterpreter, matcherInterpreter);
         final var functionInterpreter = new FunctionInterpreter(valInterpreter, matcherInterpreter);
+        final var authorizationDecisionInterpreter = new AuthorizationDecisionInterpreter(objectMapper);
+        final var expectInterpreter = new ExpectInterpreter(valInterpreter, authorizationDecisionInterpreter);
 
         final var givenStepBuilder = new GivenStepBuilderServiceDefaultImpl(functionInterpreter, attributeInterpreter);
         final var expectStepBuilder = new ExpectStepBuilderDefaultImpl(objectMapper);
-        final var verifyStepBuilder = new VerifyStepBuilderServiceDefaultImpl(valInterpreter);
+        final var verifyStepBuilder = new VerifyStepBuilderServiceDefaultImpl(expectInterpreter);
         final var saplInterpreter = new SaplTestInterpreterDefaultImpl();
 
         new TestBuilderServiceDefaultImpl(testProvider, testFixtureBuilder, givenStepBuilder, expectStepBuilder, verifyStepBuilder, saplInterpreter)
