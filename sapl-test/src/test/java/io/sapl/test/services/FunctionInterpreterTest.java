@@ -15,9 +15,10 @@ import io.sapl.test.grammar.sAPLTest.FunctionParameters;
 import io.sapl.test.grammar.sAPLTest.Multiple;
 import io.sapl.test.grammar.sAPLTest.Once;
 import io.sapl.test.grammar.sAPLTest.ParameterMatcher;
-import io.sapl.test.grammar.sAPLTest.Val;
+import io.sapl.test.grammar.sAPLTest.Value;
 import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.verification.TimesCalledVerification;
+import java.math.BigDecimal;
 import java.util.List;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.AfterEach;
@@ -56,7 +57,7 @@ class FunctionInterpreterTest {
     class InterpretFunctionTests {
 
         private Function functionMock;
-        private Val valMock;
+        private Value valMock;
         private io.sapl.api.interpreter.Val saplValMock;
 
         @BeforeEach
@@ -64,8 +65,8 @@ class FunctionInterpreterTest {
             functionMock = mock(Function.class);
             when(functionMock.getImportName()).thenReturn("fooFunction");
 
-            valMock = mock(Val.class);
-            when(functionMock.getReturnValue()).thenReturn(valMock);
+            valMock = mock(Value.class);
+            when(functionMock.getReturn()).thenReturn(valMock);
 
             saplValMock = mock(io.sapl.api.interpreter.Val.class);
             when(valInterpreterMock.getValFromReturnValue(valMock)).thenReturn(saplValMock);
@@ -158,7 +159,7 @@ class FunctionInterpreterTest {
             final var multipleMock = mock(Multiple.class);
 
             when(functionMock.getAmount()).thenReturn(multipleMock);
-            when(multipleMock.getAmount()).thenReturn(3);
+            when(multipleMock.getAmount()).thenReturn(BigDecimal.valueOf(3));
 
             final var functionParametersMock = mock(FunctionParameters.class);
             when(functionMock.getParameters()).thenReturn(functionParametersMock);
@@ -202,7 +203,7 @@ class FunctionInterpreterTest {
             final var multipleMock = mock(Multiple.class);
 
             when(functionMock.getAmount()).thenReturn(multipleMock);
-            when(multipleMock.getAmount()).thenReturn(3);
+            when(multipleMock.getAmount()).thenReturn(BigDecimal.valueOf(3));
 
             final var functionParametersMock = mock(FunctionParameters.class);
             when(functionMock.getParameters()).thenReturn(functionParametersMock);
@@ -250,7 +251,7 @@ class FunctionInterpreterTest {
             final var functionInvokecOnceMock = mock(FunctionInvokedOnce.class);
             when(functionInvokecOnceMock.getImportName()).thenReturn("fooFunction");
 
-            final var eListMock = Helper.mockEList(List.<Val>of());
+            final var eListMock = Helper.mockEList(List.<Value>of());
             when(functionInvokecOnceMock.getReturn()).thenReturn(eListMock);
 
             final var result = functionInterpreter.interpretFunctionInvokedOnce(givenOrWhenStepMock, functionInvokecOnceMock);
@@ -264,7 +265,7 @@ class FunctionInterpreterTest {
             final var functionInvokecOnceMock = mock(FunctionInvokedOnce.class);
             when(functionInvokecOnceMock.getImportName()).thenReturn("fooFunction");
 
-            final var valMock = mock(Val.class);
+            final var valMock = mock(Value.class);
             final var eListMock = Helper.mockEList(List.of(valMock));
             when(functionInvokecOnceMock.getReturn()).thenReturn(eListMock);
 
@@ -283,8 +284,8 @@ class FunctionInterpreterTest {
             final var functionInvokecOnceMock = mock(FunctionInvokedOnce.class);
             when(functionInvokecOnceMock.getImportName()).thenReturn("fooFunction");
 
-            final var valMock = mock(Val.class);
-            final var valMock2 = mock(Val.class);
+            final var valMock = mock(Value.class);
+            final var valMock2 = mock(Value.class);
             final var eListMock = Helper.mockEList(List.of(valMock, valMock2));
             when(functionInvokecOnceMock.getReturn()).thenReturn(eListMock);
 

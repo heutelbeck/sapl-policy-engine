@@ -19,12 +19,12 @@ public class FunctionInterpreter {
 
     GivenOrWhenStep interpretFunction(GivenOrWhenStep initial, Function function) {
         final var importName = function.getImportName();
-        final var returnValue = valInterpreter.getValFromReturnValue(function.getReturnValue());
+        final var returnValue = valInterpreter.getValFromReturnValue(function.getReturn());
 
         var timesCalled = 0;
 
         if (function.getAmount() instanceof Multiple multiple) {
-            timesCalled = multiple.getAmount();
+            timesCalled = multiple.getAmount().intValue();
         } else if (function.getAmount() instanceof Once) {
             timesCalled = 1;
         }

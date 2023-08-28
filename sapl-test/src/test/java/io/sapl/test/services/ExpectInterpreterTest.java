@@ -14,6 +14,7 @@ import io.sapl.test.Helper;
 import io.sapl.test.grammar.sAPLTest.*;
 import io.sapl.test.steps.ExpectOrVerifyStep;
 import io.sapl.test.steps.VerifyStep;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.List;
 import org.hamcrest.Matcher;
@@ -144,7 +145,7 @@ class ExpectInterpreterTest {
 
                 final var multipleMock = mock(Multiple.class);
                 when(nextMock.getAmount()).thenReturn(multipleMock);
-                when(multipleMock.getAmount()).thenReturn(3);
+                when(multipleMock.getAmount()).thenReturn(BigDecimal.valueOf(3));
 
                 when(nextMock.getExpectedDecision()).thenReturn(io.sapl.test.grammar.sAPLTest.AuthorizationDecision.DENY);
 
@@ -205,7 +206,7 @@ class ExpectInterpreterTest {
 
                 final var multipleMock = mock(Multiple.class);
                 when(nextMock.getAmount()).thenReturn(multipleMock);
-                when(multipleMock.getAmount()).thenReturn(5);
+                when(multipleMock.getAmount()).thenReturn(BigDecimal.valueOf(5));
 
                 when(nextMock.getExpectedDecision()).thenReturn(io.sapl.test.grammar.sAPLTest.AuthorizationDecision.NOT_APPLICABLE);
 
@@ -455,7 +456,7 @@ class ExpectInterpreterTest {
                 final var eListMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of(attributeAdjustmentMock));
                 when(repeatedExpectMock.getExpectSteps()).thenReturn(eListMock);
 
-                final var valMock = mock(Val.class);
+                final var valMock = mock(Value.class);
                 when(attributeAdjustmentMock.getReturnValue()).thenReturn(valMock);
                 final var saplValMock = mock(io.sapl.api.interpreter.Val.class);
                 when(valInterpreterMock.getValFromReturnValue(valMock)).thenReturn(saplValMock);
@@ -483,7 +484,7 @@ class ExpectInterpreterTest {
                 final var temporalAmountMock = mock(TemporalAmount.class);
                 when(awaitMock.getDuration()).thenReturn(temporalAmountMock);
 
-                when(temporalAmountMock.getSeconds()).thenReturn(5);
+                when(temporalAmountMock.getSeconds()).thenReturn(BigDecimal.valueOf(5));
 
                 when(expectOrVerifyStepMock.thenAwait(Duration.ofSeconds(5))).thenReturn(expectOrVerifyStepMock);
 
@@ -507,7 +508,7 @@ class ExpectInterpreterTest {
                 final var temporalAmountMock = mock(TemporalAmount.class);
                 when(noEventMock.getDuration()).thenReturn(temporalAmountMock);
 
-                when(temporalAmountMock.getSeconds()).thenReturn(3);
+                when(temporalAmountMock.getSeconds()).thenReturn(BigDecimal.valueOf(3));
 
                 when(expectOrVerifyStepMock.expectNoEvent(Duration.ofSeconds(3))).thenReturn(expectOrVerifyStepMock);
 

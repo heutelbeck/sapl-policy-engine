@@ -10,6 +10,7 @@ import io.sapl.test.grammar.sAPLTest.Attribute;
 import io.sapl.test.grammar.sAPLTest.AttributeWithParameters;
 import io.sapl.test.grammar.sAPLTest.TemporalAmount;
 import io.sapl.test.steps.GivenOrWhenStep;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +30,7 @@ public class AttributeInterpreter {
         } else {
             final var values = attribute.getReturn().stream().map(valInterpreter::getValFromReturnValue).toArray(Val[]::new);
 
-            final var duration = Duration.ofSeconds(Optional.ofNullable(attribute.getAmount()).map(TemporalAmount::getSeconds).orElse(0));
+            final var duration = Duration.ofSeconds(Optional.ofNullable(attribute.getAmount()).map(TemporalAmount::getSeconds).orElse(BigDecimal.ZERO).intValue());
             if (duration.isZero()) {
                 return initial.givenAttribute(importName, values);
             }

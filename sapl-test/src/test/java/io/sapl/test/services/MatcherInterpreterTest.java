@@ -10,7 +10,7 @@ import io.sapl.hamcrest.IsVal;
 import io.sapl.test.grammar.sAPLTest.Any;
 import io.sapl.test.grammar.sAPLTest.Equals;
 import io.sapl.test.grammar.sAPLTest.ParameterMatcher;
-import io.sapl.test.grammar.sAPLTest.Val;
+import io.sapl.test.grammar.sAPLTest.Value;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,7 +47,7 @@ class MatcherInterpreterTest {
     @Test
     void getValMatcherFromParameterMatcher_forEqualsParameterMatcher_returnsIsMatcher() {
         final var equalsMock = mock(Equals.class);
-        final var valMock = mock(Val.class);
+        final var valMock = mock(Value.class);
         when(equalsMock.getValue()).thenReturn(valMock);
 
         final var saplValMock = mock(io.sapl.api.interpreter.Val.class);

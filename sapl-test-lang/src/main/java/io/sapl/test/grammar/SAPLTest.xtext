@@ -22,22 +22,17 @@ ExpectMatcher:
     {ObligationMatcher} 'obligation' value=STRING;
 
 ParameterMatcher:
-    {Equals} value=Val |
+    {Equals} value=Value |
     {Any} 'any';
 
 FunctionParameters:
     matchers+=ParameterMatcher (',' matchers+=ParameterMatcher)*;
 
-Val:
-    {IntVal} value=INT |
-    {StringVal} value=STRING |
-    {BoolVal} (isTrue?='true' | 'false');
-
 GivenStep:
-	{Function} 'function' importName=IMPORT_NAME ('called with' parameters=FunctionParameters)? 'returns' returnValue=Val ('and' 'is' 'invoked' amount=NumericAmount)? |
-	{FunctionInvokedOnce} 'function' importName=IMPORT_NAME 'returns' return+=Val (',' return+=Val)* 'once' |
-	{Attribute} 'attribute' importName=IMPORT_NAME ('returns' return+=Val (',' return+=Val)* ('for' amount=TemporalAmount)?)? |
-	{AttributeWithParameters} 'attribute' importName=IMPORT_NAME 'with' 'parent' 'value' parentMatcher=ParameterMatcher ('and' 'parameters' parameters+=Val (',' parameters+=Val)+)? 'returns' return=Val |
+	{Function} 'function' importName=IMPORT_NAME ('called with' parameters=FunctionParameters)? 'returning' return=Value ('and' 'is' 'invoked' amount=NumericAmount)? |
+	{FunctionInvokedOnce} 'function' importName=IMPORT_NAME 'returns' return+=Value (',' return+=Value)* 'once' |
+	{Attribute} 'attribute' importName=IMPORT_NAME ('returns' return+=Value (',' return+=Value)* ('for' amount=TemporalAmount)?)? |
+	{AttributeWithParameters} 'attribute' importName=IMPORT_NAME 'with' 'parent' 'value' parentMatcher=ParameterMatcher ('and' 'parameters' parameters+=Value (',' parameters+=Value)+)? 'returns' return=Value |
 	{VirtualTime} 'virtualTime' |
     {Pip} 'PIP' pip=ID |
     {Library} 'functionLibrary' library=FunctionLibrary |
@@ -58,9 +53,9 @@ AuthorizationSubscription:
 
 NumericAmount:
     {Once} 'once' |
-    {Multiple} amount=INT 'times';
+    {Multiple} amount=JSONNUMBER 'times';
 
-TemporalAmount: seconds=INT's';
+TemporalAmount: seconds=JSONNUMBER's';
 
 ExpectOrAdjustmentStep:
     ExpectStep | AdjustmentStep;
@@ -71,7 +66,7 @@ ExpectStep returns ExpectOrAdjustmentStep:
 	{NoEvent} 'no event for' duration=TemporalAmount;
 
 AdjustmentStep returns ExpectOrAdjustmentStep:
-    {AttributeAdjustment} 'let' attribute=IMPORT_NAME 'return' returnValue=Val |
+    {AttributeAdjustment} 'let' attribute=IMPORT_NAME 'return' returnValue=Value |
 	{Await} 'wait' duration=TemporalAmount;
 
 JsonElement:
@@ -85,5 +80,36 @@ ExpectChain:
 TestCase:
 	'scenario' name=STRING ('given' givenSteps+=GivenStep ('and' givenSteps+=GivenStep)*)? whenStep=WhenStep 'then' expect=ExpectChain';';
 
+Value:
+	Object | Array | NumberLiteral | StringLiteral | BooleanLiteral | NullLiteral | UndefinedLiteral ;
 
+Object returns Value:
+	{Object} '{' (members+=Pair (',' members+=Pair)*)? '}' ;
 
+Pair:
+	key=STRING ':' value=Value;
+
+Array returns Value:
+	{Array} '[' (items+=Value (',' items+=Value)*)? ']' ;
+
+BooleanLiteral returns Value:
+	  {TrueLiteral} 'true'
+	| {FalseLiteral} 'false' ;
+
+NullLiteral returns Value:
+	{NullLiteral} 'null' ;
+
+UndefinedLiteral returns Value:
+	{UndefinedLiteral} 'undefined' ;
+
+StringLiteral returns Value:
+	{StringLiteral} string=STRING ;
+
+NumberLiteral returns Value:
+	{NumberLiteral} number=JSONNUMBER ;
+
+terminal JSONNUMBER returns ecore::EBigDecimal: // Definition according to JSON standard  Unary operator for negation/plus prefix
+	('0' | ('1'..'9') DIGIT*) ('.' DIGIT+)? (('E' | 'e') ('+' | '-')? DIGIT+)? ;
+
+terminal fragment DIGIT:
+	('0'..'9') ;

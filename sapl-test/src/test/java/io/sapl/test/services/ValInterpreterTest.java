@@ -6,10 +6,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.sapl.test.grammar.sAPLTest.BoolVal;
-import io.sapl.test.grammar.sAPLTest.IntVal;
-import io.sapl.test.grammar.sAPLTest.StringVal;
-import io.sapl.test.grammar.sAPLTest.Val;
+import io.sapl.test.grammar.sAPLTest.FalseLiteral;
+import io.sapl.test.grammar.sAPLTest.NumberLiteral;
+import io.sapl.test.grammar.sAPLTest.StringLiteral;
+import io.sapl.test.grammar.sAPLTest.TrueLiteral;
+import io.sapl.test.grammar.sAPLTest.Value;
+import java.math.BigDecimal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -30,7 +32,7 @@ class ValInterpreterTest {
 
         @Test
         void getValFromReturnValue_handlesUnknownVal_returnsNull() {
-            final var valMock = mock(Val.class);
+            final var valMock = mock(Value.class);
             final var result = valInterpreter.getValFromReturnValue(valMock);
 
             assertNull(result);
@@ -38,8 +40,8 @@ class ValInterpreterTest {
 
         @Test
         void getValFromReturnValue_handlesIntVal_returnsSaplVal() {
-            final var valMock = mock(IntVal.class);
-            when(valMock.getValue()).thenReturn(5);
+            final var valMock = mock(NumberLiteral.class);
+            when(valMock.getNumber()).thenReturn(BigDecimal.valueOf(5));
 
             final var result = valInterpreter.getValFromReturnValue(valMock);
 
@@ -48,8 +50,8 @@ class ValInterpreterTest {
 
         @Test
         void getValFromReturnValue_handlesStringVal_returnsSaplVal() {
-            final var valMock = mock(StringVal.class);
-            when(valMock.getValue()).thenReturn("foo");
+            final var valMock = mock(StringLiteral.class);
+            when(valMock.getString()).thenReturn("foo");
 
             final var result = valInterpreter.getValFromReturnValue(valMock);
 
@@ -57,13 +59,21 @@ class ValInterpreterTest {
         }
 
         @Test
-        void getValFromReturnValue_handlesBoolVal_returnsSaplVal() {
-            final var valMock = mock(BoolVal.class);
-            when(valMock.isIsTrue()).thenReturn(false);
+        void getValFromReturnValue_handlesFalseLiteral_returnsSaplVal() {
+            final var valMock = mock(FalseLiteral.class);
 
             final var result = valInterpreter.getValFromReturnValue(valMock);
 
             assertEquals(io.sapl.api.interpreter.Val.of(false), result);
+        }
+
+        @Test
+        void getValFromReturnValue_handlesTrueLiteral_returnsSaplVal() {
+            final var valMock = mock(TrueLiteral.class);
+
+            final var result = valInterpreter.getValFromReturnValue(valMock);
+
+            assertEquals(io.sapl.api.interpreter.Val.of(true), result);
         }
     }
 
@@ -73,7 +83,7 @@ class ValInterpreterTest {
     class getValMatcherFromVal {
         @Test
         void getValMatcherFromVal_handlesUnknownVal_returnsNull() {
-            final var valMock = mock(Val.class);
+            final var valMock = mock(Value.class);
             final var result = valInterpreter.getValMatcherFromVal(valMock);
 
             assertNull(result);
@@ -81,8 +91,8 @@ class ValInterpreterTest {
 
         @Test
         void getValMatcherFromVal_handlesIntVal_returnsExpectedMatcherForSaplVal() {
-            final var valMock = mock(IntVal.class);
-            when(valMock.getValue()).thenReturn(5);
+            final var valMock = mock(NumberLiteral.class);
+            when(valMock.getNumber()).thenReturn(BigDecimal.valueOf(5));
 
             final var result = valInterpreter.getValMatcherFromVal(valMock);
 
@@ -91,8 +101,8 @@ class ValInterpreterTest {
 
         @Test
         void getValMatcherFromVal_handlesStringVal_returnsExpectedMatcherForSaplVal() {
-            final var valMock = mock(StringVal.class);
-            when(valMock.getValue()).thenReturn("foo");
+            final var valMock = mock(StringLiteral.class);
+            when(valMock.getString()).thenReturn("foo");
 
             final var result = valInterpreter.getValMatcherFromVal(valMock);
 
@@ -100,13 +110,21 @@ class ValInterpreterTest {
         }
 
         @Test
-        void getValMatcherFromVal_handlesBoolVal_returnsExpectedMatcherForSaplVal() {
-            final var valMock = mock(BoolVal.class);
-            when(valMock.isIsTrue()).thenReturn(false);
+        void getValMatcherFromVal_handlesFalseLiteral_returnsExpectedMatcherForSaplVal() {
+            final var valMock = mock(FalseLiteral.class);
 
             final var result = valInterpreter.getValMatcherFromVal(valMock);
 
             assertTrue(result.matches(io.sapl.api.interpreter.Val.of(false)));
+        }
+
+        @Test
+        void getValMatcherFromVal_handlesTrueLiteral_returnsExpectedMatcherForSaplVal() {
+            final var valMock = mock(TrueLiteral.class);
+
+            final var result = valInterpreter.getValMatcherFromVal(valMock);
+
+            assertTrue(result.matches(io.sapl.api.interpreter.Val.of(true)));
         }
     }
 }

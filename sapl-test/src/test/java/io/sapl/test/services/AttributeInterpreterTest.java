@@ -12,9 +12,10 @@ import io.sapl.test.grammar.sAPLTest.Attribute;
 import io.sapl.test.grammar.sAPLTest.AttributeWithParameters;
 import io.sapl.test.grammar.sAPLTest.ParameterMatcher;
 import io.sapl.test.grammar.sAPLTest.TemporalAmount;
-import io.sapl.test.grammar.sAPLTest.Val;
+import io.sapl.test.grammar.sAPLTest.Value;
 import io.sapl.test.mocking.attribute.models.AttributeParameters;
 import io.sapl.test.steps.GivenOrWhenStep;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.List;
 import org.eclipse.emf.common.util.EList;
@@ -62,7 +63,7 @@ class AttributeInterpreterTest {
         @Test
         void interpretAttribute_whenReturnValueIsEmpty_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
             final var attributeMock = mock(Attribute.class);
-            final var eListMock = Helper.mockEList(List.<Val>of());
+            final var eListMock = Helper.mockEList(List.<Value>of());
             when(attributeMock.getImportName()).thenReturn("fooAttribute");
             when(attributeMock.getReturn()).thenReturn(eListMock);
             when(givenOrWhenStepMock.givenAttribute("fooAttribute")).thenReturn(givenOrWhenStepMock);
@@ -74,7 +75,7 @@ class AttributeInterpreterTest {
 
         @Test
         void interpretAttribute_withReturnValueAndNoDuration_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
-            final var valMock = mock(Val.class);
+            final var valMock = mock(Value.class);
             final var saplValMock = mock(io.sapl.api.interpreter.Val.class);
             final var eListMock = Helper.mockEList(List.of(valMock));
             final var attributeMock = mock(Attribute.class);
@@ -94,7 +95,7 @@ class AttributeInterpreterTest {
 
         @Test
         void interpretAttribute_withReturnValueAndDuration_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
-            final var valMock = mock(Val.class);
+            final var valMock = mock(Value.class);
             final var saplValMock = mock(io.sapl.api.interpreter.Val.class);
             final var eListMock = Helper.mockEList(List.of(valMock));
             final var attributeMock = mock(Attribute.class);
@@ -105,7 +106,7 @@ class AttributeInterpreterTest {
 
             when(valInterpreterMock.getValFromReturnValue(valMock)).thenReturn(saplValMock);
             when(attributeMock.getAmount()).thenReturn(temporalAmountMock);
-            when(temporalAmountMock.getSeconds()).thenReturn(5);
+            when(temporalAmountMock.getSeconds()).thenReturn(BigDecimal.valueOf(5));
 
             when(givenOrWhenStepMock.givenAttribute("fooAttribute", Duration.ofSeconds(5L), saplValMock)).thenReturn(givenOrWhenStepMock);
 
@@ -121,7 +122,7 @@ class AttributeInterpreterTest {
         private AttributeWithParameters attributeWithParametersMock;
         private ParameterMatcher parentMatcherMock;
         private Matcher<io.sapl.api.interpreter.Val> parentValueMatcherMock;
-        private Val returnValMock;
+        private Value returnValMock;
         private io.sapl.api.interpreter.Val returnValueMock;
 
         @BeforeEach
@@ -135,7 +136,7 @@ class AttributeInterpreterTest {
             parentValueMatcherMock = mock(Matcher.class);
             when(matcherInterpreterMock.getValMatcherFromParameterMatcher(parentMatcherMock)).thenReturn(parentValueMatcherMock);
 
-            returnValMock = mock(Val.class);
+            returnValMock = mock(Value.class);
             when(attributeWithParametersMock.getReturn()).thenReturn(returnValMock);
 
             returnValueMock = mock(io.sapl.api.interpreter.Val.class);
@@ -169,8 +170,8 @@ class AttributeInterpreterTest {
 
         @Test
         void interpretAttributeWithParameters_withMultipleArguments_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
-            final var val1Mock = mock(Val.class);
-            final var val2Mock = mock(Val.class);
+            final var val1Mock = mock(Value.class);
+            final var val2Mock = mock(Value.class);
             final var eListMock = mock(EList.class, AdditionalAnswers.delegatesTo(List.of(val1Mock, val2Mock)));
             when(attributeWithParametersMock.getParameters()).thenReturn(eListMock);
 

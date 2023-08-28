@@ -48,10 +48,10 @@ public class ExpectInterpreter {
                 final var returnValue = valInterpreter.getValFromReturnValue(attributeAdjustment.getReturnValue());
                 expectOrVerifyStep = expectOrVerifyStep.thenAttribute(attributeAdjustment.getAttribute(), returnValue);
             } else if (expectOrAdjustmentStep instanceof Await await) {
-                final var duration = Duration.ofSeconds(await.getDuration().getSeconds());
+                final var duration = Duration.ofSeconds(await.getDuration().getSeconds().longValue());
                 expectOrVerifyStep = expectOrVerifyStep.thenAwait(duration);
             } else if (expectOrAdjustmentStep instanceof NoEvent noEvent) {
-                final var duration = Duration.ofSeconds(noEvent.getDuration().getSeconds());
+                final var duration = Duration.ofSeconds(noEvent.getDuration().getSeconds().longValue());
                 expectOrVerifyStep = expectOrVerifyStep.expectNoEvent(duration);
             }
         }
@@ -59,7 +59,7 @@ public class ExpectInterpreter {
     }
 
     private ExpectOrVerifyStep constructNext(final ExpectOrVerifyStep expectOrVerifyStep, final Next nextExpect) {
-        final var actualAmount = nextExpect.getAmount() instanceof Multiple multiple ? multiple.getAmount() : 1;
+        final var actualAmount = nextExpect.getAmount() instanceof Multiple multiple ? multiple.getAmount().intValue() : 1;
 
         return switch (nextExpect.getExpectedDecision()) {
             case PERMIT -> expectOrVerifyStep.expectNextPermit(actualAmount);
