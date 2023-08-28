@@ -1,7 +1,6 @@
 package io.sapl.test.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -14,6 +13,7 @@ import io.sapl.functions.LoggingFunctionLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
 import io.sapl.interpreter.InitializationException;
+import io.sapl.test.grammar.sAPLTest.FunctionLibrary;
 import io.sapl.test.grammar.sAPLTest.GivenStep;
 import io.sapl.test.grammar.sAPLTest.Library;
 import io.sapl.test.grammar.sAPLTest.Pip;
@@ -21,7 +21,6 @@ import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.unit.SaplUnitTestFixture;
 import java.util.ArrayList;
 import java.util.List;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -38,10 +37,6 @@ class TestFixtureBuilderTest {
         pipMock = mock(Object.class);
         unitTestFixtureMock = mock(SaplUnitTestFixture.class);
         testFixtureBuilder = new TestFixtureBuilder(pipMock);
-    }
-
-    @AfterEach
-    void tearDown() {
     }
 
     @Test
@@ -64,18 +59,6 @@ class TestFixtureBuilderTest {
         final var result = testFixtureBuilder.buildTestFixture(List.of(), unitTestFixtureMock);
 
         assertEquals(testCaseMock, result);
-    }
-
-    @Test
-    void buildTestFixture_handlesMultipleGivenStepsWithUnknownLibraryFixtureRegistrations_throwsIllegalStateException() {
-        final var givenStepMock = mock(Library.class);
-        final var givenStep2Mock = mock(GivenStep.class);
-
-        final var givenSteps = new ArrayList<>(List.of(givenStepMock, givenStep2Mock));
-
-        when(givenStepMock.getLibrary()).thenReturn("UnknownLibrary");
-
-        assertThrows(IllegalStateException.class, () -> testFixtureBuilder.buildTestFixture(givenSteps, unitTestFixtureMock));
     }
 
     @Test
@@ -107,7 +90,7 @@ class TestFixtureBuilderTest {
 
         final var givenSteps = new ArrayList<>(List.of(givenStepMock, givenStep2Mock, givenStep3Mock));
 
-        when(givenStep2Mock.getLibrary()).thenReturn("FilterFunctionLibrary");
+        when(givenStep2Mock.getLibrary()).thenReturn(FunctionLibrary.FILTER);
         when(unitTestFixtureMock.registerFunctionLibrary(any(FilterFunctionLibrary.class))).thenReturn(unitTestFixtureMock);
         when(unitTestFixtureMock.constructTestCaseWithMocks()).thenReturn(testCaseWithMocksMock);
 
@@ -153,7 +136,7 @@ class TestFixtureBuilderTest {
         final var givenSteps = new ArrayList<>(List.of(givenStepMock, givenStep2Mock, givenStep3Mock, givenStep4Mock));
 
         when(unitTestFixtureMock.registerPIP(pipMock)).thenReturn(unitTestFixtureMock);
-        when(givenStep3Mock.getLibrary()).thenReturn("StandardFunctionLibrary");
+        when(givenStep3Mock.getLibrary()).thenReturn(FunctionLibrary.STANDARD);
         when(unitTestFixtureMock.registerFunctionLibrary(any(StandardFunctionLibrary.class))).thenReturn(unitTestFixtureMock);
         when(unitTestFixtureMock.constructTestCaseWithMocks()).thenReturn(testCaseWithMocksMock);
 
@@ -178,7 +161,7 @@ class TestFixtureBuilderTest {
         final var givenSteps = new ArrayList<>(List.of(givenStepMock, givenStep2Mock, givenStep3Mock, givenStep4Mock));
 
         when(unitTestFixtureMock.registerPIP(pipMock)).thenReturn(unitTestFixtureMock);
-        when(givenStep3Mock.getLibrary()).thenReturn("LoggingFunctionLibrary");
+        when(givenStep3Mock.getLibrary()).thenReturn(FunctionLibrary.LOGGING);
         when(unitTestFixtureMock.registerFunctionLibrary(any(LoggingFunctionLibrary.class))).thenReturn(unitTestFixtureMock);
         when(unitTestFixtureMock.constructTestCaseWithMocks()).thenReturn(testCaseWithMocksMock);
 
@@ -203,7 +186,7 @@ class TestFixtureBuilderTest {
         final var givenSteps = new ArrayList<>(List.of(givenStepMock, givenStep2Mock, givenStep3Mock, givenStep4Mock));
 
         when(unitTestFixtureMock.registerPIP(pipMock)).thenReturn(unitTestFixtureMock);
-        when(givenStep3Mock.getLibrary()).thenReturn("TemporalFunctionLibrary");
+        when(givenStep3Mock.getLibrary()).thenReturn(FunctionLibrary.TEMPORAL);
         when(unitTestFixtureMock.registerFunctionLibrary(any(TemporalFunctionLibrary.class))).thenReturn(unitTestFixtureMock);
         when(unitTestFixtureMock.constructTestCaseWithMocks()).thenReturn(testCaseWithMocksMock);
 

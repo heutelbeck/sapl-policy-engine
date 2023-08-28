@@ -48,10 +48,10 @@ public class ExpectInterpreter {
                 final var returnValue = valInterpreter.getValFromReturnValue(attributeAdjustment.getReturnValue());
                 expectOrVerifyStep = expectOrVerifyStep.thenAttribute(attributeAdjustment.getAttribute(), returnValue);
             } else if (expectOrAdjustmentStep instanceof Await await) {
-                final var duration = Duration.ofSeconds(await.getAmount().getSeconds());
+                final var duration = Duration.ofSeconds(await.getDuration().getSeconds());
                 expectOrVerifyStep = expectOrVerifyStep.thenAwait(duration);
             } else if (expectOrAdjustmentStep instanceof NoEvent noEvent) {
-                final var duration = Duration.ofSeconds(noEvent.getDuration());
+                final var duration = Duration.ofSeconds(noEvent.getDuration().getSeconds());
                 expectOrVerifyStep = expectOrVerifyStep.expectNoEvent(duration);
             }
         }
@@ -62,9 +62,9 @@ public class ExpectInterpreter {
         final var actualAmount = nextExpect.getAmount() instanceof Multiple multiple ? multiple.getAmount() : 1;
 
         return switch (nextExpect.getExpectedDecision()) {
-            case "permit" -> expectOrVerifyStep.expectNextPermit(actualAmount);
-            case "deny" -> expectOrVerifyStep.expectNextDeny(actualAmount);
-            case "indeterminate" -> expectOrVerifyStep.expectNextIndeterminate(actualAmount);
+            case PERMIT -> expectOrVerifyStep.expectNextPermit(actualAmount);
+            case DENY -> expectOrVerifyStep.expectNextDeny(actualAmount);
+            case INDETERMINATE -> expectOrVerifyStep.expectNextIndeterminate(actualAmount);
             default -> expectOrVerifyStep.expectNextNotApplicable(actualAmount);
         };
     }
@@ -89,9 +89,9 @@ public class ExpectInterpreter {
         return matcher -> {
             if (matcher instanceof AuthorizationDecisionMatcher authorizationDecisionMatcher) {
                 return switch (authorizationDecisionMatcher.getDecision()) {
-                    case "permit" -> isPermit();
-                    case "deny" -> isDeny();
-                    case "indeterminate" -> isIndeterminate();
+                    case PERMIT -> isPermit();
+                    case DENY -> isDeny();
+                    case INDETERMINATE -> isIndeterminate();
                     default -> isNotApplicable();
                 };
             } else if (matcher instanceof ObligationMatcher obligationMatcher) {

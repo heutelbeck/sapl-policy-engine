@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import io.sapl.test.Helper;
 import io.sapl.test.Imports;
 import io.sapl.test.grammar.sAPLTest.Function;
 import io.sapl.test.grammar.sAPLTest.FunctionInvokedOnce;

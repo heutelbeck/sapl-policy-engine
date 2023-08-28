@@ -14,6 +14,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.sapl.interpreter.InitializationException;
+import io.sapl.test.Helper;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sAPLTest.ExpectChain;
 import io.sapl.test.grammar.sAPLTest.GivenStep;
@@ -22,10 +23,10 @@ import io.sapl.test.grammar.sAPLTest.TestCase;
 import io.sapl.test.grammar.sAPLTest.TestException;
 import io.sapl.test.grammar.sAPLTest.TestSuite;
 import io.sapl.test.interfaces.ExpectStepBuilder;
-import io.sapl.test.interfaces.GivenStepBuilder;
 import io.sapl.test.interfaces.SaplTestDslInterpreter;
 import io.sapl.test.interfaces.TestProvider;
 import io.sapl.test.interfaces.VerifyStepBuilder;
+import io.sapl.test.interfaces.WhenStepBuilder;
 import io.sapl.test.steps.ExpectOrVerifyStep;
 import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.steps.VerifyStep;
@@ -58,7 +59,7 @@ class TestBuilderServiceDefaultImplTest {
 
     private TestProvider testProviderMock;
     private TestFixtureBuilder testFixtureBuilderMock;
-    private GivenStepBuilder givenStepBuilderMock;
+    private WhenStepBuilder whenStepBuilderMock;
     private ExpectStepBuilder expectStepBuilderMock;
     private VerifyStepBuilder verifyStepBuilderMock;
     private SaplTestDslInterpreter saplTestDslInterpreterMock;
@@ -73,13 +74,13 @@ class TestBuilderServiceDefaultImplTest {
 
         testProviderMock = mock(TestProvider.class);
         testFixtureBuilderMock = mock(TestFixtureBuilder.class);
-        givenStepBuilderMock = mock(GivenStepBuilder.class);
+        whenStepBuilderMock = mock(WhenStepBuilder.class);
         expectStepBuilderMock = mock(ExpectStepBuilder.class);
         verifyStepBuilderMock = mock(VerifyStepBuilder.class);
         saplTestDslInterpreterMock = mock(SaplTestDslInterpreter.class);
 
 
-        testBuilderServiceDefaultImpl = new TestBuilderServiceDefaultImpl(testProviderMock, testFixtureBuilderMock, givenStepBuilderMock, expectStepBuilderMock, verifyStepBuilderMock, saplTestDslInterpreterMock);
+        testBuilderServiceDefaultImpl = new TestBuilderServiceDefaultImpl(testProviderMock, testFixtureBuilderMock, whenStepBuilderMock, expectStepBuilderMock, verifyStepBuilderMock, saplTestDslInterpreterMock);
     }
 
     @AfterEach
@@ -240,7 +241,7 @@ class TestBuilderServiceDefaultImplTest {
 
         private VerifyStep mockTestBuildingChain(List<GivenStep> givenSteps, GivenOrWhenStep testFixture, TestCase testCase) {
             final var whenStepMock = mock(WhenStep.class);
-            when(givenStepBuilderMock.constructWhenStep(givenSteps, testFixture)).thenReturn(whenStepMock);
+            when(whenStepBuilderMock.constructWhenStep(givenSteps, testFixture)).thenReturn(whenStepMock);
 
             final var expectOrVerifyStepMock = mock(ExpectOrVerifyStep.class);
             when(expectStepBuilderMock.constructExpectStep(testCase, whenStepMock)).thenReturn(expectOrVerifyStepMock);
@@ -319,7 +320,7 @@ class TestBuilderServiceDefaultImplTest {
 
             captureAndExecuteTestCaseExecutable("singleTest");
 
-            verify(givenStepBuilderMock, times(1)).constructWhenStep(givenStepsMock, testFixtureMock);
+            verify(whenStepBuilderMock, times(1)).constructWhenStep(givenStepsMock, testFixtureMock);
         }
 
         @Test
@@ -343,7 +344,7 @@ class TestBuilderServiceDefaultImplTest {
 
             captureAndExecuteTestCaseExecutable("singleTest");
 
-            verify(givenStepBuilderMock, times(1)).constructWhenStep(givenStepsMock, testFixtureMock);
+            verify(whenStepBuilderMock, times(1)).constructWhenStep(givenStepsMock, testFixtureMock);
             verify(verifyStepMock, times(1)).verify();
         }
 
@@ -386,7 +387,7 @@ class TestBuilderServiceDefaultImplTest {
             captureAndExecuteTestCaseExecutable("testCaseWithException");
             captureAndExecuteTestCaseExecutable("testCaseWithoutException2");
 
-            verify(givenStepBuilderMock, times(1)).constructWhenStep(givenSteps2Mock, testFixture2Mock);
+            verify(whenStepBuilderMock, times(1)).constructWhenStep(givenSteps2Mock, testFixture2Mock);
             verify(verifyStep1Mock, times(1)).verify();
             verify(verifyStep2Mock, times(1)).verify();
         }

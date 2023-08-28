@@ -1,4 +1,4 @@
-package io.sapl.test.services;
+package io.sapl.test;
 
 import static org.mockito.Mockito.mock;
 
@@ -7,7 +7,7 @@ import org.eclipse.emf.common.util.EList;
 import org.mockito.AdditionalAnswers;
 
 public class Helper {
-    static <T> EList<T> mockEList(List<T> delegate) {
+    public static <T> EList<T> mockEList(List<T> delegate) {
         return mock(EList.class, AdditionalAnswers.delegatesTo(delegate));
     }
 }

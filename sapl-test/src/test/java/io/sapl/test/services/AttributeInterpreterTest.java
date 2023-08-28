@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.sapl.test.Helper;
 import io.sapl.test.grammar.sAPLTest.Attribute;
 import io.sapl.test.grammar.sAPLTest.AttributeWithParameters;
 import io.sapl.test.grammar.sAPLTest.ParameterMatcher;

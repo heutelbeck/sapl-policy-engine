@@ -5,10 +5,10 @@ import io.sapl.test.grammar.sAPLTest.TestCase;
 import io.sapl.test.grammar.sAPLTest.TestException;
 import io.sapl.test.grammar.sAPLTest.TestSuite;
 import io.sapl.test.interfaces.ExpectStepBuilder;
-import io.sapl.test.interfaces.GivenStepBuilder;
 import io.sapl.test.interfaces.SaplTestDslInterpreter;
 import io.sapl.test.interfaces.TestProvider;
 import io.sapl.test.interfaces.VerifyStepBuilder;
+import io.sapl.test.interfaces.WhenStepBuilder;
 import io.sapl.test.steps.ExpectOrVerifyStep;
 import io.sapl.test.unit.SaplUnitTestFixture;
 import io.sapl.test.utils.ClasspathHelper;
@@ -21,7 +21,7 @@ public final class TestBuilderServiceDefaultImpl {
 
     private final TestProvider testProvider;
     private final TestFixtureBuilder testFixtureBuilder;
-    private final GivenStepBuilder givenStepBuilder;
+    private final WhenStepBuilder whenStepBuilder;
     private final ExpectStepBuilder expectStepBuilder;
     private final VerifyStepBuilder verifyStepBuilder;
     private final SaplTestDslInterpreter saplTestDslInterpreter;
@@ -64,10 +64,10 @@ public final class TestBuilderServiceDefaultImpl {
 
             if (testCase.getExpect() instanceof TestException) {
                 Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() ->
-                        givenStepBuilder.constructWhenStep(givenSteps, testFixture));
+                        whenStepBuilder.constructWhenStep(givenSteps, testFixture));
             } else {
 
-                final var whenStep = givenStepBuilder.constructWhenStep(givenSteps, testFixture);
+                final var whenStep = whenStepBuilder.constructWhenStep(givenSteps, testFixture);
                 final var expectStep = expectStepBuilder.constructExpectStep(testCase, whenStep);
                 final var verifyStep = verifyStepBuilder.constructVerifyStep(testCase, (ExpectOrVerifyStep) expectStep);
 

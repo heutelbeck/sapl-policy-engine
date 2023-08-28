@@ -5,6 +5,7 @@ import io.sapl.functions.LoggingFunctionLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
 import io.sapl.interpreter.InitializationException;
+import io.sapl.test.grammar.sAPLTest.FunctionLibrary;
 import io.sapl.test.grammar.sAPLTest.GivenStep;
 import io.sapl.test.grammar.sAPLTest.Library;
 import io.sapl.test.grammar.sAPLTest.Pip;
@@ -45,13 +46,12 @@ public class TestFixtureBuilder {
         }
     }
 
-    private Object getFunctionLibrary(String functionLibrary) {
+    private Object getFunctionLibrary(final FunctionLibrary functionLibrary) {
         return switch (functionLibrary) {
-            case "FilterFunctionLibrary" -> new FilterFunctionLibrary();
-            case "LoggingFunctionLibrary" -> new LoggingFunctionLibrary();
-            case "StandardFunctionLibrary" -> new StandardFunctionLibrary();
-            case "TemporalFunctionLibrary" -> new TemporalFunctionLibrary();
-            default -> throw new IllegalStateException("Unexpected value: " + functionLibrary);
+            case FILTER -> new FilterFunctionLibrary();
+            case LOGGING -> new LoggingFunctionLibrary();
+            case STANDARD -> new StandardFunctionLibrary();
+            case TEMPORAL -> new TemporalFunctionLibrary();
         };
     }
 }

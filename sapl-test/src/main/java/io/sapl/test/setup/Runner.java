@@ -32,7 +32,7 @@ public class Runner {
         final var authorizationDecisionInterpreter = new AuthorizationDecisionInterpreter(objectMapper);
         final var expectInterpreter = new ExpectInterpreter(valInterpreter, authorizationDecisionInterpreter);
 
-        final var givenStepBuilder = new GivenStepBuilderServiceDefaultImpl(functionInterpreter, attributeInterpreter);
+        final var givenStepBuilder = new WhenStepBuilderServiceDefaultImpl(functionInterpreter, attributeInterpreter);
         final var expectStepBuilder = new ExpectStepBuilderDefaultImpl(objectMapper);
         final var verifyStepBuilder = new VerifyStepBuilderServiceDefaultImpl(expectInterpreter);
         final var saplInterpreter = new SaplTestInterpreterDefaultImpl();

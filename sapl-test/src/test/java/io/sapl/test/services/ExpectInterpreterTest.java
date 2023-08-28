@@ -10,6 +10,7 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.hamcrest.HasObligation;
 import io.sapl.hamcrest.IsDecision;
 import io.sapl.hamcrest.Matchers;
+import io.sapl.test.Helper;
 import io.sapl.test.grammar.sAPLTest.*;
 import io.sapl.test.steps.ExpectOrVerifyStep;
 import io.sapl.test.steps.VerifyStep;
@@ -51,11 +52,11 @@ class ExpectInterpreterTest {
             when(singleExpectMock.getObligationElements()).thenReturn(obligationElementsMock);
             when(singleExpectMock.getResourceElements()).thenReturn(resourceElementsMock);
 
-            when(singleExpectMock.getDecision()).thenReturn("decision");
+            when(singleExpectMock.getDecision()).thenReturn(io.sapl.test.grammar.sAPLTest.AuthorizationDecision.PERMIT);
 
             final var authorizationDecisionMock = mock(AuthorizationDecision.class);
 
-            when(authorizationDecisionInterpreterMock.constructAuthorizationDecision("decision", obligationElementsMock, resourceElementsMock)).thenReturn(authorizationDecisionMock);
+            when(authorizationDecisionInterpreterMock.constructAuthorizationDecision(io.sapl.test.grammar.sAPLTest.AuthorizationDecision.PERMIT, obligationElementsMock, resourceElementsMock)).thenReturn(authorizationDecisionMock);
 
             final var verifyStepMock = mock(VerifyStep.class);
             when(expectOrVerifyStepMock.expect(authorizationDecisionMock)).thenReturn(verifyStepMock);
@@ -124,7 +125,7 @@ class ExpectInterpreterTest {
                 final var numericAmountMock = mock(NumericAmount.class);
                 when(nextMock.getAmount()).thenReturn(numericAmountMock);
 
-                when(nextMock.getExpectedDecision()).thenReturn("permit");
+                when(nextMock.getExpectedDecision()).thenReturn(io.sapl.test.grammar.sAPLTest.AuthorizationDecision.PERMIT);
 
                 when(expectOrVerifyStepMock.expectNextPermit(1)).thenReturn(expectOrVerifyStepMock);
 
@@ -145,7 +146,7 @@ class ExpectInterpreterTest {
                 when(nextMock.getAmount()).thenReturn(multipleMock);
                 when(multipleMock.getAmount()).thenReturn(3);
 
-                when(nextMock.getExpectedDecision()).thenReturn("deny");
+                when(nextMock.getExpectedDecision()).thenReturn(io.sapl.test.grammar.sAPLTest.AuthorizationDecision.DENY);
 
                 when(expectOrVerifyStepMock.expectNextDeny(3)).thenReturn(expectOrVerifyStepMock);
 
@@ -165,7 +166,7 @@ class ExpectInterpreterTest {
                 final var onceMock = mock(Once.class);
                 when(nextMock.getAmount()).thenReturn(onceMock);
 
-                when(nextMock.getExpectedDecision()).thenReturn("indeterminate");
+                when(nextMock.getExpectedDecision()).thenReturn(io.sapl.test.grammar.sAPLTest.AuthorizationDecision.INDETERMINATE);
 
                 when(expectOrVerifyStepMock.expectNextIndeterminate(1)).thenReturn(expectOrVerifyStepMock);
 
@@ -185,7 +186,7 @@ class ExpectInterpreterTest {
                 final var onceMock = mock(Once.class);
                 when(nextMock.getAmount()).thenReturn(onceMock);
 
-                when(nextMock.getExpectedDecision()).thenReturn("notApplicable");
+                when(nextMock.getExpectedDecision()).thenReturn(io.sapl.test.grammar.sAPLTest.AuthorizationDecision.NOT_APPLICABLE);
 
                 when(expectOrVerifyStepMock.expectNextNotApplicable(1)).thenReturn(expectOrVerifyStepMock);
 
@@ -195,7 +196,7 @@ class ExpectInterpreterTest {
             }
 
             @Test
-            void interpretRepeatedExpect_constructsNextNotApplicableForUnknownDecisionWithNumericAmountBeingMultiple_returnsVerifyStepWithNextPermitOnce() {
+            void interpretRepeatedExpect_constructsNextNotApplicableWithNumericAmountBeingMultiple_returnsVerifyStepWithNextPermitOnce() {
                 final var nextMock = mock(Next.class);
                 final var expectOrAdjustmentStepsMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of(nextMock));
                 final var repeatedExpectMock = mock(RepeatedExpect.class);
@@ -206,7 +207,7 @@ class ExpectInterpreterTest {
                 when(nextMock.getAmount()).thenReturn(multipleMock);
                 when(multipleMock.getAmount()).thenReturn(5);
 
-                when(nextMock.getExpectedDecision()).thenReturn("notApplicable");
+                when(nextMock.getExpectedDecision()).thenReturn(io.sapl.test.grammar.sAPLTest.AuthorizationDecision.NOT_APPLICABLE);
 
                 when(expectOrVerifyStepMock.expectNextNotApplicable(5)).thenReturn(expectOrVerifyStepMock);
 
@@ -297,7 +298,7 @@ class ExpectInterpreterTest {
                 final var matchersMock = Helper.mockEList(List.<ExpectMatcher>of(authorizationDecisionMatcherMock));
                 when(nextWithMatcherMock.getMatcher()).thenReturn(matchersMock);
 
-                when(authorizationDecisionMatcherMock.getDecision()).thenReturn("permit");
+                when(authorizationDecisionMatcherMock.getDecision()).thenReturn(io.sapl.test.grammar.sAPLTest.AuthorizationDecision.PERMIT);
 
                 final var isPermitMock = mock(IsDecision.class);
                 saplMatchersMockedStatic.when(Matchers::isPermit).thenReturn(isPermitMock);
@@ -321,7 +322,7 @@ class ExpectInterpreterTest {
                 final var matchersMock = Helper.mockEList(List.<ExpectMatcher>of(authorizationDecisionMatcherMock));
                 when(nextWithMatcherMock.getMatcher()).thenReturn(matchersMock);
 
-                when(authorizationDecisionMatcherMock.getDecision()).thenReturn("deny");
+                when(authorizationDecisionMatcherMock.getDecision()).thenReturn(io.sapl.test.grammar.sAPLTest.AuthorizationDecision.DENY);
 
                 final var isDenyMock = mock(IsDecision.class);
                 saplMatchersMockedStatic.when(Matchers::isDeny).thenReturn(isDenyMock);
@@ -345,7 +346,7 @@ class ExpectInterpreterTest {
                 final var matchersMock = Helper.mockEList(List.<ExpectMatcher>of(authorizationDecisionMatcherMock));
                 when(nextWithMatcherMock.getMatcher()).thenReturn(matchersMock);
 
-                when(authorizationDecisionMatcherMock.getDecision()).thenReturn("indeterminate");
+                when(authorizationDecisionMatcherMock.getDecision()).thenReturn(io.sapl.test.grammar.sAPLTest.AuthorizationDecision.INDETERMINATE);
 
                 final var isIndeterminateMock = mock(IsDecision.class);
                 saplMatchersMockedStatic.when(Matchers::isIndeterminate).thenReturn(isIndeterminateMock);
@@ -369,7 +370,7 @@ class ExpectInterpreterTest {
                 final var matchersMock = Helper.mockEList(List.<ExpectMatcher>of(authorizationDecisionMatcherMock));
                 when(nextWithMatcherMock.getMatcher()).thenReturn(matchersMock);
 
-                when(authorizationDecisionMatcherMock.getDecision()).thenReturn("notApplicable");
+                when(authorizationDecisionMatcherMock.getDecision()).thenReturn(io.sapl.test.grammar.sAPLTest.AuthorizationDecision.NOT_APPLICABLE);
 
                 final var isNotApplicableMock = mock(IsDecision.class);
                 saplMatchersMockedStatic.when(Matchers::isNotApplicable).thenReturn(isNotApplicableMock);
@@ -381,29 +382,6 @@ class ExpectInterpreterTest {
                 assertEquals(expectOrVerifyStepMock, result);
             }
 
-            @Test
-            void interpretRepeatedExpect_correctlyMapsSingleAuthorizationDecisionMatcherWithUnknownDecision_returnsAdjustedVerifyStep() {
-                final var nextWithMatcherMock = mock(NextWithMatcher.class);
-                final var expectOrAdjustmentStepsMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of(nextWithMatcherMock));
-                final var repeatedExpectMock = mock(RepeatedExpect.class);
-
-                when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
-
-                final var authorizationDecisionMatcherMock = mock(AuthorizationDecisionMatcher.class);
-                final var matchersMock = Helper.mockEList(List.<ExpectMatcher>of(authorizationDecisionMatcherMock));
-                when(nextWithMatcherMock.getMatcher()).thenReturn(matchersMock);
-
-                when(authorizationDecisionMatcherMock.getDecision()).thenReturn("foo");
-
-                final var isNotApplicableMock = mock(IsDecision.class);
-                saplMatchersMockedStatic.when(Matchers::isNotApplicable).thenReturn(isNotApplicableMock);
-
-                when(expectOrVerifyStepMock.expectNext(isNotApplicableMock)).thenReturn(expectOrVerifyStepMock);
-
-                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
-
-                assertEquals(expectOrVerifyStepMock, result);
-            }
 
             @Test
             void interpretRepeatedExpect_correctlyMapsSingleObligationMatcher_returnsAdjustedVerifyStep() {
@@ -450,7 +428,7 @@ class ExpectInterpreterTest {
                 final var hasObligationMatcherMock = mock(HasObligation.class);
                 saplMatchersMockedStatic.when(() -> Matchers.hasObligation("foo")).thenReturn(hasObligationMatcherMock);
 
-                when(authorizationDecisionMatcherMock.getDecision()).thenReturn("unknown");
+                when(authorizationDecisionMatcherMock.getDecision()).thenReturn(io.sapl.test.grammar.sAPLTest.AuthorizationDecision.NOT_APPLICABLE);
 
                 final var isNotApplicableMock = mock(IsDecision.class);
                 saplMatchersMockedStatic.when(Matchers::isNotApplicable).thenReturn(isNotApplicableMock);
@@ -503,7 +481,7 @@ class ExpectInterpreterTest {
                 when(repeatedExpectMock.getExpectSteps()).thenReturn(eListMock);
 
                 final var temporalAmountMock = mock(TemporalAmount.class);
-                when(awaitMock.getAmount()).thenReturn(temporalAmountMock);
+                when(awaitMock.getDuration()).thenReturn(temporalAmountMock);
 
                 when(temporalAmountMock.getSeconds()).thenReturn(5);
 
@@ -526,7 +504,10 @@ class ExpectInterpreterTest {
                 final var eListMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of(noEventMock));
                 when(repeatedExpectMock.getExpectSteps()).thenReturn(eListMock);
 
-                when(noEventMock.getDuration()).thenReturn(3);
+                final var temporalAmountMock = mock(TemporalAmount.class);
+                when(noEventMock.getDuration()).thenReturn(temporalAmountMock);
+
+                when(temporalAmountMock.getSeconds()).thenReturn(3);
 
                 when(expectOrVerifyStepMock.expectNoEvent(Duration.ofSeconds(3))).thenReturn(expectOrVerifyStepMock);
 

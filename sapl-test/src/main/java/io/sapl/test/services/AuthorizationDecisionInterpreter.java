@@ -13,7 +13,7 @@ public class AuthorizationDecisionInterpreter {
 
     private final ObjectMapper objectMapper;
 
-    AuthorizationDecision constructAuthorizationDecision(final String decision, final List<JsonElement> obligationElements, final List<JsonElement> resourceElements) {
+    AuthorizationDecision constructAuthorizationDecision(final io.sapl.test.grammar.sAPLTest.AuthorizationDecision decision, final List<JsonElement> obligationElements, final List<JsonElement> resourceElements) {
         var authorizationDecision = getAuthorizationDecisionFromDSL(decision);
 
         final var obligations = getObligations(obligationElements);
@@ -31,12 +31,12 @@ public class AuthorizationDecisionInterpreter {
         return authorizationDecision;
     }
 
-    private AuthorizationDecision getAuthorizationDecisionFromDSL(final String decision) {
+    private AuthorizationDecision getAuthorizationDecisionFromDSL(final io.sapl.test.grammar.sAPLTest.AuthorizationDecision decision) {
         return switch (decision) {
-            case "permit" -> AuthorizationDecision.PERMIT;
-            case "deny" -> AuthorizationDecision.DENY;
-            case "indeterminate" -> AuthorizationDecision.INDETERMINATE;
-            default -> AuthorizationDecision.NOT_APPLICABLE;
+            case PERMIT -> AuthorizationDecision.PERMIT;
+            case DENY -> AuthorizationDecision.DENY;
+            case INDETERMINATE -> AuthorizationDecision.INDETERMINATE;
+            case NOT_APPLICABLE -> AuthorizationDecision.NOT_APPLICABLE;
         };
     }
 

@@ -5,6 +5,6 @@ import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.steps.WhenStep;
 import java.util.List;
 
-public interface GivenStepBuilder {
+public interface WhenStepBuilder {
     WhenStep constructWhenStep(List<GivenStep> givenSteps, GivenOrWhenStep fixture);
 }

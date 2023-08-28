@@ -43,11 +43,11 @@ GivenStep:
     {Library} 'functionLibrary' library=FunctionLibrary |
     {Variable} 'variable' 'key' key=ID 'value' value=ID;
 
-FunctionLibrary:
-	'FilterFunctionLibrary'|'LoggingFunctionLibrary'|'StandardFunctionLibrary'|'TemporalFunctionLibrary';
+enum FunctionLibrary:
+	FILTER='FilterFunctionLibrary' | LOGGING='LoggingFunctionLibrary' | STANDARD='StandardFunctionLibrary' | TEMPORAL='TemporalFunctionLibrary';
 
-AuthorizationDecision:
-	'permit'|'deny'|'indeterminate'|'notApplicable';
+enum AuthorizationDecision:
+	PERMIT='permit' | DENY='deny' | INDETERMINATE='indeterminate' | NOT_APPLICABLE='notApplicable';
 
 AuthorizationSubscriptionElement:
     {Plain} value=ID |
@@ -68,11 +68,11 @@ ExpectOrAdjustmentStep:
 ExpectStep returns ExpectOrAdjustmentStep:
 	{Next} 'expect' expectedDecision=AuthorizationDecision amount=NumericAmount |
 	{NextWithMatcher} 'expect' 'decision' 'matching' matcher+=ExpectMatcher (',' matcher+=ExpectMatcher)* |
-	{NoEvent} 'no event for' duration=INT 'seconds';
+	{NoEvent} 'no event for' duration=TemporalAmount;
 
 AdjustmentStep returns ExpectOrAdjustmentStep:
     {AttributeAdjustment} 'let' attribute=IMPORT_NAME 'return' returnValue=Val |
-	{Await} 'wait' amount=TemporalAmount;
+	{Await} 'wait' duration=TemporalAmount;
 
 JsonElement:
     'key' key=STRING 'value' value=STRING;
