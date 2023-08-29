@@ -46,18 +46,18 @@ class ExpectInterpreterTest {
     class SingleExpectTest {
         @Test
         void interpretSingleExpect_callsAuthorizationDecisionInterpreter_returnsVerifyStep() {
-            final var obligationElementsMock = Helper.mockEList(List.<JsonElement>of());
-            final var resourceElementsMock = Helper.mockEList(List.<JsonElement>of());
+            final var obligationValueMock = mock(Value.class);
+            final var resourceValueMock = mock(Value.class);
             final var singleExpectMock = mock(SingleExpect.class);
 
-            when(singleExpectMock.getObligationElements()).thenReturn(obligationElementsMock);
-            when(singleExpectMock.getResourceElements()).thenReturn(resourceElementsMock);
+            when(singleExpectMock.getObligation()).thenReturn(obligationValueMock);
+            when(singleExpectMock.getResource()).thenReturn(resourceValueMock);
 
             when(singleExpectMock.getDecision()).thenReturn(io.sapl.test.grammar.sAPLTest.AuthorizationDecision.PERMIT);
 
             final var authorizationDecisionMock = mock(AuthorizationDecision.class);
 
-            when(authorizationDecisionInterpreterMock.constructAuthorizationDecision(io.sapl.test.grammar.sAPLTest.AuthorizationDecision.PERMIT, obligationElementsMock, resourceElementsMock)).thenReturn(authorizationDecisionMock);
+            when(authorizationDecisionInterpreterMock.constructAuthorizationDecision(io.sapl.test.grammar.sAPLTest.AuthorizationDecision.PERMIT, obligationValueMock, resourceValueMock)).thenReturn(authorizationDecisionMock);
 
             final var verifyStepMock = mock(VerifyStep.class);
             when(expectOrVerifyStepMock.expect(authorizationDecisionMock)).thenReturn(verifyStepMock);

@@ -23,10 +23,10 @@ public class ExpectInterpreter {
     private final AuthorizationDecisionInterpreter authorizationDecisionInterpreter;
 
     VerifyStep interpretSingleExpect(final ExpectOrVerifyStep expectOrVerifyStep, final SingleExpect singleExpect) {
-        final var obligationElements = singleExpect.getObligationElements();
-        final var resourceElements = singleExpect.getResourceElements();
+        final var obligation = singleExpect.getObligation();
+        final var resource = singleExpect.getResource();
 
-        final var authorizationDecision = authorizationDecisionInterpreter.constructAuthorizationDecision(singleExpect.getDecision(), obligationElements, resourceElements);
+        final var authorizationDecision = authorizationDecisionInterpreter.constructAuthorizationDecision(singleExpect.getDecision(), obligation, resource);
 
         return expectOrVerifyStep.expect(authorizationDecision);
     }

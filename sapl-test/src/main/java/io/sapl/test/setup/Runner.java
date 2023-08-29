@@ -24,16 +24,16 @@ public class Runner {
         final var testProvider = new TestProviderDefaultImpl();
         final var testFixtureBuilder = new TestFixtureBuilder(pip);
 
-        final var valInterpreter = new ValInterpreter();
+        final var valInterpreter = new ValInterpreter(objectMapper);
         final var matcherInterpreter = new MatcherInterpreter(valInterpreter);
 
         final var attributeInterpreter = new AttributeInterpreter(valInterpreter, matcherInterpreter);
         final var functionInterpreter = new FunctionInterpreter(valInterpreter, matcherInterpreter);
-        final var authorizationDecisionInterpreter = new AuthorizationDecisionInterpreter(objectMapper);
+        final var authorizationDecisionInterpreter = new AuthorizationDecisionInterpreter(valInterpreter, objectMapper);
         final var expectInterpreter = new ExpectInterpreter(valInterpreter, authorizationDecisionInterpreter);
 
         final var givenStepBuilder = new WhenStepBuilderServiceDefaultImpl(functionInterpreter, attributeInterpreter);
-        final var expectStepBuilder = new ExpectStepBuilderDefaultImpl(objectMapper);
+        final var expectStepBuilder = new ExpectStepBuilderDefaultImpl(valInterpreter);
         final var verifyStepBuilder = new VerifyStepBuilderServiceDefaultImpl(expectInterpreter);
         final var saplInterpreter = new SaplTestInterpreterDefaultImpl();
 

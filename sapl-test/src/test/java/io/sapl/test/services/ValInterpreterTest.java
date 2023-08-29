@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.test.grammar.sAPLTest.FalseLiteral;
 import io.sapl.test.grammar.sAPLTest.NumberLiteral;
 import io.sapl.test.grammar.sAPLTest.StringLiteral;
@@ -19,11 +20,14 @@ import org.junit.jupiter.api.Test;
 
 class ValInterpreterTest {
 
+    private ObjectMapper objectMapperMock;
+
     private ValInterpreter valInterpreter;
 
     @BeforeEach
     void setUp() {
-        valInterpreter = new ValInterpreter();
+        objectMapperMock = mock(ObjectMapper.class);
+        valInterpreter = new ValInterpreter(objectMapperMock);
     }
 
     @Nested

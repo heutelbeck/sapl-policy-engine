@@ -1,31 +1,33 @@
 package io.sapl.test.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.test.grammar.sAPLTest.JsonElement;
-import java.util.List;
+import io.sapl.test.grammar.sAPLTest.Value;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class AuthorizationDecisionInterpreter {
 
+    private final ValInterpreter valInterpreter;
+
     private final ObjectMapper objectMapper;
 
-    AuthorizationDecision constructAuthorizationDecision(final io.sapl.test.grammar.sAPLTest.AuthorizationDecision decision, final List<JsonElement> obligationElements, final List<JsonElement> resourceElements) {
+    AuthorizationDecision constructAuthorizationDecision(final io.sapl.test.grammar.sAPLTest.AuthorizationDecision decision, final Value obligation, final Value resource) {
         var authorizationDecision = getAuthorizationDecisionFromDSL(decision);
 
-        final var obligations = getObligations(obligationElements);
 
-        if (obligations != null) {
+        final var mappedObligation = valInterpreter.getValFromReturnValue(obligation);
+
+        if (mappedObligation != null) {
+            final var obligations = objectMapper.createArrayNode();
+            obligations.add(mappedObligation.get());
             authorizationDecision = authorizationDecision.withObligations(obligations);
         }
 
-        final var resource = getResource(resourceElements);
+        final var mappedResource = valInterpreter.getValFromReturnValue(resource);
 
-        if (resource != null) {
-            authorizationDecision = authorizationDecision.withResource(resource);
+        if (mappedResource != null) {
+            authorizationDecision = authorizationDecision.withResource(mappedResource.get());
         }
 
         return authorizationDecision;
@@ -38,27 +40,5 @@ public class AuthorizationDecisionInterpreter {
             case INDETERMINATE -> AuthorizationDecision.INDETERMINATE;
             case NOT_APPLICABLE -> AuthorizationDecision.NOT_APPLICABLE;
         };
-    }
-
-    private ArrayNode getObligations(final List<JsonElement> obligationElements) {
-        if (obligationElements != null && !obligationElements.isEmpty()) {
-            final var obligations = objectMapper.createArrayNode();
-            //TODO support multiple obligations
-            final var obligation = objectMapper.createObjectNode();
-            obligationElements.forEach(obligationElement -> obligation.put(obligationElement.getKey(), obligationElement.getValue()));
-            obligations.add(obligation);
-            return obligations;
-        }
-        return null;
-    }
-
-    private ObjectNode getResource(final List<JsonElement> resourceElements) {
-        if (resourceElements == null || resourceElements.isEmpty()) {
-            return null;
-        }
-
-        final var resource = objectMapper.createObjectNode();
-        resourceElements.forEach(resourceElement -> resource.put(resourceElement.getKey(), resourceElement.getValue()));
-        return resource;
     }
 }
