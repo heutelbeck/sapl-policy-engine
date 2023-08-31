@@ -11,6 +11,7 @@ events/
 .factorypath
 **/xtend-gen/
 **/xtext-gen/
+**/dev-bundle/
 **/emf-gen/
 **/node_modules/
 **/VAADIN/widgetsets/
