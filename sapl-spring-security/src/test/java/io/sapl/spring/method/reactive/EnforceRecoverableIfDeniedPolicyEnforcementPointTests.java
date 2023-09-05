@@ -53,13 +53,10 @@ import io.sapl.spring.constraints.api.MethodInvocationConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.RequestHandlerProvider;
 import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.SubscriptionHandlerProvider;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Hooks;
 import reactor.test.StepVerifier;
-import reactor.util.function.Tuple2;
 
-@Slf4j
 @Timeout(5)
 class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
 
