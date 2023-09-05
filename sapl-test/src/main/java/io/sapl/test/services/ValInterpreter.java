@@ -30,7 +30,7 @@ public class ValInterpreter {
             final var objectNode = objectMapper.createObjectNode();
             final var members = object.getMembers();
             if (members != null) {
-                members.forEach(member -> objectNode.put(member.getKey(), getValFromReturnValue(member.getValue()).get()));
+                members.forEach(member -> objectNode.set(member.getKey(), getValFromReturnValue(member.getValue()).get()));
             }
             return Val.of(objectNode);
         }
