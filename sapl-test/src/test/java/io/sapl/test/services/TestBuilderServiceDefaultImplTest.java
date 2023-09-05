@@ -1,10 +1,11 @@
 package io.sapl.test.services;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
@@ -24,7 +25,6 @@ import io.sapl.test.grammar.sAPLTest.TestException;
 import io.sapl.test.grammar.sAPLTest.TestSuite;
 import io.sapl.test.interfaces.ExpectStepBuilder;
 import io.sapl.test.interfaces.SaplTestDslInterpreter;
-import io.sapl.test.interfaces.TestProvider;
 import io.sapl.test.interfaces.VerifyStepBuilder;
 import io.sapl.test.interfaces.WhenStepBuilder;
 import io.sapl.test.steps.ExpectOrVerifyStep;
@@ -44,9 +44,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 import org.mockito.Answers;
-import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 class TestBuilderServiceDefaultImplTest {
@@ -57,7 +55,6 @@ class TestBuilderServiceDefaultImplTest {
 
     private MockedStatic<org.assertj.core.api.Assertions> assertionsMockedStatic;
 
-    private TestProvider testProviderMock;
     private TestFixtureBuilder testFixtureBuilderMock;
     private WhenStepBuilder whenStepBuilderMock;
     private ExpectStepBuilder expectStepBuilderMock;
@@ -72,7 +69,6 @@ class TestBuilderServiceDefaultImplTest {
         filesMockedStatic = mockStatic(Files.class);
         assertionsMockedStatic = mockStatic(org.assertj.core.api.Assertions.class, Answers.RETURNS_DEEP_STUBS);
 
-        testProviderMock = mock(TestProvider.class);
         testFixtureBuilderMock = mock(TestFixtureBuilder.class);
         whenStepBuilderMock = mock(WhenStepBuilder.class);
         expectStepBuilderMock = mock(ExpectStepBuilder.class);
@@ -80,7 +76,7 @@ class TestBuilderServiceDefaultImplTest {
         saplTestDslInterpreterMock = mock(SaplTestDslInterpreter.class);
 
 
-        testBuilderServiceDefaultImpl = new TestBuilderServiceDefaultImpl(testProviderMock, testFixtureBuilderMock, whenStepBuilderMock, expectStepBuilderMock, verifyStepBuilderMock, saplTestDslInterpreterMock);
+        testBuilderServiceDefaultImpl = new TestBuilderServiceDefaultImpl(testFixtureBuilderMock, whenStepBuilderMock, expectStepBuilderMock, verifyStepBuilderMock, saplTestDslInterpreterMock);
     }
 
     @AfterEach
@@ -97,7 +93,10 @@ class TestBuilderServiceDefaultImplTest {
         void buildTest_doesNothingForNullFilename() {
             classpathHelperMockedStatic.when(() -> ClasspathHelper.findPathOnClasspath(any(ClassLoader.class), isNull())).thenThrow(new NullPointerException());
 
-            testBuilderServiceDefaultImpl.buildTest(null);
+            final var result = testBuilderServiceDefaultImpl.buildTests(null);
+
+            assertTrue(result.isEmpty());
+
             classpathHelperMockedStatic.verifyNoInteractions();
         }
 
@@ -108,7 +107,9 @@ class TestBuilderServiceDefaultImplTest {
             classpathHelperMockedStatic.when(() -> ClasspathHelper.findPathOnClasspath(any(ClassLoader.class), eq("filename"))).thenReturn(pathMock);
             filesMockedStatic.when(() -> Files.readString(pathMock)).thenThrow(new IOException("No file here!"));
 
-            testBuilderServiceDefaultImpl.buildTest("filename");
+            final var result = testBuilderServiceDefaultImpl.buildTests("filename");
+
+            assertTrue(result.isEmpty());
 
             verifyNoInteractions(saplTestDslInterpreterMock);
         }
@@ -121,11 +122,12 @@ class TestBuilderServiceDefaultImplTest {
             filesMockedStatic.when(() -> Files.readString(pathMock)).thenReturn("testCase");
 
             when(saplTestDslInterpreterMock.loadAsResource("testCase")).thenReturn(null);
-            testBuilderServiceDefaultImpl.buildTest("filename");
+            final var result = testBuilderServiceDefaultImpl.buildTests("filename");
+
+            assertTrue(result.isEmpty());
 
             verify(saplTestDslInterpreterMock, times(1)).loadAsResource("testCase");
             verifyNoMoreInteractions(saplTestDslInterpreterMock);
-            verifyNoInteractions(testProviderMock);
         }
 
         @Test
@@ -138,11 +140,12 @@ class TestBuilderServiceDefaultImplTest {
 
             when(saplTestDslInterpreterMock.loadAsResource("testCase")).thenReturn(saplTestMock);
             when(saplTestMock.getElements()).thenReturn(null);
-            testBuilderServiceDefaultImpl.buildTest("filename");
+            final var result = testBuilderServiceDefaultImpl.buildTests("filename");
+
+            assertTrue(result.isEmpty());
 
             verify(saplTestDslInterpreterMock, times(1)).loadAsResource("testCase");
             verifyNoMoreInteractions(saplTestDslInterpreterMock);
-            verifyNoInteractions(testProviderMock);
         }
 
         @Test
@@ -156,11 +159,12 @@ class TestBuilderServiceDefaultImplTest {
             when(saplTestDslInterpreterMock.loadAsResource("testCase")).thenReturn(saplTestMock);
             final var eListMock = Helper.mockEList(List.<TestSuite>of());
             when(saplTestMock.getElements()).thenReturn(eListMock);
-            testBuilderServiceDefaultImpl.buildTest("filename");
+            final var result = testBuilderServiceDefaultImpl.buildTests("filename");
+
+            assertTrue(result.isEmpty());
 
             verify(saplTestDslInterpreterMock, times(1)).loadAsResource("testCase");
             verifyNoMoreInteractions(saplTestDslInterpreterMock);
-            verifyNoInteractions(testProviderMock);
         }
 
         @Test
@@ -182,11 +186,12 @@ class TestBuilderServiceDefaultImplTest {
             when(testSuite1Mock.getTestCases()).thenReturn(null);
             when(testSuite2Mock.getTestCases()).thenReturn(emptyTestCasesMock);
 
-            testBuilderServiceDefaultImpl.buildTest("filename");
+            final var result = testBuilderServiceDefaultImpl.buildTests("filename");
+
+            assertTrue(result.isEmpty());
 
             verify(saplTestDslInterpreterMock, times(1)).loadAsResource("testCase");
             verifyNoMoreInteractions(saplTestDslInterpreterMock);
-            verifyNoInteractions(testProviderMock);
         }
     }
 
@@ -251,11 +256,6 @@ class TestBuilderServiceDefaultImplTest {
             return verifyStepMock;
         }
 
-        private void captureAndExecuteTestCaseExecutable(String testCaseName) throws Throwable {
-            final var executableArgumentCaptor = ArgumentCaptor.forClass(Executable.class);
-            verify(testProviderMock, times(1)).addTestCase(eq(testCaseName), executableArgumentCaptor.capture());
-            executableArgumentCaptor.getValue().execute();
-        }
 
         @Test
         void buildTest_handlesMultipleTestSuitesWithMultipleTestCasesPerSuite() {
@@ -290,15 +290,13 @@ class TestBuilderServiceDefaultImplTest {
             when(testCase4Mock.getName()).thenReturn("testCase4");
             when(testCase5Mock.getName()).thenReturn("testCase5");
 
-            doNothing().when(testProviderMock).addTestCase(any(), any());
+            final var result = testBuilderServiceDefaultImpl.buildTests("filename");
 
-            testBuilderServiceDefaultImpl.buildTest("filename");
-
-            verify(testProviderMock, times(1)).addTestCase(eq("testCase1"), any(Executable.class));
-            verify(testProviderMock, times(1)).addTestCase(eq("testCase2"), any(Executable.class));
-            verify(testProviderMock, times(1)).addTestCase(eq("testCase3"), any(Executable.class));
-            verify(testProviderMock, times(1)).addTestCase(eq("testCase4"), any(Executable.class));
-            verify(testProviderMock, times(1)).addTestCase(eq("testCase5"), any(Executable.class));
+            assertEquals("testCase1", result.get(0).getDisplayName());
+            assertEquals("testCase2", result.get(1).getDisplayName());
+            assertEquals("testCase3", result.get(2).getDisplayName());
+            assertEquals("testCase4", result.get(3).getDisplayName());
+            assertEquals("testCase5", result.get(4).getDisplayName());
         }
 
         @Test
@@ -308,7 +306,7 @@ class TestBuilderServiceDefaultImplTest {
 
             setupTestExecution(List.of(testCaseMock));
 
-            testBuilderServiceDefaultImpl.buildTest("filename");
+            final var result = testBuilderServiceDefaultImpl.buildTests("filename");
 
             when(testSuiteMock.getPolicy()).thenReturn("samplePolicy");
             final var givenStepsMock = Helper.mockEList(List.<GivenStep>of());
@@ -318,7 +316,7 @@ class TestBuilderServiceDefaultImplTest {
 
             mockTestCaseWithTestException(testCaseMock);
 
-            captureAndExecuteTestCaseExecutable("singleTest");
+            result.get(0).getExecutable().execute();
 
             verify(whenStepBuilderMock, times(1)).constructWhenStep(givenStepsMock, testFixtureMock);
         }
@@ -329,7 +327,7 @@ class TestBuilderServiceDefaultImplTest {
             when(testCaseMock.getName()).thenReturn("singleTest");
 
             setupTestExecution(List.of(testCaseMock));
-            testBuilderServiceDefaultImpl.buildTest("filename");
+            final var result = testBuilderServiceDefaultImpl.buildTests("filename");
 
             when(testSuiteMock.getPolicy()).thenReturn("samplePolicy");
             final var givenStepsMock = Helper.mockEList(List.<GivenStep>of());
@@ -342,7 +340,7 @@ class TestBuilderServiceDefaultImplTest {
 
             final var verifyStepMock = mockTestBuildingChain(givenStepsMock, testFixtureMock, testCaseMock);
 
-            captureAndExecuteTestCaseExecutable("singleTest");
+            result.get(0).getExecutable().execute();
 
             verify(whenStepBuilderMock, times(1)).constructWhenStep(givenStepsMock, testFixtureMock);
             verify(verifyStepMock, times(1)).verify();
@@ -360,7 +358,7 @@ class TestBuilderServiceDefaultImplTest {
             when(testCaseWithoutException2Mock.getName()).thenReturn("testCaseWithoutException2");
 
             setupTestExecution(List.of(testCaseWithoutException1Mock, testCaseWithExceptionMock, testCaseWithoutException2Mock));
-            testBuilderServiceDefaultImpl.buildTest("filename");
+            final var result = testBuilderServiceDefaultImpl.buildTests("filename");
 
             when(testSuiteMock.getPolicy()).thenReturn("samplePolicy");
 
@@ -383,9 +381,9 @@ class TestBuilderServiceDefaultImplTest {
             final var verifyStep1Mock = mockTestBuildingChain(givenSteps1Mock, testFixture1Mock, testCaseWithoutException1Mock);
             final var verifyStep2Mock = mockTestBuildingChain(givenSteps3Mock, testFixture3Mock, testCaseWithoutException2Mock);
 
-            captureAndExecuteTestCaseExecutable("testCaseWithoutException1");
-            captureAndExecuteTestCaseExecutable("testCaseWithException");
-            captureAndExecuteTestCaseExecutable("testCaseWithoutException2");
+            result.get(0).getExecutable().execute();
+            result.get(1).getExecutable().execute();
+            result.get(2).getExecutable().execute();
 
             verify(whenStepBuilderMock, times(1)).constructWhenStep(givenSteps2Mock, testFixture2Mock);
             verify(verifyStep1Mock, times(1)).verify();

@@ -6,20 +6,21 @@ import io.sapl.test.grammar.sAPLTest.TestException;
 import io.sapl.test.grammar.sAPLTest.TestSuite;
 import io.sapl.test.interfaces.ExpectStepBuilder;
 import io.sapl.test.interfaces.SaplTestDslInterpreter;
-import io.sapl.test.interfaces.TestProvider;
 import io.sapl.test.interfaces.VerifyStepBuilder;
 import io.sapl.test.interfaces.WhenStepBuilder;
 import io.sapl.test.steps.ExpectOrVerifyStep;
 import io.sapl.test.unit.SaplUnitTestFixture;
 import io.sapl.test.utils.ClasspathHelper;
 import java.nio.file.Files;
+import java.util.LinkedList;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.DynamicTest;
 
 @RequiredArgsConstructor
 public final class TestBuilderServiceDefaultImpl {
 
-    private final TestProvider testProvider;
     private final TestFixtureBuilder testFixtureBuilder;
     private final WhenStepBuilder whenStepBuilder;
     private final ExpectStepBuilder expectStepBuilder;
@@ -27,23 +28,25 @@ public final class TestBuilderServiceDefaultImpl {
     private final SaplTestDslInterpreter saplTestDslInterpreter;
 
 
-    public void buildTest(final String fileName) {
+    public List<DynamicTest> buildTests(final String fileName) {
         final var input = findFileOnClasspath(fileName);
 
+        final var dynamicTestList = new LinkedList<DynamicTest>();
+
         if (input == null) {
-            return;
+            return dynamicTestList;
         }
 
         final var saplTest = saplTestDslInterpreter.loadAsResource(input);
 
         if (saplTest == null) {
-            return;
+            return dynamicTestList;
         }
 
         final var testSuites = saplTest.getElements();
 
         if (testSuites == null || testSuites.isEmpty()) {
-            return;
+            return dynamicTestList;
         }
 
         testSuites.forEach(testSuite -> {
@@ -51,12 +54,13 @@ public final class TestBuilderServiceDefaultImpl {
             if (testCases == null || testCases.isEmpty()) {
                 return;
             }
-            testCases.forEach(testCase -> addDynamicTestCase(testSuite, testCase));
+            testCases.forEach(testCase -> dynamicTestList.add(addDynamicTestCase(testSuite, testCase)));
         });
+        return dynamicTestList;
     }
 
-    private void addDynamicTestCase(TestSuite testSuite, TestCase testCase) {
-        testProvider.addTestCase(testCase.getName(), () -> {
+    private DynamicTest addDynamicTestCase(TestSuite testSuite, TestCase testCase) {
+        return DynamicTest.dynamicTest(testCase.getName(), () -> {
             final var fixture = new SaplUnitTestFixture(testSuite.getPolicy());
             final var givenSteps = testCase.getGivenSteps();
 

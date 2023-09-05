@@ -3,25 +3,12 @@ package io.sapl.test.setup;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.test.interpreter.SaplTestInterpreterDefaultImpl;
 import io.sapl.test.services.*;
-import java.io.PrintWriter;
-import org.junit.platform.launcher.listeners.SummaryGeneratingListener;
-import org.junit.platform.launcher.listeners.TestExecutionSummary;
+import java.util.List;
+import org.junit.jupiter.api.DynamicTest;
 
-public class Runner {
-    public static void run(Object pip) {
-
-        final var className = TestProviderDefaultImpl.class.getName();
-        SummaryGeneratingListener testExecutionListener = new SummaryGeneratingListener();
-
-        buildTests(pip);
-
-        final var summary = executeTests(className, testExecutionListener);
-        summary.printTo(new PrintWriter(System.out));
-    }
-
-    private static void buildTests(Object pip) {
+public class TestBuilder {
+    public static List<DynamicTest> buildTests(final Object pip, final String filename) {
         final var objectMapper = new ObjectMapper();
-        final var testProvider = new TestProviderDefaultImpl();
         final var testFixtureBuilder = new TestFixtureBuilder(pip);
 
         final var valInterpreter = new ValInterpreter(objectMapper);
@@ -37,13 +24,7 @@ public class Runner {
         final var verifyStepBuilder = new VerifyStepBuilderServiceDefaultImpl(expectInterpreter);
         final var saplInterpreter = new SaplTestInterpreterDefaultImpl();
 
-        new TestBuilderServiceDefaultImpl(testProvider, testFixtureBuilder, givenStepBuilder, expectStepBuilder, verifyStepBuilder, saplInterpreter)
-                .buildTest("test.sapltest");
-    }
-
-    private static TestExecutionSummary executeTests(String className, SummaryGeneratingListener testExecutionListener) {
-        final var executor = new TestExecutionServiceDefaultImpl();
-        executor.execute(className, testExecutionListener);
-        return testExecutionListener.getSummary();
+        return new TestBuilderServiceDefaultImpl(testFixtureBuilder, givenStepBuilder, expectStepBuilder, verifyStepBuilder, saplInterpreter)
+                .buildTests(filename);
     }
 }
