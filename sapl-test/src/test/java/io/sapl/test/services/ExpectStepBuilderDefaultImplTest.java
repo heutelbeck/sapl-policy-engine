@@ -20,16 +20,16 @@ import org.mockito.MockedStatic;
 class ExpectStepBuilderDefaultImplTest {
 
     MockedStatic<io.sapl.api.pdp.AuthorizationSubscription> authorizationSubscriptionMockedStatic;
-    private ValInterpreter valInterpreterMock;
+    private AuthorizationSubscriptionInterpreter authorizationSubscriptionInterpreterMock;
     private ExpectStepBuilderDefaultImpl expectStepBuilderDefaultImpl;
 
     @BeforeEach
     void setUp() {
         authorizationSubscriptionMockedStatic = mockStatic(io.sapl.api.pdp.AuthorizationSubscription.class);
 
-        valInterpreterMock = mock(ValInterpreter.class);
+        authorizationSubscriptionInterpreterMock = mock(AuthorizationSubscriptionInterpreter.class);
 
-        expectStepBuilderDefaultImpl = new ExpectStepBuilderDefaultImpl(valInterpreterMock);
+        expectStepBuilderDefaultImpl = new ExpectStepBuilderDefaultImpl(authorizationSubscriptionInterpreterMock);
     }
 
     @AfterEach
@@ -59,9 +59,6 @@ class ExpectStepBuilderDefaultImplTest {
         when(authorizationSubscriptionMock.getAction()).thenReturn(actionMock);
         when(authorizationSubscriptionMock.getResource()).thenReturn(resourceMock);
 
-        when(valInterpreterMock.getValFromReturnValue(subjectMock)).thenReturn(saplSubjectMock);
-        when(valInterpreterMock.getValFromReturnValue(actionMock)).thenReturn(saplActionMock);
-        when(valInterpreterMock.getValFromReturnValue(resourceMock)).thenReturn(saplResourceMock);
 
         final var subjectJsonNodeMock = mock(JsonNode.class);
         final var actionJsonNodeMock = mock(JsonNode.class);
@@ -72,7 +69,7 @@ class ExpectStepBuilderDefaultImplTest {
         when(saplResourceMock.get()).thenReturn(resourceJsonNodeMock);
 
         final var saplAuthorizationSubscriptionMock = mock(io.sapl.api.pdp.AuthorizationSubscription.class);
-        authorizationSubscriptionMockedStatic.when(() -> io.sapl.api.pdp.AuthorizationSubscription.of(subjectJsonNodeMock, actionJsonNodeMock, resourceJsonNodeMock)).thenReturn(saplAuthorizationSubscriptionMock);
+        when(authorizationSubscriptionInterpreterMock.getAuthorizationSubscriptionFromDSL(authorizationSubscriptionMock)).thenReturn(saplAuthorizationSubscriptionMock);
 
         final var whenStepMock = mock(WhenStep.class);
         final var expectStepMock = mock(ExpectStep.class);

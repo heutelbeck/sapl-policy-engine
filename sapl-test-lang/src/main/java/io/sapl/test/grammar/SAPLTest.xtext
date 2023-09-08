@@ -45,7 +45,7 @@ enum AuthorizationDecision:
 	PERMIT='permit' | DENY='deny' | INDETERMINATE='indeterminate' | NOT_APPLICABLE='notApplicable';
 
 AuthorizationSubscription:
-	subject=Value 'attempts' action=Value 'on' resource=Value;
+	'subject' subject=Value 'attempts' 'action' action=Value 'on' 'resource' resource=Value ('with' 'environment' environment=Value)?;
 
 NumericAmount:
     {Once} 'once' |
@@ -74,7 +74,7 @@ TestCase:
 	'scenario' name=STRING ('given' givenSteps+=GivenStep ('and' givenSteps+=GivenStep)*)? whenStep=WhenStep 'then' expect=ExpectChain';';
 
 Value:
-	Object | Array | NumberLiteral | StringLiteral | BooleanLiteral | NullLiteral | UndefinedLiteral ;
+	Object | Array | NumberLiteral | StringLiteral | BooleanLiteral;
 
 Object returns Value:
 	{Object} '{' (members+=Pair (',' members+=Pair)*)? '}' ;
@@ -88,12 +88,6 @@ Array returns Value:
 BooleanLiteral returns Value:
 	  {TrueLiteral} 'true'
 	| {FalseLiteral} 'false' ;
-
-NullLiteral returns Value:
-	{NullLiteral} 'null' ;
-
-UndefinedLiteral returns Value:
-	{UndefinedLiteral} 'undefined' ;
 
 StringLiteral returns Value:
 	{StringLiteral} string=STRING ;

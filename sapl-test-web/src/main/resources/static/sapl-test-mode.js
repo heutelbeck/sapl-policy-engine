@@ -1,5 +1,5 @@
 define("sapl-test-mode", ["codemirror", "codemirror/addon/mode/simple"], function(CodeMirror, SimpleMode) {
-	var keywords = "with|when|wait|virtualTime|variable|value|undefined|true|times|then|tests|single|scenario|s|returns|returning|return|resource|permit|parent|parameters|once|on|obligation|null|notApplicable|matching|let|key|is|invoked|indeterminate|given|functionLibrary|function|for|false|expect|exception|deny|decision|attribute|attempts|any|and|TemporalFunctionLibrary|StandardFunctionLibrary|PIP|LoggingFunctionLibrary|FilterFunctionLibrary";
+	var keywords = "with|when|wait|virtualTime|variable|value|true|times|then|tests|subject|single|scenario|s|returns|returning|return|resource|permit|parent|parameters|once|on|obligation|notApplicable|matching|let|key|is|invoked|indeterminate|given|functionLibrary|function|for|false|expect|exception|environment|deny|decision|attribute|attempts|any|and|action|TemporalFunctionLibrary|StandardFunctionLibrary|PIP|LoggingFunctionLibrary|FilterFunctionLibrary";
 	CodeMirror.defineSimpleMode("xtext/sapltest", {
 		start: [
 			{token: "comment", regex: "\\/\\/.*$"},

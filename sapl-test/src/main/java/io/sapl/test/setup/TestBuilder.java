@@ -17,10 +17,11 @@ public class TestBuilder {
         final var attributeInterpreter = new AttributeInterpreter(valInterpreter, matcherInterpreter);
         final var functionInterpreter = new FunctionInterpreter(valInterpreter, matcherInterpreter);
         final var authorizationDecisionInterpreter = new AuthorizationDecisionInterpreter(valInterpreter, objectMapper);
+        final var authorizationSubscriptionInterpreter = new AuthorizationSubscriptionInterpreter(valInterpreter);
         final var expectInterpreter = new ExpectInterpreter(valInterpreter, authorizationDecisionInterpreter);
 
         final var givenStepBuilder = new WhenStepBuilderServiceDefaultImpl(functionInterpreter, attributeInterpreter);
-        final var expectStepBuilder = new ExpectStepBuilderDefaultImpl(valInterpreter);
+        final var expectStepBuilder = new ExpectStepBuilderDefaultImpl(authorizationSubscriptionInterpreter);
         final var verifyStepBuilder = new VerifyStepBuilderServiceDefaultImpl(expectInterpreter);
         final var saplInterpreter = new SaplTestInterpreterDefaultImpl();
 
