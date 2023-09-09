@@ -15,10 +15,11 @@
  */
 package io.sapl.grammar.sapl.impl.util;
 
+import java.util.Comparator;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.github.fge.jackson.JsonNumEquals;
-import com.google.common.base.Equivalence;
+import com.fasterxml.jackson.databind.node.NumericNode;
 
 import io.sapl.api.interpreter.Val;
 
@@ -27,7 +28,7 @@ import io.sapl.api.interpreter.Val;
  */
 public class ArrayUtil {
 
-	private final static Equivalence<JsonNode> EQ = JsonNumEquals.getInstance();
+	private final static NumericAwareComparator EQ = new NumericAwareComparator();
 
 	public static Val numberArray(Integer... values) {
 		var array = Val.JSON.arrayNode();
@@ -67,10 +68,22 @@ public class ArrayUtil {
 		var iter = arrayNode.elements();
 		while (iter.hasNext()) {
 			var arrayElement = iter.next();
-			if (EQ.equivalent(element, arrayElement))
+			if (element.equals(EQ, arrayElement))
 				return true;
 		}
 		return false;
 	}
 
+	private static class NumericAwareComparator implements Comparator<JsonNode> {
+		@Override
+		public int compare(JsonNode o1, JsonNode o2) {
+			if (o1.equals(o2)) {
+				return 0;
+			}
+			if ((o1 instanceof NumericNode) && (o2 instanceof NumericNode)) {
+				return o1.decimalValue().compareTo(o2.decimalValue());
+			}
+			return 1;
+		}
+	}
 }

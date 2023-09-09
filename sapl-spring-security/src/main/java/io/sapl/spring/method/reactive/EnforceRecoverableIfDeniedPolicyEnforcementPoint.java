@@ -35,6 +35,7 @@ import lombok.SneakyThrows;
 import reactor.core.CoreSubscriber;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
@@ -49,9 +50,9 @@ import reactor.util.function.Tuples;
  * Whenever a decision is received, the handling of obligations and advice are
  * updated accordingly.
  * <p>
- * The PEP does not permit onErrorContinue() downstream.
+ * The PEP supports onErrorContinue().
  *
- * @param <T> type of the FLux contents
+ * @param <T> type of the Flux contents
  */
 public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 		extends Flux<Tuple2<Optional<T>, Optional<Throwable>>> {
@@ -72,16 +73,16 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 
 	final AtomicReference<AuthorizationDecision> latestDecision = new AtomicReference<>();
 
-	final AtomicReference<ReactiveConstraintHandlerBundle<T>> constraintHandler = new AtomicReference<>();
+	final AtomicReference<ReactiveConstraintHandlerBundle<T>> constraintHandlerBundle = new AtomicReference<>();
 
 	final AtomicBoolean stopped = new AtomicBoolean(false);
 
 	private EnforceRecoverableIfDeniedPolicyEnforcementPoint(Flux<AuthorizationDecision> decisions,
 			Flux<T> resourceAccessPoint, ConstraintEnforcementService constraintsService, Class<T> clazz) {
-		this.decisions           = decisions;
-		this.resourceAccessPoint = resourceAccessPoint;
-		this.constraintsService  = constraintsService;
-		this.clazz               = clazz;
+		this.decisions				= decisions;
+		this.resourceAccessPoint	= resourceAccessPoint;
+		this.constraintsService		= constraintsService;
+		this.clazz					= clazz;
 	}
 
 	public static <V> Flux<V> of(Flux<AuthorizationDecision> decisions, Flux<V> resourceAccessPoint,
@@ -91,13 +92,13 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 		return pep.doOnTerminate(pep::handleOnTerminateConstraints)
 				.doAfterTerminate(pep::handleAfterTerminateConstraints).map(pep::handleAccessDenied)
 				.doOnCancel(pep::handleCancel).onErrorStop()
-				.map(EnforceRecoverableIfDeniedPolicyEnforcementPoint::extractPayloadOrError);
+				.flatMap(EnforceRecoverableIfDeniedPolicyEnforcementPoint::extractPayloadOrError);
 	}
 
 	@SneakyThrows
-	private static <T> T extractPayloadOrError(Tuple2<Optional<T>, Optional<Throwable>> tuple) {
+	private static <T> Mono<T> extractPayloadOrError(Tuple2<Optional<T>, Optional<Throwable>> tuple) {
 		if (tuple.getT2().isEmpty())
-			return tuple.getT1().get();
+			return Mono.just(tuple.getT1().get());
 		throw tuple.getT2().get();
 	}
 
@@ -106,51 +107,82 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 		if (sink != null)
 			throw new IllegalStateException("Operator may only be subscribed once.");
 		var context = actual.currentContext();
-		sink                = new RecoverableEnforcementSink<>();
-		resourceAccessPoint = resourceAccessPoint.contextWrite(context);
+		sink				= new RecoverableEnforcementSink<>();
+		resourceAccessPoint	= resourceAccessPoint.contextWrite(context);
 		Flux.create(sink).subscribe(actual);
 		decisionsSubscription.set(decisions.doOnNext(this::handleNextDecision).contextWrite(context).subscribe());
 	}
 
 	private void handleNextDecision(AuthorizationDecision decision) {
-
-		var implicitDecision = decision;
-
-		ReactiveConstraintHandlerBundle<T> newBundle;
-		try {
-			newBundle = constraintsService.reactiveTypeBundleFor(implicitDecision, clazz);
-			constraintHandler.set(newBundle);
-		} catch (AccessDeniedException e) {
-			sink.error(e);
-			// INDETERMINATE -> as long as we cannot handle the obligations of the current
-			// decision, drop data
-			constraintHandler.set(new ReactiveConstraintHandlerBundle<>());
-			implicitDecision = AuthorizationDecision.INDETERMINATE;
+		if (decision.getDecision() == Decision.INDETERMINATE) {
+			sink.error(new AccessDeniedException(
+					"The PDP encountered an error during decison making and returned INDETERMINATE."));
+			latestDecision.set(decision);
+			constraintHandlerBundle.set(new ReactiveConstraintHandlerBundle<>());
+			return;
 		}
 
-		if (implicitDecision.getDecision() != Decision.PERMIT)
-			sink.error(new AccessDeniedException("Access Denied by PDP"));
-
-		try {
-			constraintHandler.get().handleOnDecisionConstraints();
-		} catch (AccessDeniedException e) {
-			sink.error(e);
-			implicitDecision = AuthorizationDecision.INDETERMINATE;
+		if (decision.getDecision() == Decision.NOT_APPLICABLE) {
+			sink.error(new AccessDeniedException(
+					"The PDP has no applicable rules answering the authorization subscription and retuned NOT_APPLICABLE."));
+			latestDecision.set(decision);
+			constraintHandlerBundle.set(new ReactiveConstraintHandlerBundle<>());
+			return;
 		}
 
-		latestDecision.set(implicitDecision);
+		ReactiveConstraintHandlerBundle<T> newConstraintHandlerBundle;
+		try {
+			newConstraintHandlerBundle = constraintsService.reactiveTypeBundleFor(decision, clazz);
+			constraintHandlerBundle.set(newConstraintHandlerBundle);
+		} catch (AccessDeniedException e) {
+			sink.error(new AccessDeniedException(
+					"The PEP failed to construct constraint handlers. Will be handled like an INDETERMINATE decision",
+					e));
+			latestDecision.set(AuthorizationDecision.INDETERMINATE);
+			constraintHandlerBundle.set(new ReactiveConstraintHandlerBundle<>());
+			return;
+		}
 
-		if (implicitDecision.getResource().isPresent()) {
+		try {
+			newConstraintHandlerBundle.handleOnDecisionConstraints();
+		} catch (AccessDeniedException e) {
+			sink.error(new AccessDeniedException(
+					"The PEP failed to comply with the onDecision obligations. Will be handled like an INDETERMINATE decision",
+					e));
+			latestDecision.set(AuthorizationDecision.INDETERMINATE);
+			constraintHandlerBundle.set(new ReactiveConstraintHandlerBundle<>());
+			return;
+		}
+
+		if (decision.getDecision() == Decision.DENY) {
+			sink.error(new AccessDeniedException("PDP decided to deny access."));
+			latestDecision.set(decision);
+			return;
+		}
+
+		// decision == Decision.PERMIT from here on
+
+		latestDecision.set(decision);
+		if (decision.getResource().isPresent()) {
 			try {
-				sink.next(constraintsService.unmarshallResource(implicitDecision.getResource().get(), clazz));
+				sink.next(constraintsService.unmarshallResource(decision.getResource().get(), clazz));
 			} catch (JsonProcessingException | IllegalArgumentException e) {
-				sink.error(new AccessDeniedException("Error replacing stream with resource. Ending Stream.", e));
-				implicitDecision = AuthorizationDecision.INDETERMINATE;
+				sink.error(new AccessDeniedException(
+						"The PEP failed to replace stream with decision's resource object. Will be handled like an INDETERMINATE decision",
+						e));
+				latestDecision.set(AuthorizationDecision.INDETERMINATE);
+				constraintHandlerBundle.set(new ReactiveConstraintHandlerBundle<>());
+				return;
 			}
 		}
 
-		if (implicitDecision.getDecision() == Decision.PERMIT && dataSubscription.get() == null)
-			dataSubscription.set(wrapResourceAccessPointAndSubscribe());
+		dataSubscription.updateAndGet(sub -> {
+			if (sub == null) {
+				return wrapResourceAccessPointAndSubscribe();
+			} else {
+				return sub;
+			}
+		});
 	}
 
 	private Disposable wrapResourceAccessPointAndSubscribe() {
@@ -161,7 +193,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 
 	private void handleSubscribe(Subscription s) {
 		try {
-			constraintHandler.get().handleOnSubscribeConstraints(s);
+			constraintHandlerBundle.get().handleOnSubscribeConstraints(s);
 		} catch (Throwable t) {
 			// This means that we handle it as if there was no decision yet.
 			// We dispose of the resourceAccessPoint and remove the lastDecision
@@ -191,7 +223,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 			return;
 
 		try {
-			var transformedValue = constraintHandler.get().handleAllOnNextConstraints(value);
+			var transformedValue = constraintHandlerBundle.get().handleAllOnNextConstraints(value);
 			if (transformedValue != null)
 				sink.next(transformedValue);
 		} catch (Throwable t) {
@@ -199,31 +231,31 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 			// doing handleNextDecision(AuthorizationDecision.DENY); would drop all
 			// subsequent messages, even if the constraint handler would succeed on then.
 			// Do not signal original error, as this may leak information in message.
-			sink.error(new AccessDeniedException("Failed to handle onNext obligation."));
+			sink.error(new AccessDeniedException("Failed to handle onNext obligation.", t));
 		}
 	}
 
 	private void handleRequest(Long value) {
 		try {
-			constraintHandler.get().handleOnRequestConstraints(value);
+			constraintHandlerBundle.get().handleOnRequestConstraints(value);
 		} catch (Throwable t) {
 			handleNextDecision(AuthorizationDecision.INDETERMINATE);
 		}
 	}
 
 	private void handleOnTerminateConstraints() {
-		constraintHandler.get().handleOnTerminateConstraints();
+		constraintHandlerBundle.get().handleOnTerminateConstraints();
 	}
 
 	private void handleAfterTerminateConstraints() {
-		constraintHandler.get().handleAfterTerminateConstraints();
+		constraintHandlerBundle.get().handleAfterTerminateConstraints();
 	}
 
 	private void handleComplete() {
 		if (stopped.get())
 			return;
 		try {
-			constraintHandler.get().handleOnCompleteConstraints();
+			constraintHandlerBundle.get().handleOnCompleteConstraints();
 		} catch (Throwable t) {
 			// NOOP stream is finished nothing more to protect.
 		}
@@ -233,7 +265,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 
 	private void handleCancel() {
 		try {
-			constraintHandler.get().handleOnCancelConstraints();
+			constraintHandlerBundle.get().handleOnCancelConstraints();
 		} catch (Throwable t) {
 			// NOOP stream is finished nothing more to protect.
 		}
@@ -242,7 +274,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 
 	private void handleError(Throwable error) {
 		try {
-			sink.error(constraintHandler.get().handleAllOnErrorConstraints(error));
+			sink.error(constraintHandlerBundle.get().handleAllOnErrorConstraints(error));
 		} catch (Throwable t) {
 			sink.error(t);
 			handleNextDecision(AuthorizationDecision.INDETERMINATE);
@@ -260,7 +292,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 			return tuple;
 
 		try {
-			var transformedError = constraintHandler.get().handleAllOnErrorConstraints(error);
+			var transformedError = constraintHandlerBundle.get().handleAllOnErrorConstraints(error);
 			return Tuples.of(Optional.empty(), Optional.of(transformedError));
 		} catch (Throwable t) {
 			return tuple;

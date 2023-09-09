@@ -20,8 +20,6 @@ import java.util.function.Function;
 
 import javax.net.ssl.SSLException;
 
-import io.netty.channel.ChannelOption;
-import reactor.util.annotation.Nullable;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -32,6 +30,7 @@ import org.springframework.security.oauth2.client.registration.ReactiveClientReg
 import org.springframework.security.oauth2.client.web.reactive.function.client.ServerOAuth2AuthorizedClientExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import io.netty.channel.ChannelOption;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
@@ -46,14 +45,18 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 import reactor.retry.Backoff;
 import reactor.retry.Repeat;
+import reactor.util.annotation.Nullable;
 
 @Slf4j
 public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 
 	private static final String DECIDE = "/api/pdp/decide";
+
+	private static final String DECIDE_ONCE = "/api/pdp/decide-once";
 
 	private static final String MULTI_DECIDE = "/api/pdp/multi-decide";
 
@@ -107,6 +110,15 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 	}
 
 	@Override
+	public Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authzSubscription) {
+		var type = new ParameterizedTypeReference<AuthorizationDecision>() {
+		};
+		return client.post().uri(DECIDE_ONCE).accept(MediaType.APPLICATION_JSON).contentType(MediaType.APPLICATION_JSON)
+				.bodyValue(authzSubscription).retrieve().bodyToMono(type)
+				.doOnError(error -> log.error("Error : {}", error.getMessage()));
+	}
+
+	@Override
 	public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription) {
 		var type = new ParameterizedTypeReference<ServerSentEvent<IdentifiableAuthorizationDecision>>() {
 		};
@@ -130,15 +142,16 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 				.bodyValue(authzSubscription).retrieve().bodyToFlux(type).mapNotNull(ServerSentEvent::data)
 				.doOnError(error -> log.error("Error : {}", error.getMessage()));
 	}
+
 	public static RemoteHttpPolicyDecisionPointBuilder builder() {
 		return new RemoteHttpPolicyDecisionPointBuilder();
 	}
 
 	@NoArgsConstructor
 	public static class RemoteHttpPolicyDecisionPointBuilder {
-		private String                                         baseUrl    = "https://localhost:8443";
-		private HttpClient                                     httpClient = HttpClient.create();
-		private Function<WebClient.Builder, WebClient.Builder> authenticationCustomizer;
+		private String											baseUrl		= "https://localhost:8443";
+		private HttpClient										httpClient	= HttpClient.create();
+		private Function<WebClient.Builder, WebClient.Builder>	authenticationCustomizer;
 
 		public RemoteHttpPolicyDecisionPointBuilder withUnsecureSSL() throws SSLException {
 			log.warn("------------------------------------------------------------------");
@@ -163,7 +176,7 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 			return this;
 		}
 
-		public <O> RemoteHttpPolicyDecisionPointBuilder option(ChannelOption<O> key, @Nullable O value){
+		public <O> RemoteHttpPolicyDecisionPointBuilder option(ChannelOption<O> key, @Nullable O value) {
 			this.httpClient = this.httpClient.option(key, value);
 			return this;
 		}
@@ -193,11 +206,11 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 
 		public RemoteHttpPolicyDecisionPointBuilder oauth2(
 				ReactiveClientRegistrationRepository clientRegistrationRepository, String registrationId) {
-			InMemoryReactiveOAuth2AuthorizedClientService                clientService           = new InMemoryReactiveOAuth2AuthorizedClientService(
+			InMemoryReactiveOAuth2AuthorizedClientService					clientService			= new InMemoryReactiveOAuth2AuthorizedClientService(
 					clientRegistrationRepository);
-			AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager authorizedClientManager = new AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager(
+			AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager	authorizedClientManager	= new AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager(
 					clientRegistrationRepository, clientService);
-			var                                                          oauth2FilterFunction    = new ServerOAuth2AuthorizedClientExchangeFilterFunction(
+			var																oauth2FilterFunction	= new ServerOAuth2AuthorizedClientExchangeFilterFunction(
 					authorizedClientManager);
 			oauth2FilterFunction.setDefaultClientRegistrationId(registrationId);
 			setApplyAuthenticationFunction(builder -> builder.filter(oauth2FilterFunction));
