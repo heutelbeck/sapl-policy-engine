@@ -31,8 +31,6 @@ public interface LibraryEntryMetadata {
 
 	String getCodeTemplate();
 
-    List<String> getSchemaTemplates();
-
     String getDocumentationCodeTemplate();
 
 	Method getFunction();

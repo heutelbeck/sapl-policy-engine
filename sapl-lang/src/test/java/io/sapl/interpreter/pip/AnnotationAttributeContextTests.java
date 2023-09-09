@@ -846,7 +846,7 @@ class AnnotationAttributeContextTests {
 				containsInAnyOrder("test.x2", "test.a", "test.a", "test.a2", "test.a2", "test.x", "test.x"));
 	}
 
-	@Test
+/*	@Test
 	void generatesCodeTemplatesFromAttributeSchema() throws InitializationException {
 
 		@PolicyInformationPoint(name = "test")
@@ -896,7 +896,7 @@ class AnnotationAttributeContextTests {
 		actualNonEnvironmentTemplates = sut.getAttributeCodeTemplates();
 		assertThat(actualNonEnvironmentTemplates, containsInAnyOrder(expectedNonEnvironmentTemplates));
 
-	}
+	}*/
 
 	@Test
 	void when_environmentAttributeButOnlyNonEnvAttributePresent_fail()

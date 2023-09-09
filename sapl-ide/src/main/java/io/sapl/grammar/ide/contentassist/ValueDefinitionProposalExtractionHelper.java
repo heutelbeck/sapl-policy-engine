@@ -1,6 +1,8 @@
 package io.sapl.grammar.ide.contentassist;
 
+import io.sapl.grammar.ide.contentassist.schema.SchemaProposals;
 import io.sapl.grammar.sapl.*;
+import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import lombok.RequiredArgsConstructor;
 import org.eclipse.emf.ecore.EObject;
@@ -15,6 +17,7 @@ public class ValueDefinitionProposalExtractionHelper {
 
     private final VariablesAndCombinatorSource variablesAndCombinatorSource;
     private final ContentAssistContext context;
+    private final FunctionContext functionContext;
     private final Collection<String> authzSubProposals = Set.of("subject", "action", "resource", "environment");
     public enum ProposalType {VALUE, SCHEMA}
 
@@ -35,7 +38,7 @@ public class ValueDefinitionProposalExtractionHelper {
     }
 
     private Collection<String> getPreambleSchemaProposals(){
-        return new SchemaProposals(variablesAndCombinatorSource).getVariableNamesAsTemplates();
+        return new SchemaProposals(variablesAndCombinatorSource, functionContext).getVariableNamesAsTemplates();
     }
 
     private Collection<String> getBodyProposals(ProposalType proposalType, int currentOffset, PolicyBody policyBody) {
@@ -51,7 +54,7 @@ public class ValueDefinitionProposalExtractionHelper {
 
     private Collection<String> getAuthzProposals(){
         Collection<String> proposals = new HashSet<>();
-        var schemaProposals = new SchemaProposals(variablesAndCombinatorSource);
+        var schemaProposals = new SchemaProposals(variablesAndCombinatorSource, functionContext);
         var saplSchemas = getSapl().getSchemas();
         
         for (var schema : saplSchemas) {
@@ -112,7 +115,7 @@ public class ValueDefinitionProposalExtractionHelper {
     private List<String> getProposalTemplates(ValueDefinition valueDefinition, List<Expression> schemaVarExpression) {
         List<String> proposalTemplates = new ArrayList<>();
         for (Expression varExpression: schemaVarExpression) {
-            var schemaTemplates = new SchemaProposals(variablesAndCombinatorSource)
+            var schemaTemplates = new SchemaProposals(variablesAndCombinatorSource, functionContext)
                     .getCodeTemplates(varExpression);
             var valueDefinitionName = valueDefinition.getName();
             var templates = constructProposals(valueDefinitionName, schemaTemplates);

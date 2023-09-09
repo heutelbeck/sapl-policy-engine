@@ -255,7 +255,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 			return sb.toString();
 		}
 
-		@Override
+/*		@Override
 		public List<String> getSchemaTemplates(){
 			StringBuilder sb;
 			List<String> paths;
@@ -268,6 +268,8 @@ public class AnnotationFunctionContext implements FunctionContext {
 				throw new IllegalArgumentException(MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED);
 
 			if (schema.length() > 0 || pathToSchema.length() > 0){
+				//var test = AuthorizationContext.getVariables(ctx);
+				//var test = new SchemaProposals();
 				SchemaTemplates schemaTemplate = new SchemaTemplates();
 
 				if (schema.length() > 0)
@@ -282,7 +284,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 				}
 			}
 			return schemaTemplates;
-		}
+		}*/
 
 		@Override
 		public String getDocumentationCodeTemplate() {
@@ -308,7 +310,6 @@ public class AnnotationFunctionContext implements FunctionContext {
 			for (var entry : functions.entrySet()) {
 				var value = entry.getValue();
 				codeTemplateCache.add(entry.getValue().getCodeTemplate());
-				codeTemplateCache.addAll(value.getSchemaTemplates());
 			}
 			Collections.sort(codeTemplateCache);
 		}
@@ -318,6 +319,11 @@ public class AnnotationFunctionContext implements FunctionContext {
 	@Override
 	public Collection<String> getAllFullyQualifiedFunctions() {
 		return functions.keySet();
+	}
+
+	@Override
+	public Map<String, FunctionMetadata> getAllFullyQualifiedFunctionsWithMetadata() {
+		return functions;
 	}
 
 	@Override

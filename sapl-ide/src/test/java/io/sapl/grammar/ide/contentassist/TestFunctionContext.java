@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.functions.LibraryDocumentation;
 
@@ -65,6 +66,16 @@ class TestFunctionContext implements FunctionContext {
 	public List<String> getCodeTemplates() {
 		return List.of("filter.blacken", "filter.remove", "filter.replace", "standard.length",
 				"standard.numberToString", "time.after", "time.before", "time.between");
+	}
+
+	@Override
+	public Map<String, AnnotationFunctionContext.FunctionMetadata> getAllFullyQualifiedFunctionsWithMetadata() {
+/*		Map<String, AnnotationFunctionContext.FunctionMetadata> functions = new HashMap<>();
+		for (String key : getAllFullyQualifiedFunctions()){
+			var put = functions.put(key, new AnnotationFunctionContext.FunctionMetadata(
+					"","", "", "", "", 0, ""));
+		}*/
+		return null;
 	}
 
 	@Override

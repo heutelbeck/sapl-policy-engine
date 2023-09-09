@@ -200,14 +200,14 @@ class AnnotationFunctionContextTest {
 				"test.helloTwoArgs(arg1, arg2)", "test.helloVarArgs(aVarArgs...)"));
 	}
 
-	@Test
+/*	@Test
 	void codeTemplatesAreGeneratedFromSchemas() throws InitializationException {
 		var context = new AnnotationFunctionContext(new SchemaLibrary());
 		var actualTemplates = context.getCodeTemplates();
 		assertThat(actualTemplates, containsInAnyOrder(
 				"schema.schemaFromFile()", "schema.schemaFromFile().name",
 				"schema.schemaFromJson()", "schema.schemaFromJson().name"));
-	}
+	}*/
 
 	@Test
 	void typeAnnotationSchemaMatchesParameter() throws InitializationException, JsonProcessingException {

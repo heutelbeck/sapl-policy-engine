@@ -203,7 +203,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		if ("value".equals(feature)) {
 			// try to resolve for available variables
 
-			var helper = new ValueDefinitionProposalExtractionHelper(variablesAndCombinatorSource, context);
+			var helper = new ValueDefinitionProposalExtractionHelper(variablesAndCombinatorSource, context, functionContext);
 			var definedValues = helper.getProposals(model, ValueDefinitionProposalExtractionHelper.ProposalType.VALUE);
 			// add variables to list of proposals
 			addSimpleProposals(definedValues, context, acceptor);
@@ -278,7 +278,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 	}
 
 	private Collection<String> getValidSchemas(ContentAssistContext context, EObject model) {
-		var helper = new ValueDefinitionProposalExtractionHelper(variablesAndCombinatorSource, context);
+		var helper = new ValueDefinitionProposalExtractionHelper(variablesAndCombinatorSource, context, functionContext);
 		return helper.getProposals(model, ValueDefinitionProposalExtractionHelper.ProposalType.SCHEMA);
 	}
 

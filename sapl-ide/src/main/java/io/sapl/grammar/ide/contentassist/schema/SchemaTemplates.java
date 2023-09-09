@@ -1,16 +1,18 @@
-package io.sapl.interpreter.functions;
+package io.sapl.grammar.ide.contentassist.schema;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.wnameless.json.flattener.JsonFlattener;
+import lombok.RequiredArgsConstructor;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+@RequiredArgsConstructor
 public class SchemaTemplates {
+
+    private final Map<String, JsonNode> variables;
 
     private static final Collection<String> unwantedJsonKeywords = Set.of(
             "\\$schema",
@@ -38,35 +40,17 @@ public class SchemaTemplates {
 
     private List<String> flattenSchemaFromFile(String schemaFilePath){
         String schema = getSchemaFromFile(schemaFilePath);
+        return flattenSchemaFromJson(schema);
+    }
+
+/*    private List<String> flattenSchemaFromJson(String schema){
         if(schema.equals(""))
             return new ArrayList<>();
-        //return flattenSchemaFromJson(schema);
-        return generatePaths(schema);
-    }
+        return new SchemaParser(variables).generatePaths(schema);
 
-    private static List<String> generatePaths(String schema){
-        List<String> paths = new ArrayList<>();
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode schemaNode = mapper.readTree(schema);
-            processSchema(schemaNode, "#", paths);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        }
-    }
 
-    private static void processSchema(JsonNode schemaNode, String currentPath, List<String> paths) {
-        if (schemaNode.isObject()){
-            var fields = schemaNode.fields();
-            fields.forEachRemaining(field -> {
-                var propertyPath = currentPath + field.getKey();
-                paths.add(propertyPath);
-                processSchema(field.getValue(), propertyPath, paths);
-            });
-        } else if (schemaNode.isArray()){
-            // TODO
-        }
-    }
+
+ */
 
     private static List<String> flattenSchemaFromJson(String schema) {
         var unwantedEnumMatch = ".*".concat(ENUM_KEYWORD);

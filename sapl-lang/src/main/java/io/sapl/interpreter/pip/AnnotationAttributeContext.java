@@ -493,7 +493,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 				for (var attribute : entry.getValue())
 					if (attribute.environmentAttribute){
 						templates.add(attribute.getCodeTemplate());
-						templates.addAll(attribute.getSchemaTemplates());
+						//templates.addAll(attribute.getSchemaTemplates());
 					}
 
 			Collections.sort(templates);
@@ -510,7 +510,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 				for (var attribute : entry.getValue())
 					if (!attribute.environmentAttribute){
 						templates.add(attribute.getCodeTemplate());
-						templates.addAll(attribute.getSchemaTemplates());
+						//templates.addAll(attribute.getSchemaTemplates());
 					}
 			Collections.sort(templates);
 			templatesCache = Collections.unmodifiableList(templates);
