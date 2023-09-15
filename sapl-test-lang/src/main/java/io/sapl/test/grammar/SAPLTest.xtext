@@ -66,7 +66,7 @@ AdjustmentStep returns ExpectOrAdjustmentStep:
 	{Await} 'wait' duration=TemporalAmount;
 
 ExpectChain:
-	{SingleExpect} 'expect' 'single' decision=AuthorizationDecision ('with' 'obligation' obligation=Value)? ('with' 'resource' resource=Value)?|
+	{SingleExpect} 'expect' 'single' decision=AuthorizationDecision ('with' 'obligations' obligations+=Value (',' obligations+=Value)*)? ('with' 'resource' resource=Value)? ('with' 'advice' advice+=Value (',' advice+=Value)*)?|
 	{TestException} 'expect' 'exception' |
 	{RepeatedExpect} expectSteps+=ExpectOrAdjustmentStep ('then' expectSteps+=ExpectOrAdjustmentStep)*;
 
