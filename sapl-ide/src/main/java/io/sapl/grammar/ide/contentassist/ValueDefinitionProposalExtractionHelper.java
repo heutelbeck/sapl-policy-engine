@@ -88,26 +88,24 @@ public class ValueDefinitionProposalExtractionHelper {
     }
 
     private List<String> getValueFromStatement(int currentOffset, ValueDefinition statement) {
-        var valueDefinition = statement;
         List<String> valueList = new ArrayList<>();
-        int valueDefinitionOffset = getValueDefinitionOffset(valueDefinition);
+        int valueDefinitionOffset = getValueDefinitionOffset(statement);
 
         if (currentOffset > valueDefinitionOffset) {
-            String valueDefinitionName = valueDefinition.getName();
+            String valueDefinitionName = statement.getName();
             valueList.add(valueDefinitionName);
         }
         return valueList;
     }
 
     private List<String> getSchemaFromStatement(int currentOffset, ValueDefinition statement) {
-        var valueDefinition = statement;
         List<String> proposalTemplates = new ArrayList<>();
-        int valueDefinitionOffset = getValueDefinitionOffset(valueDefinition);
+        int valueDefinitionOffset = getValueDefinitionOffset(statement);
 
-        var schemaVarExpression = valueDefinition.getSchemaVarExpression();
+        var schemaVarExpression = statement.getSchemaVarExpression();
 
         if (currentOffset > valueDefinitionOffset && schemaVarExpression != null) {
-            proposalTemplates = getProposalTemplates(valueDefinition, schemaVarExpression);
+            proposalTemplates = getProposalTemplates(statement, schemaVarExpression);
         }
         return proposalTemplates;
     }

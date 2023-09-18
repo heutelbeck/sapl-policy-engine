@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
+import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import org.hamcrest.number.OrderingComparison;
 
 import io.sapl.api.interpreter.ExpressionArgument;
@@ -239,6 +240,11 @@ public class MockingFunctionContext implements FunctionContext {
 	@Override
 	public List<String> getCodeTemplates() {
 		return List.of();
+	}
+
+	@Override
+	public Map<String, AnnotationFunctionContext.FunctionMetadata> getAllFullyQualifiedFunctionsWithMetadata() {
+		return Map.of();
 	}
 
 	@Override

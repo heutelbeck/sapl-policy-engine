@@ -80,28 +80,6 @@ public class SchemaProposals {
                 }
             }
         }
-        //var schema = functionContext.getAllFullyQualifiedFunctionsWithMetadata().getFunctionSchema();
-        //var pathToSchema = getFunctionPathToSchema();
-
-/*        if (schema.length() > 0 && pathToSchema.length() > 0)
-            throw new IllegalArgumentException(MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED);
-
-        if (schema.length() > 0 || pathToSchema.length() > 0){
-            //var test = AuthorizationContext.getVariables(ctx);
-            var test = new SchemaProposals();
-            SchemaTemplates schemaTemplate = new SchemaTemplates();
-
-            if (schema.length() > 0)
-                paths = schemaTemplate.schemaTemplatesFromJson(schema);
-            else
-                paths = schemaTemplate.schemaTemplatesFromFile(pathToSchema);
-
-            for (var path : paths){
-                sb = new StringBuilder();
-                sb.append(funCodeTemplate).append('.').append(path);
-                schemaTemplates.add(sb.toString());
-            }
-        }*/
         return schemaTemplates;
     }
 

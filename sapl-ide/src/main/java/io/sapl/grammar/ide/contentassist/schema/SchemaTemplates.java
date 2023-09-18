@@ -1,7 +1,6 @@
 package io.sapl.grammar.ide.contentassist.schema;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.github.wnameless.json.flattener.JsonFlattener;
 import lombok.RequiredArgsConstructor;
 
 import java.io.IOException;
