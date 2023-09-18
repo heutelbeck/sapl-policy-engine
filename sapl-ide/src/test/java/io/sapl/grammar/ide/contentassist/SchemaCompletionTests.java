@@ -33,7 +33,7 @@
             class SchemaCompletionTests extends CompletionTests {
 
                 List<String> environmentVariableNames = List.of("schema_with_additional_keywords",
-                        "bank_action_schema", "subject_schema");
+                        "bank_action_schema", "subject_schema", "adress_schema", "vehicle_schema");
 
                 /**
                  * Tests regarding the preamble
@@ -148,7 +148,7 @@
                 @Test
                 void testCompletion_PolicyBody_NotSuggestEnumKeywords() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "policy \"test\" permit where var bar = 3; var foo = \"test\" schema bank_action_schema; ";
+                        String policy = "policy \"test\" permit where var bar = 3; var foo = \"test\" schema bank_action_schema; foo";
                         it.setModel(policy);
                         it.setColumn(policy.length());
                         it.setAssertCompletionList(completionList -> {
@@ -258,14 +258,28 @@
 
 
                 @Test
-                void testCompletion_PolicyBody_getNestedSchemaFromEnvironmentVariable2() {
+                void testCompletion_PolicyBody_resolveReferencesWithinDocument() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "policy \"test\" permit where var foo = \"test\" schema schema_with_additional_keywords, bank_action_schema; foo";
+                        String policy = "policy \"test\" permit where var foo = \"test\" schema vehicle_schema; foo";
                         it.setModel(policy);
                         it.setColumn(policy.length());
                         it.setAssertCompletionList(completionList -> {
-                            var expected = List.of("foo.subject.age", "foo.subject.name",
-                                    "foo.subject.name.firstname", "foo.name.registerNewCustomer");
+                            var expected = List.of("foo.nc:IdentificationID", "foo.nc:Vehicle",
+                                    "foo.nc:Vehicle.@base", "foo.nc:Vehicle.@id",
+                                    "foo.nc:Vehicle.nc:VehicleIdentification", "foo.nc:VehicleIdentification");
+                            assertProposalsSimple(expected, completionList);
+                        });
+                    });
+                }
+
+                @Test
+                void testCompletion_PolicyBody_resolveReferencesAcrossDocuments() {
+                    testCompletion((TestCompletionConfiguration it) -> {
+                        String policy = "policy \"test\" permit where var foo = \"test\" schema calendar_schema; foo";
+                        it.setModel(policy);
+                        it.setColumn(policy.length());
+                        it.setAssertCompletionList(completionList -> {
+                            var expected = List.of("foo.dtstart", "foo.geo.latitude.maximum");
                             assertProposalsSimple(expected, completionList);
                         });
                     });

@@ -15,9 +15,9 @@ public class SchemaParser {
 
     private static final Collection<String> RESERVED_KEYWORDS = Set.of(
             "$schema", "$id",
-            "type", "description", "properties", "oneOf", "allOf", "anyOf", "items", "enum",
-            "additionalProperties", "format"
-    );
+            "additionalProperties", "allOf", "anyOf", "dependentRequired", "description", "enum", "format", "items",
+            "oneOf", "properties", "required", "title", "type"
+            );
 
     public List<String> generatePaths(String schema) {
 
@@ -41,12 +41,12 @@ public class SchemaParser {
         String internalRef = null;
         if (ref.contains("#/")){
             var refSplit = ref.split("#/", 2);
-            schemaName = refSplit[0];
+            schemaName = refSplit[0].replaceAll("\\.json$", "");;
             internalRef = refSplit[1];
         } else {
-            schemaName = ref;
+            schemaName = ref.replaceAll("\\.json$", "");;
         }
-        if (variables != null && variables.containsKey(ref)){
+        if (variables != null && variables.containsKey(schemaName)){
             refNode = variables.get(schemaName);
             if (internalRef != null){
                 refNode = refNode.get(internalRef);
