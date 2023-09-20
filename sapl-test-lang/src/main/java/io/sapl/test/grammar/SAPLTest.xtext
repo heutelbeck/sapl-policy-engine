@@ -10,9 +10,18 @@ SAPLTest:
 terminal IMPORT_NAME: ('a'..'z')+'.'('a'..'z'|'A'..'Z'|'0'..'9')+;
 
 TestSuite:
+    UnitTestSuite | IntegrationTestSuite;
+
+UnitTestSuite:
 	policy=ID 'tests' '{'
 		(testCases+=TestCase)+
 	'}';
+
+IntegrationTestSuite:
+    policyFolder=ID 'integration' 'tests' '{'
+        pdpVariables=Object?
+        (testCases+=TestCase)+
+    '}';
 
 WhenStep:
 	 'when' authorizationSubscription=AuthorizationSubscription;
@@ -71,7 +80,7 @@ ExpectChain:
 	{RepeatedExpect} expectSteps+=ExpectOrAdjustmentStep ('then' expectSteps+=ExpectOrAdjustmentStep)*;
 
 TestCase:
-	'scenario' name=STRING ('given' givenSteps+=GivenStep ('and' givenSteps+=GivenStep)*)? whenStep=WhenStep 'then' expect=ExpectChain';';
+	'scenario' name=STRING ('with' 'environment' environment=Object)? ('given' givenSteps+=GivenStep ('and' givenSteps+=GivenStep)*)? whenStep=WhenStep 'then' expect=ExpectChain';';
 
 Value:
 	Object | Array | NumberLiteral | StringLiteral | BooleanLiteral;

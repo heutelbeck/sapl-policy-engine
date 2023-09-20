@@ -17,6 +17,7 @@ import io.sapl.test.grammar.sAPLTest.FunctionLibrary;
 import io.sapl.test.grammar.sAPLTest.GivenStep;
 import io.sapl.test.grammar.sAPLTest.Library;
 import io.sapl.test.grammar.sAPLTest.Pip;
+import io.sapl.test.grammar.sAPLTest.TestSuite;
 import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.unit.SaplUnitTestFixture;
 import java.util.ArrayList;
@@ -30,13 +31,24 @@ class TestFixtureBuilderTest {
 
     private SaplUnitTestFixture unitTestFixtureMock;
 
+    private TestSuiteInterpreter testSuiteInterpreterMock;
+
+    private TestSuite testSuiteMock;
+
+    private ValInterpreter valInterpreterMock;
+
     private TestFixtureBuilder testFixtureBuilder;
 
     @BeforeEach
     void setUp() {
         pipMock = mock(Object.class);
         unitTestFixtureMock = mock(SaplUnitTestFixture.class);
-        testFixtureBuilder = new TestFixtureBuilder(pipMock);
+        testSuiteInterpreterMock = mock(TestSuiteInterpreter.class);
+        testSuiteMock = mock(TestSuite.class);
+        valInterpreterMock = mock(ValInterpreter.class);
+        when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock, null)).thenReturn(unitTestFixtureMock);
+
+        testFixtureBuilder = new TestFixtureBuilder(pipMock, testSuiteInterpreterMock);
     }
 
     @Test
@@ -45,7 +57,7 @@ class TestFixtureBuilderTest {
 
         when(unitTestFixtureMock.constructTestCase()).thenReturn(testCaseMock);
 
-        final var result = testFixtureBuilder.buildTestFixture(null, unitTestFixtureMock);
+        final var result = testFixtureBuilder.buildTestFixture(null, testSuiteMock, null);
 
         assertEquals(testCaseMock, result);
     }
@@ -56,7 +68,7 @@ class TestFixtureBuilderTest {
 
         when(unitTestFixtureMock.constructTestCase()).thenReturn(testCaseMock);
 
-        final var result = testFixtureBuilder.buildTestFixture(List.of(), unitTestFixtureMock);
+        final var result = testFixtureBuilder.buildTestFixture(List.of(), testSuiteMock, null);
 
         assertEquals(testCaseMock, result);
     }
@@ -72,7 +84,7 @@ class TestFixtureBuilderTest {
 
         when(unitTestFixtureMock.constructTestCaseWithMocks()).thenReturn(testCaseWithMocksMock);
 
-        final var result = testFixtureBuilder.buildTestFixture(givenSteps, unitTestFixtureMock);
+        final var result = testFixtureBuilder.buildTestFixture(givenSteps, testSuiteMock, null);
 
         assertEquals(testCaseWithMocksMock, result);
         assertEquals(List.of(givenStepMock, givenStep2Mock), givenSteps);
@@ -94,7 +106,7 @@ class TestFixtureBuilderTest {
         when(unitTestFixtureMock.registerFunctionLibrary(any(FilterFunctionLibrary.class))).thenReturn(unitTestFixtureMock);
         when(unitTestFixtureMock.constructTestCaseWithMocks()).thenReturn(testCaseWithMocksMock);
 
-        final var result = testFixtureBuilder.buildTestFixture(givenSteps, unitTestFixtureMock);
+        final var result = testFixtureBuilder.buildTestFixture(givenSteps, testSuiteMock, null);
 
         assertEquals(testCaseWithMocksMock, result);
         assertEquals(List.of(givenStepMock, givenStep3Mock), givenSteps);
@@ -116,7 +128,7 @@ class TestFixtureBuilderTest {
         when(unitTestFixtureMock.registerPIP(pipMock)).thenReturn(unitTestFixtureMock);
         when(unitTestFixtureMock.constructTestCaseWithMocks()).thenReturn(testCaseWithMocksMock);
 
-        final var result = testFixtureBuilder.buildTestFixture(givenSteps, unitTestFixtureMock);
+        final var result = testFixtureBuilder.buildTestFixture(givenSteps, testSuiteMock, null);
 
         assertEquals(testCaseWithMocksMock, result);
         assertEquals(List.of(givenStepMock, givenStep3Mock), givenSteps);
@@ -140,7 +152,7 @@ class TestFixtureBuilderTest {
         when(unitTestFixtureMock.registerFunctionLibrary(any(StandardFunctionLibrary.class))).thenReturn(unitTestFixtureMock);
         when(unitTestFixtureMock.constructTestCaseWithMocks()).thenReturn(testCaseWithMocksMock);
 
-        final var result = testFixtureBuilder.buildTestFixture(givenSteps, unitTestFixtureMock);
+        final var result = testFixtureBuilder.buildTestFixture(givenSteps, testSuiteMock, null);
 
         assertEquals(testCaseWithMocksMock, result);
         assertEquals(List.of(givenStepMock, givenStep4Mock), givenSteps);
@@ -165,7 +177,7 @@ class TestFixtureBuilderTest {
         when(unitTestFixtureMock.registerFunctionLibrary(any(LoggingFunctionLibrary.class))).thenReturn(unitTestFixtureMock);
         when(unitTestFixtureMock.constructTestCaseWithMocks()).thenReturn(testCaseWithMocksMock);
 
-        final var result = testFixtureBuilder.buildTestFixture(givenSteps, unitTestFixtureMock);
+        final var result = testFixtureBuilder.buildTestFixture(givenSteps, testSuiteMock, null);
 
         assertEquals(testCaseWithMocksMock, result);
         assertEquals(List.of(givenStepMock, givenStep4Mock), givenSteps);
@@ -190,7 +202,7 @@ class TestFixtureBuilderTest {
         when(unitTestFixtureMock.registerFunctionLibrary(any(TemporalFunctionLibrary.class))).thenReturn(unitTestFixtureMock);
         when(unitTestFixtureMock.constructTestCaseWithMocks()).thenReturn(testCaseWithMocksMock);
 
-        final var result = testFixtureBuilder.buildTestFixture(givenSteps, unitTestFixtureMock);
+        final var result = testFixtureBuilder.buildTestFixture(givenSteps, testSuiteMock, null);
 
         assertEquals(testCaseWithMocksMock, result);
         assertEquals(List.of(givenStepMock, givenStep4Mock), givenSteps);

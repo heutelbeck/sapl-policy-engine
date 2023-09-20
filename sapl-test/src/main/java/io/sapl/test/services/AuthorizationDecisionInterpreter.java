@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.test.grammar.sAPLTest.Value;
-import java.util.EventObject;
 import java.util.List;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
@@ -27,13 +26,13 @@ public class AuthorizationDecisionInterpreter {
 
         final var obligationArray = getMappedValArrayFromValues(obligations);
 
-        if(obligationArray != null) {
+        if (obligationArray != null) {
             authorizationDecision = authorizationDecision.withObligations(obligationArray);
         }
 
         final var adviceArray = getMappedValArrayFromValues(advice);
 
-        if(adviceArray != null) {
+        if (adviceArray != null) {
             authorizationDecision = authorizationDecision.withAdvice(adviceArray);
         }
 
@@ -41,17 +40,17 @@ public class AuthorizationDecisionInterpreter {
     }
 
     private ArrayNode getMappedValArrayFromValues(final List<Value> values) {
-        if(values == null || values.isEmpty()) {
+        if (values == null || values.isEmpty()) {
             return null;
         }
 
         final var valArray = objectMapper.createArrayNode();
 
         values.stream()
-              .map(valInterpreter::getValFromReturnValue)
-              .filter(Objects::nonNull)
-              .map(io.sapl.api.interpreter.Val::get)
-              .forEach(valArray::add);
+                .map(valInterpreter::getValFromReturnValue)
+                .filter(Objects::nonNull)
+                .map(io.sapl.api.interpreter.Val::get)
+                .forEach(valArray::add);
 
         return valArray;
     }

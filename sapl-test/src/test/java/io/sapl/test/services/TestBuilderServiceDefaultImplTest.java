@@ -19,10 +19,13 @@ import io.sapl.test.Helper;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sAPLTest.ExpectChain;
 import io.sapl.test.grammar.sAPLTest.GivenStep;
+import io.sapl.test.grammar.sAPLTest.Object;
 import io.sapl.test.grammar.sAPLTest.SAPLTest;
 import io.sapl.test.grammar.sAPLTest.TestCase;
 import io.sapl.test.grammar.sAPLTest.TestException;
 import io.sapl.test.grammar.sAPLTest.TestSuite;
+import io.sapl.test.grammar.sAPLTest.UnitTestSuite;
+import io.sapl.test.grammar.sAPLTest.Value;
 import io.sapl.test.interfaces.ExpectStepBuilder;
 import io.sapl.test.interfaces.SaplTestDslInterpreter;
 import io.sapl.test.interfaces.VerifyStepBuilder;
@@ -31,7 +34,6 @@ import io.sapl.test.steps.ExpectOrVerifyStep;
 import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.steps.VerifyStep;
 import io.sapl.test.steps.WhenStep;
-import io.sapl.test.unit.SaplUnitTestFixture;
 import io.sapl.test.utils.ClasspathHelper;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -199,7 +201,7 @@ class TestBuilderServiceDefaultImplTest {
     @DisplayName("Dynamic test setup")
     class DynamicTestSetup {
 
-        private TestSuite testSuiteMock;
+        private UnitTestSuite testSuiteMock;
 
         private void setupTestExecution(List<TestCase> testCases) {
             final var pathMock = mock(Path.class);
@@ -210,9 +212,9 @@ class TestBuilderServiceDefaultImplTest {
 
             when(saplTestDslInterpreterMock.loadAsResource("testCase")).thenReturn(saplTestMock);
 
-            testSuiteMock = mock(TestSuite.class);
-            final var eListMock = Helper.mockEList(List.of(testSuiteMock));
-            when(saplTestMock.getElements()).thenReturn(eListMock);
+            testSuiteMock = mock(UnitTestSuite.class);
+            final var testSuitesMock = Helper.mockEList(List.<TestSuite>of(testSuiteMock));
+            when(saplTestMock.getElements()).thenReturn(testSuitesMock);
 
             final var testCasesMock = Helper.mockEList(testCases);
             when(testSuiteMock.getTestCases()).thenReturn(testCasesMock);
@@ -224,9 +226,9 @@ class TestBuilderServiceDefaultImplTest {
             return givenStepsMock;
         }
 
-        private GivenOrWhenStep mockTestFixture(List<GivenStep> givenSteps) throws InitializationException {
+        private GivenOrWhenStep mockTestFixture(List<GivenStep> givenSteps, Object environment) throws InitializationException {
             final var testFixtureMock = mock(GivenOrWhenStep.class);
-            when(testFixtureBuilderMock.buildTestFixture(eq(givenSteps), any(SaplUnitTestFixture.class))).thenReturn(testFixtureMock);
+            when(testFixtureBuilderMock.buildTestFixture(eq(givenSteps), any(TestSuite.class), eq(environment))).thenReturn(testFixtureMock);
             return testFixtureMock;
         }
 
@@ -267,7 +269,7 @@ class TestBuilderServiceDefaultImplTest {
 
             when(saplTestDslInterpreterMock.loadAsResource("testCase")).thenReturn(saplTestMock);
 
-            testSuiteMock = mock(TestSuite.class);
+            testSuiteMock = mock(UnitTestSuite.class);
             final var testSuite2Mock = mock(TestSuite.class);
             final var testSuites = Helper.mockEList(List.of(testSuiteMock, testSuite2Mock));
             when(saplTestMock.getElements()).thenReturn(testSuites);
@@ -312,7 +314,7 @@ class TestBuilderServiceDefaultImplTest {
             final var givenStepsMock = Helper.mockEList(List.<GivenStep>of());
             when(testCaseMock.getGivenSteps()).thenReturn(givenStepsMock);
 
-            final var testFixtureMock = mockTestFixture(givenStepsMock);
+            final var testFixtureMock = mockTestFixture(givenStepsMock, null);
 
             mockTestCaseWithTestException(testCaseMock);
 
@@ -333,7 +335,7 @@ class TestBuilderServiceDefaultImplTest {
             final var givenStepsMock = Helper.mockEList(List.<GivenStep>of());
             when(testCaseMock.getGivenSteps()).thenReturn(givenStepsMock);
 
-            final var testFixtureMock = mockTestFixture(givenStepsMock);
+            final var testFixtureMock = mockTestFixture(givenStepsMock, null);
 
             final var expectChainMock = mock(ExpectChain.class);
             when(testCaseMock.getExpect()).thenReturn(expectChainMock);
@@ -366,9 +368,9 @@ class TestBuilderServiceDefaultImplTest {
             final var givenSteps2Mock = mockGivenSteps(testCaseWithExceptionMock);
             final var givenSteps3Mock = mockGivenSteps(testCaseWithoutException2Mock);
 
-            final var testFixture1Mock = mockTestFixture(givenSteps1Mock);
-            final var testFixture2Mock = mockTestFixture(givenSteps2Mock);
-            final var testFixture3Mock = mockTestFixture(givenSteps3Mock);
+            final var testFixture1Mock = mockTestFixture(givenSteps1Mock, null);
+            final var testFixture2Mock = mockTestFixture(givenSteps2Mock, null);
+            final var testFixture3Mock = mockTestFixture(givenSteps3Mock, null);
 
             final var expectChain1Mock = mock(ExpectChain.class);
             when(testCaseWithoutException1Mock.getExpect()).thenReturn(expectChain1Mock);
@@ -388,6 +390,86 @@ class TestBuilderServiceDefaultImplTest {
             verify(whenStepBuilderMock, times(1)).constructWhenStep(givenSteps2Mock, testFixture2Mock);
             verify(verifyStep1Mock, times(1)).verify();
             verify(verifyStep2Mock, times(1)).verify();
+        }
+
+        @Test
+        void buildTest_handlesEnvironmentBeingObject() throws Throwable {
+            final var environmentMock = mock(Object.class);
+            final var testCaseMock = mock(TestCase.class);
+            when(testCaseMock.getName()).thenReturn("singleTest");
+            when(testCaseMock.getEnvironment()).thenReturn(environmentMock);
+
+            setupTestExecution(List.of(testCaseMock));
+            final var result = testBuilderServiceDefaultImpl.buildTests("filename");
+
+            when(testSuiteMock.getPolicy()).thenReturn("samplePolicy");
+            final var givenStepsMock = Helper.mockEList(List.<GivenStep>of());
+            when(testCaseMock.getGivenSteps()).thenReturn(givenStepsMock);
+
+            final var testFixtureMock = mockTestFixture(givenStepsMock, environmentMock);
+
+            final var expectChainMock = mock(ExpectChain.class);
+            when(testCaseMock.getExpect()).thenReturn(expectChainMock);
+
+            final var verifyStepMock = mockTestBuildingChain(givenStepsMock, testFixtureMock, testCaseMock);
+
+            result.get(0).getExecutable().execute();
+
+            verify(whenStepBuilderMock, times(1)).constructWhenStep(givenStepsMock, testFixtureMock);
+            verify(verifyStepMock, times(1)).verify();
+        }
+
+        @Test
+        void buildTest_handlesEnvironmentBeingNonObject() throws Throwable {
+            final var environmentMock = mock(Value.class);
+            final var testCaseMock = mock(TestCase.class);
+            when(testCaseMock.getName()).thenReturn("singleTest");
+            when(testCaseMock.getEnvironment()).thenReturn(environmentMock);
+
+            setupTestExecution(List.of(testCaseMock));
+            final var result = testBuilderServiceDefaultImpl.buildTests("filename");
+
+            when(testSuiteMock.getPolicy()).thenReturn("samplePolicy");
+            final var givenStepsMock = Helper.mockEList(List.<GivenStep>of());
+            when(testCaseMock.getGivenSteps()).thenReturn(givenStepsMock);
+
+            final var testFixtureMock = mockTestFixture(givenStepsMock, null);
+
+            final var expectChainMock = mock(ExpectChain.class);
+            when(testCaseMock.getExpect()).thenReturn(expectChainMock);
+
+            final var verifyStepMock = mockTestBuildingChain(givenStepsMock, testFixtureMock, testCaseMock);
+
+            result.get(0).getExecutable().execute();
+
+            verify(whenStepBuilderMock, times(1)).constructWhenStep(givenStepsMock, testFixtureMock);
+            verify(verifyStepMock, times(1)).verify();
+        }
+
+        @Test
+        void buildTest_handlesEnvironmentBeingNull() throws Throwable {
+            final var testCaseMock = mock(TestCase.class);
+            when(testCaseMock.getName()).thenReturn("singleTest");
+            when(testCaseMock.getEnvironment()).thenReturn(null);
+
+            setupTestExecution(List.of(testCaseMock));
+            final var result = testBuilderServiceDefaultImpl.buildTests("filename");
+
+            when(testSuiteMock.getPolicy()).thenReturn("samplePolicy");
+            final var givenStepsMock = Helper.mockEList(List.<GivenStep>of());
+            when(testCaseMock.getGivenSteps()).thenReturn(givenStepsMock);
+
+            final var testFixtureMock = mockTestFixture(givenStepsMock, null);
+
+            final var expectChainMock = mock(ExpectChain.class);
+            when(testCaseMock.getExpect()).thenReturn(expectChainMock);
+
+            final var verifyStepMock = mockTestBuildingChain(givenStepsMock, testFixtureMock, testCaseMock);
+
+            result.get(0).getExecutable().execute();
+
+            verify(whenStepBuilderMock, times(1)).constructWhenStep(givenStepsMock, testFixtureMock);
+            verify(verifyStepMock, times(1)).verify();
         }
     }
 

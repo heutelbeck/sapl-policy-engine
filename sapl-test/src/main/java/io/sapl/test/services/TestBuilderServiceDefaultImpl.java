@@ -1,6 +1,7 @@
 package io.sapl.test.services;
 
 import io.sapl.test.SaplTestException;
+import io.sapl.test.grammar.sAPLTest.Object;
 import io.sapl.test.grammar.sAPLTest.TestCase;
 import io.sapl.test.grammar.sAPLTest.TestException;
 import io.sapl.test.grammar.sAPLTest.TestSuite;
@@ -9,7 +10,6 @@ import io.sapl.test.interfaces.SaplTestDslInterpreter;
 import io.sapl.test.interfaces.VerifyStepBuilder;
 import io.sapl.test.interfaces.WhenStepBuilder;
 import io.sapl.test.steps.ExpectOrVerifyStep;
-import io.sapl.test.unit.SaplUnitTestFixture;
 import io.sapl.test.utils.ClasspathHelper;
 import java.nio.file.Files;
 import java.util.LinkedList;
@@ -26,7 +26,6 @@ public final class TestBuilderServiceDefaultImpl {
     private final ExpectStepBuilder expectStepBuilder;
     private final VerifyStepBuilder verifyStepBuilder;
     private final SaplTestDslInterpreter saplTestDslInterpreter;
-
 
     public List<DynamicTest> buildTests(final String fileName) {
         final var input = findFileOnClasspath(fileName);
@@ -61,10 +60,13 @@ public final class TestBuilderServiceDefaultImpl {
 
     private DynamicTest addDynamicTestCase(TestSuite testSuite, TestCase testCase) {
         return DynamicTest.dynamicTest(testCase.getName(), () -> {
-            final var fixture = new SaplUnitTestFixture(testSuite.getPolicy());
+            final var environment = testCase.getEnvironment();
             final var givenSteps = testCase.getGivenSteps();
 
-            final var testFixture = testFixtureBuilder.buildTestFixture(givenSteps, fixture);
+            final var environmentVariables = environment instanceof Object object ? object : null;
+
+            final var testFixture = testFixtureBuilder.buildTestFixture(givenSteps, testSuite, environmentVariables);
+
 
             if (testCase.getExpect() instanceof TestException) {
                 Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() ->
