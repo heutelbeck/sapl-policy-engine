@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.test.grammar.sAPLTest.IntegrationTestSuite;
 import io.sapl.test.grammar.sAPLTest.Object;
+import io.sapl.test.grammar.sAPLTest.PolicyFolder;
 import io.sapl.test.grammar.sAPLTest.TestSuite;
 import io.sapl.test.grammar.sAPLTest.UnitTestSuite;
 import io.sapl.test.grammar.sAPLTest.Value;
@@ -130,7 +131,9 @@ class TestSuiteInterpreterTest {
         void getFixtureFromTestSuite_handlesNullEnvironmentVariablesAndNullPdpVariables_returnsSaplIntegrationTestFixture() {
             final var integrationTestSuite = mock(IntegrationTestSuite.class);
 
-            when(integrationTestSuite.getPolicyFolder()).thenReturn("fooFolder");
+            final var policyFolderConfig = mock(PolicyFolder.class);
+            when(policyFolderConfig.getPolicyFolder()).thenReturn("fooFolder");
+            when(integrationTestSuite.getConfig()).thenReturn(policyFolderConfig);
 
             final var saplIntegrationTestFixtureMock = mock(SaplIntegrationTestFixture.class);
             when(saplIntegrationTestFixtureConstructorWrapperMock.create("fooFolder")).thenReturn(saplIntegrationTestFixtureMock);
@@ -150,7 +153,9 @@ class TestSuiteInterpreterTest {
         void getFixtureFromTestSuite_handlesEmptyEnvironmentVariablesAndWrongPdpVariablesType_returnsSaplIntegrationTestFixture() {
             final var integrationTestSuite = mock(IntegrationTestSuite.class);
 
-            when(integrationTestSuite.getPolicyFolder()).thenReturn("fooFolder");
+            final var policyFolderConfig = mock(PolicyFolder.class);
+            when(policyFolderConfig.getPolicyFolder()).thenReturn("fooFolder");
+            when(integrationTestSuite.getConfig()).thenReturn(policyFolderConfig);
 
             final var saplIntegrationTestFixtureMock = mock(SaplIntegrationTestFixture.class);
             when(saplIntegrationTestFixtureConstructorWrapperMock.create("fooFolder")).thenReturn(saplIntegrationTestFixtureMock);
@@ -173,7 +178,9 @@ class TestSuiteInterpreterTest {
 
             final var integrationTestSuite = mock(IntegrationTestSuite.class);
 
-            when(integrationTestSuite.getPolicyFolder()).thenReturn("fooFolder");
+            final var policyFolderConfig = mock(PolicyFolder.class);
+            when(policyFolderConfig.getPolicyFolder()).thenReturn("fooFolder");
+            when(integrationTestSuite.getConfig()).thenReturn(policyFolderConfig);
 
             final var saplIntegrationTestFixtureMock = mock(SaplIntegrationTestFixture.class);
             when(saplIntegrationTestFixtureConstructorWrapperMock.create("fooFolder")).thenReturn(saplIntegrationTestFixtureMock);

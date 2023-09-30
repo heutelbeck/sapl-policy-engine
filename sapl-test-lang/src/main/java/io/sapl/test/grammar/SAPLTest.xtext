@@ -17,11 +17,24 @@ UnitTestSuite:
 		(testCases+=TestCase)+
 	'}';
 
+PolicyResolverConfig:
+    {PolicyFolder} 'using folder' policyFolder=STRING |
+    {PolicySet} 'using policies' policies+=STRING (',' policies+=STRING)+ ('with' 'pdp' 'config' pdpConfig=STRING)?;
+
 IntegrationTestSuite:
-    policyFolder=ID 'integration' 'tests' '{'
-        pdpVariables=Object?
+    config=PolicyResolverConfig 'integration' 'tests'
+    ('using variables' pdpVariables=Object)?
+    ('using combiningAlgorithm' combiningAlgorithm=CombiningAlgorithm)?
+    '{'
         (testCases+=TestCase)+
     '}';
+
+CombiningAlgorithm:
+	  {DenyOverridesCombiningAlgorithm}     'deny-overrides'
+	| {PermitOverridesCombiningAlgorithm}   'permit-overrides'
+	| {OnlyOneApplicableCombiningAlgorithm} 'only-one-applicable'
+	| {DenyUnlessPermitCombiningAlgorithm}  'deny-unless-permit'
+	| {PermitUnlessDenyCombiningAlgorithm}  'permit-unless-deny' ;
 
 WhenStep:
 	 'when' authorizationSubscription=AuthorizationSubscription;

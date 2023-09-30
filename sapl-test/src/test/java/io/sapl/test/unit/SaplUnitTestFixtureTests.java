@@ -19,11 +19,10 @@ package io.sapl.test.unit;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.eq;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+
+import io.sapl.test.utils.DocumentHelper;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -31,7 +30,7 @@ import org.mockito.Mockito;
 
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
-import io.sapl.test.utils.ClasspathHelper;
+
 
 class SaplUnitTestFixtureTests {
 
@@ -60,14 +59,20 @@ class SaplUnitTestFixtureTests {
     }
 
     @Test
-    void test_fileErrorThrows() {
-        try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
-            try (MockedStatic<ClasspathHelper> cpHelper = Mockito.mockStatic(ClasspathHelper.class)) {
-                cpHelper.when(() -> ClasspathHelper.findPathOnClasspath(any(), any())).thenReturn(mock(Path.class));
-                mockedFiles.when(() -> Files.readString(any())).thenThrow(new IOException());
-                SaplTestFixture fixture = new SaplUnitTestFixture("foo.sapl");
-                assertThatExceptionOfType(RuntimeException.class).isThrownBy(fixture::constructTestCaseWithMocks);
-            }
+    void test_documentHelperErrorThrows1() {
+        try (MockedStatic<DocumentHelper> mockedDocumentHelper = Mockito.mockStatic(DocumentHelper.class)) {
+            mockedDocumentHelper.when(() -> DocumentHelper.readSaplDocument(eq("foo.sapl"), any())).thenThrow(new RuntimeException());
+            SaplTestFixture fixture = new SaplUnitTestFixture("foo.sapl");
+            assertThatExceptionOfType(RuntimeException.class).isThrownBy(fixture::constructTestCase);
+        }
+    }
+
+    @Test
+    void test_documentHelperErrorThrows2() {
+        try (MockedStatic<DocumentHelper> mockedDocumentHelper = Mockito.mockStatic(DocumentHelper.class)) {
+            mockedDocumentHelper.when(() -> DocumentHelper.readSaplDocument(eq("foo.sapl"), any())).thenThrow(new RuntimeException());
+            SaplTestFixture fixture = new SaplUnitTestFixture("foo.sapl");
+            assertThatExceptionOfType(RuntimeException.class).isThrownBy(fixture::constructTestCaseWithMocks);
         }
     }
 
