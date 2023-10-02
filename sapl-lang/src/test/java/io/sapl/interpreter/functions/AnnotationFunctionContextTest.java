@@ -200,15 +200,6 @@ class AnnotationFunctionContextTest {
 				"test.helloTwoArgs(arg1, arg2)", "test.helloVarArgs(aVarArgs...)"));
 	}
 
-/*	@Test
-	void codeTemplatesAreGeneratedFromSchemas() throws InitializationException {
-		var context = new AnnotationFunctionContext(new SchemaLibrary());
-		var actualTemplates = context.getCodeTemplates();
-		assertThat(actualTemplates, containsInAnyOrder(
-				"schema.schemaFromFile()", "schema.schemaFromFile().name",
-				"schema.schemaFromJson()", "schema.schemaFromJson().name"));
-	}*/
-
 	@Test
 	void typeAnnotationSchemaMatchesParameter() throws InitializationException, JsonProcessingException {
 		var context = new AnnotationFunctionContext(new AnnotationLibrary());
@@ -337,14 +328,14 @@ class AnnotationFunctionContextTest {
 	@FunctionLibrary(name = "annotation")
 	public static class AnnotationLibrary {
 
-		static final String PERSON_SCHEMA = "{" +
-				"  \"$schema\": \"http://json-schema.org/draft-07/schema#\"," +
-				"  \"$id\": \"https://example.com/schemas/regions\"," +
-				"  \"type\": \"object\"," +
-				"  \"properties\": {" +
-				"  \"name\": { \"type\": \"string\" }" +
-				"  }" +
-				"}";
+		static final String PERSON_SCHEMA = """
+				{  "$schema": "http://json-schema.org/draft-07/schema#",
+				  "$id": "https://example.com/schemas/regions",
+				  "type": "object",
+				  "properties": {
+				  "name": { "type": "string" }
+				  }
+				}""";
 
 		@Function(pathToSchema = "schemas/person_schema.json")
 		public static Val schemaFromFile() { return Val.of(true); }
@@ -385,14 +376,15 @@ class AnnotationFunctionContextTest {
 	@FunctionLibrary(name = "schema")
 	public static class SchemaLibrary {
 
-		static final String PERSON_SCHEMA = "{" +
-				"  \"$schema\": \"http://json-schema.org/draft-07/schema#\"," +
-				"  \"$id\": \"https://example.com/schemas/regions\"," +
-				"  \"type\": \"object\"," +
-				"  \"properties\": {" +
-				"  \"name\": { \"type\": \"string\" }" +
-				"  }" +
-				"}";
+		static final String PERSON_SCHEMA = """
+				{
+				  "$schema": "http://json-schema.org/draft-07/schema#",
+				  "$id": "https://example.com/schemas/regions",
+				  "type": "object",
+				  "properties": {
+				  "name": { "type": "string" }
+				  }
+				}""";
 
 		@Function(pathToSchema = "schemas/person_schema.json")
 		public static Val schemaFromFile() { return Val.of(true); }

@@ -146,6 +146,19 @@
                 }
 
                 @Test
+                void testCompletion_PolicyBody_SchemaNotInEnvironmentVariable() {
+                    testCompletion((TestCompletionConfiguration it) -> {
+                        String policy = "policy \"test\" permit where var foo = \"test\" schema non_existent_schema; foo";
+                        it.setModel(policy);
+                        it.setColumn(policy.length());
+                        it.setAssertCompletionList(completionList -> {
+                            var expected = List.of("foo");
+                            assertProposalsSimple(expected, completionList);
+                        });
+                    });
+                }
+
+                @Test
                 void testCompletion_PolicyBody_NotSuggestEnumKeywords() {
                     testCompletion((TestCompletionConfiguration it) -> {
                         String policy = "policy \"test\" permit where var bar = 3; var foo = \"test\" schema bank_action_schema; foo";
@@ -236,21 +249,48 @@
                 @Test
                 void testCompletion_getFromJSONinText_for_AuthzElementSubject() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "subject schema {" +
-                                "\"properties\":" +
-                                "  {" +
-                                "    \"name\":" +
-                                "    {\"type\": \"object\"," +
-                                "     \"properties\":" +
-                                "     {\"firstname\": {\"type\": \"string\"}}" +
-                                "    }," +
-                                "    \"age\": {\"type\": \"number\"}" +
-                                "  }" +
-                                "} policy \"test\" deny where subject";
+                        String policy = """
+                                subject schema {
+                                "properties":
+                                    {"name": {"type": "object", "properties": {"firstname": {"type": "string"}}},
+                                     "age": {"type": "number"}}
+                                    }
+                                policy "test" deny where subject
+                                """;
+                        String cursor = "policy \"test\" deny where subject";
                         it.setModel(policy);
-                        it.setColumn(policy.length());
+                        it.setLine(5);
+                        it.setColumn(cursor.length());
                         it.setAssertCompletionList(completionList -> {
                             var expected = List.of("subject.age", "subject.name", "subject.name.firstname");
+                            assertProposalsSimple(expected, completionList);
+                        });
+                    });
+                }
+
+                @Test
+                void testCompletion_recursive_schema() {
+                    testCompletion((TestCompletionConfiguration it) -> {
+                        String policy = """
+                                subject schema
+                                 {
+                                   "type": "object",
+                                   "properties": {
+                                     "name": { "type": "string" },
+                                     "children": {
+                                       "type": "array",
+                                       "items": { "$ref": "#" }
+                                     }
+                                   }
+                                 }
+                                 policy "test" deny where subject""";
+                        String cursor = "policy \"test\" deny where subject";
+                        it.setModel(policy);
+                        it.setLine(11);
+                        it.setColumn(cursor.length());
+                        it.setAssertCompletionList(completionList -> {
+                            var expected = List.of("subject.name", "subject.children",
+                                    "subject.children.name", "subject.children.children");
                             assertProposalsSimple(expected, completionList);
                         });
                     });

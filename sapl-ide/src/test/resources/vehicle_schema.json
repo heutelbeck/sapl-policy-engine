@@ -110,6 +110,7 @@
         "@base": {
           "format": "uriref"
         }
+		
       }
     }
   }

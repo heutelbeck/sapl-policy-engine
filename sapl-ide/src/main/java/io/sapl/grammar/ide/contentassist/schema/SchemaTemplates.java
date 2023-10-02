@@ -29,7 +29,7 @@ public class SchemaTemplates {
     }
 
    private List<String> flattenSchemaFromJson(String schema) {
-       if (schema.equals(""))
+       if ("".equals(schema))
            return new ArrayList<>();
        var paths = new SchemaParser(variables).generatePaths(schema);
        return paths.stream()

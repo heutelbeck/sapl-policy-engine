@@ -15,17 +15,6 @@
  */
 package io.sapl.interpreter.functions;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.ExpressionArgument;
@@ -37,6 +26,10 @@ import io.sapl.interpreter.validation.ParameterTypeValidator;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+import java.util.*;
 
 /**
  * Context to hold functions libraries during policy evaluation.
@@ -255,37 +248,6 @@ public class AnnotationFunctionContext implements FunctionContext {
 			return sb.toString();
 		}
 
-/*		@Override
-		public List<String> getSchemaTemplates(){
-			StringBuilder sb;
-			List<String> paths;
-			var schemaTemplates = new ArrayList<String>();
-			var funCodeTemplate = getCodeTemplate();
-			var schema = getFunctionSchema();
-			var pathToSchema = getFunctionPathToSchema();
-
-			if (schema.length() > 0 && pathToSchema.length() > 0)
-				throw new IllegalArgumentException(MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED);
-
-			if (schema.length() > 0 || pathToSchema.length() > 0){
-				//var test = AuthorizationContext.getVariables(ctx);
-				//var test = new SchemaProposals();
-				SchemaTemplates schemaTemplate = new SchemaTemplates();
-
-				if (schema.length() > 0)
-					paths = schemaTemplate.schemaTemplatesFromJson(schema);
-				else
-					paths = schemaTemplate.schemaTemplatesFromFile(pathToSchema);
-
-				for (var path : paths){
-					sb = new StringBuilder();
-					sb.append(funCodeTemplate).append('.').append(path);
-					schemaTemplates.add(sb.toString());
-				}
-			}
-			return schemaTemplates;
-		}*/
-
 		@Override
 		public String getDocumentationCodeTemplate() {
 			var sb = new StringBuilder();
@@ -323,7 +285,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 	@Override
 	public Map<String, FunctionMetadata> getAllFullyQualifiedFunctionsWithMetadata() {
-		return functions;
+		return new HashMap<>(functions);
 	}
 
 	@Override

@@ -28,13 +28,57 @@ public class SchemaParser {
         try {
             schemaNode = mapper.readTree(schema);
         } catch (JsonProcessingException e) {
-            throw new IllegalArgumentException("Not a valid schema:\n" + schema);
+            throw new IllegalArgumentException("Not a valid schema:\n" + schema, e);
         }
 
         List<String> jsonPaths = getJsonPaths(schemaNode, "", schemaNode, 0);
         jsonPaths.removeIf(s -> s.startsWith("$defs"));
         jsonPaths.removeIf(RESERVED_KEYWORDS::contains);
         return jsonPaths;
+    }
+
+
+    private List<String> getJsonPaths(JsonNode jsonNode, String parentPath, final JsonNode originalSchema, int depth){
+
+        Collection<String> paths = new HashSet<>();
+
+        depth++;
+        if (depth > DEPTH)
+            return new ArrayList<>();
+
+        if (jsonNode != null && jsonNode.isObject()) {
+            if (propertyIsArray(jsonNode)){
+                var items = jsonNode.get("items");
+                if (items != null){
+                    paths.addAll(constructPathFromNonArrayProperty(items, parentPath, originalSchema, depth));
+                }
+            } else {
+                paths.addAll(constructPathFromNonArrayProperty(jsonNode, parentPath, originalSchema, depth));
+
+            }
+        } else if (jsonNode != null && jsonNode.isArray()) {
+            paths.addAll(constructPathsFromArray(jsonNode, parentPath, originalSchema, depth));
+        } else {
+            paths.add(parentPath);
+        }
+
+        return new ArrayList<>(paths);
+    }
+
+    private static boolean propertyIsArray(JsonNode jsonNode){
+        JsonNode typeNode;
+
+        try {
+            typeNode = jsonNode.get("type");
+        } catch (Exception e){
+            typeNode = null;
+        }
+
+        if (typeNode != null){
+            var type = typeNode.textValue();
+            return "array".equals(type);
+        } else
+            return false;
     }
 
     private static JsonNode getReferencedNodeFromDifferentDocument(String ref, Map<String, JsonNode> variables) {
@@ -48,18 +92,20 @@ public class SchemaParser {
         } else {
             schemaName = ref.replaceAll("\\.json$", "");
         }
-        if (variables != null && variables.containsKey(schemaName)){
+        if (variables != null){
             refNode = variables.get(schemaName);
-            if (internalRef != null){
+            if (internalRef != null && refNode != null){
                 refNode = refNode.get(internalRef);
             }
         }
         return refNode;
     }
 
-    private static JsonNode getReferencedNodeFromSameDocument(JsonNode schema, String ref){
+    private static JsonNode getReferencedNodeFromSameDocument(JsonNode originalSchema, String ref){
+        if ("#".equals(ref))
+            return originalSchema;
         ref = ref.replace("#/", "");
-        return getNestedSubnode(schema, ref);
+        return getNestedSubnode(originalSchema, ref);
     }
 
     public static JsonNode getNestedSubnode(JsonNode rootNode, String path) {
@@ -77,25 +123,6 @@ public class SchemaParser {
         return currentNode;
     }
 
-    private List<String> getJsonPaths(JsonNode jsonNode, String parentPath, final JsonNode originalSchema, int depth){
-
-        Collection<String> paths = new HashSet<>();
-
-        depth++;
-        if (depth > DEPTH)
-            return new ArrayList<>();
-
-        if (jsonNode != null && jsonNode.isObject()) {
-            paths.addAll(constructPathsFromObject(jsonNode, parentPath, originalSchema, depth));
-        } else if (jsonNode != null && jsonNode.isArray()) {
-            paths.addAll(constructPathsFromArray(jsonNode, parentPath, originalSchema, depth));
-        } else {
-            paths.add(parentPath);
-        }
-
-        return new ArrayList<>(paths);
-    }
-
     private Collection<String> constructPathsFromArray(JsonNode jsonNode, String parentPath, JsonNode originalSchema, int depth) {
         Collection<String> paths = new HashSet<>();
 
@@ -107,7 +134,7 @@ public class SchemaParser {
         return paths;
     }
 
-    private Collection<String> constructPathsFromObject(JsonNode jsonNode, String parentPath, JsonNode originalSchema, int depth) {
+    private Collection<String> constructPathFromNonArrayProperty(JsonNode jsonNode, String parentPath, JsonNode originalSchema, int depth) {
         Collection<String> paths = new HashSet<>();
 
         JsonNode childNode;
@@ -156,7 +183,7 @@ public class SchemaParser {
         try {
             enumValuesArray = mapper.treeToValue(enumValuesNode, String[].class);
         } catch (JsonProcessingException e) {
-            throw new IllegalArgumentException("Not a valid enum in schema!");
+            throw new IllegalArgumentException("Not a valid enum in schema!", e);
         }
         List<String> enumValues = new ArrayList<>(Arrays.asList(enumValuesArray));
         for (String enumPath : enumValues){
