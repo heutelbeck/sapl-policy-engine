@@ -35,13 +35,13 @@ import reactor.core.publisher.SignalType;
 class ClasspathVariablesAndCombinatorSourceTests {
 
 	@Test
-	void doTest() {
+	void doTest() throws Exception {
 		var configProvider = new ClasspathVariablesAndCombinatorSource("policiesIT", new ObjectMapper(), null, null);
 		assertThat(configProvider.getCombiningAlgorithm().blockFirst().get())
 				.isInstanceOf(DenyUnlessPermitCombiningAlgorithmImplCustom.class);
 		assertThat(configProvider.getVariables().log(null, Level.INFO, SignalType.ON_NEXT).blockFirst().get().keySet())
 				.isEmpty();
-		configProvider.dispose();
+		configProvider.destroy();
 	}
 
 	@Test

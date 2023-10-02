@@ -58,7 +58,7 @@ class EmbeddedPolicyDecisionPointTest {
 	}
 
 	@Test
-	void decide_withInvalidConfig_shouldReturnIntermediate() {
+	void decide_withInvalidConfig_shouldReturnIntermediate() throws Exception {
 		var configMock   = mock(PDPConfiguration.class);
 		var providerMock = mock(PDPConfigurationProvider.class);
 		var prpMock      = mock(PolicyRetrievalPoint.class);
@@ -73,10 +73,10 @@ class EmbeddedPolicyDecisionPointTest {
 				.expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.INDETERMINATE).thenCancel()
 				.verify();
 
-		embeddedPdp.dispose();
+		embeddedPdp.destroy();
 
-		verify(providerMock, times(1)).dispose();
-		verify(prpMock, times(1)).dispose();
+		verify(providerMock, times(1)).destroy();
+		verify(prpMock, times(1)).destroy();
 	}
 
 	@Test

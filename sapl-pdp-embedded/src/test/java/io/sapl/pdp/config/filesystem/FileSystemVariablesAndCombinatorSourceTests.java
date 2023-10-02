@@ -38,7 +38,7 @@ class FileSystemVariablesAndCombinatorSourceTest {
 		var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources/valid_config");
 		var algo = configProvider.getCombiningAlgorithm().blockFirst();
 		var variables = configProvider.getVariables().blockFirst();
-		configProvider.dispose();
+		configProvider.destroy();
 
 		assertThat(algo.get() instanceof PermitUnlessDenyCombiningAlgorithm, is(true));
 		assertThat(variables.get().size(), is(2));
@@ -49,7 +49,7 @@ class FileSystemVariablesAndCombinatorSourceTest {
 		var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources");
 		var algo = configProvider.getCombiningAlgorithm().blockFirst();
 		var variables = configProvider.getVariables().blockFirst();
-		configProvider.dispose();
+		configProvider.destroy();
 
 		assertThat(algo.get() instanceof DenyOverridesCombiningAlgorithm, is(true));
 		assertThat(variables.get().size(), is(0));
@@ -60,7 +60,7 @@ class FileSystemVariablesAndCombinatorSourceTest {
 		var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources/broken_config");
 		var algo = configProvider.getCombiningAlgorithm().blockFirst();
 		var variables = configProvider.getVariables().blockFirst();
-		configProvider.dispose();
+		configProvider.destroy();
 		assertThat(algo.isEmpty(), is(true));
 		assertThat(variables.isEmpty(), is(true));
 	}
@@ -76,7 +76,7 @@ class FileSystemVariablesAndCombinatorSourceTest {
 			var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources/valid_config");
 			var algo = configProvider.getCombiningAlgorithm().blockLast();
 			configProvider.getVariables().blockFirst();
-			configProvider.dispose();
+			configProvider.destroy();
 
 			mock.verify(() -> FileMonitorUtil.monitorDirectory(any(), any()), times(1));
 			assertThat(algo.get() instanceof DenyOverridesCombiningAlgorithm, is(true));

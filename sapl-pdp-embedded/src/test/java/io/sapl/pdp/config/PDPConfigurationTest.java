@@ -20,7 +20,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 import java.util.HashMap;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.junit.jupiter.api.Test;
 
@@ -33,15 +33,22 @@ class PDPConfigurationTest {
 	@Test
 	void testIsValid() {
 		assertThat(new PDPConfiguration(null, mock(FunctionContext.class), new HashMap<>(),
-				mock(CombiningAlgorithm.class), Function.identity(), Function.identity()).isValid(), is(false));
-		assertThat(new PDPConfiguration(mock(AttributeContext.class), null, new HashMap<>(),
-				mock(CombiningAlgorithm.class), Function.identity(), Function.identity()).isValid(), is(false));
-		assertThat(new PDPConfiguration(mock(AttributeContext.class), mock(FunctionContext.class), null,
-				mock(CombiningAlgorithm.class), Function.identity(), Function.identity()).isValid(), is(false));
+				mock(CombiningAlgorithm.class), UnaryOperator.identity(), UnaryOperator.identity()).isValid(),
+				is(false));
+		assertThat(
+				new PDPConfiguration(mock(AttributeContext.class), null, new HashMap<>(),
+						mock(CombiningAlgorithm.class), UnaryOperator.identity(), UnaryOperator.identity()).isValid(),
+				is(false));
+		assertThat(
+				new PDPConfiguration(mock(AttributeContext.class), mock(FunctionContext.class), null,
+						mock(CombiningAlgorithm.class), UnaryOperator.identity(), UnaryOperator.identity()).isValid(),
+				is(false));
 		assertThat(new PDPConfiguration(mock(AttributeContext.class), mock(FunctionContext.class), new HashMap<>(),
-				null, Function.identity(), Function.identity()).isValid(), is(false));
-		assertThat(new PDPConfiguration(mock(AttributeContext.class), mock(FunctionContext.class), new HashMap<>(),
-				mock(CombiningAlgorithm.class), Function.identity(), Function.identity()).isValid(), is(true));
+				null, UnaryOperator.identity(), UnaryOperator.identity()).isValid(), is(false));
+		assertThat(
+				new PDPConfiguration(mock(AttributeContext.class), mock(FunctionContext.class), new HashMap<>(),
+						mock(CombiningAlgorithm.class), UnaryOperator.identity(), UnaryOperator.identity()).isValid(),
+				is(true));
 	}
 
 }

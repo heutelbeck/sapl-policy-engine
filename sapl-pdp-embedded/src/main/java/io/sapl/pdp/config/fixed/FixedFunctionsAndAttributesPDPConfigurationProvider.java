@@ -20,7 +20,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -53,12 +53,12 @@ public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPC
 			FunctionContext functionCtx, VariablesAndCombinatorSource variablesAndCombinatorSource,
 			Collection<AuthorizationSubscriptionInterceptor> subscriptionInterceptors,
 			Collection<TracedDecisionInterceptor> decisionInterceptors) {
-		this.attributeCtx                 = attributeCtx;
-		this.functionCtx                  = functionCtx;
-		this.variablesAndCombinatorSource = variablesAndCombinatorSource;
-		this.subscriptionInterceptors     = subscriptionInterceptors.stream().sorted(Comparator.reverseOrder())
+		this.attributeCtx					= attributeCtx;
+		this.functionCtx					= functionCtx;
+		this.variablesAndCombinatorSource	= variablesAndCombinatorSource;
+		this.subscriptionInterceptors		= subscriptionInterceptors.stream().sorted(Comparator.reverseOrder())
 				.collect(Collectors.toList());
-		this.decisionInterceptors         = decisionInterceptors.stream().sorted(Comparator.reverseOrder())
+		this.decisionInterceptors			= decisionInterceptors.stream().sorted(Comparator.reverseOrder())
 				.collect(Collectors.toList());
 	}
 
@@ -74,7 +74,7 @@ public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPC
 				decisionInterceptorChain(), subscriptionInterceptorChain());
 	}
 
-	private Function<AuthorizationSubscription, AuthorizationSubscription> subscriptionInterceptorChain() {
+	private UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain() {
 		return t -> {
 			for (var intercept : subscriptionInterceptors) {
 				t = intercept.apply(t);
@@ -83,7 +83,7 @@ public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPC
 		};
 	}
 
-	private Function<TracedDecision, TracedDecision> decisionInterceptorChain() {
+	private UnaryOperator<TracedDecision> decisionInterceptorChain() {
 		return t -> {
 			for (var intercept : decisionInterceptors) {
 				t = intercept.apply(t);
@@ -93,7 +93,7 @@ public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPC
 	}
 
 	@Override
-	public void dispose() {
-		variablesAndCombinatorSource.dispose();
+	public void destroy() throws Exception {
+		variablesAndCombinatorSource.destroy();
 	}
 }

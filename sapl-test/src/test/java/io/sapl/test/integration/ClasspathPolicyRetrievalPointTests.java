@@ -68,9 +68,9 @@ class ClasspathPolicyRetrievalPointTests {
 	}
 
 	@Test
-	void test_dispose() {
+	void test_dispose() throws Exception {
 		var prp = new ClasspathPolicyRetrievalPoint(Paths.get("policiesIT"), this.interpreter);
-		prp.dispose();
+		prp.destroy();
 		Assertions.assertThatNoException();
 	}
 

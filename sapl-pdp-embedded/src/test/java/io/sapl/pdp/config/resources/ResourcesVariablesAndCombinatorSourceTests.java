@@ -57,22 +57,22 @@ class ResourcesVariablesAndCombinatorSourceTests {
 	}
 
 	@Test
-	void ifExecutedDuringUnitTests_thenLoadConfigurationFileFromFileSystem() throws InitializationException {
+	void ifExecutedDuringUnitTests_thenLoadConfigurationFileFromFileSystem() throws Exception {
 		var configProvider = new ResourcesVariablesAndCombinatorSource("/valid_config");
 		var algo = configProvider.getCombiningAlgorithm().blockFirst();
 		var variables = configProvider.getVariables().blockFirst();
-		configProvider.dispose();
+		configProvider.destroy();
 
 		assertThat(algo.get() instanceof PermitUnlessDenyCombiningAlgorithm, is(true));
 		assertThat(variables.get().size(), is(2));
 	}
 
 	@Test
-	void ifExecutedDuringUnitTestsAndNoConfigFilePresent_thenLoadDefaultConfiguration() throws InitializationException {
+	void ifExecutedDuringUnitTestsAndNoConfigFilePresent_thenLoadDefaultConfiguration() throws Exception {
 		var configProvider = new ResourcesVariablesAndCombinatorSource("");
 		var algo = configProvider.getCombiningAlgorithm().blockFirst();
 		var variables = configProvider.getVariables().blockFirst();
-		configProvider.dispose();
+		configProvider.destroy();
 
 		assertThat(algo.get() instanceof DenyOverridesCombiningAlgorithm, is(true));
 		assertThat(variables.get().size(), is(0));
@@ -84,7 +84,7 @@ class ResourcesVariablesAndCombinatorSourceTests {
 	}
 
 	@Test
-	void ifExecutedInJar_thenLoadConfigurationFileFromJar() throws InitializationException, MalformedURLException {
+	void ifExecutedInJar_thenLoadConfigurationFileFromJar() throws Exception {
 		var url = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/policies");
 		try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
 			mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);
@@ -92,7 +92,7 @@ class ResourcesVariablesAndCombinatorSourceTests {
 			var configProvider = new ResourcesVariablesAndCombinatorSource();
 			var algo = configProvider.getCombiningAlgorithm().blockFirst();
 			var variables = configProvider.getVariables().blockFirst();
-			configProvider.dispose();
+			configProvider.destroy();
 
 			assertThat(algo.get() instanceof PermitUnlessDenyCombiningAlgorithm, is(true));
 			assertThat(variables.get().size(), is(2));
@@ -110,7 +110,7 @@ class ResourcesVariablesAndCombinatorSourceTests {
 
 	@Test
 	void ifExecutedInJarAndNoConfigFilePresent_thenLoadDefaultConfiguration()
-			throws InitializationException, MalformedURLException {
+			throws Exception {
 		var url = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/not_existing");
 		try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
 			mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);
@@ -118,7 +118,7 @@ class ResourcesVariablesAndCombinatorSourceTests {
 			var configProvider = new ResourcesVariablesAndCombinatorSource("/not_existing");
 			var algo = configProvider.getCombiningAlgorithm().blockFirst();
 			var variables = configProvider.getVariables().blockFirst();
-			configProvider.dispose();
+			configProvider.destroy();
 
 			assertThat(algo.get() instanceof DenyOverridesCombiningAlgorithm, is(true));
 			assertThat(variables.get().size(), is(0));
