@@ -760,7 +760,7 @@ class AnnotationAttributeContextTests {
 					"}";
 
 			@EnvironmentAttribute
-			public Flux<Val> envAttribute(Map<String, JsonNode> variable, @Schema(schema=PERSON_SCHEMA) Val a1) {
+			public Flux<Val> envAttribute(Map<String, JsonNode> variable, @Schema(value=PERSON_SCHEMA) Val a1) {
 				return Flux.just(a1);
 			}
 

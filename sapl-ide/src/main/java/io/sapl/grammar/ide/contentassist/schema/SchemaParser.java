@@ -93,7 +93,7 @@ public class SchemaParser {
             schemaName = ref.replaceAll("\\.json$", "");
         }
         if (variables != null){
-            refNode = variables.get(schemaName);
+            refNode = variables.get(schemaName); // TODO: schemaName als Expression auswerten statt aus Variablen zu holen
             if (internalRef != null && refNode != null){
                 refNode = refNode.get(internalRef);
             }

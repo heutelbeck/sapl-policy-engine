@@ -347,28 +347,28 @@ class AnnotationFunctionContextTest {
 		public static Val multipleSchemaFunctionAnnotations() { return Val.of(true); }
 
 		@Function
-		public static Val schemaInParameterAnnotation(@Schema(schema = PERSON_SCHEMA) Val jsonObject) { return Val.of(true); }
+		public static Val schemaInParameterAnnotation(@Schema(value = PERSON_SCHEMA) Val jsonObject) { return Val.of(true); }
 
 		@Function
-		public static Val emptySchemaInParameterAnnotation(@Schema(schema = "") Val jsonObject) { return Val.of(true); }
+		public static Val emptySchemaInParameterAnnotation(@Schema(value = "") Val jsonObject) { return Val.of(true); }
 
 		@Function
-		public static Val multipleParameterAnnotationsWithSchemaAtTheFront(@Schema(schema = PERSON_SCHEMA) @JsonObject Val jsonObject) { return Val.of(true); }
+		public static Val multipleParameterAnnotationsWithSchemaAtTheFront(@Schema(value = PERSON_SCHEMA) @JsonObject Val jsonObject) { return Val.of(true); }
 
 		@Function
-		public static Val multipleParameterAnnotationsWithSchemaAtTheEnd(@JsonObject @Schema(schema = PERSON_SCHEMA) Val jsonObject) { return Val.of(true); }
+		public static Val multipleParameterAnnotationsWithSchemaAtTheEnd(@JsonObject @Schema(value = PERSON_SCHEMA) Val jsonObject) { return Val.of(true); }
 
 		@Function
-		public static Val multipleParameterAnnotationsWithNonmatchingSchemaAtTheFront(@Schema(schema = PERSON_SCHEMA) @Bool Val jsonObject) { return Val.of(true); }
+		public static Val multipleParameterAnnotationsWithNonmatchingSchemaAtTheFront(@Schema(value = PERSON_SCHEMA) @Bool Val jsonObject) { return Val.of(true); }
 
 		@Function
-		public static Val multipleParameterAnnotationsWithNonmatchingSchemaAtTheEnd(@Bool @Schema(schema = PERSON_SCHEMA) Val jsonObject) { return Val.of(true); }
+		public static Val multipleParameterAnnotationsWithNonmatchingSchemaAtTheEnd(@Bool @Schema(value = PERSON_SCHEMA) Val jsonObject) { return Val.of(true); }
 
 		@Function
-		public static Val jsonValueSchemaInParameterAnnotation(@Schema(schema = "{\"type\": \"string\"}") Val jsonObject) { return Val.of(true); }
+		public static Val jsonValueSchemaInParameterAnnotation(@Schema(value = "{\"type\": \"string\"}") Val jsonObject) { return Val.of(true); }
 
 		@Function
-		public static Val customErrorForSchemaInParameterAnnotation(@Schema(schema = PERSON_SCHEMA,
+		public static Val customErrorForSchemaInParameterAnnotation(@Schema(value = PERSON_SCHEMA,
 				errorText = "Parameter jsonObject needs to comply with the given schema.") Val jsonObject) { return Val.of(true); }
 
 	}

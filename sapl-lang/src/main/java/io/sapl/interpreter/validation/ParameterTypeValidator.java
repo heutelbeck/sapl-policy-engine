@@ -88,7 +88,7 @@ public class ParameterTypeValidator {
                 if (!"".equals(errorText))
                     throw new IllegalParameterType(errorText);
                 throw new IllegalParameterType(
-                        String.format(NON_COMPLIANT_WITH_SCHEMA, node.toString(), schemaAnnotation.schema()));
+                        String.format(NON_COMPLIANT_WITH_SCHEMA, node.toString(), schemaAnnotation.value()));
             }
         }
 
@@ -108,7 +108,7 @@ public class ParameterTypeValidator {
 	}
 
     private static boolean nodeCompliantWithSchema(JsonNode node, Annotation annotation) {
-        String schema = ((Schema) annotation).schema();
+        String schema = ((Schema) annotation).value();
         if ("".equals(schema))
             return true;
         return SchemaValidationLibrary.isCompliantWithSchema(node, schema);

@@ -24,7 +24,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Schema {
 
-    String schema() default "";
+    String value() default "";
 
     String errorText() default "";
 
