@@ -16,7 +16,7 @@
 package io.sapl.pdp.config;
 
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -28,8 +28,8 @@ import io.sapl.interpreter.pip.AttributeContext;
 
 public record PDPConfiguration(AttributeContext attributeContext, FunctionContext functionContext,
 							   Map<String, JsonNode> variables, CombiningAlgorithm documentsCombinator,
-							   Function<TracedDecision, TracedDecision> decisionInterceptorChain,
-							   Function<AuthorizationSubscription, AuthorizationSubscription> subscriptionInterceptorChain) {
+							   UnaryOperator<TracedDecision> decisionInterceptorChain,
+							   UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain) {
 
 	public boolean isValid() {
 		return attributeContext != null && functionContext != null && variables != null && documentsCombinator != null

@@ -19,18 +19,17 @@ import java.util.logging.Level;
 
 import org.junit.jupiter.api.Test;
 
-import io.sapl.interpreter.InitializationException;
 import io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSource;
 import reactor.core.publisher.SignalType;
 
 class ResourcesConfigTest {
 
 	@Test
-	void doTest() throws InitializationException {
+	void doTest() throws Exception {
 		var configProvider = new ResourcesVariablesAndCombinatorSource("/policies");
 		configProvider.getCombiningAlgorithm().log(null, Level.INFO, SignalType.ON_NEXT).blockFirst();
 		configProvider.getVariables().log(null, Level.INFO, SignalType.ON_NEXT).blockFirst();
-		configProvider.dispose();
+		configProvider.destroy();
 	}
 
 }

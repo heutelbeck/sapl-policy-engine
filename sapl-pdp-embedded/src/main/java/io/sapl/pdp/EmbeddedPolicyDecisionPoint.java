@@ -152,9 +152,9 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		return multiAuthzDecision;
 	}
 
-	public void dispose() {
-		configurationProvider.dispose();
-		policyRetrievalPoint.dispose();
+	public void destroy() throws Exception {
+		configurationProvider.destroy();
+		policyRetrievalPoint.destroy();
 	}
 
 }

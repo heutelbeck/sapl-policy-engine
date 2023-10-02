@@ -90,8 +90,4 @@ public class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {
 		log.trace("|");
 	}
 
-	@Override
-	public void dispose() {
-	}
-
 }

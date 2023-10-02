@@ -106,7 +106,7 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
 	}
 
 	@Override
-	public void dispose() {
+	public void destroy() {
 		if (!monitorSubscription.isDisposed())
 			monitorSubscription.dispose();
 	}

@@ -57,11 +57,6 @@ public class ReportingDecisionInterceptorTests {
 					.withMatch(one));
 		}
 
-		@Override
-		public void dispose() {
-			// NOOP
-		}
-
 	}
 
 	@PolicyInformationPoint(name = "test")
@@ -84,12 +79,6 @@ public class ReportingDecisionInterceptorTests {
 					.just(new PDPConfiguration(new AnnotationAttributeContext(new ReportingTestPIP()),
 							new AnnotationFunctionContext(), Map.of(), cAlg, dInterceptor, x -> x));
 		}
-
-		@Override
-		public void dispose() {
-			// NOOP
-		}
-
 	}
 
 	@Test

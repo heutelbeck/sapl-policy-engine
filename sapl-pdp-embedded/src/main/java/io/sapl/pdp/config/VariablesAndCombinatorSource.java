@@ -29,6 +29,8 @@ public interface VariablesAndCombinatorSource {
 
 	Flux<Optional<Map<String, JsonNode>>> getVariables();
 
-	void dispose();
+	default void destroy() throws Exception {
+		// NOOP
+	};
 
 }

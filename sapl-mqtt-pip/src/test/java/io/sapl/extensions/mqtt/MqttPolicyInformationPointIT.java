@@ -77,8 +77,8 @@ class MqttPolicyInformationPointIT {
 	}
 
 	@AfterEach
-	void tearDown() throws InterruptedException, ExecutionException {
-		pdp.dispose();
+	void tearDown() throws Exception {
+		pdp.destroy();
 		mqttClient.disconnect();
 		stopBroker(mqttBroker);
 	}
