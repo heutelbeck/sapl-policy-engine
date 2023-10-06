@@ -14,7 +14,7 @@ import io.sapl.test.grammar.sAPLTest.FunctionInvokedOnce;
 import io.sapl.test.grammar.sAPLTest.FunctionParameters;
 import io.sapl.test.grammar.sAPLTest.Multiple;
 import io.sapl.test.grammar.sAPLTest.Once;
-import io.sapl.test.grammar.sAPLTest.ParameterMatcher;
+import io.sapl.test.grammar.sAPLTest.ValMatcher;
 import io.sapl.test.grammar.sAPLTest.Value;
 import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.verification.TimesCalledVerification;
@@ -104,7 +104,7 @@ class FunctionInterpreterTest {
             final var functionParametersMock = mock(FunctionParameters.class);
             when(functionMock.getParameters()).thenReturn(functionParametersMock);
 
-            final var eListMock = Helper.mockEList(List.<ParameterMatcher>of());
+            final var eListMock = Helper.mockEList(List.<ValMatcher>of());
             when(functionParametersMock.getMatchers()).thenReturn(eListMock);
 
             when(givenOrWhenStepMock.givenFunction("fooFunction", saplValMock)).thenReturn(givenOrWhenStepMock);
@@ -119,7 +119,7 @@ class FunctionInterpreterTest {
             final var functionParametersMock = mock(FunctionParameters.class);
             when(functionMock.getParameters()).thenReturn(functionParametersMock);
 
-            final var parameterMatcher = mock(ParameterMatcher.class);
+            final var parameterMatcher = mock(ValMatcher.class);
             final var eListMock = Helper.mockEList(List.of(parameterMatcher));
             when(functionParametersMock.getMatchers()).thenReturn(eListMock);
 
@@ -185,7 +185,7 @@ class FunctionInterpreterTest {
             final var functionParametersMock = mock(FunctionParameters.class);
             when(functionMock.getParameters()).thenReturn(functionParametersMock);
 
-            final var eListMock = Helper.mockEList(List.<ParameterMatcher>of());
+            final var eListMock = Helper.mockEList(List.<ValMatcher>of());
             when(functionParametersMock.getMatchers()).thenReturn(eListMock);
 
             final var timesCalledVerificationMock = mock(TimesCalledVerification.class);
@@ -208,7 +208,7 @@ class FunctionInterpreterTest {
             final var functionParametersMock = mock(FunctionParameters.class);
             when(functionMock.getParameters()).thenReturn(functionParametersMock);
 
-            final var parameterMatcher = mock(ParameterMatcher.class);
+            final var parameterMatcher = mock(ValMatcher.class);
             final var eListMock = Helper.mockEList(List.of(parameterMatcher));
             when(functionParametersMock.getMatchers()).thenReturn(eListMock);
 

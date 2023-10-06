@@ -25,7 +25,8 @@ public class TestBuilder {
         final var functionInterpreter = new FunctionInterpreter(valInterpreter, matcherInterpreter);
         final var authorizationDecisionInterpreter = new AuthorizationDecisionInterpreter(valInterpreter, objectMapper);
         final var authorizationSubscriptionInterpreter = new AuthorizationSubscriptionInterpreter(valInterpreter);
-        final var expectInterpreter = new ExpectInterpreter(valInterpreter, authorizationDecisionInterpreter);
+        final var authorizationDecisionMatcherInterpreter = new AuthorizationDecisionMatcherInterpreter(valInterpreter);
+        final var expectInterpreter = new ExpectInterpreter(valInterpreter, authorizationDecisionInterpreter, authorizationDecisionMatcherInterpreter);
 
         final var givenStepBuilder = new WhenStepBuilderServiceDefaultImpl(functionInterpreter, attributeInterpreter);
         final var expectStepBuilder = new ExpectStepBuilderDefaultImpl(authorizationSubscriptionInterpreter);

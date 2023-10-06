@@ -1,16 +1,14 @@
 package io.sapl.test.services;
 
 import static io.sapl.hamcrest.Matchers.val;
+import static io.sapl.hamcrest.Matchers.valNull;
+import static io.sapl.hamcrest.Matchers.valUndefined;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.interpreter.Val;
-import io.sapl.test.grammar.sAPLTest.FalseLiteral;
-import io.sapl.test.grammar.sAPLTest.NumberLiteral;
+import io.sapl.test.grammar.sAPLTest.*;
 import io.sapl.test.grammar.sAPLTest.Object;
-import io.sapl.test.grammar.sAPLTest.Pair;
-import io.sapl.test.grammar.sAPLTest.StringLiteral;
-import io.sapl.test.grammar.sAPLTest.TrueLiteral;
 import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -50,15 +48,22 @@ public class ValInterpreter {
                 .collect(Collectors.toMap(Pair::getKey, pair -> getValFromReturnValue(pair.getValue()).get(), (oldVal, newVal) -> newVal));
     }
 
-    Matcher<Val> getValMatcherFromVal(io.sapl.test.grammar.sAPLTest.Value value) {
-        if (value instanceof NumberLiteral intVal) {
-            return val(intVal.getNumber());
-        } else if (value instanceof StringLiteral stringVal) {
-            return val(stringVal.getString());
-        } else if (value instanceof TrueLiteral) {
-            return val(true);
-        } else if (value instanceof FalseLiteral) {
-            return val(false);
+    Matcher<Val> getValMatcherFromVal(ValMatcher value) {
+        if (value instanceof ValWithValue valWithValue) {
+            final var valueObject = valWithValue.getValue();
+            if(valueObject instanceof StringLiteral stringLiteral){
+                return val(stringLiteral.getString());
+            } else if(valueObject instanceof NumberLiteral numberLiteral) {
+                return val(numberLiteral.getNumber());
+            } else if(valueObject instanceof TrueLiteral) {
+                return val(true);
+            } else if (valueObject instanceof FalseLiteral) {
+                return val(false);
+            } else if(valueObject instanceof NullLiteral) {
+                return valNull();
+            } else if(valueObject instanceof UndefinedLiteral) {
+                return valUndefined();
+            }
         }
         return null;
     }

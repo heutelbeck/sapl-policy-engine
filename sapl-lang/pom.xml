@@ -122,7 +122,7 @@
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-hamcrest</artifactId>
-			<version>${project.version}</version>
+			<version>3.0.1-SNAPSHOT</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>

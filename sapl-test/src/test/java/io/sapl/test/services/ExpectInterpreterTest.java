@@ -6,6 +6,8 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.hamcrest.HasObligation;
 import io.sapl.hamcrest.IsDecision;
@@ -30,6 +32,7 @@ class ExpectInterpreterTest {
 
     private ValInterpreter valInterpreterMock;
     private AuthorizationDecisionInterpreter authorizationDecisionInterpreterMock;
+    private AuthorizationDecisionMatcherInterpreter authorizationDecisionMatcherInterpreterMock;
     private ExpectOrVerifyStep expectOrVerifyStepMock;
     private ExpectInterpreter expectInterpreter;
 
@@ -37,8 +40,9 @@ class ExpectInterpreterTest {
     void setUp() {
         valInterpreterMock = mock(ValInterpreter.class);
         authorizationDecisionInterpreterMock = mock(AuthorizationDecisionInterpreter.class);
+        authorizationDecisionMatcherInterpreterMock = mock(AuthorizationDecisionMatcherInterpreter.class);
         expectOrVerifyStepMock = mock(ExpectOrVerifyStep.class);
-        expectInterpreter = new ExpectInterpreter(valInterpreterMock, authorizationDecisionInterpreterMock);
+        expectInterpreter = new ExpectInterpreter(valInterpreterMock, authorizationDecisionInterpreterMock, authorizationDecisionMatcherInterpreterMock);
     }
 
     @Nested
@@ -261,7 +265,7 @@ class ExpectInterpreterTest {
 
                 when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
 
-                final var matchersMock = Helper.mockEList(List.<ExpectMatcher>of());
+                final var matchersMock = Helper.mockEList(List.<AuthorizationDecisionMatcher>of());
                 when(nextWithMatcherMock.getMatcher()).thenReturn(matchersMock);
 
                 final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
@@ -278,7 +282,7 @@ class ExpectInterpreterTest {
 
                 when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
 
-                final var expectMatcherMock = mock(ExpectMatcher.class);
+                final var expectMatcherMock = mock(AuthorizationDecisionMatcher.class);
                 final var matchersMock = Helper.mockEList(List.of(expectMatcherMock));
                 when(nextWithMatcherMock.getMatcher()).thenReturn(matchersMock);
 
@@ -296,8 +300,8 @@ class ExpectInterpreterTest {
 
                 when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
 
-                final var authorizationDecisionMatcherMock = mock(AuthorizationDecisionMatcher.class);
-                final var matchersMock = Helper.mockEList(List.<ExpectMatcher>of(authorizationDecisionMatcherMock));
+                final var authorizationDecisionMatcherMock = mock(io.sapl.test.grammar.sAPLTest.IsDecision.class);
+                final var matchersMock = Helper.mockEList(List.<AuthorizationDecisionMatcher>of(authorizationDecisionMatcherMock));
                 when(nextWithMatcherMock.getMatcher()).thenReturn(matchersMock);
 
                 when(authorizationDecisionMatcherMock.getDecision()).thenReturn(io.sapl.test.grammar.sAPLTest.AuthorizationDecision.PERMIT);
@@ -320,8 +324,8 @@ class ExpectInterpreterTest {
 
                 when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
 
-                final var authorizationDecisionMatcherMock = mock(AuthorizationDecisionMatcher.class);
-                final var matchersMock = Helper.mockEList(List.<ExpectMatcher>of(authorizationDecisionMatcherMock));
+                final var authorizationDecisionMatcherMock = mock(io.sapl.test.grammar.sAPLTest.IsDecision.class);
+                final var matchersMock = Helper.mockEList(List.<AuthorizationDecisionMatcher>of(authorizationDecisionMatcherMock));
                 when(nextWithMatcherMock.getMatcher()).thenReturn(matchersMock);
 
                 when(authorizationDecisionMatcherMock.getDecision()).thenReturn(io.sapl.test.grammar.sAPLTest.AuthorizationDecision.DENY);
@@ -344,8 +348,8 @@ class ExpectInterpreterTest {
 
                 when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
 
-                final var authorizationDecisionMatcherMock = mock(AuthorizationDecisionMatcher.class);
-                final var matchersMock = Helper.mockEList(List.<ExpectMatcher>of(authorizationDecisionMatcherMock));
+                final var authorizationDecisionMatcherMock = mock(io.sapl.test.grammar.sAPLTest.IsDecision.class);
+                final var matchersMock = Helper.mockEList(List.<AuthorizationDecisionMatcher>of(authorizationDecisionMatcherMock));
                 when(nextWithMatcherMock.getMatcher()).thenReturn(matchersMock);
 
                 when(authorizationDecisionMatcherMock.getDecision()).thenReturn(io.sapl.test.grammar.sAPLTest.AuthorizationDecision.INDETERMINATE);
@@ -368,8 +372,8 @@ class ExpectInterpreterTest {
 
                 when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
 
-                final var authorizationDecisionMatcherMock = mock(AuthorizationDecisionMatcher.class);
-                final var matchersMock = Helper.mockEList(List.<ExpectMatcher>of(authorizationDecisionMatcherMock));
+                final var authorizationDecisionMatcherMock = mock(io.sapl.test.grammar.sAPLTest.IsDecision.class);
+                final var matchersMock = Helper.mockEList(List.<AuthorizationDecisionMatcher>of(authorizationDecisionMatcherMock));
                 when(nextWithMatcherMock.getMatcher()).thenReturn(matchersMock);
 
                 when(authorizationDecisionMatcherMock.getDecision()).thenReturn(io.sapl.test.grammar.sAPLTest.AuthorizationDecision.NOT_APPLICABLE);
@@ -393,16 +397,14 @@ class ExpectInterpreterTest {
 
                 when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
 
-                final var obligationMatcherMock = mock(ObligationMatcher.class);
-                final var matchersMock = Helper.mockEList(List.<ExpectMatcher>of(obligationMatcherMock));
+                final var authorizationDecisionMatcherMock = mock(io.sapl.test.grammar.sAPLTest.AuthorizationDecisionMatcher.class);
+                final var matchersMock = Helper.mockEList(List.of(authorizationDecisionMatcherMock));
                 when(nextWithMatcherMock.getMatcher()).thenReturn(matchersMock);
 
-                when(obligationMatcherMock.getValue()).thenReturn("foo");
+                final var mappedAuthorizationDecisionMatcherMock = mock(Matcher.class);
+                when(authorizationDecisionMatcherInterpreterMock.getMatcherFromExpectMatcher(authorizationDecisionMatcherMock)).thenReturn(mappedAuthorizationDecisionMatcherMock);
 
-                final Matcher<AuthorizationDecision> hasObligationMatcherMock = mock(HasObligation.class);
-                saplMatchersMockedStatic.when(() -> Matchers.hasObligation("foo")).thenReturn(hasObligationMatcherMock);
-
-                when(expectOrVerifyStepMock.expectNext(hasObligationMatcherMock)).thenReturn(expectOrVerifyStepMock);
+                when(expectOrVerifyStepMock.expectNext(mappedAuthorizationDecisionMatcherMock)).thenReturn(expectOrVerifyStepMock);
 
                 final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
 
@@ -417,26 +419,18 @@ class ExpectInterpreterTest {
 
                 when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
 
-                final var obligationMatcherMock = mock(ObligationMatcher.class);
-                final var invalidMatcherMock = mock(ExpectMatcher.class);
-                final var authorizationDecisionMatcherMock = mock(AuthorizationDecisionMatcher.class);
+                final var hasObligationOrAdviceMock = mock(io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice.class);
+                final var invalidMatcherMock = mock(AuthorizationDecisionMatcher.class);
+                final var isDecisionMock = mock(io.sapl.test.grammar.sAPLTest.IsDecision.class);
 
-
-                final var matchersMock = Helper.mockEList(List.of(obligationMatcherMock, invalidMatcherMock, authorizationDecisionMatcherMock));
-                when(nextWithMatcherMock.getMatcher()).thenReturn(matchersMock);
-
-                when(obligationMatcherMock.getValue()).thenReturn("foo");
-
-                final var hasObligationMatcherMock = mock(HasObligation.class);
-                saplMatchersMockedStatic.when(() -> Matchers.hasObligation("foo")).thenReturn(hasObligationMatcherMock);
-
-                when(authorizationDecisionMatcherMock.getDecision()).thenReturn(io.sapl.test.grammar.sAPLTest.AuthorizationDecision.NOT_APPLICABLE);
-
-                final var isNotApplicableMock = mock(IsDecision.class);
-                saplMatchersMockedStatic.when(Matchers::isNotApplicable).thenReturn(isNotApplicableMock);
+                final var hasObligationOrAdivceMappedMock = mock(Matcher.class);
+                final var isDecisionMappedMock = mock(Matcher.class);
+                when(authorizationDecisionMatcherInterpreterMock.getMatcherFromExpectMatcher(hasObligationOrAdviceMock)).thenReturn(hasObligationOrAdivceMappedMock);
+                when(authorizationDecisionMatcherInterpreterMock.getMatcherFromExpectMatcher(invalidMatcherMock)).thenReturn(null);
+                when(authorizationDecisionMatcherInterpreterMock.getMatcherFromExpectMatcher(isDecisionMock)).thenReturn(isDecisionMappedMock);
 
                 final var allOfMock = mock(Matcher.class);
-                hamcrestMatchersMockedStatic.when(() -> org.hamcrest.Matchers.allOf(new Matcher[] {hasObligationMatcherMock, isNotApplicableMock})).thenReturn(allOfMock);
+                hamcrestMatchersMockedStatic.when(() -> org.hamcrest.Matchers.allOf(new Matcher[] {hasObligationOrAdivceMappedMock, isDecisionMappedMock})).thenReturn(allOfMock);
 
                 when(expectOrVerifyStepMock.expectNext(allOfMock)).thenReturn(expectOrVerifyStepMock);
 

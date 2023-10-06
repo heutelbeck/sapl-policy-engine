@@ -7,9 +7,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.sapl.hamcrest.IsVal;
-import io.sapl.test.grammar.sAPLTest.Any;
-import io.sapl.test.grammar.sAPLTest.Equals;
-import io.sapl.test.grammar.sAPLTest.ParameterMatcher;
+import io.sapl.test.grammar.sAPLTest.AnyVal;
+import io.sapl.test.grammar.sAPLTest.ValMatcher;
+import io.sapl.test.grammar.sAPLTest.ValWithValue;
 import io.sapl.test.grammar.sAPLTest.Value;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,7 +38,7 @@ class MatcherInterpreterTest {
 
     @Test
     void getValMatcherFromParameterMatcher_forUnknownParameterMatcher_returnsNull() {
-        final var unknownParameterMatcherMock = mock(ParameterMatcher.class);
+        final var unknownParameterMatcherMock = mock(ValMatcher.class);
 
         final var result = matcherInterpreter.getValMatcherFromParameterMatcher(unknownParameterMatcherMock);
         assertNull(result);
@@ -46,20 +46,20 @@ class MatcherInterpreterTest {
 
     @Test
     void getValMatcherFromParameterMatcher_forEqualsParameterMatcher_returnsIsMatcher() {
-        final var equalsMock = mock(Equals.class);
+        final var valWithValueMock = mock(ValWithValue.class);
         final var valMock = mock(Value.class);
-        when(equalsMock.getValue()).thenReturn(valMock);
+        when(valWithValueMock.getValue()).thenReturn(valMock);
 
         final var saplValMock = mock(io.sapl.api.interpreter.Val.class);
         when(valInterpreterMock.getValFromReturnValue(valMock)).thenReturn(saplValMock);
 
-        final var result = matcherInterpreter.getValMatcherFromParameterMatcher(equalsMock);
+        final var result = matcherInterpreter.getValMatcherFromParameterMatcher(valWithValueMock);
         assertTrue(result.matches(saplValMock));
     }
 
     @Test
     void getValMatcherFromParameterMatcher_forAnyParameterMatcher_returnsAnyValMatcher() {
-        final var anyMock = mock(Any.class);
+        final var anyMock = mock(AnyVal.class);
 
         final var result = matcherInterpreter.getValMatcherFromParameterMatcher(anyMock);
         assertInstanceOf(IsVal.class, result);

@@ -4,9 +4,9 @@ import static io.sapl.hamcrest.Matchers.anyVal;
 import static org.hamcrest.CoreMatchers.is;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.test.grammar.sAPLTest.Any;
-import io.sapl.test.grammar.sAPLTest.Equals;
-import io.sapl.test.grammar.sAPLTest.ParameterMatcher;
+import io.sapl.test.grammar.sAPLTest.AnyVal;
+import io.sapl.test.grammar.sAPLTest.ValMatcher;
+import io.sapl.test.grammar.sAPLTest.ValWithValue;
 import lombok.RequiredArgsConstructor;
 import org.hamcrest.Matcher;
 
@@ -15,10 +15,10 @@ public class MatcherInterpreter {
 
     private final ValInterpreter valInterpreter;
 
-    Matcher<Val> getValMatcherFromParameterMatcher(final ParameterMatcher functionParameterMatcher) {
-        if (functionParameterMatcher instanceof Equals equals) {
-            return is(valInterpreter.getValFromReturnValue(equals.getValue()));
-        } else if (functionParameterMatcher instanceof Any) {
+    Matcher<Val> getValMatcherFromParameterMatcher(final ValMatcher functionParameterMatcher) {
+        if (functionParameterMatcher instanceof ValWithValue valWithValue) {
+            return is(valInterpreter.getValFromReturnValue(valWithValue.getValue()));
+        } else if (functionParameterMatcher instanceof AnyVal) {
             return anyVal();
         }
         return null;

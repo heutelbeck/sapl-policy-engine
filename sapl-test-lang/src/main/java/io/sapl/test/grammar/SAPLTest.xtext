@@ -39,22 +39,44 @@ CombiningAlgorithm:
 WhenStep:
 	 'when' authorizationSubscription=AuthorizationSubscription;
 
-ExpectMatcher:
-    {AuthorizationDecisionMatcher} decision=AuthorizationDecision |
-    {ObligationMatcher} 'obligation' value=STRING;
+JsonNodeMatcher:
+    {Equals} 'equals' value=STRING;
 
-ParameterMatcher:
-    {Equals} value=Value |
-    {Any} 'any';
+ValueMatcher:
+    JsonNodeMatcher |
+    {Plain} 'value' value=STRING;
+
+ValMatcher:
+    {AnyVal} 'any' |
+    {ValWithValue} value=Value |
+    {ValWithMatcher} 'matching' matcher=JsonNodeMatcher |
+    {ValWithErrorString} 'with' 'error' (error=ValueMatcher)?;
+
+DefaultObjectMatcher:
+    {ObjectWithExactMatch} 'equals' object=Value |
+    {ObjectWithMatcher} 'matching' matcher=JsonNodeMatcher;
+
+ExtendedObjectMatcher:
+    DefaultObjectMatcher |
+    {ObjectWithKeyValueMatcher} 'containing' 'key' key=STRING ('value' value=JsonNodeMatcher)?;
+
+enum AuthorizationDecisionMatcherType:
+    OBLIGATION='obligation' | ADVICE='advice';
+
+AuthorizationDecisionMatcher:
+    {AnyDecision} 'any' |
+    {IsDecision} 'is' decision=AuthorizationDecision |
+    {HasObligationOrAdvice} 'with' type=AuthorizationDecisionMatcherType (matcher=ExtendedObjectMatcher)? |
+    {HasResource} 'with' 'resource' (matcher=DefaultObjectMatcher)?;
 
 FunctionParameters:
-    matchers+=ParameterMatcher (',' matchers+=ParameterMatcher)*;
+    matchers+=ValMatcher (',' matchers+=ValMatcher)*;
 
 GivenStep:
 	{Function} 'function' importName=IMPORT_NAME ('called with' parameters=FunctionParameters)? 'returning' return=Value ('and' 'is' 'invoked' amount=NumericAmount)? |
 	{FunctionInvokedOnce} 'function' importName=IMPORT_NAME 'returns' return+=Value (',' return+=Value)* 'once' |
 	{Attribute} 'attribute' importName=IMPORT_NAME ('returns' return+=Value (',' return+=Value)* ('for' amount=TemporalAmount)?)? |
-	{AttributeWithParameters} 'attribute' importName=IMPORT_NAME 'with' 'parent' 'value' parentMatcher=ParameterMatcher ('and' 'parameters' parameters+=Value (',' parameters+=Value)+)? 'returns' return=Value |
+	{AttributeWithParameters} 'attribute' importName=IMPORT_NAME 'with' 'parent' 'value' parentMatcher=ValMatcher ('and' 'parameters' parameters+=ValMatcher (',' parameters+=ValMatcher)+)? 'returns' return=Value |
 	{VirtualTime} 'virtualTime' |
     {Pip} 'PIP' pip=ID |
     {Library} 'functionLibrary' library=FunctionLibrary |
@@ -80,7 +102,7 @@ ExpectOrAdjustmentStep:
 
 ExpectStep returns ExpectOrAdjustmentStep:
 	{Next} 'expect' expectedDecision=AuthorizationDecision amount=NumericAmount |
-	{NextWithMatcher} 'expect' 'decision' 'matching' matcher+=ExpectMatcher (',' matcher+=ExpectMatcher)* |
+	{NextWithMatcher} 'expect' 'decision' matcher+=AuthorizationDecisionMatcher (',' matcher+=AuthorizationDecisionMatcher)* |
 	{NoEvent} 'no event for' duration=TemporalAmount;
 
 AdjustmentStep returns ExpectOrAdjustmentStep:
@@ -96,7 +118,7 @@ TestCase:
 	'scenario' name=STRING ('with' 'environment' environment=Object)? ('given' givenSteps+=GivenStep ('and' givenSteps+=GivenStep)*)? whenStep=WhenStep 'then' expect=ExpectChain';';
 
 Value:
-	Object | Array | NumberLiteral | StringLiteral | BooleanLiteral;
+	Object | Array | NumberLiteral | StringLiteral | BooleanLiteral | NullLiteral | UndefinedLiteral;
 
 Object returns Value:
 	{Object} '{' (members+=Pair (',' members+=Pair)*)? '}' ;
@@ -116,6 +138,12 @@ StringLiteral returns Value:
 
 NumberLiteral returns Value:
 	{NumberLiteral} number=JSONNUMBER ;
+
+NullLiteral returns Value:
+    {NullLiteral} 'null' ;
+
+UndefinedLiteral returns Value:
+    {UndefinedLiteral} 'undefined' ;
 
 terminal JSONNUMBER returns ecore::EBigDecimal: // Definition according to JSON standard  Unary operator for negation/plus prefix
 	('0' | ('1'..'9') DIGIT*) ('.' DIGIT+)? (('E' | 'e') ('+' | '-')? DIGIT+)? ;

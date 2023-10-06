@@ -1,12 +1,10 @@
 package io.sapl.test.services;
 
-import static io.sapl.hamcrest.Matchers.hasObligation;
-import static io.sapl.hamcrest.Matchers.isDeny;
-import static io.sapl.hamcrest.Matchers.isIndeterminate;
-import static io.sapl.hamcrest.Matchers.isNotApplicable;
-import static io.sapl.hamcrest.Matchers.isPermit;
+import static io.sapl.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.is;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.test.grammar.sAPLTest.*;
 import io.sapl.test.steps.ExpectOrVerifyStep;
@@ -21,6 +19,7 @@ public class ExpectInterpreter {
 
     private final ValInterpreter valInterpreter;
     private final AuthorizationDecisionInterpreter authorizationDecisionInterpreter;
+    private final AuthorizationDecisionMatcherInterpreter authorizationDecisionMatcherInterpreter;
 
     VerifyStep interpretSingleExpect(final ExpectOrVerifyStep expectOrVerifyStep, final SingleExpect singleExpect) {
         final var decision = singleExpect.getDecision();
@@ -78,7 +77,7 @@ public class ExpectInterpreter {
             return expectOrVerifyStep;
         }
 
-        final Matcher<AuthorizationDecision>[] actualMatchers = matchers.stream().map(getMatcherFromExpectMatcher()).filter(Objects::nonNull).toArray(Matcher[]::new);
+        final Matcher<AuthorizationDecision>[] actualMatchers = matchers.stream().map(authorizationDecisionMatcherInterpreter::getMatcherFromExpectMatcher).filter(Objects::nonNull).toArray(Matcher[]::new);
 
         if (actualMatchers.length == 0) {
             return expectOrVerifyStep;
@@ -87,19 +86,5 @@ public class ExpectInterpreter {
         return expectOrVerifyStep.expectNext(actualMatchers.length > 1 ? allOf(actualMatchers) : actualMatchers[0]);
     }
 
-    private java.util.function.Function<ExpectMatcher, Matcher<AuthorizationDecision>> getMatcherFromExpectMatcher() {
-        return matcher -> {
-            if (matcher instanceof AuthorizationDecisionMatcher authorizationDecisionMatcher) {
-                return switch (authorizationDecisionMatcher.getDecision()) {
-                    case PERMIT -> isPermit();
-                    case DENY -> isDeny();
-                    case INDETERMINATE -> isIndeterminate();
-                    default -> isNotApplicable();
-                };
-            } else if (matcher instanceof ObligationMatcher obligationMatcher) {
-                return hasObligation(obligationMatcher.getValue());
-            }
-            return null;
-        };
-    }
+
 }

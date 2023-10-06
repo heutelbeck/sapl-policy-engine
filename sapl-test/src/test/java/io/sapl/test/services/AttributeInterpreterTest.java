@@ -10,8 +10,8 @@ import static org.mockito.Mockito.when;
 import io.sapl.test.Helper;
 import io.sapl.test.grammar.sAPLTest.Attribute;
 import io.sapl.test.grammar.sAPLTest.AttributeWithParameters;
-import io.sapl.test.grammar.sAPLTest.ParameterMatcher;
 import io.sapl.test.grammar.sAPLTest.TemporalAmount;
+import io.sapl.test.grammar.sAPLTest.ValMatcher;
 import io.sapl.test.grammar.sAPLTest.Value;
 import io.sapl.test.mocking.attribute.models.AttributeParameters;
 import io.sapl.test.steps.GivenOrWhenStep;
@@ -120,7 +120,7 @@ class AttributeInterpreterTest {
     @DisplayName("Interpret attribute with parameters")
     class InterpretAttributeWithParameters {
         private AttributeWithParameters attributeWithParametersMock;
-        private ParameterMatcher parentMatcherMock;
+        private ValMatcher parentMatcherMock;
         private Matcher<io.sapl.api.interpreter.Val> parentValueMatcherMock;
         private Value returnValMock;
         private io.sapl.api.interpreter.Val returnValueMock;
@@ -130,7 +130,7 @@ class AttributeInterpreterTest {
             attributeWithParametersMock = mock(AttributeWithParameters.class);
             when(attributeWithParametersMock.getImportName()).thenReturn("fooAttribute");
 
-            parentMatcherMock = mock(ParameterMatcher.class);
+            parentMatcherMock = mock(ValMatcher.class);
             when(attributeWithParametersMock.getParentMatcher()).thenReturn(parentMatcherMock);
 
             parentValueMatcherMock = mock(Matcher.class);
@@ -170,16 +170,16 @@ class AttributeInterpreterTest {
 
         @Test
         void interpretAttributeWithParameters_withMultipleArguments_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
-            final var val1Mock = mock(Value.class);
-            final var val2Mock = mock(Value.class);
-            final var eListMock = mock(EList.class, AdditionalAnswers.delegatesTo(List.of(val1Mock, val2Mock)));
+            final var valMatcher1Mock = mock(ValMatcher.class);
+            final var valMatcher2Mock = mock(ValMatcher.class);
+            final var eListMock = mock(EList.class, AdditionalAnswers.delegatesTo(List.of(valMatcher1Mock, valMatcher2Mock)));
             when(attributeWithParametersMock.getParameters()).thenReturn(eListMock);
 
             final var matcher1Mock = mock(Matcher.class);
             final var matcher2Mock = mock(Matcher.class);
 
-            when(valInterpreterMock.getValMatcherFromVal(val1Mock)).thenReturn(matcher1Mock);
-            when(valInterpreterMock.getValMatcherFromVal(val2Mock)).thenReturn(matcher2Mock);
+            when(valInterpreterMock.getValMatcherFromVal(valMatcher1Mock)).thenReturn(matcher1Mock);
+            when(valInterpreterMock.getValMatcherFromVal(valMatcher2Mock)).thenReturn(matcher2Mock);
 
             final var attributeParametersArgumentCaptor = ArgumentCaptor.forClass(AttributeParameters.class);
 
