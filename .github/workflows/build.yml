@@ -25,7 +25,7 @@ jobs:
   tests:
     strategy:
       matrix:
-        java: [ '17', '20' ]
+        java: [ '17', '20-ea' ]
         os: [ubuntu-latest] # , windows-latest, macos-latest]
     name: Unit Tests (JDK ${{ matrix.java }} on ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
