@@ -2,8 +2,8 @@ package io.sapl.test.services;
 
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.test.SaplTestFixture;
-import io.sapl.test.grammar.sAPLTest.*;
 import io.sapl.test.grammar.sAPLTest.Object;
+import io.sapl.test.grammar.sAPLTest.*;
 import io.sapl.test.integration.SaplIntegrationTestFixture;
 import io.sapl.test.services.constructorwrappers.SaplIntegrationTestFixtureConstructorWrapper;
 import io.sapl.test.services.constructorwrappers.SaplUnitTestFixtureConstructorWrapper;
@@ -25,7 +25,7 @@ public class TestSuiteInterpreter {
             final var policyResolverConfig = integrationTestSuite.getConfig();
             SaplIntegrationTestFixture integrationTestFixture;
 
-            if(policyResolverConfig instanceof PolicyFolder policyFolderConfig) {
+            if (policyResolverConfig instanceof PolicyFolder policyFolderConfig) {
                 integrationTestFixture = saplIntegrationTestFixtureConstructorWrapper.create(policyFolderConfig.getPolicyFolder());
             } else if (policyResolverConfig instanceof PolicySet policySetConfig) {
                 integrationTestFixture = saplIntegrationTestFixtureConstructorWrapper.create(policySetConfig.getPdpConfig(), policySetConfig.getPolicies());
@@ -39,7 +39,7 @@ public class TestSuiteInterpreter {
             }
 
             final var pdpCombiningAlgorithm = integrationTestSuite.getCombiningAlgorithm();
-            if(pdpCombiningAlgorithm != null) {
+            if (pdpCombiningAlgorithm != null) {
                 final var pdpPolicyCombiningAlgorithm = interpretPdpCombiningAlgorithm(pdpCombiningAlgorithm);
                 integrationTestFixture.withPDPPolicyCombiningAlgorithm(pdpPolicyCombiningAlgorithm);
             }

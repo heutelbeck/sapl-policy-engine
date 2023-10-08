@@ -7,8 +7,8 @@ import static io.sapl.hamcrest.Matchers.valUndefined;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.interpreter.Val;
-import io.sapl.test.grammar.sAPLTest.*;
 import io.sapl.test.grammar.sAPLTest.Object;
+import io.sapl.test.grammar.sAPLTest.*;
 import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -20,7 +20,7 @@ public class ValInterpreter {
 
     private final ObjectMapper objectMapper;
 
-    Val getValFromReturnValue(io.sapl.test.grammar.sAPLTest.Value value) {
+    public Val getValFromReturnValue(io.sapl.test.grammar.sAPLTest.Value value) {
         if (value instanceof NumberLiteral intVal) {
             return Val.of(intVal.getNumber());
         } else if (value instanceof StringLiteral stringVal) {
@@ -51,17 +51,17 @@ public class ValInterpreter {
     Matcher<Val> getValMatcherFromVal(ValMatcher value) {
         if (value instanceof ValWithValue valWithValue) {
             final var valueObject = valWithValue.getValue();
-            if(valueObject instanceof StringLiteral stringLiteral){
+            if (valueObject instanceof StringLiteral stringLiteral) {
                 return val(stringLiteral.getString());
-            } else if(valueObject instanceof NumberLiteral numberLiteral) {
+            } else if (valueObject instanceof NumberLiteral numberLiteral) {
                 return val(numberLiteral.getNumber());
-            } else if(valueObject instanceof TrueLiteral) {
+            } else if (valueObject instanceof TrueLiteral) {
                 return val(true);
             } else if (valueObject instanceof FalseLiteral) {
                 return val(false);
-            } else if(valueObject instanceof NullLiteral) {
+            } else if (valueObject instanceof NullLiteral) {
                 return valNull();
-            } else if(valueObject instanceof UndefinedLiteral) {
+            } else if (valueObject instanceof UndefinedLiteral) {
                 return valUndefined();
             }
         }

@@ -7,6 +7,7 @@ import io.sapl.test.grammar.sAPLTest.FunctionInvokedOnce;
 import io.sapl.test.grammar.sAPLTest.Multiple;
 import io.sapl.test.grammar.sAPLTest.Once;
 import io.sapl.test.mocking.function.models.FunctionParameters;
+import io.sapl.test.services.matcher.ValMatcherInterpreter;
 import io.sapl.test.steps.GivenOrWhenStep;
 import lombok.RequiredArgsConstructor;
 import org.hamcrest.Matcher;
@@ -15,7 +16,7 @@ import org.hamcrest.Matcher;
 public class FunctionInterpreter {
 
     private final ValInterpreter valInterpreter;
-    private final MatcherInterpreter matcherInterpreter;
+    private final ValMatcherInterpreter matcherInterpreter;
 
     GivenOrWhenStep interpretFunction(GivenOrWhenStep initial, Function function) {
         final var importName = function.getImportName();
@@ -72,7 +73,7 @@ public class FunctionInterpreter {
             return null;
         }
 
-        final var matchers = functionParameterMatchers.stream().map(matcherInterpreter::getValMatcherFromParameterMatcher).toArray(Matcher[]::new);
+        final var matchers = functionParameterMatchers.stream().map(matcherInterpreter::getValMatcherFromValMatcher).toArray(Matcher[]::new);
 
         return new FunctionParameters(matchers);
     }

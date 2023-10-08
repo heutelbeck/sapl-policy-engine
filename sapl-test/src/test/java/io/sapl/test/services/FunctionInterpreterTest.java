@@ -16,6 +16,7 @@ import io.sapl.test.grammar.sAPLTest.Multiple;
 import io.sapl.test.grammar.sAPLTest.Once;
 import io.sapl.test.grammar.sAPLTest.ValMatcher;
 import io.sapl.test.grammar.sAPLTest.Value;
+import io.sapl.test.services.matcher.ValMatcherInterpreter;
 import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.verification.TimesCalledVerification;
 import java.math.BigDecimal;
@@ -32,7 +33,7 @@ import org.mockito.MockedStatic;
 class FunctionInterpreterTest {
 
     private ValInterpreter valInterpreterMock;
-    private MatcherInterpreter matcherInterpreterMock;
+    private ValMatcherInterpreter matcherInterpreterMock;
     private GivenOrWhenStep givenOrWhenStepMock;
     private MockedStatic<Imports> importsMockedStatic;
     private FunctionInterpreter functionInterpreter;
@@ -40,7 +41,7 @@ class FunctionInterpreterTest {
     @BeforeEach
     void setUp() {
         valInterpreterMock = mock(ValInterpreter.class);
-        matcherInterpreterMock = mock(MatcherInterpreter.class);
+        matcherInterpreterMock = mock(ValMatcherInterpreter.class);
         givenOrWhenStepMock = mock(GivenOrWhenStep.class);
         importsMockedStatic = mockStatic(Imports.class);
 
@@ -124,7 +125,7 @@ class FunctionInterpreterTest {
             when(functionParametersMock.getMatchers()).thenReturn(eListMock);
 
             final var matcherMock = mock(Matcher.class);
-            when(matcherInterpreterMock.getValMatcherFromParameterMatcher(parameterMatcher)).thenReturn(matcherMock);
+            when(matcherInterpreterMock.getValMatcherFromValMatcher(parameterMatcher)).thenReturn(matcherMock);
 
             final var functionParametersArgumentCaptor = ArgumentCaptor.forClass(io.sapl.test.mocking.function.models.FunctionParameters.class);
             when(givenOrWhenStepMock.givenFunction(eq("fooFunction"), functionParametersArgumentCaptor.capture(), eq(saplValMock))).thenReturn(givenOrWhenStepMock);
@@ -213,7 +214,7 @@ class FunctionInterpreterTest {
             when(functionParametersMock.getMatchers()).thenReturn(eListMock);
 
             final var matcherMock = mock(Matcher.class);
-            when(matcherInterpreterMock.getValMatcherFromParameterMatcher(parameterMatcher)).thenReturn(matcherMock);
+            when(matcherInterpreterMock.getValMatcherFromValMatcher(parameterMatcher)).thenReturn(matcherMock);
 
             final var timesCalledVerificationMock = mock(TimesCalledVerification.class);
             importsMockedStatic.when(() -> Imports.times(3)).thenReturn(timesCalledVerificationMock);

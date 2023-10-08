@@ -21,7 +21,6 @@ import io.sapl.test.services.constructorwrappers.SaplUnitTestFixtureConstructorW
 import io.sapl.test.unit.SaplUnitTestFixture;
 import java.util.Collections;
 import java.util.Map;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

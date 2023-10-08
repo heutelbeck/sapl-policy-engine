@@ -6,14 +6,12 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.hamcrest.HasObligation;
 import io.sapl.hamcrest.IsDecision;
 import io.sapl.hamcrest.Matchers;
 import io.sapl.test.Helper;
 import io.sapl.test.grammar.sAPLTest.*;
+import io.sapl.test.services.matcher.AuthorizationDecisionMatcherInterpreter;
 import io.sapl.test.steps.ExpectOrVerifyStep;
 import io.sapl.test.steps.VerifyStep;
 import java.math.BigDecimal;

@@ -14,6 +14,7 @@ import io.sapl.test.grammar.sAPLTest.TemporalAmount;
 import io.sapl.test.grammar.sAPLTest.ValMatcher;
 import io.sapl.test.grammar.sAPLTest.Value;
 import io.sapl.test.mocking.attribute.models.AttributeParameters;
+import io.sapl.test.services.matcher.ValMatcherInterpreter;
 import io.sapl.test.steps.GivenOrWhenStep;
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -31,13 +32,13 @@ class AttributeInterpreterTest {
 
     private AttributeInterpreter attributeInterpreter;
     private ValInterpreter valInterpreterMock;
-    private MatcherInterpreter matcherInterpreterMock;
+    private ValMatcherInterpreter matcherInterpreterMock;
     private GivenOrWhenStep givenOrWhenStepMock;
 
     @BeforeEach
     void setUp() {
         valInterpreterMock = mock(ValInterpreter.class);
-        matcherInterpreterMock = mock(MatcherInterpreter.class);
+        matcherInterpreterMock = mock(ValMatcherInterpreter.class);
         givenOrWhenStepMock = mock(GivenOrWhenStep.class);
 
         attributeInterpreter = new AttributeInterpreter(valInterpreterMock, matcherInterpreterMock);
@@ -134,7 +135,7 @@ class AttributeInterpreterTest {
             when(attributeWithParametersMock.getParentMatcher()).thenReturn(parentMatcherMock);
 
             parentValueMatcherMock = mock(Matcher.class);
-            when(matcherInterpreterMock.getValMatcherFromParameterMatcher(parentMatcherMock)).thenReturn(parentValueMatcherMock);
+            when(matcherInterpreterMock.getValMatcherFromValMatcher(parentMatcherMock)).thenReturn(parentValueMatcherMock);
 
             returnValMock = mock(Value.class);
             when(attributeWithParametersMock.getReturn()).thenReturn(returnValMock);

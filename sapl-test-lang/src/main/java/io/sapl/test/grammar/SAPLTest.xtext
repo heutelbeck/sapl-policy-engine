@@ -42,15 +42,14 @@ WhenStep:
 JsonNodeMatcher:
     {Equals} 'equals' value=STRING;
 
-ValueMatcher:
-    JsonNodeMatcher |
-    {Plain} 'value' value=STRING;
+StringMatcher:
+    {PlainString} value=STRING;
 
 ValMatcher:
     {AnyVal} 'any' |
     {ValWithValue} value=Value |
     {ValWithMatcher} 'matching' matcher=JsonNodeMatcher |
-    {ValWithErrorString} 'with' 'error' (error=ValueMatcher)?;
+    {ValWithErrorString} 'with' 'error' (error=StringMatcher)?;
 
 DefaultObjectMatcher:
     {ObjectWithExactMatch} 'equals' object=Value |

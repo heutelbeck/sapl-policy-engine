@@ -9,6 +9,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.test.grammar.sAPLTest.Attribute;
 import io.sapl.test.grammar.sAPLTest.AttributeWithParameters;
 import io.sapl.test.grammar.sAPLTest.TemporalAmount;
+import io.sapl.test.services.matcher.ValMatcherInterpreter;
 import io.sapl.test.steps.GivenOrWhenStep;
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -20,7 +21,7 @@ import org.hamcrest.Matcher;
 public class AttributeInterpreter {
 
     private final ValInterpreter valInterpreter;
-    private final MatcherInterpreter matcherInterpreter;
+    private final ValMatcherInterpreter matcherInterpreter;
 
     GivenOrWhenStep interpretAttribute(GivenOrWhenStep initial, Attribute attribute) {
         final var importName = attribute.getImportName();
@@ -41,7 +42,7 @@ public class AttributeInterpreter {
     GivenOrWhenStep interpretAttributeWithParameters(GivenOrWhenStep initial, AttributeWithParameters attributeWithParameters) {
         final var importName = attributeWithParameters.getImportName();
 
-        final var parentValueMatcher = matcherInterpreter.getValMatcherFromParameterMatcher(attributeWithParameters.getParentMatcher());
+        final var parentValueMatcher = matcherInterpreter.getValMatcherFromValMatcher(attributeWithParameters.getParentMatcher());
         final var returnValue = valInterpreter.getValFromReturnValue(attributeWithParameters.getReturn());
 
         final var arguments = attributeWithParameters.getParameters();

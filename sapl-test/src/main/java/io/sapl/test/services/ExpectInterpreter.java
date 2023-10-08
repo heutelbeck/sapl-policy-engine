@@ -1,12 +1,17 @@
 package io.sapl.test.services;
 
-import static io.sapl.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.is;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.test.grammar.sAPLTest.*;
+import io.sapl.test.grammar.sAPLTest.AttributeAdjustment;
+import io.sapl.test.grammar.sAPLTest.Await;
+import io.sapl.test.grammar.sAPLTest.Multiple;
+import io.sapl.test.grammar.sAPLTest.Next;
+import io.sapl.test.grammar.sAPLTest.NextWithMatcher;
+import io.sapl.test.grammar.sAPLTest.NoEvent;
+import io.sapl.test.grammar.sAPLTest.RepeatedExpect;
+import io.sapl.test.grammar.sAPLTest.SingleExpect;
+import io.sapl.test.services.matcher.AuthorizationDecisionMatcherInterpreter;
 import io.sapl.test.steps.ExpectOrVerifyStep;
 import io.sapl.test.steps.VerifyStep;
 import java.time.Duration;
@@ -79,12 +84,10 @@ public class ExpectInterpreter {
 
         final Matcher<AuthorizationDecision>[] actualMatchers = matchers.stream().map(authorizationDecisionMatcherInterpreter::getMatcherFromExpectMatcher).filter(Objects::nonNull).toArray(Matcher[]::new);
 
-        if (actualMatchers.length == 0) {
-            return expectOrVerifyStep;
-        }
-
-        return expectOrVerifyStep.expectNext(actualMatchers.length > 1 ? allOf(actualMatchers) : actualMatchers[0]);
+        return switch (actualMatchers.length) {
+            case 0 -> expectOrVerifyStep;
+            case 1 -> expectOrVerifyStep.expectNext(actualMatchers[0]);
+            default -> expectOrVerifyStep.expectNext(allOf(actualMatchers));
+        };
     }
-
-
 }

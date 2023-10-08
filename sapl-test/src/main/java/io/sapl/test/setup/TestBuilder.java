@@ -5,6 +5,9 @@ import io.sapl.test.interpreter.SaplTestInterpreterDefaultImpl;
 import io.sapl.test.services.*;
 import io.sapl.test.services.constructorwrappers.SaplIntegrationTestFixtureConstructorWrapper;
 import io.sapl.test.services.constructorwrappers.SaplUnitTestFixtureConstructorWrapper;
+import io.sapl.test.services.matcher.AuthorizationDecisionMatcherInterpreter;
+import io.sapl.test.services.matcher.JsonNodeMatcherInterpreter;
+import io.sapl.test.services.matcher.ValMatcherInterpreter;
 import java.util.List;
 import org.junit.jupiter.api.DynamicTest;
 
@@ -19,13 +22,14 @@ public class TestBuilder {
 
         final var testFixtureBuilder = new TestFixtureBuilder(pip, testSuiteInterpreter);
 
-        final var matcherInterpreter = new MatcherInterpreter(valInterpreter);
+        final var jsonNodeMatcherInterpreter = new JsonNodeMatcherInterpreter();
+        final var matcherInterpreter = new ValMatcherInterpreter(valInterpreter, jsonNodeMatcherInterpreter);
 
         final var attributeInterpreter = new AttributeInterpreter(valInterpreter, matcherInterpreter);
         final var functionInterpreter = new FunctionInterpreter(valInterpreter, matcherInterpreter);
         final var authorizationDecisionInterpreter = new AuthorizationDecisionInterpreter(valInterpreter, objectMapper);
         final var authorizationSubscriptionInterpreter = new AuthorizationSubscriptionInterpreter(valInterpreter);
-        final var authorizationDecisionMatcherInterpreter = new AuthorizationDecisionMatcherInterpreter(valInterpreter);
+        final var authorizationDecisionMatcherInterpreter = new AuthorizationDecisionMatcherInterpreter(valInterpreter, jsonNodeMatcherInterpreter);
         final var expectInterpreter = new ExpectInterpreter(valInterpreter, authorizationDecisionInterpreter, authorizationDecisionMatcherInterpreter);
 
         final var givenStepBuilder = new WhenStepBuilderServiceDefaultImpl(functionInterpreter, attributeInterpreter);
