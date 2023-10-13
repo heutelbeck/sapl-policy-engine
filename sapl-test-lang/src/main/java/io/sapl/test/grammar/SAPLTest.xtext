@@ -43,13 +43,28 @@ JsonNodeMatcher:
     {Equals} 'equals' value=STRING;
 
 StringMatcher:
-    {PlainString} value=STRING;
+    {StringIsNull} 'null' |
+    {StringIsBlank} 'blank' |
+    {StringIsEmpty} 'empty' |
+    {StringIsNullOrEmpty} 'null or empty' |
+    {StringIsNullOrBlank} 'null or blank' |
+    {StringIsEqualWithCompressedWhiteSpace} 'equal to' value=STRING 'with compressed whitespaces' |
+    {StringIsEqualIgnoringCase} 'equal to' value=STRING 'ignoring case' |
+    {StringMatchesRegex} 'matches regex' regex=STRING |
+    {StringStartsWith} 'starts with' start=STRING caseInsensitive?='ignoring case' |
+    {StringEndsWith} 'ends with' end=STRING caseInsensitive?='ignoring case' |
+    {StringContains} 'contains' value=STRING caseInsensitive?='ignoring case' |
+    {StringContainsInOrder} 'contains' substrings+=STRING (',' substrings+=STRING)* 'in order' |
+    {StringWithLength} 'has length of' length=JSONNUMBER;
+
+StringOrStringMatcher:
+    {PlainString} value=STRING | StringMatcher;
 
 ValMatcher:
     {AnyVal} 'any' |
     {ValWithValue} value=Value |
     {ValWithMatcher} 'matching' matcher=JsonNodeMatcher |
-    {ValWithErrorString} 'with' 'error' (error=StringMatcher)?;
+    {ValWithErrorString} 'with' 'error' (error=StringOrStringMatcher)?;
 
 DefaultObjectMatcher:
     {ObjectWithExactMatch} 'equals' object=Value |

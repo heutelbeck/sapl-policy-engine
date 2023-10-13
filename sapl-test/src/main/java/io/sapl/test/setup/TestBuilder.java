@@ -7,6 +7,7 @@ import io.sapl.test.services.constructorwrappers.SaplIntegrationTestFixtureConst
 import io.sapl.test.services.constructorwrappers.SaplUnitTestFixtureConstructorWrapper;
 import io.sapl.test.services.matcher.AuthorizationDecisionMatcherInterpreter;
 import io.sapl.test.services.matcher.JsonNodeMatcherInterpreter;
+import io.sapl.test.services.matcher.StringMatcherInterpreter;
 import io.sapl.test.services.matcher.ValMatcherInterpreter;
 import java.util.List;
 import org.junit.jupiter.api.DynamicTest;
@@ -23,7 +24,8 @@ public class TestBuilder {
         final var testFixtureBuilder = new TestFixtureBuilder(pip, testSuiteInterpreter);
 
         final var jsonNodeMatcherInterpreter = new JsonNodeMatcherInterpreter();
-        final var matcherInterpreter = new ValMatcherInterpreter(valInterpreter, jsonNodeMatcherInterpreter);
+        final var stringMatcherInterpreter = new StringMatcherInterpreter();
+        final var matcherInterpreter = new ValMatcherInterpreter(valInterpreter, jsonNodeMatcherInterpreter, stringMatcherInterpreter);
 
         final var attributeInterpreter = new AttributeInterpreter(valInterpreter, matcherInterpreter);
         final var functionInterpreter = new FunctionInterpreter(valInterpreter, matcherInterpreter);

@@ -8,6 +8,7 @@ import static org.hamcrest.CoreMatchers.is;
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.grammar.sAPLTest.AnyVal;
 import io.sapl.test.grammar.sAPLTest.PlainString;
+import io.sapl.test.grammar.sAPLTest.StringMatcher;
 import io.sapl.test.grammar.sAPLTest.ValMatcher;
 import io.sapl.test.grammar.sAPLTest.ValWithErrorString;
 import io.sapl.test.grammar.sAPLTest.ValWithMatcher;
@@ -21,6 +22,7 @@ public class ValMatcherInterpreter {
 
     private final ValInterpreter valInterpreter;
     private final JsonNodeMatcherInterpreter jsonNodeMatcherInterpreter;
+    private final StringMatcherInterpreter stringMatcherInterpreter;
 
     public Matcher<Val> getValMatcherFromValMatcher(final ValMatcher valMatcher) {
         if (valMatcher instanceof ValWithValue valWithValueMatcher) {
@@ -33,8 +35,8 @@ public class ValMatcherInterpreter {
             final var errorMatcher = valWithErrorStringMatcher.getError();
             if (errorMatcher instanceof PlainString plainString) {
                 return valError(plainString.getValue());
-            } else {
-                //TODO Handling for StringMatchers
+            } else if (errorMatcher instanceof StringMatcher stringMatcher) {
+                return valError(stringMatcherInterpreter.getHamcrestStringMatcher(stringMatcher));
             }
             return valError();
         }
