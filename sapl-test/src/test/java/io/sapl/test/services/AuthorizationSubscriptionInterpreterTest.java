@@ -50,9 +50,9 @@ class AuthorizationSubscriptionInterpreterTest {
         final var actionValMock = mock(Val.class);
         final var resourceValMock = mock(Val.class);
 
-        when(valInterpreterMock.getValFromReturnValue(subjectMock)).thenReturn(subjectValMock);
-        when(valInterpreterMock.getValFromReturnValue(actionMock)).thenReturn(actionValMock);
-        when(valInterpreterMock.getValFromReturnValue(resourceMock)).thenReturn(resourceValMock);
+        when(valInterpreterMock.getValFromValue(subjectMock)).thenReturn(subjectValMock);
+        when(valInterpreterMock.getValFromValue(actionMock)).thenReturn(actionValMock);
+        when(valInterpreterMock.getValFromValue(resourceMock)).thenReturn(resourceValMock);
 
         final var subjectJsonNodeMock = mock(JsonNode.class);
         final var actionJsonNodeMock = mock(JsonNode.class);
@@ -89,10 +89,10 @@ class AuthorizationSubscriptionInterpreterTest {
         final var resourceValMock = mock(Val.class);
         final var environmentValMock = mock(Val.class);
 
-        when(valInterpreterMock.getValFromReturnValue(subjectMock)).thenReturn(subjectValMock);
-        when(valInterpreterMock.getValFromReturnValue(actionMock)).thenReturn(actionValMock);
-        when(valInterpreterMock.getValFromReturnValue(resourceMock)).thenReturn(resourceValMock);
-        when(valInterpreterMock.getValFromReturnValue(environmentMock)).thenReturn(environmentValMock);
+        when(valInterpreterMock.getValFromValue(subjectMock)).thenReturn(subjectValMock);
+        when(valInterpreterMock.getValFromValue(actionMock)).thenReturn(actionValMock);
+        when(valInterpreterMock.getValFromValue(resourceMock)).thenReturn(resourceValMock);
+        when(valInterpreterMock.getValFromValue(environmentMock)).thenReturn(environmentValMock);
 
         final var subjectJsonNodeMock = mock(JsonNode.class);
         final var actionJsonNodeMock = mock(JsonNode.class);

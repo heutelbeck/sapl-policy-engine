@@ -78,7 +78,7 @@ class ValMatcherInterpreterTest {
         when(valWithValueMock.getValue()).thenReturn(valMock);
 
         final var saplValMock = mock(io.sapl.api.interpreter.Val.class);
-        when(valInterpreterMock.getValFromReturnValue(valMock)).thenReturn(saplValMock);
+        when(valInterpreterMock.getValFromValue(valMock)).thenReturn(saplValMock);
 
         final var isMatcherMock = mock(Matcher.class);
         hamcrestCoreMatchersMockedStatic.when(() -> CoreMatchers.is(saplValMock)).thenReturn(isMatcherMock);

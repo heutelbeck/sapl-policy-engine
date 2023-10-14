@@ -26,7 +26,7 @@ public class ValMatcherInterpreter {
 
     public Matcher<Val> getValMatcherFromValMatcher(final ValMatcher valMatcher) {
         if (valMatcher instanceof ValWithValue valWithValueMatcher) {
-            return is(valInterpreter.getValFromReturnValue(valWithValueMatcher.getValue()));
+            return is(valInterpreter.getValFromValue(valWithValueMatcher.getValue()));
         } else if (valMatcher instanceof AnyVal) {
             return anyVal();
         } else if (valMatcher instanceof ValWithMatcher valWithMatcherMatcher) {

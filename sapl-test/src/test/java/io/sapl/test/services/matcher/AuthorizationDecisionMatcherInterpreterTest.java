@@ -180,7 +180,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
             when(objectWithExactMatchMock.getObject()).thenReturn(valueMock);
 
             final var valMock = mock(Val.class);
-            when(valInterpreterMock.getValFromReturnValue(valueMock)).thenReturn(valMock);
+            when(valInterpreterMock.getValFromValue(valueMock)).thenReturn(valMock);
 
             final var jsonNodeMock = mock(JsonNode.class);
             when(valMock.get()).thenReturn(jsonNodeMock);
@@ -207,7 +207,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
             when(objectWithExactMatchMock.getObject()).thenReturn(valueMock);
 
             final var valMock = mock(Val.class);
-            when(valInterpreterMock.getValFromReturnValue(valueMock)).thenReturn(valMock);
+            when(valInterpreterMock.getValFromValue(valueMock)).thenReturn(valMock);
 
             final var jsonNodeMock = mock(JsonNode.class);
             when(valMock.get()).thenReturn(jsonNodeMock);
@@ -234,7 +234,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
             when(objectWithExactMatchMock.getObject()).thenReturn(valueMock);
 
             final var valMock = mock(Val.class);
-            when(valInterpreterMock.getValFromReturnValue(valueMock)).thenReturn(valMock);
+            when(valInterpreterMock.getValFromValue(valueMock)).thenReturn(valMock);
 
             final var jsonNodeMock = mock(JsonNode.class);
             when(valMock.get()).thenReturn(jsonNodeMock);
@@ -262,7 +262,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
             when(objectWithExactMatchMock.getObject()).thenReturn(valueMock);
 
             final var valMock = mock(Val.class);
-            when(valInterpreterMock.getValFromReturnValue(valueMock)).thenReturn(valMock);
+            when(valInterpreterMock.getValFromValue(valueMock)).thenReturn(valMock);
 
             final var jsonNodeMock = mock(JsonNode.class);
             when(valMock.get()).thenReturn(jsonNodeMock);
@@ -519,7 +519,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
             when(objectWithExactMatchMock.getObject()).thenReturn(valueMock);
 
             final var valMock = mock(Val.class);
-            when(valInterpreterMock.getValFromReturnValue(valueMock)).thenReturn(valMock);
+            when(valInterpreterMock.getValFromValue(valueMock)).thenReturn(valMock);
 
             final var jsonNodeMock = mock(JsonNode.class);
             when(valMock.get()).thenReturn(jsonNodeMock);
@@ -545,7 +545,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
             when(objectWithExactMatchMock.getObject()).thenReturn(valueMock);
 
             final var valMock = mock(Val.class);
-            when(valInterpreterMock.getValFromReturnValue(valueMock)).thenReturn(valMock);
+            when(valInterpreterMock.getValFromValue(valueMock)).thenReturn(valMock);
 
             final var jsonNodeMock = mock(JsonNode.class);
             when(valMock.get()).thenReturn(jsonNodeMock);

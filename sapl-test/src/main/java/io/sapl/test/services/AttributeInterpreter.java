@@ -29,7 +29,7 @@ public class AttributeInterpreter {
         if (attribute.getReturn() == null || attribute.getReturn().isEmpty()) {
             return initial.givenAttribute(importName);
         } else {
-            final var values = attribute.getReturn().stream().map(valInterpreter::getValFromReturnValue).toArray(Val[]::new);
+            final var values = attribute.getReturn().stream().map(valInterpreter::getValFromValue).toArray(Val[]::new);
 
             final var duration = Duration.ofSeconds(Optional.ofNullable(attribute.getAmount()).map(TemporalAmount::getSeconds).orElse(BigDecimal.ZERO).intValue());
             if (duration.isZero()) {
@@ -43,14 +43,14 @@ public class AttributeInterpreter {
         final var importName = attributeWithParameters.getImportName();
 
         final var parentValueMatcher = matcherInterpreter.getValMatcherFromValMatcher(attributeWithParameters.getParentMatcher());
-        final var returnValue = valInterpreter.getValFromReturnValue(attributeWithParameters.getReturn());
+        final var returnValue = valInterpreter.getValFromValue(attributeWithParameters.getReturn());
 
         final var arguments = attributeWithParameters.getParameters();
 
         if (arguments == null || arguments.isEmpty()) {
             return initial.givenAttribute(importName, whenParentValue(parentValueMatcher), returnValue);
         }
-        final var args = arguments.stream().map(valInterpreter::getValMatcherFromVal).toArray(Matcher[]::new);
+        final var args = arguments.stream().map(matcherInterpreter::getValMatcherFromValMatcher).toArray(Matcher[]::new);
         return initial.givenAttribute(importName, whenAttributeParams(parentValue(parentValueMatcher), arguments(args)), returnValue);
     }
 }

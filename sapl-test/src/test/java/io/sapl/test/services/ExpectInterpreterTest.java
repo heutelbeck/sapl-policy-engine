@@ -421,6 +421,9 @@ class ExpectInterpreterTest {
                 final var invalidMatcherMock = mock(AuthorizationDecisionMatcher.class);
                 final var isDecisionMock = mock(io.sapl.test.grammar.sAPLTest.IsDecision.class);
 
+                final var authorizationDecisionMatcherMocks = Helper.mockEList(List.of(hasObligationOrAdviceMock, invalidMatcherMock, isDecisionMock));
+                when(nextWithMatcherMock.getMatcher()).thenReturn(authorizationDecisionMatcherMocks);
+
                 final var hasObligationOrAdivceMappedMock = mock(Matcher.class);
                 final var isDecisionMappedMock = mock(Matcher.class);
                 when(authorizationDecisionMatcherInterpreterMock.getMatcherFromExpectMatcher(hasObligationOrAdviceMock)).thenReturn(hasObligationOrAdivceMappedMock);
@@ -452,7 +455,7 @@ class ExpectInterpreterTest {
                 final var valMock = mock(Value.class);
                 when(attributeAdjustmentMock.getReturnValue()).thenReturn(valMock);
                 final var saplValMock = mock(io.sapl.api.interpreter.Val.class);
-                when(valInterpreterMock.getValFromReturnValue(valMock)).thenReturn(saplValMock);
+                when(valInterpreterMock.getValFromValue(valMock)).thenReturn(saplValMock);
 
                 when(attributeAdjustmentMock.getAttribute()).thenReturn("foo");
                 when(expectOrVerifyStepMock.thenAttribute("foo", saplValMock)).thenReturn(expectOrVerifyStepMock);

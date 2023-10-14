@@ -70,7 +70,7 @@ class FunctionInterpreterTest {
             when(functionMock.getReturn()).thenReturn(valMock);
 
             saplValMock = mock(io.sapl.api.interpreter.Val.class);
-            when(valInterpreterMock.getValFromReturnValue(valMock)).thenReturn(saplValMock);
+            when(valInterpreterMock.getValFromValue(valMock)).thenReturn(saplValMock);
         }
 
         @Test
@@ -271,7 +271,7 @@ class FunctionInterpreterTest {
             when(functionInvokecOnceMock.getReturn()).thenReturn(eListMock);
 
             final var saplValMock = mock(io.sapl.api.interpreter.Val.class);
-            when(valInterpreterMock.getValFromReturnValue(valMock)).thenReturn(saplValMock);
+            when(valInterpreterMock.getValFromValue(valMock)).thenReturn(saplValMock);
 
             when(givenOrWhenStepMock.givenFunctionOnce("fooFunction", saplValMock)).thenReturn(givenOrWhenStepMock);
 
@@ -292,8 +292,8 @@ class FunctionInterpreterTest {
 
             final var saplValMock = mock(io.sapl.api.interpreter.Val.class);
             final var saplValMock2 = mock(io.sapl.api.interpreter.Val.class);
-            when(valInterpreterMock.getValFromReturnValue(valMock)).thenReturn(saplValMock);
-            when(valInterpreterMock.getValFromReturnValue(valMock2)).thenReturn(saplValMock2);
+            when(valInterpreterMock.getValFromValue(valMock)).thenReturn(saplValMock);
+            when(valInterpreterMock.getValFromValue(valMock2)).thenReturn(saplValMock2);
 
             when(givenOrWhenStepMock.givenFunctionOnce("fooFunction", saplValMock, saplValMock2)).thenReturn(givenOrWhenStepMock);
 

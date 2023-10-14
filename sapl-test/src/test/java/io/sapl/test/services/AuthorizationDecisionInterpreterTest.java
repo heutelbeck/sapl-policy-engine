@@ -80,7 +80,7 @@ class AuthorizationDecisionInterpreterTest {
 
             final var saplValMock = mock(Val.class);
 
-            when(valInterpreterMock.getValFromReturnValue(valueMock)).thenReturn(saplValMock);
+            when(valInterpreterMock.getValFromValue(valueMock)).thenReturn(saplValMock);
 
             final var jsonNodeMock = mock(JsonNode.class);
             when(saplValMock.get()).thenReturn(jsonNodeMock);
@@ -97,7 +97,7 @@ class AuthorizationDecisionInterpreterTest {
 
             final var saplValMock = mock(Val.class);
 
-            when(valInterpreterMock.getValFromReturnValue(valueMock)).thenReturn(saplValMock);
+            when(valInterpreterMock.getValFromValue(valueMock)).thenReturn(saplValMock);
 
             final var obligationsMock = mock(ArrayNode.class);
             when(objectMapperMock.createArrayNode()).thenReturn(obligationsMock);
@@ -122,7 +122,7 @@ class AuthorizationDecisionInterpreterTest {
             when(resourceValMock.get()).thenReturn(resourceJsonNodeMock);
 
             final var resourceValueMock = mock(Value.class);
-            when(valInterpreterMock.getValFromReturnValue(resourceValueMock)).thenReturn(resourceValMock);
+            when(valInterpreterMock.getValFromValue(resourceValueMock)).thenReturn(resourceValMock);
 
             final var obligationValueMock1 = mock(Value.class);
             final var obligationValueMock2 = mock(Value.class);
@@ -136,11 +136,11 @@ class AuthorizationDecisionInterpreterTest {
             final var adviceValMock1 = mock(Val.class);
             final var adviceValMock2 = mock(Val.class);
 
-            when(valInterpreterMock.getValFromReturnValue(obligationValueMock1)).thenReturn(obligationValMock1);
-            when(valInterpreterMock.getValFromReturnValue(obligationValueMock2)).thenReturn(obligationValMock2);
+            when(valInterpreterMock.getValFromValue(obligationValueMock1)).thenReturn(obligationValMock1);
+            when(valInterpreterMock.getValFromValue(obligationValueMock2)).thenReturn(obligationValMock2);
 
-            when(valInterpreterMock.getValFromReturnValue(adviceValueMock1)).thenReturn(adviceValMock1);
-            when(valInterpreterMock.getValFromReturnValue(adviceValueMock2)).thenReturn(adviceValMock2);
+            when(valInterpreterMock.getValFromValue(adviceValueMock1)).thenReturn(adviceValMock1);
+            when(valInterpreterMock.getValFromValue(adviceValueMock2)).thenReturn(adviceValMock2);
 
             final var obligationsMock = mock(ArrayNode.class);
 

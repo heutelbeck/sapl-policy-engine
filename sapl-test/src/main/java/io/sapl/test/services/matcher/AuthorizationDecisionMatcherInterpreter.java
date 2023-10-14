@@ -44,7 +44,7 @@ public class AuthorizationDecisionMatcherInterpreter {
 
     private Matcher<AuthorizationDecision> getAuthorizationDecisionMatcherFromObjectMatcher(final DefaultObjectMatcher defaultObjectMatcher, final AuthorizationDecisionMatcherType authorizationDecisionMatcherType) {
         if (defaultObjectMatcher instanceof ObjectWithExactMatch objectWithExactMatch) {
-            final var matcher = is(valInterpreter.getValFromReturnValue(objectWithExactMatch.getObject()).get());
+            final var matcher = is(valInterpreter.getValFromValue(objectWithExactMatch.getObject()).get());
 
             return getMatcher(authorizationDecisionMatcherType, matcher);
         } else if (defaultObjectMatcher instanceof ObjectWithMatcher objectWithMatcher) {

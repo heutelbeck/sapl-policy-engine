@@ -20,7 +20,7 @@ public class FunctionInterpreter {
 
     GivenOrWhenStep interpretFunction(GivenOrWhenStep initial, Function function) {
         final var importName = function.getImportName();
-        final var returnValue = valInterpreter.getValFromReturnValue(function.getReturn());
+        final var returnValue = valInterpreter.getValFromValue(function.getReturn());
 
         var timesCalled = 0;
 
@@ -54,7 +54,7 @@ public class FunctionInterpreter {
             return initial;
         }
 
-        final var returnValues = valuesToBeReturned.stream().map(valInterpreter::getValFromReturnValue).toArray(Val[]::new);
+        final var returnValues = valuesToBeReturned.stream().map(valInterpreter::getValFromValue).toArray(Val[]::new);
 
         if (returnValues.length == 1) {
             return initial.givenFunctionOnce(importName, returnValues[0]);

@@ -9,9 +9,9 @@ public class AuthorizationSubscriptionInterpreter {
     private final ValInterpreter valInterpreter;
 
     io.sapl.api.pdp.AuthorizationSubscription getAuthorizationSubscriptionFromDSL(final AuthorizationSubscription authorizationSubscription) {
-        final var subject = valInterpreter.getValFromReturnValue(authorizationSubscription.getSubject());
-        final var action = valInterpreter.getValFromReturnValue(authorizationSubscription.getAction());
-        final var resource = valInterpreter.getValFromReturnValue(authorizationSubscription.getResource());
+        final var subject = valInterpreter.getValFromValue(authorizationSubscription.getSubject());
+        final var action = valInterpreter.getValFromValue(authorizationSubscription.getAction());
+        final var resource = valInterpreter.getValFromValue(authorizationSubscription.getResource());
 
         final var environmentValue = authorizationSubscription.getEnvironment();
 
@@ -19,7 +19,7 @@ public class AuthorizationSubscriptionInterpreter {
             return io.sapl.api.pdp.AuthorizationSubscription.of(subject.get(), action.get(), resource.get());
         }
 
-        final var environment = valInterpreter.getValFromReturnValue(environmentValue);
+        final var environment = valInterpreter.getValFromValue(environmentValue);
         return io.sapl.api.pdp.AuthorizationSubscription.of(subject.get(), action.get(), resource.get(), environment.get());
     }
 }

@@ -18,7 +18,7 @@ public class AuthorizationDecisionInterpreter {
     AuthorizationDecision constructAuthorizationDecision(final io.sapl.test.grammar.sAPLTest.AuthorizationDecision decision, final Value resource, final List<Value> obligations, final List<Value> advice) {
         var authorizationDecision = getAuthorizationDecisionFromDSL(decision);
 
-        final var mappedResource = valInterpreter.getValFromReturnValue(resource);
+        final var mappedResource = valInterpreter.getValFromValue(resource);
 
         if (mappedResource != null) {
             authorizationDecision = authorizationDecision.withResource(mappedResource.get());
@@ -47,7 +47,7 @@ public class AuthorizationDecisionInterpreter {
         final var valArray = objectMapper.createArrayNode();
 
         values.stream()
-                .map(valInterpreter::getValFromReturnValue)
+                .map(valInterpreter::getValFromValue)
                 .filter(Objects::nonNull)
                 .map(io.sapl.api.interpreter.Val::get)
                 .forEach(valArray::add);

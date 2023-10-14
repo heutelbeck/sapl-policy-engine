@@ -51,7 +51,7 @@ public class ExpectInterpreter {
             } else if (expectOrAdjustmentStep instanceof NextWithMatcher nextWithMatcher) {
                 expectOrVerifyStep = constructNextWithMatcher(expectOrVerifyStep, nextWithMatcher);
             } else if (expectOrAdjustmentStep instanceof AttributeAdjustment attributeAdjustment) {
-                final var returnValue = valInterpreter.getValFromReturnValue(attributeAdjustment.getReturnValue());
+                final var returnValue = valInterpreter.getValFromValue(attributeAdjustment.getReturnValue());
                 expectOrVerifyStep = expectOrVerifyStep.thenAttribute(attributeAdjustment.getAttribute(), returnValue);
             } else if (expectOrAdjustmentStep instanceof Await await) {
                 final var duration = Duration.ofSeconds(await.getDuration().getSeconds().longValue());

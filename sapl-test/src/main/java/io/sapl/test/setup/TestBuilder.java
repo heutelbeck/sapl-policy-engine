@@ -22,12 +22,7 @@ public class TestBuilder {
     public static List<DynamicTest> buildTests(final Object pip, final String filename) {
         final var objectMapper = new ObjectMapper();
         final var valInterpreter = new ValInterpreter(objectMapper);
-
-        final var saplUnitTestFixtureConstructorWrapper = new SaplUnitTestFixtureConstructorWrapper();
-        final var saplIntegrationTestFixtureConstructorWrapper = new SaplIntegrationTestFixtureConstructorWrapper();
-        final var testSuiteInterpreter = new TestSuiteInterpreter(valInterpreter, saplUnitTestFixtureConstructorWrapper, saplIntegrationTestFixtureConstructorWrapper);
-
-        final var testFixtureBuilder = new TestFixtureBuilder(pip, testSuiteInterpreter);
+        final var testFixtureBuilder = getTestFixtureBuilder(pip, valInterpreter);
 
         final var stringMatcherInterpreter = new StringMatcherInterpreter();
         final var jsonNodeMatcherInterpreter = new JsonNodeMatcherInterpreter(stringMatcherInterpreter);
@@ -48,5 +43,15 @@ public class TestBuilder {
 
         return new TestBuilderServiceDefaultImpl(testFixtureBuilder, givenStepBuilder, expectStepBuilder, verifyStepBuilder, saplInterpreter)
                 .buildTests(filename);
+    }
+
+    private static TestFixtureBuilder getTestFixtureBuilder(final Object pip, final ValInterpreter valInterpreter) {
+        final var pdpCombiningAlgorithmInterpreter = new PDPCombiningAlgorithmInterpreter();
+
+        final var saplUnitTestFixtureConstructorWrapper = new SaplUnitTestFixtureConstructorWrapper();
+        final var saplIntegrationTestFixtureConstructorWrapper = new SaplIntegrationTestFixtureConstructorWrapper();
+        final var testSuiteInterpreter = new TestSuiteInterpreter(valInterpreter, pdpCombiningAlgorithmInterpreter, saplUnitTestFixtureConstructorWrapper, saplIntegrationTestFixtureConstructorWrapper);
+
+        return new TestFixtureBuilder(pip, testSuiteInterpreter);
     }
 }

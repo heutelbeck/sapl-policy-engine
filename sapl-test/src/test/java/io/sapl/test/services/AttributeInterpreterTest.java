@@ -84,7 +84,7 @@ class AttributeInterpreterTest {
             when(attributeMock.getImportName()).thenReturn("fooAttribute");
             when(attributeMock.getReturn()).thenReturn(eListMock);
 
-            when(valInterpreterMock.getValFromReturnValue(valMock)).thenReturn(saplValMock);
+            when(valInterpreterMock.getValFromValue(valMock)).thenReturn(saplValMock);
             when(attributeMock.getAmount()).thenReturn(null);
 
             when(givenOrWhenStepMock.givenAttribute("fooAttribute", saplValMock)).thenReturn(givenOrWhenStepMock);
@@ -105,7 +105,7 @@ class AttributeInterpreterTest {
             when(attributeMock.getImportName()).thenReturn("fooAttribute");
             when(attributeMock.getReturn()).thenReturn(eListMock);
 
-            when(valInterpreterMock.getValFromReturnValue(valMock)).thenReturn(saplValMock);
+            when(valInterpreterMock.getValFromValue(valMock)).thenReturn(saplValMock);
             when(attributeMock.getAmount()).thenReturn(temporalAmountMock);
             when(temporalAmountMock.getSeconds()).thenReturn(BigDecimal.valueOf(5));
 
@@ -141,7 +141,7 @@ class AttributeInterpreterTest {
             when(attributeWithParametersMock.getReturn()).thenReturn(returnValMock);
 
             returnValueMock = mock(io.sapl.api.interpreter.Val.class);
-            when(valInterpreterMock.getValFromReturnValue(returnValMock)).thenReturn(returnValueMock);
+            when(valInterpreterMock.getValFromValue(returnValMock)).thenReturn(returnValueMock);
         }
 
         @Test
@@ -157,7 +157,7 @@ class AttributeInterpreterTest {
 
         @Test
         void interpretAttributeWithParameters_withEmptyArguments_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
-            when(valInterpreterMock.getValFromReturnValue(returnValMock)).thenReturn(returnValueMock);
+            when(valInterpreterMock.getValFromValue(returnValMock)).thenReturn(returnValueMock);
 
             final var eListMock = mock(EList.class, AdditionalAnswers.delegatesTo(List.of()));
             when(attributeWithParametersMock.getParameters()).thenReturn(eListMock);
@@ -179,8 +179,8 @@ class AttributeInterpreterTest {
             final var matcher1Mock = mock(Matcher.class);
             final var matcher2Mock = mock(Matcher.class);
 
-            when(valInterpreterMock.getValMatcherFromVal(valMatcher1Mock)).thenReturn(matcher1Mock);
-            when(valInterpreterMock.getValMatcherFromVal(valMatcher2Mock)).thenReturn(matcher2Mock);
+            when(matcherInterpreterMock.getValMatcherFromValMatcher(valMatcher1Mock)).thenReturn(matcher1Mock);
+            when(matcherInterpreterMock.getValMatcherFromValMatcher(valMatcher2Mock)).thenReturn(matcher2Mock);
 
             final var attributeParametersArgumentCaptor = ArgumentCaptor.forClass(AttributeParameters.class);
 
