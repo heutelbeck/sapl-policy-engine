@@ -18,6 +18,9 @@ public class SchemaProposals {
 
     private final VariablesAndCombinatorSource variablesAndCombinatorSource;
 
+    private static final Collection<String> unwantedPathKeywords = Set.of("java\\.?");
+
+
     public List<String> getVariableNamesAsTemplates(){
         List<String> templates = new ArrayList<>();
         var variables = getAllVariablesAsMap();
@@ -40,8 +43,7 @@ public class SchemaProposals {
     private Flux<String> getCodeTemplates(Val v) {
         List<String> schema = new ArrayList<>();
         try {
-            SchemaTemplates schemaTemplate = new SchemaTemplates(getAllVariablesAsMap());
-            schema = schemaTemplate.schemaTemplatesFromJson(v.getText());
+            schema = schemaTemplatesFromJson(v.getText());
         } catch (Exception e) {
             log.info("Could not flatten schema: {}", v.getText());
         }
@@ -56,4 +58,27 @@ public class SchemaProposals {
                 .getVariables()
                 .map(v -> v.orElse(Collections.emptyMap()));
     }
+
+    private List<String> schemaTemplatesFromJson(String source){
+        return flattenSchemaFromJson(source);
+    }
+
+    private List<String> flattenSchemaFromJson(String schema) {
+        if ("".equals(schema))
+            return new ArrayList<>();
+        var paths = new SchemaParser(getAllVariablesAsMap()).generatePaths(schema);
+        return paths.stream()
+                .map(this::removeUnwantedKeywordsFromPath)
+                .toList();
+    }
+
+    private String removeUnwantedKeywordsFromPath(String path) {
+        String alteredPath = path;
+        for (String keyword : unwantedPathKeywords) {
+            alteredPath = alteredPath.replaceAll(keyword, "");
+        }
+        return alteredPath;
+    }
+
+
 }
