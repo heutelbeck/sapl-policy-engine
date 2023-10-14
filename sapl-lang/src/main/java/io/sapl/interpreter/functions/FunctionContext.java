@@ -30,7 +30,5 @@ public interface FunctionContext extends LibraryFunctionProvider {
 
 	List<String> getCodeTemplates();
 
-	Map<String, AnnotationFunctionContext.FunctionMetadata> getAllFullyQualifiedFunctionsWithMetadata();
-
 	Map<String, String> getDocumentedCodeTemplates();
 }

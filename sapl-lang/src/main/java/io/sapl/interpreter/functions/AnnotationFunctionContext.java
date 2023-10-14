@@ -270,7 +270,6 @@ public class AnnotationFunctionContext implements FunctionContext {
 		if (codeTemplateCache == null) {
 			codeTemplateCache = new LinkedList<>();
 			for (var entry : functions.entrySet()) {
-				var value = entry.getValue();
 				codeTemplateCache.add(entry.getValue().getCodeTemplate());
 			}
 			Collections.sort(codeTemplateCache);
@@ -281,11 +280,6 @@ public class AnnotationFunctionContext implements FunctionContext {
 	@Override
 	public Collection<String> getAllFullyQualifiedFunctions() {
 		return functions.keySet();
-	}
-
-	@Override
-	public Map<String, FunctionMetadata> getAllFullyQualifiedFunctionsWithMetadata() {
-		return new HashMap<>(functions);
 	}
 
 	@Override
