@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.context.AuthorizationContext;
-import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,9 +17,6 @@ import java.util.*;
 public class SchemaProposals {
 
     private final VariablesAndCombinatorSource variablesAndCombinatorSource;
-    private final FunctionContext functionContext;
-
-    private static final String MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED = "Please only provide either a schema or a schemaPath annotation.";
 
     public List<String> getVariableNamesAsTemplates(){
         List<String> templates = new ArrayList<>();
@@ -51,39 +47,6 @@ public class SchemaProposals {
         }
         return Flux.fromIterable(schema);
     }
-
-    public List<String> getSchemaTemplates(){
-        StringBuilder sb;
-        List<String> paths;
-        var schemaTemplates = new ArrayList<String>();
-        var funCodeTemplate = functionContext.getCodeTemplates();
-        var functions = functionContext.getAllFullyQualifiedFunctionsWithMetadata();
-        for (var functionMetadata : functions.values()){
-            var functionSchema = functionMetadata.getFunctionSchema();
-            var pathToSchema = functionMetadata.getFunctionPathToSchema();
-
-            if (functionSchema.length() > 0 && pathToSchema.length() > 0)
-                throw new IllegalArgumentException(MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED);
-
-            if (functionSchema.length() > 0 || pathToSchema.length() > 0){
-                SchemaTemplates schemaTemplate = new SchemaTemplates(this.getAllVariablesAsMap());
-
-                if (functionSchema.length() > 0)
-                    paths = schemaTemplate.schemaTemplatesFromJson(functionSchema);
-                else
-                    paths = schemaTemplate.schemaTemplatesFromFile(pathToSchema);
-
-                for (var path : paths){
-                    sb = new StringBuilder();
-                    sb.append(funCodeTemplate).append('.').append(path);
-                    schemaTemplates.add(sb.toString());
-                }
-            }
-        }
-        return schemaTemplates;
-    }
-
-
     private Map<String, JsonNode> getAllVariablesAsMap(){
         return getAllVariables().next().block();
     }
