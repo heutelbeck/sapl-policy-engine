@@ -49,9 +49,9 @@ public class SaplEditor extends BaseEditor {
 
 	@ClientCallable
 	protected void onValidation(JsonArray jsonIssues) {
-		var length = jsonIssues.length();
-		var issues = new ArrayList<>(length);
-		for (int i = 0; i < length; i++) {
+
+		ArrayList<Object> issues = new ArrayList<>();
+		for (int i = 0; jsonIssues != null && i < jsonIssues.length(); i++) {
 			var jsonIssue = jsonIssues.getObject(i);
 			var issue     = new Issue(jsonIssue);
 			issues.add(issue);
