@@ -33,7 +33,7 @@
             class SchemaCompletionTests extends CompletionTests {
 
                 List<String> environmentVariableNames = List.of("schema_with_additional_keywords",
-                        "bank_action_schema", "subject_schema", "adress_schema", "vehicle_schema");
+                        "bank_action_schema", "subject_schema", "address_schema");
 
                 /**
                  * Tests regarding the preamble
@@ -111,19 +111,25 @@
                 @Test
                 void testCompletion_PolicyBody_getSchemaFromJSONinText() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "policy \"test\" deny where var foo = 1 schema {" +
-                                "\"properties\":" +
-                                "  {" +
-                                "    \"name\":" +
-                                "    {\"type\": \"object\"," +
-                                "     \"properties\":" +
-                                "     {\"firstname\": {\"type\": \"string\"}}" +
-                                "    }," +
-                                "    \"age\": {\"type\": \"number\"}" +
-                                "  }" +
-                                "}; foo";
+                        String policy = """
+                                policy "test" deny where var foo = 1 schema {
+                                  "properties": {
+                                    "name": {
+                                      "type": "object",
+                                      "properties": {
+                                        "firstname": {"type": "string"}
+                                      }
+                                    },
+                                    "age": {"type": "number"}
+                                  }
+                                };
+                                foo""";
+
+                        String cursor = "foo";
                         it.setModel(policy);
-                        it.setColumn(policy.length());
+                        it.setLine(11);
+                        it.setColumn(cursor.length());
+
                         it.setAssertCompletionList(completionList -> {
                             var expected = List.of("foo.age", "foo.name", "foo.name.firstname");
                             assertProposalsSimple(expected, completionList);
@@ -161,16 +167,36 @@
                 @Test
                 void testCompletion_PolicyBody_NotSuggestEnumKeywords() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "policy \"test\" permit where var bar = 3; var foo = \"test\" schema bank_action_schema; foo";
+                        String policy = """
+                                policy "test" permit where var bar = 3; var foo = "test" schema
+                                {
+                                   "type": "object",
+                                   "properties": {
+                                 	"java": {
+                                 		"type": "object",
+                                 		"properties": {
+                                 			"name": {
+                                 				"type": "string",
+                                 				"enum": ["registerNewCustomer",
+                                 				         "changeAddress"]
+                                 			}
+                                 		}		
+                                     }
+                                   }
+                                 };
+                                 foo""";
+
+                        String cursor = "foo";
                         it.setModel(policy);
-                        it.setColumn(policy.length());
+                        it.setLine(16);
+                        it.setColumn(cursor.length());
+
                         it.setAssertCompletionList(completionList -> {
                             var expected = List.of(
                                     "foo.name.registerNewCustomer",
-                                    "foo.name.changeAddress",
-                                    "foo.name.offerCheapLoan");
+                                    "foo.name.changeAddress");
                             var unwanted = List.of(
-                                    "foo.", "foo.name.enum[0]", "foo.name.enum[1]", "foo.name.enum[2]");
+                                    "foo.", "foo.name.enum[0]", "foo.name.enum[1]");
                             assertProposalsSimple(expected, completionList);
                             assertDoesNotContainProposals(unwanted, completionList);
                         });
@@ -298,28 +324,76 @@
 
 
                 @Test
-                void testCompletion_PolicyBody_resolveReferencesWithinDocument() {
+                void testCompletion_PolicyBody_resolveInternalReferences() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "policy \"test\" permit where var foo = \"test\" schema vehicle_schema; foo";
+                        String policy = """
+                                subject schema
+                                 {
+                                    "type": "object",
+                                    "properties": {
+                                      "name": { "$ref": "#/$defs/name" }                                    },
+                                    "$defs": {
+                                      "name": {"type": "object", "properties": {"first_name": {"type": "string"},
+                                      "last_name": {"type": "string"}}
+                                    }
+                                  }
+                                 policy "test" deny where subject""";
+                        String cursor = "policy \"test\" deny where subject";
                         it.setModel(policy);
-                        it.setColumn(policy.length());
+                        it.setLine(10);
+                        it.setColumn(cursor.length());
                         it.setAssertCompletionList(completionList -> {
-                            var expected = List.of("foo.nc:IdentificationID", "foo.nc:Vehicle",
-                                    "foo.nc:Vehicle.@base", "foo.nc:Vehicle.@id",
-                                    "foo.nc:Vehicle.nc:VehicleIdentification", "foo.nc:VehicleIdentification");
+                            var expected = List.of("subject", "subject.name", "subject.name.first_name",
+                                    "subject.name.last_name");
                             assertProposalsSimple(expected, completionList);
                         });
                     });
                 }
 
                 @Test
-                void testCompletion_PolicyBody_resolveReferencesAcrossDocuments() {
+                void testCompletion_PolicyBody_resolveExternalReferences() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "policy \"test\" permit where var foo = \"test\" schema calendar_schema; foo";
+                        String policy = """
+                                subject schema
+                                 {
+                                    "type": "object",
+                                    "properties": {
+                                      "name": { "type": "string" },
+                                      "shipping_address": { "$ref": "address_schema" }
+                                     }
+                                  }
+                                 policy "test" deny where subject""";
+                        String cursor = "policy \"test\" deny where subject";
                         it.setModel(policy);
-                        it.setColumn(policy.length());
+                        it.setLine(8);
+                        it.setColumn(cursor.length());
                         it.setAssertCompletionList(completionList -> {
-                            var expected = List.of("foo.dtstart", "foo.geo.latitude.maximum");
+                            var expected = List.of("subject", "subject.name", "subject.shipping_address", "subject.shipping_address.country-name");
+                            assertProposalsSimple(expected, completionList);
+                        });
+                    });
+                }
+
+                @Test
+                void testCompletion_PolicyBody_resolveExternalReferenceCombinedWithInternalReference() {
+                    testCompletion((TestCompletionConfiguration it) -> {
+                        String policy = """
+                                subject schema
+                                 {
+                                    "type": "object",
+                                    "properties": {
+                                      "name": { "type": "string" },
+                                      "date_of_birth": { "$ref": "calendar_schema" }
+                                     }
+                                  }
+                                 policy "test" deny where subject""";
+                        String cursor = "policy \"test\" deny where subject";
+                        it.setModel(policy);
+                        it.setLine(8);
+                        it.setColumn(cursor.length());
+                        it.setAssertCompletionList(completionList -> {
+                            var expected = List.of("subject", "subject.date_of_birth",
+                                    "subject.date_of_birth.dtstart", "subject.date_of_birth.geo.latitude");
                             assertProposalsSimple(expected, completionList);
                         });
                     });
