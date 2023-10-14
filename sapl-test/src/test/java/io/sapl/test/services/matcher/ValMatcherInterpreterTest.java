@@ -108,7 +108,7 @@ class ValMatcherInterpreterTest {
         when(valWithMatcherMock.getMatcher()).thenReturn(jsonNodeMatcherMock);
 
         final var matcherMock = mock(Matcher.class);
-        when(jsonNodeMatcherInterpreterMock.getJsonNodeMatcherFromJsonNodeMatcher(jsonNodeMatcherMock)).thenReturn(matcherMock);
+        when(jsonNodeMatcherInterpreterMock.getHamcrestJsonNodeMatcher(jsonNodeMatcherMock)).thenReturn(matcherMock);
 
         final var valWithJsonNodeMatcherMock = mock(Matcher.class);
         saplMatchersMockedStatic.when(() -> io.sapl.hamcrest.Matchers.val(matcherMock)).thenReturn(valWithJsonNodeMatcherMock);

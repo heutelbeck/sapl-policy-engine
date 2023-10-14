@@ -39,8 +39,20 @@ CombiningAlgorithm:
 WhenStep:
 	 'when' authorizationSubscription=AuthorizationSubscription;
 
+JsonArrayMatcher: '[' matchers+=JsonNodeMatcher (',' matchers+=JsonNodeMatcher)* ']';
+
+JsonObjectMatcherPair: key=STRING ':' matcher=JsonNodeMatcher;
+
+JsonObjectMatcher: '{' matchers+=JsonObjectMatcherPair (',' matchers+=JsonObjectMatcherPair)* '}';
+
 JsonNodeMatcher:
-    {Equals} 'equals' value=STRING;
+    {IsJsonNull} 'null' |
+    {IsJsonText} 'text' text=StringOrStringMatcher |
+    {IsJsonNumber} 'number' (number=JSONNUMBER)? |
+    {IsJsonBoolean} 'boolean' (value=BooleanLiteral)? |
+    {IsJsonMissing} 'json missing' |
+    {IsJsonArray} 'array' ('where' matcher=JsonArrayMatcher)? |
+    {IsJsonObject} 'object' ('where' matcher=JsonObjectMatcher)?;
 
 StringMatcher:
     {StringIsNull} 'null' |
@@ -48,11 +60,11 @@ StringMatcher:
     {StringIsEmpty} 'empty' |
     {StringIsNullOrEmpty} 'null or empty' |
     {StringIsNullOrBlank} 'null or blank' |
-    {StringIsEqualWithCompressedWhiteSpace} 'equal to' value=STRING 'with compressed whitespaces' |
+    {StringIsEqualWithCompressedWhiteSpace} 'equal to' value=STRING 'with' 'compressed whitespaces' |
     {StringIsEqualIgnoringCase} 'equal to' value=STRING 'ignoring case' |
     {StringMatchesRegex} 'matches regex' regex=STRING |
-    {StringStartsWith} 'starts with' start=STRING caseInsensitive?='ignoring case' |
-    {StringEndsWith} 'ends with' end=STRING caseInsensitive?='ignoring case' |
+    {StringStartsWith} 'starts' 'with' start=STRING caseInsensitive?='ignoring case' |
+    {StringEndsWith} 'ends' 'with' end=STRING caseInsensitive?='ignoring case' |
     {StringContains} 'contains' value=STRING caseInsensitive?='ignoring case' |
     {StringContainsInOrder} 'contains' substrings+=STRING (',' substrings+=STRING)* 'in order' |
     {StringWithLength} 'has length of' length=JSONNUMBER;

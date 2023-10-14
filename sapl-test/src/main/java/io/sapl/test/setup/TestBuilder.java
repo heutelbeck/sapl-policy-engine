@@ -1,6 +1,12 @@
 package io.sapl.test.setup;
 
+import static com.spotify.hamcrest.jackson.JsonMatchers.jsonInt;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
+
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.IntNode;
 import io.sapl.test.interpreter.SaplTestInterpreterDefaultImpl;
 import io.sapl.test.services.*;
 import io.sapl.test.services.constructorwrappers.SaplIntegrationTestFixtureConstructorWrapper;
@@ -23,8 +29,9 @@ public class TestBuilder {
 
         final var testFixtureBuilder = new TestFixtureBuilder(pip, testSuiteInterpreter);
 
-        final var jsonNodeMatcherInterpreter = new JsonNodeMatcherInterpreter();
         final var stringMatcherInterpreter = new StringMatcherInterpreter();
+        final var jsonNodeMatcherInterpreter = new JsonNodeMatcherInterpreter(stringMatcherInterpreter);
+
         final var matcherInterpreter = new ValMatcherInterpreter(valInterpreter, jsonNodeMatcherInterpreter, stringMatcherInterpreter);
 
         final var attributeInterpreter = new AttributeInterpreter(valInterpreter, matcherInterpreter);

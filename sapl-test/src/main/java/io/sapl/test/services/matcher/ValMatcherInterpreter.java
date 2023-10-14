@@ -30,7 +30,7 @@ public class ValMatcherInterpreter {
         } else if (valMatcher instanceof AnyVal) {
             return anyVal();
         } else if (valMatcher instanceof ValWithMatcher valWithMatcherMatcher) {
-            return val(jsonNodeMatcherInterpreter.getJsonNodeMatcherFromJsonNodeMatcher(valWithMatcherMatcher.getMatcher()));
+            return val(jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(valWithMatcherMatcher.getMatcher()));
         } else if (valMatcher instanceof ValWithErrorString valWithErrorStringMatcher) {
             final var errorMatcher = valWithErrorStringMatcher.getError();
             if (errorMatcher instanceof PlainString plainString) {

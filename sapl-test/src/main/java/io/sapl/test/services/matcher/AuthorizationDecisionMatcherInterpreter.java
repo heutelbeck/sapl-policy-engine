@@ -49,7 +49,7 @@ public class AuthorizationDecisionMatcherInterpreter {
             return getMatcher(authorizationDecisionMatcherType, matcher);
         } else if (defaultObjectMatcher instanceof ObjectWithMatcher objectWithMatcher) {
             final var jsonNodeMatcher = objectWithMatcher.getMatcher();
-            final var matcher = jsonNodeMatcherInterpreter.getJsonNodeMatcherFromJsonNodeMatcher(jsonNodeMatcher);
+            final var matcher = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(jsonNodeMatcher);
 
             return getMatcher(authorizationDecisionMatcherType, matcher);
         }
@@ -74,7 +74,7 @@ public class AuthorizationDecisionMatcherInterpreter {
 
         if (extendedObjectMatcher instanceof ObjectWithKeyValueMatcher objectWithKeyValueMatcher) {
             final var key = objectWithKeyValueMatcher.getKey();
-            final var valueMatcher = jsonNodeMatcherInterpreter.getJsonNodeMatcherFromJsonNodeMatcher(objectWithKeyValueMatcher.getValue());
+            final var valueMatcher = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(objectWithKeyValueMatcher.getValue());
             if (valueMatcher == null) {
                 return switch (authorizationDecisionMatcherType) {
                     case OBLIGATION -> hasObligationContainingKeyValue(key);

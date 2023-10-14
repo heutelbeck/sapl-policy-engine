@@ -75,6 +75,10 @@
 			<groupId>io.projectreactor</groupId>
 			<artifactId>reactor-test</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>com.spotify</groupId>
+			<artifactId>hamcrest-jackson</artifactId>
+		</dependency>
 
 		<!-- Logging -->
 		<dependency>
