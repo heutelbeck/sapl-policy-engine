@@ -97,15 +97,16 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
 		Map<String, JsonNode> schemaMap = new HashMap<>();
 		File[] jsonFiles = new File(configPath).listFiles((dir, name) -> name.endsWith(".json"));
 
-		for (File jsonFile: jsonFiles)
-			try {
-				String keyString = jsonFile.getName().substring(0, jsonFile.getName().lastIndexOf("."));
-				JsonNode node = MAPPER.readTree(jsonFile);
-				schemaMap.put(keyString, node);
-			} catch (Exception e) {
-				log.info("Error reading variables from file system: {}", e.getMessage());
-			}
-
+		if (jsonFiles.length > 0){
+			for (File jsonFile: jsonFiles)
+				try {
+					String keyString = jsonFile.getName().substring(0, jsonFile.getName().lastIndexOf('.'));
+					JsonNode node = MAPPER.readTree(jsonFile);
+					schemaMap.put(keyString, node);
+				} catch (Exception e) {
+					log.info("Error reading variables from file system: {}", e.getMessage());
+				}
+		}
 		Optional<Map<String, JsonNode>> optSchemaMap = Optional.ofNullable(schemaMap);
 
 		return Flux.just(optSchemaMap);

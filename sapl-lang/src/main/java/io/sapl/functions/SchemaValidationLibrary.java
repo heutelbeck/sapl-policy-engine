@@ -60,7 +60,7 @@ public class SchemaValidationLibrary {
         try {
             jsonNode = new ObjectMapper().readTree(node);
         } catch (JsonProcessingException e) {
-            throw new IllegalArgumentException(INVALID_JSON_OBJECT);
+            throw new IllegalArgumentException(INVALID_JSON_OBJECT, e);
         }
         return jsonNode;
     }
@@ -71,7 +71,7 @@ public class SchemaValidationLibrary {
         try {
             jsonSchema = jsonSchemaFactory.getSchema(schema);
         } catch (Exception e){
-            throw new IllegalArgumentException(INVALID_JSON_SCHEMA);
+            throw new IllegalArgumentException(INVALID_JSON_SCHEMA, e);
         }
         return jsonSchema;
     }

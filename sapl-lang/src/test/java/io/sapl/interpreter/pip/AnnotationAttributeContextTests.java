@@ -750,14 +750,16 @@ class AnnotationAttributeContextTests {
 		@PolicyInformationPoint(name = "test")
 		class PIP {
 
-			static final String PERSON_SCHEMA = "{" +
-					"  \"$schema\": \"http://json-schema.org/draft-07/schema#\"," +
-					"  \"$id\": \"https://example.com/schemas/regions\"," +
-					"  \"type\": \"object\"," +
-					"  \"properties\": {" +
-					"  \"name\": { \"type\": \"string\" }" +
-					"  }" +
-					"}";
+			static final String PERSON_SCHEMA = """
+					{
+					  "$schema": "http://json-schema.org/draft-07/schema#",
+					  "$id": "https://example.com/schemas/regions",
+					  "type": "object",
+					  "properties": {
+						"name": { "type": "string" }
+					  }
+					}
+					""";
 
 			@EnvironmentAttribute
 			public Flux<Val> envAttribute(Map<String, JsonNode> variable, @Schema(value=PERSON_SCHEMA) Val a1) {
@@ -776,8 +778,16 @@ class AnnotationAttributeContextTests {
 				.expectNext(Val.of(expected)).verifyComplete();
 
 		var invalidExpression   = ParserUtil.expression("<test.envAttribute({\"name\": 23})>");
-		String errorMessage = "Illegal parameter type. Parameter does not comply with required schema. " +
-				"Got: {\"name\":23} Expected schema: {  \"$schema\": \"http://json-schema.org/draft-07/schema#\",  \"$id\": \"https://example.com/schemas/regions\",  \"type\": \"object\",  \"properties\": {  \"name\": { \"type\": \"string\" }  }}";
+		String errorMessage = """
+				Illegal parameter type. Parameter does not comply with required schema. Got: {"name":23} Expected schema: {
+				  "$schema": "http://json-schema.org/draft-07/schema#",
+				  "$id": "https://example.com/schemas/regions",
+				  "type": "object",
+				  "properties": {
+					"name": { "type": "string" }
+				  }
+				}
+				""";
 		StepVerifier.create(invalidExpression.evaluate().contextWrite(this.constructContext(attributeCtx, variable)))
 				.expectNextMatches(valErrorText(errorMessage)).verifyComplete();
 	}
@@ -845,58 +855,6 @@ class AnnotationAttributeContextTests {
 		assertThat(sut.getAllFullyQualifiedFunctions(),
 				containsInAnyOrder("test.x2", "test.a", "test.a", "test.a2", "test.a2", "test.x", "test.x"));
 	}
-
-/*	@Test
-	void generatesCodeTemplatesFromAttributeSchema() throws InitializationException {
-
-		@PolicyInformationPoint(name = "test")
-		class PIP {
-
-			static final String PERSON_SCHEMA = "{" +
-					"  \"$schema\": \"http://json-schema.org/draft-07/schema#\"," +
-					"  \"$id\": \"https://example.com/schemas/regions\"," +
-					"  \"type\": \"object\"," +
-					"  \"properties\": {" +
-					"  \"name\": { \"type\": \"string\" }" +
-					"  }" +
-					"}";
-
-			@EnvironmentAttribute(pathToSchema = "schemas/person_schema.json")
-			public Flux<Val> a() {
-				return Flux.empty();
-			}
-
-			@EnvironmentAttribute(schema = PERSON_SCHEMA)
-			public Flux<Val> a2() {
-				return Flux.empty();
-			}
-
-			@Attribute(pathToSchema = "schemas/person_schema.json")
-			public Flux<Val> x(Val leftHand, Val a1) {
-				return Flux.just(a1);
-			}
-
-			@Attribute(schema = PERSON_SCHEMA)
-			public Flux<Val> x2(Val leftHand, Val a1) {
-				return Flux.just(a1);
-			}
-
-		}
-
-		var pip = new PIP();
-		var sut = new AnnotationAttributeContext(pip);
-
-		var expectedEnvironmentTemplates = new String[] { "test.a>", "test.a>.name", "test.a2>", "test.a2>.name" };
-		var actualEnvironmentTemplates    = sut.getEnvironmentAttributeCodeTemplates();
-		actualEnvironmentTemplates = sut.getEnvironmentAttributeCodeTemplates();
-		assertThat(actualEnvironmentTemplates, containsInAnyOrder(expectedEnvironmentTemplates));
-
-		var expectedNonEnvironmentTemplates = new String[] { "test.x(a1)>", "test.x(a1)>.name", "test.x2(a1)>", "test.x2(a1)>.name" };
-		var actualNonEnvironmentTemplates    = sut.getAttributeCodeTemplates();
-		actualNonEnvironmentTemplates = sut.getAttributeCodeTemplates();
-		assertThat(actualNonEnvironmentTemplates, containsInAnyOrder(expectedNonEnvironmentTemplates));
-
-	}*/
 
 	@Test
 	void when_environmentAttributeButOnlyNonEnvAttributePresent_fail()

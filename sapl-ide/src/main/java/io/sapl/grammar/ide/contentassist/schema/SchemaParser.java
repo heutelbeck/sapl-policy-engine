@@ -28,7 +28,7 @@ public class SchemaParser {
         try {
             schemaNode = mapper.readTree(schema);
         } catch (JsonProcessingException e) {
-            throw new IllegalArgumentException("Not a valid schema:\n" + schema, e);
+            return new LinkedList<>();
         }
 
         List<String> jsonPaths = getJsonPaths(schemaNode, "", schemaNode, 0);
@@ -139,7 +139,7 @@ public class SchemaParser {
 
         JsonNode childNode;
         String currentPath;
-        List<String> enumPaths = new ArrayList<>();
+        List<String> enumPaths = new LinkedList<>();
         Iterator<String> fieldNames = jsonNode.fieldNames();
         while (fieldNames.hasNext()) {
             String fieldName = fieldNames.next();
@@ -149,7 +149,8 @@ public class SchemaParser {
                 childNode = handleReferences(originalSchema, childNode);
                 currentPath = parentPath;
             } else if ("enum".equals(fieldName)){
-                currentPath = handleEnum(jsonNode, parentPath, enumPaths);
+                enumPaths = handleEnum(jsonNode, parentPath);
+                currentPath = parentPath;
             } else if("patternProperties".equals(fieldName)) {
                 childNode = JsonNodeFactory.instance.nullNode();
                 currentPath = parentPath;
@@ -175,22 +176,21 @@ public class SchemaParser {
         return refNode;
     }
 
-    private static String handleEnum(JsonNode jsonNode, String parentPath, List<String> enumPaths) {
-        String currentPath;
+    private static List<String> handleEnum(JsonNode jsonNode, String parentPath) {
         JsonNode enumValuesNode = jsonNode.get("enum");
         ObjectMapper mapper = new ObjectMapper();
         String[] enumValuesArray;
+        var paths = new LinkedList<String>();
         try {
             enumValuesArray = mapper.treeToValue(enumValuesNode, String[].class);
         } catch (JsonProcessingException e) {
-            throw new IllegalArgumentException("Not a valid enum in schema!", e);
+            return new LinkedList<>();
         }
         List<String> enumValues = new ArrayList<>(Arrays.asList(enumValuesArray));
         for (String enumPath : enumValues){
-            enumPaths.add(parentPath + "." + enumPath);
+            paths.add(parentPath + "." + enumPath);
         }
-        currentPath = parentPath;
-        return currentPath;
+        return paths;
     }
 
 }

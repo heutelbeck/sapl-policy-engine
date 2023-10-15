@@ -108,7 +108,7 @@ public class ValueDefinitionProposalExtractionHelper {
         return proposalTemplates;
     }
 
-    private List<String> getProposalTemplates(ValueDefinition valueDefinition, List<Expression> schemaVarExpression) {
+    private List<String> getProposalTemplates(ValueDefinition valueDefinition, Iterable<Expression> schemaVarExpression) {
         List<String> proposalTemplates = new ArrayList<>();
         for (Expression varExpression: schemaVarExpression) {
             var schemaTemplates = new SchemaProposals(variablesAndCombinatorSource)
@@ -120,7 +120,7 @@ public class ValueDefinitionProposalExtractionHelper {
         return proposalTemplates;
     }
 
-    private static Collection<String> constructProposals(String elementName, List<String> templates) {
+    private static Collection<String> constructProposals(String elementName, Iterable<String> templates) {
         Collection<String> proposals = new HashSet<>();
         for(var template: templates){
             var proposal = elementName.concat(".").concat(template);
