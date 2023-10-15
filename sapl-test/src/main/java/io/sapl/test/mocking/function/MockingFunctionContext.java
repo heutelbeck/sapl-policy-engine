@@ -243,11 +243,6 @@ public class MockingFunctionContext implements FunctionContext {
 	}
 
 	@Override
-	public Map<String, AnnotationFunctionContext.FunctionMetadata> getAllFullyQualifiedFunctionsWithMetadata() {
-		return Map.of();
-	}
-
-	@Override
 	public Collection<String> getAllFullyQualifiedFunctions() {
 		return List.of();
 	}

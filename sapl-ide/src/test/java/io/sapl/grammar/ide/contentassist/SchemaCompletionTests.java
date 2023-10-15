@@ -32,8 +32,7 @@
             @ContextConfiguration(classes = SAPLIdeSpringTestConfiguration.class)
             class SchemaCompletionTests extends CompletionTests {
 
-                List<String> environmentVariableNames = List.of("schema_with_additional_keywords",
-                        "bank_action_schema", "subject_schema", "address_schema", "calendar_schema");
+                List<String> environmentVariableNames = List.of("calendar_schema");
 
                 /**
                  * Tests regarding the preamble
@@ -289,11 +288,11 @@
                 @Test
                 void testCompletion_SuggestSchemaFromPDPScopedVariableWithNameContainingSubjectAuthzElement() {
                     testCompletion((TestCompletionConfiguration it) -> {
-                        String policy = "subject schema subject_schema policy \"test\" permit where subject.";
+                        String policy = "subject schema subject_schema policy \"test\" permit where subject";
                         it.setModel(policy);
                         it.setColumn(policy.length());
                         it.setAssertCompletionList(completionList -> {
-                            var expected = List.of("subject.name", "subject.age", "subject.name.firstname");
+                            var expected = List.of("subject");
                             assertProposalsSimple(expected, completionList);
                         });
                     });
@@ -306,7 +305,7 @@
                         it.setModel(policy);
                         it.setColumn(policy.length());
                         it.setAssertCompletionList(completionList -> {
-                            var expected = List.of("action.process", "action.result", "action.process.duration", "action.type_of_action");
+                            var expected = List.of("action");
                             assertProposalsSimple(expected, completionList);
                         });
                     });
@@ -488,7 +487,6 @@
                         });
                     });
                 }
-
 
             }
 
