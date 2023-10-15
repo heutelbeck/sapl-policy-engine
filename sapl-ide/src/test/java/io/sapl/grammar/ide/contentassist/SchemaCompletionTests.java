@@ -33,7 +33,7 @@
             class SchemaCompletionTests extends CompletionTests {
 
                 List<String> environmentVariableNames = List.of("schema_with_additional_keywords",
-                        "bank_action_schema", "subject_schema", "address_schema");
+                        "bank_action_schema", "subject_schema", "address_schema", "calendar_schema");
 
                 /**
                  * Tests regarding the preamble
@@ -103,6 +103,20 @@
                         it.setColumn(policy.length());
                         it.setAssertCompletionList(completionList -> {
                             var expected = List.of("schema");
+                            assertProposalsSimple(expected, completionList);
+                        });
+                    });
+                }
+
+                @Test
+                void testCompletion_PolicyBody_emptySchema() {
+                    testCompletion((TestCompletionConfiguration it) -> {
+                        String policy = "policy \"test\" deny where var foo = 1 schema {}; foo";
+                        it.setModel(policy);
+                        it.setColumn(policy.length());
+
+                        it.setAssertCompletionList(completionList -> {
+                            var expected = List.of("foo");
                             assertProposalsSimple(expected, completionList);
                         });
                     });
@@ -199,6 +213,32 @@
                                     "foo.", "foo.name.enum[0]", "foo.name.enum[1]");
                             assertProposalsSimple(expected, completionList);
                             assertDoesNotContainProposals(unwanted, completionList);
+                        });
+                    });
+                }
+
+                @Test
+                void testCompletion_PolicyBody_SuggestArrayItems() {
+                    testCompletion((TestCompletionConfiguration it) -> {
+                        String policy = """
+                                policy "test" permit where var bar = 3; var foo = "test" schema
+                                {
+                                  "type": "array",
+                                  "items": [
+                                    { "type": "string" },
+                                    { "enum": ["Street", "Avenue"] }
+                                  ]
+                                };
+                                foo""";
+
+                        String cursor = "foo";
+                        it.setModel(policy);
+                        it.setLine(8);
+                        it.setColumn(cursor.length());
+
+                        it.setAssertCompletionList(completionList -> {
+                            var expected = List.of("foo", "foo.Avenue", "foo.Street");
+                            assertProposalsSimple(expected, completionList);
                         });
                     });
                 }
@@ -322,6 +362,31 @@
                     });
                 }
 
+                @Test
+                void testCompletion_array_with_empty_items() {
+                    testCompletion((TestCompletionConfiguration it) -> {
+                        String policy = """
+                                subject schema
+                                 {
+                                   "type": "object",
+                                   "properties": {
+                                     "name": {
+                                       "type": "array"
+                                     }
+                                   }
+                                 }
+                                 policy "test" deny where subject""";
+                        String cursor = "policy \"test\" deny where subject";
+                        it.setModel(policy);
+                        it.setLine(9);
+                        it.setColumn(cursor.length());
+                        it.setAssertCompletionList(completionList -> {
+                            var expected = List.of("subject", "subject.name");
+                            assertProposalsSimple(expected, completionList);
+                        });
+                    });
+                }
+
 
                 @Test
                 void testCompletion_PolicyBody_resolveInternalReferences() {
@@ -383,7 +448,7 @@
                                     "type": "object",
                                     "properties": {
                                       "name": { "type": "string" },
-                                      "date_of_birth": { "$ref": "calendar_schema" }
+                                      "place_of_birth": { "$ref": "calendar_schema/#/properties/geo" }
                                      }
                                   }
                                  policy "test" deny where subject""";
@@ -392,12 +457,38 @@
                         it.setLine(8);
                         it.setColumn(cursor.length());
                         it.setAssertCompletionList(completionList -> {
-                            var expected = List.of("subject", "subject.date_of_birth",
-                                    "subject.date_of_birth.dtstart", "subject.date_of_birth.geo.latitude");
+                            var expected = List.of("subject", "subject.name",
+                                    "subject.place_of_birth", "subject.place_of_birth.latitude.minimum");
                             assertProposalsSimple(expected, completionList);
                         });
                     });
                 }
+
+                @Test
+                void testCompletion_PolicyBody_missingChildAttribute() {
+                    testCompletion((TestCompletionConfiguration it) -> {
+                        String policy = """
+                                policy "test" deny where var foo = 1 schema {
+                                  "properties": {
+                                    "name": {                                     
+                                      }
+                                    }
+                                  }
+                                };
+                                foo""";
+
+                        String cursor = "foo";
+                        it.setModel(policy);
+                        it.setLine(7);
+                        it.setColumn(cursor.length());
+
+                        it.setAssertCompletionList(completionList -> {
+                            var expected = List.of("foo", "foo.name");
+                            assertProposalsSimple(expected, completionList);
+                        });
+                    });
+                }
+
 
             }
 

@@ -123,7 +123,11 @@ public class ValueDefinitionProposalExtractionHelper {
     private static Collection<String> constructProposals(String elementName, Iterable<String> templates) {
         Collection<String> proposals = new HashSet<>();
         for(var template: templates){
-            var proposal = elementName.concat(".").concat(template);
+            String proposal;
+            if(!template.startsWith("."))
+                proposal = elementName.concat(".").concat(template);
+            else
+                proposal = elementName.concat(template);
             proposals.add(proposal);
         }
         return proposals;

@@ -10,6 +10,5 @@
     },
     "geo": {
       "$ref": "geographical_location_schema.json"
-    }
-  }
+    }}
 }

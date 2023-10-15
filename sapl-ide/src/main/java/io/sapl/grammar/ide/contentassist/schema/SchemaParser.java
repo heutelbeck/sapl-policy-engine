@@ -50,8 +50,12 @@ public class SchemaParser {
             if (propertyIsArray(jsonNode)){
                 var items = jsonNode.get("items");
                 if (items != null){
-                    paths.addAll(constructPathFromNonArrayProperty(items, parentPath, originalSchema, depth));
-                }
+                    if(items.isArray())
+                        paths.addAll(constructPathsFromArray(items, parentPath, originalSchema, depth));
+                    else
+                        paths.addAll(constructPathFromNonArrayProperty(items, parentPath, originalSchema, depth));
+                } else
+                    paths.add(parentPath);
             } else {
                 paths.addAll(constructPathFromNonArrayProperty(jsonNode, parentPath, originalSchema, depth));
 
@@ -71,7 +75,7 @@ public class SchemaParser {
         try {
             typeNode = jsonNode.get("type");
         } catch (Exception e){
-            typeNode = null;
+            return false;
         }
 
         if (typeNode != null){
@@ -87,15 +91,15 @@ public class SchemaParser {
         String internalRef = null;
         if (ref.contains("#/")){
             var refSplit = ref.split("#/", 2);
-            schemaName = refSplit[0].replaceAll("\\.json$", "");
-            internalRef = refSplit[1];
+            schemaName = refSplit[0].replaceAll("\\.json$", "").replace("/","");
+            internalRef = "#/".concat(refSplit[1]);
         } else {
             schemaName = ref.replaceAll("\\.json$", "");
         }
         if (variables != null){
             refNode = variables.get(schemaName);
             if (internalRef != null && refNode != null){
-                refNode = refNode.get(internalRef);
+                refNode = getReferencedNodeFromSameDocument(refNode, internalRef);
             }
         }
         return refNode;
@@ -140,7 +144,10 @@ public class SchemaParser {
         JsonNode childNode;
         String currentPath;
         List<String> enumPaths = new LinkedList<>();
+
         Iterator<String> fieldNames = jsonNode.fieldNames();
+        if(!fieldNames.hasNext())
+            paths.add(parentPath);
         while (fieldNames.hasNext()) {
             String fieldName = fieldNames.next();
             childNode = jsonNode.get(fieldName);
