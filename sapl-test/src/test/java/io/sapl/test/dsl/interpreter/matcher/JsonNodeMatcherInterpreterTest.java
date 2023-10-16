@@ -3,7 +3,7 @@ package io.sapl.test.dsl.interpreter.matcher;
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonBigDecimal;
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonText;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.spotify.hamcrest.jackson.JsonMatchers;
 import io.sapl.test.Helper;
+import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sAPLTest.*;
 import java.math.BigDecimal;
 import java.util.List;
@@ -54,18 +55,19 @@ class JsonNodeMatcherInterpreterTest {
     }
 
     @Test
-    void getHamcrestJsonNodeMatcher_handlesNullMatcher_returnsNull() {
-        final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(null);
+    void getHamcrestJsonNodeMatcher_handlesNullMatcher_throwsSaplTestException() {
+        final var exception = assertThrows(SaplTestException.class, () -> jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(null));
 
-        assertNull(result);
+        assertEquals("Unknown type of JsonNodeMatcher", exception.getMessage());
     }
 
     @Test
-    void getHamcrestJsonNodeMatcher_handlesUnknownMatcher_returnsNull() {
+    void getHamcrestJsonNodeMatcher_handlesUnknownMatcher_throwsSaplTestException() {
         final var matcherMock = mock(JsonNodeMatcher.class);
-        final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(matcherMock);
 
-        assertNull(result);
+        final var exception = assertThrows(SaplTestException.class, () -> jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(matcherMock));
+
+        assertEquals("Unknown type of JsonNodeMatcher", exception.getMessage());
     }
 
     @Test

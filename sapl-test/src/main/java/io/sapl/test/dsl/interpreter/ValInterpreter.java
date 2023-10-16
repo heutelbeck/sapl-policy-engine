@@ -3,6 +3,7 @@ package io.sapl.test.dsl.interpreter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.interpreter.Val;
+import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sAPLTest.Object;
 import io.sapl.test.grammar.sAPLTest.*;
 import java.util.Collections;
@@ -33,7 +34,7 @@ public class ValInterpreter {
         } else if (value instanceof Object object) {
             return interpretObject(object);
         }
-        return null;
+        throw new SaplTestException("Unknown type of Value");
     }
 
     private Val interpretArray(final Array array) {

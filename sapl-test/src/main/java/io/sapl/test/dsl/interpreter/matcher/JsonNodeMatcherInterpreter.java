@@ -10,6 +10,7 @@ import static com.spotify.hamcrest.jackson.JsonMatchers.jsonText;
 import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sAPLTest.*;
 import lombok.RequiredArgsConstructor;
 import org.hamcrest.Matcher;
@@ -46,7 +47,7 @@ public class JsonNodeMatcherInterpreter {
         } else if (jsonNodeMatcher instanceof IsJsonObject isJsonObject) {
             return interpretJsonObject(isJsonObject);
         }
-        return null;
+        throw new SaplTestException("Unknown type of JsonNodeMatcher");
     }
 
     private Matcher<JsonNode> interpretJsonArray(IsJsonArray isJsonArray) {

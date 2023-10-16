@@ -14,7 +14,6 @@ import io.sapl.test.grammar.sAPLTest.Pip;
 import io.sapl.test.grammar.sAPLTest.TestSuite;
 import io.sapl.test.steps.GivenOrWhenStep;
 import java.util.List;
-import java.util.function.Predicate;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -30,15 +29,15 @@ public class TestFixtureBuilder {
             return (GivenOrWhenStep) saplTestFixture.constructTestCase();
         }
 
-        final var fixtureRegistrations = givenSteps.stream().filter(isFixtureRegistration()).toList();
+        final var fixtureRegistrations = givenSteps.stream().filter(this::isFixtureRegistration).toList();
 
         givenSteps.removeAll(fixtureRegistrations);
         handleFixtureRegistrations(saplTestFixture, fixtureRegistrations);
         return (GivenOrWhenStep) saplTestFixture.constructTestCaseWithMocks();
     }
 
-    private static Predicate<GivenStep> isFixtureRegistration() {
-        return givenStep -> givenStep instanceof Pip || givenStep instanceof Library;
+    private boolean isFixtureRegistration(final GivenStep givenStep) {
+        return givenStep instanceof Pip || givenStep instanceof Library;
     }
 
     private void handleFixtureRegistrations(final SaplTestFixture fixture, final List<GivenStep> fixtureRegistrations) throws InitializationException {

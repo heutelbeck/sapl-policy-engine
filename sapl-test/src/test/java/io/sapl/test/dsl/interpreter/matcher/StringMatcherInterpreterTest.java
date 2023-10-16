@@ -1,12 +1,13 @@
 package io.sapl.test.dsl.interpreter.matcher;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import io.sapl.test.Helper;
+import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sAPLTest.*;
 import java.math.BigDecimal;
 import java.util.List;
@@ -40,18 +41,19 @@ class StringMatcherInterpreterTest {
     }
 
     @Test
-    void getHamcrestStringMatcher_handlesNullStringMatcher_returnsNull() {
-        final var result = stringMatcherInterpreter.getHamcrestStringMatcher(null);
+    void getHamcrestStringMatcher_handlesNullStringMatcher_throwsSaplTestException() {
+        final var exception = assertThrows(SaplTestException.class, () -> stringMatcherInterpreter.getHamcrestStringMatcher(null));
 
-        assertNull(result);
+        assertEquals("Unknown type of StringMatcher", exception.getMessage());
     }
 
     @Test
-    void getHamcrestStringMatcher_handlesUnknownStringMatcher_returnsNull() {
+    void getHamcrestStringMatcher_handlesUnknownStringMatcher_throwsSaplTestException() {
         final var stringMatcherMock = mock(StringMatcher.class);
-        final var result = stringMatcherInterpreter.getHamcrestStringMatcher(stringMatcherMock);
 
-        assertNull(result);
+        final var exception = assertThrows(SaplTestException.class, () -> stringMatcherInterpreter.getHamcrestStringMatcher(stringMatcherMock));
+
+        assertEquals("Unknown type of StringMatcher", exception.getMessage());
     }
 
     @Test

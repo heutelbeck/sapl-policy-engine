@@ -57,19 +57,19 @@ class TestSuiteInterpreterTest {
     }
 
     @Test
-    void getFixtureFromTestSuite_handlesNullTestSuite_throwsRuntimeException() {
+    void getFixtureFromTestSuite_handlesNullTestSuite_throwsSaplTestException() {
         final var exception = assertThrows(SaplTestException.class, () -> testSuiteInterpreter.getFixtureFromTestSuite(null, null));
 
-        assertEquals("Unsupported type of TestSuite", exception.getMessage());
+        assertEquals("Unknown type of TestSuite", exception.getMessage());
     }
 
 
     @Test
-    void getFixtureFromTestSuite_handlesUnknownTypeOfTestSuite_throwsRuntimeException() {
+    void getFixtureFromTestSuite_handlesUnknownTypeOfTestSuite_throwsSaplTestException() {
         final var testSuiteMock = mock(TestSuite.class);
         final var exception = assertThrows(SaplTestException.class, () -> testSuiteInterpreter.getFixtureFromTestSuite(testSuiteMock, null));
 
-        assertEquals("Unsupported type of TestSuite", exception.getMessage());
+        assertEquals("Unknown type of TestSuite", exception.getMessage());
     }
 
     @Nested

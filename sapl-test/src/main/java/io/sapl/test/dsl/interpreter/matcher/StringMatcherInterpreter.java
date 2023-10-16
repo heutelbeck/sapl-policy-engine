@@ -3,6 +3,7 @@ package io.sapl.test.dsl.interpreter.matcher;
 
 import static org.hamcrest.Matchers.*;
 
+import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sAPLTest.*;
 import org.hamcrest.Matcher;
 
@@ -38,6 +39,6 @@ public class StringMatcherInterpreter {
         } else if (stringMatcher instanceof StringWithLength other) {
             return hasLength(other.getLength().intValue());
         }
-        return null;
+        throw new SaplTestException("Unknown type of StringMatcher");
     }
 }

@@ -6,6 +6,7 @@ import static io.sapl.hamcrest.Matchers.valError;
 import static org.hamcrest.CoreMatchers.is;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interpreter.ValInterpreter;
 import io.sapl.test.grammar.sAPLTest.AnyVal;
 import io.sapl.test.grammar.sAPLTest.PlainString;
@@ -40,6 +41,6 @@ public class ValMatcherInterpreter {
             }
             return valError();
         }
-        return null;
+        throw new SaplTestException("Unknown type of ValMatcher");
     }
 }

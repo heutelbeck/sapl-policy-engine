@@ -1,11 +1,12 @@
 package io.sapl.test.dsl.interpreter.matcher;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
+import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interpreter.ValInterpreter;
 import io.sapl.test.grammar.sAPLTest.AnyVal;
 import io.sapl.test.grammar.sAPLTest.JsonNodeMatcher;
@@ -57,17 +58,19 @@ class ValMatcherInterpreterTest {
     }
 
     @Test
-    void getHamcrestValMatcher_forNullParameterMatcher_returnsNull() {
-        final var result = matcherInterpreter.getHamcrestValMatcher(null);
-        assertNull(result);
+    void getHamcrestValMatcher_forNullParameterMatcher_throwsSaplTestException() {
+        final var exception = assertThrows(SaplTestException.class, () -> matcherInterpreter.getHamcrestValMatcher(null));
+
+        assertEquals("Unknown type of ValMatcher", exception.getMessage());
     }
 
     @Test
-    void getHamcrestValMatcher_forUnknownParameterMatcher_returnsNull() {
-        final var unknownParameterMatcherMock = mock(ValMatcher.class);
+    void getHamcrestValMatcher_forUnknownParameterMatcher_throwsSaplTestException() {
+        final var unknownValMatcherMock = mock(ValMatcher.class);
 
-        final var result = matcherInterpreter.getHamcrestValMatcher(unknownParameterMatcherMock);
-        assertNull(result);
+        final var exception = assertThrows(SaplTestException.class, () -> matcherInterpreter.getHamcrestValMatcher(unknownValMatcherMock));
+
+        assertEquals("Unknown type of ValMatcher", exception.getMessage());
     }
 
     @Test

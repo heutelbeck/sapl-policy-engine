@@ -1,7 +1,7 @@
 package io.sapl.test.dsl.interpreter.matcher;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
@@ -12,6 +12,7 @@ import io.sapl.hamcrest.HasAdvice;
 import io.sapl.hamcrest.HasAdviceContainingKeyValue;
 import io.sapl.hamcrest.HasObligation;
 import io.sapl.hamcrest.HasObligationContainingKeyValue;
+import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interpreter.ValInterpreter;
 import io.sapl.test.grammar.sAPLTest.*;
 import org.hamcrest.CoreMatchers;
@@ -50,18 +51,19 @@ class AuthorizationDecisionMatcherInterpreterTest {
     }
 
     @Test
-    void getHamcrestAuthorizationDecisionMatcher_handlesNullAuthorizationDecisionMatcher_returnsNull() {
-        final var result = authorizationDecisionMatcherInterpreter.getHamcrestAuthorizationDecisionMatcher(null);
+    void getHamcrestAuthorizationDecisionMatcher_handlesNullAuthorizationDecisionMatcher_throwsSaplTestException() {
+        final var exception = assertThrows(SaplTestException.class, () -> authorizationDecisionMatcherInterpreter.getHamcrestAuthorizationDecisionMatcher(null));
 
-        assertNull(result);
+        assertEquals("Unknown type of AuthorizationDecisionMatcher", exception.getMessage());
     }
 
     @Test
-    void getHamcrestAuthorizationDecisionMatcher_handlesUnknownAuthorizationDecisionMatcher_returnsNull() {
+    void getHamcrestAuthorizationDecisionMatcher_handlesUnknownAuthorizationDecisionMatcher_throwsSaplTestException() {
         final var authorizationDecisionMatcherMock = mock(AuthorizationDecisionMatcher.class);
-        final var result = authorizationDecisionMatcherInterpreter.getHamcrestAuthorizationDecisionMatcher(authorizationDecisionMatcherMock);
 
-        assertNull(result);
+        final var exception = assertThrows(SaplTestException.class, () -> authorizationDecisionMatcherInterpreter.getHamcrestAuthorizationDecisionMatcher(authorizationDecisionMatcherMock));
+
+        assertEquals("Unknown type of AuthorizationDecisionMatcher", exception.getMessage());
     }
 
     @Test
@@ -450,53 +452,53 @@ class AuthorizationDecisionMatcherInterpreterTest {
         }
 
         @Test
-        void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithNullObjectMatcherForObligation_returnsNull() {
+        void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithNullObjectMatcherForObligation_throwsSaplTestException() {
             final var hasObligationOrAdviceMock = mock(io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice.class);
 
             when(hasObligationOrAdviceMock.getMatcher()).thenReturn(null);
             when(hasObligationOrAdviceMock.getType()).thenReturn(AuthorizationDecisionMatcherType.OBLIGATION);
 
-            final var result = authorizationDecisionMatcherInterpreter.getHamcrestAuthorizationDecisionMatcher(hasObligationOrAdviceMock);
+            final var exception = assertThrows(SaplTestException.class, () -> authorizationDecisionMatcherInterpreter.getHamcrestAuthorizationDecisionMatcher(hasObligationOrAdviceMock));
 
-            assertNull(result);
+            assertEquals("Unknown type of ExtendedObjectMatcher", exception.getMessage());
         }
 
         @Test
-        void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithNullObjectMatcherForAdvice_returnsNull() {
+        void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithNullObjectMatcherForAdvice_throwsSaplTestException() {
             final var hasObligationOrAdviceMock = mock(io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice.class);
 
             when(hasObligationOrAdviceMock.getMatcher()).thenReturn(null);
             when(hasObligationOrAdviceMock.getType()).thenReturn(AuthorizationDecisionMatcherType.ADVICE);
 
-            final var result = authorizationDecisionMatcherInterpreter.getHamcrestAuthorizationDecisionMatcher(hasObligationOrAdviceMock);
+            final var exception = assertThrows(SaplTestException.class, () -> authorizationDecisionMatcherInterpreter.getHamcrestAuthorizationDecisionMatcher(hasObligationOrAdviceMock));
 
-            assertNull(result);
+            assertEquals("Unknown type of ExtendedObjectMatcher", exception.getMessage());
         }
 
         @Test
-        void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithUnknownObjectMatcherForObligation_returnsNull() {
+        void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithUnknownObjectMatcherForObligation_throwsSaplTestException() {
             final var hasObligationOrAdviceMock = mock(io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice.class);
 
             final var unknownObjectMatcher = mock(ExtendedObjectMatcher.class);
             when(hasObligationOrAdviceMock.getMatcher()).thenReturn(unknownObjectMatcher);
             when(hasObligationOrAdviceMock.getType()).thenReturn(AuthorizationDecisionMatcherType.OBLIGATION);
 
-            final var result = authorizationDecisionMatcherInterpreter.getHamcrestAuthorizationDecisionMatcher(hasObligationOrAdviceMock);
+            final var exception = assertThrows(SaplTestException.class, () -> authorizationDecisionMatcherInterpreter.getHamcrestAuthorizationDecisionMatcher(hasObligationOrAdviceMock));
 
-            assertNull(result);
+            assertEquals("Unknown type of ExtendedObjectMatcher", exception.getMessage());
         }
 
         @Test
-        void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithUnknownObjectMatcherForAdvice_returnsNull() {
+        void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithUnknownObjectMatcherForAdvice_throwsSaplTestException() {
             final var hasObligationOrAdviceMock = mock(io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice.class);
 
             final var unknownObjectMatcher = mock(ExtendedObjectMatcher.class);
             when(hasObligationOrAdviceMock.getMatcher()).thenReturn(unknownObjectMatcher);
             when(hasObligationOrAdviceMock.getType()).thenReturn(AuthorizationDecisionMatcherType.ADVICE);
 
-            final var result = authorizationDecisionMatcherInterpreter.getHamcrestAuthorizationDecisionMatcher(hasObligationOrAdviceMock);
+            final var exception = assertThrows(SaplTestException.class, () -> authorizationDecisionMatcherInterpreter.getHamcrestAuthorizationDecisionMatcher(hasObligationOrAdviceMock));
 
-            assertNull(result);
+            assertEquals("Unknown type of ExtendedObjectMatcher", exception.getMessage());
         }
     }
 

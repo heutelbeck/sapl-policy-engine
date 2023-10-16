@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interpreter.ValInterpreter;
 import io.sapl.test.grammar.sAPLTest.*;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +31,7 @@ public class AuthorizationDecisionMatcherInterpreter {
 
             return getAuthorizationDecisionMatcherFromObjectMatcher(defaultObjectMatcher, null);
         }
-        return null;
+        throw new SaplTestException("Unknown type of AuthorizationDecisionMatcher");
     }
 
     private Matcher<AuthorizationDecision> getIsDecisionMatcher(final IsDecision isDecisionMatcher) {
@@ -86,6 +87,6 @@ public class AuthorizationDecisionMatcherInterpreter {
                 case ADVICE -> hasAdviceContainingKeyValue(key, valueMatcher);
             };
         }
-        return null;
+        throw new SaplTestException("Unknown type of ExtendedObjectMatcher");
     }
 }

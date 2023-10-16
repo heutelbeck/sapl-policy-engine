@@ -1,5 +1,6 @@
 package io.sapl.test.dsl.interpreter;
 
+import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.VerifyStepBuilder;
 import io.sapl.test.grammar.sAPLTest.RepeatedExpect;
 import io.sapl.test.grammar.sAPLTest.SingleExpect;
@@ -22,7 +23,7 @@ public final class DefaultVerifyStepBuilder implements VerifyStepBuilder {
         } else if (expect instanceof RepeatedExpect repeatedExpect) {
             return expectInterpreter.interpretRepeatedExpect(expectStep, repeatedExpect);
         } else {
-            throw new RuntimeException("TestCase does not contain known expect");
+            throw new SaplTestException("Unknown type of ExpectChain");
         }
     }
 }

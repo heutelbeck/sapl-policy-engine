@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sAPLTest.ExpectChain;
 import io.sapl.test.grammar.sAPLTest.RepeatedExpect;
 import io.sapl.test.grammar.sAPLTest.SingleExpect;
@@ -29,29 +30,29 @@ class DefaultVerifyStepBuilderTest {
     }
 
     @Test
-    void constructVerifyStep_doesNothingForUnknownExpect_throwsRuntimeException() {
+    void constructVerifyStep_doesNothingForUnknownExpect_throwsSaplTestException() {
         final var testCaseMock = mock(TestCase.class);
         final var expectChainMock = mock(ExpectChain.class);
 
         when(testCaseMock.getExpect()).thenReturn(expectChainMock);
         final var expectOrVerifyStepMock = mock(ExpectOrVerifyStep.class);
 
-        final var exception = assertThrows(RuntimeException.class, () -> verifyStepBuilderServiceDefault.constructVerifyStep(testCaseMock, expectOrVerifyStepMock));
+        final var exception = assertThrows(SaplTestException.class, () -> verifyStepBuilderServiceDefault.constructVerifyStep(testCaseMock, expectOrVerifyStepMock));
 
-        assertEquals("TestCase does not contain known expect", exception.getMessage());
+        assertEquals("Unknown type of ExpectChain", exception.getMessage());
         verifyNoInteractions(expectInterpreterMock);
     }
 
     @Test
-    void constructVerifyStep_doesNothingForNullExpect_throwsRuntimeException() {
+    void constructVerifyStep_doesNothingForNullExpect_throwsSaplTestException() {
         final var testCaseMock = mock(TestCase.class);
 
         when(testCaseMock.getExpect()).thenReturn(null);
         final var expectOrVerifyStepMock = mock(ExpectOrVerifyStep.class);
 
-        final var exception = assertThrows(RuntimeException.class, () -> verifyStepBuilderServiceDefault.constructVerifyStep(testCaseMock, expectOrVerifyStepMock));
+        final var exception = assertThrows(SaplTestException.class, () -> verifyStepBuilderServiceDefault.constructVerifyStep(testCaseMock, expectOrVerifyStepMock));
 
-        assertEquals("TestCase does not contain known expect", exception.getMessage());
+        assertEquals("Unknown type of ExpectChain", exception.getMessage());
         verifyNoInteractions(expectInterpreterMock);
     }
 

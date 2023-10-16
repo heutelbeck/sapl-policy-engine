@@ -1,7 +1,7 @@
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.Helper;
+import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sAPLTest.Object;
 import io.sapl.test.grammar.sAPLTest.*;
 import java.math.BigDecimal;
@@ -58,12 +59,19 @@ class ValInterpreterTest {
     class getValFromValueTest {
 
         @Test
-        void getValFromValue_handlesUnknownValue_returnsNull() {
+        void getValFromValue_handlesNull_throwsSaplTestException() {
+            final var exception = assertThrows(SaplTestException.class, () -> valInterpreter.getValFromValue(null));
+
+            assertEquals("Unknown type of Value", exception.getMessage());
+        }
+
+        @Test
+        void getValFromValue_handlesUnknownValue_throwsSaplTestException() {
             final var valueMock = mock(Value.class);
 
-            final var result = valInterpreter.getValFromValue(valueMock);
+            final var exception = assertThrows(SaplTestException.class, () -> valInterpreter.getValFromValue(valueMock));
 
-            assertNull(result);
+            assertEquals("Unknown type of Value", exception.getMessage());
         }
 
         @Test

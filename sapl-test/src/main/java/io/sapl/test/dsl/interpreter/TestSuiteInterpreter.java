@@ -52,7 +52,7 @@ public class TestSuiteInterpreter {
             saplTestFixture = integrationTestFixture;
 
         } else {
-            throw new SaplTestException("Unsupported type of TestSuite");
+            throw new SaplTestException("Unknown type of TestSuite");
         }
 
         final var environmentVariables = valInterpreter.destructureObject(environment);
