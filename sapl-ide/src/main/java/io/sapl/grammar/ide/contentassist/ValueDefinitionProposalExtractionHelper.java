@@ -1,5 +1,6 @@
 package io.sapl.grammar.ide.contentassist;
 
+import com.google.common.collect.Iterables;
 import io.sapl.grammar.ide.contentassist.schema.SchemaProposals;
 import io.sapl.grammar.sapl.*;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
@@ -122,6 +123,8 @@ public class ValueDefinitionProposalExtractionHelper {
 
     private static Collection<String> constructProposals(String elementName, Iterable<String> templates) {
         Collection<String> proposals = new HashSet<>();
+        if (Iterables.isEmpty(templates))
+            proposals.add(elementName);
         for(var template: templates){
             String proposal;
             if(!template.startsWith("."))

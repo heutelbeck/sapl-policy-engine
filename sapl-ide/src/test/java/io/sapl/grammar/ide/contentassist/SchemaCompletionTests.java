@@ -122,6 +122,19 @@
                 }
 
                 @Test
+                void testCompletion_PolicyBody_InvalidSchema() {
+                    testCompletion((TestCompletionConfiguration it) -> {
+                        String policy = "policy \"test\" permit where var foo = \"test\" schema {;!}; foo";
+                        it.setModel(policy);
+                        it.setColumn(policy.length());
+                        it.setAssertCompletionList(completionList -> {
+                            var expected = List.of("foo");
+                            assertProposalsSimple(expected, completionList);
+                        });
+                    });
+                }
+
+                @Test
                 void testCompletion_PolicyBody_getSchemaFromJSONinText() {
                     testCompletion((TestCompletionConfiguration it) -> {
                         String policy = """
@@ -464,6 +477,52 @@
                 }
 
                 @Test
+                void testCompletion_PolicyBody_resolveExternalReferenceToNonExistingSchema() {
+                    testCompletion((TestCompletionConfiguration it) -> {
+                        String policy = """
+                                subject schema
+                                 {
+                                    "type": "object",
+                                    "properties": {
+                                      "place_of_birth": { "$ref": "notexisting_schema" }
+                                     }
+                                  }
+                                 policy "test" deny where subject""";
+                        String cursor = "policy \"test\" deny where subject";
+                        it.setModel(policy);
+                        it.setLine(7);
+                        it.setColumn(cursor.length());
+                        it.setAssertCompletionList(completionList -> {
+                            var expected = List.of("subject", "subject.place_of_birth");
+                            assertProposalsSimple(expected, completionList);
+                        });
+                    });
+                }
+
+                @Test
+                void testCompletion_PolicyBody_resolveExternalReferenceToNonExistingSchemaWithInternalReference() {
+                    testCompletion((TestCompletionConfiguration it) -> {
+                        String policy = """
+                                subject schema
+                                 {
+                                    "type": "object",
+                                    "properties": {
+                                      "place_of_birth": { "$ref": "notexisting_schema/#/geo" }
+                                     }
+                                  }
+                                 policy "test" deny where subject""";
+                        String cursor = "policy \"test\" deny where subject";
+                        it.setModel(policy);
+                        it.setLine(7);
+                        it.setColumn(cursor.length());
+                        it.setAssertCompletionList(completionList -> {
+                            var expected = List.of("subject", "subject.place_of_birth");
+                            assertProposalsSimple(expected, completionList);
+                        });
+                    });
+                }
+
+                @Test
                 void testCompletion_PolicyBody_missingChildAttribute() {
                     testCompletion((TestCompletionConfiguration it) -> {
                         String policy = """
@@ -487,6 +546,36 @@
                         });
                     });
                 }
+
+                @Test
+                void testCompletion_PolicyBody_patternProperties() {
+                    testCompletion((TestCompletionConfiguration it) -> {
+                        String policy = """
+                                policy "test" deny where var foo = 1 schema
+                                {
+                                  "type": "object",
+                                  "patternProperties": {
+                                    "^S_": { "type": "string" },
+                                    "^I_": { "type": "integer" }
+                                  }
+                                };
+                                foo""";
+
+                        String cursor = "foo";
+                        it.setModel(policy);
+                        it.setLine(8);
+                        it.setColumn(cursor.length());
+
+                        it.setAssertCompletionList(completionList -> {
+                            var expected = List.of("foo");
+                            var unwanted = List.of("foo.patternProperties", "foo.patternProperties.^S_");
+                            assertProposalsSimple(expected, completionList);
+                            assertDoesNotContainProposals(unwanted, completionList);
+                        });
+                    });
+                }
+
+
 
             }
 

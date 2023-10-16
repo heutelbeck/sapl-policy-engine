@@ -71,12 +71,7 @@ public class SchemaParser {
 
     private static boolean propertyIsArray(JsonNode jsonNode){
         JsonNode typeNode;
-
-        try {
-            typeNode = jsonNode.get("type");
-        } catch (Exception e){
-            return false;
-        }
+        typeNode = jsonNode.get("type");
 
         if (typeNode != null){
             var type = typeNode.textValue();
@@ -96,11 +91,9 @@ public class SchemaParser {
         } else {
             schemaName = ref.replaceAll("\\.json$", "");
         }
-        if (variables != null){
-            refNode = variables.get(schemaName);
-            if (internalRef != null && refNode != null){
-                refNode = getReferencedNodeFromSameDocument(refNode, internalRef);
-            }
+        refNode = variables.get(schemaName);
+        if (internalRef != null && refNode != null){
+            refNode = getReferencedNodeFromSameDocument(refNode, internalRef);
         }
         return refNode;
     }
@@ -118,10 +111,6 @@ public class SchemaParser {
 
         for (String element : pathElements) {
             currentNode = currentNode.get(element);
-
-            if (currentNode == null) {
-                return null; // Path not found
-            }
         }
 
         return currentNode;

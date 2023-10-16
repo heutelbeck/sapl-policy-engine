@@ -22,11 +22,11 @@ public class SchemaProposals {
 
 
     public List<String> getVariableNamesAsTemplates(){
-        List<String> templates = new ArrayList<>();
         var variables = getAllVariablesAsMap();
-        if(variables != null)
-            templates = new ArrayList<>(variables.keySet());
-        return templates;
+        if (variables != null)
+            return new ArrayList<>(variables.keySet());
+        else
+            return new ArrayList<>();
     }
 
     public List<String> getCodeTemplates(Expression expression) {
@@ -64,8 +64,6 @@ public class SchemaProposals {
     }
 
     private List<String> flattenSchemaFromJson(String schema) {
-        if ("".equals(schema))
-            return new ArrayList<>();
         var paths = new SchemaParser(getAllVariablesAsMap()).generatePaths(schema);
         return paths.stream()
                 .map(this::removeUnwantedKeywordsFromPath)
