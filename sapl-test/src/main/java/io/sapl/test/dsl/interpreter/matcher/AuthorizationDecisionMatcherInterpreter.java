@@ -16,7 +16,7 @@ public class AuthorizationDecisionMatcherInterpreter {
     private final ValInterpreter valInterpreter;
     private final JsonNodeMatcherInterpreter jsonNodeMatcherInterpreter;
 
-    public Matcher<AuthorizationDecision> getMatcherFromExpectMatcher(final AuthorizationDecisionMatcher authorizationDecisionMatcher) {
+    public Matcher<AuthorizationDecision> getHamcrestAuthorizationDecisionMatcher(final AuthorizationDecisionMatcher authorizationDecisionMatcher) {
         if (authorizationDecisionMatcher instanceof AnyDecision) {
             return anyDecision();
         } else if (authorizationDecisionMatcher instanceof IsDecision isDecision) {

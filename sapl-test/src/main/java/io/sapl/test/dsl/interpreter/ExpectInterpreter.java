@@ -82,7 +82,7 @@ public class ExpectInterpreter {
             return expectOrVerifyStep;
         }
 
-        final Matcher<AuthorizationDecision>[] actualMatchers = matchers.stream().map(authorizationDecisionMatcherInterpreter::getMatcherFromExpectMatcher).filter(Objects::nonNull).toArray(Matcher[]::new);
+        final var actualMatchers = matchers.stream().map(authorizationDecisionMatcherInterpreter::getHamcrestAuthorizationDecisionMatcher).filter(Objects::nonNull).<Matcher<AuthorizationDecision>>toArray(Matcher[]::new);
 
         return switch (actualMatchers.length) {
             case 0 -> expectOrVerifyStep;

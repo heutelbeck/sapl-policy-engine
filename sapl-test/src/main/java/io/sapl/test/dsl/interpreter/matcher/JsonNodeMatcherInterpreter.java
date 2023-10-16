@@ -19,7 +19,7 @@ public class JsonNodeMatcherInterpreter {
 
     private final StringMatcherInterpreter stringMatcherInterpreter;
 
-    Matcher<? super JsonNode> getHamcrestJsonNodeMatcher(final JsonNodeMatcher jsonNodeMatcher) {
+    Matcher<JsonNode> getHamcrestJsonNodeMatcher(final JsonNodeMatcher jsonNodeMatcher) {
         if (jsonNodeMatcher instanceof IsJsonNull) {
             return jsonNull();
         } else if (jsonNodeMatcher instanceof IsJsonText text) {

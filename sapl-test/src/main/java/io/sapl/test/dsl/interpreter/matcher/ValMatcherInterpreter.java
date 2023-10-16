@@ -24,7 +24,7 @@ public class ValMatcherInterpreter {
     private final JsonNodeMatcherInterpreter jsonNodeMatcherInterpreter;
     private final StringMatcherInterpreter stringMatcherInterpreter;
 
-    public Matcher<Val> getValMatcherFromValMatcher(final ValMatcher valMatcher) {
+    public Matcher<Val> getHamcrestValMatcher(final ValMatcher valMatcher) {
         if (valMatcher instanceof ValWithValue valWithValueMatcher) {
             return is(valInterpreter.getValFromValue(valWithValueMatcher.getValue()));
         } else if (valMatcher instanceof AnyVal) {

@@ -15,7 +15,7 @@ public final class DefaultSaplTestInterpreter implements SaplTestInterpreter {
     private static final Injector INJECTOR = new SAPLTestStandaloneSetup().createInjectorAndDoEMFRegistration();
     private static final String DUMMY_RESOURCE_URI = "policy:/test1.sapltest";
 
-    public SAPLTest loadAsResource(InputStream policyInputStream) {
+    public SAPLTest loadAsResource(final InputStream policyInputStream) {
         final XtextResourceSet resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
         final Resource resource = resourceSet.createResource(URI.createFileURI(DUMMY_RESOURCE_URI));
 

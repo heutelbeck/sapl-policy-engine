@@ -17,6 +17,4 @@ public final class DefaultExpectStepBuilder implements ExpectStepBuilder {
         final var mappedAuthorizationSubscription = authorizationSubscriptionInterpreter.getAuthorizationSubscriptionFromDSL(authorizationSubscription);
         return whenStep.when(mappedAuthorizationSubscription);
     }
-
-
 }

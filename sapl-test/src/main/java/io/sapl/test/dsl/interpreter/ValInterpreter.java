@@ -3,15 +3,8 @@ package io.sapl.test.dsl.interpreter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.interpreter.Val;
-import io.sapl.test.grammar.sAPLTest.Array;
-import io.sapl.test.grammar.sAPLTest.FalseLiteral;
-import io.sapl.test.grammar.sAPLTest.NullLiteral;
-import io.sapl.test.grammar.sAPLTest.NumberLiteral;
 import io.sapl.test.grammar.sAPLTest.Object;
-import io.sapl.test.grammar.sAPLTest.Pair;
-import io.sapl.test.grammar.sAPLTest.StringLiteral;
-import io.sapl.test.grammar.sAPLTest.TrueLiteral;
-import io.sapl.test.grammar.sAPLTest.UndefinedLiteral;
+import io.sapl.test.grammar.sAPLTest.*;
 import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -22,7 +15,7 @@ public class ValInterpreter {
 
     private final ObjectMapper objectMapper;
 
-    public Val getValFromValue(io.sapl.test.grammar.sAPLTest.Value value) {
+    public Val getValFromValue(final Value value) {
         if (value instanceof NumberLiteral intVal) {
             return Val.of(intVal.getNumber());
         } else if (value instanceof StringLiteral stringVal) {

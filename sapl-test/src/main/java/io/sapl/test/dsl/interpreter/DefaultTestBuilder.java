@@ -64,7 +64,7 @@ public final class DefaultTestBuilder implements JUnitDynamicTestBuilder {
         return dynamicTestList;
     }
 
-    private DynamicTest addDynamicTestCase(TestSuite testSuite, TestCase testCase) {
+    private DynamicTest addDynamicTestCase(final TestSuite testSuite, final TestCase testCase) {
         return DynamicTest.dynamicTest(testCase.getName(), () -> {
             final var environment = testCase.getEnvironment();
             final var givenSteps = testCase.getGivenSteps();

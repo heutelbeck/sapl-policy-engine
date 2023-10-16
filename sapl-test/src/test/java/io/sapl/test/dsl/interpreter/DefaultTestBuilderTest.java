@@ -92,6 +92,15 @@ class DefaultTestBuilderTest {
         }
 
         @Test
+        void buildTest_doesNothingForNullInput() {
+            documentHelperMockedStatic.when(() -> DocumentHelper.findFileOnClasspath("filename")).thenReturn(null);
+
+            final var result = defaultTestBuilder.buildTests("filename");
+
+            assertTrue(result.isEmpty());
+        }
+
+        @Test
         void buildTest_doesNothingWhenInterpreterReturnsNullForInput() {
             documentHelperMockedStatic.when(() -> DocumentHelper.findFileOnClasspath("filename")).thenReturn("testCase");
 

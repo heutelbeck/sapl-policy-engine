@@ -23,7 +23,7 @@ public class AttributeInterpreter {
     private final ValInterpreter valInterpreter;
     private final ValMatcherInterpreter matcherInterpreter;
 
-    GivenOrWhenStep interpretAttribute(GivenOrWhenStep initial, Attribute attribute) {
+    GivenOrWhenStep interpretAttribute(final GivenOrWhenStep initial, final Attribute attribute) {
         final var importName = attribute.getImportName();
 
         if (attribute.getReturn() == null || attribute.getReturn().isEmpty()) {
@@ -39,10 +39,10 @@ public class AttributeInterpreter {
         }
     }
 
-    GivenOrWhenStep interpretAttributeWithParameters(GivenOrWhenStep initial, AttributeWithParameters attributeWithParameters) {
+    GivenOrWhenStep interpretAttributeWithParameters(final GivenOrWhenStep initial, final AttributeWithParameters attributeWithParameters) {
         final var importName = attributeWithParameters.getImportName();
 
-        final var parentValueMatcher = matcherInterpreter.getValMatcherFromValMatcher(attributeWithParameters.getParentMatcher());
+        final var parentValueMatcher = matcherInterpreter.getHamcrestValMatcher(attributeWithParameters.getParentMatcher());
         final var returnValue = valInterpreter.getValFromValue(attributeWithParameters.getReturn());
 
         final var arguments = attributeWithParameters.getParameters();
@@ -50,7 +50,7 @@ public class AttributeInterpreter {
         if (arguments == null || arguments.isEmpty()) {
             return initial.givenAttribute(importName, whenParentValue(parentValueMatcher), returnValue);
         }
-        final var args = arguments.stream().map(matcherInterpreter::getValMatcherFromValMatcher).toArray(Matcher[]::new);
+        final var args = arguments.stream().map(matcherInterpreter::getHamcrestValMatcher).<Matcher<Val>>toArray(Matcher[]::new);
         return initial.givenAttribute(importName, whenAttributeParams(parentValue(parentValueMatcher), arguments(args)), returnValue);
     }
 }

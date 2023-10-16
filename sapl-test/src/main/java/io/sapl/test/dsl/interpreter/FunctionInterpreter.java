@@ -5,9 +5,9 @@ import io.sapl.test.Imports;
 import io.sapl.test.dsl.interpreter.matcher.ValMatcherInterpreter;
 import io.sapl.test.grammar.sAPLTest.Function;
 import io.sapl.test.grammar.sAPLTest.FunctionInvokedOnce;
+import io.sapl.test.grammar.sAPLTest.FunctionParameters;
 import io.sapl.test.grammar.sAPLTest.Multiple;
 import io.sapl.test.grammar.sAPLTest.Once;
-import io.sapl.test.mocking.function.models.FunctionParameters;
 import io.sapl.test.steps.GivenOrWhenStep;
 import lombok.RequiredArgsConstructor;
 import org.hamcrest.Matcher;
@@ -18,7 +18,7 @@ public class FunctionInterpreter {
     private final ValInterpreter valInterpreter;
     private final ValMatcherInterpreter matcherInterpreter;
 
-    GivenOrWhenStep interpretFunction(GivenOrWhenStep initial, Function function) {
+    GivenOrWhenStep interpretFunction(final GivenOrWhenStep initial, final Function function) {
         final var importName = function.getImportName();
         final var returnValue = valInterpreter.getValFromValue(function.getReturn());
 
@@ -46,7 +46,7 @@ public class FunctionInterpreter {
         }
     }
 
-    GivenOrWhenStep interpretFunctionInvokedOnce(GivenOrWhenStep initial, FunctionInvokedOnce function) {
+    GivenOrWhenStep interpretFunctionInvokedOnce(final GivenOrWhenStep initial, final FunctionInvokedOnce function) {
         final var importName = function.getImportName();
         final var valuesToBeReturned = function.getReturn();
 
@@ -62,7 +62,7 @@ public class FunctionInterpreter {
         return initial.givenFunctionOnce(importName, returnValues);
     }
 
-    private FunctionParameters interpretFunctionParameters(io.sapl.test.grammar.sAPLTest.FunctionParameters functionParameters) {
+    private io.sapl.test.mocking.function.models.FunctionParameters interpretFunctionParameters(final FunctionParameters functionParameters) {
         if (functionParameters == null) {
             return null;
         }
@@ -73,8 +73,8 @@ public class FunctionInterpreter {
             return null;
         }
 
-        final var matchers = functionParameterMatchers.stream().map(matcherInterpreter::getValMatcherFromValMatcher).toArray(Matcher[]::new);
+        final var matchers = functionParameterMatchers.stream().map(matcherInterpreter::getHamcrestValMatcher).<Matcher<Val>>toArray(Matcher[]::new);
 
-        return new FunctionParameters(matchers);
+        return new io.sapl.test.mocking.function.models.FunctionParameters(matchers);
     }
 }

@@ -135,7 +135,7 @@ class AttributeInterpreterTest {
             when(attributeWithParametersMock.getParentMatcher()).thenReturn(parentMatcherMock);
 
             parentValueMatcherMock = mock(Matcher.class);
-            when(matcherInterpreterMock.getValMatcherFromValMatcher(parentMatcherMock)).thenReturn(parentValueMatcherMock);
+            when(matcherInterpreterMock.getHamcrestValMatcher(parentMatcherMock)).thenReturn(parentValueMatcherMock);
 
             returnValMock = mock(Value.class);
             when(attributeWithParametersMock.getReturn()).thenReturn(returnValMock);
@@ -179,8 +179,8 @@ class AttributeInterpreterTest {
             final var matcher1Mock = mock(Matcher.class);
             final var matcher2Mock = mock(Matcher.class);
 
-            when(matcherInterpreterMock.getValMatcherFromValMatcher(valMatcher1Mock)).thenReturn(matcher1Mock);
-            when(matcherInterpreterMock.getValMatcherFromValMatcher(valMatcher2Mock)).thenReturn(matcher2Mock);
+            when(matcherInterpreterMock.getHamcrestValMatcher(valMatcher1Mock)).thenReturn(matcher1Mock);
+            when(matcherInterpreterMock.getHamcrestValMatcher(valMatcher2Mock)).thenReturn(matcher2Mock);
 
             final var attributeParametersArgumentCaptor = ArgumentCaptor.forClass(AttributeParameters.class);
 

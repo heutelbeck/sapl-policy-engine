@@ -125,7 +125,7 @@ class FunctionInterpreterTest {
             when(functionParametersMock.getMatchers()).thenReturn(eListMock);
 
             final var matcherMock = mock(Matcher.class);
-            when(matcherInterpreterMock.getValMatcherFromValMatcher(parameterMatcher)).thenReturn(matcherMock);
+            when(matcherInterpreterMock.getHamcrestValMatcher(parameterMatcher)).thenReturn(matcherMock);
 
             final var functionParametersArgumentCaptor = ArgumentCaptor.forClass(io.sapl.test.mocking.function.models.FunctionParameters.class);
             when(givenOrWhenStepMock.givenFunction(eq("fooFunction"), functionParametersArgumentCaptor.capture(), eq(saplValMock))).thenReturn(givenOrWhenStepMock);
@@ -214,7 +214,7 @@ class FunctionInterpreterTest {
             when(functionParametersMock.getMatchers()).thenReturn(eListMock);
 
             final var matcherMock = mock(Matcher.class);
-            when(matcherInterpreterMock.getValMatcherFromValMatcher(parameterMatcher)).thenReturn(matcherMock);
+            when(matcherInterpreterMock.getHamcrestValMatcher(parameterMatcher)).thenReturn(matcherMock);
 
             final var timesCalledVerificationMock = mock(TimesCalledVerification.class);
             importsMockedStatic.when(() -> Imports.times(3)).thenReturn(timesCalledVerificationMock);

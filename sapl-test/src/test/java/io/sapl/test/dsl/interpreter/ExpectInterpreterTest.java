@@ -400,7 +400,7 @@ class ExpectInterpreterTest {
                 when(nextWithMatcherMock.getMatcher()).thenReturn(matchersMock);
 
                 final var mappedAuthorizationDecisionMatcherMock = mock(Matcher.class);
-                when(authorizationDecisionMatcherInterpreterMock.getMatcherFromExpectMatcher(authorizationDecisionMatcherMock)).thenReturn(mappedAuthorizationDecisionMatcherMock);
+                when(authorizationDecisionMatcherInterpreterMock.getHamcrestAuthorizationDecisionMatcher(authorizationDecisionMatcherMock)).thenReturn(mappedAuthorizationDecisionMatcherMock);
 
                 when(expectOrVerifyStepMock.expectNext(mappedAuthorizationDecisionMatcherMock)).thenReturn(expectOrVerifyStepMock);
 
@@ -426,9 +426,9 @@ class ExpectInterpreterTest {
 
                 final var hasObligationOrAdivceMappedMock = mock(Matcher.class);
                 final var isDecisionMappedMock = mock(Matcher.class);
-                when(authorizationDecisionMatcherInterpreterMock.getMatcherFromExpectMatcher(hasObligationOrAdviceMock)).thenReturn(hasObligationOrAdivceMappedMock);
-                when(authorizationDecisionMatcherInterpreterMock.getMatcherFromExpectMatcher(invalidMatcherMock)).thenReturn(null);
-                when(authorizationDecisionMatcherInterpreterMock.getMatcherFromExpectMatcher(isDecisionMock)).thenReturn(isDecisionMappedMock);
+                when(authorizationDecisionMatcherInterpreterMock.getHamcrestAuthorizationDecisionMatcher(hasObligationOrAdviceMock)).thenReturn(hasObligationOrAdivceMappedMock);
+                when(authorizationDecisionMatcherInterpreterMock.getHamcrestAuthorizationDecisionMatcher(invalidMatcherMock)).thenReturn(null);
+                when(authorizationDecisionMatcherInterpreterMock.getHamcrestAuthorizationDecisionMatcher(isDecisionMock)).thenReturn(isDecisionMappedMock);
 
                 final var allOfMock = mock(Matcher.class);
                 hamcrestMatchersMockedStatic.when(() -> org.hamcrest.Matchers.allOf(new Matcher[] {hasObligationOrAdivceMappedMock, isDecisionMappedMock})).thenReturn(allOfMock);
