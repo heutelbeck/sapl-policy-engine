@@ -28,7 +28,7 @@ public class DocumentHelper {
         }
     }
 
-    private static String findFileOnClasspath(final String filename) {
+    public static String findFileOnClasspath(final String filename) {
         final var path = ClasspathHelper.findPathOnClasspath(DocumentHelper.class.getClassLoader(), filename);
         try {
             return Files.readString(path);
