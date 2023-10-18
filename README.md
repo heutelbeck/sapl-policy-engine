@@ -18,11 +18,11 @@
   </repositories>
 ```
 
-### SAPL requires Java 11 or later
+### SAPL requires Java 17 or later
 
 ```xml
   <properties>
-    <java.version>11</java.version>
+    <java.version>17</java.version>
     <maven.compiler.source>${java.version}</maven.compiler.source>
     <maven.compiler.target>${java.version}</maven.compiler.target>
   </properties>
@@ -34,7 +34,7 @@
   <dependency>
     <groupId>io.sapl</groupId>
     <artifactId>sapl-pdp-embedded</artifactId>
-    <version>2.1.0-SNAPSHOT</version>
+    <version>3.0.0-SNAPSHOT</version>
   </dependency>
 ```
 
@@ -46,7 +46,7 @@
       <dependency>
         <groupId>io.sapl</groupId>
         <artifactId>sapl-bom</artifactId>
-        <version>2.1.0-SNAPSHOT</version>
+        <version>3.0.0-SNAPSHOT</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
