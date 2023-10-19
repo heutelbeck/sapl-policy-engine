@@ -1,16 +1,14 @@
 package io.sapl.test.dsl.interpreter;
 
-import io.sapl.functions.FilterFunctionLibrary;
-import io.sapl.functions.LoggingFunctionLibrary;
-import io.sapl.functions.StandardFunctionLibrary;
-import io.sapl.functions.TemporalFunctionLibrary;
 import io.sapl.interpreter.InitializationException;
+import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
-import io.sapl.test.grammar.sAPLTest.FunctionLibrary;
-import io.sapl.test.grammar.sAPLTest.GivenStep;
-import io.sapl.test.grammar.sAPLTest.Library;
+import io.sapl.test.dsl.ReflectionHelper;
+import io.sapl.test.grammar.sAPLTest.CustomFunctionLibrary;
+import io.sapl.test.grammar.sAPLTest.FixtureRegistration;
 import io.sapl.test.grammar.sAPLTest.Object;
 import io.sapl.test.grammar.sAPLTest.Pip;
+import io.sapl.test.grammar.sAPLTest.SaplFunctionLibrary;
 import io.sapl.test.grammar.sAPLTest.TestSuite;
 import io.sapl.test.steps.GivenOrWhenStep;
 import java.util.List;
@@ -19,44 +17,37 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TestFixtureBuilder {
 
-    private final java.lang.Object testPip;
     private final TestSuiteInterpreter testSuiteInterpreter;
+    private final FunctionLibraryInterpreter functionLibraryInterpreter;
+    private final ReflectionHelper reflectionHelper;
 
-    public GivenOrWhenStep buildTestFixture(final List<GivenStep> givenSteps, final TestSuite testSuite, final Object environment) throws InitializationException {
+    public GivenOrWhenStep buildTestFixture(final List<FixtureRegistration> fixtureRegistrations, final TestSuite testSuite, final Object environment, final boolean needsMocks) {
         var saplTestFixture = testSuiteInterpreter.getFixtureFromTestSuite(testSuite, environment);
 
-        if (givenSteps == null || givenSteps.isEmpty()) {
-            return (GivenOrWhenStep) saplTestFixture.constructTestCase();
+        if (fixtureRegistrations != null) {
+            handleFixtureRegistrations(saplTestFixture, fixtureRegistrations);
         }
 
-        final var fixtureRegistrations = givenSteps.stream().filter(this::isFixtureRegistration).toList();
-
-        givenSteps.removeAll(fixtureRegistrations);
-        handleFixtureRegistrations(saplTestFixture, fixtureRegistrations);
-        return (GivenOrWhenStep) saplTestFixture.constructTestCaseWithMocks();
+        final var givenOrWhenStep = needsMocks ? saplTestFixture.constructTestCaseWithMocks() : saplTestFixture.constructTestCase();
+        return (GivenOrWhenStep) givenOrWhenStep;
     }
 
-    private boolean isFixtureRegistration(final GivenStep givenStep) {
-        return givenStep instanceof Pip || givenStep instanceof Library;
-    }
-
-    private void handleFixtureRegistrations(final SaplTestFixture fixture, final List<GivenStep> fixtureRegistrations) throws InitializationException {
-        for (var fixtureRegistration : fixtureRegistrations) {
-            if (fixtureRegistration instanceof Library library) {
-                fixture.registerFunctionLibrary(getFunctionLibrary(library.getLibrary()));
-            } else if (fixtureRegistration instanceof Pip) {
-                fixture.registerPIP(testPip);
+    private void handleFixtureRegistrations(final SaplTestFixture fixture, final List<FixtureRegistration> fixtureRegistrations) {
+        try {
+            for (var fixtureRegistration : fixtureRegistrations) {
+                if (fixtureRegistration instanceof SaplFunctionLibrary saplFunctionLibrary) {
+                    final var library = functionLibraryInterpreter.getFunctionLibrary(saplFunctionLibrary.getLibrary());
+                    fixture.registerFunctionLibrary(library);
+                } else if (fixtureRegistration instanceof CustomFunctionLibrary customFunctionLibrary) {
+                    final var functionLibrary = reflectionHelper.constructInstanceOfClass(customFunctionLibrary.getLibrary());
+                    fixture.registerFunctionLibrary(functionLibrary);
+                } else if (fixtureRegistration instanceof Pip pip) {
+                    final var customPip = reflectionHelper.constructInstanceOfClass(pip.getPip());
+                    fixture.registerPIP(customPip);
+                }
             }
+        } catch (InitializationException e) {
+            throw new SaplTestException(e);
         }
-    }
-
-
-    private java.lang.Object getFunctionLibrary(final FunctionLibrary functionLibrary) {
-        return switch (functionLibrary) {
-            case FILTER -> new FilterFunctionLibrary();
-            case LOGGING -> new LoggingFunctionLibrary();
-            case STANDARD -> new StandardFunctionLibrary();
-            case TEMPORAL -> new TemporalFunctionLibrary();
-        };
     }
 }

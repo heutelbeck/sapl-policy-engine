@@ -104,9 +104,12 @@ GivenStep:
 	{Attribute} 'attribute' importName=IMPORT_NAME ('returns' return+=Value (',' return+=Value)* ('for' amount=TemporalAmount)?)? |
 	{AttributeWithParameters} 'attribute' importName=IMPORT_NAME 'with' 'parent' 'value' parentMatcher=ValMatcher ('and' 'parameters' parameters+=ValMatcher (',' parameters+=ValMatcher)+)? 'returns' return=Value |
 	{VirtualTime} 'virtualTime' |
-    {Pip} 'PIP' pip=ID |
-    {Library} 'functionLibrary' library=FunctionLibrary |
     {Variable} 'variable' 'key' key=ID 'value' value=ID;
+
+FixtureRegistration:
+    {Pip} 'PIP' pip=STRING |
+    {CustomFunctionLibrary} 'custom' 'library' library=STRING |
+    {SaplFunctionLibrary} 'library' library=FunctionLibrary;
 
 enum FunctionLibrary:
 	FILTER='FilterFunctionLibrary' | LOGGING='LoggingFunctionLibrary' | STANDARD='StandardFunctionLibrary' | TEMPORAL='TemporalFunctionLibrary';
@@ -141,7 +144,7 @@ ExpectChain:
 	{RepeatedExpect} expectSteps+=ExpectOrAdjustmentStep ('then' expectSteps+=ExpectOrAdjustmentStep)*;
 
 TestCase:
-	'scenario' name=STRING ('with' 'environment' environment=Object)? ('given' givenSteps+=GivenStep ('and' givenSteps+=GivenStep)*)? whenStep=WhenStep 'then' expect=ExpectChain';';
+	'scenario' name=STRING ('with' 'environment' environment=Object)? ('register' registrations+=FixtureRegistration (',' registrations+=FixtureRegistration)*)? ('given' givenSteps+=GivenStep ('and' givenSteps+=GivenStep)*)? whenStep=WhenStep 'then' expect=ExpectChain';';
 
 Value:
 	Object | Array | NumberLiteral | StringLiteral | BooleanLiteral | NullLiteral | UndefinedLiteral;
