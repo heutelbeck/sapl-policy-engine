@@ -166,7 +166,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 	private void handleSchemaProposals(String feature, ContentAssistContext context,
 									   IIdeContentProposalAcceptor acceptor) {
 
-		EObject model = context.getCurrentModel();
+		var model = context.getCurrentModel();
 
 		if ("subscriptionelement".equals(feature)) {
 			addSimpleProposals(authzSubProposals, context, acceptor);
@@ -174,7 +174,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		}
 
 		if ("schemaexpression".equals(feature)) {
-			Collection<String> validSchemas = getValidSchemas(context, model);
+			var validSchemas = getValidSchemas(context, model);
 			addSimpleProposals(validSchemas, context, acceptor);
 		}
 	}
@@ -182,7 +182,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 	private void handleBasicProposals(String feature, ContentAssistContext context,
 			IIdeContentProposalAcceptor acceptor) {
 
-		EObject model = context.getCurrentModel();
+		var model = context.getCurrentModel();
 
 		if ("idsteps".equals(feature)) {
 			addProposalsForBasicAttributesIfPresent(context, acceptor);
@@ -190,7 +190,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		}
 
 		if ("fsteps".equals(feature)) {
-			Collection<String> definedSchemas = getValidSchemas(context, model);
+			var definedSchemas = getValidSchemas(context, model);
 			addSimpleProposals(definedSchemas, context, acceptor);
 
 			var templates = functionContext.getCodeTemplates();

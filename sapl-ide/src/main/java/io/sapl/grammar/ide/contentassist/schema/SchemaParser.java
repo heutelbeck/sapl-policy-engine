@@ -13,7 +13,7 @@ public class SchemaParser {
 
     private final Map<String, JsonNode> variables;
 
-    private static final int DEPTH = 20;
+    private static final int MAX_DEPTH = 20;
 
     private static final Collection<String> RESERVED_KEYWORDS = Set.of(
             "$schema", "$id",
@@ -31,7 +31,7 @@ public class SchemaParser {
             return new LinkedList<>();
         }
 
-        List<String> jsonPaths = getJsonPaths(schemaNode, "", schemaNode, 0);
+        var jsonPaths = getJsonPaths(schemaNode, "", schemaNode, 0);
         jsonPaths.removeIf(s -> s.startsWith("$defs"));
         jsonPaths.removeIf(RESERVED_KEYWORDS::contains);
         return jsonPaths;
@@ -43,7 +43,7 @@ public class SchemaParser {
         Collection<String> paths = new HashSet<>();
 
         depth++;
-        if (depth > DEPTH)
+        if (depth > MAX_DEPTH)
             return new ArrayList<>();
 
         if (jsonNode != null && jsonNode.isObject()) {
@@ -58,7 +58,6 @@ public class SchemaParser {
                     paths.add(parentPath);
             } else {
                 paths.addAll(constructPathFromNonArrayProperty(jsonNode, parentPath, originalSchema, depth));
-
             }
         } else if (jsonNode != null && jsonNode.isArray()) {
             paths.addAll(constructPathsFromArray(jsonNode, parentPath, originalSchema, depth));
@@ -70,8 +69,7 @@ public class SchemaParser {
     }
 
     private static boolean propertyIsArray(JsonNode jsonNode){
-        JsonNode typeNode;
-        typeNode = jsonNode.get("type");
+        var typeNode = jsonNode.get("type");
 
         if (typeNode != null){
             var type = typeNode.textValue();
@@ -81,7 +79,7 @@ public class SchemaParser {
     }
 
     private static JsonNode getReferencedNodeFromDifferentDocument(String ref, Map<String, JsonNode> variables) {
-        JsonNode refNode = null;
+        JsonNode refNode;
         String schemaName;
         String internalRef = null;
         if (ref.contains("#/")){
@@ -173,7 +171,7 @@ public class SchemaParser {
     }
 
     private static List<String> handleEnum(JsonNode jsonNode, String parentPath) {
-        JsonNode enumValuesNode = jsonNode.get("enum");
+        var enumValuesNode = jsonNode.get("enum");
         ObjectMapper mapper = new ObjectMapper();
         String[] enumValuesArray;
         var paths = new LinkedList<String>();

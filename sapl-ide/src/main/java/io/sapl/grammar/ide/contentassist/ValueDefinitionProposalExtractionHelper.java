@@ -22,7 +22,7 @@ public class ValueDefinitionProposalExtractionHelper {
 
     public Collection<String> getProposals(EObject model, ProposalType proposalType){
         int currentOffset = context.getOffset();
-        var policyBody = (PolicyBody) getPolicyBody(model);
+        var policyBody = getPolicyBody(model);
 
         if (policyBody == null && proposalType == ProposalType.SCHEMA)
             return getPreambleSchemaProposals();
@@ -141,14 +141,13 @@ public class ValueDefinitionProposalExtractionHelper {
         return valueDefinitionNode.getOffset();
     }
 
-    private static EObject getPolicyBody(EObject model) {
+    private static PolicyBody getPolicyBody(EObject model) {
         // try to move up to the policy body
         if (model.eContainer() instanceof Condition) {
-            model = TreeNavigationHelper.goToFirstParent(model, PolicyBody.class);
+            return TreeNavigationHelper.goToFirstParent(model, PolicyBody.class);
         } else {
-            model = TreeNavigationHelper.goToLastParent(model, PolicyBody.class);
+            return TreeNavigationHelper.goToLastParent(model, PolicyBody.class);
         }
-        return model;
     }
 
 }

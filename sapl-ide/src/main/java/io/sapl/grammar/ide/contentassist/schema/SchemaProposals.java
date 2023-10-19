@@ -41,14 +41,14 @@ public class SchemaProposals {
     }
 
     private Flux<String> getCodeTemplates(Val v) {
-        List<String> schema = new ArrayList<>();
         try {
-            schema = schemaTemplatesFromJson(v.getText());
+            return Flux.fromIterable(schemaTemplatesFromJson(v.getText()));
         } catch (Exception e) {
-            log.info("Could not flatten schema: {}", v.getText());
+            log.trace("Could not flatten schema: {}", v.getText(), e);
+            return Flux.empty();
         }
-        return Flux.fromIterable(schema);
     }
+
     private Map<String, JsonNode> getAllVariablesAsMap(){
         return getAllVariables().next().block();
     }
@@ -56,7 +56,7 @@ public class SchemaProposals {
     private Flux<Map<String, JsonNode>> getAllVariables() {
         return variablesAndCombinatorSource
                 .getVariables()
-                .map(v -> v.orElse(Collections.emptyMap()));
+                .map(v -> v.orElse(Map.of()));
     }
 
     private List<String> schemaTemplatesFromJson(String source){
