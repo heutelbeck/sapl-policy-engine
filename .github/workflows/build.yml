@@ -55,7 +55,7 @@ jobs:
   
   analyze:
     needs: [tests]
-    name: Code Analysis, Test Coverage, Integration Tests
+    name: FTK SonarQube - Code Analysis, Test Coverage, Integration Tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
     
@@ -120,7 +120,7 @@ jobs:
 
   sonarcloud_analyze:
     needs: [tests]
-    name: Code Analysis, Test Coverage, Integration Tests for Sonarcloud
+    name: SonarCloud - Code Analysis, Test Coverage, Integration Tests for Sonarcloud
     runs-on: ubuntu-latest
     timeout-minutes: 20
     
