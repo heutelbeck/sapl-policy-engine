@@ -118,7 +118,7 @@ jobs:
     - name: Clean up local repository before caching 
       run: rm -rf ~/.m2/repository/io/sapl
 
-sonarcloud_analyze:
+  sonarcloud_analyze:
     needs: [tests]
     name: Code Analysis, Test Coverage, Integration Tests for Sonarcloud
     runs-on: ubuntu-latest
@@ -165,15 +165,16 @@ sonarcloud_analyze:
       run: mvn -B dockerfile:build -pl sapl-server-lt -P docker -DskipTests
 
     - name: Cache SonarCloud packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
-          
+      uses: actions/cache@v3
+      with:
+        path: ~/.sonar/cache
+        key: ${{ runner.os }}-sonar
+        restore-keys: ${{ runner.os }}-sonar
+  
     - name: Run analysis (Unit Tests, IT, JaCoCo, Sonar)    
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
-          SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+        SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
       run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar failsafe:integration-test -Pcoverage,it -Dsonar.login=${SONAR_TOKEN} -Dsonar.organization=heutelbeck -Dsonar.host.url=https://sonarcloud.io
 
     - name: Clean up local repository before caching 
