@@ -79,10 +79,10 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 
 	private EnforceRecoverableIfDeniedPolicyEnforcementPoint(Flux<AuthorizationDecision> decisions,
 			Flux<T> resourceAccessPoint, ConstraintEnforcementService constraintsService, Class<T> clazz) {
-		this.decisions				= decisions;
-		this.resourceAccessPoint	= resourceAccessPoint;
-		this.constraintsService		= constraintsService;
-		this.clazz					= clazz;
+		this.decisions           = decisions;
+		this.resourceAccessPoint = resourceAccessPoint;
+		this.constraintsService  = constraintsService;
+		this.clazz               = clazz;
 	}
 
 	public static <V> Flux<V> of(Flux<AuthorizationDecision> decisions, Flux<V> resourceAccessPoint,
@@ -97,9 +97,12 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 
 	@SneakyThrows
 	private static <T> Mono<T> extractPayloadOrError(Tuple2<Optional<T>, Optional<Throwable>> tuple) {
-		if (tuple.getT2().isEmpty())
-			return Mono.just(tuple.getT1().get());
-		throw tuple.getT2().get();
+		var potentialPayload = tuple.getT1();
+		var potentialError   = tuple.getT2();
+		if (potentialError.isPresent())
+			throw potentialError.get();
+		return Mono.just(potentialPayload.orElseThrow(() -> new AccessDeniedException(
+				"Error in PEP during payload extraction. Payload was not present. Should not be possible.")));
 	}
 
 	@Override
@@ -107,8 +110,8 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 		if (sink != null)
 			throw new IllegalStateException("Operator may only be subscribed once.");
 		var context = actual.currentContext();
-		sink				= new RecoverableEnforcementSink<>();
-		resourceAccessPoint	= resourceAccessPoint.contextWrite(context);
+		sink                = new RecoverableEnforcementSink<>();
+		resourceAccessPoint = resourceAccessPoint.contextWrite(context);
 		Flux.create(sink).subscribe(actual);
 		decisionsSubscription.set(decisions.doOnNext(this::handleNextDecision).contextWrite(context).subscribe());
 	}
@@ -284,10 +287,13 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 
 	private Tuple2<Optional<T>, Optional<Throwable>> handleAccessDenied(
 			Tuple2<Optional<T>, Optional<Throwable>> tuple) {
-		if (tuple.getT1().isPresent())
+
+		var potentialPayload = tuple.getT1();
+		if (potentialPayload.isPresent())
 			return tuple;
 
-		var error = tuple.getT2().get();
+		var error = tuple.getT2().orElseGet(() -> new AccessDeniedException(
+				"Error in PEP during payload extraction. Payload was not present. Should not be possible."));
 		if (!(error instanceof AccessDeniedException))
 			return tuple;
 
@@ -295,7 +301,8 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 			var transformedError = constraintHandlerBundle.get().handleAllOnErrorConstraints(error);
 			return Tuples.of(Optional.empty(), Optional.of(transformedError));
 		} catch (Throwable t) {
-			return tuple;
+			return Tuples.of(Optional.empty(), Optional.of(
+					new AccessDeniedException("Error in PEP during contraint-based transformation of exceptions.", t)));
 		}
 	}
 
