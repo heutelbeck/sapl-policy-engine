@@ -82,8 +82,8 @@ class ValTest {
 
 	@Test
 	void equalComparisonTest() {
-		assertAll(() -> assertThat(Val.equal(Val.of("A"), Val.of("A")), is(Val.TRUE)),
-				() -> assertThat(Val.equal(Val.of("A"), Val.of("B")), is(Val.FALSE)));
+		assertAll(() -> assertThat(Val.areEqual(Val.of("A"), Val.of("A")), is(Val.TRUE)),
+				() -> assertThat(Val.areEqual(Val.of("A"), Val.of("B")), is(Val.FALSE)));
 	}
 
 	@Test

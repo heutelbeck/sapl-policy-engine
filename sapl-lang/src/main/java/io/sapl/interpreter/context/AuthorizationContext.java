@@ -18,6 +18,7 @@ package io.sapl.interpreter.context;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -118,7 +119,8 @@ public class AuthorizationContext {
 
 	public Context setSubscriptionVariables(@NonNull Context ctx, AuthorizationSubscription authorizationSubscription) {
 
-		Map<String, JsonNode> variables = new HashMap<>(Objects.requireNonNull(ctx.getOrDefault(VARIABLES, new HashMap<>())));
+		Map<String, JsonNode> variables = new HashMap<>(
+				Objects.requireNonNull(ctx.getOrDefault(VARIABLES, new HashMap<>())));
 
 		variables.put(SUBJECT, authorizationSubscription.getSubject());
 		variables.put(ACTION, authorizationSubscription.getAction());
@@ -131,8 +133,19 @@ public class AuthorizationContext {
 		return ctx.put(VARIABLES, variables);
 	}
 
+	@SuppressWarnings("unchecked")
+	// In this case the catch clause takes care of making it fail safe and solves
+	// the runtime type erasure problem for this case.
 	public static Map<String, JsonNode> getVariables(ContextView ctx) {
-		return ctx.getOrDefault(VARIABLES, new HashMap<>());
+		Map<String, JsonNode> result = null;
+		try {
+			result = (Map<String, JsonNode>) ctx.get(VARIABLES);
+		} catch (ClassCastException | NoSuchElementException e) {
+			// NOOP continue with result == null
+		}
+		if (result == null)
+			result = new HashMap<String, JsonNode>();
+		return result;
 	}
 
 	public static Val getVariable(ContextView ctx, String name) {

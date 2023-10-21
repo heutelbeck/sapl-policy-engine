@@ -48,13 +48,12 @@ public class ObligationAdviceCollector {
 	}
 
 	private void registerAdviceIfPresent(AuthorizationDecision authzDecision) {
-		if (authzDecision.getAdvice().isPresent())
-			advice.get(authzDecision.getDecision()).addAll(authzDecision.getAdvice().get());
+		authzDecision.getAdvice().ifPresent(newAdvice -> advice.get(authzDecision.getDecision()).addAll(newAdvice));
 	}
 
 	private void registerObligationIfPresent(AuthorizationDecision authzDecision) {
-		if (authzDecision.getObligations().isPresent())
-			obligations.get(authzDecision.getDecision()).addAll(authzDecision.getObligations().get());
+		authzDecision.getObligations()
+				.ifPresent(newObligations -> obligations.get(authzDecision.getDecision()).addAll(newObligations));
 	}
 
 	public void add(AuthorizationDecision authzDecision) {

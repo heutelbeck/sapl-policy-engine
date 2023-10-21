@@ -69,18 +69,16 @@ public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombin
 			@NonNull ObjectMapper mapper) throws InitializationException {
 		log.info("Loading the PDP configuration from bundled resources: '{}'", configPath);
 		this.mapper = mapper;
-		config = readConfig(JarUtil.inferUrlOfResourcesPath(clazz, configPath), configPath);
+		config      = readConfig(JarUtil.inferUrlOfResourcesPath(clazz, configPath), configPath);
 	}
 
 	private PolicyDecisionPointConfiguration readConfig(URL configFolderUrl, String configPath)
 			throws InitializationException {
 		try {
-
 			if ("jar".equals(configFolderUrl.getProtocol()))
 				return readConfigFromJar(configFolderUrl, configPath);
 			return readConfigFromDirectory(configFolderUrl);
-		}
-		catch (IOException | URISyntaxException e) {
+		} catch (IOException | URISyntaxException e) {
 			throw (InitializationException) new InitializationException(
 					"Failed to create ResourcesVariablesAndCombinatorSource").initCause(e);
 		}
@@ -89,10 +87,10 @@ public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombin
 	private PolicyDecisionPointConfiguration readConfigFromJar(URL configFolderUrl, String configPath)
 			throws IOException {
 		log.info("reading config from jar {}", configFolderUrl);
-		var jarFilePath = JarUtil.getJarFilePath(configFolderUrl);
+		var jarFilePath     = JarUtil.getJarFilePath(configFolderUrl);
 		var pathOfFileInJar = stripLeadingSlashAndAppendConfigFilename(configPath);
-		try (ZipFile jarFile = new ZipFile(jarFilePath)) {
-			ZipEntry configFile = jarFile.getEntry(pathOfFileInJar);
+		try (var jarFile = new ZipFile(jarFilePath)) {
+			var configFile = jarFile.getEntry(pathOfFileInJar);
 			if (configFile != null)
 				return mapper.readValue(JarUtil.readStringFromZipEntry(jarFile, configFile),
 						PolicyDecisionPointConfiguration.class);
@@ -108,9 +106,11 @@ public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombin
 	private PolicyDecisionPointConfiguration readConfigFromDirectory(URL configFolderUrl)
 			throws IOException, URISyntaxException {
 		log.debug("reading config from directory {}", configFolderUrl);
-		Path configDirectoryPath = Paths.get(configFolderUrl.toURI());
+		var configDirectoryPath = Paths.get(configFolderUrl.toURI());
 		try (DirectoryStream<Path> stream = Files.newDirectoryStream(configDirectoryPath, CONFIG_FILE)) {
-			for (Path filePath : stream) {
+			var directoryIterator = stream.iterator();
+			if (directoryIterator.hasNext()) {
+				var filePath = directoryIterator.next();
 				log.info("loading PDP configuration: {}", filePath.toAbsolutePath());
 				return mapper.readValue(filePath.toFile(), PolicyDecisionPointConfiguration.class);
 			}

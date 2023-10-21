@@ -160,7 +160,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
         SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
-      run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar failsafe:integration-test -Pcoverage,it -Dsonar.login=${SONAR_TOKEN} -Dsonar.organization=heutelbeck -Dsonar.host.url=https://sonarcloud.io -Dsonar.projectKey=heutelbeck_sapl-policy-engine
+      run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar failsafe:integration-test -Pcoverage,it -Dsonar.token=${SONAR_TOKEN} -Dsonar.organization=heutelbeck -Dsonar.host.url=https://sonarcloud.io -Dsonar.projectKey=heutelbeck_sapl-policy-engine
 
     - name: Clean up local repository before caching 
       run: rm -rf ~/.m2/repository/io/sapl

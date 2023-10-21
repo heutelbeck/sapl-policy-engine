@@ -533,7 +533,7 @@ public class Val implements Traced {
 	 * @param right a Val
 	 * @return a Boolean Val which is true, iff left and right are equal.
 	 */
-	public static Val equal(Val left, Val right) {
+	public static Val areEqual(Val left, Val right) {
 		return Val.of(!notEqualBool(left, right));
 	}
 

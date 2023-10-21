@@ -49,26 +49,25 @@ public class ClasspathVariablesAndCombinatorSource implements VariablesAndCombin
 			Map<String, JsonNode> testInternalConfiguredVariables) {
 		log.info("Loading the PDP configuration from bundled resources: '{}'", configPath);
 
-		Path configDirectoryPath = ClasspathHelper.findPathOnClasspath(getClass().getClassLoader(), configPath);
+		var configDirectoryPath = ClasspathHelper.findPathOnClasspath(getClass().getClassLoader(), configPath);
 
 		log.debug("reading config from directory {}", configDirectoryPath);
 		PolicyDecisionPointConfiguration pdpConfig = null;
-		try (DirectoryStream<Path> stream = Files.newDirectoryStream(configDirectoryPath, CONFIG_FILE_GLOB_PATTERN)) {
-			for (Path filePath : stream) {
+		try (var stream = Files.newDirectoryStream(configDirectoryPath, CONFIG_FILE_GLOB_PATTERN)) {
+			var filesIterator = stream.iterator();
+			if (filesIterator.hasNext()) {
+				var filePath = filesIterator.next();
 				log.info("loading PDP configuration: {}", filePath.toAbsolutePath());
 				pdpConfig = mapper.readValue(filePath.toFile(), PolicyDecisionPointConfiguration.class);
-				break;
 			}
-		}
-		catch (IOException e) {
+		} catch (IOException e) {
 			throw Exceptions.propagate(e);
 		}
 
 		if (pdpConfig == null) {
 			log.info("No PDP configuration found in resources. Using defaults.");
 			this.config = new PolicyDecisionPointConfiguration();
-		}
-		else {
+		} else {
 			this.config = pdpConfig;
 		}
 
