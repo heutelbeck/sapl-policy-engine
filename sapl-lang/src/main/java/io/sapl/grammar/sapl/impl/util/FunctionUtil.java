@@ -18,7 +18,6 @@ package io.sapl.grammar.sapl.impl.util;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.sapl.api.interpreter.Val;
@@ -71,7 +70,7 @@ public class FunctionUtil {
 	}
 
 	private Flux<Val[]> combine(Stream<Flux<Val>> argumentFluxes) {
-		List<Flux<Val>> x = argumentFluxes.collect(Collectors.toList());
+		List<Flux<Val>> x = argumentFluxes.toList();
 		return Flux.combineLatest(x, e -> Arrays.copyOf(e, e.length, Val[].class));
 	}
 

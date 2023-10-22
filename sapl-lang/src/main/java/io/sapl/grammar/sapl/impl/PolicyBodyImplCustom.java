@@ -51,8 +51,8 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 
 		var statement = statements.get(statementId);
 
-		if (statement instanceof ValueDefinition)
-			return evaluateValueStatement(previousResult, statementId, (ValueDefinition) statement);
+		if (statement instanceof ValueDefinition valueDefinition)
+			return evaluateValueStatement(previousResult, statementId, valueDefinition);
 
 		return evaluateCondition(previousResult, (Condition) statement)
 				.switchMap(newResult -> evaluateStatements(newResult, statementId + 1));

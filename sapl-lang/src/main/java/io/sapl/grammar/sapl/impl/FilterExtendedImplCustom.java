@@ -62,7 +62,7 @@ public class FilterExtendedImplCustom extends FilterExtendedImpl {
 	}
 
 	private Flux<Val> applyFilterStatement(Val unfilteredValue, FilterStatement statement) {
-		if (statement.getTarget().getSteps().size() == 0) {
+		if (statement.getTarget().getSteps().isEmpty()) {
 			// the expression has no steps. apply filter to unfiltered node directly
 			return FilterAlgorithmUtil.applyFilterFunction(unfilteredValue, statement.getArguments(),
 					statement.getFsteps(), statement.isEach());

@@ -56,7 +56,6 @@ import reactor.core.publisher.Flux;
  */
 public class DenyOverridesCombiningAlgorithmImplCustom extends DenyOverridesCombiningAlgorithmImpl {
 
-
 	@Override
 	public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
 		return CombiningAlgorithmUtil.eagerlyCombinePolicyElements(policies, this::combinator, getName());
@@ -66,7 +65,7 @@ public class DenyOverridesCombiningAlgorithmImplCustom extends DenyOverridesComb
 	public String getName() {
 		return "DENY_OVERRIDES";
 	}
-	
+
 	private CombinedDecision combinator(DocumentEvaluationResult[] policyDecisions) {
 		if (policyDecisions.length == 0)
 			return CombinedDecision.of(AuthorizationDecision.NOT_APPLICABLE, getName());
@@ -81,23 +80,20 @@ public class DenyOverridesCombiningAlgorithmImplCustom extends DenyOverridesComb
 			if (authzDecision.getDecision() == DENY) {
 				entitlement = DENY;
 			}
-			if (authzDecision.getDecision() == INDETERMINATE) {
-				if (entitlement != DENY) {
-					entitlement = INDETERMINATE;
-				}
+			if (authzDecision.getDecision() == INDETERMINATE && entitlement != DENY) {
+				entitlement = INDETERMINATE;
 			}
-			if (authzDecision.getDecision() == PERMIT) {
-				if (entitlement == NOT_APPLICABLE) {
-					entitlement = PERMIT;
-				}
+			if (authzDecision.getDecision() == PERMIT && entitlement == NOT_APPLICABLE) {
+				entitlement = PERMIT;
 			}
 			collector.add(authzDecision);
 			if (authzDecision.getResource().isPresent()) {
 				if (resource.isPresent()) {
-					// this is a transformation uncertainty.
-					// another policy already defined a transformation
-					// this the overall result is basically INDETERMINATE.
-					// However, existing DENY overrides with this algorithm.
+					/*
+					 * This is a transformation uncertainty. another policy already defined a
+					 * transformation this the overall result is basically INDETERMINATE. However,
+					 * existing DENY overrides with this algorithm.
+					 */
 					if (entitlement != DENY) {
 						entitlement = INDETERMINATE;
 					}

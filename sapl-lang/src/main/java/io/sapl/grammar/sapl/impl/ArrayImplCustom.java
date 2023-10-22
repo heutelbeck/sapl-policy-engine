@@ -45,7 +45,7 @@ public class ArrayImplCustom extends ArrayImpl {
 	@Override
 	public Flux<Val> evaluate() {
 		// handle the empty array
-		if (getItems().size() == 0) {
+		if (getItems().isEmpty()) {
 			return Flux.just(Val.of(Val.JSON.arrayNode()).withTrace(Array.class));
 		}
 		// aggregate child fluxes into a Flux of a JSON array
@@ -70,9 +70,8 @@ public class ArrayImplCustom extends ArrayImpl {
 		for (var oVal : values) {
 			Val val = (Val) oVal;
 			tracedValues.add(val);
-			if (val.isError()) {
-				if (error == null)
-					error = val;
+			if (val.isError() && error == null) {
+				error = val;
 			}
 			if (val.isDefined()) {
 				// drop undefined
