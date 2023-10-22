@@ -44,11 +44,11 @@ import reactor.core.publisher.Flux;
  */
 public class BasicExpressionImplCustom extends BasicExpressionImpl {
 
-	protected Function<? super Val, Publisher<? extends Val>> resolveStepsFiltersAndSubTemplates(EList<Step> steps) {
+	protected Function<Val, Publisher<? extends Val>> resolveStepsFiltersAndSubTemplates(EList<Step> steps) {
 		return resolveSteps(steps, 0);
 	}
-
-	private Function<? super Val, Publisher<? extends Val>> resolveSteps(EList<Step> steps, int stepId) {
+ 
+	private Function<Val, Publisher<? extends Val>> resolveSteps(EList<Step> steps, int stepId) {
 		if (steps == null || stepId == steps.size()) {
 			return this::resolveFilterOrSubTemplate;
 		}
