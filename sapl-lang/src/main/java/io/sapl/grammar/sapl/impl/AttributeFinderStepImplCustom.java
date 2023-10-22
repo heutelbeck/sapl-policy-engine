@@ -37,6 +37,12 @@ import reactor.core.publisher.Flux;
  */
 public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 
+	private static final String ATTRIBUTE_FINDER_STEP_NOT_PERMITTED_ERROR = "AttributeFinderStep not permitted in filter selection steps.";
+
+	private static final String ATTRIBUTE = "attribute";
+
+	private static final String PARENT_VALUE = "parentValue";
+
 	private static final String UNDEFINED_VALUE = "Undefined value handed over as left-hand parameter to policy information point";
 
 	private static final String EXTERNAL_ATTRIBUTE_IN_TARGET = "Attribute resolution error. Attributes are not allowed in target.";
@@ -49,15 +55,15 @@ public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 
 			if (parentValue.isError()) {
 				return Flux.just(parentValue.withTrace(AttributeFinderStep.class,
-						Map.of("parentValue", parentValue, "attribute", Val.of(attributeName))));
+						Map.of(PARENT_VALUE, parentValue, ATTRIBUTE, Val.of(attributeName))));
 			}
 			if (TargetExpressionUtil.isInTargetExpression(this)) {
 				return Flux.just(Val.error(EXTERNAL_ATTRIBUTE_IN_TARGET).withTrace(AttributeFinderStep.class,
-						Map.of("parentValue", parentValue, "attribute", Val.of(attributeName))));
+						Map.of(PARENT_VALUE, parentValue, ATTRIBUTE, Val.of(attributeName))));
 			}
 			if (parentValue.isUndefined()) {
 				return Flux.just(Val.error(UNDEFINED_VALUE).withTrace(AttributeFinderStep.class,
-						Map.of("parentValue", parentValue, "attribute", Val.of(attributeName))));
+						Map.of(PARENT_VALUE, parentValue, ATTRIBUTE, Val.of(attributeName))));
 			}
 
 			var attributeContext = getAttributeContext(ctxView);
@@ -72,7 +78,7 @@ public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 
 	@Override
 	public Flux<Val> applyFilterStatement(@NonNull Val parentValue, int stepId, @NonNull FilterStatement statement) {
-		return Val.errorFlux("AttributeFinderStep not permitted in filter selection steps.");
+		return Val.errorFlux(ATTRIBUTE_FINDER_STEP_NOT_PERMITTED_ERROR);
 	}
 
 }

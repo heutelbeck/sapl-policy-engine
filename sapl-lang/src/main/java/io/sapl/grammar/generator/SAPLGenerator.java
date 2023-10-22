@@ -31,6 +31,7 @@ public class SAPLGenerator extends AbstractGenerator {
 
 	@Override
 	public void doGenerate(final Resource resource, final IFileSystemAccess2 fsa, final IGeneratorContext context) {
+		// NOOP - part of the XText scaffolding.
 	}
 
 }

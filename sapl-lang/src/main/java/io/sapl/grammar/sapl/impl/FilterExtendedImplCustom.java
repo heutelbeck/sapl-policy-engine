@@ -28,19 +28,23 @@ import reactor.core.publisher.Flux;
 
 public class FilterExtendedImplCustom extends FilterExtendedImpl {
 
+	private static final String FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED_VALUES_ERROR = "Filters cannot be applied to undefined values.";
+	private static final String UNFILTERED_VALUE = "unfilteredValue";
+
 	@Override
 	public Flux<Val> apply(Val unfilteredValue) {
 		if (unfilteredValue.isError()) {
 			return Flux
-					.just(unfilteredValue.withTrace(FilterExtended.class, Map.of("unfilteredValue", unfilteredValue)));
+					.just(unfilteredValue.withTrace(FilterExtended.class, Map.of(UNFILTERED_VALUE, unfilteredValue)));
 		}
 		if (unfilteredValue.isUndefined()) {
-			return Flux.just(Val.error("Filters cannot be applied to undefined values.").withTrace(FilterExtended.class,
-					Map.of("unfilteredValue", unfilteredValue)));
+			return Flux.just(Val.error(
+					FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED_VALUES_ERROR).withTrace(FilterExtended.class,
+					Map.of(UNFILTERED_VALUE, unfilteredValue)));
 		}
 		if (statements == null) {
 			return Flux
-					.just(unfilteredValue.withTrace(FilterExtended.class, Map.of("unfilteredValue", unfilteredValue)));
+					.just(unfilteredValue.withTrace(FilterExtended.class, Map.of(UNFILTERED_VALUE, unfilteredValue)));
 		}
 		return Flux.just(unfilteredValue).switchMap(applyFilterStatements());
 	}

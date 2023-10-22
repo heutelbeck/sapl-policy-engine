@@ -166,9 +166,10 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 		// decision == Decision.PERMIT from here on
 
 		latestDecision.set(decision);
-		if (decision.getResource().isPresent()) {
+		var potentialResource = decision.getResource();
+		if (potentialResource.isPresent()) {
 			try {
-				sink.next(constraintsService.unmarshallResource(decision.getResource().get(), clazz));
+				sink.next(constraintsService.unmarshallResource(potentialResource.get(), clazz));
 			} catch (JsonProcessingException | IllegalArgumentException e) {
 				sink.error(new AccessDeniedException(
 						"The PEP failed to replace stream with decision's resource object. Will be handled like an INDETERMINATE decision",

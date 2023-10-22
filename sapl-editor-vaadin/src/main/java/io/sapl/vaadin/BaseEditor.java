@@ -28,7 +28,13 @@ import com.vaadin.flow.dom.ElementConstants;
  */
 public class BaseEditor extends Component {
 
-	private static final String                 IS_READ_ONLY_KEY = "isReadOnly";
+	private static final String                 IS_LINT             = "isLint";
+	private static final String                 TEXT_UPDATE_DELAY   = "textUpdateDelay";
+	private static final String                 MATCH_BRACKETS      = "matchBrackets";
+	private static final String                 AUTO_CLOSE_BRACKETS = "autoCloseBrackets";
+	private static final String                 HAS_LINE_NUMBERS    = "hasLineNumbers";
+	private static final String                 IS_DARK_THEME       = "isDarkTheme";
+	private static final String                 IS_READ_ONLY_KEY    = "isReadOnly";
 	private String                              document;
 	private final List<DocumentChangedListener> documentChangedListeners;
 	private final List<EditorClickedListener>   editorClickedListeners;
@@ -45,13 +51,13 @@ public class BaseEditor extends Component {
 	}
 
 	protected static void applyBaseConfiguration(Element element, BaseEditorConfiguration config) {
-		element.setProperty("hasLineNumbers", config.isHasLineNumbers());
-		element.setProperty("autoCloseBrackets", config.isAutoCloseBrackets());
-		element.setProperty("matchBrackets", config.isMatchBrackets());
-		element.setProperty("textUpdateDelay", config.getTextUpdateDelay());
+		element.setProperty(HAS_LINE_NUMBERS, config.isHasLineNumbers());
+		element.setProperty(AUTO_CLOSE_BRACKETS, config.isAutoCloseBrackets());
+		element.setProperty(MATCH_BRACKETS, config.isMatchBrackets());
+		element.setProperty(TEXT_UPDATE_DELAY, config.getTextUpdateDelay());
 		element.setProperty(IS_READ_ONLY_KEY, config.isReadOnly());
-		element.setProperty("isLint", config.isLint());
-		element.setProperty("isDarkTheme", config.isDarkTheme());
+		element.setProperty(IS_LINT, config.isLint());
+		element.setProperty(IS_DARK_THEME, config.isDarkTheme());
 	}
 
 	@ClientCallable
@@ -161,7 +167,7 @@ public class BaseEditor extends Component {
 	 */
 	public void setDarkTheme(Boolean isDarkTheme) {
 		Element element = getElement();
-		element.setProperty("isDarkTheme", isDarkTheme);
+		element.setProperty(IS_DARK_THEME, isDarkTheme);
 	}
 
 	/**
@@ -172,7 +178,7 @@ public class BaseEditor extends Component {
 	 */
 	public Boolean isDarkTheme() {
 		Element element = getElement();
-		return element.getProperty("isDarkTheme", false);
+		return element.getProperty(IS_DARK_THEME, false);
 	}
 
 	/**
@@ -183,6 +189,6 @@ public class BaseEditor extends Component {
 	 */
 	public Boolean isLint() {
 		Element element = getElement();
-		return element.getProperty("isLint", true);
+		return element.getProperty(IS_LINT, true);
 	}
 }
