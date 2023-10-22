@@ -1,6 +1,5 @@
 package io.sapl.test.dsl.interpreter;
 
-import io.sapl.interpreter.InitializationException;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.dsl.ReflectionHelper;
@@ -24,6 +23,10 @@ public class TestFixtureBuilder {
     public GivenOrWhenStep buildTestFixture(final List<FixtureRegistration> fixtureRegistrations, final TestSuite testSuite, final Object environment, final boolean needsMocks) {
         var saplTestFixture = testSuiteInterpreter.getFixtureFromTestSuite(testSuite, environment);
 
+        if (saplTestFixture == null) {
+            throw new SaplTestException("could not build test fixture");
+        }
+
         if (fixtureRegistrations != null) {
             handleFixtureRegistrations(saplTestFixture, fixtureRegistrations);
         }
@@ -44,9 +47,11 @@ public class TestFixtureBuilder {
                 } else if (fixtureRegistration instanceof Pip pip) {
                     final var customPip = reflectionHelper.constructInstanceOfClass(pip.getPip());
                     fixture.registerPIP(customPip);
+                } else {
+                    throw new SaplTestException("Unknown type of FixtureRegistration");
                 }
             }
-        } catch (InitializationException e) {
+        } catch (Exception e) {
             throw new SaplTestException(e);
         }
     }

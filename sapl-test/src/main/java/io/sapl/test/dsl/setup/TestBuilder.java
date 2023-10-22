@@ -1,8 +1,10 @@
 package io.sapl.test.dsl.setup;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.ReflectionHelper;
 import io.sapl.test.dsl.interfaces.JUnitDynamicTestBuilder;
+import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
 import io.sapl.test.dsl.interpreter.*;
 import io.sapl.test.dsl.interpreter.constructorwrappers.SaplIntegrationTestFixtureConstructorWrapper;
 import io.sapl.test.dsl.interpreter.constructorwrappers.SaplUnitTestFixtureConstructorWrapper;
@@ -11,14 +13,30 @@ import io.sapl.test.dsl.interpreter.matcher.JsonNodeMatcherInterpreter;
 import io.sapl.test.dsl.interpreter.matcher.StringMatcherInterpreter;
 import io.sapl.test.dsl.interpreter.matcher.ValMatcherInterpreter;
 import io.sapl.test.dsl.lang.DefaultSaplTestInterpreter;
+import io.sapl.test.utils.DocumentHelper;
 import java.util.List;
 import org.junit.jupiter.api.DynamicContainer;
 
 public class TestBuilder {
 
+    final static SaplTestInterpreter saplTestInterpreter = new DefaultSaplTestInterpreter();
+
     public static List<DynamicContainer> buildTests(final String filename) {
         final var testBuilder = getTestBuilder();
-        return testBuilder.buildTests(filename);
+
+        if (filename == null) {
+            throw new SaplTestException("provided filename is null");
+        }
+
+        final var input = DocumentHelper.findFileOnClasspath(filename);
+
+        if (input == null) {
+            throw new SaplTestException("file does not exist");
+        }
+
+        final var saplTest = saplTestInterpreter.loadAsResource(input);
+
+        return testBuilder.buildTests(saplTest);
     }
 
     private static JUnitDynamicTestBuilder getTestBuilder() {
@@ -38,12 +56,14 @@ public class TestBuilder {
         final var authorizationDecisionMatcherInterpreter = new AuthorizationDecisionMatcherInterpreter(valInterpreter, jsonNodeMatcherInterpreter);
         final var expectInterpreter = new ExpectInterpreter(valInterpreter, authorizationDecisionInterpreter, authorizationDecisionMatcherInterpreter);
 
-        final var givenStepBuilder = new DefaultWhenStepBuilder(functionInterpreter, attributeInterpreter);
+        final var whenStepBuilder = new DefaultWhenStepBuilder(functionInterpreter, attributeInterpreter);
         final var expectStepBuilder = new DefaultExpectStepBuilder(authorizationSubscriptionInterpreter);
         final var verifyStepBuilder = new DefaultVerifyStepBuilder(expectInterpreter);
-        final var saplInterpreter = new DefaultSaplTestInterpreter();
 
-        return new DefaultTestBuilder(testFixtureBuilder, givenStepBuilder, expectStepBuilder, verifyStepBuilder, saplInterpreter);
+
+        final var testCaseBuilder = new TestCaseBuilder(testFixtureBuilder, whenStepBuilder, expectStepBuilder, verifyStepBuilder);
+
+        return new DefaultTestBuilder(testCaseBuilder);
     }
 
     private static TestFixtureBuilder getTestFixtureBuilder(final ValInterpreter valInterpreter) {
