@@ -17,6 +17,7 @@ package io.sapl.prp.index.canonical;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
@@ -152,7 +153,8 @@ class DisjunctiveFormulaReductionSupportTest {
 		var listMock = mock(List.class);
 		when(listMock.listIterator(anyInt())).thenReturn(forwardMock);
 
-		DisjunctiveFormulaReductionSupport.reduceFormulaStep(listMock, pointerMock, clauseMock);
+		assertDoesNotThrow(
+				() -> DisjunctiveFormulaReductionSupport.reduceFormulaStep(listMock, pointerMock, clauseMock));
 	}
 
 }

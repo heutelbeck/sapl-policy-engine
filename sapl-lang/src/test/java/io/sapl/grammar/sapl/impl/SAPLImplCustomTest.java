@@ -60,10 +60,10 @@ class SAPLImplCustomTest {
 	void importsWorkCorrectlyBasicFunction() {
 		var policy          = INTERPRETER.parse("import filter.blacken policy \"policy\" permit true");
 		var expectedImports = Map.of("blacken", "filter.blacken");
-		policy.evaluate()
+		StepVerifier.create(policy.evaluate()
 				.flatMap(val -> Mono.deferContextual(
 						ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
-				.contextWrite(MockUtil::setUpAuthorizationContext).blockFirst();
+				.contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(false).verifyComplete();
 	}
 
 	@Test
@@ -71,10 +71,10 @@ class SAPLImplCustomTest {
 		var policy          = INTERPRETER.parse("import filter.* policy \"policy\" permit true");
 		var expectedImports = Map.of("blacken", "filter.blacken", "replace", "filter.replace", "remove",
 				"filter.remove");
-		policy.evaluate()
+		StepVerifier.create(policy.evaluate()
 				.flatMap(val -> Mono.deferContextual(
 						ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
-				.contextWrite(MockUtil::setUpAuthorizationContext).blockFirst();
+				.contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(false).verifyComplete();
 	}
 
 	@Test
@@ -82,20 +82,20 @@ class SAPLImplCustomTest {
 		var policy          = INTERPRETER.parse("import filter as fil policy \"policy\" permit true");
 		var expectedImports = Map.of("fil.blacken", "filter.blacken", "fil.replace", "filter.replace", "fil.remove",
 				"filter.remove");
-		policy.evaluate()
+		StepVerifier.create(policy.evaluate()
 				.flatMap(val -> Mono.deferContextual(
 						ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
-				.contextWrite(MockUtil::setUpAuthorizationContext).blockFirst();
+				.contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(false).verifyComplete();
 	}
 
 	@Test
 	void importsWorkCorrectlyBasicAttribute() {
 		var policy          = INTERPRETER.parse("import test.numbers policy \"policy\" permit true");
 		var expectedImports = Map.of("numbers", "test.numbers");
-		policy.evaluate()
+		StepVerifier.create(policy.evaluate()
 				.flatMap(val -> Mono.deferContextual(
 						ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
-				.contextWrite(MockUtil::setUpAuthorizationContext).blockFirst();
+				.contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(false).verifyComplete();
 	}
 
 	@Test
@@ -103,10 +103,10 @@ class SAPLImplCustomTest {
 		var policy          = INTERPRETER.parse("import test.* policy \"policy\" permit true");
 		var expectedImports = Map.of("numbers", "test.numbers", "numbersWithError", "test.numbersWithError", "nilflux",
 				"test.nilflux");
-		policy.evaluate()
+		StepVerifier.create(policy.evaluate()
 				.flatMap(val -> Mono.deferContextual(
 						ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
-				.contextWrite(MockUtil::setUpAuthorizationContext).blockFirst();
+				.contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(false).verifyComplete();
 	}
 
 	@Test
@@ -114,10 +114,10 @@ class SAPLImplCustomTest {
 		var policy          = INTERPRETER.parse("import test as t policy \"policy\" permit true");
 		var expectedImports = Map.of("t.numbers", "test.numbers", "t.numbersWithError", "test.numbersWithError",
 				"t.nilflux", "test.nilflux");
-		policy.evaluate()
+		StepVerifier.create(policy.evaluate()
 				.flatMap(val -> Mono.deferContextual(
 						ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
-				.contextWrite(MockUtil::setUpAuthorizationContext).blockFirst();
+				.contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(false).verifyComplete();
 	}
 
 	@Test

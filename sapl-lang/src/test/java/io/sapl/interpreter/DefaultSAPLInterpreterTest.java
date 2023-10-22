@@ -18,6 +18,7 @@ package io.sapl.interpreter;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.mock;
 
 import java.io.InputStream;
@@ -85,7 +86,7 @@ class DefaultSAPLInterpreterTest {
 	@Test
 	void parseTest() {
 		var policyDocument = "policy \"test\" permit";
-		INTERPRETER.parse(policyDocument);
+		assertDoesNotThrow(() -> INTERPRETER.parse(policyDocument));
 	}
 
 	@Test
@@ -722,7 +723,7 @@ class DefaultSAPLInterpreterTest {
 		var expected         = AuthorizationDecision.INDETERMINATE;
 		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
-	
+
 	@Test
 	void onErrorMap() {
 		var policyDefinition = "import standard.* policy \"errors\" permit where onErrorMap(100/0, true);";
