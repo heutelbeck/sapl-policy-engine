@@ -19,7 +19,7 @@ import org.junit.jupiter.api.DynamicContainer;
 
 public class TestBuilder {
 
-    final static SaplTestInterpreter saplTestInterpreter = new DefaultSaplTestInterpreter();
+    static final SaplTestInterpreter saplTestInterpreter = new DefaultSaplTestInterpreter();
 
     public static List<DynamicContainer> buildTests(final String filename) {
         final var testBuilder = getTestBuilder();
@@ -49,12 +49,13 @@ public class TestBuilder {
 
         final var matcherInterpreter = new ValMatcherInterpreter(valInterpreter, jsonNodeMatcherInterpreter, stringMatcherInterpreter);
 
-        final var attributeInterpreter = new AttributeInterpreter(valInterpreter, matcherInterpreter);
+        final var durationInterpreter = new DurationInterpreter();
+        final var attributeInterpreter = new AttributeInterpreter(valInterpreter, matcherInterpreter, durationInterpreter);
         final var functionInterpreter = new FunctionInterpreter(valInterpreter, matcherInterpreter);
         final var authorizationDecisionInterpreter = new AuthorizationDecisionInterpreter(valInterpreter, objectMapper);
         final var authorizationSubscriptionInterpreter = new AuthorizationSubscriptionInterpreter(valInterpreter);
         final var authorizationDecisionMatcherInterpreter = new AuthorizationDecisionMatcherInterpreter(valInterpreter, jsonNodeMatcherInterpreter);
-        final var expectInterpreter = new ExpectInterpreter(valInterpreter, authorizationDecisionInterpreter, authorizationDecisionMatcherInterpreter);
+        final var expectInterpreter = new ExpectInterpreter(valInterpreter, authorizationDecisionInterpreter, authorizationDecisionMatcherInterpreter, durationInterpreter);
 
         final var whenStepBuilder = new DefaultWhenStepBuilder(functionInterpreter, attributeInterpreter);
         final var expectStepBuilder = new DefaultExpectStepBuilder(authorizationSubscriptionInterpreter);

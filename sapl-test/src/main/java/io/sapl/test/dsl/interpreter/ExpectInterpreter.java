@@ -14,7 +14,6 @@ import io.sapl.test.grammar.sAPLTest.RepeatedExpect;
 import io.sapl.test.grammar.sAPLTest.SingleExpect;
 import io.sapl.test.steps.ExpectOrVerifyStep;
 import io.sapl.test.steps.VerifyStep;
-import java.time.Duration;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.hamcrest.Matcher;
@@ -25,6 +24,7 @@ public class ExpectInterpreter {
     private final ValInterpreter valInterpreter;
     private final AuthorizationDecisionInterpreter authorizationDecisionInterpreter;
     private final AuthorizationDecisionMatcherInterpreter authorizationDecisionMatcherInterpreter;
+    private final DurationInterpreter durationInterpreter;
 
     VerifyStep interpretSingleExpect(final ExpectOrVerifyStep expectOrVerifyStep, final SingleExpect singleExpect) {
         final var decision = singleExpect.getDecision();
@@ -54,10 +54,10 @@ public class ExpectInterpreter {
                 final var returnValue = valInterpreter.getValFromValue(attributeAdjustment.getReturnValue());
                 expectOrVerifyStep = expectOrVerifyStep.thenAttribute(attributeAdjustment.getAttribute(), returnValue);
             } else if (expectOrAdjustmentStep instanceof Await await) {
-                final var duration = Duration.ofSeconds(await.getDuration().getSeconds().longValue());
+                final var duration = durationInterpreter.getJavaDurationFromDuration(await.getDuration());
                 expectOrVerifyStep = expectOrVerifyStep.thenAwait(duration);
             } else if (expectOrAdjustmentStep instanceof NoEvent noEvent) {
-                final var duration = Duration.ofSeconds(noEvent.getDuration().getSeconds().longValue());
+                final var duration = durationInterpreter.getJavaDurationFromDuration(noEvent.getDuration());
                 expectOrVerifyStep = expectOrVerifyStep.expectNoEvent(duration);
             }
         }

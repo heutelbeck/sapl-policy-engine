@@ -101,7 +101,7 @@ FunctionParameters:
 GivenStep:
 	{Function} 'function' importName=IMPORT_NAME ('called with' parameters=FunctionParameters)? 'returning' return=Value ('and' 'is' 'invoked' amount=NumericAmount)? |
 	{FunctionInvokedOnce} 'function' importName=IMPORT_NAME 'returns' return+=Value (',' return+=Value)* 'once' |
-	{Attribute} 'attribute' importName=IMPORT_NAME ('returns' return+=Value (',' return+=Value)* ('for' amount=TemporalAmount)?)? |
+	{Attribute} 'attribute' importName=IMPORT_NAME ('returns' return+=Value (',' return+=Value)* ('for' duration=Duration)?)? |
 	{AttributeWithParameters} 'attribute' importName=IMPORT_NAME 'with' 'parent' 'value' parentMatcher=ValMatcher ('and' 'parameters' parameters+=ValMatcher (',' parameters+=ValMatcher)+)? 'returns' return=Value |
 	{VirtualTime} 'virtualTime' |
     {Variable} 'variable' 'key' key=ID 'value' value=ID;
@@ -124,7 +124,7 @@ NumericAmount:
     {Once} 'once' |
     {Multiple} amount=JSONNUMBER 'times';
 
-TemporalAmount: seconds=JSONNUMBER's';
+Duration: duration=STRING;
 
 ExpectOrAdjustmentStep:
     ExpectStep | AdjustmentStep;
@@ -132,11 +132,11 @@ ExpectOrAdjustmentStep:
 ExpectStep returns ExpectOrAdjustmentStep:
 	{Next} 'expect' expectedDecision=AuthorizationDecision amount=NumericAmount |
 	{NextWithMatcher} 'expect' 'decision' matcher+=AuthorizationDecisionMatcher (',' matcher+=AuthorizationDecisionMatcher)* |
-	{NoEvent} 'no event for' duration=TemporalAmount;
+	{NoEvent} 'no event for' duration=Duration;
 
 AdjustmentStep returns ExpectOrAdjustmentStep:
     {AttributeAdjustment} 'let' attribute=IMPORT_NAME 'return' returnValue=Value |
-	{Await} 'wait' duration=TemporalAmount;
+	{Await} 'wait' duration=Duration;
 
 ExpectChain:
 	{SingleExpect} 'expect' 'single' decision=AuthorizationDecision ('with' 'obligations' obligations+=Value (',' obligations+=Value)*)? ('with' 'resource' resource=Value)? ('with' 'advice' advice+=Value (',' advice+=Value)*)?|

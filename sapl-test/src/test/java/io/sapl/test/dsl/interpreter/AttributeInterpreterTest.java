@@ -11,12 +11,10 @@ import io.sapl.test.Helper;
 import io.sapl.test.dsl.interpreter.matcher.ValMatcherInterpreter;
 import io.sapl.test.grammar.sAPLTest.Attribute;
 import io.sapl.test.grammar.sAPLTest.AttributeWithParameters;
-import io.sapl.test.grammar.sAPLTest.TemporalAmount;
 import io.sapl.test.grammar.sAPLTest.ValMatcher;
 import io.sapl.test.grammar.sAPLTest.Value;
 import io.sapl.test.mocking.attribute.models.AttributeParameters;
 import io.sapl.test.steps.GivenOrWhenStep;
-import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.List;
 import org.eclipse.emf.common.util.EList;
@@ -25,25 +23,28 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.AdditionalAnswers;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class AttributeInterpreterTest {
 
-    private AttributeInterpreter attributeInterpreter;
+
+    @Mock
     private ValInterpreter valInterpreterMock;
+    @Mock
     private ValMatcherInterpreter matcherInterpreterMock;
+    @Mock
+    private DurationInterpreter durationInterpreterMock;
+    @InjectMocks
+    private AttributeInterpreter attributeInterpreter;
+
+    @Mock
     private GivenOrWhenStep givenOrWhenStepMock;
-
-    @BeforeEach
-    void setUp() {
-        valInterpreterMock = mock(ValInterpreter.class);
-        matcherInterpreterMock = mock(ValMatcherInterpreter.class);
-        givenOrWhenStepMock = mock(GivenOrWhenStep.class);
-
-        attributeInterpreter = new AttributeInterpreter(valInterpreterMock, matcherInterpreterMock);
-    }
-
 
     @Nested
     @DisplayName("Interpret attribute")
@@ -85,7 +86,9 @@ class AttributeInterpreterTest {
             when(attributeMock.getReturn()).thenReturn(eListMock);
 
             when(valInterpreterMock.getValFromValue(valMock)).thenReturn(saplValMock);
-            when(attributeMock.getAmount()).thenReturn(null);
+            when(attributeMock.getDuration()).thenReturn(null);
+
+            when(durationInterpreterMock.getJavaDurationFromDuration(null)).thenReturn(null);
 
             when(givenOrWhenStepMock.givenAttribute("fooAttribute", saplValMock)).thenReturn(givenOrWhenStepMock);
 
@@ -100,16 +103,17 @@ class AttributeInterpreterTest {
             final var saplValMock = mock(io.sapl.api.interpreter.Val.class);
             final var eListMock = Helper.mockEList(List.of(valMock));
             final var attributeMock = mock(Attribute.class);
-            final var temporalAmountMock = mock(TemporalAmount.class);
+            final var durationMock = mock(io.sapl.test.grammar.sAPLTest.Duration.class);
 
             when(attributeMock.getImportName()).thenReturn("fooAttribute");
             when(attributeMock.getReturn()).thenReturn(eListMock);
+            when(attributeMock.getDuration()).thenReturn(durationMock);
 
             when(valInterpreterMock.getValFromValue(valMock)).thenReturn(saplValMock);
-            when(attributeMock.getAmount()).thenReturn(temporalAmountMock);
-            when(temporalAmountMock.getSeconds()).thenReturn(BigDecimal.valueOf(5));
 
-            when(givenOrWhenStepMock.givenAttribute("fooAttribute", Duration.ofSeconds(5L), saplValMock)).thenReturn(givenOrWhenStepMock);
+            when(durationInterpreterMock.getJavaDurationFromDuration(durationMock)).thenReturn(Duration.ofSeconds(5));
+
+            when(givenOrWhenStepMock.givenAttribute("fooAttribute", Duration.ofSeconds(5), saplValMock)).thenReturn(givenOrWhenStepMock);
 
             final var result = attributeInterpreter.interpretAttribute(givenOrWhenStepMock, attributeMock);
 

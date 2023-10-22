@@ -9,11 +9,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.test.dsl.interpreter.matcher.ValMatcherInterpreter;
 import io.sapl.test.grammar.sAPLTest.Attribute;
 import io.sapl.test.grammar.sAPLTest.AttributeWithParameters;
-import io.sapl.test.grammar.sAPLTest.TemporalAmount;
 import io.sapl.test.steps.GivenOrWhenStep;
-import java.math.BigDecimal;
-import java.time.Duration;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.hamcrest.Matcher;
 
@@ -22,6 +18,7 @@ public class AttributeInterpreter {
 
     private final ValInterpreter valInterpreter;
     private final ValMatcherInterpreter matcherInterpreter;
+    private final DurationInterpreter durationInterpreter;
 
     GivenOrWhenStep interpretAttribute(final GivenOrWhenStep initial, final Attribute attribute) {
         final var importName = attribute.getImportName();
@@ -31,11 +28,9 @@ public class AttributeInterpreter {
         } else {
             final var values = attribute.getReturn().stream().map(valInterpreter::getValFromValue).toArray(Val[]::new);
 
-            final var duration = Duration.ofSeconds(Optional.ofNullable(attribute.getAmount()).map(TemporalAmount::getSeconds).orElse(BigDecimal.ZERO).intValue());
-            if (duration.isZero()) {
-                return initial.givenAttribute(importName, values);
-            }
-            return initial.givenAttribute(importName, duration, values);
+            final var duration = durationInterpreter.getJavaDurationFromDuration(attribute.getDuration());
+
+            return duration == null ? initial.givenAttribute(importName, values) : initial.givenAttribute(importName, duration, values);
         }
     }
 
