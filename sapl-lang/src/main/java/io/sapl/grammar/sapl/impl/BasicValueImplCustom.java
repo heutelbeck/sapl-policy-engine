@@ -30,7 +30,7 @@ public class BasicValueImplCustom extends BasicValueImpl {
 
 	@Override
 	public Flux<Val> evaluate() {
-		return getValue().evaluate().switchMap(resolveStepsFiltersAndSubTemplates(steps));
+		return getValue().evaluate().switchMap(v -> resolveStepsFiltersAndSubTemplates(steps).apply(v));
 	}
 
 }

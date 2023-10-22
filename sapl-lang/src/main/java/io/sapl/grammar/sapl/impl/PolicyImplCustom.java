@@ -32,8 +32,7 @@ public class PolicyImplCustom extends PolicyImpl {
 
 	@Override
 	public Flux<DocumentEvaluationResult> evaluate() {
-		var whereResult     = body == null ? Flux.just(Val.TRUE.withTrace(Policy.class))
-				: body.evaluate();
+		var whereResult     = body == null ? Flux.just(Val.TRUE.withTrace(Policy.class)) : body.evaluate();
 		var afterWhere      = whereResult
 				.map(where -> PolicyDecision.fromWhereResult(getSaplName(), entitlement.getDecision(), where));
 		var withObligations = afterWhere
@@ -42,7 +41,7 @@ public class PolicyImplCustom extends PolicyImpl {
 				.switchMap(decision -> addConstraints(decision, advice, 0, PolicyDecision::withAdvice));
 
 		Flux<DocumentEvaluationResult> withResource = withAdvice.switchMap(this::addResource);
-		
+
 		return withResource.contextWrite(ctx -> ImportsUtil.loadImportsIntoContext(this, ctx))
 				.onErrorResume(this::importFailure);
 	}

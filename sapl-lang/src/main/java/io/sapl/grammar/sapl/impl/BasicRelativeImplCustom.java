@@ -42,7 +42,7 @@ public class BasicRelativeImplCustom extends BasicRelativeImpl {
 			return Flux.just(Val.error(NO_RELATIVE_NODE_ERROR).withTrace(BasicRelative.class));
 
 		return Flux.just(relativeNode.withTrace(BasicRelative.class, relativeNode))
-				.switchMap(resolveStepsFiltersAndSubTemplates(steps));
+				.switchMap(v -> resolveStepsFiltersAndSubTemplates(steps).apply(v));
 	}
 
 }

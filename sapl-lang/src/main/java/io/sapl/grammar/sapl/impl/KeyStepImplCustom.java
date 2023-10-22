@@ -125,8 +125,7 @@ public class KeyStepImplCustom extends KeyStepImpl {
 			FilterStatement statement) {
 		var array = unfilteredValue.getArrayNode();
 		if (array.isEmpty()) {
-			return Flux
-					.just(unfilteredValue.withTrace(KeyStep.class, Map.of(Trace.UNFILTERED_VALUE, unfilteredValue)));
+			return Flux.just(unfilteredValue.withTrace(KeyStep.class, Map.of(Trace.UNFILTERED_VALUE, unfilteredValue)));
 		}
 		var elementFluxes = new ArrayList<Flux<Val>>(array.size());
 		var elements      = array.elements();

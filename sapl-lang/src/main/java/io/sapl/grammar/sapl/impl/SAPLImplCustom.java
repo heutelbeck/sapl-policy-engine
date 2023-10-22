@@ -23,7 +23,6 @@ import reactor.core.publisher.Mono;
 
 public class SAPLImplCustom extends SAPLImpl {
 
-
 	@Override
 	public Mono<Val> matches() {
 		return getPolicyElement().matches();

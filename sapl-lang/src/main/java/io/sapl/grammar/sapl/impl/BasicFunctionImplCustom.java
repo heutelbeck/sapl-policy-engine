@@ -32,7 +32,7 @@ public class BasicFunctionImplCustom extends BasicFunctionImpl {
 	public Flux<Val> evaluate() {
 		return FunctionUtil.combineArgumentFluxes(arguments)
 				.concatMap(parameters -> FunctionUtil.evaluateFunctionMono(fsteps, parameters))
-				.switchMap(resolveStepsFiltersAndSubTemplates(steps));
+				.switchMap(v -> resolveStepsFiltersAndSubTemplates(steps).apply(v));
 	}
 
 }

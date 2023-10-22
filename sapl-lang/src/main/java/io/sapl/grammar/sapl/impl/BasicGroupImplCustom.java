@@ -29,8 +29,8 @@ public class BasicGroupImplCustom extends BasicGroupImpl {
 	@Override
 	public Flux<Val> evaluate() {
 		final Flux<Val> evaluatedExpressions = getExpression().evaluate();
-		return evaluatedExpressions.switchMap(resolveStepsFiltersAndSubTemplates(steps))
-				.map(val -> val.withTrace(BasicGroup.class,val));
+		return evaluatedExpressions.switchMap(v -> resolveStepsFiltersAndSubTemplates(steps).apply(v))
+				.map(val -> val.withTrace(BasicGroup.class, val));
 	}
 
 }

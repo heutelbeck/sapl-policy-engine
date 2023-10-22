@@ -34,7 +34,8 @@ import reactor.core.publisher.Flux;
  * e.g. {@code 'arr[4, 7, 11]'.}
  *
  * Grammar:{@code  Step: '[' Subscript ']' ;
- * <p>
+ * 
+<p>
  * Subscript returns Step: {IndexUnionStep} indices+=JSONNUMBER ','
  * indices+=JSONNUMBER (',' indices+=JSONNUMBER)* ;}
  */

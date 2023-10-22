@@ -59,8 +59,8 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 	}
 
 	private Flux<Val> evaluateValueStatement(Val previousResult, int statementId, ValueDefinition valueDefinition) {
-		var valueStream = valueDefinition.getEval().evaluate().map(val -> val.withTrace(PolicyBody.class,
-				Map.of(Trace.VARIABLE_NAME, Val.of(valueDefinition.getName()))));
+		var valueStream = valueDefinition.getEval().evaluate().map(
+				val -> val.withTrace(PolicyBody.class, Map.of(Trace.VARIABLE_NAME, Val.of(valueDefinition.getName()))));
 		return valueStream.switchMap(value -> evaluateStatements(previousResult, statementId + 1)
 				.contextWrite(setVariable(valueDefinition.getName(), value)));
 	}

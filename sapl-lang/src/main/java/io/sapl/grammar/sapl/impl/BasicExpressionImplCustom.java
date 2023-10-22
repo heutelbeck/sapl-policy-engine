@@ -35,7 +35,8 @@ import reactor.core.publisher.Flux;
  * Grammar:
  * {@code BasicExpression returns Expression: Basic (FILTER filter=FilterComponent |
  * SUBTEMPLATE subtemplate=BasicExpression)? ;
- * <p>
+ * 
+<p>
  * Basic returns BasicExpression: {BasicGroup} '(' expression=Expression ')'
  * steps+=Step* | {BasicValue} value=Value steps+=Step* | {BasicFunction}
  * fsteps+=ID ('.' fsteps+=ID)* arguments=Arguments steps+=Step* |
@@ -44,20 +45,21 @@ import reactor.core.publisher.Flux;
  */
 public class BasicExpressionImplCustom extends BasicExpressionImpl {
 
-	protected Function<Val, Publisher<? extends Val>> resolveStepsFiltersAndSubTemplates(EList<Step> steps) {
+	protected Function<Val, Publisher<Val>> resolveStepsFiltersAndSubTemplates(EList<Step> steps) {
 		return resolveSteps(steps, 0);
 	}
- 
-	private Function<Val, Publisher<? extends Val>> resolveSteps(EList<Step> steps, int stepId) {
+
+	private Function<Val, Publisher<Val>> resolveSteps(EList<Step> steps, int stepId) {
 		if (steps == null || stepId == steps.size()) {
 			return this::resolveFilterOrSubTemplate;
 		}
-		return value -> steps.get(stepId).apply(value).switchMap(resolveSteps(steps, stepId + 1));
+		return value -> steps.get(stepId).apply(value).switchMap(v -> resolveSteps(steps, stepId + 1).apply(v));
 	}
 
 	private Flux<Val> resolveFilterOrSubTemplate(Val value) {
 		if (filter != null) {
-			return filter.apply(value).contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, value.withTrace(BasicExpression.class,value)));
+			return filter.apply(value).contextWrite(
+					ctx -> AuthorizationContext.setRelativeNode(ctx, value.withTrace(BasicExpression.class, value)));
 		}
 		if (subtemplate != null) {
 			return applySubTemplate(value);
@@ -67,16 +69,17 @@ public class BasicExpressionImplCustom extends BasicExpressionImpl {
 
 	private Flux<Val> applySubTemplate(Val value) {
 		if (!value.isArray()) {
-			return subtemplate.evaluate().contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, value.withTrace(BasicExpression.class,value)));
+			return subtemplate.evaluate().contextWrite(
+					ctx -> AuthorizationContext.setRelativeNode(ctx, value.withTrace(BasicExpression.class, value)));
 		}
 		var array = value.getArrayNode();
 		if (array.isEmpty()) {
-			return Flux.just(value.withTrace(BasicExpression.class,value));
+			return Flux.just(value.withTrace(BasicExpression.class, value));
 		}
 		var itemFluxes = new ArrayList<Flux<Val>>(array.size());
 		for (var element : array) {
-			itemFluxes.add(subtemplate.evaluate()
-					.contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, Val.of(element).withTrace(BasicExpression.class,value))));
+			itemFluxes.add(subtemplate.evaluate().contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx,
+					Val.of(element).withTrace(BasicExpression.class, value))));
 		}
 		return Flux.combineLatest(itemFluxes, RepackageUtil::recombineArray);
 	}
