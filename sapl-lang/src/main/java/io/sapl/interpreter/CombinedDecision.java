@@ -41,13 +41,16 @@ public class CombinedDecision implements Traced {
 	List<DocumentEvaluationResult> documentEvaluationResults = new LinkedList<>();
 	Optional<String>               errorMessage;
 
+	static {
+		MAPPER.registerModule(new Jdk8Module());
+	}
+
 	private CombinedDecision(AuthorizationDecision authorizationDecision, String combiningAlgorithm,
 			List<DocumentEvaluationResult> documentEvaluationResults, Optional<String> errorMessage) {
 		this.authorizationDecision = authorizationDecision;
 		this.combiningAlgorithm    = combiningAlgorithm;
 		this.documentEvaluationResults.addAll(documentEvaluationResults);
 		this.errorMessage = errorMessage;
-		MAPPER.registerModule(new Jdk8Module());
 	}
 
 	public static CombinedDecision error(String combiningAlgorithm, String errorMessage) {
@@ -72,9 +75,9 @@ public class CombinedDecision implements Traced {
 		return newCombinedDecision;
 	}
 
-	public CombinedDecision withDecisionAndEvaluationResult(AuthorizationDecision authorizationDecision,
+	public CombinedDecision withDecisionAndEvaluationResult(AuthorizationDecision newAuthorizationDecision,
 			DocumentEvaluationResult result) {
-		var newCombinedDecision = new CombinedDecision(authorizationDecision, combiningAlgorithm,
+		var newCombinedDecision = new CombinedDecision(newAuthorizationDecision, combiningAlgorithm,
 				documentEvaluationResults, errorMessage);
 		newCombinedDecision.documentEvaluationResults.add(result);
 		return newCombinedDecision;

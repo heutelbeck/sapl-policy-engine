@@ -211,8 +211,8 @@ public class AnnotationAttributeContext implements AttributeContext {
 				}
 				invocationArguments[argumentIndex] = varArgsParameter;
 			} else {
-				for (var valueIndex = 0; argumentIndex < numberOfInvocationParameters;) {
-					invocationArguments[argumentIndex++] = argumentValues[valueIndex++];
+				for (var valueIndex = 0; argumentIndex < numberOfInvocationParameters; valueIndex++) {
+					invocationArguments[argumentIndex++] = argumentValues[valueIndex];
 				}
 			}
 
@@ -253,8 +253,8 @@ public class AnnotationAttributeContext implements AttributeContext {
 				}
 				invocationArguments[argumentIndex] = varArgsParameter;
 			} else {
-				for (var valueIndex = 0; argumentIndex < numberOfInvocationParameters;) {
-					invocationArguments[argumentIndex++] = argumentValues[valueIndex++];
+				for (var valueIndex = 0; argumentIndex < numberOfInvocationParameters; valueIndex++) {
+					invocationArguments[argumentIndex++] = argumentValues[valueIndex];
 				}
 			}
 
