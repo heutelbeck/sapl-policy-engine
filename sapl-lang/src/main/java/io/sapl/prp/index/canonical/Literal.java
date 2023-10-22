@@ -83,7 +83,7 @@ public class Literal {
 	@Override
 	public int hashCode() {
 		if (!hasHashCode) {
-			hash = Objects.hash(bool, negated);
+			hash        = Objects.hash(bool, negated);
 			hasHashCode = true;
 		}
 		return hash;

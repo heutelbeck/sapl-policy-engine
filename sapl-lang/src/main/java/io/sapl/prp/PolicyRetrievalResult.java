@@ -17,7 +17,6 @@ package io.sapl.prp;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import io.sapl.grammar.sapl.PolicyElement;
 import io.sapl.grammar.sapl.SAPL;
@@ -46,7 +45,7 @@ public class PolicyRetrievalResult {
 	}
 
 	public List<PolicyElement> getPolicyElements() {
-		return matchingDocuments.stream().map(SAPL::getPolicyElement).collect(Collectors.toList());
+		return matchingDocuments.stream().map(SAPL::getPolicyElement).toList();
 	}
 
 	public PolicyRetrievalResult withMatch(SAPL match) {

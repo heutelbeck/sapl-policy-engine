@@ -73,7 +73,7 @@ public class CanonicalIndexDataCreationStrategy {
 		Map<DisjunctiveFormula, Bitmask> relatedCandidates = mapFormulaToClauses(formulaToDocuments.keySet(),
 				clauseToIndex);
 
-		int[] numberOfLiteralsInConjunction = mapIndexToNumberOfLiteralsInConjunction(clauseToIndex.inverse());
+		int[] numberOfLiteralsInConjunction   = mapIndexToNumberOfLiteralsInConjunction(clauseToIndex.inverse());
 		int[] numberOfFormulasWithConjunction = mapIndexToNumberOfFormulasWithConjunction(clauseToIndex.inverse(),
 				clauseToFormulas);
 
@@ -103,7 +103,7 @@ public class CanonicalIndexDataCreationStrategy {
 
 		for (Entry<String, DisjunctiveFormula> entry : targets.entrySet()) {
 			DisjunctiveFormula formula = entry.getValue();
-			Set<SAPL> set = formulaToDocumentMap.computeIfAbsent(formula, k -> new HashSet<>());
+			Set<SAPL>          set     = formulaToDocumentMap.computeIfAbsent(formula, k -> new HashSet<>());
 			set.add(documents.get(entry.getKey()));
 		}
 	}
@@ -117,9 +117,9 @@ public class CanonicalIndexDataCreationStrategy {
 
 		for (Entry<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulaEntry : clauseToFormulas.entrySet()) {
 
-			Integer clauseIndex = clauseToIndex.get(clauseToFormulaEntry.getKey());
+			Integer                 clauseIndex              = clauseToIndex.get(clauseToFormulaEntry.getKey());
 			Set<DisjunctiveFormula> formulasContainingClause = clauseToFormulaEntry.getValue();
-			Bitmask clausesInSameFormulas = new Bitmask();
+			Bitmask                 clausesInSameFormulas    = new Bitmask();
 
 			formulasContainingClause.forEach(
 					formulaContainingClause -> clausesInSameFormulas.or(formulaToClauses.get(formulaContainingClause)));
@@ -139,16 +139,16 @@ public class CanonicalIndexDataCreationStrategy {
 	}
 
 	private Collection<PredicateInfo> collectPredicateInfos(Set<DisjunctiveFormula> formulas) {
-		Map<Bool, PredicateInfo> boolToPredicateInfo = new HashMap<>();
-		Set<Bool> negativesGroupedByFormula = new HashSet<>();
-		Set<Bool> positivesGroupedByFormula = new HashSet<>();
+		Map<Bool, PredicateInfo> boolToPredicateInfo       = new HashMap<>();
+		Set<Bool>                negativesGroupedByFormula = new HashSet<>();
+		Set<Bool>                positivesGroupedByFormula = new HashSet<>();
 
 		for (DisjunctiveFormula formula : formulas) {
 			negativesGroupedByFormula.clear();
 			positivesGroupedByFormula.clear();
 			for (ConjunctiveClause clause : formula.getClauses()) {
-				List<Literal> literals = clause.getLiterals();
-				final int sizeOfClause = literals.size();
+				List<Literal> literals     = clause.getLiterals();
+				final int     sizeOfClause = literals.size();
 				for (Literal literal : clause.getLiterals()) {
 					createPredicateInfo(literal, clause, boolToPredicateInfo, negativesGroupedByFormula,
 							positivesGroupedByFormula, sizeOfClause);
@@ -168,7 +168,7 @@ public class CanonicalIndexDataCreationStrategy {
 	void createPredicateInfo(final Literal literal, final ConjunctiveClause clause,
 			final Map<Bool, PredicateInfo> boolToPredicateInfo, Set<Bool> negativesGroupedByFormula,
 			Set<Bool> positivesGroupedByFormula, int sizeOfClause) {
-		Bool bool = literal.getBool();
+		Bool          bool          = literal.getBool();
 		PredicateInfo predicateInfo = boolToPredicateInfo.computeIfAbsent(bool,
 				k -> new PredicateInfo(new Predicate(bool)));
 
@@ -179,8 +179,7 @@ public class CanonicalIndexDataCreationStrategy {
 			if (negativesGroupedByFormula.add(bool)) {
 				predicateInfo.incGroupedNumberOfNegatives();
 			}
-		}
-		else {
+		} else {
 			predicateInfo.addUnsatisfiableConjunctionIfFalse(clause);
 			predicateInfo.incNumberOfPositives();
 			if (positivesGroupedByFormula.add(bool)) {
@@ -191,7 +190,7 @@ public class CanonicalIndexDataCreationStrategy {
 
 	private BiMap<ConjunctiveClause, Integer> createCandidateIndex(final Collection<PredicateInfo> data) {
 		BiMap<ConjunctiveClause, Integer> result = HashBiMap.create();
-		int i = 0;
+		int                               i      = 0;
 		for (PredicateInfo predicateInfo : data) {
 			Predicate predicate = predicateInfo.getPredicate();
 
@@ -233,7 +232,7 @@ public class CanonicalIndexDataCreationStrategy {
 		for (DisjunctiveFormula formula : formulas) {
 			for (ConjunctiveClause clause : formula.getClauses()) {
 				Bitmask associatedIndexes = result.computeIfAbsent(formula, k -> new Bitmask());
-				Integer clauseIndex = clauseToIndex.get(clause);
+				Integer clauseIndex       = clauseToIndex.get(clause);
 				associatedIndexes.set(clauseIndex);
 			}
 		}

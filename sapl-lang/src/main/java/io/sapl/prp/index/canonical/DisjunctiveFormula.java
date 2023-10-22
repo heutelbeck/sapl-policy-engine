@@ -15,13 +15,20 @@
  */
 package io.sapl.prp.index.canonical;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Objects;
 
 import lombok.NonNull;
 
 public class DisjunctiveFormula {
 
-	static final String CONSTRUCTION_FAILED = "Failed to create instance, empty collection provided.";
+	static final String CONSTRUCTION_FAILED     = "Failed to create instance, empty collection provided.";
 	static final String EVALUATION_NOT_POSSIBLE = "Evaluation Error: Attempting to evaluate empty formula.";
 
 	private final List<ConjunctiveClause> clauses;
@@ -76,14 +83,12 @@ public class DisjunctiveFormula {
 			return false;
 		}
 		return (new HashSet<>(clauses).containsAll(other.clauses) && new HashSet<>(other.clauses).containsAll(clauses));
-
-		// return hashCode() == other.hashCode();
 	}
 
 	public boolean evaluate() {
-		ListIterator<ConjunctiveClause> iter = clauses.listIterator();
-		ConjunctiveClause first = iter.next();
-		boolean result = first.evaluate();
+		ListIterator<ConjunctiveClause> iter   = clauses.listIterator();
+		ConjunctiveClause               first  = iter.next();
+		boolean                         result = first.evaluate();
 		while (iter.hasNext()) {
 			if (result) {
 				return true;
@@ -101,8 +106,8 @@ public class DisjunctiveFormula {
 	public int hashCode() {
 		if (!hasHashCode) {
 			int h = 5;
-			h = 17 * h + clauses.stream().mapToInt(Objects::hashCode).sum();
-			hash = h;
+			h           = 17 * h + clauses.stream().mapToInt(Objects::hashCode).sum();
+			hash        = h;
 			hasHashCode = true;
 		}
 		return hash;
@@ -118,9 +123,9 @@ public class DisjunctiveFormula {
 	}
 
 	public DisjunctiveFormula negate() {
-		ListIterator<ConjunctiveClause> iter = clauses.listIterator();
-		ConjunctiveClause first = iter.next();
-		DisjunctiveFormula result = new DisjunctiveFormula(first.negate());
+		ListIterator<ConjunctiveClause> iter   = clauses.listIterator();
+		ConjunctiveClause               first  = iter.next();
+		DisjunctiveFormula              result = new DisjunctiveFormula(first.negate());
 		while (iter.hasNext()) {
 			ConjunctiveClause clause = iter.next();
 			result = result.distribute(new DisjunctiveFormula(clause.negate()));
@@ -130,7 +135,7 @@ public class DisjunctiveFormula {
 
 	public DisjunctiveFormula reduce() {
 		List<ConjunctiveClause> clauseList = getClauses();
-		List<ConjunctiveClause> result = new ArrayList<>(clauseList.size());
+		List<ConjunctiveClause> result     = new ArrayList<>(clauseList.size());
 		for (ConjunctiveClause clause : clauseList) {
 			result.add(clause.reduce());
 		}

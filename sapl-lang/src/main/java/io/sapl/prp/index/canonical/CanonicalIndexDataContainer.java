@@ -68,15 +68,15 @@ public class CanonicalIndexDataContainer {
 			List<Set<DisjunctiveFormula>> relatedFormulas, Map<DisjunctiveFormula, Bitmask> relatedCandidates,
 			Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction, int[] numberOfLiteralsInConjunction,
 			int[] numberOfFormulasWithConjunction, int numberOfConjunctions) {
-		this.formulaToDocuments = formulaToDocuments;
-		this.clauseToFormulas = clauseToFormulas;
-		this.predicateOrder = predicateOrder;
-		this.relatedFormulas = relatedFormulas;
-		this.relatedCandidates = relatedCandidates;
+		this.formulaToDocuments                           = formulaToDocuments;
+		this.clauseToFormulas                             = clauseToFormulas;
+		this.predicateOrder                               = predicateOrder;
+		this.relatedFormulas                              = relatedFormulas;
+		this.relatedCandidates                            = relatedCandidates;
 		this.conjunctionsInFormulasReferencingConjunction = conjunctionsInFormulasReferencingConjunction;
-		this.numberOfLiteralsInConjunction = numberOfLiteralsInConjunction.clone();
-		this.numberOfFormulasWithConjunction = numberOfFormulasWithConjunction.clone();
-		this.numberOfConjunctions = numberOfConjunctions;
+		this.numberOfLiteralsInConjunction                = numberOfLiteralsInConjunction.clone();
+		this.numberOfFormulasWithConjunction              = numberOfFormulasWithConjunction.clone();
+		this.numberOfConjunctions                         = numberOfConjunctions;
 	}
 
 	public int getNumberOfLiteralsInConjunction(int conjunctionIndex) {

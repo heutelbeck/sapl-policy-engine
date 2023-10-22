@@ -38,7 +38,7 @@ public interface PolicyRetrievalPoint {
 	/**
 	 * Release all claimed resources
 	 */
-	default void destroy() throws Exception {
+	default void destroy() {
 		// NOOP
 	}
 

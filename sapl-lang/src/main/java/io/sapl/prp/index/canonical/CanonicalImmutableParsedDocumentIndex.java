@@ -27,6 +27,7 @@ import io.sapl.grammar.sapl.SAPL;
 import io.sapl.grammar.sapl.impl.util.ImportsUtil;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.prp.PolicyRetrievalException;
 import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEvent.Type;
@@ -114,8 +115,8 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
 			newDocuments.remove(name);
 		} else {
 			if (newDocuments.containsKey(name)) {
-				throw new RuntimeException("Fatal error. Policy name collision. A document with a name ('" + name
-						+ "') identical to an existing document was published to the PRP.");
+				throw new PolicyRetrievalException("Fatal error. Policy name collision. A document with a name ('"
+						+ name + "') identical to an existing document was published to the PRP.");
 			}
 			newDocuments.put(name, update.getDocument());
 		}

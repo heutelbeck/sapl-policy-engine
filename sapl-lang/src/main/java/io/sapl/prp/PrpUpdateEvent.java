@@ -30,8 +30,7 @@ public class PrpUpdateEvent {
 	public PrpUpdateEvent(List<Update> updates) {
 		if (updates == null) {
 			this.updates = new Update[] {};
-		}
-		else {
+		} else {
 			this.updates = updates.toArray(Update[]::new);
 		}
 	}
@@ -45,10 +44,10 @@ public class PrpUpdateEvent {
 	}
 
 	/**
-	 * This contains the raw document and a custom equals method to eliminate duplicate
-	 * update events. E.g. file creation may lead to two subsequent identical publish
-	 * events without the .distinctUntilChanged() making use of the {@code equals} method
-	 * of this class.
+	 * This contains the raw document and a custom equals method to eliminate
+	 * duplicate update events. E.g. file creation may lead to two subsequent
+	 * identical publish events without the .distinctUntilChanged() making use of
+	 * the {@code equals} method of this class.
 	 */
 	@Value
 	public static class Update {

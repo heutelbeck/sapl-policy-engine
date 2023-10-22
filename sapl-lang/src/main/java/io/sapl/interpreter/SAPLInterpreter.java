@@ -55,18 +55,15 @@ public interface SAPLInterpreter {
 	 * subscription object within a given attribute context and function context and
 	 * returns a {@link Flux} of {@link AuthorizationDecision} objects.
 	 * 
-	 * @param authzSubscription     the authorization subscription object
-	 * @param saplDocumentSource    the String representing the SAPL document
-	 * @param attributeContext      the PDP's AttributeContext
-	 * @param functionContext       the PDP's FunctionContext
-	 * @param environmentVariables  map containing the PDP's environment variables
+	 * @param authzSubscription    the authorization subscription object
+	 * @param saplDocumentSource   the String representing the SAPL document
+	 * @param attributeContext     the PDP's AttributeContext
+	 * @param functionContext      the PDP's FunctionContext
+	 * @param environmentVariables map containing the PDP's environment variables
 	 * @return A {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
-	Flux<AuthorizationDecision> evaluate(
-			AuthorizationSubscription authzSubscription,
-			String saplDocumentSource,
-			AttributeContext attributeContext,
-			FunctionContext functionContext,
+	Flux<AuthorizationDecision> evaluate(AuthorizationSubscription authzSubscription, String saplDocumentSource,
+			AttributeContext attributeContext, FunctionContext functionContext,
 			Map<String, JsonNode> environmentVariables);
 
 	/**

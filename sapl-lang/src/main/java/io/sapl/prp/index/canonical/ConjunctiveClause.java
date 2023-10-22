@@ -15,13 +15,20 @@
  */
 package io.sapl.prp.index.canonical;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Objects;
 
 import lombok.NonNull;
 
 public class ConjunctiveClause {
 
-	static final String CONSTRUCTION_FAILED = "Failed to create instance, empty collection provided.";
+	static final String CONSTRUCTION_FAILED     = "Failed to create instance, empty collection provided.";
 	static final String EVALUATION_NOT_POSSIBLE = "Evaluation Error: Attempting to evaluate empty clause.";
 
 	private int hash;
@@ -57,14 +64,14 @@ public class ConjunctiveClause {
 			return false;
 		}
 
-		return (new HashSet<>(literals).containsAll(other.literals) && new HashSet<>(other.literals).containsAll(literals));
-		// return hashCode() == other.hashCode();
+		return (new HashSet<>(literals).containsAll(other.literals)
+				&& new HashSet<>(other.literals).containsAll(literals));
 	}
 
 	public boolean evaluate() {
-		ListIterator<Literal> iter = literals.listIterator();
-		Literal first = iter.next();
-		boolean result = first.evaluate();
+		ListIterator<Literal> iter   = literals.listIterator();
+		Literal               first  = iter.next();
+		boolean               result = first.evaluate();
 		while (iter.hasNext()) {
 			if (!result) {
 				return false;
@@ -82,8 +89,8 @@ public class ConjunctiveClause {
 	public int hashCode() {
 		if (!hasHashCode) {
 			int h = 7;
-			h = 23 * h + literals.stream().mapToInt(Objects::hashCode).sum();
-			hash = h;
+			h           = 23 * h + literals.stream().mapToInt(Objects::hashCode).sum();
+			hash        = h;
 			hasHashCode = true;
 		}
 		return hash;
@@ -115,7 +122,7 @@ public class ConjunctiveClause {
 	}
 
 	public List<ConjunctiveClause> negate() {
-		ListIterator<Literal> iter = literals.listIterator();
+		ListIterator<Literal>   iter   = literals.listIterator();
 		List<ConjunctiveClause> result = new ArrayList<>(literals.size());
 		while (iter.hasNext()) {
 			Literal literal = iter.next();

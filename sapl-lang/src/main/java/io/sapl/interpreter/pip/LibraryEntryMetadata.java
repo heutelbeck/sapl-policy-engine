@@ -46,7 +46,7 @@ public interface LibraryEntryMetadata {
 	}
 
 	default List<Annotation> getValidationAnnotationsOfParameter(int index) {
-		var annotations = getFunction().getParameters()[index].getAnnotations();
+		var annotations           = getFunction().getParameters()[index].getAnnotations();
 		var validationAnnotations = new ArrayList<Annotation>(annotations.length);
 		for (var annotation : annotations)
 			if (isValidationAnnotation(annotation))

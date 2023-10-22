@@ -25,13 +25,15 @@ import reactor.core.publisher.Flux;
 public class OperatorUtil {
 
 	public static Flux<Val> operator(BinaryOperator operator, java.util.function.UnaryOperator<Val> leftTypeRequirement,
-			java.util.function.UnaryOperator<Val> rightTypeRequirement, java.util.function.BinaryOperator<Val> transformation) {
+			java.util.function.UnaryOperator<Val> rightTypeRequirement,
+			java.util.function.BinaryOperator<Val> transformation) {
 		var left  = operator.getLeft().evaluate().map(leftTypeRequirement);
 		var right = operator.getRight().evaluate().map(rightTypeRequirement);
 		return Flux.combineLatest(left, right, errorOrDo(transformation));
 	}
 
-	public static Flux<Val> arithmeticOperator(BinaryOperator operator, java.util.function.BinaryOperator<Val> transformation) {
+	public static Flux<Val> arithmeticOperator(BinaryOperator operator,
+			java.util.function.BinaryOperator<Val> transformation) {
 		return operator(operator, Val::requireBigDecimal, Val::requireBigDecimal, transformation);
 	}
 
@@ -40,12 +42,14 @@ public class OperatorUtil {
 		return operator(unaryOperator, Val::requireBigDecimal, transformation);
 	}
 
-	public static Flux<Val> booleanOperator(BinaryOperator operator, java.util.function.BinaryOperator<Val> transformation) {
+	public static Flux<Val> booleanOperator(BinaryOperator operator,
+			java.util.function.BinaryOperator<Val> transformation) {
 		return operator(operator, Val::requireBoolean, Val::requireBoolean, transformation);
 	}
 
 	public static Flux<Val> operator(BinaryOperator operator, java.util.function.BinaryOperator<Val> transformation) {
-		return operator(operator, java.util.function.UnaryOperator.identity(), java.util.function.UnaryOperator.identity(), transformation);
+		return operator(operator, java.util.function.UnaryOperator.identity(),
+				java.util.function.UnaryOperator.identity(), transformation);
 	}
 
 	public static Flux<Val> operator(UnaryOperator unaryOperator, java.util.function.UnaryOperator<Val> typeRequirement,
@@ -53,7 +57,8 @@ public class OperatorUtil {
 		return unaryOperator.getExpression().evaluate().map(typeRequirement).map(errorOrDo(transformation));
 	}
 
-	public static java.util.function.BinaryOperator<Val> errorOrDo(java.util.function.BinaryOperator<Val> transformation) {
+	public static java.util.function.BinaryOperator<Val> errorOrDo(
+			java.util.function.BinaryOperator<Val> transformation) {
 		return (left, right) -> {
 			if (left.isError())
 				return left;
@@ -63,7 +68,8 @@ public class OperatorUtil {
 		};
 	}
 
-	public static java.util.function.UnaryOperator<Val> errorOrDo(java.util.function.UnaryOperator<Val> transformation) {
+	public static java.util.function.UnaryOperator<Val> errorOrDo(
+			java.util.function.UnaryOperator<Val> transformation) {
 		return value -> {
 			if (value.isError())
 				return value;

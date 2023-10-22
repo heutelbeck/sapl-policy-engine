@@ -18,7 +18,8 @@ package io.sapl.prp.index.canonical;
 import lombok.Value;
 
 /**
- * Tuple of a conjunction index number and the number of formulas in F(ci) containing ci .
+ * Tuple of a conjunction index number and the number of formulas in F(ci)
+ * containing ci .
  */
 @Value
 public class CTuple {

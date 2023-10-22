@@ -39,10 +39,10 @@ import reactor.util.function.Tuples;
 
 @UtilityClass
 public class FilterAlgorithmUtil {
-	private static final String UNFILTERED_VALUE = "unfilteredValue";
-	static final String TYPE_MISMATCH_CONDITION_NOT_BOOLEAN_S = "Type mismatch. Expected the condition expression to return a Boolean, but was '%s'.";
-	static final String TYPE_MISMATCH_UNFILTERED_UNDEFINED    = "Filters cannot be applied to undefined values.";
-	static final String TYPE_MISMATCH_EACH_ON_NON_ARRAY       = "Type mismatch error. Cannot use 'each' keyword with non-array values. Value type was: ";
+	private static final String UNFILTERED_VALUE                      = "unfilteredValue";
+	static final String         TYPE_MISMATCH_CONDITION_NOT_BOOLEAN_S = "Type mismatch. Expected the condition expression to return a Boolean, but was '%s'.";
+	static final String         TYPE_MISMATCH_UNFILTERED_UNDEFINED    = "Filters cannot be applied to undefined values.";
+	static final String         TYPE_MISMATCH_EACH_ON_NON_ARRAY       = "Type mismatch error. Cannot use 'each' keyword with non-array values. Value type was: ";
 
 	public static Flux<Val> applyFilter(@NonNull Val unfilteredValue, int stepId, Supplier<Flux<Val>> selector,
 			@NonNull FilterStatement statement, Class<?> operationType) {
@@ -50,7 +50,7 @@ public class FilterAlgorithmUtil {
 			return Flux.just(unfilteredValue.withParentTrace(ConditionStep.class, unfilteredValue));
 		}
 		if (unfilteredValue.isArray()) {
-			return applyFilterOnArray(unfilteredValue, stepId, selector, statement,  operationType);
+			return applyFilterOnArray(unfilteredValue, stepId, selector, statement, operationType);
 		}
 		if (unfilteredValue.isObject()) {
 			return applyFilterOnObject(unfilteredValue, stepId, selector, statement, operationType);
@@ -59,10 +59,9 @@ public class FilterAlgorithmUtil {
 	}
 
 	public static Flux<Val> applyFilterOnArray(Val unfilteredValue, int stepId, Supplier<Flux<Val>> selector,
-			FilterStatement statement,  Class<?> operationType) {
+			FilterStatement statement, Class<?> operationType) {
 		if (!unfilteredValue.isArray()) {
-			return Flux
-					.just(unfilteredValue.withTrace(ConditionStep.class, Map.of(UNFILTERED_VALUE, unfilteredValue)));
+			return Flux.just(unfilteredValue.withTrace(ConditionStep.class, Map.of(UNFILTERED_VALUE, unfilteredValue)));
 		}
 		var array = unfilteredValue.getArrayNode();
 		if (array.isEmpty()) {
@@ -87,13 +86,11 @@ public class FilterAlgorithmUtil {
 	public static Flux<Val> applyFilterOnObject(Val unfilteredValue, int stepId, Supplier<Flux<Val>> selector,
 			FilterStatement statement, Class<?> operationType) {
 		if (!unfilteredValue.isObject()) {
-			return Flux
-					.just(unfilteredValue.withTrace(ConditionStep.class, Map.of(UNFILTERED_VALUE, unfilteredValue)));
+			return Flux.just(unfilteredValue.withTrace(ConditionStep.class, Map.of(UNFILTERED_VALUE, unfilteredValue)));
 		}
 		var object = unfilteredValue.getObjectNode();
 		if (object.isEmpty()) {
-			return Flux
-					.just(unfilteredValue.withTrace(ConditionStep.class, Map.of(UNFILTERED_VALUE, unfilteredValue)));
+			return Flux.just(unfilteredValue.withTrace(ConditionStep.class, Map.of(UNFILTERED_VALUE, unfilteredValue)));
 		}
 		var fieldFluxes = new ArrayList<Flux<Tuple2<String, Val>>>(object.size());
 		var iter        = object.fields();
@@ -114,7 +111,7 @@ public class FilterAlgorithmUtil {
 	private static Function<Val, Flux<Val>> applyFilterIfConditionMet(Val elementValue, Val unfilteredValue, int stepId,
 			FilterStatement statement, String elementIdentifier) {
 		return conditionResult -> {
-			var trace = Map.<String,Traced>of(UNFILTERED_VALUE, unfilteredValue, "conditionResult", conditionResult,
+			var trace = Map.<String, Traced>of(UNFILTERED_VALUE, unfilteredValue, "conditionResult", conditionResult,
 					elementIdentifier, elementValue);
 			if (conditionResult.isError()) {
 				return Flux.just(conditionResult.withTrace(ConditionStep.class, trace));

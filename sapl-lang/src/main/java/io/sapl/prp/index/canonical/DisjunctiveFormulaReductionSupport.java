@@ -33,8 +33,7 @@ public class DisjunctiveFormulaReductionSupport {
 					data.clear();
 					data.add(clause);
 					return;
-				}
-				else {
+				} else {
 					iter.remove();
 				}
 			}
@@ -62,8 +61,7 @@ public class DisjunctiveFormulaReductionSupport {
 			}
 			if (value.isSubsetOf(rhs)) {
 				forward.set(null);
-			}
-			else if (rhs.isSubsetOf(value)) {
+			} else if (rhs.isSubsetOf(value)) {
 				pointer.set(null);
 				return;
 			}

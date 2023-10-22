@@ -16,8 +16,8 @@
 package io.sapl.interpreter.combinators;
 
 /**
- * Enumeration of the algorithms supported by the SAPL policy engine to combine SAPL
- * documents (holding a policy set or a policy).
+ * Enumeration of the algorithms supported by the SAPL policy engine to combine
+ * SAPL documents (holding a policy set or a policy).
  */
 public enum PolicyDocumentCombiningAlgorithm {
 
