@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import io.sapl.prp.index.canonical.Predicate;
 import io.sapl.prp.index.canonical.PredicateInfo;
@@ -31,8 +30,7 @@ public class DefaultPredicateOrderStrategy implements PredicateOrderStrategy {
 		List<PredicateInfo> predicateInfos = new ArrayList<>(data);
 		predicateInfos.parallelStream().forEach(predicateInfo -> predicateInfo.setScore(createScore(predicateInfo)));
 
-		return predicateInfos.stream().sorted(Collections.reverseOrder()).map(PredicateInfo::getPredicate)
-				.collect(Collectors.toList());
+		return predicateInfos.stream().sorted(Collections.reverseOrder()).map(PredicateInfo::getPredicate).toList();
 	}
 
 	private double createScore(final PredicateInfo predicateInfo) {

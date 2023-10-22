@@ -44,42 +44,42 @@ class TemporalFunctionLibraryTests {
 
 	@Test
 	void nowPlusNanos() {
-		var time = timeValOf("2021-11-08T13:00:00Z");
+		var time  = timeValOf("2021-11-08T13:00:00Z");
 		var added = TemporalFunctionLibrary.plusNanos(time, Val.of(10_000_000_000L));
 		assertThat(added, is(val("2021-11-08T13:00:10Z")));
 	}
 
 	@Test
 	void nowPlusMillis() {
-		var time = timeValOf("2021-11-08T13:00:00Z");
+		var time  = timeValOf("2021-11-08T13:00:00Z");
 		var added = TemporalFunctionLibrary.plusMillis(time, Val.of(10_000L));
 		assertThat(added, is(val("2021-11-08T13:00:10Z")));
 	}
 
 	@Test
 	void nowPlusSeconds() {
-		var time = timeValOf("2021-11-08T13:00:00Z");
+		var time  = timeValOf("2021-11-08T13:00:00Z");
 		var added = TemporalFunctionLibrary.plusSeconds(time, Val.of(10L));
 		assertThat(added, is(val("2021-11-08T13:00:10Z")));
 	}
 
 	@Test
 	void nowMinusNanos() {
-		var time = timeValOf("2021-11-08T13:00:00Z");
+		var time       = timeValOf("2021-11-08T13:00:00Z");
 		var subtracted = TemporalFunctionLibrary.minusNanos(time, Val.of(10_000_000_000L));
 		assertThat(subtracted, is(val("2021-11-08T12:59:50Z")));
 	}
 
 	@Test
 	void nowMinusMillis() {
-		var time = timeValOf("2021-11-08T13:00:00Z");
+		var time       = timeValOf("2021-11-08T13:00:00Z");
 		var subtracted = TemporalFunctionLibrary.minusMillis(time, Val.of(10_000L));
 		assertThat(subtracted, is(val("2021-11-08T12:59:50Z")));
 	}
 
 	@Test
 	void nowMinusSeconds() {
-		var time = timeValOf("2021-11-08T13:00:00Z");
+		var time       = timeValOf("2021-11-08T13:00:00Z");
 		var subtracted = TemporalFunctionLibrary.minusSeconds(time, Val.of(10L));
 		assertThat(subtracted, is(val("2021-11-08T12:59:50Z")));
 	}
@@ -101,9 +101,9 @@ class TemporalFunctionLibraryTests {
 
 	@Test
 	void betweenTest() {
-		var today = timeValOf("2021-11-08T13:00:00Z");
+		var today     = timeValOf("2021-11-08T13:00:00Z");
 		var yesterday = timeValOf("2021-11-07T13:00:00Z");
-		var tomorrow = timeValOf("2021-11-09T13:00:00Z");
+		var tomorrow  = timeValOf("2021-11-09T13:00:00Z");
 
 		assertThat(TemporalFunctionLibrary.between(today, yesterday, tomorrow), is(val(true)));
 		assertThat(TemporalFunctionLibrary.between(tomorrow, yesterday, today), is(val(false)));
@@ -115,14 +115,15 @@ class TemporalFunctionLibraryTests {
 
 	@Test
 	void timeBetweenTest() {
-		var today = timeValOf("2021-11-08T13:00:00Z");
+		var today    = timeValOf("2021-11-08T13:00:00Z");
 		var tomorrow = timeValOf("2021-11-09T13:00:00Z");
 
 		assertThat(TemporalFunctionLibrary.timeBetween(today, tomorrow, Val.of("DAYS")), is(val(1L)));
 		assertThat(TemporalFunctionLibrary.timeBetween(today, tomorrow, Val.of("HOURS")), is(val(24L)));
 		assertThat(TemporalFunctionLibrary.timeBetween(tomorrow, today, Val.of("DAYS")), is(val(-1L)));
 		assertThat(TemporalFunctionLibrary.timeBetween(tomorrow, today, Val.of("HOURS")), is(val(-24L)));
-		assertThat(TemporalFunctionLibrary.timeBetween(Val.of("2001-01-01"), Val.of("2002-01-01"), Val.of("YEARS")), is(val(1L)));
+		assertThat(TemporalFunctionLibrary.timeBetween(Val.of("2001-01-01"), Val.of("2002-01-01"), Val.of("YEARS")),
+				is(val(1L)));
 	}
 
 	@Test
@@ -262,8 +263,10 @@ class TemporalFunctionLibraryTests {
 
 	@Test
 	void timeAtZoneTest() {
-		assertThat(TemporalFunctionLibrary.timeInZone(Val.of("13:12:35"), Val.of("2022-01-14"), Val.of("US/Pacific")), is(val("21:12:35")));
-		assertThat(TemporalFunctionLibrary.timeInZone(Val.of("13:12:35"), Val.of("2022-01-14"), Val.of("Europe/Samara")),
+		assertThat(TemporalFunctionLibrary.timeInZone(Val.of("13:12:35"), Val.of("2022-01-14"), Val.of("US/Pacific")),
+				is(val("21:12:35")));
+		assertThat(
+				TemporalFunctionLibrary.timeInZone(Val.of("13:12:35"), Val.of("2022-01-14"), Val.of("Europe/Samara")),
 				is(val("09:12:35")));
 	}
 
@@ -290,7 +293,7 @@ class TemporalFunctionLibraryTests {
 	}
 
 	@Test
-	void should_return_error_for_invalid_time_arguments() {
+	void whenGivenInvalidTimeArgumentsThenFunctionsShouldReturnErrorForStandardPatterns() {
 		assertThrowsForTwoArgs(TemporalFunctionLibrary::before);
 		assertThrowsForTwoArgs(TemporalFunctionLibrary::after);
 		assertThrowsForTwoArgs(TemporalFunctionLibrary::plusNanos);
@@ -314,38 +317,50 @@ class TemporalFunctionLibraryTests {
 		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::hourOf);
 		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::minuteOf);
 		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::secondOf);
+	}
+
+	@Test
+	void whenGivenInvalidTimeArgumentsThenFunctionsShouldReturnError() {
+		var valOfNullString     = Val.of((String) null);
+		var valOfNullBigDecimal = Val.of((BigDecimal) null);
+		var abc                 = Val.of("abc");
+		var def                 = Val.of("def");
+		var ghi                 = Val.of("ghi");
 
 		assertThrows(Exception.class,
-				() -> TemporalFunctionLibrary.between(Val.NULL, Val.of((BigDecimal) null), Val.of((String) null)));
+				() -> TemporalFunctionLibrary.between(Val.NULL, valOfNullBigDecimal, valOfNullString));
 		assertThrows(Exception.class,
 				() -> TemporalFunctionLibrary.between(Val.UNDEFINED, Val.UNDEFINED, Val.UNDEFINED));
-		assertThrows(Exception.class,
-				() -> TemporalFunctionLibrary.between(Val.of("abc"), Val.of("def"), Val.of("ghi")));
+		assertThrows(Exception.class, () -> TemporalFunctionLibrary.between(abc, def, ghi));
 
 		assertThrows(Exception.class,
-				() -> TemporalFunctionLibrary.timeBetween(Val.NULL, Val.of((BigDecimal) null), Val.of((String) null)));
+				() -> TemporalFunctionLibrary.timeBetween(Val.NULL, valOfNullBigDecimal, valOfNullString));
 		assertThrows(Exception.class,
 				() -> TemporalFunctionLibrary.timeBetween(Val.UNDEFINED, Val.UNDEFINED, Val.UNDEFINED));
-		assertThrows(Exception.class,
-				() -> TemporalFunctionLibrary.timeBetween(Val.of("abc"), Val.of("def"), Val.of("ghi")));
+		assertThrows(Exception.class, () -> TemporalFunctionLibrary.timeBetween(abc, def, ghi));
 
 		assertThat(TemporalFunctionLibrary.validUTC(Val.NULL).getBoolean(), is(false));
-		assertThat(TemporalFunctionLibrary.validUTC(Val.of((String) null)).getBoolean(), is(false));
+		assertThat(TemporalFunctionLibrary.validUTC(valOfNullString).getBoolean(), is(false));
 		assertThat(TemporalFunctionLibrary.validUTC(Val.UNDEFINED).getBoolean(), is(false));
-		assertThat(TemporalFunctionLibrary.validUTC(Val.of("abc")).getBoolean(), is(false));
+		assertThat(TemporalFunctionLibrary.validUTC(abc).getBoolean(), is(false));
 	}
 
 	private void assertErrorValIsReturnedOneArg(Function<Val, Val> function) {
+		var valOfNull = Val.of((String) null);
+		var abc       = Val.of("abc");
 		assertThrows(Exception.class, () -> function.apply(Val.NULL));
-		assertThrows(Exception.class, () -> function.apply(Val.of((String) null)));
+		assertThrows(Exception.class, () -> function.apply(valOfNull));
 		assertThrows(Exception.class, () -> function.apply(Val.UNDEFINED));
-		assertThrows(Exception.class, () -> function.apply(Val.of("abc")));
+		assertThrows(Exception.class, () -> function.apply(abc));
 	}
 
 	private void assertThrowsForTwoArgs(BiFunction<Val, Val, Val> function) {
-		assertThrows(Exception.class, () -> function.apply(Val.NULL, Val.of((String) null)));
+		var valOfNull = Val.of((String) null);
+		var abc       = Val.of("abc");
+		var def       = Val.of("def");
+		assertThrows(Exception.class, () -> function.apply(Val.NULL, valOfNull));
 		assertThrows(Exception.class, () -> function.apply(Val.UNDEFINED, Val.UNDEFINED));
-		assertThrows(Exception.class, () -> function.apply(Val.of("abc"), Val.of("def")));
+		assertThrows(Exception.class, () -> function.apply(abc, def));
 	}
 
 	private static Val timeValOf(String utcIsoTime) {

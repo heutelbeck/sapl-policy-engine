@@ -18,7 +18,12 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionEvaluatesTo;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsErrors;
 
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.api.interpreter.Val;
 
@@ -44,54 +49,43 @@ class ApplyStepsKeyTests {
 		assertExpressionEvaluatesTo("{\"key\" : true}.key", "true");
 	}
 
-	@Test
-	void keyStepToArray() {
-		var expression = "[{\"key\" : true},{\"key\": 123}].key";
-		var expected   = "[true,123]";
-		assertExpressionEvaluatesTo(expression, expected);
+	private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+		// @formatter:off
+		return Stream.of(
+	 			// Key step to array
+	 			Arguments.of("[{\"key\" : true},{\"key\": 123}].key",
+	 					     "[true,123]"),
+
+	 			// Key step to array no match
+	 			Arguments.of("[{\"key\" : true},{\"key\": 123}].x",
+	 					     "[]"),
+
+	 			// Filter non-object or array
+	 			Arguments.of("\"Gudrun\" |- { @.key : mock.nil }",
+	 					     "\"Gudrun\""),
+
+	 			// Filter object
+	 			Arguments.of("{\"key\" : true, \"other\" : false} |- { @.key : mock.nil}",
+	 					     "{\"key\" : null, \"other\" : false}"),
+	
+	 			// Filter object descend
+	 			Arguments.of("{\"key\" : { \"key2\" : true}, \"other\" : false} |- { @.key.key2 : mock.nil}",
+	 					     "{\"key\" : {\"key2\" : null }, \"other\" : false}"),
+	 			
+	 			// Filter array
+	 			Arguments.of("[ {\"key\" : true, \"other\" : false} , false ] |- { @.key : mock.nil}",
+	 					     "[ {\"key\" : null, \"other\" : false} , false ]"),
+	 			
+	 			// Filter empty array
+	 			Arguments.of("[] |- { @.key : mock.nil}",
+	 					     "[]")
+				);
+		// @formater:on
 	}
 
-	// FIXME: {"key",123} should be rejected at parse time
-	@Test
-	void keyStepToArrayNoMatch() {
-		var expression = "[{\"key\" : true},{\"key\": 123}].x";
-		var expected   = "[]";
+	@ParameterizedTest
+	@MethodSource("provideStringsForexpressionEvaluatesToExpectedValue")
+	void expressionEvaluatesToExpectedValue(String expression, String expected) {
 		assertExpressionEvaluatesTo(expression, expected);
 	}
-
-	@Test
-	void filterNonObjectOrArray() {
-		var expression = "\"Gudrun\" |- { @.key : mock.nil }";
-		var expected   = "\"Gudrun\"";
-		assertExpressionEvaluatesTo(expression, expected);
-	}
-
-	@Test
-	void filterObject() {
-		var expression = "{\"key\" : true, \"other\" : false} |- { @.key : mock.nil}";
-		var expected   = "{\"key\" : null, \"other\" : false}";
-		assertExpressionEvaluatesTo(expression, expected);
-	}
-
-	@Test
-	void filterObjectDescend() {
-		var expression = "{\"key\" : { \"key2\" : true}, \"other\" : false} |- { @.key.key2 : mock.nil}";
-		var expected   = "{\"key\" : {\"key2\" : null }, \"other\" : false}";
-		assertExpressionEvaluatesTo(expression, expected);
-	}
-
-	@Test
-	void filterArray() {
-		var expression = "[ {\"key\" : true, \"other\" : false} , false ] |- { @.key : mock.nil}";
-		var expected   = "[ {\"key\" : null, \"other\" : false} , false ]";
-		assertExpressionEvaluatesTo(expression, expected);
-	}
-
-	@Test
-	void filterEmptyArray() {
-		var expression = "[] |- { @.key : mock.nil}";
-		var expected   = "[]";
-		assertExpressionEvaluatesTo(expression, expected);
-	}
-
 }

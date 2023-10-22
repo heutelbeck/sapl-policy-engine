@@ -17,7 +17,6 @@ package io.sapl.prp.index.canonical.ordering;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import io.sapl.prp.index.canonical.Predicate;
 import io.sapl.prp.index.canonical.PredicateInfo;
@@ -26,7 +25,7 @@ public class NoPredicateOrderStrategy implements PredicateOrderStrategy {
 
 	@Override
 	public List<Predicate> createPredicateOrder(Collection<PredicateInfo> predicateInfos) {
-		return predicateInfos.stream().map(PredicateInfo::getPredicate).collect(Collectors.toList());
+		return predicateInfos.stream().map(PredicateInfo::getPredicate).toList();
 	}
 
 }

@@ -70,7 +70,7 @@ public class EquivalenceAndHashUtil {
 			return 0;
 		}
 		int hash = HASH_SEED_PRIME;
-		if (featureInstance instanceof EList eListFeatureInscance) {
+		if (featureInstance instanceof EList<?> eListFeatureInscance) {
 			var thizList = eListFeatureInscance;
 			for (Object element : thizList) {
 				hash = PRIME * hash + hash(element, imports);
@@ -132,7 +132,7 @@ public class EquivalenceAndHashUtil {
 		if (thatFeatureInstance == null) {
 			return false;
 		}
-		if (thisFeatureInstance instanceof EList thizList && thatFeatureInstance instanceof EList thatList) {
+		if (thisFeatureInstance instanceof EList<?> thizList && thatFeatureInstance instanceof EList<?> thatList) {
 			if (thizList.size() != thatList.size()) {
 				return false;
 			}

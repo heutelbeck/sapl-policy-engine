@@ -18,7 +18,12 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionEvaluatesTo;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsErrors;
 
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.api.interpreter.Val;
 
@@ -37,7 +42,7 @@ class ApplyFilteringSimpleTests {
 	@Test
 	void removeNoEach() {
 		var expression = "{} |- filter.remove";
-		var expected = Val.UNDEFINED;
+		var expected   = Val.UNDEFINED;
 		assertExpressionEvaluatesTo(expression, expected);
 	}
 
@@ -46,25 +51,27 @@ class ApplyFilteringSimpleTests {
 		assertExpressionReturnsErrors("{} |- each filter.remove");
 	}
 
-	@Test
-	void removeEachArray() {
-		var expression = "[null] |- each filter.remove";
-		var expected = "[]";
-		assertExpressionEvaluatesTo(expression, expected);
+	private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+		// @formatter:off
+		return Stream.of(
+	 			// Remove each array
+	 			Arguments.of("[null] |- each filter.remove",
+	 					     "[]"),
+			
+	 			// Empty string no each
+	 			Arguments.of("[] |- mock.emptyString",
+	 					     "\"\""),
+
+	 			// Empty string each
+	 			Arguments.of("[ null, 5 ] |- each mock.emptyString(null)",
+	 					     "[ \"\", \"\" ]")
+				);
+		// @formater:on
 	}
 
-	@Test
-	void emptyStringNoEach() {
-		var expression = "[] |- mock.emptyString";
-		var expected = "\"\"";
+	@ParameterizedTest
+	@MethodSource("provideStringsForexpressionEvaluatesToExpectedValue")
+	void expressionEvaluatesToExpectedValue(String expression, String expected) {
 		assertExpressionEvaluatesTo(expression, expected);
 	}
-
-	@Test
-	void emptyStringEach() {
-		var expression = "[ null, 5 ] |- each mock.emptyString(null)";
-		var expected = "[ \"\", \"\" ]";
-		assertExpressionEvaluatesTo(expression, expected);
-	}
-
 }

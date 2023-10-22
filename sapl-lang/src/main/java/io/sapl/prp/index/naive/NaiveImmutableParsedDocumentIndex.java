@@ -17,7 +17,6 @@ package io.sapl.prp.index.naive;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.prp.PolicyRetrievalResult;
@@ -62,7 +61,7 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
 			return Mono.just(new PolicyRetrievalResult().withInvalidState());
 
 		var documentsWithMatchingInformation = Flux.merge(documentsByName.values().stream()
-				.map(document -> document.matches().map(val -> Tuples.of(document, val))).collect(Collectors.toList()));
+				.map(document -> document.matches().map(val -> Tuples.of(document, val))).toList());
 
 		return documentsWithMatchingInformation.reduce(new PolicyRetrievalResult(),
 				(policyRetrievalResult, documentWithMatchingInformation) -> {
@@ -70,7 +69,7 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
 					if (match.isError())
 						return policyRetrievalResult.withError();
 					if (!match.isBoolean()) {
-						log.error("matching returned error. (Should never happen): {}", match.getMessage());
+						log.error("Matching returned error. Should never happen. Error: {}", match.getMessage());
 						return policyRetrievalResult.withError();
 					}
 					if (match.getBoolean())

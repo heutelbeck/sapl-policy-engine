@@ -65,43 +65,65 @@ class FilterFunctionLibraryTests {
 
 	@Test
 	void blackenTooManyArguments() {
-		assertThrows(IllegalArgumentException.class,
-				() -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(2), Val.of("x"), Val.of(2)));
+		var text                     = Val.of("abcde");
+		var discloseLeft             = Val.of(2);
+		var discloseRight            = Val.of(2);
+		var replacement              = Val.of("x");
+		var theArgumentThatIsTooMuch = Val.of(2);
+		assertThrows(IllegalArgumentException.class, () -> FilterFunctionLibrary.blacken(text, discloseLeft,
+				discloseRight, replacement, theArgumentThatIsTooMuch));
 	}
 
 	@Test
 	void blackenNoString() {
-		assertThrows(IllegalArgumentException.class, () -> FilterFunctionLibrary.blacken(Val.of(2)));
+		var notText = Val.of(2);
+		assertThrows(IllegalArgumentException.class, () -> FilterFunctionLibrary.blacken(notText));
 	}
 
 	@Test
 	void blackenReplacementNoString() {
+		var text          = Val.of("abcde");
+		var discloseLeft  = Val.of(2);
+		var discloseRight = Val.of(2);
+		var replacement   = Val.of(2);
 		assertThrows(IllegalArgumentException.class,
-				() -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(2), Val.of(2)));
+				() -> FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight, replacement));
 	}
 
 	@Test
 	void blackenReplacementNegativeRight() {
+		var text          = Val.of("abcde");
+		var discloseLeft  = Val.of(2);
+		var discloseRight = Val.of(-2);
 		assertThrows(IllegalArgumentException.class,
-				() -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(-2)));
+				() -> FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight));
 	}
 
 	@Test
 	void blackenReplacementNegativeLeft() {
+		var text          = Val.of("abcde");
+		var discloseLeft  = Val.of(-2);
+		var discloseRight = Val.of(2);
 		assertThrows(IllegalArgumentException.class,
-				() -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(-2), Val.of(2)));
+				() -> FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight));
 	}
 
 	@Test
 	void blackenReplacementRightNoNumber() {
+		var text          = Val.of("abcde");
+		var discloseLeft  = Val.of(2);
+		var discloseRight = Val.NULL;
 		assertThrows(IllegalArgumentException.class,
-				() -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.NULL));
+				() -> FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight));
 	}
 
 	@Test
 	void blackenReplacementLeftNoNumber() {
+		var text          = Val.of("abcde");
+		var discloseLeft  = Val.NULL;
+		var discloseRight = Val.of(2);
 		assertThrows(IllegalArgumentException.class,
-				() -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.NULL, Val.of(2)));
+				() -> FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight));
 	}
 
 	@Test
