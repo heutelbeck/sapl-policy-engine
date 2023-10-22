@@ -16,7 +16,7 @@
 package io.sapl.grammar.sapl.impl;
 
 import java.math.BigDecimal;
-import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 
 import io.sapl.api.interpreter.Val;
@@ -54,8 +54,8 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 				SelectorUtil.toArrayElementSelector(hasIndex(unfilteredValue)), statement, ArraySlicingStep.class);
 	}
 
-	private BiFunction<Integer, Val, Boolean> hasIndex(Val parentValue) {
-		return (index, __) -> {
+	private BiPredicate<Integer, Val> hasIndex(Val parentValue) {
+		return (index, v) -> {
 			var arraySize = parentValue.getArrayNode().size();
 			return indices.stream().map(BigDecimal::intValue).map(i -> normalizeIndex(i, arraySize))
 					.anyMatch(i -> i.equals(index));

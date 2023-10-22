@@ -63,7 +63,7 @@ class SAPLSyntaxErrorMessageProviderTests {
 		String testPolicy = "";
 		SAPL policy = this.parseHelper.parse(testPolicy);
 		this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT);
+				SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT_ERROR);
 	}
 
 	@Test
@@ -71,7 +71,7 @@ class SAPLSyntaxErrorMessageProviderTests {
 		String testPolicy = "set ";
 		SAPL policy = this.parseHelper.parse(testPolicy);
 		this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_SET_NAME);
+				SAPLSyntaxErrorMessageProvider.INCOMPLETE_SET_NAME_ERROR);
 	}
 
 	@Test
@@ -79,7 +79,7 @@ class SAPLSyntaxErrorMessageProviderTests {
 		String testPolicy = "set \"setname\" ";
 		SAPL policy = this.parseHelper.parse(testPolicy);
 		this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_SET_ENTITLEMENT);
+				SAPLSyntaxErrorMessageProvider.INCOMPLETE_SET_ENTITLEMENT_ERROR);
 	}
 
 	@Test
@@ -87,7 +87,7 @@ class SAPLSyntaxErrorMessageProviderTests {
 		String testPolicy = "set \"setname\" deny-unless-permit";
 		SAPL policy = this.parseHelper.parse(testPolicy);
 		this.validator.assertError(policy, SaplPackage.eINSTANCE.getDenyUnlessPermitCombiningAlgorithm(),
-				Diagnostic.SYNTAX_DIAGNOSTIC, SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT);
+				Diagnostic.SYNTAX_DIAGNOSTIC, SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT_ERROR);
 	}
 
 	@Test
@@ -95,7 +95,7 @@ class SAPLSyntaxErrorMessageProviderTests {
 		String testPolicy = "import ";
 		SAPL policy = this.parseHelper.parse(testPolicy);
 		this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_IMPORT);
+				SAPLSyntaxErrorMessageProvider.INCOMPLETE_IMPORT_ERROR);
 	}
 
 	@Test
@@ -103,7 +103,7 @@ class SAPLSyntaxErrorMessageProviderTests {
 		String testPolicy = "import clock as abc";
 		SAPL policy = this.parseHelper.parse(testPolicy);
 		this.validator.assertError(policy, SaplPackage.eINSTANCE.getLibraryImport(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_IMPORT_ALIAS_SET_POLICY);
+				SAPLSyntaxErrorMessageProvider.INCOMPLETE_IMPORT_ALIAS_SET_POLICY_ERROR);
 	}
 
 	@Test
@@ -111,7 +111,7 @@ class SAPLSyntaxErrorMessageProviderTests {
 		String testPolicy = "policy ";
 		SAPL policy = this.parseHelper.parse(testPolicy);
 		this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_POLICY_NAME);
+				SAPLSyntaxErrorMessageProvider.INCOMPLETE_POLICY_NAME_ERROR);
 	}
 
 	@Test
@@ -119,7 +119,7 @@ class SAPLSyntaxErrorMessageProviderTests {
 		String testPolicy = "policy \"test\"";
 		SAPL policy = this.parseHelper.parse(testPolicy);
 		this.validator.assertError(policy, SaplPackage.eINSTANCE.getPolicy(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_POLICY_ENTITLEMENT);
+				SAPLSyntaxErrorMessageProvider.INCOMPLETE_POLICY_ENTITLEMENT_ERROR);
 	}
 
 	@Test
@@ -127,7 +127,7 @@ class SAPLSyntaxErrorMessageProviderTests {
 		String testPolicy = "policy \"test\" ";
 		SAPL policy = this.parseHelper.parse(testPolicy);
 		this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_POLICY_ENTITLEMENT);
+				SAPLSyntaxErrorMessageProvider.INCOMPLETE_POLICY_ENTITLEMENT_ERROR);
 	}
 
 	@Test
@@ -135,7 +135,7 @@ class SAPLSyntaxErrorMessageProviderTests {
 		String testPolicy = "policy \"\" deny where var abc = 5; sub";
 		SAPL policy = this.parseHelper.parse(testPolicy);
 		this.validator.assertError(policy, SaplPackage.eINSTANCE.getBasicIdentifier(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT);
+				SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT_ERROR);
 	}
 
 	@Test
@@ -143,7 +143,7 @@ class SAPLSyntaxErrorMessageProviderTests {
 		String testPolicy = "policy \"\" deny where var";
 		SAPL policy = this.parseHelper.parse(testPolicy);
 		this.validator.assertError(policy, SaplPackage.eINSTANCE.getPolicyBody(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_NAME);
+				SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_NAME_ERROR);
 	}
 
 	@Test
@@ -151,7 +151,7 @@ class SAPLSyntaxErrorMessageProviderTests {
 		String testPolicy = "policy \"\" deny where var ";
 		SAPL policy = this.parseHelper.parse(testPolicy);
 		this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_NAME);
+				SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_NAME_ERROR);
 	}
 
 	@Test
@@ -159,7 +159,7 @@ class SAPLSyntaxErrorMessageProviderTests {
 		String testPolicy = "policy \"\" deny where var abc";
 		SAPL policy = this.parseHelper.parse(testPolicy);
 		this.validator.assertError(policy, SaplPackage.eINSTANCE.getValueDefinition(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_VALUE);
+				SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_VALUE_ERROR);
 	}
 
 	@Test
@@ -167,7 +167,7 @@ class SAPLSyntaxErrorMessageProviderTests {
 		String testPolicy = "policy \"\" deny where var abc ";
 		SAPL policy = this.parseHelper.parse(testPolicy);
 		this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_VALUE);
+				SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_VALUE_ERROR);
 	}
 
 	@Test
@@ -175,7 +175,7 @@ class SAPLSyntaxErrorMessageProviderTests {
 		String testPolicy = "policy \"\" deny where var abc =";
 		SAPL policy = this.parseHelper.parse(testPolicy);
 		this.validator.assertError(policy, SaplPackage.eINSTANCE.getValueDefinition(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_VALUE);
+				SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_VALUE_ERROR);
 	}
 
 	@Test
@@ -183,7 +183,7 @@ class SAPLSyntaxErrorMessageProviderTests {
 		String testPolicy = "policy \"\" deny where var abc = ";
 		SAPL policy = this.parseHelper.parse(testPolicy);
 		this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_VALUE);
+				SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_VALUE_ERROR);
 	}
 
 	@Test
@@ -191,7 +191,7 @@ class SAPLSyntaxErrorMessageProviderTests {
 		String testPolicy = "policy \"\" deny where var abc = 5";
 		SAPL policy = this.parseHelper.parse(testPolicy);
 		this.validator.assertError(policy, SaplPackage.eINSTANCE.getNumberLiteral(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_CLOSE);
+				SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_CLOSE_ERROR);
 	}
 
 	@Test
@@ -199,7 +199,7 @@ class SAPLSyntaxErrorMessageProviderTests {
 		String testPolicy = "policy \"\" deny where var abc = 5 ";
 		SAPL policy = this.parseHelper.parse(testPolicy);
 		this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_CLOSE);
+				SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_CLOSE_ERROR);
 	}
 
 	@Test
@@ -242,7 +242,7 @@ class SAPLSyntaxErrorMessageProviderTests {
 		when(context.getCurrentNode()).thenReturn(node);
 
 		SyntaxErrorMessage message = provider.handleMismatchedTokenException(context, exception);
-		assertEquals(SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT, message.getMessage());
+		assertEquals(SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT_ERROR, message.getMessage());
 	}
 
 	@Test
@@ -271,7 +271,7 @@ class SAPLSyntaxErrorMessageProviderTests {
 		when(context.getCurrentNode()).thenReturn(Mockito.mock(INode.class));
 
 		SyntaxErrorMessage message = provider.handleMismatchedTokenException(context, exception);
-		assertEquals(SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT, message.getMessage());
+		assertEquals(SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT_ERROR, message.getMessage());
 	}
 
 	@Test
@@ -319,7 +319,7 @@ class SAPLSyntaxErrorMessageProviderTests {
 		when(context.getRecognitionException()).thenReturn(exception);
 
 		SyntaxErrorMessage message = provider.handleEarlyExitException(context, exception);
-		assertEquals(SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT, message.getMessage());
+		assertEquals(SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT_ERROR, message.getMessage());
 	}
 
 	@Test

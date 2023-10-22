@@ -119,7 +119,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 				return Val.error(e);
 			}
 		}
-		return invokeFunction(metadata, new Object[] { parameters });
+		return invokeFunction(metadata, (Object[]) new Object[] { parameters });
 	}
 
 	private Val invokeFunction(FunctionMetadata metadata, Object... parameters) {

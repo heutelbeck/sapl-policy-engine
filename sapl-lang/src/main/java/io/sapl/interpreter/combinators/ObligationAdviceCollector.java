@@ -27,7 +27,7 @@ import io.sapl.api.pdp.Decision;
 
 public class ObligationAdviceCollector {
 
-	private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
+	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	final Map<Decision, ArrayNode> obligations = new EnumMap<>(Decision.class);
 

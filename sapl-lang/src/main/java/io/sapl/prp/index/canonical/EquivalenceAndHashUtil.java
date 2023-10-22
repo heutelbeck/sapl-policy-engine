@@ -15,7 +15,6 @@
  */
 package io.sapl.prp.index.canonical;
 
-import java.util.Iterator;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -33,17 +32,17 @@ import lombok.experimental.UtilityClass;
  * <p>
  * a) Parent nodes in the ASTs (eContainer) are irrelevant for this comparison
  * <p>
- * b) Import statements in policies may lead to locally equal expression objects to be
- * semantically different, or locally different objects to we semantically equivalent.
- * This the case for functions and attribute finders. These have to be explicitly handled
- * and imports must be resolved before comparing or hashing.
+ * b) Import statements in policies may lead to locally equal expression objects
+ * to be semantically different, or locally different objects to we semantically
+ * equivalent. This the case for functions and attribute finders. These have to
+ * be explicitly handled and imports must be resolved before comparing or
+ * hashing.
  */
 @UtilityClass
 public class EquivalenceAndHashUtil {
 
-	private final static int HASH_SEED_PRIME = 7;
-
-	private final static int PRIME = 31;
+	private static final int HASH_SEED_PRIME = 7;
+	private static final int PRIME           = 31;
 
 	public static int semanticHash(@NonNull EObject thiz, @NonNull Map<String, String> imports) {
 		var hash = HASH_SEED_PRIME;
@@ -54,8 +53,7 @@ public class EquivalenceAndHashUtil {
 			var featureInstance = thiz.eGet(feature);
 			if ("fsteps".equals(feature.getName())) {
 				hash = PRIME * hash + hashFStepRespectingImports(featureInstance, imports);
-			}
-			else {
+			} else {
 				hash = PRIME * hash + hash(featureInstance, imports);
 			}
 		}
@@ -67,22 +65,19 @@ public class EquivalenceAndHashUtil {
 		return resolveStepsToFullyQualifiedName((EList<Object>) featureInstance, imports).hashCode();
 	}
 
-	@SuppressWarnings("unchecked")
 	private static int hash(Object featureInstance, @NonNull Map<String, String> imports) {
 		if (featureInstance == null) {
 			return 0;
 		}
 		int hash = HASH_SEED_PRIME;
-		if (featureInstance instanceof EList) {
-			var thizList = (EList<EObject>) featureInstance;
+		if (featureInstance instanceof EList eListFeatureInscance) {
+			var thizList = eListFeatureInscance;
 			for (Object element : thizList) {
 				hash = PRIME * hash + hash(element, imports);
 			}
-		}
-		else if (featureInstance instanceof EObject) {
-			hash = PRIME * hash + semanticHash((EObject) featureInstance, imports);
-		}
-		else {
+		} else if (featureInstance instanceof EObject eObjectFeatureInscance) {
+			hash = PRIME * hash + semanticHash(eObjectFeatureInscance, imports);
+		} else {
 			hash = PRIME * hash + featureInstance.hashCode();
 		}
 		return hash;
@@ -121,7 +116,7 @@ public class EquivalenceAndHashUtil {
 	}
 
 	private String resolveStepsToFullyQualifiedName(EList<Object> steps, @NonNull Map<String, String> imports) {
-		var baseString = steps.stream().map(val -> (String) val).collect(Collectors.joining("."));
+		var baseString = steps.stream().map(String.class::cast).collect(Collectors.joining("."));
 		var importBase = imports.get(baseString);
 		if (importBase != null) {
 			return importBase;
@@ -129,7 +124,6 @@ public class EquivalenceAndHashUtil {
 		return baseString;
 	}
 
-	@SuppressWarnings("unchecked")
 	static boolean featuresAreEquivalent(Object thisFeatureInstance, Map<String, String> thisImports,
 			Object thatFeatureInstance, Map<String, String> thatImports) {
 		if (thisFeatureInstance == thatFeatureInstance) {
@@ -138,14 +132,12 @@ public class EquivalenceAndHashUtil {
 		if (thatFeatureInstance == null) {
 			return false;
 		}
-		if (thisFeatureInstance instanceof EList) {
-			EList<EObject> thizList = (EList<EObject>) thisFeatureInstance;
-			EList<EObject> thatList = (EList<EObject>) thatFeatureInstance;
+		if (thisFeatureInstance instanceof EList thizList && thatFeatureInstance instanceof EList thatList) {
 			if (thizList.size() != thatList.size()) {
 				return false;
 			}
-			Iterator<EObject> thizIterator = thizList.iterator();
-			Iterator<EObject> thatIterator = thatList.iterator();
+			var thizIterator = thizList.iterator();
+			var thatIterator = thatList.iterator();
 			while (thizIterator.hasNext()) {
 				// While this is Iterator<EObject>, it may return String
 				Object thizElement = thizIterator.next();
@@ -156,11 +148,9 @@ public class EquivalenceAndHashUtil {
 			}
 			return true;
 		}
-		if (thisFeatureInstance instanceof EObject) {
-			return areEquivalent((EObject) thisFeatureInstance, thisImports, (EObject) thatFeatureInstance,
-					thatImports);
-		}
-		else {
+		if (thisFeatureInstance instanceof EObject thisObject && thatFeatureInstance instanceof EObject thatObject) {
+			return areEquivalent(thisObject, thisImports, thatObject, thatImports);
+		} else {
 			return thisFeatureInstance.equals(thatFeatureInstance);
 		}
 	}

@@ -19,7 +19,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.IntFunction;
 
 public interface LibraryEntryMetadata {
 
@@ -81,7 +81,7 @@ public interface LibraryEntryMetadata {
 	}
 
 	default void appendParameterList(StringBuilder sb, int parameterOffset,
-			Function<Integer, String> parameterStringBuilder) {
+			IntFunction<String> parameterStringBuilder) {
 		if (isVarArgsParameters())
 			sb.append('(').append(parameterStringBuilder.apply(parameterOffset)).append("...)");
 		else if (getNumberOfParameters() > 0) {

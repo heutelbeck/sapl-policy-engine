@@ -40,6 +40,6 @@ public interface PolicyRetrievalPoint {
 	 */
 	default void destroy() throws Exception {
 		// NOOP
-	};
+	}
 
 }

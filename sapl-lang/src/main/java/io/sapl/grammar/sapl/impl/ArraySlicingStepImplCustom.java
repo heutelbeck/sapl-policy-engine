@@ -16,7 +16,7 @@
 package io.sapl.grammar.sapl.impl;
 
 import java.math.BigDecimal;
-import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
@@ -61,8 +61,8 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 		return "[" + getIndex() + ":" + getTo() + ":" + getStep() + "]";
 	}
 
-	private BiFunction<Integer, Val, Boolean> isInSlice(Val parentValue) {
-		return (i, __) -> {
+	private BiPredicate<Integer, Val> isInSlice(Val parentValue) {
+		return (i, v) -> {
 			var arraySize = parentValue.getArrayNode().size();
 			// normalize slicing ranges
 			var step = getStep() == null ? BigDecimal.ONE.intValue() : getStep().intValue();

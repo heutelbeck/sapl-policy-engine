@@ -74,7 +74,7 @@ public class TimePolicyInformationPoint {
 
 	private Flux<Instant> instantNow(Duration pollIntervalInMillis) {
 		var first     = Flux.just(clock.instant());
-		var following = Flux.just(0).repeat().delayElements(pollIntervalInMillis).map(__ -> clock.instant());
+		var following = Flux.just(0).repeat().delayElements(pollIntervalInMillis).map(tick -> clock.instant());
 		return Flux.concat(first, following);
 	}
 

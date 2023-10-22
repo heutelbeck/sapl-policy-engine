@@ -33,12 +33,12 @@ public class TreeWalker {
 		Preconditions.checkNotNull(imports);
 		if (Preconditions.checkNotNull(expression) instanceof EagerAnd) {
 			return traverse((EagerAnd) expression, imports);
-		} else if (expression instanceof EagerOr) {
-			return traverse((EagerOr) expression, imports);
-		} else if (expression instanceof Not) {
-			return traverse((Not) expression, imports);
-		} else if (expression instanceof BasicGroup) {
-			return traverse((BasicGroup) expression, imports);
+		} else if (expression instanceof EagerOr eagerOr) {
+			return traverse(eagerOr, imports);
+		} else if (expression instanceof Not not) {
+			return traverse(not, imports);
+		} else if (expression instanceof BasicGroup basicGroup) {
+			return traverse(basicGroup, imports);
 		}
 		return endRecursion(expression, imports);
 	}

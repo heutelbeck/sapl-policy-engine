@@ -144,7 +144,7 @@ public class AuthorizationContext {
 			// NOOP continue with result == null
 		}
 		if (result == null)
-			result = new HashMap<String, JsonNode>();
+			result = new HashMap<>();
 		return result;
 	}
 
