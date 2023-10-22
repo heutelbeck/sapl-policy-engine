@@ -15,7 +15,6 @@
  */
 package io.sapl.interpreter.pip;
 
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,7 +26,7 @@ import lombok.RequiredArgsConstructor;
 @Data
 @NoArgsConstructor(force = true)
 @RequiredArgsConstructor
-public class PolicyInformationPointDocumentation implements Serializable {
+public class PolicyInformationPointDocumentation {
 
 	@NonNull
 	String name;

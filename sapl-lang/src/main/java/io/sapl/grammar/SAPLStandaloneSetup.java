@@ -22,7 +22,8 @@ import com.google.inject.Injector;
 import io.sapl.grammar.sapl.SaplPackage;
 
 /**
- * Initialization support for running Xtext languages without Equinox extension registry.
+ * Initialization support for running Xtext languages without Equinox extension
+ * registry.
  */
 public class SAPLStandaloneSetup extends SAPLStandaloneSetupGenerated {
 
@@ -32,10 +33,7 @@ public class SAPLStandaloneSetup extends SAPLStandaloneSetupGenerated {
 
 	@Override
 	public void register(final Injector injector) {
-		boolean containsKey = EPackage.Registry.INSTANCE.containsKey(SaplPackage.eNS_URI);
-		if (!containsKey) {
-			EPackage.Registry.INSTANCE.put(SaplPackage.eNS_URI, SaplPackage.eINSTANCE);
-		}
+		EPackage.Registry.INSTANCE.computeIfAbsent(SaplPackage.eNS_URI, key -> SaplPackage.eINSTANCE);
 		super.register(injector);
 	}
 

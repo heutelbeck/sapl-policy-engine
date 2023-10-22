@@ -33,7 +33,7 @@ import lombok.Value;
 public class Trace {
 	public static final String ADVICE                     = "advice";
 	public static final String ARGUMENT                   = "argument";
-	public static final String ARGUMENTS                  = "arguments";
+	public static final String ARGUMENTS_KEY              = "arguments";
 	public static final String ATTRIBUTE                  = "attribute";
 	public static final String AUTHORIZATION_DECISION     = "authorizationDecision";
 	public static final String AUTHORIZATION_SUBSCRIPTION = "authorizationSubscription";
@@ -72,7 +72,7 @@ public class Trace {
 	public static final String SUBTRAHEND                 = "subtrahend";
 	public static final String TARGET                     = "target";
 	public static final String TIMESTAMP                  = "timestamp";
-	public static final String TRACE                      = "trace";
+	public static final String TRACE_KEY                  = "trace";
 	public static final String UNFILTERED_VALUE           = "unfilteredValue";
 	public static final String VALUE                      = "value";
 	public static final String VARIABLE_NAME              = "variableName";
@@ -105,7 +105,7 @@ public class Trace {
 			if (arguments.length == 1)
 				this.arguments.add(new ExpressionArgument(ARGUMENT, argument));
 			else
-				this.arguments.add(new ExpressionArgument(ARGUMENTS + "[" + i++ + "]", argument));
+				this.arguments.add(new ExpressionArgument(ARGUMENTS_KEY + "[" + i++ + "]", argument));
 		}
 	}
 
@@ -148,7 +148,7 @@ public class Trace {
 			if (arguments.length == 1)
 				this.arguments.add(new ExpressionArgument(ARGUMENT, argument));
 			else
-				this.arguments.add(new ExpressionArgument(ARGUMENTS + "[" + i++ + "]", argument));
+				this.arguments.add(new ExpressionArgument(ARGUMENTS_KEY + "[" + i++ + "]", argument));
 		}
 	}
 
@@ -164,7 +164,7 @@ public class Trace {
 			var args = JSON.objectNode();
 			for (var argument : arguments)
 				args.set(argument.name(), argument.value().getTrace());
-			jsonTrace.set(ARGUMENTS, args);
+			jsonTrace.set(ARGUMENTS_KEY, args);
 		}
 		return jsonTrace;
 	}

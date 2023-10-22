@@ -1063,7 +1063,7 @@ public class Val implements Traced {
 		var traceJson = JSON.objectNode();
 		traceJson.set("value", val);
 		if (trace != null) {
-			traceJson.set(Trace.TRACE, trace.getTrace());
+			traceJson.set(Trace.TRACE_KEY, trace.getTrace());
 		}
 		return traceJson;
 	}

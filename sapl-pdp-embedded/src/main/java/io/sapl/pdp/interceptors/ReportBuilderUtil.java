@@ -212,10 +212,10 @@ public class ReportBuilderUtil {
 
 	private ArrayNode attributeArguments(JsonNode attribute) {
 		var result = JSON.arrayNode();
-		var trace  = attribute.get(Trace.TRACE);
+		var trace  = attribute.get(Trace.TRACE_KEY);
 		if (trace == null)
 			return result;
-		var arguments = trace.get(Trace.ARGUMENTS);
+		var arguments = trace.get(Trace.ARGUMENTS_KEY);
 		if (arguments == null)
 			return result;
 
@@ -229,20 +229,20 @@ public class ReportBuilderUtil {
 	}
 
 	private JsonNode attributeTimestamp(JsonNode attribute) {
-		var trace = attribute.get(Trace.TRACE);
+		var trace = attribute.get(Trace.TRACE_KEY);
 		if (trace == null)
 			return null;
-		var arguments = trace.get(Trace.ARGUMENTS);
+		var arguments = trace.get(Trace.ARGUMENTS_KEY);
 		if (arguments == null)
 			return null;
 		return arguments.get(Trace.TIMESTAMP);
 	}
 
 	private TextNode attributeName(JsonNode attribute) {
-		var trace = attribute.get(Trace.TRACE);
+		var trace = attribute.get(Trace.TRACE_KEY);
 		if (trace == null)
 			return JSON.textNode("Reporting Error: No trace of attribute.");
-		var arguments = trace.get(Trace.ARGUMENTS);
+		var arguments = trace.get(Trace.ARGUMENTS_KEY);
 		if (arguments == null)
 			return JSON.textNode("Reporting Error: No trace arguments.");
 		var attributeName = arguments.get(Trace.ATTRIBUTE);
@@ -258,10 +258,10 @@ public class ReportBuilderUtil {
 		if (!node.isObject())
 			return false;
 
-		if (!node.has(Trace.TRACE))
+		if (!node.has(Trace.TRACE_KEY))
 			return false;
 
-		var trace = node.get(Trace.TRACE);
+		var trace = node.get(Trace.TRACE_KEY);
 		if (!trace.has(Trace.OPERATOR))
 			return false;
 

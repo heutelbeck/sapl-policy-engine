@@ -53,9 +53,9 @@ class JWTKeyProviderTests {
 	private static KeyPair keyPair;
 
 	private static KeyPair otherKeyPair;
-	
+
 	private JWTKeyProvider provider;
-	
+
 	@BeforeAll
 	public static void preSetup() throws IOException, NoSuchAlgorithmException {
 		Logger.getLogger(MockWebServer.class.getName()).setLevel(Level.OFF);
@@ -150,18 +150,18 @@ class JWTKeyProviderTests {
 	}
 
 	@Test
+	void provide_withUriEnvironmentAndInvalidCachingTTL_usingBase64Url_shouldThrowCachingException() {
+		dispatcher.setDispatchMode(DispatchMode.True);
+		var serverNode = JsonTestUtility.serverNode(server, null, "invalid TTL format");
+		assertThrows(CachingException.class, () -> provider.provide(kid, serverNode));
+	}
+
+	@Test
 	void provide_withUriEnvironment_usingBase64Url_shouldBePublicKey() throws CachingException {
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var serverNode = JsonTestUtility.serverNode(server, null, null);
 		var mono       = provider.provide(kid, serverNode);
 		StepVerifier.create(mono).expectNextMatches(KeyTestUtility.keyValidator(keyPair)).verifyComplete();
-	}
-
-	@Test
-	void provide_withUriEnvironmentAndInvalidCachingTTL_usingBase64Url_shouldThrowCachingException() {
-		dispatcher.setDispatchMode(DispatchMode.True);
-		var serverNode = JsonTestUtility.serverNode(server, null, "invalid TTL format");
-		assertThrows(CachingException.class, () -> provider.provide(kid, serverNode));
 	}
 
 	@Test
