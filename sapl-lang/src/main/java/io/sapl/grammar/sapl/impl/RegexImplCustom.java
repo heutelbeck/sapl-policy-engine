@@ -21,6 +21,7 @@ import java.util.regex.PatternSyntaxException;
 
 import org.checkerframework.checker.regex.qual.Regex;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import reactor.core.publisher.Flux;
 
@@ -49,13 +50,14 @@ public class RegexImplCustom extends RegexImpl {
 			return right;
 		}
 		if (!left.isTextual()) {
-			return Val.FALSE.withTrace(Regex.class, Map.of("left", left, "right", right));
+			return Val.FALSE.withTrace(Regex.class, Map.of(Trace.LEFT, left, Trace.RIGHT, right));
 		}
 		try {
 			return Val.of(Pattern.matches(right.getText(), left.getText())).withTrace(Regex.class,
-					Map.of("left", left, "right", right));
+					Map.of(Trace.LEFT, left, Trace.RIGHT, right));
 		} catch (PatternSyntaxException e) {
-			return Val.error(REGEX_SYNTAX_ERROR, right).withTrace(Regex.class, Map.of("left", left, "right", right));
+			return Val.error(REGEX_SYNTAX_ERROR, right).withTrace(Regex.class,
+					Map.of(Trace.LEFT, left, Trace.RIGHT, right));
 		}
 	}
 

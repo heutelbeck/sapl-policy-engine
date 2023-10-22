@@ -29,6 +29,8 @@ import reactor.core.publisher.Flux;
 
 public class PolicySetImplCustom extends PolicySetImpl {
 
+	private static final String NAMES_NOT_UNIQUE_ERROR = "Inconsistent policy set. Names of policies in set are not unique.";
+
 	/**
 	 * Evaluates the body of the policy set within the given evaluation context and
 	 * returns a {@link Flux} of {@link DocumentEvaluationResult} objects.
@@ -38,8 +40,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
 	@Override
 	public Flux<DocumentEvaluationResult> evaluate() {
 		if (!policyNamesAreUnique()) {
-			return Flux.just(PolicySetDecision.error(getSaplName(),
-					"Inconsistent policy set. Names of policies in set are not unique."));
+			return Flux.just(PolicySetDecision.error(getSaplName(), NAMES_NOT_UNIQUE_ERROR));
 		}
 		var combinedDecisions = evaluateValueDefinitionsAndPolicies(0);
 		return combinedDecisions.map(combined -> PolicySetDecision.of(combined, getSaplName()));

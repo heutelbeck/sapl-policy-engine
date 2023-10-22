@@ -17,6 +17,7 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.Map;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.EscapedKeyStep;
 import io.sapl.grammar.sapl.FilterStatement;
@@ -34,7 +35,7 @@ public class EscapedKeyStepImplCustom extends EscapedKeyStepImpl {
 	@Override
 	public Flux<Val> apply(@NonNull Val parentValue) {
 		return Flux.just(KeyStepImplCustom.applyToValue(parentValue, id).withTrace(EscapedKeyStep.class,
-				Map.of("parentValue", parentValue, "id", Val.of(id))));
+				Map.of(Trace.PARENT_VALUE, parentValue, Trace.IDENTIFIER, Val.of(id))));
 	}
 
 	@Override

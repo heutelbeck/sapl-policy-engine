@@ -18,6 +18,7 @@ package io.sapl.grammar.sapl.impl;
 import java.util.ArrayList;
 import java.util.Map;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.grammar.sapl.KeyStep;
@@ -37,14 +38,10 @@ import reactor.util.function.Tuples;
  */
 public class KeyStepImplCustom extends KeyStepImpl {
 
-	private static final String INDEX = "index";
-	private static final String KEY = "key";
-	private static final String UNFILTERED_VALUE = "unfilteredValue";
-
 	@Override
 	public Flux<Val> apply(@NonNull Val parentValue) {
 		return Flux.just(applyToValue(parentValue, id).withTrace(KeyStep.class,
-				Map.of("parentValue", parentValue, "id", Val.of(id))));
+				Map.of(Trace.PARENT_VALUE, parentValue, Trace.IDENTIFIER, Val.of(id))));
 	}
 
 	@Override
@@ -101,7 +98,7 @@ public class KeyStepImplCustom extends KeyStepImpl {
 			var field = fields.next();
 			var key   = field.getKey();
 			var value = Val.of(field.getValue()).withTrace(KeyStep.class,
-					Map.of(UNFILTERED_VALUE, unfilteredValue, KEY, Val.of(key)));
+					Map.of(Trace.UNFILTERED_VALUE, unfilteredValue, Trace.KEY, Val.of(key)));
 			if (field.getKey().equals(id)) {
 				if (stepId == statement.getTarget().getSteps().size() - 1) {
 					// this was the final step. apply filter
@@ -128,14 +125,15 @@ public class KeyStepImplCustom extends KeyStepImpl {
 			FilterStatement statement) {
 		var array = unfilteredValue.getArrayNode();
 		if (array.isEmpty()) {
-			return Flux.just(unfilteredValue.withTrace(KeyStep.class, Map.of(UNFILTERED_VALUE, unfilteredValue)));
+			return Flux
+					.just(unfilteredValue.withTrace(KeyStep.class, Map.of(Trace.UNFILTERED_VALUE, unfilteredValue)));
 		}
 		var elementFluxes = new ArrayList<Flux<Val>>(array.size());
 		var elements      = array.elements();
 		var i             = 0;
 		while (elements.hasNext()) {
 			var element = Val.of(elements.next()).withTrace(KeyStep.class,
-					Map.of(UNFILTERED_VALUE, unfilteredValue, INDEX, Val.of(i++)));
+					Map.of(Trace.UNFILTERED_VALUE, unfilteredValue, Trace.INDEX, Val.of(i++)));
 			if (element.isObject()) {
 				// array element is an object. apply this step to the object.
 				elementFluxes.add(applyFilterStatementToObject(id, element, stepId, statement)

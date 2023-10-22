@@ -22,7 +22,7 @@ import reactor.core.publisher.Mono;
 
 public class PolicyElementImplCustom extends PolicyElementImpl {
 
-	private static final String CONDITION_NOT_BOOLEAN = "Evaluation error: Target condition must evaluate to a boolean value, but was: '%s'.";
+	private static final String CONDITION_NOT_BOOLEAN_ERROR = "Evaluation error: Target condition must evaluate to a boolean value, but was: '%s'.";
 
 	/**
 	 * Checks whether the policy element (policy set or policy) matches an
@@ -45,8 +45,8 @@ public class PolicyElementImplCustom extends PolicyElementImpl {
 				.onErrorResume(error -> Mono.just(Val.error(error))).next().defaultIfEmpty(Val.FALSE)
 				.flatMap(result -> {
 					if (result.isError() || !result.isBoolean()) {
-						return Mono
-								.just(Val.error(CONDITION_NOT_BOOLEAN, result).withTrace(PolicyElement.class, result));
+						return Mono.just(
+								Val.error(CONDITION_NOT_BOOLEAN_ERROR, result).withTrace(PolicyElement.class, result));
 					}
 					return Mono.just(result);
 				});

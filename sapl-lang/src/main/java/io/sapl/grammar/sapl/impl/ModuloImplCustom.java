@@ -20,6 +20,7 @@ import static io.sapl.grammar.sapl.impl.util.OperatorUtil.arithmeticOperator;
 import java.math.BigDecimal;
 import java.util.Map;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Modulo;
 import reactor.core.publisher.Flux;
@@ -29,6 +30,8 @@ import reactor.core.publisher.Flux;
  */
 public class ModuloImplCustom extends ModuloImpl {
 
+	private static final String DIVISION_BY_ZERO_ERROR = "Division by zero";
+
 	@Override
 	public Flux<Val> evaluate() {
 		return arithmeticOperator(this, this::divide);
@@ -36,10 +39,10 @@ public class ModuloImplCustom extends ModuloImpl {
 
 	private Val divide(Val dividend, Val divisor) {
 		if (divisor.decimalValue().compareTo(BigDecimal.ZERO) == 0)
-			return Val.error("Division by zero").withTrace(Modulo.class,
-					Map.of("dividend", dividend, "divisor", divisor));
+			return Val.error(DIVISION_BY_ZERO_ERROR).withTrace(Modulo.class,
+					Map.of(Trace.DIVIDEND, dividend, Trace.DIVISOR, divisor));
 		return Val.of(dividend.decimalValue().remainder(divisor.decimalValue())).withTrace(Modulo.class,
-				Map.of("dividend", dividend, "divisor", divisor));
+				Map.of(Trace.DIVIDEND, dividend, Trace.DIVISOR, divisor));
 	}
 
 }

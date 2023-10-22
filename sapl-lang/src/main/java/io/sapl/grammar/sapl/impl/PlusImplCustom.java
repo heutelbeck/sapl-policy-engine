@@ -21,6 +21,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.node.TextNode;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Plus;
 import reactor.core.publisher.Flux;
@@ -37,11 +38,11 @@ public class PlusImplCustom extends PlusImpl {
 	private Val plus(Val left, Val right) {
 		if (left.isNumber() && right.isNumber())
 			return Val.of(left.get().decimalValue().add(right.get().decimalValue())).withTrace(Plus.class,
-					Map.of("left", left, "right", right));
+					Map.of(Trace.LEFT, left, Trace.RIGHT, right));
 
 		var lStr = left.orElse(UNDEFINED).asText();
 		var rStr = right.orElse(UNDEFINED).asText();
-		return Val.of(lStr.concat(rStr)).withTrace(Plus.class, Map.of("left", left, "right", right));
+		return Val.of(lStr.concat(rStr)).withTrace(Plus.class, Map.of(Trace.LEFT, left, Trace.RIGHT, right));
 	}
 
 }

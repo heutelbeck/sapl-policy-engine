@@ -21,6 +21,7 @@ import static io.sapl.interpreter.context.AuthorizationContext.getVariables;
 
 import java.util.Map;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.AttributeFinderStep;
 import io.sapl.grammar.sapl.FilterStatement;
@@ -38,14 +39,8 @@ import reactor.core.publisher.Flux;
 public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 
 	private static final String ATTRIBUTE_FINDER_STEP_NOT_PERMITTED_ERROR = "AttributeFinderStep not permitted in filter selection steps.";
-
-	private static final String ATTRIBUTE = "attribute";
-
-	private static final String PARENT_VALUE = "parentValue";
-
-	private static final String UNDEFINED_VALUE = "Undefined value handed over as left-hand parameter to policy information point";
-
-	private static final String EXTERNAL_ATTRIBUTE_IN_TARGET = "Attribute resolution error. Attributes are not allowed in target.";
+	private static final String UNDEFINED_VALUE_ERROR                     = "Undefined value handed over as left-hand parameter to policy information point";
+	private static final String EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR        = "Attribute resolution error. Attributes are not allowed in target.";
 
 	@Override
 	public Flux<Val> apply(@NonNull Val parentValue) {
@@ -55,15 +50,15 @@ public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 
 			if (parentValue.isError()) {
 				return Flux.just(parentValue.withTrace(AttributeFinderStep.class,
-						Map.of(PARENT_VALUE, parentValue, ATTRIBUTE, Val.of(attributeName))));
+						Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
 			}
 			if (TargetExpressionUtil.isInTargetExpression(this)) {
-				return Flux.just(Val.error(EXTERNAL_ATTRIBUTE_IN_TARGET).withTrace(AttributeFinderStep.class,
-						Map.of(PARENT_VALUE, parentValue, ATTRIBUTE, Val.of(attributeName))));
+				return Flux.just(Val.error(EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR).withTrace(AttributeFinderStep.class,
+						Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
 			}
 			if (parentValue.isUndefined()) {
-				return Flux.just(Val.error(UNDEFINED_VALUE).withTrace(AttributeFinderStep.class,
-						Map.of(PARENT_VALUE, parentValue, ATTRIBUTE, Val.of(attributeName))));
+				return Flux.just(Val.error(UNDEFINED_VALUE_ERROR).withTrace(AttributeFinderStep.class,
+						Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
 			}
 
 			var attributeContext = getAttributeContext(ctxView);

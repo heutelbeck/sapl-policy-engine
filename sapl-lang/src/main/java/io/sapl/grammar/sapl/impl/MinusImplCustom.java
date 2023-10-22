@@ -19,6 +19,7 @@ import static io.sapl.grammar.sapl.impl.util.OperatorUtil.arithmeticOperator;
 
 import java.util.Map;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Minus;
 import reactor.core.publisher.Flux;
@@ -32,7 +33,7 @@ public class MinusImplCustom extends MinusImpl {
 
 	private Val subtract(Val minuend, Val subtrahend) {
 		return Val.of(minuend.decimalValue().subtract(subtrahend.decimalValue())).withTrace(Minus.class,
-				Map.of("minuend", minuend, "subtrahend", subtrahend));
+				Map.of(Trace.MINUEND, minuend, Trace.SUBTRAHEND, subtrahend));
 	}
 
 }

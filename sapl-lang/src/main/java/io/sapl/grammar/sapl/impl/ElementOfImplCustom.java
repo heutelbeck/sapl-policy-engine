@@ -21,6 +21,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.ElementOf;
 import reactor.core.publisher.Flux;
@@ -40,7 +41,8 @@ public class ElementOfImplCustom extends ElementOfImpl {
 	}
 
 	private Val tracedElementOf(Val needle, Val haystack) {
-		return elementOf(needle, haystack).withTrace(ElementOf.class, Map.of("needle", needle, "haystack", haystack));
+		return elementOf(needle, haystack).withTrace(ElementOf.class,
+				Map.of(Trace.NEEDLE, needle, Trace.HAYSTACK, haystack));
 	}
 
 	private Val elementOf(Val needle, Val haystack) {

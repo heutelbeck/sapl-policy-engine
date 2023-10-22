@@ -554,10 +554,10 @@ public class Val implements Traced {
 		if (isDefined() != other.isDefined()) {
 			return false;
 		}
-		if(value==null) {
+		if (value == null) {
 			return true;
 		}
-		
+
 		return value.equals(NUMBERIC_AWARE_COMPARATOR, other.get());
 	}
 
@@ -1063,7 +1063,7 @@ public class Val implements Traced {
 		var traceJson = JSON.objectNode();
 		traceJson.set("value", val);
 		if (trace != null) {
-			traceJson.set("trace", trace.getTrace());
+			traceJson.set(Trace.TRACE, trace.getTrace());
 		}
 		return traceJson;
 	}

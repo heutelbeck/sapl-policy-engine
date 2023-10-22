@@ -19,6 +19,7 @@ import static io.sapl.grammar.sapl.impl.util.OperatorUtil.booleanOperator;
 
 import java.util.Map;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.EagerOr;
 import reactor.core.publisher.Flux;
@@ -38,7 +39,7 @@ public class EagerOrImplCustom extends EagerOrImpl {
 
 	private Val or(Val left, Val right) {
 		return Val.of(left.getBoolean() || right.getBoolean()).withTrace(EagerOr.class,
-				Map.of("left", left, "right", right));
+				Map.of(Trace.LEFT, left, Trace.RIGHT, right));
 	}
 
 }

@@ -28,7 +28,7 @@ import reactor.util.context.ContextView;
  */
 public class BasicRelativeImplCustom extends BasicRelativeImpl {
 
-	private static final String NO_RELATIVE_NODE = "Relative expression error. No relative node.";
+	private static final String NO_RELATIVE_NODE_ERROR = "Relative expression error. No relative node.";
 
 	@Override
 	public Flux<Val> evaluate() {
@@ -39,7 +39,7 @@ public class BasicRelativeImplCustom extends BasicRelativeImpl {
 		var relativeNode = AuthorizationContext.getRelativeNode(ctx);
 
 		if (relativeNode.isUndefined())
-			return Flux.just(Val.error(NO_RELATIVE_NODE).withTrace(BasicRelative.class));
+			return Flux.just(Val.error(NO_RELATIVE_NODE_ERROR).withTrace(BasicRelative.class));
 
 		return Flux.just(relativeNode.withTrace(BasicRelative.class, relativeNode))
 				.switchMap(resolveStepsFiltersAndSubTemplates(steps));

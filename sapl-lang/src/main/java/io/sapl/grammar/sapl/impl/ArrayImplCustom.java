@@ -48,7 +48,7 @@ public class ArrayImplCustom extends ArrayImpl {
 		if (getItems().size() == 0) {
 			return Flux.just(Val.of(Val.JSON.arrayNode()).withTrace(Array.class));
 		}
-		// aggregate child fluxes into a flux of a JSON array
+		// aggregate child fluxes into a Flux of a JSON array
 		final List<Flux<Val>> itemFluxes = new ArrayList<>(getItems().size());
 		for (Expression item : getItems()) {
 			itemFluxes.add(item.evaluate());

@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
@@ -157,19 +158,19 @@ public class PolicyDecision implements DocumentEvaluationResult {
 	@Override
 	public JsonNode getTrace() {
 		var trace = Val.JSON.objectNode();
-		trace.set("documentType", Val.JSON.textNode("policy"));
-		trace.set("policyName", Val.JSON.textNode(documentName));
-		trace.set("authorizationDecision", MAPPER.valueToTree(getAuthorizationDecision()));
+		trace.set(Trace.DOCUMENT_TYPE, Val.JSON.textNode("policy"));
+		trace.set(Trace.POLICY_NAME, Val.JSON.textNode(documentName));
+		trace.set(Trace.AUTHORIZATION_DECISION, MAPPER.valueToTree(getAuthorizationDecision()));
 		if (entitlement != null)
-			trace.set("entitlement", Val.JSON.textNode(entitlement.toString()));
-		errorMessage.ifPresent(error -> trace.set("error", Val.JSON.textNode(errorMessage.get())));
-		targetResult.ifPresent(target -> trace.set("target", target.getTrace()));
-		whereResult.ifPresent(where -> trace.set("where", where.getTrace()));
+			trace.set(Trace.ENTITILEMENT, Val.JSON.textNode(entitlement.toString()));
+		errorMessage.ifPresent(error -> trace.set(Trace.ERROR, Val.JSON.textNode(errorMessage.get())));
+		targetResult.ifPresent(target -> trace.set(Trace.TARGET, target.getTrace()));
+		whereResult.ifPresent(where -> trace.set(Trace.WHERE, where.getTrace()));
 		if (!obligations.isEmpty())
-			trace.set("obligations", listOfValToTraceArray(obligations));
+			trace.set(Trace.OBLIGATIONS, listOfValToTraceArray(obligations));
 		if (!obligations.isEmpty())
-			trace.set("advice", listOfValToTraceArray(advice));
-		resource.ifPresent(r -> trace.set("resource", r.getTrace()));
+			trace.set(Trace.ADVICE, listOfValToTraceArray(advice));
+		resource.ifPresent(r -> trace.set(Trace.RESOURCE, r.getTrace()));
 		return trace;
 	}
 

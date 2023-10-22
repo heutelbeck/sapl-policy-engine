@@ -20,6 +20,7 @@ import static io.sapl.grammar.sapl.impl.util.OperatorUtil.arithmeticOperator;
 import java.math.BigDecimal;
 import java.util.Map;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Div;
@@ -34,15 +35,17 @@ import reactor.core.publisher.Flux;
  */
 public class DivImplCustom extends DivImpl {
 
+	private static final String DIVISION_BY_ZERO_ERROR = "Division by zero";
+
 	@Override
 	public Flux<Val> evaluate() {
 		return arithmeticOperator(this, this::divide);
 	}
 
 	private Val divide(Val dividend, Val divisor) {
-		var trace = Map.<String,Traced>of("dividend", dividend, "divisor", divisor);
+		var trace = Map.<String, Traced>of(Trace.DIVIDEND, dividend, Trace.DIVISOR, divisor);
 		if (divisor.decimalValue().compareTo(BigDecimal.ZERO) == 0)
-			return Val.error("Division by zero").withTrace(Div.class, trace);
+			return Val.error(DIVISION_BY_ZERO_ERROR).withTrace(Div.class, trace);
 		return Val.of(dividend.decimalValue().divide(divisor.decimalValue())).withTrace(Div.class, trace);
 	}
 

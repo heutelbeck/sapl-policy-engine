@@ -43,13 +43,10 @@ import reactor.core.publisher.Flux;
  */
 public class ExpressionStepImplCustom extends ExpressionStepImpl {
 
-	private static final String OBJECT_ACCESS_TYPE_MISMATCH_EXPECT_A_STRING_WAS_S = "Object access type mismatch. Expect a string, was: %s ";
-
-	private static final String INDEX_OUT_OF_BOUNDS_INDEX_MUST_BE_BETWEEN_0_AND_D_WAS_D = "Index out of bounds. Index must be between 0 and %d, was: %d ";
-
-	private static final String ARRAY_ACCESS_TYPE_MISMATCH_EXPECT_AN_INTEGER_WAS_S = "Array access type mismatch. Expect an integer, was: %s ";
-
-	private static final String EXPRESSIONS_STEP_ONLY_APPLICABLE_TO_ARRAY_OR_OBJECT_WAS_S = "Expressions step only applicable to Array or Object. was: %s";
+	private static final String OBJECT_ACCESS_TYPE_MISMATCH_EXPECT_A_STRING_WAS_S_ERROR         = "Object access type mismatch. Expect a string, was: %s ";
+	private static final String INDEX_OUT_OF_BOUNDS_INDEX_MUST_BE_BETWEEN_0_AND_D_WAS_D_ERROR   = "Index out of bounds. Index must be between 0 and %d, was: %d ";
+	private static final String ARRAY_ACCESS_TYPE_MISMATCH_EXPECT_AN_INTEGER_WAS_S_ERROR        = "Array access type mismatch. Expect an integer, was: %s ";
+	private static final String EXPRESSIONS_STEP_ONLY_APPLICABLE_TO_ARRAY_OR_OBJECT_WAS_S_ERROR = "Expressions step only applicable to Array or Object. was: %s";
 
 	@Override
 	public Flux<Val> apply(@NonNull Val parentValue) {
@@ -62,7 +59,7 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 		if (parentValue.isObject()) {
 			return expression.evaluate().map(index -> extractKey(parentValue, index));
 		}
-		return Flux.just(Val.error(EXPRESSIONS_STEP_ONLY_APPLICABLE_TO_ARRAY_OR_OBJECT_WAS_S, parentValue)
+		return Flux.just(Val.error(EXPRESSIONS_STEP_ONLY_APPLICABLE_TO_ARRAY_OR_OBJECT_WAS_S_ERROR, parentValue)
 				.withParentTrace(ExpressionStep.class, parentValue));
 	}
 
@@ -90,31 +87,31 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 	}
 
 	private Val extractValueAt(Val parentValue, Val index) {
-		var trace = Map.<String,Traced>of("parentValue", parentValue, "expressionResult", index);
+		var trace = Map.<String, Traced>of("parentValue", parentValue, "expressionResult", index);
 		if (index.isError()) {
 			return index.withTrace(ExpressionStep.class, trace);
 		}
 		if (!index.isNumber()) {
-			return Val.error(ARRAY_ACCESS_TYPE_MISMATCH_EXPECT_AN_INTEGER_WAS_S, index).withTrace(ExpressionStep.class,
-					trace);
+			return Val.error(ARRAY_ACCESS_TYPE_MISMATCH_EXPECT_AN_INTEGER_WAS_S_ERROR, index)
+					.withTrace(ExpressionStep.class, trace);
 		}
 		var idx   = index.get().asInt();
 		var array = parentValue.get();
 		if (idx < 0 || idx > array.size()) {
-			return Val.error(INDEX_OUT_OF_BOUNDS_INDEX_MUST_BE_BETWEEN_0_AND_D_WAS_D, array.size(), idx)
+			return Val.error(INDEX_OUT_OF_BOUNDS_INDEX_MUST_BE_BETWEEN_0_AND_D_WAS_D_ERROR, array.size(), idx)
 					.withTrace(ExpressionStep.class, trace);
 		}
 		return Val.of(array.get(idx)).withTrace(ExpressionStep.class, trace);
 	}
 
 	private Val extractKey(Val parentValue, Val key) {
-		var trace = Map.<String,Traced>of("parentValue", parentValue, "expressionResult", key);
+		var trace = Map.<String, Traced>of("parentValue", parentValue, "expressionResult", key);
 		if (key.isError()) {
 			return key.withTrace(ExpressionStep.class, trace);
 		}
 		if (!key.isTextual()) {
-			return Val.error(OBJECT_ACCESS_TYPE_MISMATCH_EXPECT_A_STRING_WAS_S, key).withTrace(ExpressionStep.class,
-					trace);
+			return Val.error(OBJECT_ACCESS_TYPE_MISMATCH_EXPECT_A_STRING_WAS_S_ERROR, key)
+					.withTrace(ExpressionStep.class, trace);
 		}
 		var fieldName = key.get().asText();
 		var object    = parentValue.getObjectNode();

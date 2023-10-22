@@ -20,6 +20,7 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.grammar.sapl.RecursiveWildcardStep;
@@ -36,12 +37,12 @@ import reactor.core.publisher.Flux;
  */
 public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 
-	private static final String CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE = "Cannot descent on an undefined value.";
+	private static final String CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE_ERROR = "Cannot descent on an undefined value.";
 
 	@Override
 	public Flux<Val> apply(@NonNull Val parentValue) {
 		return Flux.just(
-				applyToValue(parentValue).withTrace(RecursiveWildcardStep.class, Map.of("parentValue", parentValue)));
+				applyToValue(parentValue).withTrace(RecursiveWildcardStep.class, Map.of(Trace.PARENT_VALUE, parentValue)));
 	}
 
 	public Val applyToValue(@NonNull Val parentValue) {
@@ -49,7 +50,7 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 			return parentValue;
 		}
 		if (parentValue.isUndefined()) {
-			return Val.error(CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE);
+			return Val.error(CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE_ERROR);
 		}
 		if (!parentValue.isArray() && !parentValue.isObject()) {
 			return Val.ofEmptyArray();

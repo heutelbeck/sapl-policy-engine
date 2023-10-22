@@ -19,6 +19,7 @@ import static io.sapl.grammar.sapl.impl.util.OperatorUtil.operator;
 
 import java.util.Map;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Equals;
 import reactor.core.publisher.Flux;
@@ -37,7 +38,7 @@ public class EqualsImplCustom extends EqualsImpl {
 	}
 
 	private Val tracedEquals(Val left, Val right) {
-		return equals(left, right).withTrace(Equals.class, Map.of("left", left, "right", right));
+		return equals(left, right).withTrace(Equals.class, Map.of(Trace.LEFT, left, Trace.RIGHT, right));
 	}
 
 	private Val equals(Val left, Val right) {

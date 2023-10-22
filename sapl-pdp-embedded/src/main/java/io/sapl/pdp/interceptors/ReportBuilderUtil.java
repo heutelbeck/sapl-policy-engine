@@ -22,41 +22,64 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.TextNode;
 
-import io.sapl.interpreter.CombinedDecision;
+import io.sapl.api.interpreter.Trace;
 import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.pdp.PDPDecision;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class ReportBuilderUtil {
-	public static final String           PDP_COMBINING_ALGORITHM = "pdpCombiningAlgorithm";
-	private static final JsonNodeFactory JSON                    = JsonNodeFactory.instance;
+
+	public static final String ATTRIBUTES                 = "attributes";
+	public static final String ATTRIBUTE_NAME             = "attributeName";
+	public static final String ARGUMENTS                  = "arguments";
+	public static final String AUTHORIZATION_DECISION     = "authorizationDecision";
+	public static final String AUTHORIZATION_SUBSCRIPTION = "authorizationSubscription";
+	public static final String COMBINING_ALGORITHM        = "combiningAlgorithm";
+	public static final String DOCUMENT_NAME              = "documentName";
+	public static final String DOCUMENT_REPORTS           = "documentReports";
+	public static final String DOCUMENT_TYPE              = "documentType";
+	public static final String ENTITLEMENT                = "entitlement";
+	public static final String ERROR                      = "error";
+	public static final String ERRORS                     = "errors";
+	public static final String ERROR_MESSAGE              = "errorMessage";
+	public static final String EVALUATED_POLICIES         = "evaluatedPolicies";
+	public static final String MATCHING_DOCUMENTS         = "matchingDocuments";
+	public static final String MODIFICATIONS              = "modifications";
+	public static final String PDP_COMBINING_ALGORITHM    = "pdpCombiningAlgorithm";
+	public static final String POLICY                     = "policy";
+	public static final String POLICY_SET                 = "policy set";
+	public static final String TARGET                     = "target";
+	public static final String TIMESTAMP                  = "timestamp";
+	public static final String VALUE                      = "value";
+	public static final String WHERE                      = "where";
+
+	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	public static JsonNode reduceTraceToReport(JsonNode trace) {
 		var report = JSON.objectNode();
-		report.set(PDPDecision.AUTHORIZATION_SUBSCRIPTION, trace.get(PDPDecision.AUTHORIZATION_SUBSCRIPTION));
-		report.set(PDPDecision.AUTHORIZATION_DECISION, trace.get(PDPDecision.AUTHORIZATION_DECISION));
-		report.set(PDPDecision.TIMESTAMP_STRING, trace.get(PDPDecision.TIMESTAMP_STRING));
-		var combinedDecision = trace.get(PDPDecision.COMBINED_DECISION);
+		report.set(AUTHORIZATION_SUBSCRIPTION, trace.get(Trace.AUTHORIZATION_SUBSCRIPTION));
+		report.set(AUTHORIZATION_DECISION, trace.get(Trace.AUTHORIZATION_DECISION));
+		report.set(TIMESTAMP, trace.get(Trace.TIMESTAMP));
+		var combinedDecision = trace.get(Trace.COMBINED_DECISION);
 		if (combinedDecision != null) {
-			var pdpCombiningAlgorithm = combinedDecision.get(CombinedDecision.COMBINING_ALGORITHM);
+			var pdpCombiningAlgorithm = combinedDecision.get(Trace.COMBINING_ALGORITHM);
 			report.set(PDP_COMBINING_ALGORITHM, pdpCombiningAlgorithm);
-			if (combinedDecision.get(CombinedDecision.ERROR) != null) {
-				report.set(CombinedDecision.ERROR, combinedDecision.get(CombinedDecision.ERROR));
+			if (combinedDecision.get(Trace.ERROR) != null) {
+				report.set(ERROR, combinedDecision.get(Trace.ERROR));
 			}
 		}
-		report.set(PDPDecision.MATCHING_DOCUMENTS, trace.get(PDPDecision.MATCHING_DOCUMENTS));
-		if (trace.get(PDPDecision.MODIFICATIONS_STRING) != null) {
-			report.set(PDPDecision.MODIFICATIONS_STRING, trace.get(PDPDecision.MODIFICATIONS_STRING));
+		report.set(MATCHING_DOCUMENTS, trace.get(Trace.MATCHING_DOCUMENTS));
+		if (trace.get(Trace.MODIFICATIONS) != null) {
+			report.set(MODIFICATIONS, trace.get(Trace.MODIFICATIONS));
 		}
-		
-		if(combinedDecision == null) {
+
+		if (combinedDecision == null) {
 			return report;
 		}
-			
-		var evaluatedPolices = combinedDecision.get(CombinedDecision.EVALUATED_POLICIES);
+
+		var evaluatedPolices = combinedDecision.get(Trace.EVALUATED_POLICIES);
 		if (evaluatedPolices != null && evaluatedPolices.isArray() && evaluatedPolices.size() > 0) {
-			report.set("documentReports", documentReports(evaluatedPolices));
+			report.set(DOCUMENT_REPORTS, documentReports(evaluatedPolices));
 		}
 		return report;
 	}
@@ -64,13 +87,13 @@ public class ReportBuilderUtil {
 	private JsonNode documentReports(JsonNode evaluatedPolices) {
 		var documentReports = JSON.arrayNode();
 		for (var documentTrace : evaluatedPolices) {
-			var documentType = documentTrace.get("documentType");
+			var documentType = documentTrace.get(DOCUMENT_TYPE);
 			if (documentType != null && documentType.isTextual()) {
 				var type = documentType.asText();
-				if ("policy".equals(type)) {
+				if (POLICY.equals(type)) {
 					documentReports.add(policyReport(documentTrace));
 				}
-				if ("policy set".equals(type)) {
+				if (POLICY_SET.equals(type)) {
 					documentReports.add(policySetReport(documentTrace));
 				}
 			}
@@ -80,30 +103,29 @@ public class ReportBuilderUtil {
 
 	private JsonNode policySetReport(JsonNode documentTrace) {
 		var report = JSON.objectNode();
-		report.set("documentType", JSON.textNode("policy set"));
-		report.set("documentName", documentTrace.get("policySetName"));
-		if (documentTrace.has("errorMessage")) {
-			report.set("errorMessage", documentTrace.get("errorMessage"));
+		report.set(DOCUMENT_TYPE, JSON.textNode(POLICY_SET));
+		report.set(DOCUMENT_NAME, documentTrace.get(Trace.POLICY_SET_NAME));
+		if (documentTrace.has(Trace.ERROR_MESSAGE)) {
+			report.set(ERROR_MESSAGE, documentTrace.get(Trace.ERROR_MESSAGE));
 		}
-		if (documentTrace.has("target")) {
-			report.set("target", valueReport(documentTrace.get("target")));
+		if (documentTrace.has(Trace.TARGET)) {
+			report.set(TARGET, valueReport(documentTrace.get(Trace.TARGET)));
 		}
-		var combinedDecision = documentTrace.get("combinedDecision");
+		var combinedDecision = documentTrace.get(Trace.COMBINED_DECISION);
 		if (combinedDecision == null)
 			return report;
-		report.set(CombinedDecision.AUTHORIZATION_DECISION,
-				combinedDecision.get(CombinedDecision.AUTHORIZATION_DECISION));
-		report.set(CombinedDecision.COMBINING_ALGORITHM, combinedDecision.get(CombinedDecision.COMBINING_ALGORITHM));
+		report.set(AUTHORIZATION_DECISION, combinedDecision.get(Trace.AUTHORIZATION_DECISION));
+		report.set(COMBINING_ALGORITHM, combinedDecision.get(Trace.COMBINING_ALGORITHM));
 		var evaluatedPoliciesReports = policiesReports(combinedDecision);
 		if (!evaluatedPoliciesReports.isEmpty()) {
-			report.set("evaluatedPolicies", evaluatedPoliciesReports);
+			report.set(EVALUATED_POLICIES, evaluatedPoliciesReports);
 		}
 		return report;
 	}
 
 	private JsonNode policiesReports(JsonNode combinedDecision) {
 		var reports           = JSON.arrayNode();
-		var evaluatedPolicies = combinedDecision.get(CombinedDecision.EVALUATED_POLICIES);
+		var evaluatedPolicies = combinedDecision.get(Trace.EVALUATED_POLICIES);
 		if (evaluatedPolicies == null)
 			return reports;
 		for (var policyResult : evaluatedPolicies) {
@@ -114,26 +136,26 @@ public class ReportBuilderUtil {
 
 	private JsonNode policyReport(JsonNode documentTrace) {
 		var report = JSON.objectNode();
-		report.set("documentType", JSON.textNode("policy"));
-		report.set("documentName", documentTrace.get("policyName"));
-		report.set("entitlement", documentTrace.get("entitlement"));
-		if (documentTrace.has("errorMessage")) {
-			report.set("errorMessage", documentTrace.get("errorMessage"));
+		report.set(DOCUMENT_TYPE, JSON.textNode(POLICY));
+		report.set(DOCUMENT_NAME, documentTrace.get(Trace.POLICY_NAME));
+		report.set(ENTITLEMENT, documentTrace.get(Trace.ENTITILEMENT));
+		if (documentTrace.has(Trace.ERROR_MESSAGE)) {
+			report.set(ERROR_MESSAGE, documentTrace.get(Trace.ERROR_MESSAGE));
 		}
-		if (documentTrace.has("target")) {
-			report.set("target", valueReport(documentTrace.get("target")));
+		if (documentTrace.has(Trace.TARGET)) {
+			report.set(TARGET, valueReport(documentTrace.get(Trace.TARGET)));
 		}
-		if (documentTrace.has("where")) {
-			report.set("where", valueReport(documentTrace.get("where")));
+		if (documentTrace.has(Trace.WHERE)) {
+			report.set(WHERE, valueReport(documentTrace.get(Trace.WHERE)));
 		}
-		report.set(PDPDecision.AUTHORIZATION_DECISION, documentTrace.get(PDPDecision.AUTHORIZATION_DECISION));
+		report.set(AUTHORIZATION_DECISION, documentTrace.get(Trace.AUTHORIZATION_DECISION));
 		var errors = collectErrors(documentTrace);
 		if (!errors.isEmpty()) {
-			report.set("errors", errors);
+			report.set(ERRORS, errors);
 		}
 		var attributes = collectAttributes(documentTrace);
 		if (!attributes.isEmpty()) {
-			report.set("attributes", attributes);
+			report.set(ATTRIBUTES, attributes);
 		}
 		return report;
 	}
@@ -141,7 +163,7 @@ public class ReportBuilderUtil {
 	private JsonNode valueReport(JsonNode jsonNode) {
 		if (!jsonNode.isObject())
 			return JSON.textNode("Reporting error: Val was not represented as JSON Object. Was: " + jsonNode);
-		return jsonNode.get("value");
+		return jsonNode.get(Trace.VALUE);
 	}
 
 	public JsonNode collectErrors(JsonNode trace) {
@@ -177,56 +199,56 @@ public class ReportBuilderUtil {
 
 	private JsonNode attributeReport(JsonNode trace) {
 		var report = JSON.objectNode();
-		report.set("value", trace.get("value"));
-		report.set("attributeName", attributeName(trace));
+		report.set(VALUE, trace.get(Trace.VALUE));
+		report.set(ATTRIBUTE_NAME, attributeName(trace));
 		var timestamp = attributeTimestamp(trace);
 		if (timestamp != null)
-			report.set("timestamp", timestamp);
+			report.set(TIMESTAMP, timestamp);
 		var arguments = attributeArguments(trace);
 		if (!arguments.isEmpty())
-			report.set("arguments", arguments);
+			report.set(ARGUMENTS, arguments);
 		return report;
 	}
 
 	private ArrayNode attributeArguments(JsonNode attribute) {
 		var result = JSON.arrayNode();
-		var trace  = attribute.get("trace");
+		var trace  = attribute.get(Trace.TRACE);
 		if (trace == null)
 			return result;
-		var arguments = trace.get("arguments");
+		var arguments = trace.get(Trace.ARGUMENTS);
 		if (arguments == null)
 			return result;
 
 		var i = 0;
-		while (arguments.has("argument[+" + i + "]")) {
-			var argument = arguments.get("argument[+" + i + "]");
-			if (argument != null && argument.isObject() && argument.has("value"))
-				result.add(argument.get("value"));
+		while (arguments.has(Trace.ARGUMENT + "[+" + i + "]")) {
+			var argument = arguments.get(Trace.ARGUMENT + "[+" + i + "]");
+			if (argument != null && argument.isObject() && argument.has(Trace.VALUE))
+				result.add(argument.get(Trace.VALUE));
 		}
 		return result;
 	}
 
 	private JsonNode attributeTimestamp(JsonNode attribute) {
-		var trace = attribute.get("trace");
+		var trace = attribute.get(Trace.TRACE);
 		if (trace == null)
 			return null;
-		var arguments = trace.get("arguments");
+		var arguments = trace.get(Trace.ARGUMENTS);
 		if (arguments == null)
 			return null;
-		return arguments.get("timestamp");
+		return arguments.get(Trace.TIMESTAMP);
 	}
 
 	private TextNode attributeName(JsonNode attribute) {
-		var trace = attribute.get("trace");
+		var trace = attribute.get(Trace.TRACE);
 		if (trace == null)
 			return JSON.textNode("Reporting Error: No trace of attribute.");
-		var arguments = trace.get("arguments");
+		var arguments = trace.get(Trace.ARGUMENTS);
 		if (arguments == null)
 			return JSON.textNode("Reporting Error: No trace arguments.");
-		var attributeName = arguments.get("attribute");
+		var attributeName = arguments.get(Trace.ATTRIBUTE);
 		if (attributeName == null)
 			return JSON.textNode("Reporting Error: No attribute name.");
-		var attributeNameValue = attributeName.get("value");
+		var attributeNameValue = attributeName.get(Trace.VALUE);
 		if (attributeNameValue == null)
 			return JSON.textNode("Reporting Error: No attribute name value.");
 		return JSON.textNode("<" + attributeNameValue.asText() + ">");
@@ -236,13 +258,13 @@ public class ReportBuilderUtil {
 		if (!node.isObject())
 			return false;
 
-		if (!node.has("trace"))
+		if (!node.has(Trace.TRACE))
 			return false;
 
-		var trace = node.get("trace");
-		if (!trace.has("operator"))
+		var trace = node.get(Trace.TRACE);
+		if (!trace.has(Trace.OPERATOR))
 			return false;
 
-		return AttributeContext.class.getSimpleName().equals(trace.get("operator").asText());
+		return AttributeContext.class.getSimpleName().equals(trace.get(Trace.OPERATOR).asText());
 	}
 }

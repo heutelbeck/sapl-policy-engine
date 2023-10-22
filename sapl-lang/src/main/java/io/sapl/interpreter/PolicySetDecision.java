@@ -19,6 +19,7 @@ import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import lombok.EqualsAndHashCode;
@@ -83,11 +84,11 @@ public class PolicySetDecision implements DocumentEvaluationResult {
 	@Override
 	public JsonNode getTrace() {
 		var trace = Val.JSON.objectNode();
-		trace.set("documentType", Val.JSON.textNode("policy set"));
-		trace.set("policySetName", Val.JSON.textNode(documentName));
-		trace.set("combinedDecision", combinedDecision.getTrace());
-		errorMessage.ifPresent(error -> trace.set("error", Val.JSON.textNode(errorMessage.get())));
-		targetResult.ifPresent(target -> trace.set("target", target.getTrace()));
+		trace.set(Trace.DOCUMENT_TYPE, Val.JSON.textNode("policy set"));
+		trace.set(Trace.POLICY_SET_NAME, Val.JSON.textNode(documentName));
+		trace.set(Trace.COMBINED_DECISION, combinedDecision.getTrace());
+		errorMessage.ifPresent(error -> trace.set(Trace.ERROR, Val.JSON.textNode(errorMessage.get())));
+		targetResult.ifPresent(target -> trace.set(Trace.TARGET, target.getTrace()));
 		return trace;
 	}
 

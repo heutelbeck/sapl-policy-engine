@@ -19,6 +19,7 @@ import static io.sapl.grammar.sapl.impl.util.OperatorUtil.arithmeticOperator;
 
 import java.util.Map;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.MoreEquals;
 import reactor.core.publisher.Flux;
@@ -38,7 +39,7 @@ public class MoreEqualsImplCustom extends MoreEqualsImpl {
 
 	private Val moreOrEqual(Val left, Val right) {
 		return Val.of(left.decimalValue().compareTo(right.decimalValue()) >= 0).withTrace(MoreEquals.class,
-				Map.of("left", left, "right", right));
+				Map.of(Trace.LEFT, left, Trace.RIGHT, right));
 	}
 
 }

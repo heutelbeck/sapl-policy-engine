@@ -19,8 +19,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.sapl.interpreter.CombinedDecision;
-import io.sapl.pdp.PDPDecision;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
@@ -30,28 +28,33 @@ public class ReportTextRenderUtil {
 
 	public static String textReport(JsonNode jsonReport, boolean prettyPrint, ObjectMapper mapper) {
 		StringBuilder report = new StringBuilder("--- The PDP made a decision ---\n");
-		report.append("Subscription: ").append(prettyPrint ? '\n' : "").append(prettyPrintJson(jsonReport.get(PDPDecision.AUTHORIZATION_SUBSCRIPTION), prettyPrint, mapper)).append('\n');
-		report.append("Decision    : ").append(prettyPrint ? '\n' : "").append(prettyPrintJson(jsonReport.get(PDPDecision.AUTHORIZATION_DECISION), prettyPrint, mapper)).append('\n');
-		report.append("Timestamp   : ").append(jsonReport.get(PDPDecision.TIMESTAMP_STRING).textValue()).append('\n');
+		report.append("Subscription: ").append(prettyPrint ? '\n' : "")
+				.append(prettyPrintJson(jsonReport.get(ReportBuilderUtil.AUTHORIZATION_SUBSCRIPTION), prettyPrint, mapper))
+				.append('\n');
+		report.append("Decision    : ").append(prettyPrint ? '\n' : "")
+				.append(prettyPrintJson(jsonReport.get(ReportBuilderUtil.AUTHORIZATION_DECISION), prettyPrint, mapper))
+				.append('\n');
+		report.append("Timestamp   : ").append(jsonReport.get(ReportBuilderUtil.TIMESTAMP).textValue()).append('\n');
 		report.append("Algorithm   : ").append(jsonReport.get(ReportBuilderUtil.PDP_COMBINING_ALGORITHM)).append('\n');
-		var topLevelError = jsonReport.get(CombinedDecision.ERROR);
+		var topLevelError = jsonReport.get(ReportBuilderUtil.ERROR);
 		if (topLevelError != null) {
 			report.append("PDP Error   : ").append(topLevelError).append('\n');
 		}
-		var matchingDocuments = jsonReport.get(PDPDecision.MATCHING_DOCUMENTS);
+		var matchingDocuments = jsonReport.get(ReportBuilderUtil.MATCHING_DOCUMENTS);
 		if (matchingDocuments == null || !matchingDocuments.isArray() || matchingDocuments.size() == 0) {
-			report.append("Matches     : NONE (i.e.,no policies/policy sets were set, or all target expressions evaluated to false or error.)\n");
+			report.append(
+					"Matches     : NONE (i.e.,no policies/policy sets were set, or all target expressions evaluated to false or error.)\n");
 		} else {
 			report.append("Matches     : ").append(matchingDocuments).append('\n');
 		}
-		var modifications = jsonReport.get(PDPDecision.MODIFICATIONS_STRING);
+		var modifications = jsonReport.get(ReportBuilderUtil.MODIFICATIONS);
 		if (modifications != null && modifications.isArray() && modifications.size() != 0) {
 			report.append("There were interceptors invoked after the PDP which changed the decision:\n");
 			for (var mod : modifications) {
 				report.append(" - ").append(mod).append('\n');
 			}
 		}
-		var documentReports = jsonReport.get("documentReports");
+		var documentReports = jsonReport.get(ReportBuilderUtil.DOCUMENT_REPORTS);
 		if (documentReports == null || !documentReports.isArray() || documentReports.size() == 0) {
 			report.append("No policy or policy sets have been evaluated\n");
 			return report.toString();
@@ -64,7 +67,7 @@ public class ReportTextRenderUtil {
 	}
 
 	private static String documentReport(JsonNode documentReport) {
-		var documentType = documentReport.get("documentType");
+		var documentType = documentReport.get(ReportBuilderUtil.DOCUMENT_TYPE);
 		if (documentType == null)
 			return "Reporting error. Unknown documentType: " + documentReport + '\n';
 		var type = documentType.asText();
@@ -78,15 +81,15 @@ public class ReportTextRenderUtil {
 
 	private static String policyReport(JsonNode policy) {
 		var report = "Policy Evaluation Result ===================\n";
-		report += "Name        : " + policy.get("documentName") + '\n';
-		report += "Entitlement : " + policy.get("entitlement") + '\n';
-		report += "Decision    : " + policy.get(PDPDecision.AUTHORIZATION_DECISION) + '\n';
+		report += "Name        : " + policy.get(ReportBuilderUtil.DOCUMENT_NAME) + '\n';
+		report += "Entitlement : " + policy.get(ReportBuilderUtil.ENTITLEMENT) + '\n';
+		report += "Decision    : " + policy.get(ReportBuilderUtil.AUTHORIZATION_DECISION) + '\n';
 		if (policy.has("target"))
-			report += "Target      : " + policy.get("target") + '\n';
+			report += "Target      : " + policy.get(ReportBuilderUtil.TARGET) + '\n';
 		if (policy.has("where"))
-			report += "Where       : " + policy.get("where") + '\n';
-		report += errorReport(policy.get("errors"));
-		report += attributeReport(policy.get("attributes"));
+			report += "Where       : " + policy.get(ReportBuilderUtil.WHERE) + '\n';
+		report += errorReport(policy.get(ReportBuilderUtil.ERRORS));
+		report += attributeReport(policy.get(ReportBuilderUtil.ATTRIBUTES));
 		return report;
 	}
 
@@ -120,14 +123,14 @@ public class ReportTextRenderUtil {
 
 	private static String policySetReport(JsonNode policySet) {
 		StringBuilder report = new StringBuilder("Policy Set Evaluation Result ===============\n");
-		report.append("Name        : ").append(policySet.get("documentName")).append('\n');
-		report.append("Algorithm   : ").append(policySet.get(CombinedDecision.COMBINING_ALGORITHM)).append('\n');
-		report.append("Decision    : ").append(policySet.get(PDPDecision.AUTHORIZATION_DECISION)).append('\n');
+		report.append("Name        : ").append(policySet.get(ReportBuilderUtil.DOCUMENT_NAME)).append('\n');
+		report.append("Algorithm   : ").append(policySet.get(ReportBuilderUtil.COMBINING_ALGORITHM)).append('\n');
+		report.append("Decision    : ").append(policySet.get(ReportBuilderUtil.AUTHORIZATION_DECISION)).append('\n');
 		if (policySet.has("target"))
-			report.append("Target      : ").append(policySet.get("target")).append('\n');
+			report.append("Target      : ").append(policySet.get(ReportBuilderUtil.TARGET)).append('\n');
 		if (policySet.has("errorMessage"))
-			report.append("Error       : ").append(policySet.get("errorMessage")).append('\n');
-		var evaluatedPolicies = policySet.get("evaluatedPolicies");
+			report.append("Error       : ").append(policySet.get(ReportBuilderUtil.ERROR_MESSAGE)).append('\n');
+		var evaluatedPolicies = policySet.get(ReportBuilderUtil.EVALUATED_POLICIES);
 		if (evaluatedPolicies != null && evaluatedPolicies.isArray()) {
 			for (var policyReport : evaluatedPolicies) {
 				report.append(indentText("   |", policyReport(policyReport)));

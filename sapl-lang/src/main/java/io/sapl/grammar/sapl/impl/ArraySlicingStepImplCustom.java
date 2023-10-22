@@ -41,7 +41,7 @@ import reactor.core.publisher.Flux;
  */
 public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 
-	private static final String STEP_ZERO = "Step must not be zero.";
+	private static final String STEP_ZERO_ERROR = "Step must not be zero.";
 
 	@Override
 	public Flux<Val> apply(@NonNull Val parentValue) {
@@ -66,7 +66,7 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 			// normalize slicing ranges
 			var step = getStep() == null ? BigDecimal.ONE.intValue() : getStep().intValue();
 			if (step == 0) {
-				throw new PolicyEvaluationException(STEP_ZERO);
+				throw new PolicyEvaluationException(STEP_ZERO_ERROR);
 			}
 
 			var index = getIndex() == null ? 0 : getIndex().intValue();

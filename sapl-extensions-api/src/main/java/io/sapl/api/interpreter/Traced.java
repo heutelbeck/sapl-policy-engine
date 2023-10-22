@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
  * Interface for all calculation results that are traced.
  */
 public interface Traced {
+
 	/**
 	 * @return a JSON representation of the trace.
 	 */

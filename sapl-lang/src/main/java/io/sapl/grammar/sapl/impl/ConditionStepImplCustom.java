@@ -15,6 +15,7 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.ConditionStep;
 import io.sapl.grammar.sapl.FilterStatement;
@@ -48,20 +49,23 @@ import reactor.core.publisher.Flux;
  */
 public class ConditionStepImplCustom extends ConditionStepImpl {
 
-	private static final String NO_CONDITION_EXPRESSION = "No condition expression.";
+	private static final String NO_CONDITION_EXPRESSION_ERROR = "No condition expression.";
 
 	@Override
 	public Flux<Val> apply(@NonNull Val parentValue) {
 		if (expression == null) {
-			return Flux.just(Val.error(NO_CONDITION_EXPRESSION).withParentTrace(ConditionStep.class, parentValue));
+			return Flux
+					.just(Val.error(NO_CONDITION_EXPRESSION_ERROR).withParentTrace(ConditionStep.class, parentValue));
 		}
-		return StepAlgorithmUtil.apply(parentValue, expression::evaluate, "condition expression", ConditionStep.class);
+		return StepAlgorithmUtil.apply(parentValue, expression::evaluate, Trace.CONDITION_EXPRESSION,
+				ConditionStep.class);
 	}
 
 	@Override
 	public Flux<Val> applyFilterStatement(@NonNull Val parentValue, int stepId, @NonNull FilterStatement statement) {
 		if (expression == null) {
-			return Flux.just(Val.error(NO_CONDITION_EXPRESSION).withParentTrace(ConditionStep.class, parentValue));
+			return Flux
+					.just(Val.error(NO_CONDITION_EXPRESSION_ERROR).withParentTrace(ConditionStep.class, parentValue));
 		}
 		return FilterAlgorithmUtil.applyFilter(parentValue, stepId, expression::evaluate, statement,
 				ConditionStep.class);
