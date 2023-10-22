@@ -37,9 +37,9 @@ public class LoggingFunctionLibrary {
 	public static final String NAME = "log";
 
 	/**
-	 * Library description 
+	 * Library description
 	 */
-public static final String DESCRIPTION = "Utility functions for dumping data from policy evaluation on the PDP console for debugging of policies.";
+	public static final String DESCRIPTION = "Utility functions for dumping data from policy evaluation on the PDP console for debugging of policies.";
 
 	private static final String DEBUG_SPY_DOC = "log.debugSpy(MESSAGE, VALUE): logs the value prepended with the message on the console at log level DEBUG. Function acts as identity form the perspective of the PDP. This can be used to wrap any value in a SAPL expression without changing the overall structure of the policy.";
 
@@ -60,6 +60,14 @@ public static final String DESCRIPTION = "Utility functions for dumping data fro
 	private static final String TRACE_DOC = "log.trace(MESSAGE, VALUE): logs the value prepended with the message on the console at log level TRACE. Always returns a true value. This function is useful to add an additional line in a where block of a policy. As the function return true, the rest of the policy evaluation is not affected.";
 
 	private static final String WARN_DOC = "log.warn(MESSAGE, VALUE): logs the value prepended with the message on the console at log level WARN. Always returns a true value. This function is useful to add an additional line in a where block of a policy. As the function return true, the rest of the policy evaluation is not affected.";
+
+	/**
+	 * Even though there are only static methods in this class, the engine requires
+	 * an instance for registration.
+	 */
+	public LoggingFunctionLibrary() {
+		// NOOP.
+	}
 
 	/**
 	 * Returns the original message on log level INFO followed by the inspected

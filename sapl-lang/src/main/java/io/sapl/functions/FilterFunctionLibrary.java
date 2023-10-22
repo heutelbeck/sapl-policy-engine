@@ -18,12 +18,10 @@ package io.sapl.functions;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
-import lombok.NoArgsConstructor;
 
 /**
  * Function library implementing blacken, replace, and remove filter functions.
  */
-@NoArgsConstructor
 @FunctionLibrary(name = FilterFunctionLibrary.NAME, description = FilterFunctionLibrary.DESCRIPTION)
 public class FilterFunctionLibrary {
 
@@ -33,7 +31,7 @@ public class FilterFunctionLibrary {
 	public static final String NAME = "filter";
 
 	/**
-	 * Library description 
+	 * Library description
 	 */
 	public static final String DESCRIPTION = "Essential functions for content filtering.";
 
@@ -72,6 +70,14 @@ public class FilterFunctionLibrary {
 	private static final int REPLACEMENT_INDEX = 3;
 
 	private static final int MAXIMAL_NUMBER_OF_PARAMETERS_FOR_BLACKEN = 4;
+
+	/**
+	 * Even though there are only static methods in this class, the engine requires
+	 * an instance for registration.
+	 */
+	public FilterFunctionLibrary() {
+		// NOOP.
+	}
 
 	/**
 	 * Replaces a section of a text with a fixed character.

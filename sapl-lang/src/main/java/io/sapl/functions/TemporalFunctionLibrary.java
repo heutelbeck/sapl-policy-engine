@@ -111,6 +111,14 @@ public class TemporalFunctionLibrary {
 	private static final DateTimeFormatter US_TIME_FORMATTER = new DateTimeFormatterBuilder().parseCaseInsensitive()
 			.appendPattern("hh:mm:ss a").toFormatter(Locale.US);
 
+	/**
+	 * Even though there are only static methods in this class, the engine requires
+	 * an instance for registration.
+	 */
+	public TemporalFunctionLibrary() {
+		// NOOP.
+	}
+
 	/* ######## DURATION ######## */
 
 	@Function(docs = DURATION_OF_SECONDS)
