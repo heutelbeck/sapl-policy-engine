@@ -34,7 +34,7 @@ import io.sapl.grammar.validation.SAPLSyntaxErrorMessageProvider
  */
 @ExtendWith(InjectionExtension)
 @InjectWith(SAPLInjectorProvider)
-class SAPLParsingTests {
+class SAPLParsingTest { // Note: do not rename, else XText generates a test template with this name. 
 
 	@Inject extension ParseHelper<SAPL> parseHelper
 	@Inject extension ValidationTestHelper validator
