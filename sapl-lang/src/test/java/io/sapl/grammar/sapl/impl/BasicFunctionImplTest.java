@@ -15,8 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
-import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionEvaluatesTo;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsErrors;
 
 import org.junit.jupiter.api.Test;
 
@@ -24,17 +24,17 @@ class BasicFunctionImplTest {
 
 	@Test
 	void basicSuccessfulEvaluationNull() {
-		expressionEvaluatesTo("mock.nil()", "null");
+		assertExpressionEvaluatesTo("mock.nil()", "null");
 	}
 
 	@Test
 	void basicSuccessfulEvaluationError() {
-		expressionErrors("mock.error()");
+		assertExpressionReturnsErrors("mock.error()");
 	}
 
 	@Test
 	void basicSuccessfulEvaluationExceptionToError() {
-		expressionErrors("mock.exception()");
+		assertExpressionReturnsErrors("mock.exception()");
 	}
 
 }

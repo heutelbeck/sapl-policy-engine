@@ -15,8 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
-import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionEvaluatesTo;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsErrors;
 
 import org.junit.jupiter.api.Test;
 
@@ -24,49 +24,49 @@ class ApplyStepsRecursiveIndexTest {
 
 	@Test
 	void recursiveIndexStepPropagatesErrors() {
-		expressionErrors("(10/0)..[5]");
+		assertExpressionReturnsErrors("(10/0)..[5]");
 	}
 
 	@Test
 	void recursiveIndexStepOnUndefinedEmpty() {
-		expressionEvaluatesTo("undefined..[2]", "[]");
+		assertExpressionEvaluatesTo("undefined..[2]", "[]");
 	}
 
 	@Test
 	void applyToNull() {
-		expressionEvaluatesTo("null..[2]", "[]");
+		assertExpressionEvaluatesTo("null..[2]", "[]");
 	}
 
 	@Test
 	void applyIndex1() {
-		expressionEvaluatesTo("[ [1,2,3], [4,5,6,7] ]..[1]", "[[4,5,6,7],2,5]");
+		assertExpressionEvaluatesTo("[ [1,2,3], [4,5,6,7] ]..[1]", "[[4,5,6,7],2,5]");
 	}
 
 	@Test
 	void applyIndex2() {
-		expressionEvaluatesTo("[ [1,2,3], [4,5,6,7] ]..[2]", "[3,6]");
+		assertExpressionEvaluatesTo("[ [1,2,3], [4,5,6,7] ]..[2]", "[3,6]");
 	}
 
 	@Test
 	void applyIndex3() {
-		expressionEvaluatesTo("[ [1,2,3], [4,5,6,7] ]..[-1]", "[[4,5,6,7],3,7]");
+		assertExpressionEvaluatesTo("[ [1,2,3], [4,5,6,7] ]..[-1]", "[[4,5,6,7],3,7]");
 	}
 
 	@Test
 	void applyIndex4() {
-		expressionEvaluatesTo("[ [1,2,3], [4,5,6,7] ]..[-4]", "[4]");
+		assertExpressionEvaluatesTo("[ [1,2,3], [4,5,6,7] ]..[-4]", "[4]");
 	}
 
 	@Test
 	void filterApplyIndex() {
-		expressionEvaluatesTo("[ [1,2,3], [4,5,6,7] ] |- { @..[-4] : mock.nil }", "[ [1,2,3], [null,5,6,7] ]");
+		assertExpressionEvaluatesTo("[ [1,2,3], [4,5,6,7] ] |- { @..[-4] : mock.nil }", "[ [1,2,3], [null,5,6,7] ]");
 	}
 
 	@Test
 	void applyToObject() {
 		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}..[0]";
 		var expected   = "[ { \"key\" : \"value2\" }, 1 ]";
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
@@ -74,7 +74,7 @@ class ApplyStepsRecursiveIndexTest {
 		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] } "
 				+ "|- { @..[0] : filter.remove }";
 		var expected   = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value3\" } ], \"array2\" : [ 2, 3, 4, 5 ] }";
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
@@ -82,7 +82,7 @@ class ApplyStepsRecursiveIndexTest {
 		var expression = "{ \"key\" : \"value1\", \"array1\" : [ [ 1,2,3 ], { \"key\" : \"value3\" } ], \"array2\" : [ [1,2,3], 2, 3, 4, 5 ] } "
 				+ "|- { @..[0][0] : filter.remove }";
 		var expected   = "{ \"key\" : \"value1\", \"array1\" : [ [ 2,3 ], { \"key\" : \"value3\" } ], \"array2\" : [ [2,3], 2, 3, 4, 5 ] }";
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 }

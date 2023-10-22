@@ -15,7 +15,7 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionEvaluatesTo;
 
 import org.junit.jupiter.api.Test;
 
@@ -23,27 +23,27 @@ class BasicExpressionImplCustomTest {
 
 	@Test
 	void basicExpressionWithStep() {
-		expressionEvaluatesTo("[ null ].[0]", "null");
+		assertExpressionEvaluatesTo("[ null ].[0]", "null");
 	}
 
 	@Test
 	void basicExpressionWithFilter() {
-		expressionEvaluatesTo("null |- mock.emptyString", "\"\"");
+		assertExpressionEvaluatesTo("null |- mock.emptyString", "\"\"");
 	}
 
 	@Test
 	void subTemplateNoArray() {
-		expressionEvaluatesTo("null :: { \"name\" : @ }", "{ \"name\" : null }");
+		assertExpressionEvaluatesTo("null :: { \"name\" : @ }", "{ \"name\" : null }");
 	}
 
 	@Test
 	void subTemplateArray() {
-		expressionEvaluatesTo("[true, false] :: null", "[ null,null ]");
+		assertExpressionEvaluatesTo("[true, false] :: null", "[ null,null ]");
 	}
 
 	@Test
 	void subTemplateEmptyArray() {
-		expressionEvaluatesTo("[] :: null", "[]");
+		assertExpressionEvaluatesTo("[] :: null", "[]");
 	}
 
 }

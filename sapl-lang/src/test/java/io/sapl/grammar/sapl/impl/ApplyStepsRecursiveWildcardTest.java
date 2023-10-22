@@ -15,8 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
-import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionEvaluatesTo;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsErrors;
 
 import java.io.IOException;
 
@@ -32,31 +32,31 @@ class ApplyStepsRecursiveWildcardTest {
 
 	@Test
 	void stepPropagatesErrors() {
-		expressionErrors("(10/0)..*");
+		assertExpressionReturnsErrors("(10/0)..*");
 	}
 
 	@Test
 	void stepOnUndefinedEmpty() {
-		expressionErrors("undefined..*");
+		assertExpressionReturnsErrors("undefined..*");
 	}
 
 	@Test
 	void applyToNull() {
-		expressionEvaluatesTo("null..*", "[]");
+		assertExpressionEvaluatesTo("null..*", "[]");
 	}
 
 	@Test
 	void applyToArray() {
 		var expression = "[1,2,[3,4,5], { \"key\" : [6,7,8], \"key2\": { \"key3\" : 9 } }]..*";
 		var expected   = "[1,2,[3,4,5],3,4,5,{\"key\":[6,7,8],\"key2\":{\"key3\":9}},[6,7,8],6,7,8,{\"key3\":9},9]";
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void filterArray() {
 		var expression = "[1,2,[3,4,5], { \"key\" : [6,7,8], \"key2\": { \"key3\" : 9 } }] |- { @..* : mock.nil }";
 		var expected   = "[null,null,null,null]";
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
@@ -64,7 +64,7 @@ class ApplyStepsRecursiveWildcardTest {
 		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}..*";
 		var expected   = Val.ofJson(
 				"[1,2,3,4,5,\"value1\",[{\"key\":\"value2\"},{\"key\":\"value3\"}],{\"key\":\"value2\"},\"value2\",{\"key\":\"value3\"},\"value3\",[1,2,3,4,5]]");
-		expressionEvaluatesTo("null..*", "[]");
+		assertExpressionEvaluatesTo("null..*", "[]");
 		StepVerifier
 				.create(ParserUtil.expression(expression).evaluate()
 						.contextWrite(MockUtil::setUpAuthorizationContext))

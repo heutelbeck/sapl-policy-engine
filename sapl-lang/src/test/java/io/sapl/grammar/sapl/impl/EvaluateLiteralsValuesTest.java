@@ -15,7 +15,7 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionEvaluatesTo;
 
 import org.junit.jupiter.api.Test;
 
@@ -23,54 +23,54 @@ class EvaluateLiteralsValuesTest {
 
 	@Test
 	void evaluateNullLiteral() {
-		expressionEvaluatesTo("null", "null");
+		assertExpressionEvaluatesTo("null", "null");
 	}
 
 	@Test
 	void evaluateTrueLiteral() {
-		expressionEvaluatesTo("true", "true");
+		assertExpressionEvaluatesTo("true", "true");
 	}
 
 	@Test
 	void evaluateFalseLiteral() {
-		expressionEvaluatesTo("false", "false");
+		assertExpressionEvaluatesTo("false", "false");
 	}
 
 	@Test
 	void evaluateStringLiteral() {
-		expressionEvaluatesTo("\"Otto\"", "\"Otto\"");
+		assertExpressionEvaluatesTo("\"Otto\"", "\"Otto\"");
 	}
 
 	@Test
 	void evaluateNumberLiteral() {
-		expressionEvaluatesTo("666", "666");
+		assertExpressionEvaluatesTo("666", "666");
 	}
 
 	@Test
 	void evaluateNumberLiteral2() {
-		expressionEvaluatesTo("1", "1.0");
+		assertExpressionEvaluatesTo("1", "1.0");
 	}
 
 	@Test
 	void evaluateEmptyObject() {
-		expressionEvaluatesTo("{}", "{}");
+		assertExpressionEvaluatesTo("{}", "{}");
 	}
 
 	@Test
 	void evaluateObject() {
 		var json = "{ \"key1\" : null, \"key2\" : true }";
-		expressionEvaluatesTo(json, json);
+		assertExpressionEvaluatesTo(json, json);
 	}
 
 	@Test
 	void evaluateEmptyArray() {
-		expressionEvaluatesTo("[]", "[]");
+		assertExpressionEvaluatesTo("[]", "[]");
 	}
 
 	@Test
 	void evaluateArray() {
 		var json = "[null,true,false]";
-		expressionEvaluatesTo(json, json);
+		assertExpressionEvaluatesTo(json, json);
 	}
 
 }

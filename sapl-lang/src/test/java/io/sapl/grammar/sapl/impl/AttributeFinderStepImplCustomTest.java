@@ -15,7 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionErrors;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsErrors;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -46,31 +47,31 @@ class AttributeFinderStepImplCustomTest {
 	@Test
 	void errorPropagates() {
 		var expression = "(1/0).<test.numbers>";
-		expressionErrors(expression);
+		assertExpressionReturnsErrors(expression);
 	}
 
 	@Test
 	void evaluateBasicAttributeInTargetPolicy() throws IOException {
 		var expression = ParserUtil.expression("\"\".<test.numbers>");
 		MockUtil.mockPolicyTargetExpressionContainerExpression(expression);
-		expressionErrors(expression);
+		assertExpressionErrors(expression);
 	}
 
 	@Test
 	void evaluateBasicAttributeInTargetPolicySet() throws IOException {
 		var expression = ParserUtil.expression("\"\".<test.numbers>");
 		MockUtil.mockPolicySetTargetExpressionContainerExpression(expression);
-		expressionErrors(expression);
+		assertExpressionErrors(expression);
 	}
 
 	@Test
 	void evaluateBasicAttributeOnUndefined() {
-		expressionErrors("undefined.<test.numbers>");
+		assertExpressionReturnsErrors("undefined.<test.numbers>");
 	}
 
 	@Test
 	void evaluateAttributeInFilterSelection() {
-		expressionErrors("123 |- { @.<test.numbers> : mock.nil }");
+		assertExpressionReturnsErrors("123 |- { @.<test.numbers> : mock.nil }");
 	}
 
 	@Test

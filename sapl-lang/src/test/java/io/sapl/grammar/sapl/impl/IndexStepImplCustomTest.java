@@ -15,8 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
-import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionEvaluatesTo;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsErrors;
 
 import org.junit.jupiter.api.Test;
 
@@ -24,84 +24,84 @@ class IndexStepImplCustomTest {
 
 	@Test
 	void applyIndexStepToNonArrayFails() {
-		expressionErrors("undefined[0]");
+		assertExpressionReturnsErrors("undefined[0]");
 	}
 
 	@Test
 	void applyPositiveExistingToArrayNode() {
-		expressionEvaluatesTo("[0,1,2,3,4,5,6,7,8,9][5]", "5");
+		assertExpressionEvaluatesTo("[0,1,2,3,4,5,6,7,8,9][5]", "5");
 	}
 
 	@Test
 	void applyPositiveExistingToArrayNodeUpperEdge() {
-		expressionEvaluatesTo("[0,1,2,3,4,5,6,7,8,9][9]", "9");
+		assertExpressionEvaluatesTo("[0,1,2,3,4,5,6,7,8,9][9]", "9");
 	}
 
 	@Test
 	void applyPositiveExistingToArrayNodeLowerEdge() {
-		expressionEvaluatesTo("[0,1,2,3,4,5,6,7,8,9][0]", "0");
+		assertExpressionEvaluatesTo("[0,1,2,3,4,5,6,7,8,9][0]", "0");
 	}
 
 	@Test
 	void applyPositiveExistingToArrayNodeLowerEdgeNegative() {
-		expressionEvaluatesTo("[0,1,2,3,4,5,6,7,8,9][-1]", "9");
+		assertExpressionEvaluatesTo("[0,1,2,3,4,5,6,7,8,9][-1]", "9");
 	}
 
 	@Test
 	void applyPositiveExistingToArrayNodeUpperEdgeNegative() {
-		expressionEvaluatesTo("[0,1,2,3,4,5,6,7,8,9][-10]", "0");
+		assertExpressionEvaluatesTo("[0,1,2,3,4,5,6,7,8,9][-10]", "0");
 	}
 
 	@Test
 	void applyPositiveOutOfBoundsToArrayNode1() {
-		expressionErrors("[0,1,2,3,4,5,6,7,8,9][100]");
+		assertExpressionReturnsErrors("[0,1,2,3,4,5,6,7,8,9][100]");
 	}
 
 	@Test
 	void applyPositiveOutOfBoundsToArrayNodeUpperEdge() {
-		expressionErrors("[0,1,2,3,4,5,6,7,8,9][10]");
+		assertExpressionReturnsErrors("[0,1,2,3,4,5,6,7,8,9][10]");
 	}
 
 	@Test
 	void applyPositiveOutOfBoundsToArrayLowerUpperEdgeNegative() {
-		expressionErrors("[0,1,2,3,4,5,6,7,8,9][-11]");
+		assertExpressionReturnsErrors("[0,1,2,3,4,5,6,7,8,9][-11]");
 	}
 
 	@Test
 	void applyNegativeExistingToArrayNode() {
-		expressionEvaluatesTo("[0,1,2,3,4,5,6,7,8,9][-2]", "8");
+		assertExpressionEvaluatesTo("[0,1,2,3,4,5,6,7,8,9][-2]", "8");
 
 	}
 
 	@Test
 	void applyNegativeOutOfBoundsToArrayNode() {
-		expressionErrors("[0,1,2,3,4,5,6,7,8,9][-12]");
+		assertExpressionReturnsErrors("[0,1,2,3,4,5,6,7,8,9][-12]");
 	}
 
 	@Test
 	void filterOutOfBounds1() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9] |- { @[-12] : mock.nil }";
 		var expected   = "[0,1,2,3,4,5,6,7,8,9]";
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void filterElementsInDescend() {
 		var expression = "[[0,1,2,3],[0,1,2,3],[0,1,2,3],[0,1,2,3]] |- { @[3][2] : mock.nil }";
 		var expected   = "[[0,1,2,3],[0,1,2,3],[0,1,2,3],[0,1,null,3]]";
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void filterOutOfBounds2() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9] |- { @[12] : mock.nil }";
 		var expected   = "[0,1,2,3,4,5,6,7,8,9]";
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void filterNonArray() {
-		expressionEvaluatesTo("666 |- { @[2] : mock.nil }", "666");
+		assertExpressionEvaluatesTo("666 |- { @[2] : mock.nil }", "666");
 	}
 
 }

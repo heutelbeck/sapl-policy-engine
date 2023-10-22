@@ -15,8 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
-import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionEvaluatesTo;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsErrors;
 
 import org.junit.jupiter.api.Test;
 
@@ -26,101 +26,101 @@ class ApplyStepsExpressionTest {
 
 	@Test
 	void expressionStepPropagatesErrors1() {
-		expressionErrors("[][(10/0)]");
+		assertExpressionReturnsErrors("[][(10/0)]");
 	}
 
 	@Test
 	void expressionStepPropagatesErrors2() {
-		expressionErrors("[(10/0)][(2+2)]");
+		assertExpressionReturnsErrors("[(10/0)][(2+2)]");
 	}
 
 	@Test
 	void expressionStepOutOfBounds1() {
-		expressionErrors("[1,2,3][(1+100)]");
+		assertExpressionReturnsErrors("[1,2,3][(1+100)]");
 	}
 
 	@Test
 	void expressionStepOutOfBounds2() {
-		expressionErrors("[1,2,3][(1 - 100)]");
+		assertExpressionReturnsErrors("[1,2,3][(1 - 100)]");
 	}
 
 	@Test
 	void expressionStepOutOfBounds3() {
-		expressionErrors("[1,2,3][(1 - 100)]");
+		assertExpressionReturnsErrors("[1,2,3][(1 - 100)]");
 	}
 
 	@Test
 	void applyExpressionStepToNonObjectNonArrayFails() {
-		expressionErrors("undefined[(1 + 1)]");
+		assertExpressionReturnsErrors("undefined[(1 + 1)]");
 	}
 
 	@Test
 	void expressionEvaluatesToBooleanAndFails() {
-		expressionErrors("[1,2,3][(true)]");
+		assertExpressionReturnsErrors("[1,2,3][(true)]");
 	}
 
 	@Test
 	void applyToArrayWithTextualExpressionResult() {
-		expressionErrors("[0,1,2,3,4,5,6,7,8,9][(\"key\")]");
+		assertExpressionReturnsErrors("[0,1,2,3,4,5,6,7,8,9][(\"key\")]");
 	}
 
 	@Test
 	void applyToArrayWithNumberExpressionResult() {
-		expressionEvaluatesTo("[0,1,2,3,4,5,6,7,8,9][(2+3)]", "5");
+		assertExpressionEvaluatesTo("[0,1,2,3,4,5,6,7,8,9][(2+3)]", "5");
 	}
 
 	@Test
 	void applyToObjectWithTextualResult() {
-		expressionEvaluatesTo("{ \"key\" : true }[(\"ke\"+\"y\")]", "true");
+		assertExpressionEvaluatesTo("{ \"key\" : true }[(\"ke\"+\"y\")]", "true");
 	}
 
 	@Test
 	void applyToObjectWithTextualResultNonExistingKey() {
-		expressionEvaluatesTo("{ \"key\" : true }[(\"no_ke\"+\"y\")]", Val.UNDEFINED);
+		assertExpressionEvaluatesTo("{ \"key\" : true }[(\"no_ke\"+\"y\")]", Val.UNDEFINED);
 	}
 
 	@Test
 	void applyToObjectWithNumericalResult() {
-		expressionErrors("{ \"key\" : true }[(5+2)]");
+		assertExpressionReturnsErrors("{ \"key\" : true }[(5+2)]");
 	}
 
 	@Test
 	void applyToObjectWithError() {
-		expressionErrors("{ \"key\" : true }[(10/0)]");
+		assertExpressionReturnsErrors("{ \"key\" : true }[(10/0)]");
 	}
 
 	@Test
 	void filterNonArrayNonObject() {
-		expressionEvaluatesTo("123 |- { @[(1+1)] : mock.nil }", "123");
+		assertExpressionEvaluatesTo("123 |- { @[(1+1)] : mock.nil }", "123");
 	}
 
 	@Test
 	void removeExpressionStepArray() {
 		var expression = "[ [0,1,2,3], [1,1,2,3], [2,1,2,3], [3,1,2,3], [4,1,2,3] ] |- { @[(1+2)] : filter.remove }";
 		var expected   = "[ [0,1,2,3], [1,1,2,3], [2,1,2,3], [4,1,2,3] ]";
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void filterTypeMismatch1() {
-		expressionErrors("[ [4,1,2,3] ] |- { @[(false)] : filter.remove }");
+		assertExpressionReturnsErrors("[ [4,1,2,3] ] |- { @[(false)] : filter.remove }");
 	}
 
 	@Test
 	void filterTypeMismatch2() {
-		expressionErrors("[ [4,1,2,3] ] |- { @[(\"a\")] : filter.remove }");
+		assertExpressionReturnsErrors("[ [4,1,2,3] ] |- { @[(\"a\")] : filter.remove }");
 	}
 
 	@Test
 	void filterTypeMismatch3() {
-		expressionErrors("{ \"a\": [4,1,2,3] } |- { @[(123)] : filter.remove }");
+		assertExpressionReturnsErrors("{ \"a\": [4,1,2,3] } |- { @[(123)] : filter.remove }");
 	}
 
 	@Test
 	void removeExpressionStepObject() {
 		var expression = "{ \"ab\" : [0,1,2,3], \"bb\" : [0,1,2,3], \"cb\" : [0,1,2,3], \"d\" : [0,1,2,3] } |- { @[(\"c\"+\"b\")] : filter.remove }";
 		var expected   = "{ \"ab\" : [0,1,2,3], \"bb\" : [0,1,2,3], \"d\" : [0,1,2,3] }";
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 }

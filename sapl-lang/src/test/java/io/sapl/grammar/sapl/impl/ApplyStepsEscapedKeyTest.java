@@ -15,8 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
-import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionEvaluatesTo;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsError;
 
 import org.junit.jupiter.api.Test;
 
@@ -26,71 +26,71 @@ class ApplyStepsEscapedKeyTests {
 
 	@Test
 	void keyStepPropagatesErrors() {
-		expressionErrors("(10/0).\"k e y\"", "Division by zero");
+		assertExpressionReturnsError("(10/0).\"k e y\"", "Division by zero");
 	}
 
 	@Test
 	void keyStepToNonObjectToUndefined() {
-		expressionEvaluatesTo("true.\"k e y\"", Val.UNDEFINED);
+		assertExpressionEvaluatesTo("true.\"k e y\"", Val.UNDEFINED);
 	}
 
 	@Test
 	void keyStepToEmptyObject() {
-		expressionEvaluatesTo("{}.\"k e y\"", Val.UNDEFINED);
+		assertExpressionEvaluatesTo("{}.\"k e y\"", Val.UNDEFINED);
 	}
 
 	@Test
 	void keyStepToObject() {
-		expressionEvaluatesTo("{\"k e y\" : true}.\"k e y\"", "true");
+		assertExpressionEvaluatesTo("{\"k e y\" : true}.\"k e y\"", "true");
 	}
 
 	@Test
 	void keyStepToArray() {
 		var expression = "[{\"k e y\" : true},{\"k e y\": 123}].\"k e y\"";
 		var expected   = "[true,123]";
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void keyStepToArrayNoMatch() {
 		var expression = "[{\"k e y\" : true},{\"k e y\": 123}].\"x\"";
 		var expected   = "[]";
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void filterNonObjectOrArray() {
 		var expression = "\"Gudrun\" |- { @.\"k e y\" : mock.nil }";
 		var expected   = "\"Gudrun\"";
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void filterObject() {
 		var expression = "{\"k e y\" : true, \"other\" : false} |- { @.\"k e y\" : mock.nil}";
 		var expected   = "{\"k e y\" : null, \"other\" : false}";
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void filterObjectDescend() {
 		var expression = "{\"k e y\" : { \"k e y2\" : true}, \"other\" : false} |- { @.\"k e y\".\"k e y2\" : mock.nil}";
 		var expected   = "{\"k e y\" : {\"k e y2\" : null }, \"other\" : false}";
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void filterArray() {
 		var expression = "[ {\"k e y\" : true, \"other\" : false} , false ] |- { @.\"k e y\" : mock.nil}";
 		var expected   = "[ {\"k e y\" : null, \"other\" : false} , false ]";
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void filterEmptyArray() {
 		var expression = "[] |- { @.\"k e y\" : mock.nil}";
 		var expected   = "[]";
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 }

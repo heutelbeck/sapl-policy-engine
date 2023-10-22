@@ -15,8 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
-import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionErrors;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionEvaluatesTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -48,21 +48,21 @@ class BasicEnvironmentHeadAttributeImplTest {
 	void evaluateBasicAttributeFlux() {
 		var expression = "|<test.numbers>";
 		var expected   = new String[] { "0" };
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void evaluateBasicAttributeInTargetPolicy() throws IOException {
 		var expression = ParserUtil.expression("|<test.numbers>");
 		MockUtil.mockPolicyTargetExpressionContainerExpression(expression);
-		expressionErrors(expression);
+		assertExpressionErrors(expression);
 	}
 
 	@Test
 	void evaluateBasicAttributeInTargetPolicySet() throws IOException {
 		var expression = ParserUtil.expression("|<test.numbers>");
 		MockUtil.mockPolicySetTargetExpressionContainerExpression(expression);
-		expressionErrors(expression);
+		assertExpressionErrors(expression);
 	}
 
 	@Test

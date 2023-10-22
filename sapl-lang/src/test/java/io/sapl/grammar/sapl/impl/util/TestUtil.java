@@ -55,7 +55,7 @@ public class TestUtil {
 	}
 
 	@SneakyThrows
-	public static void expressionEvaluatesTo(String expression, String... expected) {
+	public static void assertExpressionEvaluatesTo(String expression, String... expected) {
 		if (DEBUG_TESTS) {
 			log.debug("Expression: {}", expression);
 			for (var e : expected)
@@ -67,51 +67,51 @@ public class TestUtil {
 		for (var ex : expected) {
 			expectations[i++] = Val.ofJson(ex);
 		}
-		expressionEvaluatesTo(ParserUtil.expression(expression), expectations);
+		assertExpressionEvaluatesTo(ParserUtil.expression(expression), expectations);
 	}
 
 	@SneakyThrows
-	public static void expressionEvaluatesTo(String expression, Val... expected) {
+	public static void assertExpressionEvaluatesTo(String expression, Val... expected) {
 		if (DEBUG_TESTS) {
 			log.debug("Expression: {}", expression);
 			for (var e : expected)
 				log.debug("Expected  : {}", e);
 		}
-		expressionEvaluatesTo(ParserUtil.expression(expression), expected);
+		assertExpressionEvaluatesTo(ParserUtil.expression(expression), expected);
 	}
 
 	@SneakyThrows
-	public static void expressionErrors(String expression) {
+	public static void assertExpressionReturnsErrors(String expression) {
 		if (DEBUG_TESTS) {
 			log.debug("Expression: {}", expression);
 			log.debug("Expected  : ERROR");
 		}
-		expressionErrors(ParserUtil.expression(expression));
+		assertExpressionErrors(ParserUtil.expression(expression));
 	}
 
 	@SneakyThrows
-	public static void expressionErrors(String expression, String errorMessage) {
+	public static void assertExpressionReturnsError(String expression, String errorMessage) {
 		if (DEBUG_TESTS) {
 			log.debug("Expression: {}", expression);
 			log.debug("Expected  : ERROR[{}", errorMessage + "]");
 		}
-		expressionErrors(ParserUtil.expression(expression), errorMessage);
+		assertExpressionReturnsError(ParserUtil.expression(expression), errorMessage);
 	}
 
-	public static void expressionEvaluatesTo(Expression expression, Val... expected) {
+	public static void assertExpressionEvaluatesTo(Expression expression, Val... expected) {
 		StepVerifier.create(
 				expression.evaluate().doOnNext(TestUtil::logResult).contextWrite(MockUtil::setUpAuthorizationContext))
 				.expectNext(expected).verifyComplete();
 	}
 
-	public static void expressionErrors(Expression expression) {
+	public static void assertExpressionErrors(Expression expression) {
 		StepVerifier
 				.create(expression.evaluate().doOnNext(TestUtil::logResult)
 						.contextWrite(MockUtil::setUpAuthorizationContext))
 				.expectNextMatches(Val::isError).verifyComplete();
 	}
 
-	public static void expressionErrors(Expression expression, String errorMessage) {
+	public static void assertExpressionReturnsError(Expression expression, String errorMessage) {
 		StepVerifier
 				.create(expression.evaluate().doOnNext(TestUtil::logResult)
 						.contextWrite(MockUtil::setUpAuthorizationContext))

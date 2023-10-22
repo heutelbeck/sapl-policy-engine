@@ -35,18 +35,18 @@ public class Trace {
 	public static final String ARGUMENT                   = "argument";
 	public static final String ARGUMENTS                  = "arguments";
 	public static final String ATTRIBUTE                  = "attribute";
-	public static final String AUTHORIZATION_DECISION     = "authorizationDecision";     // check
-	public static final String AUTHORIZATION_SUBSCRIPTION = "authorizationSubscription"; // check
+	public static final String AUTHORIZATION_DECISION     = "authorizationDecision";
+	public static final String AUTHORIZATION_SUBSCRIPTION = "authorizationSubscription";
 	public static final String CONDITION_EXPRESSION       = "condition expression";
 	public static final String COMBINED_DECISION          = "combinedDecision";
 	public static final String COMBINING_ALGORITHM        = "combiningAlgorithm";
 	public static final String DIVIDEND                   = "dividend";
 	public static final String DIVISOR                    = "divisor";
-	public static final String DOCUMENT_TYPE              = "documentType";              // check
+	public static final String DOCUMENT_TYPE              = "documentType";
 	public static final String ELEMENT_INDEX              = "elementIndex";
 	public static final String ENTITILEMENT               = "entitlement";
-	public static final String ERROR                      = "error";                     // check
-	public static final String ERROR_MESSAGE              = "errorMessage";              // check
+	public static final String ERROR                      = "error";
+	public static final String ERROR_MESSAGE              = "errorMessage";
 	public static final String EVALUATED_POLICIES         = "evaluatedPolicies";
 	public static final String EXPLANATION                = "explanation";
 	public static final String FILTERED                   = "filtered";
@@ -70,13 +70,13 @@ public class Trace {
 	public static final String RIGHT                      = "right";
 	public static final String SELECTED_INDEX             = "selectedIndex";
 	public static final String SUBTRAHEND                 = "subtrahend";
-	public static final String TARGET                     = "target";                    // check
-	public static final String TIMESTAMP                  = "timestamp";                 // check
+	public static final String TARGET                     = "target";
+	public static final String TIMESTAMP                  = "timestamp";
 	public static final String TRACE                      = "trace";
 	public static final String UNFILTERED_VALUE           = "unfilteredValue";
-	public static final String VALUE                      = "value";                     // check
+	public static final String VALUE                      = "value";
 	public static final String VARIABLE_NAME              = "variableName";
-	public static final String WHERE                      = "where";                     // check
+	public static final String WHERE                      = "where";
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 

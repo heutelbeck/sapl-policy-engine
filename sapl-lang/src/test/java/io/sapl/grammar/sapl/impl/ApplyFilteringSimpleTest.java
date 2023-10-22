@@ -15,8 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
-import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionEvaluatesTo;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsErrors;
 
 import org.junit.jupiter.api.Test;
 
@@ -26,45 +26,45 @@ class ApplyFilteringSimpleTest {
 
 	@Test
 	void filterPropagatesError() {
-		expressionErrors("(10/0) |- filter.remove");
+		assertExpressionReturnsErrors("(10/0) |- filter.remove");
 	}
 
 	@Test
 	void filterUndefined() {
-		expressionErrors("undefined |- filter.remove");
+		assertExpressionReturnsErrors("undefined |- filter.remove");
 	}
 
 	@Test
 	void removeNoEach() {
 		var expression = "{} |- filter.remove";
 		var expected = Val.UNDEFINED;
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void removeEachNoArray() {
-		expressionErrors("{} |- each filter.remove");
+		assertExpressionReturnsErrors("{} |- each filter.remove");
 	}
 
 	@Test
 	void removeEachArray() {
 		var expression = "[null] |- each filter.remove";
 		var expected = "[]";
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void emptyStringNoEach() {
 		var expression = "[] |- mock.emptyString";
 		var expected = "\"\"";
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void emptyStringEach() {
 		var expression = "[ null, 5 ] |- each mock.emptyString(null)";
 		var expected = "[ \"\", \"\" ]";
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 }

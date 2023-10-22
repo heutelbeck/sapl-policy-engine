@@ -15,8 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
-import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionEvaluatesTo;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsErrors;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -46,28 +46,28 @@ class LazyBooleanOperatorsTest {
 
 	@Test
 	void andEvaluationShouldFailWithNonBooleanLeft() {
-		expressionErrors("null && true");
+		assertExpressionReturnsErrors("null && true");
 	}
 
 	@Test
 	void andEvaluationShouldFailWithNonBooleanRight() {
-		expressionErrors("true && null");
+		assertExpressionReturnsErrors("true && null");
 	}
 
 	@Test
 	void andEvaluationShouldBeLazyAndReturnFalseInLazyCase() {
-		expressionEvaluatesTo("false && undefined", "false");
+		assertExpressionEvaluatesTo("false && undefined", "false");
 
 	}
 
 	@Test
 	void andEvaluationOfTrueAndFalseShouldBeFalse() {
-		expressionEvaluatesTo("true && false", "false");
+		assertExpressionEvaluatesTo("true && false", "false");
 	}
 
 	@Test
 	void andEvaluationTrueAndTrueShouldBeTrue() {
-		expressionEvaluatesTo("true && true", "true");
+		assertExpressionEvaluatesTo("true && true", "true");
 	}
 
 	@Test
@@ -101,32 +101,32 @@ class LazyBooleanOperatorsTest {
 
 	@Test
 	void orEvaluationShouldFailWithNonBooleanLeft() {
-		expressionErrors("null || true");
+		assertExpressionReturnsErrors("null || true");
 	}
 
 	@Test
 	void orEvaluationShouldFailWithNonBooleanRight() {
-		expressionErrors("false || null");
+		assertExpressionReturnsErrors("false || null");
 	}
 
 	@Test
 	void orEvaluationShouldBeLazyAndReturnTrueInLazyCase() {
-		expressionEvaluatesTo("true || undefined", "true");
+		assertExpressionEvaluatesTo("true || undefined", "true");
 	}
 
 	@Test
 	void orEvaluationOfTrueAndFalseShouldBeTrue() {
-		expressionEvaluatesTo("true || false", "true");
+		assertExpressionEvaluatesTo("true || false", "true");
 	}
 
 	@Test
 	void orEvaluationOfFalseAndTrueShouldBeTrue() {
-		expressionEvaluatesTo("false || true", "true");
+		assertExpressionEvaluatesTo("false || true", "true");
 	}
 
 	@Test
 	void orEvaluationTrueAndTrueShouldBeTrue() {
-		expressionEvaluatesTo("true || true", "true");
+		assertExpressionEvaluatesTo("true || true", "true");
 	}
 
 	@Test

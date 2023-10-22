@@ -15,8 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
-import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionEvaluatesTo;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsError;
 
 import org.junit.jupiter.api.Test;
 
@@ -24,86 +24,86 @@ class ApplyStepsConditionTest {
 
 	@Test
 	void propagatesErrors() {
-		expressionErrors("(10/0)[?(@>0)]","Division by zero");
+		assertExpressionReturnsError("(10/0)[?(@>0)]","Division by zero");
 	}
 
 	@Test
 	void onUndefinedError() {
-		expressionErrors("undefined[?(@>0)]","Type mismatch. Expected an Object or Array, but got: 'undefined'.");
+		assertExpressionReturnsError("undefined[?(@>0)]","Type mismatch. Expected an Object or Array, but got: 'undefined'.");
 	}
 
 	@Test
 	void nonObjectNonArray() {
-		expressionErrors("\"Toastbrot\"[?(@>0)]","Type mismatch. Expected an Object or Array, but got: '\"Toastbrot\"'.");
+		assertExpressionReturnsError("\"Toastbrot\"[?(@>0)]","Type mismatch. Expected an Object or Array, but got: '\"Toastbrot\"'.");
 	}
 
 	@Test
 	void applyToObjectConditionNotBoolean() {
-		expressionEvaluatesTo("{ \"key\" : null }[?(null)]", "[]");
+		assertExpressionEvaluatesTo("{ \"key\" : null }[?(null)]", "[]");
 	}
 
 	@Test
 	void applyToArray() {
-		expressionEvaluatesTo("[20, 5][?(@>10)]", "[20]");
+		assertExpressionEvaluatesTo("[20, 5][?(@>10)]", "[20]");
 	}
 
 	@Test
 	void applyToArrayWithError() {
-		expressionErrors("[20, 10/0, 5][?(@>10)]","Division by zero");
+		assertExpressionReturnsError("[20, 10/0, 5][?(@>10)]","Division by zero");
 	}
 
 	@Test
 	void applyToArrayWithErrorCondition() {
-		expressionErrors("[20,  5][?(@>(10/0)]","Division by zero");
+		assertExpressionReturnsError("[20,  5][?(@>(10/0)]","Division by zero");
 	}
 
 	@Test
 	void applyToEmptyObject() {
-		expressionEvaluatesTo("{}[?(@>10)]", "[]");
+		assertExpressionEvaluatesTo("{}[?(@>10)]", "[]");
 	}
 
 	@Test
 	void applyToEmptyArray() {
-		expressionEvaluatesTo("[][?(@>10)]", "[]");
+		assertExpressionEvaluatesTo("[][?(@>10)]", "[]");
 	}
 
 	@Test
 	void applyToObjectNode() {
-		expressionEvaluatesTo("{ \"key1\" : 20, \"key2\" : 5 }[?(@>10)]", "[20]");
+		assertExpressionEvaluatesTo("{ \"key1\" : 20, \"key2\" : 5 }[?(@>10)]", "[20]");
 	}
 
 	@Test
 	void removeConditionStepFromObject() {
 		var expression = "{ \"a\" : 1, \"b\" : 2, \"c\" : 3, \"d\" : 4 , \"e\" : 5 } |- { @[?(@>2)] : filter.remove }";
 		var expected   = "{ \"a\" : 1, \"b\" : 2 }";
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void replaceConditionStepFromArray() {
 		var expression = "[1,2,3,4,5] |- { @[?(@>2)] : mock.emptyString }";
 		var expected   = "[1,2,\"\", \"\", \"\"]";
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void filterErrorPropagation() {
-		expressionErrors("[(10/0)] |- { @[?(@>2)] : mock.emptyString }","Division by zero");
+		assertExpressionReturnsError("[(10/0)] |- { @[?(@>2)] : mock.emptyString }","Division by zero");
 	}
 
 	@Test
 	void filterNonArrayOrObject() {
-		expressionEvaluatesTo("null |- { @[?(@>2)] : mock.emptyString }", "null");
+		assertExpressionEvaluatesTo("null |- { @[?(@>2)] : mock.emptyString }", "null");
 	}
 
 	@Test
 	void filterEmptyArray() {
-		expressionEvaluatesTo("[] |- { @[?(@>2)] : mock.emptyString }", "[]");
+		assertExpressionEvaluatesTo("[] |- { @[?(@>2)] : mock.emptyString }", "[]");
 	}
 
 	@Test
 	void filterErrorInArray() {
-		expressionErrors("[1, (10/0), 3] |- { @[?(@>2)] : mock.emptyString }","Division by zero");
+		assertExpressionReturnsError("[1, (10/0), 3] |- { @[?(@>2)] : mock.emptyString }","Division by zero");
 	}
 
 	@Test
@@ -111,7 +111,7 @@ class ApplyStepsConditionTest {
 		var expression = "[ { \"name\" : \"Otto\", \"job\" : \"carpenter\" }, { \"name\" : \"Willi\", \"job\" : \"warmonger\" } ] "
 				+ "|- { @[?(@.name == \"Willi\")].job : filter.remove }";
 		var expected   = "[ { \"name\" : \"Otto\", \"job\" : \"carpenter\" }, { \"name\" : \"Willi\" } ]";
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
@@ -119,34 +119,34 @@ class ApplyStepsConditionTest {
 		var expression = "{ \"name\" : \"Otto\", \"family\" : { \"partner\" : \"James\", \"children\": [ \"Mary\", \"Louis\", \"Paul\" ] } } "
 				+ "|- { @[?(\"Paul\" in @.children)]..children[1] : filter.remove }";
 		var expected   = "{ \"name\" : \"Otto\", \"family\" : { \"partner\" : \"James\", \"children\": [ \"Mary\", \"Paul\" ] } } ";
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void filterObjectErrorInCondition() {
 		var expression = "{ \"name\" : \"Otto\" } |- { @[?(10/0))] : filter.remove }";
-		expressionErrors(expression,"Division by zero");
+		assertExpressionReturnsError(expression,"Division by zero");
 	}
 
 	@Test
 	void filterObjectNonBoolInCondition() {
 		var expression = "{ \"name\" : \"Otto\" } |- { @[?(123)] : filter.remove }";
-		expressionErrors(expression,"Type mismatch. Expected the condition expression to return a Boolean, but was '123'.");
+		assertExpressionReturnsError(expression,"Type mismatch. Expected the condition expression to return a Boolean, but was '123'.");
 	}
 
 	@Test
 	void filterEmptyObject() {
-		expressionEvaluatesTo("{} |- { @[?(@>2)] : mock.emptyString }", "{}");
+		assertExpressionEvaluatesTo("{} |- { @[?(@>2)] : mock.emptyString }", "{}");
 	}
 
 	@Test
 	void filterErrorInCondition() {
-		expressionErrors("[10,1] |- { @[?(@>(10/0))] : mock.emptyString }","Division by zero");
+		assertExpressionReturnsError("[10,1] |- { @[?(@>(10/0))] : mock.emptyString }","Division by zero");
 	}
 
 	@Test
 	void filterNonBoolInCondition() {
-		expressionErrors("[10,1] |- { @[?(123)] : mock.emptyString }", "Type mismatch. Expected the condition expression to return a Boolean, but was '123'.");
+		assertExpressionReturnsError("[10,1] |- { @[?(123)] : mock.emptyString }", "Type mismatch. Expected the condition expression to return a Boolean, but was '123'.");
 	}
 
 }

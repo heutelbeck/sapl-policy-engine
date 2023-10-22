@@ -15,8 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
-import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionEvaluatesTo;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsErrors;
 
 import org.junit.jupiter.api.Test;
 
@@ -26,24 +26,24 @@ class ArrayImplCustomTest {
 	void simpleArrayToVal() {
 		var expression = "[true,false]";
 		var expected   = "[true,false]";
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 	@Test
 	void arrayPropagatesErrors() {
-		expressionErrors("[true,(1/0)]");
+		assertExpressionReturnsErrors("[true,(1/0)]");
 	}
 
 	@Test
 	void emptyArray() {
-		expressionEvaluatesTo("[]", "[]");
+		assertExpressionEvaluatesTo("[]", "[]");
 	}
 
 	@Test
 	void dropsUndefined() {
 		var expression = "[true,undefined,false,undefined]";
 		var expected   = "[true,false]";
-		expressionEvaluatesTo(expression, expected);
+		assertExpressionEvaluatesTo(expression, expected);
 	}
 
 }
