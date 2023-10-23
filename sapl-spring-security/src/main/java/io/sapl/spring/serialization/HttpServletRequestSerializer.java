@@ -84,8 +84,9 @@ public class HttpServletRequestSerializer extends JsonSerializer<HttpServletRequ
 		gen.writeStringField(CONTEXT_PATH, value.getContextPath());
 		if (value.getQueryString() != null)
 			gen.writeStringField(QUERY_STRING, value.getQueryString());
-		if (value.getRequestedSessionId() != null)
-			gen.writeStringField(REQUESTED_SESSION_ID, value.getRequestedSessionId());
+		var session = value.getSession();
+		if (session != null && session.getId() != null)
+			gen.writeStringField(REQUESTED_SESSION_ID, session.getId());
 		gen.writeStringField(REQUESTED_URI, value.getRequestURI());
 		gen.writeStringField(REQUEST_URL, value.getRequestURL().toString());
 		gen.writeStringField(SERVLET_PATH, value.getServletPath());

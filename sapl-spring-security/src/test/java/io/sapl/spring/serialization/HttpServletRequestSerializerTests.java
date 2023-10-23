@@ -33,6 +33,7 @@ import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpSession;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -252,12 +253,12 @@ class HttpServletRequestSerializerTests {
 
 	@Test
 	void whenSessionIdSet_thenItIsTheSameInJson() throws IOException {
-		var expected = "0xaaabbbd1233425fff";
-		var request  = new MockHttpServletRequest();
-		request.setRequestedSessionId(expected);
+		var request = new MockHttpServletRequest();
+		var session = new MockHttpSession(request.getServletContext());
+		request.setSession(session);
 		var result = serialize(request);
-		assertThat(result,
-				is(jsonObject().where(HttpServletRequestSerializer.REQUESTED_SESSION_ID, is(jsonText(expected)))));
+		assertThat(result, is(
+				jsonObject().where(HttpServletRequestSerializer.REQUESTED_SESSION_ID, is(jsonText(session.getId())))));
 	}
 
 	@Test
