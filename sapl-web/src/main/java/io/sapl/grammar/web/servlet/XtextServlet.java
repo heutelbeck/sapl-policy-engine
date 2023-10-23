@@ -59,25 +59,27 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class XtextServlet extends HttpServlet {
 
-	private final IResourceServiceProvider.Registry serviceProviderRegistry = IResourceServiceProvider.Registry.INSTANCE;
+	private static final String INVALID_REQUEST = "Invalid request ({}): {}";
 
-	private final Gson gson = new Gson();
+	private transient final IResourceServiceProvider.Registry serviceProviderRegistry = IResourceServiceProvider.Registry.INSTANCE;
+
+	private transient final Gson gson = new Gson();
 
 	@Override
 	protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 		try {
 			super.service(req, resp);
 		} catch (InvalidRequestException.ResourceNotFoundException exception) {
-			log.trace("Invalid request (" + req.getRequestURI() + "): " + exception.getMessage());
+			log.trace(INVALID_REQUEST, req.getRequestURI(), exception.getMessage());
 			resp.sendError(HttpServletResponse.SC_NOT_FOUND, exception.getMessage());
 		} catch (InvalidRequestException.InvalidDocumentStateException exception) {
-			log.trace("Invalid request (" + req.getRequestURI() + "): " + exception.getMessage());
+			log.trace(INVALID_REQUEST, req.getRequestURI(), exception.getMessage());
 			resp.sendError(HttpServletResponse.SC_CONFLICT, exception.getMessage());
 		} catch (InvalidRequestException.PermissionDeniedException exception) {
-			log.trace("Invalid request (" + req.getRequestURI() + "): " + exception.getMessage());
+			log.trace(INVALID_REQUEST, req.getRequestURI(), exception.getMessage());
 			resp.sendError(HttpServletResponse.SC_FORBIDDEN, exception.getMessage());
 		} catch (InvalidRequestException exception) {
-			log.trace("Invalid request (" + req.getRequestURI() + "): " + exception.getMessage());
+			log.trace(INVALID_REQUEST, req.getRequestURI(), exception.getMessage());
 			resp.sendError(HttpServletResponse.SC_BAD_REQUEST, exception.getMessage());
 		}
 	}
@@ -95,7 +97,8 @@ public class XtextServlet extends HttpServlet {
 	@Override
 	protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 		XtextServiceDispatcher.ServiceDescriptor service = getService(req);
-		String type = service.getContext().getParameter(IServiceContext.SERVICE_TYPE);
+		String                                   type    = service.getContext()
+				.getParameter(IServiceContext.SERVICE_TYPE);
 		if (!service.isHasConflict() && !Objects.equal(type, "update")) {
 			super.doPut(req, resp);
 		} else {
@@ -106,7 +109,8 @@ public class XtextServlet extends HttpServlet {
 	@Override
 	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 		XtextServiceDispatcher.ServiceDescriptor service = getService(req);
-		String type = service.getContext().getParameter(IServiceContext.SERVICE_TYPE);
+		String                                   type    = service.getContext()
+				.getParameter(IServiceContext.SERVICE_TYPE);
 		if (!service.isHasConflict()
 				&& (!service.isHasSideEffects() && !hasTextInput(service) || Objects.equal(type, "update"))) {
 			super.doPost(req, resp);
@@ -128,8 +132,8 @@ public class XtextServlet extends HttpServlet {
 	 */
 	protected XtextServiceDispatcher.ServiceDescriptor getService(HttpServletRequest request)
 			throws InvalidRequestException {
-		HttpServiceContext serviceContext = new HttpServiceContext(request);
-		Injector injector = getInjector(serviceContext);
+		HttpServiceContext     serviceContext    = new HttpServiceContext(request);
+		Injector               injector          = getInjector(serviceContext);
 		XtextServiceDispatcher serviceDispatcher = injector.getInstance(XtextServiceDispatcher.class);
 		return serviceDispatcher.getService(serviceContext);
 	}
@@ -179,11 +183,11 @@ public class XtextServlet extends HttpServlet {
 	protected Injector getInjector(HttpServiceContext serviceContext)
 			throws InvalidRequestException.UnknownLanguageException {
 		IResourceServiceProvider resourceServiceProvider;
-		String parameter = serviceContext.getParameter("resource");
+		String                   parameter = serviceContext.getParameter("resource");
 		if (parameter == null) {
 			parameter = "";
 		}
-		URI emfURI = URI.createURI(parameter);
+		URI    emfURI      = URI.createURI(parameter);
 		String contentType = serviceContext.getParameter("contentType");
 		if (Strings.isNullOrEmpty(contentType)) {
 			resourceServiceProvider = serviceProviderRegistry.getResourceServiceProvider(emfURI);

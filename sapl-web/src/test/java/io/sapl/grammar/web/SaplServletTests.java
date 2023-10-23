@@ -15,21 +15,26 @@
  */
 package io.sapl.grammar.web;
 
+import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
 class SaplServletTests {
 
 	@Test
 	void canInitAndDestroyServletWithoutException() {
-		var servlet = new SAPLServlet();
-		servlet.init();
-		servlet.destroy();
+		assertDoesNotThrow(() -> {
+			var servlet = new SAPLServlet();
+			servlet.init();
+			servlet.destroy();
+		});
 	}
 
 	@Test
 	void canJustDestroyServletWithoutException() {
-		var servlet = new SAPLServlet();
-		servlet.destroy();
+		assertDoesNotThrow(() -> {
+			var servlet = new SAPLServlet();
+			servlet.destroy();
+		});
 	}
 
 }

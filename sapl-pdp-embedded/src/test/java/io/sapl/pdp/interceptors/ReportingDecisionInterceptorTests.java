@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.Decision;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.grammar.sapl.impl.DenyOverridesCombiningAlgorithmImplCustom;
@@ -37,8 +38,9 @@ import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
 import lombok.SneakyThrows;
 import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
 
-public class ReportingDecisionInterceptorTests {
+class ReportingDecisionInterceptorTests {
 
 	private static class TestingPolicyRetrievalPoint implements PolicyRetrievalPoint {
 		public String          permitAllDocument = "policy \"permitAll\" permit";
@@ -60,7 +62,7 @@ public class ReportingDecisionInterceptorTests {
 	}
 
 	@PolicyInformationPoint(name = "test")
-	public static class ReportingTestPIP {
+	static class ReportingTestPIP {
 
 		@Attribute(name = "test")
 		public Flux<Val> test(Val leftHand) {
@@ -75,14 +77,13 @@ public class ReportingDecisionInterceptorTests {
 		public Flux<PDPConfiguration> pdpConfiguration() {
 			var cAlg         = new DenyOverridesCombiningAlgorithmImplCustom();
 			var dInterceptor = new ReportingDecisionInterceptor(new ObjectMapper(), false, true, true, true);
-			return Flux
-					.just(new PDPConfiguration(new AnnotationAttributeContext(new ReportingTestPIP()),
-							new AnnotationFunctionContext(), Map.of(), cAlg, dInterceptor, x -> x));
+			return Flux.just(new PDPConfiguration(new AnnotationAttributeContext(new ReportingTestPIP()),
+					new AnnotationFunctionContext(), Map.of(), cAlg, dInterceptor, x -> x));
 		}
 	}
 
 	@Test
-	public void runReportingTest() {
+	void runReportingTest() {
 		// var mapper = new ObjectMapper();
 		// var subJwt =
 		// "{\"subject\":\"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJEaWVnbyIsImlhdCI6MTY3MTUyMzY2MSwiZXhwIjoxNzAzMDU5NjYxLCJhdWQiOiJuZXZlcmdvYmFjay5jbG91ZCIsInN1YiI6IkRpZWdvIEJ1cmxhbmRvIiwiR2l2ZW5OYW1lIjoiRGllZ3VzIn0.2uURYR6TbPbkAI77lj5xEKYbrWp7eU6ocq7UdvSrJnA\",\"action\":\"what\",\"resource\":\"with
@@ -92,7 +93,8 @@ public class ReportingDecisionInterceptorTests {
 		var pdp = new EmbeddedPolicyDecisionPoint(new TestingPDPConfigurationProvider(),
 				new TestingPolicyRetrievalPoint());
 		var sub = AuthorizationSubscription.of("subject", "action", "resource");
-		pdp.decide(sub).blockFirst();
+		StepVerifier.create(pdp.decide(sub)).expectNextMatches(d -> d.getDecision() == Decision.INDETERMINATE)
+				.verifyComplete();
 	}
 
 }

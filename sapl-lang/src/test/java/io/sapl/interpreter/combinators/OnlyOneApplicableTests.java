@@ -20,7 +20,6 @@ import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateDecisio
 import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateObligations;
 import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateResource;
 
-import java.util.ArrayList;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -31,7 +30,6 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.grammar.sapl.SAPL;
 import io.sapl.grammar.sapl.impl.OnlyOneApplicableCombiningAlgorithmImplCustom;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
@@ -118,16 +116,18 @@ class OnlyOneApplicableTests {
 	}
 
 	private PolicyRetrievalResult mockPolicyRetrievalResult(boolean errorsInTarget, String... policies) {
-		var documents = new ArrayList<SAPL>(policies.length);
+		var result = new PolicyRetrievalResult();
+		if (errorsInTarget)
+			result = result.withError();
 		for (var policy : policies) {
-			documents.add(INTERPRETER.parse(policy));
+			result = result.withMatch(INTERPRETER.parse(policy));
 		}
-		return new PolicyRetrievalResult(documents, errorsInTarget, true);
+		return result;
 	}
 
 	private void verifyDocumentsCombinator(PolicyRetrievalResult given, AuthorizationDecision expected) {
-		StepVerifier.create(
-				combinator.combinePolicies(given.getPolicyElements())
+		StepVerifier
+				.create(combinator.combinePolicies(given.getPolicyElements())
 						.map(CombinedDecision::getAuthorizationDecision)
 						.contextWrite(
 								ctx -> AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext()))
