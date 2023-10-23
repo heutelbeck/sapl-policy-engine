@@ -31,6 +31,6 @@ public interface VariablesAndCombinatorSource {
 
 	default void destroy() throws Exception {
 		// NOOP
-	};
+	}
 
 }

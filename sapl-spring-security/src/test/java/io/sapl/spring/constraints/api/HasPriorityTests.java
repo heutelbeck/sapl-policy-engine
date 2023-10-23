@@ -35,8 +35,8 @@ class HasPriorityTests {
 		var sut_a = spy(HasPriority.class);
 		var sut_b = spy(HasPriority.class);
 		when(sut_a.getPriority()).thenReturn(-100);
-		assertThat(sut_b.compareTo(sut_a)).isLessThan(0);
-		assertThat(sut_a.compareTo(sut_b)).isGreaterThan(0);
-		assertThat(sut_a.compareTo(sut_a)).isEqualTo(0);
+		assertThat(sut_b.compareTo(sut_a)).isNegative();
+		assertThat(sut_a.compareTo(sut_b)).isPositive();
+		assertThat(sut_a.compareTo(sut_a)).isZero();
 	}
 }

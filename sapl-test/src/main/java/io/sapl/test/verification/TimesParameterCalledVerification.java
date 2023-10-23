@@ -17,7 +17,7 @@ package io.sapl.test.verification;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 
 import org.hamcrest.Matcher;
 
@@ -37,7 +37,7 @@ public class TimesParameterCalledVerification implements MockingVerification {
 
 	public TimesParameterCalledVerification(TimesCalledVerification verification, List<Matcher<Val>> wantedArgs) {
 		this.verification = verification;
-		this.wantedArgs = wantedArgs;
+		this.wantedArgs   = wantedArgs;
 	}
 
 	@Override
@@ -101,7 +101,7 @@ public class TimesParameterCalledVerification implements MockingVerification {
 	}
 
 	private List<Boolean> listCombiner(List<Matcher<Val>> list1, List<Val> list2,
-			BiFunction<Matcher<Val>, Val, Boolean> combiner) {
+			BiPredicate<Matcher<Val>, Val> combiner) {
 		if (list1.size() != list2.size()) {
 			throw new SaplTestException(
 					"Number of parameters in the mock call is not equals the number of provided parameter matcher!");
@@ -109,7 +109,7 @@ public class TimesParameterCalledVerification implements MockingVerification {
 
 		List<Boolean> result = new ArrayList<>(list1.size());
 		for (int i = 0; i < list1.size(); i++) {
-			result.add(combiner.apply(list1.get(i), list2.get(i)));
+			result.add(combiner.test(list1.get(i), list2.get(i)));
 		}
 		return result;
 	}

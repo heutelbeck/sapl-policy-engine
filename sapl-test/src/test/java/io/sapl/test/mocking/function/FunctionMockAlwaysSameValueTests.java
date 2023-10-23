@@ -46,7 +46,7 @@ class FunctionMockAlwaysSameValueTests {
 	@Test
 	void test_errorMessage() {
 		var mock = new FunctionMockAlwaysSameValue("foo", alwaysReturnValue, times(1));
-		assertThat(mock.getErrorMessageForCurrentMode().isEmpty()).isFalse();
+		assertThat(mock.getErrorMessageForCurrentMode()).isNotEmpty();
 	}
 
 }

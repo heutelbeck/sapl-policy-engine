@@ -42,18 +42,18 @@ public class ClasspathHelper {
 		}
 
 		// try DEFAULT_PATH + specified path
-		String defaultPath = DEFAULT_PATH + path;
-		URL urlFromDefaultPath = loader.getResource(defaultPath);
+		String defaultPath        = DEFAULT_PATH + path;
+		URL    urlFromDefaultPath = loader.getResource(defaultPath);
 		if (urlFromDefaultPath != null) {
 			return getResourcePath(urlFromDefaultPath);
 		}
 
 		// nothing found -> throw useful exception
 		StringBuilder errorMessage = new StringBuilder(String.format(ERROR_MAIN_MESSAGE, path, defaultPath));
-		if (loader instanceof URLClassLoader) {
+		if (loader instanceof URLClassLoader urlClassLoader) {
 			errorMessage.append(System.lineSeparator()).append(System.lineSeparator())
 					.append("We tried the following paths:").append(System.lineSeparator());
-			URL[] classpathElements = ((URLClassLoader) loader).getURLs();
+			URL[] classpathElements = urlClassLoader.getURLs();
 			for (URL classpathElement : classpathElements) {
 				errorMessage.append("    - ").append(classpathElement);
 			}
@@ -70,8 +70,7 @@ public class ClasspathHelper {
 		Path configDirectoryPath;
 		try {
 			configDirectoryPath = Paths.get(url.toURI());
-		}
-		catch (URISyntaxException e) {
+		} catch (URISyntaxException e) {
 			throw Exceptions.propagate(e);
 		}
 

@@ -44,8 +44,7 @@ import reactor.core.publisher.Flux;
 public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombinatorSource {
 
 	private static final String DEFAULT_CONFIG_PATH = "/policies";
-
-	private static final String CONFIG_FILE = "pdp.json";
+	private static final String CONFIG_FILE         = "pdp.json";
 
 	private final ObjectMapper mapper;
 

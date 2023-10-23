@@ -64,7 +64,7 @@ class PolicyBodyImplCustomCoverageTests {
 
 		ArgumentCaptor<PolicyConditionHit> captor = ArgumentCaptor.forClass(PolicyConditionHit.class);
 		verify(this.recorder, times(3)).recordPolicyConditionHit(captor.capture());
-		assertThat(captor.getAllValues().get(0).getConditionStatementId()).isEqualTo(0);
+		assertThat(captor.getAllValues().get(0).getConditionStatementId()).isZero();
 		assertThat(captor.getAllValues().get(1).getConditionStatementId()).isEqualTo(1);
 		assertThat(captor.getAllValues().get(2).getConditionStatementId()).isEqualTo(2);
 	}
@@ -83,7 +83,7 @@ class PolicyBodyImplCustomCoverageTests {
 
 		ArgumentCaptor<PolicyConditionHit> captor = ArgumentCaptor.forClass(PolicyConditionHit.class);
 		verify(this.recorder, times(3)).recordPolicyConditionHit(captor.capture());
-		assertThat(captor.getAllValues().get(0).getConditionStatementId()).isEqualTo(0);
+		assertThat(captor.getAllValues().get(0).getConditionStatementId()).isZero();
 		assertThat(captor.getAllValues().get(1).getConditionStatementId()).isEqualTo(1);
 		assertThat(captor.getAllValues().get(2).getConditionStatementId()).isEqualTo(2);
 	}

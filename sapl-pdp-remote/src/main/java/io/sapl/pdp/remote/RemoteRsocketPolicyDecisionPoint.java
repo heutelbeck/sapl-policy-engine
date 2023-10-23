@@ -17,6 +17,7 @@ package io.sapl.pdp.remote;
 
 import java.time.Duration;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import javax.net.ssl.SSLException;
 
@@ -63,9 +64,9 @@ import reactor.retry.Repeat;
 @Slf4j
 public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 
-	private static final String DECIDE           = "decide";
+	private static final String DECIDE = "decide";
 
-	private static final String DECIDE_ONCE           = "decide-once";
+	private static final String DECIDE_ONCE      = "decide-once";
 	private static final String MULTI_DECIDE     = "multi-decide";
 	private static final String MULTI_DECIDE_ALL = "multi-decide-all";
 
@@ -99,13 +100,14 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 		var type = new ParameterizedTypeReference<AuthorizationDecision>() {
 		};
 		return decide(DECIDE, type, authzSubscription)
-				.onErrorResume(__ -> Flux.just(AuthorizationDecision.INDETERMINATE)).repeatWhen(repeat())
+				.onErrorResume(error -> Flux.just(AuthorizationDecision.INDETERMINATE)).repeatWhen(repeat())
 				.distinctUntilChanged();
 	}
 
 	@Override
 	public Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authzSubscription) {
-		var type = new ParameterizedTypeReference<AuthorizationDecision>() {};
+		var type = new ParameterizedTypeReference<AuthorizationDecision>() {
+		};
 		return rSocketRequester.route(DECIDE_ONCE).data(authzSubscription).retrieveMono(type)
 				.doOnError(error -> log.error("RSocket Connect Error : error {}", error.getMessage(), error));
 	}
@@ -115,7 +117,7 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 		var type = new ParameterizedTypeReference<IdentifiableAuthorizationDecision>() {
 		};
 		return decide(MULTI_DECIDE, type, multiAuthzSubscription)
-				.onErrorResume(__ -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE)).repeatWhen(repeat())
+				.onErrorResume(error -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE)).repeatWhen(repeat())
 				.distinctUntilChanged();
 	}
 
@@ -124,7 +126,7 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 		var type = new ParameterizedTypeReference<MultiAuthorizationDecision>() {
 		};
 		return decide(MULTI_DECIDE_ALL, type, multiAuthzSubscription)
-				.onErrorResume(__ -> Flux.just(MultiAuthorizationDecision.indeterminate())).repeatWhen(repeat())
+				.onErrorResume(error -> Flux.just(MultiAuthorizationDecision.indeterminate())).repeatWhen(repeat())
 				.distinctUntilChanged();
 	}
 
@@ -133,7 +135,7 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 				.doOnError(error -> log.error("RSocket Connect Error : error {}", error.getMessage(), error));
 	}
 
-	public void dispose(){
+	public void dispose() {
 		rSocketRequester.dispose();
 	}
 
@@ -178,7 +180,7 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 		}
 
 		private RemoteRsocketPolicyDecisionPointBuilder setApplyAuthenticationFunction(
-				Function<RSocketRequester.Builder, RSocketRequester.Builder> applyFunction) {
+				UnaryOperator<RSocketRequester.Builder> applyFunction) {
 			if (this.authenticationCustomizer == null) {
 				this.authenticationCustomizer = applyFunction;
 			} else {

@@ -82,7 +82,7 @@ public class AttributeMockForParentValueAndArguments implements AttributeMock {
 
 		checkAtLeastOneMatchingMockReturnValueExists(matchingParameterSpecificMockReturnValues);
 
-		return Flux.combineLatest(args, (latestPublishedEventsPerArgument) -> {
+		return Flux.combineLatest(args, latestPublishedEventsPerArgument -> {
 			var trace = new HashMap<String, Traced>(latestPublishedEventsPerArgument.length + 1);
 			trace.put("attributeName", Val.of(attributeName));
 			for (int i = 0; i < latestPublishedEventsPerArgument.length; i++) {
@@ -91,8 +91,7 @@ public class AttributeMockForParentValueAndArguments implements AttributeMock {
 			// interpret a call to an AttributeMock as
 			// not when the evaluate method is called
 			// but for every combination of Val objects from parentValue and by argument
-			// flux
-			// emitted
+			// flux emitted
 			saveCall(parentValue, latestPublishedEventsPerArgument);
 
 			for (ParameterSpecificMockReturnValue parameterSpecificMockReturnValue : matchingParameterSpecificMockReturnValues) {
@@ -157,7 +156,7 @@ public class AttributeMockForParentValueAndArguments implements AttributeMock {
 
 	@Override
 	public void assertVerifications() {
-		this.listMockingVerifications.forEach((verification) -> verification.verify(this.mockRunInformation));
+		this.listMockingVerifications.forEach(verification -> verification.verify(this.mockRunInformation));
 	}
 
 	@Override

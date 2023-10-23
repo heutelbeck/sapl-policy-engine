@@ -54,26 +54,25 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
 
 	public FileSystemVariablesAndCombinatorSource(String configurationPath) {
 		watchDir = resolveHomeFolderIfPresent(configurationPath);
-		log.info("Monitor folder for config: {}", watchDir);
-		Flux<FileEvent> monitoringFlux = monitorDirectory(watchDir,
-				file -> CONFIG_FILE_GLOB_PATTERN.equals(file.getName()));
-		configFlux = monitoringFlux.scan(loadConfig(), (__, fileEvent) -> processWatcherEvent(fileEvent))
+		log.info("Monitoring folder for PDP configuration: {}", watchDir);
+		var monitoringFlux = monitorDirectory(watchDir, file -> CONFIG_FILE_GLOB_PATTERN.equals(file.getName()));
+		configFlux          = monitoringFlux.scan(loadConfig(), (x, fileEvent) -> processWatcherEvent(fileEvent))
 				.distinctUntilChanged().share().cache(1);
 		monitorSubscription = Flux.from(configFlux).subscribe();
 	}
 
 	private Optional<PolicyDecisionPointConfiguration> loadConfig() {
 		Path configurationFile = Paths.get(watchDir, CONFIG_FILE_GLOB_PATTERN);
-		log.info("Loading config from: {}", configurationFile.toAbsolutePath());
+		log.info("Loading PDP configuration from: {}", configurationFile.toAbsolutePath());
 		if (Files.notExists(configurationFile, LinkOption.NOFOLLOW_LINKS)) {
 			// If file does not exist, return default configuration
-			log.info("No config file present. Use default config.");
+			log.info("No PDP configuration file present. Use default configuration.");
 			return Optional.of(new PolicyDecisionPointConfiguration());
 		}
 		try {
 			return Optional.of(MAPPER.readValue(configurationFile.toFile(), PolicyDecisionPointConfiguration.class));
-		}
-		catch (IOException e) {
+		} catch (IOException e) {
+			log.info("Error reading PDP configuration file. No configuration available.", e);
 			return Optional.empty();
 		}
 	}

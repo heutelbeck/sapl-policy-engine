@@ -46,12 +46,12 @@ public class AttributeMockPublisher implements AttributeMock {
 	private final List<MockingVerification> listMockingVerifications;
 
 	public AttributeMockPublisher(String fullName) {
-		this.fullName = fullName;
-		this.mockRunInformation = new MockRunInformation(fullName);
+		this.fullName                 = fullName;
+		this.mockRunInformation       = new MockRunInformation(fullName);
 		this.listMockingVerifications = new LinkedList<>();
 		this.listMockingVerifications.add(times(greaterThanOrEqualTo(1)));
 
-		this.publisher = Sinks.many().replay().latest();
+		this.publisher  = Sinks.many().replay().latest();
 		this.returnFlux = this.publisher.asFlux();
 
 	}
@@ -61,14 +61,16 @@ public class AttributeMockPublisher implements AttributeMock {
 	}
 
 	@Override
-	public Flux<Val> evaluate(String attributeName, Val parentValue, Map<String, JsonNode> variables, List<Flux<Val>> args) {
+	public Flux<Val> evaluate(String attributeName, Val parentValue, Map<String, JsonNode> variables,
+			List<Flux<Val>> args) {
 		this.mockRunInformation.saveCall(new MockCall());
-		return this.returnFlux.map(val->val.withTrace(AttributeMockPublisher.class,Map.of("attributeName",Val.of(attributeName))));
+		return this.returnFlux.map(
+				val -> val.withTrace(AttributeMockPublisher.class, Map.of("attributeName", Val.of(attributeName))));
 	}
 
 	@Override
 	public void assertVerifications() {
-		this.listMockingVerifications.forEach((verification) -> verification.verify(this.mockRunInformation));
+		this.listMockingVerifications.forEach(verification -> verification.verify(this.mockRunInformation));
 	}
 
 	@Override

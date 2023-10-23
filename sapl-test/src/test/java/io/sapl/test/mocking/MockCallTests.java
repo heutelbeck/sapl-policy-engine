@@ -31,7 +31,7 @@ class MockCallTests {
 
 		assertThat(call.getNumberOfArguments()).isEqualTo(1);
 		assertThat(call.getArgument(0)).isEqualTo(Val.of("foo"));
-		assertThat(call.getListOfArguments().size()).isEqualTo(1);
+		assertThat(call.getListOfArguments()).hasSize(1);
 	}
 
 	@Test

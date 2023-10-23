@@ -60,7 +60,7 @@ class FunctionMockSequenceTests {
 	@Test
 	void test_errorMessage() {
 		var mock = new FunctionMockSequence("foo");
-		assertThat(mock.getErrorMessageForCurrentMode().isEmpty()).isFalse();
+		assertThat(mock.getErrorMessageForCurrentMode()).isNotEmpty();
 	}
 
 }

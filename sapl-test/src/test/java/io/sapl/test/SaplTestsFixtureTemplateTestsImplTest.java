@@ -52,7 +52,7 @@ class SaplTestsFixtureTemplateTestsImplTest {
 	@Test
 	void test_registerVariable() {
 		this.sud.registerVariable("test", this.mapper.createObjectNode());
-		assertThat(this.sud.getVariablesMap().containsKey("test")).isTrue();
+		assertThat(this.sud.getVariablesMap()).containsKey("test");
 	}
 
 	@Test

@@ -69,7 +69,7 @@ public class MockingFunctionContext implements FunctionContext {
 	public Boolean isProvidedFunction(String function) {
 		if (this.registeredMocks.containsKey(function)) {
 			return Boolean.TRUE;
-		} else if (originalFunctionContext.isProvidedFunction(function)) {
+		} else if (Boolean.TRUE.equals(originalFunctionContext.isProvidedFunction(function))) {
 			return Boolean.TRUE;
 		} else {
 			return Boolean.FALSE;
@@ -92,7 +92,7 @@ public class MockingFunctionContext implements FunctionContext {
 	}
 
 	@Override
-	public Val evaluate(String function, Val... parameters) {	
+	public Val evaluate(String function, Val... parameters) {
 		var functionTrace = new ExpressionArgument[parameters.length + 1];
 		functionTrace[0] = new ExpressionArgument("functionName", Val.of(function));
 		for (var parameter = 0; parameter < parameters.length; parameter++) {
@@ -144,8 +144,8 @@ public class MockingFunctionContext implements FunctionContext {
 
 		FunctionMock mock = this.registeredMocks.get(fullName);
 		if (mock != null) {
-			if (mock instanceof FunctionMockSequence) {
-				((FunctionMockSequence) mock).loadMockReturnValue(mockReturnValue);
+			if (mock instanceof FunctionMockSequence functionMockSequence) {
+				functionMockSequence.loadMockReturnValue(mockReturnValue);
 			} else {
 				throw new SaplTestException(mock.getErrorMessageForCurrentMode());
 			}
@@ -170,9 +170,9 @@ public class MockingFunctionContext implements FunctionContext {
 
 		FunctionMock mock = this.registeredMocks.get(fullName);
 		if (mock != null) {
-			if (mock instanceof FunctionMockAlwaysSameForParameters) {
-				((FunctionMockAlwaysSameForParameters) mock).loadParameterSpecificReturnValue(mockReturnValue,
-						parameter, verification);
+			if (mock instanceof FunctionMockAlwaysSameForParameters functionMockAlwaysSameForParameters) {
+				functionMockAlwaysSameForParameters.loadParameterSpecificReturnValue(mockReturnValue, parameter,
+						verification);
 			} else {
 				throw new SaplTestException(mock.getErrorMessageForCurrentMode());
 			}

@@ -78,7 +78,7 @@ public class MockingAttributeContext implements AttributeContext {
 	public Boolean isProvidedFunction(String function) {
 		if (this.registeredMocks.containsKey(function)) {
 			return Boolean.TRUE;
-		} else if (originalAttributeContext.isProvidedFunction(function)) {
+		} else if (Boolean.TRUE.equals(originalAttributeContext.isProvidedFunction(function))) {
 			return Boolean.TRUE;
 		} else {
 			return Boolean.FALSE;
@@ -157,8 +157,8 @@ public class MockingAttributeContext implements AttributeContext {
 	public void mockEmit(String fullName, Val returns) {
 		AttributeMock mock = this.registeredMocks.get(fullName);
 
-		if (mock instanceof AttributeMockPublisher) {
-			((AttributeMockPublisher) mock).mockEmit(returns);
+		if (mock instanceof AttributeMockPublisher attributeMockPublisher) {
+			attributeMockPublisher.mockEmit(returns);
 		} else {
 			throw new SaplTestException(String.format(ERROR_NOT_MARKED_DYNAMIC_MOCK, fullName, fullName));
 		}
@@ -170,8 +170,8 @@ public class MockingAttributeContext implements AttributeContext {
 
 		AttributeMock mock = this.registeredMocks.get(fullName);
 		if (mock != null) {
-			if (mock instanceof AttributeMockForParentValue) {
-				((AttributeMockForParentValue) mock).loadMockForParentValue(parentValueMatcher, returns);
+			if (mock instanceof AttributeMockForParentValue attributeMockForParentValue) {
+				attributeMockForParentValue.loadMockForParentValue(parentValueMatcher, returns);
 			} else {
 				throw new SaplTestException(String.format(ERROR_DUPLICATE_MOCK_REGISTRATION, fullName));
 			}

@@ -17,6 +17,7 @@ package io.sapl.pdp.remote;
 
 import java.time.Duration;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import javax.net.ssl.SSLException;
 
@@ -105,7 +106,7 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 		var type = new ParameterizedTypeReference<ServerSentEvent<AuthorizationDecision>>() {
 		};
 		return decide(DECIDE, type, authzSubscription)
-				.onErrorResume(__ -> Flux.just(AuthorizationDecision.INDETERMINATE)).repeatWhen(repeat())
+				.onErrorResume(error -> Flux.just(AuthorizationDecision.INDETERMINATE)).repeatWhen(repeat())
 				.distinctUntilChanged();
 	}
 
@@ -123,7 +124,7 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 		var type = new ParameterizedTypeReference<ServerSentEvent<IdentifiableAuthorizationDecision>>() {
 		};
 		return decide(MULTI_DECIDE, type, multiAuthzSubscription)
-				.onErrorResume(__ -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE)).repeatWhen(repeat())
+				.onErrorResume(error -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE)).repeatWhen(repeat())
 				.distinctUntilChanged();
 	}
 
@@ -132,7 +133,7 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 		var type = new ParameterizedTypeReference<ServerSentEvent<MultiAuthorizationDecision>>() {
 		};
 		return decide(MULTI_DECIDE_ALL, type, multiAuthzSubscription)
-				.onErrorResume(__ -> Flux.just(MultiAuthorizationDecision.indeterminate())).repeatWhen(repeat())
+				.onErrorResume(error -> Flux.just(MultiAuthorizationDecision.indeterminate())).repeatWhen(repeat())
 				.distinctUntilChanged();
 	}
 
@@ -149,9 +150,9 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 
 	@NoArgsConstructor
 	public static class RemoteHttpPolicyDecisionPointBuilder {
-		private String											baseUrl		= "https://localhost:8443";
-		private HttpClient										httpClient	= HttpClient.create();
-		private Function<WebClient.Builder, WebClient.Builder>	authenticationCustomizer;
+		private String                                         baseUrl    = "https://localhost:8443";
+		private HttpClient                                     httpClient = HttpClient.create();
+		private Function<WebClient.Builder, WebClient.Builder> authenticationCustomizer;
 
 		public RemoteHttpPolicyDecisionPointBuilder withUnsecureSSL() throws SSLException {
 			log.warn("------------------------------------------------------------------");
@@ -181,7 +182,7 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 			return this;
 		}
 
-		private void setApplyAuthenticationFunction(Function<WebClient.Builder, WebClient.Builder> applyFunction) {
+		private void setApplyAuthenticationFunction(UnaryOperator<WebClient.Builder> applyFunction) {
 			if (this.authenticationCustomizer == null) {
 				this.authenticationCustomizer = applyFunction;
 			} else {
@@ -206,11 +207,11 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 
 		public RemoteHttpPolicyDecisionPointBuilder oauth2(
 				ReactiveClientRegistrationRepository clientRegistrationRepository, String registrationId) {
-			InMemoryReactiveOAuth2AuthorizedClientService					clientService			= new InMemoryReactiveOAuth2AuthorizedClientService(
+			InMemoryReactiveOAuth2AuthorizedClientService                clientService           = new InMemoryReactiveOAuth2AuthorizedClientService(
 					clientRegistrationRepository);
-			AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager	authorizedClientManager	= new AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager(
+			AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager authorizedClientManager = new AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager(
 					clientRegistrationRepository, clientService);
-			var																oauth2FilterFunction	= new ServerOAuth2AuthorizedClientExchangeFilterFunction(
+			var                                                          oauth2FilterFunction    = new ServerOAuth2AuthorizedClientExchangeFilterFunction(
 					authorizedClientManager);
 			oauth2FilterFunction.setDefaultClientRegistrationId(registrationId);
 			setApplyAuthenticationFunction(builder -> builder.filter(oauth2FilterFunction));

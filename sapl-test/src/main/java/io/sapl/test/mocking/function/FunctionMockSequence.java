@@ -50,8 +50,8 @@ public class FunctionMockSequence implements FunctionMock {
 	public Val evaluateFunctionCall(Val... parameter) {
 		this.mockRunInformation.saveCall(new MockCall(parameter));
 
-		if (this.listMockReturnValues.size() > 0) {
-			// if so, take the first element from the fifo list and return this val
+		if (!this.listMockReturnValues.isEmpty()) {
+			// if so, take the first element from the FIFO list and return this Val
 			return this.listMockReturnValues.removeFirst();
 		} else {
 			throw new SaplTestException(String.format(ERROR_SEQUENCE_EMPTY, this.fullName));

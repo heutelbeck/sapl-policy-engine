@@ -36,7 +36,7 @@ import jakarta.xml.bind.Marshaller;
 
 public class SonarLineCoverageReportGenerator {
 
-	private final ObjectFactory FACTORY = new ObjectFactory();
+	private final static ObjectFactory FACTORY = new ObjectFactory();
 
 	public void generateSonarLineCoverageReport(Collection<SaplDocumentCoverageInformation> documents, Log log,
 			Path basedir, String policyPath, File mavenBaseDir) throws MojoExecutionException {
