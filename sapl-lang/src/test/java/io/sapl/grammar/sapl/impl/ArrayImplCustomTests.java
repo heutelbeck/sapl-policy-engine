@@ -18,32 +18,38 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionEvaluatesTo;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsErrors;
 
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class ArrayImplCustomTests {
-
-	@Test
-	void simpleArrayToVal() {
-		var expression = "[true,false]";
-		var expected   = "[true,false]";
-		assertExpressionEvaluatesTo(expression, expected);
-	}
 
 	@Test
 	void arrayPropagatesErrors() {
 		assertExpressionReturnsErrors("[true,(1/0)]");
 	}
 
-	@Test
-	void emptyArray() {
-		assertExpressionEvaluatesTo("[]", "[]");
+	private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+		// @formatter:off
+		return Stream.of(
+	 			// simpleArrayToVal
+	 			Arguments.of("[true,false]","[true,false]"),
+
+	 			// emptyArray
+	 			Arguments.of("[]", "[]"),
+
+	 			// dropsUndefined
+	 			Arguments.of("[true,undefined,false,undefined]", "[true,false]")
+	 		);
+		// @formater:on
 	}
 
-	@Test
-	void dropsUndefined() {
-		var expression = "[true,undefined,false,undefined]";
-		var expected   = "[true,false]";
+	@ParameterizedTest
+	@MethodSource("provideStringsForexpressionEvaluatesToExpectedValue")
+	void expressionEvaluatesToExpectedValue(String expression, String expected) {
 		assertExpressionEvaluatesTo(expression, expected);
 	}
-
 }

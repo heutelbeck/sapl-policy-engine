@@ -18,7 +18,12 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionEvaluatesTo;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsErrors;
 
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class ApplyStepsRecursiveKeyTests {
 
@@ -27,57 +32,44 @@ class ApplyStepsRecursiveKeyTests {
 		assertExpressionReturnsErrors("(10/0)..key");
 	}
 
-	@Test
-	void recursiveKeyStepOnUndefinedIsEmpty() {
-		var expression = "undefined..key";
-		var expected   = "[]";
-		assertExpressionEvaluatesTo(expression, expected);
+	private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+		// @formatter:off
+		return Stream.of(
+				// recursiveKeyStepOnUndefinedIsEmpty
+	 			Arguments.of("undefined..key", "[]"),
+
+	 			// applyToNull
+	 			Arguments.of("null..key", "[]"),
+
+	 			// applyToObject
+	 			Arguments.of("{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}..key",
+	 			             "[ \"value1\", \"value2\", \"value3\" ]"),
+
+	 			// applyToObjectNotPresent
+	 			Arguments.of("{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}..yek",
+	 			             "[ ]"),
+
+	 			// filterArray
+	 			Arguments.of("[ { \"key\" : \"value1\", \"array1\" : [ { \"key\" : { \"key2\": \"value2\" } }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}, "
+	 					   + " { \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]} ]"
+	 					   + " |- { @..key : mock.nil} ",
+	 			             "[{\"key\":null,\"array1\":[{\"key\":null},{\"key\":null}],\"array2\":[1,2,3,4,5]},{\"key\":null,\"array1\":[{\"key\":null},{\"key\":null}],\"array2\":[1,2,3,4,5]}]]"),
+	
+	 			// filterArrayDescend
+	 			Arguments.of("[ { \"key\" : \"value1\", \"array1\" : [ { \"key\" : { \"key2\": \"value2\" } }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}, "
+	 					   + " { \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]} ]"
+	 					   + " |- { @..key..key2 : mock.nil}",
+	 			             "[{\"key\":\"value1\",\"array1\":[{\"key\":{\"key2\":null}},{\"key\":\"value3\"}],\"array2\":[1,2,3,4,5]},{\"key\":\"value1\",\"array1\":[{\"key\":\"value2\"},{\"key\":\"value3\"}],\"array2\":[1,2,3,4,5]}]"),
+	 			
+	 			// filterArrayEmpty
+	 			Arguments.of("[] |- { @..key..key2 : mock.nil} ", "[]")
+			);
+		// @formater:on
 	}
 
-	@Test
-	void applyToNull() {
-		var expression = "null..key";
-		var expected   = "[]";
+	@ParameterizedTest
+	@MethodSource("provideStringsForexpressionEvaluatesToExpectedValue")
+	void expressionEvaluatesToExpectedValue(String expression, String expected) {
 		assertExpressionEvaluatesTo(expression, expected);
 	}
-
-	@Test
-	void applyToObject() {
-		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}..key";
-		var expected   = "[ \"value1\", \"value2\", \"value3\" ]";
-		assertExpressionEvaluatesTo(expression, expected);
-	}
-
-	@Test
-	void applyToObjectNotPresent() {
-		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}..yek";
-		var expected   = "[ ]";
-		assertExpressionEvaluatesTo(expression, expected);
-	}
-
-	@Test
-	void filterArray() {
-		var expression = "[ { \"key\" : \"value1\", \"array1\" : [ { \"key\" : { \"key2\": \"value2\" } }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}, "
-				+ " { \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]} ]"
-				+ " |- { @..key : mock.nil} ";
-		var expected   = "[{\"key\":null,\"array1\":[{\"key\":null},{\"key\":null}],\"array2\":[1,2,3,4,5]},{\"key\":null,\"array1\":[{\"key\":null},{\"key\":null}],\"array2\":[1,2,3,4,5]}]]";
-		assertExpressionEvaluatesTo(expression, expected);
-	}
-
-	@Test
-	void filterArrayDescend() {
-		var expression = "[ { \"key\" : \"value1\", \"array1\" : [ { \"key\" : { \"key2\": \"value2\" } }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}, "
-				+ " { \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]} ]"
-				+ " |- { @..key..key2 : mock.nil}";
-		var expected   = "[{\"key\":\"value1\",\"array1\":[{\"key\":{\"key2\":null}},{\"key\":\"value3\"}],\"array2\":[1,2,3,4,5]},{\"key\":\"value1\",\"array1\":[{\"key\":\"value2\"},{\"key\":\"value3\"}],\"array2\":[1,2,3,4,5]}]";
-		assertExpressionEvaluatesTo(expression, expected);
-	}
-
-	@Test
-	void filterArrayEmpty() {
-		var expression = "[] |- { @..key..key2 : mock.nil} ";
-		var expected   = "[]";
-		assertExpressionEvaluatesTo(expression, expected);
-	}
-
 }

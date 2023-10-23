@@ -18,7 +18,12 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionEvaluatesTo;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsErrors;
 
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class ApplyStepsRecursiveIndexTests {
 
@@ -27,62 +32,50 @@ class ApplyStepsRecursiveIndexTests {
 		assertExpressionReturnsErrors("(10/0)..[5]");
 	}
 
-	@Test
-	void recursiveIndexStepOnUndefinedEmpty() {
-		assertExpressionEvaluatesTo("undefined..[2]", "[]");
+	private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+		// @formatter:off
+		return Stream.of(
+				// recursiveIndexStepOnUndefinedEmpty
+	 			Arguments.of("undefined..[2]", "[]"),
+
+	 			// applyToNull
+	 			Arguments.of("null..[2]", "[]"),
+
+	 			// applyIndex1
+	 			Arguments.of("[ [1,2,3], [4,5,6,7] ]..[1]", "[[4,5,6,7],2,5]"),
+
+	 			// applyIndex2
+	 			Arguments.of("[ [1,2,3], [4,5,6,7] ]..[2]", "[3,6]"),
+
+	 			// applyIndex3
+	 			Arguments.of("[ [1,2,3], [4,5,6,7] ]..[-1]", "[[4,5,6,7],3,7]"),
+	
+	 			// applyIndex4
+	 			Arguments.of("[ [1,2,3], [4,5,6,7] ]..[-4]", "[4]"),
+	 			
+	 			// filterApplyIndex
+	 			Arguments.of("[ [1,2,3], [4,5,6,7] ] |- { @..[-4] : mock.nil }", "[ [1,2,3], [null,5,6,7] ]"),
+
+	 			// applyToObject
+	 			Arguments.of("{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}..[0]",
+	 			             "[ { \"key\" : \"value2\" }, 1 ]"),
+
+	 			// removeRecursiveIndexStepObject
+	 			Arguments.of("{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] } "
+	 					   + "|- { @..[0] : filter.remove }",
+	 					     "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value3\" } ], \"array2\" : [ 2, 3, 4, 5 ] }"),
+
+	 			// removeRecursiveIndexStepObjectDescend
+	 			Arguments.of("{ \"key\" : \"value1\", \"array1\" : [ [ 1,2,3 ], { \"key\" : \"value3\" } ], \"array2\" : [ [1,2,3], 2, 3, 4, 5 ] } "
+	 					   + "|- { @..[0][0] : filter.remove }",
+	 					     "{ \"key\" : \"value1\", \"array1\" : [ [ 2,3 ], { \"key\" : \"value3\" } ], \"array2\" : [ [2,3], 2, 3, 4, 5 ] }")
+			);
+		// @formater:on
 	}
 
-	@Test
-	void applyToNull() {
-		assertExpressionEvaluatesTo("null..[2]", "[]");
-	}
-
-	@Test
-	void applyIndex1() {
-		assertExpressionEvaluatesTo("[ [1,2,3], [4,5,6,7] ]..[1]", "[[4,5,6,7],2,5]");
-	}
-
-	@Test
-	void applyIndex2() {
-		assertExpressionEvaluatesTo("[ [1,2,3], [4,5,6,7] ]..[2]", "[3,6]");
-	}
-
-	@Test
-	void applyIndex3() {
-		assertExpressionEvaluatesTo("[ [1,2,3], [4,5,6,7] ]..[-1]", "[[4,5,6,7],3,7]");
-	}
-
-	@Test
-	void applyIndex4() {
-		assertExpressionEvaluatesTo("[ [1,2,3], [4,5,6,7] ]..[-4]", "[4]");
-	}
-
-	@Test
-	void filterApplyIndex() {
-		assertExpressionEvaluatesTo("[ [1,2,3], [4,5,6,7] ] |- { @..[-4] : mock.nil }", "[ [1,2,3], [null,5,6,7] ]");
-	}
-
-	@Test
-	void applyToObject() {
-		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}..[0]";
-		var expected   = "[ { \"key\" : \"value2\" }, 1 ]";
+	@ParameterizedTest
+	@MethodSource("provideStringsForexpressionEvaluatesToExpectedValue")
+	void expressionEvaluatesToExpectedValue(String expression, String expected) {
 		assertExpressionEvaluatesTo(expression, expected);
 	}
-
-	@Test
-	void removeRecursiveIndexStepObject() {
-		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] } "
-				+ "|- { @..[0] : filter.remove }";
-		var expected   = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value3\" } ], \"array2\" : [ 2, 3, 4, 5 ] }";
-		assertExpressionEvaluatesTo(expression, expected);
-	}
-
-	@Test
-	void removeRecursiveIndexStepObjectDescend() {
-		var expression = "{ \"key\" : \"value1\", \"array1\" : [ [ 1,2,3 ], { \"key\" : \"value3\" } ], \"array2\" : [ [1,2,3], 2, 3, 4, 5 ] } "
-				+ "|- { @..[0][0] : filter.remove }";
-		var expected   = "{ \"key\" : \"value1\", \"array1\" : [ [ 2,3 ], { \"key\" : \"value3\" } ], \"array2\" : [ [2,3], 2, 3, 4, 5 ] }";
-		assertExpressionEvaluatesTo(expression, expected);
-	}
-
 }

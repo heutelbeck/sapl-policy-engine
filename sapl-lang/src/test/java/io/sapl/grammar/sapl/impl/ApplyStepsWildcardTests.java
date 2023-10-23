@@ -18,95 +18,81 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionEvaluatesTo;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsErrors;
 
-import org.junit.jupiter.api.Test;
+import java.util.stream.Stream;
+
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class ApplyStepsWildcardTests {
 
-	@Test
-	void wildcardStepPropagatesErrors() {
-		assertExpressionReturnsErrors("(10/0).*");
+	@ParameterizedTest
+	// @formatter:off
+	@ValueSource(strings = {
+		// wildcardStepPropagatesErrors
+		"(10/0).*",
+		// wildcardStepOnOtherThanArrayOrObjectFails
+		"\"\".*",
+		// wildcardStepOnUndefinedFails
+		"undefined.*"
+	}) 
+	// @formatter:on
+	void expressionEvaluatesToErrors(String expression) {
+		assertExpressionReturnsErrors(expression);
 	}
 
-	@Test
-	void wildcardStepOnOtherThanArrayOrObjectFails() {
-		assertExpressionReturnsErrors("\"\".*");
+	private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+		// @formatter:off
+		return Stream.of(
+	 			// wildcardStepOnArrayIsIdentity
+	 			Arguments.of("[1,2,3,4,5,6,7,8,9].*", 
+	 					     "[1,2,3,4,5,6,7,8,9]"),
+
+	 			// applyToObject
+	 			Arguments.of("{\"key1\":null,\"key2\":true,\"key3\":false,\"key4\":{\"other_key\":123}}.*",
+	 			             "[ null, true, false , { \"other_key\" : 123 } ]"),
+
+	 			// replaceWildcardStepArray
+	 			Arguments.of("[1,2,3,4,5] |- { @.* : mock.emptyString }",
+	 			             "[ \"\", \"\",\"\", \"\", \"\"]"),
+
+	 			// replaceWildcardStepObject
+	 			Arguments.of("{ \"a\" : 1, \"b\" : 2, \"c\" : 3, \"d\" : 4 , \"e\" : 5 } |- { @.* : mock.emptyString }",
+	 			             "{ \"a\" : \"\", \"b\" : \"\", \"c\" : \"\", \"d\" : \"\" , \"e\" : \"\" }"),
+
+	 			// replaceRecursiveWildcardStepArray
+	 			Arguments.of("[1,2,3,4,5] |- { @..* : mock.emptyString }",
+	 			             "[ \"\", \"\",\"\", \"\", \"\"]"),
+
+	 			// filterNonObjectNonArray
+	 			Arguments.of("\"Herbert\" |- { @..* : mock.emptyString }",
+	 			             "\"Herbert\""),
+
+	 			// replaceRecursiveWildcardStepObject
+	 			Arguments.of("{ \"a\" : 1, \"b\" : 2, \"c\" : 3, \"d\" : 4 , \"e\" : 5 } |- { @..* : mock.emptyString }",
+	 			             "{ \"a\" : \"\", \"b\" : \"\", \"c\" : \"\", \"d\" : \"\" , \"e\" : \"\" }"),
+
+	 			// filterInObjectDescend
+	 			Arguments.of("{ \"name\" : \"Otto\", \"family\" : { \"partner\" : \"James\", \"children\": [ \"Mary\", \"Louis\", \"Paul\" ] } } "
+	 					   + "|- { @.*.partner : mock.emptyString }",
+	 					     "{ \"name\" : \"Otto\", \"family\" : { \"partner\" : \"\", \"children\": [ \"Mary\", \"Louis\", \"Paul\" ] } }"),
+
+	 			// filterInArrayDescend
+	 			Arguments.of("{ \"name\" : \"Otto\", \"family\" : { \"partner\" : \"James\", \"children\": [ \"Mary\", \"Louis\", \"Paul\" ] } } "
+	 					   + "|- { @..children[*] : mock.nil }",
+	 					     "{ \"name\" : \"Otto\", \"family\" : { \"partner\" : \"James\", \"children\": [null,null,null] } } "),
+
+	 			// filterInArrayDescend2
+	 			Arguments.of("[ {\"a\" : 1},{\"b\" : 2}] |- { @[*].b : mock.nil }",
+	 			             "[ {\"a\" : 1},{\"b\" : null}]")
+	 		);
+		// @formater:on
 	}
 
-	@Test
-	void wildcardStepOnUndefinedFails() {
-		assertExpressionReturnsErrors("undefined.*");
-	}
-
-	@Test
-	void wildcardStepOnArrayIsIdentity() {
-		var expression = "[1,2,3,4,5,6,7,8,9].*";
-		var expected   = "[1,2,3,4,5,6,7,8,9]";
+	@ParameterizedTest
+	@MethodSource("provideStringsForexpressionEvaluatesToExpectedValue")
+	void expressionEvaluatesToExpectedValue(String expression, String expected) {
 		assertExpressionEvaluatesTo(expression, expected);
 	}
-
-	@Test
-	void applyToObject() {
-		var expression = "{\"key1\":null,\"key2\":true,\"key3\":false,\"key4\":{\"other_key\":123}}.*";
-		var expected   = "[ null, true, false , { \"other_key\" : 123 } ]";
-		assertExpressionEvaluatesTo(expression, expected);
-	}
-
-	@Test
-	void replaceWildcardStepArray() {
-		var expression = "[1,2,3,4,5] |- { @.* : mock.emptyString }";
-		var expected   = "[ \"\", \"\",\"\", \"\", \"\"]";
-		assertExpressionEvaluatesTo(expression, expected);
-	}
-
-	@Test
-	void replaceWildcardStepObject() {
-		var expression = "{ \"a\" : 1, \"b\" : 2, \"c\" : 3, \"d\" : 4 , \"e\" : 5 } |- { @.* : mock.emptyString }";
-		var expected   = "{ \"a\" : \"\", \"b\" : \"\", \"c\" : \"\", \"d\" : \"\" , \"e\" : \"\" }";
-		assertExpressionEvaluatesTo(expression, expected);
-	}
-
-	@Test
-	void replaceRecursiveWildcardStepArray() {
-		var expression = "[1,2,3,4,5] |- { @..* : mock.emptyString }";
-		var expected   = "[ \"\", \"\",\"\", \"\", \"\"]";
-		assertExpressionEvaluatesTo(expression, expected);
-	}
-
-	@Test
-	void filterNonObjectNonArray() {
-		var expression = "\"Herbert\" |- { @..* : mock.emptyString }";
-		var expected   = "\"Herbert\"";
-		assertExpressionEvaluatesTo(expression, expected);
-	}
-
-	@Test
-	void replaceRecursiveWildcardStepObject() {
-		var expression = "{ \"a\" : 1, \"b\" : 2, \"c\" : 3, \"d\" : 4 , \"e\" : 5 } |- { @..* : mock.emptyString }";
-		var expected   = "{ \"a\" : \"\", \"b\" : \"\", \"c\" : \"\", \"d\" : \"\" , \"e\" : \"\" }";
-		assertExpressionEvaluatesTo(expression, expected);
-	}
-
-	@Test
-	void filterInObjectDescend() {
-		var expression = "{ \"name\" : \"Otto\", \"family\" : { \"partner\" : \"James\", \"children\": [ \"Mary\", \"Louis\", \"Paul\" ] } } "
-				+ "|- { @.*.partner : mock.emptyString }";
-		var expected   = "{ \"name\" : \"Otto\", \"family\" : { \"partner\" : \"\", \"children\": [ \"Mary\", \"Louis\", \"Paul\" ] } }";
-		assertExpressionEvaluatesTo(expression, expected);
-	}
-
-	@Test
-	void filterInArrayDescend() {
-		var expression = "{ \"name\" : \"Otto\", \"family\" : { \"partner\" : \"James\", \"children\": [ \"Mary\", \"Louis\", \"Paul\" ] } } "
-				+ "|- { @..children[*] : mock.nil }";
-		var expected   = "{ \"name\" : \"Otto\", \"family\" : { \"partner\" : \"James\", \"children\": [null,null,null] } } ";
-		assertExpressionEvaluatesTo(expression, expected);
-	}
-
-	@Test
-	void filterInArrayDescend2() {
-		var expression = "[ {\"a\" : 1},{\"b\" : 2}] |- { @[*].b : mock.nil }";
-		var expected   = "[ {\"a\" : 1},{\"b\" : null}]";
-		assertExpressionEvaluatesTo(expression, expected);
-	}
-
 }

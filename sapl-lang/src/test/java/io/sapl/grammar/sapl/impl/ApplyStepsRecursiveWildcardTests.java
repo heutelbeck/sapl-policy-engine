@@ -19,8 +19,13 @@ import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionEvaluatesT
 import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsErrors;
 
 import java.io.IOException;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.impl.util.ArrayUtil;
@@ -30,32 +35,39 @@ import reactor.test.StepVerifier;
 
 class ApplyStepsRecursiveWildcardTests {
 
-	@Test
-	void stepPropagatesErrors() {
-		assertExpressionReturnsErrors("(10/0)..*");
+	@ParameterizedTest
+	// @formatter:off
+	@ValueSource(strings = {
+		// stepPropagatesErrors
+		"(10/0)..*",
+		// stepOnUndefinedEmpty
+		"undefined..*"
+	}) 
+	// @formatter:on
+	void expressionEvaluatesToErrors(String expression) {
+		assertExpressionReturnsErrors(expression);
 	}
 
-	@Test
-	void stepOnUndefinedEmpty() {
-		assertExpressionReturnsErrors("undefined..*");
+	private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+		// @formatter:off
+		return Stream.of(
+				// applyToNull
+	 			Arguments.of("null..*", "[]"),
+
+	 			// applyToArray
+	 			Arguments.of("[1,2,[3,4,5], { \"key\" : [6,7,8], \"key2\": { \"key3\" : 9 } }]..*",
+	 			             "[1,2,[3,4,5],3,4,5,{\"key\":[6,7,8],\"key2\":{\"key3\":9}},[6,7,8],6,7,8,{\"key3\":9},9]"),
+
+	 			// filterArray
+	 			Arguments.of("[1,2,[3,4,5], { \"key\" : [6,7,8], \"key2\": { \"key3\" : 9 } }] |- { @..* : mock.nil }",
+	 			             "[null,null,null,null]")
+	 		);
+		// @formater:on
 	}
 
-	@Test
-	void applyToNull() {
-		assertExpressionEvaluatesTo("null..*", "[]");
-	}
-
-	@Test
-	void applyToArray() {
-		var expression = "[1,2,[3,4,5], { \"key\" : [6,7,8], \"key2\": { \"key3\" : 9 } }]..*";
-		var expected   = "[1,2,[3,4,5],3,4,5,{\"key\":[6,7,8],\"key2\":{\"key3\":9}},[6,7,8],6,7,8,{\"key3\":9},9]";
-		assertExpressionEvaluatesTo(expression, expected);
-	}
-
-	@Test
-	void filterArray() {
-		var expression = "[1,2,[3,4,5], { \"key\" : [6,7,8], \"key2\": { \"key3\" : 9 } }] |- { @..* : mock.nil }";
-		var expected   = "[null,null,null,null]";
+	@ParameterizedTest
+	@MethodSource("provideStringsForexpressionEvaluatesToExpectedValue")
+	void expressionEvaluatesToExpectedValue(String expression, String expected) {
 		assertExpressionEvaluatesTo(expression, expected);
 	}
 

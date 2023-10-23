@@ -44,25 +44,20 @@ class ApplyStepsKeyTests {
 		assertExpressionEvaluatesTo("{}.key", Val.UNDEFINED);
 	}
 
-	@Test
-	void keyStepToObject() {
-		assertExpressionEvaluatesTo("{\"key\" : true}.key", "true");
-	}
-
 	private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
 		// @formatter:off
 		return Stream.of(
+				// Key step to object
+	 			Arguments.of("{\"key\" : true}.key", "true"),
+
 	 			// Key step to array
-	 			Arguments.of("[{\"key\" : true},{\"key\": 123}].key",
-	 					     "[true,123]"),
+	 			Arguments.of("[{\"key\" : true},{\"key\": 123}].key", "[true,123]"),
 
 	 			// Key step to array no match
-	 			Arguments.of("[{\"key\" : true},{\"key\": 123}].x",
-	 					     "[]"),
+	 			Arguments.of("[{\"key\" : true},{\"key\": 123}].x", "[]"),
 
 	 			// Filter non-object or array
-	 			Arguments.of("\"Gudrun\" |- { @.key : mock.nil }",
-	 					     "\"Gudrun\""),
+	 			Arguments.of("\"Gudrun\" |- { @.key : mock.nil }", "\"Gudrun\""),
 
 	 			// Filter object
 	 			Arguments.of("{\"key\" : true, \"other\" : false} |- { @.key : mock.nil}",

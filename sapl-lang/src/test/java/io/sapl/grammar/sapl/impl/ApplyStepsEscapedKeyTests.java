@@ -35,23 +35,17 @@ class ApplyStepsEscapedKeyTests {
 	}
 
 	@Test
-	void keyStepToNonObjectToUndefined() {
+	void keyStepToNonObjectOrEmptyToUndefined() {
 		assertExpressionEvaluatesTo("true.\"k e y\"", Val.UNDEFINED);
-	}
-
-	@Test
-	void keyStepToEmptyObject() {
 		assertExpressionEvaluatesTo("{}.\"k e y\"", Val.UNDEFINED);
-	}
-
-	@Test
-	void keyStepToObject() {
-		assertExpressionEvaluatesTo("{\"k e y\" : true}.\"k e y\"", "true");
 	}
 
 	private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
 		// @formatter:off
 		return Stream.of(
+				// Key step to object
+				Arguments.of("{\"k e y\" : true}.\"k e y\"", "true"),
+				
 	 			// Key step to array
 	 			Arguments.of("[{\"k e y\" : true},{\"k e y\": 123}].\"k e y\"",
 	 					     "[true,123]"),
