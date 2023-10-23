@@ -52,10 +52,11 @@ class AttributeMockForParentValueTests {
 
 	@Test
 	void test_noMatchingMockDefined() {
+		var val99 = Val.of(99);
 		mock.loadMockForParentValue(parentValue(val(1)), Val.of(true));
 		assertThatExceptionOfType(SaplTestException.class)
-				.isThrownBy(() -> StepVerifier.create(mock.evaluate("test.attribute", Val.of(99), null, null))
-						.expectNext(Val.of(false)).thenCancel().verify());
+				.isThrownBy(() -> StepVerifier.create(mock.evaluate("test.attribute", val99, null, null))
+						.expectNext(Val.FALSE).thenCancel().verify());
 	}
 
 	@Test

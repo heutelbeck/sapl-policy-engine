@@ -76,8 +76,8 @@ class ClasspathPolicyRetrievalPointTests {
 
 	@Test
 	void test_invalidPath() {
-		assertThrows(SaplTestException.class,
-				() -> new ClasspathPolicyRetrievalPoint(Paths.get("notExisting"), this.interpreter));
+		var path = Paths.get("notExisting");
+		assertThrows(SaplTestException.class, () -> new ClasspathPolicyRetrievalPoint(path, this.interpreter));
 	}
 
 	@Test
@@ -100,8 +100,8 @@ class ClasspathPolicyRetrievalPointTests {
 
 	@Test
 	void return_fail_fast_for_invalid_document() {
-		assertThrows(PolicyEvaluationException.class,
-				() -> new ClasspathPolicyRetrievalPoint(Paths.get("it/invalid"), this.interpreter));
+		var path = Paths.get("it/invalid");
+		assertThrows(PolicyEvaluationException.class, () -> new ClasspathPolicyRetrievalPoint(path, this.interpreter));
 	}
 
 	@Test

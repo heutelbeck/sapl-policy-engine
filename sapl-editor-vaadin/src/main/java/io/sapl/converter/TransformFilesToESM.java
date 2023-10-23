@@ -27,11 +27,9 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class TransformFilesToESM {
 
-	private final String FRONTEND_FOLDER_PATH = "/META-INF/frontend/";
-
-	private final String SAPL_MODE_FILENAME = "sapl-mode.js";
-
-	private final String XTEXT_CODEMIRROR_FILENAME = "xtext-codemirror.js";
+	private static final String FRONTEND_FOLDER_PATH      = "/META-INF/frontend/";
+	private static final String SAPL_MODE_FILENAME        = "sapl-mode.js";
+	private static final String XTEXT_CODEMIRROR_FILENAME = "xtext-codemirror.js";
 
 	/**
 	 * Entry point for conversion.
@@ -39,9 +37,8 @@ public class TransformFilesToESM {
 	 * @param args command line parameters
 	 */
 	public void main(String[] args) {
-		var classPathDir = new File(TransformFilesToESM.class.getResource("/").getPath());
-
-		String targetFolderPath = classPathDir + FRONTEND_FOLDER_PATH;
+		var classPathDir     = new File(TransformFilesToESM.class.getResource("/").getPath());
+		var targetFolderPath = classPathDir + FRONTEND_FOLDER_PATH;
 
 		convertFileToESM(targetFolderPath + SAPL_MODE_FILENAME, SaplModeConverter::convertToESM);
 		convertFileToESM(targetFolderPath + XTEXT_CODEMIRROR_FILENAME, XtextCodemirrorConverter::convertToESM);

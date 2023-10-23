@@ -30,8 +30,9 @@ class SaplTestExceptionTests {
 
 	@Test
 	void test_messageAndNestedException() {
+		var exception = new SaplTestException("nestedException");
 		assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> {
-			throw new SaplTestException("exception", new SaplTestException("nestedException"));
+			throw new SaplTestException("exception", exception);
 		}).withMessage("exception").withCauseInstanceOf(SaplTestException.class);
 	}
 

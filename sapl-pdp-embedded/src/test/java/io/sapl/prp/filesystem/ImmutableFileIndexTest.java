@@ -133,7 +133,7 @@ class ImmutableFileIndexTest {
 
 			mockedFiles.when(() -> Files.readString(eq(mockPath))).thenReturn(policy1);
 			var mockInterpreter = mock(SAPLInterpreter.class);
-			when(mockInterpreter.parse(eq(policy1))).thenReturn(sapl1);
+			when(mockInterpreter.parse(policy1)).thenReturn(sapl1);
 
 			var sut           = new ImmutableFileIndex(PATH, mockInterpreter);
 			var actualUpdates = sut.getUpdateEvent();

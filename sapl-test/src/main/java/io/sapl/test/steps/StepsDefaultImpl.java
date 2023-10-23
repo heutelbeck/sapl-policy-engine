@@ -70,7 +70,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 
 	protected final NumberOfExpectSteps numberOfExpectSteps;
 
-	public StepsDefaultImpl() {
+	protected StepsDefaultImpl() {
 		this.numberOfExpectSteps = new NumberOfExpectSteps();
 	}
 
@@ -178,11 +178,11 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 
 	@Override
 	public ExpectStep when(String jsonAuthzSub) throws JsonProcessingException {
-		ObjectMapper objectMapper = new ObjectMapper();
-		JsonNode authzSubJsonNode = objectMapper.readTree(jsonAuthzSub);
-		AuthorizationSubscription authzSub = new AuthorizationSubscription(authzSubJsonNode.findValue("subject"),
-				authzSubJsonNode.findValue("action"), authzSubJsonNode.findValue("resource"),
-				authzSubJsonNode.findValue("environment"));
+		ObjectMapper              objectMapper     = new ObjectMapper();
+		JsonNode                  authzSubJsonNode = objectMapper.readTree(jsonAuthzSub);
+		AuthorizationSubscription authzSub         = new AuthorizationSubscription(
+				authzSubJsonNode.findValue("subject"), authzSubJsonNode.findValue("action"),
+				authzSubJsonNode.findValue("resource"), authzSubJsonNode.findValue("environment"));
 		createStepVerifier(authzSub);
 		return this;
 	}
@@ -202,26 +202,31 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 
 	@Override
 	public VerifyStep expectPermit() {
-		return this.expect(isPermit(), "AuthorizationDecision.PERMIT");
+		return this.expectNext(isPermit(), "AuthorizationDecision.PERMIT");
 	}
 
 	@Override
 	public VerifyStep expectDeny() {
-		return this.expect(isDeny(), "AuthorizationDecision.DENY");
+		return this.expectNext(isDeny(), "AuthorizationDecision.DENY");
 	}
 
 	@Override
 	public VerifyStep expectIndeterminate() {
-		return this.expect(isIndeterminate(), "AuthorizationDecision.INDETERMINATE");
+		return this.expectNext(isIndeterminate(), "AuthorizationDecision.INDETERMINATE");
 	}
 
 	@Override
 	public VerifyStep expectNotApplicable() {
-		return this.expect(isNotApplicable(), "AuthorizationDecision.NOT_APPLICABLE");
+		return this.expectNext(isNotApplicable(), "AuthorizationDecision.NOT_APPLICABLE");
 	}
 
 	@Override
 	public VerifyStep expect(AuthorizationDecision authDec) {
+		return expectNext(authDec);
+	}
+
+	@Override
+	public ExpectOrVerifyStep expectNext(AuthorizationDecision authDec) {
 		this.numberOfExpectSteps.addExpectStep();
 		this.steps = this.steps.expectNext(authDec).as(getDebugMessage("equals " + authDec));
 		return this;
@@ -229,6 +234,11 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 
 	@Override
 	public VerifyStep expect(Predicate<AuthorizationDecision> pred) {
+		return expectNext(pred);
+	}
+
+	@Override
+	public ExpectOrVerifyStep expectNext(Predicate<AuthorizationDecision> pred) {
 		this.numberOfExpectSteps.addExpectStep();
 		this.steps = this.steps.expectNextMatches(pred).as(getDebugMessage("predicate evaluating to true"));
 		return this;
@@ -236,10 +246,15 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 
 	@Override
 	public VerifyStep expect(Matcher<AuthorizationDecision> matcher) {
-		return this.expect(matcher, matcher.toString());
+		return this.expectNext(matcher, matcher.toString());
 	}
 
-	private VerifyStep expect(Matcher<AuthorizationDecision> matcher, String message) {
+	@Override
+	public ExpectOrVerifyStep expectNext(Matcher<AuthorizationDecision> matcher) {
+		return this.expectNext(matcher, matcher.toString());
+	}
+
+	private ExpectOrVerifyStep expectNext(Matcher<AuthorizationDecision> matcher, String message) {
 		this.numberOfExpectSteps.addExpectStep();
 		this.steps = this.steps.expectNextMatches(matcher::matches).as(getDebugMessage(message));
 		return this;
@@ -310,31 +325,6 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 	}
 
 	@Override
-	public ExpectOrVerifyStep expectNext(AuthorizationDecision authDec) {
-		this.numberOfExpectSteps.addExpectStep();
-		this.steps = this.steps.expectNext(authDec).as(getDebugMessage("equals " + authDec));
-		return this;
-	}
-
-	@Override
-	public ExpectOrVerifyStep expectNext(Predicate<AuthorizationDecision> pred) {
-		this.numberOfExpectSteps.addExpectStep();
-		this.steps = this.steps.expectNextMatches(pred).as(getDebugMessage("predicate evaluating to true"));
-		return this;
-	}
-
-	@Override
-	public ExpectOrVerifyStep expectNext(Matcher<AuthorizationDecision> matcher) {
-		return this.expectNext(matcher, matcher.toString());
-	}
-
-	private ExpectOrVerifyStep expectNext(Matcher<AuthorizationDecision> matcher, String message) {
-		this.numberOfExpectSteps.addExpectStep();
-		this.steps = this.steps.expectNextMatches(matcher::matches).as(getDebugMessage(message));
-		return this;
-	}
-
-	@Override
 	public ExpectOrVerifyStep thenAttribute(String importName, Val returns) {
 		this.steps = this.steps.then(() -> this.mockingAttributeContext.mockEmit(importName, returns));
 		return this;
@@ -355,8 +345,6 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 	@Override
 	public void verify() {
 		this.steps.thenCancel().verify(Duration.ofSeconds(10));
-		// this.steps.verifyComplete();
-
 		this.mockingAttributeContext.assertVerifications();
 		this.mockingFunctionContext.assertVerifications();
 
@@ -365,10 +353,10 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 	private String getDebugMessage(String endOfMessage) {
 		StringBuilder builder = new StringBuilder();
 		switch (this.numberOfExpectSteps.getNumberOfExpectSteps()) {
-			case 1 -> builder.append("1st");
-			case 2 -> builder.append("2nd");
-			case 3 -> builder.append("3rd");
-			default -> builder.append(this.numberOfExpectSteps.getNumberOfExpectSteps()).append("th");
+		case 1 -> builder.append("1st");
+		case 2 -> builder.append("2nd");
+		case 3 -> builder.append("3rd");
+		default -> builder.append(this.numberOfExpectSteps.getNumberOfExpectSteps()).append("th");
 		}
 
 		builder.append(" expect step failed: Expected ").append(endOfMessage);

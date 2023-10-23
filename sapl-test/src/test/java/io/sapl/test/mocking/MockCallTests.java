@@ -44,10 +44,10 @@ class MockCallTests {
 
 	@Test
 	void test_modifyParameterList() {
-		var call = new MockCall(Val.of("foo"));
-
-		assertThatExceptionOfType(UnsupportedOperationException.class)
-				.isThrownBy(() -> call.getListOfArguments().add(Val.of("barr")));
+		var call      = new MockCall(Val.of("foo"));
+		var barr      = Val.of("barr");
+		var arguments = call.getListOfArguments();
+		assertThatExceptionOfType(UnsupportedOperationException.class).isThrownBy(() -> arguments.add(barr));
 	}
 
 }
