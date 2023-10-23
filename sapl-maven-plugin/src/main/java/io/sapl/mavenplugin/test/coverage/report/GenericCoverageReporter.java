@@ -266,7 +266,7 @@ public class GenericCoverageReporter {
 		for (int i = linesStart; i <= linesEnd; i++) {
 			var line = coverage.getLine(i);
 			var coveredValue = line.getCoveredValue();
-			assertValidCoveredValue(coveredValue);
+			assertValidCoveredValue(coveredValue);			
 			switch (coveredValue) {
 				case FULLY, PARTLY, NEVER ->
 					// only add branches
@@ -283,8 +283,7 @@ public class GenericCoverageReporter {
 			var coveredValue = line.getCoveredValue();
 			assertValidCoveredValue(coveredValue);
 			switch (coveredValue) {
-			case FULLY:
-			case PARTLY:
+			case FULLY, PARTLY:
 				// nothing to do
 				break;
 			case NEVER:

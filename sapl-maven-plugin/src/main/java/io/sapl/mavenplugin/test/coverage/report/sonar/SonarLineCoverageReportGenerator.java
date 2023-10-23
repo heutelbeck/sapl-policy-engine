@@ -36,7 +36,7 @@ import jakarta.xml.bind.Marshaller;
 
 public class SonarLineCoverageReportGenerator {
 
-	private final static ObjectFactory FACTORY = new ObjectFactory();
+	private static final ObjectFactory FACTORY = new ObjectFactory();
 
 	public void generateSonarLineCoverageReport(Collection<SaplDocumentCoverageInformation> documents, Log log,
 			Path basedir, String policyPath, File mavenBaseDir) throws MojoExecutionException {
@@ -48,8 +48,7 @@ public class SonarLineCoverageReportGenerator {
 		Path filePath = basedir.resolve("sonar").resolve("sonar-generic-coverage.xml");
 		try {
 			PathHelper.createFile(filePath);
-		}
-		catch (IOException e) {
+		} catch (IOException e) {
 			throw new MojoExecutionException("Error writing Sonar generic coverage report to file", e);
 		}
 		JAXBContext context;
@@ -58,8 +57,7 @@ public class SonarLineCoverageReportGenerator {
 			Marshaller marshaller = context.createMarshaller();
 			marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
 			marshaller.marshal(sonarCoverage, filePath.toFile());
-		}
-		catch (JAXBException e) {
+		} catch (JAXBException e) {
 			log.error("Error unmarshalling Coverage information to Sonarqube generic coverage format", e);
 			throw new MojoExecutionException(
 					"Error unmarshalling Coverage information to Sonarqube generic coverage format", e);

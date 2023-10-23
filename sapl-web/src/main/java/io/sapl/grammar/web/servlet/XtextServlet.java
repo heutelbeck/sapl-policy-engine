@@ -59,11 +59,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class XtextServlet extends HttpServlet {
 
-	private static final String INVALID_REQUEST = "Invalid request ({}): {}";
+	private static final String                                      INVALID_REQUEST           = "Invalid request ({}): {}";
+	private static final transient IResourceServiceProvider.Registry SERVICE_PROVIDER_REGISTRY = IResourceServiceProvider.Registry.INSTANCE;
 
-	private transient final IResourceServiceProvider.Registry serviceProviderRegistry = IResourceServiceProvider.Registry.INSTANCE;
-
-	private transient final Gson gson = new Gson();
+	private final transient Gson gson = new Gson();
 
 	@Override
 	protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -190,7 +189,7 @@ public class XtextServlet extends HttpServlet {
 		URI    emfURI      = URI.createURI(parameter);
 		String contentType = serviceContext.getParameter("contentType");
 		if (Strings.isNullOrEmpty(contentType)) {
-			resourceServiceProvider = serviceProviderRegistry.getResourceServiceProvider(emfURI);
+			resourceServiceProvider = SERVICE_PROVIDER_REGISTRY.getResourceServiceProvider(emfURI);
 			if (resourceServiceProvider == null) {
 				if (emfURI.toString().isEmpty()) {
 					throw new InvalidRequestException.UnknownLanguageException(
@@ -201,7 +200,7 @@ public class XtextServlet extends HttpServlet {
 				}
 			}
 		} else {
-			resourceServiceProvider = serviceProviderRegistry.getResourceServiceProvider(emfURI, contentType);
+			resourceServiceProvider = SERVICE_PROVIDER_REGISTRY.getResourceServiceProvider(emfURI, contentType);
 			if (resourceServiceProvider == null) {
 				throw new InvalidRequestException.UnknownLanguageException(
 						"Unable to identify the Xtext language for contentType " + contentType + ".");

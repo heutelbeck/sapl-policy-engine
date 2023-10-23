@@ -270,8 +270,7 @@ class MockingAttributeContextTests {
 
 		Collection<String> result = this.attrCtx.providedFunctionsOfLibrary("foo");
 
-		assertThat(result).hasSize(3);
-		assertThat(result).containsOnly("bar", "xxx", "yyy");
+		assertThat(result).hasSize(3).containsOnly("bar", "xxx", "yyy");
 	}
 
 	@Test

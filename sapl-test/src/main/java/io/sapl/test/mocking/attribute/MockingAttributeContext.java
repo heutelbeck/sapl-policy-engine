@@ -190,9 +190,8 @@ public class MockingAttributeContext implements AttributeContext {
 
 		AttributeMock mock = this.registeredMocks.get(fullName);
 		if (mock != null) {
-			if (mock instanceof AttributeMockForParentValueAndArguments) {
-				((AttributeMockForParentValueAndArguments) mock).loadMockForParentValueAndArguments(parameters,
-						returns);
+			if (mock instanceof AttributeMockForParentValueAndArguments attributeMockForParentValueAndArguments) {
+				attributeMockForParentValueAndArguments.loadMockForParentValueAndArguments(parameters, returns);
 			} else {
 				throw new SaplTestException(String.format(ERROR_DUPLICATE_MOCK_REGISTRATION, fullName));
 			}
