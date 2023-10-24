@@ -19,6 +19,9 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
+import javax.inject.Named;
+import javax.inject.Singleton;
+
 import io.sapl.grammar.sapl.Condition;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.grammar.sapl.PolicyElement;
@@ -31,9 +34,6 @@ import io.sapl.mavenplugin.test.coverage.model.SaplDocument;
 import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import io.sapl.test.coverage.api.model.PolicyHit;
 import io.sapl.test.coverage.api.model.PolicySetHit;
-
-import javax.inject.Named;
-import javax.inject.Singleton;
 
 @Named
 @Singleton

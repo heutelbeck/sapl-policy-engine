@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.hamcrest.Matcher;
 
@@ -150,8 +149,7 @@ public class AttributeMockForParentValueAndArguments implements AttributeMock {
 	private List<ParameterSpecificMockReturnValue> findMatchingParentValueMockReturnValue(Val parentValue) {
 		return this.listParameterSpecificMockReturnValues.stream()
 				.filter((ParameterSpecificMockReturnValue mock) -> mock.getExpectedParameters().getParentValueMatcher()
-						.getMatcher().matches(parentValue))
-				.collect(Collectors.toList());
+						.getMatcher().matches(parentValue)).toList();
 	}
 
 	@Override

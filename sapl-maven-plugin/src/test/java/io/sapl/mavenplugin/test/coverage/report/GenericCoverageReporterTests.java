@@ -28,7 +28,6 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 
-import io.sapl.grammar.sapl.Statement;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +39,7 @@ import org.mockito.Mockito;
 import io.sapl.grammar.sapl.PolicyElement;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.grammar.sapl.SaplPackage;
+import io.sapl.grammar.sapl.Statement;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.mavenplugin.test.coverage.SaplTestException;
 import io.sapl.mavenplugin.test.coverage.model.CoverageTargets;

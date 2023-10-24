@@ -15,9 +15,6 @@
  */
 package io.sapl.functions;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.comparesEqualTo;
-
 import java.io.IOException;
 import java.math.BigDecimal;
 
@@ -25,6 +22,7 @@ import org.junit.jupiter.api.Test;
 
 import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.grammar.sapl.impl.util.ParserUtil;
+import reactor.test.StepVerifier;
 
 class ArithmeticExpressionsTests {
 
@@ -74,10 +72,9 @@ class ArithmeticExpressionsTests {
 	}
 
 	private void assertEvaluatesTo(String given, double expected) throws IOException {
-		var expression = ParserUtil.expression(given);
-		var actual     = expression.evaluate().contextWrite(MockUtil::setUpAuthorizationContext).blockFirst()
-				.decimalValue();
-		assertThat(actual, comparesEqualTo(BigDecimal.valueOf(expected)));
+		var expression = ParserUtil.expression(given).evaluate().contextWrite(MockUtil::setUpAuthorizationContext);
+		StepVerifier.create(expression)
+				.expectNextMatches(x -> BigDecimal.valueOf(expected).compareTo(x.decimalValue()) == 0).verifyComplete();
 	}
 
 }

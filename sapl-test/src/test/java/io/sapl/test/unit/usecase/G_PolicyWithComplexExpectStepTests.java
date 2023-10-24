@@ -17,8 +17,8 @@ package io.sapl.test.unit.usecase;
 
 import static io.sapl.hamcrest.Matchers.hasObligationContainingKeyValue;
 import static io.sapl.hamcrest.Matchers.hasObligationMatching;
-import static io.sapl.hamcrest.Matchers.isPermit;
 import static io.sapl.hamcrest.Matchers.hasResourceMatching;
+import static io.sapl.hamcrest.Matchers.isPermit;
 import static org.hamcrest.CoreMatchers.allOf;
 
 import org.junit.jupiter.api.BeforeEach;

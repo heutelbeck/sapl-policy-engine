@@ -15,13 +15,14 @@
  */
 package io.sapl.spring.config;
 
-import lombok.NonNull;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.context.annotation.ImportBeanDefinitionRegistrar;
 import org.springframework.core.type.AnnotationMetadata;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 /**

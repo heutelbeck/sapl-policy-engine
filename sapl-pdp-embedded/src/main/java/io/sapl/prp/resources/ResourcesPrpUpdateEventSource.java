@@ -21,7 +21,6 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -66,8 +65,7 @@ public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
 			if ("jar".equals(policyFolderUrl.getProtocol()))
 				return readPoliciesFromJar(policyFolderUrl);
 			return readPoliciesFromDirectory(policyFolderUrl);
-		}
-		catch (IOException | URISyntaxException e) {
+		} catch (IOException | URISyntaxException e) {
 			throw (InitializationException) new InitializationException("Failed to read policies").initCause(e);
 		}
 	}
@@ -76,10 +74,10 @@ public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
 		log.debug("reading policies from jar {}", policiesFolderUrl);
 		var pathOfJar = JarUtil.getJarFilePath(policiesFolderUrl);
 		try (var jarFile = new ZipFile(pathOfJar)) {
-			var updates = jarFile.stream().filter(this::isSAPLDocumentWithinPath)
-					.peek(entry -> log.info("load SAPL document: {}", entry.getName()))
-					.map(entry -> JarUtil.readStringFromZipEntry(jarFile, entry))
-					.map(this::parseAndCreatePublicationUpdate).collect(Collectors.toList());
+			var updates = jarFile.stream().filter(this::isSAPLDocumentWithinPath).map(entry -> {
+				log.info("load SAPL document: {}", entry.getName());
+				return JarUtil.readStringFromZipEntry(jarFile, entry);
+			}).map(this::parseAndCreatePublicationUpdate).toList();
 			return new PrpUpdateEvent(updates);
 		}
 	}
@@ -96,10 +94,10 @@ public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
 		log.debug("reading policies from directory {}", policiesFolderUrl);
 		try (var directoryStream = Files.newDirectoryStream(Paths.get(policiesFolderUrl.toURI()),
 				POLICY_FILE_GLOB_PATTERN)) {
-			var updates = StreamSupport.stream(directoryStream.spliterator(), false)
-					.peek(path -> log.info("load SAPL document: {}", path))
-					.map(ResourcesPrpUpdateEventSource::readFileAsString).map(this::parseAndCreatePublicationUpdate)
-					.toList();
+			var updates = StreamSupport.stream(directoryStream.spliterator(), false).map(path -> {
+				log.info("load SAPL document: {}", path);
+				return readFileAsString(path);
+			}).map(this::parseAndCreatePublicationUpdate).toList();
 			return new PrpUpdateEvent(updates);
 		}
 	}

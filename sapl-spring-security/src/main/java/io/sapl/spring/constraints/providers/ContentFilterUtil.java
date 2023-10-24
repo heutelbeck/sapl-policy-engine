@@ -127,10 +127,12 @@ public class ContentFilterUtil {
 
 	private static List<?> mapListContents(Collection<?> payload, UnaryOperator<Object> transformation,
 			Predicate<Object> predicate) {
-		// Attention: Do not replace with .toList() instead of Collectors.toList(). The
-		// Axon integration will break, as Axon Server is not able to handle classes
-		// like ListN or List12
-		return payload.stream().map(o -> mapElement(o, transformation, predicate)).toList();
+		/*
+		 * Attention: Do not replace with .toList() instead of Collectors.toList(). The
+		 * Axon integration will break, as Axon Server is not able to handle classes
+		 * like ListN or List12
+		 */
+		return payload.stream().map(o -> mapElement(o, transformation, predicate)).collect(Collectors.toList());
 	}
 
 	private static Set<?> mapSetContents(Collection<?> payload, UnaryOperator<Object> transformation,
@@ -182,8 +184,7 @@ public class ContentFilterUtil {
 
 		var path = condition.get(PATH).textValue();
 
-		if (!condition.has(TYPE) ||
-				!condition.get(TYPE).isTextual())
+		if (!condition.has(TYPE) || !condition.get(TYPE).isTextual())
 			throw new AccessConstraintViolationException(NOT_A_VALID_PREDICATE_CONDITION + condition);
 
 		var type = condition.get(TYPE).textValue();

@@ -22,8 +22,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.logging.Level;
-
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -32,13 +30,14 @@ import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
+import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEvent.Type;
 import io.sapl.prp.PrpUpdateEvent.Update;
 import io.sapl.prp.index.canonical.CanonicalImmutableParsedDocumentIndex;
 import io.sapl.prp.index.naive.NaiveImmutableParsedDocumentIndex;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.SignalType;
+import reactor.test.StepVerifier;
 import reactor.util.context.Context;
 
 class FilesystemPRPTest {
@@ -80,8 +79,8 @@ class FilesystemPRPTest {
 				source);
 		var authzSub    = AuthorizationSubscription.of("Willi", "eat", "icecream");
 
-		prp.retrievePolicies().contextWrite(ctx -> setUpAuthorizationContext(ctx, authzSub))
-				.log(null, Level.INFO, SignalType.ON_NEXT).blockFirst();
+		var sut = prp.retrievePolicies().contextWrite(ctx -> setUpAuthorizationContext(ctx, authzSub)).next();
+		StepVerifier.create(sut).expectNextMatches(PolicyRetrievalResult.class::isInstance).verifyComplete();
 		prp.dispose();
 	}
 

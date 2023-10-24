@@ -34,8 +34,7 @@ public class CompletionTests extends AbstractSaplLanguageServerTest {
 
 	protected void assertProposalsSimple(final Collection<String> expectedProposals,
 			final CompletionList completionList) {
-		var actualMethods = completionList.getItems().stream().map(CompletionItem::getLabel)
-				.collect(Collectors.toList());
+		var actualMethods = completionList.getItems().stream().map(CompletionItem::getLabel).toList();
 		if (!actualMethods.containsAll(expectedProposals))
 			throw new AssertionError("Expected: " + expectedProposals + " but got " + actualMethods);
 	}

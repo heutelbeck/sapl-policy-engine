@@ -27,7 +27,6 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.Assignment;
 import org.eclipse.xtext.GrammarUtil;
 import org.eclipse.xtext.Keyword;
-import org.eclipse.xtext.ParserRule;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistEntry;
 import org.eclipse.xtext.ide.editor.contentassist.IIdeContentProposalAcceptor;
@@ -115,6 +114,9 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		}
 		case "numberliteral", "stringliteral" -> {
 			return;
+		}
+		default -> {
+			// NOOP
 		}
 		}
 

@@ -187,12 +187,12 @@ class MockingAttributeContextTests {
 	@Test
 	void test_loadAttributeMockForParentValueAndArguments_registeredButWrongType() {
 		attrCtx.markAttributeMock("foo.bar");
-		var parent    = parentValue(val(1));
-		var valTwo    = Val.of(2);
-		var arguments = arguments(val(true));
+		var parent     = parentValue(val(1));
+		var valTwo     = Val.of(2);
+		var arguments  = arguments(val(true));
+		var whenParams = whenAttributeParams(parent, arguments);
 		assertThatExceptionOfType(SaplTestException.class)
-				.isThrownBy(() -> attrCtx.loadAttributeMockForParentValueAndArguments("foo.bar",
-						whenAttributeParams(parent, arguments), valTwo));
+				.isThrownBy(() -> attrCtx.loadAttributeMockForParentValueAndArguments("foo.bar", whenParams, valTwo));
 	}
 
 	@Test
