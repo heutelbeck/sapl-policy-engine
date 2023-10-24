@@ -18,13 +18,15 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.hasDecision;
 
 import java.util.Optional;
+import java.util.stream.Stream;
 
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
@@ -36,130 +38,67 @@ class PolicyImplCustomTests {
 
 	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
-	@Test
-	void simplePermitAll() {
-		var policy   = INTERPRETER.parse("policy \"p\" permit");
-		var expected = AuthorizationDecision.PERMIT;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNextMatches(hasDecision(expected)).verifyComplete();
+	private static Stream<Arguments> provideTestCases() throws JsonProcessingException {
+		// @formatter:off
+		return Stream.of(
+	 			// simplePermitAll
+	 			Arguments.of("policy \"p\" permit", AuthorizationDecision.PERMIT),
+			
+	 			// simpleDenyAll
+	 			Arguments.of("policy \"p\" deny", AuthorizationDecision.DENY),
+			
+	 			// simplePermitAllWithBodyTrue
+	 			Arguments.of("policy \"p\" permit where true;", AuthorizationDecision.PERMIT),
+			
+	 			// simplePermitAllWithBodyFalse
+	 			Arguments.of("policy \"p\" permit where false;", AuthorizationDecision.NOT_APPLICABLE),
+			
+	 			// simplePermitAllWithBodyError
+	 			Arguments.of("policy \"p\" permit where (10/0);", AuthorizationDecision.INDETERMINATE),
+			
+	 			// obligationEvaluatesSuccessfully
+	 			Arguments.of("policy \"p\" permit obligation true", new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
+	 					Optional.of(Val.ofJson("[true]").getArrayNode()), Optional.empty())),
+			
+	 			// obligationErrors
+	 			Arguments.of("policy \"p\" permit obligation (10/0)", AuthorizationDecision.INDETERMINATE),
+			
+	 			// obligationUndefined
+	 			Arguments.of("policy \"p\" permit obligation undefined", AuthorizationDecision.INDETERMINATE),
+			
+	 			// adviceEvaluatesSuccessfully
+	 			Arguments.of("policy \"p\" permit advice true", new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
+	 					Optional.of(Val.ofJson("[true]").getArrayNode()))),
+			
+	 			// adviceErrors
+	 			Arguments.of("policy \"p\" permit advice (10/0)", AuthorizationDecision.INDETERMINATE),
+			
+	 			// adviceUndefined
+	 			Arguments.of("policy \"p\" permit advice undefined", AuthorizationDecision.INDETERMINATE),
+			
+	 			// transformEvaluatesSuccessfully
+	 			Arguments.of("policy \"p\" permit transform true", new AuthorizationDecision(Decision.PERMIT, Optional.of(Val.JSON.booleanNode(true)),
+	 					Optional.empty(), Optional.empty())),
+			
+	 			// transformErrors
+	 			Arguments.of("policy \"p\" permit transform (10/0)", AuthorizationDecision.INDETERMINATE),
+			
+	 			// transformUndefined
+	 			Arguments.of("policy \"p\" permit transform undefined",AuthorizationDecision.INDETERMINATE),
+			
+	 			// allComponentsPresentSuccessfully
+	 			Arguments.of("policy \"p\" permit where true; obligation \"wash your hands\" advice \"smile\" transform [true,false,null]",
+	 					new AuthorizationDecision(Decision.PERMIT, Optional.of(Val.ofJson("[true,false,null]").get()),
+	 							Optional.of((ArrayNode) Val.ofJson("[\"wash your hands\"]").get()),
+	 							Optional.of((ArrayNode) Val.ofJson("[\"smile\"]").get())))
+				);
+		// @formater:on
 	}
 
-	@Test
-	void simpleDenyAll() {
-		var policy   = INTERPRETER.parse("policy \"p\" deny");
-		var expected = AuthorizationDecision.DENY;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNextMatches(hasDecision(expected)).verifyComplete();
+	@ParameterizedTest
+	@MethodSource("provideTestCases")
+	void documentEvaluatesToExpectedValue(String policySource, AuthorizationDecision expected) {
+		var policy   = INTERPRETER.parse(policySource);
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected)).verifyComplete();
 	}
-
-	@Test
-	void simplePermitAllWithBodyTrue() {
-		var policy   = INTERPRETER.parse("policy \"p\" permit where true;");
-		var expected = AuthorizationDecision.PERMIT;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNextMatches(hasDecision(expected)).verifyComplete();
-	}
-
-	@Test
-	void simplePermitAllWithBodyFalse() {
-		var policy   = INTERPRETER.parse("policy \"p\" permit where false;");
-		var expected = AuthorizationDecision.NOT_APPLICABLE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNextMatches(hasDecision(expected)).verifyComplete();
-	}
-
-	@Test
-	void simplePermitAllWithBodyError() {
-		var policy   = INTERPRETER.parse("policy \"p\" permit where (10/0);");
-		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNextMatches(hasDecision(expected)).verifyComplete();
-	}
-
-	@Test
-	void obligationEvaluatesSuccessfully() throws JsonProcessingException, PolicyEvaluationException {
-		var policy   = INTERPRETER.parse("policy \"p\" permit obligation true");
-		var expected = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
-				Optional.of(Val.ofJson("[true]").getArrayNode()), Optional.empty());
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNextMatches(hasDecision(expected)).verifyComplete();
-	}
-
-	@Test
-	void obligationErrors() {
-		var policy   = INTERPRETER.parse("policy \"p\" permit obligation (10/0)");
-		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNextMatches(hasDecision(expected)).verifyComplete();
-	}
-
-	@Test
-	void obligationUndefined() {
-		var policy   = INTERPRETER.parse("policy \"p\" permit obligation undefined");
-		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNextMatches(hasDecision(expected)).verifyComplete();
-	}
-
-	@Test
-	void adviceEvaluatesSuccessfully() throws JsonProcessingException, PolicyEvaluationException {
-		var policy   = INTERPRETER.parse("policy \"p\" permit advice true");
-		var expected = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
-				Optional.of(Val.ofJson("[true]").getArrayNode()));
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNextMatches(hasDecision(expected)).verifyComplete();
-	}
-
-	@Test
-	void adviceErrors() {
-		var policy   = INTERPRETER.parse("policy \"p\" permit advice (10/0)");
-		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNextMatches(hasDecision(expected)).verifyComplete();
-	}
-
-	@Test
-	void adviceUndefined() {
-		var policy   = INTERPRETER.parse("policy \"p\" permit advice undefined");
-		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNextMatches(hasDecision(expected)).verifyComplete();
-	}
-
-	@Test
-	void transformEvaluatesSuccessfully() {
-		var policy   = INTERPRETER.parse("policy \"p\" permit transform true");
-		var expected = new AuthorizationDecision(Decision.PERMIT, Optional.of(Val.JSON.booleanNode(true)),
-				Optional.empty(), Optional.empty());
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNextMatches(hasDecision(expected)).verifyComplete();
-	}
-
-	@Test
-	void transformErrors() {
-		var policy   = INTERPRETER.parse("policy \"p\" permit transform (10/0)");
-		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNextMatches(hasDecision(expected)).verifyComplete();
-	}
-
-	@Test
-	void transformUndefined() {
-		var policy   = INTERPRETER.parse("policy \"p\" permit transform undefined");
-		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNextMatches(hasDecision(expected)).verifyComplete();
-	}
-
-	@Test
-	void allComponentsPresentSuccessfully() throws JsonProcessingException, PolicyEvaluationException {
-		var policy   = INTERPRETER.parse(
-				"policy \"p\" permit where true; obligation \"wash your hands\" advice \"smile\" transform [true,false,null]");
-		var expected = new AuthorizationDecision(Decision.PERMIT, Optional.of(Val.ofJson("[true,false,null]").get()),
-				Optional.of((ArrayNode) Val.ofJson("[\"wash your hands\"]").get()),
-				Optional.of((ArrayNode) Val.ofJson("[\"smile\"]").get()));
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNextMatches(hasDecision(expected)).verifyComplete();
-	}
-
 }

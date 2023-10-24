@@ -18,7 +18,12 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionEvaluatesTo;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsErrors;
 
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class IndexUnionStepImplCustomTests {
 
@@ -27,39 +32,32 @@ class IndexUnionStepImplCustomTests {
 		assertExpressionReturnsErrors("(undefined)[1,2]");
 	}
 
-	@Test
-	void applyToArray() {
-		var expression = "[0,1,2,3,4,5,6,7,8,9][0,1,-2,10,-10]";
-		var expected   = "[0,1,8]";
-		assertExpressionEvaluatesTo(expression, expected);
+	private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+		// @formatter:off
+		return Stream.of(
+	 			// applyToArray
+	 			Arguments.of("[0,1,2,3,4,5,6,7,8,9][0,1,-2,10,-10]", "[0,1,8]"),
+			
+	 			// applyToArrayOutOfBounds
+	 			Arguments.of("[0,1,2,3,4,5,6,7,8,9][100,-100]", "[]"),
+			
+	 			// filterNegativeStepArray
+	 			Arguments.of("\"Otto\" |- { @[1,2,3] : mock.nil }", "\"Otto\""),
+			
+	 			// filterElementsInArray
+	 			Arguments.of("[0,1,2,3,4,5,6,7,8,9] |- { @[0,1,-2,10,-10] : mock.nil }", 
+	 					     "[null,null,2,3,4,5,6,7,null,9]"),
+			
+	 			// filterElementsInDescend
+	 			Arguments.of("[[0,1,2,3],[0,1,2,3],[0,1,2,3],[0,1,2,3]] |- { @[1,3][3] : mock.nil }",
+	 					     "[[0,1,2,3],[0,1,2,null],[0,1,2,3],[0,1,2,null]]")
+				);
+		// @formater:on
 	}
 
-	@Test
-	void applyToArrayOutOfBounds() {
-		var expression = "[0,1,2,3,4,5,6,7,8,9][100,-100]";
-		var expected   = "[]";
+	@ParameterizedTest
+	@MethodSource("provideStringsForexpressionEvaluatesToExpectedValue")
+	void expressionEvaluatesToExpectedValue(String expression, String expected) {
 		assertExpressionEvaluatesTo(expression, expected);
 	}
-
-	@Test
-	void filterNegativeStepArray() {
-		var expression = "\"Otto\" |- { @[1,2,3] : mock.nil }";
-		var expected   = "\"Otto\"";
-		assertExpressionEvaluatesTo(expression, expected);
-	}
-
-	@Test
-	void filterElementsInArray() {
-		var expression = "[0,1,2,3,4,5,6,7,8,9] |- { @[0,1,-2,10,-10] : mock.nil }";
-		var expected   = "[null,null,2,3,4,5,6,7,null,9]";
-		assertExpressionEvaluatesTo(expression, expected);
-	}
-
-	@Test
-	void filterElementsInDescend() {
-		var expression = "[[0,1,2,3],[0,1,2,3],[0,1,2,3],[0,1,2,3]] |- { @[1,3][3] : mock.nil }";
-		var expected   = "[[0,1,2,3],[0,1,2,null],[0,1,2,3],[0,1,2,null]]";
-		assertExpressionEvaluatesTo(expression, expected);
-	}
-
 }
