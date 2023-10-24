@@ -43,7 +43,7 @@ import reactor.core.publisher.Flux;
 public class IndexStepImplCustom extends IndexStepImpl {
 
 	private static final String TYPE_MISMATCH_S_ERROR         = "Type mismatch. The [index] access operator can only be applied to arrays. However, the policy actually attempted to apply the operator to: %s";
-	private static final String INDEX_OUT_OF_BOUNDS_D_D_ERROR = "Index out of bounds. Index must be between 0 and %d, was: %d ";
+	private static final String INDEX_OUT_OF_BOUNDS_D_D_ERROR = "Index out of bounds. Index must be between 0 and %d, was: %d";
 
 	@Override
 	public Flux<Val> apply(@NonNull Val parentValue) {

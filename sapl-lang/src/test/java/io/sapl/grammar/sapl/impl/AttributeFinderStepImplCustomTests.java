@@ -16,15 +16,19 @@
 package io.sapl.grammar.sapl.impl;
 
 import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionErrors;
-import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsErrors;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsError;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.AttributeFinderStep;
@@ -39,15 +43,28 @@ import reactor.test.StepVerifier;
 class AttributeFinderStepImplCustomTests {
 
 	private static final SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
-
 	private static final String ATTRIBUTE = "attribute";
-
 	private static final String FULLY_QUALIFIED_ATTRIBUTE = "mock." + ATTRIBUTE;
 
-	@Test
-	void errorPropagates() {
-		var expression = "(1/0).<test.numbers>";
-		assertExpressionReturnsErrors(expression);
+	private static Stream<Arguments> errorExpressions() {
+		// @formatter:off
+		return Stream.of(
+	 			// errorPropagates
+	 			Arguments.of("(1/0).<test.numbers>", "Division by zero"),
+
+	 			// evaluateBasicAttributeOnUndefined
+	 			Arguments.of("undefined.<test.numbers>", "Undefined value handed over as left-hand parameter to policy information point"),
+
+	 			// evaluateAttributeInFilterSelection
+	 			Arguments.of("123 |- { @.<test.numbers> : mock.nil }", "AttributeFinderStep not permitted in filter selection steps.")
+	 		);
+		// @formater:on
+	}
+
+	@ParameterizedTest
+	@MethodSource("errorExpressions")
+	void expressionReturnsError(String expression, String expected) {
+		assertExpressionReturnsError(expression, expected);
 	}
 
 	@Test
@@ -62,16 +79,6 @@ class AttributeFinderStepImplCustomTests {
 		var expression = ParserUtil.expression("\"\".<test.numbers>");
 		MockUtil.mockPolicySetTargetExpressionContainerExpression(expression);
 		assertExpressionErrors(expression);
-	}
-
-	@Test
-	void evaluateBasicAttributeOnUndefined() {
-		assertExpressionReturnsErrors("undefined.<test.numbers>");
-	}
-
-	@Test
-	void evaluateAttributeInFilterSelection() {
-		assertExpressionReturnsErrors("123 |- { @.<test.numbers> : mock.nil }");
 	}
 
 	@Test

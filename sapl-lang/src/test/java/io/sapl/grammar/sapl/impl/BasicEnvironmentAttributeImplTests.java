@@ -38,11 +38,9 @@ import reactor.test.StepVerifier;
 
 class BasicEnvironmentAttributeImplTests {
 
-	private static final SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
-
-	private static final String ATTRIBUTE = "attribute";
-
-	private static final String FULLY_QUALIFIED_ATTRIBUTE = "mock." + ATTRIBUTE;
+	private static final SaplFactory FACTORY                   = SaplFactoryImpl.eINSTANCE;
+	private static final String      ATTRIBUTE                 = "attribute";
+	private static final String      FULLY_QUALIFIED_ATTRIBUTE = "mock." + ATTRIBUTE;
 
 	@Test
 	void evaluateBasicAttributeFlux() {
@@ -77,8 +75,8 @@ class BasicEnvironmentAttributeImplTests {
 	void applyWithSomeStreamData() {
 		Val[] data = { Val.FALSE, Val.error("ERROR"), Val.TRUE, Val.NULL, Val.UNDEFINED };
 		var   step = attributeFinderStep();
-		var   sut  = step.evaluate().contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
-				mockAttributeContextWithStream(Flux.just(data))));
+		var   sut  = step.evaluate().contextWrite(
+				ctx -> AuthorizationContext.setAttributeContext(ctx, mockAttributeContextWithStream(Flux.just(data))));
 		StepVerifier.create(sut).expectNext(data).verifyComplete();
 	}
 

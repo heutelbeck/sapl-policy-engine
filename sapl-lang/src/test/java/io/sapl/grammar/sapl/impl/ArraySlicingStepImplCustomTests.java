@@ -49,6 +49,7 @@ class ArraySlicingStepImplCustomTests {
 	void expressionReturnsError(String expression, String expected) {
 		assertExpressionReturnsError(expression, expected);
 	}
+
 	private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
 		// @formatter:off
 		return Stream.of(

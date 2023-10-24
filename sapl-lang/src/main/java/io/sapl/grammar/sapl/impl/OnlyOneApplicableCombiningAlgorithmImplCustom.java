@@ -72,9 +72,6 @@ public class OnlyOneApplicableCombiningAlgorithmImplCustom extends OnlyOneApplic
 				applicableCount++;
 				authzDecision            = decisionUnderInspection;
 				aPolicyWasIndeterminate |= decision == Decision.INDETERMINATE;
-				if (decision == Decision.PERMIT || decision == Decision.DENY) {
-					decisionUnderInspection = authzDecision;
-				}
 			}
 		}
 		if (aPolicyWasIndeterminate || applicableCount > 1) {
