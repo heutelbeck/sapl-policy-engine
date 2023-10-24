@@ -89,13 +89,13 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 	public ReportCoverageInformationMojo(SaplDocumentReader reader, CoverageTargetHelper coverageTargetHelper,
 			CoverageAPIHelper coverageAPIHelper, CoverageRatioCalculator calc, GenericCoverageReporter reporter,
 			SonarLineCoverageReportGenerator sonarReporter, HtmlLineCoverageReportGenerator htmlReporter) {
-		this.saplDocumentReader = reader;
+		this.saplDocumentReader   = reader;
 		this.coverageTargetHelper = coverageTargetHelper;
-		this.coverageAPIHelper = coverageAPIHelper;
-		this.ratioCalculator = calc;
-		this.reporter = reporter;
-		this.sonarReporter = sonarReporter;
-		this.htmlReporter = htmlReporter;
+		this.coverageAPIHelper    = coverageAPIHelper;
+		this.ratioCalculator      = calc;
+		this.reporter             = reporter;
+		this.sonarReporter        = sonarReporter;
+		this.htmlReporter         = htmlReporter;
 	}
 
 	@Override
@@ -106,12 +106,13 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 		}
 
 		Collection<SaplDocument> documents = readSaplDocuments();
-		CoverageTargets targets = readAvailableTargets(documents);
-		CoverageTargets hits = readHits();
+		CoverageTargets          targets   = readAvailableTargets(documents);
+		CoverageTargets          hits      = readHits();
 
-		var actualPolicySetHitRatio = this.ratioCalculator.calculateRatio(targets.getPolicySets(),
+		var actualPolicySetHitRatio       = this.ratioCalculator.calculateRatio(targets.getPolicySets(),
 				hits.getPolicySets());
-		var actualPolicyHitRatio = this.ratioCalculator.calculateRatio(targets.getPolicies(), hits.getPolicies());
+		var actualPolicyHitRatio          = this.ratioCalculator.calculateRatio(targets.getPolicies(),
+				hits.getPolicies());
 		var actualPolicyConditionHitRatio = this.ratioCalculator.calculateRatio(targets.getPolicyConditions(),
 				hits.getPolicyConditions());
 
@@ -141,7 +142,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 			}
 
 			if (enableHtmlReport) {
-				Path indexHtml = htmlReporter.generateHtmlReport(genericDocumentCoverage, getLog(),
+				Path indexHtml = htmlReporter.generateHtmlReport(genericDocumentCoverage,
 						PathHelper.resolveBaseDir(outputDir, project.getBuild().getDirectory(), getLog()),
 						actualPolicySetHitRatio, actualPolicyHitRatio, actualPolicyConditionHitRatio);
 				getLog().info("Open this file in a Browser to view the HTML coverage report: ");
@@ -162,8 +163,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 			getLog().info("All coverage criteria passed");
 			getLog().info("");
 			getLog().info("");
-		}
-		else {
+		} else {
 			throw new MojoFailureException(
 					"One or more SAPL Coverage Ratios aren't fulfilled! Find further information above.");
 		}
@@ -200,8 +200,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 			getLog().error("Policy Set Hit Ratio not fulfilled - Expected greater or equal " + policySetHitRatio
 					+ " but got " + ratio);
 			return false;
-		}
-		else {
+		} else {
 			return true;
 		}
 	}
@@ -218,8 +217,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 			getLog().error("Policy Hit Ratio not fulfilled - Expected greater or equal " + policyHitRatio + " but got "
 					+ ratio);
 			return false;
-		}
-		else {
+		} else {
 			return true;
 		}
 	}
@@ -236,8 +234,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 			getLog().error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal "
 					+ policyConditionHitRatio + " but got " + ratio);
 			return false;
-		}
-		else {
+		} else {
 			return true;
 		}
 	}

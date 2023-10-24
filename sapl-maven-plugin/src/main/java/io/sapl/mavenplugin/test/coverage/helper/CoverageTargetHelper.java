@@ -45,7 +45,7 @@ public class CoverageTargetHelper {
 		List<PolicyConditionHit> availablePolicyConditionHitTargets = new LinkedList<>();
 
 		for (SaplDocument saplDoc : documents) {
-			PolicyElement element = saplDoc.getSaplDocument().getPolicyElement();
+			PolicyElement element = saplDoc.getDocument().getPolicyElement();
 
 			if (element.eClass().equals(SaplPackage.Literals.POLICY_SET)) {
 				addPolicySetToResult((PolicySet) element, availablePolicySetHitTargets, availablePolicyHitTargets,

@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -53,13 +52,12 @@ public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPC
 			FunctionContext functionCtx, VariablesAndCombinatorSource variablesAndCombinatorSource,
 			Collection<AuthorizationSubscriptionInterceptor> subscriptionInterceptors,
 			Collection<TracedDecisionInterceptor> decisionInterceptors) {
-		this.attributeCtx					= attributeCtx;
-		this.functionCtx					= functionCtx;
-		this.variablesAndCombinatorSource	= variablesAndCombinatorSource;
-		this.subscriptionInterceptors		= subscriptionInterceptors.stream().sorted(Comparator.reverseOrder())
-				.collect(Collectors.toList());
-		this.decisionInterceptors			= decisionInterceptors.stream().sorted(Comparator.reverseOrder())
-				.collect(Collectors.toList());
+		this.attributeCtx                 = attributeCtx;
+		this.functionCtx                  = functionCtx;
+		this.variablesAndCombinatorSource = variablesAndCombinatorSource;
+		this.subscriptionInterceptors     = subscriptionInterceptors.stream().sorted(Comparator.reverseOrder())
+				.toList();
+		this.decisionInterceptors         = decisionInterceptors.stream().sorted(Comparator.reverseOrder()).toList();
 	}
 
 	@Override
@@ -93,7 +91,7 @@ public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPC
 	}
 
 	@Override
-	public void destroy() throws Exception {
+	public void destroy() {
 		variablesAndCombinatorSource.destroy();
 	}
 }

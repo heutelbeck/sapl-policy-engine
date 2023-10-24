@@ -21,7 +21,7 @@ public interface PDPConfigurationProvider {
 
 	Flux<PDPConfiguration> pdpConfiguration();
 
-	default void destroy() throws Exception {
+	default void destroy() {
 		// NOOP
 	}
 

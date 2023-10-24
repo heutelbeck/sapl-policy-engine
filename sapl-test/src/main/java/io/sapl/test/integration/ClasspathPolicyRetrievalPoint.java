@@ -45,7 +45,7 @@ public class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {
 	}
 
 	private Map<String, SAPL> readPoliciesFromDirectory(String path, SAPLInterpreter interpreter) {
-		Map<String, SAPL> documents           = new HashMap<>();
+		Map<String, SAPL> documentsByName     = new HashMap<>();
 		Path              policyDirectoryPath = ClasspathHelper.findPathOnClasspath(getClass().getClassLoader(), path);
 		log.debug("reading policies from directory {}", policyDirectoryPath);
 
@@ -53,12 +53,12 @@ public class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {
 			for (Path filePath : stream) {
 				log.info("loading policy: {}", filePath.toAbsolutePath());
 				SAPL sapl = interpreter.parse(Files.newInputStream(filePath));
-				documents.put(sapl.getPolicyElement().getSaplName(), sapl);
+				documentsByName.put(sapl.getPolicyElement().getSaplName(), sapl);
 			}
 		} catch (IOException | PolicyEvaluationException e) {
 			throw Exceptions.propagate(e);
 		}
-		return documents;
+		return documentsByName;
 	}
 
 	@Override

@@ -226,8 +226,9 @@ class CanonicalIndexAlgorithmTests {
 
 		satisfiableCandidates.set(1);
 		satisfiableCandidates.set(2);
+		var container = createEmptyContainer();
 		assertThrows(IndexOutOfBoundsException.class,
-				() -> CanonicalIndexAlgorithm.fetchFormulas(satisfiableCandidates, createEmptyContainer()));
+				() -> CanonicalIndexAlgorithm.fetchFormulas(satisfiableCandidates, container));
 
 		Set<DisjunctiveFormula> set0 = new HashSet<>();
 

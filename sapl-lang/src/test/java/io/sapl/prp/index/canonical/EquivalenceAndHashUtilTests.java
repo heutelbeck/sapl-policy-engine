@@ -33,6 +33,7 @@ import org.eclipse.emf.common.util.EList;
 import org.junit.jupiter.api.Test;
 
 class EquivalenceAndHashUtilTests {
+	private final static Map<String, String> EMPTY_MAP = Map.of();
 
 	@Test
 	void testSemanticHash() throws Exception {
@@ -43,7 +44,7 @@ class EquivalenceAndHashUtilTests {
 
 		var hashA = EquivalenceAndHashUtil.semanticHash(expA, imports);
 		var hashB = EquivalenceAndHashUtil.semanticHash(expB, imports);
-		var hashC = EquivalenceAndHashUtil.semanticHash(expB, Collections.emptyMap());
+		var hashC = EquivalenceAndHashUtil.semanticHash(expB, EMPTY_MAP);
 
 		assertThat(hashA, is(hashB));
 		assertThat(hashA, not(is(hashC)));
@@ -53,10 +54,10 @@ class EquivalenceAndHashUtilTests {
 		var ent1 = entitlement("permit");
 		var ent2 = entitlement("deny");
 
-		var hash1 = EquivalenceAndHashUtil.semanticHash(exp1, Collections.emptyMap());
-		var hash2 = EquivalenceAndHashUtil.semanticHash(exp2, Collections.emptyMap());
-		var hash3 = EquivalenceAndHashUtil.semanticHash(ent1, Collections.emptyMap());
-		var hash4 = EquivalenceAndHashUtil.semanticHash(ent2, Collections.emptyMap());
+		var hash1 = EquivalenceAndHashUtil.semanticHash(exp1, EMPTY_MAP);
+		var hash2 = EquivalenceAndHashUtil.semanticHash(exp2, EMPTY_MAP);
+		var hash3 = EquivalenceAndHashUtil.semanticHash(ent1, EMPTY_MAP);
+		var hash4 = EquivalenceAndHashUtil.semanticHash(ent2, EMPTY_MAP);
 
 		assertThat(hash1, is(hash2));
 		assertThat(hash1, not(is(hash3)));
@@ -79,25 +80,20 @@ class EquivalenceAndHashUtilTests {
 		var ent1 = entitlement("permit");
 		var ent2 = entitlement("deny");
 
-		assertThat(EquivalenceAndHashUtil.areEquivalent(exp1, Collections.emptyMap(), exp2, Collections.emptyMap()),
-				is(true));
-		assertThat(EquivalenceAndHashUtil.areEquivalent(exp1, Collections.emptyMap(), exp3, Collections.emptyMap()),
-				is(false));
-		assertThat(EquivalenceAndHashUtil.areEquivalent(ent1, Collections.emptyMap(), ent1, Collections.emptyMap()),
-				is(true));
-		assertThat(EquivalenceAndHashUtil.areEquivalent(ent1, Collections.emptyMap(), ent2, Collections.emptyMap()),
-				is(false));
-		assertThat(EquivalenceAndHashUtil.areEquivalent(exp1, Collections.emptyMap(), ent1, Collections.emptyMap()),
-				is(false));
+		assertThat(EquivalenceAndHashUtil.areEquivalent(exp1, EMPTY_MAP, exp2, EMPTY_MAP), is(true));
+		assertThat(EquivalenceAndHashUtil.areEquivalent(exp1, EMPTY_MAP, exp3, EMPTY_MAP), is(false));
+		assertThat(EquivalenceAndHashUtil.areEquivalent(ent1, EMPTY_MAP, ent1, EMPTY_MAP), is(true));
+		assertThat(EquivalenceAndHashUtil.areEquivalent(ent1, EMPTY_MAP, ent2, EMPTY_MAP), is(false));
+		assertThat(EquivalenceAndHashUtil.areEquivalent(exp1, EMPTY_MAP, ent1, EMPTY_MAP), is(false));
 
 		assertThrows(NullPointerException.class,
-				() -> EquivalenceAndHashUtil.areEquivalent(exp1, Collections.emptyMap(), null, Collections.emptyMap()));
+				() -> EquivalenceAndHashUtil.areEquivalent(exp1, EMPTY_MAP, null, EMPTY_MAP));
 		assertThrows(NullPointerException.class,
-				() -> EquivalenceAndHashUtil.areEquivalent(null, Collections.emptyMap(), exp2, Collections.emptyMap()));
+				() -> EquivalenceAndHashUtil.areEquivalent(null, EMPTY_MAP, exp2, EMPTY_MAP));
 		assertThrows(NullPointerException.class,
-				() -> EquivalenceAndHashUtil.areEquivalent(exp1, null, exp2, Collections.emptyMap()));
+				() -> EquivalenceAndHashUtil.areEquivalent(exp1, null, exp2, EMPTY_MAP));
 		assertThrows(NullPointerException.class,
-				() -> EquivalenceAndHashUtil.areEquivalent(exp1, Collections.emptyMap(), exp2, null));
+				() -> EquivalenceAndHashUtil.areEquivalent(exp1, EMPTY_MAP, exp2, null));
 
 		assertThrows(NullPointerException.class, () -> new Literal((Bool) null));
 
@@ -106,11 +102,10 @@ class EquivalenceAndHashUtilTests {
 	@Test
 	void testFeaturesAreEquivalent() {
 		var objectMock = mock(Object.class);
-		assertThat(EquivalenceAndHashUtil.featuresAreEquivalent(objectMock, Collections.emptyMap(), objectMock,
-				Collections.emptyMap()), is(true));
+		assertThat(EquivalenceAndHashUtil.featuresAreEquivalent(objectMock, EMPTY_MAP, objectMock, EMPTY_MAP),
+				is(true));
 
-		assertThat(EquivalenceAndHashUtil.featuresAreEquivalent(objectMock, Collections.emptyMap(), null,
-				Collections.emptyMap()), is(false));
+		assertThat(EquivalenceAndHashUtil.featuresAreEquivalent(objectMock, EMPTY_MAP, null, EMPTY_MAP), is(false));
 
 		var eList1 = mock(EList.class, RETURNS_DEEP_STUBS);
 		when(eList1.size()).thenReturn(1);
@@ -118,8 +113,7 @@ class EquivalenceAndHashUtilTests {
 		var eList2 = mock(EList.class, RETURNS_DEEP_STUBS);
 		when(eList2.size()).thenReturn(2);
 
-		assertThat(EquivalenceAndHashUtil.featuresAreEquivalent(eList1, Collections.emptyMap(), eList2,
-				Collections.emptyMap()), is(false));
+		assertThat(EquivalenceAndHashUtil.featuresAreEquivalent(eList1, EMPTY_MAP, eList2, EMPTY_MAP), is(false));
 
 		var iter1 = mock(Iterator.class);
 		when(eList1.size()).thenReturn(2);
@@ -130,11 +124,10 @@ class EquivalenceAndHashUtilTests {
 		var iter2 = mock(Iterator.class);
 		when(eList2.size()).thenReturn(2);
 		when(eList2.iterator()).thenReturn(iter2);
-		when(iter2.hasNext()).thenReturn(Boolean.TRUE,Boolean.TRUE,Boolean.FALSE);
+		when(iter2.hasNext()).thenReturn(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE);
 		when(iter2.next()).thenReturn(objectMock, null, objectMock);
 
-		assertThat(EquivalenceAndHashUtil.featuresAreEquivalent(eList1, Collections.emptyMap(), eList2,
-				Collections.emptyMap()), is(false));
+		assertThat(EquivalenceAndHashUtil.featuresAreEquivalent(eList1, EMPTY_MAP, eList2, EMPTY_MAP), is(false));
 	}
 
 }

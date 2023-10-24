@@ -73,9 +73,9 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 		coverageAPIHelper    = mock(CoverageAPIHelper.class);
 		ratioCalculator      = mock(CoverageRatioCalculator.class);
 		GenericCoverageReporter reporter = mock(GenericCoverageReporter.class);
-		sonarReporter        = mock(SonarLineCoverageReportGenerator.class);
-		htmlReporter         = mock(HtmlLineCoverageReportGenerator.class);
-		log                  = mock(Log.class);
+		sonarReporter = mock(SonarLineCoverageReportGenerator.class);
+		htmlReporter  = mock(HtmlLineCoverageReportGenerator.class);
+		log           = mock(Log.class);
 
 		getContainer().addComponent(saplDocumentReader, SaplDocumentReader.class, "");
 		getContainer().addComponent(coverageTargetHelper, CoverageTargetHelper.class, "");
@@ -105,19 +105,18 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 	}
 
 	@Test
-	 void test_happyPath() throws Exception {
+	void test_happyPath() throws Exception {
 
 		when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
 		when(this.coverageTargetHelper.getCoverageTargets(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		when(this.coverageAPIHelper.readHits(any()))
-				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+		when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
 		when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
-		when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
+		when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
 				.thenReturn(Paths.get("test", "index.html"));
 
-		Path pom = Paths.get("src", "test", "resources", "pom", "pom.xml");
-		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+		Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+		var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
 		mojo.setLog(this.log);
 
 		mojo.execute();
@@ -128,43 +127,40 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 	}
 
 	@Test
-	 void test_policyConditionHitCriteriaNotFulfilled() throws Exception {
+	void test_policyConditionHitCriteriaNotFulfilled() throws Exception {
 
 		when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
 		when(this.coverageTargetHelper.getCoverageTargets(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		when(this.coverageAPIHelper.readHits(any()))
-				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+		when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
 		when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 50f);
-		when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
+		when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
 				.thenReturn(Paths.get("test", "index.html"));
 
-		Path pom = Paths.get("src", "test", "resources", "pom", "pom.xml");
-		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+		Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+		var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
 		mojo.setLog(this.log);
 
 		assertThrows(MojoFailureException.class, mojo::execute);
 
 		verifyReporterAreCalled();
 
-		verify(log)
-				.error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal 80.0 but got 50.0");
+		verify(log).error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal 80.0 but got 50.0");
 	}
 
 	@Test
-	 void test_policyHitCriteriaNotFulfilled() throws Exception {
+	void test_policyHitCriteriaNotFulfilled() throws Exception {
 
 		when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
 		when(this.coverageTargetHelper.getCoverageTargets(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		when(this.coverageAPIHelper.readHits(any()))
-				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+		when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
 		when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 50f, 100f);
-		when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
+		when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
 				.thenReturn(Paths.get("test", "index.html"));
 
-		Path pom = Paths.get("src", "test", "resources", "pom", "pom.xml");
-		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+		Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+		var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
 		mojo.setLog(this.log);
 
 		assertThrows(MojoFailureException.class, mojo::execute);
@@ -175,19 +171,18 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 	}
 
 	@Test
-	 void test_policySetHitCriteriaNotFulfilled() throws Exception {
+	void test_policySetHitCriteriaNotFulfilled() throws Exception {
 
 		when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
 		when(this.coverageTargetHelper.getCoverageTargets(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		when(this.coverageAPIHelper.readHits(any()))
-				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+		when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
 		when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(50f, 100f, 100f);
-		when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
+		when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
 				.thenReturn(Paths.get("test", "index.html"));
 
-		Path pom = Paths.get("src", "test", "resources", "pom", "pom.xml");
-		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+		Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+		var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
 		mojo.setLog(this.log);
 
 		assertThrows(MojoFailureException.class, mojo::execute);
@@ -199,19 +194,18 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 	}
 
 	@Test
-	 void test_policySetHitAndPolicyHitCriteriaNotFulfilled() throws Exception {
+	void test_policySetHitAndPolicyHitCriteriaNotFulfilled() throws Exception {
 
 		when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
 		when(this.coverageTargetHelper.getCoverageTargets(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		when(this.coverageAPIHelper.readHits(any()))
-				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+		when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
 		when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(50f, 50f, 100f);
-		when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
+		when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
 				.thenReturn(Paths.get("test", "index.html"));
 
-		Path pom = Paths.get("src", "test", "resources", "pom", "pom.xml");
-		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+		Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+		var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
 		mojo.setLog(this.log);
 
 		assertThrows(MojoFailureException.class, mojo::execute);
@@ -223,19 +217,18 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 	}
 
 	@Test
-	 void test_policySetHitAndPolicyConditionHitCriteriaNotFulfilled() throws Exception {
+	void test_policySetHitAndPolicyConditionHitCriteriaNotFulfilled() throws Exception {
 
 		when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
 		when(this.coverageTargetHelper.getCoverageTargets(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		when(this.coverageAPIHelper.readHits(any()))
-				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+		when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
 		when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(50f, 100f, 50f);
-		when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
+		when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
 				.thenReturn(Paths.get("test", "index.html"));
 
-		Path pom = Paths.get("src", "test", "resources", "pom", "pom.xml");
-		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+		Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+		var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
 		mojo.setLog(this.log);
 
 		assertThrows(MojoFailureException.class, mojo::execute);
@@ -243,24 +236,22 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 		verifyReporterAreCalled();
 
 		verify(log).error("Policy Set Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
-		verify(log)
-				.error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal 80.0 but got 50.0");
+		verify(log).error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal 80.0 but got 50.0");
 	}
 
 	@Test
-	 void test_policyHitAndPolicyConditionHitCriteriaNotFulfilled() throws Exception {
+	void test_policyHitAndPolicyConditionHitCriteriaNotFulfilled() throws Exception {
 
 		when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
 		when(this.coverageTargetHelper.getCoverageTargets(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		when(this.coverageAPIHelper.readHits(any()))
-				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+		when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
 		when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 50f, 50f);
-		when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
+		when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
 				.thenReturn(Paths.get("test", "index.html"));
 
-		Path pom = Paths.get("src", "test", "resources", "pom", "pom.xml");
-		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+		Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+		var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
 		mojo.setLog(this.log);
 
 		assertThrows(MojoFailureException.class, mojo::execute);
@@ -268,24 +259,22 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 		verifyReporterAreCalled();
 
 		verify(log).error("Policy Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
-		verify(log)
-				.error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal 80.0 but got 50.0");
+		verify(log).error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal 80.0 but got 50.0");
 	}
 
 	@Test
-	 void test_allCriteriaNotFulfilled() throws Exception {
+	void test_allCriteriaNotFulfilled() throws Exception {
 
 		when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
 		when(this.coverageTargetHelper.getCoverageTargets(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		when(this.coverageAPIHelper.readHits(any()))
-				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
+		when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+		when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
 				.thenReturn(Paths.get("test", "index.html"));
 		when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(50f, 50f, 50f);
 
-		Path pom = Paths.get("src", "test", "resources", "pom", "pom.xml");
-		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+		Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+		var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
 		mojo.setLog(this.log);
 
 		assertThrows(MojoFailureException.class, mojo::execute);
@@ -294,24 +283,22 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
 		verify(log).error("Policy Set Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
 		verify(log).error("Policy Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
-		verify(log)
-				.error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal 80.0 but got 50.0");
+		verify(log).error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal 80.0 but got 50.0");
 	}
 
 	@Test
-	 void test_emptyTargets() throws Exception {
+	void test_emptyTargets() throws Exception {
 
 		when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
 		CoverageTargets targets = new CoverageTargets(List.of(), List.of(), List.of());
 		when(this.coverageTargetHelper.getCoverageTargets(any())).thenReturn(targets);
-		when(this.coverageAPIHelper.readHits(any()))
-				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+		when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
 		when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(50f, 50f, 50f);
-		when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
+		when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
 				.thenReturn(Paths.get("test", "index.html"));
 
-		Path pom = Paths.get("src", "test", "resources", "pom", "pom.xml");
-		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+		Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+		var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
 		mojo.setLog(this.log);
 
 		mojo.execute();
@@ -327,82 +314,73 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 	private void verifyReporterAreCalled() throws MojoExecutionException {
 
 		verify(saplDocumentReader, times(1)).retrievePolicyDocuments(any(), any(), any());
-		verify(this.htmlReporter, times(1)).generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat());
+		verify(this.htmlReporter, times(1)).generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat());
 		verify(this.sonarReporter, times(1)).generateSonarLineCoverageReport(any(), any(), any(), any(), any());
 	}
 
 	@Test
-	 void test_happyPath_sonarReportDisabled() throws Exception {
+	void test_happyPath_sonarReportDisabled() throws Exception {
 
 		when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
 		when(this.coverageTargetHelper.getCoverageTargets(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		when(this.coverageAPIHelper.readHits(any()))
-				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+		when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
 		when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
-		when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
+		when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
 				.thenReturn(Paths.get("test", "index.html"));
 
-		Path pom = Paths.get("src", "test", "resources", "pom", "pom_sonarReportDisabled.xml");
-		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+		Path pom  = Paths.get("src", "test", "resources", "pom", "pom_sonarReportDisabled.xml");
+		var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
 		mojo.setLog(this.log);
 
 		mojo.execute();
 
-		verify(saplDocumentReader, times(1)).retrievePolicyDocuments(any(), any(),
-				any());
-		verify(this.htmlReporter, times(1)).generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(),
-				anyFloat());
+		verify(saplDocumentReader, times(1)).retrievePolicyDocuments(any(), any(), any());
+		verify(this.htmlReporter, times(1)).generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat());
 		verify(this.sonarReporter, never()).generateSonarLineCoverageReport(any(), any(), any(), any(), any());
 
 		verify(log).info("All coverage criteria passed");
 	}
 
 	@Test
-	 void test_happyPath_htmlReportDisabled() throws Exception {
+	void test_happyPath_htmlReportDisabled() throws Exception {
 
 		when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
 		when(this.coverageTargetHelper.getCoverageTargets(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		when(this.coverageAPIHelper.readHits(any()))
-				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+		when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
 		when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
 
-		Path pom = Paths.get("src", "test", "resources", "pom", "pom_htmlReportDisabled.xml");
-		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+		Path pom  = Paths.get("src", "test", "resources", "pom", "pom_htmlReportDisabled.xml");
+		var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
 		mojo.setLog(this.log);
 
 		mojo.execute();
 
-		verify(saplDocumentReader, times(1)).retrievePolicyDocuments(any(), any(),
-				any());
-		verify(this.htmlReporter, never()).generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(),
-				anyFloat());
+		verify(saplDocumentReader, times(1)).retrievePolicyDocuments(any(), any(), any());
+		verify(this.htmlReporter, never()).generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat());
 		verify(this.sonarReporter, times(1)).generateSonarLineCoverageReport(any(), any(), any(), any(), any());
 
 		verify(log).info("All coverage criteria passed");
 	}
 
 	@Test
-	 void test_happyPath_allReportsDisabled() throws Exception {
+	void test_happyPath_allReportsDisabled() throws Exception {
 
 		when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
 		when(this.coverageTargetHelper.getCoverageTargets(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-		when(this.coverageAPIHelper.readHits(any()))
-				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+		when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
 		when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
 
-		Path pom = Paths.get("src", "test", "resources", "pom", "pom_allReportsDisabled.xml");
-		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+		Path pom  = Paths.get("src", "test", "resources", "pom", "pom_allReportsDisabled.xml");
+		var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
 		mojo.setLog(this.log);
 
 		mojo.execute();
 
-		verify(saplDocumentReader, times(1)).retrievePolicyDocuments(any(), any(),
-				any());
-		verify(this.htmlReporter, never()).generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(),
-				anyFloat());
+		verify(saplDocumentReader, times(1)).retrievePolicyDocuments(any(), any(), any());
+		verify(this.htmlReporter, never()).generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat());
 		verify(this.sonarReporter, never()).generateSonarLineCoverageReport(any(), any(), any(), any(), any());
 
 		verify(log).info("All coverage criteria passed");

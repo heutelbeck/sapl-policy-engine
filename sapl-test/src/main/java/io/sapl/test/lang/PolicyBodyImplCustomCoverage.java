@@ -41,9 +41,7 @@ public class PolicyBodyImplCustomCoverage extends PolicyBodyImplCustom {
 
 	@Override
 
-	protected Flux<Val> evaluateStatements(
-			Val previousResult,
-			int statementId) {
+	protected Flux<Val> evaluateStatements(Val previousResult, int statementId) {
 		this.currentStatementId = statementId;
 		return super.evaluateStatements(previousResult, statementId);
 	}
@@ -55,16 +53,17 @@ public class PolicyBodyImplCustomCoverage extends PolicyBodyImplCustom {
 				String  policySetId = "";
 				String  policyId;
 				EObject eContainer1 = eContainer();
-				// A PolicyBody outside a Policy is not allowed -> thus a pre-cast if
-				// statement like the following
-				// if (eContainer1.eClass().equals(SaplPackage.Literals.POLICY)) {
-				// cannot be false -> cannot be tested
+				/*
+				 * A PolicyBody outside a Policy is not allowed -> thus a pre-cast if statement
+				 * like if(eContainer1.eClass().equals(SaplPackage.Literals.POLICY)) cannot be
+				 * false and therefore cannot be tested
+				 */
 				policyId = ((Policy) eContainer1).getSaplName();
 				EObject eContainer2 = eContainer1.eContainer();
 				if (eContainer2.eClass().equals(SaplPackage.Literals.POLICY_SET)) {
 					policySetId = ((PolicySet) eContainer2).getSaplName();
 				}
-				PolicyConditionHit hit               = new PolicyConditionHit(policySetId, policyId, currentStatementId,
+				PolicyConditionHit hit = new PolicyConditionHit(policySetId, policyId, currentStatementId,
 						result.getBoolean());
 				log.trace("| | | | |-- Hit PolicyCondition: " + hit);
 				this.hitRecorder.recordPolicyConditionHit(hit);

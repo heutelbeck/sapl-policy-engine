@@ -99,7 +99,7 @@ public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
 			var updates = StreamSupport.stream(directoryStream.spliterator(), false)
 					.peek(path -> log.info("load SAPL document: {}", path))
 					.map(ResourcesPrpUpdateEventSource::readFileAsString).map(this::parseAndCreatePublicationUpdate)
-					.collect(Collectors.toList());
+					.toList();
 			return new PrpUpdateEvent(updates);
 		}
 	}

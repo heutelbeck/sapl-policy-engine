@@ -32,7 +32,7 @@ public class JarUtil {
 	public URL inferUrlOfResourcesPath(Class<?> clazz, String path) {
 		var url = clazz.getResource(path);
 		if (url == null)
-			throw new RuntimeException(
+			throw new IllegalStateException(
 					"Folder in application resources is either empty or not present at all. Path:" + path);
 		return url;
 	}
@@ -43,7 +43,7 @@ public class JarUtil {
 
 	@SneakyThrows
 	public String readStringFromZipEntry(ZipFile jarFile, ZipEntry entry) {
-		var bis = new BufferedInputStream(jarFile.getInputStream(entry));
+		var bis    = new BufferedInputStream(jarFile.getInputStream(entry));
 		var result = IOUtils.toString(bis, StandardCharsets.UTF_8);
 		bis.close();
 		return result;

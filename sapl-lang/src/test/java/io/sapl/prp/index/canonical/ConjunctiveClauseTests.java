@@ -40,7 +40,9 @@ class ConjunctiveClauseTests {
 		assertThat(clause.size(), is(1));
 
 		assertThrows(NullPointerException.class, () -> new ConjunctiveClause((Collection<Literal>) null));
-		assertThrows(IllegalArgumentException.class, () -> new ConjunctiveClause(Collections.emptyList()));
+		
+		Collection<Literal> emptyList = Collections.emptyList();
+		assertThrows(IllegalArgumentException.class, () -> new ConjunctiveClause(emptyList));
 	}
 
 	@Test

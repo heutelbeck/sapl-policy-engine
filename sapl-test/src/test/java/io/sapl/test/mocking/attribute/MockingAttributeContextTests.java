@@ -84,7 +84,8 @@ class MockingAttributeContextTests {
 	@Test
 	void test_dynamicMock_mockEmitCalledForInvalidFullName() {
 		attrCtx.loadAttributeMock("test.test", Duration.ofSeconds(10), Val.of(1), Val.of(2));
-		assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> attrCtx.mockEmit("test.test", Val.of(1)));
+		var valOne = Val.of(1);
+		assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> attrCtx.mockEmit("test.test", valOne));
 	}
 
 	@Test
@@ -105,8 +106,11 @@ class MockingAttributeContextTests {
 	@Test
 	void test_timingMock_duplicateRegistration() {
 		attrCtx.loadAttributeMock("foo.bar", Duration.ofSeconds(10), Val.of(1), Val.of(2));
+		var tenSeconds = Duration.ofSeconds(10L);
+		var valOne     = Val.of(1);
+		var valTwo     = Val.of(2);
 		assertThatExceptionOfType(SaplTestException.class)
-				.isThrownBy(() -> attrCtx.loadAttributeMock("foo.bar", Duration.ofSeconds(10), Val.of(1), Val.of(2)));
+				.isThrownBy(() -> attrCtx.loadAttributeMock("foo.bar", tenSeconds, valOne, valTwo));
 	}
 
 	@Test
@@ -137,8 +141,10 @@ class MockingAttributeContextTests {
 	@Test
 	void test_loadAttributeMockForParentValue_registeredButWrongType() {
 		attrCtx.markAttributeMock("foo.bar");
+		var parent = parentValue(val(1));
+		var valTwo = Val.of(2);
 		assertThatExceptionOfType(SaplTestException.class)
-				.isThrownBy(() -> attrCtx.loadAttributeMockForParentValue("foo.bar", parentValue(val(1)), Val.of(2)));
+				.isThrownBy(() -> attrCtx.loadAttributeMockForParentValue("foo.bar", parent, valTwo));
 	}
 
 	@Test
@@ -181,9 +187,12 @@ class MockingAttributeContextTests {
 	@Test
 	void test_loadAttributeMockForParentValueAndArguments_registeredButWrongType() {
 		attrCtx.markAttributeMock("foo.bar");
+		var parent    = parentValue(val(1));
+		var valTwo    = Val.of(2);
+		var arguments = arguments(val(true));
 		assertThatExceptionOfType(SaplTestException.class)
 				.isThrownBy(() -> attrCtx.loadAttributeMockForParentValueAndArguments("foo.bar",
-						whenAttributeParams(parentValue(val(1)), arguments(val(true))), Val.of(2)));
+						whenAttributeParams(parent, arguments), valTwo));
 	}
 
 	@Test
@@ -277,8 +286,8 @@ class MockingAttributeContextTests {
 	void test_mockEmit_UnmockedAttribute() {
 		var unmockedCtx = new AnnotationAttributeContext();
 		var ctx         = new MockingAttributeContext(unmockedCtx);
-
-		assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> ctx.mockEmit("foo.bar", Val.of(1)));
+		var valOne      = Val.of(1);
+		assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> ctx.mockEmit("foo.bar", valOne));
 	}
 
 	@Test

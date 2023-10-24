@@ -49,18 +49,18 @@ class ResourcesVariablesAndCombinatorSourceTests {
 		assertThrows(NullPointerException.class, () -> new ResourcesVariablesAndCombinatorSource(null, "", null));
 		assertThrows(NullPointerException.class,
 				() -> new ResourcesVariablesAndCombinatorSource(null, null, mock(ObjectMapper.class)));
+		var thisClass = this.getClass();
 		assertThrows(NullPointerException.class,
-				() -> new ResourcesVariablesAndCombinatorSource(this.getClass(), null, null));
-		assertThrows(NullPointerException.class,
-				() -> new ResourcesVariablesAndCombinatorSource(this.getClass(), "", null));
+				() -> new ResourcesVariablesAndCombinatorSource(thisClass, null, null));
+		assertThrows(NullPointerException.class, () -> new ResourcesVariablesAndCombinatorSource(thisClass, "", null));
 
 	}
 
 	@Test
 	void ifExecutedDuringUnitTests_thenLoadConfigurationFileFromFileSystem() throws Exception {
 		var configProvider = new ResourcesVariablesAndCombinatorSource("/valid_config");
-		var algo = configProvider.getCombiningAlgorithm().blockFirst();
-		var variables = configProvider.getVariables().blockFirst();
+		var algo           = configProvider.getCombiningAlgorithm().blockFirst();
+		var variables      = configProvider.getVariables().blockFirst();
 		configProvider.destroy();
 
 		assertThat(algo.get() instanceof PermitUnlessDenyCombiningAlgorithm, is(true));
@@ -70,8 +70,8 @@ class ResourcesVariablesAndCombinatorSourceTests {
 	@Test
 	void ifExecutedDuringUnitTestsAndNoConfigFilePresent_thenLoadDefaultConfiguration() throws Exception {
 		var configProvider = new ResourcesVariablesAndCombinatorSource("");
-		var algo = configProvider.getCombiningAlgorithm().blockFirst();
-		var variables = configProvider.getVariables().blockFirst();
+		var algo           = configProvider.getCombiningAlgorithm().blockFirst();
+		var variables      = configProvider.getVariables().blockFirst();
 		configProvider.destroy();
 
 		assertThat(algo.get() instanceof DenyOverridesCombiningAlgorithm, is(true));
@@ -90,8 +90,8 @@ class ResourcesVariablesAndCombinatorSourceTests {
 			mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);
 
 			var configProvider = new ResourcesVariablesAndCombinatorSource();
-			var algo = configProvider.getCombiningAlgorithm().blockFirst();
-			var variables = configProvider.getVariables().blockFirst();
+			var algo           = configProvider.getCombiningAlgorithm().blockFirst();
+			var variables      = configProvider.getVariables().blockFirst();
 			configProvider.destroy();
 
 			assertThat(algo.get() instanceof PermitUnlessDenyCombiningAlgorithm, is(true));
@@ -109,15 +109,14 @@ class ResourcesVariablesAndCombinatorSourceTests {
 	}
 
 	@Test
-	void ifExecutedInJarAndNoConfigFilePresent_thenLoadDefaultConfiguration()
-			throws Exception {
+	void ifExecutedInJarAndNoConfigFilePresent_thenLoadDefaultConfiguration() throws Exception {
 		var url = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/not_existing");
 		try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
 			mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);
 
 			var configProvider = new ResourcesVariablesAndCombinatorSource("/not_existing");
-			var algo = configProvider.getCombiningAlgorithm().blockFirst();
-			var variables = configProvider.getVariables().blockFirst();
+			var algo           = configProvider.getCombiningAlgorithm().blockFirst();
+			var variables      = configProvider.getVariables().blockFirst();
 			configProvider.destroy();
 
 			assertThat(algo.get() instanceof DenyOverridesCombiningAlgorithm, is(true));

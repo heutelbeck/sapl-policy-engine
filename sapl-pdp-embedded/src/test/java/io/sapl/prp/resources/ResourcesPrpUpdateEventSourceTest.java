@@ -59,8 +59,9 @@ class ResourcesPrpUpdateEventSourceTest {
 		assertThrows(NullPointerException.class, () -> new ResourcesPrpUpdateEventSource(null, "", null));
 		assertThrows(NullPointerException.class,
 				() -> new ResourcesPrpUpdateEventSource(null, null, mock(SAPLInterpreter.class)));
-		assertThrows(NullPointerException.class, () -> new ResourcesPrpUpdateEventSource(this.getClass(), null, null));
-		assertThrows(NullPointerException.class, () -> new ResourcesPrpUpdateEventSource(this.getClass(), "", null));
+		var thisClass = this.getClass();
+		assertThrows(NullPointerException.class, () -> new ResourcesPrpUpdateEventSource(thisClass, null, null));
+		assertThrows(NullPointerException.class, () -> new ResourcesPrpUpdateEventSource(thisClass, "", null));
 	}
 
 	@Test

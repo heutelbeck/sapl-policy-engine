@@ -92,32 +92,30 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			final IIdeContentProposalAcceptor acceptor) {
 		lazyLoadDependencies();
 
-		ParserRule parserRule     = GrammarUtil.containingParserRule(assignment);
-		String     parserRuleName = parserRule.getName().toLowerCase();
-		String     feature        = assignment.getFeature().toLowerCase();
+		var parserRule     = GrammarUtil.containingParserRule(assignment);
+		var parserRuleName = parserRule.getName().toLowerCase();
+		var feature        = assignment.getFeature().toLowerCase();
 
 		switch (parserRuleName) {
-			case "numberliteral", "stringliteral" -> {
-				return;
-			}
-			case "import" -> {
-				handleImportProposals(feature, context, acceptor);
-				return;
-			}
-			case "basic" -> {
-				handleBasicProposals(feature, context, acceptor);
-				return;
-			}
-			case "policy" -> {
-				handlePolicyProposals(feature, context, acceptor);
-				return;
-			}
-			case "step" -> {
-				handleStepProposals(feature, context, acceptor);
-				return;
-			}
-			default -> {
-			}
+		case "import" -> {
+			handleImportProposals(feature, context, acceptor);
+			return;
+		}
+		case "basic" -> {
+			handleBasicProposals(feature, context, acceptor);
+			return;
+		}
+		case "policy" -> {
+			handlePolicyProposals(feature, context, acceptor);
+			return;
+		}
+		case "step" -> {
+			handleStepProposals(feature, context, acceptor);
+			return;
+		}
+		case "numberliteral", "stringliteral" -> {
+			return;
+		}
 		}
 
 		super._createProposals(assignment, context, acceptor);

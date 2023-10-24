@@ -43,7 +43,8 @@ class JarUtilTest {
 
 	@Test
 	void inferUrlOfResourcesPathTestWithMissingResource() {
-		assertThrows(RuntimeException.class, () -> JarUtil.inferUrlOfResourcesPath(getClass(), "/iDoNotExist"));
+		var thisClass = this.getClass();
+		assertThrows(RuntimeException.class, () -> JarUtil.inferUrlOfResourcesPath(thisClass, "/iDoNotExist"));
 	}
 
 	@Test

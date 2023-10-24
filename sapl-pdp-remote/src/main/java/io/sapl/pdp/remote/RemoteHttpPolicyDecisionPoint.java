@@ -186,7 +186,7 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 			if (this.authenticationCustomizer == null) {
 				this.authenticationCustomizer = applyFunction;
 			} else {
-				throw new RuntimeException(this.getClass().getName() + ": authentication method already defined");
+				throw new IllegalStateException(this.getClass().getName() + ": authentication method already defined");
 			}
 		}
 

@@ -29,6 +29,6 @@ public class SaplDocument {
 
 	int lineCount;
 
-	private SAPL saplDocument;
+	private SAPL document;
 
 }

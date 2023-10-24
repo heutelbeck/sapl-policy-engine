@@ -47,7 +47,7 @@ public class GenericCoverageReporter {
 		for (SaplDocument saplDoc : documents) {
 			var coveredDoc = new SaplDocumentCoverageInformation(saplDoc.getPathToDocument(), saplDoc.getLineCount());
 
-			PolicyElement element = saplDoc.getSaplDocument().getPolicyElement();
+			PolicyElement element = saplDoc.getDocument().getPolicyElement();
 
 			if (element.eClass().equals(SaplPackage.Literals.POLICY_SET)) {
 				PolicySet set = (PolicySet) element;

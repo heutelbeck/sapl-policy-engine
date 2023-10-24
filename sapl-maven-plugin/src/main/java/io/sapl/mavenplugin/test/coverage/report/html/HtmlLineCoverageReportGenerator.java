@@ -15,7 +15,26 @@
  */
 package io.sapl.mavenplugin.test.coverage.report.html;
 
-import static j2html.TagCreator.*;
+import static j2html.TagCreator.a;
+import static j2html.TagCreator.attrs;
+import static j2html.TagCreator.body;
+import static j2html.TagCreator.div;
+import static j2html.TagCreator.each;
+import static j2html.TagCreator.h1;
+import static j2html.TagCreator.head;
+import static j2html.TagCreator.html;
+import static j2html.TagCreator.img;
+import static j2html.TagCreator.li;
+import static j2html.TagCreator.link;
+import static j2html.TagCreator.main;
+import static j2html.TagCreator.meta;
+import static j2html.TagCreator.nav;
+import static j2html.TagCreator.ol;
+import static j2html.TagCreator.p;
+import static j2html.TagCreator.rawHtml;
+import static j2html.TagCreator.script;
+import static j2html.TagCreator.textarea;
+import static j2html.TagCreator.title;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -31,14 +50,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.maven.plugin.MojoExecutionException;
+
 import io.sapl.mavenplugin.test.coverage.PathHelper;
 import io.sapl.mavenplugin.test.coverage.SaplTestException;
 import io.sapl.mavenplugin.test.coverage.report.model.LineCoveredValue;
 import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInformation;
-
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.logging.Log;
-
 import j2html.attributes.Attribute;
 import j2html.tags.ContainerTag;
 import j2html.tags.EmptyTag;
@@ -46,7 +63,7 @@ import lombok.Data;
 
 public class HtmlLineCoverageReportGenerator {
 
-	public Path generateHtmlReport(Collection<SaplDocumentCoverageInformation> documents, Log log, Path basedir,
+	public Path generateHtmlReport(Collection<SaplDocumentCoverageInformation> documents, Path basedir,
 			float policySetHitRatio, float policyHitRatio, float policyConditionHitRatio)
 			throws MojoExecutionException {
 		Path index;
@@ -60,8 +77,7 @@ public class HtmlLineCoverageReportGenerator {
 			for (var doc : documents) {
 				generatePolicySite(doc, basedir);
 			}
-		}
-		catch (IOException e) {
+		} catch (IOException e) {
 			throw new MojoExecutionException("Error while using the filesystem", e);
 		}
 		return index;
@@ -136,13 +152,13 @@ public class HtmlLineCoverageReportGenerator {
 	}
 
 	private void generateCustomCSS(Path basedir) throws IOException {
-		String css = """
+		String css     = """
 				.coverage-green span { background-color: #ccffcc; }
 				.coverage-yellow span { background-color: #ffffcc; }
 				.coverage-red span { background-color: #ffaaaa; }
 				.CodeMirror { height: calc(100% - 50px) !important; }
 				""";
-		Path cssPath = basedir.resolve("html").resolve("assets").resolve("main.css");
+		Path   cssPath = basedir.resolve("html").resolve("assets").resolve("main.css");
 		createFile(cssPath, css);
 	}
 
@@ -152,7 +168,7 @@ public class HtmlLineCoverageReportGenerator {
 
 		List<HtmlPolicyLineModel> models = createHtmlPolicyLineModel(lines, document);
 
-		Path filename = document.getPathToDocument().getFileName();
+		Path            filename   = document.getPathToDocument().getFileName();
 		ContainerTag<?> policySite = createPolicySiteCodeMirror(filename != null ? filename.toString() : "", models);
 
 		Path policyPath = basedir.resolve("html").resolve("policies").resolve(filename + ".html");
@@ -162,7 +178,7 @@ public class HtmlLineCoverageReportGenerator {
 	private ContainerTag<?> createPolicySiteCodeMirror(String filename, List<HtmlPolicyLineModel> models)
 			throws IOException {
 
-		StringBuilder wholeTextOfPolicy = new StringBuilder();
+		StringBuilder wholeTextOfPolicy                         = new StringBuilder();
 		StringBuilder htmlReportCodeMirrorJSLineClassStatements = new StringBuilder("\n");
 		for (int i = 0; i < models.size(); i++) {
 			var model = models.get(i);
@@ -177,7 +193,7 @@ public class HtmlLineCoverageReportGenerator {
 		}
 
 		String htmlReportCodeMirrorJsTemplate = readFileFromClasspath("scripts/html-report-codemirror-template.js");
-		String htmlReportCoreMirrorJS = htmlReportCodeMirrorJsTemplate.replace("{{replacement}}",
+		String htmlReportCoreMirrorJS         = htmlReportCodeMirrorJsTemplate.replace("{{replacement}}",
 				Stream.of(htmlReportCodeMirrorJSLineClassStatements).collect(Collectors.joining()));
 
 		// @formatter:off
@@ -222,18 +238,18 @@ public class HtmlLineCoverageReportGenerator {
 		for (int i = 0; i < lines.size(); i++) {
 			var model = new HtmlPolicyLineModel();
 			model.setLineContent(lines.get(i));
-			var line = document.getLine(i + 1);
+			var line         = document.getLine(i + 1);
 			var coveredValue = line.getCoveredValue();
 			assertValidCoveredValue(coveredValue);
 			switch (coveredValue) {
-				case FULLY -> model.setCssClass("coverage-green");
-				case NEVER -> model.setCssClass("coverage-red");
-				case PARTLY -> {
-					model.setCssClass("coverage-yellow");
-					model.setPopoverContent(String.format("%d of %d branches covered", line.getCoveredBranches(),
-							line.getBranchesToCover()));
-				}
-				default -> model.setCssClass("");
+			case FULLY -> model.setCssClass("coverage-green");
+			case NEVER -> model.setCssClass("coverage-red");
+			case PARTLY -> {
+				model.setCssClass("coverage-yellow");
+				model.setPopoverContent(String.format("%d of %d branches covered", line.getCoveredBranches(),
+						line.getBranchesToCover()));
+			}
+			default -> model.setCssClass("");
 			}
 			models.add(model);
 		}
@@ -242,38 +258,39 @@ public class HtmlLineCoverageReportGenerator {
 
 	private void copyAssets(Path basedir) throws IOException {
 		Path logoHeaderPath = basedir.resolve("html").resolve("assets").resolve("logo-header.png");
-		var logoSourcePath = getClass().getClassLoader().getResourceAsStream("images/logo-header.png");
+		var  logoSourcePath = getClass().getClassLoader().getResourceAsStream("images/logo-header.png");
 		copyFile(logoSourcePath, logoHeaderPath);
 
-		Path faviconPath = basedir.resolve("html").resolve("assets").resolve("favicon.png");
-		var faviconSourcePath = getClass().getClassLoader().getResourceAsStream("images/favicon.png");
+		Path faviconPath       = basedir.resolve("html").resolve("assets").resolve("favicon.png");
+		var  faviconSourcePath = getClass().getClassLoader().getResourceAsStream("images/favicon.png");
 		copyFile(faviconSourcePath, faviconPath);
 
 		Path requireJSTargetPath = basedir.resolve("html").resolve("assets").resolve("require.js");
-		var requireJS = getClass().getClassLoader().getResourceAsStream("scripts/require.js");
+		var  requireJS           = getClass().getClassLoader().getResourceAsStream("scripts/require.js");
 		copyFile(requireJS, requireJSTargetPath);
 
 		Path saplCodeMirrorModeJSTargetPath = basedir.resolve("html").resolve("assets").resolve("sapl-mode.js");
-		var saplCodeMirrorModeJS = getClass().getClassLoader().getResourceAsStream("dependency-resources/sapl-mode.js");
+		var  saplCodeMirrorModeJS           = getClass().getClassLoader()
+				.getResourceAsStream("dependency-resources/sapl-mode.js");
 		copyFile(saplCodeMirrorModeJS, saplCodeMirrorModeJSTargetPath);
 
 		Path saplCodeMirrorSimpleAddonTargetPath = basedir.resolve("html").resolve("assets").resolve("codemirror")
 				.resolve("addon").resolve("mode").resolve("simple.js");
-		var saplCodeMirrorSimpleAddon = getClass().getClassLoader().getResourceAsStream("scripts/simple.js");
+		var  saplCodeMirrorSimpleAddon           = getClass().getClassLoader().getResourceAsStream("scripts/simple.js");
 		copyFile(saplCodeMirrorSimpleAddon, saplCodeMirrorSimpleAddonTargetPath);
 
 		Path saplCodeMirrorJsTargetPath = basedir.resolve("html").resolve("assets").resolve("codemirror").resolve("lib")
 				.resolve("codemirror.js");
-		var saplCodeMirrorJs = getClass().getClassLoader().getResourceAsStream("scripts/codemirror.js");
+		var  saplCodeMirrorJs           = getClass().getClassLoader().getResourceAsStream("scripts/codemirror.js");
 		copyFile(saplCodeMirrorJs, saplCodeMirrorJsTargetPath);
 
 		Path saplCodeMirrorCssTargetPath = basedir.resolve("html").resolve("assets").resolve("codemirror.css");
-		var saplCodeMirrorCss = getClass().getClassLoader().getResourceAsStream("scripts/codemirror.css");
+		var  saplCodeMirrorCss           = getClass().getClassLoader().getResourceAsStream("scripts/codemirror.css");
 		copyFile(saplCodeMirrorCss, saplCodeMirrorCssTargetPath);
 	}
 
 	private String readFileFromClasspath(String filename) throws IOException {
-		var stream = getClass().getClassLoader().getResourceAsStream((filename));
+		var    stream = getClass().getClassLoader().getResourceAsStream((filename));
 		String fileContent;
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
 			fileContent = reader.lines().collect(Collectors.joining("\n"));
