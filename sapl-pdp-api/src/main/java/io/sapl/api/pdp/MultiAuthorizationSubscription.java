@@ -172,11 +172,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 	 *         {@code null}.
 	 */
 	public AuthorizationSubscription getAuthorizationSubscriptionWithId(String subscriptionId) {
-		var subscriptionElements = authorizationSubscriptions.get(subscriptionId);
-		if (subscriptionElements == null) {
-			return null;
-		}
-		return toAuthzSubscription(subscriptionElements);
+		return toAuthzSubscription(authorizationSubscriptions.get(subscriptionId));
 	}
 
 	/**
@@ -224,6 +220,9 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 	}
 
 	private AuthorizationSubscription toAuthzSubscription(AuthorizationSubscriptionElements subscriptionElements) {
+		if (subscriptionElements == null)
+			return null;
+
 		final Object subject     = subjects.get(subscriptionElements.getSubjectId());
 		final Object action      = actions.get(subscriptionElements.getActionId());
 		final Object resource    = resources.get(subscriptionElements.getResourceId());

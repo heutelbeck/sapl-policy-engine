@@ -63,6 +63,14 @@ import lombok.Data;
 
 public class HtmlLineCoverageReportGenerator {
 
+	private static final String ANONYMOUS            = "anonymous";
+	private static final String CROSSORIGIN          = "crossorigin";
+	private static final String INTEGRITY            = "integrity";
+	private static final String ASSETS               = "assets";
+	private static final String CARD_BODY            = "card-body";
+	private static final String SAPL_COVERAGE_REPORT = "SAPL Coverage Report";
+	private static final String STYLESHEET           = "stylesheet";
+
 	public Path generateHtmlReport(Collection<SaplDocumentCoverageInformation> documents, Path basedir,
 			float policySetHitRatio, float policyHitRatio, float policyConditionHitRatio)
 			throws MojoExecutionException {
@@ -94,9 +102,9 @@ public class HtmlLineCoverageReportGenerator {
 					meta().withCharset("utf-8"),
 					meta().withName("viewport").withContent("width=device-width, initial-scale=1, shrink-to-fit=no"),
 					getBootstrapCss(),
-					link().withRel("stylesheet").withHref("assets/main.css"),
+					link().withRel(STYLESHEET).withHref("assets/main.css"),
 					link().withRel("icon").withHref("assets/favicon.png").withType("image/png"),
-					title("SAPL Coverage Report")),
+					title(SAPL_COVERAGE_REPORT)),
 				body(
 					main(
 						attrs("#main.content"),
@@ -111,7 +119,7 @@ public class HtmlLineCoverageReportGenerator {
 						)
 							.withClass("navbar navbar-light")
 							.withStyle("background-color: #20232a"),
-						h1("SAPL Coverage Report").withStyle("padding: 1.25rem;"),
+						h1(SAPL_COVERAGE_REPORT).withStyle("padding: 1.25rem;"),
 
 						div(
 							div("SAPL Coverage Ratio").withClass("card-header"),
@@ -119,7 +127,7 @@ public class HtmlLineCoverageReportGenerator {
 								p("PolicySet Hit Ratio: " + policySetHitRatio + "%"),
 								p("Policy Hit Ratio: " + policyHitRatio + "%"),
 								p("PolicyCondition Hit Ratio: " + policyConditionHitRatio + "%")
-							).withClass("card-body")
+							).withClass(CARD_BODY)
 						).withClass("card").withStyle("padding: 1.25rem"),
 
 						div(
@@ -136,7 +144,7 @@ public class HtmlLineCoverageReportGenerator {
 										}
 									)
 								).withClass("list-group")
-							).withClass("card-body")
+							).withClass(CARD_BODY)
 						).withClass("card").withStyle("padding: 1.25rem")
 					),
 					getJquery(),
@@ -158,7 +166,7 @@ public class HtmlLineCoverageReportGenerator {
 				.coverage-red span { background-color: #ffaaaa; }
 				.CodeMirror { height: calc(100% - 50px) !important; }
 				""";
-		Path   cssPath = basedir.resolve("html").resolve("assets").resolve("main.css");
+		Path   cssPath = basedir.resolve("html").resolve(ASSETS).resolve("main.css");
 		createFile(cssPath, css);
 	}
 
@@ -199,12 +207,12 @@ public class HtmlLineCoverageReportGenerator {
 		// @formatter:off
 		return html(
 			    head(
-			        title("SAPL Coverage Report"),
+			        title(SAPL_COVERAGE_REPORT),
 			    	meta().withCharset("utf-8"),
 			    	meta().withName("viewport").withContent("width=device-width, initial-scale=1, shrink-to-fit=no"),
 					getBootstrapCss(),
-			        link().withRel("stylesheet").withHref("../assets/main.css"),
-			        link().withRel("stylesheet").withHref("../assets/codemirror.css"),
+			        link().withRel(STYLESHEET).withHref("../assets/main.css"),
+			        link().withRel(STYLESHEET).withHref("../assets/codemirror.css"),
 			        script().withSrc("../assets/require.js")
 			        ),
 			    body(
@@ -222,7 +230,7 @@ public class HtmlLineCoverageReportGenerator {
 			            div(
 		            		h1(filename).withStyle("margin-bottom: 2vw"),
 		            		textarea(wholeTextOfPolicy.toString()).withId("policyTextArea")
-	            		).withClass("card-body").withStyle("height: 80%")
+	            		).withClass(CARD_BODY).withStyle("height: 80%")
 			        ).withStyle("height: 100vh"),
 	        		script().with(rawHtml(htmlReportCoreMirrorJS))
 			    )
@@ -257,34 +265,34 @@ public class HtmlLineCoverageReportGenerator {
 	}
 
 	private void copyAssets(Path basedir) throws IOException {
-		Path logoHeaderPath = basedir.resolve("html").resolve("assets").resolve("logo-header.png");
+		Path logoHeaderPath = basedir.resolve("html").resolve(ASSETS).resolve("logo-header.png");
 		var  logoSourcePath = getClass().getClassLoader().getResourceAsStream("images/logo-header.png");
 		copyFile(logoSourcePath, logoHeaderPath);
 
-		Path faviconPath       = basedir.resolve("html").resolve("assets").resolve("favicon.png");
+		Path faviconPath       = basedir.resolve("html").resolve(ASSETS).resolve("favicon.png");
 		var  faviconSourcePath = getClass().getClassLoader().getResourceAsStream("images/favicon.png");
 		copyFile(faviconSourcePath, faviconPath);
 
-		Path requireJSTargetPath = basedir.resolve("html").resolve("assets").resolve("require.js");
+		Path requireJSTargetPath = basedir.resolve("html").resolve(ASSETS).resolve("require.js");
 		var  requireJS           = getClass().getClassLoader().getResourceAsStream("scripts/require.js");
 		copyFile(requireJS, requireJSTargetPath);
 
-		Path saplCodeMirrorModeJSTargetPath = basedir.resolve("html").resolve("assets").resolve("sapl-mode.js");
+		Path saplCodeMirrorModeJSTargetPath = basedir.resolve("html").resolve(ASSETS).resolve("sapl-mode.js");
 		var  saplCodeMirrorModeJS           = getClass().getClassLoader()
 				.getResourceAsStream("dependency-resources/sapl-mode.js");
 		copyFile(saplCodeMirrorModeJS, saplCodeMirrorModeJSTargetPath);
 
-		Path saplCodeMirrorSimpleAddonTargetPath = basedir.resolve("html").resolve("assets").resolve("codemirror")
+		Path saplCodeMirrorSimpleAddonTargetPath = basedir.resolve("html").resolve(ASSETS).resolve("codemirror")
 				.resolve("addon").resolve("mode").resolve("simple.js");
 		var  saplCodeMirrorSimpleAddon           = getClass().getClassLoader().getResourceAsStream("scripts/simple.js");
 		copyFile(saplCodeMirrorSimpleAddon, saplCodeMirrorSimpleAddonTargetPath);
 
-		Path saplCodeMirrorJsTargetPath = basedir.resolve("html").resolve("assets").resolve("codemirror").resolve("lib")
+		Path saplCodeMirrorJsTargetPath = basedir.resolve("html").resolve(ASSETS).resolve("codemirror").resolve("lib")
 				.resolve("codemirror.js");
 		var  saplCodeMirrorJs           = getClass().getClassLoader().getResourceAsStream("scripts/codemirror.js");
 		copyFile(saplCodeMirrorJs, saplCodeMirrorJsTargetPath);
 
-		Path saplCodeMirrorCssTargetPath = basedir.resolve("html").resolve("assets").resolve("codemirror.css");
+		Path saplCodeMirrorCssTargetPath = basedir.resolve("html").resolve(ASSETS).resolve("codemirror.css");
 		var  saplCodeMirrorCss           = getClass().getClassLoader().getResourceAsStream("scripts/codemirror.css");
 		copyFile(saplCodeMirrorCss, saplCodeMirrorCssTargetPath);
 	}
@@ -314,31 +322,31 @@ public class HtmlLineCoverageReportGenerator {
 
 	private ContainerTag<?> getJquery() {
 		return script().withSrc("https://code.jquery.com/jquery-3.2.1.slim.min.js")
-				.attr(new Attribute("integrity",
+				.attr(new Attribute(INTEGRITY,
 						"sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"))
-				.attr(new Attribute("crossorigin", "anonymous"));
+				.attr(new Attribute(CROSSORIGIN, ANONYMOUS));
 	}
 
 	private ContainerTag<?> getPopper() {
 		return script().withSrc("https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js")
-				.attr(new Attribute("integrity",
+				.attr(new Attribute(INTEGRITY,
 						"sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"))
-				.attr(new Attribute("crossorigin", "anonymous"));
+				.attr(new Attribute(CROSSORIGIN, ANONYMOUS));
 	}
 
 	private ContainerTag<?> getBootstrapJs() {
 		return script().withSrc("https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js")
-				.attr(new Attribute("integrity",
+				.attr(new Attribute(INTEGRITY,
 						"sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"))
-				.attr(new Attribute("crossorigin", "anonymous"));
+				.attr(new Attribute(CROSSORIGIN, ANONYMOUS));
 	}
 
 	private EmptyTag<?> getBootstrapCss() {
-		return link().withRel("stylesheet")
+		return link().withRel(STYLESHEET)
 				.withHref("https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css")
-				.attr(new Attribute("integrity",
+				.attr(new Attribute(INTEGRITY,
 						"sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"))
-				.attr(new Attribute("crossorigin", "anonymous"));
+				.attr(new Attribute(CROSSORIGIN, ANONYMOUS));
 	}
 
 	private void assertValidCoveredValue(LineCoveredValue coveredValue) {

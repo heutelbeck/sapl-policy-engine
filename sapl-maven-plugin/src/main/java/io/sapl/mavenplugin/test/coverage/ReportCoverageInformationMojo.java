@@ -17,6 +17,7 @@ package io.sapl.mavenplugin.test.coverage;
 
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Locale;
 
 import javax.inject.Inject;
 
@@ -197,8 +198,9 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 		getLog().info("Policy Set Hit Ratio is: " + ratio);
 
 		if (ratio < policySetHitRatio) {
-			getLog().error("Policy Set Hit Ratio not fulfilled - Expected greater or equal " + policySetHitRatio
-					+ " but got " + ratio);
+			getLog().error(String.format(Locale.US,
+					"Policy Set Hit Ratio not fulfilled - Expected greater or equal %.2f but got %.2f",
+					policySetHitRatio, ratio));
 			return false;
 		} else {
 			return true;
@@ -214,8 +216,9 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 		getLog().info("Policy Hit Ratio is: " + ratio);
 
 		if (ratio < policyHitRatio) {
-			getLog().error("Policy Hit Ratio not fulfilled - Expected greater or equal " + policyHitRatio + " but got "
-					+ ratio);
+			getLog().error(String.format(Locale.US,
+					"Policy Hit Ratio not fulfilled - Expected greater or equal %.2f but got %.2f", policyHitRatio,
+					ratio));
 			return false;
 		} else {
 			return true;
@@ -231,8 +234,9 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 		getLog().info("Policy Condition Hit Ratio is: " + ratio);
 
 		if (ratio < policyConditionHitRatio) {
-			getLog().error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal "
-					+ policyConditionHitRatio + " but got " + ratio);
+			getLog().error(String.format(Locale.US,
+					"Policy Condition Hit Ratio not fulfilled - Expected greater or equal %.2f but got %.2f",
+					policyConditionHitRatio, ratio));
 			return false;
 		} else {
 			return true;

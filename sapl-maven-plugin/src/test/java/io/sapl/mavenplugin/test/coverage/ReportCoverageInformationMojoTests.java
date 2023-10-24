@@ -145,7 +145,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
 		verifyReporterAreCalled();
 
-		verify(log).error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal 80.0 but got 50.0");
+		verify(log).error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal 80.00 but got 50.00");
 	}
 
 	@Test
@@ -167,7 +167,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
 		verifyReporterAreCalled();
 
-		verify(log).error("Policy Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
+		verify(log).error("Policy Hit Ratio not fulfilled - Expected greater or equal 100.00 but got 50.00");
 	}
 
 	@Test
@@ -189,7 +189,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
 		verifyReporterAreCalled();
 
-		verify(log).error("Policy Set Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
+		verify(log).error("Policy Set Hit Ratio not fulfilled - Expected greater or equal 100.00 but got 50.00");
 
 	}
 
@@ -212,8 +212,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
 		verifyReporterAreCalled();
 
-		verify(log).error("Policy Set Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
-		verify(log).error("Policy Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
+		verify(log).error("Policy Set Hit Ratio not fulfilled - Expected greater or equal 100.00 but got 50.00");
+		verify(log).error("Policy Hit Ratio not fulfilled - Expected greater or equal 100.00 but got 50.00");
 	}
 
 	@Test
@@ -235,8 +235,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
 		verifyReporterAreCalled();
 
-		verify(log).error("Policy Set Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
-		verify(log).error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal 80.0 but got 50.0");
+		verify(log).error("Policy Set Hit Ratio not fulfilled - Expected greater or equal 100.00 but got 50.00");
+		verify(log).error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal 80.00 but got 50.00");
 	}
 
 	@Test
@@ -258,8 +258,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
 		verifyReporterAreCalled();
 
-		verify(log).error("Policy Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
-		verify(log).error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal 80.0 but got 50.0");
+		verify(log).error("Policy Hit Ratio not fulfilled - Expected greater or equal 100.00 but got 50.00");
+		verify(log).error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal 80.00 but got 50.00");
 	}
 
 	@Test
@@ -281,9 +281,9 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
 		verifyReporterAreCalled();
 
-		verify(log).error("Policy Set Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
-		verify(log).error("Policy Hit Ratio not fulfilled - Expected greater or equal 100.0 but got 50.0");
-		verify(log).error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal 80.0 but got 50.0");
+		verify(log).error("Policy Set Hit Ratio not fulfilled - Expected greater or equal 100.00 but got 50.00");
+		verify(log).error("Policy Hit Ratio not fulfilled - Expected greater or equal 100.00 but got 50.00");
+		verify(log).error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal 80.00 but got 50.00");
 	}
 
 	@Test

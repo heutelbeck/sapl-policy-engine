@@ -149,9 +149,10 @@ class MultiAuthorizationSubscriptionTests {
 
 	@Test
 	void addSameIdTwiceFailsTest() {
+		var initialSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, SUBJECT, ACTION,
+				RESOURCE);
 		assertThrows(IllegalArgumentException.class,
-				() -> new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, SUBJECT, ACTION, RESOURCE)
-						.addAuthorizationSubscription(ID, SUBJECT, ACTION, RESOURCE2));
+				() -> initialSubscription.addAuthorizationSubscription(ID, SUBJECT, ACTION, RESOURCE2));
 	}
 
 	@Test
