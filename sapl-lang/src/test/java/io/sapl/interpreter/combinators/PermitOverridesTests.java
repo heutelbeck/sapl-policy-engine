@@ -15,14 +15,22 @@
  */
 package io.sapl.interpreter.combinators;
 
+import static io.sapl.api.pdp.Decision.DENY;
+import static io.sapl.api.pdp.Decision.INDETERMINATE;
+import static io.sapl.api.pdp.Decision.NOT_APPLICABLE;
+import static io.sapl.api.pdp.Decision.PERMIT;
 import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateAdvice;
 import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateDecision;
 import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateObligations;
 import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateResource;
 
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -38,124 +46,111 @@ class PermitOverridesTests {
 	private static final AuthorizationSubscription AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE = new AuthorizationSubscription(
 			null, null, JSON.booleanNode(true), null);
 
-	@Test
-	void permit() {
-		var policySet = "set \"tests\" permit-overrides" + " policy \"testp\" permit";
-		var expected  = Decision.PERMIT;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
+	private static Stream<Arguments> provideTestCases() {
+		// @formatter:off
+		return Stream.of(
+				// permit
+			    Arguments.of("set \"tests\" permit-overrides"
+			               + " policy \"testp\" permit",
+			                 PERMIT),
+
+				// deny
+			    Arguments.of("set \"tests\" permit-overrides"
+			               + " policy \"testp\" deny",
+			                 DENY),
+
+				// notApplicableTarget
+			    Arguments.of("set \"tests\" permit-overrides"
+			               + " policy \"testp\" deny true == false",
+			                 NOT_APPLICABLE),
+
+				// notApplicableCondition
+			    Arguments.of("set \"tests\" permit-overrides"
+				           + " policy \"testp\" deny where true == false;",
+			    		     NOT_APPLICABLE),
+
+				// indeterminateTarget
+			    Arguments.of("set \"tests\" permit-overrides "
+				           + "policy \"testp\" permit \"a\" < 5",
+				             INDETERMINATE),
+
+				// indeterminateCondition
+			    Arguments.of("set \"tests\" permit-overrides"
+				           + " policy \"testp\" permit where \"a\" < 5;",
+				             INDETERMINATE),
+
+				// permitDeny
+			    Arguments.of("set \"tests\" permit-overrides"
+				           + " policy \"testp1\" permit"
+			    		   + " policy \"testp2\" deny",
+			    		     PERMIT),
+
+				// permitIndeterminate
+			    Arguments.of("set \"tests\" permit-overrides"
+				           + " policy \"testp1\" permit"
+						   + " policy \"testp2\" permit where \"a\" > 5;",
+						     PERMIT),
+
+				// permitNotApplicableDeny
+			    Arguments.of("set \"tests\" permit-overrides"
+				           + " policy \"testp1\" deny"
+						   + " policy \"testp2\" permit true == false"
+				           + " policy \"testp3\" permit",
+				             PERMIT),
+
+				// permitNotApplicableIndeterminateDeny
+			    Arguments.of("set \"tests\" permit-overrides"
+				           + " policy \"testp1\" permit true == false"
+						   + " policy \"testp2\" permit"
+				           + " policy \"testp3\" permit \"a\" > 5"
+						   + " policy \"testp4\" deny"
+						   + " policy \"testp5\" permit",
+						     PERMIT),
+
+				// denyIndeterminateNotApplicable
+			    Arguments.of("set \"tests\" permit-overrides"
+				           + " policy \"testp1\" deny"
+						   + " policy \"testp2\" permit \"a\" < 5"
+				           + " policy \"testp3\" permit true == false",
+				             INDETERMINATE),
+
+				// denyNotApplicable
+			    Arguments.of("set \"tests\" permit-overrides"
+				           + " policy \"testp1\" deny "
+						   + " policy \"testp2\" permit true == false",
+						     DENY),
+
+				// multiplePermitTransformation
+			    Arguments.of("set \"tests\" permit-overrides"
+				           + " policy \"testp1\" permit transform false"
+						   + " policy \"testp2\" permit transform true",
+						     INDETERMINATE),
+
+				// multiplePermitTransformationDeny
+			    Arguments.of("set \"tests\" permit-overrides"
+				           + " policy \"testp1\" permit false"
+						   + " policy \"testp2\" permit false transform true"
+				           + " policy \"testp3\" deny",
+				             DENY),
+
+				// singlePermitTransformation
+			    Arguments.of("set \"tests\" permit-overrides"
+				           + " policy \"testp\" permit transform true",
+				             PERMIT),
+
+				// multiplePermitNoTransformation
+			    Arguments.of("set \"tests\" permit-overrides"
+				           + " policy \"testp1\" permit"
+			    		   + " policy \"testp2\" permit",
+			    		   PERMIT)
+			);
+		// @formater:on
 	}
 
-	@Test
-	void deny() {
-		var policySet = "set \"tests\" permit-overrides" + " policy \"testp\" deny";
-		var expected  = Decision.DENY;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void notApplicableTarget() {
-		var policySet = "set \"tests\" permit-overrides" + " policy \"testp\" deny true == false";
-		var expected  = Decision.NOT_APPLICABLE;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void notApplicableCondition() {
-		var policySet = "set \"tests\" permit-overrides" + " policy \"testp\" deny where true == false;";
-		var expected  = Decision.NOT_APPLICABLE;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void indeterminateTarget() {
-		var policySet = "set \"tests\" permit-overrides " + "policy \"testp\" permit \"a\" < 5";
-		var expected  = Decision.INDETERMINATE;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void indeterminateCondition() {
-		var policySet = "set \"tests\" permit-overrides" + " policy \"testp\" permit where \"a\" < 5;";
-		var expected  = Decision.INDETERMINATE;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void permitDeny() {
-		var policySet = "set \"tests\" permit-overrides" + " policy \"testp1\" permit" + " policy \"testp2\" deny";
-		var expected  = Decision.PERMIT;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void permitIndeterminate() {
-		var policySet = "set \"tests\" permit-overrides" + " policy \"testp1\" permit"
-				+ " policy \"testp2\" permit where \"a\" > 5;";
-		var expected  = Decision.PERMIT;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void permitNotApplicableDeny() {
-		var policySet = "set \"tests\" permit-overrides" + " policy \"testp1\" deny"
-				+ " policy \"testp2\" permit true == false" + " policy \"testp3\" permit";
-		var expected  = Decision.PERMIT;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void permitNotApplicableIndeterminateDeny() {
-		var policySet = "set \"tests\" permit-overrides" + " policy \"testp1\" permit true == false"
-				+ " policy \"testp2\" permit" + " policy \"testp3\" permit \"a\" > 5" + " policy \"testp4\" deny"
-				+ " policy \"testp5\" permit";
-		var expected  = Decision.PERMIT;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void denyIndeterminateNotApplicable() {
-		var policySet = "set \"tests\" permit-overrides" + " policy \"testp1\" deny"
-				+ " policy \"testp2\" permit \"a\" < 5" + " policy \"testp3\" permit true == false";
-		var expected  = Decision.INDETERMINATE;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void denyNotApplicable() {
-		var policySet = "set \"tests\" permit-overrides" + " policy \"testp1\" deny "
-				+ " policy \"testp2\" permit true == false";
-		var expected  = Decision.DENY;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void multiplePermitTransformation() {
-		var policySet = "set \"tests\" permit-overrides" + " policy \"testp1\" permit transform false"
-				+ " policy \"testp2\" permit transform true";
-		var expected  = Decision.INDETERMINATE;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void multiplePermitTransformationDeny() {
-		var policySet = "set \"tests\" permit-overrides" + " policy \"testp1\" permit false"
-				+ " policy \"testp2\" permit false transform true" + " policy \"testp3\" deny";
-		var expected  = Decision.DENY;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void singlePermitTransformation() {
-		var policySet = "set \"tests\" permit-overrides" + " policy \"testp\" permit transform true";
-		var expected  = Decision.PERMIT;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void multiplePermitNoTransformation() {
-		var policySet = "set \"tests\" permit-overrides" + " policy \"testp1\" permit" + " policy \"testp2\" permit";
-		var expected  = Decision.PERMIT;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
+	@ParameterizedTest
+	@MethodSource("provideTestCases")
+	void validateDecisionTests(String document, Decision expectedDecision ) {
+		validateDecision(EMPTY_AUTH_SUBSCRIPTION, document, expectedDecision);
 	}
 
 	@Test

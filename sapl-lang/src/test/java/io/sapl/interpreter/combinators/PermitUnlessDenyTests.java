@@ -15,14 +15,20 @@
  */
 package io.sapl.interpreter.combinators;
 
+import static io.sapl.api.pdp.Decision.DENY;
+import static io.sapl.api.pdp.Decision.PERMIT;
 import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateAdvice;
 import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateDecision;
 import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateObligations;
 import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateResource;
 
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -38,101 +44,93 @@ class PermitUnlessDenyTests {
 	private static final AuthorizationSubscription AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE = new AuthorizationSubscription(
 			null, null, JSON.booleanNode(true), null);
 
-	@Test
-	void permit() {
-		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" permit";
-		var expected  = Decision.PERMIT;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
+	private static Stream<Arguments> provideTestCases() {
+		// @formatter:off
+		return Stream.of(
+				// permit
+			    Arguments.of("set \"tests\" permit-unless-deny"
+				           + " policy \"testp\" permit",
+				             PERMIT),
+
+				// deny
+			    Arguments.of("set \"tests\" permit-unless-deny"
+				           + " policy \"testp\" deny",
+				             DENY),
+
+				// notApplicableTarget
+			    Arguments.of("set \"tests\" permit-unless-deny"
+				           + " policy \"testp\" deny true == false",
+				             PERMIT),
+
+				// notApplicableCondition
+			    Arguments.of("set \"tests\" permit-unless-deny"
+				           + " policy \"testp\" deny where true == false;",
+				             PERMIT),
+
+				// indeterminateTarget
+			    Arguments.of("set \"tests\" permit-unless-deny"
+				           + " policy \"testp\" deny \"a\" < 5",
+				             PERMIT),
+
+				// indeterminateCondition
+			    Arguments.of("set \"tests\" permit-unless-deny"
+				           + " policy \"testp\" deny where \"a\" < 5;",
+				             PERMIT),
+
+				// permitDeny
+			    Arguments.of("set \"tests\" permit-unless-deny"
+				           + " policy \"testp1\" permit"
+			    		   + " policy \"testp2\" deny",
+			    		     DENY),
+
+				// denyIndeterminate
+			    Arguments.of("set \"tests\" permit-unless-deny"
+				           + " policy \"testp1\" permit"
+						   + " policy \"testp2\" permit where \"a\" > 5;",
+						     PERMIT),
+
+				// permitNotApplicableDeny
+			    Arguments.of("set \"tests\" permit-unless-deny"
+				           + " policy \"testp1\" permit"
+						   + " policy \"testp2\" permit true == false"
+				           + " policy \"testp3\" deny",
+				             DENY),
+
+				// permitNotApplicableIndeterminateDeny
+			    Arguments.of("set \"tests\" permit-unless-deny"
+				           + " policy \"testp1\" deny \"a\" > 5"
+						   + " policy \"testp2\" permit true == false"
+				           + " policy \"testp3\" permit \"a\" > 5"
+						   + " policy \"testp4\" deny"
+				           + " policy \"testp5\" permit",
+				             DENY),
+
+				// permitIndeterminateNotApplicable
+			    Arguments.of("set \"tests\" permit-unless-deny"
+				           + " policy \"testp1\" permit"
+						   + " policy \"testp2\" permit \"a\" < 5"
+				           + " policy \"testp3\" permit true == false",
+				             PERMIT),
+
+				// multiplePermitTransformationDeny
+			    Arguments.of("set \"tests\" permit-unless-deny"
+				           + " policy \"testp1\" permit transform false"
+						   + " policy \"testp2\" permit transform true"
+				           + " policy \"testp3\" deny false",
+				             DENY),
+
+				// singlePermitTransformation
+			    Arguments.of("set \"tests\" permit-unless-deny"
+				           + " policy \"testp1\" permit transform true",
+				             PERMIT)
+			);
+		// @formater:on
 	}
 
-	@Test
-	void deny() {
-		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" deny";
-		var expected  = Decision.DENY;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void notApplicableTarget() {
-		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" deny true == false";
-		var expected  = Decision.PERMIT;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void notApplicableCondition() {
-		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" deny where true == false;";
-		var expected  = Decision.PERMIT;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void indeterminateTarget() {
-		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" deny \"a\" < 5";
-		var expected  = Decision.PERMIT;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void indeterminateCondition() {
-		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" deny where \"a\" < 5;";
-		var expected  = Decision.PERMIT;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void permitDeny() {
-		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit" + " policy \"testp2\" deny";
-		var expected  = Decision.DENY;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void denyIndeterminate() {
-		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit"
-				+ " policy \"testp2\" permit where \"a\" > 5;";
-		var expected  = Decision.PERMIT;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void permitNotApplicableDeny() {
-		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit"
-				+ " policy \"testp2\" permit true == false" + " policy \"testp3\" deny";
-		var expected  = Decision.DENY;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void permitNotApplicableIndeterminateDeny() {
-		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" deny \"a\" > 5"
-				+ " policy \"testp2\" permit true == false" + " policy \"testp3\" permit \"a\" > 5"
-				+ " policy \"testp4\" deny" + " policy \"testp5\" permit";
-		var expected  = Decision.DENY;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void permitIndeterminateNotApplicable() {
-		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit"
-				+ " policy \"testp2\" permit \"a\" < 5" + " policy \"testp3\" permit true == false";
-		var expected  = Decision.PERMIT;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void multiplePermitTransformationDeny() {
-		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit transform false"
-				+ " policy \"testp2\" permit transform true" + " policy \"testp3\" deny false";
-		var expected  = Decision.DENY;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void singlePermitTransformation() {
-		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit transform true";
-		var expected  = Decision.PERMIT;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
+	@ParameterizedTest
+	@MethodSource("provideTestCases")
+	void validateDecisionTests(String document, Decision expectedDecision ) {
+		validateDecision(EMPTY_AUTH_SUBSCRIPTION, document, expectedDecision);
 	}
 
 	@Test

@@ -74,17 +74,12 @@ class SaplMqttClientExceptionIT {
 		var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), null);
 
 		// THEN
-		StepVerifier.create(saplMqttMessageFlux)
-				.thenAwait(Duration.ofMillis(1 * DELAY_MS))
-				.expectNext(Val.error("Failed to build stream of messages."))
-				.thenCancel()
-				.verify();
+		StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(1 * DELAY_MS))
+				.expectNext(Val.error("Failed to build stream of messages.")).thenCancel().verify();
 	}
 
 	@Test
-	@Disabled // This test causes side effects and makes
-				// SaplMqttClientSubscriptionsIT.when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics
-				// fail by timeout
+	@Disabled("This test causes side effects and makes SaplMqttClientSubscriptionsIT.when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics fail by timeout")
 	void when_exceptionOccursInTheMessageFlux_then_returnFluxWithValOfError() {
 		// GIVEN
 		var topics = "topic";
@@ -97,11 +92,8 @@ class SaplMqttClientExceptionIT {
 			defaultResponseUtilityMockedStatic.when(() -> DefaultResponseUtility.getDefaultResponseConfig(any(), any()))
 					.thenThrow(new RuntimeException("Error in stream"));
 			// THEN
-			StepVerifier.create(saplMqttMessageFlux)
-					.thenAwait(Duration.ofMillis(1 * DELAY_MS))
-					.expectNext(Val.error("Error in stream"))
-					.thenCancel()
-					.verify();
+			StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(1 * DELAY_MS))
+					.expectNext(Val.error("Error in stream")).thenCancel().verify();
 		}
 	}
 }

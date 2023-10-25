@@ -15,14 +15,22 @@
  */
 package io.sapl.interpreter.combinators;
 
+import static io.sapl.api.pdp.Decision.DENY;
+import static io.sapl.api.pdp.Decision.INDETERMINATE;
+import static io.sapl.api.pdp.Decision.NOT_APPLICABLE;
+import static io.sapl.api.pdp.Decision.PERMIT;
 import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateAdvice;
 import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateDecision;
 import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateObligations;
 import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateResource;
 
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -135,108 +143,109 @@ class OnlyOneApplicableTests {
 								ctx -> AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext())))
 				.expectNext(expected).verifyComplete();
 	}
+	
+	private static Stream<Arguments> provideTestCases() {
+		// @formatter:off
+		return Stream.of(
+				// collectWithError
+			    Arguments.of(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE,
+			    		     "set \"tests\" only-one-applicable" 
+			               + " policy \"testp1\" deny "
+			    		   + " policy \"testp2\" permit where (10/0);",
+			    		     INDETERMINATE),
 
-	@Test
-	void collectWithError() {
-		var policySet = "set \"tests\" only-one-applicable" + " policy \"testp1\" deny "
-				+ " policy \"testp2\" permit where (10/0);";
-		var expected  = Decision.INDETERMINATE;
-		validateDecision(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, expected);
+				// collectWithError2
+			    Arguments.of(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE,
+			    		     "set \"tests\" only-one-applicable"
+			               + " policy \"testp1\" deny where (10/0);"
+			    	       + " policy \"testp2\" permit",
+			    			 INDETERMINATE),
+
+				// collectWithError3
+			    Arguments.of(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE,
+			    		     "set \"tests\" only-one-applicable"
+			               + " policy \"testp1\" deny where (10/0);"
+			    		   + " policy \"testp2\" permit where (10/0)",
+			    			 INDETERMINATE),
+
+				// permit
+			    Arguments.of(EMPTY_AUTH_SUBSCRIPTION,
+			    		     "set \"tests\" only-one-applicable"
+			               + " policy \"testp\" permit",
+			                 PERMIT),
+
+				// deny
+			    Arguments.of(EMPTY_AUTH_SUBSCRIPTION,
+			    		     "set \"tests\" only-one-applicable"
+			               + " policy \"testp\" deny",
+			    		     DENY),
+
+				// notApplicableTarget
+			    Arguments.of(EMPTY_AUTH_SUBSCRIPTION,
+			    		     "set \"tests\" only-one-applicable"
+			               + " policy \"testp\" deny true == false",
+			    		     NOT_APPLICABLE),
+
+				// notApplicableCondition
+			    Arguments.of(EMPTY_AUTH_SUBSCRIPTION,
+			    		     "set \"tests\" only-one-applicable"
+			               + " policy \"testp\" deny where true == false;",
+			    		     NOT_APPLICABLE),
+
+				// indeterminateTarget
+			    Arguments.of(EMPTY_AUTH_SUBSCRIPTION,
+			    		     "set \"tests\" only-one-applicable"
+			               + " policy \"testp\" permit \"a\" < 5",
+			    		     INDETERMINATE),
+
+				// indeterminateCondition
+			    Arguments.of(EMPTY_AUTH_SUBSCRIPTION,
+			    		     "set \"tests\" only-one-applicable"
+			               + " policy \"testp\" permit where \"a\" < 5;",
+			    		     INDETERMINATE),
+
+				// onePolicyMatching
+			    Arguments.of(EMPTY_AUTH_SUBSCRIPTION,
+			    		     "set \"tests\" only-one-applicable"
+			               + " policy \"testp1\" deny false"
+			    		   + " policy \"testp2\" permit true"
+			               + " policy \"testp3\" permit false",
+			    			 PERMIT),
+
+				// twoPoliciesMatching1
+			    Arguments.of(EMPTY_AUTH_SUBSCRIPTION,
+			    		     "set \"tests\" only-one-applicable"
+			               + " policy \"testp1\" permit"
+			    		   + " policy \"testp2\" deny",
+			    		     INDETERMINATE),
+
+				// twoPoliciesMatching2
+			    Arguments.of(EMPTY_AUTH_SUBSCRIPTION,
+			    		     "set \"tests\" only-one-applicable"
+			               + " policy \"testp1\" permit"
+			    		   + " policy \"testp2\" permit",
+			    		     INDETERMINATE),
+
+				// twoPoliciesMatchingButOneNotApplicable
+			    Arguments.of(EMPTY_AUTH_SUBSCRIPTION,
+			    		     "set \"tests\" only-one-applicable"
+			               + " policy \"testp1\" permit"
+			    		   + " policy \"testp2\" deny where false;",
+			    			 PERMIT),
+
+				// singlePermitTransformation
+			    Arguments.of(EMPTY_AUTH_SUBSCRIPTION,
+			    		     "set \"tests\" only-one-applicable"
+			               + " policy \"testp\" permit transform true",
+			    		     PERMIT)
+			);
+		// @formater:on
 	}
 
-	@Test
-	void collectWithError2() {
-		var policySet = "set \"tests\" only-one-applicable" + " policy \"testp1\" deny where (10/0);"
-				+ " policy \"testp2\" permit";
-		var expected  = Decision.INDETERMINATE;
-		validateDecision(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, expected);
-	}
-
-	@Test
-	void collectWithError3() {
-		var policySet = "set \"tests\" only-one-applicable" + " policy \"testp1\" deny where (10/0);"
-				+ " policy \"testp2\" permit where (10/0)";
-		var expected  = Decision.INDETERMINATE;
-		validateDecision(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, expected);
-	}
-
-	@Test
-	void permit() {
-		var policySet = "set \"tests\" only-one-applicable" + " policy \"testp\" permit";
-		var expected  = Decision.PERMIT;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void deny() {
-		var policySet = "set \"tests\" only-one-applicable" + " policy \"testp\" deny";
-		var expected  = Decision.DENY;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void notApplicableTarget() {
-		var policySet = "set \"tests\" only-one-applicable" + " policy \"testp\" deny true == false";
-		var expected  = Decision.NOT_APPLICABLE;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void notApplicableCondition() {
-		var policySet = "set \"tests\" only-one-applicable" + " policy \"testp\" deny where true == false;";
-		var expected  = Decision.NOT_APPLICABLE;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void indeterminateTarget() {
-		var policySet = "set \"tests\" only-one-applicable" + " policy \"testp\" permit \"a\" < 5";
-		var expected  = Decision.INDETERMINATE;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void indeterminateCondition() {
-		var policySet = "set \"tests\" only-one-applicable" + " policy \"testp\" permit where \"a\" < 5;";
-		var expected  = Decision.INDETERMINATE;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void onePolicyMatching() {
-		var policySet = "set \"tests\" only-one-applicable" + " policy \"testp1\" deny false"
-				+ " policy \"testp2\" permit true" + " policy \"testp3\" permit false";
-		var expected  = Decision.PERMIT;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void twoPoliciesMatching1() {
-		var policySet = "set \"tests\" only-one-applicable" + " policy \"testp1\" permit" + " policy \"testp2\" deny";
-		var expected  = Decision.INDETERMINATE;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void twoPoliciesMatching2() {
-		var policySet = "set \"tests\" only-one-applicable" + " policy \"testp1\" permit" + " policy \"testp2\" permit";
-		var expected  = Decision.INDETERMINATE;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void twoPoliciesMatchingButOneNotApplicable() {
-		var policySet = "set \"tests\" only-one-applicable" + " policy \"testp1\" permit"
-				+ " policy \"testp2\" deny where false;";
-		var expected  = Decision.PERMIT;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
-
-	@Test
-	void singlePermitTransformation() {
-		var policySet = "set \"tests\" only-one-applicable" + " policy \"testp\" permit transform true";
-		var expected  = Decision.PERMIT;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
+	@ParameterizedTest
+	@MethodSource("provideTestCases")
+	void validateDecisionTests(AuthorizationSubscription subscription, String document, Decision expectedDecision ) {
+		validateDecision(subscription, document, expectedDecision);
 	}
 
 	@Test
