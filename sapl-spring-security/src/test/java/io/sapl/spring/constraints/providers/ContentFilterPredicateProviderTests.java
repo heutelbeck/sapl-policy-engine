@@ -61,19 +61,19 @@ class ContentFilterPredicateProviderTests {
 					{
 			    		"type" : 123
 					}
-					""", false),
+					""", Boolean.FALSE),
 				// when_constraintWrongType_then_notResponsible
 			    Arguments.of("""
 					{
 						"type" : "unrelatedType"
 					}
-					""", false),
+					""", Boolean.FALSE),
 				// when_constraintTypeCorrect_then_isResponsible
 			    Arguments.of("""
 					{
 						"type" : "jsonContentFilterPredicate"
 					}
-					""", true)
+					""", Boolean.TRUE)
 			);
 		// @formater:on
 	}

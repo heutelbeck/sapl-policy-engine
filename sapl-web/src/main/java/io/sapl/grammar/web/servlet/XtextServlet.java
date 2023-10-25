@@ -62,7 +62,7 @@ public class XtextServlet extends HttpServlet {
 	private static final String                                      INVALID_REQUEST           = "Invalid request ({}): {}";
 	private static final transient IResourceServiceProvider.Registry SERVICE_PROVIDER_REGISTRY = IResourceServiceProvider.Registry.INSTANCE;
 
-	private final transient Gson gson = new Gson();
+	private transient Gson gson = new Gson();
 
 	@Override
 	protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {

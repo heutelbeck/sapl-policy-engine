@@ -94,11 +94,11 @@ class ClasspathPolicyRetrievalPointTests {
 		// @formatter:off
 		return Stream.of(
 				// return_empty_result_when_no_documents_are_published
-			    Arguments.of("it", false),
+			    Arguments.of("it", Boolean.FALSE),
 				// return_error_flag_when_evaluation_throws_exception
-			    Arguments.of("it/error", true),
+			    Arguments.of("it/error", Boolean.TRUE),
 				// return_empty_result_for_non_matching_subscription
-			    Arguments.of("it/policies", false)
+			    Arguments.of("it/policies", Boolean.FALSE)
 			);
 		// @formater:on
 	}

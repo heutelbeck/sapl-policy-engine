@@ -42,7 +42,7 @@ class SAPLImplCustomTests {
 
 	private final static SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
-	private static Stream<Arguments> provideImportTestCases() throws JsonProcessingException {
+	private static Stream<Arguments> provideImportTestCases() {
 		// @formatter:off
 		return Stream.of(
 				// importsWorkCorrectlyBasicFunction
@@ -79,7 +79,7 @@ class SAPLImplCustomTests {
 		StepVerifier.create(policy.evaluate()
 				.flatMap(val -> Mono.deferContextual(
 						ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
-				.contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(false).verifyComplete();	
+				.contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(Boolean.FALSE).verifyComplete();	
 	}
 	
 	@ParameterizedTest
@@ -94,7 +94,7 @@ class SAPLImplCustomTests {
 		StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(Val::isError).verifyComplete();
 	}	
 	
-	private static Stream<Arguments> provideTestCases() throws JsonProcessingException {
+	private static Stream<Arguments> provideTestCases() {
 		// @formatter:off
 		return Stream.of(
 				// detectErrorInImportsDuringEvaluate
