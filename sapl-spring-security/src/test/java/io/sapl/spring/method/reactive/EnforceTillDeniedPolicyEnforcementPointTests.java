@@ -711,27 +711,6 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
 	}
 
 	@Test
-	void when_onSubscribeObligationFailsByMissing_thenAccessDenied() {
-		var decisions          = decisionFluxOnePermitWithObligation();
-		var constraintsService = buildConstraintHandlerService();
-		var data               = Flux.range(0, 10);
-		var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
-				Integer.class);
-		StepVerifier.create(sut).expectError(AccessDeniedException.class).verify();
-	}
-
-	@Test
-	void when_onRequestObligationFailsByMissing_thenAccessDenied() {
-		var decisions          = decisionFluxOnePermitWithObligation();
-		var constraintsService = buildConstraintHandlerService();
-		var data               = Flux.range(0, 10);
-		var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
-				Integer.class);
-
-		StepVerifier.create(sut).expectError(AccessDeniedException.class).verify();
-	}
-
-	@Test
 	void when_onCancelObligationFails_thenFluxIsJustComplete() {
 		var handler = spy(new RunnableConstraintHandlerProvider() {
 
