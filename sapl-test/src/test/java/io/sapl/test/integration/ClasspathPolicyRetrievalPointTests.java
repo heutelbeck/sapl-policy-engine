@@ -24,10 +24,14 @@ import static org.mockito.Mockito.mock;
 
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.stream.Stream;
 
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -81,8 +85,28 @@ class ClasspathPolicyRetrievalPointTests {
 	}
 
 	@Test
-	void return_empty_result_when_no_documents_are_published() {
-		var prp = new ClasspathPolicyRetrievalPoint(Paths.get("it"), this.interpreter);
+	void return_fail_fast_for_invalid_document() {
+		var path = Paths.get("it/invalid");
+		assertThrows(PolicyEvaluationException.class, () -> new ClasspathPolicyRetrievalPoint(path, this.interpreter));
+	}
+
+	private static Stream<Arguments> provideTestCases() {
+		// @formatter:off
+		return Stream.of(
+				// return_empty_result_when_no_documents_are_published
+			    Arguments.of("it", false),
+				// return_error_flag_when_evaluation_throws_exception
+			    Arguments.of("it/error", true),
+				// return_empty_result_for_non_matching_subscription
+			    Arguments.of("it/policies", false)
+			);
+		// @formater:on
+	}
+
+	@ParameterizedTest
+	@MethodSource("provideTestCases")
+	void validateSimmilarScenarionsWhereNoMatchValidState(String path, boolean hasErrors) {
+		var prp = new ClasspathPolicyRetrievalPoint(Paths.get(path), this.interpreter);
 
 		var result = prp.retrievePolicies().contextWrite(ctx -> {
 			ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
@@ -94,30 +118,7 @@ class ClasspathPolicyRetrievalPointTests {
 
 		assertThat(result, notNullValue());
 		assertThat(result.getMatchingDocuments(), empty());
-		assertThat(result.isErrorsInTarget(), is(false));
-		assertThat(result.isPrpValidState(), is(true));
-	}
-
-	@Test
-	void return_fail_fast_for_invalid_document() {
-		var path = Paths.get("it/invalid");
-		assertThrows(PolicyEvaluationException.class, () -> new ClasspathPolicyRetrievalPoint(path, this.interpreter));
-	}
-
-	@Test
-	void return_error_flag_when_evaluation_throws_exception() {
-		var prp    = new ClasspathPolicyRetrievalPoint(Paths.get("it/error"), this.interpreter);
-		var result = prp.retrievePolicies().contextWrite(ctx -> {
-						ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
-						ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
-						ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
-						ctx = AuthorizationContext.setSubscriptionVariables(ctx, EMPTY_SUBSCRIPTION);
-						return ctx;
-					}).blockFirst();
-
-		assertThat(result, notNullValue());
-		assertThat(result.getMatchingDocuments(), empty());
-		assertThat(result.isErrorsInTarget(), is(true));
+		assertThat(result.isErrorsInTarget(), is(hasErrors));
 		assertThat(result.isPrpValidState(), is(true));
 	}
 
@@ -158,24 +159,6 @@ class ClasspathPolicyRetrievalPointTests {
 		assertThat(result2.isPrpValidState(), is(true));
 
 		assertThat(result2.getMatchingDocuments().get(0).getPolicyElement().getSaplName(), is("policy eat ice cream"));
-	}
-
-	@Test
-	void return_empty_result_for_non_matching_subscription() {
-		var prp = new ClasspathPolicyRetrievalPoint(Paths.get("it/policies"), this.interpreter);
-
-		var result = prp.retrievePolicies().contextWrite(ctx -> {
-			ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
-			ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
-			ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
-			ctx = AuthorizationContext.setSubscriptionVariables(ctx, EMPTY_SUBSCRIPTION);
-			return ctx;
-		}).blockFirst();
-
-		assertThat(result, notNullValue());
-		assertThat(result.getMatchingDocuments(), empty());
-		assertThat(result.isErrorsInTarget(), is(false));
-		assertThat(result.isPrpValidState(), is(true));
 	}
 
 	@Test

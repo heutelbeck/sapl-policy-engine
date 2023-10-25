@@ -21,7 +21,12 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.number.OrderingComparison.comparesEqualTo;
 import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
 
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.mocking.MockCall;
@@ -88,37 +93,30 @@ class TimesCalledVerificationTests {
 		assertThatThrownBy(() -> verification.verify(runInfo)).isInstanceOf(AssertionError.class);
 	}
 
-	@Test
-	void test_verificationMessageEmpty() {
+	private static Stream<Arguments> provideTestCases() {
+		// @formatter:off
+		return Stream.of(
+				// test_verificationMessageEmpty
+			    Arguments.of("", "Error verifying the expected number"),
+
+				// test_verificationMessageNull
+			    Arguments.of(null, "Error verifying the expected number"),
+
+				// test_verificationMessageNotEmpty
+			    Arguments.of("VerificationMessage", "VerificationMessage")
+			);
+		// @formater:on
+	}
+
+	@ParameterizedTest
+	@MethodSource("provideTestCases")
+	void checkVerificationMessage(String given, String expected) {
 		var runInfo = new MockRunInformation("foo");
 		runInfo.saveCall(new MockCall(Val.of("bar")));
 		var matcher      = is(2);
 		var verification = new TimesCalledVerification(matcher);
 
-		assertThatThrownBy(() -> verification.verify(runInfo, "")).isInstanceOf(AssertionError.class)
-				.hasMessageContaining("Error verifying the expected number");
+		assertThatThrownBy(() -> verification.verify(runInfo, given)).isInstanceOf(AssertionError.class)
+				.hasMessageContaining(expected);
 	}
-
-	@Test
-	void test_verificationMessageNull() {
-		var runInfo = new MockRunInformation("foo");
-		runInfo.saveCall(new MockCall(Val.of("bar")));
-		var matcher      = is(2);
-		var verification = new TimesCalledVerification(matcher);
-
-		assertThatThrownBy(() -> verification.verify(runInfo, null)).isInstanceOf(AssertionError.class)
-				.hasMessageContaining("Error verifying the expected number");
-	}
-
-	@Test
-	void test_verificationMessageNotEmpty() {
-		var runInfo = new MockRunInformation("foo");
-		runInfo.saveCall(new MockCall(Val.of("bar")));
-		var matcher      = is(2);
-		var verification = new TimesCalledVerification(matcher);
-
-		assertThatThrownBy(() -> verification.verify(runInfo, "VerificationMessage")).isInstanceOf(AssertionError.class)
-				.hasMessageContaining("VerificationMessage");
-	}
-
 }

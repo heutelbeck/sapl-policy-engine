@@ -25,9 +25,13 @@ import static org.hamcrest.number.OrderingComparison.comparesEqualTo;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
@@ -141,35 +145,23 @@ class TimesParameterCalledVerificationTests {
 		assertThat(runInfo.getCalls().get(2).isUsed()).isFalse();
 		assertThat(runInfo.getCalls().get(3).isUsed()).isTrue();
 	}
-
-	@Test
-	void test_assertionError_verificationMessage() {
-		var runInfo = new MockRunInformation("foo");
-		runInfo.saveCall(new MockCall(Val.of("bar"), Val.of(1)));
-		runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(2)));
-		runInfo.saveCall(new MockCall(Val.of("yyy"), Val.of(3)));
-		runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(3)));
-
-		var matcher = comparesEqualTo(2);
-
-		var expectedParameters = new LinkedList<Matcher<Val>>();
-		expectedParameters.add(is(Val.of("xxx")));
-		expectedParameters.add(is(Val.of(2)));
-		var verification = new TimesParameterCalledVerification(new TimesCalledVerification(matcher),
-				expectedParameters);
-
-		assertThatThrownBy(() -> verification.verify(runInfo, "VerificationMessage")).isInstanceOf(AssertionError.class)
-				.hasMessageContaining("VerificationMessage");
-
-		assertThat(runInfo.getCalls()).hasSize(4);
-		assertThat(runInfo.getCalls().get(0).isUsed()).isFalse();
-		assertThat(runInfo.getCalls().get(1).isUsed()).isTrue();
-		assertThat(runInfo.getCalls().get(2).isUsed()).isFalse();
-		assertThat(runInfo.getCalls().get(3).isUsed()).isFalse();
+	
+	private static Stream<Arguments> provideTestCases() {
+		// @formatter:off
+		return Stream.of(
+				// test_assertionError_verificationMessage
+			    Arguments.of("VerificationMessage", "VerificationMessage"),
+				// test_assertionError_VerificationMessage_Empty
+			    Arguments.of("", "Error verifying the expected number of calls to the mock"),
+				// test_assertionError_VerificationMessage_Null
+			    Arguments.of(null, "Error verifying the expected number of calls to the mock")
+			);
+		// @formater:on
 	}
 
-	@Test
-	void test_assertionError_VerificationMessage_Empty() {
+	@ParameterizedTest
+	@MethodSource("provideTestCases")
+	void verifyMessage(String given, String expected) {
 		var runInfo = new MockRunInformation("foo");
 		runInfo.saveCall(new MockCall(Val.of("bar"), Val.of(1)));
 		runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(2)));
@@ -184,34 +176,8 @@ class TimesParameterCalledVerificationTests {
 		var verification = new TimesParameterCalledVerification(new TimesCalledVerification(matcher),
 				expectedParameters);
 
-		assertThatThrownBy(() -> verification.verify(runInfo, "")).isInstanceOf(AssertionError.class)
-				.hasMessageContaining("Error verifying the expected number of calls to the mock");
-
-		assertThat(runInfo.getCalls()).hasSize(4);
-		assertThat(runInfo.getCalls().get(0).isUsed()).isFalse();
-		assertThat(runInfo.getCalls().get(1).isUsed()).isTrue();
-		assertThat(runInfo.getCalls().get(2).isUsed()).isFalse();
-		assertThat(runInfo.getCalls().get(3).isUsed()).isFalse();
-	}
-
-	@Test
-	void test_assertionError_VerificationMessage_Null() {
-		var runInfo = new MockRunInformation("foo");
-		runInfo.saveCall(new MockCall(Val.of("bar"), Val.of(1)));
-		runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(2)));
-		runInfo.saveCall(new MockCall(Val.of("yyy"), Val.of(3)));
-		runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(3)));
-
-		var matcher = comparesEqualTo(2);
-
-		var expectedParameters = new LinkedList<Matcher<Val>>();
-		expectedParameters.add(is(Val.of("xxx")));
-		expectedParameters.add(is(Val.of(2)));
-		var verification = new TimesParameterCalledVerification(new TimesCalledVerification(matcher),
-				expectedParameters);
-
-		assertThatThrownBy(() -> verification.verify(runInfo, null)).isInstanceOf(AssertionError.class)
-				.hasMessageContaining("Error verifying the expected number of calls to the mock");
+		assertThatThrownBy(() -> verification.verify(runInfo, given)).isInstanceOf(AssertionError.class)
+				.hasMessageContaining(expected);
 
 		assertThat(runInfo.getCalls()).hasSize(4);
 		assertThat(runInfo.getCalls().get(0).isUsed()).isFalse();
