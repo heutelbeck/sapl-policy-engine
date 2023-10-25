@@ -47,7 +47,8 @@ class JWTEncodingDecodingUtils {
 	private static Optional<byte[]> decode(String base64) {
 
 		// ensure base64url encoding
-		base64 = base64.replaceAll("\\+", "-").replaceAll("/", "_").replaceAll(",", "_");
+		var regex = "\\+";
+		base64 = base64.replaceAll(regex, "-").replace("/", "_").replace(",", "_");
 
 		try {
 			byte[] bytes = Base64.getUrlDecoder().decode(base64);
