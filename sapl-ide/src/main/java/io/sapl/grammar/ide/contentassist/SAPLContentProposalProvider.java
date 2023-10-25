@@ -172,43 +172,48 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		}
 
 		if ("value".equals(feature)) {
-			// try to resolve for available variables
+			handleValueProposals(context, acceptor, model);
+		}
+	}
 
-			// try to move up to the policy body
-			if (model.eContainer() instanceof Condition) {
-				model = TreeNavigationHelper.goToFirstParent(model, PolicyBody.class);
-			}
+	private void handleValueProposals(ContentAssistContext context, IIdeContentProposalAcceptor acceptor,
+			EObject model) {
+		// try to resolve for available variables
 
-			// look up all defined variables in the policy
-			if (model instanceof PolicyBody policyBody) {
-				Collection<String> definedValues = new HashSet<>();
+		// try to move up to the policy body
+		if (model.eContainer() instanceof Condition) {
+			model = TreeNavigationHelper.goToFirstParent(model, PolicyBody.class);
+		}
 
-				int currentOffset = context.getOffset();
+		// look up all defined variables in the policy
+		if (model instanceof PolicyBody policyBody) {
+			Collection<String> definedValues = new HashSet<>();
 
-				// iterate through defined statements which are either conditions or
-				// variables
-				for (var statement : policyBody.getStatements()) {
-					// add any encountered valuable to the list of proposals
-					if (statement instanceof ValueDefinition valueDefinition) {
+			int currentOffset = context.getOffset();
 
-						// check if variable definition is happening after cursor
-						INode valueDefinitionNode   = NodeModelUtils.getNode(valueDefinition);
-						int   valueDefinitionOffset = valueDefinitionNode.getOffset();
+			// iterate through defined statements which are either conditions or
+			// variables
+			for (var statement : policyBody.getStatements()) {
+				// add any encountered valuable to the list of proposals
+				if (statement instanceof ValueDefinition valueDefinition) {
 
-						if (currentOffset > valueDefinitionOffset) {
-							definedValues.add(valueDefinition.getName());
-						} else {
-							break;
-						}
+					// check if variable definition is happening after cursor
+					INode valueDefinitionNode   = NodeModelUtils.getNode(valueDefinition);
+					int   valueDefinitionOffset = valueDefinitionNode.getOffset();
+
+					if (currentOffset > valueDefinitionOffset) {
+						definedValues.add(valueDefinition.getName());
+					} else {
+						break;
 					}
 				}
-
-				// add variables to list of proposals
-				addSimpleProposals(definedValues, context, acceptor);
 			}
-			// add authorization subscriptions proposals
-			addSimpleProposals(authzSubProposals, context, acceptor);
+
+			// add variables to list of proposals
+			addSimpleProposals(definedValues, context, acceptor);
 		}
+		// add authorization subscriptions proposals
+		addSimpleProposals(authzSubProposals, context, acceptor);
 	}
 
 	private void addDocumentationToImportProposals(Collection<String> proposals, ContentAssistContext context,

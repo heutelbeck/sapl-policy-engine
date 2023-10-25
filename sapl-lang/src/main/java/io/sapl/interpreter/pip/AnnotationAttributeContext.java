@@ -141,25 +141,29 @@ public class AnnotationAttributeContext implements AttributeContext {
 			Method method) {
 		return invocationParameters -> {
 			try {
-				return ((Flux<Val>) method.invoke(pip, invocationParameters)).map(val -> {
-					var trace = new HashMap<String, Traced>();
-					trace.put("attribute", Val.of(attributeName));
-					for (int i = 0; i < invocationParameters.length; i++) {
-						if (invocationParameters[i] instanceof Val)
-							trace.put("argument[" + i + "]", (Val) (invocationParameters[i]));
-						if (invocationParameters[i] instanceof Map) {
-							trace.put("argument[" + i + "]", Val.of("VARIABLES OMITTED"));
-						}
-					}
-					trace.put("timestamp", Val.of(Instant.now().toString()));
-					return val.withTrace(AttributeContext.class, trace);
-				});
+				return ((Flux<Val>) method.invoke(pip, invocationParameters)).map(
+						val -> addTraceToAttributeFinderInvokationResult(attributeName, invocationParameters, val));
 			} catch (InvocationTargetException | IllegalAccessException | IllegalArgumentException e) {
 				if (e.getCause() != null)
 					return Val.errorFlux(e.getCause().getMessage());
 				return Val.errorFlux(e.getMessage());
 			}
 		};
+	}
+
+	private Val addTraceToAttributeFinderInvokationResult(String attributeName, Object[] invocationParameters,
+			Val val) {
+		var trace = new HashMap<String, Traced>();
+		trace.put("attribute", Val.of(attributeName));
+		for (int i = 0; i < invocationParameters.length; i++) {
+			if (invocationParameters[i] instanceof Val)
+				trace.put("argument[" + i + "]", (Val) (invocationParameters[i]));
+			if (invocationParameters[i] instanceof Map) {
+				trace.put("argument[" + i + "]", Val.of("VARIABLES OMITTED"));
+			}
+		}
+		trace.put("timestamp", Val.of(Instant.now().toString()));
+		return val.withTrace(AttributeContext.class, trace);
 	}
 
 	private List<Flux<Val>> validatedArguments(AttributeFinderMetadata attributeMetadata, Arguments arguments) {
@@ -198,26 +202,30 @@ public class AnnotationAttributeContext implements AttributeContext {
 		}
 		var argumentFluxes = validatedArguments(attributeMetadata, arguments);
 
-		return Flux.combineLatest(argumentFluxes, argumentValues -> {
-			var invocationArguments = new Object[numberOfInvocationParameters];
-			var argumentIndex       = 0;
-			if (attributeMetadata.isAttributeWithVariableParameter())
-				invocationArguments[argumentIndex++] = variables;
+		return Flux.combineLatest(argumentFluxes, argumentValues -> mergeArgumentStreams(attributeMetadata, variables,
+				numberOfInvocationParameters, argumentValues));
+	}
 
-			if (attributeMetadata.varArgsParameters) {
-				var varArgsParameter = new Val[argumentValues.length];
-				for (var i = 0; i < argumentValues.length; i++) {
-					varArgsParameter[i] = (Val) argumentValues[i];
-				}
-				invocationArguments[argumentIndex] = varArgsParameter;
-			} else {
-				for (var valueIndex = 0; argumentIndex < numberOfInvocationParameters; valueIndex++) {
-					invocationArguments[argumentIndex++] = argumentValues[valueIndex];
-				}
+	private Object[] mergeArgumentStreams(AttributeFinderMetadata attributeMetadata, Map<String, JsonNode> variables,
+			int numberOfInvocationParameters, Object[] argumentValues) {
+		var invocationArguments = new Object[numberOfInvocationParameters];
+		var argumentIndex       = 0;
+		if (attributeMetadata.isAttributeWithVariableParameter())
+			invocationArguments[argumentIndex++] = variables;
+
+		if (attributeMetadata.varArgsParameters) {
+			var varArgsParameter = new Val[argumentValues.length];
+			for (var i = 0; i < argumentValues.length; i++) {
+				varArgsParameter[i] = (Val) argumentValues[i];
 			}
+			invocationArguments[argumentIndex] = varArgsParameter;
+		} else {
+			for (var valueIndex = 0; argumentIndex < numberOfInvocationParameters; valueIndex++) {
+				invocationArguments[argumentIndex++] = argumentValues[valueIndex];
+			}
+		}
 
-			return invocationArguments;
-		});
+		return invocationArguments;
 	}
 
 	private Flux<Object[]> attributeFinderArguments(AttributeFinderMetadata attributeMetadata, Val leftHandValue,
