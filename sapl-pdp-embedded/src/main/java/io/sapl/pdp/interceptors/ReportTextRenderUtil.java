@@ -26,12 +26,14 @@ import lombok.extern.slf4j.Slf4j;
 @UtilityClass
 public class ReportTextRenderUtil {
 
+	private static final String DECISION = "Decision    : ";
+
 	public static String textReport(JsonNode jsonReport, boolean prettyPrint, ObjectMapper mapper) {
 		StringBuilder report = new StringBuilder("--- The PDP made a decision ---\n");
 		report.append("Subscription: ").append(prettyPrint ? '\n' : "")
 				.append(prettyPrintJson(jsonReport.get(ReportBuilderUtil.AUTHORIZATION_SUBSCRIPTION), prettyPrint, mapper))
 				.append('\n');
-		report.append("Decision    : ").append(prettyPrint ? '\n' : "")
+		report.append(DECISION).append(prettyPrint ? '\n' : "")
 				.append(prettyPrintJson(jsonReport.get(ReportBuilderUtil.AUTHORIZATION_DECISION), prettyPrint, mapper))
 				.append('\n');
 		report.append("Timestamp   : ").append(jsonReport.get(ReportBuilderUtil.TIMESTAMP).textValue()).append('\n');
@@ -83,7 +85,7 @@ public class ReportTextRenderUtil {
 		var report = "Policy Evaluation Result ===================\n";
 		report += "Name        : " + policy.get(ReportBuilderUtil.DOCUMENT_NAME) + '\n';
 		report += "Entitlement : " + policy.get(ReportBuilderUtil.ENTITLEMENT) + '\n';
-		report += "Decision    : " + policy.get(ReportBuilderUtil.AUTHORIZATION_DECISION) + '\n';
+		report += DECISION + policy.get(ReportBuilderUtil.AUTHORIZATION_DECISION) + '\n';
 		if (policy.has("target"))
 			report += "Target      : " + policy.get(ReportBuilderUtil.TARGET) + '\n';
 		if (policy.has("where"))
@@ -125,7 +127,7 @@ public class ReportTextRenderUtil {
 		StringBuilder report = new StringBuilder("Policy Set Evaluation Result ===============\n");
 		report.append("Name        : ").append(policySet.get(ReportBuilderUtil.DOCUMENT_NAME)).append('\n');
 		report.append("Algorithm   : ").append(policySet.get(ReportBuilderUtil.COMBINING_ALGORITHM)).append('\n');
-		report.append("Decision    : ").append(policySet.get(ReportBuilderUtil.AUTHORIZATION_DECISION)).append('\n');
+		report.append(DECISION).append(policySet.get(ReportBuilderUtil.AUTHORIZATION_DECISION)).append('\n');
 		if (policySet.has("target"))
 			report.append("Target      : ").append(policySet.get(ReportBuilderUtil.TARGET)).append('\n');
 		if (policySet.has("errorMessage"))
