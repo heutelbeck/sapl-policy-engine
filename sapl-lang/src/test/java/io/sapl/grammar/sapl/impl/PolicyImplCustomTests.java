@@ -91,7 +91,7 @@ class PolicyImplCustomTests {
 	 					new AuthorizationDecision(Decision.PERMIT, Optional.of(Val.ofJson("[true,false,null]").get()),
 	 							Optional.of((ArrayNode) Val.ofJson("[\"wash your hands\"]").get()),
 	 							Optional.of((ArrayNode) Val.ofJson("[\"smile\"]").get())))
-				);
+			);
 		// @formater:on
 	}
 

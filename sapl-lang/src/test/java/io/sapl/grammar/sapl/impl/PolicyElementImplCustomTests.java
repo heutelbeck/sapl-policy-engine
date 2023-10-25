@@ -15,7 +15,12 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import org.junit.jupiter.api.Test;
+import java.util.stream.Stream;
+
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.impl.util.MockUtil;
@@ -27,40 +32,36 @@ class PolicyElementImplCustomTests {
 
 	private final static SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
-	@Test
-	void emptyTargetMatches() {
-		var policy = INTERPRETER.parse("policy \"p\" permit");
-		StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(Val.TRUE).verifyComplete();
+	private static Stream<Arguments> provideTestCases() {
+		// @formatter:off
+		return Stream.of(
+	 			// emptyTargetMatches
+	 			Arguments.of("policy \"p\" permit", Val.TRUE),
+	 			// falseTargetDosNotMatch
+	 			Arguments.of("policy \"p\" permit false", Val.FALSE),
+	 			// trueTargetDosMatch
+	 			Arguments.of("policy \"p\" permit true", Val.TRUE)			
+			);
+		// @formater:on
 	}
 
-	@Test
-	void undefinedTargetErrors() {
-		var policy = INTERPRETER.parse("policy \"p\" permit undefined");
+	@MethodSource("provideTestCases")
+	void policyElementEvaluatesToExpectedValue(String policySource, Val expected) {
+		var policy   = INTERPRETER.parse(policySource);
+		StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected).verifyComplete();
+	}
+	
+	@ParameterizedTest
+	@ValueSource(strings = {
+			// undefinedTargetErrors
+			"policy \"p\" permit undefined", 
+			// errorTargetErrors
+			"policy \"p\" permit (10/0)",
+			// nonBooleanTargetErrors
+			"policy \"p\" permit \"abc\""
+		})
+	void policyElementEvaluatesToError(String policySource) {
+		var policy = INTERPRETER.parse(policySource);
 		StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(Val::isError).verifyComplete();
 	}
-
-	@Test
-	void errorTargetErrors() {
-		var policy = INTERPRETER.parse("policy \"p\" permit (10/0)");
-		StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(Val::isError).verifyComplete();
-	}
-
-	@Test
-	void nonBooleanTargetErrors() {
-		var policy = INTERPRETER.parse("policy \"p\" permit \"abc\"");
-		StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(Val::isError).verifyComplete();
-	}
-
-	@Test
-	void falseTargetDosNotMatch() {
-		var policy = INTERPRETER.parse("policy \"p\" permit false");
-		StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(Val.FALSE).verifyComplete();
-	}
-
-	@Test
-	void trueTargetDosMatch() {
-		var policy = INTERPRETER.parse("policy \"p\" permit true");
-		StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(Val.TRUE).verifyComplete();
-	}
-
 }
