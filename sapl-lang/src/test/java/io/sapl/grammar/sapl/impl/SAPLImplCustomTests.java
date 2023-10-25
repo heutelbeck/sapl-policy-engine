@@ -15,11 +15,19 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import static io.sapl.api.pdp.AuthorizationDecision.INDETERMINATE;
+import static io.sapl.api.pdp.AuthorizationDecision.PERMIT;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.hasDecision;
 
 import java.util.Map;
+import java.util.stream.Stream;
 
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -34,122 +42,83 @@ class SAPLImplCustomTests {
 
 	private final static SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
-	@Test
-	void detectErrorInTargetMatches() {
-		var policy = INTERPRETER.parse("policy \"policy\" permit (10/0)");
-		StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNextMatches(Val::isError).verifyComplete();
+	private static Stream<Arguments> provideImportTestCases() throws JsonProcessingException {
+		// @formatter:off
+		return Stream.of(
+				// importsWorkCorrectlyBasicFunction
+			    Arguments.of("import filter.blacken policy \"policy\" permit true",
+			    		Map.of("blacken", "filter.blacken")),
+
+				// importsWorkCorrectlyWildcardFunction
+			    Arguments.of("import filter.* policy \"policy\" permit true", 
+			    		Map.of("blacken", "filter.blacken", "replace", "filter.replace", "remove", "filter.remove")),
+
+				// importsWorkCorrectlyLibraryFunction
+			    Arguments.of("import filter as fil policy \"policy\" permit true",
+			    		Map.of("fil.blacken", "filter.blacken", "fil.replace", "filter.replace", "fil.remove", "filter.remove")),
+
+				// importsWorkCorrectlyBasicAttribute
+			    Arguments.of("import test.numbers policy \"policy\" permit true",
+			    		Map.of("numbers", "test.numbers")),
+
+				// importsWorkCorrectlyWildcardAttribute
+			    Arguments.of("import test.* policy \"policy\" permit true",
+			    		Map.of("numbers", "test.numbers", "numbersWithError", "test.numbersWithError", "nilflux", "test.nilflux")),
+
+				// importsWorkCorrectlyLibraryAttribute
+			    Arguments.of("import test as t policy \"policy\" permit true",
+			    		Map.of("t.numbers", "test.numbers", "t.numbersWithError", "test.numbersWithError", "t.nilflux", "test.nilflux"))
+		);
+		// @formater:on
 	}
 
-	@Test
-	void detectErrorInImportsDuringMatches() {
-		var policy = INTERPRETER.parse("import filter.blacken import filter.blacken policy \"policy\" permit true");
-		StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNextMatches(Val::isError).verifyComplete();
-	}
-
-	@Test
-	void detectErrorInImportsDuringEvaluate() {
-		var policy   = INTERPRETER.parse("import filter.blacken import filter.blacken policy \"policy\" permit true");
-		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNextMatches(hasDecision(expected)).verifyComplete();
-	}
-
-	@Test
-	void importsWorkCorrectlyBasicFunction() {
-		var policy          = INTERPRETER.parse("import filter.blacken policy \"policy\" permit true");
-		var expectedImports = Map.of("blacken", "filter.blacken");
+	@ParameterizedTest
+	@MethodSource("provideImportTestCases")
+	void importsWorkAsExpected(String policySource, Map<String,String> expectedImports) {
+		var policy   = INTERPRETER.parse(policySource);
 		StepVerifier.create(policy.evaluate()
 				.flatMap(val -> Mono.deferContextual(
 						ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
-				.contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(false).verifyComplete();
+				.contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(false).verifyComplete();	
+	}
+	
+	@ParameterizedTest
+	@ValueSource(strings = {
+			// detectErrorInTargetMatches
+			"policy \"policy\" permit (10/0)", 
+			// detectErrorInImportsDuringMatches
+			"import filter.blacken import filter.blacken policy \"policy\" permit true"
+		})
+	void policyElementEvaluatesToError(String policySource) {
+		var policy = INTERPRETER.parse(policySource);
+		StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(Val::isError).verifyComplete();
+	}	
+	
+	private static Stream<Arguments> provideTestCases() throws JsonProcessingException {
+		// @formatter:off
+		return Stream.of(
+				// detectErrorInImportsDuringEvaluate
+			    Arguments.of("import filter.blacken import filter.blacken policy \"policy\" permit true", INDETERMINATE),
+					
+				// importNonExistingFails
+			    Arguments.of("import test.nonExisting policy \"policy\" permit true", INDETERMINATE),
+					
+				// doubleImportWildcardFails
+			    Arguments.of("import test.* import test.* policy \"policy\" permit true", INDETERMINATE),
+					
+				// doubleImportLibraryFails
+			    Arguments.of("import test as t import test as t policy \"policy\" permit true",INDETERMINATE),
+					
+				// policyBodyEvaluationDoesNotCheckTargetAgain
+			    Arguments.of("policy \"policy\" permit (10/0)", PERMIT)	
+		);
+		// @formater:on
 	}
 
-	@Test
-	void importsWorkCorrectlyWildcardFunction() {
-		var policy          = INTERPRETER.parse("import filter.* policy \"policy\" permit true");
-		var expectedImports = Map.of("blacken", "filter.blacken", "replace", "filter.replace", "remove",
-				"filter.remove");
-		StepVerifier.create(policy.evaluate()
-				.flatMap(val -> Mono.deferContextual(
-						ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
-				.contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(false).verifyComplete();
+	@ParameterizedTest
+	@MethodSource("provideTestCases")
+	void documentEvaluatesToExpectedValue(String policySource, AuthorizationDecision expected) {
+		var policy   = INTERPRETER.parse(policySource);
+		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected)).verifyComplete();
 	}
-
-	@Test
-	void importsWorkCorrectlyLibraryFunction() {
-		var policy          = INTERPRETER.parse("import filter as fil policy \"policy\" permit true");
-		var expectedImports = Map.of("fil.blacken", "filter.blacken", "fil.replace", "filter.replace", "fil.remove",
-				"filter.remove");
-		StepVerifier.create(policy.evaluate()
-				.flatMap(val -> Mono.deferContextual(
-						ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
-				.contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(false).verifyComplete();
-	}
-
-	@Test
-	void importsWorkCorrectlyBasicAttribute() {
-		var policy          = INTERPRETER.parse("import test.numbers policy \"policy\" permit true");
-		var expectedImports = Map.of("numbers", "test.numbers");
-		StepVerifier.create(policy.evaluate()
-				.flatMap(val -> Mono.deferContextual(
-						ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
-				.contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(false).verifyComplete();
-	}
-
-	@Test
-	void importsWorkCorrectlyWildcardAttribute() {
-		var policy          = INTERPRETER.parse("import test.* policy \"policy\" permit true");
-		var expectedImports = Map.of("numbers", "test.numbers", "numbersWithError", "test.numbersWithError", "nilflux",
-				"test.nilflux");
-		StepVerifier.create(policy.evaluate()
-				.flatMap(val -> Mono.deferContextual(
-						ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
-				.contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(false).verifyComplete();
-	}
-
-	@Test
-	void importsWorkCorrectlyLibraryAttribute() {
-		var policy          = INTERPRETER.parse("import test as t policy \"policy\" permit true");
-		var expectedImports = Map.of("t.numbers", "test.numbers", "t.numbersWithError", "test.numbersWithError",
-				"t.nilflux", "test.nilflux");
-		StepVerifier.create(policy.evaluate()
-				.flatMap(val -> Mono.deferContextual(
-						ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
-				.contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(false).verifyComplete();
-	}
-
-	@Test
-	void importNonExistingFails() {
-		var policy   = INTERPRETER.parse("import test.nonExisting policy \"policy\" permit true");
-		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNextMatches(hasDecision(expected)).verifyComplete();
-	}
-
-	@Test
-	void doubleImportWildcardFails() {
-		var policy   = INTERPRETER.parse("import test.* import test.* policy \"policy\" permit true");
-		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNextMatches(hasDecision(expected)).verifyComplete();
-	}
-
-	@Test
-	void doubleImportLibraryFails() {
-		var policy   = INTERPRETER.parse("import test as t import test as t policy \"policy\" permit true");
-		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNextMatches(hasDecision(expected)).verifyComplete();
-	}
-
-	@Test
-	void policyBodyEvaluationDoesNotCheckTargetAgain() {
-		var policy   = INTERPRETER.parse("policy \"policy\" permit (10/0)");
-		var expected = AuthorizationDecision.PERMIT;
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
-				.expectNextMatches(hasDecision(expected)).verifyComplete();
-	}
-
 }
