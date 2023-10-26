@@ -1,5 +1,6 @@
 #
-# Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+# Streaming Attribute Policy Language (SAPL) Engine
+# Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
