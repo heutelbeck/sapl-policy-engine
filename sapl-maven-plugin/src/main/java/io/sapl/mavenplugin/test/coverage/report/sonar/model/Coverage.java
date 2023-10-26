@@ -46,6 +46,8 @@ import lombok.Generated;
  * {@code
  * 
  * 
+ * 
+ * 
  * <pre>
 * <complexType>
 *   <complexContent>
@@ -117,6 +119,8 @@ public class Coverage {
      * For example, to add a new item, do as follows: {@code
      * 
      * 
+     * 
+     * 
      * <pre>
      * getFile().add(newItem);
      * </pre>
@@ -166,6 +170,8 @@ public class Coverage {
      * <p>
      * The following schema fragment specifies the expected content contained within
      * this class. {@code
+     * 
+     * 
      * 
      * 
      * <pre>
@@ -223,6 +229,8 @@ public class Coverage {
          * For example, to add a new item, do as follows: {@code
          * 
          * 
+         * 
+         * 
          * <pre>
          * getLineToCover().add(newItem);
          * </pre>
@@ -271,6 +279,8 @@ public class Coverage {
          * <p>
          * The following schema fragment specifies the expected content contained within
          * this class. {@code
+         * 
+         * 
          * 
          * 
          * <pre>
