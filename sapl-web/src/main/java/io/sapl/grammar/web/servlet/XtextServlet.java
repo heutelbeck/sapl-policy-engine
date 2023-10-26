@@ -61,8 +61,7 @@ public class XtextServlet extends HttpServlet {
 
 	private static final String                                      INVALID_REQUEST           = "Invalid request ({}): {}";
 	private static final transient IResourceServiceProvider.Registry SERVICE_PROVIDER_REGISTRY = IResourceServiceProvider.Registry.INSTANCE;
-
-	private transient Gson gson = new Gson();
+	private static final transient Gson                              GSON                      = new Gson();
 
 	@Override
 	protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -161,7 +160,7 @@ public class XtextServlet extends HttpServlet {
 				response.getWriter().write(unwrapResult.getContent());
 			} else {
 				response.setContentType("text/x-json");
-				gson.toJson(result, response.getWriter());
+				GSON.toJson(result, response.getWriter());
 			}
 		} catch (IOException e) {
 			throw Exceptions.sneakyThrow(e);

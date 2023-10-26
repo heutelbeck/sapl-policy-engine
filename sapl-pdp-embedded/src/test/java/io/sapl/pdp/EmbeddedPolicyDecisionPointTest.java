@@ -90,7 +90,7 @@ class EmbeddedPolicyDecisionPointTest {
 	}
 
 	@Test
-	void decide_withAllowedAction_shouldReturnPermit() {
+	void decide_withNameConflictingPoliciesAndDenyUnlessPermitt_shouldReturnDeny() {
 		AuthorizationSubscription         simpleAuthzSubscription = new AuthorizationSubscription(
 				JSON.textNode("willi"), JSON.textNode("read"), JSON.textNode("something"), JSON.nullNode());
 		final Flux<AuthorizationDecision> authzDecisionFlux       = pdp.decide(simpleAuthzSubscription);
