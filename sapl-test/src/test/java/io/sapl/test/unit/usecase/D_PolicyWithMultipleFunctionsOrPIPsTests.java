@@ -25,18 +25,18 @@ import io.sapl.test.unit.SaplUnitTestFixture;
 
 class D_PolicyWithMultipleFunctionsOrPIPsTests {
 
-	private SaplTestFixture fixture;
+    private SaplTestFixture fixture;
 
-	@BeforeEach
-	void setUp() {
-		fixture = new SaplUnitTestFixture("policyWithMultipleFunctionsOrPIPs");
-	}
+    @BeforeEach
+    void setUp() {
+        fixture = new SaplUnitTestFixture("policyWithMultipleFunctionsOrPIPs");
+    }
 
-	@Test
-	void test_policyWithMultipleMocks() {
-		fixture.constructTestCaseWithMocks().givenAttribute("test.upper", Val.of("WILLI"))
-				.givenFunction("time.dayOfWeekFrom", Val.of("SATURDAY"))
-				.when(AuthorizationSubscription.of("willi", "read", "something")).expectPermit().verify();
-	}
+    @Test
+    void test_policyWithMultipleMocks() {
+        fixture.constructTestCaseWithMocks().givenAttribute("test.upper", Val.of("WILLI"))
+                .givenFunction("time.dayOfWeekFrom", Val.of("SATURDAY"))
+                .when(AuthorizationSubscription.of("willi", "read", "something")).expectPermit().verify();
+    }
 
 }

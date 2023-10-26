@@ -29,23 +29,23 @@ import lombok.SneakyThrows;
 @WebServlet(name = "XtextServices", urlPatterns = "/xtext-service/*")
 public class SAPLServlet extends XtextServlet {
 
-	private transient DisposableRegistry disposableRegistry;
+    private transient DisposableRegistry disposableRegistry;
 
-	@Override
-	@SneakyThrows
-	public void init() {
-		super.init();
-		final Injector injector = new SAPLWebSetup().createInjectorAndDoEMFRegistration();
-		disposableRegistry = injector.getInstance(DisposableRegistry.class);
-	}
+    @Override
+    @SneakyThrows
+    public void init() {
+        super.init();
+        final Injector injector = new SAPLWebSetup().createInjectorAndDoEMFRegistration();
+        disposableRegistry = injector.getInstance(DisposableRegistry.class);
+    }
 
-	@Override
-	public void destroy() {
-		if (disposableRegistry != null) {
-			disposableRegistry.dispose();
-			disposableRegistry = null;
-		}
-		super.destroy();
-	}
+    @Override
+    public void destroy() {
+        if (disposableRegistry != null) {
+            disposableRegistry.dispose();
+            disposableRegistry = null;
+        }
+        super.destroy();
+    }
 
 }

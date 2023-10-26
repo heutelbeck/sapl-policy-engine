@@ -38,57 +38,57 @@ import io.sapl.test.coverage.api.model.PolicySetHit;
 
 class PolicySetImplCustomCoverageTests {
 
-	CoverageHitRecorder recorder;
+    CoverageHitRecorder recorder;
 
-	private SAPLInterpreter INTERPRETER;
+    private SAPLInterpreter INTERPRETER;
 
-	@BeforeEach
-	void setup() {
-		this.recorder    = mock(CoverageHitRecorder.class);
-		this.INTERPRETER = new TestSaplInterpreter(this.recorder);
-	}
+    @BeforeEach
+    void setup() {
+        this.recorder    = mock(CoverageHitRecorder.class);
+        this.INTERPRETER = new TestSaplInterpreter(this.recorder);
+    }
 
-	@Test
-	void test_match() {
-		var policy   = INTERPRETER.parse("set \"set\" deny-overrides for action == \"read\" policy \"set.p1\" permit");
-		var authzSub = AuthorizationSubscription.of("willi", "read", "something");
-		assertThat(policy.matches().contextWrite(ctx -> {
-			ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
-			ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
-			ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
-			ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSub);
-			return ctx;
-		}).block().getBoolean()).isTrue();
-		verify(this.recorder, times(1)).recordPolicySetHit(isA(PolicySetHit.class));
-	}
+    @Test
+    void test_match() {
+        var policy   = INTERPRETER.parse("set \"set\" deny-overrides for action == \"read\" policy \"set.p1\" permit");
+        var authzSub = AuthorizationSubscription.of("willi", "read", "something");
+        assertThat(policy.matches().contextWrite(ctx -> {
+            ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+            ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+            ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
+            ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSub);
+            return ctx;
+        }).block().getBoolean()).isTrue();
+        verify(this.recorder, times(1)).recordPolicySetHit(isA(PolicySetHit.class));
+    }
 
-	@Test
-	void test_NotMatching() {
-		var policy   = INTERPRETER.parse("set \"set\" deny-overrides for action == \"read\" policy \"set.p1\" permit");
-		var authzSub = AuthorizationSubscription.of("willi", "write", "something");
-		assertThat(policy.matches().contextWrite(ctx -> {
-			ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
-			ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
-			ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
-			ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSub);
-			return ctx;
-		}).block().getBoolean()).isFalse();
-		verify(this.recorder, never()).recordPolicyHit(isA(PolicyHit.class));
-	}
+    @Test
+    void test_NotMatching() {
+        var policy   = INTERPRETER.parse("set \"set\" deny-overrides for action == \"read\" policy \"set.p1\" permit");
+        var authzSub = AuthorizationSubscription.of("willi", "write", "something");
+        assertThat(policy.matches().contextWrite(ctx -> {
+            ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+            ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+            ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
+            ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSub);
+            return ctx;
+        }).block().getBoolean()).isFalse();
+        verify(this.recorder, never()).recordPolicyHit(isA(PolicyHit.class));
+    }
 
-	@Test
-	void test_matchesThrowsError() {
-		var policy   = INTERPRETER
-				.parse("set \"set\" deny-overrides for action.<pip.attr> == \"test\" policy \"set.p1\" permit");
-		var authzSub = AuthorizationSubscription.of("willi", "write", "something");
-		assertThat(policy.matches().contextWrite(ctx -> {
-			ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
-			ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
-			ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
-			ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSub);
-			return ctx;
-		}).block().isBoolean()).isFalse();
-		verify(this.recorder, never()).recordPolicyHit(isA(PolicyHit.class));
-	}
+    @Test
+    void test_matchesThrowsError() {
+        var policy   = INTERPRETER
+                .parse("set \"set\" deny-overrides for action.<pip.attr> == \"test\" policy \"set.p1\" permit");
+        var authzSub = AuthorizationSubscription.of("willi", "write", "something");
+        assertThat(policy.matches().contextWrite(ctx -> {
+            ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+            ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+            ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
+            ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSub);
+            return ctx;
+        }).block().isBoolean()).isFalse();
+        verify(this.recorder, never()).recordPolicyHit(isA(PolicyHit.class));
+    }
 
 }

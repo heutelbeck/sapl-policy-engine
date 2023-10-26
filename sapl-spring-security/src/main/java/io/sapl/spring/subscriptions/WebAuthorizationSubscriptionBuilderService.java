@@ -47,147 +47,147 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class WebAuthorizationSubscriptionBuilderService {
 
-	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	private final ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider;
-	private final ObjectProvider<ObjectMapper>                    mapperProvider;
-	private final ObjectProvider<GrantedAuthorityDefaults>        defaultsProvider;
-	private final ApplicationContext                              context;
+    private final ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider;
+    private final ObjectProvider<ObjectMapper>                    mapperProvider;
+    private final ObjectProvider<GrantedAuthorityDefaults>        defaultsProvider;
+    private final ApplicationContext                              context;
 
-	private MethodSecurityExpressionHandler expressionHandler;
-	private ObjectMapper                    mapper;
+    private MethodSecurityExpressionHandler expressionHandler;
+    private ObjectMapper                    mapper;
 
-	private MethodSecurityExpressionHandler expressionHandler() {
-		if (expressionHandler == null) {
-			expressionHandler = expressionHandlerProvider
-					.getIfAvailable(() -> defaultExpressionHandler(defaultsProvider, context));
-		}
-		return expressionHandler;
-	}
+    private MethodSecurityExpressionHandler expressionHandler() {
+        if (expressionHandler == null) {
+            expressionHandler = expressionHandlerProvider
+                    .getIfAvailable(() -> defaultExpressionHandler(defaultsProvider, context));
+        }
+        return expressionHandler;
+    }
 
-	private static MethodSecurityExpressionHandler defaultExpressionHandler(
-			ObjectProvider<GrantedAuthorityDefaults> defaultsProvider, ApplicationContext context) {
-		DefaultMethodSecurityExpressionHandler handler = new DefaultMethodSecurityExpressionHandler();
-		defaultsProvider.ifAvailable(d -> handler.setDefaultRolePrefix(d.getRolePrefix()));
-		handler.setApplicationContext(context);
-		return handler;
-	}
+    private static MethodSecurityExpressionHandler defaultExpressionHandler(
+            ObjectProvider<GrantedAuthorityDefaults> defaultsProvider, ApplicationContext context) {
+        DefaultMethodSecurityExpressionHandler handler = new DefaultMethodSecurityExpressionHandler();
+        defaultsProvider.ifAvailable(d -> handler.setDefaultRolePrefix(d.getRolePrefix()));
+        handler.setApplicationContext(context);
+        return handler;
+    }
 
-	private ObjectMapper mapper() {
-		if (mapper == null) {
-			mapper = mapperProvider.getIfAvailable(ObjectMapper::new);
-		}
-		return mapper;
-	}
+    private ObjectMapper mapper() {
+        if (mapper == null) {
+            mapper = mapperProvider.getIfAvailable(ObjectMapper::new);
+        }
+        return mapper;
+    }
 
-	public AuthorizationSubscription constructAuthorizationSubscriptionWithReturnObject(Authentication authentication,
-			MethodInvocation methodInvocation, SaplAttribute attribute, Object returnObject) {
-		var evaluationCtx = expressionHandler().createEvaluationContext(authentication, methodInvocation);
-		expressionHandler().setReturnObject(returnObject, evaluationCtx);
-		evaluationCtx.setVariable("authentication", authentication);
-		evaluationCtx.setVariable("methodInvocation", methodInvocation);
-		return constructAuthorizationSubscription(authentication, methodInvocation, attribute, evaluationCtx);
-	}
+    public AuthorizationSubscription constructAuthorizationSubscriptionWithReturnObject(Authentication authentication,
+            MethodInvocation methodInvocation, SaplAttribute attribute, Object returnObject) {
+        var evaluationCtx = expressionHandler().createEvaluationContext(authentication, methodInvocation);
+        expressionHandler().setReturnObject(returnObject, evaluationCtx);
+        evaluationCtx.setVariable("authentication", authentication);
+        evaluationCtx.setVariable("methodInvocation", methodInvocation);
+        return constructAuthorizationSubscription(authentication, methodInvocation, attribute, evaluationCtx);
+    }
 
-	public AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
-			MethodInvocation methodInvocation, SaplAttribute attribute) {
-		var evaluationCtx = expressionHandler().createEvaluationContext(authentication, methodInvocation);
-		evaluationCtx.setVariable("authentication", authentication);
-		evaluationCtx.setVariable("methodInvocation", methodInvocation);
-		return constructAuthorizationSubscription(authentication, methodInvocation, attribute, evaluationCtx);
-	}
+    public AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
+            MethodInvocation methodInvocation, SaplAttribute attribute) {
+        var evaluationCtx = expressionHandler().createEvaluationContext(authentication, methodInvocation);
+        evaluationCtx.setVariable("authentication", authentication);
+        evaluationCtx.setVariable("methodInvocation", methodInvocation);
+        return constructAuthorizationSubscription(authentication, methodInvocation, attribute, evaluationCtx);
+    }
 
-	private AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
-			MethodInvocation methodInvocation, SaplAttribute attribute, EvaluationContext evaluationCtx) {
-		var subject     = retrieveSubject(authentication, attribute, evaluationCtx);
-		var action      = retrieveAction(methodInvocation, attribute, evaluationCtx, retrieveRequestObject());
-		var resource    = retrieveResource(methodInvocation, attribute, evaluationCtx);
-		var environment = retrieveEnvironment(attribute, evaluationCtx);
-		return new AuthorizationSubscription(mapper().valueToTree(subject), mapper().valueToTree(action),
-				mapper().valueToTree(resource), mapper().valueToTree(environment));
-	}
+    private AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
+            MethodInvocation methodInvocation, SaplAttribute attribute, EvaluationContext evaluationCtx) {
+        var subject     = retrieveSubject(authentication, attribute, evaluationCtx);
+        var action      = retrieveAction(methodInvocation, attribute, evaluationCtx, retrieveRequestObject());
+        var resource    = retrieveResource(methodInvocation, attribute, evaluationCtx);
+        var environment = retrieveEnvironment(attribute, evaluationCtx);
+        return new AuthorizationSubscription(mapper().valueToTree(subject), mapper().valueToTree(action),
+                mapper().valueToTree(resource), mapper().valueToTree(environment));
+    }
 
-	private JsonNode retrieveSubject(Authentication authentication, SaplAttribute attr, EvaluationContext ctx) {
-		if (attr.subjectExpression() != null)
-			return evaluateToJson(attr.subjectExpression(), ctx);
+    private JsonNode retrieveSubject(Authentication authentication, SaplAttribute attr, EvaluationContext ctx) {
+        if (attr.subjectExpression() != null)
+            return evaluateToJson(attr.subjectExpression(), ctx);
 
-		ObjectNode subject = mapper().valueToTree(authentication);
+        ObjectNode subject = mapper().valueToTree(authentication);
 
-		// sanitize the authentication depending on the application context, the
-		// authentication may still contain credentials information, which should not be
-		// sent over the wire to the PDP
+        // sanitize the authentication depending on the application context, the
+        // authentication may still contain credentials information, which should not be
+        // sent over the wire to the PDP
 
-		subject.remove("credentials");
-		var principal = subject.get("principal");
-		if (principal instanceof ObjectNode objectPrincipal)
-			objectPrincipal.remove("password");
+        subject.remove("credentials");
+        var principal = subject.get("principal");
+        if (principal instanceof ObjectNode objectPrincipal)
+            objectPrincipal.remove("password");
 
-		return subject;
-	}
+        return subject;
+    }
 
-	private JsonNode evaluateToJson(Expression expr, EvaluationContext ctx) {
-		try {
-			return mapper().valueToTree(expr.getValue(ctx));
-		} catch (EvaluationException e) {
-			throw new IllegalArgumentException("Failed to evaluate expression '" + expr.getExpressionString() + "'", e);
-		}
-	}
+    private JsonNode evaluateToJson(Expression expr, EvaluationContext ctx) {
+        try {
+            return mapper().valueToTree(expr.getValue(ctx));
+        } catch (EvaluationException e) {
+            throw new IllegalArgumentException("Failed to evaluate expression '" + expr.getExpressionString() + "'", e);
+        }
+    }
 
-	private static Optional<HttpServletRequest> retrieveRequestObject() {
-		var requestAttributes = RequestContextHolder.getRequestAttributes();
-		var httpRequest       = requestAttributes != null ? ((ServletRequestAttributes) requestAttributes).getRequest()
-				: null;
-		return Optional.ofNullable(httpRequest);
-	}
+    private static Optional<HttpServletRequest> retrieveRequestObject() {
+        var requestAttributes = RequestContextHolder.getRequestAttributes();
+        var httpRequest       = requestAttributes != null ? ((ServletRequestAttributes) requestAttributes).getRequest()
+                : null;
+        return Optional.ofNullable(httpRequest);
+    }
 
-	private Object retrieveAction(MethodInvocation mi, SaplAttribute attr, EvaluationContext ctx,
-			Optional<?> requestObject) {
-		if (attr.actionExpression() == null)
-			return retrieveAction(mi, requestObject);
-		return evaluateToJson(attr.actionExpression(), ctx);
-	}
+    private Object retrieveAction(MethodInvocation mi, SaplAttribute attr, EvaluationContext ctx,
+            Optional<?> requestObject) {
+        if (attr.actionExpression() == null)
+            return retrieveAction(mi, requestObject);
+        return evaluateToJson(attr.actionExpression(), ctx);
+    }
 
-	private Object retrieveAction(MethodInvocation mi, Optional<?> requestObject) {
-		var actionNode = mapper().createObjectNode();
-		requestObject.ifPresent(request -> actionNode.set("http", mapper().valueToTree(request)));
-		var java      = (ObjectNode) mapper().valueToTree(mi);
-		var arguments = mi.getArguments();
-		if (arguments.length > 0) {
-			var array = JSON.arrayNode();
-			for (Object o : arguments) {
-				try {
-					array.add(mapper().valueToTree(o));
-				} catch (IllegalArgumentException e) {
-					// drop of not mappable to JSON
-				}
-			}
-			if (array.size() > 0)
-				java.set("arguments", array);
-		}
-		actionNode.set("java", java);
-		return actionNode;
-	}
+    private Object retrieveAction(MethodInvocation mi, Optional<?> requestObject) {
+        var actionNode = mapper().createObjectNode();
+        requestObject.ifPresent(request -> actionNode.set("http", mapper().valueToTree(request)));
+        var java      = (ObjectNode) mapper().valueToTree(mi);
+        var arguments = mi.getArguments();
+        if (arguments.length > 0) {
+            var array = JSON.arrayNode();
+            for (Object o : arguments) {
+                try {
+                    array.add(mapper().valueToTree(o));
+                } catch (IllegalArgumentException e) {
+                    // drop of not mappable to JSON
+                }
+            }
+            if (array.size() > 0)
+                java.set("arguments", array);
+        }
+        actionNode.set("java", java);
+        return actionNode;
+    }
 
-	private Object retrieveResource(MethodInvocation mi, SaplAttribute attr, EvaluationContext ctx) {
-		if (attr.resourceExpression() == null)
-			return retrieveResource(mi);
-		return evaluateToJson(attr.resourceExpression(), ctx);
-	}
+    private Object retrieveResource(MethodInvocation mi, SaplAttribute attr, EvaluationContext ctx) {
+        if (attr.resourceExpression() == null)
+            return retrieveResource(mi);
+        return evaluateToJson(attr.resourceExpression(), ctx);
+    }
 
-	private Object retrieveResource(MethodInvocation mi) {
-		var resourceNode       = mapper().createObjectNode();
-		var httpServletRequest = retrieveRequestObject();
-		// The action is in the context of an HTTP request. Adding it to the resource.
-		httpServletRequest.ifPresent(servletRequest -> resourceNode.set("http", mapper().valueToTree(servletRequest)));
-		var java = (ObjectNode) mapper().valueToTree(mi);
-		resourceNode.set("java", java);
-		return resourceNode;
-	}
+    private Object retrieveResource(MethodInvocation mi) {
+        var resourceNode       = mapper().createObjectNode();
+        var httpServletRequest = retrieveRequestObject();
+        // The action is in the context of an HTTP request. Adding it to the resource.
+        httpServletRequest.ifPresent(servletRequest -> resourceNode.set("http", mapper().valueToTree(servletRequest)));
+        var java = (ObjectNode) mapper().valueToTree(mi);
+        resourceNode.set("java", java);
+        return resourceNode;
+    }
 
-	private Object retrieveEnvironment(SaplAttribute attr, EvaluationContext ctx) {
-		if (attr.environmentExpression() == null)
-			return null;
-		return evaluateToJson(attr.environmentExpression(), ctx);
-	}
+    private Object retrieveEnvironment(SaplAttribute attr, EvaluationContext ctx) {
+        if (attr.environmentExpression() == null)
+            return null;
+        return evaluateToJson(attr.environmentExpression(), ctx);
+    }
 
 }

@@ -43,91 +43,91 @@ import reactor.core.publisher.Mono;
 @RequestMapping("/api/pdp")
 public class PDPController {
 
-	private final PolicyDecisionPoint pdp;
+    private final PolicyDecisionPoint pdp;
 
-	/**
-	 * Delegates to {@link PolicyDecisionPoint#decide(AuthorizationSubscription)}.
-	 * 
-	 * @param authzSubscription the authorization subscription to be processed by
-	 *                          the PDP.
-	 * @return a flux emitting the current authorization decisions.
-	 * @see PolicyDecisionPoint#decide(AuthorizationSubscription)
-	 */
-	@PostMapping(value = "/decide", produces = MediaType.APPLICATION_NDJSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
-	public Flux<ServerSentEvent<AuthorizationDecision>> decide(
-			@Valid @RequestBody AuthorizationSubscription authzSubscription) {
-		return pdp.decide(authzSubscription).onErrorResume(error -> Flux.just(AuthorizationDecision.INDETERMINATE))
-				.map(decision -> ServerSentEvent.<AuthorizationDecision>builder().data(decision).build());
-	}
+    /**
+     * Delegates to {@link PolicyDecisionPoint#decide(AuthorizationSubscription)}.
+     * 
+     * @param authzSubscription the authorization subscription to be processed by
+     *                          the PDP.
+     * @return a flux emitting the current authorization decisions.
+     * @see PolicyDecisionPoint#decide(AuthorizationSubscription)
+     */
+    @PostMapping(value = "/decide", produces = MediaType.APPLICATION_NDJSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Flux<ServerSentEvent<AuthorizationDecision>> decide(
+            @Valid @RequestBody AuthorizationSubscription authzSubscription) {
+        return pdp.decide(authzSubscription).onErrorResume(error -> Flux.just(AuthorizationDecision.INDETERMINATE))
+                .map(decision -> ServerSentEvent.<AuthorizationDecision>builder().data(decision).build());
+    }
 
-	/**
-	 * Delegates to {@link PolicyDecisionPoint#decide(AuthorizationSubscription)}.
-	 * 
-	 * @param authzSubscription the authorization subscription to be processed by
-	 *                          the PDP.
-	 * @return a Mono for the initial decision.
-	 * @see PolicyDecisionPoint#decide(AuthorizationSubscription)
-	 */
-	@PostMapping(value = "/decide-once", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
-	public Mono<AuthorizationDecision> decideOnce(@Valid @RequestBody AuthorizationSubscription authzSubscription) {
-		return pdp.decide(authzSubscription).onErrorResume(error -> Flux.just(AuthorizationDecision.INDETERMINATE))
-				.next();
-	}
+    /**
+     * Delegates to {@link PolicyDecisionPoint#decide(AuthorizationSubscription)}.
+     * 
+     * @param authzSubscription the authorization subscription to be processed by
+     *                          the PDP.
+     * @return a Mono for the initial decision.
+     * @see PolicyDecisionPoint#decide(AuthorizationSubscription)
+     */
+    @PostMapping(value = "/decide-once", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<AuthorizationDecision> decideOnce(@Valid @RequestBody AuthorizationSubscription authzSubscription) {
+        return pdp.decide(authzSubscription).onErrorResume(error -> Flux.just(AuthorizationDecision.INDETERMINATE))
+                .next();
+    }
 
-	/**
-	 * Delegates to
-	 * {@link PolicyDecisionPoint#decide(MultiAuthorizationSubscription)}.
-	 * 
-	 * @param multiAuthzSubscription the authorization multi-subscription to be
-	 *                               processed by the PDP.
-	 * @return a flux emitting authorization decisions related to the individual
-	 *         subscriptions contained in the given {@code multiAuthzSubscription}
-	 *         as soon as they are available.
-	 * @see PolicyDecisionPoint#decide(MultiAuthorizationSubscription)
-	 */
-	@PostMapping(value = "/multi-decide", produces = MediaType.APPLICATION_NDJSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
-	public Flux<ServerSentEvent<IdentifiableAuthorizationDecision>> decide(
-			@Valid @RequestBody MultiAuthorizationSubscription multiAuthzSubscription) {
-		return pdp.decide(multiAuthzSubscription)
-				.onErrorResume(error -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE))
-				.map(decision -> ServerSentEvent.<IdentifiableAuthorizationDecision>builder().data(decision).build());
-	}
+    /**
+     * Delegates to
+     * {@link PolicyDecisionPoint#decide(MultiAuthorizationSubscription)}.
+     * 
+     * @param multiAuthzSubscription the authorization multi-subscription to be
+     *                               processed by the PDP.
+     * @return a flux emitting authorization decisions related to the individual
+     *         subscriptions contained in the given {@code multiAuthzSubscription}
+     *         as soon as they are available.
+     * @see PolicyDecisionPoint#decide(MultiAuthorizationSubscription)
+     */
+    @PostMapping(value = "/multi-decide", produces = MediaType.APPLICATION_NDJSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Flux<ServerSentEvent<IdentifiableAuthorizationDecision>> decide(
+            @Valid @RequestBody MultiAuthorizationSubscription multiAuthzSubscription) {
+        return pdp.decide(multiAuthzSubscription)
+                .onErrorResume(error -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE))
+                .map(decision -> ServerSentEvent.<IdentifiableAuthorizationDecision>builder().data(decision).build());
+    }
 
-	/**
-	 * Delegates to
-	 * {@link PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)}.
-	 * 
-	 * @param multiAuthzSubscription the authorization multi-subscription to be
-	 *                               processed by the PDP.
-	 * @return a flux emitting multi-decisions containing authorization decisions
-	 *         for all the individual authorization subscriptions contained in the
-	 *         given {@code multiAuthzSubscription}.
-	 * @see PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)
-	 */
-	@PostMapping(value = "/multi-decide-all", produces = MediaType.APPLICATION_NDJSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
-	public Flux<ServerSentEvent<MultiAuthorizationDecision>> decideAll(
-			@Valid @RequestBody MultiAuthorizationSubscription multiAuthzSubscription) {
-		return pdp.decideAll(multiAuthzSubscription)
-				.onErrorResume(error -> Flux.just(MultiAuthorizationDecision.indeterminate()))
-				.map(decision -> ServerSentEvent.<MultiAuthorizationDecision>builder().data(decision).build());
-	}
+    /**
+     * Delegates to
+     * {@link PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)}.
+     * 
+     * @param multiAuthzSubscription the authorization multi-subscription to be
+     *                               processed by the PDP.
+     * @return a flux emitting multi-decisions containing authorization decisions
+     *         for all the individual authorization subscriptions contained in the
+     *         given {@code multiAuthzSubscription}.
+     * @see PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)
+     */
+    @PostMapping(value = "/multi-decide-all", produces = MediaType.APPLICATION_NDJSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Flux<ServerSentEvent<MultiAuthorizationDecision>> decideAll(
+            @Valid @RequestBody MultiAuthorizationSubscription multiAuthzSubscription) {
+        return pdp.decideAll(multiAuthzSubscription)
+                .onErrorResume(error -> Flux.just(MultiAuthorizationDecision.indeterminate()))
+                .map(decision -> ServerSentEvent.<MultiAuthorizationDecision>builder().data(decision).build());
+    }
 
-	/**
-	 * Delegates to
-	 * {@link PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)}.
-	 * 
-	 * @param multiAuthzSubscription the authorization multi-subscription to be
-	 *                               processed by the PDP.
-	 * @return a Mono emitting the initial multi-decision containing authorization
-	 *         decisions for all the individual authorization subscriptions
-	 *         contained in the given {@code multiAuthzSubscription}.
-	 * @see PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)
-	 */
-	@PostMapping(value = "/multi-decide-all-once", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
-	public Mono<MultiAuthorizationDecision> decideAllOnce(
-			@Valid @RequestBody MultiAuthorizationSubscription multiAuthzSubscription) {
-		return pdp.decideAll(multiAuthzSubscription)
-				.onErrorResume(error -> Flux.just(MultiAuthorizationDecision.indeterminate())).next();
-	}
+    /**
+     * Delegates to
+     * {@link PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)}.
+     * 
+     * @param multiAuthzSubscription the authorization multi-subscription to be
+     *                               processed by the PDP.
+     * @return a Mono emitting the initial multi-decision containing authorization
+     *         decisions for all the individual authorization subscriptions
+     *         contained in the given {@code multiAuthzSubscription}.
+     * @see PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)
+     */
+    @PostMapping(value = "/multi-decide-all-once", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<MultiAuthorizationDecision> decideAllOnce(
+            @Valid @RequestBody MultiAuthorizationSubscription multiAuthzSubscription) {
+        return pdp.decideAll(multiAuthzSubscription)
+                .onErrorResume(error -> Flux.just(MultiAuthorizationDecision.indeterminate())).next();
+    }
 
 }

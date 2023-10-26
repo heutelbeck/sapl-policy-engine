@@ -55,176 +55,176 @@ import reactor.test.StepVerifier;
 
 public class RemoteRsocketPolicyDecisionPointTests {
 
-	private static CloseableChannel                 server;
-	private static RemoteRsocketPolicyDecisionPoint pdp;
+    private static CloseableChannel                 server;
+    private static RemoteRsocketPolicyDecisionPoint pdp;
 
-	private static final String ID = "id1";
+    private static final String ID = "id1";
 
-	private static final String RESOURCE = "resource";
+    private static final String RESOURCE = "resource";
 
-	private static final String ACTION = "action";
+    private static final String ACTION = "action";
 
-	private static final String SUBJECT = "subject";
+    private static final String SUBJECT = "subject";
 
-	private static AnnotationConfigApplicationContext context;
+    private static AnnotationConfigApplicationContext context;
 
-	@BeforeAll
-	public static void setupOnce() {
+    @BeforeAll
+    public static void setupOnce() {
 
-		// create a Spring context for this test suite and obtain some beans
-		context = new AnnotationConfigApplicationContext(ServerConfig.class);
+        // create a Spring context for this test suite and obtain some beans
+        context = new AnnotationConfigApplicationContext(ServerConfig.class);
 
-		// Create an RSocket server for use in testing
-		RSocketMessageHandler messageHandler = context.getBean(RSocketMessageHandler.class);
-		server = RSocketServer.create(messageHandler.responder()).payloadDecoder(PayloadDecoder.ZERO_COPY)
-				.bind(TcpServerTransport.create("localhost", 0)).block();
-		pdp    = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(server.address().getPort())
-				.build();
-	}
+        // Create an RSocket server for use in testing
+        RSocketMessageHandler messageHandler = context.getBean(RSocketMessageHandler.class);
+        server = RSocketServer.create(messageHandler.responder()).payloadDecoder(PayloadDecoder.ZERO_COPY)
+                .bind(TcpServerTransport.create("localhost", 0)).block();
+        pdp    = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(server.address().getPort())
+                .build();
+    }
 
-	@AfterAll
-	public static void tearDownOnce() {
-		server.dispose();
-		context.close();
-	}
+    @AfterAll
+    public static void tearDownOnce() {
+        server.dispose();
+        context.close();
+    }
 
-	private void prepareDecisions(Object[] decisions) {
-		ServerController.prepareDecisions(decisions);
-	}
+    private void prepareDecisions(Object[] decisions) {
+        ServerController.prepareDecisions(decisions);
+    }
 
-	@Test
-	void whenSubscribingIncludingErrors_thenAfterErrorsCloseConnectionsAndReconnection() {
-		// The first is propagated. The second results in an error. The third is dropped
-		// due to the errorprepareDecisions(
-		prepareDecisions(
-				new AuthorizationDecision[] { AuthorizationDecision.DENY, null, AuthorizationDecision.PERMIT });
-		prepareDecisions(
-				new AuthorizationDecision[] { AuthorizationDecision.PERMIT, null, AuthorizationDecision.PERMIT });
-		prepareDecisions(new AuthorizationDecision[] { AuthorizationDecision.INDETERMINATE, null,
-				AuthorizationDecision.PERMIT });
-		prepareDecisions(new AuthorizationDecision[] { AuthorizationDecision.NOT_APPLICABLE, null,
-				AuthorizationDecision.PERMIT });
+    @Test
+    void whenSubscribingIncludingErrors_thenAfterErrorsCloseConnectionsAndReconnection() {
+        // The first is propagated. The second results in an error. The third is dropped
+        // due to the errorprepareDecisions(
+        prepareDecisions(
+                new AuthorizationDecision[] { AuthorizationDecision.DENY, null, AuthorizationDecision.PERMIT });
+        prepareDecisions(
+                new AuthorizationDecision[] { AuthorizationDecision.PERMIT, null, AuthorizationDecision.PERMIT });
+        prepareDecisions(new AuthorizationDecision[] { AuthorizationDecision.INDETERMINATE, null,
+                AuthorizationDecision.PERMIT });
+        prepareDecisions(new AuthorizationDecision[] { AuthorizationDecision.NOT_APPLICABLE, null,
+                AuthorizationDecision.PERMIT });
 
-		var subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE);
-		StepVerifier.create(pdp.decide(subscription))
-				.expectNext(AuthorizationDecision.DENY, AuthorizationDecision.INDETERMINATE,
-						AuthorizationDecision.PERMIT, AuthorizationDecision.INDETERMINATE,
-						AuthorizationDecision.NOT_APPLICABLE, AuthorizationDecision.INDETERMINATE)
-				.thenCancel().verify();
-	}
+        var subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE);
+        StepVerifier.create(pdp.decide(subscription))
+                .expectNext(AuthorizationDecision.DENY, AuthorizationDecision.INDETERMINATE,
+                        AuthorizationDecision.PERMIT, AuthorizationDecision.INDETERMINATE,
+                        AuthorizationDecision.NOT_APPLICABLE, AuthorizationDecision.INDETERMINATE)
+                .thenCancel().verify();
+    }
 
-	@Test
-	void whenSubscribingMultiDecideAll_thenGetResults() {
-		var decision1 = new MultiAuthorizationDecision();
-		decision1.setAuthorizationDecisionForSubscriptionWithId(ID, AuthorizationDecision.PERMIT);
-		var decision2 = new MultiAuthorizationDecision();
-		decision2.setAuthorizationDecisionForSubscriptionWithId(ID, AuthorizationDecision.DENY);
-		var indeterminate = MultiAuthorizationDecision.indeterminate();
+    @Test
+    void whenSubscribingMultiDecideAll_thenGetResults() {
+        var decision1 = new MultiAuthorizationDecision();
+        decision1.setAuthorizationDecisionForSubscriptionWithId(ID, AuthorizationDecision.PERMIT);
+        var decision2 = new MultiAuthorizationDecision();
+        decision2.setAuthorizationDecisionForSubscriptionWithId(ID, AuthorizationDecision.DENY);
+        var indeterminate = MultiAuthorizationDecision.indeterminate();
 
-		prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2, null });
-		prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2 });
+        prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2, null });
+        prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2 });
 
-		var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, SUBJECT, ACTION,
-				RESOURCE);
+        var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, SUBJECT, ACTION,
+                RESOURCE);
 
-		StepVerifier.create(pdp.decideAll(subscription))
-				.expectNext(decision1, decision2, indeterminate, decision1, decision2).thenCancel().verify();
-	}
+        StepVerifier.create(pdp.decideAll(subscription))
+                .expectNext(decision1, decision2, indeterminate, decision1, decision2).thenCancel().verify();
+    }
 
-	@Test
-	void whenSubscribingMultiDecide_thenGetResults() {
-		var decision1     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.PERMIT);
-		var decision2     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.DENY);
-		var indeterminate = IdentifiableAuthorizationDecision.INDETERMINATE;
+    @Test
+    void whenSubscribingMultiDecide_thenGetResults() {
+        var decision1     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.PERMIT);
+        var decision2     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.DENY);
+        var indeterminate = IdentifiableAuthorizationDecision.INDETERMINATE;
 
-		prepareDecisions(new IdentifiableAuthorizationDecision[] { decision1, decision2, null });
-		prepareDecisions(new IdentifiableAuthorizationDecision[] { decision1, decision2 });
+        prepareDecisions(new IdentifiableAuthorizationDecision[] { decision1, decision2, null });
+        prepareDecisions(new IdentifiableAuthorizationDecision[] { decision1, decision2 });
 
-		var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, SUBJECT, ACTION,
-				RESOURCE);
+        var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, SUBJECT, ACTION,
+                RESOURCE);
 
-		StepVerifier.create(pdp.decide(subscription))
-				.expectNext(decision1, decision2, indeterminate, decision1, decision2).thenCancel().verify();
-	}
+        StepVerifier.create(pdp.decide(subscription))
+                .expectNext(decision1, decision2, indeterminate, decision1, decision2).thenCancel().verify();
+    }
 
-	/**
-	 * Fake Spring @Controller class which is a stand-in 'test rig' for our real
-	 * server. It contains a custom @ConnectMapping that tests if our ClientHandler
-	 * is responding to server-side calls for telemetry data.
-	 */
-	@Controller
-	static class ServerController {
-		private static final Queue<Object[]> decisionsQueue = new LinkedList<>();
+    /**
+     * Fake Spring @Controller class which is a stand-in 'test rig' for our real
+     * server. It contains a custom @ConnectMapping that tests if our ClientHandler
+     * is responding to server-side calls for telemetry data.
+     */
+    @Controller
+    static class ServerController {
+        private static final Queue<Object[]> decisionsQueue = new LinkedList<>();
 
-		private static void prepareDecisions(Object[] decisions) {
-			decisionsQueue.add(decisions);
-		}
+        private static void prepareDecisions(Object[] decisions) {
+            decisionsQueue.add(decisions);
+        }
 
-		@MessageMapping("decide")
-		Flux<AuthorizationDecision> fakeDecide() {
-			return Flux.fromArray((AuthorizationDecision[]) decisionsQueue.remove());
-		}
+        @MessageMapping("decide")
+        Flux<AuthorizationDecision> fakeDecide() {
+            return Flux.fromArray((AuthorizationDecision[]) decisionsQueue.remove());
+        }
 
-		@MessageMapping("multi-decide")
-		public Flux<IdentifiableAuthorizationDecision> fakeMultiDecide() {
-			return Flux.fromArray((IdentifiableAuthorizationDecision[]) decisionsQueue.remove());
-		}
+        @MessageMapping("multi-decide")
+        public Flux<IdentifiableAuthorizationDecision> fakeMultiDecide() {
+            return Flux.fromArray((IdentifiableAuthorizationDecision[]) decisionsQueue.remove());
+        }
 
-		@MessageMapping("multi-decide-all")
-		public Flux<MultiAuthorizationDecision> fakeMultiDecideAll() {
-			return Flux.fromArray((MultiAuthorizationDecision[]) decisionsQueue.remove());
-		}
+        @MessageMapping("multi-decide-all")
+        public Flux<MultiAuthorizationDecision> fakeMultiDecideAll() {
+            return Flux.fromArray((MultiAuthorizationDecision[]) decisionsQueue.remove());
+        }
 
-	}
+    }
 
-	/**
-	 * This test-specific configuration allows Spring to help configure our test
-	 * environment. These beans will be placed into the Spring context and can be
-	 * accessed when required.
-	 */
-	@TestConfiguration
-	static class ServerConfig {
+    /**
+     * This test-specific configuration allows Spring to help configure our test
+     * environment. These beans will be placed into the Spring context and can be
+     * accessed when required.
+     */
+    @TestConfiguration
+    static class ServerConfig {
 
-		@Bean
-		ServerController serverController() {
-			return new ServerController();
-		}
+        @Bean
+        ServerController serverController() {
+            return new ServerController();
+        }
 
-		@Bean
-		RSocketMessageHandler serverMessageHandler() {
-			RSocketMessageHandler handler    = new RSocketMessageHandler();
-			var                   strategies = RSocketStrategies.builder().encoder(new Jackson2JsonEncoder())
-					.encoder(new SimpleAuthenticationEncoder()).decoder(new Jackson2JsonDecoder()).build();
-			handler.setRSocketStrategies(strategies);
-			return handler;
-		}
-	}
+        @Bean
+        RSocketMessageHandler serverMessageHandler() {
+            RSocketMessageHandler handler    = new RSocketMessageHandler();
+            var                   strategies = RSocketStrategies.builder().encoder(new Jackson2JsonEncoder())
+                    .encoder(new SimpleAuthenticationEncoder()).decoder(new Jackson2JsonDecoder()).build();
+            handler.setRSocketStrategies(strategies);
+            return handler;
+        }
+    }
 
-	@Test
-	void construct() {
-		var pdp = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(7000).basicAuth("secret", "key")
-				.build();
-		assertThat(pdp, notNullValue());
-	}
+    @Test
+    void construct() {
+        var pdp = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(7000).basicAuth("secret", "key")
+                .build();
+        assertThat(pdp, notNullValue());
+    }
 
-	@Test
-	void constructWithSslContext() throws SSLException {
-		var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
-		var pdp        = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(7000)
-				.basicAuth("secret", "key").secure(sslContext).build();
-		assertThat(pdp, notNullValue());
-	}
+    @Test
+    void constructWithSslContext() throws SSLException {
+        var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+        var pdp        = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(7000)
+                .basicAuth("secret", "key").secure(sslContext).build();
+        assertThat(pdp, notNullValue());
+    }
 
-	@Test
-	void settersAndGetters() {
-		var pdp = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(7000).basicAuth("secret", "key")
-				.build();
-		pdp.setBackoffFactor(999);
-		pdp.setFirstBackoffMillis(998);
-		pdp.setMaxBackOffMillis(1001);
-		assertAll(() -> assertThat(pdp.getBackoffFactor(), is(999)),
-				() -> assertThat(pdp.getFirstBackoffMillis(), is(998)),
-				() -> assertThat(pdp.getMaxBackOffMillis(), is(1001)));
-	}
+    @Test
+    void settersAndGetters() {
+        var pdp = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(7000).basicAuth("secret", "key")
+                .build();
+        pdp.setBackoffFactor(999);
+        pdp.setFirstBackoffMillis(998);
+        pdp.setMaxBackOffMillis(1001);
+        assertAll(() -> assertThat(pdp.getBackoffFactor(), is(999)),
+                () -> assertThat(pdp.getFirstBackoffMillis(), is(998)),
+                () -> assertThat(pdp.getMaxBackOffMillis(), is(1001)));
+    }
 
 }

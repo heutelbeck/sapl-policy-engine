@@ -25,52 +25,52 @@ import lombok.Value;
 @Value
 public class PrpUpdateEvent {
 
-	Update[] updates;
+    Update[] updates;
 
-	public PrpUpdateEvent(List<Update> updates) {
-		if (updates == null) {
-			this.updates = new Update[] {};
-		} else {
-			this.updates = updates.toArray(Update[]::new);
-		}
-	}
+    public PrpUpdateEvent(List<Update> updates) {
+        if (updates == null) {
+            this.updates = new Update[] {};
+        } else {
+            this.updates = updates.toArray(Update[]::new);
+        }
+    }
 
-	public PrpUpdateEvent(Update... updates) {
-		this.updates = Arrays.copyOf(updates, updates.length);
-	}
+    public PrpUpdateEvent(Update... updates) {
+        this.updates = Arrays.copyOf(updates, updates.length);
+    }
 
-	public Update[] getUpdates() {
-		return Arrays.copyOf(updates, updates.length);
-	}
+    public Update[] getUpdates() {
+        return Arrays.copyOf(updates, updates.length);
+    }
 
-	/**
-	 * This contains the raw document and a custom equals method to eliminate
-	 * duplicate update events. E.g. file creation may lead to two subsequent
-	 * identical publish events without the .distinctUntilChanged() making use of
-	 * the {@code equals} method of this class.
-	 */
-	@Value
-	public static class Update {
+    /**
+     * This contains the raw document and a custom equals method to eliminate
+     * duplicate update events. E.g. file creation may lead to two subsequent
+     * identical publish events without the .distinctUntilChanged() making use of
+     * the {@code equals} method of this class.
+     */
+    @Value
+    public static class Update {
 
-		Type type;
+        Type type;
 
-		@EqualsAndHashCode.Exclude
-		SAPL document;
+        @EqualsAndHashCode.Exclude
+        SAPL document;
 
-		String rawDocument;
+        String rawDocument;
 
-		@Override
-		public String toString() {
-			return "Update(type=" + type + ", documentName="
-					+ (document != null ? "'" + document.getPolicyElement().getSaplName() + "'" : "NULL POLICY") + ")";
-		}
+        @Override
+        public String toString() {
+            return "Update(type=" + type + ", documentName="
+                    + (document != null ? "'" + document.getPolicyElement().getSaplName() + "'" : "NULL POLICY") + ")";
+        }
 
-	}
+    }
 
-	public enum Type {
+    public enum Type {
 
-		PUBLISH, WITHDRAW, INCONSISTENT, CONSISTENT
+        PUBLISH, WITHDRAW, INCONSISTENT, CONSISTENT
 
-	}
+    }
 
 }

@@ -16,7 +16,8 @@
 package io.sapl.test.steps;
 
 /**
- * Composite Step to allow repeating of {@link io.sapl.test.steps.WhenStep} or go over to a {@link io.sapl.test.steps.GivenStep}
+ * Composite Step to allow repeating of {@link io.sapl.test.steps.WhenStep} or
+ * go over to a {@link io.sapl.test.steps.GivenStep}
  */
 public interface GivenOrWhenStep extends GivenStep, WhenStep {
 

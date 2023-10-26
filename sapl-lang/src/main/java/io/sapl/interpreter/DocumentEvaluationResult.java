@@ -20,7 +20,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 
 public interface DocumentEvaluationResult extends Traced {
-	AuthorizationDecision getAuthorizationDecision();
+    AuthorizationDecision getAuthorizationDecision();
 
-	DocumentEvaluationResult withTargetResult(Val targetResult);
+    DocumentEvaluationResult withTargetResult(Val targetResult);
 }

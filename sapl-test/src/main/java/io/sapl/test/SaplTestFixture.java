@@ -27,23 +27,23 @@ import io.sapl.test.steps.WhenStep;
 
 public interface SaplTestFixture {
 
-	GivenStep constructTestCaseWithMocks();
+    GivenStep constructTestCaseWithMocks();
 
-	WhenStep constructTestCase();
+    WhenStep constructTestCase();
 
-	SaplTestFixture registerPIP(Object pip) throws InitializationException;
+    SaplTestFixture registerPIP(Object pip) throws InitializationException;
 
-	SaplTestFixture registerFunctionLibrary(Object function) throws InitializationException;
+    SaplTestFixture registerFunctionLibrary(Object function) throws InitializationException;
 
-	SaplTestFixture registerVariable(String key, JsonNode value);
+    SaplTestFixture registerVariable(String key, JsonNode value);
 
-	default Path resolveCoverageBaseDir() {
-		// if configured via system property because of custom path or custom maven
-		// build dir
-		String saplSpecificOutputDir = System.getProperty("io.sapl.test.outputDir");
-		return Paths.get(Objects.requireNonNullElse(saplSpecificOutputDir, "target")).resolve("sapl-coverage");
+    default Path resolveCoverageBaseDir() {
+        // if configured via system property because of custom path or custom maven
+        // build dir
+        String saplSpecificOutputDir = System.getProperty("io.sapl.test.outputDir");
+        return Paths.get(Objects.requireNonNullElse(saplSpecificOutputDir, "target")).resolve("sapl-coverage");
 
-		// else use standard maven build dir
-	}
+        // else use standard maven build dir
+    }
 
 }

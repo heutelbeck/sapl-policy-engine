@@ -36,22 +36,22 @@ import lombok.extern.slf4j.Slf4j;
 @AutoConfigureAfter(FunctionLibrariesAutoConfiguration.class)
 public class FunctionContextAutoConfiguration {
 
-	private final Collection<Object> functionLibraries;
+    private final Collection<Object> functionLibraries;
 
-	public FunctionContextAutoConfiguration(ConfigurableApplicationContext applicationContext) {
-		functionLibraries = applicationContext.getBeansWithAnnotation(FunctionLibrary.class).values();
-	}
+    public FunctionContextAutoConfiguration(ConfigurableApplicationContext applicationContext) {
+        functionLibraries = applicationContext.getBeansWithAnnotation(FunctionLibrary.class).values();
+    }
 
-	@Bean
-	@ConditionalOnMissingBean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	FunctionContext functionContext() throws InitializationException {
-		var functionContext = new AnnotationFunctionContext();
-		for (var library : functionLibraries) {
-			log.trace("loading FunctionLibrary: {}", library.getClass().getSimpleName());
-			functionContext.loadLibrary(library);
-		}
-		return functionContext;
-	}
+    @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    FunctionContext functionContext() throws InitializationException {
+        var functionContext = new AnnotationFunctionContext();
+        for (var library : functionLibraries) {
+            log.trace("loading FunctionLibrary: {}", library.getClass().getSimpleName());
+            functionContext.loadLibrary(library);
+        }
+        return functionContext;
+    }
 
 }

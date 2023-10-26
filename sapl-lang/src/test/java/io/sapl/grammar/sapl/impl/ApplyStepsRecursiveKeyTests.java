@@ -27,13 +27,13 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class ApplyStepsRecursiveKeyTests {
 
-	@Test
-	void recursiveKeyStepPropagatesErrors() {
-		assertExpressionReturnsErrors("(10/0)..key");
-	}
+    @Test
+    void recursiveKeyStepPropagatesErrors() {
+        assertExpressionReturnsErrors("(10/0)..key");
+    }
 
-	private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
-		// @formatter:off
+    private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+        // @formatter:off
 		return Stream.of(
 				// recursiveKeyStepOnUndefinedIsEmpty
 	 			Arguments.of("undefined..key", "[]"),

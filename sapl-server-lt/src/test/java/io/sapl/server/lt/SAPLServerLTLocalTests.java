@@ -26,9 +26,9 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles(profiles = { "local", "quiet" })
 class SAPLServerLTLocalTests {
 
-	@Test
-	void contextLoads(ApplicationContext context) {
-	    assertThat(context).isNotNull();
-	}
+    @Test
+    void contextLoads(ApplicationContext context) {
+        assertThat(context).isNotNull();
+    }
 
 }

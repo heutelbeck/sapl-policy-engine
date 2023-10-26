@@ -41,51 +41,51 @@ import io.sapl.test.coverage.api.model.PolicySetHit;
 
 class CoverageTargetHelperTests {
 
-	private Collection<SaplDocument> documents;
+    private Collection<SaplDocument> documents;
 
-	private CoverageTargetHelper helper;
+    private CoverageTargetHelper helper;
 
-	@BeforeEach
-	void setup() throws MojoExecutionException {
-		String           policyPath = "policies";
-		MavenProjectStub project    = new MavenProjectStub();
-		project.setRuntimeClasspathElements(List.of("target/classes"));
-		SaplDocumentReader reader = new SaplDocumentReader();
-		this.documents = reader.retrievePolicyDocuments(new SilentLog(), project, policyPath);
-		this.helper    = new CoverageTargetHelper();
-	}
+    @BeforeEach
+    void setup() throws MojoExecutionException {
+        String           policyPath = "policies";
+        MavenProjectStub project    = new MavenProjectStub();
+        project.setRuntimeClasspathElements(List.of("target/classes"));
+        SaplDocumentReader reader = new SaplDocumentReader();
+        this.documents = reader.retrievePolicyDocuments(new SilentLog(), project, policyPath);
+        this.helper    = new CoverageTargetHelper();
+    }
 
-	@Test
-	void testPolicyRetrieval() {
-		CoverageTargets targets = helper.getCoverageTargets(this.documents);
-		assertEquals(1, targets.getPolicySets().size());
-		assertEquals(Boolean.TRUE, targets.isPolicySetHit(new PolicySetHit("testPolicies")));
-		assertEquals(2, targets.getPolicies().size());
-		assertEquals(Boolean.TRUE, targets.isPolicyHit(new PolicyHit("testPolicies", "policy 1")));
-		assertEquals(Boolean.TRUE, targets.isPolicyHit(new PolicyHit("", "policy 2")));
-		assertEquals(4, targets.getPolicyConditions().size());
-		assertEquals(Boolean.TRUE,
-				targets.isPolicyConditionHit(new PolicyConditionHit("testPolicies", "policy 1", 0, true)));
-		assertEquals(Boolean.TRUE,
-				targets.isPolicyConditionHit(new PolicyConditionHit("testPolicies", "policy 1", 0, false)));
-		assertEquals(Boolean.TRUE,
-				targets.isPolicyConditionHit(new PolicyConditionHit("testPolicies", "policy 1", 2, true)));
-		assertEquals(Boolean.TRUE,
-				targets.isPolicyConditionHit(new PolicyConditionHit("testPolicies", "policy 1", 2, false)));
+    @Test
+    void testPolicyRetrieval() {
+        CoverageTargets targets = helper.getCoverageTargets(this.documents);
+        assertEquals(1, targets.getPolicySets().size());
+        assertEquals(Boolean.TRUE, targets.isPolicySetHit(new PolicySetHit("testPolicies")));
+        assertEquals(2, targets.getPolicies().size());
+        assertEquals(Boolean.TRUE, targets.isPolicyHit(new PolicyHit("testPolicies", "policy 1")));
+        assertEquals(Boolean.TRUE, targets.isPolicyHit(new PolicyHit("", "policy 2")));
+        assertEquals(4, targets.getPolicyConditions().size());
+        assertEquals(Boolean.TRUE,
+                targets.isPolicyConditionHit(new PolicyConditionHit("testPolicies", "policy 1", 0, true)));
+        assertEquals(Boolean.TRUE,
+                targets.isPolicyConditionHit(new PolicyConditionHit("testPolicies", "policy 1", 0, false)));
+        assertEquals(Boolean.TRUE,
+                targets.isPolicyConditionHit(new PolicyConditionHit("testPolicies", "policy 1", 2, true)));
+        assertEquals(Boolean.TRUE,
+                targets.isPolicyConditionHit(new PolicyConditionHit("testPolicies", "policy 1", 2, false)));
 
-	}
+    }
 
-	@Test
-	void test_newSAPLType() {
-		SAPL          newPolicyTypeSAPL          = Mockito.mock(SAPL.class);
-		PolicyElement newPolicyTypePolicyElement = Mockito.mock(PolicyElement.class);
-		Mockito.when(newPolicyTypeSAPL.getPolicyElement()).thenReturn(newPolicyTypePolicyElement);
-		// return SaplPackage.Literals.POLICY_ELEMENT as synonym for a new unknown
-		// implementation of PolicyElement
-		Mockito.when(newPolicyTypePolicyElement.eClass()).thenReturn(SaplPackage.Literals.POLICY_ELEMENT);
-		var newSaplTypeDocument = new SaplDocument(Path.of("test.sapl"), 5, newPolicyTypeSAPL);
-		var listOfDocs          = List.of(newSaplTypeDocument);
-		assertThrows(SaplTestException.class, () -> helper.getCoverageTargets(listOfDocs));
-	}
+    @Test
+    void test_newSAPLType() {
+        SAPL          newPolicyTypeSAPL          = Mockito.mock(SAPL.class);
+        PolicyElement newPolicyTypePolicyElement = Mockito.mock(PolicyElement.class);
+        Mockito.when(newPolicyTypeSAPL.getPolicyElement()).thenReturn(newPolicyTypePolicyElement);
+        // return SaplPackage.Literals.POLICY_ELEMENT as synonym for a new unknown
+        // implementation of PolicyElement
+        Mockito.when(newPolicyTypePolicyElement.eClass()).thenReturn(SaplPackage.Literals.POLICY_ELEMENT);
+        var newSaplTypeDocument = new SaplDocument(Path.of("test.sapl"), 5, newPolicyTypeSAPL);
+        var listOfDocs          = List.of(newSaplTypeDocument);
+        assertThrows(SaplTestException.class, () -> helper.getCoverageTargets(listOfDocs));
+    }
 
 }

@@ -24,11 +24,11 @@ import io.sapl.interpreter.pip.LibraryFunctionProvider;
 
 public interface FunctionContext extends LibraryFunctionProvider {
 
-	Val evaluate(String function, Val... parameters);
+    Val evaluate(String function, Val... parameters);
 
-	Collection<LibraryDocumentation> getDocumentation();
+    Collection<LibraryDocumentation> getDocumentation();
 
-	List<String> getCodeTemplates();
+    List<String> getCodeTemplates();
 
-	Map<String, String> getDocumentedCodeTemplates();
+    Map<String, String> getDocumentedCodeTemplates();
 }

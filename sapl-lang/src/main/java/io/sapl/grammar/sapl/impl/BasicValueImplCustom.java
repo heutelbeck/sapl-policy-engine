@@ -28,9 +28,9 @@ import reactor.core.publisher.Flux;
  */
 public class BasicValueImplCustom extends BasicValueImpl {
 
-	@Override
-	public Flux<Val> evaluate() {
-		return getValue().evaluate().switchMap(v -> resolveStepsFiltersAndSubTemplates(steps).apply(v));
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        return getValue().evaluate().switchMap(v -> resolveStepsFiltersAndSubTemplates(steps).apply(v));
+    }
 
 }

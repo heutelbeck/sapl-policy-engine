@@ -28,11 +28,11 @@ import io.sapl.grammar.SAPLStandaloneSetup;
  */
 public class SAPLIdeSetup extends SAPLStandaloneSetup {
 
-	@Override
-	public Injector createInjector() {
-		SAPLRuntimeModule saplRuntimeModule = new SAPLRuntimeModule();
-		SAPLIdeModule saplIdeModule = new SAPLIdeModule();
-		return Guice.createInjector(Modules2.mixin(saplRuntimeModule, saplIdeModule));
-	}
+    @Override
+    public Injector createInjector() {
+        SAPLRuntimeModule saplRuntimeModule = new SAPLRuntimeModule();
+        SAPLIdeModule     saplIdeModule     = new SAPLIdeModule();
+        return Guice.createInjector(Modules2.mixin(saplRuntimeModule, saplIdeModule));
+    }
 
 }

@@ -42,55 +42,55 @@ import reactor.core.publisher.Flux;
  */
 public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 
-	private static final String STEP_ZERO_ERROR = "Step must not be zero.";
+    private static final String STEP_ZERO_ERROR = "Step must not be zero.";
 
-	@Override
-	public Flux<Val> apply(@NonNull Val parentValue) {
-		return StepAlgorithmUtil.applyOnArray(parentValue, SelectorUtil.toArrayElementSelector(isInSlice(parentValue)),
-				parameters(), ArraySlicingStep.class);
-	}
+    @Override
+    public Flux<Val> apply(@NonNull Val parentValue) {
+        return StepAlgorithmUtil.applyOnArray(parentValue, SelectorUtil.toArrayElementSelector(isInSlice(parentValue)),
+                parameters(), ArraySlicingStep.class);
+    }
 
-	@Override
-	public Flux<Val> applyFilterStatement(@NonNull Val unfilteredValue, int stepId,
-			@NonNull FilterStatement statement) {
-		return FilterAlgorithmUtil.applyFilterOnArray(unfilteredValue, stepId,
-				SelectorUtil.toArrayElementSelector(isInSlice(unfilteredValue)), statement, ArraySlicingStep.class);
-	}
+    @Override
+    public Flux<Val> applyFilterStatement(@NonNull Val unfilteredValue, int stepId,
+            @NonNull FilterStatement statement) {
+        return FilterAlgorithmUtil.applyFilterOnArray(unfilteredValue, stepId,
+                SelectorUtil.toArrayElementSelector(isInSlice(unfilteredValue)), statement, ArraySlicingStep.class);
+    }
 
-	private String parameters() {
-		return "[" + getIndex() + ":" + getTo() + ":" + getStep() + "]";
-	}
+    private String parameters() {
+        return "[" + getIndex() + ":" + getTo() + ":" + getStep() + "]";
+    }
 
-	private BiPredicate<Integer, Val> isInSlice(Val parentValue) {
-		return (i, v) -> {
-			var arraySize = parentValue.getArrayNode().size();
-			// normalize slicing ranges
-			var step = getStep() == null ? BigDecimal.ONE.intValue() : getStep().intValue();
-			if (step == 0) {
-				throw new PolicyEvaluationException(STEP_ZERO_ERROR);
-			}
+    private BiPredicate<Integer, Val> isInSlice(Val parentValue) {
+        return (i, v) -> {
+            var arraySize = parentValue.getArrayNode().size();
+            // normalize slicing ranges
+            var step = getStep() == null ? BigDecimal.ONE.intValue() : getStep().intValue();
+            if (step == 0) {
+                throw new PolicyEvaluationException(STEP_ZERO_ERROR);
+            }
 
-			var index = getIndex() == null ? 0 : getIndex().intValue();
-			if (index < 0) {
-				index += arraySize;
-			}
-			var to = getTo() == null ? arraySize : getTo().intValue();
-			if (to < 0) {
-				to += arraySize;
-			}
+            var index = getIndex() == null ? 0 : getIndex().intValue();
+            if (index < 0) {
+                index += arraySize;
+            }
+            var to = getTo() == null ? arraySize : getTo().intValue();
+            if (to < 0) {
+                to += arraySize;
+            }
 
-			return isInNormalizedSlice(i, index, to, step);
-		};
-	}
+            return isInNormalizedSlice(i, index, to, step);
+        };
+    }
 
-	private boolean isInNormalizedSlice(int i, int from, int to, int step) {
-		if (i < from || i >= to) {
-			return false;
-		}
-		if (step > 0) {
-			return (i - from) % step == 0;
-		}
-		return (to - i) % step == 0;
-	}
+    private boolean isInNormalizedSlice(int i, int from, int to, int step) {
+        if (i < from || i >= to) {
+            return false;
+        }
+        if (step > 0) {
+            return (i - from) % step == 0;
+        }
+        return (to - i) % step == 0;
+    }
 
 }

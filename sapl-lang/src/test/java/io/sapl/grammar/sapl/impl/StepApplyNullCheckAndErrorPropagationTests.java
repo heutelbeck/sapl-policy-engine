@@ -39,51 +39,50 @@ import reactor.test.StepVerifier;
 
 class StepApplyNullCheckAndErrorPropagationTests {
 
-	static Collection<Step> data()
-			throws InstantiationException, IllegalAccessException, 
-			InvocationTargetException, NoSuchMethodException {
-		var        reflections = new Reflections("io.sapl.grammar.sapl.impl");
-		var        classes     = reflections.getSubTypesOf(Step.class);
-		List<Step> instances   = new ArrayList<>(classes.size());
-		for (var clazz : classes) {
-			if (clazz.getSimpleName().endsWith("ImplCustom")) {
-				instances.add(clazz.getDeclaredConstructor().newInstance());
-			}
-		}
-		return instances;
-	}
+    static Collection<Step> data()
+            throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException {
+        var        reflections = new Reflections("io.sapl.grammar.sapl.impl");
+        var        classes     = reflections.getSubTypesOf(Step.class);
+        List<Step> instances   = new ArrayList<>(classes.size());
+        for (var clazz : classes) {
+            if (clazz.getSimpleName().endsWith("ImplCustom")) {
+                instances.add(clazz.getDeclaredConstructor().newInstance());
+            }
+        }
+        return instances;
+    }
 
-	@ParameterizedTest
-	@MethodSource("data")
-	void nullParentNode(Step step) {
-		assertThrows(NullPointerException.class, () -> step.apply(null));
-	}
+    @ParameterizedTest
+    @MethodSource("data")
+    void nullParentNode(Step step) {
+        assertThrows(NullPointerException.class, () -> step.apply(null));
+    }
 
-	@ParameterizedTest
-	@MethodSource("data")
-	void stepsPropagateErrors(Step step) throws IOException {
-		var error = Val.error("TEST");
-		if (step instanceof ConditionStep) {
-			// Special case. this expression checks for expression first and that is just Ok
-			((ConditionStep) step).setExpression(ParserUtil.expression("true"));
-		}
-		if (step instanceof RecursiveIndexStep) {
-			// Special case. this expression checks for index first and that is just Ok
-			((RecursiveIndexStep) step).setIndex(BigDecimal.ONE);
-		}
-		StepVerifier.create(step.apply(error)).expectNext(error).verifyComplete();
-	}
+    @ParameterizedTest
+    @MethodSource("data")
+    void stepsPropagateErrors(Step step) throws IOException {
+        var error = Val.error("TEST");
+        if (step instanceof ConditionStep) {
+            // Special case. this expression checks for expression first and that is just Ok
+            ((ConditionStep) step).setExpression(ParserUtil.expression("true"));
+        }
+        if (step instanceof RecursiveIndexStep) {
+            // Special case. this expression checks for index first and that is just Ok
+            ((RecursiveIndexStep) step).setIndex(BigDecimal.ONE);
+        }
+        StepVerifier.create(step.apply(error)).expectNext(error).verifyComplete();
+    }
 
-	@ParameterizedTest
-	@MethodSource("data")
-	void nullParentNodeFilter(Step step) {
-		assertThrows(NullPointerException.class, () -> step.applyFilterStatement(null, 0, mock(FilterStatement.class)));
-	}
+    @ParameterizedTest
+    @MethodSource("data")
+    void nullParentNodeFilter(Step step) {
+        assertThrows(NullPointerException.class, () -> step.applyFilterStatement(null, 0, mock(FilterStatement.class)));
+    }
 
-	@ParameterizedTest
-	@MethodSource("data")
-	void nullFilterStatementFilter(Step step) {
-		assertThrows(NullPointerException.class, () -> step.applyFilterStatement(Val.UNDEFINED, 0, null));
-	}
+    @ParameterizedTest
+    @MethodSource("data")
+    void nullFilterStatementFilter(Step step) {
+        assertThrows(NullPointerException.class, () -> step.applyFilterStatement(Val.UNDEFINED, 0, null));
+    }
 
 }

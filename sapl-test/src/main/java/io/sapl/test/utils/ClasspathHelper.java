@@ -29,52 +29,52 @@ import reactor.core.Exceptions;
 @UtilityClass
 public class ClasspathHelper {
 
-	private static final String DEFAULT_PATH = "policies/";
+    private static final String DEFAULT_PATH = "policies/";
 
-	private static final String ERROR_MAIN_MESSAGE = "Error finding %s or %s on the classpath!";
+    private static final String ERROR_MAIN_MESSAGE = "Error finding %s or %s on the classpath!";
 
-	public static Path findPathOnClasspath(@NonNull ClassLoader loader, @NonNull String path) {
+    public static Path findPathOnClasspath(@NonNull ClassLoader loader, @NonNull String path) {
 
-		// try path as specified
-		URL url = loader.getResource(path);
-		if (url != null) {
-			return getResourcePath(url);
-		}
+        // try path as specified
+        URL url = loader.getResource(path);
+        if (url != null) {
+            return getResourcePath(url);
+        }
 
-		// try DEFAULT_PATH + specified path
-		String defaultPath        = DEFAULT_PATH + path;
-		URL    urlFromDefaultPath = loader.getResource(defaultPath);
-		if (urlFromDefaultPath != null) {
-			return getResourcePath(urlFromDefaultPath);
-		}
+        // try DEFAULT_PATH + specified path
+        String defaultPath        = DEFAULT_PATH + path;
+        URL    urlFromDefaultPath = loader.getResource(defaultPath);
+        if (urlFromDefaultPath != null) {
+            return getResourcePath(urlFromDefaultPath);
+        }
 
-		// nothing found -> throw useful exception
-		StringBuilder errorMessage = new StringBuilder(String.format(ERROR_MAIN_MESSAGE, path, defaultPath));
-		if (loader instanceof URLClassLoader urlClassLoader) {
-			errorMessage.append(System.lineSeparator()).append(System.lineSeparator())
-					.append("We tried the following paths:").append(System.lineSeparator());
-			URL[] classpathElements = urlClassLoader.getURLs();
-			for (URL classpathElement : classpathElements) {
-				errorMessage.append("    - ").append(classpathElement);
-			}
-		}
-		throw new SaplTestException(errorMessage.toString());
+        // nothing found -> throw useful exception
+        StringBuilder errorMessage = new StringBuilder(String.format(ERROR_MAIN_MESSAGE, path, defaultPath));
+        if (loader instanceof URLClassLoader urlClassLoader) {
+            errorMessage.append(System.lineSeparator()).append(System.lineSeparator())
+                    .append("We tried the following paths:").append(System.lineSeparator());
+            URL[] classpathElements = urlClassLoader.getURLs();
+            for (URL classpathElement : classpathElements) {
+                errorMessage.append("    - ").append(classpathElement);
+            }
+        }
+        throw new SaplTestException(errorMessage.toString());
 
-	}
+    }
 
-	private static Path getResourcePath(URL url) {
-		if ("jar".equals(url.getProtocol())) {
-			throw new SaplTestException("Not supporting reading files from jar during test execution!");
-		}
+    private static Path getResourcePath(URL url) {
+        if ("jar".equals(url.getProtocol())) {
+            throw new SaplTestException("Not supporting reading files from jar during test execution!");
+        }
 
-		Path configDirectoryPath;
-		try {
-			configDirectoryPath = Paths.get(url.toURI());
-		} catch (URISyntaxException e) {
-			throw Exceptions.propagate(e);
-		}
+        Path configDirectoryPath;
+        try {
+            configDirectoryPath = Paths.get(url.toURI());
+        } catch (URISyntaxException e) {
+            throw Exceptions.propagate(e);
+        }
 
-		return configDirectoryPath;
-	}
+        return configDirectoryPath;
+    }
 
 }

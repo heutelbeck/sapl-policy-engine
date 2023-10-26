@@ -22,19 +22,19 @@ import org.junit.jupiter.api.Test;
 
 class BasicFunctionImplTests {
 
-	@Test
-	void basicSuccessfulEvaluationNull() {
-		assertExpressionEvaluatesTo("mock.nil()", "null");
-	}
+    @Test
+    void basicSuccessfulEvaluationNull() {
+        assertExpressionEvaluatesTo("mock.nil()", "null");
+    }
 
-	@Test
-	void basicSuccessfulEvaluationError() {
-		assertExpressionReturnsErrors("mock.error()");
-	}
+    @Test
+    void basicSuccessfulEvaluationError() {
+        assertExpressionReturnsErrors("mock.error()");
+    }
 
-	@Test
-	void basicSuccessfulEvaluationExceptionToError() {
-		assertExpressionReturnsErrors("mock.exception()");
-	}
+    @Test
+    void basicSuccessfulEvaluationExceptionToError() {
+        assertExpressionReturnsErrors("mock.exception()");
+    }
 
 }

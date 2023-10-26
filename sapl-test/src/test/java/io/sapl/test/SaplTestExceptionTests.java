@@ -21,19 +21,19 @@ import org.junit.jupiter.api.Test;
 
 class SaplTestExceptionTests {
 
-	@Test
-	void test_noMessage() {
-		assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> {
-			throw new SaplTestException();
-		}).withMessage(null);
-	}
+    @Test
+    void test_noMessage() {
+        assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> {
+            throw new SaplTestException();
+        }).withMessage(null);
+    }
 
-	@Test
-	void test_messageAndNestedException() {
-		var exception = new SaplTestException("nestedException");
-		assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> {
-			throw new SaplTestException("exception", exception);
-		}).withMessage("exception").withCauseInstanceOf(SaplTestException.class);
-	}
+    @Test
+    void test_messageAndNestedException() {
+        var exception = new SaplTestException("nestedException");
+        assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> {
+            throw new SaplTestException("exception", exception);
+        }).withMessage("exception").withCauseInstanceOf(SaplTestException.class);
+    }
 
 }

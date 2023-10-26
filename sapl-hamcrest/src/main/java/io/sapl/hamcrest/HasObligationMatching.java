@@ -30,44 +30,44 @@ import io.sapl.api.pdp.AuthorizationDecision;
  */
 public class HasObligationMatching extends TypeSafeDiagnosingMatcher<AuthorizationDecision> {
 
-	private final Predicate<? super JsonNode> predicate;
+    private final Predicate<? super JsonNode> predicate;
 
-	/**
-	 * Checks for the presence of an obligation fulfilling a predicate.
-	 * 
-	 * @param jsonPredicate a JsonNode Predicate.
-	 */
-	public HasObligationMatching(Predicate<? super JsonNode> jsonPredicate) {
-		super(AuthorizationDecision.class);
-		this.predicate = Objects.requireNonNull(jsonPredicate);
-	}
+    /**
+     * Checks for the presence of an obligation fulfilling a predicate.
+     * 
+     * @param jsonPredicate a JsonNode Predicate.
+     */
+    public HasObligationMatching(Predicate<? super JsonNode> jsonPredicate) {
+        super(AuthorizationDecision.class);
+        this.predicate = Objects.requireNonNull(jsonPredicate);
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("the decision has an obligation matching the predicate");
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("the decision has an obligation matching the predicate");
+    }
 
-	@Override
-	protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
-		var obligations = decision.getObligations();
-		if (obligations.isEmpty()) {
-			mismatchDescription.appendText("decision didn't contain any obligations");
-			return false;
-		}
+    @Override
+    protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
+        var obligations = decision.getObligations();
+        if (obligations.isEmpty()) {
+            mismatchDescription.appendText("decision didn't contain any obligations");
+            return false;
+        }
 
-		var containsObligation = false;
+        var containsObligation = false;
 
-		for (JsonNode node : obligations.get()) {
-			if (this.predicate.test(node))
-				containsObligation = true;
-		}
+        for (JsonNode node : obligations.get()) {
+            if (this.predicate.test(node))
+                containsObligation = true;
+        }
 
-		if (containsObligation) {
-			return true;
-		} else {
-			mismatchDescription.appendText("no obligation matched");
-			return false;
-		}
-	}
+        if (containsObligation) {
+            return true;
+        } else {
+            mismatchDescription.appendText("no obligation matched");
+            return false;
+        }
+    }
 
 }

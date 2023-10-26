@@ -37,75 +37,75 @@ import io.sapl.grammar.tests.SAPLInjectorProvider;
 @InjectWith(SAPLInjectorProvider.class)
 class SAPLValidatorTests {
 
-	@Inject
-	@Extension
-	private ParseHelper<SAPL> parseHelper;
+    @Inject
+    @Extension
+    private ParseHelper<SAPL> parseHelper;
 
-	@Inject
-	@Extension
-	private ValidationTestHelper validator;
+    @Inject
+    @Extension
+    private ValidationTestHelper validator;
 
-	@Test
-	void targetWithEagerOpsPermit() throws Exception {
-		String testPolicy = "policy \"test policy\" permit a == b & c == d | e > f";
-		SAPL   policy     = this.parseHelper.parse(testPolicy);
-		this.validator.assertNoErrors(policy);
-	}
+    @Test
+    void targetWithEagerOpsPermit() throws Exception {
+        String testPolicy = "policy \"test policy\" permit a == b & c == d | e > f";
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertNoErrors(policy);
+    }
 
-	@Test
-	void targetWithLazyAnd() throws Exception {
-		String testPolicy = "policy \"test policy\" permit a == b && c == d | e > f";
-		SAPL   policy     = this.parseHelper.parse(testPolicy);
-		this.validator.assertError(policy, SaplPackage.eINSTANCE.getAnd(), null,
-				SAPLValidator.MSG_AND_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
-	}
+    @Test
+    void targetWithLazyAnd() throws Exception {
+        String testPolicy = "policy \"test policy\" permit a == b && c == d | e > f";
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getAnd(), null,
+                SAPLValidator.MSG_AND_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
+    }
 
-	@Test
-	void targetWithLazyOr() throws Exception {
-		String policyText = "policy \"test policy\" permit a == b & c == d || e > f";
-		SAPL   policy     = this.parseHelper.parse(policyText);
-		this.validator.assertError(policy, SaplPackage.eINSTANCE.getOr(), null,
-				SAPLValidator.MSG_OR_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
-	}
+    @Test
+    void targetWithLazyOr() throws Exception {
+        String policyText = "policy \"test policy\" permit a == b & c == d || e > f";
+        SAPL   policy     = this.parseHelper.parse(policyText);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getOr(), null,
+                SAPLValidator.MSG_OR_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
+    }
 
-	@Test
-	void targetWithAttributeFinderStep() throws Exception {
-		String policyText = "policy \"test policy\" permit action.patientid.<pip.hospital_units.by_patientid>.doctorid == \"Brinkmann\"";
-		SAPL   policy     = this.parseHelper.parse(policyText);
-		this.validator.assertError(policy, SaplPackage.eINSTANCE.getAttributeFinderStep(), null,
-				SAPLValidator.MSG_AFS_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
-	}
+    @Test
+    void targetWithAttributeFinderStep() throws Exception {
+        String policyText = "policy \"test policy\" permit action.patientid.<pip.hospital_units.by_patientid>.doctorid == \"Brinkmann\"";
+        SAPL   policy     = this.parseHelper.parse(policyText);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getAttributeFinderStep(), null,
+                SAPLValidator.MSG_AFS_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
+    }
 
-	@Test
-	void policyWithHeadAttributeFinderStepAssertsNoError() throws Exception {
-		String policyText = "policy \"test policy\" permit action.patientid.|<pip.hospital_units.by_patientid>.doctorid == \"Brinkmann\"";
-		SAPL   policy     = this.parseHelper.parse(policyText);
-		this.validator.assertError(policy, SaplPackage.eINSTANCE.getHeadAttributeFinderStep(), null,
-				SAPLValidator.MSG_HAFS_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
-	}
+    @Test
+    void policyWithHeadAttributeFinderStepAssertsNoError() throws Exception {
+        String policyText = "policy \"test policy\" permit action.patientid.|<pip.hospital_units.by_patientid>.doctorid == \"Brinkmann\"";
+        SAPL   policy     = this.parseHelper.parse(policyText);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getHeadAttributeFinderStep(), null,
+                SAPLValidator.MSG_HAFS_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
+    }
 
-	@Test
-	void policyWithBasicEnvironmentAttributeAssertsNoError() throws Exception {
-		String policyText = "policy \"test policy\" permit <pip.hospital_units.by_patientid>.doctorid == \"Brinkmann\"";
-		SAPL   policy     = this.parseHelper.parse(policyText);
-		this.validator.assertError(policy, SaplPackage.eINSTANCE.getBasicEnvironmentAttribute(), null,
-				SAPLValidator.MSG_BEA_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
-	}
+    @Test
+    void policyWithBasicEnvironmentAttributeAssertsNoError() throws Exception {
+        String policyText = "policy \"test policy\" permit <pip.hospital_units.by_patientid>.doctorid == \"Brinkmann\"";
+        SAPL   policy     = this.parseHelper.parse(policyText);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getBasicEnvironmentAttribute(), null,
+                SAPLValidator.MSG_BEA_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
+    }
 
-	@Test
-	void policyWithBasicEnvironmentHeadAttributeAssertsNoError() throws Exception {
-		String policyText = "policy \"test policy\" permit |<pip.hospital_units.by_patientid>.doctorid == \"Brinkmann\"";
-		SAPL   policy     = this.parseHelper.parse(policyText);
-		this.validator.assertError(policy, SaplPackage.eINSTANCE.getBasicEnvironmentHeadAttribute(), null,
-				SAPLValidator.MSG_BEHA_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
-	}
+    @Test
+    void policyWithBasicEnvironmentHeadAttributeAssertsNoError() throws Exception {
+        String policyText = "policy \"test policy\" permit |<pip.hospital_units.by_patientid>.doctorid == \"Brinkmann\"";
+        SAPL   policy     = this.parseHelper.parse(policyText);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getBasicEnvironmentHeadAttribute(), null,
+                SAPLValidator.MSG_BEHA_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
+    }
 
-	@Test
-	void invalidPolicy() throws Exception {
-		String policyText = "defect";
-		SAPL   policy     = this.parseHelper.parse(policyText);
-		this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				"no viable alternative at input 'defect'");
-	}
+    @Test
+    void invalidPolicy() throws Exception {
+        String policyText = "defect";
+        SAPL   policy     = this.parseHelper.parse(policyText);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
+                "no viable alternative at input 'defect'");
+    }
 
 }

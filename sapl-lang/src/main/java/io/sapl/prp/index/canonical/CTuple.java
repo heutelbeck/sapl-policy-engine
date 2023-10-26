@@ -24,8 +24,8 @@ import lombok.Value;
 @Value
 public class CTuple {
 
-	int cI; // conjunction index number
+    int cI; // conjunction index number
 
-	long n; // number of formulas containing conjunction
+    long n; // number of formulas containing conjunction
 
 }

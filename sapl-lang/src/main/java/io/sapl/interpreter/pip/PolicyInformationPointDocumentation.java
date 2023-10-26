@@ -28,15 +28,15 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class PolicyInformationPointDocumentation {
 
-	@NonNull
-	String name;
+    @NonNull
+    String name;
 
-	@NonNull
-	String description;
+    @NonNull
+    String description;
 
-	@NonNull
-	Object policyInformationPoint;
+    @NonNull
+    Object policyInformationPoint;
 
-	Map<String, String> documentation = new HashMap<>();
+    Map<String, String> documentation = new HashMap<>();
 
 }

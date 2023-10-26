@@ -22,17 +22,17 @@ import io.sapl.api.interpreter.Traced;
  * add an explanation into the trace.
  */
 public interface TracedDecision extends Traced {
-	/**
-	 * @return the decision.
-	 */
-	AuthorizationDecision getAuthorizationDecision();
+    /**
+     * @return the decision.
+     */
+    AuthorizationDecision getAuthorizationDecision();
 
-	/**
-	 * Add an explanation to a modified decision.
-	 * 
-	 * @param authzDecision the modified decision
-	 * @param explanation   the explanation
-	 * @return the modified decision with explanation
-	 */
-	TracedDecision modified(AuthorizationDecision authzDecision, String explanation);
+    /**
+     * Add an explanation to a modified decision.
+     * 
+     * @param authzDecision the modified decision
+     * @param explanation   the explanation
+     * @return the modified decision with explanation
+     */
+    TracedDecision modified(AuthorizationDecision authzDecision, String explanation);
 }

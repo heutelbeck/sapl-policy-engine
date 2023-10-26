@@ -36,16 +36,16 @@ import io.sapl.spring.constraints.providers.ContentFilteringProvider;
 @AutoConfiguration
 @Import(value = { ConstraintEnforcementService.class })
 public class ConstraintsHandlerAutoconfiguration {
-	
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	ContentFilteringProvider jsonNodeContentFilteringProvider(ObjectMapper objectMapper) {
-		return new ContentFilteringProvider(objectMapper);
-	}
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	ContentFilterPredicateProvider contentFilterPredicateProvider(ObjectMapper objectMapper) {
-		return new ContentFilterPredicateProvider(objectMapper);
-	}
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    ContentFilteringProvider jsonNodeContentFilteringProvider(ObjectMapper objectMapper) {
+        return new ContentFilteringProvider(objectMapper);
+    }
+
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    ContentFilterPredicateProvider contentFilterPredicateProvider(ObjectMapper objectMapper) {
+        return new ContentFilterPredicateProvider(objectMapper);
+    }
 }

@@ -42,42 +42,43 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 class SaplMethodSecurityAspectJAutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
 
-	/**
-	 * Register, escalate, and configure the AspectJ auto proxy creator based on the
-	 * value of the @{@link EnableSaplMethodSecurity#proxyTargetClass()} attribute
-	 * on the importing {@code @Configuration} class.
-	 */
-	@Override
-	public void registerBeanDefinitions(@NonNull AnnotationMetadata importingClassMetadata, @NonNull BeanDefinitionRegistry registry) {
-		log.info("registerBeanDefinitions");
-		// TODO: ...
-		registerBeanDefinition("preFilterAuthorizationMethodInterceptor",
-				"org.springframework.security.authorization.method.aspectj.PreFilterAspect", "preFilterAspect$0",
-				registry);
-		registerBeanDefinition("postFilterAuthorizationMethodInterceptor",
-				"org.springframework.security.authorization.method.aspectj.PostFilterAspect", "postFilterAspect$0",
-				registry);
-		registerBeanDefinition("preAuthorizeAuthorizationMethodInterceptor",
-				"org.springframework.security.authorization.method.aspectj.PreAuthorizeAspect", "preAuthorizeAspect$0",
-				registry);
-		registerBeanDefinition("postAuthorizeAuthorizationMethodInterceptor",
-				"org.springframework.security.authorization.method.aspectj.PostAuthorizeAspect",
-				"postAuthorizeAspect$0", registry);
-		registerBeanDefinition("securedAuthorizationMethodInterceptor",
-				"org.springframework.security.authorization.method.aspectj.SecuredAspect", "securedAspect$0", registry);
-	}
+    /**
+     * Register, escalate, and configure the AspectJ auto proxy creator based on the
+     * value of the @{@link EnableSaplMethodSecurity#proxyTargetClass()} attribute
+     * on the importing {@code @Configuration} class.
+     */
+    @Override
+    public void registerBeanDefinitions(@NonNull AnnotationMetadata importingClassMetadata,
+            @NonNull BeanDefinitionRegistry registry) {
+        log.info("registerBeanDefinitions");
+        // TODO: ...
+        registerBeanDefinition("preFilterAuthorizationMethodInterceptor",
+                "org.springframework.security.authorization.method.aspectj.PreFilterAspect", "preFilterAspect$0",
+                registry);
+        registerBeanDefinition("postFilterAuthorizationMethodInterceptor",
+                "org.springframework.security.authorization.method.aspectj.PostFilterAspect", "postFilterAspect$0",
+                registry);
+        registerBeanDefinition("preAuthorizeAuthorizationMethodInterceptor",
+                "org.springframework.security.authorization.method.aspectj.PreAuthorizeAspect", "preAuthorizeAspect$0",
+                registry);
+        registerBeanDefinition("postAuthorizeAuthorizationMethodInterceptor",
+                "org.springframework.security.authorization.method.aspectj.PostAuthorizeAspect",
+                "postAuthorizeAspect$0", registry);
+        registerBeanDefinition("securedAuthorizationMethodInterceptor",
+                "org.springframework.security.authorization.method.aspectj.SecuredAspect", "securedAspect$0", registry);
+    }
 
-	private void registerBeanDefinition(String beanName, String aspectClassName, String aspectBeanName,
-			BeanDefinitionRegistry registry) {
-		if (!registry.containsBeanDefinition(beanName)) {
-			return;
-		}
-		BeanDefinition        interceptor = registry.getBeanDefinition(beanName);
-		BeanDefinitionBuilder aspect      = BeanDefinitionBuilder.rootBeanDefinition(aspectClassName);
-		aspect.setFactoryMethod("aspectOf");
-		aspect.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
-		aspect.addPropertyValue("saplSecurityInterceptor", interceptor);
-		registry.registerBeanDefinition(aspectBeanName, aspect.getBeanDefinition());
-	}
+    private void registerBeanDefinition(String beanName, String aspectClassName, String aspectBeanName,
+            BeanDefinitionRegistry registry) {
+        if (!registry.containsBeanDefinition(beanName)) {
+            return;
+        }
+        BeanDefinition        interceptor = registry.getBeanDefinition(beanName);
+        BeanDefinitionBuilder aspect      = BeanDefinitionBuilder.rootBeanDefinition(aspectClassName);
+        aspect.setFactoryMethod("aspectOf");
+        aspect.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
+        aspect.addPropertyValue("saplSecurityInterceptor", interceptor);
+        registry.registerBeanDefinition(aspectBeanName, aspect.getBeanDefinition());
+    }
 
 }

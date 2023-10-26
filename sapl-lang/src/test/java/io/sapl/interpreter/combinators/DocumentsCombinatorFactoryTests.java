@@ -33,34 +33,34 @@ import io.sapl.grammar.sapl.impl.PermitUnlessDenyCombiningAlgorithmImplCustom;
 
 class DocumentsCombinatorFactoryTests {
 
-	@Test
-	void permitUnlessDeny() {
-		assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(PERMIT_UNLESS_DENY),
-				instanceOf(PermitUnlessDenyCombiningAlgorithmImplCustom.class));
-	}
+    @Test
+    void permitUnlessDeny() {
+        assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(PERMIT_UNLESS_DENY),
+                instanceOf(PermitUnlessDenyCombiningAlgorithmImplCustom.class));
+    }
 
-	@Test
-	void permitOverrides() {
-		assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(PERMIT_OVERRIDES),
-				instanceOf(PermitOverridesCombiningAlgorithmImplCustom.class));
-	}
+    @Test
+    void permitOverrides() {
+        assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(PERMIT_OVERRIDES),
+                instanceOf(PermitOverridesCombiningAlgorithmImplCustom.class));
+    }
 
-	@Test
-	void denyOverrides() {
-		assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(DENY_OVERRIDES),
-				instanceOf(DenyOverridesCombiningAlgorithmImplCustom.class));
-	}
+    @Test
+    void denyOverrides() {
+        assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(DENY_OVERRIDES),
+                instanceOf(DenyOverridesCombiningAlgorithmImplCustom.class));
+    }
 
-	@Test
-	void oneApplicable() {
-		assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(ONLY_ONE_APPLICABLE),
-				instanceOf(OnlyOneApplicableCombiningAlgorithmImplCustom.class));
-	}
+    @Test
+    void oneApplicable() {
+        assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(ONLY_ONE_APPLICABLE),
+                instanceOf(OnlyOneApplicableCombiningAlgorithmImplCustom.class));
+    }
 
-	@Test
-	void denyUnlessPermit() {
-		assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(DENY_UNLESS_PERMIT),
-				instanceOf(DenyUnlessPermitCombiningAlgorithmImplCustom.class));
-	}
+    @Test
+    void denyUnlessPermit() {
+        assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(DENY_UNLESS_PERMIT),
+                instanceOf(DenyUnlessPermitCombiningAlgorithmImplCustom.class));
+    }
 
 }

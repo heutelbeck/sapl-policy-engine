@@ -35,217 +35,189 @@ import io.sapl.api.interpreter.Val;
 
 class ConfigUtilityTest {
 
-	private static final String ENVIRONMENT_DEFAULT_MESSAGE = "defaultMessage";
+    private static final String ENVIRONMENT_DEFAULT_MESSAGE = "defaultMessage";
 
-	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	@Test
-	void when_jsonValueIsSpecifiedInMqttClientConfig_then_returnJsonValue() {
-		// GIVEN
-		var defaultConfig = JSON.nullNode();
-		var mqttPipConfig = JSON.objectNode()
-				.set(ENVIRONMENT_DEFAULT_MESSAGE, JSON.objectNode()
-						.put("key", "value"));
+    @Test
+    void when_jsonValueIsSpecifiedInMqttClientConfig_then_returnJsonValue() {
+        // GIVEN
+        var defaultConfig = JSON.nullNode();
+        var mqttPipConfig = JSON.objectNode().set(ENVIRONMENT_DEFAULT_MESSAGE, JSON.objectNode().put("key", "value"));
 
-		// WHEN
-		var config = ConfigUtility.getConfigValueOrDefault(mqttPipConfig,
-				ENVIRONMENT_DEFAULT_MESSAGE, defaultConfig);
+        // WHEN
+        var config = ConfigUtility.getConfigValueOrDefault(mqttPipConfig, ENVIRONMENT_DEFAULT_MESSAGE, defaultConfig);
 
-		// THEN
-		assertEquals("value", config.get("key").asText());
-	}
+        // THEN
+        assertEquals("value", config.get("key").asText());
+    }
 
-	@Test
-	void when_jsonValueIsNotSpecifiedInMqttClientConfig_then_returnDefaultJsonValue() {
-		// GIVEN
-		var defaultConfig = JSON.objectNode()
-				.put("key", "value");
-		var mqttPipConfig = JSON.objectNode();
+    @Test
+    void when_jsonValueIsNotSpecifiedInMqttClientConfig_then_returnDefaultJsonValue() {
+        // GIVEN
+        var defaultConfig = JSON.objectNode().put("key", "value");
+        var mqttPipConfig = JSON.objectNode();
 
-		// WHEN
-		var config = ConfigUtility.getConfigValueOrDefault(mqttPipConfig,
-				ENVIRONMENT_DEFAULT_MESSAGE, defaultConfig);
+        // WHEN
+        var config = ConfigUtility.getConfigValueOrDefault(mqttPipConfig, ENVIRONMENT_DEFAULT_MESSAGE, defaultConfig);
 
-		// THEN
-		assertEquals("value", config.get("key").asText());
-	}
+        // THEN
+        assertEquals("value", config.get("key").asText());
+    }
 
-	@Test
-	void when_longValueIsSpecifiedInMqttClientConfig_then_returnLongValue() {
-		// GIVEN
-		var defaultConfig = 5;
-		var mqttPipConfig = JSON.objectNode()
-				.put(ENVIRONMENT_ERROR_RETRY_ATTEMPTS, 6)
-				.put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
-				.set(ENVIRONMENT_BROKER_CONFIG, JSON.arrayNode()
-						.add(JSON.objectNode()
-								.put(ENVIRONMENT_BROKER_CONFIG_NAME, "production")
-								.put(ENVIRONMENT_BROKER_ADDRESS, "localhost")
-								.put(ENVIRONMENT_BROKER_PORT, 1883)
-								.put(ENVIRONMENT_CLIENT_ID, "mqttPipDefault")));
+    @Test
+    void when_longValueIsSpecifiedInMqttClientConfig_then_returnLongValue() {
+        // GIVEN
+        var defaultConfig = 5;
+        var mqttPipConfig = JSON.objectNode().put(ENVIRONMENT_ERROR_RETRY_ATTEMPTS, 6)
+                .put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production").set(ENVIRONMENT_BROKER_CONFIG,
+                        JSON.arrayNode()
+                                .add(JSON.objectNode().put(ENVIRONMENT_BROKER_CONFIG_NAME, "production")
+                                        .put(ENVIRONMENT_BROKER_ADDRESS, "localhost").put(ENVIRONMENT_BROKER_PORT, 1883)
+                                        .put(ENVIRONMENT_CLIENT_ID, "mqttPipDefault")));
 
-		// WHEN
-		var config = ConfigUtility.getConfigValueOrDefault(mqttPipConfig,
-				ENVIRONMENT_ERROR_RETRY_ATTEMPTS, defaultConfig);
+        // WHEN
+        var config = ConfigUtility.getConfigValueOrDefault(mqttPipConfig, ENVIRONMENT_ERROR_RETRY_ATTEMPTS,
+                defaultConfig);
 
-		// THEN
-		assertEquals(6, config);
-	}
+        // THEN
+        assertEquals(6, config);
+    }
 
-	@Test
-	void when_getMqttBrokerConfigIsCalledWithEmptyMqttClientConfig_then_throwNoSuchElementException() {
-		// GIVEN
-		var undefined = Val.UNDEFINED;
+    @Test
+    void when_getMqttBrokerConfigIsCalledWithEmptyMqttClientConfig_then_throwNoSuchElementException() {
+        // GIVEN
+        var undefined = Val.UNDEFINED;
 
-		// THEN
-		assertThrowsExactly(NoSuchElementException.class,
-				() -> ConfigUtility.getMqttBrokerConfig(null, undefined));
-	}
+        // THEN
+        assertThrowsExactly(NoSuchElementException.class, () -> ConfigUtility.getMqttBrokerConfig(null, undefined));
+    }
 
-	@Test
-	void when_gettingMqttBrokerConfigAndNoConfigParamsAndEmptyConfigInPdpConfig_then_throwException() {
-		// GIVEN
-		var mqttPipConfig = JSON.objectNode()
-				.put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
-				.set(ENVIRONMENT_BROKER_CONFIG, JSON.nullNode());
+    @Test
+    void when_gettingMqttBrokerConfigAndNoConfigParamsAndEmptyConfigInPdpConfig_then_throwException() {
+        // GIVEN
+        var mqttPipConfig = JSON.objectNode().put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
+                .set(ENVIRONMENT_BROKER_CONFIG, JSON.nullNode());
 
-		// THEN
-		assertThrowsExactly(NoSuchElementException.class,
-				() -> ConfigUtility.getMqttBrokerConfig(mqttPipConfig, Val.UNDEFINED));
-	}
+        // THEN
+        assertThrowsExactly(NoSuchElementException.class,
+                () -> ConfigUtility.getMqttBrokerConfig(mqttPipConfig, Val.UNDEFINED));
+    }
 
-	@Test
-	void when_gettingMqttBrokerConfigAndNoReferenceInConfigParamsAndEmptyConfigInPdpConfig_then_throwException() {
-		// GIVEN
-		var mqttPipConfig = JSON.objectNode()
-				.put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
-				.set(ENVIRONMENT_BROKER_CONFIG, JSON.nullNode());
+    @Test
+    void when_gettingMqttBrokerConfigAndNoReferenceInConfigParamsAndEmptyConfigInPdpConfig_then_throwException() {
+        // GIVEN
+        var mqttPipConfig = JSON.objectNode().put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
+                .set(ENVIRONMENT_BROKER_CONFIG, JSON.nullNode());
 
-		// THEN
-		assertThrowsExactly(NoSuchElementException.class,
-				() -> ConfigUtility.getMqttBrokerConfig(mqttPipConfig, Val.FALSE));
-	}
+        // THEN
+        assertThrowsExactly(NoSuchElementException.class,
+                () -> ConfigUtility.getMqttBrokerConfig(mqttPipConfig, Val.FALSE));
+    }
 
-	@Test
-	void when_gettingMqttBrokerConfigAndReferencingEmptyPdpConfig_then_throwException() {
-		// GIVEN
-		var mqttPipConfig = JSON.objectNode()
-				.put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
-				.set(ENVIRONMENT_BROKER_CONFIG, JSON.nullNode());
+    @Test
+    void when_gettingMqttBrokerConfigAndReferencingEmptyPdpConfig_then_throwException() {
+        // GIVEN
+        var mqttPipConfig = JSON.objectNode().put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
+                .set(ENVIRONMENT_BROKER_CONFIG, JSON.nullNode());
 
-		// THEN
-		assertThrowsExactly(NoSuchElementException.class,
-				() -> ConfigUtility.getMqttBrokerConfig(mqttPipConfig, Val.of("reference")));
-	}
+        // THEN
+        assertThrowsExactly(NoSuchElementException.class,
+                () -> ConfigUtility.getMqttBrokerConfig(mqttPipConfig, Val.of("reference")));
+    }
 
-	@Test
-	void when_gettingMqttBrokerConfigAndBrokerConfigNameDoesNotEqualTheReferencedConfiguration_then_throwException() {
-		// GIVEN
-		var mqttPipConfig = JSON.objectNode()
-				.put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
-				.set(ENVIRONMENT_BROKER_CONFIG, JSON.objectNode()
-						.put(ENVIRONMENT_BROKER_CONFIG_NAME, "production")
-						.put(ENVIRONMENT_BROKER_ADDRESS, "localhost")
-						.put(ENVIRONMENT_BROKER_PORT, 1883)
-						.put(ENVIRONMENT_CLIENT_ID, "mqttPipDefault"));
+    @Test
+    void when_gettingMqttBrokerConfigAndBrokerConfigNameDoesNotEqualTheReferencedConfiguration_then_throwException() {
+        // GIVEN
+        var mqttPipConfig = JSON.objectNode().put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production").set(
+                ENVIRONMENT_BROKER_CONFIG,
+                JSON.objectNode().put(ENVIRONMENT_BROKER_CONFIG_NAME, "production")
+                        .put(ENVIRONMENT_BROKER_ADDRESS, "localhost").put(ENVIRONMENT_BROKER_PORT, 1883)
+                        .put(ENVIRONMENT_CLIENT_ID, "mqttPipDefault"));
 
-		// THEN
-		assertThrowsExactly(NoSuchElementException.class,
-				() -> ConfigUtility.getMqttBrokerConfig(mqttPipConfig, Val.of("reference")));
-	}
+        // THEN
+        assertThrowsExactly(NoSuchElementException.class,
+                () -> ConfigUtility.getMqttBrokerConfig(mqttPipConfig, Val.of("reference")));
+    }
 
-	@Test
-	void when_gettingMqttBrokerConfigAndReferenceViaParamsButNoReferenceSpecifiedInPdpConfigArray_then_throwException() {
-		// GIVEN
-		var mqttPipConfig = JSON.objectNode()
-				.put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
-				.set(ENVIRONMENT_BROKER_CONFIG, JSON.objectNode()
-						.put(ENVIRONMENT_BROKER_ADDRESS, "localhost")
-						.put(ENVIRONMENT_BROKER_PORT, 1883)
-						.put(ENVIRONMENT_CLIENT_ID, "mqttPipDefault"));
+    @Test
+    void when_gettingMqttBrokerConfigAndReferenceViaParamsButNoReferenceSpecifiedInPdpConfigArray_then_throwException() {
+        // GIVEN
+        var mqttPipConfig = JSON.objectNode().put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
+                .set(ENVIRONMENT_BROKER_CONFIG, JSON.objectNode().put(ENVIRONMENT_BROKER_ADDRESS, "localhost")
+                        .put(ENVIRONMENT_BROKER_PORT, 1883).put(ENVIRONMENT_CLIENT_ID, "mqttPipDefault"));
 
-		// THEN
-		assertThrowsExactly(NoSuchElementException.class,
-				() -> ConfigUtility.getMqttBrokerConfig(mqttPipConfig, Val.of("reference")));
-	}
+        // THEN
+        assertThrowsExactly(NoSuchElementException.class,
+                () -> ConfigUtility.getMqttBrokerConfig(mqttPipConfig, Val.of("reference")));
+    }
 
-	@Test
-	void when_gettingMqttBrokerConfigAndReferenceIsSpecifiedInParamsButNoReferenceSpecifiedInPdpConfigObject_then_throwException() {
-		// GIVEN
-		var mqttPipConfig = JSON.objectNode()
-				.put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
-				.set(ENVIRONMENT_BROKER_CONFIG, JSON.arrayNode()
-						.add(JSON.objectNode()
-								.put(ENVIRONMENT_BROKER_ADDRESS, "localhost")
-								.put(ENVIRONMENT_BROKER_PORT, 1883)
-								.put(ENVIRONMENT_CLIENT_ID, "mqttPipDefault")));
+    @Test
+    void when_gettingMqttBrokerConfigAndReferenceIsSpecifiedInParamsButNoReferenceSpecifiedInPdpConfigObject_then_throwException() {
+        // GIVEN
+        var mqttPipConfig = JSON.objectNode().put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production").set(
+                ENVIRONMENT_BROKER_CONFIG,
+                JSON.arrayNode().add(JSON.objectNode().put(ENVIRONMENT_BROKER_ADDRESS, "localhost")
+                        .put(ENVIRONMENT_BROKER_PORT, 1883).put(ENVIRONMENT_CLIENT_ID, "mqttPipDefault")));
 
-		// THEN
-		assertThrowsExactly(NoSuchElementException.class,
-				() -> ConfigUtility.getMqttBrokerConfig(mqttPipConfig, Val.UNDEFINED));
-	}
+        // THEN
+        assertThrowsExactly(NoSuchElementException.class,
+                () -> ConfigUtility.getMqttBrokerConfig(mqttPipConfig, Val.UNDEFINED));
+    }
 
-	@Test
-	void when_configAsArrayInPdpJsonIsReferencedViaAttributeFinder_then_getReferencedConfig() {
-		// GIVEN
-		var mqttPipConfig = JSON.objectNode()
-				.put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
-				.set(ENVIRONMENT_BROKER_CONFIG, JSON.arrayNode()
-						.add(JSON.objectNode()
-								.put(ENVIRONMENT_BROKER_CONFIG_NAME, "production")
-								.put(ENVIRONMENT_BROKER_ADDRESS, "localhost")
-								.put(ENVIRONMENT_BROKER_PORT, 1883)
-								.put(ENVIRONMENT_CLIENT_ID, "mqttPipDefault"))
-						.add(JSON.objectNode()
-								.put(ENVIRONMENT_BROKER_CONFIG_NAME, "broker2")
-								.put(ENVIRONMENT_BROKER_ADDRESS, "localhost")
-								.put(ENVIRONMENT_BROKER_PORT, 1883)
-								.put(ENVIRONMENT_CLIENT_ID, "broker2")));
-		var brokerConfig  = Val.of("broker2");
+    @Test
+    void when_configAsArrayInPdpJsonIsReferencedViaAttributeFinder_then_getReferencedConfig() {
+        // GIVEN
+        var mqttPipConfig = JSON.objectNode().put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production").set(
+                ENVIRONMENT_BROKER_CONFIG,
+                JSON.arrayNode()
+                        .add(JSON.objectNode().put(ENVIRONMENT_BROKER_CONFIG_NAME, "production")
+                                .put(ENVIRONMENT_BROKER_ADDRESS, "localhost").put(ENVIRONMENT_BROKER_PORT, 1883)
+                                .put(ENVIRONMENT_CLIENT_ID, "mqttPipDefault"))
+                        .add(JSON.objectNode().put(ENVIRONMENT_BROKER_CONFIG_NAME, "broker2")
+                                .put(ENVIRONMENT_BROKER_ADDRESS, "localhost").put(ENVIRONMENT_BROKER_PORT, 1883)
+                                .put(ENVIRONMENT_CLIENT_ID, "broker2")));
+        var brokerConfig  = Val.of("broker2");
 
-		// WHEN
-		var config = ConfigUtility.getMqttBrokerConfig(mqttPipConfig, brokerConfig);
+        // WHEN
+        var config = ConfigUtility.getMqttBrokerConfig(mqttPipConfig, brokerConfig);
 
-		// THEN
-		assertEquals("broker2", config.get(ENVIRONMENT_CLIENT_ID).asText());
-	}
+        // THEN
+        assertEquals("broker2", config.get(ENVIRONMENT_CLIENT_ID).asText());
+    }
 
-	@Test
-	void when_configAsObjectInPdpJsonIsReferencedViaAttributeFinder_then_getReferencedConfig() {
-		// GIVEN
-		var mqttPipConfig = JSON.objectNode()
-				.put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
-				.set(ENVIRONMENT_BROKER_CONFIG, JSON.objectNode()
-						.put(ENVIRONMENT_BROKER_CONFIG_NAME, "broker2")
-						.put(ENVIRONMENT_BROKER_ADDRESS, "localhost")
-						.put(ENVIRONMENT_BROKER_PORT, 1883)
-						.put(ENVIRONMENT_CLIENT_ID, "broker2"));
-		var brokerConfig  = Val.of("broker2");
+    @Test
+    void when_configAsObjectInPdpJsonIsReferencedViaAttributeFinder_then_getReferencedConfig() {
+        // GIVEN
+        var mqttPipConfig = JSON.objectNode().put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production").set(
+                ENVIRONMENT_BROKER_CONFIG,
+                JSON.objectNode().put(ENVIRONMENT_BROKER_CONFIG_NAME, "broker2")
+                        .put(ENVIRONMENT_BROKER_ADDRESS, "localhost").put(ENVIRONMENT_BROKER_PORT, 1883)
+                        .put(ENVIRONMENT_CLIENT_ID, "broker2"));
+        var brokerConfig  = Val.of("broker2");
 
-		// WHEN
-		var config = ConfigUtility.getMqttBrokerConfig(mqttPipConfig, brokerConfig);
+        // WHEN
+        var config = ConfigUtility.getMqttBrokerConfig(mqttPipConfig, brokerConfig);
 
-		// THEN
-		assertEquals("broker2", config.get(ENVIRONMENT_CLIENT_ID).asText());
-	}
+        // THEN
+        assertEquals("broker2", config.get(ENVIRONMENT_CLIENT_ID).asText());
+    }
 
-	@Test
-	void when_configAsObjectInPdpJsonAndNoAttributeFinderParam_then_getConfigFromPdpJson() {
-		// GIVEN
-		var undefined     = Val.UNDEFINED;
-		var mqttPipConfig = JSON.objectNode()
-				.put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
-				.set(ENVIRONMENT_BROKER_CONFIG, JSON.objectNode()
-						.put(ENVIRONMENT_BROKER_CONFIG_NAME, "production")
-						.put(ENVIRONMENT_BROKER_ADDRESS, "localhost")
-						.put(ENVIRONMENT_BROKER_PORT, 1883)
-						.put(ENVIRONMENT_CLIENT_ID, "production"));
+    @Test
+    void when_configAsObjectInPdpJsonAndNoAttributeFinderParam_then_getConfigFromPdpJson() {
+        // GIVEN
+        var undefined     = Val.UNDEFINED;
+        var mqttPipConfig = JSON.objectNode().put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production").set(
+                ENVIRONMENT_BROKER_CONFIG,
+                JSON.objectNode().put(ENVIRONMENT_BROKER_CONFIG_NAME, "production")
+                        .put(ENVIRONMENT_BROKER_ADDRESS, "localhost").put(ENVIRONMENT_BROKER_PORT, 1883)
+                        .put(ENVIRONMENT_CLIENT_ID, "production"));
 
-		// WHEN
-		var config = ConfigUtility.getMqttBrokerConfig(mqttPipConfig, undefined);
+        // WHEN
+        var config = ConfigUtility.getMqttBrokerConfig(mqttPipConfig, undefined);
 
-		// THEN
-		assertEquals("production", config.get(ENVIRONMENT_CLIENT_ID).asText());
-	}
+        // THEN
+        assertEquals("production", config.get(ENVIRONMENT_CLIENT_ID).asText());
+    }
 
 }

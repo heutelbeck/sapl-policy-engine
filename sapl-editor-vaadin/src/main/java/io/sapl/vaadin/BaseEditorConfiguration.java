@@ -22,11 +22,11 @@ import lombok.Data;
  */
 @Data
 public class BaseEditorConfiguration {
-	private boolean hasLineNumbers    = true;
-	private boolean autoCloseBrackets = true;
-	private boolean matchBrackets     = true;
-	private int     textUpdateDelay   = 500;
-	private boolean readOnly          = false;
-	private boolean lint              = true;
-	private boolean darkTheme         = false;
+    private boolean hasLineNumbers    = true;
+    private boolean autoCloseBrackets = true;
+    private boolean matchBrackets     = true;
+    private int     textUpdateDelay   = 500;
+    private boolean readOnly          = false;
+    private boolean lint              = true;
+    private boolean darkTheme         = false;
 }

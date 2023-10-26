@@ -18,4 +18,5 @@ package io.sapl.api.interpreter;
 /**
  * Traced expression argument value.
  */
-public record ExpressionArgument(String name, Traced value) {}
+public record ExpressionArgument(String name, Traced value) {
+}

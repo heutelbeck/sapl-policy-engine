@@ -30,21 +30,21 @@ import reactor.core.publisher.Flux;
  */
 public class BasicEnvironmentAttributeImplCustom extends BasicEnvironmentAttributeImpl {
 
-	private static final String EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR = "Attribute resolution error. Attributes not allowed in target.";
+    private static final String EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR = "Attribute resolution error. Attributes not allowed in target.";
 
-	@Override
-	public Flux<Val> evaluate() {
-		return Flux.deferContextual(ctxView -> {
-			var attributeName = FunctionUtil.resolveAbsoluteFunctionName(getIdSteps(),
-					AuthorizationContext.getImports(ctxView));
+    @Override
+    public Flux<Val> evaluate() {
+        return Flux.deferContextual(ctxView -> {
+            var attributeName = FunctionUtil.resolveAbsoluteFunctionName(getIdSteps(),
+                    AuthorizationContext.getImports(ctxView));
 
-			if (TargetExpressionUtil.isInTargetExpression(this))
-				return Flux.just(Val.error(EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR).withTrace(AttributeFinderStep.class,
-						Map.of(Trace.ATTRIBUTE, Val.of(attributeName))));
+            if (TargetExpressionUtil.isInTargetExpression(this))
+                return Flux.just(Val.error(EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR).withTrace(AttributeFinderStep.class,
+                        Map.of(Trace.ATTRIBUTE, Val.of(attributeName))));
 
-			return AuthorizationContext.getAttributeContext(ctxView).evaluateEnvironmentAttribute(attributeName,
-					getArguments(), AuthorizationContext.getVariables(ctxView)).distinctUntilChanged();
-		});
-	}
+            return AuthorizationContext.getAttributeContext(ctxView).evaluateEnvironmentAttribute(attributeName,
+                    getArguments(), AuthorizationContext.getVariables(ctxView)).distinctUntilChanged();
+        });
+    }
 
 }

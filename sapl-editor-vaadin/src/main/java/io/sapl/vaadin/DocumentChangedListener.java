@@ -22,8 +22,8 @@ import java.io.Serializable;
  */
 @FunctionalInterface
 public interface DocumentChangedListener extends Serializable {
-	/**
-	 * @param event the change event.
-	 */
-	void onDocumentChanged(DocumentChangedEvent event);
+    /**
+     * @param event the change event.
+     */
+    void onDocumentChanged(DocumentChangedEvent event);
 }

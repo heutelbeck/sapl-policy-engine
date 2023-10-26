@@ -36,49 +36,49 @@ import reactor.test.StepVerifier;
 @Timeout(3)
 class FileMonitorUtilTest {
 
-	@Test
-	void resolve_home_folder_in_valid_path() {
-		var homePath = String.format("%shome%sjohndoe", File.separator, File.separator);
-		System.setProperty("user.home", homePath);
+    @Test
+    void resolve_home_folder_in_valid_path() {
+        var homePath = String.format("%shome%sjohndoe", File.separator, File.separator);
+        System.setProperty("user.home", homePath);
 
-		var path = FileMonitorUtil.resolveHomeFolderIfPresent("~" + File.separator);
+        var path = FileMonitorUtil.resolveHomeFolderIfPresent("~" + File.separator);
 
-		assertThat(path, containsString(homePath));
-	}
+        assertThat(path, containsString(homePath));
+    }
 
-	@Test
-	void resolve_home_folder_in_path_without_home() {
-		var folder = File.separator + "opt" + File.separator;
-		var path = FileMonitorUtil.resolveHomeFolderIfPresent(folder);
+    @Test
+    void resolve_home_folder_in_path_without_home() {
+        var folder = File.separator + "opt" + File.separator;
+        var path   = FileMonitorUtil.resolveHomeFolderIfPresent(folder);
 
-		assertThat(path, is(folder));
-	}
+        assertThat(path, is(folder));
+    }
 
-	@Test
-	void return_no_event_for_non_existent_directory() {
-		Flux<FileEvent> monitorFlux = FileMonitorUtil.monitorDirectory("src/test/resources/not_existing_dir",
-				__ -> true);
+    @Test
+    void return_no_event_for_non_existent_directory() {
+        Flux<FileEvent> monitorFlux = FileMonitorUtil.monitorDirectory("src/test/resources/not_existing_dir",
+                __ -> true);
 
-		StepVerifier.create(monitorFlux).expectNextCount(0L).thenCancel().verify();
-		monitorFlux.take(1L).subscribe();
-	}
+        StepVerifier.create(monitorFlux).expectNextCount(0L).thenCancel().verify();
+        monitorFlux.take(1L).subscribe();
+    }
 
-	@Test
-	void return_no_event_when_nothing_changes() {
-		Flux<FileEvent> monitorFlux = FileMonitorUtil.monitorDirectory("src/test/resources/policies", __ -> true);
-		StepVerifier.create(monitorFlux).expectNextCount(0L).thenCancel().verify();
-	}
+    @Test
+    void return_no_event_when_nothing_changes() {
+        Flux<FileEvent> monitorFlux = FileMonitorUtil.monitorDirectory("src/test/resources/policies", __ -> true);
+        StepVerifier.create(monitorFlux).expectNextCount(0L).thenCancel().verify();
+    }
 
-	@Test
-	void throw_exception_in_monitor_start() throws Exception {
-		try (MockedConstruction<FileAlterationMonitor> mocked = Mockito.mockConstruction(FileAlterationMonitor.class,
-				(mock, context) -> doThrow(new Exception()).when(mock).start())) {
+    @Test
+    void throw_exception_in_monitor_start() throws Exception {
+        try (MockedConstruction<FileAlterationMonitor> mocked = Mockito.mockConstruction(FileAlterationMonitor.class,
+                (mock, context) -> doThrow(new Exception()).when(mock).start())) {
 
-			Flux<FileEvent> monitorFlux = FileMonitorUtil.monitorDirectory("~/", __ -> true);
-			monitorFlux.take(1L).subscribe();
-			assertThat(mocked.constructed().size(), is(1));
-			verify(mocked.constructed().get(0), times(1)).start();
-		}
-	}
+            Flux<FileEvent> monitorFlux = FileMonitorUtil.monitorDirectory("~/", __ -> true);
+            monitorFlux.take(1L).subscribe();
+            assertThat(mocked.constructed().size(), is(1));
+            verify(mocked.constructed().get(0), times(1)).start();
+        }
+    }
 
 }

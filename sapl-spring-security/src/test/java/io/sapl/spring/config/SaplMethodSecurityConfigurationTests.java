@@ -29,21 +29,21 @@ import io.sapl.spring.constraints.ConstraintEnforcementService;
 
 class SaplMethodSecurityConfigurationTests {
 
-	@Test
-	void whenRan_thenFilterBeansArePresent() {
-		new ApplicationContextRunner().withUserConfiguration(OnlyBlockingSaplMethodSecurityConfiguration.class)
-				.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
-				.withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
-				.withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
-					assertThat(context).hasNotFailed();
-					assertThat(context).hasBean("postEnforcePolicyEnforcementPoint");
-					assertThat(context).hasBean("preEnforcePolicyEnforcementPoint");
-				});
-	}
+    @Test
+    void whenRan_thenFilterBeansArePresent() {
+        new ApplicationContextRunner().withUserConfiguration(OnlyBlockingSaplMethodSecurityConfiguration.class)
+                .withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
+                .withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
+                .withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasBean("postEnforcePolicyEnforcementPoint");
+                    assertThat(context).hasBean("preEnforcePolicyEnforcementPoint");
+                });
+    }
 
-	@Configuration
-	@EnableSaplMethodSecurity
-	public static class OnlyBlockingSaplMethodSecurityConfiguration {
-	}
+    @Configuration
+    @EnableSaplMethodSecurity
+    public static class OnlyBlockingSaplMethodSecurityConfiguration {
+    }
 
 }

@@ -31,44 +31,44 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class PolicyBodyImplCustomCoverage extends PolicyBodyImplCustom {
 
-	private final CoverageHitRecorder hitRecorder;
+    private final CoverageHitRecorder hitRecorder;
 
-	private int currentStatementId = 0;
+    private int currentStatementId = 0;
 
-	PolicyBodyImplCustomCoverage(CoverageHitRecorder recorder) {
-		this.hitRecorder = recorder;
-	}
+    PolicyBodyImplCustomCoverage(CoverageHitRecorder recorder) {
+        this.hitRecorder = recorder;
+    }
 
-	@Override
+    @Override
 
-	protected Flux<Val> evaluateStatements(Val previousResult, int statementId) {
-		this.currentStatementId = statementId;
-		return super.evaluateStatements(previousResult, statementId);
-	}
+    protected Flux<Val> evaluateStatements(Val previousResult, int statementId) {
+        this.currentStatementId = statementId;
+        return super.evaluateStatements(previousResult, statementId);
+    }
 
-	@Override
-	protected Flux<Val> evaluateCondition(Val previousResult, Condition condition) {
-		return super.evaluateCondition(previousResult, condition).doOnNext(result -> {
-			if (result.isBoolean()) {
-				String  policySetId = "";
-				String  policyId;
-				EObject eContainer1 = eContainer();
-				/*
-				 * A PolicyBody outside a Policy is not allowed -> thus a pre-cast if statement
-				 * like if(eContainer1.eClass().equals(SaplPackage.Literals.POLICY)) cannot be
-				 * false and therefore cannot be tested
-				 */
-				policyId = ((Policy) eContainer1).getSaplName();
-				EObject eContainer2 = eContainer1.eContainer();
-				if (eContainer2.eClass().equals(SaplPackage.Literals.POLICY_SET)) {
-					policySetId = ((PolicySet) eContainer2).getSaplName();
-				}
-				PolicyConditionHit hit = new PolicyConditionHit(policySetId, policyId, currentStatementId,
-						result.getBoolean());
-				log.trace("| | | | |-- Hit PolicyCondition: " + hit);
-				this.hitRecorder.recordPolicyConditionHit(hit);
-			}
-		});
-	}
+    @Override
+    protected Flux<Val> evaluateCondition(Val previousResult, Condition condition) {
+        return super.evaluateCondition(previousResult, condition).doOnNext(result -> {
+            if (result.isBoolean()) {
+                String  policySetId = "";
+                String  policyId;
+                EObject eContainer1 = eContainer();
+                /*
+                 * A PolicyBody outside a Policy is not allowed -> thus a pre-cast if statement
+                 * like if(eContainer1.eClass().equals(SaplPackage.Literals.POLICY)) cannot be
+                 * false and therefore cannot be tested
+                 */
+                policyId = ((Policy) eContainer1).getSaplName();
+                EObject eContainer2 = eContainer1.eContainer();
+                if (eContainer2.eClass().equals(SaplPackage.Literals.POLICY_SET)) {
+                    policySetId = ((PolicySet) eContainer2).getSaplName();
+                }
+                PolicyConditionHit hit = new PolicyConditionHit(policySetId, policyId, currentStatementId,
+                        result.getBoolean());
+                log.trace("| | | | |-- Hit PolicyCondition: " + hit);
+                this.hitRecorder.recordPolicyConditionHit(hit);
+            }
+        });
+    }
 
 }

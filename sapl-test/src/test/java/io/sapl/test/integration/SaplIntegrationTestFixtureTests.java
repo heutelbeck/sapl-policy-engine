@@ -31,59 +31,59 @@ import io.sapl.test.SaplTestFixture;
 
 class SaplIntegrationTestFixtureTests {
 
-	private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper();
 
-	@Test
-	void test() {
-		var fixture = new SaplIntegrationTestFixture("policiesIT");
-		fixture.constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit().verify();
-	}
+    @Test
+    void test() {
+        var fixture = new SaplIntegrationTestFixture("policiesIT");
+        fixture.constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit().verify();
+    }
 
-	@Test
-	void test_withPDPPolicyCombiningAlgorithm() {
-		var fixture = new SaplIntegrationTestFixture("policiesIT");
-		fixture.withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.PERMIT_UNLESS_DENY).constructTestCase()
-				.when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny().verify();
-	}
+    @Test
+    void test_withPDPPolicyCombiningAlgorithm() {
+        var fixture = new SaplIntegrationTestFixture("policiesIT");
+        fixture.withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.PERMIT_UNLESS_DENY).constructTestCase()
+                .when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny().verify();
+    }
 
-	@Test
-	void test_withPDPVariables() {
-		var fixture   = new SaplIntegrationTestFixture("it/variables");
-		var variables = new HashMap<String, JsonNode>(1);
-		variables.put("test", mapper.createObjectNode().numberNode(1));
-		fixture.withPDPVariables(variables).constructTestCase()
-				.when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit().verify();
-	}
+    @Test
+    void test_withPDPVariables() {
+        var fixture   = new SaplIntegrationTestFixture("it/variables");
+        var variables = new HashMap<String, JsonNode>(1);
+        variables.put("test", mapper.createObjectNode().numberNode(1));
+        fixture.withPDPVariables(variables).constructTestCase()
+                .when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit().verify();
+    }
 
-	@Test
-	void test_withoutPDPVariables() {
-		var fixture = new SaplIntegrationTestFixture("it/variables");
-		fixture.constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectNotApplicable()
-				.verify();
-	}
+    @Test
+    void test_withoutPDPVariables() {
+        var fixture = new SaplIntegrationTestFixture("it/variables");
+        fixture.constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectNotApplicable()
+                .verify();
+    }
 
-	@Test
-	void test_invalidPath1() {
-		var fixture = new SaplIntegrationTestFixture("");
-		assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase);
-	}
+    @Test
+    void test_invalidPath1() {
+        var fixture = new SaplIntegrationTestFixture("");
+        assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase);
+    }
 
-	@Test
-	void test_invalidPath2() {
-		SaplTestFixture fixture = new SaplIntegrationTestFixture("");
-		assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks);
-	}
+    @Test
+    void test_invalidPath2() {
+        SaplTestFixture fixture = new SaplIntegrationTestFixture("");
+        assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks);
+    }
 
-	@Test
-	void test_invalidPath3() {
-		SaplTestFixture fixture = new SaplIntegrationTestFixture(null);
-		assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase);
-	}
+    @Test
+    void test_invalidPath3() {
+        SaplTestFixture fixture = new SaplIntegrationTestFixture(null);
+        assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase);
+    }
 
-	@Test
-	void test_invalidPath4() {
-		SaplTestFixture fixture = new SaplIntegrationTestFixture(null);
-		assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks);
-	}
+    @Test
+    void test_invalidPath4() {
+        SaplTestFixture fixture = new SaplIntegrationTestFixture(null);
+        assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks);
+    }
 
 }

@@ -18,16 +18,16 @@ package io.sapl.grammar.ide;
 import org.eclipse.xtext.testing.AbstractLanguageServerTest;
 
 /**
- * This class derives from the xtext test class to define a test environment for sapl
- * policies
+ * This class derives from the xtext test class to define a test environment for
+ * sapl policies
  */
 public abstract class AbstractSaplLanguageServerTest extends AbstractLanguageServerTest {
 
-	/**
-	 * Instantiates the test.
-	 */
-	public AbstractSaplLanguageServerTest() {
-		super("sapl");
-	}
+    /**
+     * Instantiates the test.
+     */
+    public AbstractSaplLanguageServerTest() {
+        super("sapl");
+    }
 
 }

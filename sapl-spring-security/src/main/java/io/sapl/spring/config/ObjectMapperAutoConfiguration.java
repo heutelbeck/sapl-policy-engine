@@ -50,72 +50,72 @@ import lombok.extern.slf4j.Slf4j;
 @AutoConfiguration
 public class ObjectMapperAutoConfiguration {
 
-	@Bean
-	@ConditionalOnMissingBean
-	ObjectMapper objectMapper() {
-		return new ObjectMapper();
-	}
+    @Bean
+    @ConditionalOnMissingBean
+    ObjectMapper objectMapper() {
+        return new ObjectMapper();
+    }
 
-	/**
-	 * Register serializers for creating authorization subscriptions.
-	 * 
-	 * @author Dominic Heutelbeck
-	 *
-	 */
-	@Configuration
-	public static class BasicModuleRegistrationConfiguration {
+    /**
+     * Register serializers for creating authorization subscriptions.
+     * 
+     * @author Dominic Heutelbeck
+     *
+     */
+    @Configuration
+    public static class BasicModuleRegistrationConfiguration {
 
-		@Autowired
-		void configureObjectMapper(final ObjectMapper mapper) {
-			log.debug("Add basic SAPL serializer modules to ObjectMapper");
-			var module = new SimpleModule();
-			module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
-			mapper.registerModule(module);
-			mapper.registerModule(new Jdk8Module());
-			mapper.registerModule(new JavaTimeModule());
-			mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-		}
+        @Autowired
+        void configureObjectMapper(final ObjectMapper mapper) {
+            log.debug("Add basic SAPL serializer modules to ObjectMapper");
+            var module = new SimpleModule();
+            module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
+            mapper.registerModule(module);
+            mapper.registerModule(new Jdk8Module());
+            mapper.registerModule(new JavaTimeModule());
+            mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        }
 
-	}
+    }
 
-	/**
-	 * Register serializers for Servlet-based authorization subscriptions.
-	 * 
-	 * @author Dominic Heutelbeck
-	 *
-	 */
-	@Configuration
-	@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-	public static class ServletModuleRegistrationConfiguration {
+    /**
+     * Register serializers for Servlet-based authorization subscriptions.
+     * 
+     * @author Dominic Heutelbeck
+     *
+     */
+    @Configuration
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+    public static class ServletModuleRegistrationConfiguration {
 
-		@Autowired
-		void configureObjectMapper(final ObjectMapper mapper) {
-			log.debug("Servlet-based environment detected. Add HttpServletRequestSerializer to ObjectMapper.");
-			var module = new SimpleModule();
-			module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
-			mapper.registerModule(module);
-		}
+        @Autowired
+        void configureObjectMapper(final ObjectMapper mapper) {
+            log.debug("Servlet-based environment detected. Add HttpServletRequestSerializer to ObjectMapper.");
+            var module = new SimpleModule();
+            module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
+            mapper.registerModule(module);
+        }
 
-	}
+    }
 
-	/**
-	 * Register serializers for Webflux-based authorization subscriptions.
-	 * 
-	 * @author Dominic Heutelbeck
-	 *
-	 */
-	@Configuration
-	@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
-	public static class WebfluxModuleRegistrationConfiguration {
+    /**
+     * Register serializers for Webflux-based authorization subscriptions.
+     * 
+     * @author Dominic Heutelbeck
+     *
+     */
+    @Configuration
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
+    public static class WebfluxModuleRegistrationConfiguration {
 
-		@Autowired
-		void configureObjectMapper(final ObjectMapper mapper) {
-			log.debug("Webflux environment detected. Add Deploy ServerHttpRequestSerializer to ObjectMapper.");
-			var module = new SimpleModule();
-			module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
-			mapper.registerModule(module);
-		}
+        @Autowired
+        void configureObjectMapper(final ObjectMapper mapper) {
+            log.debug("Webflux environment detected. Add Deploy ServerHttpRequestSerializer to ObjectMapper.");
+            var module = new SimpleModule();
+            module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
+            mapper.registerModule(module);
+        }
 
-	}
+    }
 
 }

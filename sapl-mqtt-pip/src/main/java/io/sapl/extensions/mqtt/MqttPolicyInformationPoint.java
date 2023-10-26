@@ -35,70 +35,70 @@ import reactor.core.publisher.Flux;
 @PolicyInformationPoint(name = MqttPolicyInformationPoint.NAME, description = MqttPolicyInformationPoint.DESCRIPTION)
 public class MqttPolicyInformationPoint {
 
-	static final String NAME        = "mqtt";
-	static final String DESCRIPTION = "PIP for subscribing to mqtt topics.";
+    static final String NAME        = "mqtt";
+    static final String DESCRIPTION = "PIP for subscribing to mqtt topics.";
 
-	private static final SaplMqttClient saplMqttClient = new SaplMqttClient();
+    private static final SaplMqttClient saplMqttClient = new SaplMqttClient();
 
-	/**
-	 * This method returns a reactive stream of mqtt messages of one or many
-	 * subscribed topics. Within this method the subscription of topics is 'at most
-	 * once' by default. Example for sapl attribute: {@code topic.<mqtt.messages>}
-	 *
-	 * @param topic     A string or array of topic(s) for subscription.
-	 * @param variables Specified environment variables for configuration of the
-	 *                  included mqtt client.
-	 * @return A {@link Flux} of messages of the subscribed topic(s).
-	 */
-	@Attribute(name = "messages", docs = "Subscribes to topic(s) with certain quality of service level")
-	public Flux<Val> messages(@Text @Array Val topic, Map<String, JsonNode> variables) {
-		return saplMqttClient.buildSaplMqttMessageFlux(topic, variables);
-	}
+    /**
+     * This method returns a reactive stream of mqtt messages of one or many
+     * subscribed topics. Within this method the subscription of topics is 'at most
+     * once' by default. Example for sapl attribute: {@code topic.<mqtt.messages>}
+     *
+     * @param topic     A string or array of topic(s) for subscription.
+     * @param variables Specified environment variables for configuration of the
+     *                  included mqtt client.
+     * @return A {@link Flux} of messages of the subscribed topic(s).
+     */
+    @Attribute(name = "messages", docs = "Subscribes to topic(s) with certain quality of service level")
+    public Flux<Val> messages(@Text @Array Val topic, Map<String, JsonNode> variables) {
+        return saplMqttClient.buildSaplMqttMessageFlux(topic, variables);
+    }
 
-	/**
-	 * This method returns a reactive stream of mqtt messages of one or many
-	 * subscribed topics. Example for sapl attribute:
-	 * {@code topic.<mqtt.messages(0)>}
-	 *
-	 * @param topic     A string or array of topic(s) for subscription.
-	 * @param variables Specified environment variables for configuration of the
-	 *                  included mqtt client.
-	 * @param qos       The quality of service level of the mqtt subscription to the
-	 *                  broker. Possible values: 0, 1, 2.
-	 * @return A {@link Flux} of messages of the subscribed topic(s).
-	 */
-	@Attribute(name = "messages", docs = "Subscribes to topic(s) with certain quality of service level")
-	public Flux<Val> messages(@Text @Array Val topic, Map<String, JsonNode> variables, @Int Val qos) {
-		return saplMqttClient.buildSaplMqttMessageFlux(topic, variables, qos);
-	}
+    /**
+     * This method returns a reactive stream of mqtt messages of one or many
+     * subscribed topics. Example for sapl attribute:
+     * {@code topic.<mqtt.messages(0)>}
+     *
+     * @param topic     A string or array of topic(s) for subscription.
+     * @param variables Specified environment variables for configuration of the
+     *                  included mqtt client.
+     * @param qos       The quality of service level of the mqtt subscription to the
+     *                  broker. Possible values: 0, 1, 2.
+     * @return A {@link Flux} of messages of the subscribed topic(s).
+     */
+    @Attribute(name = "messages", docs = "Subscribes to topic(s) with certain quality of service level")
+    public Flux<Val> messages(@Text @Array Val topic, Map<String, JsonNode> variables, @Int Val qos) {
+        return saplMqttClient.buildSaplMqttMessageFlux(topic, variables, qos);
+    }
 
-	/**
-	 * This method returns a reactive stream of mqtt messages of one or many
-	 * subscribed topics. Example for sapl attribute:
-	 * {@code topic.<mqtt.messages(0, resource.mqttPipConfig)>}
-	 *
-	 * @param topic         A string or array of topic(s) for subscription.
-	 * @param variables     Specified environment variables for configuration of the
-	 *                      included mqtt client.
-	 * @param qos           The quality of service level of the mqtt subscription to
-	 *                      the broker. Possible values: 0, 1, 2.
-	 * @param mqttPipConfig An {@link com.fasterxml.jackson.databind.node.ArrayNode}
-	 *                      of
-	 *                      {@link com.fasterxml.jackson.databind.node.ObjectNode}s
-	 *                      or only a single
-	 *                      {@link com.fasterxml.jackson.databind.node.ObjectNode}
-	 *                      containing configurations for the pip as a mqtt client.
-	 *                      Each
-	 *                      {@link com.fasterxml.jackson.databind.node.ObjectNode}
-	 *                      specifies the configuration of a single mqtt client.
-	 *                      Therefore, it is possible for the pip to build multiple
-	 *                      mqtt clients, that is the pip can subscribe to topics by
-	 *                      different brokers.
-	 * @return A {@link Flux} of messages of the subscribed topic(s).
-	 */
-	@Attribute(name = "messages", docs = "Subscribes to topic(s) with certain quality of service level")
-	public Flux<Val> messages(@Text @Array Val topic, Map<String, JsonNode> variables, @Int Val qos,
-			@Text @Array @JsonObject Val mqttPipConfig) {
-		return saplMqttClient.buildSaplMqttMessageFlux(topic, variables, qos, mqttPipConfig);
-	}
+    /**
+     * This method returns a reactive stream of mqtt messages of one or many
+     * subscribed topics. Example for sapl attribute:
+     * {@code topic.<mqtt.messages(0, resource.mqttPipConfig)>}
+     *
+     * @param topic         A string or array of topic(s) for subscription.
+     * @param variables     Specified environment variables for configuration of the
+     *                      included mqtt client.
+     * @param qos           The quality of service level of the mqtt subscription to
+     *                      the broker. Possible values: 0, 1, 2.
+     * @param mqttPipConfig An {@link com.fasterxml.jackson.databind.node.ArrayNode}
+     *                      of
+     *                      {@link com.fasterxml.jackson.databind.node.ObjectNode}s
+     *                      or only a single
+     *                      {@link com.fasterxml.jackson.databind.node.ObjectNode}
+     *                      containing configurations for the pip as a mqtt client.
+     *                      Each
+     *                      {@link com.fasterxml.jackson.databind.node.ObjectNode}
+     *                      specifies the configuration of a single mqtt client.
+     *                      Therefore, it is possible for the pip to build multiple
+     *                      mqtt clients, that is the pip can subscribe to topics by
+     *                      different brokers.
+     * @return A {@link Flux} of messages of the subscribed topic(s).
+     */
+    @Attribute(name = "messages", docs = "Subscribes to topic(s) with certain quality of service level")
+    public Flux<Val> messages(@Text @Array Val topic, Map<String, JsonNode> variables, @Int Val qos,
+            @Text @Array @JsonObject Val mqttPipConfig) {
+        return saplMqttClient.buildSaplMqttMessageFlux(topic, variables, qos, mqttPipConfig);
+    }
 }

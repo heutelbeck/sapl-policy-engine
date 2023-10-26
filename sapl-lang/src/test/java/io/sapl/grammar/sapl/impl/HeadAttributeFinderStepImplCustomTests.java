@@ -38,71 +38,69 @@ import reactor.test.StepVerifier;
 
 class HeadAttributeFinderStepImplCustomTests {
 
-	private static final SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
+    private static final SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
 
-	private static final String ATTRIBUTE = "attribute";
+    private static final String ATTRIBUTE = "attribute";
 
-	private static final String FULLY_QUALIFIED_ATTRIBUTE = "mock." + ATTRIBUTE;
+    private static final String FULLY_QUALIFIED_ATTRIBUTE = "mock." + ATTRIBUTE;
 
-	@Test
-	void errorPropagates() {
-		var expression = "(1/0).|<test.numbers>";
-		assertExpressionReturnsErrors(expression);
-	}
+    @Test
+    void errorPropagates() {
+        var expression = "(1/0).|<test.numbers>";
+        assertExpressionReturnsErrors(expression);
+    }
 
-	@Test
-	void evaluateBasicAttributeInTargetPolicy() throws IOException {
-		var expression = ParserUtil.expression("\"\".|<test.numbers>");
-		MockUtil.mockPolicyTargetExpressionContainerExpression(expression);
-		assertExpressionErrors(expression);
-	}
+    @Test
+    void evaluateBasicAttributeInTargetPolicy() throws IOException {
+        var expression = ParserUtil.expression("\"\".|<test.numbers>");
+        MockUtil.mockPolicyTargetExpressionContainerExpression(expression);
+        assertExpressionErrors(expression);
+    }
 
-	@Test
-	void evaluateBasicAttributeInTargetPolicySet() throws IOException {
-		var expression = ParserUtil.expression("\"\".|<test.numbers>");
-		MockUtil.mockPolicySetTargetExpressionContainerExpression(expression);
-		assertExpressionErrors(expression);
-	}
+    @Test
+    void evaluateBasicAttributeInTargetPolicySet() throws IOException {
+        var expression = ParserUtil.expression("\"\".|<test.numbers>");
+        MockUtil.mockPolicySetTargetExpressionContainerExpression(expression);
+        assertExpressionErrors(expression);
+    }
 
-	@Test
-	void evaluateBasicAttributeOnUndefined() {
-		assertExpressionReturnsErrors("undefined.|<test.numbers>");
-	}
+    @Test
+    void evaluateBasicAttributeOnUndefined() {
+        assertExpressionReturnsErrors("undefined.|<test.numbers>");
+    }
 
-	@Test
-	void evaluateAttributeInFilterSelection() {
-		assertExpressionReturnsErrors("123 |- { @.|<test.numbers> : mock.nil }");
-	}
+    @Test
+    void evaluateAttributeInFilterSelection() {
+        assertExpressionReturnsErrors("123 |- { @.|<test.numbers> : mock.nil }");
+    }
 
-	@Test
-	void exceptionDuringEvaluation() {
-		var step = headAttributeFinderStep();
-		var sut  = step.apply(Val.NULL)
-				.contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
-						mockAttributeContext(Flux.just(Val.error("ERROR")))));
-		StepVerifier.create(sut).expectNextMatches(Val::isError).verifyComplete();
-	}
+    @Test
+    void exceptionDuringEvaluation() {
+        var step = headAttributeFinderStep();
+        var sut  = step.apply(Val.NULL).contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
+                mockAttributeContext(Flux.just(Val.error("ERROR")))));
+        StepVerifier.create(sut).expectNextMatches(Val::isError).verifyComplete();
+    }
 
-	@Test
-	void applyWithSomeStreamData() {
-		Val[] data = { Val.FALSE, Val.error("ERROR"), Val.TRUE, Val.NULL, Val.UNDEFINED };
-		var   step = headAttributeFinderStep();
-		var   sut  = step.apply(Val.NULL)
-				.contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
-						mockAttributeContext(Flux.just(data))));
-		StepVerifier.create(sut).expectNext(Val.FALSE).verifyComplete();
-	}
+    @Test
+    void applyWithSomeStreamData() {
+        Val[] data = { Val.FALSE, Val.error("ERROR"), Val.TRUE, Val.NULL, Val.UNDEFINED };
+        var   step = headAttributeFinderStep();
+        var   sut  = step.apply(Val.NULL).contextWrite(
+                ctx -> AuthorizationContext.setAttributeContext(ctx, mockAttributeContext(Flux.just(data))));
+        StepVerifier.create(sut).expectNext(Val.FALSE).verifyComplete();
+    }
 
-	private static AttributeContext mockAttributeContext(Flux<Val> stream) {
-		var attributeCtx = mock(AttributeContext.class);
-		when(attributeCtx.evaluateAttribute(eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any(), any())).thenReturn(stream);
-		return attributeCtx;
-	}
+    private static AttributeContext mockAttributeContext(Flux<Val> stream) {
+        var attributeCtx = mock(AttributeContext.class);
+        when(attributeCtx.evaluateAttribute(eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any(), any())).thenReturn(stream);
+        return attributeCtx;
+    }
 
-	private static HeadAttributeFinderStep headAttributeFinderStep() {
-		var step = FACTORY.createHeadAttributeFinderStep();
-		step.getIdSteps().add(FULLY_QUALIFIED_ATTRIBUTE);
-		return step;
-	}
+    private static HeadAttributeFinderStep headAttributeFinderStep() {
+        var step = FACTORY.createHeadAttributeFinderStep();
+        step.getIdSteps().add(FULLY_QUALIFIED_ATTRIBUTE);
+        return step;
+    }
 
 }

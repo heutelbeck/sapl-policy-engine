@@ -36,10 +36,10 @@ import reactor.test.StepVerifier;
 
 class PolicyImplCustomTests {
 
-	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
+    private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
-	private static Stream<Arguments> provideTestCases() throws JsonProcessingException {
-		// @formatter:off
+    private static Stream<Arguments> provideTestCases() throws JsonProcessingException {
+        // @formatter:off
 		return Stream.of(
 	 			// simplePermitAll
 	 			Arguments.of("policy \"p\" permit", AuthorizationDecision.PERMIT),

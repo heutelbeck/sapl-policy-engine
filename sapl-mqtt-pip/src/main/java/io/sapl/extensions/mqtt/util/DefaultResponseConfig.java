@@ -22,6 +22,6 @@ import lombok.Data;
  */
 @Data
 public class DefaultResponseConfig {
-	private final long   defaultResponseTimeout;
-	private final String defaultResponseType;
+    private final long   defaultResponseTimeout;
+    private final String defaultResponseType;
 }

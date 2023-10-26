@@ -73,314 +73,306 @@ import reactor.util.function.Tuples;
 @Slf4j
 public class SaplMqttClient {
 
-	/**
-	 * The reference for the client id in configurations.
-	 */
-	public static final String  ENVIRONMENT_CLIENT_ID       = "clientId";
-	/**
-	 * The reference for the broker address in configurations.
-	 */
-	public static final String  ENVIRONMENT_BROKER_ADDRESS  = "brokerAddress";
-	/**
-	 * The reference for the broker port in configurations.
-	 */
-	public static final String  ENVIRONMENT_BROKER_PORT     = "brokerPort";
-	private static final String ENVIRONMENT_MQTT_PIP_CONFIG = "mqttPipConfig";
-	private static final String ENVIRONMENT_USERNAME        = "username";
-	private static final String ENVIRONMENT_QOS             = "defaultQos";
-	private static final String DEFAULT_CLIENT_ID           = "mqtt_pip";
-	private static final String DEFAULT_USERNAME            = "";
-	private static final String DEFAULT_BROKER_ADDRESS      = "localhost";
-	private static final int    DEFAULT_BROKER_PORT         = 1883;
-	private static final int    DEFAULT_QOS                 = 0;              // AT_MOST_ONCE
+    /**
+     * The reference for the client id in configurations.
+     */
+    public static final String  ENVIRONMENT_CLIENT_ID       = "clientId";
+    /**
+     * The reference for the broker address in configurations.
+     */
+    public static final String  ENVIRONMENT_BROKER_ADDRESS  = "brokerAddress";
+    /**
+     * The reference for the broker port in configurations.
+     */
+    public static final String  ENVIRONMENT_BROKER_PORT     = "brokerPort";
+    private static final String ENVIRONMENT_MQTT_PIP_CONFIG = "mqttPipConfig";
+    private static final String ENVIRONMENT_USERNAME        = "username";
+    private static final String ENVIRONMENT_QOS             = "defaultQos";
+    private static final String DEFAULT_CLIENT_ID           = "mqtt_pip";
+    private static final String DEFAULT_USERNAME            = "";
+    private static final String DEFAULT_BROKER_ADDRESS      = "localhost";
+    private static final int    DEFAULT_BROKER_PORT         = 1883;
+    private static final int    DEFAULT_QOS                 = 0;              // AT_MOST_ONCE
 
-	static final ConcurrentHashMap<Integer, MqttClientValues>   MQTT_CLIENT_CACHE             = new ConcurrentHashMap<>();
-	static final ConcurrentHashMap<UUID, DefaultResponseConfig> DEFAULT_RESPONSE_CONFIG_CACHE = new ConcurrentHashMap<>();
+    static final ConcurrentHashMap<Integer, MqttClientValues>   MQTT_CLIENT_CACHE             = new ConcurrentHashMap<>();
+    static final ConcurrentHashMap<UUID, DefaultResponseConfig> DEFAULT_RESPONSE_CONFIG_CACHE = new ConcurrentHashMap<>();
 
-	/**
-	 * This method returns a reactive stream of mqtt messages of one or many
-	 * subscribed topics.
-	 * 
-	 * @param topic     A string or array of topic(s) for subscription.
-	 * @param variables The configuration specified in the PDP configuration file.
-	 * @return A {@link Flux} of messages of the subscribed topic(s).
-	 */
-	protected Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, JsonNode> variables) {
-		return buildSaplMqttMessageFlux(topic, variables, null, Val.UNDEFINED);
-	}
+    /**
+     * This method returns a reactive stream of mqtt messages of one or many
+     * subscribed topics.
+     * 
+     * @param topic     A string or array of topic(s) for subscription.
+     * @param variables The configuration specified in the PDP configuration file.
+     * @return A {@link Flux} of messages of the subscribed topic(s).
+     */
+    protected Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, JsonNode> variables) {
+        return buildSaplMqttMessageFlux(topic, variables, null, Val.UNDEFINED);
+    }
 
-	/**
-	 * This method returns a reactive stream of mqtt messages of one or many
-	 * subscribed topics.
-	 * 
-	 * @param topic     A string or array of topic(s) for subscription.
-	 * @param variables The configuration specified in the PDP configuration file.
-	 * @param qos       A {@link Flux} of the quality of service level of the mqtt
-	 *                  subscription to the broker. Possible values: 0, 1, 2. This
-	 *                  variable may be null.
-	 * @return A {@link Flux} of messages of the subscribed topic(s).
-	 */
-	protected Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, JsonNode> variables, Val qos) {
-		return buildSaplMqttMessageFlux(topic, variables, qos, Val.UNDEFINED);
-	}
+    /**
+     * This method returns a reactive stream of mqtt messages of one or many
+     * subscribed topics.
+     * 
+     * @param topic     A string or array of topic(s) for subscription.
+     * @param variables The configuration specified in the PDP configuration file.
+     * @param qos       A {@link Flux} of the quality of service level of the mqtt
+     *                  subscription to the broker. Possible values: 0, 1, 2. This
+     *                  variable may be null.
+     * @return A {@link Flux} of messages of the subscribed topic(s).
+     */
+    protected Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, JsonNode> variables, Val qos) {
+        return buildSaplMqttMessageFlux(topic, variables, qos, Val.UNDEFINED);
+    }
 
-	/**
-	 * This method returns a reactive stream of mqtt messages of one or many
-	 * subscribed topics.
-	 * 
-	 * @param topic         A string or array of topic(s) for subscription.
-	 * @param variables     The configuration specified in the PDP configuration
-	 *                      file.
-	 * @param qos           A {@link Flux} of the quality of service level of the
-	 *                      mqtt subscription to the broker. Possible values: 0, 1,
-	 *                      2. This variable can be null.
-	 * @param mqttPipConfig An {@link ArrayNode} of {@link ObjectNode}s or only a
-	 *                      single {@link ObjectNode} containing configurations for
-	 *                      the pip as a mqtt client. Each {@link ObjectNode}
-	 *                      specifies the configuration of a single mqtt client.
-	 *                      Therefore, it is possible for the pip to build multiple
-	 *                      mqtt clients, that is the pip can subscribe to topics by
-	 *                      different brokers. This variable may be null.
-	 * @return A {@link Flux} of messages of the subscribed topic(s).
-	 */
-	protected Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, JsonNode> variables, Val qos,
-			Val mqttPipConfig) {
-		// building mqtt message flux
-		try {
-			var pipMqttClientConfig = variables.isEmpty() ? null : variables.get(ENVIRONMENT_MQTT_PIP_CONFIG);
-			var messageFlux         = buildMqttMessageFlux(topic, qos, mqttPipConfig, pipMqttClientConfig);
-			return addDefaultValueToMessageFlux(pipMqttClientConfig, mqttPipConfig, messageFlux)
-					.onErrorResume(error -> {
-						log.debug("An error occurred on the sapl mqtt message flux: {}", error.getMessage());
-						return Flux.just(Val.error(error.getMessage())); // policy will be indeterminate
-					});
-		} catch (Exception e) {
-			log.debug("An exception occurred while building the mqtt message flux: {}", e.getMessage());
-			return Flux.just(Val.error("Failed to build stream of messages."));
-		}
-	}
+    /**
+     * This method returns a reactive stream of mqtt messages of one or many
+     * subscribed topics.
+     * 
+     * @param topic         A string or array of topic(s) for subscription.
+     * @param variables     The configuration specified in the PDP configuration
+     *                      file.
+     * @param qos           A {@link Flux} of the quality of service level of the
+     *                      mqtt subscription to the broker. Possible values: 0, 1,
+     *                      2. This variable can be null.
+     * @param mqttPipConfig An {@link ArrayNode} of {@link ObjectNode}s or only a
+     *                      single {@link ObjectNode} containing configurations for
+     *                      the pip as a mqtt client. Each {@link ObjectNode}
+     *                      specifies the configuration of a single mqtt client.
+     *                      Therefore, it is possible for the pip to build multiple
+     *                      mqtt clients, that is the pip can subscribe to topics by
+     *                      different brokers. This variable may be null.
+     * @return A {@link Flux} of messages of the subscribed topic(s).
+     */
+    protected Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, JsonNode> variables, Val qos,
+            Val mqttPipConfig) {
+        // building mqtt message flux
+        try {
+            var pipMqttClientConfig = variables.isEmpty() ? null : variables.get(ENVIRONMENT_MQTT_PIP_CONFIG);
+            var messageFlux         = buildMqttMessageFlux(topic, qos, mqttPipConfig, pipMqttClientConfig);
+            return addDefaultValueToMessageFlux(pipMqttClientConfig, mqttPipConfig, messageFlux)
+                    .onErrorResume(error -> {
+                        log.debug("An error occurred on the sapl mqtt message flux: {}", error.getMessage());
+                        return Flux.just(Val.error(error.getMessage())); // policy will be indeterminate
+                    });
+        } catch (Exception e) {
+            log.debug("An exception occurred while building the mqtt message flux: {}", e.getMessage());
+            return Flux.just(Val.error("Failed to build stream of messages."));
+        }
+    }
 
-	private Flux<Val> buildMqttMessageFlux(Val topic, Val qos, Val mqttPipConfig,
-			JsonNode pipMqttClientConfig) {
-		Sinks.Many<Val> emitterUndefined = Sinks.many().multicast().directAllOrNothing();
+    private Flux<Val> buildMqttMessageFlux(Val topic, Val qos, Val mqttPipConfig, JsonNode pipMqttClientConfig) {
+        Sinks.Many<Val> emitterUndefined = Sinks.many().multicast().directAllOrNothing();
 
-		var mqttMessageFlux = buildFluxOfConfigParams(qos, mqttPipConfig, pipMqttClientConfig)
-				.map(params -> getConnectionAndSubscription(topic, pipMqttClientConfig, params))
-				.switchMap(this::connectAndSubscribe)
-				.map(this::getValFromMqttPublishMessage)
-				.share()
-				.retryWhen(getRetrySpec(pipMqttClientConfig)
-						.doBeforeRetry(
-								retrySignal -> emitValueOnRetry(pipMqttClientConfig, emitterUndefined, retrySignal)));
+        var mqttMessageFlux = buildFluxOfConfigParams(qos, mqttPipConfig, pipMqttClientConfig)
+                .map(params -> getConnectionAndSubscription(topic, pipMqttClientConfig, params))
+                .switchMap(this::connectAndSubscribe).map(this::getValFromMqttPublishMessage).share()
+                .retryWhen(getRetrySpec(pipMqttClientConfig).doBeforeRetry(
+                        retrySignal -> emitValueOnRetry(pipMqttClientConfig, emitterUndefined, retrySignal)));
 
-		return Flux.merge(mqttMessageFlux, emitterUndefined.asFlux());
-	}
+        return Flux.merge(mqttMessageFlux, emitterUndefined.asFlux());
+    }
 
-	private Flux<Val> addDefaultValueToMessageFlux(JsonNode pipMqttClientConfig, Val mqttPipConfig,
-			Flux<Val> messageFlux) {
-		var messageFluxUuid = UUID.randomUUID();
-		return Flux.merge(messageFlux, Mono.just(mqttPipConfig)
-				.map(pipConfigParams -> determineDefaultResponse(
-						messageFluxUuid, pipMqttClientConfig, pipConfigParams))
-				.delayUntil(val -> Mono.just(val).delayElement(Duration.ofMillis(
-						DEFAULT_RESPONSE_CONFIG_CACHE.get(messageFluxUuid).getDefaultResponseTimeout())))
-				.takeUntilOther(messageFlux))
-				.doFinally(signalType -> DEFAULT_RESPONSE_CONFIG_CACHE.remove(messageFluxUuid));
-	}
+    private Flux<Val> addDefaultValueToMessageFlux(JsonNode pipMqttClientConfig, Val mqttPipConfig,
+            Flux<Val> messageFlux) {
+        var messageFluxUuid = UUID.randomUUID();
+        return Flux
+                .merge(messageFlux, Mono.just(mqttPipConfig)
+                        .map(pipConfigParams -> determineDefaultResponse(messageFluxUuid, pipMqttClientConfig,
+                                pipConfigParams))
+                        .delayUntil(val -> Mono.just(val)
+                                .delayElement(Duration.ofMillis(DEFAULT_RESPONSE_CONFIG_CACHE.get(messageFluxUuid)
+                                        .getDefaultResponseTimeout())))
+                        .takeUntilOther(messageFlux))
+                .doFinally(signalType -> DEFAULT_RESPONSE_CONFIG_CACHE.remove(messageFluxUuid));
+    }
 
-	private Val determineDefaultResponse(UUID messageFluxUuid, JsonNode pipMqttClientConfig, Val pipConfigParams) {
-		var defaultResponseConfig = getDefaultResponseConfig(pipMqttClientConfig, pipConfigParams);
-		DEFAULT_RESPONSE_CONFIG_CACHE.put(messageFluxUuid, defaultResponseConfig);
-		return getDefaultVal(defaultResponseConfig);
-	}
+    private Val determineDefaultResponse(UUID messageFluxUuid, JsonNode pipMqttClientConfig, Val pipConfigParams) {
+        var defaultResponseConfig = getDefaultResponseConfig(pipMqttClientConfig, pipConfigParams);
+        DEFAULT_RESPONSE_CONFIG_CACHE.put(messageFluxUuid, defaultResponseConfig);
+        return getDefaultVal(defaultResponseConfig);
+    }
 
-	private Val getValFromMqttPublishMessage(Mqtt5Publish publishMessage) {
-		var payloadFormatIndicator = getPayloadFormatIndicator(publishMessage);
-		var contentType            = getContentType(publishMessage);
+    private Val getValFromMqttPublishMessage(Mqtt5Publish publishMessage) {
+        var payloadFormatIndicator = getPayloadFormatIndicator(publishMessage);
+        var contentType            = getContentType(publishMessage);
 
-		if (publishMessage.getPayloadFormatIndicator().isEmpty() && // no indicator in mqtt versions less than 5
-				isValidUtf8String(publishMessage.getPayloadAsBytes())) {
-			return Val.of(new String(publishMessage.getPayloadAsBytes(), StandardCharsets.UTF_8));
+        if (publishMessage.getPayloadFormatIndicator().isEmpty() && // no indicator in mqtt versions less than 5
+                isValidUtf8String(publishMessage.getPayloadAsBytes())) {
+            return Val.of(new String(publishMessage.getPayloadAsBytes(), StandardCharsets.UTF_8));
 
-		} else if (payloadFormatIndicator == 1) { // payload is utf-8 encoded
-			if ("application/json".equals(contentType)) { // mime type 'application/json'
-				return getValOfJson(publishMessage);
-			} else { // content type not specified or specific content type not implemented yet
-				return Val.of(new String(publishMessage.getPayloadAsBytes(), StandardCharsets.UTF_8));
-			}
-		}
+        } else if (payloadFormatIndicator == 1) { // payload is utf-8 encoded
+            if ("application/json".equals(contentType)) { // mime type 'application/json'
+                return getValOfJson(publishMessage);
+            } else { // content type not specified or specific content type not implemented yet
+                return Val.of(new String(publishMessage.getPayloadAsBytes(), StandardCharsets.UTF_8));
+            }
+        }
 
-		return Val.of(convertBytesToArrayNode(publishMessage.getPayloadAsBytes()));
-	}
+        return Val.of(convertBytesToArrayNode(publishMessage.getPayloadAsBytes()));
+    }
 
-	private Flux<Tuple2<Val, Val>> buildFluxOfConfigParams(Val qos, Val mqttPipConfig, JsonNode pipMqttClientConfig) {
-		if (qos == null) { // if qos is not specified in attribute finder
-			qos = Val.of(getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_QOS, DEFAULT_QOS));
-		}
-		var mqttBrokerConfig = getMqttBrokerConfig(pipMqttClientConfig, mqttPipConfig); // broker config from
-																						// attribute finder or
-																						// pdp.json
-		return Flux.just(Tuples.of(qos, Val.of(mqttBrokerConfig)));
-	}
+    private Flux<Tuple2<Val, Val>> buildFluxOfConfigParams(Val qos, Val mqttPipConfig, JsonNode pipMqttClientConfig) {
+        if (qos == null) { // if qos is not specified in attribute finder
+            qos = Val.of(getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_QOS, DEFAULT_QOS));
+        }
+        var mqttBrokerConfig = getMqttBrokerConfig(pipMqttClientConfig, mqttPipConfig); // broker config from
+                                                                                        // attribute finder or
+                                                                                        // pdp.json
+        return Flux.just(Tuples.of(qos, Val.of(mqttBrokerConfig)));
+    }
 
-	private Tuple4<Mqtt5ReactorClient, Mono<Mqtt5ConnAck>, Flux<Mqtt5Publish>, Integer> getConnectionAndSubscription(
-			Val topic, JsonNode pipMqttClientConfig, Tuple2<Val, Val> params) {
-		var mqttBrokerConfig = params.getT2().getObjectNode();
-		var brokerConfigHash = mqttBrokerConfig.hashCode();
-		var clientValues     = getOrBuildMqttClientValues(mqttBrokerConfig, brokerConfigHash, pipMqttClientConfig);
-		var qos              = params.getT1();
-		var mqttSubscription = buildMqttSubscription(brokerConfigHash, topic, qos);
+    private Tuple4<Mqtt5ReactorClient, Mono<Mqtt5ConnAck>, Flux<Mqtt5Publish>, Integer> getConnectionAndSubscription(
+            Val topic, JsonNode pipMqttClientConfig, Tuple2<Val, Val> params) {
+        var mqttBrokerConfig = params.getT2().getObjectNode();
+        var brokerConfigHash = mqttBrokerConfig.hashCode();
+        var clientValues     = getOrBuildMqttClientValues(mqttBrokerConfig, brokerConfigHash, pipMqttClientConfig);
+        var qos              = params.getT1();
+        var mqttSubscription = buildMqttSubscription(brokerConfigHash, topic, qos);
 
-		return Tuples.of(clientValues.getMqttReactorClient(), clientValues.getClientConnection(), mqttSubscription,
-				brokerConfigHash);
-	}
+        return Tuples.of(clientValues.getMqttReactorClient(), clientValues.getClientConnection(), mqttSubscription,
+                brokerConfigHash);
+    }
 
-	private Flux<Mqtt5Publish> connectAndSubscribe(
-			Tuple4<Mqtt5ReactorClient, Mono<Mqtt5ConnAck>, Flux<Mqtt5Publish>, Integer> buildParams) {
-		var clientConnection = buildParams.getT2();
-		var mqttSubscription = buildParams.getT3();
-		var brokerConfigHash = buildParams.getT4();
-		return clientConnection.thenMany(mqttSubscription)
-				.doOnError(ErrorUtility::isErrorRelevantToRemoveClientCache,
-						throwable -> MQTT_CLIENT_CACHE.remove(brokerConfigHash));
-	}
+    private Flux<Mqtt5Publish> connectAndSubscribe(
+            Tuple4<Mqtt5ReactorClient, Mono<Mqtt5ConnAck>, Flux<Mqtt5Publish>, Integer> buildParams) {
+        var clientConnection = buildParams.getT2();
+        var mqttSubscription = buildParams.getT3();
+        var brokerConfigHash = buildParams.getT4();
+        return clientConnection.thenMany(mqttSubscription).doOnError(ErrorUtility::isErrorRelevantToRemoveClientCache,
+                throwable -> MQTT_CLIENT_CACHE.remove(brokerConfigHash));
+    }
 
-	private Flux<Mqtt5Publish> buildMqttSubscription(int brokerConfigHash, Val topic, Val qos) {
-		var topicSubscription = buildTopicSubscription(topic, qos);
-		var mqttClientValues  = Objects.requireNonNull(MQTT_CLIENT_CACHE.get(brokerConfigHash));
-		var mqttClientReactor = mqttClientValues.getMqttReactorClient();
-		return mqttClientReactor
-				// FluxWithSingle is a combination of the single 'subscription acknowledgement'
-				// message
-				// and a flux of published messages
-				.subscribePublishes(topicSubscription)
-				// Register callbacks to print messages when receiving the SUBACK or matching
-				// PUBLISH messages.
-				.doOnSingle(mqtt5SubAck -> {
-					addSubscriptionsCountToSubscriptionList(mqttClientValues, mqtt5SubAck, topicSubscription);
-					log.debug("Mqtt client '{}' subscribed to topic(s) '{}' with reason codes: {}",
-							getClientId(mqttClientReactor), topic, mqtt5SubAck.getReasonCodes());
-				})
-				.doOnNext(mqtt5Publish -> log.debug("Mqtt client '{}' received message of topic '{}' with QoS '{}'.",
-						getClientId(mqttClientReactor),
-						mqtt5Publish.getTopic(), mqtt5Publish.getQos()))
-				.onErrorResume(ErrorUtility::isClientCausedDisconnect, throwable -> Mono.empty())
-				.doOnCancel(() -> handleMessageFluxCancel(brokerConfigHash, topic));
-	}
+    private Flux<Mqtt5Publish> buildMqttSubscription(int brokerConfigHash, Val topic, Val qos) {
+        var topicSubscription = buildTopicSubscription(topic, qos);
+        var mqttClientValues  = Objects.requireNonNull(MQTT_CLIENT_CACHE.get(brokerConfigHash));
+        var mqttClientReactor = mqttClientValues.getMqttReactorClient();
+        return mqttClientReactor
+                // FluxWithSingle is a combination of the single 'subscription acknowledgement'
+                // message
+                // and a flux of published messages
+                .subscribePublishes(topicSubscription)
+                // Register callbacks to print messages when receiving the SUBACK or matching
+                // PUBLISH messages.
+                .doOnSingle(mqtt5SubAck -> {
+                    addSubscriptionsCountToSubscriptionList(mqttClientValues, mqtt5SubAck, topicSubscription);
+                    log.debug("Mqtt client '{}' subscribed to topic(s) '{}' with reason codes: {}",
+                            getClientId(mqttClientReactor), topic, mqtt5SubAck.getReasonCodes());
+                })
+                .doOnNext(mqtt5Publish -> log.debug("Mqtt client '{}' received message of topic '{}' with QoS '{}'.",
+                        getClientId(mqttClientReactor), mqtt5Publish.getTopic(), mqtt5Publish.getQos()))
+                .onErrorResume(ErrorUtility::isClientCausedDisconnect, throwable -> Mono.empty())
+                .doOnCancel(() -> handleMessageFluxCancel(brokerConfigHash, topic));
+    }
 
-	private MqttClientValues getOrBuildMqttClientValues(ObjectNode mqttBrokerConfig, int brokerConfigHash,
-			JsonNode pipMqttClientConfig) {
-		var clientValues = MQTT_CLIENT_CACHE.get(brokerConfigHash);
-		if (clientValues == null) {
-			clientValues = buildClientValues(mqttBrokerConfig, brokerConfigHash, pipMqttClientConfig);
-		}
-		return clientValues;
-	}
+    private MqttClientValues getOrBuildMqttClientValues(ObjectNode mqttBrokerConfig, int brokerConfigHash,
+            JsonNode pipMqttClientConfig) {
+        var clientValues = MQTT_CLIENT_CACHE.get(brokerConfigHash);
+        if (clientValues == null) {
+            clientValues = buildClientValues(mqttBrokerConfig, brokerConfigHash, pipMqttClientConfig);
+        }
+        return clientValues;
+    }
 
-	private MqttClientValues buildClientValues(ObjectNode mqttBrokerConfig, int brokerConfigHash,
-			JsonNode pipMqttClientConfig) {
-		var clientId             = getConfigValueOrDefault(mqttBrokerConfig, ENVIRONMENT_CLIENT_ID,
-				getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_CLIENT_ID, DEFAULT_CLIENT_ID));
-		var mqttClientReactor    = buildMqttReactorClient(mqttBrokerConfig, pipMqttClientConfig);
-		var mqttClientConnection = buildClientConnection(mqttClientReactor).share();
-		var clientValues         = new MqttClientValues(clientId, mqttClientReactor, mqttBrokerConfig,
-				mqttClientConnection);
-		MQTT_CLIENT_CACHE.put(brokerConfigHash, clientValues);
-		return clientValues;
-	}
+    private MqttClientValues buildClientValues(ObjectNode mqttBrokerConfig, int brokerConfigHash,
+            JsonNode pipMqttClientConfig) {
+        var clientId             = getConfigValueOrDefault(mqttBrokerConfig, ENVIRONMENT_CLIENT_ID,
+                getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_CLIENT_ID, DEFAULT_CLIENT_ID));
+        var mqttClientReactor    = buildMqttReactorClient(mqttBrokerConfig, pipMqttClientConfig);
+        var mqttClientConnection = buildClientConnection(mqttClientReactor).share();
+        var clientValues         = new MqttClientValues(clientId, mqttClientReactor, mqttBrokerConfig,
+                mqttClientConnection);
+        MQTT_CLIENT_CACHE.put(brokerConfigHash, clientValues);
+        return clientValues;
+    }
 
-	private Mqtt5ReactorClient buildMqttReactorClient(JsonNode mqttBrokerConfig, JsonNode pipMqttClientConfig) {
-		return Mqtt5ReactorClient.from(buildMqttClient(mqttBrokerConfig, pipMqttClientConfig));
-	}
+    private Mqtt5ReactorClient buildMqttReactorClient(JsonNode mqttBrokerConfig, JsonNode pipMqttClientConfig) {
+        return Mqtt5ReactorClient.from(buildMqttClient(mqttBrokerConfig, pipMqttClientConfig));
+    }
 
-	private Mqtt5Client buildMqttClient(JsonNode mqttBrokerConfig, JsonNode pipMqttClientConfig) {
-		return MqttClient.builder()
-				.useMqttVersion5()
-				.identifier(getConfigValueOrDefault(mqttBrokerConfig, ENVIRONMENT_CLIENT_ID,
-						getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_CLIENT_ID, DEFAULT_CLIENT_ID)))
-				.serverAddress(InetSocketAddress.createUnresolved(
-						getConfigValueOrDefault(mqttBrokerConfig, ENVIRONMENT_BROKER_ADDRESS, getConfigValueOrDefault(
-								pipMqttClientConfig, ENVIRONMENT_BROKER_ADDRESS, DEFAULT_BROKER_ADDRESS)),
-						getConfigValueOrDefault(mqttBrokerConfig, ENVIRONMENT_BROKER_PORT, getConfigValueOrDefault(
-								pipMqttClientConfig, ENVIRONMENT_BROKER_PORT, DEFAULT_BROKER_PORT))))
-				.simpleAuth(buildAuthn(mqttBrokerConfig))
-				.build();
-	}
+    private Mqtt5Client buildMqttClient(JsonNode mqttBrokerConfig, JsonNode pipMqttClientConfig) {
+        return MqttClient.builder().useMqttVersion5()
+                .identifier(getConfigValueOrDefault(mqttBrokerConfig, ENVIRONMENT_CLIENT_ID,
+                        getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_CLIENT_ID, DEFAULT_CLIENT_ID)))
+                .serverAddress(
+                        InetSocketAddress.createUnresolved(
+                                getConfigValueOrDefault(mqttBrokerConfig, ENVIRONMENT_BROKER_ADDRESS,
+                                        getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_BROKER_ADDRESS,
+                                                DEFAULT_BROKER_ADDRESS)),
+                                getConfigValueOrDefault(mqttBrokerConfig, ENVIRONMENT_BROKER_PORT,
+                                        getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_BROKER_PORT,
+                                                DEFAULT_BROKER_PORT))))
+                .simpleAuth(buildAuthn(mqttBrokerConfig)).build();
+    }
 
-	private Mono<Mqtt5ConnAck> buildClientConnection(Mqtt5ReactorClient mqttClientReactor) {
-		return mqttClientReactor.connect()
-				// Register a callback to print a message when receiving the CONNACK message
-				.doOnSuccess(mqtt5ConnAck -> log.debug("Successfully established connection for client '{}': {}",
-						getClientId(mqttClientReactor), mqtt5ConnAck.getReasonCode()))
-				.doOnError(throwable -> log.debug("Mqtt client '{}' connection failed: {}",
-						getClientId(mqttClientReactor), throwable.getMessage()))
-				.ignoreElement();
-	}
+    private Mono<Mqtt5ConnAck> buildClientConnection(Mqtt5ReactorClient mqttClientReactor) {
+        return mqttClientReactor.connect()
+                // Register a callback to print a message when receiving the CONNACK message
+                .doOnSuccess(mqtt5ConnAck -> log.debug("Successfully established connection for client '{}': {}",
+                        getClientId(mqttClientReactor), mqtt5ConnAck.getReasonCode()))
+                .doOnError(throwable -> log.debug("Mqtt client '{}' connection failed: {}",
+                        getClientId(mqttClientReactor), throwable.getMessage()))
+                .ignoreElement();
+    }
 
-	private Mqtt5SimpleAuth buildAuthn(JsonNode config) {
-		return Mqtt5SimpleAuth.builder()
-				.username(getConfigValueOrDefault(config, ENVIRONMENT_USERNAME, DEFAULT_USERNAME))
-				.password(getPassword(config))
-				.build();
-	}
+    private Mqtt5SimpleAuth buildAuthn(JsonNode config) {
+        return Mqtt5SimpleAuth.builder()
+                .username(getConfigValueOrDefault(config, ENVIRONMENT_USERNAME, DEFAULT_USERNAME))
+                .password(getPassword(config)).build();
+    }
 
-	private void handleMessageFluxCancel(int brokerConfigHash, Val topic) {
-		unsubscribeTopics(brokerConfigHash, topic);
-		var mqttClientValuesDisconnect = MQTT_CLIENT_CACHE.get(brokerConfigHash);
-		if (mqttClientValuesDisconnect != null
-				&& mqttClientValuesDisconnect.isTopicSubscriptionsCountMapEmpty()) {
-			disconnectClient(brokerConfigHash, mqttClientValuesDisconnect);
-		}
-	}
+    private void handleMessageFluxCancel(int brokerConfigHash, Val topic) {
+        unsubscribeTopics(brokerConfigHash, topic);
+        var mqttClientValuesDisconnect = MQTT_CLIENT_CACHE.get(brokerConfigHash);
+        if (mqttClientValuesDisconnect != null && mqttClientValuesDisconnect.isTopicSubscriptionsCountMapEmpty()) {
+            disconnectClient(brokerConfigHash, mqttClientValuesDisconnect);
+        }
+    }
 
-	private void unsubscribeTopics(int brokerConfigHash, Val topics) {
-		var mqttClientValues = MQTT_CLIENT_CACHE.get(brokerConfigHash);
-		if (mqttClientValues != null) {
-			var mqttTopicFilters   = getMqttTopicFiltersToUnsubscribeAndReduceCount(topics, mqttClientValues);
-			var unsubscribeMessage = Mqtt5Unsubscribe.builder().addTopicFilters(mqttTopicFilters).build();
-			unsubscribeWithMessage(mqttClientValues, unsubscribeMessage);
-		}
-	}
+    private void unsubscribeTopics(int brokerConfigHash, Val topics) {
+        var mqttClientValues = MQTT_CLIENT_CACHE.get(brokerConfigHash);
+        if (mqttClientValues != null) {
+            var mqttTopicFilters   = getMqttTopicFiltersToUnsubscribeAndReduceCount(topics, mqttClientValues);
+            var unsubscribeMessage = Mqtt5Unsubscribe.builder().addTopicFilters(mqttTopicFilters).build();
+            unsubscribeWithMessage(mqttClientValues, unsubscribeMessage);
+        }
+    }
 
-	private void disconnectClient(int brokerConfigHash, MqttClientValues mqttClientValues) {
-		MQTT_CLIENT_CACHE.remove(brokerConfigHash);
-		var clientId = mqttClientValues.getClientId();
-		mqttClientValues.getMqttReactorClient().disconnect()
-				.onErrorResume(MqttClientStateException.class, e -> Mono.empty()) // if client already disconnected
-				.doOnSuccess(success -> log.debug("Client '{}' disconnected successfully.", clientId))
-				.subscribe();
-	}
+    private void disconnectClient(int brokerConfigHash, MqttClientValues mqttClientValues) {
+        MQTT_CLIENT_CACHE.remove(brokerConfigHash);
+        var clientId = mqttClientValues.getClientId();
+        mqttClientValues.getMqttReactorClient().disconnect()
+                .onErrorResume(MqttClientStateException.class, e -> Mono.empty()) // if client already disconnected
+                .doOnSuccess(success -> log.debug("Client '{}' disconnected successfully.", clientId)).subscribe();
+    }
 
-	private Collection<MqttTopicFilter> getMqttTopicFiltersToUnsubscribeAndReduceCount(
-			Val topics, MqttClientValues mqttClientValues) {
-		Collection<MqttTopicFilter> mqttTopicFilters = new LinkedList<>();
-		if (topics.isArray()) {
-			for (var topicNode : topics.getArrayNode()) {
-				var topic           = topicNode.asText();
-				var isTopicExisting = mqttClientValues.countTopicSubscriptionsCountMapDown(topic);
-				if (!isTopicExisting) {
-					mqttTopicFilters.add(MqttTopicFilter.of(topic));
-				}
-			}
-		} else {
-			var topic           = topics.getText();
-			var isTopicExisting = mqttClientValues.countTopicSubscriptionsCountMapDown(topic);
-			if (!isTopicExisting) {
-				mqttTopicFilters.add(MqttTopicFilter.of(topic));
-			}
-		}
-		return mqttTopicFilters;
-	}
+    private Collection<MqttTopicFilter> getMqttTopicFiltersToUnsubscribeAndReduceCount(Val topics,
+            MqttClientValues mqttClientValues) {
+        Collection<MqttTopicFilter> mqttTopicFilters = new LinkedList<>();
+        if (topics.isArray()) {
+            for (var topicNode : topics.getArrayNode()) {
+                var topic           = topicNode.asText();
+                var isTopicExisting = mqttClientValues.countTopicSubscriptionsCountMapDown(topic);
+                if (!isTopicExisting) {
+                    mqttTopicFilters.add(MqttTopicFilter.of(topic));
+                }
+            }
+        } else {
+            var topic           = topics.getText();
+            var isTopicExisting = mqttClientValues.countTopicSubscriptionsCountMapDown(topic);
+            if (!isTopicExisting) {
+                mqttTopicFilters.add(MqttTopicFilter.of(topic));
+            }
+        }
+        return mqttTopicFilters;
+    }
 
-	private void unsubscribeWithMessage(MqttClientValues clientRecord, Mqtt5Unsubscribe unsubscribeMessage) {
-		clientRecord.getMqttReactorClient()
-				.unsubscribe(unsubscribeMessage)
-				/*
-				 * in case the client is already disconnected unsubscribing does not emit any
-				 * value including an exception. Therefore, the timeout method is necessary
-				 * against buffer overflows.
-				 */
-				.timeout(Duration.ofMillis(10000), Mono.empty())
-				.subscribe();
-	}
+    private void unsubscribeWithMessage(MqttClientValues clientRecord, Mqtt5Unsubscribe unsubscribeMessage) {
+        clientRecord.getMqttReactorClient().unsubscribe(unsubscribeMessage)
+                /*
+                 * in case the client is already disconnected unsubscribing does not emit any
+                 * value including an exception. Therefore, the timeout method is necessary
+                 * against buffer overflows.
+                 */
+                .timeout(Duration.ofMillis(10000), Mono.empty()).subscribe();
+    }
 }

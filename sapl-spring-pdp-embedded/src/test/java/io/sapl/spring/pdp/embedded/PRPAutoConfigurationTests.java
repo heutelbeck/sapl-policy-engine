@@ -32,40 +32,40 @@ import reactor.core.publisher.Flux;
 
 class PRPAutoConfigurationTests {
 
-	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-			.withBean(PrpUpdateEventSource.class, () -> {
-				var mock = mock(PrpUpdateEventSource.class);
-				when(mock.getUpdates()).thenReturn(Flux.empty());
-				return mock;
-			}).withBean(FunctionContext.class, () -> mock(FunctionContext.class))
-			.withBean(AttributeContext.class, () -> mock(AttributeContext.class))
-			.withConfiguration(AutoConfigurations.of(PRPAutoConfiguration.class));
+    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
+            .withBean(PrpUpdateEventSource.class, () -> {
+                var mock = mock(PrpUpdateEventSource.class);
+                when(mock.getUpdates()).thenReturn(Flux.empty());
+                return mock;
+            }).withBean(FunctionContext.class, () -> mock(FunctionContext.class))
+            .withBean(AttributeContext.class, () -> mock(AttributeContext.class))
+            .withConfiguration(AutoConfigurations.of(PRPAutoConfiguration.class));
 
-	@Test
-	void whenPrpWithNaiveIndexIsConfigured_thenOneIsCreated() {
-		contextRunner.withPropertyValues("io.sapl.pdp.embedded.index=NAIVE").run(context -> {
-			assertThat(context).hasNotFailed();
-			assertThat(context).hasSingleBean(PolicyRetrievalPoint.class);
-			assertThat(context).hasSingleBean(GenericInMemoryIndexedPolicyRetrievalPoint.class);
-		});
-	}
+    @Test
+    void whenPrpWithNaiveIndexIsConfigured_thenOneIsCreated() {
+        contextRunner.withPropertyValues("io.sapl.pdp.embedded.index=NAIVE").run(context -> {
+            assertThat(context).hasNotFailed();
+            assertThat(context).hasSingleBean(PolicyRetrievalPoint.class);
+            assertThat(context).hasSingleBean(GenericInMemoryIndexedPolicyRetrievalPoint.class);
+        });
+    }
 
-	@Test
-	void whenPrpWithCanonicalIndexIsConfigured_thenOneIsCreated() {
-		contextRunner.withPropertyValues("io.sapl.pdp.embedded.index=CANONICAL").run(context -> {
-			assertThat(context).hasNotFailed();
-			assertThat(context).hasSingleBean(PolicyRetrievalPoint.class);
-			assertThat(context).hasSingleBean(GenericInMemoryIndexedPolicyRetrievalPoint.class);
-		});
-	}
+    @Test
+    void whenPrpWithCanonicalIndexIsConfigured_thenOneIsCreated() {
+        contextRunner.withPropertyValues("io.sapl.pdp.embedded.index=CANONICAL").run(context -> {
+            assertThat(context).hasNotFailed();
+            assertThat(context).hasSingleBean(PolicyRetrievalPoint.class);
+            assertThat(context).hasSingleBean(GenericInMemoryIndexedPolicyRetrievalPoint.class);
+        });
+    }
 
-	@Test
-	void whenAnotherPRPIsAlreadyPresent_thenDoNotLoadANewOne() {
-		contextRunner.withBean(PolicyRetrievalPoint.class, () -> mock(PolicyRetrievalPoint.class)).run(context -> {
-			assertThat(context).hasNotFailed();
-			assertThat(context).hasSingleBean(PolicyRetrievalPoint.class);
-			assertThat(context).doesNotHaveBean(GenericInMemoryIndexedPolicyRetrievalPoint.class);
-		});
-	}
+    @Test
+    void whenAnotherPRPIsAlreadyPresent_thenDoNotLoadANewOne() {
+        contextRunner.withBean(PolicyRetrievalPoint.class, () -> mock(PolicyRetrievalPoint.class)).run(context -> {
+            assertThat(context).hasNotFailed();
+            assertThat(context).hasSingleBean(PolicyRetrievalPoint.class);
+            assertThat(context).doesNotHaveBean(GenericInMemoryIndexedPolicyRetrievalPoint.class);
+        });
+    }
 
 }

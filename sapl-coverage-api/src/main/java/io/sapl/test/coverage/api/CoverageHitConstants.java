@@ -22,13 +22,13 @@ import lombok.experimental.UtilityClass;
  */
 @UtilityClass
 public class CoverageHitConstants {
-	/**
-	 * Delimiter in Strings
-	 */
-	public static final String DELIMITER = "||";
+    /**
+     * Delimiter in Strings
+     */
+    public static final String DELIMITER = "||";
 
-	/**
-	 * Regular expression representation of the delimiter.
-	 */
-	public static final String DELIMITER_MATCH_REGEX = "\\|\\|";
+    /**
+     * Regular expression representation of the delimiter.
+     */
+    public static final String DELIMITER_MATCH_REGEX = "\\|\\|";
 }

@@ -28,50 +28,50 @@ import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 
 class PolicyRetrievalResultTests {
-	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
+    private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
-	@Test
-	void whenNoArgsConstructorUsedThenHasExpectedState() {
-		var sut = new PolicyRetrievalResult();
-		assertThat(sut.getPolicyElements(), is(empty()));
-		assertThat(sut.getMatchingDocuments(), is(empty()));
-		assertThat(sut.isPrpValidState(), is(true));
-		assertThat(sut.isErrorsInTarget(), is(false));
-	}
+    @Test
+    void whenNoArgsConstructorUsedThenHasExpectedState() {
+        var sut = new PolicyRetrievalResult();
+        assertThat(sut.getPolicyElements(), is(empty()));
+        assertThat(sut.getMatchingDocuments(), is(empty()));
+        assertThat(sut.isPrpValidState(), is(true));
+        assertThat(sut.isErrorsInTarget(), is(false));
+    }
 
-	@Test
-	void whenAllArgsConstructorUsedThenHasProvidedState() {
-		var docs = new ArrayList<SAPL>();
-		var doc  = INTERPRETER.parse("policy \"x\" permit");
-		docs.add(doc);
-		var sut = new PolicyRetrievalResult(docs, true, false);
-		assertThat(sut.getPolicyElements().get(0), is(equalTo(doc.getPolicyElement())));
-		assertThat(sut.getMatchingDocuments().get(0).getPolicyElement(), is(doc.getPolicyElement()));
-		assertThat(sut.isPrpValidState(), is(false));
-		assertThat(sut.isErrorsInTarget(), is(true));
-	}
+    @Test
+    void whenAllArgsConstructorUsedThenHasProvidedState() {
+        var docs = new ArrayList<SAPL>();
+        var doc  = INTERPRETER.parse("policy \"x\" permit");
+        docs.add(doc);
+        var sut = new PolicyRetrievalResult(docs, true, false);
+        assertThat(sut.getPolicyElements().get(0), is(equalTo(doc.getPolicyElement())));
+        assertThat(sut.getMatchingDocuments().get(0).getPolicyElement(), is(doc.getPolicyElement()));
+        assertThat(sut.isPrpValidState(), is(false));
+        assertThat(sut.isErrorsInTarget(), is(true));
+    }
 
-	@Test
-	void whenNoArgsConstructorUsedThenWithMatchAddsDocument() {
-		var sut = new PolicyRetrievalResult();
-		var doc = INTERPRETER.parse("policy \"x\" permit");
-		sut = sut.withMatch(doc);
-		assertThat(sut.getPolicyElements().get(0), is(equalTo(doc.getPolicyElement())));
-		assertThat(sut.getMatchingDocuments().get(0).getPolicyElement(), is(doc.getPolicyElement()));
-	}
+    @Test
+    void whenNoArgsConstructorUsedThenWithMatchAddsDocument() {
+        var sut = new PolicyRetrievalResult();
+        var doc = INTERPRETER.parse("policy \"x\" permit");
+        sut = sut.withMatch(doc);
+        assertThat(sut.getPolicyElements().get(0), is(equalTo(doc.getPolicyElement())));
+        assertThat(sut.getMatchingDocuments().get(0).getPolicyElement(), is(doc.getPolicyElement()));
+    }
 
-	@Test
-	void whenNoArgsConstructorUsedThenWithErrorTurnsOnErrorState() {
-		var sut = new PolicyRetrievalResult();
-		sut = sut.withError();
-		assertThat(sut.isErrorsInTarget(), is(true));
-	}
+    @Test
+    void whenNoArgsConstructorUsedThenWithErrorTurnsOnErrorState() {
+        var sut = new PolicyRetrievalResult();
+        sut = sut.withError();
+        assertThat(sut.isErrorsInTarget(), is(true));
+    }
 
-	@Test
-	void whenNoArgsConstructorUsedThenWithInvalidStateTurnsOnInvalidState() {
-		var sut = new PolicyRetrievalResult();
-		sut = sut.withInvalidState();
-		assertThat(sut.isPrpValidState(), is(false));
-	}
+    @Test
+    void whenNoArgsConstructorUsedThenWithInvalidStateTurnsOnInvalidState() {
+        var sut = new PolicyRetrievalResult();
+        sut = sut.withInvalidState();
+        assertThat(sut.isPrpValidState(), is(false));
+    }
 
 }

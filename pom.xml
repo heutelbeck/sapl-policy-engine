@@ -20,7 +20,7 @@
 	Utility goals supported by the POM:
 	
 	* Update the version of all modules:
-	  mvn versions:set -DnewVersion=2.0.0-RC1 -DprocessAllModules
+	  mvn versions:set -DnewVersion=3.0.0-RC1 -DprocessAllModules
 -DgenerateBackupPoms=false
 	  
 	* Correct the license headers of all source files:
@@ -37,7 +37,7 @@
 	<artifactId>sapl-policy-engine</artifactId>
 	<version>3.0.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
-	<name>Streaming Attribute Authorization Engine</name>
+	<name>Streaming Attribute Policy Language (SAPL) Engine</name>
 	<description>Authorization Engine for Attribute Stream-Based Access Control
 		(ASBAC)</description>
 	<url>https://sapl.io</url>
@@ -56,7 +56,7 @@
 		<name>Dominic Heutelbeck</name>
 		<url>https://heutelbeck.com</url>
 	</organization>
-	<inceptionYear>2023</inceptionYear>
+	<inceptionYear>2017-2023</inceptionYear>
 	<licenses>
 		<license>
 			<name>Apache 2.0</name>

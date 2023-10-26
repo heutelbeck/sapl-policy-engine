@@ -25,10 +25,10 @@ import reactor.core.publisher.Flux;
 
 public interface AttributeMock {
 
-	Flux<Val> evaluate(String attributeName, Val parentValue, Map<String, JsonNode> variables, List<Flux<Val>> args);
+    Flux<Val> evaluate(String attributeName, Val parentValue, Map<String, JsonNode> variables, List<Flux<Val>> args);
 
-	void assertVerifications();
+    void assertVerifications();
 
-	String getErrorMessageForCurrentMode();
+    String getErrorMessageForCurrentMode();
 
 }

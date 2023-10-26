@@ -21,9 +21,9 @@ import org.eclipse.xtext.xtext.generator.model.project.WebProjectConfig;
 
 class TestWebProjectConfig extends WebProjectConfig {
 
-	@Override
-	public IXtextGeneratorFileSystemAccess getAssets() {
-		return new XtextGeneratorFileSystemAccess("", false);
-	}
+    @Override
+    public IXtextGeneratorFileSystemAccess getAssets() {
+        return new XtextGeneratorFileSystemAccess("", false);
+    }
 
 }

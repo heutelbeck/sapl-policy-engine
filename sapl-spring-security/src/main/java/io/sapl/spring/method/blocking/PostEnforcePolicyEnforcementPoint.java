@@ -43,102 +43,102 @@ import reactor.core.Exceptions;
 @RequiredArgsConstructor
 public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
-	private Supplier<Authentication> authentication = getAuthentication(
-			SecurityContextHolder.getContextHolderStrategy());
+    private Supplier<Authentication> authentication = getAuthentication(
+            SecurityContextHolder.getContextHolderStrategy());
 
-	private final PolicyDecisionPoint                        pdp;
-	private final SaplAttributeRegistry                      attributeRegistry;
-	private final ConstraintEnforcementService               constraintEnforcementService;
-	private final WebAuthorizationSubscriptionBuilderService subscriptionBuilder;
+    private final PolicyDecisionPoint                        pdp;
+    private final SaplAttributeRegistry                      attributeRegistry;
+    private final ConstraintEnforcementService               constraintEnforcementService;
+    private final WebAuthorizationSubscriptionBuilderService subscriptionBuilder;
 
-	@Override
-	@SuppressWarnings("unchecked")
-	public Object invoke(MethodInvocation methodInvocation) throws Throwable {
-		var returnedObject = methodInvocation.proceed();
-		var attribute      = attributeRegistry.getSaplAttributeForAnnotationType(methodInvocation, PostEnforce.class);
-		if (attribute.isEmpty()) {
-			return returnedObject;
-		}
+    @Override
+    @SuppressWarnings("unchecked")
+    public Object invoke(MethodInvocation methodInvocation) throws Throwable {
+        var returnedObject = methodInvocation.proceed();
+        var attribute      = attributeRegistry.getSaplAttributeForAnnotationType(methodInvocation, PostEnforce.class);
+        if (attribute.isEmpty()) {
+            return returnedObject;
+        }
 
-		var postEnforceAttribute               = attribute.get();
-		var isOptional                         = returnedObject instanceof Optional;
-		var returnedObjectForAuthzSubscription = returnedObject;
-		var returnType                         = methodInvocation.getMethod().getReturnType();
+        var postEnforceAttribute               = attribute.get();
+        var isOptional                         = returnedObject instanceof Optional;
+        var returnedObjectForAuthzSubscription = returnedObject;
+        var returnType                         = methodInvocation.getMethod().getReturnType();
 
-		if (isOptional) {
-			var optObject = (Optional<Object>) returnedObject;
-			if (optObject.isPresent()) {
-				returnedObjectForAuthzSubscription = optObject.get();
-				returnType                         = returnedObjectForAuthzSubscription.getClass();
-			} else {
-				returnedObjectForAuthzSubscription = null;
-				returnType                         = postEnforceAttribute.genericsType();
-			}
-		}
+        if (isOptional) {
+            var optObject = (Optional<Object>) returnedObject;
+            if (optObject.isPresent()) {
+                returnedObjectForAuthzSubscription = optObject.get();
+                returnType                         = returnedObjectForAuthzSubscription.getClass();
+            } else {
+                returnedObjectForAuthzSubscription = null;
+                returnType                         = postEnforceAttribute.genericsType();
+            }
+        }
 
-		var authzSubscription = subscriptionBuilder.constructAuthorizationSubscriptionWithReturnObject(
-				authentication.get(),
-				methodInvocation, postEnforceAttribute, returnedObjectForAuthzSubscription);
+        var authzSubscription = subscriptionBuilder.constructAuthorizationSubscriptionWithReturnObject(
+                authentication.get(), methodInvocation, postEnforceAttribute, returnedObjectForAuthzSubscription);
 
-		var authzDecisions = pdp.decide(authzSubscription);
-		if (authzDecisions == null) {
-			throw new AccessDeniedException(String.format("Access Denied by @PostEnforce PEP. PDP returned null. %s", attribute));
-		}
+        var authzDecisions = pdp.decide(authzSubscription);
+        if (authzDecisions == null) {
+            throw new AccessDeniedException(
+                    String.format("Access Denied by @PostEnforce PEP. PDP returned null. %s", attribute));
+        }
 
-		var authzDecision = authzDecisions.blockFirst();
+        var authzDecision = authzDecisions.blockFirst();
 
-		if (authzDecision == null) {
-			throw new AccessDeniedException(String.format("Access Denied by @PostEnforce PEP. PDP decision stream was empty. %s",
-					attribute));
-		}
+        if (authzDecision == null) {
+            throw new AccessDeniedException(
+                    String.format("Access Denied by @PostEnforce PEP. PDP decision stream was empty. %s", attribute));
+        }
 
-		return enforceDecision(isOptional, returnedObjectForAuthzSubscription, returnType, authzDecision);
-	}
+        return enforceDecision(isOptional, returnedObjectForAuthzSubscription, returnType, authzDecision);
+    }
 
-	private <T> Object enforceDecision(boolean isOptional, Object returnedObjectForAuthzSubscription,
-			Class<T> returnType, AuthorizationDecision authzDecision) throws Throwable {
-		BlockingConstraintHandlerBundle<T> blockingPostEnforceBundle;
-		try {
-			blockingPostEnforceBundle = constraintEnforcementService.blockingPostEnforceBundleFor(authzDecision,
-					returnType);
-		} catch (Throwable e) {
-			Exceptions.throwIfFatal(e);
-			throw new AccessDeniedException(
-					"Access Denied by @PostEnforce PEP. Failed to construct constraint handlers for decision.", e);
-		}
+    private <T> Object enforceDecision(boolean isOptional, Object returnedObjectForAuthzSubscription,
+            Class<T> returnType, AuthorizationDecision authzDecision) throws Throwable {
+        BlockingConstraintHandlerBundle<T> blockingPostEnforceBundle;
+        try {
+            blockingPostEnforceBundle = constraintEnforcementService.blockingPostEnforceBundleFor(authzDecision,
+                    returnType);
+        } catch (Throwable e) {
+            Exceptions.throwIfFatal(e);
+            throw new AccessDeniedException(
+                    "Access Denied by @PostEnforce PEP. Failed to construct constraint handlers for decision.", e);
+        }
 
-		if (blockingPostEnforceBundle == null) {
-			throw new AccessDeniedException(
-					"Access Denied by @PostEnforce PEP. Failed to construct constraint handlers for decision. The ConstraintEnforcementService unexpectedly returned null");
-		}
+        if (blockingPostEnforceBundle == null) {
+            throw new AccessDeniedException(
+                    "Access Denied by @PostEnforce PEP. Failed to construct constraint handlers for decision. The ConstraintEnforcementService unexpectedly returned null");
+        }
 
-		try {
-			blockingPostEnforceBundle.handleOnDecisionConstraints();
+        try {
+            blockingPostEnforceBundle.handleOnDecisionConstraints();
 
-			var isNotPermit = authzDecision.getDecision() != Decision.PERMIT;
-			if (isNotPermit)
-				throw new AccessDeniedException("Access Denied. Action not permitted.");
+            var isNotPermit = authzDecision.getDecision() != Decision.PERMIT;
+            if (isNotPermit)
+                throw new AccessDeniedException("Access Denied. Action not permitted.");
 
-			var result = blockingPostEnforceBundle.handleAllOnNextConstraints(returnedObjectForAuthzSubscription);
+            var result = blockingPostEnforceBundle.handleAllOnNextConstraints(returnedObjectForAuthzSubscription);
 
-			if (isOptional)
-				return Optional.ofNullable(result);
+            if (isOptional)
+                return Optional.ofNullable(result);
 
-			return result;
-		} catch (Throwable e) {
-			Exceptions.throwIfFatal(e);
-			throw blockingPostEnforceBundle.handleAllOnErrorConstraints(e);
-		}
-	}
+            return result;
+        } catch (Throwable e) {
+            Exceptions.throwIfFatal(e);
+            throw blockingPostEnforceBundle.handleAllOnErrorConstraints(e);
+        }
+    }
 
-	private static Supplier<Authentication> getAuthentication(SecurityContextHolderStrategy strategy) {
-		return () -> {
-			var authentication = strategy.getContext().getAuthentication();
-			if (authentication == null) {
-				throw new AuthenticationCredentialsNotFoundException(
-						"An Authentication object was not found in the SecurityContext");
-			}
-			return authentication;
-		};
-	}
+    private static Supplier<Authentication> getAuthentication(SecurityContextHolderStrategy strategy) {
+        return () -> {
+            var authentication = strategy.getContext().getAuthentication();
+            if (authentication == null) {
+                throw new AuthenticationCredentialsNotFoundException(
+                        "An Authentication object was not found in the SecurityContext");
+            }
+            return authentication;
+        };
+    }
 }

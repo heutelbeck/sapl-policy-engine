@@ -24,20 +24,20 @@ import io.sapl.test.steps.WhenStep;
 
 public class SaplTestsFixtureTemplateTestsImpl extends SaplTestFixtureTemplate {
 
-	@Override
-	public GivenStep constructTestCaseWithMocks() {
-		// NOOP
-		return null;
-	}
+    @Override
+    public GivenStep constructTestCaseWithMocks() {
+        // NOOP
+        return null;
+    }
 
-	@Override
-	public WhenStep constructTestCase() {
-		// NOOP
-		return null;
-	}
+    @Override
+    public WhenStep constructTestCase() {
+        // NOOP
+        return null;
+    }
 
-	public Map<String, JsonNode> getVariablesMap() {
-		return this.variables;
-	}
+    public Map<String, JsonNode> getVariablesMap() {
+        return this.variables;
+    }
 
 }

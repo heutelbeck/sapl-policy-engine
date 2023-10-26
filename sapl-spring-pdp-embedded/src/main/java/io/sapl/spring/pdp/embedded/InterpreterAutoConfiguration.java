@@ -26,10 +26,10 @@ import io.sapl.interpreter.SAPLInterpreter;
 @AutoConfiguration
 public class InterpreterAutoConfiguration {
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	SAPLInterpreter parser() {
-		return new DefaultSAPLInterpreter();
-	}
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    SAPLInterpreter parser() {
+        return new DefaultSAPLInterpreter();
+    }
 
 }

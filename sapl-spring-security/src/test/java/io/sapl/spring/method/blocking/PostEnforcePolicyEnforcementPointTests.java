@@ -53,159 +53,162 @@ import reactor.core.publisher.Flux;
 @SpringBootTest(classes = { Application.class, MethodSecurityConfiguration.class, TestService.class })
 class PostEnforcePolicyEnforcementPointTests {
 
-	private static final JsonNodeFactory JSON                   = JsonNodeFactory.instance;
-	private static final String          ORIGINAL_RETURN_OBJECT = "original return object";
-	private static final String          CHANGED_RETURN_OBJECT  = "changed return object";
-	private static final String          USER                   = "user";
+    private static final JsonNodeFactory JSON                   = JsonNodeFactory.instance;
+    private static final String          ORIGINAL_RETURN_OBJECT = "original return object";
+    private static final String          CHANGED_RETURN_OBJECT  = "changed return object";
+    private static final String          USER                   = "user";
 
-	@MockBean
-	private PolicyDecisionPoint pdp;
+    @MockBean
+    private PolicyDecisionPoint pdp;
 
-	@MockBean
-	private ConstraintEnforcementService constraintEnforcementService;
+    @MockBean
+    private ConstraintEnforcementService constraintEnforcementService;
 
-	@Autowired
-	TestService testService;
+    @Autowired
+    TestService testService;
 
-	@SpringBootApplication
-	static class Application {
-		public static void main(String... args) {
-			SpringApplication.run(Application.class, args);
-		}
-	}
+    @SpringBootApplication
+    static class Application {
+        public static void main(String... args) {
+            SpringApplication.run(Application.class, args);
+        }
+    }
 
-	@TestConfiguration
-	@EnableSaplMethodSecurity
-	static class MethodSecurityConfiguration {
-	}
+    @TestConfiguration
+    @EnableSaplMethodSecurity
+    static class MethodSecurityConfiguration {
+    }
 
-	@Service
-	static class TestService {
-		@PostEnforce
-		public String doSomething() {
-			return ORIGINAL_RETURN_OBJECT;
-		}
+    @Service
+    static class TestService {
+        @PostEnforce
+        public String doSomething() {
+            return ORIGINAL_RETURN_OBJECT;
+        }
 
-		@PostEnforce
-		public Optional<String> doSomethingOptional() {
-			return Optional.of("I did something!");
-		}
+        @PostEnforce
+        public Optional<String> doSomethingOptional() {
+            return Optional.of("I did something!");
+        }
 
-		@PostEnforce
-		public Optional<String> doSomethingOptionalEmpty() {
-			return Optional.empty();
-		}
-	}
+        @PostEnforce
+        public Optional<String> doSomethingOptionalEmpty() {
+            return Optional.empty();
+        }
+    }
 
-	@Test
-	@WithMockUser(USER)
-	void when_errorDuringBundleConstruction_then_AccessDenied() {
-		when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
-				.thenThrow(new IllegalStateException("TEST FAILURE"));
-		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-		assertThrows(AccessDeniedException.class, () -> testService.doSomething());
-	}
+    @Test
+    @WithMockUser(USER)
+    void when_errorDuringBundleConstruction_then_AccessDenied() {
+        when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
+                .thenThrow(new IllegalStateException("TEST FAILURE"));
+        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+        assertThrows(AccessDeniedException.class, () -> testService.doSomething());
+    }
 
-	@Test
-	@WithMockUser(USER)
-	void when_bundleIsNull_then_AccessDenied() {
-		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-		assertThrows(AccessDeniedException.class, () -> testService.doSomething());
-	}
+    @Test
+    @WithMockUser(USER)
+    void when_bundleIsNull_then_AccessDenied() {
+        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+        assertThrows(AccessDeniedException.class, () -> testService.doSomething());
+    }
 
-	@Test
-	@WithMockUser(USER)
-	void when_AfterAndDecideIsPermit_then_ReturnOriginalReturnObject() throws Throwable {
-		when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any())).thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
-		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-		assertThat(testService.doSomething(), is(ORIGINAL_RETURN_OBJECT));
-	}
+    @Test
+    @WithMockUser(USER)
+    void when_AfterAndDecideIsPermit_then_ReturnOriginalReturnObject() throws Throwable {
+        when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
+                .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
+        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+        assertThat(testService.doSomething(), is(ORIGINAL_RETURN_OBJECT));
+    }
 
-	@Test
-	@WithMockUser(USER)
-	void when_AfterAndDecideIsDeny_then_ThrowAccessDeniedException() {
-		when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any())).thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
-		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.DENY));
-		assertThrows(AccessDeniedException.class, () -> testService.doSomething());
-	}
+    @Test
+    @WithMockUser(USER)
+    void when_AfterAndDecideIsDeny_then_ThrowAccessDeniedException() {
+        when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
+                .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
+        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.DENY));
+        assertThrows(AccessDeniedException.class, () -> testService.doSomething());
+    }
 
-	@Test
-	@WithMockUser(USER)
-	void when_AfterBeforeAndDecideNotApplicable_then_ThrowAccessDeniedException() {
-		when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any())).thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
-		when(pdp.decide(any(AuthorizationSubscription.class)))
-				.thenReturn(Flux.just(AuthorizationDecision.NOT_APPLICABLE));
-		assertThrows(AccessDeniedException.class, () -> testService.doSomething());
-	}
+    @Test
+    @WithMockUser(USER)
+    void when_AfterBeforeAndDecideNotApplicable_then_ThrowAccessDeniedException() {
+        when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
+                .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
+        when(pdp.decide(any(AuthorizationSubscription.class)))
+                .thenReturn(Flux.just(AuthorizationDecision.NOT_APPLICABLE));
+        assertThrows(AccessDeniedException.class, () -> testService.doSomething());
+    }
 
-	@Test
-	@WithMockUser(USER)
-	void when_AfterAndDecideIsIndeterminate_then_ThrowAccessDeniedException() {
-		when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any())).thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
-		when(pdp.decide(any(AuthorizationSubscription.class)))
-				.thenReturn(Flux.just(AuthorizationDecision.INDETERMINATE));
-		assertThrows(AccessDeniedException.class, () -> testService.doSomething());
-	}
+    @Test
+    @WithMockUser(USER)
+    void when_AfterAndDecideIsIndeterminate_then_ThrowAccessDeniedException() {
+        when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
+                .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
+        when(pdp.decide(any(AuthorizationSubscription.class)))
+                .thenReturn(Flux.just(AuthorizationDecision.INDETERMINATE));
+        assertThrows(AccessDeniedException.class, () -> testService.doSomething());
+    }
 
-	@Test
-	@WithMockUser(USER)
-	void when_AfterAndDecideIsEmpty_then_ThrowAccessDeniedException() {
-		when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any())).thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
-		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.empty());
-		assertThrows(AccessDeniedException.class, () -> testService.doSomething());
-	}
+    @Test
+    @WithMockUser(USER)
+    void when_AfterAndDecideIsEmpty_then_ThrowAccessDeniedException() {
+        when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
+                .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
+        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.empty());
+        assertThrows(AccessDeniedException.class, () -> testService.doSomething());
+    }
 
-	@Test
-	@WithMockUser(USER)
-	void when_AfterAndDecideIsPermitWithResource_then_ReturnTheReplacementObject() throws Throwable {
-		var replaceBundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(
-				FunctionUtil.noop(), FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(),
-				UnaryOperator.identity(), FunctionUtil.all(),
-				x -> CHANGED_RETURN_OBJECT);
-		when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any())).thenReturn(replaceBundle);
-		when(pdp.decide(any(AuthorizationSubscription.class)))
-				.thenReturn(Flux.just(AuthorizationDecision.PERMIT.withResource(JSON.textNode(CHANGED_RETURN_OBJECT))));
-		assertThat(testService.doSomething(), is(CHANGED_RETURN_OBJECT));
-	}
+    @Test
+    @WithMockUser(USER)
+    void when_AfterAndDecideIsPermitWithResource_then_ReturnTheReplacementObject() throws Throwable {
+        var replaceBundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(FunctionUtil.noop(),
+                FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(), UnaryOperator.identity(),
+                FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
+        when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any())).thenReturn(replaceBundle);
+        when(pdp.decide(any(AuthorizationSubscription.class)))
+                .thenReturn(Flux.just(AuthorizationDecision.PERMIT.withResource(JSON.textNode(CHANGED_RETURN_OBJECT))));
+        assertThat(testService.doSomething(), is(CHANGED_RETURN_OBJECT));
+    }
 
-	@Test
-	@WithMockUser(USER)
-	void when_AfterAndDecideIsPermitWithResourceAndMethodReturnsOptional_then_ReturnTheReplacementObject()
-			throws Throwable {
-		var replaceBundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(
-				FunctionUtil.noop(), FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(),
-				UnaryOperator.identity(), FunctionUtil.all(),
-				x -> CHANGED_RETURN_OBJECT);
+    @Test
+    @WithMockUser(USER)
+    void when_AfterAndDecideIsPermitWithResourceAndMethodReturnsOptional_then_ReturnTheReplacementObject()
+            throws Throwable {
+        var replaceBundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(FunctionUtil.noop(),
+                FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(), UnaryOperator.identity(),
+                FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
 
-		when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any())).thenReturn(replaceBundle);
-		when(pdp.decide(any(AuthorizationSubscription.class)))
-				.thenReturn(Flux.just(AuthorizationDecision.PERMIT.withResource(JSON.textNode(CHANGED_RETURN_OBJECT))));
-		assertThat(testService.doSomethingOptional(), is(Optional.of(CHANGED_RETURN_OBJECT)));
-	}
+        when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any())).thenReturn(replaceBundle);
+        when(pdp.decide(any(AuthorizationSubscription.class)))
+                .thenReturn(Flux.just(AuthorizationDecision.PERMIT.withResource(JSON.textNode(CHANGED_RETURN_OBJECT))));
+        assertThat(testService.doSomethingOptional(), is(Optional.of(CHANGED_RETURN_OBJECT)));
+    }
 
-	@Test
-	@WithMockUser(USER)
-	void when_AfterAndDecideIsPermitWithResourceAndMethodReturnsEmptyOptional_then_ReturnEmpty() throws Throwable {
-		when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any())).thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
-		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-		assertThat(testService.doSomethingOptionalEmpty(), is(Optional.empty()));
-	}
+    @Test
+    @WithMockUser(USER)
+    void when_AfterAndDecideIsPermitWithResourceAndMethodReturnsEmptyOptional_then_ReturnEmpty() throws Throwable {
+        when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
+                .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
+        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+        assertThat(testService.doSomethingOptionalEmpty(), is(Optional.empty()));
+    }
 
-	@Test
-	@WithMockUser(USER)
-	void when_AfterAndDecideIsPermitWithResourceAndMethodReturnsEmptyOptionalAndResourcePresent_then_ReturnResourceOptional()
-			throws Throwable {
-		var replaceBundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(
-				FunctionUtil.noop(), FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(),
-				UnaryOperator.identity(), FunctionUtil.all(),
-				x -> CHANGED_RETURN_OBJECT);
+    @Test
+    @WithMockUser(USER)
+    void when_AfterAndDecideIsPermitWithResourceAndMethodReturnsEmptyOptionalAndResourcePresent_then_ReturnResourceOptional()
+            throws Throwable {
+        var replaceBundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(FunctionUtil.noop(),
+                FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(), UnaryOperator.identity(),
+                FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
 
-		when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any())).thenReturn(replaceBundle);
-		var expectedReturnObject = Optional.of(CHANGED_RETURN_OBJECT);
+        when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any())).thenReturn(replaceBundle);
+        var expectedReturnObject = Optional.of(CHANGED_RETURN_OBJECT);
 
-		when(pdp.decide(any(AuthorizationSubscription.class)))
-				.thenReturn(Flux.just(AuthorizationDecision.PERMIT.withResource(JSON.textNode(CHANGED_RETURN_OBJECT))));
-		assertThat(testService.doSomethingOptionalEmpty(), is(expectedReturnObject));
-	}
+        when(pdp.decide(any(AuthorizationSubscription.class)))
+                .thenReturn(Flux.just(AuthorizationDecision.PERMIT.withResource(JSON.textNode(CHANGED_RETURN_OBJECT))));
+        assertThat(testService.doSomethingOptionalEmpty(), is(expectedReturnObject));
+    }
 
 }

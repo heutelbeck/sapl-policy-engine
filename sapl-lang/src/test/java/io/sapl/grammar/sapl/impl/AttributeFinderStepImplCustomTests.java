@@ -42,12 +42,12 @@ import reactor.test.StepVerifier;
 
 class AttributeFinderStepImplCustomTests {
 
-	private static final SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
-	private static final String ATTRIBUTE = "attribute";
-	private static final String FULLY_QUALIFIED_ATTRIBUTE = "mock." + ATTRIBUTE;
+    private static final SaplFactory FACTORY                   = SaplFactoryImpl.eINSTANCE;
+    private static final String      ATTRIBUTE                 = "attribute";
+    private static final String      FULLY_QUALIFIED_ATTRIBUTE = "mock." + ATTRIBUTE;
 
-	private static Stream<Arguments> errorExpressions() {
-		// @formatter:off
+    private static Stream<Arguments> errorExpressions() {
+        // @formatter:off
 		return Stream.of(
 	 			// errorPropagates
 	 			Arguments.of("(1/0).<test.numbers>", "Division by zero"),

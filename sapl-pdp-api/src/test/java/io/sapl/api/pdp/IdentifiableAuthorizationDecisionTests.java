@@ -25,12 +25,12 @@ import org.junit.jupiter.api.Test;
 
 class IdentifiableAuthorizationDecisionTests {
 
-	@Test
-	void subjectActionResourceDefaultMapper() {
-		var subscription = IdentifiableAuthorizationDecision.INDETERMINATE;
+    @Test
+    void subjectActionResourceDefaultMapper() {
+        var subscription = IdentifiableAuthorizationDecision.INDETERMINATE;
 
-		assertAll(() -> assertThat(subscription.getAuthorizationSubscriptionId(), is(nullValue())),
-				() -> assertEquals(Decision.INDETERMINATE, subscription.getAuthorizationDecision().getDecision()));
-	}
+        assertAll(() -> assertThat(subscription.getAuthorizationSubscriptionId(), is(nullValue())),
+                () -> assertEquals(Decision.INDETERMINATE, subscription.getAuthorizationDecision().getDecision()));
+    }
 
 }

@@ -24,17 +24,17 @@ import io.sapl.test.unit.SaplUnitTestFixture;
 
 class A_PolicySimpleTests {
 
-	private SaplTestFixture fixture;
+    private SaplTestFixture fixture;
 
-	@BeforeEach
-	void setUp() {
-		fixture = new SaplUnitTestFixture("policySimple");
-	}
+    @BeforeEach
+    void setUp() {
+        fixture = new SaplUnitTestFixture("policySimple");
+    }
 
-	@Test
-	void test_simplePolicy() {
-		fixture.constructTestCase().when(AuthorizationSubscription.of("willi", "read", "something")).expectPermit()
-				.verify();
-	}
+    @Test
+    void test_simplePolicy() {
+        fixture.constructTestCase().when(AuthorizationSubscription.of("willi", "read", "something")).expectPermit()
+                .verify();
+    }
 
 }

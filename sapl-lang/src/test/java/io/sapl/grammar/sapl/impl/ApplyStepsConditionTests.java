@@ -25,14 +25,14 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class ApplyStepsConditionTests {
-	@ParameterizedTest
-	@MethodSource("errorCases")
-	void expressionEvaluatesToExpectedError(String expression, String expectedError) {
-		assertExpressionReturnsError(expression, expectedError);
-	}
+    @ParameterizedTest
+    @MethodSource("errorCases")
+    void expressionEvaluatesToExpectedError(String expression, String expectedError) {
+        assertExpressionReturnsError(expression, expectedError);
+    }
 
-	private static Stream<Arguments> errorCases() {
-		// @formatter:off
+    private static Stream<Arguments> errorCases() {
+        // @formatter:off
 		return Stream.of(
 	 			// Propagates errors
 	 			Arguments.of("(10/0)[?(@>0)]", "Division by zero"),

@@ -21,56 +21,56 @@ import org.junit.jupiter.api.Test;
 
 class EvaluateLiteralsValuesTests {
 
-	@Test
-	void evaluateNullLiteral() {
-		assertExpressionEvaluatesTo("null", "null");
-	}
+    @Test
+    void evaluateNullLiteral() {
+        assertExpressionEvaluatesTo("null", "null");
+    }
 
-	@Test
-	void evaluateTrueLiteral() {
-		assertExpressionEvaluatesTo("true", "true");
-	}
+    @Test
+    void evaluateTrueLiteral() {
+        assertExpressionEvaluatesTo("true", "true");
+    }
 
-	@Test
-	void evaluateFalseLiteral() {
-		assertExpressionEvaluatesTo("false", "false");
-	}
+    @Test
+    void evaluateFalseLiteral() {
+        assertExpressionEvaluatesTo("false", "false");
+    }
 
-	@Test
-	void evaluateStringLiteral() {
-		assertExpressionEvaluatesTo("\"Otto\"", "\"Otto\"");
-	}
+    @Test
+    void evaluateStringLiteral() {
+        assertExpressionEvaluatesTo("\"Otto\"", "\"Otto\"");
+    }
 
-	@Test
-	void evaluateNumberLiteral() {
-		assertExpressionEvaluatesTo("666", "666");
-	}
+    @Test
+    void evaluateNumberLiteral() {
+        assertExpressionEvaluatesTo("666", "666");
+    }
 
-	@Test
-	void evaluateNumberLiteral2() {
-		assertExpressionEvaluatesTo("1", "1.0");
-	}
+    @Test
+    void evaluateNumberLiteral2() {
+        assertExpressionEvaluatesTo("1", "1.0");
+    }
 
-	@Test
-	void evaluateEmptyObject() {
-		assertExpressionEvaluatesTo("{}", "{}");
-	}
+    @Test
+    void evaluateEmptyObject() {
+        assertExpressionEvaluatesTo("{}", "{}");
+    }
 
-	@Test
-	void evaluateObject() {
-		var json = "{ \"key1\" : null, \"key2\" : true }";
-		assertExpressionEvaluatesTo(json, json);
-	}
+    @Test
+    void evaluateObject() {
+        var json = "{ \"key1\" : null, \"key2\" : true }";
+        assertExpressionEvaluatesTo(json, json);
+    }
 
-	@Test
-	void evaluateEmptyArray() {
-		assertExpressionEvaluatesTo("[]", "[]");
-	}
+    @Test
+    void evaluateEmptyArray() {
+        assertExpressionEvaluatesTo("[]", "[]");
+    }
 
-	@Test
-	void evaluateArray() {
-		var json = "[null,true,false]";
-		assertExpressionEvaluatesTo(json, json);
-	}
+    @Test
+    void evaluateArray() {
+        var json = "[null,true,false]";
+        assertExpressionEvaluatesTo(json, json);
+    }
 
 }

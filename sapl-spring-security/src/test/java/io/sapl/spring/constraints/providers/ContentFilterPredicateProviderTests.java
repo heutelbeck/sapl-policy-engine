@@ -30,31 +30,31 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 class ContentFilterPredicateProviderTests {
-	private final static ObjectMapper MAPPER = new ObjectMapper();
+    private final static ObjectMapper MAPPER = new ObjectMapper();
 
-	@Test
-	void when_constraintIsNull_then_notResponsible() {
-		var      sut        = new ContentFilterPredicateProvider(MAPPER);
-		JsonNode constraint = null;
-		assertThat(sut.isResponsible(constraint), is(false));
-	}
+    @Test
+    void when_constraintIsNull_then_notResponsible() {
+        var      sut        = new ContentFilterPredicateProvider(MAPPER);
+        JsonNode constraint = null;
+        assertThat(sut.isResponsible(constraint), is(false));
+    }
 
-	@Test
-	void when_constraintNonObject_then_notResponsible() throws JsonProcessingException {
-		var sut        = new ContentFilterPredicateProvider(MAPPER);
-		var constraint = MAPPER.readTree("123");
-		assertThat(sut.isResponsible(constraint), is(false));
-	}
+    @Test
+    void when_constraintNonObject_then_notResponsible() throws JsonProcessingException {
+        var sut        = new ContentFilterPredicateProvider(MAPPER);
+        var constraint = MAPPER.readTree("123");
+        assertThat(sut.isResponsible(constraint), is(false));
+    }
 
-	@Test
-	void when_constraintNoType_then_notResponsible() throws JsonProcessingException {
-		var sut        = new ContentFilterPredicateProvider(MAPPER);
-		var constraint = MAPPER.readTree("{ }");
-		assertThat(sut.isResponsible(constraint), is(false));
-	}
+    @Test
+    void when_constraintNoType_then_notResponsible() throws JsonProcessingException {
+        var sut        = new ContentFilterPredicateProvider(MAPPER);
+        var constraint = MAPPER.readTree("{ }");
+        assertThat(sut.isResponsible(constraint), is(false));
+    }
 
-	private static Stream<Arguments> provideTestCases() {
-		// @formatter:off
+    private static Stream<Arguments> provideTestCases() {
+        // @formatter:off
 		return Stream.of(
 				// when_constraintTypeNonTextual_then_notResponsible
 			    Arguments.of("""

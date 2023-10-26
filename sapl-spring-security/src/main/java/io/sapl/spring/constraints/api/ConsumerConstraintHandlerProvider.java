@@ -21,6 +21,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 public interface ConsumerConstraintHandlerProvider<T> extends Responsible, TypeSupport<T> {
 
-	Consumer<T> getHandler(JsonNode constraint);
+    Consumer<T> getHandler(JsonNode constraint);
 
 }

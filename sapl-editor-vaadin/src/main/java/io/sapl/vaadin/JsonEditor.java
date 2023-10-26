@@ -30,42 +30,42 @@ import com.vaadin.flow.dom.Element;
 @NpmPackage(value = "codemirror", version = "5.52.2")
 public class JsonEditor extends BaseEditor {
 
-	/**
-	 * Creates the editor component.
-	 * 
-	 * @param config the editor configuration-
-	 */
-	public JsonEditor(JsonEditorConfiguration config) {
-		Element element = getElement();
-		applyBaseConfiguration(element, config);
-	}
+    /**
+     * Creates the editor component.
+     * 
+     * @param config the editor configuration-
+     */
+    public JsonEditor(JsonEditorConfiguration config) {
+        Element element = getElement();
+        applyBaseConfiguration(element, config);
+    }
 
-	/**
-	 * Refreshes the editor.
-	 */
-	public void refresh() {
-		Element element = getElement();
-		element.callJsFunction("onRefreshEditor");
-	}
+    /**
+     * Refreshes the editor.
+     */
+    public void refresh() {
+        Element element = getElement();
+        element.callJsFunction("onRefreshEditor");
+    }
 
-	/**
-	 * Appends text to the end of the editor contents.
-	 * 
-	 * @param text some text
-	 */
-	public void appendText(String text) {
-		Element element = getElement();
-		element.callJsFunction("appendText", text);
-	}
+    /**
+     * Appends text to the end of the editor contents.
+     * 
+     * @param text some text
+     */
+    public void appendText(String text) {
+        Element element = getElement();
+        element.callJsFunction("appendText", text);
+    }
 
-	/**
-	 * Toggles linting on or off.
-	 * 
-	 * @param isLint indicate if linting is to be activates.
-	 */
-	public void setLint(Boolean isLint) {
-		Element element = getElement();
-		element.setProperty("isLint", isLint);
-	}
+    /**
+     * Toggles linting on or off.
+     * 
+     * @param isLint indicate if linting is to be activates.
+     */
+    public void setLint(Boolean isLint) {
+        Element element = getElement();
+        element.setProperty("isLint", isLint);
+    }
 
 }

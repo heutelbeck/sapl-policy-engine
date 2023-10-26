@@ -22,8 +22,8 @@ import com.fasterxml.jackson.databind.JsonNode;
  */
 public interface Traced {
 
-	/**
-	 * @return a JSON representation of the trace.
-	 */
-	JsonNode getTrace();
+    /**
+     * @return a JSON representation of the trace.
+     */
+    JsonNode getTrace();
 }

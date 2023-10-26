@@ -19,10 +19,10 @@ import io.sapl.api.interpreter.Val;
 
 public interface FunctionMock {
 
-	Val evaluateFunctionCall(Val... parameter);
+    Val evaluateFunctionCall(Val... parameter);
 
-	void assertVerifications();
+    void assertVerifications();
 
-	String getErrorMessageForCurrentMode();
+    String getErrorMessageForCurrentMode();
 
 }

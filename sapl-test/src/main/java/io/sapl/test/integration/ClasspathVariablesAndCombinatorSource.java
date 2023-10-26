@@ -38,53 +38,53 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class ClasspathVariablesAndCombinatorSource implements VariablesAndCombinatorSource {
 
-	private static final String CONFIG_FILE_GLOB_PATTERN = "pdp.json";
+    private static final String CONFIG_FILE_GLOB_PATTERN = "pdp.json";
 
-	private final PolicyDecisionPointConfiguration config;
+    private final PolicyDecisionPointConfiguration config;
 
-	public ClasspathVariablesAndCombinatorSource(@NonNull String configPath, @NonNull ObjectMapper mapper,
-			PolicyDocumentCombiningAlgorithm testInternalConfiguredCombiningAlg,
-			Map<String, JsonNode> testInternalConfiguredVariables) {
-		log.info("Loading the PDP configuration from bundled resources: '{}'", configPath);
+    public ClasspathVariablesAndCombinatorSource(@NonNull String configPath, @NonNull ObjectMapper mapper,
+            PolicyDocumentCombiningAlgorithm testInternalConfiguredCombiningAlg,
+            Map<String, JsonNode> testInternalConfiguredVariables) {
+        log.info("Loading the PDP configuration from bundled resources: '{}'", configPath);
 
-		var configDirectoryPath = ClasspathHelper.findPathOnClasspath(getClass().getClassLoader(), configPath);
+        var configDirectoryPath = ClasspathHelper.findPathOnClasspath(getClass().getClassLoader(), configPath);
 
-		log.debug("reading config from directory {}", configDirectoryPath);
-		PolicyDecisionPointConfiguration pdpConfig = null;
-		try (var stream = Files.newDirectoryStream(configDirectoryPath, CONFIG_FILE_GLOB_PATTERN)) {
-			var filesIterator = stream.iterator();
-			if (filesIterator.hasNext()) {
-				var filePath = filesIterator.next();
-				log.info("loading PDP configuration: {}", filePath.toAbsolutePath());
-				pdpConfig = mapper.readValue(filePath.toFile(), PolicyDecisionPointConfiguration.class);
-			}
-		} catch (IOException e) {
-			throw Exceptions.propagate(e);
-		}
+        log.debug("reading config from directory {}", configDirectoryPath);
+        PolicyDecisionPointConfiguration pdpConfig = null;
+        try (var stream = Files.newDirectoryStream(configDirectoryPath, CONFIG_FILE_GLOB_PATTERN)) {
+            var filesIterator = stream.iterator();
+            if (filesIterator.hasNext()) {
+                var filePath = filesIterator.next();
+                log.info("loading PDP configuration: {}", filePath.toAbsolutePath());
+                pdpConfig = mapper.readValue(filePath.toFile(), PolicyDecisionPointConfiguration.class);
+            }
+        } catch (IOException e) {
+            throw Exceptions.propagate(e);
+        }
 
-		if (pdpConfig == null) {
-			log.info("No PDP configuration found in resources. Using defaults.");
-			this.config = new PolicyDecisionPointConfiguration();
-		} else {
-			this.config = pdpConfig;
-		}
+        if (pdpConfig == null) {
+            log.info("No PDP configuration found in resources. Using defaults.");
+            this.config = new PolicyDecisionPointConfiguration();
+        } else {
+            this.config = pdpConfig;
+        }
 
-		if (testInternalConfiguredCombiningAlg != null) {
-			this.config.setAlgorithm(testInternalConfiguredCombiningAlg);
-		}
-		if (testInternalConfiguredVariables != null) {
-			this.config.setVariables(testInternalConfiguredVariables);
-		}
-	}
+        if (testInternalConfiguredCombiningAlg != null) {
+            this.config.setAlgorithm(testInternalConfiguredCombiningAlg);
+        }
+        if (testInternalConfiguredVariables != null) {
+            this.config.setVariables(testInternalConfiguredVariables);
+        }
+    }
 
-	@Override
-	public Flux<Optional<CombiningAlgorithm>> getCombiningAlgorithm() {
-		return Flux.just(config.getAlgorithm()).map(CombiningAlgorithmFactory::getCombiningAlgorithm).map(Optional::of);
-	}
+    @Override
+    public Flux<Optional<CombiningAlgorithm>> getCombiningAlgorithm() {
+        return Flux.just(config.getAlgorithm()).map(CombiningAlgorithmFactory::getCombiningAlgorithm).map(Optional::of);
+    }
 
-	@Override
-	public Flux<Optional<Map<String, JsonNode>>> getVariables() {
-		return Flux.just(config.getVariables()).map(HashMap::new).map(Optional::of);
-	}
+    @Override
+    public Flux<Optional<Map<String, JsonNode>>> getVariables() {
+        return Flux.just(config.getVariables()).map(HashMap::new).map(Optional::of);
+    }
 
 }

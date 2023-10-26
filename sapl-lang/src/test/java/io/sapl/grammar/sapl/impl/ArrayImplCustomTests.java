@@ -27,13 +27,13 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class ArrayImplCustomTests {
 
-	@Test
-	void arrayPropagatesErrors() {
-		assertExpressionReturnsErrors("[true,(1/0)]");
-	}
+    @Test
+    void arrayPropagatesErrors() {
+        assertExpressionReturnsErrors("[true,(1/0)]");
+    }
 
-	private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
-		// @formatter:off
+    private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+        // @formatter:off
 		return Stream.of(
 	 			// simpleArrayToVal
 	 			Arguments.of("[true,false]","[true,false]"),

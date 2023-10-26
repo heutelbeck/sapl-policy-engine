@@ -28,21 +28,21 @@ import reactor.core.publisher.Flux;
 
 public class PlusImplCustom extends PlusImpl {
 
-	private static final TextNode UNDEFINED = Val.JSON.textNode("undefined");
+    private static final TextNode UNDEFINED = Val.JSON.textNode("undefined");
 
-	@Override
-	public Flux<Val> evaluate() {
-		return operator(this, this::plus);
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        return operator(this, this::plus);
+    }
 
-	private Val plus(Val left, Val right) {
-		if (left.isNumber() && right.isNumber())
-			return Val.of(left.get().decimalValue().add(right.get().decimalValue())).withTrace(Plus.class,
-					Map.of(Trace.LEFT, left, Trace.RIGHT, right));
+    private Val plus(Val left, Val right) {
+        if (left.isNumber() && right.isNumber())
+            return Val.of(left.get().decimalValue().add(right.get().decimalValue())).withTrace(Plus.class,
+                    Map.of(Trace.LEFT, left, Trace.RIGHT, right));
 
-		var lStr = left.orElse(UNDEFINED).asText();
-		var rStr = right.orElse(UNDEFINED).asText();
-		return Val.of(lStr.concat(rStr)).withTrace(Plus.class, Map.of(Trace.LEFT, left, Trace.RIGHT, right));
-	}
+        var lStr = left.orElse(UNDEFINED).asText();
+        var rStr = right.orElse(UNDEFINED).asText();
+        return Val.of(lStr.concat(rStr)).withTrace(Plus.class, Map.of(Trace.LEFT, left, Trace.RIGHT, right));
+    }
 
 }

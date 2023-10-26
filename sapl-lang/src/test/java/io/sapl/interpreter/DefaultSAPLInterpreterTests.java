@@ -55,151 +55,151 @@ import reactor.test.StepVerifier;
 
 class DefaultSAPLInterpreterTests {
 
-	private static final String AUTHZ_SUBSCRIPTION_JSON = """
-			{
-			  "subject" : {
-			    "id" : "1234",
-			    "organizationId" : "5678",
-			    "isActive" : true,
-			    "granted_authorities" : {
-			      "roles" : [ "USER", "ACCOUNTANT" ],
-			      "groups" : [ "OPERATORS", "DEVELOPERS" ]
-			    }
-			  },
-			  "action" : {
-			    "verb" : "withdraw_funds",
-			    "parameters" : [ 200.0 ]
-			  },
-			  "resource" : {
-			    "url" : "http://api.bank.com/accounts/12345",
-			    "id" : "9012",
-			    "emptyArray" : [ ],
-			    "textArray" : [ "one", "two" ],
-			    "emptyObject" : { },
-			    "objectArray" : [ {
-			      "id" : "1",
-			      "name" : "one"
-			    }, {
-			      "id" : "2",
-			      "name" : "two"
-			    } ]
-			  },
-			  "environment" : {
-			    "ipAddress" : "10.10.10.254",
-			    "year" : 2016
-			  }
-			}
-			""";
+    private static final String AUTHZ_SUBSCRIPTION_JSON = """
+            {
+              "subject" : {
+                "id" : "1234",
+                "organizationId" : "5678",
+                "isActive" : true,
+                "granted_authorities" : {
+                  "roles" : [ "USER", "ACCOUNTANT" ],
+                  "groups" : [ "OPERATORS", "DEVELOPERS" ]
+                }
+              },
+              "action" : {
+                "verb" : "withdraw_funds",
+                "parameters" : [ 200.0 ]
+              },
+              "resource" : {
+                "url" : "http://api.bank.com/accounts/12345",
+                "id" : "9012",
+                "emptyArray" : [ ],
+                "textArray" : [ "one", "two" ],
+                "emptyObject" : { },
+                "objectArray" : [ {
+                  "id" : "1",
+                  "name" : "one"
+                }, {
+                  "id" : "2",
+                  "name" : "two"
+                } ]
+              },
+              "environment" : {
+                "ipAddress" : "10.10.10.254",
+                "year" : 2016
+              }
+            }
+            """;
 
-	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+    private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
-	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
+    private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
-	private static AuthorizationSubscription authzSubscription;
+    private static AuthorizationSubscription authzSubscription;
 
-	private static AnnotationAttributeContext attributeCtx;
+    private static AnnotationAttributeContext attributeCtx;
 
-	private static AnnotationFunctionContext functionCtx;
+    private static AnnotationFunctionContext functionCtx;
 
-	private static Map<String, JsonNode> variables;
+    private static Map<String, JsonNode> variables;
 
-	@BeforeAll
-	static void beforeAll() throws JsonProcessingException, InitializationException {
-		authzSubscription = MAPPER.readValue(AUTHZ_SUBSCRIPTION_JSON, AuthorizationSubscription.class);
-		attributeCtx      = new AnnotationAttributeContext();
-		attributeCtx.loadPolicyInformationPoint(new TestPIP());
-		functionCtx = new AnnotationFunctionContext();
-		functionCtx.loadLibrary(new SimpleFunctionLibrary());
-		functionCtx.loadLibrary(new FilterFunctionLibrary());
-		functionCtx.loadLibrary(new StandardFunctionLibrary());
-		variables = new HashMap<String, JsonNode>();
+    @BeforeAll
+    static void beforeAll() throws JsonProcessingException, InitializationException {
+        authzSubscription = MAPPER.readValue(AUTHZ_SUBSCRIPTION_JSON, AuthorizationSubscription.class);
+        attributeCtx      = new AnnotationAttributeContext();
+        attributeCtx.loadPolicyInformationPoint(new TestPIP());
+        functionCtx = new AnnotationFunctionContext();
+        functionCtx.loadLibrary(new SimpleFunctionLibrary());
+        functionCtx.loadLibrary(new FilterFunctionLibrary());
+        functionCtx.loadLibrary(new StandardFunctionLibrary());
+        variables = new HashMap<String, JsonNode>();
 
-	}
+    }
 
-	@Test
-	void parseTest() {
-		var policyDocument = "policy \"test\" permit";
-		assertDoesNotThrow(() -> INTERPRETER.parse(policyDocument));
-	}
+    @Test
+    void parseTest() {
+        var policyDocument = "policy \"test\" permit";
+        assertDoesNotThrow(() -> INTERPRETER.parse(policyDocument));
+    }
 
-	@Test
-	void parseTestValidationFailsOnLazyBooleanOperatorsInTarget() {
-		var policyDocument = "policy \"test\"  permit true && false";
-		assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyDocument));
-	}
+    @Test
+    void parseTestValidationFailsOnLazyBooleanOperatorsInTarget() {
+        var policyDocument = "policy \"test\"  permit true && false";
+        assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyDocument));
+    }
 
-	@Test
-	void brokenInputStreamTest() {
-		var brokenInputStream = mock(InputStream.class);
-		assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(brokenInputStream));
-	}
+    @Test
+    void brokenInputStreamTest() {
+        var brokenInputStream = mock(InputStream.class);
+        assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(brokenInputStream));
+    }
 
-	@Test
-	void parseTestWithError() {
-		var policyDocument = "xyz";
-		assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyDocument));
-	}
+    @Test
+    void parseTestWithError() {
+        var policyDocument = "xyz";
+        assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyDocument));
+    }
 
-	@Test
-	void analyzePolicySet() {
-		var policyDefinition = "set \"test\" deny-overrides policy \"xx\" permit";
-		var expected         = new DocumentAnalysisResult(true, "test", DocumentType.POLICY_SET, "");
-		assertThat(INTERPRETER.analyze(policyDefinition), is(expected));
-	}
+    @Test
+    void analyzePolicySet() {
+        var policyDefinition = "set \"test\" deny-overrides policy \"xx\" permit";
+        var expected         = new DocumentAnalysisResult(true, "test", DocumentType.POLICY_SET, "");
+        assertThat(INTERPRETER.analyze(policyDefinition), is(expected));
+    }
 
-	@Test
-	void analyzePolicy() {
-		var policyDefinition = "policy \"test\" permit";
-		var expected         = new DocumentAnalysisResult(true, "test", DocumentType.POLICY, "");
-		assertThat(INTERPRETER.analyze(policyDefinition), is(expected));
-	}
+    @Test
+    void analyzePolicy() {
+        var policyDefinition = "policy \"test\" permit";
+        var expected         = new DocumentAnalysisResult(true, "test", DocumentType.POLICY, "");
+        assertThat(INTERPRETER.analyze(policyDefinition), is(expected));
+    }
 
-	@Test
-	void analyzeException() {
-		assertThat(INTERPRETER.analyze("xyz").isValid(), is(false));
-	}
+    @Test
+    void analyzeException() {
+        assertThat(INTERPRETER.analyze("xyz").isValid(), is(false));
+    }
 
-	@Test
-	void syntaxError() {
-		var policyDefinition = "policy \"test\" permit ,{ \"key\" : \"value\" } =~ 6432 ";
-		assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyDefinition));
-	}
+    @Test
+    void syntaxError() {
+        var policyDefinition = "policy \"test\" permit ,{ \"key\" : \"value\" } =~ 6432 ";
+        assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyDefinition));
+    }
 
-	@Test
-	void transformation() {
-		var policyDefinition = "policy \"test\" permit transform null";
-		var expected         = Optional.of(JSON.nullNode());
-		StepVerifier
-				.create(INTERPRETER.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, variables))
-				.assertNext(actual -> assertThat(actual.getResource(), is(expected))).verifyComplete();
-	}
+    @Test
+    void transformation() {
+        var policyDefinition = "policy \"test\" permit transform null";
+        var expected         = Optional.of(JSON.nullNode());
+        StepVerifier
+                .create(INTERPRETER.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, variables))
+                .assertNext(actual -> assertThat(actual.getResource(), is(expected))).verifyComplete();
+    }
 
-	@Test
-	void obligation() {
-		var policyDefinition   = "policy \"test\" permit obligation null";
-		var expectedObligation = JSON.arrayNode();
-		expectedObligation.add(JSON.nullNode());
-		var expected = Optional.of(expectedObligation);
-		StepVerifier
-				.create(INTERPRETER.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, variables))
-				.assertNext(actual -> assertThat(actual.getObligations(), is(expected))).verifyComplete();
-	}
+    @Test
+    void obligation() {
+        var policyDefinition   = "policy \"test\" permit obligation null";
+        var expectedObligation = JSON.arrayNode();
+        expectedObligation.add(JSON.nullNode());
+        var expected = Optional.of(expectedObligation);
+        StepVerifier
+                .create(INTERPRETER.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, variables))
+                .assertNext(actual -> assertThat(actual.getObligations(), is(expected))).verifyComplete();
+    }
 
-	@Test
-	void advice() {
-		var policyDefinition = "policy \"test\" permit advice null";
-		var expectedAdvice   = JSON.arrayNode();
-		expectedAdvice.add(JSON.nullNode());
-		var expected = Optional.of(expectedAdvice);
-		StepVerifier
-				.create(INTERPRETER.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, variables))
-				.assertNext(actual -> assertThat(actual.getAdvice(), is(expected))).verifyComplete();
-	}
+    @Test
+    void advice() {
+        var policyDefinition = "policy \"test\" permit advice null";
+        var expectedAdvice   = JSON.arrayNode();
+        expectedAdvice.add(JSON.nullNode());
+        var expected = Optional.of(expectedAdvice);
+        StepVerifier
+                .create(INTERPRETER.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, variables))
+                .assertNext(actual -> assertThat(actual.getAdvice(), is(expected))).verifyComplete();
+    }
 
-	private static Stream<Arguments> documentTestCases() {
-		// @formatter:off
+    private static Stream<Arguments> documentTestCases() {
+        // @formatter:off
 		return Stream.of(
 				// permitAll
 				Arguments.of("policy \"test\" permit", PERMIT),

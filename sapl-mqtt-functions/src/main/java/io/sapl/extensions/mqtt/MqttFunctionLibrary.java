@@ -33,89 +33,89 @@ import io.sapl.api.validation.Text;
 @FunctionLibrary(name = MqttFunctionLibrary.NAME, description = MqttFunctionLibrary.DESCRIPTION)
 public class MqttFunctionLibrary {
 
-	static final String NAME        = "mqtt";
-	static final String DESCRIPTION = "Functions for matching topics to wildcard topics.";
+    static final String NAME        = "mqtt";
+    static final String DESCRIPTION = "Functions for matching topics to wildcard topics.";
 
-	private static final String TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE = "The wildcard topic must not be matched against topics containing wildcards.";
+    private static final String TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE = "The wildcard topic must not be matched against topics containing wildcards.";
 
-	/**
-	 * This function checks whether all given mqtt topics are matching the wildcard
-	 * topic.
-	 *
-	 * @param wildcardTopic The mqtt topic containing the wildcard.
-	 * @param topics        A single textual mqtt topic or an array of mqtt topics.
-	 * @return Return true when all given topics are matching the wildcard topic.
-	 */
-	@Function(name = "isMatchingAllTopics", docs = "Checks whether all the topics match the wildcard.")
-	public Val isMatchingAllTopics(@Text Val wildcardTopic, @Text @Array Val topics) {
-		var mqttTopicFilter = buildMqttTopicFilter(wildcardTopic);
+    /**
+     * This function checks whether all given mqtt topics are matching the wildcard
+     * topic.
+     *
+     * @param wildcardTopic The mqtt topic containing the wildcard.
+     * @param topics        A single textual mqtt topic or an array of mqtt topics.
+     * @return Return true when all given topics are matching the wildcard topic.
+     */
+    @Function(name = "isMatchingAllTopics", docs = "Checks whether all the topics match the wildcard.")
+    public Val isMatchingAllTopics(@Text Val wildcardTopic, @Text @Array Val topics) {
+        var mqttTopicFilter = buildMqttTopicFilter(wildcardTopic);
 
-		if (topics.isTextual()) {
-			return isMatchingSingleTopic(mqttTopicFilter, topics);
-		} else {
-			var topicsArray = topics.getArrayNode();
-			return isMatchingAllTopics(mqttTopicFilter, topicsArray);
-		}
-	}
+        if (topics.isTextual()) {
+            return isMatchingSingleTopic(mqttTopicFilter, topics);
+        } else {
+            var topicsArray = topics.getArrayNode();
+            return isMatchingAllTopics(mqttTopicFilter, topicsArray);
+        }
+    }
 
-	/**
-	 * This function checks whether at least one of the given mqtt topics is
-	 * matching the wildcard topic.
-	 *
-	 * @param wildcardTopic The mqtt topic containing the wildcard.
-	 * @param topics        A single textual mqtt topic or an array of mqtt topics.
-	 * @return Return true when all given topics are matching the wildcard topic.
-	 */
-	@Function(name = "isMatchingAtLeastOneTopic", docs = "Checks whether at least one topic matches the wildcard.")
-	public Val isMatchingAtLeastOneTopic(@Text Val wildcardTopic, @Text @Array Val topics) {
-		var mqttTopicFilter = buildMqttTopicFilter(wildcardTopic);
+    /**
+     * This function checks whether at least one of the given mqtt topics is
+     * matching the wildcard topic.
+     *
+     * @param wildcardTopic The mqtt topic containing the wildcard.
+     * @param topics        A single textual mqtt topic or an array of mqtt topics.
+     * @return Return true when all given topics are matching the wildcard topic.
+     */
+    @Function(name = "isMatchingAtLeastOneTopic", docs = "Checks whether at least one topic matches the wildcard.")
+    public Val isMatchingAtLeastOneTopic(@Text Val wildcardTopic, @Text @Array Val topics) {
+        var mqttTopicFilter = buildMqttTopicFilter(wildcardTopic);
 
-		if (topics.isTextual()) {
-			return isMatchingSingleTopic(mqttTopicFilter, topics);
-		} else {
-			var topicsArray = topics.getArrayNode();
-			return isMatchingAtLeastOneTopic(mqttTopicFilter, topicsArray);
-		}
-	}
+        if (topics.isTextual()) {
+            return isMatchingSingleTopic(mqttTopicFilter, topics);
+        } else {
+            var topicsArray = topics.getArrayNode();
+            return isMatchingAtLeastOneTopic(mqttTopicFilter, topicsArray);
+        }
+    }
 
-	private Val isMatchingSingleTopic(MqttTopicFilter mqttTopicFilter, Val topic) {
-		if (MqttTopicFilter.of(topic.getText()).containsWildcards()) {
-			return Val.error(TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE);
-		} else {
-			var mqttTopic = MqttTopic.of(topic.getText());
-			return Val.of(mqttTopicFilter.matches(mqttTopic));
-		}
-	}
+    private Val isMatchingSingleTopic(MqttTopicFilter mqttTopicFilter, Val topic) {
+        if (MqttTopicFilter.of(topic.getText()).containsWildcards()) {
+            return Val.error(TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE);
+        } else {
+            var mqttTopic = MqttTopic.of(topic.getText());
+            return Val.of(mqttTopicFilter.matches(mqttTopic));
+        }
+    }
 
-	private Val isMatchingAllTopics(MqttTopicFilter mqttTopicFilter, ArrayNode topicsArray) {
-		var isMatching = true;
-		for (JsonNode topic : topicsArray) {
-			if (MqttTopicFilter.of(topic.asText()).containsWildcards()) {
-				return Val.error(TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE);
-			}
-			var mqttTopic = MqttTopic.of(topic.asText());
-			if (!mqttTopicFilter.matches(mqttTopic)) {
-				isMatching = false;
-			}
-		}
-		return Val.of(isMatching);
-	}
+    private Val isMatchingAllTopics(MqttTopicFilter mqttTopicFilter, ArrayNode topicsArray) {
+        var isMatching = true;
+        for (JsonNode topic : topicsArray) {
+            if (MqttTopicFilter.of(topic.asText()).containsWildcards()) {
+                return Val.error(TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE);
+            }
+            var mqttTopic = MqttTopic.of(topic.asText());
+            if (!mqttTopicFilter.matches(mqttTopic)) {
+                isMatching = false;
+            }
+        }
+        return Val.of(isMatching);
+    }
 
-	private Val isMatchingAtLeastOneTopic(MqttTopicFilter mqttTopicFilter, ArrayNode topicsArray) {
-		var isMatching = false;
-		for (JsonNode topic : topicsArray) {
-			if (MqttTopicFilter.of(topic.asText()).containsWildcards()) {
-				return Val.error(TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE);
-			}
-			var mqttTopic = MqttTopic.of(topic.asText());
-			if (mqttTopicFilter.matches(mqttTopic)) {
-				isMatching = true;
-			}
-		}
-		return Val.of(isMatching);
-	}
+    private Val isMatchingAtLeastOneTopic(MqttTopicFilter mqttTopicFilter, ArrayNode topicsArray) {
+        var isMatching = false;
+        for (JsonNode topic : topicsArray) {
+            if (MqttTopicFilter.of(topic.asText()).containsWildcards()) {
+                return Val.error(TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE);
+            }
+            var mqttTopic = MqttTopic.of(topic.asText());
+            if (mqttTopicFilter.matches(mqttTopic)) {
+                isMatching = true;
+            }
+        }
+        return Val.of(isMatching);
+    }
 
-	private MqttTopicFilter buildMqttTopicFilter(Val wildcardTopic) {
-		return MqttTopicFilter.of(wildcardTopic.getText());
-	}
+    private MqttTopicFilter buildMqttTopicFilter(Val wildcardTopic) {
+        return MqttTopicFilter.of(wildcardTopic.getText());
+    }
 }

@@ -18,4 +18,5 @@ package io.sapl.vaadin;
 /**
  * Event triggered when a specific line is clicked in the editor.
  */
-public record EditorClickedEvent(Integer line, String content) {}
+public record EditorClickedEvent(Integer line, String content) {
+}

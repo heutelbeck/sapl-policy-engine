@@ -32,14 +32,14 @@ import reactor.core.publisher.Flux;
  */
 public class XOrImplCustom extends XOrImpl {
 
-	@Override
-	public Flux<Val> evaluate() {
-		return booleanOperator(this, this::xor);
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        return booleanOperator(this, this::xor);
+    }
 
-	private Val xor(Val left, Val right) {
-		return Val.of(left.getBoolean() ^ right.getBoolean()).withTrace(XOr.class,
-				Map.of(Trace.LEFT, left, Trace.RIGHT, right));
-	}
+    private Val xor(Val left, Val right) {
+        return Val.of(left.getBoolean() ^ right.getBoolean()).withTrace(XOr.class,
+                Map.of(Trace.LEFT, left, Trace.RIGHT, right));
+    }
 
 }

@@ -37,16 +37,16 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @JsonInclude(NON_NULL)
 public class IdentifiableAuthorizationDecision {
-	/**
-	 * A simple INDETERMINATE decision.
-	 */
-	public static final IdentifiableAuthorizationDecision INDETERMINATE = new IdentifiableAuthorizationDecision(null,
-			AuthorizationDecision.INDETERMINATE);
+    /**
+     * A simple INDETERMINATE decision.
+     */
+    public static final IdentifiableAuthorizationDecision INDETERMINATE = new IdentifiableAuthorizationDecision(null,
+            AuthorizationDecision.INDETERMINATE);
 
-	@JsonProperty(required = true)
-	String authorizationSubscriptionId;
+    @JsonProperty(required = true)
+    String authorizationSubscriptionId;
 
-	@JsonProperty(required = true)
-	AuthorizationDecision authorizationDecision;
+    @JsonProperty(required = true)
+    AuthorizationDecision authorizationDecision;
 
 }

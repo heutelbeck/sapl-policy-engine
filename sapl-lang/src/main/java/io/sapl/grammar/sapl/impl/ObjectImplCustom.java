@@ -33,47 +33,47 @@ import reactor.core.publisher.Flux;
  */
 public class ObjectImplCustom extends ObjectImpl {
 
-	/**
-	 * The semantics of evaluating an object is as follows:
-	 * <p>
-	 * An object may contain a list of attribute name-value pairs. To get the values
-	 * of the individual attributes, these have to be recursively evaluated.
-	 * <p>
-	 * Returning a Flux this means to subscribe to all attribute-value expression
-	 * result Fluxes and to combineLatest into a new object each time one of the
-	 * expression Fluxes emits a new value.
-	 */
-	@Override
-	public Flux<Val> evaluate() {
-		// collect all attribute names (keys) and fluxes providing the evaluated values
-		final List<String>    keys        = new ArrayList<>(getMembers().size());
-		final List<Flux<Val>> valueFluxes = new ArrayList<>(getMembers().size());
-		for (Pair member : getMembers()) {
-			keys.add(member.getKey());
+    /**
+     * The semantics of evaluating an object is as follows:
+     * <p>
+     * An object may contain a list of attribute name-value pairs. To get the values
+     * of the individual attributes, these have to be recursively evaluated.
+     * <p>
+     * Returning a Flux this means to subscribe to all attribute-value expression
+     * result Fluxes and to combineLatest into a new object each time one of the
+     * expression Fluxes emits a new value.
+     */
+    @Override
+    public Flux<Val> evaluate() {
+        // collect all attribute names (keys) and fluxes providing the evaluated values
+        final List<String>    keys        = new ArrayList<>(getMembers().size());
+        final List<Flux<Val>> valueFluxes = new ArrayList<>(getMembers().size());
+        for (Pair member : getMembers()) {
+            keys.add(member.getKey());
 
-			valueFluxes.add(member.getValue().evaluate());
-		}
+            valueFluxes.add(member.getValue().evaluate());
+        }
 
-		// handle the empty object
-		if (valueFluxes.isEmpty()) {
-			return Flux.just(Val.of(Val.JSON.objectNode()).withTrace(Object.class));
-		}
+        // handle the empty object
+        if (valueFluxes.isEmpty()) {
+            return Flux.just(Val.of(Val.JSON.objectNode()).withTrace(Object.class));
+        }
 
-		// the indices of the keys correspond to the indices of the values, because
-		// combineLatest() preserves the order of the given list of fluxes in the array
-		// of values passed to the combinator function
-		return Flux.combineLatest(valueFluxes, values -> {
-			var result       = Val.JSON.objectNode();
-			var tracedValues = new HashMap<String, Traced>();
-			// omit undefined fields
-			IntStream.range(0, values.length).forEach(idx -> {
-				var key   = keys.get(idx);
-				var value = ((Val) values[idx]);
-				value.ifDefined(val -> result.set(key, val));
-				tracedValues.put(key, value);
-			});
-			return Val.of(result).withTrace(Object.class, tracedValues);
-		});
-	}
+        // the indices of the keys correspond to the indices of the values, because
+        // combineLatest() preserves the order of the given list of fluxes in the array
+        // of values passed to the combinator function
+        return Flux.combineLatest(valueFluxes, values -> {
+            var result       = Val.JSON.objectNode();
+            var tracedValues = new HashMap<String, Traced>();
+            // omit undefined fields
+            IntStream.range(0, values.length).forEach(idx -> {
+                var key   = keys.get(idx);
+                var value = ((Val) values[idx]);
+                value.ifDefined(val -> result.set(key, val));
+                tracedValues.put(key, value);
+            });
+            return Val.of(result).withTrace(Object.class, tracedValues);
+        });
+    }
 
 }

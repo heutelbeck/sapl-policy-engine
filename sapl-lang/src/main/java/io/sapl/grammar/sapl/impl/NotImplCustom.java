@@ -23,9 +23,9 @@ import reactor.core.publisher.Flux;
 
 public class NotImplCustom extends NotImpl {
 
-	@Override
-	public Flux<Val> evaluate() {
-		return operator(this, Val::requireBoolean, x -> Val.of(!x.get().asBoolean()).withTrace(Not.class, x));
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        return operator(this, Val::requireBoolean, x -> Val.of(!x.get().asBoolean()).withTrace(Not.class, x));
+    }
 
 }

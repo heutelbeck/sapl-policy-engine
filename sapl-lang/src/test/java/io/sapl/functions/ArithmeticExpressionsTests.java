@@ -26,55 +26,55 @@ import reactor.test.StepVerifier;
 
 class ArithmeticExpressionsTests {
 
-	@Test
-	void parentPriority() throws IOException {
-		assertEvaluatesTo("(1+2)*3.0", 9.00D);
-	}
+    @Test
+    void parentPriority() throws IOException {
+        assertEvaluatesTo("(1+2)*3.0", 9.00D);
+    }
 
-	@Test
-	void unaryMinusNoSpace() throws IOException {
-		assertEvaluatesTo("1+-1", 0D);
-	}
+    @Test
+    void unaryMinusNoSpace() throws IOException {
+        assertEvaluatesTo("1+-1", 0D);
+    }
 
-	@Test
-	void unaryMinusSpace() throws IOException {
-		assertEvaluatesTo("1+ -1", 0D);
-	}
+    @Test
+    void unaryMinusSpace() throws IOException {
+        assertEvaluatesTo("1+ -1", 0D);
+    }
 
-	@Test
-	void twoSpacesUnaryMinus() throws IOException {
-		assertEvaluatesTo("1 + -1", 0D);
-	}
+    @Test
+    void twoSpacesUnaryMinus() throws IOException {
+        assertEvaluatesTo("1 + -1", 0D);
+    }
 
-	@Test
-	void threeSpacesUnaryMinus() throws IOException {
-		assertEvaluatesTo("1 + - 1", 0D);
-	}
+    @Test
+    void threeSpacesUnaryMinus() throws IOException {
+        assertEvaluatesTo("1 + - 1", 0D);
+    }
 
-	@Test
-	void doubleNegation() throws IOException {
-		assertEvaluatesTo("--1", 1D);
-	}
+    @Test
+    void doubleNegation() throws IOException {
+        assertEvaluatesTo("--1", 1D);
+    }
 
-	@Test
-	void oneMinusOne_IsNull() throws IOException {
-		assertEvaluatesTo("1-1", 0D);
-	}
+    @Test
+    void oneMinusOne_IsNull() throws IOException {
+        assertEvaluatesTo("1-1", 0D);
+    }
 
-	@Test
-	void unaryPlus_IsImplemented() throws IOException {
-		assertEvaluatesTo("1+ +(2)", 3D);
-	}
+    @Test
+    void unaryPlus_IsImplemented() throws IOException {
+        assertEvaluatesTo("1+ +(2)", 3D);
+    }
 
-	@Test
-	void noSpacesPlusAndMinusEvaluates() throws IOException {
-		assertEvaluatesTo("5+5-3", 7D);
-	}
+    @Test
+    void noSpacesPlusAndMinusEvaluates() throws IOException {
+        assertEvaluatesTo("5+5-3", 7D);
+    }
 
-	private void assertEvaluatesTo(String given, double expected) throws IOException {
-		var expression = ParserUtil.expression(given).evaluate().contextWrite(MockUtil::setUpAuthorizationContext);
-		StepVerifier.create(expression)
-				.expectNextMatches(x -> BigDecimal.valueOf(expected).compareTo(x.decimalValue()) == 0).verifyComplete();
-	}
+    private void assertEvaluatesTo(String given, double expected) throws IOException {
+        var expression = ParserUtil.expression(given).evaluate().contextWrite(MockUtil::setUpAuthorizationContext);
+        StepVerifier.create(expression)
+                .expectNextMatches(x -> BigDecimal.valueOf(expected).compareTo(x.decimalValue()) == 0).verifyComplete();
+    }
 
 }

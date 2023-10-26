@@ -38,74 +38,73 @@ import lombok.Getter;
 import lombok.NonNull;
 
 public class PolicyEnforcementPointAroundMethodInterceptor
-		implements Ordered, MethodInterceptor, PointcutAdvisor, AopInfrastructureBean {
+        implements Ordered, MethodInterceptor, PointcutAdvisor, AopInfrastructureBean {
 
-	@Getter
-	private final Pointcut          pointcut;
-	@Getter
-	private final int               order;
-	private final MethodInterceptor policyEnforcementPoint;
+    @Getter
+    private final Pointcut          pointcut;
+    @Getter
+    private final int               order;
+    private final MethodInterceptor policyEnforcementPoint;
 
-	public static PolicyEnforcementPointAroundMethodInterceptor preEnforce(MethodInterceptor policyEnforcementPoint) {
-		return new PolicyEnforcementPointAroundMethodInterceptor(PreEnforce.class,
-				SaplAuthorizationInterceptorsOrder.PRE_ENFORCE.getOrder(), policyEnforcementPoint);
-	}
+    public static PolicyEnforcementPointAroundMethodInterceptor preEnforce(MethodInterceptor policyEnforcementPoint) {
+        return new PolicyEnforcementPointAroundMethodInterceptor(PreEnforce.class,
+                SaplAuthorizationInterceptorsOrder.PRE_ENFORCE.getOrder(), policyEnforcementPoint);
+    }
 
-	public static PolicyEnforcementPointAroundMethodInterceptor postEnforce(MethodInterceptor policyEnforcementPoint) {
-		return new PolicyEnforcementPointAroundMethodInterceptor(PostEnforce.class,
-				SaplAuthorizationInterceptorsOrder.POST_ENFORCE.getOrder(), policyEnforcementPoint);
-	}
+    public static PolicyEnforcementPointAroundMethodInterceptor postEnforce(MethodInterceptor policyEnforcementPoint) {
+        return new PolicyEnforcementPointAroundMethodInterceptor(PostEnforce.class,
+                SaplAuthorizationInterceptorsOrder.POST_ENFORCE.getOrder(), policyEnforcementPoint);
+    }
 
-	public static PolicyEnforcementPointAroundMethodInterceptor reactive(
-			ReactiveSaplMethodInterceptor policyEnforcementPoint) {
-		return new PolicyEnforcementPointAroundMethodInterceptor(
-				SaplAuthorizationInterceptorsOrder.PRE_ENFORCE.getOrder(), policyEnforcementPoint);
-	}
+    public static PolicyEnforcementPointAroundMethodInterceptor reactive(
+            ReactiveSaplMethodInterceptor policyEnforcementPoint) {
+        return new PolicyEnforcementPointAroundMethodInterceptor(
+                SaplAuthorizationInterceptorsOrder.PRE_ENFORCE.getOrder(), policyEnforcementPoint);
+    }
 
-	PolicyEnforcementPointAroundMethodInterceptor(int order,
-			MethodInterceptor policyEnforcementPoint) {
-		this.pointcut               = pointcutForAllAnnotations();
-		this.order                  = order;
-		this.policyEnforcementPoint = policyEnforcementPoint;
-	}
+    PolicyEnforcementPointAroundMethodInterceptor(int order, MethodInterceptor policyEnforcementPoint) {
+        this.pointcut               = pointcutForAllAnnotations();
+        this.order                  = order;
+        this.policyEnforcementPoint = policyEnforcementPoint;
+    }
 
-	PolicyEnforcementPointAroundMethodInterceptor(Class<? extends Annotation> annotation, int order,
-			MethodInterceptor policyEnforcementPoint) {
-		this.pointcut               = pointcutForAnnotation(annotation);
-		this.order                  = order;
-		this.policyEnforcementPoint = policyEnforcementPoint;
-	}
+    PolicyEnforcementPointAroundMethodInterceptor(Class<? extends Annotation> annotation, int order,
+            MethodInterceptor policyEnforcementPoint) {
+        this.pointcut               = pointcutForAnnotation(annotation);
+        this.order                  = order;
+        this.policyEnforcementPoint = policyEnforcementPoint;
+    }
 
-	private static Pointcut pointcutForAnnotation(Class<? extends Annotation> annotation) {
-		return new ComposablePointcut(classOrMethod(annotation));
+    private static Pointcut pointcutForAnnotation(Class<? extends Annotation> annotation) {
+        return new ComposablePointcut(classOrMethod(annotation));
 
-	}
+    }
 
-	private static Pointcut pointcutForAllAnnotations() {
-		var cut = new ComposablePointcut(classOrMethod(PreEnforce.class));
-		cut = cut.union(classOrMethod(PostEnforce.class));
-		cut = cut.union(classOrMethod(EnforceRecoverableIfDenied.class));
-		cut = cut.union(classOrMethod(EnforceDropWhileDenied.class));
-		return cut.union(classOrMethod(EnforceTillDenied.class));
-	}
+    private static Pointcut pointcutForAllAnnotations() {
+        var cut = new ComposablePointcut(classOrMethod(PreEnforce.class));
+        cut = cut.union(classOrMethod(PostEnforce.class));
+        cut = cut.union(classOrMethod(EnforceRecoverableIfDenied.class));
+        cut = cut.union(classOrMethod(EnforceDropWhileDenied.class));
+        return cut.union(classOrMethod(EnforceTillDenied.class));
+    }
 
-	private static Pointcut classOrMethod(Class<? extends Annotation> annotation) {
-		return Pointcuts.union(new AnnotationMatchingPointcut(null, annotation, true),
-				new AnnotationMatchingPointcut(annotation, true));
-	}
+    private static Pointcut classOrMethod(Class<? extends Annotation> annotation) {
+        return Pointcuts.union(new AnnotationMatchingPointcut(null, annotation, true),
+                new AnnotationMatchingPointcut(annotation, true));
+    }
 
-	@Override
-	public @NonNull Advice getAdvice() {
-		return this;
-	}
+    @Override
+    public @NonNull Advice getAdvice() {
+        return this;
+    }
 
-	@Override
-	public boolean isPerInstance() {
-		return false;
-	}
+    @Override
+    public boolean isPerInstance() {
+        return false;
+    }
 
-	@Override
-	public Object invoke(@NonNull MethodInvocation invocation) throws Throwable {
-		return policyEnforcementPoint.invoke(invocation);
-	}
+    @Override
+    public Object invoke(@NonNull MethodInvocation invocation) throws Throwable {
+        return policyEnforcementPoint.invoke(invocation);
+    }
 }

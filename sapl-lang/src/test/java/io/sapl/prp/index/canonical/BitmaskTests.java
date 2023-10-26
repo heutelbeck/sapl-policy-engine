@@ -29,30 +29,30 @@ import org.junit.jupiter.api.Test;
 
 class BitmaskTests {
 
-	Bitmask bitmask;
+    Bitmask bitmask;
 
-	@BeforeEach
-	void setUp() {
-		bitmask = new Bitmask();
-		bitmask.set(2, 4);
-	}
+    @BeforeEach
+    void setUp() {
+        bitmask = new Bitmask();
+        bitmask.set(2, 4);
+    }
 
-	@Test
-	void flipTest() {
-		assertThat(bitmask.toString(), is("{2, 3}"));
+    @Test
+    void flipTest() {
+        assertThat(bitmask.toString(), is("{2, 3}"));
 
-		bitmask.flip(0, 4);
-		assertThat(bitmask.toString(), is("{0, 1}"));
-	}
+        bitmask.flip(0, 4);
+        assertThat(bitmask.toString(), is("{0, 1}"));
+    }
 
-	@Test
-	@SuppressWarnings("unchecked")
-	void forEachSetBitTest() {
-		var listMock = (List<Integer>) mock(List.class);
+    @Test
+    @SuppressWarnings("unchecked")
+    void forEachSetBitTest() {
+        var listMock = (List<Integer>) mock(List.class);
 
-		bitmask.forEachSetBit(listMock::add);
+        bitmask.forEachSetBit(listMock::add);
 
-		verify(listMock, times(2)).add(anyInt());
-	}
+        verify(listMock, times(2)).add(anyInt());
+    }
 
 }

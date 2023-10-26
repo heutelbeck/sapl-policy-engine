@@ -22,10 +22,10 @@ import io.sapl.api.interpreter.Val;
 @FunctionLibrary(name = "string")
 public class MockXACMLStringFunctionLibrary {
 
-	@Function
-	public Val starts_with(Val string, Val start) {
-		String str = string.get().asText();
-		return Val.of(str.startsWith(start.get().asText()));
-	}
+    @Function
+    public Val starts_with(Val string, Val start) {
+        String str = string.get().asText();
+        return Val.of(str.startsWith(start.get().asText()));
+    }
 
 }

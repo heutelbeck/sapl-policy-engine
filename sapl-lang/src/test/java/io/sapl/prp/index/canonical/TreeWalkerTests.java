@@ -32,96 +32,96 @@ import io.sapl.grammar.sapl.FilterComponent;
 
 class TreeWalkerTests {
 
-	static class BasicGroupMockBuilder {
+    static class BasicGroupMockBuilder {
 
-		BasicGroup mock = mock(BasicGroup.class, RETURNS_DEEP_STUBS);
+        BasicGroup mock = mock(BasicGroup.class, RETURNS_DEEP_STUBS);
 
-		static BasicGroupMockBuilder newBuilder() {
-			return new BasicGroupMockBuilder();
-		}
+        static BasicGroupMockBuilder newBuilder() {
+            return new BasicGroupMockBuilder();
+        }
 
-		BasicGroup build() {
-			return mock;
-		}
+        BasicGroup build() {
+            return mock;
+        }
 
-		private BasicGroupMockBuilder noFilter() {
-			when(mock.getFilter()).thenReturn(null);
-			return this;
-		}
+        private BasicGroupMockBuilder noFilter() {
+            when(mock.getFilter()).thenReturn(null);
+            return this;
+        }
 
-		private BasicGroupMockBuilder withFilter() {
-			when(mock.getFilter()).thenReturn(mock(FilterComponent.class));
-			return this;
-		}
+        private BasicGroupMockBuilder withFilter() {
+            when(mock.getFilter()).thenReturn(mock(FilterComponent.class));
+            return this;
+        }
 
-		private BasicGroupMockBuilder noSteps() {
-			when(mock.getSteps().isEmpty()).thenReturn(Boolean.TRUE);
-			return this;
-		}
+        private BasicGroupMockBuilder noSteps() {
+            when(mock.getSteps().isEmpty()).thenReturn(Boolean.TRUE);
+            return this;
+        }
 
-		private BasicGroupMockBuilder withSteps() {
-			when(mock.getSteps().isEmpty()).thenReturn(Boolean.FALSE);
-			return this;
-		}
+        private BasicGroupMockBuilder withSteps() {
+            when(mock.getSteps().isEmpty()).thenReturn(Boolean.FALSE);
+            return this;
+        }
 
-		private BasicGroupMockBuilder noTemplate() {
-			when(mock.getSubtemplate()).thenReturn(null);
-			return this;
-		}
+        private BasicGroupMockBuilder noTemplate() {
+            when(mock.getSubtemplate()).thenReturn(null);
+            return this;
+        }
 
-		private BasicGroupMockBuilder withTemplate() {
-			when(mock.getSubtemplate()).thenReturn(mock(Expression.class));
-			return this;
-		}
+        private BasicGroupMockBuilder withTemplate() {
+            when(mock.getSubtemplate()).thenReturn(mock(Expression.class));
+            return this;
+        }
 
-	}
+    }
 
-	@Test
-	void traverse_should_call_walk_when_node_has_no_filters_steps_and_subTemplate() {
-		var allFalse = BasicGroupMockBuilder.newBuilder().noFilter().noSteps().noTemplate().build();
-		var allTrue = BasicGroupMockBuilder.newBuilder().withFilter().withSteps().withTemplate().build();
-		var noTemplate = BasicGroupMockBuilder.newBuilder().withFilter().withSteps().noTemplate().build();
-		var noSteps = BasicGroupMockBuilder.newBuilder().withFilter().noSteps().withTemplate().build();
-		var noFilter = BasicGroupMockBuilder.newBuilder().noFilter().withSteps().withTemplate().build();
-		var onlyTemplate = BasicGroupMockBuilder.newBuilder().noFilter().noSteps().withTemplate().build();
-		var onlySteps = BasicGroupMockBuilder.newBuilder().noFilter().withSteps().noTemplate().build();
-		var onlyFilter = BasicGroupMockBuilder.newBuilder().withFilter().noSteps().noTemplate().build();
+    @Test
+    void traverse_should_call_walk_when_node_has_no_filters_steps_and_subTemplate() {
+        var allFalse     = BasicGroupMockBuilder.newBuilder().noFilter().noSteps().noTemplate().build();
+        var allTrue      = BasicGroupMockBuilder.newBuilder().withFilter().withSteps().withTemplate().build();
+        var noTemplate   = BasicGroupMockBuilder.newBuilder().withFilter().withSteps().noTemplate().build();
+        var noSteps      = BasicGroupMockBuilder.newBuilder().withFilter().noSteps().withTemplate().build();
+        var noFilter     = BasicGroupMockBuilder.newBuilder().noFilter().withSteps().withTemplate().build();
+        var onlyTemplate = BasicGroupMockBuilder.newBuilder().noFilter().noSteps().withTemplate().build();
+        var onlySteps    = BasicGroupMockBuilder.newBuilder().noFilter().withSteps().noTemplate().build();
+        var onlyFilter   = BasicGroupMockBuilder.newBuilder().withFilter().noSteps().noTemplate().build();
 
-		verifyTraverseCalledWalk(allFalse);
-		verifyTraverseCalledEndRecursion(allTrue);
-		verifyTraverseCalledEndRecursion(onlyFilter);
-		verifyTraverseCalledEndRecursion(onlySteps);
-		verifyTraverseCalledEndRecursion(onlyTemplate);
-		verifyTraverseCalledEndRecursion(noFilter);
-		verifyTraverseCalledEndRecursion(noSteps);
-		verifyTraverseCalledEndRecursion(noTemplate);
+        verifyTraverseCalledWalk(allFalse);
+        verifyTraverseCalledEndRecursion(allTrue);
+        verifyTraverseCalledEndRecursion(onlyFilter);
+        verifyTraverseCalledEndRecursion(onlySteps);
+        verifyTraverseCalledEndRecursion(onlyTemplate);
+        verifyTraverseCalledEndRecursion(noFilter);
+        verifyTraverseCalledEndRecursion(noSteps);
+        verifyTraverseCalledEndRecursion(noTemplate);
 
-	}
+    }
 
-	private void verifyTraverseCalledWalk(BasicGroup group) {
-		try (MockedStatic<TreeWalker> mock = mockStatic(TreeWalker.class)) {
-			mock.when(() -> TreeWalker.walk(any(), any())).thenReturn(mock(DisjunctiveFormula.class));
-			mock.when(() -> TreeWalker.traverse(any(), any())).thenCallRealMethod();
-			mock.when(() -> TreeWalker.endRecursion(any(), any())).thenReturn(mock(DisjunctiveFormula.class));
+    private void verifyTraverseCalledWalk(BasicGroup group) {
+        try (MockedStatic<TreeWalker> mock = mockStatic(TreeWalker.class)) {
+            mock.when(() -> TreeWalker.walk(any(), any())).thenReturn(mock(DisjunctiveFormula.class));
+            mock.when(() -> TreeWalker.traverse(any(), any())).thenCallRealMethod();
+            mock.when(() -> TreeWalker.endRecursion(any(), any())).thenReturn(mock(DisjunctiveFormula.class));
 
-			TreeWalker.traverse(group, Collections.emptyMap());
+            TreeWalker.traverse(group, Collections.emptyMap());
 
-			mock.verify(() -> TreeWalker.traverse(any(), any()));
-			mock.verify(() -> TreeWalker.walk(any(), any()));
-		}
-	}
+            mock.verify(() -> TreeWalker.traverse(any(), any()));
+            mock.verify(() -> TreeWalker.walk(any(), any()));
+        }
+    }
 
-	private void verifyTraverseCalledEndRecursion(BasicGroup group) {
-		try (MockedStatic<TreeWalker> mock = mockStatic(TreeWalker.class)) {
-			mock.when(() -> TreeWalker.walk(any(), any())).thenReturn(mock(DisjunctiveFormula.class));
-			mock.when(() -> TreeWalker.traverse(any(), any())).thenCallRealMethod();
-			mock.when(() -> TreeWalker.endRecursion(any(), any())).thenReturn(mock(DisjunctiveFormula.class));
+    private void verifyTraverseCalledEndRecursion(BasicGroup group) {
+        try (MockedStatic<TreeWalker> mock = mockStatic(TreeWalker.class)) {
+            mock.when(() -> TreeWalker.walk(any(), any())).thenReturn(mock(DisjunctiveFormula.class));
+            mock.when(() -> TreeWalker.traverse(any(), any())).thenCallRealMethod();
+            mock.when(() -> TreeWalker.endRecursion(any(), any())).thenReturn(mock(DisjunctiveFormula.class));
 
-			TreeWalker.traverse(group, Collections.emptyMap());
+            TreeWalker.traverse(group, Collections.emptyMap());
 
-			mock.verify(() -> TreeWalker.traverse(any(), any()));
-			mock.verify(() -> TreeWalker.endRecursion(any(), any()));
-		}
-	}
+            mock.verify(() -> TreeWalker.traverse(any(), any()));
+            mock.verify(() -> TreeWalker.endRecursion(any(), any()));
+        }
+    }
 
 }

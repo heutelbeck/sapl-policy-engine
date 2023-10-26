@@ -28,167 +28,167 @@ import com.vaadin.flow.dom.ElementConstants;
  */
 public class BaseEditor extends Component {
 
-	private static final String                 IS_LINT             = "isLint";
-	private static final String                 TEXT_UPDATE_DELAY   = "textUpdateDelay";
-	private static final String                 MATCH_BRACKETS      = "matchBrackets";
-	private static final String                 AUTO_CLOSE_BRACKETS = "autoCloseBrackets";
-	private static final String                 HAS_LINE_NUMBERS    = "hasLineNumbers";
-	private static final String                 IS_DARK_THEME       = "isDarkTheme";
-	private static final String                 IS_READ_ONLY_KEY    = "isReadOnly";
-	private String                              document;
-	private final List<DocumentChangedListener> documentChangedListeners;
-	private final List<EditorClickedListener>   editorClickedListeners;
+    private static final String                 IS_LINT             = "isLint";
+    private static final String                 TEXT_UPDATE_DELAY   = "textUpdateDelay";
+    private static final String                 MATCH_BRACKETS      = "matchBrackets";
+    private static final String                 AUTO_CLOSE_BRACKETS = "autoCloseBrackets";
+    private static final String                 HAS_LINE_NUMBERS    = "hasLineNumbers";
+    private static final String                 IS_DARK_THEME       = "isDarkTheme";
+    private static final String                 IS_READ_ONLY_KEY    = "isReadOnly";
+    private String                              document;
+    private final List<DocumentChangedListener> documentChangedListeners;
+    private final List<EditorClickedListener>   editorClickedListeners;
 
-	/**
-	 * Creates the editor.
-	 */
-	public BaseEditor() {
-		super();
-		this.documentChangedListeners = new ArrayList<>();
-		this.editorClickedListeners   = new ArrayList<>();
-		getElement().getStyle().set(ElementConstants.STYLE_WIDTH, "100%");
-		getElement().getStyle().set(ElementConstants.STYLE_HEIGHT, "100%");
-	}
+    /**
+     * Creates the editor.
+     */
+    public BaseEditor() {
+        super();
+        this.documentChangedListeners = new ArrayList<>();
+        this.editorClickedListeners   = new ArrayList<>();
+        getElement().getStyle().set(ElementConstants.STYLE_WIDTH, "100%");
+        getElement().getStyle().set(ElementConstants.STYLE_HEIGHT, "100%");
+    }
 
-	protected static void applyBaseConfiguration(Element element, BaseEditorConfiguration config) {
-		element.setProperty(HAS_LINE_NUMBERS, config.isHasLineNumbers());
-		element.setProperty(AUTO_CLOSE_BRACKETS, config.isAutoCloseBrackets());
-		element.setProperty(MATCH_BRACKETS, config.isMatchBrackets());
-		element.setProperty(TEXT_UPDATE_DELAY, config.getTextUpdateDelay());
-		element.setProperty(IS_READ_ONLY_KEY, config.isReadOnly());
-		element.setProperty(IS_LINT, config.isLint());
-		element.setProperty(IS_DARK_THEME, config.isDarkTheme());
-	}
+    protected static void applyBaseConfiguration(Element element, BaseEditorConfiguration config) {
+        element.setProperty(HAS_LINE_NUMBERS, config.isHasLineNumbers());
+        element.setProperty(AUTO_CLOSE_BRACKETS, config.isAutoCloseBrackets());
+        element.setProperty(MATCH_BRACKETS, config.isMatchBrackets());
+        element.setProperty(TEXT_UPDATE_DELAY, config.getTextUpdateDelay());
+        element.setProperty(IS_READ_ONLY_KEY, config.isReadOnly());
+        element.setProperty(IS_LINT, config.isLint());
+        element.setProperty(IS_DARK_THEME, config.isDarkTheme());
+    }
 
-	@ClientCallable
-	protected void onDocumentChanged(String newValue) {
-		document = newValue;
-		for (DocumentChangedListener listener : documentChangedListeners) {
-			listener.onDocumentChanged(new DocumentChangedEvent(newValue));
-		}
-	}
+    @ClientCallable
+    protected void onDocumentChanged(String newValue) {
+        document = newValue;
+        for (DocumentChangedListener listener : documentChangedListeners) {
+            listener.onDocumentChanged(new DocumentChangedEvent(newValue));
+        }
+    }
 
-	@ClientCallable
-	protected void onEditorClicked(Integer line, String content) {
-		for (EditorClickedListener listener : editorClickedListeners)
-			listener.onEditorClicked(new EditorClickedEvent(line, content));
-	}
+    @ClientCallable
+    protected void onEditorClicked(Integer line, String content) {
+        for (EditorClickedListener listener : editorClickedListeners)
+            listener.onEditorClicked(new EditorClickedEvent(line, content));
+    }
 
-	/**
-	 * Sets the current document for the editor.
-	 * 
-	 * @param document The current document.
-	 */
-	public void setDocument(String document) {
-		this.document = document;
-		Element element = getElement();
-		element.callJsFunction("setEditorDocument", element, document);
-	}
+    /**
+     * Sets the current document for the editor.
+     * 
+     * @param document The current document.
+     */
+    public void setDocument(String document) {
+        this.document = document;
+        Element element = getElement();
+        element.callJsFunction("setEditorDocument", element, document);
+    }
 
-	/**
-	 * Returns the current document from the editor.
-	 * 
-	 * @return The current document from the editor.
-	 */
-	public String getDocument() {
-		return document;
-	}
+    /**
+     * Returns the current document from the editor.
+     * 
+     * @return The current document from the editor.
+     */
+    public String getDocument() {
+        return document;
+    }
 
-	/**
-	 * Registers a document changed listener. The document changed event will be
-	 * raised when the document was changed in the editor.
-	 * 
-	 * @param listener The listener that will be called upon event invocation.
-	 */
-	public void addDocumentChangedListener(DocumentChangedListener listener) {
-		this.documentChangedListeners.add(listener);
-	}
+    /**
+     * Registers a document changed listener. The document changed event will be
+     * raised when the document was changed in the editor.
+     * 
+     * @param listener The listener that will be called upon event invocation.
+     */
+    public void addDocumentChangedListener(DocumentChangedListener listener) {
+        this.documentChangedListeners.add(listener);
+    }
 
-	/**
-	 * Registers an editor clicked listener. The editor clicked event will be raised
-	 * when the editor was clicked.
-	 *
-	 * @param listener The listener that will be called upon event invocation.
-	 */
-	public void addEditorClickedListener(EditorClickedListener listener) {
-		this.editorClickedListeners.add(listener);
-	}
+    /**
+     * Registers an editor clicked listener. The editor clicked event will be raised
+     * when the editor was clicked.
+     *
+     * @param listener The listener that will be called upon event invocation.
+     */
+    public void addEditorClickedListener(EditorClickedListener listener) {
+        this.editorClickedListeners.add(listener);
+    }
 
-	/**
-	 * Removes a registered document changed listener.
-	 * 
-	 * @param listener The registered listener that should be removed.
-	 */
-	public void removeDocumentChangedListener(DocumentChangedListener listener) {
-		this.documentChangedListeners.remove(listener);
-	}
+    /**
+     * Removes a registered document changed listener.
+     * 
+     * @param listener The registered listener that should be removed.
+     */
+    public void removeDocumentChangedListener(DocumentChangedListener listener) {
+        this.documentChangedListeners.remove(listener);
+    }
 
-	/**
-	 * Removes a registered editor clicked listener.
-	 *
-	 * @param listener The registered listener that should be removed.
-	 */
-	public void removeEditorClickedListener(EditorClickedListener listener) {
-		this.editorClickedListeners.remove(listener);
-	}
+    /**
+     * Removes a registered editor clicked listener.
+     *
+     * @param listener The registered listener that should be removed.
+     */
+    public void removeEditorClickedListener(EditorClickedListener listener) {
+        this.editorClickedListeners.remove(listener);
+    }
 
-	/**
-	 * This function enables or disables the read-only mode of the editor.
-	 *
-	 * @param isReadOnly set to true if editor should be read only
-	 */
-	public void setReadOnly(Boolean isReadOnly) {
-		Element element = getElement();
-		element.setProperty(IS_READ_ONLY_KEY, isReadOnly);
-	}
+    /**
+     * This function enables or disables the read-only mode of the editor.
+     *
+     * @param isReadOnly set to true if editor should be read only
+     */
+    public void setReadOnly(Boolean isReadOnly) {
+        Element element = getElement();
+        element.setProperty(IS_READ_ONLY_KEY, isReadOnly);
+    }
 
-	/**
-	 * This function returns the current read-only status of the editor.
-	 *
-	 * @return The current read-only as a Boolean.
-	 */
-	public Boolean isReadOnly() {
-		Element element = getElement();
-		return element.getProperty(IS_READ_ONLY_KEY, false);
-	}
+    /**
+     * This function returns the current read-only status of the editor.
+     *
+     * @return The current read-only as a Boolean.
+     */
+    public Boolean isReadOnly() {
+        Element element = getElement();
+        return element.getProperty(IS_READ_ONLY_KEY, false);
+    }
 
-	/**
-	 * If this function is called the editor scrolls to the bottom of the textarea.
-	 */
-	public void scrollToBottom() {
-		Element element = getElement();
-		element.callJsFunction("scrollToBottom");
-	}
+    /**
+     * If this function is called the editor scrolls to the bottom of the textarea.
+     */
+    public void scrollToBottom() {
+        Element element = getElement();
+        element.callJsFunction("scrollToBottom");
+    }
 
-	/**
-	 * This function enables or disables the Dark Theme of the editor.
-	 *
-	 * @param isDarkTheme set to true if editor should be in dark theme
-	 */
-	public void setDarkTheme(Boolean isDarkTheme) {
-		Element element = getElement();
-		element.setProperty(IS_DARK_THEME, isDarkTheme);
-	}
+    /**
+     * This function enables or disables the Dark Theme of the editor.
+     *
+     * @param isDarkTheme set to true if editor should be in dark theme
+     */
+    public void setDarkTheme(Boolean isDarkTheme) {
+        Element element = getElement();
+        element.setProperty(IS_DARK_THEME, isDarkTheme);
+    }
 
-	/**
-	 * This function returns a Boolean to whether the editor uses the Dark Theme or
-	 * not.
-	 *
-	 * @return Enabled or disabled Dark Theme as a Boolean.
-	 */
-	public Boolean isDarkTheme() {
-		Element element = getElement();
-		return element.getProperty(IS_DARK_THEME, false);
-	}
+    /**
+     * This function returns a Boolean to whether the editor uses the Dark Theme or
+     * not.
+     *
+     * @return Enabled or disabled Dark Theme as a Boolean.
+     */
+    public Boolean isDarkTheme() {
+        Element element = getElement();
+        return element.getProperty(IS_DARK_THEME, false);
+    }
 
-	/**
-	 * This function returns a Boolean whether if the editor has linting enabled or
-	 * not.
-	 *
-	 * @return Enabled or disabled lint as a Boolean.
-	 */
-	public Boolean isLint() {
-		Element element = getElement();
-		return element.getProperty(IS_LINT, true);
-	}
+    /**
+     * This function returns a Boolean whether if the editor has linting enabled or
+     * not.
+     *
+     * @return Enabled or disabled lint as a Boolean.
+     */
+    public Boolean isLint() {
+        Element element = getElement();
+        return element.getProperty(IS_LINT, true);
+    }
 }

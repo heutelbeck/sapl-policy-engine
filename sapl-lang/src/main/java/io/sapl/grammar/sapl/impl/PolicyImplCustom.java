@@ -30,58 +30,58 @@ import reactor.core.publisher.Flux;
 
 public class PolicyImplCustom extends PolicyImpl {
 
-	@Override
-	public Flux<DocumentEvaluationResult> evaluate() {
-		var whereResult     = body == null ? Flux.just(Val.TRUE.withTrace(Policy.class)) : body.evaluate();
-		var afterWhere      = whereResult
-				.map(where -> PolicyDecision.fromWhereResult(getSaplName(), entitlement.getDecision(), where));
-		var withObligations = afterWhere
-				.switchMap(decision -> addConstraints(decision, obligations, 0, PolicyDecision::withObligation));
-		var withAdvice      = withObligations
-				.switchMap(decision -> addConstraints(decision, advice, 0, PolicyDecision::withAdvice));
+    @Override
+    public Flux<DocumentEvaluationResult> evaluate() {
+        var whereResult     = body == null ? Flux.just(Val.TRUE.withTrace(Policy.class)) : body.evaluate();
+        var afterWhere      = whereResult
+                .map(where -> PolicyDecision.fromWhereResult(getSaplName(), entitlement.getDecision(), where));
+        var withObligations = afterWhere
+                .switchMap(decision -> addConstraints(decision, obligations, 0, PolicyDecision::withObligation));
+        var withAdvice      = withObligations
+                .switchMap(decision -> addConstraints(decision, advice, 0, PolicyDecision::withAdvice));
 
-		Flux<DocumentEvaluationResult> withResource = withAdvice.switchMap(this::addResource);
+        Flux<DocumentEvaluationResult> withResource = withAdvice.switchMap(this::addResource);
 
-		return withResource.contextWrite(ctx -> ImportsUtil.loadImportsIntoContext(this, ctx))
-				.onErrorResume(this::importFailure);
-	}
+        return withResource.contextWrite(ctx -> ImportsUtil.loadImportsIntoContext(this, ctx))
+                .onErrorResume(this::importFailure);
+    }
 
-	private Flux<DocumentEvaluationResult> importFailure(Throwable error) {
-		return Flux.just(importError(error.getMessage()));
-	}
+    private Flux<DocumentEvaluationResult> importFailure(Throwable error) {
+        return Flux.just(importError(error.getMessage()));
+    }
 
-	@Override
-	public DocumentEvaluationResult targetResult(Val targetValue) {
-		return PolicyDecision.ofTargetExpressionEvaluation(getSaplName(), targetValue, getEntitlement().getDecision());
+    @Override
+    public DocumentEvaluationResult targetResult(Val targetValue) {
+        return PolicyDecision.ofTargetExpressionEvaluation(getSaplName(), targetValue, getEntitlement().getDecision());
 
-	}
+    }
 
-	@Override
-	public DocumentEvaluationResult importError(String errorMessage) {
-		return PolicyDecision.ofImportError(getSaplName(), getEntitlement().getDecision(), errorMessage);
-	}
+    @Override
+    public DocumentEvaluationResult importError(String errorMessage) {
+        return PolicyDecision.ofImportError(getSaplName(), getEntitlement().getDecision(), errorMessage);
+    }
 
-	private Flux<PolicyDecision> addResource(PolicyDecision policyDecision) {
-		if (transformation == null || decisionMustNotCarryConstraints(policyDecision))
-			return Flux.just(policyDecision);
-		return transformation.evaluate().map(policyDecision::withResource).defaultIfEmpty(policyDecision);
-	}
+    private Flux<PolicyDecision> addResource(PolicyDecision policyDecision) {
+        if (transformation == null || decisionMustNotCarryConstraints(policyDecision))
+            return Flux.just(policyDecision);
+        return transformation.evaluate().map(policyDecision::withResource).defaultIfEmpty(policyDecision);
+    }
 
-	private Flux<PolicyDecision> addConstraints(PolicyDecision policyDecision, EList<Expression> constraints,
-			int constraintIndex, BiFunction<PolicyDecision, Val, PolicyDecision> merge) {
-		if (constraints == null || constraints.size() == constraintIndex
-				|| decisionMustNotCarryConstraints(policyDecision)) {
-			return Flux.just(policyDecision);
-		}
-		var constraint             = constraints.get(constraintIndex).evaluate();
-		var decisionWithConstraint = constraint.map(val -> merge.apply(policyDecision, val));
-		return decisionWithConstraint
-				.switchMap(decision -> addConstraints(decision, constraints, constraintIndex + 1, merge));
-	}
+    private Flux<PolicyDecision> addConstraints(PolicyDecision policyDecision, EList<Expression> constraints,
+            int constraintIndex, BiFunction<PolicyDecision, Val, PolicyDecision> merge) {
+        if (constraints == null || constraints.size() == constraintIndex
+                || decisionMustNotCarryConstraints(policyDecision)) {
+            return Flux.just(policyDecision);
+        }
+        var constraint             = constraints.get(constraintIndex).evaluate();
+        var decisionWithConstraint = constraint.map(val -> merge.apply(policyDecision, val));
+        return decisionWithConstraint
+                .switchMap(decision -> addConstraints(decision, constraints, constraintIndex + 1, merge));
+    }
 
-	private boolean decisionMustNotCarryConstraints(DocumentEvaluationResult policyDecision) {
-		var decision = policyDecision.getAuthorizationDecision().getDecision();
-		return decision == Decision.INDETERMINATE || decision == Decision.NOT_APPLICABLE;
-	}
+    private boolean decisionMustNotCarryConstraints(DocumentEvaluationResult policyDecision) {
+        var decision = policyDecision.getAuthorizationDecision().getDecision();
+        return decision == Decision.INDETERMINATE || decision == Decision.NOT_APPLICABLE;
+    }
 
 }

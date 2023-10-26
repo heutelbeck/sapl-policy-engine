@@ -27,12 +27,12 @@ import reactor.core.publisher.Flux;
  */
 public class UndefinedLiteralImplCustom extends UndefinedLiteralImpl {
 
-	/**
-	 * A FLux only containing the 'undefined' value, i.e. Optional.empty();
-	 */
-	@Override
-	public Flux<Val> evaluate() {
-		return Flux.just(Val.UNDEFINED.withTrace(UndefinedLiteral.class));
-	}
+    /**
+     * A FLux only containing the 'undefined' value, i.e. Optional.empty();
+     */
+    @Override
+    public Flux<Val> evaluate() {
+        return Flux.just(Val.UNDEFINED.withTrace(UndefinedLiteral.class));
+    }
 
 }

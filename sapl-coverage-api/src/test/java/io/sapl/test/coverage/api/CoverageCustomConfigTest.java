@@ -32,55 +32,54 @@ import io.sapl.test.coverage.api.model.PolicySetHit;
 
 class CoverageCustomConfigTest {
 
-	private Path basedir;
+    private Path basedir;
 
-	private CoverageHitReader reader;
+    private CoverageHitReader reader;
 
-	private CoverageHitRecorder recorder;
+    private CoverageHitRecorder recorder;
 
-	@BeforeEach
-	void setup() {
-		basedir       = Paths.get("temp").resolve("sapl-coverage");
-		this.reader   = new CoverageHitAPIFile(basedir);
-		this.recorder = new CoverageHitAPIFile(basedir);
-	}
+    @BeforeEach
+    void setup() {
+        basedir       = Paths.get("temp").resolve("sapl-coverage");
+        this.reader   = new CoverageHitAPIFile(basedir);
+        this.recorder = new CoverageHitAPIFile(basedir);
+    }
 
-	@AfterEach
-	void cleanup() {
-		TestFileHelper.deleteDirectory(basedir.toFile());
-	}
+    @AfterEach
+    void cleanup() {
+        TestFileHelper.deleteDirectory(basedir.toFile());
+    }
 
-	@Test
-	void testSystemPropertyConfig_Reader() throws IOException {
-		Path path = this.basedir.resolve("hits").resolve("_policySetHits.txt");
-		if (!Files.exists(path)) {
-			var parent = path.getParent();
-			if (parent != null) {
-				Files.createDirectories(parent);
-			}
-			Files.createFile(path);
-		}
-		Files.write(path,
-				(new PolicySetHit("set1") + System.lineSeparator()).getBytes(StandardCharsets.UTF_8),
-				StandardOpenOption.APPEND);
+    @Test
+    void testSystemPropertyConfig_Reader() throws IOException {
+        Path path = this.basedir.resolve("hits").resolve("_policySetHits.txt");
+        if (!Files.exists(path)) {
+            var parent = path.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+            Files.createFile(path);
+        }
+        Files.write(path, (new PolicySetHit("set1") + System.lineSeparator()).getBytes(StandardCharsets.UTF_8),
+                StandardOpenOption.APPEND);
 
-		// act
-		List<PolicySetHit> resultPolicySetHits = reader.readPolicySetHits();
+        // act
+        List<PolicySetHit> resultPolicySetHits = reader.readPolicySetHits();
 
-		// assert
-		Assertions.assertThat(resultPolicySetHits).hasSize(1);
-		Assertions.assertThat(resultPolicySetHits.get(0).getPolicySetId()).isEqualTo("set1");
-	}
+        // assert
+        Assertions.assertThat(resultPolicySetHits).hasSize(1);
+        Assertions.assertThat(resultPolicySetHits.get(0).getPolicySetId()).isEqualTo("set1");
+    }
 
-	@Test
-	void testSystemPropertyConfig_Recorder() {
-		// act
-		recorder.createCoverageHitFiles();
+    @Test
+    void testSystemPropertyConfig_Recorder() {
+        // act
+        recorder.createCoverageHitFiles();
 
-		// assert
-		Path path = this.basedir.resolve("hits").resolve("_policySetHits.txt");
-		Assertions.assertThat(Files.exists(path)).isTrue();
+        // assert
+        Path path = this.basedir.resolve("hits").resolve("_policySetHits.txt");
+        Assertions.assertThat(Files.exists(path)).isTrue();
 
-	}
+    }
 
 }

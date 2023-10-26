@@ -29,45 +29,45 @@ import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
 
 class AllAutoConfigurationsIntegrationTests {
 
-	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-			.withConfiguration(AutoConfigurations.of(PrpUpdateEventSourceAutoConfiguration.class))
-			.withConfiguration(AutoConfigurations.of(AttributeContextAutoConfiguration.class))
-			.withConfiguration(AutoConfigurations.of(DocumentationAutoConfiguration.class))
-			.withConfiguration(AutoConfigurations.of(FunctionContextAutoConfiguration.class))
-			.withConfiguration(AutoConfigurations.of(FunctionLibrariesAutoConfiguration.class))
-			.withConfiguration(AutoConfigurations.of(InterpreterAutoConfiguration.class))
-			.withConfiguration(AutoConfigurations.of(PDPConfigurationProviderAutoConfiguration.class))
-			.withConfiguration(AutoConfigurations.of(PolicyInformationPointsAutoConfiguration.class))
-			.withConfiguration(AutoConfigurations.of(VariablesAndCombinatorSourceAutoConfiguration.class))
-			.withConfiguration(AutoConfigurations.of(PrpUpdateEventSourceAutoConfiguration.class))
-			.withConfiguration(AutoConfigurations.of(PRPAutoConfiguration.class))
-			.withConfiguration(AutoConfigurations.of(PDPAutoConfiguration.class));
+    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
+            .withConfiguration(AutoConfigurations.of(PrpUpdateEventSourceAutoConfiguration.class))
+            .withConfiguration(AutoConfigurations.of(AttributeContextAutoConfiguration.class))
+            .withConfiguration(AutoConfigurations.of(DocumentationAutoConfiguration.class))
+            .withConfiguration(AutoConfigurations.of(FunctionContextAutoConfiguration.class))
+            .withConfiguration(AutoConfigurations.of(FunctionLibrariesAutoConfiguration.class))
+            .withConfiguration(AutoConfigurations.of(InterpreterAutoConfiguration.class))
+            .withConfiguration(AutoConfigurations.of(PDPConfigurationProviderAutoConfiguration.class))
+            .withConfiguration(AutoConfigurations.of(PolicyInformationPointsAutoConfiguration.class))
+            .withConfiguration(AutoConfigurations.of(VariablesAndCombinatorSourceAutoConfiguration.class))
+            .withConfiguration(AutoConfigurations.of(PrpUpdateEventSourceAutoConfiguration.class))
+            .withConfiguration(AutoConfigurations.of(PRPAutoConfiguration.class))
+            .withConfiguration(AutoConfigurations.of(PDPAutoConfiguration.class));
 
-	@TempDir
-	File tempDir;
+    @TempDir
+    File tempDir;
 
-	@Test
-	void whenFilesystemPrpIsConfiguredAndTheEntireAutoconfigurationRuns_thenAnEmbeddedPDPIsCreated() {
-		contextRunner
-				.withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=FILESYSTEM", "io.sapl.pdp.embedded.index=NAIVE",
-						"io.sapl.pdp.embedded.configPath=" + tempDir, "io.sapl.pdp.embedded.policiesPath=" + tempDir)
-				.run(context -> {
-					assertThat(context).hasNotFailed();
-					assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
-					assertThat(context).hasSingleBean(EmbeddedPolicyDecisionPoint.class);
-				});
-	}
+    @Test
+    void whenFilesystemPrpIsConfiguredAndTheEntireAutoconfigurationRuns_thenAnEmbeddedPDPIsCreated() {
+        contextRunner
+                .withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=FILESYSTEM", "io.sapl.pdp.embedded.index=NAIVE",
+                        "io.sapl.pdp.embedded.configPath=" + tempDir, "io.sapl.pdp.embedded.policiesPath=" + tempDir)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
+                    assertThat(context).hasSingleBean(EmbeddedPolicyDecisionPoint.class);
+                });
+    }
 
-	@Test
-	void whenResourcesPrpIsConfiguredAndTheEntireAutoconfigurationRuns_thenAnEmbeddedPDPIsCreated() {
-		contextRunner
-				.withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=RESOURCES", "io.sapl.pdp.embedded.index=NAIVE",
-						"io.sapl.pdp.embedded.configPath=/", "io.sapl.pdp.embedded.policiesPath=/")
-				.run(context -> {
-					assertThat(context).hasNotFailed();
-					assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
-					assertThat(context).hasSingleBean(EmbeddedPolicyDecisionPoint.class);
-				});
-	}
+    @Test
+    void whenResourcesPrpIsConfiguredAndTheEntireAutoconfigurationRuns_thenAnEmbeddedPDPIsCreated() {
+        contextRunner
+                .withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=RESOURCES", "io.sapl.pdp.embedded.index=NAIVE",
+                        "io.sapl.pdp.embedded.configPath=/", "io.sapl.pdp.embedded.policiesPath=/")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
+                    assertThat(context).hasSingleBean(EmbeddedPolicyDecisionPoint.class);
+                });
+    }
 
 }

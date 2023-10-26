@@ -28,17 +28,17 @@ import io.sapl.pip.TimePolicyInformationPoint;
 @AutoConfiguration
 public class PolicyInformationPointsAutoConfiguration {
 
-	@Bean
-	@ConditionalOnMissingBean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	Clock clock() {
-		return Clock.systemUTC();
-	}
+    @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    Clock clock() {
+        return Clock.systemUTC();
+    }
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	TimePolicyInformationPoint timePolicyInformationPoint(Clock clock) {
-		return new TimePolicyInformationPoint(clock);
-	}
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    TimePolicyInformationPoint timePolicyInformationPoint(Clock clock) {
+        return new TimePolicyInformationPoint(clock);
+    }
 
 }

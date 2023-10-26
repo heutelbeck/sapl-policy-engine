@@ -38,78 +38,78 @@ import reactor.core.publisher.Flux;
 
 public class AttributeMockForParentValue implements AttributeMock {
 
-	private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_FOR_PARAMETERS = "You already defined a Mock for %s which is returning specified values when parameters are matching the expectation";
+    private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_FOR_PARAMETERS = "You already defined a Mock for %s which is returning specified values when parameters are matching the expectation";
 
-	private static final String ERROR_NO_MATCHING_PARENT_VALUE = "Unable to find a mocked return value for this parent value";
+    private static final String ERROR_NO_MATCHING_PARENT_VALUE = "Unable to find a mocked return value for this parent value";
 
-	private final String fullName;
+    private final String fullName;
 
-	private final List<ParameterSpecificMockReturnValue> listParameterSpecificMockReturnValues;
+    private final List<ParameterSpecificMockReturnValue> listParameterSpecificMockReturnValues;
 
-	private final MockRunInformation mockRunInformation;
+    private final MockRunInformation mockRunInformation;
 
-	private final List<MockingVerification> listMockingVerifications;
+    private final List<MockingVerification> listMockingVerifications;
 
-	public AttributeMockForParentValue(String fullName) {
-		this.fullName                              = fullName;
-		this.listParameterSpecificMockReturnValues = new LinkedList<>();
-		this.mockRunInformation                    = new MockRunInformation(fullName);
-		this.listMockingVerifications              = new LinkedList<>();
-	}
+    public AttributeMockForParentValue(String fullName) {
+        this.fullName                              = fullName;
+        this.listParameterSpecificMockReturnValues = new LinkedList<>();
+        this.mockRunInformation                    = new MockRunInformation(fullName);
+        this.listMockingVerifications              = new LinkedList<>();
+    }
 
-	public void loadMockForParentValue(AttributeParentValueMatcher parentValueMatcher, Val returnValue) {
-		this.listParameterSpecificMockReturnValues
-				.add(new ParameterSpecificMockReturnValue(parentValueMatcher.getMatcher(), returnValue));
+    public void loadMockForParentValue(AttributeParentValueMatcher parentValueMatcher, Val returnValue) {
+        this.listParameterSpecificMockReturnValues
+                .add(new ParameterSpecificMockReturnValue(parentValueMatcher.getMatcher(), returnValue));
 
-		this.listMockingVerifications
-				.add(new TimesParameterCalledVerification(Imports.times(1), List.of(parentValueMatcher.getMatcher())));
-	}
+        this.listMockingVerifications
+                .add(new TimesParameterCalledVerification(Imports.times(1), List.of(parentValueMatcher.getMatcher())));
+    }
 
-	@Override
-	public Flux<Val> evaluate(String attributeName, Val parentValue, Map<String, JsonNode> variables,
-			List<Flux<Val>> args) {
-		this.mockRunInformation.saveCall(new MockCall(parentValue));
+    @Override
+    public Flux<Val> evaluate(String attributeName, Val parentValue, Map<String, JsonNode> variables,
+            List<Flux<Val>> args) {
+        this.mockRunInformation.saveCall(new MockCall(parentValue));
 
-		Optional<ParameterSpecificMockReturnValue> matchingParameterSpecificMockReturnValues = findMatchingParameterSpecificMockReturnValue(
-				parentValue);
+        Optional<ParameterSpecificMockReturnValue> matchingParameterSpecificMockReturnValues = findMatchingParameterSpecificMockReturnValue(
+                parentValue);
 
-		checkAtLeastOneMatchingMockReturnValueExists(matchingParameterSpecificMockReturnValues);
+        checkAtLeastOneMatchingMockReturnValueExists(matchingParameterSpecificMockReturnValues);
 
-		return Flux.just(matchingParameterSpecificMockReturnValues.get().getMockReturnValue()).map(val -> val
-				.withTrace(AttributeMockForParentValue.class, Map.of("attributeName", Val.of(attributeName))));
-	}
+        return Flux.just(matchingParameterSpecificMockReturnValues.get().getMockReturnValue()).map(val -> val
+                .withTrace(AttributeMockForParentValue.class, Map.of("attributeName", Val.of(attributeName))));
+    }
 
-	private void checkAtLeastOneMatchingMockReturnValueExists(
-			Optional<ParameterSpecificMockReturnValue> matchingParameterSpecificMockReturnValues) {
-		if (matchingParameterSpecificMockReturnValues.isEmpty()) {
-			throw new SaplTestException(ERROR_NO_MATCHING_PARENT_VALUE);
-		}
-	}
+    private void checkAtLeastOneMatchingMockReturnValueExists(
+            Optional<ParameterSpecificMockReturnValue> matchingParameterSpecificMockReturnValues) {
+        if (matchingParameterSpecificMockReturnValues.isEmpty()) {
+            throw new SaplTestException(ERROR_NO_MATCHING_PARENT_VALUE);
+        }
+    }
 
-	private Optional<ParameterSpecificMockReturnValue> findMatchingParameterSpecificMockReturnValue(Val parentValue) {
-		return this.listParameterSpecificMockReturnValues.stream()
-				.filter((ParameterSpecificMockReturnValue mock) -> mock.getExpectedParentValue().matches(parentValue))
-				.findFirst();
-	}
+    private Optional<ParameterSpecificMockReturnValue> findMatchingParameterSpecificMockReturnValue(Val parentValue) {
+        return this.listParameterSpecificMockReturnValues.stream()
+                .filter((ParameterSpecificMockReturnValue mock) -> mock.getExpectedParentValue().matches(parentValue))
+                .findFirst();
+    }
 
-	@Override
-	public void assertVerifications() {
-		this.listMockingVerifications.forEach(verification -> verification.verify(this.mockRunInformation));
-	}
+    @Override
+    public void assertVerifications() {
+        this.listMockingVerifications.forEach(verification -> verification.verify(this.mockRunInformation));
+    }
 
-	@Override
-	public String getErrorMessageForCurrentMode() {
-		return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_FOR_PARAMETERS, this.fullName);
-	}
+    @Override
+    public String getErrorMessageForCurrentMode() {
+        return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_FOR_PARAMETERS, this.fullName);
+    }
 
-	@Getter
-	@AllArgsConstructor
-	static class ParameterSpecificMockReturnValue {
+    @Getter
+    @AllArgsConstructor
+    static class ParameterSpecificMockReturnValue {
 
-		private Matcher<Val> expectedParentValue;
+        private Matcher<Val> expectedParentValue;
 
-		private Val mockReturnValue;
+        private Val mockReturnValue;
 
-	}
+    }
 
 }

@@ -30,44 +30,44 @@ import io.sapl.api.pdp.AuthorizationDecision;
  */
 public class HasAdviceMatching extends TypeSafeDiagnosingMatcher<AuthorizationDecision> {
 
-	private final Predicate<? super JsonNode> predicate;
+    private final Predicate<? super JsonNode> predicate;
 
-	/**
-	 * Checks for the presence of an advice fulfilling a predicate.
-	 * 
-	 * @param jsonPredicate a JsonNode Predicate.
-	 */
-	public HasAdviceMatching(Predicate<? super JsonNode> jsonPredicate) {
-		super(AuthorizationDecision.class);
-		this.predicate = Objects.requireNonNull(jsonPredicate);
-	}
+    /**
+     * Checks for the presence of an advice fulfilling a predicate.
+     * 
+     * @param jsonPredicate a JsonNode Predicate.
+     */
+    public HasAdviceMatching(Predicate<? super JsonNode> jsonPredicate) {
+        super(AuthorizationDecision.class);
+        this.predicate = Objects.requireNonNull(jsonPredicate);
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("the decision has an advice matching the predicate");
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("the decision has an advice matching the predicate");
+    }
 
-	@Override
-	protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
-		var advice = decision.getAdvice();
-		if (advice.isEmpty()) {
-			mismatchDescription.appendText("decision didn't contain any advice");
-			return false;
-		}
+    @Override
+    protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
+        var advice = decision.getAdvice();
+        if (advice.isEmpty()) {
+            mismatchDescription.appendText("decision didn't contain any advice");
+            return false;
+        }
 
-		var containsAdvice = false;
+        var containsAdvice = false;
 
-		for (JsonNode node : advice.get()) {
-			if (this.predicate.test(node))
-				containsAdvice = true;
-		}
+        for (JsonNode node : advice.get()) {
+            if (this.predicate.test(node))
+                containsAdvice = true;
+        }
 
-		if (containsAdvice) {
-			return true;
-		} else {
-			mismatchDescription.appendText("no advice matched");
-			return false;
-		}
-	}
+        if (containsAdvice) {
+            return true;
+        } else {
+            mismatchDescription.appendText("no advice matched");
+            return false;
+        }
+    }
 
 }

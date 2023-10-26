@@ -31,65 +31,65 @@ import lombok.ToString;
 @EqualsAndHashCode
 public class PolicySetDecision implements DocumentEvaluationResult {
 
-	final CombinedDecision combinedDecision;
-	final String           documentName;
-	final Optional<Val>    targetResult;
-	final Optional<String> errorMessage;
+    final CombinedDecision combinedDecision;
+    final String           documentName;
+    final Optional<Val>    targetResult;
+    final Optional<String> errorMessage;
 
-	private PolicySetDecision(CombinedDecision combinedDecision, String documentName, Optional<Val> matches,
-			Optional<String> errorMessage) {
-		this.combinedDecision = combinedDecision;
-		this.documentName     = documentName;
-		this.targetResult     = matches;
-		this.errorMessage     = errorMessage;
-	}
+    private PolicySetDecision(CombinedDecision combinedDecision, String documentName, Optional<Val> matches,
+            Optional<String> errorMessage) {
+        this.combinedDecision = combinedDecision;
+        this.documentName     = documentName;
+        this.targetResult     = matches;
+        this.errorMessage     = errorMessage;
+    }
 
-	public static PolicySetDecision of(CombinedDecision combinedDecision, String document) {
-		return new PolicySetDecision(combinedDecision, document, Optional.empty(), Optional.empty());
-	}
+    public static PolicySetDecision of(CombinedDecision combinedDecision, String document) {
+        return new PolicySetDecision(combinedDecision, document, Optional.empty(), Optional.empty());
+    }
 
-	public static PolicySetDecision error(String document, String errorMessage) {
-		return new PolicySetDecision(null, document, Optional.empty(), Optional.ofNullable(errorMessage));
-	}
+    public static PolicySetDecision error(String document, String errorMessage) {
+        return new PolicySetDecision(null, document, Optional.empty(), Optional.ofNullable(errorMessage));
+    }
 
-	public static PolicySetDecision ofTargetError(String document, Val targetValue, String combiningAlgorithm) {
-		return new PolicySetDecision(CombinedDecision.of(AuthorizationDecision.INDETERMINATE, combiningAlgorithm),
-				document, Optional.ofNullable(targetValue), Optional.empty());
-	}
+    public static PolicySetDecision ofTargetError(String document, Val targetValue, String combiningAlgorithm) {
+        return new PolicySetDecision(CombinedDecision.of(AuthorizationDecision.INDETERMINATE, combiningAlgorithm),
+                document, Optional.ofNullable(targetValue), Optional.empty());
+    }
 
-	public static PolicySetDecision notApplicable(String document, Val targetValue, String combiningAlgorithm) {
-		return new PolicySetDecision(CombinedDecision.of(AuthorizationDecision.NOT_APPLICABLE, combiningAlgorithm),
-				document, Optional.ofNullable(targetValue), Optional.empty());
-	}
+    public static PolicySetDecision notApplicable(String document, Val targetValue, String combiningAlgorithm) {
+        return new PolicySetDecision(CombinedDecision.of(AuthorizationDecision.NOT_APPLICABLE, combiningAlgorithm),
+                document, Optional.ofNullable(targetValue), Optional.empty());
+    }
 
-	public static DocumentEvaluationResult ofImportError(String document, String errorMessage,
-			String combiningAlgorithm) {
-		return new PolicySetDecision(CombinedDecision.of(AuthorizationDecision.INDETERMINATE, combiningAlgorithm),
-				document, Optional.empty(), Optional.ofNullable(errorMessage));
-	}
+    public static DocumentEvaluationResult ofImportError(String document, String errorMessage,
+            String combiningAlgorithm) {
+        return new PolicySetDecision(CombinedDecision.of(AuthorizationDecision.INDETERMINATE, combiningAlgorithm),
+                document, Optional.empty(), Optional.ofNullable(errorMessage));
+    }
 
-	@Override
-	public DocumentEvaluationResult withTargetResult(Val targetResult) {
-		return new PolicySetDecision(combinedDecision, documentName, Optional.ofNullable(targetResult), errorMessage);
-	}
+    @Override
+    public DocumentEvaluationResult withTargetResult(Val targetResult) {
+        return new PolicySetDecision(combinedDecision, documentName, Optional.ofNullable(targetResult), errorMessage);
+    }
 
-	@Override
-	public AuthorizationDecision getAuthorizationDecision() {
-		if (errorMessage.isPresent())
-			return AuthorizationDecision.INDETERMINATE;
+    @Override
+    public AuthorizationDecision getAuthorizationDecision() {
+        if (errorMessage.isPresent())
+            return AuthorizationDecision.INDETERMINATE;
 
-		return combinedDecision.getAuthorizationDecision();
-	}
+        return combinedDecision.getAuthorizationDecision();
+    }
 
-	@Override
-	public JsonNode getTrace() {
-		var trace = Val.JSON.objectNode();
-		trace.set(Trace.DOCUMENT_TYPE, Val.JSON.textNode("policy set"));
-		trace.set(Trace.POLICY_SET_NAME, Val.JSON.textNode(documentName));
-		trace.set(Trace.COMBINED_DECISION, combinedDecision.getTrace());
-		errorMessage.ifPresent(error -> trace.set(Trace.ERROR, Val.JSON.textNode(errorMessage.get())));
-		targetResult.ifPresent(target -> trace.set(Trace.TARGET, target.getTrace()));
-		return trace;
-	}
+    @Override
+    public JsonNode getTrace() {
+        var trace = Val.JSON.objectNode();
+        trace.set(Trace.DOCUMENT_TYPE, Val.JSON.textNode("policy set"));
+        trace.set(Trace.POLICY_SET_NAME, Val.JSON.textNode(documentName));
+        trace.set(Trace.COMBINED_DECISION, combinedDecision.getTrace());
+        errorMessage.ifPresent(error -> trace.set(Trace.ERROR, Val.JSON.textNode(errorMessage.get())));
+        targetResult.ifPresent(target -> trace.set(Trace.TARGET, target.getTrace()));
+        return trace;
+    }
 
 }

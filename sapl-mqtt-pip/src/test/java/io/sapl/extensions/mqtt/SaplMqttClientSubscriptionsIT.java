@@ -42,297 +42,230 @@ import reactor.test.StepVerifier;
 @Timeout(30)
 class SaplMqttClientSubscriptionsIT {
 
-	private final static long DELAY_MS = 800L;
+    private final static long DELAY_MS = 800L;
 
-	private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
+    private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	@TempDir
-	Path configDir;
+    @TempDir
+    Path configDir;
 
-	@TempDir
-	Path dataDir;
+    @TempDir
+    Path dataDir;
 
-	@TempDir
-	Path extensionsDir;
+    @TempDir
+    Path extensionsDir;
 
-	EmbeddedHiveMQ      mqttBroker;
-	Mqtt5BlockingClient mqttClient;
-	SaplMqttClient      saplMqttClient;
+    EmbeddedHiveMQ      mqttBroker;
+    Mqtt5BlockingClient mqttClient;
+    SaplMqttClient      saplMqttClient;
 
-	@BeforeEach
-	void beforeEach() {
-		this.mqttBroker     = buildAndStartBroker(configDir, dataDir, extensionsDir);
-		this.mqttClient     = startClient();
-		this.saplMqttClient = new SaplMqttClient();
-	}
+    @BeforeEach
+    void beforeEach() {
+        this.mqttBroker     = buildAndStartBroker(configDir, dataDir, extensionsDir);
+        this.mqttClient     = startClient();
+        this.saplMqttClient = new SaplMqttClient();
+    }
 
-	@AfterEach
-	void afterEach() {
-		mqttClient.disconnect();
-		stopBroker(mqttBroker);
-	}
+    @AfterEach
+    void afterEach() {
+        mqttClient.disconnect();
+        stopBroker(mqttBroker);
+    }
 
-	@Test
-	void when_subscribeToMultipleTopicsOnSingleFlux_then_getMessagesOfMultipleTopics() throws InitializationException {
-		// GIVEN
-		var topics = JSON.arrayNode().add("topic1").add("topic2");
+    @Test
+    void when_subscribeToMultipleTopicsOnSingleFlux_then_getMessagesOfMultipleTopics() throws InitializationException {
+        // GIVEN
+        var topics = JSON.arrayNode().add("topic1").add("topic2");
 
-		// WHEN
-		var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), buildVariables())
-				.filter(val -> !val.isUndefined());
+        // WHEN
+        var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), buildVariables())
+                .filter(val -> !val.isUndefined());
 
-		// THEN
-		StepVerifier.create(saplMqttMessageFlux)
-				.thenAwait(Duration.ofMillis(2 * DELAY_MS))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
-				.expectNext(Val.of("message1"))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false)))
-				.expectNext(Val.of("message2"))
-				.thenCancel()
-				.verify();
-	}
+        // THEN
+        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(2 * DELAY_MS))
+                .then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
+                .expectNext(Val.of("message1"))
+                .then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false)))
+                .expectNext(Val.of("message2")).thenCancel().verify();
+    }
 
-	@Test
-	void when_subscribeToMultipleTopicsOnDifferentFlux_then_getMessagesOfMultipleTopics()
-			throws InitializationException {
-		// GIVEN
-		var topicsFirstFlux  = JSON.arrayNode().add("topic1").add("topic2");
-		var topicsSecondFlux = JSON.arrayNode().add("topic2").add("topic3");
+    @Test
+    void when_subscribeToMultipleTopicsOnDifferentFlux_then_getMessagesOfMultipleTopics()
+            throws InitializationException {
+        // GIVEN
+        var topicsFirstFlux  = JSON.arrayNode().add("topic1").add("topic2");
+        var topicsSecondFlux = JSON.arrayNode().add("topic2").add("topic3");
 
-		var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topicsFirstFlux),
-				buildVariables());
-		var saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topicsSecondFlux),
-				buildVariables());
+        var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topicsFirstFlux),
+                buildVariables());
+        var saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topicsSecondFlux),
+                buildVariables());
 
-		// WHEN
-		var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
-				.filter(val -> !val.isUndefined());
+        // WHEN
+        var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
+                .filter(val -> !val.isUndefined());
 
-		// THEN
-		StepVerifier.create(saplMqttMessageFluxMerge)
-				.thenAwait(Duration.ofMillis(2 * DELAY_MS))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic1",
-						"message1", false)))
-				.expectNext(Val.of("message1"))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic2",
-						"message2", false)))
-				.expectNext(Val.of("message2"))
-				.expectNext(Val.of("message2"))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic3",
-						"message3", false)))
-				.expectNext(Val.of("message3"))
-				.thenCancel()
-				.verify();
-	}
+        // THEN
+        StepVerifier.create(saplMqttMessageFluxMerge).thenAwait(Duration.ofMillis(2 * DELAY_MS))
+                .then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
+                .expectNext(Val.of("message1"))
+                .then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false)))
+                .expectNext(Val.of("message2")).expectNext(Val.of("message2"))
+                .then(() -> mqttClient.publish(buildMqttPublishMessage("topic3", "message3", false)))
+                .expectNext(Val.of("message3")).thenCancel().verify();
+    }
 
-	@Test
-	void when_oneFluxIsCancelledWhileSubscribingToSingleTopics_then_getMessagesOfLeftTopics()
-			throws InitializationException {
-		// GIVEN
-		var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic"),
-				buildVariables());
-		var saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic"), buildVariables())
-				.takeUntil(value -> "message".equals(value.getText()));
+    @Test
+    void when_oneFluxIsCancelledWhileSubscribingToSingleTopics_then_getMessagesOfLeftTopics()
+            throws InitializationException {
+        // GIVEN
+        var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic"), buildVariables());
+        var saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic"), buildVariables())
+                .takeUntil(value -> "message".equals(value.getText()));
 
-		// WHEN
-		var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
-				.filter(val -> !val.isUndefined());
+        // WHEN
+        var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
+                .filter(val -> !val.isUndefined());
 
-		// THEN
-		StepVerifier.create(saplMqttMessageFluxMerge)
-				.thenAwait(Duration.ofMillis(2 * DELAY_MS))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic", "message", false)))
-				.expectNext(Val.of("message"))
-				.expectNext(Val.of("message"))
-				.thenAwait(Duration.ofMillis(DELAY_MS))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("topic", "message", false)))
-				.expectNext(Val.of("message"))
-				.expectNoEvent(Duration.ofMillis(2 * DELAY_MS))
-				.thenCancel()
-				.verify();
-	}
+        // THEN
+        StepVerifier.create(saplMqttMessageFluxMerge).thenAwait(Duration.ofMillis(2 * DELAY_MS))
+                .then(() -> mqttClient.publish(buildMqttPublishMessage("topic", "message", false)))
+                .expectNext(Val.of("message")).expectNext(Val.of("message")).thenAwait(Duration.ofMillis(DELAY_MS))
+                .then(() -> mqttClient.publish(buildMqttPublishMessage("topic", "message", false)))
+                .expectNext(Val.of("message")).expectNoEvent(Duration.ofMillis(2 * DELAY_MS)).thenCancel().verify();
+    }
 
-	@Test
-	void when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics()
-			throws InitializationException {
-		// GIVEN
-		var topicsFirstFlux  = JSON.arrayNode().add("topic1").add("topic2");
-		var topicsSecondFlux = JSON.arrayNode().add("topic2").add("topic3");
+    @Test
+    void when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics()
+            throws InitializationException {
+        // GIVEN
+        var topicsFirstFlux  = JSON.arrayNode().add("topic1").add("topic2");
+        var topicsSecondFlux = JSON.arrayNode().add("topic2").add("topic3");
 
-		var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topicsFirstFlux),
-				buildVariables());
-		var saplMqttMessageFluxSecond = saplMqttClient
-				.buildSaplMqttMessageFlux(Val.of(topicsSecondFlux), buildVariables())
-				.takeUntil(value -> "message2".equals(value.getText()));
-		// WHEN
-		var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
-				.filter(val -> !val.isUndefined());
+        var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topicsFirstFlux),
+                buildVariables());
+        var saplMqttMessageFluxSecond = saplMqttClient
+                .buildSaplMqttMessageFlux(Val.of(topicsSecondFlux), buildVariables())
+                .takeUntil(value -> "message2".equals(value.getText()));
+        // WHEN
+        var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
+                .filter(val -> !val.isUndefined());
 
-		// THEN
-		StepVerifier.create(saplMqttMessageFluxMerge)
-				.thenAwait(Duration.ofMillis(2 * DELAY_MS))
-				.then(() -> {
-					mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false));
-				})
-				.expectNext(Val.of("message1"))
-				.then(() -> {
-					mqttClient.publish(buildMqttPublishMessage("topic3", "message3", false));
-				})
-				.expectNext(Val.of("message3"))
-				.then(() -> {
-					mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false));
-				})
-				.expectNext(Val.of("message2"))
-				.expectNext(Val.of("message2"))
-				.then(() -> {
-					mqttClient.publish(buildMqttPublishMessage("topic3", "message3", false));
-				})
-				.expectNoEvent(Duration.ofMillis(2 * DELAY_MS))
-				.then(() -> {
-					mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false));
-				})
-				.expectNext(Val.of("message1"))
-				.then(() -> {
-					mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false));
-				})
-				.expectNext(Val.of("message2"))
-				.thenCancel()
-				.verify();
-	}
+        // THEN
+        StepVerifier.create(saplMqttMessageFluxMerge).thenAwait(Duration.ofMillis(2 * DELAY_MS)).then(() -> {
+            mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false));
+        }).expectNext(Val.of("message1")).then(() -> {
+            mqttClient.publish(buildMqttPublishMessage("topic3", "message3", false));
+        }).expectNext(Val.of("message3")).then(() -> {
+            mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false));
+        }).expectNext(Val.of("message2")).expectNext(Val.of("message2")).then(() -> {
+            mqttClient.publish(buildMqttPublishMessage("topic3", "message3", false));
+        }).expectNoEvent(Duration.ofMillis(2 * DELAY_MS)).then(() -> {
+            mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false));
+        }).expectNext(Val.of("message1")).then(() -> {
+            mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false));
+        }).expectNext(Val.of("message2")).thenCancel().verify();
+    }
 
-	@Test
-	void when_subscribingWithSingleLevelWildcard_then_getMessagesMatchingTopicsOfSingleLevelWildcard()
-			throws InitializationException {
-		// GIVEN
+    @Test
+    void when_subscribingWithSingleLevelWildcard_then_getMessagesMatchingTopicsOfSingleLevelWildcard()
+            throws InitializationException {
+        // GIVEN
 
-		// WHEN
-		var saplMqttMessageFlux = saplMqttClient
-				.buildSaplMqttMessageFlux(Val.of("level1/+/level3"), buildVariables())
-				.filter(val -> !val.isUndefined());
+        // WHEN
+        var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of("level1/+/level3"), buildVariables())
+                .filter(val -> !val.isUndefined());
 
-		// THEN
-		StepVerifier.create(saplMqttMessageFlux)
-				.thenAwait(Duration.ofMillis(2 * DELAY_MS))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("level1/singleLevelWildcard/level3",
-						"message1", false)))
-				.expectNext(Val.of("message1"))
-				.thenCancel()
-				.verify();
-	}
+        // THEN
+        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(2 * DELAY_MS))
+                .then(() -> mqttClient
+                        .publish(buildMqttPublishMessage("level1/singleLevelWildcard/level3", "message1", false)))
+                .expectNext(Val.of("message1")).thenCancel().verify();
+    }
 
-	@Test
-	void when_subscribingWithMultiLevelWildcard_then_getMessagesMatchingTopicsOfMultiLevelWildcard()
-			throws InitializationException {
-		// GIVEN
+    @Test
+    void when_subscribingWithMultiLevelWildcard_then_getMessagesMatchingTopicsOfMultiLevelWildcard()
+            throws InitializationException {
+        // GIVEN
 
-		// WHEN
-		var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of("level1/#"), buildVariables())
-				.filter(val -> !val.isUndefined());
+        // WHEN
+        var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of("level1/#"), buildVariables())
+                .filter(val -> !val.isUndefined());
 
-		// THEN
-		StepVerifier.create(saplMqttMessageFlux)
-				.thenAwait(Duration.ofMillis(2 * DELAY_MS))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("level1/multiLevelWildcard",
-						"message1", false)))
-				.expectNext(Val.of("message1"))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("level1/multiLevelWildcard/level3",
-						"message2", false)))
-				.expectNext(Val.of("message2"))
-				.thenCancel()
-				.verify();
-	}
+        // THEN
+        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(2 * DELAY_MS))
+                .then(() -> mqttClient.publish(buildMqttPublishMessage("level1/multiLevelWildcard", "message1", false)))
+                .expectNext(Val.of("message1"))
+                .then(() -> mqttClient
+                        .publish(buildMqttPublishMessage("level1/multiLevelWildcard/level3", "message2", false)))
+                .expectNext(Val.of("message2")).thenCancel().verify();
+    }
 
-	@Test
-	void when_unsubscribingTopicOnSharedConnectionWithMultiLevelWildcard_then_getMessagesMatchingTopicsOfMultiLevelWildcard()
-			throws InitializationException {
-		// GIVEN
-		var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("level1/#"),
-				buildVariables());
-		var saplMqttMessageFluxSecond = saplMqttClient
-				.buildSaplMqttMessageFlux(Val.of("level1/level2"), buildVariables())
-				.takeUntil(value -> "message1".equals(value.getText()));
+    @Test
+    void when_unsubscribingTopicOnSharedConnectionWithMultiLevelWildcard_then_getMessagesMatchingTopicsOfMultiLevelWildcard()
+            throws InitializationException {
+        // GIVEN
+        var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("level1/#"), buildVariables());
+        var saplMqttMessageFluxSecond = saplMqttClient
+                .buildSaplMqttMessageFlux(Val.of("level1/level2"), buildVariables())
+                .takeUntil(value -> "message1".equals(value.getText()));
 
-		// WHEN
-		var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
-				.filter(val -> !val.isUndefined());
+        // WHEN
+        var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
+                .filter(val -> !val.isUndefined());
 
-		// THEN
-		StepVerifier.create(saplMqttMessageFluxMerge)
-				.thenAwait(Duration.ofMillis(2 * DELAY_MS))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("level1/level2",
-						"message1", false)))
-				.expectNext(Val.of("message1"))
-				.expectNext(Val.of("message1"))
-				.thenAwait(Duration.ofMillis(DELAY_MS))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("level1/level2",
-						"message1", false)))
-				.expectNext(Val.of("message1"))
-				.expectNoEvent(Duration.ofMillis(2 * DELAY_MS))
-				.thenCancel()
-				.verify();
-	}
+        // THEN
+        StepVerifier.create(saplMqttMessageFluxMerge).thenAwait(Duration.ofMillis(2 * DELAY_MS))
+                .then(() -> mqttClient.publish(buildMqttPublishMessage("level1/level2", "message1", false)))
+                .expectNext(Val.of("message1")).expectNext(Val.of("message1")).thenAwait(Duration.ofMillis(DELAY_MS))
+                .then(() -> mqttClient.publish(buildMqttPublishMessage("level1/level2", "message1", false)))
+                .expectNext(Val.of("message1")).expectNoEvent(Duration.ofMillis(2 * DELAY_MS)).thenCancel().verify();
+    }
 
-	@Test
-	void when_unsubscribingMultiLevelWildcardTopicOnSharedConnectionWithSimpleTopic_then_getMessagesMatchingSimpleTopic()
-			throws InitializationException {
-		// GIVEN
-		var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("level1/level2"),
-				buildVariables());
-		var saplMqttMessageFluxSecond = saplMqttClient
-				.buildSaplMqttMessageFlux(Val.of("level1/#"), buildVariables())
-				.takeUntil(value -> "message1".equals(value.getText()));
+    @Test
+    void when_unsubscribingMultiLevelWildcardTopicOnSharedConnectionWithSimpleTopic_then_getMessagesMatchingSimpleTopic()
+            throws InitializationException {
+        // GIVEN
+        var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("level1/level2"),
+                buildVariables());
+        var saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Val.of("level1/#"), buildVariables())
+                .takeUntil(value -> "message1".equals(value.getText()));
 
-		// WHEN
-		var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
-				.filter(val -> !val.isUndefined());
+        // WHEN
+        var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
+                .filter(val -> !val.isUndefined());
 
-		// THEN
-		StepVerifier.create(saplMqttMessageFluxMerge)
-				.thenAwait(Duration.ofMillis(2 * DELAY_MS))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("level1/level2",
-						"message1", false)))
-				.expectNext(Val.of("message1"))
-				.expectNext(Val.of("message1"))
-				.thenAwait(Duration.ofMillis(DELAY_MS))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("level1/level2",
-						"message1", false)))
-				.expectNext(Val.of("message1"))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("level1/xxx",
-						"message1", false)))
-				.expectNoEvent(Duration.ofMillis(2 * DELAY_MS))
-				.thenCancel()
-				.verify();
-	}
+        // THEN
+        StepVerifier.create(saplMqttMessageFluxMerge).thenAwait(Duration.ofMillis(2 * DELAY_MS))
+                .then(() -> mqttClient.publish(buildMqttPublishMessage("level1/level2", "message1", false)))
+                .expectNext(Val.of("message1")).expectNext(Val.of("message1")).thenAwait(Duration.ofMillis(DELAY_MS))
+                .then(() -> mqttClient.publish(buildMqttPublishMessage("level1/level2", "message1", false)))
+                .expectNext(Val.of("message1"))
+                .then(() -> mqttClient.publish(buildMqttPublishMessage("level1/xxx", "message1", false)))
+                .expectNoEvent(Duration.ofMillis(2 * DELAY_MS)).thenCancel().verify();
+    }
 
-	@Test
-	void when_unsubscribingSingleLevelWildcardTopicOnSharedConnectionWithSimpleTopic_then_getMessagesMatchingSimpleTopic()
-			throws InitializationException {
-		// GIVEN
-		var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(
-				Val.of("level1/level2/level3"), buildVariables());
-		var saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(
-				Val.of("level1/+/level3"), buildVariables())
-				.takeUntil(value -> "message1".equals(value.getText()));
+    @Test
+    void when_unsubscribingSingleLevelWildcardTopicOnSharedConnectionWithSimpleTopic_then_getMessagesMatchingSimpleTopic()
+            throws InitializationException {
+        // GIVEN
+        var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("level1/level2/level3"),
+                buildVariables());
+        var saplMqttMessageFluxSecond = saplMqttClient
+                .buildSaplMqttMessageFlux(Val.of("level1/+/level3"), buildVariables())
+                .takeUntil(value -> "message1".equals(value.getText()));
 
-		// WHEN
-		var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
-				.filter(val -> !val.isUndefined());
+        // WHEN
+        var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
+                .filter(val -> !val.isUndefined());
 
-		// THEN
-		StepVerifier.create(saplMqttMessageFluxMerge)
-				.thenAwait(Duration.ofMillis(2 * DELAY_MS))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("level1/level2/level3",
-						"message1", false)))
-				.expectNext(Val.of("message1"))
-				.expectNext(Val.of("message1"))
-				.thenAwait(Duration.ofMillis(DELAY_MS))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("level1/level2/level3",
-						"message1", false)))
-				.expectNext(Val.of("message1"))
-				.then(() -> mqttClient.publish(buildMqttPublishMessage("level1/xxx/level3",
-						"message1", false)))
-				.expectNoEvent(Duration.ofMillis(2 * DELAY_MS))
-				.thenCancel()
-				.verify();
-	}
+        // THEN
+        StepVerifier.create(saplMqttMessageFluxMerge).thenAwait(Duration.ofMillis(2 * DELAY_MS))
+                .then(() -> mqttClient.publish(buildMqttPublishMessage("level1/level2/level3", "message1", false)))
+                .expectNext(Val.of("message1")).expectNext(Val.of("message1")).thenAwait(Duration.ofMillis(DELAY_MS))
+                .then(() -> mqttClient.publish(buildMqttPublishMessage("level1/level2/level3", "message1", false)))
+                .expectNext(Val.of("message1"))
+                .then(() -> mqttClient.publish(buildMqttPublishMessage("level1/xxx/level3", "message1", false)))
+                .expectNoEvent(Duration.ofMillis(2 * DELAY_MS)).thenCancel().verify();
+    }
 }

@@ -25,30 +25,30 @@ import io.sapl.test.unit.SaplUnitTestFixture;
 
 class A_SimplePDPTests {
 
-	private SaplTestFixture fixture;
+    private SaplTestFixture fixture;
 
-	@BeforeEach
-	void setUp() {
-		fixture = new SaplIntegrationTestFixture("policiesIT");
-	}
+    @BeforeEach
+    void setUp() {
+        fixture = new SaplIntegrationTestFixture("policiesIT");
+    }
 
-	@Test
-	void test_simpleIT_verifyCombined() {
-		fixture.constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit().verify();
-	}
+    @Test
+    void test_simpleIT_verifyCombined() {
+        fixture.constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit().verify();
+    }
 
-	@Test
-	void test_simpleIT_testSinglePolicyA() {
-		var unitFixture = new SaplUnitTestFixture("policiesIT/policy_A");
-		unitFixture.constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny()
-				.verify();
-	}
+    @Test
+    void test_simpleIT_testSinglePolicyA() {
+        var unitFixture = new SaplUnitTestFixture("policiesIT/policy_A");
+        unitFixture.constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny()
+                .verify();
+    }
 
-	@Test
-	void test_simpleIT_testSinglePolicyB() {
-		var unitFixture = new SaplUnitTestFixture("policiesIT/policy_B");
-		unitFixture.constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit()
-				.verify();
-	}
+    @Test
+    void test_simpleIT_testSinglePolicyB() {
+        var unitFixture = new SaplUnitTestFixture("policiesIT/policy_B");
+        unitFixture.constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit()
+                .verify();
+    }
 
 }

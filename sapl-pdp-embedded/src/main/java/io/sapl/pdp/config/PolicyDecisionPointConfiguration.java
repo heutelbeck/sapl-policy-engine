@@ -34,8 +34,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class PolicyDecisionPointConfiguration {
 
-	private PolicyDocumentCombiningAlgorithm algorithm = PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES;
+    private PolicyDocumentCombiningAlgorithm algorithm = PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES;
 
-	private Map<String, JsonNode> variables = new HashMap<>();
+    private Map<String, JsonNode> variables = new HashMap<>();
 
 }

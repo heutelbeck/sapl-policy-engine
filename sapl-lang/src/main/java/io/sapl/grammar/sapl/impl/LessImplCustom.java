@@ -32,14 +32,14 @@ import reactor.core.publisher.Flux;
  */
 public class LessImplCustom extends LessImpl {
 
-	@Override
-	public Flux<Val> evaluate() {
-		return arithmeticOperator(this, this::lessThan);
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        return arithmeticOperator(this, this::lessThan);
+    }
 
-	private Val lessThan(Val left, Val right) {
-		return Val.of(left.decimalValue().compareTo(right.decimalValue()) < 0).withTrace(Less.class,
-				Map.of(Trace.LEFT, left, Trace.RIGHT, right));
-	}
+    private Val lessThan(Val left, Val right) {
+        return Val.of(left.decimalValue().compareTo(right.decimalValue()) < 0).withTrace(Less.class,
+                Map.of(Trace.LEFT, left, Trace.RIGHT, right));
+    }
 
 }

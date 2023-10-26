@@ -27,14 +27,14 @@ import io.sapl.grammar.sapl.SaplPackage;
  */
 public class SAPLStandaloneSetup extends SAPLStandaloneSetupGenerated {
 
-	public static void doSetup() {
-		new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();
-	}
+    public static void doSetup() {
+        new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();
+    }
 
-	@Override
-	public void register(final Injector injector) {
-		EPackage.Registry.INSTANCE.computeIfAbsent(SaplPackage.eNS_URI, key -> SaplPackage.eINSTANCE);
-		super.register(injector);
-	}
+    @Override
+    public void register(final Injector injector) {
+        EPackage.Registry.INSTANCE.computeIfAbsent(SaplPackage.eNS_URI, key -> SaplPackage.eINSTANCE);
+        super.register(injector);
+    }
 
 }

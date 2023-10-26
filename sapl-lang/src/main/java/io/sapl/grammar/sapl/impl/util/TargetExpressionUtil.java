@@ -24,37 +24,37 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class TargetExpressionUtil {
 
-	private static final String POLICY_SET = "PolicySet";
+    private static final String POLICY_SET = "PolicySet";
 
-	private static final String POLICY = "Policy";
+    private static final String POLICY = "Policy";
 
-	/**
-	 * Used to check for illegal attributes or lazy operators in target expressions.
-	 * 
-	 * @param object an EObject in the AST
-	 * @return true, the object is the target expression in a Policy or Policy Set.
-	 */
-	public boolean isInTargetExpression(EObject object) {
-		EObject current = object;
-		while (current.eContainer() != null) {
-			var container     = current.eContainer();
-			var containerName = container.eClass().getName();
-			if (POLICY.equals(containerName)) {
-				var policy           = (Policy) container;
-				var targetExpression = policy.getTargetExpression();
-				if (current == targetExpression) {
-					return true;
-				}
-			} else if (POLICY_SET.equals(containerName)) {
-				var policy           = (PolicySet) container;
-				var targetExpression = policy.getTargetExpression();
-				if (current == targetExpression) {
-					return true;
-				}
-			}
-			current = container;
-		}
-		return false;
-	}
+    /**
+     * Used to check for illegal attributes or lazy operators in target expressions.
+     * 
+     * @param object an EObject in the AST
+     * @return true, the object is the target expression in a Policy or Policy Set.
+     */
+    public boolean isInTargetExpression(EObject object) {
+        EObject current = object;
+        while (current.eContainer() != null) {
+            var container     = current.eContainer();
+            var containerName = container.eClass().getName();
+            if (POLICY.equals(containerName)) {
+                var policy           = (Policy) container;
+                var targetExpression = policy.getTargetExpression();
+                if (current == targetExpression) {
+                    return true;
+                }
+            } else if (POLICY_SET.equals(containerName)) {
+                var policy           = (PolicySet) container;
+                var targetExpression = policy.getTargetExpression();
+                if (current == targetExpression) {
+                    return true;
+                }
+            }
+            current = container;
+        }
+        return false;
+    }
 
 }

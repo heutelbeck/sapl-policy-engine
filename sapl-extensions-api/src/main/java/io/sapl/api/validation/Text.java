@@ -21,8 +21,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * This annotation triggers parameter type validation of functions or attribute finders.
- * This annotation ensures, the parameter is textual.
+ * This annotation triggers parameter type validation of functions or attribute
+ * finders. This annotation ensures, the parameter is textual.
  */
 @Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.RUNTIME)

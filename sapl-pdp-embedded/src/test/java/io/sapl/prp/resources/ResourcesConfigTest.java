@@ -27,13 +27,13 @@ import reactor.test.StepVerifier;
 
 class ResourcesConfigTest {
 
-	@Test
-	void doTest() throws InitializationException {
-		var configProvider = new ResourcesVariablesAndCombinatorSource("/policies");
-		configProvider.getCombiningAlgorithm().log(null, Level.INFO, SignalType.ON_NEXT).blockFirst();
-		var sut = configProvider.getVariables().next();
-		StepVerifier.create(sut).expectNextMatches(Optional::isPresent).verifyComplete();
-		configProvider.destroy();
-	}
+    @Test
+    void doTest() throws InitializationException {
+        var configProvider = new ResourcesVariablesAndCombinatorSource("/policies");
+        configProvider.getCombiningAlgorithm().log(null, Level.INFO, SignalType.ON_NEXT).blockFirst();
+        var sut = configProvider.getVariables().next();
+        StepVerifier.create(sut).expectNextMatches(Optional::isPresent).verifyComplete();
+        configProvider.destroy();
+    }
 
 }

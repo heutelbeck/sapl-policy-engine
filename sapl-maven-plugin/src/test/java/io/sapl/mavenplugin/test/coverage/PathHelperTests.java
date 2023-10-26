@@ -34,112 +34,112 @@ import org.mockito.Mockito;
 
 class PathHelperTests {
 
-	private Log log;
+    private Log log;
 
-	@BeforeEach
-	void setup() {
-		log = mock(Log.class);
-	}
+    @BeforeEach
+    void setup() {
+        log = mock(Log.class);
+    }
 
-	@Test
-	void test_customConfigBaseDir() {
+    @Test
+    void test_customConfigBaseDir() {
 
-		String configBaseDir = "test";
-		String projectBuildDir = "target";
+        String configBaseDir   = "test";
+        String projectBuildDir = "target";
 
-		Path expectedPath = Path.of("test", "sapl-coverage");
+        Path expectedPath = Path.of("test", "sapl-coverage");
 
-		Path result = PathHelper.resolveBaseDir(configBaseDir, projectBuildDir, this.log);
+        Path result = PathHelper.resolveBaseDir(configBaseDir, projectBuildDir, this.log);
 
-		assertEquals(expectedPath, result);
-	}
+        assertEquals(expectedPath, result);
+    }
 
-	@Test
-	void test_customConfigBaseDir_Empty() {
+    @Test
+    void test_customConfigBaseDir_Empty() {
 
-		String configBaseDir = "";
-		String projectBuildDir = "target";
+        String configBaseDir   = "";
+        String projectBuildDir = "target";
 
-		Path expectedPath = Path.of("target", "sapl-coverage");
+        Path expectedPath = Path.of("target", "sapl-coverage");
 
-		Path result = PathHelper.resolveBaseDir(configBaseDir, projectBuildDir, this.log);
+        Path result = PathHelper.resolveBaseDir(configBaseDir, projectBuildDir, this.log);
 
-		assertEquals(expectedPath, result);
-	}
+        assertEquals(expectedPath, result);
+    }
 
-	@Test
-	void test_customConfigBaseDir_Null() {
+    @Test
+    void test_customConfigBaseDir_Null() {
 
-		String projectBuildDir = "target";
+        String projectBuildDir = "target";
 
-		Path expectedPath = Path.of("target", "sapl-coverage");
+        Path expectedPath = Path.of("target", "sapl-coverage");
 
-		Path result = PathHelper.resolveBaseDir(null, projectBuildDir, this.log);
+        Path result = PathHelper.resolveBaseDir(null, projectBuildDir, this.log);
 
-		assertEquals(expectedPath, result);
-	}
+        assertEquals(expectedPath, result);
+    }
 
-	@Test
-	void test_createFile_FileExists() {
-		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
-			mockedFiles.when(() -> Files.exists(any())).thenReturn(Boolean.TRUE);
-			assertDoesNotThrow(() -> PathHelper.createFile(Path.of("test.txt")));
-			mockedFiles.verify(() -> Files.createFile(any()), never());
-			mockedFiles.verify(() -> Files.createDirectories(any()), never());
-		}
-	}
+    @Test
+    void test_createFile_FileExists() {
+        try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
+            mockedFiles.when(() -> Files.exists(any())).thenReturn(Boolean.TRUE);
+            assertDoesNotThrow(() -> PathHelper.createFile(Path.of("test.txt")));
+            mockedFiles.verify(() -> Files.createFile(any()), never());
+            mockedFiles.verify(() -> Files.createDirectories(any()), never());
+        }
+    }
 
-	@Test
-	void test_createFile_ParentExists() {
-		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
-			Path file = mock(Path.class);
-			when(file.getParent()).thenReturn(null);
-			assertDoesNotThrow(() -> PathHelper.createFile(file));
-			mockedFiles.verify(() -> Files.createFile(any()), times(1));
-			mockedFiles.verify(() -> Files.createDirectories(any()), never());
-		}
-	}
+    @Test
+    void test_createFile_ParentExists() {
+        try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
+            Path file = mock(Path.class);
+            when(file.getParent()).thenReturn(null);
+            assertDoesNotThrow(() -> PathHelper.createFile(file));
+            mockedFiles.verify(() -> Files.createFile(any()), times(1));
+            mockedFiles.verify(() -> Files.createDirectories(any()), never());
+        }
+    }
 
-	@Test
-	void test_createFile_ParentNotExisting() {
-		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
-			Path file = mock(Path.class);
-			Path parentDir = mock(Path.class);
-			when(file.getParent()).thenReturn(parentDir);
-			assertDoesNotThrow(() -> PathHelper.createFile(file));
-			mockedFiles.verify(() -> Files.createFile(any()), times(1));
-			mockedFiles.verify(() -> Files.createDirectories(any()), times(1));
-		}
-	}
+    @Test
+    void test_createFile_ParentNotExisting() {
+        try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
+            Path file      = mock(Path.class);
+            Path parentDir = mock(Path.class);
+            when(file.getParent()).thenReturn(parentDir);
+            assertDoesNotThrow(() -> PathHelper.createFile(file));
+            mockedFiles.verify(() -> Files.createFile(any()), times(1));
+            mockedFiles.verify(() -> Files.createDirectories(any()), times(1));
+        }
+    }
 
-	@Test
-	void test_createParentDirs_FileExists() {
-		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
-			mockedFiles.when(() -> Files.exists(any())).thenReturn(Boolean.TRUE);
-			assertDoesNotThrow(() -> PathHelper.createParentDirs(Path.of("test.txt")));
-			mockedFiles.verify(() -> Files.createDirectories(any()), never());
-		}
-	}
+    @Test
+    void test_createParentDirs_FileExists() {
+        try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
+            mockedFiles.when(() -> Files.exists(any())).thenReturn(Boolean.TRUE);
+            assertDoesNotThrow(() -> PathHelper.createParentDirs(Path.of("test.txt")));
+            mockedFiles.verify(() -> Files.createDirectories(any()), never());
+        }
+    }
 
-	@Test
-	void test_createParentDirs_ParentExists() {
-		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
-			Path file = mock(Path.class);
-			when(file.getParent()).thenReturn(null);
-			assertDoesNotThrow(() -> PathHelper.createParentDirs(file));
-			mockedFiles.verify(() -> Files.createDirectories(any()), never());
-		}
-	}
+    @Test
+    void test_createParentDirs_ParentExists() {
+        try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
+            Path file = mock(Path.class);
+            when(file.getParent()).thenReturn(null);
+            assertDoesNotThrow(() -> PathHelper.createParentDirs(file));
+            mockedFiles.verify(() -> Files.createDirectories(any()), never());
+        }
+    }
 
-	@Test
-	void test_createParentDirs_ParentNotExisting() {
-		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
-			Path file = mock(Path.class);
-			Path parentDir = mock(Path.class);
-			when(file.getParent()).thenReturn(parentDir);
-			assertDoesNotThrow(() -> PathHelper.createParentDirs(file));
-			mockedFiles.verify(() -> Files.createDirectories(any()), times(1));
-		}
-	}
+    @Test
+    void test_createParentDirs_ParentNotExisting() {
+        try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
+            Path file      = mock(Path.class);
+            Path parentDir = mock(Path.class);
+            when(file.getParent()).thenReturn(parentDir);
+            assertDoesNotThrow(() -> PathHelper.createParentDirs(file));
+            mockedFiles.verify(() -> Files.createDirectories(any()), times(1));
+        }
+    }
 
 }

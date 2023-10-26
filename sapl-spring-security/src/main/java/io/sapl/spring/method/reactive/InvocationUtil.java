@@ -24,10 +24,10 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class InvocationUtil {
 
-	@SneakyThrows
-	@SuppressWarnings("unchecked")
-	public static <T> Publisher<T> proceed(final MethodInvocation invocation) {
-		return (Publisher<T>) invocation.proceed();
-	}
+    @SneakyThrows
+    @SuppressWarnings("unchecked")
+    public static <T> Publisher<T> proceed(final MethodInvocation invocation) {
+        return (Publisher<T>) invocation.proceed();
+    }
 
 }

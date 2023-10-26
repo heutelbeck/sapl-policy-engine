@@ -31,21 +31,21 @@ import reactor.test.StepVerifier;
 
 class EvaluateBasicExpressionsTests {
 
-	@Test
-	void evaluateBasicIdentifierNonExisting() {
-		assertExpressionEvaluatesTo("unknownVariable", Val.UNDEFINED);
-	}
+    @Test
+    void evaluateBasicIdentifierNonExisting() {
+        assertExpressionEvaluatesTo("unknownVariable", Val.UNDEFINED);
+    }
 
-	@Test
-	void evaluateBasicRelative() {
-		var expression = SaplFactoryImpl.eINSTANCE.createBasicRelative();
-		StepVerifier
-				.create(expression.evaluate().contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, Val.TRUE)))
-				.expectNext(Val.TRUE).verifyComplete();
-	}
+    @Test
+    void evaluateBasicRelative() {
+        var expression = SaplFactoryImpl.eINSTANCE.createBasicRelative();
+        StepVerifier
+                .create(expression.evaluate().contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, Val.TRUE)))
+                .expectNext(Val.TRUE).verifyComplete();
+    }
 
-	private static Stream<Arguments> errorExpressions() {
-		// @formatter:off
+    private static Stream<Arguments> errorExpressions() {
+        // @formatter:off
 		return Stream.of(
 	 			// evaluateBasicRelativeNotAllowed
 	 			Arguments.of("@", "Relative expression error. No relative node."),

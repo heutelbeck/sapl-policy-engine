@@ -29,51 +29,51 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Issue {
-	private static final String DESCRIPTION_KEY = "description";
-	private static final String SEVERITY_KEY    = "severity";
-	private static final String LINE_KEY        = "line";
-	private static final String COLUMN_KEY      = "column";
-	private static final String OFFSET_KEY      = "offset";
-	private static final String LENGTH_KEY      = "length";
+    private static final String DESCRIPTION_KEY = "description";
+    private static final String SEVERITY_KEY    = "severity";
+    private static final String LINE_KEY        = "line";
+    private static final String COLUMN_KEY      = "column";
+    private static final String OFFSET_KEY      = "offset";
+    private static final String LENGTH_KEY      = "length";
 
-	private String   description;
-	private Severity severity;
-	private Integer  line;
-	private Integer  column;
-	private Integer  offset;
-	private Integer  length;
+    private String   description;
+    private Severity severity;
+    private Integer  line;
+    private Integer  column;
+    private Integer  offset;
+    private Integer  length;
 
-	/**
-	 * Creates an Issue object from a JSON representation.
-	 * 
-	 * @param jsonObject a JSON issue description.
-	 */
-	public Issue(JsonObject jsonObject) {
+    /**
+     * Creates an Issue object from a JSON representation.
+     * 
+     * @param jsonObject a JSON issue description.
+     */
+    public Issue(JsonObject jsonObject) {
 
-		if (jsonObject.hasKey(DESCRIPTION_KEY))
-			description = jsonObject.getString(DESCRIPTION_KEY);
+        if (jsonObject.hasKey(DESCRIPTION_KEY))
+            description = jsonObject.getString(DESCRIPTION_KEY);
 
-		if (jsonObject.hasKey(SEVERITY_KEY)) {
-			String severityString = jsonObject.getString(SEVERITY_KEY);
-			switch (severityString) {
-				case "error" -> severity = Severity.ERROR;
-				case "warning" -> severity = Severity.WARNING;
-				case "ignore" -> severity = Severity.IGNORE;
-				default -> severity = Severity.INFO;
-			}
-		}
+        if (jsonObject.hasKey(SEVERITY_KEY)) {
+            String severityString = jsonObject.getString(SEVERITY_KEY);
+            switch (severityString) {
+            case "error" -> severity = Severity.ERROR;
+            case "warning" -> severity = Severity.WARNING;
+            case "ignore" -> severity = Severity.IGNORE;
+            default -> severity = Severity.INFO;
+            }
+        }
 
-		if (jsonObject.hasKey(LINE_KEY))
-			line = (int) jsonObject.getNumber(LINE_KEY);
+        if (jsonObject.hasKey(LINE_KEY))
+            line = (int) jsonObject.getNumber(LINE_KEY);
 
-		if (jsonObject.hasKey(COLUMN_KEY))
-			column = (int) jsonObject.getNumber(COLUMN_KEY);
+        if (jsonObject.hasKey(COLUMN_KEY))
+            column = (int) jsonObject.getNumber(COLUMN_KEY);
 
-		if (jsonObject.hasKey(OFFSET_KEY))
-			offset = (int) jsonObject.getNumber(OFFSET_KEY);
+        if (jsonObject.hasKey(OFFSET_KEY))
+            offset = (int) jsonObject.getNumber(OFFSET_KEY);
 
-		if (jsonObject.hasKey(LENGTH_KEY))
-			length = (int) jsonObject.getNumber(LENGTH_KEY);
-	}
+        if (jsonObject.hasKey(LENGTH_KEY))
+            length = (int) jsonObject.getNumber(LENGTH_KEY);
+    }
 
 }

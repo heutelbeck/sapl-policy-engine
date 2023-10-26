@@ -36,22 +36,22 @@ import lombok.extern.slf4j.Slf4j;
 @EnableConfigurationProperties(EmbeddedPDPProperties.class)
 public class PrpUpdateEventSourceAutoConfiguration {
 
-	private final SAPLInterpreter interpreter;
+    private final SAPLInterpreter interpreter;
 
-	private final EmbeddedPDPProperties pdpProperties;
+    private final EmbeddedPDPProperties pdpProperties;
 
-	@Bean
-	@ConditionalOnMissingBean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	PrpUpdateEventSource prpUpdateSource() throws InitializationException {
-		var policiesFolder = pdpProperties.getPoliciesPath();
-		if (pdpProperties.getPdpConfigType() == EmbeddedPDPProperties.PDPDataSource.FILESYSTEM) {
-			log.info("creating embedded PDP sourcing and monitoring access policies from the filesystem: {}",
-					policiesFolder);
-			return new FileSystemPrpUpdateEventSource(policiesFolder, interpreter);
-		}
-		log.info("creating embedded PDP sourcing access policies from fixed bundled resources at: {}", policiesFolder);
-		return new ResourcesPrpUpdateEventSource(policiesFolder, interpreter);
-	}
+    @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    PrpUpdateEventSource prpUpdateSource() throws InitializationException {
+        var policiesFolder = pdpProperties.getPoliciesPath();
+        if (pdpProperties.getPdpConfigType() == EmbeddedPDPProperties.PDPDataSource.FILESYSTEM) {
+            log.info("creating embedded PDP sourcing and monitoring access policies from the filesystem: {}",
+                    policiesFolder);
+            return new FileSystemPrpUpdateEventSource(policiesFolder, interpreter);
+        }
+        log.info("creating embedded PDP sourcing access policies from fixed bundled resources at: {}", policiesFolder);
+        return new ResourcesPrpUpdateEventSource(policiesFolder, interpreter);
+    }
 
 }

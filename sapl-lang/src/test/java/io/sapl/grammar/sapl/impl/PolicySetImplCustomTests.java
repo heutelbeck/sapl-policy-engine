@@ -40,10 +40,10 @@ import reactor.test.StepVerifier;
 
 class PolicySetImplCustomTests {
 
-	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
+    private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
-	private static Stream<Arguments> provideTestCases() throws JsonProcessingException {
-		// @formatter:off
+    private static Stream<Arguments> provideTestCases() throws JsonProcessingException {
+        // @formatter:off
 		return Stream.of(
 			// simplePermitAllOnePolicy
 		    Arguments.of("set \"set\" deny-overrides " 

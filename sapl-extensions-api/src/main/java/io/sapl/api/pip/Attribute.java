@@ -30,14 +30,14 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Attribute {
 
-	/**
-	 * @return name of the attribute.
-	 */
-	String name() default "";
+    /**
+     * @return name of the attribute.
+     */
+    String name() default "";
 
-	/**
-	 * @return attribute documentation
-	 */
-	String docs() default "";
+    /**
+     * @return attribute documentation
+     */
+    String docs() default "";
 
 }

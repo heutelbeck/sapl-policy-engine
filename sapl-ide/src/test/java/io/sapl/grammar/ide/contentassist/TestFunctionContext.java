@@ -27,55 +27,55 @@ import io.sapl.interpreter.functions.LibraryDocumentation;
 
 class TestFunctionContext implements FunctionContext {
 
-	private final Map<String, Set<String>> availableLibraries;
+    private final Map<String, Set<String>> availableLibraries;
 
-	public TestFunctionContext() {
-		availableLibraries = new HashMap<>();
-		availableLibraries.put("filter", Set.of("blacken", "remove", "replace"));
-		availableLibraries.put("standard", Set.of("length", "numberToString"));
-		availableLibraries.put("time", Set.of("after", "before", "between"));
-	}
+    public TestFunctionContext() {
+        availableLibraries = new HashMap<>();
+        availableLibraries.put("filter", Set.of("blacken", "remove", "replace"));
+        availableLibraries.put("standard", Set.of("length", "numberToString"));
+        availableLibraries.put("time", Set.of("after", "before", "between"));
+    }
 
-	@Override
-	public Boolean isProvidedFunction(String function) {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public Boolean isProvidedFunction(String function) {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public Collection<String> providedFunctionsOfLibrary(String pipName) {
-		return availableLibraries.getOrDefault(pipName, Set.of());
-	}
+    @Override
+    public Collection<String> providedFunctionsOfLibrary(String pipName) {
+        return availableLibraries.getOrDefault(pipName, Set.of());
+    }
 
-	@Override
-	public Collection<String> getAvailableLibraries() {
-		return availableLibraries.keySet();
-	}
+    @Override
+    public Collection<String> getAvailableLibraries() {
+        return availableLibraries.keySet();
+    }
 
-	@Override
-	public Val evaluate(String function, Val... parameters) {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public Val evaluate(String function, Val... parameters) {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public Collection<LibraryDocumentation> getDocumentation() {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public Collection<LibraryDocumentation> getDocumentation() {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public List<String> getCodeTemplates() {
-		return List.of("filter.blacken", "filter.remove", "filter.replace", "standard.length",
-				"standard.numberToString", "time.after", "time.before", "time.between");
-	}
+    @Override
+    public List<String> getCodeTemplates() {
+        return List.of("filter.blacken", "filter.remove", "filter.replace", "standard.length",
+                "standard.numberToString", "time.after", "time.before", "time.between");
+    }
 
-	@Override
-	public Collection<String> getAllFullyQualifiedFunctions() {
-		return List.of("filter.blacken", "filter.remove", "filter.replace", "standard.length",
-				"standard.numberToString", "time.after", "time.before", "time.between");
-	}
+    @Override
+    public Collection<String> getAllFullyQualifiedFunctions() {
+        return List.of("filter.blacken", "filter.remove", "filter.replace", "standard.length",
+                "standard.numberToString", "time.after", "time.before", "time.between");
+    }
 
-	@Override
-	public Map<String, String> getDocumentedCodeTemplates() {
-		return Map.of("filter.blacken", "documentation");
-	}
+    @Override
+    public Map<String, String> getDocumentedCodeTemplates() {
+        return Map.of("filter.blacken", "documentation");
+    }
 
 }

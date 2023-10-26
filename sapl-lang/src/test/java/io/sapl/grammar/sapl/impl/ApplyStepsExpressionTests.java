@@ -29,8 +29,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import io.sapl.api.interpreter.Val;
 
 class ApplyStepsExpressionTests {
-	@ParameterizedTest
-	// @formatter:off
+    @ParameterizedTest
+    // @formatter:off
 	@ValueSource(strings = {
 		// expressionStepPropagatesErrors1
 		"[][(10/0)]",
@@ -60,17 +60,17 @@ class ApplyStepsExpressionTests {
 		"{ \"a\": [4,1,2,3] } |- { @[(123)] : filter.remove }"
 	}) 
 	// @formatter:on
-	void expressionEvaluatesToErrors(String expression) {
-		assertExpressionReturnsErrors(expression);
-	}
+    void expressionEvaluatesToErrors(String expression) {
+        assertExpressionReturnsErrors(expression);
+    }
 
-	@Test
-	void applyToObjectWithTextualResultNonExistingKey() {
-		assertExpressionEvaluatesTo("{ \"key\" : true }[(\"no_ke\"+\"y\")]", Val.UNDEFINED);
-	}
+    @Test
+    void applyToObjectWithTextualResultNonExistingKey() {
+        assertExpressionEvaluatesTo("{ \"key\" : true }[(\"no_ke\"+\"y\")]", Val.UNDEFINED);
+    }
 
-	private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
-		// @formatter:off
+    private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+        // @formatter:off
 		return Stream.of(
 				// applyToArrayWithNumberExpressionResult
 				Arguments.of("[0,1,2,3,4,5,6,7,8,9][(2+3)]", "5"),

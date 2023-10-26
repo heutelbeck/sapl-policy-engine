@@ -21,8 +21,8 @@ import reactor.core.publisher.Mono;
 
 public interface ImmutableParsedDocumentIndex {
 
-	Mono<PolicyRetrievalResult> retrievePolicies();
+    Mono<PolicyRetrievalResult> retrievePolicies();
 
-	ImmutableParsedDocumentIndex apply(PrpUpdateEvent event);
+    ImmutableParsedDocumentIndex apply(PrpUpdateEvent event);
 
 }

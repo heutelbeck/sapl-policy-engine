@@ -49,103 +49,103 @@ import reactor.test.StepVerifier;
 
 class OnlyOneApplicableTests {
 
-	private static final DefaultSAPLInterpreter    INTERPRETER                          = new DefaultSAPLInterpreter();
-	private static final JsonNodeFactory           JSON                                 = JsonNodeFactory.instance;
-	private static final AuthorizationSubscription EMPTY_AUTH_SUBSCRIPTION              = new AuthorizationSubscription(
-			null, null, null, null);
-	private static final AuthorizationSubscription AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE = new AuthorizationSubscription(
-			null, null, JSON.booleanNode(true), null);
+    private static final DefaultSAPLInterpreter    INTERPRETER                          = new DefaultSAPLInterpreter();
+    private static final JsonNodeFactory           JSON                                 = JsonNodeFactory.instance;
+    private static final AuthorizationSubscription EMPTY_AUTH_SUBSCRIPTION              = new AuthorizationSubscription(
+            null, null, null, null);
+    private static final AuthorizationSubscription AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE = new AuthorizationSubscription(
+            null, null, JSON.booleanNode(true), null);
 
-	private final OnlyOneApplicableCombiningAlgorithmImplCustom combinator = new OnlyOneApplicableCombiningAlgorithmImplCustom();
+    private final OnlyOneApplicableCombiningAlgorithmImplCustom combinator = new OnlyOneApplicableCombiningAlgorithmImplCustom();
 
-	@Test
-	void combineDocumentsOneDeny() {
-		var given    = mockPolicyRetrievalResult(false, denyPolicy(""));
-		var expected = AuthorizationDecision.DENY;
-		verifyDocumentsCombinator(given, expected);
-	}
+    @Test
+    void combineDocumentsOneDeny() {
+        var given    = mockPolicyRetrievalResult(false, denyPolicy(""));
+        var expected = AuthorizationDecision.DENY;
+        verifyDocumentsCombinator(given, expected);
+    }
 
-	@Test
-	void combineDocumentsOnePermit() {
-		var given    = mockPolicyRetrievalResult(false, permitPolicy(""));
-		var expected = AuthorizationDecision.PERMIT;
-		verifyDocumentsCombinator(given, expected);
-	}
+    @Test
+    void combineDocumentsOnePermit() {
+        var given    = mockPolicyRetrievalResult(false, permitPolicy(""));
+        var expected = AuthorizationDecision.PERMIT;
+        verifyDocumentsCombinator(given, expected);
+    }
 
-	@Test
-	void combineDocumentsOneIndeterminate() {
-		var given    = mockPolicyRetrievalResult(false, indeterminatePolicy(""));
-		var expected = AuthorizationDecision.INDETERMINATE;
-		verifyDocumentsCombinator(given, expected);
-	}
+    @Test
+    void combineDocumentsOneIndeterminate() {
+        var given    = mockPolicyRetrievalResult(false, indeterminatePolicy(""));
+        var expected = AuthorizationDecision.INDETERMINATE;
+        verifyDocumentsCombinator(given, expected);
+    }
 
-	@Test
-	void combineDocumentsOneNotApplicable() {
-		var given    = mockPolicyRetrievalResult(false, notApplicablePolicy(""));
-		var expected = AuthorizationDecision.NOT_APPLICABLE;
-		verifyDocumentsCombinator(given, expected);
-	}
+    @Test
+    void combineDocumentsOneNotApplicable() {
+        var given    = mockPolicyRetrievalResult(false, notApplicablePolicy(""));
+        var expected = AuthorizationDecision.NOT_APPLICABLE;
+        verifyDocumentsCombinator(given, expected);
+    }
 
-	@Test
-	void combineDocumentsNoDocs() {
-		var given    = mockPolicyRetrievalResult(false);
-		var expected = AuthorizationDecision.NOT_APPLICABLE;
-		verifyDocumentsCombinator(given, expected);
-	}
+    @Test
+    void combineDocumentsNoDocs() {
+        var given    = mockPolicyRetrievalResult(false);
+        var expected = AuthorizationDecision.NOT_APPLICABLE;
+        verifyDocumentsCombinator(given, expected);
+    }
 
-	@Test
-	void combineDocumentsMoreDocsWithError() {
-		var given    = mockPolicyRetrievalResult(true, denyPolicy(""), notApplicablePolicy(""), permitPolicy(""));
-		var expected = AuthorizationDecision.INDETERMINATE;
-		verifyDocumentsCombinator(given, expected);
-	}
+    @Test
+    void combineDocumentsMoreDocsWithError() {
+        var given    = mockPolicyRetrievalResult(true, denyPolicy(""), notApplicablePolicy(""), permitPolicy(""));
+        var expected = AuthorizationDecision.INDETERMINATE;
+        verifyDocumentsCombinator(given, expected);
+    }
 
-	@Test
-	void combineDocumentsMoreDocs() {
-		var given    = mockPolicyRetrievalResult(false, denyPolicy(""), notApplicablePolicy(""), permitPolicy(""));
-		var expected = AuthorizationDecision.INDETERMINATE;
-		verifyDocumentsCombinator(given, expected);
-	}
+    @Test
+    void combineDocumentsMoreDocs() {
+        var given    = mockPolicyRetrievalResult(false, denyPolicy(""), notApplicablePolicy(""), permitPolicy(""));
+        var expected = AuthorizationDecision.INDETERMINATE;
+        verifyDocumentsCombinator(given, expected);
+    }
 
-	private String denyPolicy(String nameSuffix) {
-		return "policy \"denies" + nameSuffix + "\" deny";
-	}
+    private String denyPolicy(String nameSuffix) {
+        return "policy \"denies" + nameSuffix + "\" deny";
+    }
 
-	private String permitPolicy(String nameSuffix) {
-		return "policy \"permits" + nameSuffix + "\" permit";
-	}
+    private String permitPolicy(String nameSuffix) {
+        return "policy \"permits" + nameSuffix + "\" permit";
+    }
 
-	private String indeterminatePolicy(String nameSuffix) {
-		return "policy \"indeterminate" + nameSuffix + "\" permit where (10/0);";
-	}
+    private String indeterminatePolicy(String nameSuffix) {
+        return "policy \"indeterminate" + nameSuffix + "\" permit where (10/0);";
+    }
 
-	private String notApplicablePolicy(String nameSuffix) {
-		return "policy \"notApplicable" + nameSuffix + "\" permit where false;";
-	}
+    private String notApplicablePolicy(String nameSuffix) {
+        return "policy \"notApplicable" + nameSuffix + "\" permit where false;";
+    }
 
-	private PolicyRetrievalResult mockPolicyRetrievalResult(boolean errorsInTarget, String... policies) {
-		var result = new PolicyRetrievalResult();
-		if (errorsInTarget)
-			result = result.withError();
-		for (var policy : policies) {
-			result = result.withMatch(INTERPRETER.parse(policy));
-		}
-		return result;
-	}
+    private PolicyRetrievalResult mockPolicyRetrievalResult(boolean errorsInTarget, String... policies) {
+        var result = new PolicyRetrievalResult();
+        if (errorsInTarget)
+            result = result.withError();
+        for (var policy : policies) {
+            result = result.withMatch(INTERPRETER.parse(policy));
+        }
+        return result;
+    }
 
-	private void verifyDocumentsCombinator(PolicyRetrievalResult given, AuthorizationDecision expected) {
-		StepVerifier
-				.create(combinator.combinePolicies(given.getPolicyElements())
-						.map(CombinedDecision::getAuthorizationDecision)
-						.contextWrite(
-								ctx -> AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext()))
-						.contextWrite(
-								ctx -> AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext())))
-				.expectNext(expected).verifyComplete();
-	}
-	
-	private static Stream<Arguments> provideTestCases() {
-		// @formatter:off
+    private void verifyDocumentsCombinator(PolicyRetrievalResult given, AuthorizationDecision expected) {
+        StepVerifier
+                .create(combinator.combinePolicies(given.getPolicyElements())
+                        .map(CombinedDecision::getAuthorizationDecision)
+                        .contextWrite(
+                                ctx -> AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext()))
+                        .contextWrite(
+                                ctx -> AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext())))
+                .expectNext(expected).verifyComplete();
+    }
+
+    private static Stream<Arguments> provideTestCases() {
+        // @formatter:off
 		return Stream.of(
 				// collectWithError
 			    Arguments.of(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE,

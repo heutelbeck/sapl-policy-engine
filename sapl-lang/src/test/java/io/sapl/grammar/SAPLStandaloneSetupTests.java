@@ -21,9 +21,9 @@ import org.junit.jupiter.api.Test;
 
 class SAPLStandaloneSetupTests {
 
-	@Test
-	void standaloneNotNullTest() {
-		assertDoesNotThrow(SAPLStandaloneSetup::doSetup);
-	}
+    @Test
+    void standaloneNotNullTest() {
+        assertDoesNotThrow(SAPLStandaloneSetup::doSetup);
+    }
 
 }

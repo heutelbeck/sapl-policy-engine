@@ -29,19 +29,19 @@ import io.sapl.api.interpreter.Val;
 
 class ApplyStepsEscapedKeyTests {
 
-	@Test
-	void keyStepPropagatesErrors() {
-		assertExpressionReturnsError("(10/0).\"k e y\"", "Division by zero");
-	}
+    @Test
+    void keyStepPropagatesErrors() {
+        assertExpressionReturnsError("(10/0).\"k e y\"", "Division by zero");
+    }
 
-	@Test
-	void keyStepToNonObjectOrEmptyToUndefined() {
-		assertExpressionEvaluatesTo("true.\"k e y\"", Val.UNDEFINED);
-		assertExpressionEvaluatesTo("{}.\"k e y\"", Val.UNDEFINED);
-	}
+    @Test
+    void keyStepToNonObjectOrEmptyToUndefined() {
+        assertExpressionEvaluatesTo("true.\"k e y\"", Val.UNDEFINED);
+        assertExpressionEvaluatesTo("{}.\"k e y\"", Val.UNDEFINED);
+    }
 
-	private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
-		// @formatter:off
+    private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+        // @formatter:off
 		return Stream.of(
 				// Key step to object
 				Arguments.of("{\"k e y\" : true}.\"k e y\"", "true"),

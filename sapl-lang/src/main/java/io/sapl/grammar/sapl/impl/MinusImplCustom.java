@@ -26,14 +26,14 @@ import reactor.core.publisher.Flux;
 
 public class MinusImplCustom extends MinusImpl {
 
-	@Override
-	public Flux<Val> evaluate() {
-		return arithmeticOperator(this, this::subtract);
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        return arithmeticOperator(this, this::subtract);
+    }
 
-	private Val subtract(Val minuend, Val subtrahend) {
-		return Val.of(minuend.decimalValue().subtract(subtrahend.decimalValue())).withTrace(Minus.class,
-				Map.of(Trace.MINUEND, minuend, Trace.SUBTRAHEND, subtrahend));
-	}
+    private Val subtract(Val minuend, Val subtrahend) {
+        return Val.of(minuend.decimalValue().subtract(subtrahend.decimalValue())).withTrace(Minus.class,
+                Map.of(Trace.MINUEND, minuend, Trace.SUBTRAHEND, subtrahend));
+    }
 
 }

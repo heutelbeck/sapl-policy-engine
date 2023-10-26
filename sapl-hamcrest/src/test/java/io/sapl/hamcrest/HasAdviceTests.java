@@ -35,110 +35,109 @@ import io.sapl.api.pdp.Decision;
 
 class HasAdviceTests {
 
-	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	@Test
-	void test() {
-		var advice = JSON.objectNode();
-		advice.put("foo", "bar");
-		var adviceArray = JSON.arrayNode();
-		adviceArray.add(advice);
-		var decision = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
-				Optional.of(adviceArray));
+    @Test
+    void test() {
+        var advice = JSON.objectNode();
+        advice.put("foo", "bar");
+        var adviceArray = JSON.arrayNode();
+        adviceArray.add(advice);
+        var decision = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
+                Optional.of(adviceArray));
 
-		assertThat(decision, hasAdvice(advice));
-	}
+        assertThat(decision, hasAdvice(advice));
+    }
 
-	@Test
-	void testConvenienceMatcherAdviceString() {
-		var advice = JSON.objectNode();
-		advice.put("foo", "bar");
-		var adviceArray = JSON.arrayNode();
-		adviceArray.add(advice);
-		adviceArray.add(JSON.textNode("food"));
-		var decision = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
-				Optional.of(adviceArray));
+    @Test
+    void testConvenienceMatcherAdviceString() {
+        var advice = JSON.objectNode();
+        advice.put("foo", "bar");
+        var adviceArray = JSON.arrayNode();
+        adviceArray.add(advice);
+        adviceArray.add(JSON.textNode("food"));
+        var decision = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
+                Optional.of(adviceArray));
 
-		assertThat(decision, hasAdvice("food"));
-	}
+        assertThat(decision, hasAdvice("food"));
+    }
 
-	@Test
-	void test_neg() {
-		var advice = JSON.objectNode();
-		advice.put("foo", "bar");
-		var adviceArray = JSON.arrayNode();
-		adviceArray.add(advice);
+    @Test
+    void test_neg() {
+        var advice = JSON.objectNode();
+        advice.put("foo", "bar");
+        var adviceArray = JSON.arrayNode();
+        adviceArray.add(advice);
 
-		var expectedAdvice = JSON.objectNode();
-		expectedAdvice.put("xxx", "xxx");
-		var decision = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
-				Optional.of(adviceArray));
+        var expectedAdvice = JSON.objectNode();
+        expectedAdvice.put("xxx", "xxx");
+        var decision = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
+                Optional.of(adviceArray));
 
-		assertThat(decision, not(is(hasAdvice(expectedAdvice))));
-	}
+        assertThat(decision, not(is(hasAdvice(expectedAdvice))));
+    }
 
-	@Test
-	void test_nullDecision() {
-		ObjectNode advice = JSON.objectNode();
-		advice.put("foo", "bar");
-		assertThat(null, not(hasAdvice(advice)));
-	}
+    @Test
+    void test_nullDecision() {
+        ObjectNode advice = JSON.objectNode();
+        advice.put("foo", "bar");
+        assertThat(null, not(hasAdvice(advice)));
+    }
 
-	@Test
-	void test_emptyAdvice() {
-		var advice = JSON.objectNode();
-		advice.put("foo", "bar");
-		var decision = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
-				Optional.empty());
-		assertThat(decision, not(hasAdvice(advice)));
-	}
+    @Test
+    void test_emptyAdvice() {
+        var advice = JSON.objectNode();
+        advice.put("foo", "bar");
+        var decision = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.empty());
+        assertThat(decision, not(hasAdvice(advice)));
+    }
 
-	@Test
-	void test_numberEqualTest() {
-		var expectedAdvice = JSON.objectNode();
-		expectedAdvice.put("foo", 1);
-		var actualAdvice = JSON.objectNode();
-		actualAdvice.put("foo", 1f);
-		var actualAdviceArray = JSON.arrayNode();
-		actualAdviceArray.add(actualAdvice);
-		var decision = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
-				Optional.of(actualAdviceArray));
+    @Test
+    void test_numberEqualTest() {
+        var expectedAdvice = JSON.objectNode();
+        expectedAdvice.put("foo", 1);
+        var actualAdvice = JSON.objectNode();
+        actualAdvice.put("foo", 1f);
+        var actualAdviceArray = JSON.arrayNode();
+        actualAdviceArray.add(actualAdvice);
+        var decision = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
+                Optional.of(actualAdviceArray));
 
-		assertThat(decision, hasAdvice(expectedAdvice));
-	}
+        assertThat(decision, hasAdvice(expectedAdvice));
+    }
 
-	@Test
-	void test_emptyMatcher() {
-		var actualAdvice = JSON.objectNode();
-		actualAdvice.put("foo", 1);
-		var actualAdviceArray = JSON.arrayNode();
-		actualAdviceArray.add(actualAdvice);
-		var decision = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
-				Optional.of(actualAdviceArray));
+    @Test
+    void test_emptyMatcher() {
+        var actualAdvice = JSON.objectNode();
+        actualAdvice.put("foo", 1);
+        var actualAdviceArray = JSON.arrayNode();
+        actualAdviceArray.add(actualAdvice);
+        var decision = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
+                Optional.of(actualAdviceArray));
 
-		assertThat(decision, new HasAdvice());
-	}
+        assertThat(decision, new HasAdvice());
+    }
 
-	@Test
-	void test_nullJsonNode() {
-		assertThrows(NullPointerException.class, () -> hasAdvice((ObjectNode) null));
-	}
+    @Test
+    void test_nullJsonNode() {
+        assertThrows(NullPointerException.class, () -> hasAdvice((ObjectNode) null));
+    }
 
-	@Test
-	void testDescriptionForMatcherEmptyMatcher() {
-		var sut         = new HasAdvice();
-		var description = new StringDescription();
-		sut.describeTo(description);
-		assertThat(description.toString(), is("the decision has an advice equals any advice"));
-	}
+    @Test
+    void testDescriptionForMatcherEmptyMatcher() {
+        var sut         = new HasAdvice();
+        var description = new StringDescription();
+        sut.describeTo(description);
+        assertThat(description.toString(), is("the decision has an advice equals any advice"));
+    }
 
-	@Test
-	void testDescriptionForMatcher() {
-		var sut         = hasAdvice(jsonText("value"));
-		var description = new StringDescription();
-		sut.describeTo(description);
-		assertThat(description.toString(),
-				is("the decision has an advice equals a text node with value that is \"value\""));
-	}
+    @Test
+    void testDescriptionForMatcher() {
+        var sut         = hasAdvice(jsonText("value"));
+        var description = new StringDescription();
+        sut.describeTo(description);
+        assertThat(description.toString(),
+                is("the decision has an advice equals a text node with value that is \"value\""));
+    }
 
 }

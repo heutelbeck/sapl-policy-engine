@@ -28,46 +28,46 @@ import io.sapl.api.interpreter.Val;
 
 class IsValErrorTests {
 
-	private static final String MESSAGE = "test message";
+    private static final String MESSAGE = "test message";
 
-	private static final String MESSAGE_MIXED_CASE = "TeSt MeSsAge";
+    private static final String MESSAGE_MIXED_CASE = "TeSt MeSsAge";
 
-	@Test
-	void testType() {
-		var sut = valError();
-		assertThat(Val.error(), is(sut));
-	}
+    @Test
+    void testType() {
+        var sut = valError();
+        assertThat(Val.error(), is(sut));
+    }
 
-	@Test
-	void testTypeFalse() {
-		var sut = valError();
-		assertThat(Val.UNDEFINED, not(is(sut)));
-	}
+    @Test
+    void testTypeFalse() {
+        var sut = valError();
+        assertThat(Val.UNDEFINED, not(is(sut)));
+    }
 
-	@Test
-	void testMessageTrue() {
-		var sut = valError(MESSAGE);
-		assertThat(Val.error(MESSAGE), is(sut));
-	}
+    @Test
+    void testMessageTrue() {
+        var sut = valError(MESSAGE);
+        assertThat(Val.error(MESSAGE), is(sut));
+    }
 
-	@Test
-	void testMessageFalse() {
-		var sut = valError(MESSAGE);
-		assertThat(Val.error("X"), not(is(sut)));
-	}
+    @Test
+    void testMessageFalse() {
+        var sut = valError(MESSAGE);
+        assertThat(Val.error("X"), not(is(sut)));
+    }
 
-	@Test
-	void testMatcher() {
-		var sut = valError(equalToIgnoringCase(MESSAGE_MIXED_CASE));
-		assertThat(Val.error(MESSAGE), is(sut));
-	}
+    @Test
+    void testMatcher() {
+        var sut = valError(equalToIgnoringCase(MESSAGE_MIXED_CASE));
+        assertThat(Val.error(MESSAGE), is(sut));
+    }
 
-	@Test
-	void testDescriptionForEmptyConstructor() {
-		var sut = valError();
-		final StringDescription description = new StringDescription();
-		sut.describeTo(description);
-		assertThat(description.toString(), is("an error with message that is ANYTHING"));
-	}
+    @Test
+    void testDescriptionForEmptyConstructor() {
+        var                     sut         = valError();
+        final StringDescription description = new StringDescription();
+        sut.describeTo(description);
+        assertThat(description.toString(), is("an error with message that is ANYTHING"));
+    }
 
 }

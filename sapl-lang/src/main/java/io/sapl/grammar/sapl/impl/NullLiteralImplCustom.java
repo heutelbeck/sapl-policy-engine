@@ -21,9 +21,9 @@ import reactor.core.publisher.Flux;
 
 public class NullLiteralImplCustom extends NullLiteralImpl {
 
-	@Override
-	public Flux<Val> evaluate() {
-		return Flux.just(Val.NULL.withTrace(NullLiteral.class));
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        return Flux.just(Val.NULL.withTrace(NullLiteral.class));
+    }
 
 }

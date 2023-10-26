@@ -38,61 +38,61 @@ import reactor.test.StepVerifier;
 
 class BasicEnvironmentHeadAttributeImplTests {
 
-	private static final SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
+    private static final SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
 
-	private static final String ATTRIBUTE = "attribute";
+    private static final String ATTRIBUTE = "attribute";
 
-	private static final String FULLY_QUALIFIED_ATTRIBUTE = "mock." + ATTRIBUTE;
+    private static final String FULLY_QUALIFIED_ATTRIBUTE = "mock." + ATTRIBUTE;
 
-	@Test
-	void evaluateBasicAttributeFlux() {
-		var expression = "|<test.numbers>";
-		var expected   = new String[] { "0" };
-		assertExpressionEvaluatesTo(expression, expected);
-	}
+    @Test
+    void evaluateBasicAttributeFlux() {
+        var expression = "|<test.numbers>";
+        var expected   = new String[] { "0" };
+        assertExpressionEvaluatesTo(expression, expected);
+    }
 
-	@Test
-	void evaluateBasicAttributeInTargetPolicy() throws IOException {
-		var expression = ParserUtil.expression("|<test.numbers>");
-		MockUtil.mockPolicyTargetExpressionContainerExpression(expression);
-		assertExpressionErrors(expression);
-	}
+    @Test
+    void evaluateBasicAttributeInTargetPolicy() throws IOException {
+        var expression = ParserUtil.expression("|<test.numbers>");
+        MockUtil.mockPolicyTargetExpressionContainerExpression(expression);
+        assertExpressionErrors(expression);
+    }
 
-	@Test
-	void evaluateBasicAttributeInTargetPolicySet() throws IOException {
-		var expression = ParserUtil.expression("|<test.numbers>");
-		MockUtil.mockPolicySetTargetExpressionContainerExpression(expression);
-		assertExpressionErrors(expression);
-	}
+    @Test
+    void evaluateBasicAttributeInTargetPolicySet() throws IOException {
+        var expression = ParserUtil.expression("|<test.numbers>");
+        MockUtil.mockPolicySetTargetExpressionContainerExpression(expression);
+        assertExpressionErrors(expression);
+    }
 
-	@Test
-	void exceptionDuringEvaluation() {
-		var step = headAttributeFinderStep();
-		var sut  = step.evaluate().contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
-				mockAttributeContextWithStream(Flux.just(Val.error("ERROR")))));
-		StepVerifier.create(sut).expectNextMatches(Val::isError).verifyComplete();
-	}
+    @Test
+    void exceptionDuringEvaluation() {
+        var step = headAttributeFinderStep();
+        var sut  = step.evaluate().contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
+                mockAttributeContextWithStream(Flux.just(Val.error("ERROR")))));
+        StepVerifier.create(sut).expectNextMatches(Val::isError).verifyComplete();
+    }
 
-	@Test
-	void applyWithSomeStreamData() {
-		Val[] data = { Val.FALSE, Val.error("ERROR"), Val.TRUE, Val.NULL, Val.UNDEFINED };
-		var   step = headAttributeFinderStep();
-		var   sut  = step.evaluate().contextWrite(
-				ctx -> AuthorizationContext.setAttributeContext(ctx, mockAttributeContextWithStream(Flux.just(data))));
-		StepVerifier.create(sut).expectNext(Val.FALSE).verifyComplete();
-	}
+    @Test
+    void applyWithSomeStreamData() {
+        Val[] data = { Val.FALSE, Val.error("ERROR"), Val.TRUE, Val.NULL, Val.UNDEFINED };
+        var   step = headAttributeFinderStep();
+        var   sut  = step.evaluate().contextWrite(
+                ctx -> AuthorizationContext.setAttributeContext(ctx, mockAttributeContextWithStream(Flux.just(data))));
+        StepVerifier.create(sut).expectNext(Val.FALSE).verifyComplete();
+    }
 
-	private static AttributeContext mockAttributeContextWithStream(Flux<Val> stream) {
-		var attributeCtx = mock(AttributeContext.class);
-		when(attributeCtx.evaluateAttribute(eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any(), any())).thenReturn(stream);
-		when(attributeCtx.evaluateEnvironmentAttribute(eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any())).thenReturn(stream);
-		return attributeCtx;
-	}
+    private static AttributeContext mockAttributeContextWithStream(Flux<Val> stream) {
+        var attributeCtx = mock(AttributeContext.class);
+        when(attributeCtx.evaluateAttribute(eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any(), any())).thenReturn(stream);
+        when(attributeCtx.evaluateEnvironmentAttribute(eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any())).thenReturn(stream);
+        return attributeCtx;
+    }
 
-	private static BasicEnvironmentHeadAttribute headAttributeFinderStep() {
-		var step = FACTORY.createBasicEnvironmentHeadAttribute();
-		step.getIdSteps().add(FULLY_QUALIFIED_ATTRIBUTE);
-		return step;
-	}
+    private static BasicEnvironmentHeadAttribute headAttributeFinderStep() {
+        var step = FACTORY.createBasicEnvironmentHeadAttribute();
+        step.getIdSteps().add(FULLY_QUALIFIED_ATTRIBUTE);
+        return step;
+    }
 
 }

@@ -27,13 +27,13 @@ import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 
 public record PDPConfiguration(AttributeContext attributeContext, FunctionContext functionContext,
-							   Map<String, JsonNode> variables, CombiningAlgorithm documentsCombinator,
-							   UnaryOperator<TracedDecision> decisionInterceptorChain,
-							   UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain) {
+        Map<String, JsonNode> variables, CombiningAlgorithm documentsCombinator,
+        UnaryOperator<TracedDecision> decisionInterceptorChain,
+        UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain) {
 
-	public boolean isValid() {
-		return attributeContext != null && functionContext != null && variables != null && documentsCombinator != null
-				&& decisionInterceptorChain != null && subscriptionInterceptorChain != null;
-	}
+    public boolean isValid() {
+        return attributeContext != null && functionContext != null && variables != null && documentsCombinator != null
+                && decisionInterceptorChain != null && subscriptionInterceptorChain != null;
+    }
 
 }

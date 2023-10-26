@@ -32,14 +32,14 @@ import reactor.core.publisher.Flux;
  */
 public class EscapedKeyStepImplCustom extends EscapedKeyStepImpl {
 
-	@Override
-	public Flux<Val> apply(@NonNull Val parentValue) {
-		return Flux.just(KeyStepImplCustom.applyToValue(parentValue, id).withTrace(EscapedKeyStep.class,
-				Map.of(Trace.PARENT_VALUE, parentValue, Trace.IDENTIFIER, Val.of(id))));
-	}
+    @Override
+    public Flux<Val> apply(@NonNull Val parentValue) {
+        return Flux.just(KeyStepImplCustom.applyToValue(parentValue, id).withTrace(EscapedKeyStep.class,
+                Map.of(Trace.PARENT_VALUE, parentValue, Trace.IDENTIFIER, Val.of(id))));
+    }
 
-	@Override
-	public Flux<Val> applyFilterStatement(@NonNull Val parentValue, int stepId, @NonNull FilterStatement statement) {
-		return KeyStepImplCustom.applyKeyStepFilterStatement(id, parentValue, stepId, statement);
-	}
+    @Override
+    public Flux<Val> applyFilterStatement(@NonNull Val parentValue, int stepId, @NonNull FilterStatement statement) {
+        return KeyStepImplCustom.applyKeyStepFilterStatement(id, parentValue, stepId, statement);
+    }
 }

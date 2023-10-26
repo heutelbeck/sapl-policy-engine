@@ -31,50 +31,50 @@ import io.sapl.api.interpreter.Val;
  */
 public class IsVal extends TypeSafeDiagnosingMatcher<Val> {
 
-	private final Optional<Matcher<? super JsonNode>> jsonMatcher;
+    private final Optional<Matcher<? super JsonNode>> jsonMatcher;
 
-	/**
-	 * Creates a Val matcher checking the contents with a JsonNode matcher.
-	 * 
-	 * @param jsonMatcher a JsonNode matcher.
-	 */
-	public IsVal(Matcher<? super JsonNode> jsonMatcher) {
-		super(Val.class);
-		this.jsonMatcher = Optional.of(Objects.requireNonNull(jsonMatcher));
-	}
+    /**
+     * Creates a Val matcher checking the contents with a JsonNode matcher.
+     * 
+     * @param jsonMatcher a JsonNode matcher.
+     */
+    public IsVal(Matcher<? super JsonNode> jsonMatcher) {
+        super(Val.class);
+        this.jsonMatcher = Optional.of(Objects.requireNonNull(jsonMatcher));
+    }
 
-	/**
-	 * Creates a Val matcher checking if the object is a Val.
-	 */
-	public IsVal() {
-		super(Val.class);
-		this.jsonMatcher = Optional.empty();
-	}
+    /**
+     * Creates a Val matcher checking if the object is a Val.
+     */
+    public IsVal() {
+        super(Val.class);
+        this.jsonMatcher = Optional.empty();
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("a val that ");
-		jsonMatcher.ifPresentOrElse(description::appendDescriptionOf, () -> description.appendText("is any JsonNode"));
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("a val that ");
+        jsonMatcher.ifPresentOrElse(description::appendDescriptionOf, () -> description.appendText("is any JsonNode"));
+    }
 
-	@Override
-	protected boolean matchesSafely(Val item, Description mismatchDescription) {
-		if (item.isError()) {
-			mismatchDescription.appendText("an error that is '").appendText(item.getMessage()).appendText("'");
-			return false;
-		}
-		if (item.isUndefined()) {
-			mismatchDescription.appendText("undefined");
-			return false;
-		}
-		var json = item.get();
-		if (jsonMatcher.isEmpty() || jsonMatcher.get().matches(json)) {
-			return true;
-		} else {
-			mismatchDescription.appendText("was val that ");
-			jsonMatcher.get().describeMismatch(json, mismatchDescription);
-			return false;
-		}
-	}
+    @Override
+    protected boolean matchesSafely(Val item, Description mismatchDescription) {
+        if (item.isError()) {
+            mismatchDescription.appendText("an error that is '").appendText(item.getMessage()).appendText("'");
+            return false;
+        }
+        if (item.isUndefined()) {
+            mismatchDescription.appendText("undefined");
+            return false;
+        }
+        var json = item.get();
+        if (jsonMatcher.isEmpty() || jsonMatcher.get().matches(json)) {
+            return true;
+        } else {
+            mismatchDescription.appendText("was val that ");
+            jsonMatcher.get().describeMismatch(json, mismatchDescription);
+            return false;
+        }
+    }
 
 }

@@ -31,34 +31,33 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class PostEnforcePolicyEnforcementPoint {
 
-	private final PolicyDecisionPoint pdp;
+    private final PolicyDecisionPoint pdp;
 
-	private final ConstraintEnforcementService constraintHandlerService;
+    private final ConstraintEnforcementService constraintHandlerService;
 
-	private final WebfluxAuthorizationSubscriptionBuilderService subscriptionBuilder;
+    private final WebfluxAuthorizationSubscriptionBuilderService subscriptionBuilder;
 
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public Mono<Object> postEnforceOneDecisionOnResourceAccessPoint(Mono<?> resourceAccessPoint,
-			MethodInvocation invocation,
-			SaplAttribute postEnforceAttribute) {
-		return resourceAccessPoint.flatMap(result -> {
-			Mono<AuthorizationDecision> dec = postEnforceDecision(invocation, postEnforceAttribute, result);
-			return dec.flatMap(decision -> {
-				var finalResourceAccessPoint = Flux.just(result);
-				if (Decision.PERMIT != decision.getDecision())
-					finalResourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public Mono<Object> postEnforceOneDecisionOnResourceAccessPoint(Mono<?> resourceAccessPoint,
+            MethodInvocation invocation, SaplAttribute postEnforceAttribute) {
+        return resourceAccessPoint.flatMap(result -> {
+            Mono<AuthorizationDecision> dec = postEnforceDecision(invocation, postEnforceAttribute, result);
+            return dec.flatMap(decision -> {
+                var finalResourceAccessPoint = Flux.just(result);
+                if (Decision.PERMIT != decision.getDecision())
+                    finalResourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
 
-				return constraintHandlerService.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
-						(Flux) finalResourceAccessPoint, postEnforceAttribute.genericsType()).onErrorStop().next();
-			});
-		});
-	}
+                return constraintHandlerService.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+                        (Flux) finalResourceAccessPoint, postEnforceAttribute.genericsType()).onErrorStop().next();
+            });
+        });
+    }
 
-	private Mono<AuthorizationDecision> postEnforceDecision(MethodInvocation invocation,
-			SaplAttribute postEnforceAttribute, Object returnedObject) {
-		return subscriptionBuilder
-				.reactiveConstructAuthorizationSubscription(invocation, postEnforceAttribute, returnedObject)
-				.flatMapMany(pdp::decide).next();
-	}
+    private Mono<AuthorizationDecision> postEnforceDecision(MethodInvocation invocation,
+            SaplAttribute postEnforceAttribute, Object returnedObject) {
+        return subscriptionBuilder
+                .reactiveConstructAuthorizationSubscription(invocation, postEnforceAttribute, returnedObject)
+                .flatMapMany(pdp::decide).next();
+    }
 
 }

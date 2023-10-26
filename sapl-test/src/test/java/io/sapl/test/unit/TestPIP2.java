@@ -28,12 +28,12 @@ import reactor.core.publisher.Flux;
 @PolicyInformationPoint(name = TestPIP2.NAME, description = TestPIP2.DESCRIPTION)
 public class TestPIP2 {
 
-	public static final String NAME        = "test";
-	public static final String DESCRIPTION = "Policy information Point for testing";
+    public static final String NAME        = "test";
+    public static final String DESCRIPTION = "Policy information Point for testing";
 
-	@Attribute
-	public Flux<Val> upper(@Text Val value, Map<String, JsonNode> variables) {
-		return Flux.just(Val.of("Willi"), Val.of("WIlli"), Val.of("WILli"), Val.of("WILLi"), Val.of("WILLI"));
-	}
+    @Attribute
+    public Flux<Val> upper(@Text Val value, Map<String, JsonNode> variables) {
+        return Flux.just(Val.of("Willi"), Val.of("WIlli"), Val.of("WILli"), Val.of("WILLi"), Val.of("WILLI"));
+    }
 
 }

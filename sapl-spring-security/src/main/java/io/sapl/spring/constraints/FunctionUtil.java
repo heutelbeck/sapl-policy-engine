@@ -24,44 +24,44 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class FunctionUtil {
 
-	/**
-	 * Creates a {@link Consumer} doing nothing.
-	 * 
-	 * @param <T> payload type
-	 * @return A {@link Consumer} doing nothing.
-	 */
-	public static <T> Consumer<T> sink() {
-		return t -> {
-		};
-	}
+    /**
+     * Creates a {@link Consumer} doing nothing.
+     * 
+     * @param <T> payload type
+     * @return A {@link Consumer} doing nothing.
+     */
+    public static <T> Consumer<T> sink() {
+        return t -> {
+        };
+    }
 
-	/**
-	 * Creates a {@link LongConsumer} doing nothing.
-	 * 
-	 * @return A {@link LongConsumer} doing nothing.
-	 */
-	public static LongConsumer longSink() {
-		return t -> {
-		};
-	}
+    /**
+     * Creates a {@link LongConsumer} doing nothing.
+     * 
+     * @return A {@link LongConsumer} doing nothing.
+     */
+    public static LongConsumer longSink() {
+        return t -> {
+        };
+    }
 
-	/**
-	 * Creates a {@link Predicate} which always returns {@code true}.
-	 * 
-	 * @param <T> the payload type
-	 * @return a predicate that always returns {@code true}
-	 */
-	public static <T> Predicate<T> all() {
-		return t -> true;
-	}
+    /**
+     * Creates a {@link Predicate} which always returns {@code true}.
+     * 
+     * @param <T> the payload type
+     * @return a predicate that always returns {@code true}
+     */
+    public static <T> Predicate<T> all() {
+        return t -> true;
+    }
 
-	/**
-	 * Creates a {@link Runnable} doing nothing.
-	 * 
-	 * @return A {@link Runnable} doing nothing.
-	 */
-	public static Runnable noop() {
-		return () -> {
-		};
-	}
+    /**
+     * Creates a {@link Runnable} doing nothing.
+     * 
+     * @return A {@link Runnable} doing nothing.
+     */
+    public static Runnable noop() {
+        return () -> {
+        };
+    }
 }

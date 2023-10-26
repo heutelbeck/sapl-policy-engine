@@ -32,123 +32,123 @@ import io.sapl.api.pdp.Decision;
 
 class FirstApplicableTests {
 
-	private static final JsonNodeFactory           JSON                                 = JsonNodeFactory.instance;
-	private static final AuthorizationSubscription EMPTY_AUTH_SUBSCRIPTION              = new AuthorizationSubscription(
-			null, null, null, null);
-	private static final AuthorizationSubscription AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE = new AuthorizationSubscription(
-			null, null, JSON.booleanNode(true), null);
+    private static final JsonNodeFactory           JSON                                 = JsonNodeFactory.instance;
+    private static final AuthorizationSubscription EMPTY_AUTH_SUBSCRIPTION              = new AuthorizationSubscription(
+            null, null, null, null);
+    private static final AuthorizationSubscription AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE = new AuthorizationSubscription(
+            null, null, JSON.booleanNode(true), null);
 
-	@Test
-	void permit() {
-		var policySet = "set \"tests\" first-applicable" + " policy \"testp\" permit";
-		var expected  = Decision.PERMIT;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
+    @Test
+    void permit() {
+        var policySet = "set \"tests\" first-applicable" + " policy \"testp\" permit";
+        var expected  = Decision.PERMIT;
+        validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
+    }
 
-	@Test
-	void deny() {
-		var policySet = "set \"tests\" first-applicable" + " policy \"testp\" deny";
-		var expected  = Decision.DENY;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
+    @Test
+    void deny() {
+        var policySet = "set \"tests\" first-applicable" + " policy \"testp\" deny";
+        var expected  = Decision.DENY;
+        validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
+    }
 
-	@Test
-	void notApplicableTarget() {
-		var policySet = "set \"tests\" first-applicable" + " policy \"testp\" deny true == false";
-		var expected  = Decision.NOT_APPLICABLE;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
+    @Test
+    void notApplicableTarget() {
+        var policySet = "set \"tests\" first-applicable" + " policy \"testp\" deny true == false";
+        var expected  = Decision.NOT_APPLICABLE;
+        validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
+    }
 
-	@Test
-	void notApplicableCondition() {
-		var policySet = "set \"tests\" first-applicable" + " policy \"testp\" deny where true == false;";
-		var expected  = Decision.NOT_APPLICABLE;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
+    @Test
+    void notApplicableCondition() {
+        var policySet = "set \"tests\" first-applicable" + " policy \"testp\" deny where true == false;";
+        var expected  = Decision.NOT_APPLICABLE;
+        validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
+    }
 
-	@Test
-	void indeterminateTarget() {
-		var policySet = "set \"tests\" first-applicable" + " policy \"testp\" permit \"a\" < 5";
-		var expected  = Decision.INDETERMINATE;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
+    @Test
+    void indeterminateTarget() {
+        var policySet = "set \"tests\" first-applicable" + " policy \"testp\" permit \"a\" < 5";
+        var expected  = Decision.INDETERMINATE;
+        validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
+    }
 
-	@Test
-	void indeterminateCondition() {
-		var policySet = "set \"tests\" first-applicable" + " policy \"testp\" permit where \"a\" < 5;";
-		var expected  = Decision.INDETERMINATE;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
+    @Test
+    void indeterminateCondition() {
+        var policySet = "set \"tests\" first-applicable" + " policy \"testp\" permit where \"a\" < 5;";
+        var expected  = Decision.INDETERMINATE;
+        validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
+    }
 
-	@Test
-	void permitDeny() {
-		var policySet = "set \"tests\" first-applicable" + " policy \"testp1\" permit" + " policy \"testp2\" deny";
-		var expected  = Decision.PERMIT;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
+    @Test
+    void permitDeny() {
+        var policySet = "set \"tests\" first-applicable" + " policy \"testp1\" permit" + " policy \"testp2\" deny";
+        var expected  = Decision.PERMIT;
+        validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
+    }
 
-	@Test
-	void notApplicableDeny() {
-		var policySet = "set \"tests\" first-applicable" + " policy \"testp1\" permit where false;"
-				+ " policy \"testp2\" permit true == false" + " policy \"testp3\" deny";
-		var expected  = Decision.DENY;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
+    @Test
+    void notApplicableDeny() {
+        var policySet = "set \"tests\" first-applicable" + " policy \"testp1\" permit where false;"
+                + " policy \"testp2\" permit true == false" + " policy \"testp3\" deny";
+        var expected  = Decision.DENY;
+        validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
+    }
 
-	@Test
-	void multiplePermitTransformation() {
-		var policySet = "set \"tests\" first-applicable" + " policy \"testp1\" permit transform true"
-				+ " policy \"testp2\" permit transform false";
-		var expected  = Decision.PERMIT;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
+    @Test
+    void multiplePermitTransformation() {
+        var policySet = "set \"tests\" first-applicable" + " policy \"testp1\" permit transform true"
+                + " policy \"testp2\" permit transform false";
+        var expected  = Decision.PERMIT;
+        validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
+    }
 
-	@Test
-	void permitTransformationResource() {
-		var policySet = "set \"tests\" first-applicable" + " policy \"testp1\" permit transform true"
-				+ " policy \"testp2\" permit transform false" + " policy \"testp3\" permit";
-		var expected  = Optional.<JsonNode>of(JSON.booleanNode(true));
-		validateResource(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
-	}
+    @Test
+    void permitTransformationResource() {
+        var policySet = "set \"tests\" first-applicable" + " policy \"testp1\" permit transform true"
+                + " policy \"testp2\" permit transform false" + " policy \"testp3\" permit";
+        var expected  = Optional.<JsonNode>of(JSON.booleanNode(true));
+        validateResource(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
+    }
 
-	@Test
-	void collectObligationDeny() {
-		var policySet   = "set \"tests\" first-applicable" + " policy \"testp\" permit false"
-				+ " policy \"testp1\" deny obligation \"obligation1\" advice \"advice1\""
-				+ " policy \"testp2\" deny obligation \"obligation2\" advice \"advice2\"";
-		var obligations = JSON.arrayNode();
-		obligations.add(JSON.textNode("obligation1"));
-		validateObligations(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, Optional.of(obligations));
-	}
+    @Test
+    void collectObligationDeny() {
+        var policySet   = "set \"tests\" first-applicable" + " policy \"testp\" permit false"
+                + " policy \"testp1\" deny obligation \"obligation1\" advice \"advice1\""
+                + " policy \"testp2\" deny obligation \"obligation2\" advice \"advice2\"";
+        var obligations = JSON.arrayNode();
+        obligations.add(JSON.textNode("obligation1"));
+        validateObligations(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, Optional.of(obligations));
+    }
 
-	@Test
-	void collectAdviceDeny() {
-		var policySet = "set \"tests\" first-applicable" + " policy \"testp\" permit false"
-				+ " policy \"testp1\" deny obligation \"obligation1\" advice \"advice1\""
-				+ " policy \"testp2\" deny obligation \"obligation2\" advice \"advice2\"";
-		var advice    = JSON.arrayNode();
-		advice.add(JSON.textNode("advice1"));
-		validateAdvice(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, Optional.of(advice));
-	}
+    @Test
+    void collectAdviceDeny() {
+        var policySet = "set \"tests\" first-applicable" + " policy \"testp\" permit false"
+                + " policy \"testp1\" deny obligation \"obligation1\" advice \"advice1\""
+                + " policy \"testp2\" deny obligation \"obligation2\" advice \"advice2\"";
+        var advice    = JSON.arrayNode();
+        advice.add(JSON.textNode("advice1"));
+        validateAdvice(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, Optional.of(advice));
+    }
 
-	@Test
-	void collectObligationPermit() {
-		var policySet   = "set \"tests\" first-applicable"
-				+ " policy \"testp1\" permit obligation \"obligation1\" advice \"advice1\""
-				+ " policy \"testp2\" permit obligation \"obligation2\" advice \"advice2\"";
-		var obligations = JSON.arrayNode();
-		obligations.add(JSON.textNode("obligation1"));
-		validateObligations(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, Optional.of(obligations));
-	}
+    @Test
+    void collectObligationPermit() {
+        var policySet   = "set \"tests\" first-applicable"
+                + " policy \"testp1\" permit obligation \"obligation1\" advice \"advice1\""
+                + " policy \"testp2\" permit obligation \"obligation2\" advice \"advice2\"";
+        var obligations = JSON.arrayNode();
+        obligations.add(JSON.textNode("obligation1"));
+        validateObligations(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, Optional.of(obligations));
+    }
 
-	@Test
-	void collectAdvicePermit() {
-		var policySet = "set \"tests\" first-applicable"
-				+ " policy \"testp1\" permit obligation \"obligation1\" advice \"advice1\""
-				+ " policy \"testp2\" permit obligation \"obligation2\" advice \"advice2\"";
-		var advice    = JSON.arrayNode();
-		advice.add(JSON.textNode("advice1"));
-		validateAdvice(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, Optional.of(advice));
-	}
+    @Test
+    void collectAdvicePermit() {
+        var policySet = "set \"tests\" first-applicable"
+                + " policy \"testp1\" permit obligation \"obligation1\" advice \"advice1\""
+                + " policy \"testp2\" permit obligation \"obligation2\" advice \"advice2\"";
+        var advice    = JSON.arrayNode();
+        advice.add(JSON.textNode("advice1"));
+        validateAdvice(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, Optional.of(advice));
+    }
 
 }

@@ -33,14 +33,14 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface PolicyInformationPoint {
 
-	/**
-	 * @return name of the Policy Information Point.
-	 */
-	String name() default "";
+    /**
+     * @return name of the Policy Information Point.
+     */
+    String name() default "";
 
-	/**
-	 * @return Policy Information Point documentation.
-	 */
-	String description() default "";
+    /**
+     * @return Policy Information Point documentation.
+     */
+    String description() default "";
 
 }

@@ -21,29 +21,29 @@ import org.junit.jupiter.api.Test;
 
 class BasicExpressionImplCustomTests {
 
-	@Test
-	void basicExpressionWithStep() {
-		assertExpressionEvaluatesTo("[ null ].[0]", "null");
-	}
+    @Test
+    void basicExpressionWithStep() {
+        assertExpressionEvaluatesTo("[ null ].[0]", "null");
+    }
 
-	@Test
-	void basicExpressionWithFilter() {
-		assertExpressionEvaluatesTo("null |- mock.emptyString", "\"\"");
-	}
+    @Test
+    void basicExpressionWithFilter() {
+        assertExpressionEvaluatesTo("null |- mock.emptyString", "\"\"");
+    }
 
-	@Test
-	void subTemplateNoArray() {
-		assertExpressionEvaluatesTo("null :: { \"name\" : @ }", "{ \"name\" : null }");
-	}
+    @Test
+    void subTemplateNoArray() {
+        assertExpressionEvaluatesTo("null :: { \"name\" : @ }", "{ \"name\" : null }");
+    }
 
-	@Test
-	void subTemplateArray() {
-		assertExpressionEvaluatesTo("[true, false] :: null", "[ null,null ]");
-	}
+    @Test
+    void subTemplateArray() {
+        assertExpressionEvaluatesTo("[true, false] :: null", "[ null,null ]");
+    }
 
-	@Test
-	void subTemplateEmptyArray() {
-		assertExpressionEvaluatesTo("[] :: null", "[]");
-	}
+    @Test
+    void subTemplateEmptyArray() {
+        assertExpressionEvaluatesTo("[] :: null", "[]");
+    }
 
 }

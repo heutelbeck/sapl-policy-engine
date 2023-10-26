@@ -56,183 +56,183 @@ import reactor.util.context.ContextView;
 @Slf4j
 public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
-	private final Flux<AuthorizationDecision> decisions;
+    private final Flux<AuthorizationDecision> decisions;
 
-	private Flux<T> resourceAccessPoint;
+    private Flux<T> resourceAccessPoint;
 
-	private final ConstraintEnforcementService constraintsService;
+    private final ConstraintEnforcementService constraintsService;
 
-	private EnforcementSink<T> sink;
+    private EnforcementSink<T> sink;
 
-	private final Class<T> clazz;
+    private final Class<T> clazz;
 
-	final AtomicReference<Disposable> decisionsSubscription = new AtomicReference<>();
+    final AtomicReference<Disposable> decisionsSubscription = new AtomicReference<>();
 
-	final AtomicReference<Disposable> dataSubscription = new AtomicReference<>();
+    final AtomicReference<Disposable> dataSubscription = new AtomicReference<>();
 
-	final AtomicReference<AuthorizationDecision> latestDecision = new AtomicReference<>();
+    final AtomicReference<AuthorizationDecision> latestDecision = new AtomicReference<>();
 
-	final AtomicReference<ReactiveConstraintHandlerBundle<T>> constraintHandler = new AtomicReference<>();
+    final AtomicReference<ReactiveConstraintHandlerBundle<T>> constraintHandler = new AtomicReference<>();
 
-	final AtomicBoolean stopped = new AtomicBoolean(false);
+    final AtomicBoolean stopped = new AtomicBoolean(false);
 
-	private EnforceDropWhileDeniedPolicyEnforcementPoint(Flux<AuthorizationDecision> decisions,
-			Flux<T> resourceAccessPoint, ConstraintEnforcementService constraintsService, Class<T> clazz) {
-		this.decisions           = decisions;
-		this.resourceAccessPoint = resourceAccessPoint;
-		this.constraintsService  = constraintsService;
-		this.clazz               = clazz;
-	}
+    private EnforceDropWhileDeniedPolicyEnforcementPoint(Flux<AuthorizationDecision> decisions,
+            Flux<T> resourceAccessPoint, ConstraintEnforcementService constraintsService, Class<T> clazz) {
+        this.decisions           = decisions;
+        this.resourceAccessPoint = resourceAccessPoint;
+        this.constraintsService  = constraintsService;
+        this.clazz               = clazz;
+    }
 
-	public static <V> Flux<V> of(Flux<AuthorizationDecision> decisions, Flux<V> resourceAccessPoint,
-			ConstraintEnforcementService constraintsService, Class<V> clazz) {
-		var pep = new EnforceDropWhileDeniedPolicyEnforcementPoint<>(decisions, resourceAccessPoint, constraintsService,
-				clazz);
-		return pep.doOnTerminate(pep::handleOnTerminateConstraints)
-				.doAfterTerminate(pep::handleAfterTerminateConstraints).doOnCancel(pep::handleCancel).onErrorStop();
-	}
+    public static <V> Flux<V> of(Flux<AuthorizationDecision> decisions, Flux<V> resourceAccessPoint,
+            ConstraintEnforcementService constraintsService, Class<V> clazz) {
+        var pep = new EnforceDropWhileDeniedPolicyEnforcementPoint<>(decisions, resourceAccessPoint, constraintsService,
+                clazz);
+        return pep.doOnTerminate(pep::handleOnTerminateConstraints)
+                .doAfterTerminate(pep::handleAfterTerminateConstraints).doOnCancel(pep::handleCancel).onErrorStop();
+    }
 
-	@Override
-	public void subscribe(@NonNull CoreSubscriber<? super T> actual) {
-		if (sink != null)
-			throw new IllegalStateException("Operator may only be subscribed once.");
-		ContextView context = actual.currentContext();
-		sink                = new EnforcementSink<>();
-		resourceAccessPoint = resourceAccessPoint.contextWrite(context);
-		Flux.create(sink).subscribe(actual);
-		decisionsSubscription.set(decisions.doOnNext(this::handleNextDecision).contextWrite(context).subscribe());
-	}
+    @Override
+    public void subscribe(@NonNull CoreSubscriber<? super T> actual) {
+        if (sink != null)
+            throw new IllegalStateException("Operator may only be subscribed once.");
+        ContextView context = actual.currentContext();
+        sink                = new EnforcementSink<>();
+        resourceAccessPoint = resourceAccessPoint.contextWrite(context);
+        Flux.create(sink).subscribe(actual);
+        decisionsSubscription.set(decisions.doOnNext(this::handleNextDecision).contextWrite(context).subscribe());
+    }
 
-	private void handleNextDecision(AuthorizationDecision decision) {
-		var implicitDecision = decision;
+    private void handleNextDecision(AuthorizationDecision decision) {
+        var implicitDecision = decision;
 
-		ReactiveConstraintHandlerBundle<T> newBundle;
-		try {
-			newBundle = constraintsService.reactiveTypeBundleFor(decision, clazz);
-			constraintHandler.set(newBundle);
-		} catch (AccessDeniedException e) {
-			// INDETERMINATE -> as long as we cannot handle the obligations of the current
-			// decision, drop data
-			constraintHandler.set(new ReactiveConstraintHandlerBundle<>());
-			implicitDecision = AuthorizationDecision.INDETERMINATE;
-		}
+        ReactiveConstraintHandlerBundle<T> newBundle;
+        try {
+            newBundle = constraintsService.reactiveTypeBundleFor(decision, clazz);
+            constraintHandler.set(newBundle);
+        } catch (AccessDeniedException e) {
+            // INDETERMINATE -> as long as we cannot handle the obligations of the current
+            // decision, drop data
+            constraintHandler.set(new ReactiveConstraintHandlerBundle<>());
+            implicitDecision = AuthorizationDecision.INDETERMINATE;
+        }
 
-		try {
-			constraintHandler.get().handleOnDecisionConstraints();
-		} catch (AccessDeniedException e) {
-			implicitDecision = AuthorizationDecision.INDETERMINATE;
-		}
+        try {
+            constraintHandler.get().handleOnDecisionConstraints();
+        } catch (AccessDeniedException e) {
+            implicitDecision = AuthorizationDecision.INDETERMINATE;
+        }
 
-		latestDecision.set(implicitDecision);
+        latestDecision.set(implicitDecision);
 
-		if (implicitDecision.getResource().isPresent()) {
-			try {
-				sink.next(constraintsService.unmarshallResource(implicitDecision.getResource().get(), clazz));
-			} catch (JsonProcessingException | IllegalArgumentException e) {
-				log.warn("Cannot unmarshall resource from decision: " + implicitDecision, e);
-			}
-		}
+        if (implicitDecision.getResource().isPresent()) {
+            try {
+                sink.next(constraintsService.unmarshallResource(implicitDecision.getResource().get(), clazz));
+            } catch (JsonProcessingException | IllegalArgumentException e) {
+                log.warn("Cannot unmarshall resource from decision: " + implicitDecision, e);
+            }
+        }
 
-		if (implicitDecision.getDecision() == Decision.PERMIT && dataSubscription.get() == null)
-			dataSubscription.set(wrapResourceAccessPointAndSubscribe());
-	}
+        if (implicitDecision.getDecision() == Decision.PERMIT && dataSubscription.get() == null)
+            dataSubscription.set(wrapResourceAccessPointAndSubscribe());
+    }
 
-	private Disposable wrapResourceAccessPointAndSubscribe() {
-		return resourceAccessPoint.doOnError(this::handleError).doOnRequest(this::handleRequest)
-				.doOnSubscribe(this::handleSubscribe).doOnNext(this::handleNext).doOnComplete(this::handleComplete)
-				.subscribe();
-	}
+    private Disposable wrapResourceAccessPointAndSubscribe() {
+        return resourceAccessPoint.doOnError(this::handleError).doOnRequest(this::handleRequest)
+                .doOnSubscribe(this::handleSubscribe).doOnNext(this::handleNext).doOnComplete(this::handleComplete)
+                .subscribe();
+    }
 
-	private void handleSubscribe(Subscription s) {
-		try {
-			constraintHandler.get().handleOnSubscribeConstraints(s);
-		} catch (Throwable t) {
-			handleNextDecision(AuthorizationDecision.INDETERMINATE);
-		}
-	}
+    private void handleSubscribe(Subscription s) {
+        try {
+            constraintHandler.get().handleOnSubscribeConstraints(s);
+        } catch (Throwable t) {
+            handleNextDecision(AuthorizationDecision.INDETERMINATE);
+        }
+    }
 
-	private void handleNext(T value) {
-		// the following guard clause makes sure that the constraint handlers do not get
-		// called after downstream consumers cancelled. If the RAP is not consisting of
-		// delayed elements, but something like Flux.just(1,2,3) the handler would be
-		// called for 2 and 3, even if there was a take(1) applied downstream.
-		if (stopped.get())
-			return;
+    private void handleNext(T value) {
+        // the following guard clause makes sure that the constraint handlers do not get
+        // called after downstream consumers cancelled. If the RAP is not consisting of
+        // delayed elements, but something like Flux.just(1,2,3) the handler would be
+        // called for 2 and 3, even if there was a take(1) applied downstream.
+        if (stopped.get())
+            return;
 
-		var decision = latestDecision.get();
+        var decision = latestDecision.get();
 
-		if (decision.getDecision() != Decision.PERMIT)
-			return;
+        if (decision.getDecision() != Decision.PERMIT)
+            return;
 
-		// drop elements while the last decision replaced data with resource
-		if (decision.getResource().isPresent())
-			return;
+        // drop elements while the last decision replaced data with resource
+        if (decision.getResource().isPresent())
+            return;
 
-		try {
-			var transformedValue = constraintHandler.get().handleAllOnNextConstraints(value);
-			sink.next(transformedValue);
-		} catch (Throwable t) {
-			// NOOP drop only the element with the failed obligation
-			// doing handleNextDecision(AuthorizationDecision.DENY); would drop all
-			// subsequent messages, even if the constraint handler would succeed on then.
-		}
-	}
+        try {
+            var transformedValue = constraintHandler.get().handleAllOnNextConstraints(value);
+            sink.next(transformedValue);
+        } catch (Throwable t) {
+            // NOOP drop only the element with the failed obligation
+            // doing handleNextDecision(AuthorizationDecision.DENY); would drop all
+            // subsequent messages, even if the constraint handler would succeed on then.
+        }
+    }
 
-	private void handleRequest(Long value) {
-		try {
-			constraintHandler.get().handleOnRequestConstraints(value);
-		} catch (Throwable t) {
-			handleNextDecision(AuthorizationDecision.INDETERMINATE);
-		}
-	}
+    private void handleRequest(Long value) {
+        try {
+            constraintHandler.get().handleOnRequestConstraints(value);
+        } catch (Throwable t) {
+            handleNextDecision(AuthorizationDecision.INDETERMINATE);
+        }
+    }
 
-	private void handleOnTerminateConstraints() {
-		constraintHandler.get().handleOnTerminateConstraints();
-	}
+    private void handleOnTerminateConstraints() {
+        constraintHandler.get().handleOnTerminateConstraints();
+    }
 
-	private void handleAfterTerminateConstraints() {
-		constraintHandler.get().handleAfterTerminateConstraints();
-	}
+    private void handleAfterTerminateConstraints() {
+        constraintHandler.get().handleAfterTerminateConstraints();
+    }
 
-	private void handleComplete() {
-		if (stopped.get())
-			return;
-		try {
-			constraintHandler.get().handleOnCompleteConstraints();
-		} catch (Throwable t) {
-			// NOOP stream is finished nothing more to protect.
-		}
-		sink.complete();
-		disposeDecisionsAndResourceAccessPoint();
-	}
+    private void handleComplete() {
+        if (stopped.get())
+            return;
+        try {
+            constraintHandler.get().handleOnCompleteConstraints();
+        } catch (Throwable t) {
+            // NOOP stream is finished nothing more to protect.
+        }
+        sink.complete();
+        disposeDecisionsAndResourceAccessPoint();
+    }
 
-	private void handleCancel() {
-		try {
-			constraintHandler.get().handleOnCancelConstraints();
-		} catch (Throwable t) {
-			// NOOP
-		}
-		disposeDecisionsAndResourceAccessPoint();
-	}
+    private void handleCancel() {
+        try {
+            constraintHandler.get().handleOnCancelConstraints();
+        } catch (Throwable t) {
+            // NOOP
+        }
+        disposeDecisionsAndResourceAccessPoint();
+    }
 
-	private void handleError(Throwable error) {
-		try {
-			sink.error(constraintHandler.get().handleAllOnErrorConstraints(error));
-		} catch (Throwable t) {
-			sink.error(t);
-			handleNextDecision(AuthorizationDecision.INDETERMINATE);
-			disposeDecisionsAndResourceAccessPoint();
-		}
-	}
+    private void handleError(Throwable error) {
+        try {
+            sink.error(constraintHandler.get().handleAllOnErrorConstraints(error));
+        } catch (Throwable t) {
+            sink.error(t);
+            handleNextDecision(AuthorizationDecision.INDETERMINATE);
+            disposeDecisionsAndResourceAccessPoint();
+        }
+    }
 
-	private void disposeDecisionsAndResourceAccessPoint() {
-		stopped.set(true);
-		disposeActiveIfPresent(decisionsSubscription);
-		disposeActiveIfPresent(dataSubscription);
-	}
+    private void disposeDecisionsAndResourceAccessPoint() {
+        stopped.set(true);
+        disposeActiveIfPresent(decisionsSubscription);
+        disposeActiveIfPresent(dataSubscription);
+    }
 
-	private void disposeActiveIfPresent(AtomicReference<Disposable> atomicDisposable) {
-		Optional.ofNullable(atomicDisposable.get()).filter(not(Disposable::isDisposed)).ifPresent(Disposable::dispose);
-	}
+    private void disposeActiveIfPresent(AtomicReference<Disposable> atomicDisposable) {
+        Optional.ofNullable(atomicDisposable.get()).filter(not(Disposable::isDisposed)).ifPresent(Disposable::dispose);
+    }
 
 }

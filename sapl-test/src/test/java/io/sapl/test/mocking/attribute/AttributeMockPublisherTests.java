@@ -24,20 +24,20 @@ import reactor.test.StepVerifier;
 
 class AttributeMockPublisherTests {
 
-	@Test
-	void test() {
-		var mock = new AttributeMockPublisher("foo.bar");
+    @Test
+    void test() {
+        var mock = new AttributeMockPublisher("foo.bar");
 
-		StepVerifier.create(mock.evaluate("test.attribute", null, null, null)).then(() -> mock.mockEmit(Val.of(1)))
-				.expectNext(Val.of(1)).thenCancel().verify();
+        StepVerifier.create(mock.evaluate("test.attribute", null, null, null)).then(() -> mock.mockEmit(Val.of(1)))
+                .expectNext(Val.of(1)).thenCancel().verify();
 
-		mock.assertVerifications();
-	}
+        mock.assertVerifications();
+    }
 
-	@Test
-	void test_errorMessage() {
-		var mock = new AttributeMockPublisher("test.test");
-		assertThat(mock.getErrorMessageForCurrentMode()).isNotEmpty();
-	}
+    @Test
+    void test_errorMessage() {
+        var mock = new AttributeMockPublisher("test.test");
+        assertThat(mock.getErrorMessageForCurrentMode()).isNotEmpty();
+    }
 
 }

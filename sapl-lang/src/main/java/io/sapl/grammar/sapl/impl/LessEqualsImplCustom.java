@@ -32,14 +32,14 @@ import reactor.core.publisher.Flux;
  */
 public class LessEqualsImplCustom extends LessEqualsImpl {
 
-	@Override
-	public Flux<Val> evaluate() {
-		return arithmeticOperator(this, this::lessOrEqual);
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        return arithmeticOperator(this, this::lessOrEqual);
+    }
 
-	private Val lessOrEqual(Val left, Val right) {
-		return Val.of(left.decimalValue().compareTo(right.decimalValue()) <= 0).withTrace(LessEquals.class,
-				Map.of(Trace.LEFT, left, Trace.RIGHT, right));
-	}
+    private Val lessOrEqual(Val left, Val right) {
+        return Val.of(left.decimalValue().compareTo(right.decimalValue()) <= 0).withTrace(LessEquals.class,
+                Map.of(Trace.LEFT, left, Trace.RIGHT, right));
+    }
 
 }

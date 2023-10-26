@@ -24,13 +24,13 @@ import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
 @Configuration
 public class SaplExtensionsConfig {
 
-	@Bean
-	MqttPolicyInformationPoint mqttPolicyInformationPoint() {
-		return new MqttPolicyInformationPoint();
-	}
+    @Bean
+    MqttPolicyInformationPoint mqttPolicyInformationPoint() {
+        return new MqttPolicyInformationPoint();
+    }
 
-	@Bean
-	MqttFunctionLibrary mqttFunctionLibrary() {
-		return new MqttFunctionLibrary();
-	}
+    @Bean
+    MqttFunctionLibrary mqttFunctionLibrary() {
+        return new MqttFunctionLibrary();
+    }
 }

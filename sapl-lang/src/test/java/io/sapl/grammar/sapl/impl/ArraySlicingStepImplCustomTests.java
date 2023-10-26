@@ -26,8 +26,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class ArraySlicingStepImplCustomTests {
 
-	private static Stream<Arguments> errorExpressions() {
-		// @formatter:off
+    private static Stream<Arguments> errorExpressions() {
+        // @formatter:off
 		return Stream.of(
 	 			// slicingPropagatesErrors
 	 			Arguments.of("(1/0)[0:1]","Division by zero"),

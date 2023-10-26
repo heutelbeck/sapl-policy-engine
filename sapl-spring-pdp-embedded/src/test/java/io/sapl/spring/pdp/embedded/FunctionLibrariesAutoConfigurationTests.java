@@ -27,17 +27,17 @@ import io.sapl.functions.TemporalFunctionLibrary;
 
 class FunctionLibrariesAutoConfigurationTests {
 
-	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-			.withConfiguration(AutoConfigurations.of(FunctionLibrariesAutoConfiguration.class));
+    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
+            .withConfiguration(AutoConfigurations.of(FunctionLibrariesAutoConfiguration.class));
 
-	@Test
-	void whenContextLoaded_thenDefaultLibrariesArePresent() {
-		contextRunner.run(context -> {
-			assertThat(context).hasNotFailed();
-			assertThat(context).hasSingleBean(FilterFunctionLibrary.class);
-			assertThat(context).hasSingleBean(StandardFunctionLibrary.class);
-			assertThat(context).hasSingleBean(TemporalFunctionLibrary.class);
-		});
-	}
+    @Test
+    void whenContextLoaded_thenDefaultLibrariesArePresent() {
+        contextRunner.run(context -> {
+            assertThat(context).hasNotFailed();
+            assertThat(context).hasSingleBean(FilterFunctionLibrary.class);
+            assertThat(context).hasSingleBean(StandardFunctionLibrary.class);
+            assertThat(context).hasSingleBean(TemporalFunctionLibrary.class);
+        });
+    }
 
 }

@@ -60,314 +60,312 @@ import reactor.test.StepVerifier;
 
 class ReactiveSaplMethodInterceptorTests {
 
-	private MethodInterceptor springSecurityMethodInterceptor;
+    private MethodInterceptor springSecurityMethodInterceptor;
 
-	private MethodSecurityExpressionHandler handler;
+    private MethodSecurityExpressionHandler handler;
 
-	private PolicyDecisionPoint pdp;
+    private PolicyDecisionPoint pdp;
 
-	private ConstraintEnforcementService constraintHandlerService;
+    private ConstraintEnforcementService constraintHandlerService;
 
-	private ObjectMapper mapper;
+    private ObjectMapper mapper;
 
-	private WebfluxAuthorizationSubscriptionBuilderService subscriptionBuilder;
+    private WebfluxAuthorizationSubscriptionBuilderService subscriptionBuilder;
 
-	private PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint;
+    private PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint;
 
-	private PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint;
+    private PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint;
 
-	private ReactiveSaplMethodInterceptor defaultSut;
+    private ReactiveSaplMethodInterceptor defaultSut;
 
-	private SaplAttributeRegistry metadataSource;
+    private SaplAttributeRegistry metadataSource;
 
-	@BeforeEach
-	void beforeEach() {
-		springSecurityMethodInterceptor = mock(MethodInterceptor.class);
-		handler                         = mock(MethodSecurityExpressionHandler.class);
-		pdp                             = mock(PolicyDecisionPoint.class);
-		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-		constraintHandlerService = mock(ConstraintEnforcementService.class);
-		mapper                   = new ObjectMapper();
-		SimpleModule module = new SimpleModule();
-		module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
-		module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
-		module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
-		mapper.registerModule(module);
-		subscriptionBuilder = mock(WebfluxAuthorizationSubscriptionBuilderService.class);
-		when(subscriptionBuilder.reactiveConstructAuthorizationSubscription(any(MethodInvocation.class), any()))
-				.thenReturn(Mono.just(AuthorizationSubscription.of("the subject", "the action", "the resource")));
-		preEnforcePolicyEnforcementPoint  = mock(PreEnforcePolicyEnforcementPoint.class);
-		postEnforcePolicyEnforcementPoint = mock(PostEnforcePolicyEnforcementPoint.class);
-		metadataSource                    = new SaplAttributeRegistry();
+    @BeforeEach
+    void beforeEach() {
+        springSecurityMethodInterceptor = mock(MethodInterceptor.class);
+        handler                         = mock(MethodSecurityExpressionHandler.class);
+        pdp                             = mock(PolicyDecisionPoint.class);
+        when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+        constraintHandlerService = mock(ConstraintEnforcementService.class);
+        mapper                   = new ObjectMapper();
+        SimpleModule module = new SimpleModule();
+        module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
+        module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
+        module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
+        mapper.registerModule(module);
+        subscriptionBuilder = mock(WebfluxAuthorizationSubscriptionBuilderService.class);
+        when(subscriptionBuilder.reactiveConstructAuthorizationSubscription(any(MethodInvocation.class), any()))
+                .thenReturn(Mono.just(AuthorizationSubscription.of("the subject", "the action", "the resource")));
+        preEnforcePolicyEnforcementPoint  = mock(PreEnforcePolicyEnforcementPoint.class);
+        postEnforcePolicyEnforcementPoint = mock(PostEnforcePolicyEnforcementPoint.class);
+        metadataSource                    = new SaplAttributeRegistry();
 
-		defaultSut = new ReactiveSaplMethodInterceptor(metadataSource, handler, pdp,
-				constraintHandlerService, mapper, subscriptionBuilder, preEnforcePolicyEnforcementPoint,
-				postEnforcePolicyEnforcementPoint);
-	}
+        defaultSut = new ReactiveSaplMethodInterceptor(metadataSource, handler, pdp, constraintHandlerService, mapper,
+                subscriptionBuilder, preEnforcePolicyEnforcementPoint, postEnforcePolicyEnforcementPoint);
+    }
 
-	@Test
-	void when_noSaplAnnotations_then_delegatedToSpringImplementation() throws Throwable {
-		class TestClass {
+    @Test
+    void when_noSaplAnnotations_then_delegatedToSpringImplementation() throws Throwable {
+        class TestClass {
 
-			@SuppressWarnings("unused")
-			public Mono<Integer> monoInteger() {
-				return Mono.just(1);
-			}
+            @SuppressWarnings("unused")
+            public Mono<Integer> monoInteger() {
+                return Mono.just(1);
+            }
 
-		}
-		var invocation = MethodInvocationUtils.create(new TestClass(), "monoInteger");
-		assertThat(defaultSut.invoke(invocation), is(nullValue()));
-		verify(springSecurityMethodInterceptor, times(0)).invoke(any());
-	}
+        }
+        var invocation = MethodInvocationUtils.create(new TestClass(), "monoInteger");
+        assertThat(defaultSut.invoke(invocation), is(nullValue()));
+        verify(springSecurityMethodInterceptor, times(0)).invoke(any());
+    }
 
-	@Test
-	@SuppressWarnings("unchecked")
-	void when_onlyPreEnforce_then_preEnforcePEPIsCalled() throws Throwable {
-		class TestClass {
+    @Test
+    @SuppressWarnings("unchecked")
+    void when_onlyPreEnforce_then_preEnforcePEPIsCalled() throws Throwable {
+        class TestClass {
 
-			@PreEnforce
-			public Mono<Integer> monoInteger() {
-				return Mono.just(1);
-			}
+            @PreEnforce
+            public Mono<Integer> monoInteger() {
+                return Mono.just(1);
+            }
 
-		}
-		var testInstance = new TestClass();
-		var invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "monoInteger",
-				testInstance::monoInteger, null, null);
-		when(preEnforcePolicyEnforcementPoint.enforce(any(), any(), any())).thenReturn(Flux.just(2));
-		var actual = (Mono<Integer>) defaultSut.invoke(invocation);
-		StepVerifier.create(actual).expectNext(2).verifyComplete();
-		verify(preEnforcePolicyEnforcementPoint, times(1)).enforce(any(), any(), any());
-	}
+        }
+        var testInstance = new TestClass();
+        var invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "monoInteger",
+                testInstance::monoInteger, null, null);
+        when(preEnforcePolicyEnforcementPoint.enforce(any(), any(), any())).thenReturn(Flux.just(2));
+        var actual = (Mono<Integer>) defaultSut.invoke(invocation);
+        StepVerifier.create(actual).expectNext(2).verifyComplete();
+        verify(preEnforcePolicyEnforcementPoint, times(1)).enforce(any(), any(), any());
+    }
 
-	@Test
-	void when_nonReactiveType_then_fail() {
-		class TestClass {
+    @Test
+    void when_nonReactiveType_then_fail() {
+        class TestClass {
 
-			@PreEnforce
-			public int integer() {
-				return 1;
-			}
+            @PreEnforce
+            public int integer() {
+                return 1;
+            }
 
-		}
-		var testInstance = new TestClass();
-		var invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "integer", testInstance::integer,
-				null,
-				null);
-		assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
-		verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
-	}
+        }
+        var testInstance = new TestClass();
+        var invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "integer", testInstance::integer,
+                null, null);
+        assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
+        verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
+    }
 
-	@Test
-	void when_postEnforceOnFlux_then_fail() {
-		class TestClass {
+    @Test
+    void when_postEnforceOnFlux_then_fail() {
+        class TestClass {
 
-			@PostEnforce
-			public Flux<Integer> fluxInteger() {
-				return Flux.just(1);
-			}
+            @PostEnforce
+            public Flux<Integer> fluxInteger() {
+                return Flux.just(1);
+            }
 
-		}
-		var testInstance = new TestClass();
-		var invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
-				testInstance::fluxInteger, null, null);
-		assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
-		verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
-	}
+        }
+        var testInstance = new TestClass();
+        var invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
+                testInstance::fluxInteger, null, null);
+        assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
+        verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
+    }
 
-	@Test
-	void when_saplAndSpringAnnotationsPresent_then_thisDoesNotFailBecauseDelegationSourceDoesOnlyReturnOne()
-			throws Throwable {
+    @Test
+    void when_saplAndSpringAnnotationsPresent_then_thisDoesNotFailBecauseDelegationSourceDoesOnlyReturnOne()
+            throws Throwable {
 
-		class TestClass {
+        class TestClass {
 
-			@PreEnforce
-			@PreAuthorize(value = "")
-			public Flux<Integer> fluxInteger() {
-				return Flux.just(1);
-			}
+            @PreEnforce
+            @PreAuthorize(value = "")
+            public Flux<Integer> fluxInteger() {
+                return Flux.just(1);
+            }
 
-		}
-		var              testInstance = new TestClass();
-		MethodInvocation invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
-				testInstance::fluxInteger, null, null);
+        }
+        var              testInstance = new TestClass();
+        MethodInvocation invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
+                testInstance::fluxInteger, null, null);
 
-		Flux<Object> expected = Flux.just(2);
-		when(preEnforcePolicyEnforcementPoint.enforce(any(), any(), any())).thenReturn(expected);
-		assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
-		verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
-	}
+        Flux<Object> expected = Flux.just(2);
+        when(preEnforcePolicyEnforcementPoint.enforce(any(), any(), any())).thenReturn(expected);
+        assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
+        verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
+    }
 
-	@Test
-	void when_prePostIsCombinedWithContinuousEnforce_then_fail() {
+    @Test
+    void when_prePostIsCombinedWithContinuousEnforce_then_fail() {
 
-		class TestClass {
+        class TestClass {
 
-			@PreEnforce
-			@EnforceTillDenied
-			public Flux<Integer> fluxInteger() {
-				return Flux.just(1);
-			}
+            @PreEnforce
+            @EnforceTillDenied
+            public Flux<Integer> fluxInteger() {
+                return Flux.just(1);
+            }
 
-		}
+        }
 
-		var              testInstance = new TestClass();
-		MethodInvocation invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
-				testInstance::fluxInteger, null, null);
+        var              testInstance = new TestClass();
+        MethodInvocation invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
+                testInstance::fluxInteger, null, null);
 
-		Flux<Object> expected = Flux.just(2);
-		when(preEnforcePolicyEnforcementPoint.enforce(any(), any(), any())).thenReturn(expected);
-		assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
-		verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
-	}
+        Flux<Object> expected = Flux.just(2);
+        when(preEnforcePolicyEnforcementPoint.enforce(any(), any(), any())).thenReturn(expected);
+        assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
+        verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
+    }
 
-	@Test
-	void when_moreThanOneContinuousAnnotation_then_fail() {
+    @Test
+    void when_moreThanOneContinuousAnnotation_then_fail() {
 
-		class TestClass {
+        class TestClass {
 
-			@EnforceTillDenied
-			@EnforceDropWhileDenied
-			@EnforceRecoverableIfDenied
-			public Flux<Integer> fluxInteger() {
-				return Flux.just(1);
-			}
+            @EnforceTillDenied
+            @EnforceDropWhileDenied
+            @EnforceRecoverableIfDenied
+            public Flux<Integer> fluxInteger() {
+                return Flux.just(1);
+            }
 
-		}
+        }
 
-		var              testInstance = new TestClass();
-		MethodInvocation invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
-				testInstance::fluxInteger, null, null);
+        var              testInstance = new TestClass();
+        MethodInvocation invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
+                testInstance::fluxInteger, null, null);
 
-		Flux<Object> expected = Flux.just(2);
-		when(preEnforcePolicyEnforcementPoint.enforce(any(), any(), any())).thenReturn(expected);
-		assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
-		verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
-	}
+        Flux<Object> expected = Flux.just(2);
+        when(preEnforcePolicyEnforcementPoint.enforce(any(), any(), any())).thenReturn(expected);
+        assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
+        verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
+    }
 
-	@Test
-	void when_saplAndSpringAnnotationsPresent_then_failsIfBothAreReturnedByMetadataSource() {
+    @Test
+    void when_saplAndSpringAnnotationsPresent_then_failsIfBothAreReturnedByMetadataSource() {
 
-		class TestClass {
+        class TestClass {
 
-			@PreEnforce
-			@PreAuthorize(value = "")
-			public Flux<Integer> fluxInteger() {
-				return Flux.just(1);
-			}
+            @PreEnforce
+            @PreAuthorize(value = "")
+            public Flux<Integer> fluxInteger() {
+                return Flux.just(1);
+            }
 
-		}
-		var testInstance = new TestClass();
-		var invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
-				testInstance::fluxInteger, null, null);
-		assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
-		verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
-	}
+        }
+        var testInstance = new TestClass();
+        var invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
+                testInstance::fluxInteger, null, null);
+        assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
+        verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
+    }
 
-	@Test
-	@SuppressWarnings("unchecked")
-	void when_onlyPostEnforce_then_postEnforcePepIsCalled() throws Throwable {
-		class TestClass {
+    @Test
+    @SuppressWarnings("unchecked")
+    void when_onlyPostEnforce_then_postEnforcePepIsCalled() throws Throwable {
+        class TestClass {
 
-			@PostEnforce
-			public Mono<Integer> monoInteger() {
-				return Mono.just(1);
-			}
+            @PostEnforce
+            public Mono<Integer> monoInteger() {
+                return Mono.just(1);
+            }
 
-		}
-		var     testInstance = new TestClass();
-		var     invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "monoInteger",
-				testInstance::monoInteger, null, null);
-		Mono<?> expected     = Mono.just(4);
-		when(postEnforcePolicyEnforcementPoint.postEnforceOneDecisionOnResourceAccessPoint(any(), any(), any()))
-				.thenAnswer(__ -> expected);
-		var actual = defaultSut.invoke(invocation);
-		assertThat(actual, is(expected));
-		StepVerifier.create((Mono<Integer>) actual).expectNext(4).verifyComplete();
-		verify(postEnforcePolicyEnforcementPoint, times(1)).postEnforceOneDecisionOnResourceAccessPoint(any(), any(),
-				any());
-	}
+        }
+        var     testInstance = new TestClass();
+        var     invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "monoInteger",
+                testInstance::monoInteger, null, null);
+        Mono<?> expected     = Mono.just(4);
+        when(postEnforcePolicyEnforcementPoint.postEnforceOneDecisionOnResourceAccessPoint(any(), any(), any()))
+                .thenAnswer(__ -> expected);
+        var actual = defaultSut.invoke(invocation);
+        assertThat(actual, is(expected));
+        StepVerifier.create((Mono<Integer>) actual).expectNext(4).verifyComplete();
+        verify(postEnforcePolicyEnforcementPoint, times(1)).postEnforceOneDecisionOnResourceAccessPoint(any(), any(),
+                any());
+    }
 
-	@Test
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	void when_onlyEnforceTillDenied_then_enforceTillDeniedPEPIsCalled() throws Throwable {
-		class TestClass {
+    @Test
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    void when_onlyEnforceTillDenied_then_enforceTillDeniedPEPIsCalled() throws Throwable {
+        class TestClass {
 
-			@EnforceTillDenied
-			public Flux<Integer> fluxInteger() {
-				return Flux.just(1);
-			}
+            @EnforceTillDenied
+            public Flux<Integer> fluxInteger() {
+                return Flux.just(1);
+            }
 
-		}
-		var          testInstance = new TestClass();
-		var          invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
-				testInstance::fluxInteger, null, null);
-		Flux<Object> expected     = Flux.just(2);
+        }
+        var          testInstance = new TestClass();
+        var          invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
+                testInstance::fluxInteger, null, null);
+        Flux<Object> expected     = Flux.just(2);
 
-		try (MockedStatic<EnforceTillDeniedPolicyEnforcementPoint> mockPEP = Mockito
-				.mockStatic(EnforceTillDeniedPolicyEnforcementPoint.class)) {
-			mockPEP.when(() -> EnforceTillDeniedPolicyEnforcementPoint.of(any(), any(), any(), any()))
-					.thenReturn(expected);
-			var actual = defaultSut.invoke(invocation);
-			assertThat(actual, is(expected));
-			StepVerifier.create((Flux<Integer>) actual).expectNext(2).verifyComplete();
-			mockPEP.verify(() -> EnforceTillDeniedPolicyEnforcementPoint.of(any(), any(), any(), any()), times(1));
-		}
-	}
+        try (MockedStatic<EnforceTillDeniedPolicyEnforcementPoint> mockPEP = Mockito
+                .mockStatic(EnforceTillDeniedPolicyEnforcementPoint.class)) {
+            mockPEP.when(() -> EnforceTillDeniedPolicyEnforcementPoint.of(any(), any(), any(), any()))
+                    .thenReturn(expected);
+            var actual = defaultSut.invoke(invocation);
+            assertThat(actual, is(expected));
+            StepVerifier.create((Flux<Integer>) actual).expectNext(2).verifyComplete();
+            mockPEP.verify(() -> EnforceTillDeniedPolicyEnforcementPoint.of(any(), any(), any(), any()), times(1));
+        }
+    }
 
-	@Test
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	void when_onlyEnforceDropWhileDenied_then_enforceDropWhileDeniedPEPIsCalled() throws Throwable {
-		class TestClass {
+    @Test
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    void when_onlyEnforceDropWhileDenied_then_enforceDropWhileDeniedPEPIsCalled() throws Throwable {
+        class TestClass {
 
-			@EnforceDropWhileDenied
-			public Flux<Integer> fluxInteger() {
-				return Flux.just(1);
-			}
+            @EnforceDropWhileDenied
+            public Flux<Integer> fluxInteger() {
+                return Flux.just(1);
+            }
 
-		}
-		var          testInstance = new TestClass();
-		var          invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
-				testInstance::fluxInteger, null, null);
-		Flux<Object> expected     = Flux.just(2);
+        }
+        var          testInstance = new TestClass();
+        var          invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
+                testInstance::fluxInteger, null, null);
+        Flux<Object> expected     = Flux.just(2);
 
-		try (MockedStatic<EnforceDropWhileDeniedPolicyEnforcementPoint> mockPEP = Mockito
-				.mockStatic(EnforceDropWhileDeniedPolicyEnforcementPoint.class)) {
-			mockPEP.when(() -> EnforceDropWhileDeniedPolicyEnforcementPoint.of(any(), any(), any(), any()))
-					.thenReturn(expected);
-			var actual = defaultSut.invoke(invocation);
-			assertThat(actual, is(expected));
-			StepVerifier.create((Flux<Integer>) actual).expectNext(2).verifyComplete();
-			mockPEP.verify(() -> EnforceDropWhileDeniedPolicyEnforcementPoint.of(any(), any(), any(), any()), times(1));
-		}
-	}
+        try (MockedStatic<EnforceDropWhileDeniedPolicyEnforcementPoint> mockPEP = Mockito
+                .mockStatic(EnforceDropWhileDeniedPolicyEnforcementPoint.class)) {
+            mockPEP.when(() -> EnforceDropWhileDeniedPolicyEnforcementPoint.of(any(), any(), any(), any()))
+                    .thenReturn(expected);
+            var actual = defaultSut.invoke(invocation);
+            assertThat(actual, is(expected));
+            StepVerifier.create((Flux<Integer>) actual).expectNext(2).verifyComplete();
+            mockPEP.verify(() -> EnforceDropWhileDeniedPolicyEnforcementPoint.of(any(), any(), any(), any()), times(1));
+        }
+    }
 
-	@Test
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	void when_onlyEnforceRecoverableIfDenied_then_enforceRecoverableIfDeniedPEPIsCalled() throws Throwable {
-		class TestClass {
+    @Test
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    void when_onlyEnforceRecoverableIfDenied_then_enforceRecoverableIfDeniedPEPIsCalled() throws Throwable {
+        class TestClass {
 
-			@EnforceRecoverableIfDenied
-			public Flux<Integer> fluxInteger() {
-				return Flux.just(1);
-			}
+            @EnforceRecoverableIfDenied
+            public Flux<Integer> fluxInteger() {
+                return Flux.just(1);
+            }
 
-		}
-		var          testInstance = new TestClass();
-		var          invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
-				testInstance::fluxInteger, null, null);
-		Flux<Object> expected     = Flux.just(2);
+        }
+        var          testInstance = new TestClass();
+        var          invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
+                testInstance::fluxInteger, null, null);
+        Flux<Object> expected     = Flux.just(2);
 
-		try (MockedStatic<EnforceRecoverableIfDeniedPolicyEnforcementPoint> mockPEP = Mockito
-				.mockStatic(EnforceRecoverableIfDeniedPolicyEnforcementPoint.class)) {
-			mockPEP.when(() -> EnforceRecoverableIfDeniedPolicyEnforcementPoint.of(any(), any(), any(), any()))
-					.thenReturn(expected);
-			var actual = defaultSut.invoke(invocation);
-			assertThat(actual, is(expected));
-			StepVerifier.create((Flux<Integer>) actual).expectNext(2).verifyComplete();
-			mockPEP.verify(() -> EnforceRecoverableIfDeniedPolicyEnforcementPoint.of(any(), any(), any(), any()),
-					times(1));
-		}
-	}
+        try (MockedStatic<EnforceRecoverableIfDeniedPolicyEnforcementPoint> mockPEP = Mockito
+                .mockStatic(EnforceRecoverableIfDeniedPolicyEnforcementPoint.class)) {
+            mockPEP.when(() -> EnforceRecoverableIfDeniedPolicyEnforcementPoint.of(any(), any(), any(), any()))
+                    .thenReturn(expected);
+            var actual = defaultSut.invoke(invocation);
+            assertThat(actual, is(expected));
+            StepVerifier.create((Flux<Integer>) actual).expectNext(2).verifyComplete();
+            mockPEP.verify(() -> EnforceRecoverableIfDeniedPolicyEnforcementPoint.of(any(), any(), any(), any()),
+                    times(1));
+        }
+    }
 
 }

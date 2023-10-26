@@ -33,59 +33,53 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class SubscriptionUtility {
 
-	/**
-	 * Builds a mqtt topic subscription containing one or multiple topics.
-	 * 
-	 * @param topic a {@link Val} of one or multiple topics
-	 * @param qos   the qos level for the mqtt topic subscription
-	 * @return returns the build mqtt topic subscription
-	 */
-	public static Mqtt5Subscribe buildTopicSubscription(Val topic, Val qos) {
-		if (topic.isArray()) {
-			return buildTopicSubscriptionOfArray(topic, qos);
-		} else {
-			return buildTopicSubscriptionOfString(topic, qos);
-		}
-	}
+    /**
+     * Builds a mqtt topic subscription containing one or multiple topics.
+     * 
+     * @param topic a {@link Val} of one or multiple topics
+     * @param qos   the qos level for the mqtt topic subscription
+     * @return returns the build mqtt topic subscription
+     */
+    public static Mqtt5Subscribe buildTopicSubscription(Val topic, Val qos) {
+        if (topic.isArray()) {
+            return buildTopicSubscriptionOfArray(topic, qos);
+        } else {
+            return buildTopicSubscriptionOfString(topic, qos);
+        }
+    }
 
-	private static Mqtt5Subscribe buildTopicSubscriptionOfArray(Val topics, Val qos) {
-		List<Mqtt5Subscription> topicSubscriptionList = new LinkedList<>();
-		for (var topic : topics.getArrayNode()) {
-			topicSubscriptionList.add(Mqtt5Subscription.builder()
-					.topicFilter(topic.asText())
-					.qos(getQos(qos))
-					.build());
-		}
-		return Mqtt5Subscribe.builder().addSubscriptions(topicSubscriptionList).build();
-	}
+    private static Mqtt5Subscribe buildTopicSubscriptionOfArray(Val topics, Val qos) {
+        List<Mqtt5Subscription> topicSubscriptionList = new LinkedList<>();
+        for (var topic : topics.getArrayNode()) {
+            topicSubscriptionList.add(Mqtt5Subscription.builder().topicFilter(topic.asText()).qos(getQos(qos)).build());
+        }
+        return Mqtt5Subscribe.builder().addSubscriptions(topicSubscriptionList).build();
+    }
 
-	private static Mqtt5Subscribe buildTopicSubscriptionOfString(Val topic, Val qos) {
-		return Mqtt5Subscribe.builder()
-				.topicFilter(topic.getText())
-				.qos(getQos(qos))
-				.build();
-	}
+    private static Mqtt5Subscribe buildTopicSubscriptionOfString(Val topic, Val qos) {
+        return Mqtt5Subscribe.builder().topicFilter(topic.getText()).qos(getQos(qos)).build();
+    }
 
-	/**
-	 * Adds the count of the topics contained in the subscription to the count of
-	 * the topic subscription list.
-	 * 
-	 * @param clientValues      the object containing the topic subscription list
-	 * @param mqtt5SubAck       the acknowledgement message specifying whether a
-	 *                          subscription of a topic was successfully established
-	 *                          or not
-	 * @param topicSubscription the topic subscription containing the topics which
-	 *                          count is to add
-	 */
-	public static void addSubscriptionsCountToSubscriptionList(MqttClientValues clientValues, Mqtt5SubAck mqtt5SubAck,
-			Mqtt5Subscribe topicSubscription) {
-		var subscriptions = topicSubscription.getSubscriptions();
-		var reasonCodes   = mqtt5SubAck.getReasonCodes();
-		for (var i = 0; i < subscriptions.size(); i++) {
-			if (!reasonCodes.get(i).isError()) {
-				String subscription = subscriptions.get(i).getTopicFilter().toString();
-				clientValues.countTopicSubscriptionsCountMapUp(subscription);
-			}
-		}
-	}
+    /**
+     * Adds the count of the topics contained in the subscription to the count of
+     * the topic subscription list.
+     * 
+     * @param clientValues      the object containing the topic subscription list
+     * @param mqtt5SubAck       the acknowledgement message specifying whether a
+     *                          subscription of a topic was successfully established
+     *                          or not
+     * @param topicSubscription the topic subscription containing the topics which
+     *                          count is to add
+     */
+    public static void addSubscriptionsCountToSubscriptionList(MqttClientValues clientValues, Mqtt5SubAck mqtt5SubAck,
+            Mqtt5Subscribe topicSubscription) {
+        var subscriptions = topicSubscription.getSubscriptions();
+        var reasonCodes   = mqtt5SubAck.getReasonCodes();
+        for (var i = 0; i < subscriptions.size(); i++) {
+            if (!reasonCodes.get(i).isError()) {
+                String subscription = subscriptions.get(i).getTopicFilter().toString();
+                clientValues.countTopicSubscriptionsCountMapUp(subscription);
+            }
+        }
+    }
 }

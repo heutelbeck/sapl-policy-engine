@@ -32,22 +32,22 @@ import io.sapl.extension.jwt.JWTPolicyInformationPoint;
 @ConditionalOnClass(name = "io.sapl.extension.jwt.JWTFunctionLibrary")
 public class JwtExtensionAutoConfiguration {
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	JWTFunctionLibrary jwtFunctionLibrary(ObjectMapper mapper) {
-		return new JWTFunctionLibrary(mapper);
-	}
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    JWTFunctionLibrary jwtFunctionLibrary(ObjectMapper mapper) {
+        return new JWTFunctionLibrary(mapper);
+    }
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	JWTPolicyInformationPoint jwtPolicyInformationPoint(ObjectMapper mapper, JWTKeyProvider jwtKeyProvider) {
-		return new JWTPolicyInformationPoint(jwtKeyProvider);
-	}
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    JWTPolicyInformationPoint jwtPolicyInformationPoint(ObjectMapper mapper, JWTKeyProvider jwtKeyProvider) {
+        return new JWTPolicyInformationPoint(jwtKeyProvider);
+    }
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	JWTKeyProvider jwtKeyProvider(WebClient.Builder builder) {
-		return new JWTKeyProvider(builder);
-	}
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    JWTKeyProvider jwtKeyProvider(WebClient.Builder builder) {
+        return new JWTKeyProvider(builder);
+    }
 
 }

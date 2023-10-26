@@ -23,9 +23,9 @@ import io.sapl.prp.index.canonical.PredicateInfo;
 
 public class NoPredicateOrderStrategy implements PredicateOrderStrategy {
 
-	@Override
-	public List<Predicate> createPredicateOrder(Collection<PredicateInfo> predicateInfos) {
-		return predicateInfos.stream().map(PredicateInfo::getPredicate).toList();
-	}
+    @Override
+    public List<Predicate> createPredicateOrder(Collection<PredicateInfo> predicateInfos) {
+        return predicateInfos.stream().map(PredicateInfo::getPredicate).toList();
+    }
 
 }

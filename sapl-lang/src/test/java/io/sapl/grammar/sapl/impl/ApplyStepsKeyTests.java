@@ -29,23 +29,23 @@ import io.sapl.api.interpreter.Val;
 
 class ApplyStepsKeyTests {
 
-	@Test
-	void keyStepPropagatesErrors() {
-		assertExpressionReturnsErrors("(10/0).key");
-	}
+    @Test
+    void keyStepPropagatesErrors() {
+        assertExpressionReturnsErrors("(10/0).key");
+    }
 
-	@Test
-	void keyStepToNonObjectUndefined() {
-		assertExpressionEvaluatesTo("true.key", Val.UNDEFINED);
-	}
+    @Test
+    void keyStepToNonObjectUndefined() {
+        assertExpressionEvaluatesTo("true.key", Val.UNDEFINED);
+    }
 
-	@Test
-	void keyStepToEmptyObject() {
-		assertExpressionEvaluatesTo("{}.key", Val.UNDEFINED);
-	}
+    @Test
+    void keyStepToEmptyObject() {
+        assertExpressionEvaluatesTo("{}.key", Val.UNDEFINED);
+    }
 
-	private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
-		// @formatter:off
+    private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+        // @formatter:off
 		return Stream.of(
 				// Key step to object
 	 			Arguments.of("{\"key\" : true}.key", "true"),

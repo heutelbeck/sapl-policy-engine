@@ -30,39 +30,38 @@ import io.sapl.api.validation.Text;
 @FunctionLibrary(name = "simplefilter", description = "some simple filter functions")
 public class SimpleFilterFunctionLibrary {
 
-	private final Clock clock;
+    private final Clock clock;
 
-	public SimpleFilterFunctionLibrary(Clock clock) {
-		this.clock = clock;
-	}
+    public SimpleFilterFunctionLibrary(Clock clock) {
+        this.clock = clock;
+    }
 
-	@Function(name = "roundto")
-	public static Val roundto(@Int Val node, @Int Val roundvalue) {
-		int value = node.get().asInt();
-		int round = roundvalue.get().asInt();
+    @Function(name = "roundto")
+    public static Val roundto(@Int Val node, @Int Val roundvalue) {
+        int value = node.get().asInt();
+        int round = roundvalue.get().asInt();
 
-		int result = value / round;
-		if (value % round > round / 2) {
-			result++;
-		}
+        int result = value / round;
+        if (value % round > round / 2) {
+            result++;
+        }
 
-		return Val.of(result * round);
-	}
+        return Val.of(result * round);
+    }
 
-	@Function
-	public Val isOfToday(@Text Val parameter) {
-		LocalDate today = LocalDate.now(clock);
-		Instant instant = Instant.parse(parameter.get().asText());
-		ZoneId zone = ZoneId.of("Europe/Berlin");
-		ZonedDateTime zdt = instant.atZone(zone);
+    @Function
+    public Val isOfToday(@Text Val parameter) {
+        LocalDate     today   = LocalDate.now(clock);
+        Instant       instant = Instant.parse(parameter.get().asText());
+        ZoneId        zone    = ZoneId.of("Europe/Berlin");
+        ZonedDateTime zdt     = instant.atZone(zone);
 
-		if (today.getYear() == zdt.getYear() && today.getMonthValue() == zdt.getMonthValue()
-				&& today.getDayOfMonth() == zdt.getDayOfMonth()) {
-			return Val.TRUE;
-		}
-		else {
-			return Val.FALSE;
-		}
-	}
+        if (today.getYear() == zdt.getYear() && today.getMonthValue() == zdt.getMonthValue()
+                && today.getDayOfMonth() == zdt.getDayOfMonth()) {
+            return Val.TRUE;
+        } else {
+            return Val.FALSE;
+        }
+    }
 
 }

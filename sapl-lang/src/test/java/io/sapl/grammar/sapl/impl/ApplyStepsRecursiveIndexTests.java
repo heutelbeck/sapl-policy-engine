@@ -27,13 +27,13 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class ApplyStepsRecursiveIndexTests {
 
-	@Test
-	void recursiveIndexStepPropagatesErrors() {
-		assertExpressionReturnsErrors("(10/0)..[5]");
-	}
+    @Test
+    void recursiveIndexStepPropagatesErrors() {
+        assertExpressionReturnsErrors("(10/0)..[5]");
+    }
 
-	private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
-		// @formatter:off
+    private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+        // @formatter:off
 		return Stream.of(
 				// recursiveIndexStepOnUndefinedEmpty
 	 			Arguments.of("undefined..[2]", "[]"),

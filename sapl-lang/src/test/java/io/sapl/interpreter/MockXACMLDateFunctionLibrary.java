@@ -22,12 +22,12 @@ import io.sapl.api.interpreter.Val;
 @FunctionLibrary(name = "date")
 public class MockXACMLDateFunctionLibrary {
 
-	@Function
-	public Val diff(Val type, Val to, Val from) {
-		if ("years".equals(type.get().asText())) {
-			return Val.of(15L);
-		}
-		return Val.of(5L);
-	}
+    @Function
+    public Val diff(Val type, Val to, Val from) {
+        if ("years".equals(type.get().asText())) {
+            return Val.of(15L);
+        }
+        return Val.of(5L);
+    }
 
 }

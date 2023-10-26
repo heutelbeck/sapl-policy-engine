@@ -31,28 +31,28 @@ import io.sapl.functions.TemporalFunctionLibrary;
 @AutoConfiguration
 public class FunctionLibrariesAutoConfiguration {
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	FilterFunctionLibrary filterFunctionLibrary() {
-		return new FilterFunctionLibrary();
-	}
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    FilterFunctionLibrary filterFunctionLibrary() {
+        return new FilterFunctionLibrary();
+    }
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	StandardFunctionLibrary standardFunctionLibrary() {
-		return new StandardFunctionLibrary();
-	}
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    StandardFunctionLibrary standardFunctionLibrary() {
+        return new StandardFunctionLibrary();
+    }
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	TemporalFunctionLibrary temporalFunctionLibrary() {
-		return new TemporalFunctionLibrary();
-	}
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    TemporalFunctionLibrary temporalFunctionLibrary() {
+        return new TemporalFunctionLibrary();
+    }
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	LoggingFunctionLibrary loggingFunctionLibrary() {
-		return new LoggingFunctionLibrary();
-	}
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    LoggingFunctionLibrary loggingFunctionLibrary() {
+        return new LoggingFunctionLibrary();
+    }
 
 }

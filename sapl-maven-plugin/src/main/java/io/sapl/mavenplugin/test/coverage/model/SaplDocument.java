@@ -25,10 +25,10 @@ import lombok.Getter;
 @Getter
 public class SaplDocument {
 
-	private Path pathToDocument;
+    private Path pathToDocument;
 
-	int lineCount;
+    int lineCount;
 
-	private SAPL document;
+    private SAPL document;
 
 }

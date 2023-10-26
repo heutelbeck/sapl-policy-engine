@@ -33,10 +33,10 @@ import reactor.test.StepVerifier;
 
 class PolicyBodyImplCustomTests {
 
-	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
+    private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
-	private static Stream<Arguments> provideTestCases() {
-		// @formatter:off
+    private static Stream<Arguments> provideTestCases() {
+        // @formatter:off
 		return Stream.of(
 	 			// trueReturnsEntitlement
 	 			Arguments.of("policy \"p\" permit true where true; true; true;", PERMIT),

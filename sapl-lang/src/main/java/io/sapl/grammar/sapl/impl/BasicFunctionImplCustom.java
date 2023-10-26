@@ -28,11 +28,11 @@ import reactor.core.publisher.Flux;
  */
 public class BasicFunctionImplCustom extends BasicFunctionImpl {
 
-	@Override
-	public Flux<Val> evaluate() {
-		return FunctionUtil.combineArgumentFluxes(arguments)
-				.concatMap(parameters -> FunctionUtil.evaluateFunctionMono(fsteps, parameters))
-				.switchMap(v -> resolveStepsFiltersAndSubTemplates(steps).apply(v));
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        return FunctionUtil.combineArgumentFluxes(arguments)
+                .concatMap(parameters -> FunctionUtil.evaluateFunctionMono(fsteps, parameters))
+                .switchMap(v -> resolveStepsFiltersAndSubTemplates(steps).apply(v));
+    }
 
 }

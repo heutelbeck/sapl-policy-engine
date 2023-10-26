@@ -31,57 +31,57 @@ import io.sapl.api.pdp.AuthorizationDecision;
  */
 public class HasAdvice extends TypeSafeDiagnosingMatcher<AuthorizationDecision> {
 
-	private final Optional<Matcher<? super JsonNode>> jsonMatcher;
+    private final Optional<Matcher<? super JsonNode>> jsonMatcher;
 
-	/**
-	 * Checks for the presence of any advice matching a matcher.
-	 * 
-	 * @param jsonMatcher matcher for advice objects.
-	 */
-	public HasAdvice(Matcher<? super JsonNode> jsonMatcher) {
-		super(AuthorizationDecision.class);
-		this.jsonMatcher = Optional.of(Objects.requireNonNull(jsonMatcher));
-	}
+    /**
+     * Checks for the presence of any advice matching a matcher.
+     * 
+     * @param jsonMatcher matcher for advice objects.
+     */
+    public HasAdvice(Matcher<? super JsonNode> jsonMatcher) {
+        super(AuthorizationDecision.class);
+        this.jsonMatcher = Optional.of(Objects.requireNonNull(jsonMatcher));
+    }
 
-	/**
-	 * Checks for the presence of any advice.
-	 */
-	public HasAdvice() {
-		super(AuthorizationDecision.class);
-		this.jsonMatcher = Optional.empty();
-	}
+    /**
+     * Checks for the presence of any advice.
+     */
+    public HasAdvice() {
+        super(AuthorizationDecision.class);
+        this.jsonMatcher = Optional.empty();
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("the decision has an advice equals ");
-		this.jsonMatcher.ifPresentOrElse(description::appendDescriptionOf, () -> description.appendText("any advice"));
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("the decision has an advice equals ");
+        this.jsonMatcher.ifPresentOrElse(description::appendDescriptionOf, () -> description.appendText("any advice"));
+    }
 
-	@Override
-	protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
-		var advice = decision.getAdvice();
-		if (advice.isEmpty()) {
-			mismatchDescription.appendText("decision didn't contain any advice");
-			return false;
-		}
+    @Override
+    protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
+        var advice = decision.getAdvice();
+        if (advice.isEmpty()) {
+            mismatchDescription.appendText("decision didn't contain any advice");
+            return false;
+        }
 
-		if (jsonMatcher.isEmpty()) {
-			return true;
-		}
+        if (jsonMatcher.isEmpty()) {
+            return true;
+        }
 
-		var containsAdvice = false;
+        var containsAdvice = false;
 
-		for (JsonNode node : advice.get()) {
-			if (this.jsonMatcher.get().matches(node))
-				containsAdvice = true;
-		}
+        for (JsonNode node : advice.get()) {
+            if (this.jsonMatcher.get().matches(node))
+                containsAdvice = true;
+        }
 
-		if (containsAdvice) {
-			return true;
-		} else {
-			mismatchDescription.appendText("no advice matched");
-			return false;
-		}
-	}
+        if (containsAdvice) {
+            return true;
+        } else {
+            mismatchDescription.appendText("no advice matched");
+            return false;
+        }
+    }
 
 }

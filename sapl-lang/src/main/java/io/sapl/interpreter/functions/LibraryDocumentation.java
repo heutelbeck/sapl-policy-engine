@@ -32,15 +32,15 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class LibraryDocumentation {
 
-	@NonNull
-	String name;
+    @NonNull
+    String name;
 
-	@NonNull
-	String description;
+    @NonNull
+    String description;
 
-	@NonNull
-	Object library;
+    @NonNull
+    Object library;
 
-	Map<String, String> documentation = new HashMap<>();
+    Map<String, String> documentation = new HashMap<>();
 
 }

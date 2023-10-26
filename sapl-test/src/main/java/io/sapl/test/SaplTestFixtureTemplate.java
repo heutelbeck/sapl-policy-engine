@@ -26,31 +26,31 @@ import io.sapl.interpreter.pip.AnnotationAttributeContext;
 
 public abstract class SaplTestFixtureTemplate implements SaplTestFixture {
 
-	protected final AnnotationAttributeContext attributeCtx = new AnnotationAttributeContext();
+    protected final AnnotationAttributeContext attributeCtx = new AnnotationAttributeContext();
 
-	protected final AnnotationFunctionContext functionCtx = new AnnotationFunctionContext();
+    protected final AnnotationFunctionContext functionCtx = new AnnotationFunctionContext();
 
-	protected final Map<String, JsonNode> variables = new HashMap<>(1);
+    protected final Map<String, JsonNode> variables = new HashMap<>(1);
 
-	@Override
-	public SaplTestFixture registerPIP(Object pip) throws InitializationException {
-		this.attributeCtx.loadPolicyInformationPoint(pip);
-		return this;
-	}
+    @Override
+    public SaplTestFixture registerPIP(Object pip) throws InitializationException {
+        this.attributeCtx.loadPolicyInformationPoint(pip);
+        return this;
+    }
 
-	@Override
-	public SaplTestFixture registerFunctionLibrary(Object library) throws InitializationException {
-		this.functionCtx.loadLibrary(library);
-		return this;
-	}
+    @Override
+    public SaplTestFixture registerFunctionLibrary(Object library) throws InitializationException {
+        this.functionCtx.loadLibrary(library);
+        return this;
+    }
 
-	@Override
-	public SaplTestFixture registerVariable(String key, JsonNode value) {
-		if (this.variables.containsKey(key)) {
-			throw new SaplTestException("The VariableContext already contains a key \"" + key + "\"");
-		}
-		this.variables.put(key, value);
-		return this;
-	}
+    @Override
+    public SaplTestFixture registerVariable(String key, JsonNode value) {
+        if (this.variables.containsKey(key)) {
+            throw new SaplTestException("The VariableContext already contains a key \"" + key + "\"");
+        }
+        this.variables.put(key, value);
+        return this;
+    }
 
 }

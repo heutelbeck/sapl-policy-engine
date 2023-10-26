@@ -22,9 +22,9 @@ import io.sapl.api.pdp.Decision;
  */
 public class DenyImplCustom extends DenyImpl {
 
-	@Override
-	public Decision getDecision() {
-		return Decision.DENY;
-	}
+    @Override
+    public Decision getDecision() {
+        return Decision.DENY;
+    }
 
 }

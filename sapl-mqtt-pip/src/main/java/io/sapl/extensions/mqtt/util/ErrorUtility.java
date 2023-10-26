@@ -44,88 +44,83 @@ import reactor.util.retry.RetryBackoffSpec;
 @UtilityClass
 public class ErrorUtility {
 
-	/**
-	 * The reference for the status in the configuration whether to emit a value at
-	 * retry or not.
-	 */
-	public static final String   ENVIRONMENT_EMIT_AT_RETRY         = "emitAtRetry";
-	static final String          ENVIRONMENT_ERROR_RETRY_ATTEMPTS  = "errorRetryAttempts";
-	private static final String  ENVIRONMENT_MIN_ERROR_RETRY_DELAY = "minErrorRetryDelay";
-	private static final String  ENVIRONMENT_MAX_ERROR_RETRY_DELAY = "maxErrorRetryDelay";
-	private static final boolean DEFAULT_EMIT_AT_RETRY             = true;                // if true then an undefined
-																							// value will be emitted at
-																							// retry
-	private static final long    ERROR_RETRY_ATTEMPTS              = 10000000;
-	private static final long    MIN_ERROR_RETRY_DELAY             = 5000;                // in milliseconds
-	private static final long    MAX_ERROR_RETRY_DELAY             = 10000;               // in milliseconds
+    /**
+     * The reference for the status in the configuration whether to emit a value at
+     * retry or not.
+     */
+    public static final String   ENVIRONMENT_EMIT_AT_RETRY         = "emitAtRetry";
+    static final String          ENVIRONMENT_ERROR_RETRY_ATTEMPTS  = "errorRetryAttempts";
+    private static final String  ENVIRONMENT_MIN_ERROR_RETRY_DELAY = "minErrorRetryDelay";
+    private static final String  ENVIRONMENT_MAX_ERROR_RETRY_DELAY = "maxErrorRetryDelay";
+    private static final boolean DEFAULT_EMIT_AT_RETRY             = true;                // if true then an undefined
+                                                                                          // value will be emitted at
+                                                                                          // retry
+    private static final long    ERROR_RETRY_ATTEMPTS              = 10000000;
+    private static final long    MIN_ERROR_RETRY_DELAY             = 5000;                // in milliseconds
+    private static final long    MAX_ERROR_RETRY_DELAY             = 10000;               // in milliseconds
 
-	/**
-	 * Build the {@link RetryBackoffSpec} of the provided configurations.
-	 * 
-	 * @param pipMqttClientConfig the pdp configuration
-	 * @return returns the build {@link RetryBackoffSpec}
-	 */
-	public static RetryBackoffSpec getRetrySpec(JsonNode pipMqttClientConfig) {
-		return Retry
-				.backoff(getConfigValueOrDefault(pipMqttClientConfig,
-						ENVIRONMENT_ERROR_RETRY_ATTEMPTS, ERROR_RETRY_ATTEMPTS),
-						Duration.ofMillis(getConfigValueOrDefault(pipMqttClientConfig,
-								ENVIRONMENT_MIN_ERROR_RETRY_DELAY, MIN_ERROR_RETRY_DELAY)))
-				.maxBackoff(Duration.ofMillis(getConfigValueOrDefault(pipMqttClientConfig,
-						ENVIRONMENT_MAX_ERROR_RETRY_DELAY, MAX_ERROR_RETRY_DELAY)))
-				.transientErrors(true) // the retry spec will be reset after each successful retry
-				.filter(errors -> !(errors instanceof NoSuchElementException))
-				.doBeforeRetry(retrySignal -> {
-					long retryNumber = retrySignal.totalRetriesInARow() + 1;
-					log.debug("Trying to reestablish connection and subscription. Retry number " +
-							"since the last value was emitted: {}", retryNumber);
-				});
-	}
+    /**
+     * Build the {@link RetryBackoffSpec} of the provided configurations.
+     * 
+     * @param pipMqttClientConfig the pdp configuration
+     * @return returns the build {@link RetryBackoffSpec}
+     */
+    public static RetryBackoffSpec getRetrySpec(JsonNode pipMqttClientConfig) {
+        return Retry.backoff(
+                getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_ERROR_RETRY_ATTEMPTS, ERROR_RETRY_ATTEMPTS),
+                Duration.ofMillis(getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_MIN_ERROR_RETRY_DELAY,
+                        MIN_ERROR_RETRY_DELAY)))
+                .maxBackoff(Duration.ofMillis(getConfigValueOrDefault(pipMqttClientConfig,
+                        ENVIRONMENT_MAX_ERROR_RETRY_DELAY, MAX_ERROR_RETRY_DELAY)))
+                .transientErrors(true) // the retry spec will be reset after each successful retry
+                .filter(errors -> !(errors instanceof NoSuchElementException)).doBeforeRetry(retrySignal -> {
+                    long retryNumber = retrySignal.totalRetriesInARow() + 1;
+                    log.debug("Trying to reestablish connection and subscription. Retry number "
+                            + "since the last value was emitted: {}", retryNumber);
+                });
+    }
 
-	/**
-	 * If enabled emit a value when retrying.
-	 * 
-	 * @param pipMqttClientConfig the provided pdp configuration
-	 * @param emitterUndefined    the emitter necessary to emit downstream
-	 * @param retrySignal         containing specifics about the retry
-	 */
-	public static void emitValueOnRetry(JsonNode pipMqttClientConfig, Sinks.Many<Val> emitterUndefined,
-			Retry.RetrySignal retrySignal) {
-		boolean isUndefinedAtRetryEnabled = getConfigValueOrDefault(pipMqttClientConfig,
-				ENVIRONMENT_EMIT_AT_RETRY, DEFAULT_EMIT_AT_RETRY);
-		long    retryNumber               = retrySignal.totalRetriesInARow() + 1;
-		// emit Val.UNDEFINED when the first error in a row occurred
-		if (isUndefinedAtRetryEnabled && retryNumber == 1) {
-			emitterUndefined.tryEmitNext(Val.UNDEFINED);
-		}
-	}
+    /**
+     * If enabled emit a value when retrying.
+     * 
+     * @param pipMqttClientConfig the provided pdp configuration
+     * @param emitterUndefined    the emitter necessary to emit downstream
+     * @param retrySignal         containing specifics about the retry
+     */
+    public static void emitValueOnRetry(JsonNode pipMqttClientConfig, Sinks.Many<Val> emitterUndefined,
+            Retry.RetrySignal retrySignal) {
+        boolean isUndefinedAtRetryEnabled = getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_EMIT_AT_RETRY,
+                DEFAULT_EMIT_AT_RETRY);
+        long    retryNumber               = retrySignal.totalRetriesInARow() + 1;
+        // emit Val.UNDEFINED when the first error in a row occurred
+        if (isUndefinedAtRetryEnabled && retryNumber == 1) {
+            emitterUndefined.tryEmitNext(Val.UNDEFINED);
+        }
+    }
 
-	/**
-	 * Evaluates the {@link Throwable} whether the broker config hash has to be
-	 * removed from the client cache or not.
-	 * 
-	 * @param throwable the {@link Throwable} to evaluate
-	 * @return returns true if the broker config hash has to be removed from the
-	 *         client cache
-	 */
-	public static boolean isErrorRelevantToRemoveClientCache(Throwable throwable) {
-		return throwable instanceof ConnectionClosedException ||
-				throwable instanceof ConnectionFailedException ||
-				(throwable instanceof MqttClientStateException && throwable.getMessage()
-						.equals(MqttClientStateExceptions.notConnected().getMessage()))
-				||
-				throwable instanceof MqttSessionExpiredException;
-	}
+    /**
+     * Evaluates the {@link Throwable} whether the broker config hash has to be
+     * removed from the client cache or not.
+     * 
+     * @param throwable the {@link Throwable} to evaluate
+     * @return returns true if the broker config hash has to be removed from the
+     *         client cache
+     */
+    public static boolean isErrorRelevantToRemoveClientCache(Throwable throwable) {
+        return throwable instanceof ConnectionClosedException || throwable instanceof ConnectionFailedException
+                || (throwable instanceof MqttClientStateException
+                        && throwable.getMessage().equals(MqttClientStateExceptions.notConnected().getMessage()))
+                || throwable instanceof MqttSessionExpiredException;
+    }
 
-	/**
-	 * Evaluates whether the client caused the disconnect from the broker or not.
-	 * 
-	 * @param throwable the {@link Throwable} to evaluate
-	 * @return returns true if the client caused the disconnect
-	 */
-	public static boolean isClientCausedDisconnect(Throwable throwable) {
-		return throwable.getCause() instanceof Mqtt5DisconnectException &&
-				throwable.getCause().getMessage()
-						.contains("Client sent " + Mqtt5MessageType.DISCONNECT);
-	}
+    /**
+     * Evaluates whether the client caused the disconnect from the broker or not.
+     * 
+     * @param throwable the {@link Throwable} to evaluate
+     * @return returns true if the client caused the disconnect
+     */
+    public static boolean isClientCausedDisconnect(Throwable throwable) {
+        return throwable.getCause() instanceof Mqtt5DisconnectException
+                && throwable.getCause().getMessage().contains("Client sent " + Mqtt5MessageType.DISCONNECT);
+    }
 }

@@ -39,23 +39,23 @@ import lombok.extern.slf4j.Slf4j;
 @AutoConfiguration
 @RequiredArgsConstructor
 public class AuthorizationManagerConfiguration {
-	private final PolicyDecisionPoint          pdp;
-	private final ConstraintEnforcementService constraintEnforcementService;
-	private final ObjectMapper                 mapper;
+    private final PolicyDecisionPoint          pdp;
+    private final ConstraintEnforcementService constraintEnforcementService;
+    private final ObjectMapper                 mapper;
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-	SaplAuthorizationManager saplAuthorizationManager() {
-		log.debug("Servlet-based environment detected. Deploy SaplAuthorizationManager.");
-		return new SaplAuthorizationManager(pdp, constraintEnforcementService, mapper);
-	}
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+    SaplAuthorizationManager saplAuthorizationManager() {
+        log.debug("Servlet-based environment detected. Deploy SaplAuthorizationManager.");
+        return new SaplAuthorizationManager(pdp, constraintEnforcementService, mapper);
+    }
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
-	ReactiveSaplAuthorizationManager reactiveSaplAuthorizationManager() {
-		log.debug("Webflux environment detected. Deploy ReactiveSaplAuthorizationManager.");
-		return new ReactiveSaplAuthorizationManager(pdp, constraintEnforcementService, mapper);
-	}
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
+    ReactiveSaplAuthorizationManager reactiveSaplAuthorizationManager() {
+        log.debug("Webflux environment detected. Deploy ReactiveSaplAuthorizationManager.");
+        return new ReactiveSaplAuthorizationManager(pdp, constraintEnforcementService, mapper);
+    }
 }

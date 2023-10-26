@@ -21,6 +21,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 public interface RequestHandlerProvider extends Responsible {
 
-	LongConsumer getHandler(JsonNode constraint);
+    LongConsumer getHandler(JsonNode constraint);
 
 }

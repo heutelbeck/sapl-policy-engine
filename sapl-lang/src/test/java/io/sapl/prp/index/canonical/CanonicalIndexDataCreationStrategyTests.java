@@ -29,47 +29,47 @@ import org.junit.jupiter.api.Test;
 
 class CanonicalIndexDataCreationStrategyTests {
 
-	@Test
-	void testDefaultStrategy() {
-		assertThat(new CanonicalIndexDataCreationStrategy(), notNullValue());
-	}
+    @Test
+    void testDefaultStrategy() {
+        assertThat(new CanonicalIndexDataCreationStrategy(), notNullValue());
+    }
 
-	@Test
-	void testCreatePredicateInfo() {
-		var strategy = new CanonicalIndexDataCreationStrategy();
+    @Test
+    void testCreatePredicateInfo() {
+        var strategy = new CanonicalIndexDataCreationStrategy();
 
-		var bool = new Bool(true);
-		var literal = new Literal(bool);
-		var clause = new ConjunctiveClause(literal);
+        var bool    = new Bool(true);
+        var literal = new Literal(bool);
+        var clause  = new ConjunctiveClause(literal);
 
-		Map<Bool, PredicateInfo> boolToPredicateInfo = new HashMap<>();
-		Set<Bool> negativesGroupedByFormula = new HashSet<>();
-		Set<Bool> positivesGroupedByFormula = new HashSet<>();
+        Map<Bool, PredicateInfo> boolToPredicateInfo       = new HashMap<>();
+        Set<Bool>                negativesGroupedByFormula = new HashSet<>();
+        Set<Bool>                positivesGroupedByFormula = new HashSet<>();
 
-		strategy.createPredicateInfo(literal, clause, boolToPredicateInfo, negativesGroupedByFormula,
-				positivesGroupedByFormula, clause.size());
-		assertThat(boolToPredicateInfo.get(bool).getNumberOfPositives(), is(1));
-		assertThat(positivesGroupedByFormula, Matchers.contains(bool));
-		assertThat(boolToPredicateInfo.get(bool).getGroupedNumberOfPositives(), is(1));
+        strategy.createPredicateInfo(literal, clause, boolToPredicateInfo, negativesGroupedByFormula,
+                positivesGroupedByFormula, clause.size());
+        assertThat(boolToPredicateInfo.get(bool).getNumberOfPositives(), is(1));
+        assertThat(positivesGroupedByFormula, Matchers.contains(bool));
+        assertThat(boolToPredicateInfo.get(bool).getGroupedNumberOfPositives(), is(1));
 
-		var negatedLiteral = new Literal(bool, true);
-		strategy.createPredicateInfo(negatedLiteral, clause, boolToPredicateInfo, negativesGroupedByFormula,
-				positivesGroupedByFormula, clause.size());
-		assertThat(boolToPredicateInfo.get(bool).getNumberOfNegatives(), is(1));
-		assertThat(negativesGroupedByFormula, Matchers.contains(bool));
-		assertThat(boolToPredicateInfo.get(bool).getGroupedNumberOfNegatives(), is(1));
+        var negatedLiteral = new Literal(bool, true);
+        strategy.createPredicateInfo(negatedLiteral, clause, boolToPredicateInfo, negativesGroupedByFormula,
+                positivesGroupedByFormula, clause.size());
+        assertThat(boolToPredicateInfo.get(bool).getNumberOfNegatives(), is(1));
+        assertThat(negativesGroupedByFormula, Matchers.contains(bool));
+        assertThat(boolToPredicateInfo.get(bool).getGroupedNumberOfNegatives(), is(1));
 
-		strategy.createPredicateInfo(literal, clause, boolToPredicateInfo, negativesGroupedByFormula,
-				positivesGroupedByFormula, clause.size());
-		assertThat(boolToPredicateInfo.get(bool).getNumberOfPositives(), is(2));
-		assertThat(positivesGroupedByFormula, Matchers.contains(bool));
-		assertThat(boolToPredicateInfo.get(bool).getGroupedNumberOfPositives(), is(1));
+        strategy.createPredicateInfo(literal, clause, boolToPredicateInfo, negativesGroupedByFormula,
+                positivesGroupedByFormula, clause.size());
+        assertThat(boolToPredicateInfo.get(bool).getNumberOfPositives(), is(2));
+        assertThat(positivesGroupedByFormula, Matchers.contains(bool));
+        assertThat(boolToPredicateInfo.get(bool).getGroupedNumberOfPositives(), is(1));
 
-		strategy.createPredicateInfo(negatedLiteral, clause, boolToPredicateInfo, negativesGroupedByFormula,
-				positivesGroupedByFormula, clause.size());
-		assertThat(boolToPredicateInfo.get(bool).getNumberOfNegatives(), is(2));
-		assertThat(negativesGroupedByFormula, Matchers.contains(bool));
-		assertThat(boolToPredicateInfo.get(bool).getGroupedNumberOfNegatives(), is(1));
-	}
+        strategy.createPredicateInfo(negatedLiteral, clause, boolToPredicateInfo, negativesGroupedByFormula,
+                positivesGroupedByFormula, clause.size());
+        assertThat(boolToPredicateInfo.get(bool).getNumberOfNegatives(), is(2));
+        assertThat(negativesGroupedByFormula, Matchers.contains(bool));
+        assertThat(boolToPredicateInfo.get(bool).getGroupedNumberOfNegatives(), is(1));
+    }
 
 }

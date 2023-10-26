@@ -30,40 +30,38 @@ import reactor.core.publisher.Flux;
 @RequiredArgsConstructor
 public class PreEnforcePolicyEnforcementPoint {
 
-	private final ConstraintEnforcementService constraintEnforcementService;
+    private final ConstraintEnforcementService constraintEnforcementService;
 
-	public <T> Flux<T> enforce(
-			Flux<AuthorizationDecision> authorizationDecisions,
-			MethodInvocation invocation,
-			Class<T> clazz) {
-		return authorizationDecisions.next().flatMapMany(enforceDecision(invocation, clazz));
-	}
+    public <T> Flux<T> enforce(Flux<AuthorizationDecision> authorizationDecisions, MethodInvocation invocation,
+            Class<T> clazz) {
+        return authorizationDecisions.next().flatMapMany(enforceDecision(invocation, clazz));
+    }
 
-	@SuppressWarnings("unchecked")
-	private <T> Function<AuthorizationDecision, Flux<T>> enforceDecision(MethodInvocation invocation, Class<T> clazz) {
-		return decision -> {
-			var constraintHandlerBundle = constraintEnforcementService.reactiveTypeBundleFor(decision, clazz);
+    @SuppressWarnings("unchecked")
+    private <T> Function<AuthorizationDecision, Flux<T>> enforceDecision(MethodInvocation invocation, Class<T> clazz) {
+        return decision -> {
+            var constraintHandlerBundle = constraintEnforcementService.reactiveTypeBundleFor(decision, clazz);
 
-			Flux<T> resourceAccessPoint;
+            Flux<T> resourceAccessPoint;
 
-			var decisionIsPermit = Decision.PERMIT != decision.getDecision();
-			if (decisionIsPermit) {
-				resourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
-			} else {
-				constraintHandlerBundle.handleMethodInvocationHandlers(invocation);
-				try {
-					resourceAccessPoint = Flux.from((Publisher<T>) invocation.proceed());
-				} catch (Throwable t) {
-					resourceAccessPoint = Flux.error(t);
-				}
-			}
+            var decisionIsPermit = Decision.PERMIT != decision.getDecision();
+            if (decisionIsPermit) {
+                resourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
+            } else {
+                constraintHandlerBundle.handleMethodInvocationHandlers(invocation);
+                try {
+                    resourceAccessPoint = Flux.from((Publisher<T>) invocation.proceed());
+                } catch (Throwable t) {
+                    resourceAccessPoint = Flux.error(t);
+                }
+            }
 
-			resourceAccessPoint = constraintEnforcementService.replaceIfResourcePresent(
-					resourceAccessPoint, decision.getResource(), clazz);
+            resourceAccessPoint = constraintEnforcementService.replaceIfResourcePresent(resourceAccessPoint,
+                    decision.getResource(), clazz);
 
-			// onErrorStop is required to counter an onErrorContinue attack on the PEP/RAP.
-			return constraintHandlerBundle.wrap(resourceAccessPoint).onErrorStop();
-		};
-	}
+            // onErrorStop is required to counter an onErrorContinue attack on the PEP/RAP.
+            return constraintHandlerBundle.wrap(resourceAccessPoint).onErrorStop();
+        };
+    }
 
 }

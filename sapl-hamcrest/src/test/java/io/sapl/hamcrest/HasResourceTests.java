@@ -35,74 +35,74 @@ import io.sapl.api.pdp.Decision;
 
 class HasResourceTests {
 
-	@Test
-	void test() {
-		ObjectMapper mapper   = new ObjectMapper();
-		ObjectNode   resource = mapper.createObjectNode();
-		resource.put("foo", "bar");
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.of(resource), null, null);
+    @Test
+    void test() {
+        ObjectMapper mapper   = new ObjectMapper();
+        ObjectNode   resource = mapper.createObjectNode();
+        resource.put("foo", "bar");
+        AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.of(resource), null, null);
 
-		var sut = hasResource(resource);
+        var sut = hasResource(resource);
 
-		assertThat(dec, is(sut));
-	}
+        assertThat(dec, is(sut));
+    }
 
-	@Test
-	void test_neg() {
-		ObjectMapper mapper           = new ObjectMapper();
-		ObjectNode   expectedResource = mapper.createObjectNode();
-		expectedResource.put("foo", "bar");
-		ObjectNode actualResource = mapper.createObjectNode();
-		actualResource.put("xxx", "yyy");
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.of(actualResource), null, null);
+    @Test
+    void test_neg() {
+        ObjectMapper mapper           = new ObjectMapper();
+        ObjectNode   expectedResource = mapper.createObjectNode();
+        expectedResource.put("foo", "bar");
+        ObjectNode actualResource = mapper.createObjectNode();
+        actualResource.put("xxx", "yyy");
+        AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.of(actualResource), null, null);
 
-		var sut = hasResource(expectedResource);
+        var sut = hasResource(expectedResource);
 
-		assertThat(dec, not(is(sut)));
-	}
+        assertThat(dec, not(is(sut)));
+    }
 
-	@Test
-	void test_nullDecision() {
-		ObjectMapper mapper   = new ObjectMapper();
-		ObjectNode   resource = mapper.createObjectNode();
-		resource.put("foo", "bar");
+    @Test
+    void test_nullDecision() {
+        ObjectMapper mapper   = new ObjectMapper();
+        ObjectNode   resource = mapper.createObjectNode();
+        resource.put("foo", "bar");
 
-		var sut = hasResource(resource);
+        var sut = hasResource(resource);
 
-		assertThat(null, not(is(sut)));
-	}
+        assertThat(null, not(is(sut)));
+    }
 
-	@Test
-	void test_emptyResource() {
-		ObjectMapper mapper   = new ObjectMapper();
-		ObjectNode   resource = mapper.createObjectNode();
-		resource.put("foo", "bar");
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), null, null);
+    @Test
+    void test_emptyResource() {
+        ObjectMapper mapper   = new ObjectMapper();
+        ObjectNode   resource = mapper.createObjectNode();
+        resource.put("foo", "bar");
+        AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), null, null);
 
-		var sut = hasResource(resource);
+        var sut = hasResource(resource);
 
-		assertThat(dec, not(is(sut)));
-	}
+        assertThat(dec, not(is(sut)));
+    }
 
-	@Test
-	void test_nullJsonNode() {
-		assertThrows(NullPointerException.class, () -> hasResource((ObjectNode) null));
-	}
+    @Test
+    void test_nullJsonNode() {
+        assertThrows(NullPointerException.class, () -> hasResource((ObjectNode) null));
+    }
 
-	@Test
-	void testDescriptionEmptyMatcher() {
-		var                     sut         = hasResource();
-		final StringDescription description = new StringDescription();
-		sut.describeTo(description);
-		assertThat(description.toString(), is("a resource with any JsonNode"));
-	}
+    @Test
+    void testDescriptionEmptyMatcher() {
+        var                     sut         = hasResource();
+        final StringDescription description = new StringDescription();
+        sut.describeTo(description);
+        assertThat(description.toString(), is("a resource with any JsonNode"));
+    }
 
-	@Test
-	void testDescriptionMatcher() {
-		var                     sut         = hasResource(jsonText("value"));
-		final StringDescription description = new StringDescription();
-		sut.describeTo(description);
-		assertThat(description.toString(), is("a resource with a text node with value that is \"value\""));
-	}
+    @Test
+    void testDescriptionMatcher() {
+        var                     sut         = hasResource(jsonText("value"));
+        final StringDescription description = new StringDescription();
+        sut.describeTo(description);
+        assertThat(description.toString(), is("a resource with a text node with value that is \"value\""));
+    }
 
 }

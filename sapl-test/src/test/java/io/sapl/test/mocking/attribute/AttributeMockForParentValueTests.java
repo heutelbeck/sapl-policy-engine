@@ -29,38 +29,38 @@ import reactor.test.StepVerifier;
 
 class AttributeMockForParentValueTests {
 
-	private AttributeMockForParentValue mock;
+    private AttributeMockForParentValue mock;
 
-	@BeforeEach
-	void setUp() {
-		mock = new AttributeMockForParentValue("attr.test");
-	}
+    @BeforeEach
+    void setUp() {
+        mock = new AttributeMockForParentValue("attr.test");
+    }
 
-	@Test
-	void test() {
-		mock.loadMockForParentValue(parentValue(val(1)), Val.of(true));
-		mock.loadMockForParentValue(parentValue(val(2)), Val.of(false));
+    @Test
+    void test() {
+        mock.loadMockForParentValue(parentValue(val(1)), Val.of(true));
+        mock.loadMockForParentValue(parentValue(val(2)), Val.of(false));
 
-		StepVerifier.create(mock.evaluate("test.attribute", Val.of(1), null, null)).expectNext(Val.of(true))
-				.thenCancel().verify();
+        StepVerifier.create(mock.evaluate("test.attribute", Val.of(1), null, null)).expectNext(Val.of(true))
+                .thenCancel().verify();
 
-		StepVerifier.create(mock.evaluate("test.attribute", Val.of(2), null, null)).expectNext(Val.of(false))
-				.thenCancel().verify();
+        StepVerifier.create(mock.evaluate("test.attribute", Val.of(2), null, null)).expectNext(Val.of(false))
+                .thenCancel().verify();
 
-		mock.assertVerifications();
-	}
+        mock.assertVerifications();
+    }
 
-	@Test
-	void test_noMatchingMockDefined() {
-		var val99 = Val.of(99);
-		mock.loadMockForParentValue(parentValue(val(1)), Val.of(true));
-		assertThatExceptionOfType(SaplTestException.class)
-				.isThrownBy(() -> mock.evaluate("test.attribute", val99, null, null));
-	}
+    @Test
+    void test_noMatchingMockDefined() {
+        var val99 = Val.of(99);
+        mock.loadMockForParentValue(parentValue(val(1)), Val.of(true));
+        assertThatExceptionOfType(SaplTestException.class)
+                .isThrownBy(() -> mock.evaluate("test.attribute", val99, null, null));
+    }
 
-	@Test
-	void test_errorMessage() {
-		assertThat(mock.getErrorMessageForCurrentMode()).isNotEmpty();
-	}
+    @Test
+    void test_errorMessage() {
+        assertThat(mock.getErrorMessageForCurrentMode()).isNotEmpty();
+    }
 
 }

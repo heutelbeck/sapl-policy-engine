@@ -46,123 +46,123 @@ import reactor.util.context.Context;
 
 public class MockUtil {
 
-	private static final SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
+    private static final SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
 
-	public static void mockPolicyTargetExpressionContainerExpression(Expression expression) {
-		var policy                  = FACTORY.createPolicy();
-		var targetExpressionFeature = policy.eClass().getEStructuralFeature("targetExpression");
-		policy.eSet(targetExpressionFeature, expression);
-	}
+    public static void mockPolicyTargetExpressionContainerExpression(Expression expression) {
+        var policy                  = FACTORY.createPolicy();
+        var targetExpressionFeature = policy.eClass().getEStructuralFeature("targetExpression");
+        policy.eSet(targetExpressionFeature, expression);
+    }
 
-	public static void mockPolicySetTargetExpressionContainerExpression(Expression expression) {
-		var policySet               = FACTORY.createPolicySet();
-		var targetExpressionFeature = policySet.eClass().getEStructuralFeature("targetExpression");
-		policySet.eSet(targetExpressionFeature, expression);
-	}
+    public static void mockPolicySetTargetExpressionContainerExpression(Expression expression) {
+        var policySet               = FACTORY.createPolicySet();
+        var targetExpressionFeature = policySet.eClass().getEStructuralFeature("targetExpression");
+        policySet.eSet(targetExpressionFeature, expression);
+    }
 
-	public static Context setUpAuthorizationContext(Context ctx) {
-		var attributeCtx = new AnnotationAttributeContext();
-		var functionCtx  = new AnnotationFunctionContext();
-		try {
-			attributeCtx.loadPolicyInformationPoint(new TestPolicyInformationPoint());
-			functionCtx.loadLibrary(new SimpleFunctionLibrary());
-			functionCtx.loadLibrary(new FilterFunctionLibrary());
-			functionCtx.loadLibrary(new TestFunctionLibrary());
-		} catch (InitializationException e) {
-			fail("The loading of function libraries for the test environment failed: " + e.getMessage());
-		}
+    public static Context setUpAuthorizationContext(Context ctx) {
+        var attributeCtx = new AnnotationAttributeContext();
+        var functionCtx  = new AnnotationFunctionContext();
+        try {
+            attributeCtx.loadPolicyInformationPoint(new TestPolicyInformationPoint());
+            functionCtx.loadLibrary(new SimpleFunctionLibrary());
+            functionCtx.loadLibrary(new FilterFunctionLibrary());
+            functionCtx.loadLibrary(new TestFunctionLibrary());
+        } catch (InitializationException e) {
+            fail("The loading of function libraries for the test environment failed: " + e.getMessage());
+        }
 
-		ctx = AuthorizationContext.setAttributeContext(ctx, attributeCtx);
-		ctx = AuthorizationContext.setFunctionContext(ctx, functionCtx);
-		ctx = AuthorizationContext.setVariable(ctx, "nullVariable", Val.NULL);
-		ctx = AuthorizationContext.setImports(ctx, new HashMap<>());
+        ctx = AuthorizationContext.setAttributeContext(ctx, attributeCtx);
+        ctx = AuthorizationContext.setFunctionContext(ctx, functionCtx);
+        ctx = AuthorizationContext.setVariable(ctx, "nullVariable", Val.NULL);
+        ctx = AuthorizationContext.setImports(ctx, new HashMap<>());
 
-		return ctx;
-	}
+        return ctx;
+    }
 
-	public static Context setUpAuthorizationContext(Context ctx, AuthorizationSubscription authzSubscription) {
-		ctx = setUpAuthorizationContext(ctx);
-		ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription);
-		return ctx;
-	}
+    public static Context setUpAuthorizationContext(Context ctx, AuthorizationSubscription authzSubscription) {
+        ctx = setUpAuthorizationContext(ctx);
+        ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription);
+        return ctx;
+    }
 
-	@FunctionLibrary(name = "mock")
-	public static class TestFunctionLibrary {
+    @FunctionLibrary(name = "mock")
+    public static class TestFunctionLibrary {
 
-		@Function
-		public Val nil(Val... parameters) {
-			return Val.NULL;
-		}
+        @Function
+        public Val nil(Val... parameters) {
+            return Val.NULL;
+        }
 
-		@Function
-		public Val emptyString(Val... parameters) {
-			return Val.of("");
-		}
+        @Function
+        public Val emptyString(Val... parameters) {
+            return Val.of("");
+        }
 
-		@Function
-		public Val error(Val... parameters) {
-			return Val.error("INTENTIONALLY CREATED TEST ERROR");
-		}
+        @Function
+        public Val error(Val... parameters) {
+            return Val.error("INTENTIONALLY CREATED TEST ERROR");
+        }
 
-		@Function
-		public Val exception(Val... parameters) {
-			throw new RuntimeException("INTENTIONALLY THROWN TEST EXCEPTION");
-		}
+        @Function
+        public Val exception(Val... parameters) {
+            throw new RuntimeException("INTENTIONALLY THROWN TEST EXCEPTION");
+        }
 
-		@Function
-		public Val parameters(Val... parameters) {
-			var array = Val.JSON.arrayNode();
-			for (var param : parameters)
-				array.add(param.get());
-			return Val.of(array);
-		}
+        @Function
+        public Val parameters(Val... parameters) {
+            var array = Val.JSON.arrayNode();
+            for (var param : parameters)
+                array.add(param.get());
+            return Val.of(array);
+        }
 
-	}
+    }
 
-	@PolicyInformationPoint(name = "test")
-	public static class TestPolicyInformationPoint {
+    @PolicyInformationPoint(name = "test")
+    public static class TestPolicyInformationPoint {
 
-		@EnvironmentAttribute
-		public Flux<Val> nilflux(Map<String, JsonNode> variables) {
-			return Flux.just(Val.NULL);
-		}
+        @EnvironmentAttribute
+        public Flux<Val> nilflux(Map<String, JsonNode> variables) {
+            return Flux.just(Val.NULL);
+        }
 
-		@EnvironmentAttribute
-		public Flux<Val> numbers(Map<String, JsonNode> variables) {
-			return Flux.just(Val.of(0), Val.of(1), Val.of(2), Val.of(3), Val.of(4), Val.of(5));
-		}
+        @EnvironmentAttribute
+        public Flux<Val> numbers(Map<String, JsonNode> variables) {
+            return Flux.just(Val.of(0), Val.of(1), Val.of(2), Val.of(3), Val.of(4), Val.of(5));
+        }
 
-		@Attribute
-		public Flux<Val> numbers(Val leftHand, Map<String, JsonNode> variables) {
-			return Flux.just(Val.of(0), Val.of(1), Val.of(2), Val.of(3), Val.of(4), Val.of(5));
-		}
+        @Attribute
+        public Flux<Val> numbers(Val leftHand, Map<String, JsonNode> variables) {
+            return Flux.just(Val.of(0), Val.of(1), Val.of(2), Val.of(3), Val.of(4), Val.of(5));
+        }
 
-		@EnvironmentAttribute
-		public Flux<Val> numbersWithError(Map<String, JsonNode> variables) {
-			return Flux.just(Val.of(0), Val.of(1), Val.error("INTENTIONAL ERROR IN SEQUENCE"), Val.of(3), Val.of(4),
-					Val.of(5));
-		}
+        @EnvironmentAttribute
+        public Flux<Val> numbersWithError(Map<String, JsonNode> variables) {
+            return Flux.just(Val.of(0), Val.of(1), Val.error("INTENTIONAL ERROR IN SEQUENCE"), Val.of(3), Val.of(4),
+                    Val.of(5));
+        }
 
-	}
+    }
 
-	@SuppressWarnings("unchecked")
-	public static void mockPolicyTargetExpressionContainerExpressionForAttributeFinderStep(
-			AttributeFinderStep expression) {
-		var basicIdentifier = FACTORY.createBasicIdentifier();
-		mockPolicyTargetExpressionContainerExpression(basicIdentifier);
-		var stepsFeature  = basicIdentifier.eClass().getEStructuralFeature("steps");
-		var stepsInstance = (EList<Object>) basicIdentifier.eGet(stepsFeature, true);
-		stepsInstance.add(expression);
-	}
+    @SuppressWarnings("unchecked")
+    public static void mockPolicyTargetExpressionContainerExpressionForAttributeFinderStep(
+            AttributeFinderStep expression) {
+        var basicIdentifier = FACTORY.createBasicIdentifier();
+        mockPolicyTargetExpressionContainerExpression(basicIdentifier);
+        var stepsFeature  = basicIdentifier.eClass().getEStructuralFeature("steps");
+        var stepsInstance = (EList<Object>) basicIdentifier.eGet(stepsFeature, true);
+        stepsInstance.add(expression);
+    }
 
-	@SuppressWarnings("unchecked")
-	public static void mockPolicySetTargetExpressionContainerExpressionForAttributeFinderStep(
-			AttributeFinderStep expression) {
-		var basicIdentifier = FACTORY.createBasicIdentifier();
-		mockPolicySetTargetExpressionContainerExpression(basicIdentifier);
-		var stepsFeature  = basicIdentifier.eClass().getEStructuralFeature("steps");
-		var stepsInstance = (EList<Object>) basicIdentifier.eGet(stepsFeature, true);
-		stepsInstance.add(expression);
-	}
+    @SuppressWarnings("unchecked")
+    public static void mockPolicySetTargetExpressionContainerExpressionForAttributeFinderStep(
+            AttributeFinderStep expression) {
+        var basicIdentifier = FACTORY.createBasicIdentifier();
+        mockPolicySetTargetExpressionContainerExpression(basicIdentifier);
+        var stepsFeature  = basicIdentifier.eClass().getEStructuralFeature("steps");
+        var stepsInstance = (EList<Object>) basicIdentifier.eGet(stepsFeature, true);
+        stepsInstance.add(expression);
+    }
 
 }

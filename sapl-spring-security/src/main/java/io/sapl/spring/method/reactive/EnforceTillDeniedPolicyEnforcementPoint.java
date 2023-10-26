@@ -58,188 +58,188 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
-	private final Flux<AuthorizationDecision> decisions;
+    private final Flux<AuthorizationDecision> decisions;
 
-	private Flux<T> resourceAccessPoint;
+    private Flux<T> resourceAccessPoint;
 
-	private final ConstraintEnforcementService constraintsService;
+    private final ConstraintEnforcementService constraintsService;
 
-	EnforcementSink<T> sink;
+    EnforcementSink<T> sink;
 
-	private final Class<T> clazz;
+    private final Class<T> clazz;
 
-	final AtomicReference<Disposable> decisionsSubscription = new AtomicReference<>();
+    final AtomicReference<Disposable> decisionsSubscription = new AtomicReference<>();
 
-	final AtomicReference<Disposable> dataSubscription = new AtomicReference<>();
+    final AtomicReference<Disposable> dataSubscription = new AtomicReference<>();
 
-	final AtomicReference<AuthorizationDecision> latestDecision = new AtomicReference<>();
+    final AtomicReference<AuthorizationDecision> latestDecision = new AtomicReference<>();
 
-	final AtomicReference<ReactiveConstraintHandlerBundle<T>> constraintHandler = new AtomicReference<>();
+    final AtomicReference<ReactiveConstraintHandlerBundle<T>> constraintHandler = new AtomicReference<>();
 
-	final AtomicBoolean stopped = new AtomicBoolean(false);
+    final AtomicBoolean stopped = new AtomicBoolean(false);
 
-	private EnforceTillDeniedPolicyEnforcementPoint(Flux<AuthorizationDecision> decisions, Flux<T> resourceAccessPoint,
-			ConstraintEnforcementService constraintsService, Class<T> clazz) {
-		this.decisions           = decisions;
-		this.resourceAccessPoint = resourceAccessPoint;
-		this.constraintsService  = constraintsService;
-		this.clazz               = clazz;
-	}
+    private EnforceTillDeniedPolicyEnforcementPoint(Flux<AuthorizationDecision> decisions, Flux<T> resourceAccessPoint,
+            ConstraintEnforcementService constraintsService, Class<T> clazz) {
+        this.decisions           = decisions;
+        this.resourceAccessPoint = resourceAccessPoint;
+        this.constraintsService  = constraintsService;
+        this.clazz               = clazz;
+    }
 
-	public static <V> Flux<V> of(Flux<AuthorizationDecision> decisions, Flux<V> resourceAccessPoint,
-			ConstraintEnforcementService constraintsService, Class<V> clazz) {
-		var pep = new EnforceTillDeniedPolicyEnforcementPoint<>(decisions, resourceAccessPoint, constraintsService,
-				clazz);
-		return pep.doOnTerminate(pep::handleOnTerminateConstraints)
-				.doAfterTerminate(pep::handleAfterTerminateConstraints)
-				.onErrorMap(AccessDeniedException.class, pep::handleAccessDenied).doOnCancel(pep::handleCancel)
-				.onErrorStop();
-	}
+    public static <V> Flux<V> of(Flux<AuthorizationDecision> decisions, Flux<V> resourceAccessPoint,
+            ConstraintEnforcementService constraintsService, Class<V> clazz) {
+        var pep = new EnforceTillDeniedPolicyEnforcementPoint<>(decisions, resourceAccessPoint, constraintsService,
+                clazz);
+        return pep.doOnTerminate(pep::handleOnTerminateConstraints)
+                .doAfterTerminate(pep::handleAfterTerminateConstraints)
+                .onErrorMap(AccessDeniedException.class, pep::handleAccessDenied).doOnCancel(pep::handleCancel)
+                .onErrorStop();
+    }
 
-	@Override
-	public void subscribe(@NonNull CoreSubscriber<? super T> subscriber) {
-		if (sink != null)
-			throw new IllegalStateException("Operator may only be subscribed once.");
-		var context = subscriber.currentContext();
-		sink                = new EnforcementSink<>();
-		resourceAccessPoint = resourceAccessPoint.contextWrite(context);
-		Flux.create(sink).subscribe(subscriber);
-		decisionsSubscription.set(decisions.doOnNext(this::handleNextDecision).contextWrite(context).subscribe());
-	}
+    @Override
+    public void subscribe(@NonNull CoreSubscriber<? super T> subscriber) {
+        if (sink != null)
+            throw new IllegalStateException("Operator may only be subscribed once.");
+        var context = subscriber.currentContext();
+        sink                = new EnforcementSink<>();
+        resourceAccessPoint = resourceAccessPoint.contextWrite(context);
+        Flux.create(sink).subscribe(subscriber);
+        decisionsSubscription.set(decisions.doOnNext(this::handleNextDecision).contextWrite(context).subscribe());
+    }
 
-	private void handleNextDecision(AuthorizationDecision decision) {
-		var                                previousDecision = latestDecision.getAndSet(decision);
-		ReactiveConstraintHandlerBundle<T> newBundle;
-		try {
-			newBundle = constraintsService.reactiveTypeBundleFor(decision, clazz);
-			constraintHandler.set(newBundle);
-		} catch (AccessDeniedException e) {
-			constraintHandler.set(new ReactiveConstraintHandlerBundle<>());
-			sink.error(e);
-			disposeDecisionsAndResourceAccessPoint();
-			return;
-		}
-		constraintHandler.get().handleOnDecisionConstraints();
+    private void handleNextDecision(AuthorizationDecision decision) {
+        var                                previousDecision = latestDecision.getAndSet(decision);
+        ReactiveConstraintHandlerBundle<T> newBundle;
+        try {
+            newBundle = constraintsService.reactiveTypeBundleFor(decision, clazz);
+            constraintHandler.set(newBundle);
+        } catch (AccessDeniedException e) {
+            constraintHandler.set(new ReactiveConstraintHandlerBundle<>());
+            sink.error(e);
+            disposeDecisionsAndResourceAccessPoint();
+            return;
+        }
+        constraintHandler.get().handleOnDecisionConstraints();
 
-		if (decision.getDecision() != Decision.PERMIT) {
-			sink.error(new AccessDeniedException("Access Denied by PDP"));
-			disposeDecisionsAndResourceAccessPoint();
-			return;
-		}
+        if (decision.getDecision() != Decision.PERMIT) {
+            sink.error(new AccessDeniedException("Access Denied by PDP"));
+            disposeDecisionsAndResourceAccessPoint();
+            return;
+        }
 
-		var resource = decision.getResource();
-		if (resource.isPresent()) {
-			try {
-				sink.next(constraintsService.unmarshallResource(resource.get(), clazz));
-			} catch (JsonProcessingException | IllegalArgumentException e) {
-				sink.error(new AccessDeniedException("Error replacing stream with resource. Ending Stream.", e));
-			}
-			sink.complete();
-			disposeDecisionsAndResourceAccessPoint();
-		}
+        var resource = decision.getResource();
+        if (resource.isPresent()) {
+            try {
+                sink.next(constraintsService.unmarshallResource(resource.get(), clazz));
+            } catch (JsonProcessingException | IllegalArgumentException e) {
+                sink.error(new AccessDeniedException("Error replacing stream with resource. Ending Stream.", e));
+            }
+            sink.complete();
+            disposeDecisionsAndResourceAccessPoint();
+        }
 
-		if (previousDecision == null)
-			dataSubscription.set(wrapResourceAccessPointAndSubscribe());
-	}
+        if (previousDecision == null)
+            dataSubscription.set(wrapResourceAccessPointAndSubscribe());
+    }
 
-	private Disposable wrapResourceAccessPointAndSubscribe() {
-		return resourceAccessPoint.doOnError(this::handleError).doOnRequest(this::handleRequest)
-				.doOnSubscribe(this::handleSubscribe).doOnNext(this::handleNext).doOnComplete(this::handleComplete)
-				.subscribe();
-	}
+    private Disposable wrapResourceAccessPointAndSubscribe() {
+        return resourceAccessPoint.doOnError(this::handleError).doOnRequest(this::handleRequest)
+                .doOnSubscribe(this::handleSubscribe).doOnNext(this::handleNext).doOnComplete(this::handleComplete)
+                .subscribe();
+    }
 
-	private void handleSubscribe(Subscription s) {
-		try {
-			constraintHandler.get().handleOnSubscribeConstraints(s);
-		} catch (Throwable t) {
-			sink.error(t);
-			disposeDecisionsAndResourceAccessPoint();
-		}
-	}
+    private void handleSubscribe(Subscription s) {
+        try {
+            constraintHandler.get().handleOnSubscribeConstraints(s);
+        } catch (Throwable t) {
+            sink.error(t);
+            disposeDecisionsAndResourceAccessPoint();
+        }
+    }
 
-	private void handleOnTerminateConstraints() {
-		constraintHandler.get().handleOnTerminateConstraints();
-	}
+    private void handleOnTerminateConstraints() {
+        constraintHandler.get().handleOnTerminateConstraints();
+    }
 
-	private void handleAfterTerminateConstraints() {
-		constraintHandler.get().handleAfterTerminateConstraints();
-	}
+    private void handleAfterTerminateConstraints() {
+        constraintHandler.get().handleAfterTerminateConstraints();
+    }
 
-	private void handleNext(T value) {
-		// the following guard clause makes sure that the constraint handlers do not get
-		// called after downstream consumers cancelled. If the RAP is not consisting of
-		// delayed elements, but something like Flux.just(1,2,3) the handler would be
-		// called for 2 and 3, even if there was a take(1) applied downstream.
-		if (stopped.get())
-			return;
-		try {
-			var transformedValue = constraintHandler.get().handleAllOnNextConstraints(value);
-			if (transformedValue != null)
-				sink.next(transformedValue);
-		} catch (Throwable t) {
-			sink.error(t);
-			disposeDecisionsAndResourceAccessPoint();
-		}
-	}
+    private void handleNext(T value) {
+        // the following guard clause makes sure that the constraint handlers do not get
+        // called after downstream consumers cancelled. If the RAP is not consisting of
+        // delayed elements, but something like Flux.just(1,2,3) the handler would be
+        // called for 2 and 3, even if there was a take(1) applied downstream.
+        if (stopped.get())
+            return;
+        try {
+            var transformedValue = constraintHandler.get().handleAllOnNextConstraints(value);
+            if (transformedValue != null)
+                sink.next(transformedValue);
+        } catch (Throwable t) {
+            sink.error(t);
+            disposeDecisionsAndResourceAccessPoint();
+        }
+    }
 
-	private void handleRequest(Long value) {
-		try {
-			constraintHandler.get().handleOnRequestConstraints(value);
-		} catch (Throwable t) {
-			sink.error(t);
-			disposeDecisionsAndResourceAccessPoint();
-		}
-	}
+    private void handleRequest(Long value) {
+        try {
+            constraintHandler.get().handleOnRequestConstraints(value);
+        } catch (Throwable t) {
+            sink.error(t);
+            disposeDecisionsAndResourceAccessPoint();
+        }
+    }
 
-	private void handleComplete() {
-		if (stopped.get())
-			return;
-		try {
-			constraintHandler.get().handleOnCompleteConstraints();
-			sink.complete();
-		} catch (Throwable t) {
-			sink.error(t);
-			sink.complete();
-		}
-		disposeDecisionsAndResourceAccessPoint();
-	}
+    private void handleComplete() {
+        if (stopped.get())
+            return;
+        try {
+            constraintHandler.get().handleOnCompleteConstraints();
+            sink.complete();
+        } catch (Throwable t) {
+            sink.error(t);
+            sink.complete();
+        }
+        disposeDecisionsAndResourceAccessPoint();
+    }
 
-	private void handleCancel() {
-		try {
-			constraintHandler.get().handleOnCancelConstraints();
-		} catch (Throwable t) {
-			log.warn("Failed to handle obligation during onCancel. Error is dropped and Flux is canceled. "
-					+ "No information is leaked, however take actions to mitigate error.", t);
-		}
-		disposeDecisionsAndResourceAccessPoint();
-	}
+    private void handleCancel() {
+        try {
+            constraintHandler.get().handleOnCancelConstraints();
+        } catch (Throwable t) {
+            log.warn("Failed to handle obligation during onCancel. Error is dropped and Flux is canceled. "
+                    + "No information is leaked, however take actions to mitigate error.", t);
+        }
+        disposeDecisionsAndResourceAccessPoint();
+    }
 
-	private void handleError(Throwable error) {
-		try {
-			sink.error(constraintHandler.get().handleAllOnErrorConstraints(error));
-		} catch (Throwable t) {
-			sink.error(t);
-			disposeDecisionsAndResourceAccessPoint();
-		}
-	}
+    private void handleError(Throwable error) {
+        try {
+            sink.error(constraintHandler.get().handleAllOnErrorConstraints(error));
+        } catch (Throwable t) {
+            sink.error(t);
+            disposeDecisionsAndResourceAccessPoint();
+        }
+    }
 
-	private Throwable handleAccessDenied(Throwable error) {
-		try {
-			return constraintHandler.get().handleAllOnErrorConstraints(error);
-		} catch (Throwable t) {
-			disposeDecisionsAndResourceAccessPoint();
-			return t;
-		}
-	}
+    private Throwable handleAccessDenied(Throwable error) {
+        try {
+            return constraintHandler.get().handleAllOnErrorConstraints(error);
+        } catch (Throwable t) {
+            disposeDecisionsAndResourceAccessPoint();
+            return t;
+        }
+    }
 
-	private void disposeDecisionsAndResourceAccessPoint() {
-		stopped.set(true);
-		disposeActiveIfPresent(decisionsSubscription);
-		disposeActiveIfPresent(dataSubscription);
-	}
+    private void disposeDecisionsAndResourceAccessPoint() {
+        stopped.set(true);
+        disposeActiveIfPresent(decisionsSubscription);
+        disposeActiveIfPresent(dataSubscription);
+    }
 
-	private void disposeActiveIfPresent(AtomicReference<Disposable> atomicDisposable) {
-		Optional.ofNullable(atomicDisposable.get()).filter(not(Disposable::isDisposed)).ifPresent(Disposable::dispose);
-	}
+    private void disposeActiveIfPresent(AtomicReference<Disposable> atomicDisposable) {
+        Optional.ofNullable(atomicDisposable.get()).filter(not(Disposable::isDisposed)).ifPresent(Disposable::dispose);
+    }
 
 }

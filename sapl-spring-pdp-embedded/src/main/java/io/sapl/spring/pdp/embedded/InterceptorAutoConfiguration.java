@@ -32,15 +32,15 @@ import lombok.RequiredArgsConstructor;
 @EnableConfigurationProperties(EmbeddedPDPProperties.class)
 public class InterceptorAutoConfiguration {
 
-	private final ObjectMapper          mapper;
-	private final EmbeddedPDPProperties properties;
+    private final ObjectMapper          mapper;
+    private final EmbeddedPDPProperties properties;
 
-	@Bean
-	@ConditionalOnMissingBean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	ReportingDecisionInterceptor reportingDecisionInterceptor() {
-		return new ReportingDecisionInterceptor(mapper, properties.isPrettyPrintReports(), properties.isPrintTrace(),
-				properties.isPrintJsonReport(), properties.isPrintTextReport());
-	}
+    @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    ReportingDecisionInterceptor reportingDecisionInterceptor() {
+        return new ReportingDecisionInterceptor(mapper, properties.isPrettyPrintReports(), properties.isPrintTrace(),
+                properties.isPrintJsonReport(), properties.isPrintTextReport());
+    }
 
 }

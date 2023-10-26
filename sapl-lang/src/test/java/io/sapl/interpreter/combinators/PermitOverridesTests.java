@@ -40,14 +40,14 @@ import io.sapl.api.pdp.Decision;
 
 class PermitOverridesTests {
 
-	private static final JsonNodeFactory           JSON                                 = JsonNodeFactory.instance;
-	private static final AuthorizationSubscription EMPTY_AUTH_SUBSCRIPTION              = new AuthorizationSubscription(
-			null, null, null, null);
-	private static final AuthorizationSubscription AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE = new AuthorizationSubscription(
-			null, null, JSON.booleanNode(true), null);
+    private static final JsonNodeFactory           JSON                                 = JsonNodeFactory.instance;
+    private static final AuthorizationSubscription EMPTY_AUTH_SUBSCRIPTION              = new AuthorizationSubscription(
+            null, null, null, null);
+    private static final AuthorizationSubscription AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE = new AuthorizationSubscription(
+            null, null, JSON.booleanNode(true), null);
 
-	private static Stream<Arguments> provideTestCases() {
-		// @formatter:off
+    private static Stream<Arguments> provideTestCases() {
+        // @formatter:off
 		return Stream.of(
 				// permit
 			    Arguments.of("set \"tests\" permit-overrides"

@@ -26,28 +26,28 @@ import reactor.core.publisher.Flux;
 
 @UtilityClass
 public class SelectorUtil {
-	public static Supplier<Flux<Val>> toArrayElementSelector(BiPredicate<Integer, Val> selector) {
-		return () -> Flux.deferContextual(ctx -> {
-			var relativeNode = AuthorizationContext.getRelativeNode(ctx);
-			var index        = AuthorizationContext.getIndex(ctx);
-			try {
-				return Flux.just(Val.of(selector.test(index, relativeNode)));
-			} catch (PolicyEvaluationException e) {
-				return Flux.just(Val.error(e.getMessage()));
-			}
-		});
-	}
+    public static Supplier<Flux<Val>> toArrayElementSelector(BiPredicate<Integer, Val> selector) {
+        return () -> Flux.deferContextual(ctx -> {
+            var relativeNode = AuthorizationContext.getRelativeNode(ctx);
+            var index        = AuthorizationContext.getIndex(ctx);
+            try {
+                return Flux.just(Val.of(selector.test(index, relativeNode)));
+            } catch (PolicyEvaluationException e) {
+                return Flux.just(Val.error(e.getMessage()));
+            }
+        });
+    }
 
-	public static Supplier<Flux<Val>> toObjectFieldSelector(BiPredicate<String, Val> selector) {
-		return () -> Flux.deferContextual(ctx -> {
-			var relativeNode = AuthorizationContext.getRelativeNode(ctx);
-			var key          = AuthorizationContext.getKey(ctx);
-			try {
-				return Flux.just(Val.of(selector.test(key, relativeNode)));
-			} catch (PolicyEvaluationException e) {
-				return Flux.just(Val.error(e.getMessage()));
-			}
-		});
-	}
+    public static Supplier<Flux<Val>> toObjectFieldSelector(BiPredicate<String, Val> selector) {
+        return () -> Flux.deferContextual(ctx -> {
+            var relativeNode = AuthorizationContext.getRelativeNode(ctx);
+            var key          = AuthorizationContext.getKey(ctx);
+            try {
+                return Flux.just(Val.of(selector.test(key, relativeNode)));
+            } catch (PolicyEvaluationException e) {
+                return Flux.just(Val.error(e.getMessage()));
+            }
+        });
+    }
 
 }

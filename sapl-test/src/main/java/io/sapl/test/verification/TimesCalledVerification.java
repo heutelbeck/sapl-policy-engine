@@ -24,32 +24,31 @@ import org.hamcrest.Matcher;
  */
 public class TimesCalledVerification implements MockingVerification {
 
-	private static final String ERROR_TIMES_VERIFICATION = "Error verifying the expected number of calls to the mock \"%s\" - Expected: \"%s\" - got: \"%s\"";
+    private static final String ERROR_TIMES_VERIFICATION = "Error verifying the expected number of calls to the mock \"%s\" - Expected: \"%s\" - got: \"%s\"";
 
-	final Matcher<Integer> matcher;
+    final Matcher<Integer> matcher;
 
-	public TimesCalledVerification(Matcher<Integer> matcher) {
-		this.matcher = matcher;
-	}
+    public TimesCalledVerification(Matcher<Integer> matcher) {
+        this.matcher = matcher;
+    }
 
-	@Override
-	public void verify(MockRunInformation mockRunInformation) {
-		this.verify(mockRunInformation, null);
-	}
+    @Override
+    public void verify(MockRunInformation mockRunInformation) {
+        this.verify(mockRunInformation, null);
+    }
 
-	@Override
-	public void verify(MockRunInformation mockRunInformation, String verificationFailedMessage) {
+    @Override
+    public void verify(MockRunInformation mockRunInformation, String verificationFailedMessage) {
 
-		String message;
-		if (verificationFailedMessage != null && !verificationFailedMessage.isEmpty()) {
-			message = verificationFailedMessage;
-		}
-		else {
-			message = String.format(ERROR_TIMES_VERIFICATION, mockRunInformation.getFullName(), this.matcher.toString(),
-					mockRunInformation.getTimesCalled());
-		}
+        String message;
+        if (verificationFailedMessage != null && !verificationFailedMessage.isEmpty()) {
+            message = verificationFailedMessage;
+        } else {
+            message = String.format(ERROR_TIMES_VERIFICATION, mockRunInformation.getFullName(), this.matcher.toString(),
+                    mockRunInformation.getTimesCalled());
+        }
 
-		Assertions.assertThat(this.matcher.matches(mockRunInformation.getTimesCalled())).as(message).isTrue();
-	}
+        Assertions.assertThat(this.matcher.matches(mockRunInformation.getTimesCalled())).as(message).isTrue();
+    }
 
 }

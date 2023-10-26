@@ -32,24 +32,24 @@ import io.sapl.grammar.ide.AbstractSaplLanguageServerTest;
 @ContextConfiguration(classes = SAPLIdeSpringTestConfiguration.class)
 public class CompletionTests extends AbstractSaplLanguageServerTest {
 
-	protected void assertProposalsSimple(final Collection<String> expectedProposals,
-			final CompletionList completionList) {
-		var actualMethods = completionList.getItems().stream().map(CompletionItem::getLabel).toList();
-		if (!actualMethods.containsAll(expectedProposals))
-			throw new AssertionError("Expected: " + expectedProposals + " but got " + actualMethods);
-	}
+    protected void assertProposalsSimple(final Collection<String> expectedProposals,
+            final CompletionList completionList) {
+        var actualMethods = completionList.getItems().stream().map(CompletionItem::getLabel).toList();
+        if (!actualMethods.containsAll(expectedProposals))
+            throw new AssertionError("Expected: " + expectedProposals + " but got " + actualMethods);
+    }
 
-	protected void assertDoesNotContainProposals(final Collection<String> unwantedProposals,
-			final CompletionList completionList) {
-		Collection<CompletionItem> completionItems    = completionList.getItems();
-		Collection<String>         availableProposals = completionItems.stream().map(CompletionItem::getLabel)
-				.collect(Collectors.toSet());
+    protected void assertDoesNotContainProposals(final Collection<String> unwantedProposals,
+            final CompletionList completionList) {
+        Collection<CompletionItem> completionItems    = completionList.getItems();
+        Collection<String>         availableProposals = completionItems.stream().map(CompletionItem::getLabel)
+                .collect(Collectors.toSet());
 
-		for (String unwantedProposal : unwantedProposals) {
-			if (availableProposals.contains(unwantedProposal))
-				throw new AssertionError(
-						"Expected not to find " + unwantedProposal + " but found it in " + availableProposals);
-		}
-	}
+        for (String unwantedProposal : unwantedProposals) {
+            if (availableProposals.contains(unwantedProposal))
+                throw new AssertionError(
+                        "Expected not to find " + unwantedProposal + " but found it in " + availableProposals);
+        }
+    }
 
 }

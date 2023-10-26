@@ -32,34 +32,34 @@ import reactor.core.publisher.Flux;
  */
 public class EqualsImplCustom extends EqualsImpl {
 
-	@Override
-	public Flux<Val> evaluate() {
-		return operator(this, this::tracedEquals);
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        return operator(this, this::tracedEquals);
+    }
 
-	private Val tracedEquals(Val left, Val right) {
-		return equals(left, right).withTrace(Equals.class, Map.of(Trace.LEFT, left, Trace.RIGHT, right));
-	}
+    private Val tracedEquals(Val left, Val right) {
+        return equals(left, right).withTrace(Equals.class, Map.of(Trace.LEFT, left, Trace.RIGHT, right));
+    }
 
-	private Val equals(Val left, Val right) {
-		if (left.isUndefined() && right.isUndefined())
-			return Val.TRUE;
+    private Val equals(Val left, Val right) {
+        if (left.isUndefined() && right.isUndefined())
+            return Val.TRUE;
 
-		if (left.isUndefined() || right.isUndefined())
-			return Val.FALSE;
+        if (left.isUndefined() || right.isUndefined())
+            return Val.FALSE;
 
-		if (bothValuesAreNumbers(left, right))
-			return Val.of(bothNumbersAreEqual(left, right));
+        if (bothValuesAreNumbers(left, right))
+            return Val.of(bothNumbersAreEqual(left, right));
 
-		return Val.of(left.get().equals(right.get()));
-	}
+        return Val.of(left.get().equals(right.get()));
+    }
 
-	private boolean bothNumbersAreEqual(Val left, Val right) {
-		return left.decimalValue().compareTo(right.decimalValue()) == 0;
-	}
+    private boolean bothNumbersAreEqual(Val left, Val right) {
+        return left.decimalValue().compareTo(right.decimalValue()) == 0;
+    }
 
-	private boolean bothValuesAreNumbers(Val left, Val right) {
-		return left.isNumber() && right.isNumber();
-	}
+    private boolean bothValuesAreNumbers(Val left, Val right) {
+        return left.isNumber() && right.isNumber();
+    }
 
 }

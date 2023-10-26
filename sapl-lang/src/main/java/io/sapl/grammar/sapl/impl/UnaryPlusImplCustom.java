@@ -23,9 +23,9 @@ import reactor.core.publisher.Flux;
 
 public class UnaryPlusImplCustom extends UnaryPlusImpl {
 
-	@Override
-	public Flux<Val> evaluate() {
-		return arithmeticOperator(this, val -> val.withTrace(UnaryPlus.class, val));
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        return arithmeticOperator(this, val -> val.withTrace(UnaryPlus.class, val));
+    }
 
 }

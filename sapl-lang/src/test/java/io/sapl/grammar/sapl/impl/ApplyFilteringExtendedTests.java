@@ -35,19 +35,19 @@ import reactor.test.StepVerifier;
 
 class ApplyFilteringExtendedTests {
 
-	@Test
-	void filterUndefined() {
-		assertExpressionReturnsError("undefined |- { @.name : filter.remove }",
-				"Filters cannot be applied to undefined values.");
-	}
+    @Test
+    void filterUndefined() {
+        assertExpressionReturnsError("undefined |- { @.name : filter.remove }",
+                "Filters cannot be applied to undefined values.");
+    }
 
-	@Test
-	void filterError() {
-		assertExpressionReturnsError("(10/0) |- { @.name : filter.remove }", "Division by zero");
-	}
+    @Test
+    void filterError() {
+        assertExpressionReturnsError("(10/0) |- { @.name : filter.remove }", "Division by zero");
+    }
 
-	private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
-		// @formatter:off
+    private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+        // @formatter:off
 		return Stream.of(
 				// No filter Statement
 				Arguments.of("{ \"name\" : \"Jack the Ripper\", \"job\" : \"recreational surgeon\" } |- { }",

@@ -22,15 +22,15 @@ import org.springframework.context.ApplicationContext;
 
 class SpringContextTests {
 
-	@Test
-	void getBeanThrowsIllegalStateExceptionWhenApplicationContextIsNotSet() {
-		SpringContext      springContext      = new SpringContext();
-		ApplicationContext applicationContext = springContext.getApplicationContext();
-		springContext.setApplicationContext(null);
+    @Test
+    void getBeanThrowsIllegalStateExceptionWhenApplicationContextIsNotSet() {
+        SpringContext      springContext      = new SpringContext();
+        ApplicationContext applicationContext = springContext.getApplicationContext();
+        springContext.setApplicationContext(null);
 
-		assertThrows(IllegalStateException.class, () -> SpringContext.getBean(Object.class));
+        assertThrows(IllegalStateException.class, () -> SpringContext.getBean(Object.class));
 
-		springContext.setApplicationContext(applicationContext);
-	}
+        springContext.setApplicationContext(applicationContext);
+    }
 
 }

@@ -19,10 +19,10 @@ import reactor.core.publisher.Flux;
 
 public interface PDPConfigurationProvider {
 
-	Flux<PDPConfiguration> pdpConfiguration();
+    Flux<PDPConfiguration> pdpConfiguration();
 
-	default void destroy() {
-		// NOOP
-	}
+    default void destroy() {
+        // NOOP
+    }
 
 }

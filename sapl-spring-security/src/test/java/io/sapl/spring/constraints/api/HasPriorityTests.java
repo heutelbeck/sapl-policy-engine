@@ -24,19 +24,19 @@ import org.junit.jupiter.api.Test;
 
 class HasPriorityTests {
 
-	@Test
-	void minimalPriorityIsZero() {
-		var sut = spy(HasPriority.class);
-		assertEquals(0, sut.getPriority());
-	}
+    @Test
+    void minimalPriorityIsZero() {
+        var sut = spy(HasPriority.class);
+        assertEquals(0, sut.getPriority());
+    }
 
-	@Test
-	void compares_priorityAscending() {
-		var sut_a = spy(HasPriority.class);
-		var sut_b = spy(HasPriority.class);
-		when(sut_a.getPriority()).thenReturn(-100);
-		assertThat(sut_b.compareTo(sut_a)).isNegative();
-		assertThat(sut_a.compareTo(sut_b)).isPositive();
-		assertThat(sut_a.compareTo(sut_a)).isZero();
-	}
+    @Test
+    void compares_priorityAscending() {
+        var sut_a = spy(HasPriority.class);
+        var sut_b = spy(HasPriority.class);
+        when(sut_a.getPriority()).thenReturn(-100);
+        assertThat(sut_b.compareTo(sut_a)).isNegative();
+        assertThat(sut_a.compareTo(sut_b)).isPositive();
+        assertThat(sut_a.compareTo(sut_a)).isZero();
+    }
 }

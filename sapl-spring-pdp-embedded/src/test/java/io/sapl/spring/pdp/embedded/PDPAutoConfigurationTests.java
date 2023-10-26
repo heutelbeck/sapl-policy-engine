@@ -29,27 +29,27 @@ import io.sapl.prp.PolicyRetrievalPoint;
 
 class PDPAutoConfigurationTests {
 
-	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-			.withBean(PolicyRetrievalPoint.class, () -> mock(PolicyRetrievalPoint.class))
-			.withBean(PDPConfigurationProvider.class, () -> mock(PDPConfigurationProvider.class))
-			.withConfiguration(AutoConfigurations.of(PDPAutoConfiguration.class));
+    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
+            .withBean(PolicyRetrievalPoint.class, () -> mock(PolicyRetrievalPoint.class))
+            .withBean(PDPConfigurationProvider.class, () -> mock(PDPConfigurationProvider.class))
+            .withConfiguration(AutoConfigurations.of(PDPAutoConfiguration.class));
 
-	@Test
-	void whenContextLoads_thenOneIsCreated() {
-		contextRunner.run(context -> {
-			assertThat(context).hasNotFailed();
-			assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
-			assertThat(context).hasSingleBean(EmbeddedPolicyDecisionPoint.class);
-		});
-	}
+    @Test
+    void whenContextLoads_thenOneIsCreated() {
+        contextRunner.run(context -> {
+            assertThat(context).hasNotFailed();
+            assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
+            assertThat(context).hasSingleBean(EmbeddedPolicyDecisionPoint.class);
+        });
+    }
 
-	@Test
-	void whenAnotherPDPIsAlreadyPresent_thenDoNotLoadANewOne() {
-		contextRunner.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class)).run(context -> {
-			assertThat(context).hasNotFailed();
-			assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
-			assertThat(context).doesNotHaveBean(EmbeddedPolicyDecisionPoint.class);
-		});
-	}
+    @Test
+    void whenAnotherPDPIsAlreadyPresent_thenDoNotLoadANewOne() {
+        contextRunner.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class)).run(context -> {
+            assertThat(context).hasNotFailed();
+            assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
+            assertThat(context).doesNotHaveBean(EmbeddedPolicyDecisionPoint.class);
+        });
+    }
 
 }

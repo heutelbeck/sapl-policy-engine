@@ -27,8 +27,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.impl.util.MockUtil;
@@ -40,10 +38,10 @@ import reactor.test.StepVerifier;
 
 class SAPLImplCustomTests {
 
-	private final static SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
+    private final static SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
-	private static Stream<Arguments> provideImportTestCases() {
-		// @formatter:off
+    private static Stream<Arguments> provideImportTestCases() {
+        // @formatter:off
 		return Stream.of(
 				// importsWorkCorrectlyBasicFunction
 			    Arguments.of("import filter.blacken policy \"policy\" permit true",

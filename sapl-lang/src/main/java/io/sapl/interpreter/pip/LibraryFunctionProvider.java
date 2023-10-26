@@ -19,12 +19,12 @@ import java.util.Collection;
 
 public interface LibraryFunctionProvider {
 
-	Boolean isProvidedFunction(String function);
+    Boolean isProvidedFunction(String function);
 
-	Collection<String> providedFunctionsOfLibrary(String pipName);
+    Collection<String> providedFunctionsOfLibrary(String pipName);
 
-	Collection<String> getAvailableLibraries();
+    Collection<String> getAvailableLibraries();
 
-	Collection<String> getAllFullyQualifiedFunctions();
+    Collection<String> getAllFullyQualifiedFunctions();
 
 }

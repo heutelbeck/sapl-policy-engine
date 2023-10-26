@@ -17,6 +17,6 @@ package io.sapl.interpreter;
 
 public enum DocumentType {
 
-	POLICY, POLICY_SET
+    POLICY, POLICY_SET
 
 }

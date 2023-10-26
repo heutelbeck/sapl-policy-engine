@@ -41,28 +41,28 @@ import lombok.extern.slf4j.Slf4j;
 @EnableConfigurationProperties(EmbeddedPDPProperties.class)
 public class PRPAutoConfiguration {
 
-	private final EmbeddedPDPProperties pdpProperties;
-	private final PrpUpdateEventSource  eventSource;
-	private final FunctionContext       functionContext;
-	private final AttributeContext      attributeContext;
+    private final EmbeddedPDPProperties pdpProperties;
+    private final PrpUpdateEventSource  eventSource;
+    private final FunctionContext       functionContext;
+    private final AttributeContext      attributeContext;
 
-	@Bean
-	@ConditionalOnMissingBean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	PolicyRetrievalPoint policyRetrievalPoint() throws PolicyEvaluationException {
-		log.info("Using index type: {}", pdpProperties.getIndex());
-		ImmutableParsedDocumentIndex seedIndex;
-		if (pdpProperties.getIndex() == IndexType.NAIVE) {
-			seedIndex = new NaiveImmutableParsedDocumentIndex();
-		} else {
-			// This index type has to normalize function calls based on import statements
-			// Variables do not need to be bound here. Thus, this hind of static PDP
-			// scoped
-			// evaluation context is sufficient. Variables will be bound later in the
-			// subscription scoped EvaluationContext handed over for lookup.
-			seedIndex = new CanonicalImmutableParsedDocumentIndex(attributeContext, functionContext);
-		}
-		return new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, eventSource);
-	}
+    @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    PolicyRetrievalPoint policyRetrievalPoint() throws PolicyEvaluationException {
+        log.info("Using index type: {}", pdpProperties.getIndex());
+        ImmutableParsedDocumentIndex seedIndex;
+        if (pdpProperties.getIndex() == IndexType.NAIVE) {
+            seedIndex = new NaiveImmutableParsedDocumentIndex();
+        } else {
+            // This index type has to normalize function calls based on import statements
+            // Variables do not need to be bound here. Thus, this hind of static PDP
+            // scoped
+            // evaluation context is sufficient. Variables will be bound later in the
+            // subscription scoped EvaluationContext handed over for lookup.
+            seedIndex = new CanonicalImmutableParsedDocumentIndex(attributeContext, functionContext);
+        }
+        return new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, eventSource);
+    }
 
 }

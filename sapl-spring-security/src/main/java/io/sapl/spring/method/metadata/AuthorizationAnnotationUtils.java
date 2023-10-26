@@ -48,83 +48,82 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 final class AuthorizationAnnotationUtils {
 
-	/**
-	 * First lookup the annotation on the method, then on the class.
-	 * 
-	 * @param <A>            The annotation type.
-	 * @param method		the method to examine
-	 * @param annotationType The annotation type to lookup, e.g., @PreEnforce
-	 * @return the annotation if found or, {@code null} otherwise
-	 */
-	public static <A extends Annotation> A findAuthorizeAnnotationOnMethodOrDeclaringClass(Method method,
-			Class<A> annotationType) {
-		var preAuthorize = findUniqueAnnotation(method, annotationType);
-		return (preAuthorize != null) ? preAuthorize
-				: findUniqueAnnotation(method.getDeclaringClass(), annotationType);
-	}
+    /**
+     * First lookup the annotation on the method, then on the class.
+     * 
+     * @param <A>            The annotation type.
+     * @param method         the method to examine
+     * @param annotationType The annotation type to lookup, e.g., @PreEnforce
+     * @return the annotation if found or, {@code null} otherwise
+     */
+    public static <A extends Annotation> A findAuthorizeAnnotationOnMethodOrDeclaringClass(Method method,
+            Class<A> annotationType) {
+        var preAuthorize = findUniqueAnnotation(method, annotationType);
+        return (preAuthorize != null) ? preAuthorize : findUniqueAnnotation(method.getDeclaringClass(), annotationType);
+    }
 
-	/**
-	 * Perform an exhaustive search on the type hierarchy of the given
-	 * {@link Method} for the annotation of type {@code annotationType}, including
-	 * any annotations using {@code annotationType} as a meta-annotation.
-	 * <p>
-	 * If more than one is found, then throw an error.
-	 * 
-	 * @param method         the method declaration to search from
-	 * @param annotationType the annotation type to search for
-	 * @return the unique instance of the annotation attributed to the method,
-	 *         {@code null} otherwise
-	 * @throws AnnotationConfigurationException if more than one instance of the
-	 *                                          annotation is found
-	 */
-	static <A extends Annotation> A findUniqueAnnotation(Method method, Class<A> annotationType) {
-		MergedAnnotations mergedAnnotations = MergedAnnotations.from(method,
-				MergedAnnotations.SearchStrategy.TYPE_HIERARCHY, RepeatableContainers.none());
-		if (hasDuplicate(mergedAnnotations, annotationType)) {
-			throw new AnnotationConfigurationException("Found more than one annotation of type " + annotationType
-					+ " attributed to " + method
-					+ " Please remove the duplicate annotations and publish a bean to handle your authorization logic.");
-		}
-		return AnnotationUtils.findAnnotation(method, annotationType);
-	}
+    /**
+     * Perform an exhaustive search on the type hierarchy of the given
+     * {@link Method} for the annotation of type {@code annotationType}, including
+     * any annotations using {@code annotationType} as a meta-annotation.
+     * <p>
+     * If more than one is found, then throw an error.
+     * 
+     * @param method         the method declaration to search from
+     * @param annotationType the annotation type to search for
+     * @return the unique instance of the annotation attributed to the method,
+     *         {@code null} otherwise
+     * @throws AnnotationConfigurationException if more than one instance of the
+     *                                          annotation is found
+     */
+    static <A extends Annotation> A findUniqueAnnotation(Method method, Class<A> annotationType) {
+        MergedAnnotations mergedAnnotations = MergedAnnotations.from(method,
+                MergedAnnotations.SearchStrategy.TYPE_HIERARCHY, RepeatableContainers.none());
+        if (hasDuplicate(mergedAnnotations, annotationType)) {
+            throw new AnnotationConfigurationException("Found more than one annotation of type " + annotationType
+                    + " attributed to " + method
+                    + " Please remove the duplicate annotations and publish a bean to handle your authorization logic.");
+        }
+        return AnnotationUtils.findAnnotation(method, annotationType);
+    }
 
-	/**
-	 * Perform an exhaustive search on the type hierarchy of the given {@link Class}
-	 * for the annotation of type {@code annotationType}, including any annotations
-	 * using {@code annotationType} as a meta-annotation.
-	 * <p>
-	 * If more than one is found, then throw an error.
-	 * 
-	 * @param type           the type to search from
-	 * @param annotationType the annotation type to search for
-	 * @return the unique instance of the annotation attributed to the method,
-	 *         {@code null} otherwise
-	 * @throws AnnotationConfigurationException if more than one instance of the
-	 *                                          annotation is found
-	 */
-	static <A extends Annotation> A findUniqueAnnotation(Class<?> type, Class<A> annotationType) {
-		MergedAnnotations mergedAnnotations = MergedAnnotations.from(type,
-				MergedAnnotations.SearchStrategy.TYPE_HIERARCHY, RepeatableContainers.none());
-		if (hasDuplicate(mergedAnnotations, annotationType)) {
-			throw new AnnotationConfigurationException("Found more than one annotation of type " + annotationType
-					+ " attributed to " + type
-					+ " Please remove the duplicate annotations and publish a bean to handle your authorization logic.");
-		}
-		return AnnotationUtils.findAnnotation(type, annotationType);
-	}
+    /**
+     * Perform an exhaustive search on the type hierarchy of the given {@link Class}
+     * for the annotation of type {@code annotationType}, including any annotations
+     * using {@code annotationType} as a meta-annotation.
+     * <p>
+     * If more than one is found, then throw an error.
+     * 
+     * @param type           the type to search from
+     * @param annotationType the annotation type to search for
+     * @return the unique instance of the annotation attributed to the method,
+     *         {@code null} otherwise
+     * @throws AnnotationConfigurationException if more than one instance of the
+     *                                          annotation is found
+     */
+    static <A extends Annotation> A findUniqueAnnotation(Class<?> type, Class<A> annotationType) {
+        MergedAnnotations mergedAnnotations = MergedAnnotations.from(type,
+                MergedAnnotations.SearchStrategy.TYPE_HIERARCHY, RepeatableContainers.none());
+        if (hasDuplicate(mergedAnnotations, annotationType)) {
+            throw new AnnotationConfigurationException("Found more than one annotation of type " + annotationType
+                    + " attributed to " + type
+                    + " Please remove the duplicate annotations and publish a bean to handle your authorization logic.");
+        }
+        return AnnotationUtils.findAnnotation(type, annotationType);
+    }
 
-	private static <A extends Annotation> boolean hasDuplicate(MergedAnnotations mergedAnnotations,
-			Class<A> annotationType) {
-		boolean alreadyFound = false;
-		for (MergedAnnotation<Annotation> mergedAnnotation : mergedAnnotations) {
-			if (mergedAnnotation.getType() == annotationType) {
-				if (alreadyFound) {
-					return true;
-				}
-				alreadyFound = true;
-			}
-		}
-		return false;
-	}
+    private static <A extends Annotation> boolean hasDuplicate(MergedAnnotations mergedAnnotations,
+            Class<A> annotationType) {
+        boolean alreadyFound = false;
+        for (MergedAnnotation<Annotation> mergedAnnotation : mergedAnnotations) {
+            if (mergedAnnotation.getType() == annotationType) {
+                if (alreadyFound) {
+                    return true;
+                }
+                alreadyFound = true;
+            }
+        }
+        return false;
+    }
 
 }

@@ -31,26 +31,26 @@ import reactor.core.publisher.Flux;
  */
 public class OrImplCustom extends OrImpl {
 
-	private static final String LAZY_OPERATOR_IN_TARGET_ERROR = "Lazy OR operator is not allowed in the target";
+    private static final String LAZY_OPERATOR_IN_TARGET_ERROR = "Lazy OR operator is not allowed in the target";
 
-	@Override
-	public Flux<Val> evaluate() {
-		if (TargetExpressionUtil.isInTargetExpression(this)) {
-			// lazy evaluation is not allowed in target expressions.
-			return Flux.just(Val.error(LAZY_OPERATOR_IN_TARGET_ERROR).withTrace(Or.class));
-		}
-		var left = getLeft().evaluate().map(Val::requireBoolean);
-		return left.switchMap(leftResult -> {
-			if (leftResult.isError()) {
-				return Flux.just(leftResult);
-			}
-			// Lazy evaluation of the right expression
-			if (!leftResult.getBoolean()) {
-				return getRight().evaluate().map(Val::requireBoolean).map(rightResult -> rightResult.withTrace(Or.class,
-						Map.of(Trace.LEFT, leftResult, Trace.RIGHT, rightResult)));
-			}
-			return Flux.just(Val.TRUE.withTrace(Or.class, Map.of(Trace.LEFT, leftResult)));
-		});
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        if (TargetExpressionUtil.isInTargetExpression(this)) {
+            // lazy evaluation is not allowed in target expressions.
+            return Flux.just(Val.error(LAZY_OPERATOR_IN_TARGET_ERROR).withTrace(Or.class));
+        }
+        var left = getLeft().evaluate().map(Val::requireBoolean);
+        return left.switchMap(leftResult -> {
+            if (leftResult.isError()) {
+                return Flux.just(leftResult);
+            }
+            // Lazy evaluation of the right expression
+            if (!leftResult.getBoolean()) {
+                return getRight().evaluate().map(Val::requireBoolean).map(rightResult -> rightResult.withTrace(Or.class,
+                        Map.of(Trace.LEFT, leftResult, Trace.RIGHT, rightResult)));
+            }
+            return Flux.just(Val.TRUE.withTrace(Or.class, Map.of(Trace.LEFT, leftResult)));
+        });
+    }
 
 }

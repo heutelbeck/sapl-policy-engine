@@ -27,8 +27,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class ApplyStepsWildcardTests {
 
-	@ParameterizedTest
-	// @formatter:off
+    @ParameterizedTest
+    // @formatter:off
 	@ValueSource(strings = {
 		// wildcardStepPropagatesErrors
 		"(10/0).*",
@@ -38,12 +38,12 @@ class ApplyStepsWildcardTests {
 		"undefined.*"
 	}) 
 	// @formatter:on
-	void expressionEvaluatesToErrors(String expression) {
-		assertExpressionReturnsErrors(expression);
-	}
+    void expressionEvaluatesToErrors(String expression) {
+        assertExpressionReturnsErrors(expression);
+    }
 
-	private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
-		// @formatter:off
+    private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+        // @formatter:off
 		return Stream.of(
 	 			// wildcardStepOnArrayIsIdentity
 	 			Arguments.of("[1,2,3,4,5,6,7,8,9].*", 

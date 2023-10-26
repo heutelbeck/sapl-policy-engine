@@ -32,35 +32,35 @@ import io.sapl.spring.constraints.ConstraintEnforcementService;
 import lombok.RequiredArgsConstructor;
 
 /**
- * {@link AuthorizationManager} for the HTTP filter chain. 
+ * {@link AuthorizationManager} for the HTTP filter chain.
  */
 @RequiredArgsConstructor
 public class SaplAuthorizationManager implements AuthorizationManager<RequestAuthorizationContext> {
 
-	private final PolicyDecisionPoint          pdp;
-	private final ConstraintEnforcementService constraintEnforcementService;
-	private final ObjectMapper                 mapper;
+    private final PolicyDecisionPoint          pdp;
+    private final ConstraintEnforcementService constraintEnforcementService;
+    private final ObjectMapper                 mapper;
 
-	@Override
-	public AuthorizationDecision check(Supplier<Authentication> authenticationSupplier,
-			RequestAuthorizationContext requestAuthorizationContext) {
-		var request        = requestAuthorizationContext.getRequest();
-		var authentication = authenticationSupplier.get();
-		var subscription   = AuthorizationSubscription.of(authentication, request, request, mapper);
-		var authzDecision  = pdp.decide(subscription).blockFirst();
+    @Override
+    public AuthorizationDecision check(Supplier<Authentication> authenticationSupplier,
+            RequestAuthorizationContext requestAuthorizationContext) {
+        var request        = requestAuthorizationContext.getRequest();
+        var authentication = authenticationSupplier.get();
+        var subscription   = AuthorizationSubscription.of(authentication, request, request, mapper);
+        var authzDecision  = pdp.decide(subscription).blockFirst();
 
-		if (authzDecision == null || authzDecision.getResource().isPresent())
-			return new AuthorizationDecision(false);
+        if (authzDecision == null || authzDecision.getResource().isPresent())
+            return new AuthorizationDecision(false);
 
-		try {
-			constraintEnforcementService.accessManagerBundleFor(authzDecision).handleOnDecisionConstraints();
-		} catch (AccessDeniedException e) {
-			return new AuthorizationDecision(false);
-		}
+        try {
+            constraintEnforcementService.accessManagerBundleFor(authzDecision).handleOnDecisionConstraints();
+        } catch (AccessDeniedException e) {
+            return new AuthorizationDecision(false);
+        }
 
-		if (authzDecision.getDecision() != Decision.PERMIT)
-			return new AuthorizationDecision(false);
+        if (authzDecision.getDecision() != Decision.PERMIT)
+            return new AuthorizationDecision(false);
 
-		return new AuthorizationDecision(true);
-	}
+        return new AuthorizationDecision(true);
+    }
 }

@@ -35,35 +35,29 @@ import lombok.extern.slf4j.Slf4j;
 @EnableConfigurationProperties(RemotePDPProperties.class)
 public class RemotePDPAutoConfiguration {
 
-	private final RemotePDPProperties configuration;
+    private final RemotePDPProperties configuration;
 
-	@Bean
-	@ConditionalOnMissingBean
-	PolicyDecisionPoint policyDecisionPoint() throws SSLException {
-		log.info("Binding to remote PDP server: {}", configuration.getHost());
-		if (configuration.isIgnoreCertificates()) {
-			log.warn("INSECURE SSL SETTINGS! This demo uses an insecure SslContext for "
-					+ "testing purposes only. It will accept all certificates. "
-					+ "This is only for testing local servers with self-signed certificates easily. "
-					+ "NEVER USE THIS A CONFIGURATION IN PRODUCTION!");
-			var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
-			return RemotePolicyDecisionPoint.builder()
-					.http()
-					.baseUrl(configuration.getHost())
-					.basicAuth(configuration.getKey(), configuration.getSecret())
-					.secure(sslContext)
-					.build();
+    @Bean
+    @ConditionalOnMissingBean
+    PolicyDecisionPoint policyDecisionPoint() throws SSLException {
+        log.info("Binding to remote PDP server: {}", configuration.getHost());
+        if (configuration.isIgnoreCertificates()) {
+            log.warn("INSECURE SSL SETTINGS! This demo uses an insecure SslContext for "
+                    + "testing purposes only. It will accept all certificates. "
+                    + "This is only for testing local servers with self-signed certificates easily. "
+                    + "NEVER USE THIS A CONFIGURATION IN PRODUCTION!");
+            var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+            return RemotePolicyDecisionPoint.builder().http().baseUrl(configuration.getHost())
+                    .basicAuth(configuration.getKey(), configuration.getSecret()).secure(sslContext).build();
 
-		}
+        }
 
-		var builder = RemotePolicyDecisionPoint.builder()
-				.http()
-				.baseUrl(configuration.getHost())
-				.basicAuth(configuration.getKey(), configuration.getSecret());
-		if ( configuration.getHost().startsWith("https://") ){
-			builder =  builder.secure();
-		}
-		return builder.build();
-	}
+        var builder = RemotePolicyDecisionPoint.builder().http().baseUrl(configuration.getHost())
+                .basicAuth(configuration.getKey(), configuration.getSecret());
+        if (configuration.getHost().startsWith("https://")) {
+            builder = builder.secure();
+        }
+        return builder.build();
+    }
 
 }

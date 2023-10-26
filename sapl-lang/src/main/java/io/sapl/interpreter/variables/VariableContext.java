@@ -29,86 +29,86 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 
 public class VariableContext {
 
-	private static final String SUBJECT = "subject";
+    private static final String SUBJECT = "subject";
 
-	private static final String ACTION = "action";
+    private static final String ACTION = "action";
 
-	private static final String RESOURCE = "resource";
+    private static final String RESOURCE = "resource";
 
-	private static final String ENVIRONMENT = "environment";
+    private static final String ENVIRONMENT = "environment";
 
-	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	private final Map<String, JsonNode> variables;
+    private final Map<String, JsonNode> variables;
 
-	public VariableContext(Map<String, JsonNode> environmentVariables) {
-		variables = Maps.newHashMapWithExpectedSize(environmentVariables.size());
-		environmentVariables.forEach((key, value) -> variables.put(key, value.deepCopy()));
-	}
+    public VariableContext(Map<String, JsonNode> environmentVariables) {
+        variables = Maps.newHashMapWithExpectedSize(environmentVariables.size());
+        environmentVariables.forEach((key, value) -> variables.put(key, value.deepCopy()));
+    }
 
-	public VariableContext withEnvironmentVariable(String identifier, JsonNode value) {
-		return copy().putEnvironmentVariable(identifier, value);
-	}
+    public VariableContext withEnvironmentVariable(String identifier, JsonNode value) {
+        return copy().putEnvironmentVariable(identifier, value);
+    }
 
-	public VariableContext forAuthorizationSubscription(AuthorizationSubscription authzSubscription) {
-		return copy().loadSubscriptionVariables(authzSubscription);
-	}
+    public VariableContext forAuthorizationSubscription(AuthorizationSubscription authzSubscription) {
+        return copy().loadSubscriptionVariables(authzSubscription);
+    }
 
-	private VariableContext loadSubscriptionVariables(AuthorizationSubscription authzSubscription) {
-		if (authzSubscription.getSubject() != null) {
-			variables.put(SUBJECT, authzSubscription.getSubject());
-		} else {
-			variables.put(SUBJECT, JSON.nullNode());
-		}
-		if (authzSubscription.getAction() != null) {
-			variables.put(ACTION, authzSubscription.getAction());
-		} else {
-			variables.put(ACTION, JSON.nullNode());
-		}
-		if (authzSubscription.getResource() != null) {
-			variables.put(RESOURCE, authzSubscription.getResource());
-		} else {
-			variables.put(RESOURCE, JSON.nullNode());
-		}
-		if (authzSubscription.getEnvironment() != null) {
-			variables.put(ENVIRONMENT, authzSubscription.getEnvironment());
-		} else {
-			variables.put(ENVIRONMENT, JSON.nullNode());
-		}
-		return this;
-	}
+    private VariableContext loadSubscriptionVariables(AuthorizationSubscription authzSubscription) {
+        if (authzSubscription.getSubject() != null) {
+            variables.put(SUBJECT, authzSubscription.getSubject());
+        } else {
+            variables.put(SUBJECT, JSON.nullNode());
+        }
+        if (authzSubscription.getAction() != null) {
+            variables.put(ACTION, authzSubscription.getAction());
+        } else {
+            variables.put(ACTION, JSON.nullNode());
+        }
+        if (authzSubscription.getResource() != null) {
+            variables.put(RESOURCE, authzSubscription.getResource());
+        } else {
+            variables.put(RESOURCE, JSON.nullNode());
+        }
+        if (authzSubscription.getEnvironment() != null) {
+            variables.put(ENVIRONMENT, authzSubscription.getEnvironment());
+        } else {
+            variables.put(ENVIRONMENT, JSON.nullNode());
+        }
+        return this;
+    }
 
-	private VariableContext putEnvironmentVariable(String identifier, JsonNode value) {
-		if (SUBJECT.equals(identifier) || RESOURCE.equals(identifier) || ACTION.equals(identifier)
-				|| ENVIRONMENT.equals(identifier)) {
-			throw new PolicyEvaluationException("cannot overwrite request variable: %s", identifier);
-		}
-		variables.put(identifier, value);
-		return this;
-	}
+    private VariableContext putEnvironmentVariable(String identifier, JsonNode value) {
+        if (SUBJECT.equals(identifier) || RESOURCE.equals(identifier) || ACTION.equals(identifier)
+                || ENVIRONMENT.equals(identifier)) {
+            throw new PolicyEvaluationException("cannot overwrite request variable: %s", identifier);
+        }
+        variables.put(identifier, value);
+        return this;
+    }
 
-	public Map<String, JsonNode> getVariables() {
-		return Collections.unmodifiableMap(variables);
-	}
+    public Map<String, JsonNode> getVariables() {
+        return Collections.unmodifiableMap(variables);
+    }
 
-	public boolean exists(String identifier) {
-		return variables.containsKey(identifier);
-	}
+    public boolean exists(String identifier) {
+        return variables.containsKey(identifier);
+    }
 
-	public Val get(String identifier) {
-		if (!variables.containsKey(identifier)) {
-			return Val.UNDEFINED;
-		}
-		return Val.of(variables.get(identifier));
-	}
+    public Val get(String identifier) {
+        if (!variables.containsKey(identifier)) {
+            return Val.UNDEFINED;
+        }
+        return Val.of(variables.get(identifier));
+    }
 
-	/**
-	 * @return a deep copy of this variable's context.
-	 */
-	private VariableContext copy() {
-		var variablesCopy = new HashMap<String, JsonNode>();
-		variables.forEach((key, value) -> variablesCopy.put(key, value.deepCopy()));
-		return new VariableContext(variablesCopy);
-	}
+    /**
+     * @return a deep copy of this variable's context.
+     */
+    private VariableContext copy() {
+        var variablesCopy = new HashMap<String, JsonNode>();
+        variables.forEach((key, value) -> variablesCopy.put(key, value.deepCopy()));
+        return new VariableContext(variablesCopy);
+    }
 
 }

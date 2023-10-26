@@ -31,26 +31,25 @@ import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAckReasonCo
 
 class SubscriptionUtilityTest {
 
-	@Test
-	void when_addingSubscriptionsToSubscriptionListAndSubAckReasonCodeIsError_then_doNotAddSubscription() {
-		// GIVEN
-		var mqtt5SubscribeMock   = mock(Mqtt5Subscribe.class);
-		var mqttSubscriptionMock = mock(MqttSubscription.class);
-		var mqttSubscriptionList = List.of(mqttSubscriptionMock);
-		doReturn(mqttSubscriptionList).when(mqtt5SubscribeMock).getSubscriptions();
+    @Test
+    void when_addingSubscriptionsToSubscriptionListAndSubAckReasonCodeIsError_then_doNotAddSubscription() {
+        // GIVEN
+        var mqtt5SubscribeMock   = mock(Mqtt5Subscribe.class);
+        var mqttSubscriptionMock = mock(MqttSubscription.class);
+        var mqttSubscriptionList = List.of(mqttSubscriptionMock);
+        doReturn(mqttSubscriptionList).when(mqtt5SubscribeMock).getSubscriptions();
 
-		var mqttClientValues = new MqttClientValues("clientId", null,
-				JsonNodeFactory.instance.objectNode(), null);
+        var mqttClientValues = new MqttClientValues("clientId", null, JsonNodeFactory.instance.objectNode(), null);
 
-		var mqtt5SubAckMock           = mock(Mqtt5SubAck.class);
-		var mqtt5SubAckReasonCodeList = List.of(Mqtt5SubAckReasonCode.NOT_AUTHORIZED);
-		doReturn(mqtt5SubAckReasonCodeList).when(mqtt5SubAckMock).getReasonCodes();
+        var mqtt5SubAckMock           = mock(Mqtt5SubAck.class);
+        var mqtt5SubAckReasonCodeList = List.of(Mqtt5SubAckReasonCode.NOT_AUTHORIZED);
+        doReturn(mqtt5SubAckReasonCodeList).when(mqtt5SubAckMock).getReasonCodes();
 
-		// WHEN
-		SubscriptionUtility.addSubscriptionsCountToSubscriptionList(mqttClientValues, mqtt5SubAckMock,
-				mqtt5SubscribeMock);
+        // WHEN
+        SubscriptionUtility.addSubscriptionsCountToSubscriptionList(mqttClientValues, mqtt5SubAckMock,
+                mqtt5SubscribeMock);
 
-		// THEN
-		assertTrue(mqttClientValues.isTopicSubscriptionsCountMapEmpty());
-	}
+        // THEN
+        assertTrue(mqttClientValues.isTopicSubscriptionsCountMapEmpty());
+    }
 }

@@ -25,17 +25,17 @@ import reactor.core.publisher.Mono;
 
 public interface InMemoryDocumentIndex {
 
-	void insert(String documentKey, String document);
+    void insert(String documentKey, String document);
 
-	void publish(String documentKey);
+    void publish(String documentKey);
 
-	void withdraw(String documentKey);
+    void withdraw(String documentKey);
 
-	void updateFunctionContext(FunctionContext functionCtx);
+    void updateFunctionContext(FunctionContext functionCtx);
 
-	void setLiveMode();
+    void setLiveMode();
 
-	Mono<PolicyRetrievalResult> retrievePolicies(AuthorizationSubscription authzSubscription,
-			FunctionContext functionCtx, Map<String, JsonNode> variables);
+    Mono<PolicyRetrievalResult> retrievePolicies(AuthorizationSubscription authzSubscription,
+            FunctionContext functionCtx, Map<String, JsonNode> variables);
 
 }

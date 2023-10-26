@@ -17,4 +17,5 @@ package io.sapl.util.filemonitoring;
 
 import java.io.File;
 
-public record FileCreatedEvent(File file) implements FileEvent {}
+public record FileCreatedEvent(File file) implements FileEvent {
+}

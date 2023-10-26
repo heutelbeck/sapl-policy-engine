@@ -21,6 +21,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 public interface ErrorHandlerProvider extends Responsible {
 
-	Consumer<Throwable> getHandler(JsonNode constraint);
+    Consumer<Throwable> getHandler(JsonNode constraint);
 
 }

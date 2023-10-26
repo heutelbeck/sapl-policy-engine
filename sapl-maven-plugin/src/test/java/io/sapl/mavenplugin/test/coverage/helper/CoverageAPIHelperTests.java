@@ -30,31 +30,31 @@ import io.sapl.test.coverage.api.model.PolicySetHit;
 
 class CoverageAPIHelperTests {
 
-	private Path baseDir;
+    private Path baseDir;
 
-	@BeforeEach
-	void setup() {
-		baseDir = Paths.get("target/sapl-coverage");
-		TestFileHelper.deleteDirectory(baseDir.toFile());
-	}
+    @BeforeEach
+    void setup() {
+        baseDir = Paths.get("target/sapl-coverage");
+        TestFileHelper.deleteDirectory(baseDir.toFile());
+    }
 
-	@AfterEach
-	void cleanup() {
-		TestFileHelper.deleteDirectory(baseDir.toFile());
-	}
+    @AfterEach
+    void cleanup() {
+        TestFileHelper.deleteDirectory(baseDir.toFile());
+    }
 
-	@Test
-	void test() {
-		var helper = new CoverageAPIHelper();
-		var writer = CoverageAPIFactory.constructCoverageHitRecorder(baseDir);
+    @Test
+    void test() {
+        var helper = new CoverageAPIHelper();
+        var writer = CoverageAPIFactory.constructCoverageHitRecorder(baseDir);
 
-		var hits1 = helper.readHits(baseDir);
-		assertEquals(0, hits1.getPolicySets().size());
+        var hits1 = helper.readHits(baseDir);
+        assertEquals(0, hits1.getPolicySets().size());
 
-		writer.recordPolicySetHit(new PolicySetHit("testSet"));
-		var hits2 = helper.readHits(baseDir);
-		assertEquals(1, hits2.getPolicySets().size());
+        writer.recordPolicySetHit(new PolicySetHit("testSet"));
+        var hits2 = helper.readHits(baseDir);
+        assertEquals(1, hits2.getPolicySets().size());
 
-	}
+    }
 
 }

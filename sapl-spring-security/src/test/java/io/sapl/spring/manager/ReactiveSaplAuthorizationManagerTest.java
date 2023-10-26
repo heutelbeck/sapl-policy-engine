@@ -49,65 +49,67 @@ import reactor.test.StepVerifier;
 
 class ReactiveSaplAuthorizationManagerTest {
 
-	private final static Mono<Authentication> AUTHENTICATION = Mono
-			.just(new TestingAuthenticationToken("user", "password", "ROLE_1", "ROLE_2"));
+    private final static Mono<Authentication> AUTHENTICATION = Mono
+            .just(new TestingAuthenticationToken("user", "password", "ROLE_1", "ROLE_2"));
 
-	private ObjectMapper                       mapper;
-	private PolicyDecisionPoint                pdp;
-	private BlockingConstraintHandlerBundle<?> bundle;
-	private ReactiveSaplAuthorizationManager   sut;
-	private AuthorizationContext               ctx;
+    private ObjectMapper                       mapper;
+    private PolicyDecisionPoint                pdp;
+    private BlockingConstraintHandlerBundle<?> bundle;
+    private ReactiveSaplAuthorizationManager   sut;
+    private AuthorizationContext               ctx;
 
-	@BeforeEach
-	void setUpMocks() {
-		mapper = new ObjectMapper();
-		mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-		SimpleModule module = new SimpleModule();
-		module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
-		mapper.registerModule(module);
+    @BeforeEach
+    void setUpMocks() {
+        mapper = new ObjectMapper();
+        mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+        SimpleModule module = new SimpleModule();
+        module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
+        mapper.registerModule(module);
 
-		pdp = mock(PolicyDecisionPoint.class);
-		var constraintHandlers = mock(ConstraintEnforcementService.class);
+        pdp = mock(PolicyDecisionPoint.class);
+        var constraintHandlers = mock(ConstraintEnforcementService.class);
 
-		bundle = mock(BlockingConstraintHandlerBundle.class);
-		doReturn(bundle).when(constraintHandlers).accessManagerBundleFor(any());
+        bundle = mock(BlockingConstraintHandlerBundle.class);
+        doReturn(bundle).when(constraintHandlers).accessManagerBundleFor(any());
 
-		sut = new ReactiveSaplAuthorizationManager(pdp, constraintHandlers, mapper);
+        sut = new ReactiveSaplAuthorizationManager(pdp, constraintHandlers, mapper);
 
-		ctx = mock(AuthorizationContext.class);
-		var request  = MockServerHttpRequest.get("http://localhost").build();
-		var exchange = MockServerWebExchange.from(request);
-		doReturn(exchange).when(ctx).getExchange();
-	}
+        ctx = mock(AuthorizationContext.class);
+        var request  = MockServerHttpRequest.get("http://localhost").build();
+        var exchange = MockServerWebExchange.from(request);
+        doReturn(exchange).when(ctx).getExchange();
+    }
 
-	@Test
-	void when_PdpPermit_then_IsGranted() {
-		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-		StepVerifier.create(sut.check(AUTHENTICATION, ctx))
-			.expectNextMatches(org.springframework.security.authorization.AuthorizationDecision::isGranted).verifyComplete();
-		verify(bundle, times(1)).handleOnDecisionConstraints();
-	}
+    @Test
+    void when_PdpPermit_then_IsGranted() {
+        when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+        StepVerifier.create(sut.check(AUTHENTICATION, ctx))
+                .expectNextMatches(org.springframework.security.authorization.AuthorizationDecision::isGranted)
+                .verifyComplete();
+        verify(bundle, times(1)).handleOnDecisionConstraints();
+    }
 
-	@Test
-	void when_ObligationsFail_then_IsNotGranted() {
-		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-		doThrow(new AccessDeniedException("")).when(bundle).handleOnDecisionConstraints();
-		StepVerifier.create(sut.check(AUTHENTICATION, ctx)).expectNextMatches(dec -> !dec.isGranted()).verifyComplete();
-		verify(bundle, times(1)).handleOnDecisionConstraints();
-	}
+    @Test
+    void when_ObligationsFail_then_IsNotGranted() {
+        when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+        doThrow(new AccessDeniedException("")).when(bundle).handleOnDecisionConstraints();
+        StepVerifier.create(sut.check(AUTHENTICATION, ctx)).expectNextMatches(dec -> !dec.isGranted()).verifyComplete();
+        verify(bundle, times(1)).handleOnDecisionConstraints();
+    }
 
-	@Test
-	void when_PdpDeny_then_NotGranted() {
-		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.DENY));
-		StepVerifier.create(sut.check(AUTHENTICATION, ctx)).expectNextMatches(dec -> !dec.isGranted()).verifyComplete();
-		verify(bundle, times(1)).handleOnDecisionConstraints();
-	}
+    @Test
+    void when_PdpDeny_then_NotGranted() {
+        when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.DENY));
+        StepVerifier.create(sut.check(AUTHENTICATION, ctx)).expectNextMatches(dec -> !dec.isGranted()).verifyComplete();
+        verify(bundle, times(1)).handleOnDecisionConstraints();
+    }
 
-	@Test
-	void when_PdpPermitWithResource_then_NotGranted() {
-		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT.withResource(mapper.createObjectNode())));
-		StepVerifier.create(sut.check(AUTHENTICATION, ctx)).expectNextMatches(dec -> !dec.isGranted()).verifyComplete();
-		verify(bundle, times(0)).handleOnDecisionConstraints();
-	}
+    @Test
+    void when_PdpPermitWithResource_then_NotGranted() {
+        when(pdp.decide((AuthorizationSubscription) any()))
+                .thenReturn(Flux.just(AuthorizationDecision.PERMIT.withResource(mapper.createObjectNode())));
+        StepVerifier.create(sut.check(AUTHENTICATION, ctx)).expectNextMatches(dec -> !dec.isGranted()).verifyComplete();
+        verify(bundle, times(0)).handleOnDecisionConstraints();
+    }
 
 }

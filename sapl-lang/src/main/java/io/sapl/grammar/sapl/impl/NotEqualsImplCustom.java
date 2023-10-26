@@ -32,14 +32,14 @@ import reactor.core.publisher.Flux;
  */
 public class NotEqualsImplCustom extends NotEqualsImpl {
 
-	@Override
-	public Flux<Val> evaluate() {
-		return operator(this, this::notEqual);
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        return operator(this, this::notEqual);
+    }
 
-	private Val notEqual(Val left, Val right) {
-		return Val.notEqual(left, right).withTrace(NotEquals.class, Map.of(Trace.LEFT, left, Trace.RIGHT, right));
+    private Val notEqual(Val left, Val right) {
+        return Val.notEqual(left, right).withTrace(NotEquals.class, Map.of(Trace.LEFT, left, Trace.RIGHT, right));
 
-	}
+    }
 
 }

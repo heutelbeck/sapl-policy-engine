@@ -34,48 +34,48 @@ import org.mockito.MockedStatic;
 
 class JarUtilTest {
 
-	@Test
-	void inferUrlOfResourcesPathTest() {
-		var result = JarUtil.inferUrlOfResourcesPath(getClass(), "/policies");
-		assertThat(result.toString().startsWith("file:"), is(true));
-		assertThat(result.toString().endsWith("policies"), is(true));
-	}
+    @Test
+    void inferUrlOfResourcesPathTest() {
+        var result = JarUtil.inferUrlOfResourcesPath(getClass(), "/policies");
+        assertThat(result.toString().startsWith("file:"), is(true));
+        assertThat(result.toString().endsWith("policies"), is(true));
+    }
 
-	@Test
-	void inferUrlOfResourcesPathTestWithMissingResource() {
-		var thisClass = this.getClass();
-		assertThrows(RuntimeException.class, () -> JarUtil.inferUrlOfResourcesPath(thisClass, "/iDoNotExist"));
-	}
+    @Test
+    void inferUrlOfResourcesPathTestWithMissingResource() {
+        var thisClass = this.getClass();
+        assertThrows(RuntimeException.class, () -> JarUtil.inferUrlOfResourcesPath(thisClass, "/iDoNotExist"));
+    }
 
-	@Test
-	void getJarFilePathTest() {
-		var url    = JarUtil.inferUrlOfResourcesPath(getClass(), "/policies");
-		var result = JarUtil.getJarFilePath(url);
-		assertThat(result.endsWith("policies"), is(true));
-	}
+    @Test
+    void getJarFilePathTest() {
+        var url    = JarUtil.inferUrlOfResourcesPath(getClass(), "/policies");
+        var result = JarUtil.getJarFilePath(url);
+        assertThat(result.endsWith("policies"), is(true));
+    }
 
-	@Test
-	void readStringFromZipEntryTest() throws IOException {
-		var url       = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/policies");
-		var pathOfJar = JarUtil.getJarFilePath(url);
-		try (var jarFile = new ZipFile(pathOfJar)) {
-			var entry    = jarFile.getEntry("policies/pdp.json");
-			var contents = JarUtil.readStringFromZipEntry(jarFile, entry);
-			assertThat(contents.length(), is(not(0)));
-		}
-	}
+    @Test
+    void readStringFromZipEntryTest() throws IOException {
+        var url       = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/policies");
+        var pathOfJar = JarUtil.getJarFilePath(url);
+        try (var jarFile = new ZipFile(pathOfJar)) {
+            var entry    = jarFile.getEntry("policies/pdp.json");
+            var contents = JarUtil.readStringFromZipEntry(jarFile, entry);
+            assertThat(contents.length(), is(not(0)));
+        }
+    }
 
-	@Test
-	void readStringFromZipEntryTestWithErrorPropagation() throws IOException {
-		var url       = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/policies");
-		var pathOfJar = JarUtil.getJarFilePath(url);
-		try (MockedStatic<IOUtils> mock = mockStatic(IOUtils.class)) {
-			mock.when(() -> IOUtils.toString(any(InputStream.class), any(Charset.class))).thenThrow(new IOException());
-			try (var jarFile = new ZipFile(pathOfJar)) {
-				var entry = jarFile.getEntry("policies/pdp.json");
-				assertThrows(IOException.class, () -> JarUtil.readStringFromZipEntry(jarFile, entry));
-			}
-		}
-	}
+    @Test
+    void readStringFromZipEntryTestWithErrorPropagation() throws IOException {
+        var url       = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/policies");
+        var pathOfJar = JarUtil.getJarFilePath(url);
+        try (MockedStatic<IOUtils> mock = mockStatic(IOUtils.class)) {
+            mock.when(() -> IOUtils.toString(any(InputStream.class), any(Charset.class))).thenThrow(new IOException());
+            try (var jarFile = new ZipFile(pathOfJar)) {
+                var entry = jarFile.getEntry("policies/pdp.json");
+                assertThrows(IOException.class, () -> JarUtil.readStringFromZipEntry(jarFile, entry));
+            }
+        }
+    }
 
 }

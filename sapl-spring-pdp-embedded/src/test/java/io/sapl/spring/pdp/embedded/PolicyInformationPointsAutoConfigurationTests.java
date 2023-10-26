@@ -25,15 +25,15 @@ import io.sapl.pip.TimePolicyInformationPoint;
 
 class PolicyInformationPointsAutoConfigurationTests {
 
-	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-			.withConfiguration(AutoConfigurations.of(PolicyInformationPointsAutoConfiguration.class));
+    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
+            .withConfiguration(AutoConfigurations.of(PolicyInformationPointsAutoConfiguration.class));
 
-	@Test
-	void whenContextLoaded_thenDefaultPolicyInformationPointsArePresent() {
-		contextRunner.run(context -> {
-			assertThat(context).hasNotFailed();
-			assertThat(context).hasSingleBean(TimePolicyInformationPoint.class);
-		});
-	}
+    @Test
+    void whenContextLoaded_thenDefaultPolicyInformationPointsArePresent() {
+        contextRunner.run(context -> {
+            assertThat(context).hasNotFailed();
+            assertThat(context).hasSingleBean(TimePolicyInformationPoint.class);
+        });
+    }
 
 }

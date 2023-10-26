@@ -42,53 +42,53 @@ import reactor.util.context.Context;
 
 class FilesystemPRPTest {
 
-	@Test
-	void call_index_apply_method_for_each_prp_update_event() {
-		var mockSource = mock(FileSystemPrpUpdateEventSource.class);
-		var mockIndex  = mock(CanonicalImmutableParsedDocumentIndex.class);
+    @Test
+    void call_index_apply_method_for_each_prp_update_event() {
+        var mockSource = mock(FileSystemPrpUpdateEventSource.class);
+        var mockIndex  = mock(CanonicalImmutableParsedDocumentIndex.class);
 
-		var updateEventFlux = Flux.just(event(Type.PUBLISH), event(Type.WITHDRAW), event(Type.PUBLISH),
-				event(Type.WITHDRAW), event(Type.PUBLISH)
+        var updateEventFlux = Flux.just(event(Type.PUBLISH), event(Type.WITHDRAW), event(Type.PUBLISH),
+                event(Type.WITHDRAW), event(Type.PUBLISH)
 
-		);
+        );
 
-		// WHEN
-		when(mockSource.getUpdates()).thenReturn(updateEventFlux);
-		when(mockIndex.apply(any())).thenReturn(mockIndex);
+        // WHEN
+        when(mockSource.getUpdates()).thenReturn(updateEventFlux);
+        when(mockIndex.apply(any())).thenReturn(mockIndex);
 
-		// DO
-		new GenericInMemoryIndexedPolicyRetrievalPoint(mockIndex, mockSource);
+        // DO
+        new GenericInMemoryIndexedPolicyRetrievalPoint(mockIndex, mockSource);
 
-		// THEN
-		verify(mockSource, times(1)).getUpdates();
-		verify(mockIndex, times(3))
-				.apply(argThat(prpUpdateEvent -> prpUpdateEvent.getUpdates()[0].getType() == Type.PUBLISH));
-		verify(mockIndex, times(2))
-				.apply(argThat(prpUpdateEvent -> prpUpdateEvent.getUpdates()[0].getType() == Type.WITHDRAW));
-	}
+        // THEN
+        verify(mockSource, times(1)).getUpdates();
+        verify(mockIndex, times(3))
+                .apply(argThat(prpUpdateEvent -> prpUpdateEvent.getUpdates()[0].getType() == Type.PUBLISH));
+        verify(mockIndex, times(2))
+                .apply(argThat(prpUpdateEvent -> prpUpdateEvent.getUpdates()[0].getType() == Type.WITHDRAW));
+    }
 
-	private PrpUpdateEvent event(Type type) {
-		return new PrpUpdateEvent(new Update(type, null, null));
-	}
+    private PrpUpdateEvent event(Type type) {
+        return new PrpUpdateEvent(new Update(type, null, null));
+    }
 
-	@Test
-	void doTest() {
-		var interpreter = new DefaultSAPLInterpreter();
-		var source      = new FileSystemPrpUpdateEventSource("src/test/resources/policies", interpreter);
-		var prp         = new GenericInMemoryIndexedPolicyRetrievalPoint(new NaiveImmutableParsedDocumentIndex(),
-				source);
-		var authzSub    = AuthorizationSubscription.of("Willi", "eat", "icecream");
+    @Test
+    void doTest() {
+        var interpreter = new DefaultSAPLInterpreter();
+        var source      = new FileSystemPrpUpdateEventSource("src/test/resources/policies", interpreter);
+        var prp         = new GenericInMemoryIndexedPolicyRetrievalPoint(new NaiveImmutableParsedDocumentIndex(),
+                source);
+        var authzSub    = AuthorizationSubscription.of("Willi", "eat", "icecream");
 
-		var sut = prp.retrievePolicies().contextWrite(ctx -> setUpAuthorizationContext(ctx, authzSub)).next();
-		StepVerifier.create(sut).expectNextMatches(PolicyRetrievalResult.class::isInstance).verifyComplete();
-		prp.dispose();
-	}
+        var sut = prp.retrievePolicies().contextWrite(ctx -> setUpAuthorizationContext(ctx, authzSub)).next();
+        StepVerifier.create(sut).expectNextMatches(PolicyRetrievalResult.class::isInstance).verifyComplete();
+        prp.dispose();
+    }
 
-	private static Context setUpAuthorizationContext(Context ctx, AuthorizationSubscription authzSubscription) {
-		ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
-		ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
-		ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription);
-		return ctx;
-	}
+    private static Context setUpAuthorizationContext(Context ctx, AuthorizationSubscription authzSubscription) {
+        ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+        ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+        ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription);
+        return ctx;
+    }
 
 }

@@ -30,13 +30,13 @@ import reactor.core.publisher.Flux;
  */
 public class BasicIdentifierImplCustom extends BasicIdentifierImpl {
 
-	@Override
-	public Flux<Val> evaluate() {
-		return Flux.deferContextual(ctx -> {
-			var identifierFlux = Flux.just(AuthorizationContext.getVariable(ctx, getIdentifier()));
-			return identifierFlux.switchMap(v -> resolveStepsFiltersAndSubTemplates(steps).apply(v)).map(
-					val -> val.withTrace(BasicIdentifier.class, Map.of(Trace.IDENTIFIER, Val.of(getIdentifier()))));
-		});
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        return Flux.deferContextual(ctx -> {
+            var identifierFlux = Flux.just(AuthorizationContext.getVariable(ctx, getIdentifier()));
+            return identifierFlux.switchMap(v -> resolveStepsFiltersAndSubTemplates(steps).apply(v)).map(
+                    val -> val.withTrace(BasicIdentifier.class, Map.of(Trace.IDENTIFIER, Val.of(getIdentifier()))));
+        });
+    }
 
 }

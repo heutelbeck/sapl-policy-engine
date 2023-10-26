@@ -26,14 +26,14 @@ import io.sapl.interpreter.pip.AttributeContext;
 @Configuration
 class SAPLIdeSpringTestConfiguration {
 
-	@Bean
-	FunctionContext functionContext() {
-		return new TestFunctionContext();
-	}
+    @Bean
+    FunctionContext functionContext() {
+        return new TestFunctionContext();
+    }
 
-	@Bean
-	AttributeContext attributeContext() {
-		return new TestAttributeContext();
-	}
+    @Bean
+    AttributeContext attributeContext() {
+        return new TestAttributeContext();
+    }
 
 }

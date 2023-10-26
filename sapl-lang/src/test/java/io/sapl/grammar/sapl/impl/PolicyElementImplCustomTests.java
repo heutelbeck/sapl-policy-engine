@@ -30,10 +30,10 @@ import reactor.test.StepVerifier;
 
 class PolicyElementImplCustomTests {
 
-	private final static SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
+    private final static SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
-	private static Stream<Arguments> provideTestCases() {
-		// @formatter:off
+    private static Stream<Arguments> provideTestCases() {
+        // @formatter:off
 		return Stream.of(
 	 			// emptyTargetMatches
 	 			Arguments.of("policy \"p\" permit", Val.TRUE),

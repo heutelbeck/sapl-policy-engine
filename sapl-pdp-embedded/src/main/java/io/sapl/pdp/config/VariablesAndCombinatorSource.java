@@ -25,12 +25,12 @@ import reactor.core.publisher.Flux;
 
 public interface VariablesAndCombinatorSource {
 
-	Flux<Optional<CombiningAlgorithm>> getCombiningAlgorithm();
+    Flux<Optional<CombiningAlgorithm>> getCombiningAlgorithm();
 
-	Flux<Optional<Map<String, JsonNode>>> getVariables();
+    Flux<Optional<Map<String, JsonNode>>> getVariables();
 
-	default void destroy() {
-		// NOOP
-	}
+    default void destroy() {
+        // NOOP
+    }
 
 }

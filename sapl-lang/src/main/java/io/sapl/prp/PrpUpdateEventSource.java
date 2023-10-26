@@ -20,6 +20,6 @@ import reactor.core.publisher.Flux;
 
 public interface PrpUpdateEventSource extends Disposable {
 
-	Flux<PrpUpdateEvent> getUpdates();
+    Flux<PrpUpdateEvent> getUpdates();
 
 }

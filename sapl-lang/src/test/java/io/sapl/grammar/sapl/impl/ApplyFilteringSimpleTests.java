@@ -29,30 +29,30 @@ import io.sapl.api.interpreter.Val;
 
 class ApplyFilteringSimpleTests {
 
-	@Test
-	void filterPropagatesError() {
-		assertExpressionReturnsErrors("(10/0) |- filter.remove");
-	}
+    @Test
+    void filterPropagatesError() {
+        assertExpressionReturnsErrors("(10/0) |- filter.remove");
+    }
 
-	@Test
-	void filterUndefined() {
-		assertExpressionReturnsErrors("undefined |- filter.remove");
-	}
+    @Test
+    void filterUndefined() {
+        assertExpressionReturnsErrors("undefined |- filter.remove");
+    }
 
-	@Test
-	void removeNoEach() {
-		var expression = "{} |- filter.remove";
-		var expected   = Val.UNDEFINED;
-		assertExpressionEvaluatesTo(expression, expected);
-	}
+    @Test
+    void removeNoEach() {
+        var expression = "{} |- filter.remove";
+        var expected   = Val.UNDEFINED;
+        assertExpressionEvaluatesTo(expression, expected);
+    }
 
-	@Test
-	void removeEachNoArray() {
-		assertExpressionReturnsErrors("{} |- each filter.remove");
-	}
+    @Test
+    void removeEachNoArray() {
+        assertExpressionReturnsErrors("{} |- each filter.remove");
+    }
 
-	private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
-		// @formatter:off
+    private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+        // @formatter:off
 		return Stream.of(
 	 			// Remove each array
 	 			Arguments.of("[null] |- each filter.remove",

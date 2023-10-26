@@ -28,28 +28,28 @@ import reactor.core.publisher.Flux;
 @PolicyInformationPoint(name = MockXACMLPatientProfilePIP.NAME)
 public class MockXACMLPatientProfilePIP {
 
-	public static final String NAME = "patient";
+    public static final String NAME = "patient";
 
-	@Attribute
-	public Flux<Val> profile(Val value, Map<String, JsonNode> variables) throws JsonProcessingException {
-		String json = "{" + "	\"patient\": {" + "		\"name\": {" + "			\"first\": \"Bartholomew\","
-				+ "			\"last\": \"Simpson\"" + "		}," + "		\"contact\": {"
-				+ "			\"street\": \"27 Shelbyville Road\"," + "			\"email\": null" + "		},"
-				+ "		\"DoB\": \"1992-03-21\"," + "		\"patient_number\": \"555555\"" + "	},"
-				+ "	\"parentGuardian\": {" + "		\"id\": \"HS001\"," + "		\"name\": {"
-				+ "			\"first\": \"Homer\"," + "			\"last\": \"Simpson\"" + "		},"
-				+ "		\"contact\": {" + "			\"email\": \"homers@aol.com\"" + "		}" + "	},"
-				+ "	\"primaryCarePhysician\": {" + "		\"contact\": { }," + "		\"registrationID\": \"ABC123\""
-				+ "	}," + "	\"medical\": {" + "		\"treatment\": {" + "			\"drug\": {"
-				+ "				\"name\": \"methylphenidate hydrochloride\","
-				+ "				\"dailyDosage\": \"30mgs\"," + "				\"startDate\": \"1999-01-12\""
-				+ "			},"
-				+ "			\"comment\": \"patient exhibits side-effects of skin coloration and carpal degeneration\""
-				+ "		}," + "		\"result\": {" + "			\"test\": \"blood pressure\","
-				+ "			\"value\": \"120/80\"," + "			\"date\": \"2001-06-09\","
-				+ "			\"performedBy\": \"Nurse Betty\"" + "		}" + "	}" + "}";
+    @Attribute
+    public Flux<Val> profile(Val value, Map<String, JsonNode> variables) throws JsonProcessingException {
+        String json = "{" + "	\"patient\": {" + "		\"name\": {" + "			\"first\": \"Bartholomew\","
+                + "			\"last\": \"Simpson\"" + "		}," + "		\"contact\": {"
+                + "			\"street\": \"27 Shelbyville Road\"," + "			\"email\": null" + "		},"
+                + "		\"DoB\": \"1992-03-21\"," + "		\"patient_number\": \"555555\"" + "	},"
+                + "	\"parentGuardian\": {" + "		\"id\": \"HS001\"," + "		\"name\": {"
+                + "			\"first\": \"Homer\"," + "			\"last\": \"Simpson\"" + "		},"
+                + "		\"contact\": {" + "			\"email\": \"homers@aol.com\"" + "		}" + "	},"
+                + "	\"primaryCarePhysician\": {" + "		\"contact\": { }," + "		\"registrationID\": \"ABC123\""
+                + "	}," + "	\"medical\": {" + "		\"treatment\": {" + "			\"drug\": {"
+                + "				\"name\": \"methylphenidate hydrochloride\","
+                + "				\"dailyDosage\": \"30mgs\"," + "				\"startDate\": \"1999-01-12\""
+                + "			},"
+                + "			\"comment\": \"patient exhibits side-effects of skin coloration and carpal degeneration\""
+                + "		}," + "		\"result\": {" + "			\"test\": \"blood pressure\","
+                + "			\"value\": \"120/80\"," + "			\"date\": \"2001-06-09\","
+                + "			\"performedBy\": \"Nurse Betty\"" + "		}" + "	}" + "}";
 
-		return Flux.just(Val.ofJson(json));
-	}
+        return Flux.just(Val.ofJson(json));
+    }
 
 }

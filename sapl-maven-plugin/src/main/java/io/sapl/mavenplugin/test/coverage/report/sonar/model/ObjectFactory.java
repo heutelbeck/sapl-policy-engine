@@ -34,34 +34,34 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class ObjectFactory {
 
-	/**
-	 * Create an instance of {@link Coverage }
-	 * 
-	 * @return the coverage
-	 *
-	 */
-	public Coverage createCoverage() {
-		return new Coverage();
-	}
+    /**
+     * Create an instance of {@link Coverage }
+     * 
+     * @return the coverage
+     *
+     */
+    public Coverage createCoverage() {
+        return new Coverage();
+    }
 
-	/**
-	 * Create an instance of {@link Coverage.File }
-	 * 
-	 * @return the coverage file
-	 *
-	 */
-	public Coverage.File createCoverageFile() {
-		return new Coverage.File();
-	}
+    /**
+     * Create an instance of {@link Coverage.File }
+     * 
+     * @return the coverage file
+     *
+     */
+    public Coverage.File createCoverageFile() {
+        return new Coverage.File();
+    }
 
-	/**
-	 * Create an instance of {@link Coverage.File.LineToCover }
-	 * 
-	 * @return the lineToConverter
-	 *
-	 */
-	public Coverage.File.LineToCover createCoverageFileLineToCover() {
-		return new Coverage.File.LineToCover();
-	}
+    /**
+     * Create an instance of {@link Coverage.File.LineToCover }
+     * 
+     * @return the lineToConverter
+     *
+     */
+    public Coverage.File.LineToCover createCoverageFileLineToCover() {
+        return new Coverage.File.LineToCover();
+    }
 
 }

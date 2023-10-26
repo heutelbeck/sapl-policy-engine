@@ -30,29 +30,29 @@ import io.sapl.pdp.config.fixed.FixedFunctionsAndAttributesPDPConfigurationProvi
 
 class PDPConfigurationProviderAutoConfigurationTests {
 
-	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-			.withBean(VariablesAndCombinatorSource.class, () -> mock(VariablesAndCombinatorSource.class))
-			.withBean(FunctionContext.class, () -> mock(FunctionContext.class))
-			.withBean(AttributeContext.class, () -> mock(AttributeContext.class))
-			.withConfiguration(AutoConfigurations.of(PDPConfigurationProviderAutoConfiguration.class));
+    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
+            .withBean(VariablesAndCombinatorSource.class, () -> mock(VariablesAndCombinatorSource.class))
+            .withBean(FunctionContext.class, () -> mock(FunctionContext.class))
+            .withBean(AttributeContext.class, () -> mock(AttributeContext.class))
+            .withConfiguration(AutoConfigurations.of(PDPConfigurationProviderAutoConfiguration.class));
 
-	@Test
-	void whenContextLoads_thenOneIsCreated() {
-		contextRunner.run(context -> {
-			assertThat(context).hasNotFailed();
-			assertThat(context).hasSingleBean(PDPConfigurationProvider.class);
-			assertThat(context).hasSingleBean(FixedFunctionsAndAttributesPDPConfigurationProvider.class);
-		});
-	}
+    @Test
+    void whenContextLoads_thenOneIsCreated() {
+        contextRunner.run(context -> {
+            assertThat(context).hasNotFailed();
+            assertThat(context).hasSingleBean(PDPConfigurationProvider.class);
+            assertThat(context).hasSingleBean(FixedFunctionsAndAttributesPDPConfigurationProvider.class);
+        });
+    }
 
-	@Test
-	void whenAnotherProviderIsAlreadyPresent_thenDoNotLoadANewOne() {
-		contextRunner.withBean(PDPConfigurationProvider.class, () -> mock(PDPConfigurationProvider.class))
-				.run(context -> {
-					assertThat(context).hasNotFailed();
-					assertThat(context).hasSingleBean(PDPConfigurationProvider.class);
-					assertThat(context).doesNotHaveBean(FixedFunctionsAndAttributesPDPConfigurationProvider.class);
-				});
-	}
+    @Test
+    void whenAnotherProviderIsAlreadyPresent_thenDoNotLoadANewOne() {
+        contextRunner.withBean(PDPConfigurationProvider.class, () -> mock(PDPConfigurationProvider.class))
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(PDPConfigurationProvider.class);
+                    assertThat(context).doesNotHaveBean(FixedFunctionsAndAttributesPDPConfigurationProvider.class);
+                });
+    }
 
 }

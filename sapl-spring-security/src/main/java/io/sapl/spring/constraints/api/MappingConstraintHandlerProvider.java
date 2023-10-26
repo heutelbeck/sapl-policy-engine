@@ -21,6 +21,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 public interface MappingConstraintHandlerProvider<T> extends Responsible, HasPriority, TypeSupport<T> {
 
-	UnaryOperator<T> getHandler(JsonNode constraint);
+    UnaryOperator<T> getHandler(JsonNode constraint);
 
 }

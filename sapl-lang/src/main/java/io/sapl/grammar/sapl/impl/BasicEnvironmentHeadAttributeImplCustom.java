@@ -30,21 +30,21 @@ import reactor.core.publisher.Flux;
  */
 public class BasicEnvironmentHeadAttributeImplCustom extends BasicEnvironmentHeadAttributeImpl {
 
-	private static final String EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR = "Attribute resolution error. Attribute '%s' is not allowed in target.";
+    private static final String EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR = "Attribute resolution error. Attribute '%s' is not allowed in target.";
 
-	@Override
-	public Flux<Val> evaluate() {
-		return Flux.deferContextual(ctx -> {
-			var fullyQualifiedName = FunctionUtil.resolveAbsoluteFunctionName(idSteps,
-					AuthorizationContext.getImports(ctx));
+    @Override
+    public Flux<Val> evaluate() {
+        return Flux.deferContextual(ctx -> {
+            var fullyQualifiedName = FunctionUtil.resolveAbsoluteFunctionName(idSteps,
+                    AuthorizationContext.getImports(ctx));
 
-			if (TargetExpressionUtil.isInTargetExpression(this))
-				return Flux.just(Val.error(EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR, fullyQualifiedName)
-						.withTrace(AttributeFinderStep.class, Map.of(Trace.ATTRIBUTE, Val.of(fullyQualifiedName))));
+            if (TargetExpressionUtil.isInTargetExpression(this))
+                return Flux.just(Val.error(EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR, fullyQualifiedName)
+                        .withTrace(AttributeFinderStep.class, Map.of(Trace.ATTRIBUTE, Val.of(fullyQualifiedName))));
 
-			return AuthorizationContext.getAttributeContext(ctx).evaluateEnvironmentAttribute(fullyQualifiedName,
-					getArguments(), AuthorizationContext.getVariables(ctx)).next();
-		});
-	}
+            return AuthorizationContext.getAttributeContext(ctx).evaluateEnvironmentAttribute(fullyQualifiedName,
+                    getArguments(), AuthorizationContext.getVariables(ctx)).next();
+        });
+    }
 
 }

@@ -22,39 +22,39 @@ import io.sapl.test.verification.TimesCalledVerification;
 
 public class FunctionMockAlwaysSameValue implements FunctionMock {
 
-	private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_ALWAYS_SAME_VALUE = "You already defined a Mock for %s which is always returning a specified value";
+    private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_ALWAYS_SAME_VALUE = "You already defined a Mock for %s which is always returning a specified value";
 
-	private final String fullName;
+    private final String fullName;
 
-	private final Val alwaysMockReturnValue;
+    private final Val alwaysMockReturnValue;
 
-	private final TimesCalledVerification timesCalledVerification;
+    private final TimesCalledVerification timesCalledVerification;
 
-	private final MockRunInformation mockRunInformation;
+    private final MockRunInformation mockRunInformation;
 
-	public FunctionMockAlwaysSameValue(String fullName, Val returnValue, TimesCalledVerification verification) {
-		this.fullName                = fullName;
-		this.alwaysMockReturnValue   = returnValue.withTrace(FunctionMockAlwaysSameValue.class);
-		this.timesCalledVerification = verification;
+    public FunctionMockAlwaysSameValue(String fullName, Val returnValue, TimesCalledVerification verification) {
+        this.fullName                = fullName;
+        this.alwaysMockReturnValue   = returnValue.withTrace(FunctionMockAlwaysSameValue.class);
+        this.timesCalledVerification = verification;
 
-		this.mockRunInformation = new MockRunInformation(fullName);
-	}
+        this.mockRunInformation = new MockRunInformation(fullName);
+    }
 
-	@Override
-	public Val evaluateFunctionCall(Val... parameter) {
-		this.mockRunInformation.saveCall(new MockCall(parameter));
-		return this.alwaysMockReturnValue;
-	}
+    @Override
+    public Val evaluateFunctionCall(Val... parameter) {
+        this.mockRunInformation.saveCall(new MockCall(parameter));
+        return this.alwaysMockReturnValue;
+    }
 
-	@Override
-	public void assertVerifications() {
-		this.timesCalledVerification.verify(this.mockRunInformation);
+    @Override
+    public void assertVerifications() {
+        this.timesCalledVerification.verify(this.mockRunInformation);
 
-	}
+    }
 
-	@Override
-	public String getErrorMessageForCurrentMode() {
-		return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_ALWAYS_SAME_VALUE, this.fullName);
-	}
+    @Override
+    public String getErrorMessageForCurrentMode() {
+        return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_ALWAYS_SAME_VALUE, this.fullName);
+    }
 
 }

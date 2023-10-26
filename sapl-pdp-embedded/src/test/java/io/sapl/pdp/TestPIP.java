@@ -28,13 +28,13 @@ import reactor.core.publisher.Flux;
 @PolicyInformationPoint(name = TestPIP.NAME, description = TestPIP.DESCRIPTION)
 public class TestPIP {
 
-	public static final String NAME = "test";
+    public static final String NAME = "test";
 
-	public static final String DESCRIPTION = "Policy information Point for testing";
+    public static final String DESCRIPTION = "Policy information Point for testing";
 
-	@Attribute
-	public Flux<Val> upper(@Text Val leftHandValue, Map<String, JsonNode> variables) {
-		return Flux.just(Val.of(leftHandValue.get().asText().toUpperCase()));
-	}
+    @Attribute
+    public Flux<Val> upper(@Text Val leftHandValue, Map<String, JsonNode> variables) {
+        return Flux.just(Val.of(leftHandValue.get().asText().toUpperCase()));
+    }
 
 }

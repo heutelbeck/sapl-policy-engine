@@ -22,17 +22,17 @@ import org.junit.jupiter.api.Test;
 
 class PolicyProposalCompletionTests extends CompletionTests {
 
-	@Test
-	void testCompletion_PolicyNameIsEmptyString() {
-		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "policy ";
-			it.setModel(policy);
-			it.setColumn(policy.length());
-			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("\"\"");
-				assertProposalsSimple(expected, completionList);
-			});
-		});
-	}
+    @Test
+    void testCompletion_PolicyNameIsEmptyString() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "policy ";
+            it.setModel(policy);
+            it.setColumn(policy.length());
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("\"\"");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
 
 }

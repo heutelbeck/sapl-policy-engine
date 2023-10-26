@@ -35,8 +35,8 @@ import reactor.test.StepVerifier;
 
 class ApplyStepsRecursiveWildcardTests {
 
-	@ParameterizedTest
-	// @formatter:off
+    @ParameterizedTest
+    // @formatter:off
 	@ValueSource(strings = {
 		// stepPropagatesErrors
 		"(10/0)..*",
@@ -44,12 +44,12 @@ class ApplyStepsRecursiveWildcardTests {
 		"undefined..*"
 	}) 
 	// @formatter:on
-	void expressionEvaluatesToErrors(String expression) {
-		assertExpressionReturnsErrors(expression);
-	}
+    void expressionEvaluatesToErrors(String expression) {
+        assertExpressionReturnsErrors(expression);
+    }
 
-	private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
-		// @formatter:off
+    private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+        // @formatter:off
 		return Stream.of(
 				// applyToNull
 	 			Arguments.of("null..*", "[]"),

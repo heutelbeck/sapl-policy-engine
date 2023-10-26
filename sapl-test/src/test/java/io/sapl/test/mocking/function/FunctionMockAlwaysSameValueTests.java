@@ -25,28 +25,28 @@ import io.sapl.api.interpreter.Val;
 
 class FunctionMockAlwaysSameValueTests {
 
-	private final Val alwaysReturnValue = Val.of("bar");
+    private final Val alwaysReturnValue = Val.of("bar");
 
-	@Test
-	void test() {
-		var mock = new FunctionMockAlwaysSameValue("foo", alwaysReturnValue, times(1));
-		assertThat(mock.evaluateFunctionCall(Val.of(1))).isEqualTo(alwaysReturnValue);
-	}
+    @Test
+    void test() {
+        var mock = new FunctionMockAlwaysSameValue("foo", alwaysReturnValue, times(1));
+        assertThat(mock.evaluateFunctionCall(Val.of(1))).isEqualTo(alwaysReturnValue);
+    }
 
-	@Test
-	void test_multipleTimes() {
-		var mock = new FunctionMockAlwaysSameValue("foo", alwaysReturnValue, times(3));
-		assertThat(mock.evaluateFunctionCall(Val.of(1))).isEqualTo(alwaysReturnValue);
-		assertThat(mock.evaluateFunctionCall(Val.of(2))).isEqualTo(alwaysReturnValue);
-		assertThat(mock.evaluateFunctionCall(Val.of(3))).isEqualTo(alwaysReturnValue);
+    @Test
+    void test_multipleTimes() {
+        var mock = new FunctionMockAlwaysSameValue("foo", alwaysReturnValue, times(3));
+        assertThat(mock.evaluateFunctionCall(Val.of(1))).isEqualTo(alwaysReturnValue);
+        assertThat(mock.evaluateFunctionCall(Val.of(2))).isEqualTo(alwaysReturnValue);
+        assertThat(mock.evaluateFunctionCall(Val.of(3))).isEqualTo(alwaysReturnValue);
 
-		assertThatNoException().isThrownBy(mock::assertVerifications);
-	}
+        assertThatNoException().isThrownBy(mock::assertVerifications);
+    }
 
-	@Test
-	void test_errorMessage() {
-		var mock = new FunctionMockAlwaysSameValue("foo", alwaysReturnValue, times(1));
-		assertThat(mock.getErrorMessageForCurrentMode()).isNotEmpty();
-	}
+    @Test
+    void test_errorMessage() {
+        var mock = new FunctionMockAlwaysSameValue("foo", alwaysReturnValue, times(1));
+        assertThat(mock.getErrorMessageForCurrentMode()).isNotEmpty();
+    }
 
 }

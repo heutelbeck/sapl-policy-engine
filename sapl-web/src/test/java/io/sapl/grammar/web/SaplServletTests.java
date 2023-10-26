@@ -21,21 +21,21 @@ import org.junit.jupiter.api.Test;
 
 class SaplServletTests {
 
-	@Test
-	void canInitAndDestroyServletWithoutException() {
-		assertDoesNotThrow(() -> {
-			var servlet = new SAPLServlet();
-			servlet.init();
-			servlet.destroy();
-		});
-	}
+    @Test
+    void canInitAndDestroyServletWithoutException() {
+        assertDoesNotThrow(() -> {
+            var servlet = new SAPLServlet();
+            servlet.init();
+            servlet.destroy();
+        });
+    }
 
-	@Test
-	void canJustDestroyServletWithoutException() {
-		assertDoesNotThrow(() -> {
-			var servlet = new SAPLServlet();
-			servlet.destroy();
-		});
-	}
+    @Test
+    void canJustDestroyServletWithoutException() {
+        assertDoesNotThrow(() -> {
+            var servlet = new SAPLServlet();
+            servlet.destroy();
+        });
+    }
 
 }

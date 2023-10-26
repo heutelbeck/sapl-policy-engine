@@ -41,34 +41,34 @@ import reactor.core.publisher.Flux;
  */
 public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 
-	@Override
-	public Flux<Val> apply(@NonNull Val parentValue) {
-		return StepAlgorithmUtil.applyOnArray(parentValue, SelectorUtil.toArrayElementSelector(hasIndex(parentValue)),
-				parameters(), AttributeUnionStep.class);
-	}
+    @Override
+    public Flux<Val> apply(@NonNull Val parentValue) {
+        return StepAlgorithmUtil.applyOnArray(parentValue, SelectorUtil.toArrayElementSelector(hasIndex(parentValue)),
+                parameters(), AttributeUnionStep.class);
+    }
 
-	@Override
-	public Flux<Val> applyFilterStatement(@NonNull Val unfilteredValue, int stepId,
-			@NonNull FilterStatement statement) {
-		return FilterAlgorithmUtil.applyFilterOnArray(unfilteredValue, stepId,
-				SelectorUtil.toArrayElementSelector(hasIndex(unfilteredValue)), statement, ArraySlicingStep.class);
-	}
+    @Override
+    public Flux<Val> applyFilterStatement(@NonNull Val unfilteredValue, int stepId,
+            @NonNull FilterStatement statement) {
+        return FilterAlgorithmUtil.applyFilterOnArray(unfilteredValue, stepId,
+                SelectorUtil.toArrayElementSelector(hasIndex(unfilteredValue)), statement, ArraySlicingStep.class);
+    }
 
-	private BiPredicate<Integer, Val> hasIndex(Val parentValue) {
-		return (index, v) -> {
-			var arraySize = parentValue.getArrayNode().size();
-			return indices.stream().map(BigDecimal::intValue).map(i -> normalizeIndex(i, arraySize))
-					.anyMatch(i -> i.equals(index));
-		};
-	}
+    private BiPredicate<Integer, Val> hasIndex(Val parentValue) {
+        return (index, v) -> {
+            var arraySize = parentValue.getArrayNode().size();
+            return indices.stream().map(BigDecimal::intValue).map(i -> normalizeIndex(i, arraySize))
+                    .anyMatch(i -> i.equals(index));
+        };
+    }
 
-	private int normalizeIndex(int i, int arraySize) {
-		return i < 0 ? i + arraySize : i;
-	}
+    private int normalizeIndex(int i, int arraySize) {
+        return i < 0 ? i + arraySize : i;
+    }
 
-	private String parameters() {
-		return "[" + (indices == null ? "" : indices.stream().map(Object::toString).collect(Collectors.joining(",")))
-				+ "]";
-	}
+    private String parameters() {
+        return "[" + (indices == null ? "" : indices.stream().map(Object::toString).collect(Collectors.joining(",")))
+                + "]";
+    }
 
 }

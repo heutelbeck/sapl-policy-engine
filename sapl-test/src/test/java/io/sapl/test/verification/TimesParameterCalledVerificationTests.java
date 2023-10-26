@@ -39,115 +39,115 @@ import io.sapl.test.mocking.MockCall;
 
 class TimesParameterCalledVerificationTests {
 
-	@Test
-	void test() {
-		var runInfo = new MockRunInformation("foo");
-		runInfo.saveCall(new MockCall(Val.of("bar"), Val.of(1)));
-		runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(2)));
-		runInfo.saveCall(new MockCall(Val.of("yyy"), Val.of(3)));
-		runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(2)));
+    @Test
+    void test() {
+        var runInfo = new MockRunInformation("foo");
+        runInfo.saveCall(new MockCall(Val.of("bar"), Val.of(1)));
+        runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(2)));
+        runInfo.saveCall(new MockCall(Val.of("yyy"), Val.of(3)));
+        runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(2)));
 
-		var matcher            = comparesEqualTo(2);
-		var expectedParameters = List.of(is(Val.of("xxx")), is(Val.of(2)));
-		var verification       = new TimesParameterCalledVerification(new TimesCalledVerification(matcher),
-				expectedParameters);
+        var matcher            = comparesEqualTo(2);
+        var expectedParameters = List.of(is(Val.of("xxx")), is(Val.of(2)));
+        var verification       = new TimesParameterCalledVerification(new TimesCalledVerification(matcher),
+                expectedParameters);
 
-		assertThatNoException().isThrownBy(() -> verification.verify(runInfo));
+        assertThatNoException().isThrownBy(() -> verification.verify(runInfo));
 
-		assertThat(runInfo.getCalls()).hasSize(4);
-		assertThat(runInfo.getCalls().get(0).isUsed()).isFalse();
-		assertThat(runInfo.getCalls().get(1).isUsed()).isTrue();
-		assertThat(runInfo.getCalls().get(2).isUsed()).isFalse();
-		assertThat(runInfo.getCalls().get(3).isUsed()).isTrue();
-	}
+        assertThat(runInfo.getCalls()).hasSize(4);
+        assertThat(runInfo.getCalls().get(0).isUsed()).isFalse();
+        assertThat(runInfo.getCalls().get(1).isUsed()).isTrue();
+        assertThat(runInfo.getCalls().get(2).isUsed()).isFalse();
+        assertThat(runInfo.getCalls().get(3).isUsed()).isTrue();
+    }
 
-	@Test
-	void test_assertionError() {
-		var runInfo = new MockRunInformation("foo");
-		runInfo.saveCall(new MockCall(Val.of("bar"), Val.of(1)));
-		runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(2)));
-		runInfo.saveCall(new MockCall(Val.of("yyy"), Val.of(3)));
-		runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(3)));
+    @Test
+    void test_assertionError() {
+        var runInfo = new MockRunInformation("foo");
+        runInfo.saveCall(new MockCall(Val.of("bar"), Val.of(1)));
+        runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(2)));
+        runInfo.saveCall(new MockCall(Val.of("yyy"), Val.of(3)));
+        runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(3)));
 
-		var matcher            = comparesEqualTo(2);
-		var expectedParameters = new LinkedList<Matcher<Val>>();
-		expectedParameters.add(is(Val.of("xxx")));
-		expectedParameters.add(is(Val.of(2)));
-		var verification = new TimesParameterCalledVerification(new TimesCalledVerification(matcher),
-				expectedParameters);
+        var matcher            = comparesEqualTo(2);
+        var expectedParameters = new LinkedList<Matcher<Val>>();
+        expectedParameters.add(is(Val.of("xxx")));
+        expectedParameters.add(is(Val.of(2)));
+        var verification = new TimesParameterCalledVerification(new TimesCalledVerification(matcher),
+                expectedParameters);
 
-		assertThatExceptionOfType(AssertionError.class).isThrownBy(() -> verification.verify(runInfo));
+        assertThatExceptionOfType(AssertionError.class).isThrownBy(() -> verification.verify(runInfo));
 
-		assertThat(runInfo.getCalls()).hasSize(4);
-		assertThat(runInfo.getCalls().get(0).isUsed()).isFalse();
-		assertThat(runInfo.getCalls().get(1).isUsed()).isTrue();
-		assertThat(runInfo.getCalls().get(2).isUsed()).isFalse();
-		assertThat(runInfo.getCalls().get(3).isUsed()).isFalse();
-	}
+        assertThat(runInfo.getCalls()).hasSize(4);
+        assertThat(runInfo.getCalls().get(0).isUsed()).isFalse();
+        assertThat(runInfo.getCalls().get(1).isUsed()).isTrue();
+        assertThat(runInfo.getCalls().get(2).isUsed()).isFalse();
+        assertThat(runInfo.getCalls().get(3).isUsed()).isFalse();
+    }
 
-	@Test
-	void test_assertionError_tooOftenCalled() {
-		var runInfo = new MockRunInformation("foo");
-		runInfo.saveCall(new MockCall(Val.of("bar"), Val.of(1)));
-		runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(2)));
-		runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(3)));
-		runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(3)));
+    @Test
+    void test_assertionError_tooOftenCalled() {
+        var runInfo = new MockRunInformation("foo");
+        runInfo.saveCall(new MockCall(Val.of("bar"), Val.of(1)));
+        runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(2)));
+        runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(3)));
+        runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(3)));
 
-		var matcher = comparesEqualTo(2);
+        var matcher = comparesEqualTo(2);
 
-		var expectedParameters = new LinkedList<Matcher<Val>>();
-		expectedParameters.add(is(Val.of("xxx")));
-		expectedParameters.add(anyVal());
-		var verification = new TimesParameterCalledVerification(new TimesCalledVerification(matcher),
-				expectedParameters);
+        var expectedParameters = new LinkedList<Matcher<Val>>();
+        expectedParameters.add(is(Val.of("xxx")));
+        expectedParameters.add(anyVal());
+        var verification = new TimesParameterCalledVerification(new TimesCalledVerification(matcher),
+                expectedParameters);
 
-		assertThatExceptionOfType(AssertionError.class).isThrownBy(() -> verification.verify(runInfo));
+        assertThatExceptionOfType(AssertionError.class).isThrownBy(() -> verification.verify(runInfo));
 
-		assertThat(runInfo.getCalls()).hasSize(4);
-		assertThat(runInfo.getCalls().get(0).isUsed()).isFalse();
-		assertThat(runInfo.getCalls().get(1).isUsed()).isTrue();
-		assertThat(runInfo.getCalls().get(2).isUsed()).isTrue();
-		assertThat(runInfo.getCalls().get(3).isUsed()).isTrue();
-	}
+        assertThat(runInfo.getCalls()).hasSize(4);
+        assertThat(runInfo.getCalls().get(0).isUsed()).isFalse();
+        assertThat(runInfo.getCalls().get(1).isUsed()).isTrue();
+        assertThat(runInfo.getCalls().get(2).isUsed()).isTrue();
+        assertThat(runInfo.getCalls().get(3).isUsed()).isTrue();
+    }
 
-	@Test
-	void test_MultipleParameterTimesVerifications_WithAnyMatcher_OrderingMatters() {
-		var runInfo = new MockRunInformation("foo");
-		runInfo.saveCall(new MockCall(Val.of("bar"), Val.of(1)));
-		runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(2)));
-		runInfo.saveCall(new MockCall(Val.of("yyy"), Val.of(3)));
-		runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(3)));
+    @Test
+    void test_MultipleParameterTimesVerifications_WithAnyMatcher_OrderingMatters() {
+        var runInfo = new MockRunInformation("foo");
+        runInfo.saveCall(new MockCall(Val.of("bar"), Val.of(1)));
+        runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(2)));
+        runInfo.saveCall(new MockCall(Val.of("yyy"), Val.of(3)));
+        runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(3)));
 
-		var matcher = comparesEqualTo(1);
+        var matcher = comparesEqualTo(1);
 
-		var expectedParameters = List.of(is(Val.of("xxx")), is(Val.of(2)));
-		var verification       = new TimesParameterCalledVerification(new TimesCalledVerification(matcher),
-				expectedParameters);
+        var expectedParameters = List.of(is(Val.of("xxx")), is(Val.of(2)));
+        var verification       = new TimesParameterCalledVerification(new TimesCalledVerification(matcher),
+                expectedParameters);
 
-		assertThatNoException().isThrownBy(() -> verification.verify(runInfo));
+        assertThatNoException().isThrownBy(() -> verification.verify(runInfo));
 
-		assertThat(runInfo.getCalls()).hasSize(4);
-		assertThat(runInfo.getCalls().get(0).isUsed()).isFalse();
-		assertThat(runInfo.getCalls().get(1).isUsed()).isTrue();
-		assertThat(runInfo.getCalls().get(2).isUsed()).isFalse();
-		assertThat(runInfo.getCalls().get(3).isUsed()).isFalse();
+        assertThat(runInfo.getCalls()).hasSize(4);
+        assertThat(runInfo.getCalls().get(0).isUsed()).isFalse();
+        assertThat(runInfo.getCalls().get(1).isUsed()).isTrue();
+        assertThat(runInfo.getCalls().get(2).isUsed()).isFalse();
+        assertThat(runInfo.getCalls().get(3).isUsed()).isFalse();
 
-		var matcher2            = comparesEqualTo(1);
-		var expectedParameters2 = List.of(is(Val.of("xxx")), anyVal());
-		var verification2       = new TimesParameterCalledVerification(new TimesCalledVerification(matcher2),
-				expectedParameters2);
+        var matcher2            = comparesEqualTo(1);
+        var expectedParameters2 = List.of(is(Val.of("xxx")), anyVal());
+        var verification2       = new TimesParameterCalledVerification(new TimesCalledVerification(matcher2),
+                expectedParameters2);
 
-		assertThatNoException().isThrownBy(() -> verification2.verify(runInfo));
+        assertThatNoException().isThrownBy(() -> verification2.verify(runInfo));
 
-		assertThat(runInfo.getCalls()).hasSize(4);
-		assertThat(runInfo.getCalls().get(0).isUsed()).isFalse();
-		assertThat(runInfo.getCalls().get(1).isUsed()).isTrue();
-		assertThat(runInfo.getCalls().get(2).isUsed()).isFalse();
-		assertThat(runInfo.getCalls().get(3).isUsed()).isTrue();
-	}
-	
-	private static Stream<Arguments> provideTestCases() {
-		// @formatter:off
+        assertThat(runInfo.getCalls()).hasSize(4);
+        assertThat(runInfo.getCalls().get(0).isUsed()).isFalse();
+        assertThat(runInfo.getCalls().get(1).isUsed()).isTrue();
+        assertThat(runInfo.getCalls().get(2).isUsed()).isFalse();
+        assertThat(runInfo.getCalls().get(3).isUsed()).isTrue();
+    }
+
+    private static Stream<Arguments> provideTestCases() {
+        // @formatter:off
 		return Stream.of(
 				// test_assertionError_verificationMessage
 			    Arguments.of("VerificationMessage", "VerificationMessage"),

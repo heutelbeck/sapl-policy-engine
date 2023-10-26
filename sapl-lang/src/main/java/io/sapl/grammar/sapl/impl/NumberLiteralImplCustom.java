@@ -21,9 +21,9 @@ import reactor.core.publisher.Flux;
 
 public class NumberLiteralImplCustom extends NumberLiteralImpl {
 
-	@Override
-	public Flux<Val> evaluate() {
-		return Flux.just(Val.of(getNumber()).withTrace(NumberLiteral.class));
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        return Flux.just(Val.of(getNumber()).withTrace(NumberLiteral.class));
+    }
 
 }

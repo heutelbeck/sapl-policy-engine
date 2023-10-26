@@ -27,16 +27,16 @@ import java.util.function.UnaryOperator;
  */
 @FunctionalInterface
 public interface TracedDecisionInterceptor
-		extends UnaryOperator<TracedDecision>, Comparable<TracedDecisionInterceptor> {
-	/**
-	 * @return the interceptor priority
-	 */
-	default Integer getPriority() {
-		return 0;
-	}
+        extends UnaryOperator<TracedDecision>, Comparable<TracedDecisionInterceptor> {
+    /**
+     * @return the interceptor priority
+     */
+    default Integer getPriority() {
+        return 0;
+    }
 
-	@Override
-	default int compareTo(TracedDecisionInterceptor other) {
-		return getPriority().compareTo(other.getPriority());
-	}
+    @Override
+    default int compareTo(TracedDecisionInterceptor other) {
+        return getPriority().compareTo(other.getPriority());
+    }
 }

@@ -29,50 +29,50 @@ import io.sapl.interpreter.pip.AttributeContext;
 
 class AttributeContextAutoConfigurationTests {
 
-	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-			.withConfiguration(AutoConfigurations.of(AttributeContextAutoConfiguration.class));
+    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
+            .withConfiguration(AutoConfigurations.of(AttributeContextAutoConfiguration.class));
 
-	@Test
-	void whenContextLoaded_thenAFunctionContextIsPresent() {
-		contextRunner.run(context -> {
-			assertThat(context).hasNotFailed();
-			assertThat(context).hasSingleBean(AttributeContext.class);
-		});
-	}
+    @Test
+    void whenContextLoaded_thenAFunctionContextIsPresent() {
+        contextRunner.run(context -> {
+            assertThat(context).hasNotFailed();
+            assertThat(context).hasSingleBean(AttributeContext.class);
+        });
+    }
 
-	@Test
-	void whenAttributeContextIsPresent_thenDoNotLoadANewOne() {
-		contextRunner.withBean(AttributeContext.class, () -> mock(AttributeContext.class)).run(context -> {
-			assertThat(context).hasNotFailed();
-			assertThat(context).hasSingleBean(AttributeContext.class);
-			assertThat(context).doesNotHaveBean(AnnotationAttributeContext.class);
-		});
-	}
+    @Test
+    void whenAttributeContextIsPresent_thenDoNotLoadANewOne() {
+        contextRunner.withBean(AttributeContext.class, () -> mock(AttributeContext.class)).run(context -> {
+            assertThat(context).hasNotFailed();
+            assertThat(context).hasSingleBean(AttributeContext.class);
+            assertThat(context).doesNotHaveBean(AnnotationAttributeContext.class);
+        });
+    }
 
-	@Test
-	void whenDefaultLibrariesArePresent_thenAFunctionContextIsPresentAndLoadedThem() {
-		contextRunner.withConfiguration(AutoConfigurations.of(PolicyInformationPointsAutoConfiguration.class))
-				.run(context -> {
-					assertThat(context).hasNotFailed();
-					assertThat(context).hasSingleBean(AttributeContext.class);
-					assertThat(context.getBean(AttributeContext.class).isProvidedFunction("time.now")).isTrue();
-				});
-	}
+    @Test
+    void whenDefaultLibrariesArePresent_thenAFunctionContextIsPresentAndLoadedThem() {
+        contextRunner.withConfiguration(AutoConfigurations.of(PolicyInformationPointsAutoConfiguration.class))
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(AttributeContext.class);
+                    assertThat(context.getBean(AttributeContext.class).isProvidedFunction("time.now")).isTrue();
+                });
+    }
 
-	@Test
-	void whenBadLibraryIsPresent_thenContextFailsToLoad() {
-		contextRunner.withBean(BadPolicyInformationPointLibrary.class, BadPolicyInformationPointLibrary::new)
-				.run(context -> assertThat(context).hasFailed());
-	}
+    @Test
+    void whenBadLibraryIsPresent_thenContextFailsToLoad() {
+        contextRunner.withBean(BadPolicyInformationPointLibrary.class, BadPolicyInformationPointLibrary::new)
+                .run(context -> assertThat(context).hasFailed());
+    }
 
-	@PolicyInformationPoint
-	protected static class BadPolicyInformationPointLibrary {
+    @PolicyInformationPoint
+    protected static class BadPolicyInformationPointLibrary {
 
-		@Attribute
-		void iAmABadSignatureAttribute(Integer i, Float f) {
-			/* NOOP */
-		}
+        @Attribute
+        void iAmABadSignatureAttribute(Integer i, Float f) {
+            /* NOOP */
+        }
 
-	}
+    }
 
 }

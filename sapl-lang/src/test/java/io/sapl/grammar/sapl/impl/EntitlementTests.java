@@ -26,16 +26,16 @@ import io.sapl.grammar.sapl.impl.util.ParserUtil;
 
 class EntitlementTests {
 
-	@Test
-	void permitIsPermit() throws IOException {
-		var permit = ParserUtil.entitlement("permit");
-		assertEquals(Decision.PERMIT, permit.getDecision());
-	}
+    @Test
+    void permitIsPermit() throws IOException {
+        var permit = ParserUtil.entitlement("permit");
+        assertEquals(Decision.PERMIT, permit.getDecision());
+    }
 
-	@Test
-	void denyIsDeny() throws IOException {
-		var deny = ParserUtil.entitlement("deny");
-		assertEquals(Decision.DENY, deny.getDecision());
-	}
+    @Test
+    void denyIsDeny() throws IOException {
+        var deny = ParserUtil.entitlement("deny");
+        assertEquals(Decision.DENY, deny.getDecision());
+    }
 
 }

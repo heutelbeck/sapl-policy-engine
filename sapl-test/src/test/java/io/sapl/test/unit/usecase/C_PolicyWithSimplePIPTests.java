@@ -30,30 +30,30 @@ import io.sapl.test.unit.TestPIP;
 
 class C_PolicyWithSimplePIPTests {
 
-	private SaplTestFixture fixture;
+    private SaplTestFixture fixture;
 
-	@BeforeEach
-	void setUp() {
-		fixture = new SaplUnitTestFixture("policyWithSimplePIP");
-	}
+    @BeforeEach
+    void setUp() {
+        fixture = new SaplUnitTestFixture("policyWithSimplePIP");
+    }
 
-	@Test
-	void test_policyWithSimpleMockedPIP() {
-		fixture.constructTestCaseWithMocks().givenAttribute("test.upper", Val.of("WILLI"))
-				.when(AuthorizationSubscription.of("willi", "read", "something")).expectPermit().verify();
-	}
+    @Test
+    void test_policyWithSimpleMockedPIP() {
+        fixture.constructTestCaseWithMocks().givenAttribute("test.upper", Val.of("WILLI"))
+                .when(AuthorizationSubscription.of("willi", "read", "something")).expectPermit().verify();
+    }
 
-	@Test
-	void test_policyWithSimplePIP() throws InitializationException {
-		fixture.registerPIP(new TestPIP()).constructTestCase()
-				.when(AuthorizationSubscription.of("willi", "read", "something")).expectPermit().verify();
-	}
+    @Test
+    void test_policyWithSimplePIP() throws InitializationException {
+        fixture.registerPIP(new TestPIP()).constructTestCase()
+                .when(AuthorizationSubscription.of("willi", "read", "something")).expectPermit().verify();
+    }
 
-	@Test
-	void test_policyWithSimplePIP_mockedWhenParameters() {
-		fixture.constructTestCaseWithMocks()
-				.givenAttribute("test.upper", whenParentValue(val("willi")), Val.of("WILLI"))
-				.when(AuthorizationSubscription.of("willi", "read", "something")).expectPermit().verify();
-	}
+    @Test
+    void test_policyWithSimplePIP_mockedWhenParameters() {
+        fixture.constructTestCaseWithMocks()
+                .givenAttribute("test.upper", whenParentValue(val("willi")), Val.of("WILLI"))
+                .when(AuthorizationSubscription.of("willi", "read", "something")).expectPermit().verify();
+    }
 
 }

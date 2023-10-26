@@ -27,21 +27,20 @@ import io.sapl.test.coverage.api.CoverageHitRecorder;
 
 public class TestSaplInterpreter extends DefaultSAPLInterpreter {
 
-	protected static final Injector INJECTOR = new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();
+    protected static final Injector INJECTOR = new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();
 
-	public TestSaplInterpreter(CoverageHitRecorder recorder) {
+    public TestSaplInterpreter(CoverageHitRecorder recorder) {
 
-		String property = System.getProperty("io.sapl.test.coverage.collect");
+        String property = System.getProperty("io.sapl.test.coverage.collect");
 
-		if (property == null || Boolean.parseBoolean(property)) {
-			INJECTOR.getInstance(XtextResourceSet.class).getPackageRegistry().getEPackage(SaplPackage.eNS_URI)
-					.setEFactoryInstance(new SaplFactoryImplCoverage(recorder));
-		}
-		else {
-			// if disabled, set default SaplFactory
-			INJECTOR.getInstance(XtextResourceSet.class).getPackageRegistry().getEPackage(SaplPackage.eNS_URI)
-					.setEFactoryInstance(new SaplFactoryImpl());
-		}
-	}
+        if (property == null || Boolean.parseBoolean(property)) {
+            INJECTOR.getInstance(XtextResourceSet.class).getPackageRegistry().getEPackage(SaplPackage.eNS_URI)
+                    .setEFactoryInstance(new SaplFactoryImplCoverage(recorder));
+        } else {
+            // if disabled, set default SaplFactory
+            INJECTOR.getInstance(XtextResourceSet.class).getPackageRegistry().getEPackage(SaplPackage.eNS_URI)
+                    .setEFactoryInstance(new SaplFactoryImpl());
+        }
+    }
 
 }

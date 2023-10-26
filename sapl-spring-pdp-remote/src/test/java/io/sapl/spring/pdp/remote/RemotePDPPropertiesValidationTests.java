@@ -23,45 +23,45 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 class RemotePDPPropertiesValidationTests {
 
-	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-			.withUserConfiguration(EnablePropertiesInApplicationTestRunnerConfiguration.class);
+    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
+            .withUserConfiguration(EnablePropertiesInApplicationTestRunnerConfiguration.class);
 
-	@EnableConfigurationProperties(RemotePDPProperties.class)
-	static class EnablePropertiesInApplicationTestRunnerConfiguration {
+    @EnableConfigurationProperties(RemotePDPProperties.class)
+    static class EnablePropertiesInApplicationTestRunnerConfiguration {
 
-	}
+    }
 
-	@Test
-	void whenValidPropertiesPresent_thenConfigurationBeanIsPresent() {
-		contextRunner.withPropertyValues("io.sapl.pdp.remote.host=https://localhost:8443",
-				"io.sapl.pdp.remote.key=aKey", "io.sapl.pdp.remote.secret=aSecret")
-				.run(context -> assertThat(context).hasNotFailed());
-	}
+    @Test
+    void whenValidPropertiesPresent_thenConfigurationBeanIsPresent() {
+        contextRunner.withPropertyValues("io.sapl.pdp.remote.host=https://localhost:8443",
+                "io.sapl.pdp.remote.key=aKey", "io.sapl.pdp.remote.secret=aSecret")
+                .run(context -> assertThat(context).hasNotFailed());
+    }
 
-	@Test
-	void whenInvalidHostPropertyPresent_thenConfigurationFails() {
-		contextRunner.withPropertyValues("io.sapl.pdp.remote.host=ht tps://loc alhost:8443",
-				"io.sapl.pdp.remote.key=aKey", "io.sapl.pdp.remote.secret=aSecret")
-				.run(context -> assertThat(context).hasFailed());
-	}
+    @Test
+    void whenInvalidHostPropertyPresent_thenConfigurationFails() {
+        contextRunner.withPropertyValues("io.sapl.pdp.remote.host=ht tps://loc alhost:8443",
+                "io.sapl.pdp.remote.key=aKey", "io.sapl.pdp.remote.secret=aSecret")
+                .run(context -> assertThat(context).hasFailed());
+    }
 
-	@Test
-	void whenHostPropertyMissing_thenConfigurationFails() {
-		contextRunner.withPropertyValues("io.sapl.pdp.remote.host=", "io.sapl.pdp.remote.key=aKey",
-				"io.sapl.pdp.remote.secret=aSecret").run(context -> assertThat(context).hasFailed());
-	}
+    @Test
+    void whenHostPropertyMissing_thenConfigurationFails() {
+        contextRunner.withPropertyValues("io.sapl.pdp.remote.host=", "io.sapl.pdp.remote.key=aKey",
+                "io.sapl.pdp.remote.secret=aSecret").run(context -> assertThat(context).hasFailed());
+    }
 
-	@Test
-	void whenKeyPropertyMissing_thenConfigurationFails() {
-		contextRunner.withPropertyValues("io.sapl.pdp.remote.host=https://localhost:8443", "io.sapl.pdp.remote.key=",
-				"io.sapl.pdp.remote.secret=aSecret").run(context -> assertThat(context).hasFailed());
-	}
+    @Test
+    void whenKeyPropertyMissing_thenConfigurationFails() {
+        contextRunner.withPropertyValues("io.sapl.pdp.remote.host=https://localhost:8443", "io.sapl.pdp.remote.key=",
+                "io.sapl.pdp.remote.secret=aSecret").run(context -> assertThat(context).hasFailed());
+    }
 
-	@Test
-	void whenSecretPropertyMissing_thenConfigurationFails() {
-		contextRunner.withPropertyValues("io.sapl.pdp.remote.host=https://localhost:8443",
-				"io.sapl.pdp.remote.key=aKey", "io.sapl.pdp.remote.secret=")
-				.run(context -> assertThat(context).hasFailed());
-	}
+    @Test
+    void whenSecretPropertyMissing_thenConfigurationFails() {
+        contextRunner.withPropertyValues("io.sapl.pdp.remote.host=https://localhost:8443",
+                "io.sapl.pdp.remote.key=aKey", "io.sapl.pdp.remote.secret=")
+                .run(context -> assertThat(context).hasFailed());
+    }
 
 }

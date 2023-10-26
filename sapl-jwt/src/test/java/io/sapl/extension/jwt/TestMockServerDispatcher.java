@@ -27,65 +27,65 @@ import okhttp3.mockwebserver.RecordedRequest;
 
 class TestMockServerDispatcher extends Dispatcher {
 
-	private final String kidPath;
+    private final String kidPath;
 
-	private final Map<String, String> kidToPubKeyMap;
+    private final Map<String, String> kidToPubKeyMap;
 
-	@Setter
-	private DispatchMode dispatchMode = DispatchMode.True;
+    @Setter
+    private DispatchMode dispatchMode = DispatchMode.True;
 
-	public TestMockServerDispatcher(String kidPath, Map<String, String> kidToPubKeyMap) {
-		this.kidPath        = kidPath;
-		this.kidToPubKeyMap = new HashMap<>(kidToPubKeyMap);
-	}
+    public TestMockServerDispatcher(String kidPath, Map<String, String> kidToPubKeyMap) {
+        this.kidPath        = kidPath;
+        this.kidToPubKeyMap = new HashMap<>(kidToPubKeyMap);
+    }
 
-	@NotNull
-	@Override
-	public MockResponse dispatch(RecordedRequest request) {
-		var path = request.getPath();
-		if (path == null || !path.startsWith(kidPath))
-			return new MockResponse().setResponseCode(404);
+    @NotNull
+    @Override
+    public MockResponse dispatch(RecordedRequest request) {
+        var path = request.getPath();
+        if (path == null || !path.startsWith(kidPath))
+            return new MockResponse().setResponseCode(404);
 
-		String requestedId = path.substring(kidPath.length());
+        String requestedId = path.substring(kidPath.length());
 
-		if (!kidToPubKeyMap.containsKey(requestedId))
-			return new MockResponse().setResponseCode(404);
+        if (!kidToPubKeyMap.containsKey(requestedId))
+            return new MockResponse().setResponseCode(404);
 
-		switch (this.dispatchMode) {
-		case Bogus:
-			return this.dispatchBogusKey();
-		case Invalid:
-			return this.dispatchInvalidKey(requestedId);
-		case True:
-			return this.dispatchTrueKey(requestedId);
-		case Wrong:
-			return this.dispatchWrongKey();
-		case Basic:
-			return this.dispatchBasicKey(requestedId);
-		default:
-			return new MockResponse().setResponseCode(404);
-		}
-	}
+        switch (this.dispatchMode) {
+        case Bogus:
+            return this.dispatchBogusKey();
+        case Invalid:
+            return this.dispatchInvalidKey(requestedId);
+        case True:
+            return this.dispatchTrueKey(requestedId);
+        case Wrong:
+            return this.dispatchWrongKey();
+        case Basic:
+            return this.dispatchBasicKey(requestedId);
+        default:
+            return new MockResponse().setResponseCode(404);
+        }
+    }
 
-	private MockResponse dispatchTrueKey(String requestedId) {
-		return new MockResponse().setBody(kidToPubKeyMap.get(requestedId));
-	}
+    private MockResponse dispatchTrueKey(String requestedId) {
+        return new MockResponse().setBody(kidToPubKeyMap.get(requestedId));
+    }
 
-	private MockResponse dispatchWrongKey() {
-		return new MockResponse()
-				.setBody(Base64DataUtil.encodePublicKeyToBase64URLPrimary(Base64DataUtil.generateRSAKeyPair()));
-	}
+    private MockResponse dispatchWrongKey() {
+        return new MockResponse()
+                .setBody(Base64DataUtil.encodePublicKeyToBase64URLPrimary(Base64DataUtil.generateRSAKeyPair()));
+    }
 
-	private MockResponse dispatchInvalidKey(String requestedId) {
-		return new MockResponse().setBody(Base64DataUtil.base64Invalid(kidToPubKeyMap.get(requestedId)));
-	}
+    private MockResponse dispatchInvalidKey(String requestedId) {
+        return new MockResponse().setBody(Base64DataUtil.base64Invalid(kidToPubKeyMap.get(requestedId)));
+    }
 
-	private MockResponse dispatchBogusKey() {
-		return new MockResponse().setBody(Base64DataUtil.base64Bogus());
-	}
+    private MockResponse dispatchBogusKey() {
+        return new MockResponse().setBody(Base64DataUtil.base64Bogus());
+    }
 
-	private MockResponse dispatchBasicKey(String requestedId) {
-		return new MockResponse().setBody(Base64DataUtil.base64Basic(kidToPubKeyMap.get(requestedId)));
-	}
+    private MockResponse dispatchBasicKey(String requestedId) {
+        return new MockResponse().setBody(Base64DataUtil.base64Basic(kidToPubKeyMap.get(requestedId)));
+    }
 
 }

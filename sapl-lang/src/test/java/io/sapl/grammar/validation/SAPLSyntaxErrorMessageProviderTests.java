@@ -50,288 +50,288 @@ import io.sapl.grammar.tests.SAPLInjectorProvider;
 @InjectWith(SAPLInjectorProvider.class)
 class SAPLSyntaxErrorMessageProviderTests {
 
-	@Inject
-	@Extension
-	private ParseHelper<SAPL> parseHelper;
+    @Inject
+    @Extension
+    private ParseHelper<SAPL> parseHelper;
 
-	@Inject
-	@Extension
-	private ValidationTestHelper validator;
+    @Inject
+    @Extension
+    private ValidationTestHelper validator;
 
-	@Test
-	void emptyDocument_ReturnsIncompleteDocument() throws Exception {
-		String testPolicy = "";
-		SAPL policy = this.parseHelper.parse(testPolicy);
-		this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT_ERROR);
-	}
+    @Test
+    void emptyDocument_ReturnsIncompleteDocument() throws Exception {
+        String testPolicy = "";
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
+                SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT_ERROR);
+    }
 
-	@Test
-	void incompleteSet_ReturnsHintToProvideSetName() throws Exception {
-		String testPolicy = "set ";
-		SAPL policy = this.parseHelper.parse(testPolicy);
-		this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_SET_NAME_ERROR);
-	}
+    @Test
+    void incompleteSet_ReturnsHintToProvideSetName() throws Exception {
+        String testPolicy = "set ";
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
+                SAPLSyntaxErrorMessageProvider.INCOMPLETE_SET_NAME_ERROR);
+    }
 
-	@Test
-	void incompleteSet_ReturnsHintToProvideEntitlement() throws Exception {
-		String testPolicy = "set \"setname\" ";
-		SAPL policy = this.parseHelper.parse(testPolicy);
-		this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_SET_ENTITLEMENT_ERROR);
-	}
+    @Test
+    void incompleteSet_ReturnsHintToProvideEntitlement() throws Exception {
+        String testPolicy = "set \"setname\" ";
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
+                SAPLSyntaxErrorMessageProvider.INCOMPLETE_SET_ENTITLEMENT_ERROR);
+    }
 
-	@Test
-	void completeSet_ReturnsIncompleteDocument() throws Exception {
-		String testPolicy = "set \"setname\" deny-unless-permit";
-		SAPL policy = this.parseHelper.parse(testPolicy);
-		this.validator.assertError(policy, SaplPackage.eINSTANCE.getDenyUnlessPermitCombiningAlgorithm(),
-				Diagnostic.SYNTAX_DIAGNOSTIC, SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT_ERROR);
-	}
+    @Test
+    void completeSet_ReturnsIncompleteDocument() throws Exception {
+        String testPolicy = "set \"setname\" deny-unless-permit";
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getDenyUnlessPermitCombiningAlgorithm(),
+                Diagnostic.SYNTAX_DIAGNOSTIC, SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT_ERROR);
+    }
 
-	@Test
-	void incompleteImport_ReturnsHintToProvideFunctionOrLibrary() throws Exception {
-		String testPolicy = "import ";
-		SAPL policy = this.parseHelper.parse(testPolicy);
-		this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_IMPORT_ERROR);
-	}
+    @Test
+    void incompleteImport_ReturnsHintToProvideFunctionOrLibrary() throws Exception {
+        String testPolicy = "import ";
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
+                SAPLSyntaxErrorMessageProvider.INCOMPLETE_IMPORT_ERROR);
+    }
 
-	@Test
-	void incompleteImport_LibraryImportReturnsHintToProvideAliasSetOrPolicy() throws Exception {
-		String testPolicy = "import clock as abc";
-		SAPL policy = this.parseHelper.parse(testPolicy);
-		this.validator.assertError(policy, SaplPackage.eINSTANCE.getLibraryImport(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_IMPORT_ALIAS_SET_POLICY_ERROR);
-	}
+    @Test
+    void incompleteImport_LibraryImportReturnsHintToProvideAliasSetOrPolicy() throws Exception {
+        String testPolicy = "import clock as abc";
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getLibraryImport(), Diagnostic.SYNTAX_DIAGNOSTIC,
+                SAPLSyntaxErrorMessageProvider.INCOMPLETE_IMPORT_ALIAS_SET_POLICY_ERROR);
+    }
 
-	@Test
-	void incompletePolicy_ReturnsHintToProvidePolicyName() throws Exception {
-		String testPolicy = "policy ";
-		SAPL policy = this.parseHelper.parse(testPolicy);
-		this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_POLICY_NAME_ERROR);
-	}
+    @Test
+    void incompletePolicy_ReturnsHintToProvidePolicyName() throws Exception {
+        String testPolicy = "policy ";
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
+                SAPLSyntaxErrorMessageProvider.INCOMPLETE_POLICY_NAME_ERROR);
+    }
 
-	@Test
-	void incompletePolicy_Trimmed_ReturnsHintToProvideEntitlement() throws Exception {
-		String testPolicy = "policy \"test\"";
-		SAPL policy = this.parseHelper.parse(testPolicy);
-		this.validator.assertError(policy, SaplPackage.eINSTANCE.getPolicy(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_POLICY_ENTITLEMENT_ERROR);
-	}
+    @Test
+    void incompletePolicy_Trimmed_ReturnsHintToProvideEntitlement() throws Exception {
+        String testPolicy = "policy \"test\"";
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getPolicy(), Diagnostic.SYNTAX_DIAGNOSTIC,
+                SAPLSyntaxErrorMessageProvider.INCOMPLETE_POLICY_ENTITLEMENT_ERROR);
+    }
 
-	@Test
-	void incompletePolicy_WithWhitespace_ReturnsHintToProvideEntitlement() throws Exception {
-		String testPolicy = "policy \"test\" ";
-		SAPL policy = this.parseHelper.parse(testPolicy);
-		this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_POLICY_ENTITLEMENT_ERROR);
-	}
+    @Test
+    void incompletePolicy_WithWhitespace_ReturnsHintToProvideEntitlement() throws Exception {
+        String testPolicy = "policy \"test\" ";
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
+                SAPLSyntaxErrorMessageProvider.INCOMPLETE_POLICY_ENTITLEMENT_ERROR);
+    }
 
-	@Test
-	void incompletePolicyBody_WithIncompleteStatement_ReturnsIncompleteDocumentMessage() throws Exception {
-		String testPolicy = "policy \"\" deny where var abc = 5; sub";
-		SAPL policy = this.parseHelper.parse(testPolicy);
-		this.validator.assertError(policy, SaplPackage.eINSTANCE.getBasicIdentifier(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT_ERROR);
-	}
+    @Test
+    void incompletePolicyBody_WithIncompleteStatement_ReturnsIncompleteDocumentMessage() throws Exception {
+        String testPolicy = "policy \"\" deny where var abc = 5; sub";
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getBasicIdentifier(), Diagnostic.SYNTAX_DIAGNOSTIC,
+                SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT_ERROR);
+    }
 
-	@Test
-	void incompleteVariable_Trimmed_ReturnsHintToProvideVariableName() throws Exception {
-		String testPolicy = "policy \"\" deny where var";
-		SAPL policy = this.parseHelper.parse(testPolicy);
-		this.validator.assertError(policy, SaplPackage.eINSTANCE.getPolicyBody(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_NAME_ERROR);
-	}
+    @Test
+    void incompleteVariable_Trimmed_ReturnsHintToProvideVariableName() throws Exception {
+        String testPolicy = "policy \"\" deny where var";
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getPolicyBody(), Diagnostic.SYNTAX_DIAGNOSTIC,
+                SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_NAME_ERROR);
+    }
 
-	@Test
-	void incompleteVariable_WithWhitespace_ReturnsHintToProvideVariableName() throws Exception {
-		String testPolicy = "policy \"\" deny where var ";
-		SAPL policy = this.parseHelper.parse(testPolicy);
-		this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_NAME_ERROR);
-	}
+    @Test
+    void incompleteVariable_WithWhitespace_ReturnsHintToProvideVariableName() throws Exception {
+        String testPolicy = "policy \"\" deny where var ";
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
+                SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_NAME_ERROR);
+    }
 
-	@Test
-	void incompleteVariable_Trimmed_ReturnsHintToProvideAssignmentSign() throws Exception {
-		String testPolicy = "policy \"\" deny where var abc";
-		SAPL policy = this.parseHelper.parse(testPolicy);
-		this.validator.assertError(policy, SaplPackage.eINSTANCE.getValueDefinition(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_VALUE_ERROR);
-	}
+    @Test
+    void incompleteVariable_Trimmed_ReturnsHintToProvideAssignmentSign() throws Exception {
+        String testPolicy = "policy \"\" deny where var abc";
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getValueDefinition(), Diagnostic.SYNTAX_DIAGNOSTIC,
+                SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_VALUE_ERROR);
+    }
 
-	@Test
-	void incompleteVariable_WithWhitespace_ReturnsHintToProvideAssignmentSign() throws Exception {
-		String testPolicy = "policy \"\" deny where var abc ";
-		SAPL policy = this.parseHelper.parse(testPolicy);
-		this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_VALUE_ERROR);
-	}
+    @Test
+    void incompleteVariable_WithWhitespace_ReturnsHintToProvideAssignmentSign() throws Exception {
+        String testPolicy = "policy \"\" deny where var abc ";
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
+                SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_VALUE_ERROR);
+    }
 
-	@Test
-	void incompleteVariable_Trimmed_ReturnsHintToAssignValue() throws Exception {
-		String testPolicy = "policy \"\" deny where var abc =";
-		SAPL policy = this.parseHelper.parse(testPolicy);
-		this.validator.assertError(policy, SaplPackage.eINSTANCE.getValueDefinition(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_VALUE_ERROR);
-	}
+    @Test
+    void incompleteVariable_Trimmed_ReturnsHintToAssignValue() throws Exception {
+        String testPolicy = "policy \"\" deny where var abc =";
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getValueDefinition(), Diagnostic.SYNTAX_DIAGNOSTIC,
+                SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_VALUE_ERROR);
+    }
 
-	@Test
-	void incompleteVariable_WithWhitespace_ReturnsHintToAssignValue() throws Exception {
-		String testPolicy = "policy \"\" deny where var abc = ";
-		SAPL policy = this.parseHelper.parse(testPolicy);
-		this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_VALUE_ERROR);
-	}
+    @Test
+    void incompleteVariable_WithWhitespace_ReturnsHintToAssignValue() throws Exception {
+        String testPolicy = "policy \"\" deny where var abc = ";
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
+                SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_VALUE_ERROR);
+    }
 
-	@Test
-	void incompleteVariable_Trimmed_ReturnsHintToCloseVariable() throws Exception {
-		String testPolicy = "policy \"\" deny where var abc = 5";
-		SAPL policy = this.parseHelper.parse(testPolicy);
-		this.validator.assertError(policy, SaplPackage.eINSTANCE.getNumberLiteral(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_CLOSE_ERROR);
-	}
+    @Test
+    void incompleteVariable_Trimmed_ReturnsHintToCloseVariable() throws Exception {
+        String testPolicy = "policy \"\" deny where var abc = 5";
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getNumberLiteral(), Diagnostic.SYNTAX_DIAGNOSTIC,
+                SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_CLOSE_ERROR);
+    }
 
-	@Test
-	void incompleteVariable_WithWhitespace_ReturnsHintToCloseVariable() throws Exception {
-		String testPolicy = "policy \"\" deny where var abc = 5 ";
-		SAPL policy = this.parseHelper.parse(testPolicy);
-		this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
-				SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_CLOSE_ERROR);
-	}
+    @Test
+    void incompleteVariable_WithWhitespace_ReturnsHintToCloseVariable() throws Exception {
+        String testPolicy = "policy \"\" deny where var abc = 5 ";
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
+                SAPLSyntaxErrorMessageProvider.INCOMPLETE_VARIABLE_CLOSE_ERROR);
+    }
 
-	@Test
-	void getSyntaxErrorMessage_NoRecognizedExceptionTypeReturnsDefaultMessage() {
-		String defaultMessage = "Test Error";
-		SAPLSyntaxErrorMessageProvider provider = new SAPLSyntaxErrorMessageProvider();
+    @Test
+    void getSyntaxErrorMessage_NoRecognizedExceptionTypeReturnsDefaultMessage() {
+        String                         defaultMessage = "Test Error";
+        SAPLSyntaxErrorMessageProvider provider       = new SAPLSyntaxErrorMessageProvider();
 
-		IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
-		when(context.getDefaultMessage()).thenReturn(defaultMessage);
+        IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
+        when(context.getDefaultMessage()).thenReturn(defaultMessage);
 
-		SyntaxErrorMessage message = provider.getSyntaxErrorMessage(context);
-		assertEquals(defaultMessage, message.getMessage());
-	}
+        SyntaxErrorMessage message = provider.getSyntaxErrorMessage(context);
+        assertEquals(defaultMessage, message.getMessage());
+    }
 
-	@Test
-	void handleMismatchedTokenException_ContextIsPolicy_NoMatchingOptionReturnsNull() {
-		SAPLSyntaxErrorMessageProvider provider = new SAPLSyntaxErrorMessageProvider();
-		MismatchedTokenException exception = new MismatchedTokenException();
+    @Test
+    void handleMismatchedTokenException_ContextIsPolicy_NoMatchingOptionReturnsNull() {
+        SAPLSyntaxErrorMessageProvider provider  = new SAPLSyntaxErrorMessageProvider();
+        MismatchedTokenException       exception = new MismatchedTokenException();
 
-		IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
-		when(context.getRecognitionException()).thenReturn(exception);
-		when(context.getCurrentContext()).thenReturn(Mockito.mock(Policy.class));
-		when(context.getCurrentNode()).thenReturn(Mockito.mock(INode.class));
+        IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
+        when(context.getRecognitionException()).thenReturn(exception);
+        when(context.getCurrentContext()).thenReturn(Mockito.mock(Policy.class));
+        when(context.getCurrentNode()).thenReturn(Mockito.mock(INode.class));
 
-		SyntaxErrorMessage message = provider.handleMismatchedTokenException(context, exception);
-		assertNull(message);
-	}
+        SyntaxErrorMessage message = provider.handleMismatchedTokenException(context, exception);
+        assertNull(message);
+    }
 
-	@Test
-	void handleMismatchedTokenException_ContextIsPolicyBody_TokenTextContainsOnlySemicolon_ReturnsIncompleteDocument() {
-		SAPLSyntaxErrorMessageProvider provider = new SAPLSyntaxErrorMessageProvider();
-		MismatchedTokenException exception = new MismatchedTokenException();
+    @Test
+    void handleMismatchedTokenException_ContextIsPolicyBody_TokenTextContainsOnlySemicolon_ReturnsIncompleteDocument() {
+        SAPLSyntaxErrorMessageProvider provider  = new SAPLSyntaxErrorMessageProvider();
+        MismatchedTokenException       exception = new MismatchedTokenException();
 
-		INode node = Mockito.mock(INode.class);
-		when(node.getText()).thenReturn("abc;");
+        INode node = Mockito.mock(INode.class);
+        when(node.getText()).thenReturn("abc;");
 
-		IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
-		when(context.getRecognitionException()).thenReturn(exception);
-		when(context.getCurrentContext()).thenReturn(Mockito.mock(PolicyBody.class));
-		when(context.getCurrentNode()).thenReturn(node);
+        IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
+        when(context.getRecognitionException()).thenReturn(exception);
+        when(context.getCurrentContext()).thenReturn(Mockito.mock(PolicyBody.class));
+        when(context.getCurrentNode()).thenReturn(node);
 
-		SyntaxErrorMessage message = provider.handleMismatchedTokenException(context, exception);
-		assertEquals(SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT_ERROR, message.getMessage());
-	}
+        SyntaxErrorMessage message = provider.handleMismatchedTokenException(context, exception);
+        assertEquals(SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT_ERROR, message.getMessage());
+    }
 
-	@Test
-	void handleMismatchedTokenException_ContextIsUnknown_ReturnsNull() {
-		SAPLSyntaxErrorMessageProvider provider = new SAPLSyntaxErrorMessageProvider();
-		MismatchedTokenException exception = new MismatchedTokenException();
+    @Test
+    void handleMismatchedTokenException_ContextIsUnknown_ReturnsNull() {
+        SAPLSyntaxErrorMessageProvider provider  = new SAPLSyntaxErrorMessageProvider();
+        MismatchedTokenException       exception = new MismatchedTokenException();
 
-		IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
-		when(context.getRecognitionException()).thenReturn(exception);
-		when(context.getCurrentContext()).thenReturn(Mockito.mock(SAPL.class));
-		when(context.getCurrentNode()).thenReturn(Mockito.mock(INode.class));
+        IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
+        when(context.getRecognitionException()).thenReturn(exception);
+        when(context.getCurrentContext()).thenReturn(Mockito.mock(SAPL.class));
+        when(context.getCurrentNode()).thenReturn(Mockito.mock(INode.class));
 
-		SyntaxErrorMessage message = provider.handleMismatchedTokenException(context, exception);
-		assertNull(message);
-	}
+        SyntaxErrorMessage message = provider.handleMismatchedTokenException(context, exception);
+        assertNull(message);
+    }
 
-	@Test
-	void handleMismatchedTokenException_TokenIsEOF_ReturnsIncompleteDocument() {
-		SAPLSyntaxErrorMessageProvider provider = new SAPLSyntaxErrorMessageProvider();
-		MismatchedTokenException exception = new MismatchedTokenException();
-		exception.token = Token.EOF_TOKEN;
+    @Test
+    void handleMismatchedTokenException_TokenIsEOF_ReturnsIncompleteDocument() {
+        SAPLSyntaxErrorMessageProvider provider  = new SAPLSyntaxErrorMessageProvider();
+        MismatchedTokenException       exception = new MismatchedTokenException();
+        exception.token = Token.EOF_TOKEN;
 
-		IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
-		when(context.getRecognitionException()).thenReturn(exception);
-		when(context.getCurrentContext()).thenReturn(Mockito.mock(SAPL.class));
-		when(context.getCurrentNode()).thenReturn(Mockito.mock(INode.class));
+        IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
+        when(context.getRecognitionException()).thenReturn(exception);
+        when(context.getCurrentContext()).thenReturn(Mockito.mock(SAPL.class));
+        when(context.getCurrentNode()).thenReturn(Mockito.mock(INode.class));
 
-		SyntaxErrorMessage message = provider.handleMismatchedTokenException(context, exception);
-		assertEquals(SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT_ERROR, message.getMessage());
-	}
+        SyntaxErrorMessage message = provider.handleMismatchedTokenException(context, exception);
+        assertEquals(SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT_ERROR, message.getMessage());
+    }
 
-	@Test
-	void handleNoViableAltException_GrammarElementIsNotRuleCall_ReturnsNull() {
-		SAPLSyntaxErrorMessageProvider provider = new SAPLSyntaxErrorMessageProvider();
-		NoViableAltException exception = new NoViableAltException();
+    @Test
+    void handleNoViableAltException_GrammarElementIsNotRuleCall_ReturnsNull() {
+        SAPLSyntaxErrorMessageProvider provider  = new SAPLSyntaxErrorMessageProvider();
+        NoViableAltException           exception = new NoViableAltException();
 
-		INode node = Mockito.mock(INode.class);
-		when(node.getGrammarElement()).thenReturn(Mockito.mock(EObject.class));
+        INode node = Mockito.mock(INode.class);
+        when(node.getGrammarElement()).thenReturn(Mockito.mock(EObject.class));
 
-		IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
-		when(context.getRecognitionException()).thenReturn(exception);
-		when(context.getCurrentNode()).thenReturn(node);
+        IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
+        when(context.getRecognitionException()).thenReturn(exception);
+        when(context.getCurrentNode()).thenReturn(node);
 
-		SyntaxErrorMessage message = provider.handleNoViableAltException(context, exception);
-		assertNull(message);
-	}
+        SyntaxErrorMessage message = provider.handleNoViableAltException(context, exception);
+        assertNull(message);
+    }
 
-	@Test
-	void handleNoViableAltException_RuleCallContainerIsNotAssignment_ReturnsNull() {
-		SAPLSyntaxErrorMessageProvider provider = new SAPLSyntaxErrorMessageProvider();
-		NoViableAltException exception = new NoViableAltException();
+    @Test
+    void handleNoViableAltException_RuleCallContainerIsNotAssignment_ReturnsNull() {
+        SAPLSyntaxErrorMessageProvider provider  = new SAPLSyntaxErrorMessageProvider();
+        NoViableAltException           exception = new NoViableAltException();
 
-		RuleCall ruleCall = Mockito.mock(RuleCall.class);
-		when(ruleCall.eContainer()).thenReturn(Mockito.mock(EObject.class));
+        RuleCall ruleCall = Mockito.mock(RuleCall.class);
+        when(ruleCall.eContainer()).thenReturn(Mockito.mock(EObject.class));
 
-		INode node = Mockito.mock(INode.class);
-		when(node.getGrammarElement()).thenReturn(ruleCall);
+        INode node = Mockito.mock(INode.class);
+        when(node.getGrammarElement()).thenReturn(ruleCall);
 
-		IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
-		when(context.getRecognitionException()).thenReturn(exception);
-		when(context.getCurrentNode()).thenReturn(node);
+        IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
+        when(context.getRecognitionException()).thenReturn(exception);
+        when(context.getCurrentNode()).thenReturn(node);
 
-		SyntaxErrorMessage message = provider.handleNoViableAltException(context, exception);
-		assertNull(message);
-	}
+        SyntaxErrorMessage message = provider.handleNoViableAltException(context, exception);
+        assertNull(message);
+    }
 
-	@Test
-	void handleEarlyExitException_TokenIsEOF_ReturnsIncompleteDocument() {
-		SAPLSyntaxErrorMessageProvider provider = new SAPLSyntaxErrorMessageProvider();
-		EarlyExitException exception = new EarlyExitException();
-		exception.token = Token.EOF_TOKEN;
+    @Test
+    void handleEarlyExitException_TokenIsEOF_ReturnsIncompleteDocument() {
+        SAPLSyntaxErrorMessageProvider provider  = new SAPLSyntaxErrorMessageProvider();
+        EarlyExitException             exception = new EarlyExitException();
+        exception.token = Token.EOF_TOKEN;
 
-		IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
-		when(context.getRecognitionException()).thenReturn(exception);
+        IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
+        when(context.getRecognitionException()).thenReturn(exception);
 
-		SyntaxErrorMessage message = provider.handleEarlyExitException(context, exception);
-		assertEquals(SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT_ERROR, message.getMessage());
-	}
+        SyntaxErrorMessage message = provider.handleEarlyExitException(context, exception);
+        assertEquals(SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT_ERROR, message.getMessage());
+    }
 
-	@Test
-	void handleEarlyExitException_UnknownContext_ReturnsNull() {
-		SAPLSyntaxErrorMessageProvider provider = new SAPLSyntaxErrorMessageProvider();
-		EarlyExitException exception = new EarlyExitException();
+    @Test
+    void handleEarlyExitException_UnknownContext_ReturnsNull() {
+        SAPLSyntaxErrorMessageProvider provider  = new SAPLSyntaxErrorMessageProvider();
+        EarlyExitException             exception = new EarlyExitException();
 
-		IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
-		when(context.getRecognitionException()).thenReturn(exception);
+        IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
+        when(context.getRecognitionException()).thenReturn(exception);
 
-		SyntaxErrorMessage message = provider.handleEarlyExitException(context, exception);
-		assertNull(message);
-	}
+        SyntaxErrorMessage message = provider.handleEarlyExitException(context, exception);
+        assertNull(message);
+    }
 
 }

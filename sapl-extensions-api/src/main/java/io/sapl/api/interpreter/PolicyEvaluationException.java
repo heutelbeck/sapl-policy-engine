@@ -20,55 +20,60 @@ package io.sapl.api.interpreter;
  */
 public class PolicyEvaluationException extends RuntimeException {
 
-	/**
-	 * Create a new PolicyEvaluationException
-	 */
-	public PolicyEvaluationException() {
-		super();
-	}
+    /**
+     * Create a new PolicyEvaluationException
+     */
+    public PolicyEvaluationException() {
+        super();
+    }
 
-	/**
-	 * Create a new PolicyEvaluationException
-	 * @param message a message
-	 */
-	public PolicyEvaluationException(String message) {
-		super(message);
-	}
+    /**
+     * Create a new PolicyEvaluationException
+     * 
+     * @param message a message
+     */
+    public PolicyEvaluationException(String message) {
+        super(message);
+    }
 
-	/**
-	 * Create a new PolicyEvaluationException
-	 * @param format format string
-	 * @param args arguments for format string
-	 */
-	public PolicyEvaluationException(String format, Object... args) {
-		super(String.format(format, args));
-	}
+    /**
+     * Create a new PolicyEvaluationException
+     * 
+     * @param format format string
+     * @param args   arguments for format string
+     */
+    public PolicyEvaluationException(String format, Object... args) {
+        super(String.format(format, args));
+    }
 
-	/**
-	 * Create a new PolicyEvaluationException
-	 * @param format format string
-	 * @param cause causing Throwable
-	 * @param args arguments for format string
-	 */
-	public PolicyEvaluationException(Throwable cause, String format, Object... args) {
-		super(String.format(format, args), cause);
-	}
+    /**
+     * Create a new PolicyEvaluationException
+     * 
+     * @param format format string
+     * @param cause  causing Throwable
+     * @param args   arguments for format string
+     */
+    public PolicyEvaluationException(Throwable cause, String format, Object... args) {
+        super(String.format(format, args), cause);
+    }
 
-	/**
-	 * Create a new PolicyEvaluationException
-	 * @param message a message
-	 * @param cause causing Throwable
-	 */
-	public PolicyEvaluationException(String message, Throwable cause) {
-		super(message, cause);
-	}
+    /**
+     * Create a new PolicyEvaluationException
+     * 
+     * @param message a message
+     * @param cause   causing Throwable
+     */
+    public PolicyEvaluationException(String message, Throwable cause) {
+        super(message, cause);
+    }
 
-	/**
-	 * Create a new PolicyEvaluationException
-	 * @param cause causing Throwable
-	 */
-	public PolicyEvaluationException(Throwable cause) {
-		super(cause);
-	}
+    /**
+     * Create a new PolicyEvaluationException
+     * 
+     * @param cause causing Throwable
+     */
+    public PolicyEvaluationException(Throwable cause) {
+        super(cause);
+    }
 
 }

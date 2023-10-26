@@ -23,6 +23,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 public interface MethodInvocationConstraintHandlerProvider extends Responsible {
 
-	Consumer<ReflectiveMethodInvocation> getHandler(JsonNode constraint);
+    Consumer<ReflectiveMethodInvocation> getHandler(JsonNode constraint);
 
 }

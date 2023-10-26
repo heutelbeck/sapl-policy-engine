@@ -17,15 +17,15 @@ package io.sapl.pdp.remote;
 
 public class RemotePolicyDecisionPoint {
 
-    public static RemotePolicyDecisionPoint builder(){
+    public static RemotePolicyDecisionPoint builder() {
         return new RemotePolicyDecisionPoint();
     }
 
-    public RemoteHttpPolicyDecisionPoint.RemoteHttpPolicyDecisionPointBuilder http(){
+    public RemoteHttpPolicyDecisionPoint.RemoteHttpPolicyDecisionPointBuilder http() {
         return RemoteHttpPolicyDecisionPoint.builder();
     }
 
-    public RemoteRsocketPolicyDecisionPoint.RemoteRsocketPolicyDecisionPointBuilder rsocket(){
+    public RemoteRsocketPolicyDecisionPoint.RemoteRsocketPolicyDecisionPointBuilder rsocket() {
         return RemoteRsocketPolicyDecisionPoint.builder();
     }
 

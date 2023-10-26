@@ -26,72 +26,72 @@ import io.sapl.api.interpreter.Val;
 
 class StandardFunctionLibraryTests {
 
-	@Test
-	void instantiatable() {
-		assertThat(new StandardFunctionLibrary(), notNullValue());
-	}
+    @Test
+    void instantiatable() {
+        assertThat(new StandardFunctionLibrary(), notNullValue());
+    }
 
-	@Test
-	void lengthOfEmptyIsZero() {
-		assertThat(StandardFunctionLibrary.length(Val.ofEmptyArray()), is(val(0)));
-		assertThat(StandardFunctionLibrary.length(Val.ofEmptyObject()), is(val(0)));
-	}
+    @Test
+    void lengthOfEmptyIsZero() {
+        assertThat(StandardFunctionLibrary.length(Val.ofEmptyArray()), is(val(0)));
+        assertThat(StandardFunctionLibrary.length(Val.ofEmptyObject()), is(val(0)));
+    }
 
-	@Test
-	void lengthOfArrayWithElements() {
-		var array = Val.JSON.arrayNode();
-		array.add(Val.JSON.booleanNode(false));
-		array.add(Val.JSON.booleanNode(false));
-		array.add(Val.JSON.booleanNode(false));
-		array.add(Val.JSON.booleanNode(false));
-		assertThat(StandardFunctionLibrary.length(Val.of(array)), is(val(4)));
-	}
+    @Test
+    void lengthOfArrayWithElements() {
+        var array = Val.JSON.arrayNode();
+        array.add(Val.JSON.booleanNode(false));
+        array.add(Val.JSON.booleanNode(false));
+        array.add(Val.JSON.booleanNode(false));
+        array.add(Val.JSON.booleanNode(false));
+        assertThat(StandardFunctionLibrary.length(Val.of(array)), is(val(4)));
+    }
 
-	@Test
-	void lengthOfObjectWithElements() {
-		var object = Val.JSON.objectNode();
-		object.set("key1", Val.JSON.booleanNode(false));
-		object.set("key2", Val.JSON.booleanNode(false));
-		object.set("key3", Val.JSON.booleanNode(false));
-		object.set("key4", Val.JSON.booleanNode(false));
-		object.set("key5", Val.JSON.booleanNode(false));
-		assertThat(StandardFunctionLibrary.length(Val.of(object)), is(val(5)));
+    @Test
+    void lengthOfObjectWithElements() {
+        var object = Val.JSON.objectNode();
+        object.set("key1", Val.JSON.booleanNode(false));
+        object.set("key2", Val.JSON.booleanNode(false));
+        object.set("key3", Val.JSON.booleanNode(false));
+        object.set("key4", Val.JSON.booleanNode(false));
+        object.set("key5", Val.JSON.booleanNode(false));
+        assertThat(StandardFunctionLibrary.length(Val.of(object)), is(val(5)));
 
-	}
+    }
 
-	@Test
-	void lengthOfText() {
-		assertThat(StandardFunctionLibrary.length(Val.of("ABC")), is(val(3)));
-	}
+    @Test
+    void lengthOfText() {
+        assertThat(StandardFunctionLibrary.length(Val.of("ABC")), is(val(3)));
+    }
 
-	@Test
-	void numberToStringBooleanLeftIntact() {
-		assertThat(StandardFunctionLibrary.numberToString(Val.TRUE), is(val("true")));
-	}
+    @Test
+    void numberToStringBooleanLeftIntact() {
+        assertThat(StandardFunctionLibrary.numberToString(Val.TRUE), is(val("true")));
+    }
 
-	@Test
-	void numberToStringSomeNumberLeftIntact() {
-		assertThat(StandardFunctionLibrary.numberToString(Val.of(1.23e-1D)), is(val("0.123")));
-	}
+    @Test
+    void numberToStringSomeNumberLeftIntact() {
+        assertThat(StandardFunctionLibrary.numberToString(Val.of(1.23e-1D)), is(val("0.123")));
+    }
 
-	@Test
-	void numberToStringNullEmptyString() {
-		assertThat(StandardFunctionLibrary.numberToString(Val.NULL), is(val("")));
-	}
+    @Test
+    void numberToStringNullEmptyString() {
+        assertThat(StandardFunctionLibrary.numberToString(Val.NULL), is(val("")));
+    }
 
-	@Test
-	void numberToStringTextIntact() {
-		assertThat(StandardFunctionLibrary.numberToString(Val.of("ABC")), is(val("ABC")));
-	}
+    @Test
+    void numberToStringTextIntact() {
+        assertThat(StandardFunctionLibrary.numberToString(Val.of("ABC")), is(val("ABC")));
+    }
 
-	@Test
-	void when_noError_then_originalValueIsReturned() {
-		assertThat(StandardFunctionLibrary.onErrorMap(Val.of("ORIGINAL"), Val.of("REPLACED")), is(val("ORIGINAL")));
-	}
+    @Test
+    void when_noError_then_originalValueIsReturned() {
+        assertThat(StandardFunctionLibrary.onErrorMap(Val.of("ORIGINAL"), Val.of("REPLACED")), is(val("ORIGINAL")));
+    }
 
-	@Test
-	void when_error_then_valueIsReplaced() {
-		assertThat(StandardFunctionLibrary.onErrorMap(Val.error(), Val.of("REPLACED")), is(val("REPLACED")));
-	}
+    @Test
+    void when_error_then_valueIsReplaced() {
+        assertThat(StandardFunctionLibrary.onErrorMap(Val.error(), Val.of("REPLACED")), is(val("REPLACED")));
+    }
 
 }

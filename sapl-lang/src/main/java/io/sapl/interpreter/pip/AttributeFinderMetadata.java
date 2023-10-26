@@ -27,51 +27,51 @@ import lombok.Data;
 @AllArgsConstructor
 public class AttributeFinderMetadata implements LibraryEntryMetadata {
 
-	Object  policyInformationPoint;
-	Method  function;
-	String  libraryName;
-	String  functionName;
-	boolean environmentAttribute;
-	boolean attributeWithVariableParameter;
-	boolean varArgsParameters;
-	int     numberOfParameters;
+    Object  policyInformationPoint;
+    Method  function;
+    String  libraryName;
+    String  functionName;
+    boolean environmentAttribute;
+    boolean attributeWithVariableParameter;
+    boolean varArgsParameters;
+    int     numberOfParameters;
 
-	@Override
-	public String getDocumentationCodeTemplate() {
-		var sb                             = new StringBuilder();
-		var indexOfParameterBeingDescribed = 0;
+    @Override
+    public String getDocumentationCodeTemplate() {
+        var sb                             = new StringBuilder();
+        var indexOfParameterBeingDescribed = 0;
 
-		if (!isEnvironmentAttribute())
-			sb.append(describeParameterForDocumentation(indexOfParameterBeingDescribed++)).append('.');
+        if (!isEnvironmentAttribute())
+            sb.append(describeParameterForDocumentation(indexOfParameterBeingDescribed++)).append('.');
 
-		if (isAttributeWithVariableParameter())
-			indexOfParameterBeingDescribed++;
+        if (isAttributeWithVariableParameter())
+            indexOfParameterBeingDescribed++;
 
-		sb.append('<').append(fullyQualifiedName());
+        sb.append('<').append(fullyQualifiedName());
 
-		appendParameterList(sb, indexOfParameterBeingDescribed, this::describeParameterForDocumentation);
+        appendParameterList(sb, indexOfParameterBeingDescribed, this::describeParameterForDocumentation);
 
-		sb.append('>');
-		return sb.toString();
-	}
+        sb.append('>');
+        return sb.toString();
+    }
 
-	@Override
-	public String getCodeTemplate() {
-		var sb                             = new StringBuilder();
-		var indexOfParameterBeingDescribed = 0;
+    @Override
+    public String getCodeTemplate() {
+        var sb                             = new StringBuilder();
+        var indexOfParameterBeingDescribed = 0;
 
-		if (!isEnvironmentAttribute())
-			indexOfParameterBeingDescribed++;
+        if (!isEnvironmentAttribute())
+            indexOfParameterBeingDescribed++;
 
-		if (isAttributeWithVariableParameter())
-			indexOfParameterBeingDescribed++;
+        if (isAttributeWithVariableParameter())
+            indexOfParameterBeingDescribed++;
 
-		sb.append(fullyQualifiedName());
+        sb.append(fullyQualifiedName());
 
-		appendParameterList(sb, indexOfParameterBeingDescribed, this::getParameterName);
+        appendParameterList(sb, indexOfParameterBeingDescribed, this::getParameterName);
 
-		sb.append('>');
-		return sb.toString();
-	}
+        sb.append('>');
+        return sb.toString();
+    }
 
 }

@@ -33,56 +33,56 @@ import reactor.core.publisher.Flux;
 
 public class AttributeMockTiming implements AttributeMock {
 
-	private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_TIMING_MODE = "You already defined a Mock for %s which is returning specified values with a timing";
+    private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_TIMING_MODE = "You already defined a Mock for %s which is returning specified values with a timing";
 
-	private final String fullName;
+    private final String fullName;
 
-	private Val[] returnValues;
+    private Val[] returnValues;
 
-	private Duration timing;
+    private Duration timing;
 
-	private final MockRunInformation mockRunInformation;
+    private final MockRunInformation mockRunInformation;
 
-	private final List<MockingVerification> listMockingVerifications;
+    private final List<MockingVerification> listMockingVerifications;
 
-	public AttributeMockTiming(String fullName) {
-		this.fullName                 = fullName;
-		this.returnValues             = null;
-		this.timing                   = null;
-		this.mockRunInformation       = new MockRunInformation(fullName);
-		this.listMockingVerifications = new LinkedList<>();
-	}
+    public AttributeMockTiming(String fullName) {
+        this.fullName                 = fullName;
+        this.returnValues             = null;
+        this.timing                   = null;
+        this.mockRunInformation       = new MockRunInformation(fullName);
+        this.listMockingVerifications = new LinkedList<>();
+    }
 
-	public void loadAttributeMockWithTiming(Duration timing, Val... returns) {
-		this.timing       = timing;
-		this.returnValues = returns;
-		this.listMockingVerifications.add(times(1));
-	}
+    public void loadAttributeMockWithTiming(Duration timing, Val... returns) {
+        this.timing       = timing;
+        this.returnValues = returns;
+        this.listMockingVerifications.add(times(1));
+    }
 
-	@Override
-	public Flux<Val> evaluate(String attributeName, Val parentValue, Map<String, JsonNode> variables,
-			List<Flux<Val>> args) {
-		// ignore arguments
+    @Override
+    public Flux<Val> evaluate(String attributeName, Val parentValue, Map<String, JsonNode> variables,
+            List<Flux<Val>> args) {
+        // ignore arguments
 
-		this.mockRunInformation.saveCall(new MockCall());
+        this.mockRunInformation.saveCall(new MockCall());
 
-		if (this.returnValues == null || this.timing == null) {
-			throw new SaplTestException("Undefined internal state. Please report a bug to the library authors!");
-		}
+        if (this.returnValues == null || this.timing == null) {
+            throw new SaplTestException("Undefined internal state. Please report a bug to the library authors!");
+        }
 
-		return Flux.interval(this.timing).map(number -> this.returnValues[number.intValue()])
-				.take(this.returnValues.length)
-				.map(val -> val.withTrace(AttributeMockTiming.class, Map.of("attributeName", Val.of(attributeName))));
-	}
+        return Flux.interval(this.timing).map(number -> this.returnValues[number.intValue()])
+                .take(this.returnValues.length)
+                .map(val -> val.withTrace(AttributeMockTiming.class, Map.of("attributeName", Val.of(attributeName))));
+    }
 
-	@Override
-	public void assertVerifications() {
-		this.listMockingVerifications.forEach(verification -> verification.verify(this.mockRunInformation));
-	}
+    @Override
+    public void assertVerifications() {
+        this.listMockingVerifications.forEach(verification -> verification.verify(this.mockRunInformation));
+    }
 
-	@Override
-	public String getErrorMessageForCurrentMode() {
-		return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_TIMING_MODE, this.fullName);
-	}
+    @Override
+    public String getErrorMessageForCurrentMode() {
+        return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_TIMING_MODE, this.fullName);
+    }
 
 }

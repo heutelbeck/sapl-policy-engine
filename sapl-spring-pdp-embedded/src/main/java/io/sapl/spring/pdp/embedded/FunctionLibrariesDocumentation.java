@@ -22,4 +22,5 @@ import io.sapl.interpreter.functions.LibraryDocumentation;
 /**
  * Holds the documentation for all deployed function libraries.
  */
-public record FunctionLibrariesDocumentation(Collection<LibraryDocumentation> documentation) {}
+public record FunctionLibrariesDocumentation(Collection<LibraryDocumentation> documentation) {
+}

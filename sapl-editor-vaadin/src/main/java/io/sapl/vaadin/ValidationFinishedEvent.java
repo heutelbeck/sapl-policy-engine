@@ -23,5 +23,5 @@ import lombok.Value;
  */
 @Value
 public class ValidationFinishedEvent {
-	Issue[] issues;
+    Issue[] issues;
 }

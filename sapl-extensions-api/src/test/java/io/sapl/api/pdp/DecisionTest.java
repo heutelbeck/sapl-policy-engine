@@ -21,9 +21,9 @@ import org.junit.jupiter.api.Test;
 
 class DecisionTest {
 
-	@Test
-	void decisionTest() {
-		assertThrows(IllegalArgumentException.class, () -> Decision.valueOf(""));
-	}
+    @Test
+    void decisionTest() {
+        assertThrows(IllegalArgumentException.class, () -> Decision.valueOf(""));
+    }
 
 }

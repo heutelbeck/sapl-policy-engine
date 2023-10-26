@@ -25,8 +25,8 @@ import org.springframework.context.annotation.ComponentScan;
 @EnableConfigurationProperties(SAPLServerLTProperties.class)
 public class SAPLServerLTApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(SAPLServerLTApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(SAPLServerLTApplication.class, args);
+    }
 
 }

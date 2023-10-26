@@ -43,112 +43,112 @@ import reactor.util.context.Context;
 @Timeout(3)
 class IntegrationTest {
 
-	private SAPLInterpreter interpreter;
+    private SAPLInterpreter interpreter;
 
-	private ImmutableParsedDocumentIndex seedIndex;
+    private ImmutableParsedDocumentIndex seedIndex;
 
-	private static final AuthorizationSubscription EMPTY_SUBSCRIPTION = AuthorizationSubscription.of(null, null, null);
+    private static final AuthorizationSubscription EMPTY_SUBSCRIPTION = AuthorizationSubscription.of(null, null, null);
 
-	@BeforeEach
-	void setUp() {
-		interpreter = new DefaultSAPLInterpreter();
-		seedIndex   = new CanonicalImmutableParsedDocumentIndex(new AnnotationAttributeContext(),
-				new AnnotationFunctionContext());
-	}
+    @BeforeEach
+    void setUp() {
+        interpreter = new DefaultSAPLInterpreter();
+        seedIndex   = new CanonicalImmutableParsedDocumentIndex(new AnnotationAttributeContext(),
+                new AnnotationFunctionContext());
+    }
 
-	@Test
-	void return_empty_result_when_no_documents_are_published() {
-		var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/empty", interpreter);
-		var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
+    @Test
+    void return_empty_result_when_no_documents_are_published() {
+        var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/empty", interpreter);
+        var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
 
-		PolicyRetrievalResult result = prp.retrievePolicies()
-				.contextWrite(ctx -> setUpAuthorizationContext(ctx, EMPTY_SUBSCRIPTION)).blockFirst();
+        PolicyRetrievalResult result = prp.retrievePolicies()
+                .contextWrite(ctx -> setUpAuthorizationContext(ctx, EMPTY_SUBSCRIPTION)).blockFirst();
 
-		assertThat(result, notNullValue());
-		assertThat(result.getMatchingDocuments(), empty());
-		assertThat(result.isErrorsInTarget(), is(false));
-		assertThat(result.isPrpValidState(), is(true));
-	}
+        assertThat(result, notNullValue());
+        assertThat(result.getMatchingDocuments(), empty());
+        assertThat(result.isErrorsInTarget(), is(false));
+        assertThat(result.isPrpValidState(), is(true));
+    }
 
-	@Test
-	void return_invalid_prp_state_for_invalid_document() {
-		var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/invalid", interpreter);
-		var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
+    @Test
+    void return_invalid_prp_state_for_invalid_document() {
+        var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/invalid", interpreter);
+        var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
 
-		PolicyRetrievalResult result = prp.retrievePolicies()
-				.contextWrite(ctx -> setUpAuthorizationContext(ctx, EMPTY_SUBSCRIPTION)).blockFirst();
+        PolicyRetrievalResult result = prp.retrievePolicies()
+                .contextWrite(ctx -> setUpAuthorizationContext(ctx, EMPTY_SUBSCRIPTION)).blockFirst();
 
-		assertThat(result, notNullValue());
-		assertThat(result.getMatchingDocuments(), empty());
-		assertThat(result.isErrorsInTarget(), is(true));
-		assertThat(result.isPrpValidState(), is(false));
+        assertThat(result, notNullValue());
+        assertThat(result.getMatchingDocuments(), empty());
+        assertThat(result.isErrorsInTarget(), is(true));
+        assertThat(result.isPrpValidState(), is(false));
 
-	}
+    }
 
-	@Test
-	void return_error_flag_when_evaluation_throws_exception() {
-		var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/error", interpreter);
-		var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
+    @Test
+    void return_error_flag_when_evaluation_throws_exception() {
+        var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/error", interpreter);
+        var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
 
-		PolicyRetrievalResult result = prp.retrievePolicies()
-				.contextWrite(ctx -> setUpAuthorizationContext(ctx, EMPTY_SUBSCRIPTION)).blockFirst();
+        PolicyRetrievalResult result = prp.retrievePolicies()
+                .contextWrite(ctx -> setUpAuthorizationContext(ctx, EMPTY_SUBSCRIPTION)).blockFirst();
 
-		assertThat(result, notNullValue());
-		assertThat(result.getMatchingDocuments(), empty());
-		assertThat(result.isErrorsInTarget(), is(true));
-		assertThat(result.isPrpValidState(), is(true));
-	}
+        assertThat(result, notNullValue());
+        assertThat(result.getMatchingDocuments(), empty());
+        assertThat(result.isErrorsInTarget(), is(true));
+        assertThat(result.isPrpValidState(), is(true));
+    }
 
-	@Test
-	void return_matching_document_for_valid_subscription() {
-		var source            = new FileSystemPrpUpdateEventSource("src/test/resources/it/policies", interpreter);
-		var prp               = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
-		var authzSubscription = AuthorizationSubscription.of(null, "read", null);
+    @Test
+    void return_matching_document_for_valid_subscription() {
+        var source            = new FileSystemPrpUpdateEventSource("src/test/resources/it/policies", interpreter);
+        var prp               = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
+        var authzSubscription = AuthorizationSubscription.of(null, "read", null);
 
-		PolicyRetrievalResult result = prp.retrievePolicies()
-				.contextWrite(ctx -> setUpAuthorizationContext(ctx, authzSubscription)).blockFirst();
+        PolicyRetrievalResult result = prp.retrievePolicies()
+                .contextWrite(ctx -> setUpAuthorizationContext(ctx, authzSubscription)).blockFirst();
 
-		assertThat(result, notNullValue());
-		assertThat(result.getMatchingDocuments().size(), is(1));
-		assertThat(result.isErrorsInTarget(), is(false));
+        assertThat(result, notNullValue());
+        assertThat(result.getMatchingDocuments().size(), is(1));
+        assertThat(result.isErrorsInTarget(), is(false));
 
-		assertThat(result.getMatchingDocuments().get(0).getPolicyElement().getSaplName(), is("policy read"));
+        assertThat(result.getMatchingDocuments().get(0).getPolicyElement().getSaplName(), is("policy read"));
 
-		var authzSubscription2 = AuthorizationSubscription.of("Willi", "eat", "icecream");
+        var authzSubscription2 = AuthorizationSubscription.of("Willi", "eat", "icecream");
 
-		result = prp.retrievePolicies().contextWrite(ctx -> setUpAuthorizationContext(ctx, authzSubscription2))
-				.blockFirst();
+        result = prp.retrievePolicies().contextWrite(ctx -> setUpAuthorizationContext(ctx, authzSubscription2))
+                .blockFirst();
 
-		assertThat(result, notNullValue());
-		assertThat(result.getMatchingDocuments().size(), is(1));
-		assertThat(result.isErrorsInTarget(), is(false));
-		assertThat(result.isPrpValidState(), is(true));
+        assertThat(result, notNullValue());
+        assertThat(result.getMatchingDocuments().size(), is(1));
+        assertThat(result.isErrorsInTarget(), is(false));
+        assertThat(result.isPrpValidState(), is(true));
 
-		assertThat(result.getMatchingDocuments().get(0).getPolicyElement().getSaplName(), is("policy eat icecream"));
-	}
+        assertThat(result.getMatchingDocuments().get(0).getPolicyElement().getSaplName(), is("policy eat icecream"));
+    }
 
-	@Test
-	void return_empty_result_for_non_matching_subscription() {
-		var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/policies", interpreter);
-		var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
+    @Test
+    void return_empty_result_for_non_matching_subscription() {
+        var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/policies", interpreter);
+        var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
 
-		PolicyRetrievalResult result = prp.retrievePolicies()
-				.contextWrite(ctx -> setUpAuthorizationContext(ctx, EMPTY_SUBSCRIPTION)).blockFirst();
+        PolicyRetrievalResult result = prp.retrievePolicies()
+                .contextWrite(ctx -> setUpAuthorizationContext(ctx, EMPTY_SUBSCRIPTION)).blockFirst();
 
-		assertThat(result, notNullValue());
-		assertThat(result.getMatchingDocuments(), empty());
-		assertThat(result.isErrorsInTarget(), is(false));
-		assertThat(result.isPrpValidState(), is(true));
-	}
+        assertThat(result, notNullValue());
+        assertThat(result.getMatchingDocuments(), empty());
+        assertThat(result.isErrorsInTarget(), is(false));
+        assertThat(result.isPrpValidState(), is(true));
+    }
 
-	public static Context setUpAuthorizationContext(Context ctx, AuthorizationSubscription authzSubscription) {
-		var attributeCtx = new AnnotationAttributeContext();
-		var functionCtx  = new AnnotationFunctionContext();
-		ctx = AuthorizationContext.setAttributeContext(ctx, attributeCtx);
-		ctx = AuthorizationContext.setFunctionContext(ctx, functionCtx);
-		ctx = AuthorizationContext.setVariable(ctx, "nullVariable", Val.NULL);
-		ctx = AuthorizationContext.setImports(ctx, new HashMap<>());
-		ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription);
-		return ctx;
-	}
+    public static Context setUpAuthorizationContext(Context ctx, AuthorizationSubscription authzSubscription) {
+        var attributeCtx = new AnnotationAttributeContext();
+        var functionCtx  = new AnnotationFunctionContext();
+        ctx = AuthorizationContext.setAttributeContext(ctx, attributeCtx);
+        ctx = AuthorizationContext.setFunctionContext(ctx, functionCtx);
+        ctx = AuthorizationContext.setVariable(ctx, "nullVariable", Val.NULL);
+        ctx = AuthorizationContext.setImports(ctx, new HashMap<>());
+        ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription);
+        return ctx;
+    }
 }

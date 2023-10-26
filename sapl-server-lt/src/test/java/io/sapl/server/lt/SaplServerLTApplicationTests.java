@@ -24,17 +24,17 @@ import org.springframework.boot.SpringApplication;
 
 class SaplServerLTApplicationTests {
 
-	@Test
-	void main() {
-		try (MockedStatic<SpringApplication> theMock = mockStatic(SpringApplication.class)) {
-			theMock.when(this::runNoArgs).thenReturn(null);
-			SAPLServerLTApplication.main(new String[] {});
-			theMock.verify(this::runNoArgs, times(1));
-		}
-	}
+    @Test
+    void main() {
+        try (MockedStatic<SpringApplication> theMock = mockStatic(SpringApplication.class)) {
+            theMock.when(this::runNoArgs).thenReturn(null);
+            SAPLServerLTApplication.main(new String[] {});
+            theMock.verify(this::runNoArgs, times(1));
+        }
+    }
 
-	private void runNoArgs() {
-		SpringApplication.run(SAPLServerLTApplication.class);
-	}
+    private void runNoArgs() {
+        SpringApplication.run(SAPLServerLTApplication.class);
+    }
 
 }

@@ -40,67 +40,67 @@ import reactor.test.StepVerifier;
 
 class PolicyBodyImplCustomCoverageTests {
 
-	CoverageHitRecorder recorder;
+    CoverageHitRecorder recorder;
 
-	private SAPLInterpreter INTERPRETER;
+    private SAPLInterpreter INTERPRETER;
 
-	@BeforeEach
-	void setup() {
-		this.recorder    = mock(CoverageHitRecorder.class);
-		this.INTERPRETER = new TestSaplInterpreter(this.recorder);
-	}
+    @BeforeEach
+    void setup() {
+        this.recorder    = mock(CoverageHitRecorder.class);
+        this.INTERPRETER = new TestSaplInterpreter(this.recorder);
+    }
 
-	@Test
-	void trueReturnsEntitlement() {
-		var policy   = INTERPRETER.parse("policy \"p\" permit true where true; true; true;");
-		var expected = AuthorizationDecision.PERMIT;
-		StepVerifier
-				.create(policy.evaluate().map(DocumentEvaluationResult::getAuthorizationDecision).contextWrite(ctx -> {
-					ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
-					ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
-					ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
-					return ctx;
-				})).expectNext(expected).verifyComplete();
+    @Test
+    void trueReturnsEntitlement() {
+        var policy   = INTERPRETER.parse("policy \"p\" permit true where true; true; true;");
+        var expected = AuthorizationDecision.PERMIT;
+        StepVerifier
+                .create(policy.evaluate().map(DocumentEvaluationResult::getAuthorizationDecision).contextWrite(ctx -> {
+                    ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+                    ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+                    ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
+                    return ctx;
+                })).expectNext(expected).verifyComplete();
 
-		ArgumentCaptor<PolicyConditionHit> captor = ArgumentCaptor.forClass(PolicyConditionHit.class);
-		verify(this.recorder, times(3)).recordPolicyConditionHit(captor.capture());
-		assertThat(captor.getAllValues().get(0).getConditionStatementId()).isZero();
-		assertThat(captor.getAllValues().get(1).getConditionStatementId()).isEqualTo(1);
-		assertThat(captor.getAllValues().get(2).getConditionStatementId()).isEqualTo(2);
-	}
+        ArgumentCaptor<PolicyConditionHit> captor = ArgumentCaptor.forClass(PolicyConditionHit.class);
+        verify(this.recorder, times(3)).recordPolicyConditionHit(captor.capture());
+        assertThat(captor.getAllValues().get(0).getConditionStatementId()).isZero();
+        assertThat(captor.getAllValues().get(1).getConditionStatementId()).isEqualTo(1);
+        assertThat(captor.getAllValues().get(2).getConditionStatementId()).isEqualTo(2);
+    }
 
-	@Test
-	void trueReturnsEntitlementInSet() {
-		var policy   = INTERPRETER.parse("set \"set\" deny-overrides policy \"p\" permit true where true; true; true;");
-		var expected = AuthorizationDecision.PERMIT;
-		StepVerifier
-				.create(policy.evaluate().map(DocumentEvaluationResult::getAuthorizationDecision).contextWrite(ctx -> {
-					ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
-					ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
-					ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
-					return ctx;
-				})).expectNext(expected).verifyComplete();
+    @Test
+    void trueReturnsEntitlementInSet() {
+        var policy   = INTERPRETER.parse("set \"set\" deny-overrides policy \"p\" permit true where true; true; true;");
+        var expected = AuthorizationDecision.PERMIT;
+        StepVerifier
+                .create(policy.evaluate().map(DocumentEvaluationResult::getAuthorizationDecision).contextWrite(ctx -> {
+                    ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+                    ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+                    ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
+                    return ctx;
+                })).expectNext(expected).verifyComplete();
 
-		ArgumentCaptor<PolicyConditionHit> captor = ArgumentCaptor.forClass(PolicyConditionHit.class);
-		verify(this.recorder, times(3)).recordPolicyConditionHit(captor.capture());
-		assertThat(captor.getAllValues().get(0).getConditionStatementId()).isZero();
-		assertThat(captor.getAllValues().get(1).getConditionStatementId()).isEqualTo(1);
-		assertThat(captor.getAllValues().get(2).getConditionStatementId()).isEqualTo(2);
-	}
+        ArgumentCaptor<PolicyConditionHit> captor = ArgumentCaptor.forClass(PolicyConditionHit.class);
+        verify(this.recorder, times(3)).recordPolicyConditionHit(captor.capture());
+        assertThat(captor.getAllValues().get(0).getConditionStatementId()).isZero();
+        assertThat(captor.getAllValues().get(1).getConditionStatementId()).isEqualTo(1);
+        assertThat(captor.getAllValues().get(2).getConditionStatementId()).isEqualTo(2);
+    }
 
-	@Test
-	void test_evaluateConditionThrowsError() {
-		var policy   = INTERPRETER.parse(
-				"set \"set\" deny-overrides policy \"p\" permit true where true == subject.<pip.attr>; true; true;");
-		var expected = AuthorizationDecision.INDETERMINATE;
-		StepVerifier
-				.create(policy.evaluate().map(DocumentEvaluationResult::getAuthorizationDecision).contextWrite(ctx -> {
-					ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
-					ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
-					ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
-					return ctx;
-				})).expectNext(expected).verifyComplete();
-		verify(this.recorder, never()).recordPolicyConditionHit(any());
-	}
+    @Test
+    void test_evaluateConditionThrowsError() {
+        var policy   = INTERPRETER.parse(
+                "set \"set\" deny-overrides policy \"p\" permit true where true == subject.<pip.attr>; true; true;");
+        var expected = AuthorizationDecision.INDETERMINATE;
+        StepVerifier
+                .create(policy.evaluate().map(DocumentEvaluationResult::getAuthorizationDecision).contextWrite(ctx -> {
+                    ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+                    ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+                    ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
+                    return ctx;
+                })).expectNext(expected).verifyComplete();
+        verify(this.recorder, never()).recordPolicyConditionHit(any());
+    }
 
 }

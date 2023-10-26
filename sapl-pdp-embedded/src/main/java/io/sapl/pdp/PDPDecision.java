@@ -37,81 +37,81 @@ import lombok.ToString;
 @ToString
 public class PDPDecision implements TracedDecision {
 
-	static final ObjectMapper MAPPER = new ObjectMapper();
+    static final ObjectMapper MAPPER = new ObjectMapper();
 
-	static {
-		MAPPER.registerModule(new Jdk8Module());
-	}
+    static {
+        MAPPER.registerModule(new Jdk8Module());
+    }
 
-	AuthorizationSubscription authorizationSubscription;
-	List<SAPL>                matchingDocuments = new LinkedList<>();
-	CombinedDecision          combinedDecision;
-	Instant                   timestamp;
-	LinkedList<Modification>  modifications     = new LinkedList<>();
+    AuthorizationSubscription authorizationSubscription;
+    List<SAPL>                matchingDocuments = new LinkedList<>();
+    CombinedDecision          combinedDecision;
+    Instant                   timestamp;
+    LinkedList<Modification>  modifications     = new LinkedList<>();
 
-	private record Modification(AuthorizationDecision authorizationDecision, String explanation) {
-	}
+    private record Modification(AuthorizationDecision authorizationDecision, String explanation) {
+    }
 
-	private PDPDecision(AuthorizationSubscription authorizationSubscription, List<SAPL> matchingDocuments,
-			CombinedDecision combinedDecision, Instant timestamp, List<Modification> modifications) {
-		this.authorizationSubscription = authorizationSubscription;
-		this.combinedDecision          = combinedDecision;
-		this.timestamp                 = timestamp;
-		this.matchingDocuments.addAll(matchingDocuments);
-		this.modifications.addAll(modifications);
-	}
+    private PDPDecision(AuthorizationSubscription authorizationSubscription, List<SAPL> matchingDocuments,
+            CombinedDecision combinedDecision, Instant timestamp, List<Modification> modifications) {
+        this.authorizationSubscription = authorizationSubscription;
+        this.combinedDecision          = combinedDecision;
+        this.timestamp                 = timestamp;
+        this.matchingDocuments.addAll(matchingDocuments);
+        this.modifications.addAll(modifications);
+    }
 
-	public static PDPDecision of(AuthorizationSubscription authorizationSubscription, CombinedDecision combinedDecision,
-			List<SAPL> matchingDocuments) {
-		return new PDPDecision(authorizationSubscription, matchingDocuments, combinedDecision, Instant.now(),
-				List.of());
-	}
+    public static PDPDecision of(AuthorizationSubscription authorizationSubscription, CombinedDecision combinedDecision,
+            List<SAPL> matchingDocuments) {
+        return new PDPDecision(authorizationSubscription, matchingDocuments, combinedDecision, Instant.now(),
+                List.of());
+    }
 
-	public static PDPDecision of(AuthorizationSubscription authorizationSubscription,
-			CombinedDecision combinedDecision) {
-		return new PDPDecision(authorizationSubscription, List.of(), combinedDecision, Instant.now(), List.of());
-	}
+    public static PDPDecision of(AuthorizationSubscription authorizationSubscription,
+            CombinedDecision combinedDecision) {
+        return new PDPDecision(authorizationSubscription, List.of(), combinedDecision, Instant.now(), List.of());
+    }
 
-	@Override
-	public AuthorizationDecision getAuthorizationDecision() {
-		if (modifications.isEmpty())
-			return combinedDecision.getAuthorizationDecision();
-		return modifications.peekLast().authorizationDecision();
-	}
+    @Override
+    public AuthorizationDecision getAuthorizationDecision() {
+        if (modifications.isEmpty())
+            return combinedDecision.getAuthorizationDecision();
+        return modifications.peekLast().authorizationDecision();
+    }
 
-	@Override
-	public TracedDecision modified(AuthorizationDecision authzDecision, String explanation) {
-		var modified = new PDPDecision(authorizationSubscription, matchingDocuments, combinedDecision, timestamp,
-				modifications);
-		modified.modifications.add(new Modification(authzDecision, explanation));
-		return modified;
-	}
+    @Override
+    public TracedDecision modified(AuthorizationDecision authzDecision, String explanation) {
+        var modified = new PDPDecision(authorizationSubscription, matchingDocuments, combinedDecision, timestamp,
+                modifications);
+        modified.modifications.add(new Modification(authzDecision, explanation));
+        return modified;
+    }
 
-	@Override
-	public JsonNode getTrace() {
-		var trace = Val.JSON.objectNode();
-		trace.set(Trace.OPERATOR, Val.JSON.textNode("Policy Decision Point"));
-		trace.set(Trace.AUTHORIZATION_SUBSCRIPTION, MAPPER.valueToTree(authorizationSubscription));
-		trace.set(Trace.AUTHORIZATION_DECISION, MAPPER.valueToTree(getAuthorizationDecision()));
-		var matches = Val.JSON.arrayNode();
-		matchingDocuments.forEach(doc -> matches.add(Val.JSON.textNode(doc.getPolicyElement().getSaplName())));
-		trace.set(Trace.MATCHING_DOCUMENTS, matches);
-		trace.set(Trace.COMBINED_DECISION, combinedDecision.getTrace());
-		trace.set(Trace.TIMESTAMP, Val.JSON.textNode(timestamp.toString()));
-		if (!modifications.isEmpty()) {
-			trace.set(Trace.MODIFICATIONS, getModificationsTrace());
-		}
-		return trace;
-	}
+    @Override
+    public JsonNode getTrace() {
+        var trace = Val.JSON.objectNode();
+        trace.set(Trace.OPERATOR, Val.JSON.textNode("Policy Decision Point"));
+        trace.set(Trace.AUTHORIZATION_SUBSCRIPTION, MAPPER.valueToTree(authorizationSubscription));
+        trace.set(Trace.AUTHORIZATION_DECISION, MAPPER.valueToTree(getAuthorizationDecision()));
+        var matches = Val.JSON.arrayNode();
+        matchingDocuments.forEach(doc -> matches.add(Val.JSON.textNode(doc.getPolicyElement().getSaplName())));
+        trace.set(Trace.MATCHING_DOCUMENTS, matches);
+        trace.set(Trace.COMBINED_DECISION, combinedDecision.getTrace());
+        trace.set(Trace.TIMESTAMP, Val.JSON.textNode(timestamp.toString()));
+        if (!modifications.isEmpty()) {
+            trace.set(Trace.MODIFICATIONS, getModificationsTrace());
+        }
+        return trace;
+    }
 
-	private JsonNode getModificationsTrace() {
-		var modificationTrace = Val.JSON.arrayNode();
-		for (var mod : modifications) {
-			var modJson = Val.JSON.objectNode();
-			modJson.set(Trace.AUTHORIZATION_DECISION, MAPPER.valueToTree(mod.authorizationDecision()));
-			modJson.set(Trace.EXPLANATION, Val.JSON.textNode(mod.explanation()));
-			modificationTrace.add(modJson);
-		}
-		return modificationTrace;
-	}
+    private JsonNode getModificationsTrace() {
+        var modificationTrace = Val.JSON.arrayNode();
+        for (var mod : modifications) {
+            var modJson = Val.JSON.objectNode();
+            modJson.set(Trace.AUTHORIZATION_DECISION, MAPPER.valueToTree(mod.authorizationDecision()));
+            modJson.set(Trace.EXPLANATION, Val.JSON.textNode(mod.explanation()));
+            modificationTrace.add(modJson);
+        }
+        return modificationTrace;
+    }
 }

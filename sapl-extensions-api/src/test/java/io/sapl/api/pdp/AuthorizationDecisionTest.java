@@ -32,95 +32,95 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 class AuthorizationDecisionTest {
 
-	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	@Test
-	void defaultConstructorResultsInNoEntriesAndIndeterminate() {
-		var decision = new AuthorizationDecision();
-		assertAll(() -> assertEquals(Decision.INDETERMINATE, decision.getDecision()),
-				() -> assertThat(decision.getAdvice(), is(emptyOptional())),
-				() -> assertThat(decision.getObligations(), is(emptyOptional())),
-				() -> assertThat(decision.getResource(), is(emptyOptional())));
-	}
+    @Test
+    void defaultConstructorResultsInNoEntriesAndIndeterminate() {
+        var decision = new AuthorizationDecision();
+        assertAll(() -> assertEquals(Decision.INDETERMINATE, decision.getDecision()),
+                () -> assertThat(decision.getAdvice(), is(emptyOptional())),
+                () -> assertThat(decision.getObligations(), is(emptyOptional())),
+                () -> assertThat(decision.getResource(), is(emptyOptional())));
+    }
 
-	@Test
-	void decisionConstructorResultsInNoEntries() {
-		var decision = new AuthorizationDecision(Decision.DENY);
-		assertAll(() -> assertEquals(Decision.DENY, decision.getDecision()),
-				() -> assertThat(decision.getAdvice(), is(emptyOptional())),
-				() -> assertThat(decision.getObligations(), is(emptyOptional())),
-				() -> assertThat(decision.getResource(), is(emptyOptional())));
-	}
+    @Test
+    void decisionConstructorResultsInNoEntries() {
+        var decision = new AuthorizationDecision(Decision.DENY);
+        assertAll(() -> assertEquals(Decision.DENY, decision.getDecision()),
+                () -> assertThat(decision.getAdvice(), is(emptyOptional())),
+                () -> assertThat(decision.getObligations(), is(emptyOptional())),
+                () -> assertThat(decision.getResource(), is(emptyOptional())));
+    }
 
-	@Test
-	void decisionConstructorNull() {
-		assertThrows(NullPointerException.class, () -> new AuthorizationDecision(null));
-	}
+    @Test
+    void decisionConstructorNull() {
+        assertThrows(NullPointerException.class, () -> new AuthorizationDecision(null));
+    }
 
-	@Test
-	void withAdviceNull() {
-		var decision = new AuthorizationDecision();
-		assertThrows(NullPointerException.class, () -> decision.withAdvice(null));
-	}
+    @Test
+    void withAdviceNull() {
+        var decision = new AuthorizationDecision();
+        assertThrows(NullPointerException.class, () -> decision.withAdvice(null));
+    }
 
-	@Test
-	void withDecisionNull() {
-		var decision = new AuthorizationDecision();
-		assertThrows(NullPointerException.class, () -> decision.withDecision(null));
-	}
+    @Test
+    void withDecisionNull() {
+        var decision = new AuthorizationDecision();
+        assertThrows(NullPointerException.class, () -> decision.withDecision(null));
+    }
 
-	@Test
-	void withAdviceEmpty() {
-		var advice   = JSON.arrayNode();
-		var decision = new AuthorizationDecision().withAdvice(advice);
-		assertThat(decision.getAdvice(), is(emptyOptional()));
-	}
+    @Test
+    void withAdviceEmpty() {
+        var advice   = JSON.arrayNode();
+        var decision = new AuthorizationDecision().withAdvice(advice);
+        assertThat(decision.getAdvice(), is(emptyOptional()));
+    }
 
-	@Test
-	void withAdvicePresent() {
-		var advice = JSON.arrayNode();
-		advice.add(JSON.numberNode(0));
-		var decision = new AuthorizationDecision().withAdvice(advice);
-		assertThat(decision.getAdvice(), is(optionalWithValue(is(jsonArray(contains(jsonInt(0)))))));
-	}
+    @Test
+    void withAdvicePresent() {
+        var advice = JSON.arrayNode();
+        advice.add(JSON.numberNode(0));
+        var decision = new AuthorizationDecision().withAdvice(advice);
+        assertThat(decision.getAdvice(), is(optionalWithValue(is(jsonArray(contains(jsonInt(0)))))));
+    }
 
-	@Test
-	void withObligationsEmpty() {
-		var obligations = JSON.arrayNode();
-		var decision    = new AuthorizationDecision().withObligations(obligations);
-		assertThat(decision.getObligations(), is(emptyOptional()));
-	}
+    @Test
+    void withObligationsEmpty() {
+        var obligations = JSON.arrayNode();
+        var decision    = new AuthorizationDecision().withObligations(obligations);
+        assertThat(decision.getObligations(), is(emptyOptional()));
+    }
 
-	@Test
-	void withObligationsNull() {
-		var decision = new AuthorizationDecision();
-		assertThrows(NullPointerException.class, () -> decision.withObligations(null));
-	}
+    @Test
+    void withObligationsNull() {
+        var decision = new AuthorizationDecision();
+        assertThrows(NullPointerException.class, () -> decision.withObligations(null));
+    }
 
-	@Test
-	void withObligationsPresent() {
-		var obligations = JSON.arrayNode();
-		obligations.add(JSON.numberNode(0));
-		var decision = new AuthorizationDecision().withObligations(obligations);
-		assertThat(decision.getObligations(), is(optionalWithValue(is(jsonArray(contains(jsonInt(0)))))));
-	}
+    @Test
+    void withObligationsPresent() {
+        var obligations = JSON.arrayNode();
+        obligations.add(JSON.numberNode(0));
+        var decision = new AuthorizationDecision().withObligations(obligations);
+        assertThat(decision.getObligations(), is(optionalWithValue(is(jsonArray(contains(jsonInt(0)))))));
+    }
 
-	@Test
-	void withResourceNull() {
-		var decision = new AuthorizationDecision();
-		assertThrows(NullPointerException.class, () -> decision.withResource(null));
-	}
+    @Test
+    void withResourceNull() {
+        var decision = new AuthorizationDecision();
+        assertThrows(NullPointerException.class, () -> decision.withResource(null));
+    }
 
-	@Test
-	void withResource() {
-		var decision = new AuthorizationDecision().withResource(JSON.numberNode(0));
-		assertThat(decision.getResource(), is(optionalWithValue(is(jsonInt(0)))));
-	}
+    @Test
+    void withResource() {
+        var decision = new AuthorizationDecision().withResource(JSON.numberNode(0));
+        assertThat(decision.getResource(), is(optionalWithValue(is(jsonInt(0)))));
+    }
 
-	@Test
-	void withDecision() {
-		var decision = AuthorizationDecision.DENY.withDecision(Decision.PERMIT);
-		assertThat(decision.getDecision(), is(Decision.PERMIT));
-	}
+    @Test
+    void withDecision() {
+        var decision = AuthorizationDecision.DENY.withDecision(Decision.PERMIT);
+        assertThat(decision.getDecision(), is(Decision.PERMIT));
+    }
 
 }

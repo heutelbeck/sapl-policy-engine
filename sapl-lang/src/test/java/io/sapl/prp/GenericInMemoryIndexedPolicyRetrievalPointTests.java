@@ -35,98 +35,98 @@ import reactor.core.publisher.Mono;
 
 class GenericInMemoryIndexedPolicyRetrievalPointTests {
 
-	PrpUpdateEventSource sourceMock;
+    PrpUpdateEventSource sourceMock;
 
-	ImmutableParsedDocumentIndex indexMock;
+    ImmutableParsedDocumentIndex indexMock;
 
-	@BeforeEach
-	void beforeEach() {
-		sourceMock = mock(PrpUpdateEventSource.class);
-		var eventMock = mock(PrpUpdateEvent.class);
-		when(sourceMock.getUpdates()).thenReturn(Flux.just(eventMock));
+    @BeforeEach
+    void beforeEach() {
+        sourceMock = mock(PrpUpdateEventSource.class);
+        var eventMock = mock(PrpUpdateEvent.class);
+        when(sourceMock.getUpdates()).thenReturn(Flux.just(eventMock));
 
-		indexMock = mock(ImmutableParsedDocumentIndex.class);
-		when(indexMock.apply(any())).thenReturn(indexMock);
+        indexMock = mock(ImmutableParsedDocumentIndex.class);
+        when(indexMock.apply(any())).thenReturn(indexMock);
 
-	}
+    }
 
-	@Test
-	void testConstructAndRetrieveWithEmptyResult() {
-		// WHEN
-		var resultMock = mock(PolicyRetrievalResult.class);
-		when(indexMock.retrievePolicies()).thenReturn(Mono.just(resultMock));
+    @Test
+    void testConstructAndRetrieveWithEmptyResult() {
+        // WHEN
+        var resultMock = mock(PolicyRetrievalResult.class);
+        when(indexMock.retrievePolicies()).thenReturn(Mono.just(resultMock));
 
-		// DO
-		var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(indexMock, sourceMock);
-		var result = prp.retrievePolicies().blockFirst();
-		prp.dispose();
+        // DO
+        var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(indexMock, sourceMock);
+        var result = prp.retrievePolicies().blockFirst();
+        prp.dispose();
 
-		// THEN
-		verify(sourceMock, times(1)).getUpdates();
-		verify(indexMock, times(1)).apply(any());
-		assertThat(prp, is(notNullValue()));
+        // THEN
+        verify(sourceMock, times(1)).getUpdates();
+        verify(indexMock, times(1)).apply(any());
+        assertThat(prp, is(notNullValue()));
 
-		verify(indexMock, times(1)).retrievePolicies();
-		assertThat(result, is(resultMock));
-	}
+        verify(indexMock, times(1)).retrievePolicies();
+        assertThat(result, is(resultMock));
+    }
 
-	@Test
-	void testConstructAndRetrieveWithResult() {
-		// WHEN
-		var policyElementMock = mock(PolicyElement.class);
-		when(policyElementMock.getSaplName()).thenReturn("SAPL");
-		// when(policyElementMock.getClass()).thenCallRealMethod();
+    @Test
+    void testConstructAndRetrieveWithResult() {
+        // WHEN
+        var policyElementMock = mock(PolicyElement.class);
+        when(policyElementMock.getSaplName()).thenReturn("SAPL");
+        // when(policyElementMock.getClass()).thenCallRealMethod();
 
-		var documentMock = mock(SAPL.class);
-		when(documentMock.getPolicyElement()).thenReturn(policyElementMock);
+        var documentMock = mock(SAPL.class);
+        when(documentMock.getPolicyElement()).thenReturn(policyElementMock);
 
-		var policyRetrievalResult = new PolicyRetrievalResult().withMatch(documentMock);
-		// doReturn(Collections.singletonList(documentMock)).when(resultMock.getMatchingDocuments());
+        var policyRetrievalResult = new PolicyRetrievalResult().withMatch(documentMock);
+        // doReturn(Collections.singletonList(documentMock)).when(resultMock.getMatchingDocuments());
 
-		when(indexMock.retrievePolicies()).thenReturn(Mono.just(policyRetrievalResult));
+        when(indexMock.retrievePolicies()).thenReturn(Mono.just(policyRetrievalResult));
 
-		// DO
-		var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(indexMock, sourceMock);
-		var result = prp.retrievePolicies().blockFirst();
-		prp.dispose();
+        // DO
+        var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(indexMock, sourceMock);
+        var result = prp.retrievePolicies().blockFirst();
+        prp.dispose();
 
-		// THEN
-		verify(sourceMock, times(1)).getUpdates();
-		verify(indexMock, times(1)).apply(any());
-		assertThat(prp, is(notNullValue()));
+        // THEN
+        verify(sourceMock, times(1)).getUpdates();
+        verify(indexMock, times(1)).apply(any());
+        assertThat(prp, is(notNullValue()));
 
-		verify(indexMock, times(1)).retrievePolicies();
-		assertThat(result, is(policyRetrievalResult));
+        verify(indexMock, times(1)).retrievePolicies();
+        assertThat(result, is(policyRetrievalResult));
 
-	}
+    }
 
-	@Test
-	void testConstructAndRetrieveWithNonSAPLResult() {
-		// WHEN
-		var policyElementMock = mock(PolicyElement.class);
-		when(policyElementMock.getSaplName()).thenReturn("SAPL");
-		// when(policyElementMock.getClass()).thenCallRealMethod();
+    @Test
+    void testConstructAndRetrieveWithNonSAPLResult() {
+        // WHEN
+        var policyElementMock = mock(PolicyElement.class);
+        when(policyElementMock.getSaplName()).thenReturn("SAPL");
+        // when(policyElementMock.getClass()).thenCallRealMethod();
 
-		var documentMock = mock(SAPL.class);
+        var documentMock = mock(SAPL.class);
 
-		var policyRetrievalResult = new PolicyRetrievalResult().withMatch(documentMock);
-		// doReturn(Collections.singletonList(documentMock)).when(resultMock.getMatchingDocuments());
+        var policyRetrievalResult = new PolicyRetrievalResult().withMatch(documentMock);
+        // doReturn(Collections.singletonList(documentMock)).when(resultMock.getMatchingDocuments());
 
-		when(indexMock.retrievePolicies()).thenReturn(Mono.just(policyRetrievalResult));
+        when(indexMock.retrievePolicies()).thenReturn(Mono.just(policyRetrievalResult));
 
-		// DO
-		var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(indexMock, sourceMock);
-		var result = prp.retrievePolicies().blockFirst();
-		prp.dispose();
+        // DO
+        var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(indexMock, sourceMock);
+        var result = prp.retrievePolicies().blockFirst();
+        prp.dispose();
 
-		// THEN
-		verify(sourceMock, times(1)).getUpdates();
-		verify(indexMock, times(1)).apply(any());
-		assertThat(prp, is(notNullValue()));
+        // THEN
+        verify(sourceMock, times(1)).getUpdates();
+        verify(indexMock, times(1)).apply(any());
+        assertThat(prp, is(notNullValue()));
 
-		verify(indexMock, times(1)).retrievePolicies();
-		assertThat(result, is(policyRetrievalResult));
+        verify(indexMock, times(1)).retrievePolicies();
+        assertThat(result, is(policyRetrievalResult));
 
-	}
+    }
 
 }

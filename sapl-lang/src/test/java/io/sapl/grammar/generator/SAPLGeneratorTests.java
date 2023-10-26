@@ -21,10 +21,10 @@ import org.junit.jupiter.api.Test;
 
 class SAPLGeneratorTests {
 
-	@Test
-	void generatorTest() {
-		var generator = new SAPLGenerator();
-		assertDoesNotThrow(() -> generator.doGenerate(null, null, null));
-	}
+    @Test
+    void generatorTest() {
+        var generator = new SAPLGenerator();
+        assertDoesNotThrow(() -> generator.doGenerate(null, null, null));
+    }
 
 }

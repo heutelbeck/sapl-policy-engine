@@ -28,13 +28,13 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class IndexStepImplCustomTests {
 
-	@Test
-	void applyIndexStepToNonArrayFails() {
-		assertExpressionReturnsErrors("undefined[0]");
-	}
+    @Test
+    void applyIndexStepToNonArrayFails() {
+        assertExpressionReturnsErrors("undefined[0]");
+    }
 
-	private static Stream<Arguments> expressionTestCases() {
-		// @formatter:off
+    private static Stream<Arguments> expressionTestCases() {
+        // @formatter:off
 		return Stream.of(
 	 			// applyPositiveExistingToArrayNode
 	 			Arguments.of("[0,1,2,3,4,5,6,7,8,9][5]", "5"),

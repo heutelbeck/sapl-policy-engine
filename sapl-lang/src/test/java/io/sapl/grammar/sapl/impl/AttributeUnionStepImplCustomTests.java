@@ -27,14 +27,14 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class AttributeUnionStepImplCustomTests {
 
-	@Test
-	void applySlicingToNonObject() {
-		var expression = "\"Otto\"['key1','key2']";
-		assertExpressionReturnsErrors(expression);
-	}
+    @Test
+    void applySlicingToNonObject() {
+        var expression = "\"Otto\"['key1','key2']";
+        assertExpressionReturnsErrors(expression);
+    }
 
-	private static Stream<Arguments> expressionTestCases() {
-		// @formatter:off
+    private static Stream<Arguments> expressionTestCases() {
+        // @formatter:off
 		return Stream.of(
 	 			// applyToEmptyObject
 	 			Arguments.of("{}['key1','key2']",

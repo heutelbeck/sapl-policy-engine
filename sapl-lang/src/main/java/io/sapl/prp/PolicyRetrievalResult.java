@@ -32,34 +32,34 @@ import lombok.ToString;
 @AllArgsConstructor
 public class PolicyRetrievalResult {
 
-	List<SAPL> matchingDocuments = new ArrayList<>();
+    List<SAPL> matchingDocuments = new ArrayList<>();
 
-	@Getter
-	boolean errorsInTarget = false;
+    @Getter
+    boolean errorsInTarget = false;
 
-	@Getter
-	boolean prpValidState = true;
+    @Getter
+    boolean prpValidState = true;
 
-	public List<SAPL> getMatchingDocuments() {
-		return new ArrayList<>(matchingDocuments);
-	}
+    public List<SAPL> getMatchingDocuments() {
+        return new ArrayList<>(matchingDocuments);
+    }
 
-	public List<PolicyElement> getPolicyElements() {
-		return matchingDocuments.stream().map(SAPL::getPolicyElement).toList();
-	}
+    public List<PolicyElement> getPolicyElements() {
+        return matchingDocuments.stream().map(SAPL::getPolicyElement).toList();
+    }
 
-	public PolicyRetrievalResult withMatch(SAPL match) {
-		var matches = new ArrayList<>(matchingDocuments);
-		matches.add(match);
-		return new PolicyRetrievalResult(matches, errorsInTarget, prpValidState);
-	}
+    public PolicyRetrievalResult withMatch(SAPL match) {
+        var matches = new ArrayList<>(matchingDocuments);
+        matches.add(match);
+        return new PolicyRetrievalResult(matches, errorsInTarget, prpValidState);
+    }
 
-	public PolicyRetrievalResult withError() {
-		return new PolicyRetrievalResult(new ArrayList<>(matchingDocuments), true, prpValidState);
-	}
+    public PolicyRetrievalResult withError() {
+        return new PolicyRetrievalResult(new ArrayList<>(matchingDocuments), true, prpValidState);
+    }
 
-	public PolicyRetrievalResult withInvalidState() {
-		return new PolicyRetrievalResult(new ArrayList<>(matchingDocuments), errorsInTarget, false);
-	}
+    public PolicyRetrievalResult withInvalidState() {
+        return new PolicyRetrievalResult(new ArrayList<>(matchingDocuments), errorsInTarget, false);
+    }
 
 }

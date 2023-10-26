@@ -49,36 +49,36 @@ import reactor.core.publisher.Flux;
  */
 public class OnlyOneApplicableCombiningAlgorithmImplCustom extends OnlyOneApplicableCombiningAlgorithmImpl {
 
-	@Override
-	public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
-		return CombiningAlgorithmUtil.eagerlyCombinePolicyElements(policies, this::combinator, getName());
-	}
+    @Override
+    public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
+        return CombiningAlgorithmUtil.eagerlyCombinePolicyElements(policies, this::combinator, getName());
+    }
 
-	@Override
-	public String getName() {
-		return "ONLY_ONE_APPLICABLE";
-	}
+    @Override
+    public String getName() {
+        return "ONLY_ONE_APPLICABLE";
+    }
 
-	private CombinedDecision combinator(DocumentEvaluationResult[] evaluationResults) {
-		var aPolicyWasIndeterminate = false;
-		var applicableCount         = 0;
-		var authzDecision           = AuthorizationDecision.NOT_APPLICABLE;
-		var decisions               = new LinkedList<DocumentEvaluationResult>();
-		for (var evaluationResult : evaluationResults) {
-			decisions.add(evaluationResult);
-			var decisionUnderInspection = evaluationResult.getAuthorizationDecision();
-			var decision                = decisionUnderInspection.getDecision();
-			if (decision != Decision.NOT_APPLICABLE) {
-				applicableCount++;
-				authzDecision            = decisionUnderInspection;
-				aPolicyWasIndeterminate |= decision == Decision.INDETERMINATE;
-			}
-		}
-		if (aPolicyWasIndeterminate || applicableCount > 1) {
-			authzDecision = AuthorizationDecision.INDETERMINATE;
-		}
+    private CombinedDecision combinator(DocumentEvaluationResult[] evaluationResults) {
+        var aPolicyWasIndeterminate = false;
+        var applicableCount         = 0;
+        var authzDecision           = AuthorizationDecision.NOT_APPLICABLE;
+        var decisions               = new LinkedList<DocumentEvaluationResult>();
+        for (var evaluationResult : evaluationResults) {
+            decisions.add(evaluationResult);
+            var decisionUnderInspection = evaluationResult.getAuthorizationDecision();
+            var decision                = decisionUnderInspection.getDecision();
+            if (decision != Decision.NOT_APPLICABLE) {
+                applicableCount++;
+                authzDecision            = decisionUnderInspection;
+                aPolicyWasIndeterminate |= decision == Decision.INDETERMINATE;
+            }
+        }
+        if (aPolicyWasIndeterminate || applicableCount > 1) {
+            authzDecision = AuthorizationDecision.INDETERMINATE;
+        }
 
-		return CombinedDecision.of(authzDecision, getName(), decisions);
-	}
+        return CombinedDecision.of(authzDecision, getName(), decisions);
+    }
 
 }

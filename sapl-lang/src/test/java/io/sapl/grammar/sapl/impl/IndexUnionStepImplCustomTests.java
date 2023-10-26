@@ -27,13 +27,13 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class IndexUnionStepImplCustomTests {
 
-	@Test
-	void applyIndexUnionStepToNonArrayFails() {
-		assertExpressionReturnsErrors("(undefined)[1,2]");
-	}
+    @Test
+    void applyIndexUnionStepToNonArrayFails() {
+        assertExpressionReturnsErrors("(undefined)[1,2]");
+    }
 
-	private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
-		// @formatter:off
+    private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+        // @formatter:off
 		return Stream.of(
 	 			// applyToArray
 	 			Arguments.of("[0,1,2,3,4,5,6,7,8,9][0,1,-2,10,-10]", "[0,1,8]"),

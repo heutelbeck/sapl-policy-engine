@@ -22,4 +22,5 @@ import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 /**
  * Holds the documentation for all deployed Policy Information Points.
  */
-public record PolicyInformationPointsDocumentation(Collection<PolicyInformationPointDocumentation> documentation) {}
+public record PolicyInformationPointsDocumentation(Collection<PolicyInformationPointDocumentation> documentation) {
+}

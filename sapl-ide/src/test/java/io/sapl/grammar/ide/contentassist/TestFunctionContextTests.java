@@ -28,66 +28,66 @@ import org.junit.jupiter.api.Test;
 
 class TestFunctionContextTests {
 
-	@Test
-	void isProvidedFunctionThrowsUnsupportedOperationException() {
-		var context = new TestFunctionContext();
-		assertThrows(UnsupportedOperationException.class, () -> context.isProvidedFunction(""));
-	}
+    @Test
+    void isProvidedFunctionThrowsUnsupportedOperationException() {
+        var context = new TestFunctionContext();
+        assertThrows(UnsupportedOperationException.class, () -> context.isProvidedFunction(""));
+    }
 
-	@Test
-	void providedFunctionsOfLibraryReturnsFunctionsForKnownPip() {
-		var                context   = new TestFunctionContext();
-		Collection<String> functions = context.providedFunctionsOfLibrary("filter");
-		assertThat(functions, hasItems("blacken", "remove", "replace"));
-	}
+    @Test
+    void providedFunctionsOfLibraryReturnsFunctionsForKnownPip() {
+        var                context   = new TestFunctionContext();
+        Collection<String> functions = context.providedFunctionsOfLibrary("filter");
+        assertThat(functions, hasItems("blacken", "remove", "replace"));
+    }
 
-	@Test
-	void providedFunctionsOfLibraryReturnsNoFunctionsForUnknownPip() {
-		var      context   = new TestFunctionContext();
-		Object[] functions = context.providedFunctionsOfLibrary("foo").toArray();
-		assertEquals(0, functions.length);
-	}
+    @Test
+    void providedFunctionsOfLibraryReturnsNoFunctionsForUnknownPip() {
+        var      context   = new TestFunctionContext();
+        Object[] functions = context.providedFunctionsOfLibrary("foo").toArray();
+        assertEquals(0, functions.length);
+    }
 
-	@Test
-	void getAvailableLibrariesReturnsClockPip() {
-		var                context   = new TestFunctionContext();
-		Collection<String> libraries = context.getAvailableLibraries();
-		assertThat(libraries, hasItems("filter", "standard", "time"));
-	}
+    @Test
+    void getAvailableLibrariesReturnsClockPip() {
+        var                context   = new TestFunctionContext();
+        Collection<String> libraries = context.getAvailableLibraries();
+        assertThat(libraries, hasItems("filter", "standard", "time"));
+    }
 
-	@Test
-	void getDocumentationThrowsUnsupportedOperationException() {
-		var context = new TestFunctionContext();
-		assertThrows(UnsupportedOperationException.class, context::getDocumentation);
-	}
+    @Test
+    void getDocumentationThrowsUnsupportedOperationException() {
+        var context = new TestFunctionContext();
+        assertThrows(UnsupportedOperationException.class, context::getDocumentation);
+    }
 
-	@Test
-	void evaluateThrowsUnsupportedOperationException() {
-		var context = new TestFunctionContext();
-		assertThrows(UnsupportedOperationException.class, () -> context.evaluate(null, null, null, null));
-	}
+    @Test
+    void evaluateThrowsUnsupportedOperationException() {
+        var context = new TestFunctionContext();
+        assertThrows(UnsupportedOperationException.class, () -> context.evaluate(null, null, null, null));
+    }
 
-	@Test
-	void getCodeTemplatesReturnsAllKnownFunctions() {
-		var                context   = new TestFunctionContext();
-		Collection<String> functions = context.getCodeTemplates();
-		assertThat(functions, hasItems("filter.blacken", "filter.remove", "filter.replace", "standard.length",
-				"standard.numberToString", "time.after", "time.before", "time.between"));
-	}
+    @Test
+    void getCodeTemplatesReturnsAllKnownFunctions() {
+        var                context   = new TestFunctionContext();
+        Collection<String> functions = context.getCodeTemplates();
+        assertThat(functions, hasItems("filter.blacken", "filter.remove", "filter.replace", "standard.length",
+                "standard.numberToString", "time.after", "time.before", "time.between"));
+    }
 
-	@Test
-	void getAllFullyQualifiedFunctionsReturnsAllKnownFunctions() {
-		var                context   = new TestFunctionContext();
-		Collection<String> functions = context.getAllFullyQualifiedFunctions();
-		assertThat(functions, hasItems("filter.blacken", "filter.remove", "filter.replace", "standard.length",
-				"standard.numberToString", "time.after", "time.before", "time.between"));
-	}
+    @Test
+    void getAllFullyQualifiedFunctionsReturnsAllKnownFunctions() {
+        var                context   = new TestFunctionContext();
+        Collection<String> functions = context.getAllFullyQualifiedFunctions();
+        assertThat(functions, hasItems("filter.blacken", "filter.remove", "filter.replace", "standard.length",
+                "standard.numberToString", "time.after", "time.before", "time.between"));
+    }
 
-	@Test
-	void getDocumentedCodeTemplatesReturnsAllKnownDocumentedCodeTemplates() {
-		var                 context   = new TestFunctionContext();
-		Map<String, String> functions = context.getDocumentedCodeTemplates();
-		assertThat(functions, IsMapContaining.hasEntry("filter.blacken", "documentation"));
-	}
+    @Test
+    void getDocumentedCodeTemplatesReturnsAllKnownDocumentedCodeTemplates() {
+        var                 context   = new TestFunctionContext();
+        Map<String, String> functions = context.getDocumentedCodeTemplates();
+        assertThat(functions, IsMapContaining.hasEntry("filter.blacken", "documentation"));
+    }
 
 }

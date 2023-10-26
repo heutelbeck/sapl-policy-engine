@@ -23,6 +23,6 @@ import io.sapl.prp.index.canonical.PredicateInfo;
 
 public interface PredicateOrderStrategy {
 
-	List<Predicate> createPredicateOrder(final Collection<PredicateInfo> data);
+    List<Predicate> createPredicateOrder(final Collection<PredicateInfo> data);
 
 }

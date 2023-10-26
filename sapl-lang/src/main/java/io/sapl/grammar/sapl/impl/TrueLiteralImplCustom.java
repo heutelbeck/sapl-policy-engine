@@ -27,12 +27,12 @@ import reactor.core.publisher.Flux;
  */
 public class TrueLiteralImplCustom extends TrueLiteralImpl {
 
-	/*
-	 * Returns a constant value of false.
-	 */
-	@Override
-	public Flux<Val> evaluate() {
-		return Flux.just(Val.TRUE.withTrace(TrueLiteral.class));
-	}
+    /*
+     * Returns a constant value of false.
+     */
+    @Override
+    public Flux<Val> evaluate() {
+        return Flux.just(Val.TRUE.withTrace(TrueLiteral.class));
+    }
 
 }

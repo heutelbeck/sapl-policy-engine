@@ -52,307 +52,307 @@ import io.sapl.interpreter.pip.AttributeContext;
  */
 public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
-	private final Collection<String> unwantedKeywords = Set.of("null", "undefined", "true", "false");
+    private final Collection<String> unwantedKeywords = Set.of("null", "undefined", "true", "false");
 
-	private final Collection<String> allowedKeywords = Set.of("as");
+    private final Collection<String> allowedKeywords = Set.of("as");
 
-	private final Collection<String> authzSubProposals = Set.of("subject", "action", "resource", "environment");
+    private final Collection<String> authzSubProposals = Set.of("subject", "action", "resource", "environment");
 
-	private AttributeContext attributeContext;
+    private AttributeContext attributeContext;
 
-	private FunctionContext functionContext;
+    private FunctionContext functionContext;
 
-	private void lazyLoadDependencies() {
-		if (attributeContext == null) {
-			attributeContext = SpringContext.getBean(AttributeContext.class);
-		}
-		if (functionContext == null) {
-			functionContext = SpringContext.getBean(FunctionContext.class);
-		}
-	}
+    private void lazyLoadDependencies() {
+        if (attributeContext == null) {
+            attributeContext = SpringContext.getBean(AttributeContext.class);
+        }
+        if (functionContext == null) {
+            functionContext = SpringContext.getBean(FunctionContext.class);
+        }
+    }
 
-	@Override
-	protected void _createProposals(Keyword keyword, ContentAssistContext context,
-			IIdeContentProposalAcceptor acceptor) {
-		lazyLoadDependencies();
+    @Override
+    protected void _createProposals(Keyword keyword, ContentAssistContext context,
+            IIdeContentProposalAcceptor acceptor) {
+        lazyLoadDependencies();
 
-		String keyValue = keyword.getValue();
+        String keyValue = keyword.getValue();
 
-		// remove all short keywords unless they are explicitly allowed
-		if (!allowedKeywords.contains(keyValue) && (keyValue.length() < 3)) {
-			return;
-		}
+        // remove all short keywords unless they are explicitly allowed
+        if (!allowedKeywords.contains(keyValue) && (keyValue.length() < 3)) {
+            return;
+        }
 
-		super._createProposals(keyword, context, acceptor);
-	}
+        super._createProposals(keyword, context, acceptor);
+    }
 
-	@Override
-	protected void _createProposals(final Assignment assignment, final ContentAssistContext context,
-			final IIdeContentProposalAcceptor acceptor) {
-		lazyLoadDependencies();
+    @Override
+    protected void _createProposals(final Assignment assignment, final ContentAssistContext context,
+            final IIdeContentProposalAcceptor acceptor) {
+        lazyLoadDependencies();
 
-		var parserRule     = GrammarUtil.containingParserRule(assignment);
-		var parserRuleName = parserRule.getName().toLowerCase();
-		var feature        = assignment.getFeature().toLowerCase();
+        var parserRule     = GrammarUtil.containingParserRule(assignment);
+        var parserRuleName = parserRule.getName().toLowerCase();
+        var feature        = assignment.getFeature().toLowerCase();
 
-		switch (parserRuleName) {
-		case "import" -> {
-			handleImportProposals(feature, context, acceptor);
-			return;
-		}
-		case "basic" -> {
-			handleBasicProposals(feature, context, acceptor);
-			return;
-		}
-		case "policy" -> {
-			handlePolicyProposals(feature, context, acceptor);
-			return;
-		}
-		case "step" -> {
-			handleStepProposals(feature, context, acceptor);
-			return;
-		}
-		case "numberliteral", "stringliteral" -> {
-			return;
-		}
-		default -> {
-			// NOOP
-		}
-		}
+        switch (parserRuleName) {
+        case "import" -> {
+            handleImportProposals(feature, context, acceptor);
+            return;
+        }
+        case "basic" -> {
+            handleBasicProposals(feature, context, acceptor);
+            return;
+        }
+        case "policy" -> {
+            handlePolicyProposals(feature, context, acceptor);
+            return;
+        }
+        case "step" -> {
+            handleStepProposals(feature, context, acceptor);
+            return;
+        }
+        case "numberliteral", "stringliteral" -> {
+            return;
+        }
+        default -> {
+            // NOOP
+        }
+        }
 
-		super._createProposals(assignment, context, acceptor);
-	}
+        super._createProposals(assignment, context, acceptor);
+    }
 
-	private void handleStepProposals(String feature, ContentAssistContext context,
-			IIdeContentProposalAcceptor acceptor) {
+    private void handleStepProposals(String feature, ContentAssistContext context,
+            IIdeContentProposalAcceptor acceptor) {
 
-		if ("idsteps".equals(feature))
-			addProposalsForAttributeStepsIfPresent(context, acceptor);
+        if ("idsteps".equals(feature))
+            addProposalsForAttributeStepsIfPresent(context, acceptor);
 
-	}
+    }
 
-	private void handleImportProposals(String feature, ContentAssistContext context,
-			IIdeContentProposalAcceptor acceptor) {
+    private void handleImportProposals(String feature, ContentAssistContext context,
+            IIdeContentProposalAcceptor acceptor) {
 
-		Collection<String> proposals;
-		if ("libsteps".equals(feature)) {
-			proposals = new LinkedList<>(attributeContext.getAllFullyQualifiedFunctions());
-			proposals.addAll(attributeContext.getAvailableLibraries());
-			proposals.addAll(functionContext.getAllFullyQualifiedFunctions());
-			proposals.addAll(functionContext.getAvailableLibraries());
-			addDocumentationToImportProposals(proposals, context, acceptor);
-			addDocumentationToTemplates(proposals, context, acceptor);
-		} else {
-			proposals = Set.of();
-		}
+        Collection<String> proposals;
+        if ("libsteps".equals(feature)) {
+            proposals = new LinkedList<>(attributeContext.getAllFullyQualifiedFunctions());
+            proposals.addAll(attributeContext.getAvailableLibraries());
+            proposals.addAll(functionContext.getAllFullyQualifiedFunctions());
+            proposals.addAll(functionContext.getAvailableLibraries());
+            addDocumentationToImportProposals(proposals, context, acceptor);
+            addDocumentationToTemplates(proposals, context, acceptor);
+        } else {
+            proposals = Set.of();
+        }
 
-		if (proposals.isEmpty())
-			return;
+        if (proposals.isEmpty())
+            return;
 
-		// add proposals to list of proposals
-		addSimpleProposals(proposals, context, acceptor);
-	}
+        // add proposals to list of proposals
+        addSimpleProposals(proposals, context, acceptor);
+    }
 
-	private void handleBasicProposals(String feature, ContentAssistContext context,
-			IIdeContentProposalAcceptor acceptor) {
+    private void handleBasicProposals(String feature, ContentAssistContext context,
+            IIdeContentProposalAcceptor acceptor) {
 
-		EObject model = context.getCurrentModel();
+        EObject model = context.getCurrentModel();
 
-		if ("idsteps".equals(feature)) {
-			addProposalsForBasicAttributesIfPresent(context, acceptor);
-			return;
-		}
+        if ("idsteps".equals(feature)) {
+            addProposalsForBasicAttributesIfPresent(context, acceptor);
+            return;
+        }
 
-		if ("fsteps".equals(feature)) {
-			var templates = functionContext.getCodeTemplates();
-			addDocumentationToTemplates(templates, context, acceptor);
-			addSimpleProposals(templates, context, acceptor);
-			addProposalsWithImportsForTemplates(templates, context, acceptor);
-			return;
-		}
+        if ("fsteps".equals(feature)) {
+            var templates = functionContext.getCodeTemplates();
+            addDocumentationToTemplates(templates, context, acceptor);
+            addSimpleProposals(templates, context, acceptor);
+            addProposalsWithImportsForTemplates(templates, context, acceptor);
+            return;
+        }
 
-		if ("value".equals(feature)) {
-			handleValueProposals(context, acceptor, model);
-		}
-	}
+        if ("value".equals(feature)) {
+            handleValueProposals(context, acceptor, model);
+        }
+    }
 
-	private void handleValueProposals(ContentAssistContext context, IIdeContentProposalAcceptor acceptor,
-			EObject model) {
-		// try to resolve for available variables
+    private void handleValueProposals(ContentAssistContext context, IIdeContentProposalAcceptor acceptor,
+            EObject model) {
+        // try to resolve for available variables
 
-		// try to move up to the policy body
-		if (model.eContainer() instanceof Condition) {
-			model = TreeNavigationHelper.goToFirstParent(model, PolicyBody.class);
-		}
+        // try to move up to the policy body
+        if (model.eContainer() instanceof Condition) {
+            model = TreeNavigationHelper.goToFirstParent(model, PolicyBody.class);
+        }
 
-		// look up all defined variables in the policy
-		if (model instanceof PolicyBody policyBody) {
-			Collection<String> definedValues = new HashSet<>();
+        // look up all defined variables in the policy
+        if (model instanceof PolicyBody policyBody) {
+            Collection<String> definedValues = new HashSet<>();
 
-			int currentOffset = context.getOffset();
+            int currentOffset = context.getOffset();
 
-			// iterate through defined statements which are either conditions or
-			// variables
-			for (var statement : policyBody.getStatements()) {
-				// add any encountered valuable to the list of proposals
-				if (statement instanceof ValueDefinition valueDefinition) {
+            // iterate through defined statements which are either conditions or
+            // variables
+            for (var statement : policyBody.getStatements()) {
+                // add any encountered valuable to the list of proposals
+                if (statement instanceof ValueDefinition valueDefinition) {
 
-					// check if variable definition is happening after cursor
-					INode valueDefinitionNode   = NodeModelUtils.getNode(valueDefinition);
-					int   valueDefinitionOffset = valueDefinitionNode.getOffset();
+                    // check if variable definition is happening after cursor
+                    INode valueDefinitionNode   = NodeModelUtils.getNode(valueDefinition);
+                    int   valueDefinitionOffset = valueDefinitionNode.getOffset();
 
-					if (currentOffset > valueDefinitionOffset) {
-						definedValues.add(valueDefinition.getName());
-					} else {
-						break;
-					}
-				}
-			}
+                    if (currentOffset > valueDefinitionOffset) {
+                        definedValues.add(valueDefinition.getName());
+                    } else {
+                        break;
+                    }
+                }
+            }
 
-			// add variables to list of proposals
-			addSimpleProposals(definedValues, context, acceptor);
-		}
-		// add authorization subscriptions proposals
-		addSimpleProposals(authzSubProposals, context, acceptor);
-	}
+            // add variables to list of proposals
+            addSimpleProposals(definedValues, context, acceptor);
+        }
+        // add authorization subscriptions proposals
+        addSimpleProposals(authzSubProposals, context, acceptor);
+    }
 
-	private void addDocumentationToImportProposals(Collection<String> proposals, ContentAssistContext context,
-			IIdeContentProposalAcceptor acceptor) {
-		var documentedAttributeCodeTemplates = attributeContext.getDocumentedAttributeCodeTemplates();
-		for (var proposal : proposals) {
-			var documentationForAttributeCodeTemplate = documentedAttributeCodeTemplates.get(proposal);
-			if (documentationForAttributeCodeTemplate != null) {
-				var entry = getProposalCreator().createProposal(proposal, context);
-				if (entry != null) {
-					entry.setDocumentation(documentationForAttributeCodeTemplate);
-					entry.setDescription(proposal);
-					acceptor.accept(entry, 0);
-				}
-			}
-		}
-	}
+    private void addDocumentationToImportProposals(Collection<String> proposals, ContentAssistContext context,
+            IIdeContentProposalAcceptor acceptor) {
+        var documentedAttributeCodeTemplates = attributeContext.getDocumentedAttributeCodeTemplates();
+        for (var proposal : proposals) {
+            var documentationForAttributeCodeTemplate = documentedAttributeCodeTemplates.get(proposal);
+            if (documentationForAttributeCodeTemplate != null) {
+                var entry = getProposalCreator().createProposal(proposal, context);
+                if (entry != null) {
+                    entry.setDocumentation(documentationForAttributeCodeTemplate);
+                    entry.setDescription(proposal);
+                    acceptor.accept(entry, 0);
+                }
+            }
+        }
+    }
 
-	private void addDocumentationToTemplates(Collection<String> templates, ContentAssistContext context,
-			IIdeContentProposalAcceptor acceptor) {
-		var documentedCodeTemplates = functionContext.getDocumentedCodeTemplates();
-		for (var template : templates) {
-			var documentation = documentedCodeTemplates.get(template);
-			if (documentation != null) {
-				var entry = getProposalCreator().createProposal(template, context);
-				if (entry != null) {
-					entry.setDocumentation(documentation);
-					entry.setDescription(template);
-					acceptor.accept(entry, 0);
-				}
-			}
-		}
-	}
+    private void addDocumentationToTemplates(Collection<String> templates, ContentAssistContext context,
+            IIdeContentProposalAcceptor acceptor) {
+        var documentedCodeTemplates = functionContext.getDocumentedCodeTemplates();
+        for (var template : templates) {
+            var documentation = documentedCodeTemplates.get(template);
+            if (documentation != null) {
+                var entry = getProposalCreator().createProposal(template, context);
+                if (entry != null) {
+                    entry.setDocumentation(documentation);
+                    entry.setDescription(template);
+                    acceptor.accept(entry, 0);
+                }
+            }
+        }
+    }
 
-	private void addProposalsWithImportsForTemplates(Collection<String> templates, ContentAssistContext context,
-			IIdeContentProposalAcceptor acceptor) {
-		var sapl    = Objects.requireNonNullElse(
-				TreeNavigationHelper.goToFirstParent(context.getCurrentModel(), SAPL.class),
-				SaplFactory.eINSTANCE.createSAPL());
-		var imports = Objects.requireNonNullElse(sapl.getImports(), List.<Import>of());
+    private void addProposalsWithImportsForTemplates(Collection<String> templates, ContentAssistContext context,
+            IIdeContentProposalAcceptor acceptor) {
+        var sapl    = Objects.requireNonNullElse(
+                TreeNavigationHelper.goToFirstParent(context.getCurrentModel(), SAPL.class),
+                SaplFactory.eINSTANCE.createSAPL());
+        var imports = Objects.requireNonNullElse(sapl.getImports(), List.<Import>of());
 
-		for (var anImport : imports) {
-			if (SaplPackage.Literals.WILDCARD_IMPORT.isSuperTypeOf(anImport.eClass())) {
-				var wildCard = (WildcardImport) anImport;
-				addProposalsWithWildcard(wildCard, templates, context, acceptor);
-			} else if (SaplPackage.Literals.LIBRARY_IMPORT.isSuperTypeOf(anImport.eClass())) {
-				var wildCard = (LibraryImport) anImport;
-				addProposalsWithLibraryImport(wildCard, templates, context, acceptor);
-			} else {
-				addProposalsWithImport(anImport, templates, context, acceptor);
-			}
-		}
+        for (var anImport : imports) {
+            if (SaplPackage.Literals.WILDCARD_IMPORT.isSuperTypeOf(anImport.eClass())) {
+                var wildCard = (WildcardImport) anImport;
+                addProposalsWithWildcard(wildCard, templates, context, acceptor);
+            } else if (SaplPackage.Literals.LIBRARY_IMPORT.isSuperTypeOf(anImport.eClass())) {
+                var wildCard = (LibraryImport) anImport;
+                addProposalsWithLibraryImport(wildCard, templates, context, acceptor);
+            } else {
+                addProposalsWithImport(anImport, templates, context, acceptor);
+            }
+        }
 
-	}
+    }
 
-	private void addProposalsWithImport(Import anImport, Collection<String> templates, ContentAssistContext context,
-			IIdeContentProposalAcceptor acceptor) {
-		var steps        = anImport.getLibSteps();
-		var functionName = anImport.getFunctionName();
-		var prefix       = importPrefixFromSteps(steps) + functionName;
-		for (var template : templates)
-			if (template.startsWith(prefix))
-				addSimpleProposal(functionName + template.substring(prefix.length()), context, acceptor);
-	}
+    private void addProposalsWithImport(Import anImport, Collection<String> templates, ContentAssistContext context,
+            IIdeContentProposalAcceptor acceptor) {
+        var steps        = anImport.getLibSteps();
+        var functionName = anImport.getFunctionName();
+        var prefix       = importPrefixFromSteps(steps) + functionName;
+        for (var template : templates)
+            if (template.startsWith(prefix))
+                addSimpleProposal(functionName + template.substring(prefix.length()), context, acceptor);
+    }
 
-	private void addProposalsWithWildcard(WildcardImport wildCard, Collection<String> templates,
-			final ContentAssistContext context, final IIdeContentProposalAcceptor acceptor) {
+    private void addProposalsWithWildcard(WildcardImport wildCard, Collection<String> templates,
+            final ContentAssistContext context, final IIdeContentProposalAcceptor acceptor) {
 
-		var prefix = importPrefixFromSteps(wildCard.getLibSteps());
+        var prefix = importPrefixFromSteps(wildCard.getLibSteps());
 
-		for (var template : templates)
-			if (template.startsWith(prefix))
-				addSimpleProposal(template.substring(prefix.length()), context, acceptor);
-	}
+        for (var template : templates)
+            if (template.startsWith(prefix))
+                addSimpleProposal(template.substring(prefix.length()), context, acceptor);
+    }
 
-	private void addProposalsWithLibraryImport(LibraryImport libImport, Collection<String> templates,
-			final ContentAssistContext context, final IIdeContentProposalAcceptor acceptor) {
+    private void addProposalsWithLibraryImport(LibraryImport libImport, Collection<String> templates,
+            final ContentAssistContext context, final IIdeContentProposalAcceptor acceptor) {
 
-		var shortPrefix = String.join(".", libImport.getLibSteps());
-		var prefix      = shortPrefix + '.';
-		for (var template : templates)
-			if (template.startsWith(prefix))
-				addSimpleProposal(libImport.getLibAlias() + '.' + template.substring(prefix.length()), context,
-						acceptor);
-			else if (template.startsWith(shortPrefix)) // renaming of function
-				addSimpleProposal(libImport.getLibAlias() + template.substring(shortPrefix.length()), context,
-						acceptor);
-	}
+        var shortPrefix = String.join(".", libImport.getLibSteps());
+        var prefix      = shortPrefix + '.';
+        for (var template : templates)
+            if (template.startsWith(prefix))
+                addSimpleProposal(libImport.getLibAlias() + '.' + template.substring(prefix.length()), context,
+                        acceptor);
+            else if (template.startsWith(shortPrefix)) // renaming of function
+                addSimpleProposal(libImport.getLibAlias() + template.substring(shortPrefix.length()), context,
+                        acceptor);
+    }
 
-	private String importPrefixFromSteps(EList<String> steps) {
-		return String.join(".", steps) + '.';
-	}
+    private String importPrefixFromSteps(EList<String> steps) {
+        return String.join(".", steps) + '.';
+    }
 
-	private void addProposalsForAttributeStepsIfPresent(ContentAssistContext context,
-			IIdeContentProposalAcceptor acceptor) {
-		var proposals = attributeContext.getAttributeCodeTemplates();
-		addSimpleProposals(proposals, context, acceptor);
-	}
+    private void addProposalsForAttributeStepsIfPresent(ContentAssistContext context,
+            IIdeContentProposalAcceptor acceptor) {
+        var proposals = attributeContext.getAttributeCodeTemplates();
+        addSimpleProposals(proposals, context, acceptor);
+    }
 
-	private void addProposalsForBasicAttributesIfPresent(ContentAssistContext context,
-			IIdeContentProposalAcceptor acceptor) {
-		var proposals = attributeContext.getEnvironmentAttributeCodeTemplates();
-		addSimpleProposals(proposals, context, acceptor);
-		addProposalsWithImportsForTemplates(proposals, context, acceptor);
-	}
+    private void addProposalsForBasicAttributesIfPresent(ContentAssistContext context,
+            IIdeContentProposalAcceptor acceptor) {
+        var proposals = attributeContext.getEnvironmentAttributeCodeTemplates();
+        addSimpleProposals(proposals, context, acceptor);
+        addProposalsWithImportsForTemplates(proposals, context, acceptor);
+    }
 
-	private void handlePolicyProposals(String feature, ContentAssistContext context,
-			IIdeContentProposalAcceptor acceptor) {
-		if ("saplname".equals(feature)) {
-			var entry = getProposalCreator().createProposal("\"\"", context);
-			entry.setKind(ContentAssistEntry.KIND_TEXT);
-			entry.setDescription("policy name");
-			acceptor.accept(entry, 0);
-		} else if ("body".equals(feature)) {
-			addSimpleProposals(authzSubProposals, context, acceptor);
-		}
-	}
+    private void handlePolicyProposals(String feature, ContentAssistContext context,
+            IIdeContentProposalAcceptor acceptor) {
+        if ("saplname".equals(feature)) {
+            var entry = getProposalCreator().createProposal("\"\"", context);
+            entry.setKind(ContentAssistEntry.KIND_TEXT);
+            entry.setDescription("policy name");
+            acceptor.accept(entry, 0);
+        } else if ("body".equals(feature)) {
+            addSimpleProposals(authzSubProposals, context, acceptor);
+        }
+    }
 
-	@Override
-	protected boolean filterKeyword(final Keyword keyword, final ContentAssistContext context) {
-		String keyValue = keyword.getValue();
+    @Override
+    protected boolean filterKeyword(final Keyword keyword, final ContentAssistContext context) {
+        String keyValue = keyword.getValue();
 
-		// remove unwanted technical terms
-		if (unwantedKeywords.contains(keyValue))
-			return false;
+        // remove unwanted technical terms
+        if (unwantedKeywords.contains(keyValue))
+            return false;
 
-		return super.filterKeyword(keyword, context);
-	}
+        return super.filterKeyword(keyword, context);
+    }
 
-	private void addSimpleProposals(final Collection<String> proposals, final ContentAssistContext context,
-			final IIdeContentProposalAcceptor acceptor) {
-		for (var proposal : proposals)
-			addSimpleProposal(proposal, context, acceptor);
-	}
+    private void addSimpleProposals(final Collection<String> proposals, final ContentAssistContext context,
+            final IIdeContentProposalAcceptor acceptor) {
+        for (var proposal : proposals)
+            addSimpleProposal(proposal, context, acceptor);
+    }
 
-	private void addSimpleProposal(final String proposal, final ContentAssistContext context,
-			final IIdeContentProposalAcceptor acceptor) {
-		var entry = getProposalCreator().createProposal(proposal, context);
-		acceptor.accept(entry, 0);
-	}
+    private void addSimpleProposal(final String proposal, final ContentAssistContext context,
+            final IIdeContentProposalAcceptor acceptor) {
+        var entry = getProposalCreator().createProposal(proposal, context);
+        acceptor.accept(entry, 0);
+    }
 
 }

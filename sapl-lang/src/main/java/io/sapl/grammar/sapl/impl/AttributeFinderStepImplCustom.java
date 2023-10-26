@@ -38,42 +38,42 @@ import reactor.core.publisher.Flux;
  */
 public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 
-	private static final String ATTRIBUTE_FINDER_STEP_NOT_PERMITTED_ERROR = "AttributeFinderStep not permitted in filter selection steps.";
-	private static final String UNDEFINED_VALUE_ERROR                     = "Undefined value handed over as left-hand parameter to policy information point";
-	private static final String EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR        = "Attribute resolution error. Attributes are not allowed in target.";
+    private static final String ATTRIBUTE_FINDER_STEP_NOT_PERMITTED_ERROR = "AttributeFinderStep not permitted in filter selection steps.";
+    private static final String UNDEFINED_VALUE_ERROR                     = "Undefined value handed over as left-hand parameter to policy information point";
+    private static final String EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR        = "Attribute resolution error. Attributes are not allowed in target.";
 
-	@Override
-	public Flux<Val> apply(@NonNull Val parentValue) {
+    @Override
+    public Flux<Val> apply(@NonNull Val parentValue) {
 
-		return Flux.deferContextual(ctxView -> {
-			var attributeName = FunctionUtil.resolveAbsoluteFunctionName(getIdSteps(), getImports(ctxView));
+        return Flux.deferContextual(ctxView -> {
+            var attributeName = FunctionUtil.resolveAbsoluteFunctionName(getIdSteps(), getImports(ctxView));
 
-			if (parentValue.isError()) {
-				return Flux.just(parentValue.withTrace(AttributeFinderStep.class,
-						Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
-			}
-			if (TargetExpressionUtil.isInTargetExpression(this)) {
-				return Flux.just(Val.error(EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR).withTrace(AttributeFinderStep.class,
-						Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
-			}
-			if (parentValue.isUndefined()) {
-				return Flux.just(Val.error(UNDEFINED_VALUE_ERROR).withTrace(AttributeFinderStep.class,
-						Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
-			}
+            if (parentValue.isError()) {
+                return Flux.just(parentValue.withTrace(AttributeFinderStep.class,
+                        Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
+            }
+            if (TargetExpressionUtil.isInTargetExpression(this)) {
+                return Flux.just(Val.error(EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR).withTrace(AttributeFinderStep.class,
+                        Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
+            }
+            if (parentValue.isUndefined()) {
+                return Flux.just(Val.error(UNDEFINED_VALUE_ERROR).withTrace(AttributeFinderStep.class,
+                        Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
+            }
 
-			var attributeContext = getAttributeContext(ctxView);
-			var variables        = getVariables(ctxView);
-			// @formatter:off
+            var attributeContext = getAttributeContext(ctxView);
+            var variables        = getVariables(ctxView);
+            // @formatter:off
 			return attributeContext
 					.evaluateAttribute(attributeName, parentValue, getArguments(), variables)
 					.distinctUntilChanged();
 			// @formatter:on
-		});
-	}
+        });
+    }
 
-	@Override
-	public Flux<Val> applyFilterStatement(@NonNull Val parentValue, int stepId, @NonNull FilterStatement statement) {
-		return Val.errorFlux(ATTRIBUTE_FINDER_STEP_NOT_PERMITTED_ERROR);
-	}
+    @Override
+    public Flux<Val> applyFilterStatement(@NonNull Val parentValue, int stepId, @NonNull FilterStatement statement) {
+        return Val.errorFlux(ATTRIBUTE_FINDER_STEP_NOT_PERMITTED_ERROR);
+    }
 
 }

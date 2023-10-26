@@ -25,21 +25,21 @@ import org.junit.jupiter.api.Test;
 
 class CanonicalIndexDataContainerTests {
 
-	@Test
-	void testGetNumberOfFormulasWithConjunction() {
-		var numberOfFormulasWithConjunction = new int[] { 0, 1, 2, 3 };
+    @Test
+    void testGetNumberOfFormulasWithConjunction() {
+        var numberOfFormulasWithConjunction = new int[] { 0, 1, 2, 3 };
 
-		var container = new CanonicalIndexDataContainer(Collections.emptyMap(), Collections.emptyMap(),
-				Collections.emptyList(), Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap(),
-				new int[0], numberOfFormulasWithConjunction);
+        var container = new CanonicalIndexDataContainer(Collections.emptyMap(), Collections.emptyMap(),
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap(),
+                new int[0], numberOfFormulasWithConjunction);
 
-		assertThat(container.getNumberOfFormulasWithConjunction(0), is(0));
-		assertThat(container.getNumberOfFormulasWithConjunction(3), is(3));
+        assertThat(container.getNumberOfFormulasWithConjunction(0), is(0));
+        assertThat(container.getNumberOfFormulasWithConjunction(3), is(3));
 
-		assertThrows(ArrayIndexOutOfBoundsException.class,
-				() -> container.getNumberOfFormulasWithConjunction(Integer.MIN_VALUE));
-		assertThrows(ArrayIndexOutOfBoundsException.class,
-				() -> container.getNumberOfFormulasWithConjunction(Integer.MAX_VALUE));
-	}
+        assertThrows(ArrayIndexOutOfBoundsException.class,
+                () -> container.getNumberOfFormulasWithConjunction(Integer.MIN_VALUE));
+        assertThrows(ArrayIndexOutOfBoundsException.class,
+                () -> container.getNumberOfFormulasWithConjunction(Integer.MAX_VALUE));
+    }
 
 }

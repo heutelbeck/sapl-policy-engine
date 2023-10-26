@@ -23,13 +23,13 @@ import reactor.core.publisher.Flux;
 
 public class UnaryMinusImplCustom extends UnaryMinusImpl {
 
-	@Override
-	public Flux<Val> evaluate() {
-		return arithmeticOperator(this, this::negate);
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        return arithmeticOperator(this, this::negate);
+    }
 
-	private Val negate(Val value) {
-		return Val.of(value.decimalValue().negate()).withTrace(UnaryMinus.class, value);
-	}
+    private Val negate(Val value) {
+        return Val.of(value.decimalValue().negate()).withTrace(UnaryMinus.class, value);
+    }
 
 }

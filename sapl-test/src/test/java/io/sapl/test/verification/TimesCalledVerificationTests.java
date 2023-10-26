@@ -33,68 +33,68 @@ import io.sapl.test.mocking.MockCall;
 
 class TimesCalledVerificationTests {
 
-	@Test
-	void test_is() {
-		var runInfo = new MockRunInformation("foo");
-		runInfo.saveCall(new MockCall(Val.of("bar")));
-		var matcher      = is(1);
-		var verification = new TimesCalledVerification(matcher);
+    @Test
+    void test_is() {
+        var runInfo = new MockRunInformation("foo");
+        runInfo.saveCall(new MockCall(Val.of("bar")));
+        var matcher      = is(1);
+        var verification = new TimesCalledVerification(matcher);
 
-		assertThatNoException().isThrownBy(() -> verification.verify(runInfo));
+        assertThatNoException().isThrownBy(() -> verification.verify(runInfo));
 
-	}
+    }
 
-	@Test
-	void test_comparesEqualTo() {
-		var runInfo = new MockRunInformation("foo");
-		runInfo.saveCall(new MockCall(Val.of("bar")));
-		var matcher      = comparesEqualTo(1);
-		var verification = new TimesCalledVerification(matcher);
+    @Test
+    void test_comparesEqualTo() {
+        var runInfo = new MockRunInformation("foo");
+        runInfo.saveCall(new MockCall(Val.of("bar")));
+        var matcher      = comparesEqualTo(1);
+        var verification = new TimesCalledVerification(matcher);
 
-		assertThatNoException().isThrownBy(() -> verification.verify(runInfo));
-	}
+        assertThatNoException().isThrownBy(() -> verification.verify(runInfo));
+    }
 
-	@Test
-	void test_comparesEqualTo_multipleCalls() {
-		var runInfo = new MockRunInformation("foo");
-		runInfo.saveCall(new MockCall(Val.of("bar")));
-		runInfo.saveCall(new MockCall(Val.of("xxx")));
-		var matcher      = comparesEqualTo(2);
-		var verification = new TimesCalledVerification(matcher);
+    @Test
+    void test_comparesEqualTo_multipleCalls() {
+        var runInfo = new MockRunInformation("foo");
+        runInfo.saveCall(new MockCall(Val.of("bar")));
+        runInfo.saveCall(new MockCall(Val.of("xxx")));
+        var matcher      = comparesEqualTo(2);
+        var verification = new TimesCalledVerification(matcher);
 
-		assertThatNoException().isThrownBy(() -> verification.verify(runInfo));
-	}
+        assertThatNoException().isThrownBy(() -> verification.verify(runInfo));
+    }
 
-	@Test
-	void test_comparesEqualTo_assertionError() {
-		MockRunInformation runInfo      = new MockRunInformation("foo");
-		var                matcher      = comparesEqualTo(1);
-		var                verification = new TimesCalledVerification(matcher);
+    @Test
+    void test_comparesEqualTo_assertionError() {
+        MockRunInformation runInfo      = new MockRunInformation("foo");
+        var                matcher      = comparesEqualTo(1);
+        var                verification = new TimesCalledVerification(matcher);
 
-		assertThatThrownBy(() -> verification.verify(runInfo)).isInstanceOf(AssertionError.class);
-	}
+        assertThatThrownBy(() -> verification.verify(runInfo)).isInstanceOf(AssertionError.class);
+    }
 
-	@Test
-	void test_greaterThanOrEqualTo() {
-		var runInfo = new MockRunInformation("foo");
-		runInfo.saveCall(new MockCall(Val.of("bar")));
-		var matcher      = greaterThanOrEqualTo(1);
-		var verification = new TimesCalledVerification(matcher);
+    @Test
+    void test_greaterThanOrEqualTo() {
+        var runInfo = new MockRunInformation("foo");
+        runInfo.saveCall(new MockCall(Val.of("bar")));
+        var matcher      = greaterThanOrEqualTo(1);
+        var verification = new TimesCalledVerification(matcher);
 
-		assertThatNoException().isThrownBy(() -> verification.verify(runInfo));
-	}
+        assertThatNoException().isThrownBy(() -> verification.verify(runInfo));
+    }
 
-	@Test
-	void test_greaterThanOrEqualTo_assertionError() {
-		MockRunInformation runInfo      = new MockRunInformation("foo");
-		var                matcher      = greaterThanOrEqualTo(1);
-		var                verification = new TimesCalledVerification(matcher);
+    @Test
+    void test_greaterThanOrEqualTo_assertionError() {
+        MockRunInformation runInfo      = new MockRunInformation("foo");
+        var                matcher      = greaterThanOrEqualTo(1);
+        var                verification = new TimesCalledVerification(matcher);
 
-		assertThatThrownBy(() -> verification.verify(runInfo)).isInstanceOf(AssertionError.class);
-	}
+        assertThatThrownBy(() -> verification.verify(runInfo)).isInstanceOf(AssertionError.class);
+    }
 
-	private static Stream<Arguments> provideTestCases() {
-		// @formatter:off
+    private static Stream<Arguments> provideTestCases() {
+        // @formatter:off
 		return Stream.of(
 				// test_verificationMessageEmpty
 			    Arguments.of("", "Error verifying the expected number"),

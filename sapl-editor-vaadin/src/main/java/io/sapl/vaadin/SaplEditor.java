@@ -35,51 +35,51 @@ import elemental.json.JsonArray;
 @NpmPackage(value = "codemirror", version = "5.52.2")
 public class SaplEditor extends BaseEditor {
 
-	private List<ValidationFinishedListener> validationFinishedListeners = new ArrayList<>();
+    private List<ValidationFinishedListener> validationFinishedListeners = new ArrayList<>();
 
-	/**
-	 * Creates an editor component.
-	 * 
-	 * @param config the editor settings-
-	 */
-	public SaplEditor(SaplEditorConfiguration config) {
-		var element = getElement();
-		applyBaseConfiguration(element, config);
-	}
+    /**
+     * Creates an editor component.
+     * 
+     * @param config the editor settings-
+     */
+    public SaplEditor(SaplEditorConfiguration config) {
+        var element = getElement();
+        applyBaseConfiguration(element, config);
+    }
 
-	@ClientCallable
-	protected void onValidation(JsonArray jsonIssues) {
+    @ClientCallable
+    protected void onValidation(JsonArray jsonIssues) {
 
-		ArrayList<Object> issues = new ArrayList<>();
-		for (int i = 0; jsonIssues != null && i < jsonIssues.length(); i++) {
-			var jsonIssue = jsonIssues.getObject(i);
-			var issue     = new Issue(jsonIssue);
-			issues.add(issue);
-		}
+        ArrayList<Object> issues = new ArrayList<>();
+        for (int i = 0; jsonIssues != null && i < jsonIssues.length(); i++) {
+            var jsonIssue = jsonIssues.getObject(i);
+            var issue     = new Issue(jsonIssue);
+            issues.add(issue);
+        }
 
-		for (ValidationFinishedListener listener : validationFinishedListeners) {
-			var issueArray = issues.toArray(new Issue[0]);
-			listener.onValidationFinished(new ValidationFinishedEvent(issueArray));
-		}
-	}
+        for (ValidationFinishedListener listener : validationFinishedListeners) {
+            var issueArray = issues.toArray(new Issue[0]);
+            listener.onValidationFinished(new ValidationFinishedEvent(issueArray));
+        }
+    }
 
-	/**
-	 * Registers a validation finished listener. The validation changed event will
-	 * be raised after the document was changed and the validation took place. The
-	 * event object contains a list with all validation issues of the document.
-	 * 
-	 * @param listener the event listener
-	 */
-	public void addValidationFinishedListener(ValidationFinishedListener listener) {
-		this.validationFinishedListeners.add(listener);
-	}
+    /**
+     * Registers a validation finished listener. The validation changed event will
+     * be raised after the document was changed and the validation took place. The
+     * event object contains a list with all validation issues of the document.
+     * 
+     * @param listener the event listener
+     */
+    public void addValidationFinishedListener(ValidationFinishedListener listener) {
+        this.validationFinishedListeners.add(listener);
+    }
 
-	/**
-	 * Removes a registered validation finished listener.
-	 * 
-	 * @param listener The registered listener that should be removed.
-	 */
-	public void removeValidationFinishedListener(ValidationFinishedListener listener) {
-		this.validationFinishedListeners.remove(listener);
-	}
+    /**
+     * Removes a registered validation finished listener.
+     * 
+     * @param listener The registered listener that should be removed.
+     */
+    public void removeValidationFinishedListener(ValidationFinishedListener listener) {
+        this.validationFinishedListeners.remove(listener);
+    }
 }

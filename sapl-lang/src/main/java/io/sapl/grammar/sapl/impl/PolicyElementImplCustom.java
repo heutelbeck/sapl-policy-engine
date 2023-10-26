@@ -22,34 +22,34 @@ import reactor.core.publisher.Mono;
 
 public class PolicyElementImplCustom extends PolicyElementImpl {
 
-	private static final String CONDITION_NOT_BOOLEAN_ERROR = "Evaluation error: Target condition must evaluate to a boolean value, but was: '%s'.";
+    private static final String CONDITION_NOT_BOOLEAN_ERROR = "Evaluation error: Target condition must evaluate to a boolean value, but was: '%s'.";
 
-	/**
-	 * Checks whether the policy element (policy set or policy) matches an
-	 * authorization subscription by evaluating the element's target expression. An
-	 * import mapping and custom variables can be provided.
-	 * 
-	 * @return {@code true} if the target expression evaluates to {@code true},
-	 *         {@code false} otherwise. @ in case there is an error while evaluating
-	 *         the target expression
-	 */
-	@Override
-	public Mono<Val> matches() {
+    /**
+     * Checks whether the policy element (policy set or policy) matches an
+     * authorization subscription by evaluating the element's target expression. An
+     * import mapping and custom variables can be provided.
+     * 
+     * @return {@code true} if the target expression evaluates to {@code true},
+     *         {@code false} otherwise. @ in case there is an error while evaluating
+     *         the target expression
+     */
+    @Override
+    public Mono<Val> matches() {
 
-		var targetExpression = getTargetExpression();
-		if (targetExpression == null) {
-			return Mono.just(Val.TRUE);
-		}
+        var targetExpression = getTargetExpression();
+        if (targetExpression == null) {
+            return Mono.just(Val.TRUE);
+        }
 
-		return targetExpression.evaluate().contextWrite(ctx -> ImportsUtil.loadImportsIntoContext(this, ctx))
-				.onErrorResume(error -> Mono.just(Val.error(error))).next().defaultIfEmpty(Val.FALSE)
-				.flatMap(result -> {
-					if (result.isError() || !result.isBoolean()) {
-						return Mono.just(
-								Val.error(CONDITION_NOT_BOOLEAN_ERROR, result).withTrace(PolicyElement.class, result));
-					}
-					return Mono.just(result);
-				});
-	}
+        return targetExpression.evaluate().contextWrite(ctx -> ImportsUtil.loadImportsIntoContext(this, ctx))
+                .onErrorResume(error -> Mono.just(Val.error(error))).next().defaultIfEmpty(Val.FALSE)
+                .flatMap(result -> {
+                    if (result.isError() || !result.isBoolean()) {
+                        return Mono.just(
+                                Val.error(CONDITION_NOT_BOOLEAN_ERROR, result).withTrace(PolicyElement.class, result));
+                    }
+                    return Mono.just(result);
+                });
+    }
 
 }

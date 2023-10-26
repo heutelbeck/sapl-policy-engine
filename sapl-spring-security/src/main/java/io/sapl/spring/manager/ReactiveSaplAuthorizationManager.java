@@ -45,8 +45,8 @@ import reactor.core.publisher.Mono;
  * {@code
  * &#64;Bean
  * public SecurityWebFilterChain configureChain(ServerHttpSecurity http,
- * 		ReactiveAuthorizationManager<AuthorizationContext> pepAuthorizationManager) {
- * 	return http.authorizeExchange().anyExchange().access(pepAuthorizationManager).and().build();
+ *         ReactiveAuthorizationManager<AuthorizationContext> pepAuthorizationManager) {
+ *     return http.authorizeExchange().anyExchange().access(pepAuthorizationManager).and().build();
  * }
  * }
  * </pre>
@@ -56,58 +56,58 @@ import reactor.core.publisher.Mono;
  */
 @RequiredArgsConstructor
 public class ReactiveSaplAuthorizationManager implements ReactiveAuthorizationManager<AuthorizationContext> {
-	private static final Authentication ANONYMOUS = new AnonymousAuthenticationToken("key", "anonymous",
-			AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
+    private static final Authentication ANONYMOUS = new AnonymousAuthenticationToken("key", "anonymous",
+            AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
 
-	private final PolicyDecisionPoint          pdp;
-	private final ConstraintEnforcementService constraintEnforcementService;
-	private final ObjectMapper                 mapper;
+    private final PolicyDecisionPoint          pdp;
+    private final ConstraintEnforcementService constraintEnforcementService;
+    private final ObjectMapper                 mapper;
 
-	/**
-	 * Determines if access is granted for a specific authentication and context
-	 * <p>
-	 * The incoming authentication is mapped to the decision of a Policy Decision
-	 * Point (PDP). <br>
-	 * The PDP returns its decision as a Flux which may change over time, but the
-	 * reactive Spring Security web filter framework only accepts a Mono. <br>
-	 * Consequently, only the first PDP decision is used, meaning the request is
-	 * only authorized according to the status of the authentication and context at
-	 * this moment in time.
-	 * 
-	 * @param authentication the Authentication to check
-	 * @param context        the context to check
-	 * @return a decision
-	 */
-	@Override
-	public Mono<org.springframework.security.authorization.AuthorizationDecision> check(
-			Mono<Authentication> authentication, AuthorizationContext context) {
-		return reactiveConstructAuthorizationSubscription(authentication, context)
-				.flatMap(this::isPermitted).map(org.springframework.security.authorization.AuthorizationDecision::new);
-	}
+    /**
+     * Determines if access is granted for a specific authentication and context
+     * <p>
+     * The incoming authentication is mapped to the decision of a Policy Decision
+     * Point (PDP). <br>
+     * The PDP returns its decision as a Flux which may change over time, but the
+     * reactive Spring Security web filter framework only accepts a Mono. <br>
+     * Consequently, only the first PDP decision is used, meaning the request is
+     * only authorized according to the status of the authentication and context at
+     * this moment in time.
+     * 
+     * @param authentication the Authentication to check
+     * @param context        the context to check
+     * @return a decision
+     */
+    @Override
+    public Mono<org.springframework.security.authorization.AuthorizationDecision> check(
+            Mono<Authentication> authentication, AuthorizationContext context) {
+        return reactiveConstructAuthorizationSubscription(authentication, context).flatMap(this::isPermitted)
+                .map(org.springframework.security.authorization.AuthorizationDecision::new);
+    }
 
-	private Mono<Boolean> isPermitted(AuthorizationSubscription authzSubscription) {
-		return pdp.decide(authzSubscription).next().defaultIfEmpty(AuthorizationDecision.DENY)
-				.map(this::enforceDecision);
-	}
+    private Mono<Boolean> isPermitted(AuthorizationSubscription authzSubscription) {
+        return pdp.decide(authzSubscription).next().defaultIfEmpty(AuthorizationDecision.DENY)
+                .map(this::enforceDecision);
+    }
 
-	private boolean enforceDecision(AuthorizationDecision authzDecision) {
-		if (authzDecision.getResource().isPresent())
-			return false;
+    private boolean enforceDecision(AuthorizationDecision authzDecision) {
+        if (authzDecision.getResource().isPresent())
+            return false;
 
-		try {
-			constraintEnforcementService.accessManagerBundleFor(authzDecision).handleOnDecisionConstraints();
-		} catch (AccessDeniedException e) {
-			return false;
-		}
+        try {
+            constraintEnforcementService.accessManagerBundleFor(authzDecision).handleOnDecisionConstraints();
+        } catch (AccessDeniedException e) {
+            return false;
+        }
 
-		return authzDecision.getDecision() == Decision.PERMIT;
-	}
+        return authzDecision.getDecision() == Decision.PERMIT;
+    }
 
-	private Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(
-			Mono<Authentication> authentication, @NonNull AuthorizationContext context) {
-		var request = context.getExchange().getRequest();
-		return authentication.defaultIfEmpty(ANONYMOUS)
-				.map(authn -> AuthorizationSubscription.of(authn, request, request, mapper));
-	}
+    private Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(
+            Mono<Authentication> authentication, @NonNull AuthorizationContext context) {
+        var request = context.getExchange().getRequest();
+        return authentication.defaultIfEmpty(ANONYMOUS)
+                .map(authn -> AuthorizationSubscription.of(authn, request, request, mapper));
+    }
 
 }

@@ -52,16 +52,16 @@ import lombok.Data;
 
 class ParameterTypeValidatorTests {
 
-	private static final Set<Class<?>> VALIDATION_ANNOTATIONS = Set.of(Number.class, Int.class, Long.class, Bool.class,
-			Text.class, Array.class, JsonObject.class);
+    private static final Set<Class<?>> VALIDATION_ANNOTATIONS = Set.of(Number.class, Int.class, Long.class, Bool.class,
+            Text.class, Array.class, JsonObject.class);
 
-	private static final Set<Class<?>> UNRELATED_ANNOTATIONS = Set.of(Inject.class);
+    private static final Set<Class<?>> UNRELATED_ANNOTATIONS = Set.of(Inject.class);
 
-	private static final Set<Class<?>> TEST_ANNOTATIONS = Sets.union(VALIDATION_ANNOTATIONS, UNRELATED_ANNOTATIONS);
+    private static final Set<Class<?>> TEST_ANNOTATIONS = Sets.union(VALIDATION_ANNOTATIONS, UNRELATED_ANNOTATIONS);
 
-	private static final Set<Set<Class<?>>> ANOTATION_POWERSET = Sets.powerSet(TEST_ANNOTATIONS);
+    private static final Set<Set<Class<?>>> ANOTATION_POWERSET = Sets.powerSet(TEST_ANNOTATIONS);
 
-	// @formatter:off
+    // @formatter:off
 	private static final Map<Val, Class<?>[]> TEST_CASES = Map.of(
 	//      GIVEN VALUE                         WILL BE VALID WITH THESE ANNOTATIONS
 			Val.of(123), 						new Class<?>[] { Number.class, Int.class, Long.class }, 
@@ -76,56 +76,56 @@ class ParameterTypeValidatorTests {
 			Val.of(""), 						new Class<?>[] { Text.class });
 	// @formatter:on
 
-	static Collection<ValidationTestSpecification> data() {
-		var testData = new LinkedList<ValidationTestSpecification>();
-		for (var testCase : TEST_CASES.entrySet()) {
-			var           givenValue                          = testCase.getKey();
-			Set<Class<?>> annotationsImplyingValidityForGiven = Stream.of(testCase.getValue())
-					.collect(Collectors.toCollection(HashSet::new));
-			for (var givenAnnotations : ANOTATION_POWERSET) {
-				var intersection                      = Sets.intersection(annotationsImplyingValidityForGiven,
-						givenAnnotations);
-				var givenWithoutUnrelated             = Sets.difference(givenAnnotations, UNRELATED_ANNOTATIONS);
-				var expectedToBeSuccessfullyValidated = givenWithoutUnrelated.isEmpty() || !intersection.isEmpty();
-				testData.add(new ValidationTestSpecification(givenValue, givenAnnotations,
-						expectedToBeSuccessfullyValidated));
-			}
-		}
-		return testData;
-	}
+    static Collection<ValidationTestSpecification> data() {
+        var testData = new LinkedList<ValidationTestSpecification>();
+        for (var testCase : TEST_CASES.entrySet()) {
+            var           givenValue                          = testCase.getKey();
+            Set<Class<?>> annotationsImplyingValidityForGiven = Stream.of(testCase.getValue())
+                    .collect(Collectors.toCollection(HashSet::new));
+            for (var givenAnnotations : ANOTATION_POWERSET) {
+                var intersection                      = Sets.intersection(annotationsImplyingValidityForGiven,
+                        givenAnnotations);
+                var givenWithoutUnrelated             = Sets.difference(givenAnnotations, UNRELATED_ANNOTATIONS);
+                var expectedToBeSuccessfullyValidated = givenWithoutUnrelated.isEmpty() || !intersection.isEmpty();
+                testData.add(new ValidationTestSpecification(givenValue, givenAnnotations,
+                        expectedToBeSuccessfullyValidated));
+            }
+        }
+        return testData;
+    }
 
-	@ParameterizedTest
-	@MethodSource("data")
-	void theGivenValue_YieldsExpectedValidation(ValidationTestSpecification testSpec) {
-		var parameter = mockParameter(testSpec.getGivenAnnotations());
-		if (testSpec.expectedToBeSuccessfullyValidated)
-			assertDoesNotThrow(() -> validateType(testSpec.getGivenValue(), parameter));
-		else
-			assertThrows(IllegalParameterType.class, () -> validateType(testSpec.getGivenValue(), parameter));
-	}
+    @ParameterizedTest
+    @MethodSource("data")
+    void theGivenValue_YieldsExpectedValidation(ValidationTestSpecification testSpec) {
+        var parameter = mockParameter(testSpec.getGivenAnnotations());
+        if (testSpec.expectedToBeSuccessfullyValidated)
+            assertDoesNotThrow(() -> validateType(testSpec.getGivenValue(), parameter));
+        else
+            assertThrows(IllegalParameterType.class, () -> validateType(testSpec.getGivenValue(), parameter));
+    }
 
-	private static Parameter mockParameter(Set<Class<?>> annotationClasses) {
-		var parameter         = mock(Parameter.class);
-		var mockedAnnotations = new ArrayList<Annotation>(annotationClasses.size());
-		for (var clazz : annotationClasses) {
-			mockedAnnotations.add((Annotation) mock(clazz));
-		}
-		var annotationArray = mockedAnnotations.toArray();
-		when(parameter.getAnnotations())
-				.thenReturn(Arrays.copyOf(annotationArray, annotationArray.length, Annotation[].class));
-		return parameter;
-	}
+    private static Parameter mockParameter(Set<Class<?>> annotationClasses) {
+        var parameter         = mock(Parameter.class);
+        var mockedAnnotations = new ArrayList<Annotation>(annotationClasses.size());
+        for (var clazz : annotationClasses) {
+            mockedAnnotations.add((Annotation) mock(clazz));
+        }
+        var annotationArray = mockedAnnotations.toArray();
+        when(parameter.getAnnotations())
+                .thenReturn(Arrays.copyOf(annotationArray, annotationArray.length, Annotation[].class));
+        return parameter;
+    }
 
-	@Data
-	@AllArgsConstructor
-	static class ValidationTestSpecification {
+    @Data
+    @AllArgsConstructor
+    static class ValidationTestSpecification {
 
-		Val givenValue;
+        Val givenValue;
 
-		Set<Class<?>> givenAnnotations;
+        Set<Class<?>> givenAnnotations;
 
-		boolean expectedToBeSuccessfullyValidated;
+        boolean expectedToBeSuccessfullyValidated;
 
-	}
+    }
 
 }

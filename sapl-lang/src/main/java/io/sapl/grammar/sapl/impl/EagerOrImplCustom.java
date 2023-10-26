@@ -32,14 +32,14 @@ import reactor.core.publisher.Flux;
  */
 public class EagerOrImplCustom extends EagerOrImpl {
 
-	@Override
-	public Flux<Val> evaluate() {
-		return booleanOperator(this, this::or);
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        return booleanOperator(this, this::or);
+    }
 
-	private Val or(Val left, Val right) {
-		return Val.of(left.getBoolean() || right.getBoolean()).withTrace(EagerOr.class,
-				Map.of(Trace.LEFT, left, Trace.RIGHT, right));
-	}
+    private Val or(Val left, Val right) {
+        return Val.of(left.getBoolean() || right.getBoolean()).withTrace(EagerOr.class,
+                Map.of(Trace.LEFT, left, Trace.RIGHT, right));
+    }
 
 }

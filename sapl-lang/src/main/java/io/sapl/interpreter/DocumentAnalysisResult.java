@@ -20,12 +20,12 @@ import lombok.Value;
 @Value
 public class DocumentAnalysisResult {
 
-	boolean valid;
+    boolean valid;
 
-	String name;
+    String name;
 
-	DocumentType type;
+    DocumentType type;
 
-	String parserError;
+    String parserError;
 
 }

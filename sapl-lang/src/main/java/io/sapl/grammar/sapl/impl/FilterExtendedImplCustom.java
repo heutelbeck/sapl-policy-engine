@@ -29,47 +29,47 @@ import reactor.core.publisher.Flux;
 
 public class FilterExtendedImplCustom extends FilterExtendedImpl {
 
-	private static final String FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED_VALUES_ERROR = "Filters cannot be applied to undefined values.";
+    private static final String FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED_VALUES_ERROR = "Filters cannot be applied to undefined values.";
 
-	@Override
-	public Flux<Val> apply(Val unfilteredValue) {
-		if (unfilteredValue.isError()) {
-			return Flux.just(
-					unfilteredValue.withTrace(FilterExtended.class, Map.of(Trace.UNFILTERED_VALUE, unfilteredValue)));
-		}
-		if (unfilteredValue.isUndefined()) {
-			return Flux.just(Val.error(FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED_VALUES_ERROR)
-					.withTrace(FilterExtended.class, Map.of(Trace.UNFILTERED_VALUE, unfilteredValue)));
-		}
-		if (statements == null) {
-			return Flux.just(
-					unfilteredValue.withTrace(FilterExtended.class, Map.of(Trace.UNFILTERED_VALUE, unfilteredValue)));
-		}
-		return Flux.just(unfilteredValue).switchMap(applyFilterStatements());
-	}
+    @Override
+    public Flux<Val> apply(Val unfilteredValue) {
+        if (unfilteredValue.isError()) {
+            return Flux.just(
+                    unfilteredValue.withTrace(FilterExtended.class, Map.of(Trace.UNFILTERED_VALUE, unfilteredValue)));
+        }
+        if (unfilteredValue.isUndefined()) {
+            return Flux.just(Val.error(FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED_VALUES_ERROR)
+                    .withTrace(FilterExtended.class, Map.of(Trace.UNFILTERED_VALUE, unfilteredValue)));
+        }
+        if (statements == null) {
+            return Flux.just(
+                    unfilteredValue.withTrace(FilterExtended.class, Map.of(Trace.UNFILTERED_VALUE, unfilteredValue)));
+        }
+        return Flux.just(unfilteredValue).switchMap(applyFilterStatements());
+    }
 
-	private Function<? super Val, Publisher<? extends Val>> applyFilterStatements() {
-		return applyFilterStatements(0);
-	}
+    private Function<? super Val, Publisher<? extends Val>> applyFilterStatements() {
+        return applyFilterStatements(0);
+    }
 
-	private Function<? super Val, Publisher<? extends Val>> applyFilterStatements(int statementId) {
-		if (statementId == statements.size()) {
-			return Flux::just;
-		}
+    private Function<? super Val, Publisher<? extends Val>> applyFilterStatements(int statementId) {
+        if (statementId == statements.size()) {
+            return Flux::just;
+        }
 
-		return value -> applyFilterStatement(value, statements.get(statementId))
-				.switchMap(applyFilterStatements(statementId + 1));
-	}
+        return value -> applyFilterStatement(value, statements.get(statementId))
+                .switchMap(applyFilterStatements(statementId + 1));
+    }
 
-	private Flux<Val> applyFilterStatement(Val unfilteredValue, FilterStatement statement) {
-		if (statement.getTarget().getSteps().isEmpty()) {
-			// the expression has no steps. apply filter to unfiltered node directly
-			return FilterAlgorithmUtil.applyFilterFunction(unfilteredValue, statement.getArguments(),
-					statement.getFsteps(), statement.isEach());
-		} else {
-			// descent with steps
-			return statement.getTarget().getSteps().get(0).applyFilterStatement(unfilteredValue, 0, statement);
-		}
-	}
+    private Flux<Val> applyFilterStatement(Val unfilteredValue, FilterStatement statement) {
+        if (statement.getTarget().getSteps().isEmpty()) {
+            // the expression has no steps. apply filter to unfiltered node directly
+            return FilterAlgorithmUtil.applyFilterFunction(unfilteredValue, statement.getArguments(),
+                    statement.getFsteps(), statement.isEach());
+        } else {
+            // descent with steps
+            return statement.getTarget().getSteps().get(0).applyFilterStatement(unfilteredValue, 0, statement);
+        }
+    }
 
 }

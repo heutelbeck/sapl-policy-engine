@@ -53,39 +53,39 @@ import reactor.core.publisher.Flux;
  */
 public class FirstApplicableCombiningAlgorithmImplCustom extends FirstApplicableCombiningAlgorithmImpl {
 
-	@Override
-	public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
-		return combine(0, policies).apply(CombinedDecision.of(AuthorizationDecision.NOT_APPLICABLE, getName()));
-	}
+    @Override
+    public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
+        return combine(0, policies).apply(CombinedDecision.of(AuthorizationDecision.NOT_APPLICABLE, getName()));
+    }
 
-	@Override
-	public String getName() {
-		return "FIRST_APPLICABLE";
-	}
+    @Override
+    public String getName() {
+        return "FIRST_APPLICABLE";
+    }
 
-	private Function<CombinedDecision, Flux<CombinedDecision>> combine(int policyId, List<PolicyElement> policies) {
-		if (policyId == policies.size())
-			return Flux::just;
+    private Function<CombinedDecision, Flux<CombinedDecision>> combine(int policyId, List<PolicyElement> policies) {
+        if (policyId == policies.size())
+            return Flux::just;
 
-		return combinedDecision -> evaluatePolicy(policies.get(policyId)).switchMap(documentEvaluationResult -> {
-			var authzDecision = documentEvaluationResult.getAuthorizationDecision();
-			if (authzDecision.getDecision() != Decision.NOT_APPLICABLE) // Found first applicable
-				return Flux.just(
-						combinedDecision.withDecisionAndEvaluationResult(authzDecision, documentEvaluationResult));
+        return combinedDecision -> evaluatePolicy(policies.get(policyId)).switchMap(documentEvaluationResult -> {
+            var authzDecision = documentEvaluationResult.getAuthorizationDecision();
+            if (authzDecision.getDecision() != Decision.NOT_APPLICABLE) // Found first applicable
+                return Flux.just(
+                        combinedDecision.withDecisionAndEvaluationResult(authzDecision, documentEvaluationResult));
 
-			return combine(policyId + 1, policies)
-					.apply(combinedDecision.withEvaluationResult(documentEvaluationResult));
-		});
-	}
+            return combine(policyId + 1, policies)
+                    .apply(combinedDecision.withEvaluationResult(documentEvaluationResult));
+        });
+    }
 
-	private Flux<DocumentEvaluationResult> evaluatePolicy(PolicyElement policyElement) {
-		return policyElement.matches().flux().flatMap(match -> {
-			if (!match.isBoolean() || !match.getBoolean()) {
-				return Flux.just(policyElement.targetResult(match));
-			}
+    private Flux<DocumentEvaluationResult> evaluatePolicy(PolicyElement policyElement) {
+        return policyElement.matches().flux().flatMap(match -> {
+            if (!match.isBoolean() || !match.getBoolean()) {
+                return Flux.just(policyElement.targetResult(match));
+            }
 
-			return policyElement.evaluate();
-		});
-	}
+            return policyElement.evaluate();
+        });
+    }
 
 }

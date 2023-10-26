@@ -46,78 +46,78 @@ import jakarta.servlet.http.HttpServletRequest;
 
 class ReactiveSaplMethodSecurityConfigurationTests {
 
-	@Test
-	void whenRan_thenBeansArePresent() {
-		new ApplicationContextRunner().withUserConfiguration(SecurityConfiguration.class)
-				.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
-				.withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
-				.withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
-					assertThat(context).hasNotFailed();
-					assertThat(context).hasSingleBean(SaplAttributeRegistry.class);
-					assertThat(context).hasSingleBean(ReactiveSaplMethodInterceptor.class);
-					assertThat(context).hasSingleBean(WebfluxAuthorizationSubscriptionBuilderService.class);
-					assertThat(context).hasSingleBean(MethodSecurityExpressionHandler.class);
-				});
-	}
+    @Test
+    void whenRan_thenBeansArePresent() {
+        new ApplicationContextRunner().withUserConfiguration(SecurityConfiguration.class)
+                .withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
+                .withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
+                .withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(SaplAttributeRegistry.class);
+                    assertThat(context).hasSingleBean(ReactiveSaplMethodInterceptor.class);
+                    assertThat(context).hasSingleBean(WebfluxAuthorizationSubscriptionBuilderService.class);
+                    assertThat(context).hasSingleBean(MethodSecurityExpressionHandler.class);
+                });
+    }
 
-	@Test
-	void whenRanWithAuthorityDefaults_thenBeansArePresent() {
-		new ApplicationContextRunner().withUserConfiguration(SecurityConfiguration.class)
-				.withBean(GrantedAuthorityDefaults.class, () -> new GrantedAuthorityDefaults("SOMETHING_"))
-				.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
-				.withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
-				.withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
-					assertThat(context).hasNotFailed();
-					assertThat(context).hasSingleBean(SaplAttributeRegistry.class);
-					assertThat(context).hasSingleBean(ReactiveSaplMethodInterceptor.class);
-					assertThat(context).hasSingleBean(WebfluxAuthorizationSubscriptionBuilderService.class);
-					assertThat(context).hasSingleBean(MethodSecurityExpressionHandler.class);
-				});
-	}
+    @Test
+    void whenRanWithAuthorityDefaults_thenBeansArePresent() {
+        new ApplicationContextRunner().withUserConfiguration(SecurityConfiguration.class)
+                .withBean(GrantedAuthorityDefaults.class, () -> new GrantedAuthorityDefaults("SOMETHING_"))
+                .withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
+                .withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
+                .withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(SaplAttributeRegistry.class);
+                    assertThat(context).hasSingleBean(ReactiveSaplMethodInterceptor.class);
+                    assertThat(context).hasSingleBean(WebfluxAuthorizationSubscriptionBuilderService.class);
+                    assertThat(context).hasSingleBean(MethodSecurityExpressionHandler.class);
+                });
+    }
 
-	@Test
-	void whenRan_thenAuthorizationSubscriptionBuilderServiceCanLazyLoadMapper() {
-		new ApplicationContextRunner().withUserConfiguration(SecurityConfiguration.class)
-				.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
-				.withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
-				.withBean(ObjectMapper.class, () -> {
-					var  mapper = new ObjectMapper();
-					SimpleModule module = new SimpleModule();
-					module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
-					module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
-					module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
-					mapper.registerModule(module);
-					return mapper;
-				}).run(context -> {
-					var invocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
-							"publicVoid", null, null);
-					var attribute = attribute(null, null, null, null, Object.class);
-					var actual = context.getBean(WebfluxAuthorizationSubscriptionBuilderService.class)
-							.reactiveConstructAuthorizationSubscription(invocation, attribute);
-					assertNotNull(actual);
-				});
-	}
+    @Test
+    void whenRan_thenAuthorizationSubscriptionBuilderServiceCanLazyLoadMapper() {
+        new ApplicationContextRunner().withUserConfiguration(SecurityConfiguration.class)
+                .withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
+                .withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
+                .withBean(ObjectMapper.class, () -> {
+                    var  mapper = new ObjectMapper();
+                    SimpleModule module = new SimpleModule();
+                    module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
+                    module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
+                    module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
+                    mapper.registerModule(module);
+                    return mapper;
+                }).run(context -> {
+                    var invocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "publicVoid", null,
+                            null);
+                    var attribute = attribute(null, null, null, null, Object.class);
+                    var actual = context.getBean(WebfluxAuthorizationSubscriptionBuilderService.class)
+                            .reactiveConstructAuthorizationSubscription(invocation, attribute);
+                    assertNotNull(actual);
+                });
+    }
 
-	private SaplAttribute attribute(String subject, String action, String resource, String environment, Class<?> type) {
-		return new SaplAttribute(PreEnforce.class, parameterToExpression(subject), parameterToExpression(action),
-				parameterToExpression(resource), parameterToExpression(environment), type);
-	}
+    private SaplAttribute attribute(String subject, String action, String resource, String environment, Class<?> type) {
+        return new SaplAttribute(PreEnforce.class, parameterToExpression(subject), parameterToExpression(action),
+                parameterToExpression(resource), parameterToExpression(environment), type);
+    }
 
-	private Expression parameterToExpression(String parameter) {
-		var parser = new SpelExpressionParser();
-		return parameter == null || parameter.isEmpty() ? null : parser.parseExpression(parameter);
-	}
+    private Expression parameterToExpression(String parameter) {
+        var parser = new SpelExpressionParser();
+        return parameter == null || parameter.isEmpty() ? null : parser.parseExpression(parameter);
+    }
 
-	@EnableReactiveSaplMethodSecurity
-	public static class SecurityConfiguration {
+    @EnableReactiveSaplMethodSecurity
+    public static class SecurityConfiguration {
 
-	}
+    }
 
-	public static class TestClass {
+    public static class TestClass {
 
-		public void publicVoid() {
-		}
+        public void publicVoid() {
+        }
 
-	}
+    }
 
 }

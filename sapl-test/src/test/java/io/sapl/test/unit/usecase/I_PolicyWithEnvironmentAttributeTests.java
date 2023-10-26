@@ -25,17 +25,17 @@ import io.sapl.test.unit.SaplUnitTestFixture;
 
 class I_PolicyWithEnvironmentAttributeTests {
 
-	private SaplTestFixture fixture;
+    private SaplTestFixture fixture;
 
-	@BeforeEach
-	void setUp() {
-		fixture = new SaplUnitTestFixture("policyWithEnvironmentAttribute.sapl");
-	}
+    @BeforeEach
+    void setUp() {
+        fixture = new SaplUnitTestFixture("policyWithEnvironmentAttribute.sapl");
+    }
 
-	@Test
-	void test() {
-		fixture.constructTestCaseWithMocks().givenAttribute("org.emergencyLevel", Val.of(0))
-				.when(AuthorizationSubscription.of("WILLI", "write", "something")).expectPermit().verify();
-	}
+    @Test
+    void test() {
+        fixture.constructTestCaseWithMocks().givenAttribute("org.emergencyLevel", Val.of(0))
+                .when(AuthorizationSubscription.of("WILLI", "write", "something")).expectPermit().verify();
+    }
 
 }

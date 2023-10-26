@@ -33,40 +33,40 @@ import io.sapl.test.utils.ClasspathHelper;
 
 class SaplUnitTestFixtureTests {
 
-	@Test
-	void test_invalidSaplDocumentName1() {
-		var fixture = new SaplUnitTestFixture("");
-		assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase);
-	}
+    @Test
+    void test_invalidSaplDocumentName1() {
+        var fixture = new SaplUnitTestFixture("");
+        assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase);
+    }
 
-	@Test
-	void test_invalidSaplDocumentName2() {
-		var fixture = new SaplUnitTestFixture("");
-		assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks);
-	}
+    @Test
+    void test_invalidSaplDocumentName2() {
+        var fixture = new SaplUnitTestFixture("");
+        assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks);
+    }
 
-	@Test
-	void test_invalidSaplDocumentName3() {
-		var fixture = new SaplUnitTestFixture(null);
-		assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase);
-	}
+    @Test
+    void test_invalidSaplDocumentName3() {
+        var fixture = new SaplUnitTestFixture(null);
+        assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase);
+    }
 
-	@Test
-	void test_invalidSaplDocumentName4() {
-		var fixture = new SaplUnitTestFixture(null);
-		assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks);
-	}
+    @Test
+    void test_invalidSaplDocumentName4() {
+        var fixture = new SaplUnitTestFixture(null);
+        assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks);
+    }
 
-	@Test
-	void test_fileErrorThrows() {
-		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
-			try (MockedStatic<ClasspathHelper> cpHelper = Mockito.mockStatic(ClasspathHelper.class)) {
-				cpHelper.when(() -> ClasspathHelper.findPathOnClasspath(any(), any())).thenReturn(mock(Path.class));
-				mockedFiles.when(() -> Files.readString(any())).thenThrow(new IOException());
-				SaplTestFixture fixture = new SaplUnitTestFixture("foo.sapl");
-				assertThatExceptionOfType(RuntimeException.class).isThrownBy(fixture::constructTestCaseWithMocks);
-			}
-		}
-	}
+    @Test
+    void test_fileErrorThrows() {
+        try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
+            try (MockedStatic<ClasspathHelper> cpHelper = Mockito.mockStatic(ClasspathHelper.class)) {
+                cpHelper.when(() -> ClasspathHelper.findPathOnClasspath(any(), any())).thenReturn(mock(Path.class));
+                mockedFiles.when(() -> Files.readString(any())).thenThrow(new IOException());
+                SaplTestFixture fixture = new SaplUnitTestFixture("foo.sapl");
+                assertThatExceptionOfType(RuntimeException.class).isThrownBy(fixture::constructTestCaseWithMocks);
+            }
+        }
+    }
 
 }

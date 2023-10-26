@@ -32,48 +32,48 @@ import io.sapl.api.pdp.AuthorizationDecision;
  */
 public class HasResource extends TypeSafeDiagnosingMatcher<AuthorizationDecision> {
 
-	private final Optional<Matcher<? super JsonNode>> jsonMatcher;
+    private final Optional<Matcher<? super JsonNode>> jsonMatcher;
 
-	/**
-	 * Checks if the resource matches a JsonNode Matcher.
-	 * 
-	 * @param jsonMatcher matcher for the resource.
-	 */
-	public HasResource(Matcher<? super JsonNode> jsonMatcher) {
-		super(AuthorizationDecision.class);
-		this.jsonMatcher = Optional.of(Objects.requireNonNull(jsonMatcher));
-	}
+    /**
+     * Checks if the resource matches a JsonNode Matcher.
+     * 
+     * @param jsonMatcher matcher for the resource.
+     */
+    public HasResource(Matcher<? super JsonNode> jsonMatcher) {
+        super(AuthorizationDecision.class);
+        this.jsonMatcher = Optional.of(Objects.requireNonNull(jsonMatcher));
+    }
 
-	/**
-	 * Checks for the presence of a resource.
-	 */
-	public HasResource() {
-		super(AuthorizationDecision.class);
-		this.jsonMatcher = Optional.empty();
-	}
+    /**
+     * Checks for the presence of a resource.
+     */
+    public HasResource() {
+        super(AuthorizationDecision.class);
+        this.jsonMatcher = Optional.empty();
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("a resource with ");
-		jsonMatcher.ifPresentOrElse(description::appendDescriptionOf, () -> description.appendText("any JsonNode"));
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("a resource with ");
+        jsonMatcher.ifPresentOrElse(description::appendDescriptionOf, () -> description.appendText("any JsonNode"));
+    }
 
-	@Override
-	protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
-		var resource = decision.getResource();
-		if (resource.isEmpty()) {
-			mismatchDescription.appendText("decision didn't contain a resource");
-			return false;
-		}
+    @Override
+    protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
+        var resource = decision.getResource();
+        if (resource.isEmpty()) {
+            mismatchDescription.appendText("decision didn't contain a resource");
+            return false;
+        }
 
-		var json = resource.get();
-		if (jsonMatcher.isEmpty() || jsonMatcher.get().matches(json)) {
-			return true;
-		} else {
-			mismatchDescription.appendText("was resource that ");
-			jsonMatcher.get().describeMismatch(json, mismatchDescription);
-			return false;
-		}
-	}
+        var json = resource.get();
+        if (jsonMatcher.isEmpty() || jsonMatcher.get().matches(json)) {
+            return true;
+        } else {
+            mismatchDescription.appendText("was resource that ");
+            jsonMatcher.get().describeMismatch(json, mismatchDescription);
+            return false;
+        }
+    }
 
 }

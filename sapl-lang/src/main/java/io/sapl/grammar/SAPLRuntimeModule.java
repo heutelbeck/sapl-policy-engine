@@ -25,8 +25,8 @@ import io.sapl.grammar.validation.SAPLSyntaxErrorMessageProvider;
  */
 public class SAPLRuntimeModule extends AbstractSAPLRuntimeModule {
 
-	public Class<? extends ISyntaxErrorMessageProvider> bindSyntaxErrorMessageProvider() {
-		return SAPLSyntaxErrorMessageProvider.class;
-	}
+    public Class<? extends ISyntaxErrorMessageProvider> bindSyntaxErrorMessageProvider() {
+        return SAPLSyntaxErrorMessageProvider.class;
+    }
 
 }

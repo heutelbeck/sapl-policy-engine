@@ -29,102 +29,102 @@ import org.springframework.test.context.ContextConfiguration;
 @ContextConfiguration(classes = SAPLIdeSpringTestConfiguration.class)
 class ImportCompletionTests extends CompletionTests {
 
-	@Test
-	void testCompletion_AtTheBeginningImportStatement_ReturnsLibraries() {
-		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "import ";
-			it.setModel(policy);
-			it.setColumn(policy.length());
-			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("time", "filter", "standard", "time");
-				assertProposalsSimple(expected, completionList);
-			});
-		});
-	}
+    @Test
+    void testCompletion_AtTheBeginningImportStatement_ReturnsLibraries() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "import ";
+            it.setModel(policy);
+            it.setColumn(policy.length());
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("time", "filter", "standard", "time");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
 
-	@Test
-	void testCompletion_WithPartialLibrary_ReturnsLibrary() {
-		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "import ti";
-			it.setModel(policy);
-			it.setColumn(policy.length());
-			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("time");
-				assertProposalsSimple(expected, completionList);
-			});
-		});
-	}
+    @Test
+    void testCompletion_WithPartialLibrary_ReturnsLibrary() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "import ti";
+            it.setModel(policy);
+            it.setColumn(policy.length());
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("time");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
 
-	@Test
-	void testCompletion_WithFullLibrary_ReturnsFunction() {
-		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "import time.";
-			it.setModel(policy);
-			it.setColumn(policy.length());
-			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("clock", "clock.millis", "clock.now", "clock.ticker", "filter", "filter.blacken",
-						"filter.remove", "filter.replace", "standard", "standard.length", "standard.numberToString",
-						"time", "time.after", "time.before", "time.between");
-				assertProposalsSimple(expected, completionList);
-			});
-		});
-	}
+    @Test
+    void testCompletion_WithFullLibrary_ReturnsFunction() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "import time.";
+            it.setModel(policy);
+            it.setColumn(policy.length());
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("clock", "clock.millis", "clock.now", "clock.ticker", "filter", "filter.blacken",
+                        "filter.remove", "filter.replace", "standard", "standard.length", "standard.numberToString",
+                        "time", "time.after", "time.before", "time.between");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
 
-	@Test
-	void testCompletion_WithFullLibraryAndPartialFunction_ReturnsFunction() {
-		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "import time.n";
-			it.setModel(policy);
-			it.setColumn(policy.length());
-			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("clock.now", "standard.numberToString");
-				assertProposalsSimple(expected, completionList);
-			});
-		});
-	}
+    @Test
+    void testCompletion_WithFullLibraryAndPartialFunction_ReturnsFunction() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "import time.n";
+            it.setModel(policy);
+            it.setColumn(policy.length());
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("clock.now", "standard.numberToString");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
 
-	@Test
-	void testCompletion_WithFullLibraryAndPartialFunctionAndNewLinesInBetween_ReturnsFunction() {
-		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "import\ntime.\nn";
-			it.setModel(policy);
-			it.setLine(2);
-			it.setColumn(1);
-			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("clock.now", "standard.numberToString");
-				assertProposalsSimple(expected, completionList);
-			});
-		});
-	}
+    @Test
+    void testCompletion_WithFullLibraryAndPartialFunctionAndNewLinesInBetween_ReturnsFunction() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "import\ntime.\nn";
+            it.setModel(policy);
+            it.setLine(2);
+            it.setColumn(1);
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("clock.now", "standard.numberToString");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
 
-	@Test
-	void testCompletion_WithPrecedingTextAndFullLibraryAndPartialFunction_ReturnsFunction() {
-		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "import time.yesterday\nimport time.n";
-			String cursor = "import time.n";
-			it.setModel(policy);
-			it.setLine(1);
-			it.setColumn(cursor.length());
-			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("clock.now", "standard.numberToString");
-				assertProposalsSimple(expected, completionList);
-			});
-		});
-	}
+    @Test
+    void testCompletion_WithPrecedingTextAndFullLibraryAndPartialFunction_ReturnsFunction() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "import time.yesterday\nimport time.n";
+            String cursor = "import time.n";
+            it.setModel(policy);
+            it.setLine(1);
+            it.setColumn(cursor.length());
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("clock.now", "standard.numberToString");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
 
-	@Test
-	void testCompletion_WithPrecedingAndSucceedingAndFullLibraryAndPartialFunction_ReturnsFunction() {
-		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "import time.yesterday\nimport time.n policy \"test policy\" deny";
-			String cursor = "import time.n";
-			it.setModel(policy);
-			it.setLine(1);
-			it.setColumn(cursor.length());
-			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("clock.now", "standard.numberToString");
-				assertProposalsSimple(expected, completionList);
-			});
-		});
-	}
+    @Test
+    void testCompletion_WithPrecedingAndSucceedingAndFullLibraryAndPartialFunction_ReturnsFunction() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "import time.yesterday\nimport time.n policy \"test policy\" deny";
+            String cursor = "import time.n";
+            it.setModel(policy);
+            it.setLine(1);
+            it.setColumn(cursor.length());
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("clock.now", "standard.numberToString");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
 
 }

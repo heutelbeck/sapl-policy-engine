@@ -49,78 +49,71 @@ import reactor.test.StepVerifier;
 
 class MqttPolicyInformationPointIT {
 
-	private static final String          MESSAGE        = "message";
-	private static final JsonNodeFactory JSON           = JsonNodeFactory.instance;
-	private static final String          SUBJECT        = "subjectName";
-	private static final String          TOPIC          = "single_topic";
-	private static final ObjectNode      RESOURCE       = buildJsonResource();
-	private static final Mqtt5Publish    publishMessage = buildMqttPublishMessage();
+    private static final String          MESSAGE        = "message";
+    private static final JsonNodeFactory JSON           = JsonNodeFactory.instance;
+    private static final String          SUBJECT        = "subjectName";
+    private static final String          TOPIC          = "single_topic";
+    private static final ObjectNode      RESOURCE       = buildJsonResource();
+    private static final Mqtt5Publish    publishMessage = buildMqttPublishMessage();
 
-	@TempDir
-	Path configDir;
+    @TempDir
+    Path configDir;
 
-	@TempDir
-	Path dataDir;
+    @TempDir
+    Path dataDir;
 
-	@TempDir
-	Path extensionsDir;
+    @TempDir
+    Path extensionsDir;
 
-	private EmbeddedHiveMQ              mqttBroker;
-	private Mqtt5BlockingClient         mqttClient;
-	private EmbeddedPolicyDecisionPoint pdp;
+    private EmbeddedHiveMQ              mqttBroker;
+    private Mqtt5BlockingClient         mqttClient;
+    private EmbeddedPolicyDecisionPoint pdp;
 
-	@BeforeEach
-	void beforeEach() throws InitializationException, InterruptedException, ExecutionException {
-		this.mqttBroker = buildAndStartBroker(configDir, dataDir, extensionsDir);
-		mqttClient      = startClient();
-		this.pdp        = buildPdp();
-	}
+    @BeforeEach
+    void beforeEach() throws InitializationException, InterruptedException, ExecutionException {
+        this.mqttBroker = buildAndStartBroker(configDir, dataDir, extensionsDir);
+        mqttClient      = startClient();
+        this.pdp        = buildPdp();
+    }
 
-	@AfterEach
-	void tearDown() throws Exception {
-		pdp.destroy();
-		mqttClient.disconnect();
-		stopBroker(mqttBroker);
-	}
+    @AfterEach
+    void tearDown() throws Exception {
+        pdp.destroy();
+        mqttClient.disconnect();
+        stopBroker(mqttBroker);
+    }
 
-	@Timeout(15)
-	@ParameterizedTest
-	@ValueSource(strings = { "actionWithoutParams", "actionWithQos", "actionNameWithQosAndConfig" })
-	void when_messagesIsCalled_then_getPublishedMessages(String action) {
-		// GIVEN
-		AuthorizationSubscription authzSubscription = AuthorizationSubscription.of(SUBJECT,
-				action, RESOURCE);
+    @Timeout(15)
+    @ParameterizedTest
+    @ValueSource(strings = { "actionWithoutParams", "actionWithQos", "actionNameWithQosAndConfig" })
+    void when_messagesIsCalled_then_getPublishedMessages(String action) {
+        // GIVEN
+        AuthorizationSubscription authzSubscription = AuthorizationSubscription.of(SUBJECT, action, RESOURCE);
 
-		// WHEN
-		var pdpDecisionFlux = pdp.decide(authzSubscription);
+        // WHEN
+        var pdpDecisionFlux = pdp.decide(authzSubscription);
 
-		// THEN
-		StepVerifier.create(pdpDecisionFlux)
-				.thenAwait(Duration.ofMillis(1000))
-				.then(() -> mqttClient.publish(publishMessage))
-				.expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT)
-				.thenCancel()
-				.verify();
-	}
+        // THEN
+        StepVerifier.create(pdpDecisionFlux).thenAwait(Duration.ofMillis(1000))
+                .then(() -> mqttClient.publish(publishMessage))
+                .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
+                .verify();
+    }
 
-	private static EmbeddedPolicyDecisionPoint buildPdp() throws InitializationException {
-		return PolicyDecisionPointFactory
-				.filesystemPolicyDecisionPoint("src/test/resources/pipPolicies",
-						List.of(new MqttPolicyInformationPoint()), List.of());
-	}
+    private static EmbeddedPolicyDecisionPoint buildPdp() throws InitializationException {
+        return PolicyDecisionPointFactory.filesystemPolicyDecisionPoint("src/test/resources/pipPolicies",
+                List.of(new MqttPolicyInformationPoint()), List.of());
+    }
 
-	private static Mqtt5Publish buildMqttPublishMessage() {
-		return Mqtt5Publish.builder()
-				.topic(TOPIC)
-				.qos(MqttQos.AT_MOST_ONCE)
-				.payloadFormatIndicator(Mqtt5PayloadFormatIndicator.UTF_8)
-				.payload(MESSAGE.getBytes(StandardCharsets.UTF_8))
-				.build();
-	}
+    private static Mqtt5Publish buildMqttPublishMessage() {
+        return Mqtt5Publish.builder().topic(TOPIC).qos(MqttQos.AT_MOST_ONCE)
+                .payloadFormatIndicator(Mqtt5PayloadFormatIndicator.UTF_8)
+                .payload(MESSAGE.getBytes(StandardCharsets.UTF_8)).build();
+    }
 
-	private static ObjectNode buildJsonResource() {
-		ObjectNode resource = JSON.objectNode();
-		resource.put("topic", TOPIC);
-		return resource;
-	}
+    private static ObjectNode buildJsonResource() {
+        ObjectNode resource = JSON.objectNode();
+        resource.put("topic", TOPIC);
+        return resource;
+    }
 }

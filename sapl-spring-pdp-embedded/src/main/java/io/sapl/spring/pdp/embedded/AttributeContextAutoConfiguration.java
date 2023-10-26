@@ -36,22 +36,22 @@ import lombok.extern.slf4j.Slf4j;
 @AutoConfigureAfter(PolicyInformationPointsAutoConfiguration.class)
 public class AttributeContextAutoConfiguration {
 
-	private final Collection<Object> policyInformationPoints;
+    private final Collection<Object> policyInformationPoints;
 
-	public AttributeContextAutoConfiguration(ConfigurableApplicationContext applicationContext) {
-		policyInformationPoints = applicationContext.getBeansWithAnnotation(PolicyInformationPoint.class).values();
-	}
+    public AttributeContextAutoConfiguration(ConfigurableApplicationContext applicationContext) {
+        policyInformationPoints = applicationContext.getBeansWithAnnotation(PolicyInformationPoint.class).values();
+    }
 
-	@Bean
-	@ConditionalOnMissingBean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	AttributeContext attributeContext() throws InitializationException {
-		var ctx = new AnnotationAttributeContext();
-		for (var entry : policyInformationPoints) {
-			log.trace("loading Policy Information Point: {}", entry.getClass().getSimpleName());
-			ctx.loadPolicyInformationPoint(entry);
-		}
-		return ctx;
-	}
+    @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    AttributeContext attributeContext() throws InitializationException {
+        var ctx = new AnnotationAttributeContext();
+        for (var entry : policyInformationPoints) {
+            log.trace("loading Policy Information Point: {}", entry.getClass().getSimpleName());
+            ctx.loadPolicyInformationPoint(entry);
+        }
+        return ctx;
+    }
 
 }

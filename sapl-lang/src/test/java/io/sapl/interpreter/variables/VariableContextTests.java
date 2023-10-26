@@ -36,99 +36,99 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 
 class VariableContextTests {
 
-	private static final Val SUBJECT_NODE = Val.of("subject");
+    private static final Val SUBJECT_NODE = Val.of("subject");
 
-	private static final Val ACTION_NODE = Val.of("action");
+    private static final Val ACTION_NODE = Val.of("action");
 
-	private static final Val RESOURCE_NODE = Val.of("resource");
+    private static final Val RESOURCE_NODE = Val.of("resource");
 
-	private static final Val ENVIRONMENT_NODE = Val.of("environment");
+    private static final Val ENVIRONMENT_NODE = Val.of("environment");
 
-	private static final Val VAR_NODE = Val.of("var");
+    private static final Val VAR_NODE = Val.of("var");
 
-	private static final Val VAR_NODE_NEW = Val.of("var_new");
+    private static final Val VAR_NODE_NEW = Val.of("var_new");
 
-	private static final String VAR_ID = "var";
+    private static final String VAR_ID = "var";
 
-	private static final AuthorizationSubscription AUTH_SUBSCRIPTION = new AuthorizationSubscription(SUBJECT_NODE.get(),
-			ACTION_NODE.get(), RESOURCE_NODE.get(), ENVIRONMENT_NODE.get());
+    private static final AuthorizationSubscription AUTH_SUBSCRIPTION = new AuthorizationSubscription(SUBJECT_NODE.get(),
+            ACTION_NODE.get(), RESOURCE_NODE.get(), ENVIRONMENT_NODE.get());
 
-	private static final AuthorizationSubscription EMPTY_AUTH_SUBSCRIPTION = new AuthorizationSubscription(null, null,
-			null, null);
+    private static final AuthorizationSubscription EMPTY_AUTH_SUBSCRIPTION = new AuthorizationSubscription(null, null,
+            null, null);
 
-	private static final Map<String, JsonNode> EMPTY_MAP = new HashMap<>();
+    private static final Map<String, JsonNode> EMPTY_MAP = new HashMap<>();
 
-	@Test
-	void emptyInitializationTest() {
-		var ctx = new VariableContext(EMPTY_MAP);
-		assertThat(ctx, notNullValue());
-	}
+    @Test
+    void emptyInitializationTest() {
+        var ctx = new VariableContext(EMPTY_MAP);
+        assertThat(ctx, notNullValue());
+    }
 
-	@Test
-	void authzSubscriptionInitializationTest() {
-		var ctx = new VariableContext(EMPTY_MAP).forAuthorizationSubscription(AUTH_SUBSCRIPTION);
-		assertAll(() -> assertThat(ctx, notNullValue()), () -> assertThat(ctx.get("subject"), is(SUBJECT_NODE)),
-				() -> assertThat(ctx.get("action"), is(ACTION_NODE)),
-				() -> assertThat(ctx.get("resource"), is(RESOURCE_NODE)),
-				() -> assertThat(ctx.get("environment"), is(ENVIRONMENT_NODE)));
-	}
+    @Test
+    void authzSubscriptionInitializationTest() {
+        var ctx = new VariableContext(EMPTY_MAP).forAuthorizationSubscription(AUTH_SUBSCRIPTION);
+        assertAll(() -> assertThat(ctx, notNullValue()), () -> assertThat(ctx.get("subject"), is(SUBJECT_NODE)),
+                () -> assertThat(ctx.get("action"), is(ACTION_NODE)),
+                () -> assertThat(ctx.get("resource"), is(RESOURCE_NODE)),
+                () -> assertThat(ctx.get("environment"), is(ENVIRONMENT_NODE)));
+    }
 
-	@Test
-	void emptyAuthzSubscriptionInitializationTest() {
-		var ctx = new VariableContext(EMPTY_MAP).forAuthorizationSubscription(EMPTY_AUTH_SUBSCRIPTION);
-		assertAll(() -> assertThat(ctx, notNullValue()), () -> assertThat(ctx.get("subject"), is(valNull())),
-				() -> assertThat(ctx.get("action"), is(valNull())),
-				() -> assertThat(ctx.get("resource"), is(valNull())),
-				() -> assertThat(ctx.get("environment"), is(valNull())));
-	}
+    @Test
+    void emptyAuthzSubscriptionInitializationTest() {
+        var ctx = new VariableContext(EMPTY_MAP).forAuthorizationSubscription(EMPTY_AUTH_SUBSCRIPTION);
+        assertAll(() -> assertThat(ctx, notNullValue()), () -> assertThat(ctx.get("subject"), is(valNull())),
+                () -> assertThat(ctx.get("action"), is(valNull())),
+                () -> assertThat(ctx.get("resource"), is(valNull())),
+                () -> assertThat(ctx.get("environment"), is(valNull())));
+    }
 
-	@Test
-	void notExistsTest() {
-		var ctx = new VariableContext(EMPTY_MAP).forAuthorizationSubscription(AUTH_SUBSCRIPTION);
-		assertThat(ctx.exists(VAR_ID), is(false));
-	}
+    @Test
+    void notExistsTest() {
+        var ctx = new VariableContext(EMPTY_MAP).forAuthorizationSubscription(AUTH_SUBSCRIPTION);
+        assertThat(ctx.exists(VAR_ID), is(false));
+    }
 
-	@Test
-	void existsTest() {
-		var ctx = new VariableContext(EMPTY_MAP);
-		ctx = ctx.forAuthorizationSubscription(AUTH_SUBSCRIPTION);
-		ctx = ctx.withEnvironmentVariable(VAR_ID, VAR_NODE.get());
-		assertThat(ctx.get(VAR_ID), is(VAR_NODE));
-	}
+    @Test
+    void existsTest() {
+        var ctx = new VariableContext(EMPTY_MAP);
+        ctx = ctx.forAuthorizationSubscription(AUTH_SUBSCRIPTION);
+        ctx = ctx.withEnvironmentVariable(VAR_ID, VAR_NODE.get());
+        assertThat(ctx.get(VAR_ID), is(VAR_NODE));
+    }
 
-	@Test
-	void doubleRegistrationOverwrite() {
-		var ctx = new VariableContext(EMPTY_MAP);
-		ctx = ctx.forAuthorizationSubscription(AUTH_SUBSCRIPTION);
-		ctx = ctx.withEnvironmentVariable(VAR_ID, VAR_NODE.get());
-		ctx = ctx.withEnvironmentVariable(VAR_ID, VAR_NODE_NEW.get());
-		assertThat(ctx.get(VAR_ID), is(VAR_NODE_NEW));
-	}
+    @Test
+    void doubleRegistrationOverwrite() {
+        var ctx = new VariableContext(EMPTY_MAP);
+        ctx = ctx.forAuthorizationSubscription(AUTH_SUBSCRIPTION);
+        ctx = ctx.withEnvironmentVariable(VAR_ID, VAR_NODE.get());
+        ctx = ctx.withEnvironmentVariable(VAR_ID, VAR_NODE_NEW.get());
+        assertThat(ctx.get(VAR_ID), is(VAR_NODE_NEW));
+    }
 
-	@Test
-	void failGetUndefined() {
-		var ctx = new VariableContext(EMPTY_MAP).forAuthorizationSubscription(AUTH_SUBSCRIPTION);
-		assertThat(ctx.get(VAR_ID), is(Val.UNDEFINED));
-	}
-	
-	@Test
-	void when_getVariables_then_returnsMap() {
-		var ctx = new VariableContext(EMPTY_MAP).forAuthorizationSubscription(AUTH_SUBSCRIPTION);
-		assertThat(ctx.getVariables().get("action"), is(ACTION_NODE.get()));
-	}
+    @Test
+    void failGetUndefined() {
+        var ctx = new VariableContext(EMPTY_MAP).forAuthorizationSubscription(AUTH_SUBSCRIPTION);
+        assertThat(ctx.get(VAR_ID), is(Val.UNDEFINED));
+    }
 
-	@Test
-	void when_attemptingToSetReservedVariable_then_raiseException() {
-		var ctx = new VariableContext(EMPTY_MAP);
-		assertAll(
-				() -> assertThrows(PolicyEvaluationException.class,
-						() -> ctx.withEnvironmentVariable("subject", mock(JsonNode.class))),
-				() -> assertThrows(PolicyEvaluationException.class,
-						() -> ctx.withEnvironmentVariable("action", mock(JsonNode.class))),
-				() -> assertThrows(PolicyEvaluationException.class,
-						() -> ctx.withEnvironmentVariable("resource", mock(JsonNode.class))),
-				() -> assertThrows(PolicyEvaluationException.class,
-						() -> ctx.withEnvironmentVariable("environment", mock(JsonNode.class))));
-	}
+    @Test
+    void when_getVariables_then_returnsMap() {
+        var ctx = new VariableContext(EMPTY_MAP).forAuthorizationSubscription(AUTH_SUBSCRIPTION);
+        assertThat(ctx.getVariables().get("action"), is(ACTION_NODE.get()));
+    }
+
+    @Test
+    void when_attemptingToSetReservedVariable_then_raiseException() {
+        var ctx = new VariableContext(EMPTY_MAP);
+        assertAll(
+                () -> assertThrows(PolicyEvaluationException.class,
+                        () -> ctx.withEnvironmentVariable("subject", mock(JsonNode.class))),
+                () -> assertThrows(PolicyEvaluationException.class,
+                        () -> ctx.withEnvironmentVariable("action", mock(JsonNode.class))),
+                () -> assertThrows(PolicyEvaluationException.class,
+                        () -> ctx.withEnvironmentVariable("resource", mock(JsonNode.class))),
+                () -> assertThrows(PolicyEvaluationException.class,
+                        () -> ctx.withEnvironmentVariable("environment", mock(JsonNode.class))));
+    }
 
 }

@@ -42,173 +42,173 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class JWTKeyProvider {
 
-	private static final String JWT_KEY_SERVER_HTTP_ERROR = "Error trying to retrieve a public key: ";
+    private static final String JWT_KEY_SERVER_HTTP_ERROR = "Error trying to retrieve a public key: ";
 
-	private static final String JWT_KEY_CACHING_ERROR = "The provided caching configuration was not understood: ";
+    private static final String JWT_KEY_CACHING_ERROR = "The provided caching configuration was not understood: ";
 
-	static final String PUBLIC_KEY_URI_KEY     = "uri";
-	static final String PUBLIC_KEY_METHOD_KEY  = "method";
-	static final String KEY_CACHING_TTL_MILLIS = "keyCachingTtlMillis";
-	static final long   DEFAULT_CACHING_TTL    = 300000L;
+    static final String PUBLIC_KEY_URI_KEY     = "uri";
+    static final String PUBLIC_KEY_METHOD_KEY  = "method";
+    static final String KEY_CACHING_TTL_MILLIS = "keyCachingTtlMillis";
+    static final long   DEFAULT_CACHING_TTL    = 300000L;
 
-	/**
-	 * Exception indication a caching error.
-	 */
-	@StandardException
-	public static class CachingException extends Exception {
+    /**
+     * Exception indication a caching error.
+     */
+    @StandardException
+    public static class CachingException extends Exception {
 
-	}
+    }
 
-	private final Map<String, RSAPublicKey> keyCache;
-	private final Queue<CacheEntry>         cachingTimes;
-	private final WebClient                 webClient;
-	private long                            lastTTL = DEFAULT_CACHING_TTL;
+    private final Map<String, RSAPublicKey> keyCache;
+    private final Queue<CacheEntry>         cachingTimes;
+    private final WebClient                 webClient;
+    private long                            lastTTL = DEFAULT_CACHING_TTL;
 
-	/**
-	 * Creates a JWTKeyProvider.
-	 * 
-	 * @param builder a WebClient builder.
-	 */
-	public JWTKeyProvider(WebClient.Builder builder) {
-		webClient    = builder.build();
-		keyCache     = new ConcurrentHashMap<>();
-		cachingTimes = new ConcurrentLinkedQueue<>();
-	}
+    /**
+     * Creates a JWTKeyProvider.
+     * 
+     * @param builder a WebClient builder.
+     */
+    public JWTKeyProvider(WebClient.Builder builder) {
+        webClient    = builder.build();
+        keyCache     = new ConcurrentHashMap<>();
+        cachingTimes = new ConcurrentLinkedQueue<>();
+    }
 
-	/**
-	 * Fetches the public key of a server.
-	 * 
-	 * @param kid              the key id
-	 * @param jPublicKeyServer the key server
-	 * @return the public key
-	 * @throws CachingException on error
-	 */
-	public Mono<RSAPublicKey> provide(String kid, JsonNode jPublicKeyServer) throws CachingException {
+    /**
+     * Fetches the public key of a server.
+     * 
+     * @param kid              the key id
+     * @param jPublicKeyServer the key server
+     * @return the public key
+     * @throws CachingException on error
+     */
+    public Mono<RSAPublicKey> provide(String kid, JsonNode jPublicKeyServer) throws CachingException {
 
-		var jUri = jPublicKeyServer.get(PUBLIC_KEY_URI_KEY);
-		if (jUri == null)
-			return Mono.empty();
+        var jUri = jPublicKeyServer.get(PUBLIC_KEY_URI_KEY);
+        if (jUri == null)
+            return Mono.empty();
 
-		var sMethod = "GET";
-		var jMethod = jPublicKeyServer.get(PUBLIC_KEY_METHOD_KEY);
-		if (jMethod != null && jMethod.isTextual())
-			sMethod = jMethod.textValue();
+        var sMethod = "GET";
+        var jMethod = jPublicKeyServer.get(PUBLIC_KEY_METHOD_KEY);
+        if (jMethod != null && jMethod.isTextual())
+            sMethod = jMethod.textValue();
 
-		var sUri = jUri.textValue();
-		var lTTL = DEFAULT_CACHING_TTL;
-		var jTTL = jPublicKeyServer.get(KEY_CACHING_TTL_MILLIS);
-		// nested if-statement in order to cover all possible branches during testing
-		// (eg. null && canConvertToLong not possible)
-		if (jTTL != null) {
-			if (jTTL.canConvertToLong()) {
-				lTTL = jTTL.longValue();
-			} else {
-				throw new CachingException(JWT_KEY_CACHING_ERROR + jTTL);
-			}
-		}
+        var sUri = jUri.textValue();
+        var lTTL = DEFAULT_CACHING_TTL;
+        var jTTL = jPublicKeyServer.get(KEY_CACHING_TTL_MILLIS);
+        // nested if-statement in order to cover all possible branches during testing
+        // (eg. null && canConvertToLong not possible)
+        if (jTTL != null) {
+            if (jTTL.canConvertToLong()) {
+                lTTL = jTTL.longValue();
+            } else {
+                throw new CachingException(JWT_KEY_CACHING_ERROR + jTTL);
+            }
+        }
 
-		setTtlMillis(lTTL);
-		return fetchPublicKey(kid, sUri, sMethod);
-	}
+        setTtlMillis(lTTL);
+        return fetchPublicKey(kid, sUri, sMethod);
+    }
 
-	/**
-	 * Put public key into cache.
-	 * 
-	 * @param kid    key id
-	 * @param pubKey public key
-	 */
-	public void cache(String kid, RSAPublicKey pubKey) {
+    /**
+     * Put public key into cache.
+     * 
+     * @param kid    key id
+     * @param pubKey public key
+     */
+    public void cache(String kid, RSAPublicKey pubKey) {
 
-		if (isCached(kid))
-			return;
+        if (isCached(kid))
+            return;
 
-		keyCache.put(kid, pubKey);
-		cachingTimes.add(new CacheEntry(kid));
-	}
+        keyCache.put(kid, pubKey);
+        cachingTimes.add(new CacheEntry(kid));
+    }
 
-	/**
-	 * Checks if the key is in the cache.
-	 * 
-	 * @param kid key id
-	 * @return true, if the cache contains the key with the given id.
-	 */
-	public boolean isCached(String kid) {
-		pruneCache();
-		return keyCache.containsKey(kid);
-	}
+    /**
+     * Checks if the key is in the cache.
+     * 
+     * @param kid key id
+     * @return true, if the cache contains the key with the given id.
+     */
+    public boolean isCached(String kid) {
+        pruneCache();
+        return keyCache.containsKey(kid);
+    }
 
-	/**
-	 * Sets the cache TTL.
-	 * 
-	 * @param newTtlMillis time to live for cache entries.
-	 */
-	public void setTtlMillis(long newTtlMillis) {
-		lastTTL = newTtlMillis >= 0L ? newTtlMillis : DEFAULT_CACHING_TTL;
-	}
+    /**
+     * Sets the cache TTL.
+     * 
+     * @param newTtlMillis time to live for cache entries.
+     */
+    public void setTtlMillis(long newTtlMillis) {
+        lastTTL = newTtlMillis >= 0L ? newTtlMillis : DEFAULT_CACHING_TTL;
+    }
 
-	/**
-	 * Fetches public key from remote authentication server
-	 * 
-	 * @param kid                    ID of public key to fetch
-	 * @param publicKeyURI           URI to request the public key
-	 * @param publicKeyRequestMethod HTTP request method: GET or POST
-	 * @return public key or empty
-	 */
-	private Mono<RSAPublicKey> fetchPublicKey(String kid, String publicKeyURI, String publicKeyRequestMethod) {
-		final ResponseSpec response;
+    /**
+     * Fetches public key from remote authentication server
+     * 
+     * @param kid                    ID of public key to fetch
+     * @param publicKeyURI           URI to request the public key
+     * @param publicKeyRequestMethod HTTP request method: GET or POST
+     * @return public key or empty
+     */
+    private Mono<RSAPublicKey> fetchPublicKey(String kid, String publicKeyURI, String publicKeyRequestMethod) {
+        final ResponseSpec response;
 
-		// return cached key if present
-		if (isCached(kid)) {
-			return Mono.just(keyCache.get(kid));
-		}
+        // return cached key if present
+        if (isCached(kid)) {
+            return Mono.just(keyCache.get(kid));
+        }
 
-		if ("post".equalsIgnoreCase(publicKeyRequestMethod)) {
-			// POST request
-			response = webClient.post().uri(publicKeyURI, kid).retrieve();
-		} else {
-			// default GET request
-			response = webClient.get().uri(publicKeyURI, kid).retrieve();
-		}
+        if ("post".equalsIgnoreCase(publicKeyRequestMethod)) {
+            // POST request
+            response = webClient.post().uri(publicKeyURI, kid).retrieve();
+        } else {
+            // default GET request
+            response = webClient.get().uri(publicKeyURI, kid).retrieve();
+        }
 
-		return response.onStatus(HttpStatusCode::isError, this::handleHttpError).bodyToMono(String.class)
-				.map(JWTEncodingDecodingUtils::encodedX509ToRSAPublicKey).filter(Optional::isPresent)
-				.map(Optional::get);
-	}
+        return response.onStatus(HttpStatusCode::isError, this::handleHttpError).bodyToMono(String.class)
+                .map(JWTEncodingDecodingUtils::encodedX509ToRSAPublicKey).filter(Optional::isPresent)
+                .map(Optional::get);
+    }
 
-	private Mono<? extends Throwable> handleHttpError(ClientResponse response) {
-		log.trace(JWT_KEY_SERVER_HTTP_ERROR + response.statusCode());
-		return Mono.empty();
-	}
+    private Mono<? extends Throwable> handleHttpError(ClientResponse response) {
+        log.trace(JWT_KEY_SERVER_HTTP_ERROR + response.statusCode());
+        return Mono.empty();
+    }
 
-	/**
-	 * remove all keys from cache, that are older than ttlMillis before now
-	 */
-	private void pruneCache() {
-		var pruneTime   = new Date().toInstant().minusMillis(lastTTL);
-		var oldestEntry = cachingTimes.peek();
-		while (oldestEntry != null && oldestEntry.wasCachedBefore(pruneTime)) {
-			keyCache.remove(oldestEntry.getKeyId());
-			cachingTimes.poll();
-			oldestEntry = cachingTimes.peek();
-		}
-	}
+    /**
+     * remove all keys from cache, that are older than ttlMillis before now
+     */
+    private void pruneCache() {
+        var pruneTime   = new Date().toInstant().minusMillis(lastTTL);
+        var oldestEntry = cachingTimes.peek();
+        while (oldestEntry != null && oldestEntry.wasCachedBefore(pruneTime)) {
+            keyCache.remove(oldestEntry.getKeyId());
+            cachingTimes.poll();
+            oldestEntry = cachingTimes.peek();
+        }
+    }
 
-	private static class CacheEntry {
+    private static class CacheEntry {
 
-		@Getter
-		private final String keyId;
+        @Getter
+        private final String keyId;
 
-		private final Instant cachingTime;
+        private final Instant cachingTime;
 
-		CacheEntry(String keyId) {
-			this.keyId  = keyId;
-			cachingTime = new Date().toInstant();
-		}
+        CacheEntry(String keyId) {
+            this.keyId  = keyId;
+            cachingTime = new Date().toInstant();
+        }
 
-		boolean wasCachedBefore(Instant instant) {
-			return cachingTime.isBefore(instant);
-		}
+        boolean wasCachedBefore(Instant instant) {
+            return cachingTime.isBefore(instant);
+        }
 
-	}
+    }
 
 }
