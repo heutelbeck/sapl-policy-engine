@@ -1,4 +1,3 @@
-Streaming Attribute Policy Language (SAPL) Engine
 Copyright (C) ${project.inceptionYear} ${owner} (${email})
 
 Licensed under the Apache License, Version 2.0 (the "License");
