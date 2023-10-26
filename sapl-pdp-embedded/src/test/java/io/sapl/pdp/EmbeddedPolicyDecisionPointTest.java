@@ -20,12 +20,13 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.ArrayList;
+import java.time.Clock;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -41,6 +42,8 @@ import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSource;
 import io.sapl.pdp.config.fixed.FixedFunctionsAndAttributesPDPConfigurationProvider;
+import io.sapl.pdp.interceptors.ReportingDecisionInterceptor;
+import io.sapl.pip.TimePolicyInformationPoint;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
 import reactor.core.publisher.Flux;
@@ -54,7 +57,8 @@ class EmbeddedPolicyDecisionPointTest {
 
 	@BeforeEach
 	void setUp() throws Exception {
-		pdp = PolicyDecisionPointFactory.resourcesPolicyDecisionPoint(List.of(new TestPIP()), new ArrayList<>());
+		var reporter = new ReportingDecisionInterceptor(new ObjectMapper(), true, true, true, true);
+		pdp = PolicyDecisionPointFactory.resourcesPolicyDecisionPoint("/policies", List.of(new TestPIP()), List.of(), List.of(), List.of(reporter));
 	}
 
 	@Test
@@ -90,12 +94,12 @@ class EmbeddedPolicyDecisionPointTest {
 	}
 
 	@Test
-	void decide_withNameConflictingPoliciesAndDenyUnlessPermitt_shouldReturnDeny() {
+	void decide_withAllowedAction_shouldReturnPermit() {
 		AuthorizationSubscription         simpleAuthzSubscription = new AuthorizationSubscription(
 				JSON.textNode("willi"), JSON.textNode("read"), JSON.textNode("something"), JSON.nullNode());
 		final Flux<AuthorizationDecision> authzDecisionFlux       = pdp.decide(simpleAuthzSubscription);
 		StepVerifier.create(authzDecisionFlux)
-				.expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.DENY).thenCancel().verify();
+				.expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel().verify();
 	}
 
 	@Test
@@ -159,7 +163,7 @@ class EmbeddedPolicyDecisionPointTest {
 
 		final Flux<IdentifiableAuthorizationDecision> flux = pdp.decide(multiAuthzSubscription);
 		StepVerifier.create(flux).expectNextMatches(iad -> "id".equals(iad.getAuthorizationSubscriptionId())
-				&& iad.getAuthorizationDecision().equals(AuthorizationDecision.DENY)).thenCancel().verify();
+				&& iad.getAuthorizationDecision().equals(AuthorizationDecision.PERMIT)).thenCancel().verify();
 	}
 
 	@Test
@@ -179,7 +183,7 @@ class EmbeddedPolicyDecisionPointTest {
 			}
 		}).expectNextMatches(iad -> {
 			if ("id1".equals(iad.getAuthorizationSubscriptionId())) {
-				return iad.getAuthorizationDecision().equals(AuthorizationDecision.DENY);
+				return iad.getAuthorizationDecision().equals(AuthorizationDecision.PERMIT);
 			} else if ("id2".equals(iad.getAuthorizationSubscriptionId())) {
 				return iad.getAuthorizationDecision().equals(AuthorizationDecision.DENY);
 			} else {
@@ -201,7 +205,7 @@ class EmbeddedPolicyDecisionPointTest {
 			if (ad1 == null || ad2 == null)
 				return false;
 
-			if (ad1.getDecision() != Decision.DENY)
+			if (ad1.getDecision() != Decision.PERMIT)
 				return false;
 			return ad2.getDecision() == Decision.DENY;
 		}).thenCancel().verify();
