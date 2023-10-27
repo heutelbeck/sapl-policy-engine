@@ -111,7 +111,6 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-
         if (!this.coverageEnabled) {
             getLog().error("Policy coverage collection is disabled");
             getLog().error(
@@ -157,7 +156,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
             getLog().error("Probable causes for this error:");
             getLog().error(" - There are not tests of SAPL policies in this module.");
             getLog().error(" - The build has skipped tests but the sapl-maven-plugin is still executed.");
-            throw new MojoFailureException("Failed reading data from SAPL tests. For details, inspect build log.");
+            throw new MojoFailureException("Failed reading data from SAPL tests. For details, inspect build log.", e);
         }
 
         var actualPolicySetHitRatio       = this.ratioCalculator.calculateRatio(targets.getPolicySets(),

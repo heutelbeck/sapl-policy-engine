@@ -18,6 +18,8 @@ package io.sapl.converter;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import lombok.experimental.UtilityClass;
 
@@ -35,8 +37,9 @@ public class TransformFilesToESM {
      * Entry point for conversion.
      * 
      * @param args command line parameters
+     * @throws IOException in case of conveting errors
      */
-    public void main(String[] args) {
+    public void main(String[] args) throws IOException {
         var classPathDir     = new File(TransformFilesToESM.class.getResource("/").getPath());
         var targetFolderPath = classPathDir + FRONTEND_FOLDER_PATH;
 
@@ -44,25 +47,17 @@ public class TransformFilesToESM {
         convertFileToESM(targetFolderPath + XTEXT_CODEMIRROR_FILENAME, XtextCodemirrorConverter::convertToESM);
     }
 
-    private void convertFileToESM(String filePath, Converter converter) {
-        File file = new File(filePath);
-
-        if (file.isFile()) {
-            try {
-                String   content = Files.readString(file.toPath());
-                String[] terms   = content.trim().split("\\s+");
-                if (!terms[0].equals("import")) {
-                    String result = converter.convert(content);
-                    Files.write(file.toPath(), result.getBytes());
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+    private void convertFileToESM(String filePath, Converter converter) throws IOException {
+        Path     path    = Paths.get(filePath);
+        String   content = Files.readString(path);
+        String[] terms   = content.trim().split("\\s+");
+        if (!terms[0].equals("import")) {
+            String result = converter.convert(content);
+            Files.write(path, result.getBytes());
         }
     }
 
     private interface Converter {
         String convert(String content);
     }
-
 }
