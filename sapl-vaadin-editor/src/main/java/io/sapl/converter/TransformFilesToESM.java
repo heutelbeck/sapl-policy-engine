@@ -17,6 +17,7 @@ package io.sapl.converter;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -51,9 +52,10 @@ public class TransformFilesToESM {
         Path     path    = Paths.get(filePath);
         String   content = Files.readString(path);
         String[] terms   = content.trim().split("\\s+");
-        if (!terms[0].equals("import")) {
+        if (!"import".equals(terms[0])) {
             String result = converter.convert(content);
-            Files.write(path, result.getBytes());
+            // first remove the byte order mark, then convert to UTF-8 
+            Files.write(path, result.replaceFirst("^\uFEFF", "").getBytes(StandardCharsets.UTF_8));
         }
     }
 
