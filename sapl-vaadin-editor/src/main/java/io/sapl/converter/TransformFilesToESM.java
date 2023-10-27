@@ -38,7 +38,7 @@ public class TransformFilesToESM {
      * Entry point for conversion.
      * 
      * @param args command line parameters
-     * @throws IOException in case of conveting errors
+     * @throws IOException in case of conversion errors
      */
     public void main(String[] args) throws IOException {
         var classPathDir     = new File(TransformFilesToESM.class.getResource("/").getPath());
