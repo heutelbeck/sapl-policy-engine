@@ -15,6 +15,8 @@
  */
 package io.sapl.test.integration;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -26,7 +28,6 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.stream.Stream;
 
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -42,6 +43,7 @@ import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.coverage.api.CoverageHitRecorder;
 import io.sapl.test.lang.TestSaplInterpreter;
+import reactor.test.StepVerifier;
 
 class ClasspathPolicyRetrievalPointTests {
 
@@ -65,15 +67,16 @@ class ClasspathPolicyRetrievalPointTests {
                                   ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
                                   ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription);
                                   return ctx;
-                              }).blockFirst().getMatchingDocuments();
-        Assertions.assertThat(prpResult).hasSize(2);
+                              }).next();
+        StepVerifier.create(prpResult).expectNextMatches(result -> result.getMatchingDocuments().size() == 2)
+                .verifyComplete();
     }
 
     @Test
     void test_dispose() throws Exception {
         var prp = new ClasspathPolicyRetrievalPoint(Paths.get("policiesIT"), this.interpreter);
         prp.destroy();
-        Assertions.assertThatNoException();
+        assertThatNoException();
     }
 
     @Test
@@ -172,7 +175,7 @@ class ClasspathPolicyRetrievalPointTests {
 			return ctx;
 		}).blockFirst();
 
-		Assertions.assertThat(result.isErrorsInTarget()).isTrue();
+		assertThat(result.isErrorsInTarget()).isTrue();
 	}
 
 }

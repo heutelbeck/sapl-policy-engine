@@ -15,6 +15,7 @@
  */
 package io.sapl.grammar.sapl.impl.util;
 
+import java.io.Serializable;
 import java.util.Comparator;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -74,7 +75,7 @@ public class ArrayUtil {
         return false;
     }
 
-    private static class NumericAwareComparator implements Comparator<JsonNode> {
+    private static class NumericAwareComparator implements Comparator<JsonNode>, Serializable {
         @Override
         public int compare(JsonNode o1, JsonNode o2) {
             if (o1.equals(o2)) {

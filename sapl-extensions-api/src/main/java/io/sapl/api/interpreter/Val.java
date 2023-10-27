@@ -15,6 +15,7 @@
  */
 package io.sapl.api.interpreter;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Comparator;
@@ -566,10 +567,10 @@ public class Val implements Traced {
         if (value == null)
             return Objects.hash(errorMessage);
 
-        return Objects.hash(hashCode(value), errorMessage);
+        return Objects.hash(hashCodeOfJsonNode(value), errorMessage);
     }
 
-    private static int hashCode(JsonNode json) {
+    private static int hashCodeOfJsonNode(JsonNode json) {
         if (json.isNumber())
             return json.decimalValue().stripTrailingZeros().hashCode();
 
@@ -580,31 +581,31 @@ public class Val implements Traced {
             return 0;
 
         if (json.isArray())
-            return hashCode((ArrayNode) json);
+            return hashCodeOfArrayNode((ArrayNode) json);
 
-        return hashCode((ObjectNode) json);
+        return hashCodeOfObjectNode((ObjectNode) json);
     }
 
-    public static int hashCode(ArrayNode arrayNode) {
+    private static int hashCodeOfArrayNode(ArrayNode arrayNode) {
         if (arrayNode == null)
             return 0;
 
         int hash = 1;
 
         for (JsonNode element : arrayNode)
-            hash = 31 * hash + (element == null ? 0 : hashCode(element));
+            hash = 31 * hash + (element == null ? 0 : hashCodeOfJsonNode(element));
 
         return hash;
     }
 
-    public static int hashCode(ObjectNode objectNode) {
+    private static int hashCodeOfObjectNode(ObjectNode objectNode) {
         var fieldIterator = objectNode.fields();
         var hash          = 0;
 
         Map.Entry<String, JsonNode> entry;
         while (fieldIterator.hasNext()) {
             entry = fieldIterator.next();
-            hash  = 31 * hash + (entry.getKey().hashCode() ^ hashCode(entry.getValue()));
+            hash  = 31 * hash + (entry.getKey().hashCode() ^ hashCodeOfJsonNode(entry.getValue()));
         }
 
         return hash;
@@ -1068,7 +1069,7 @@ public class Val implements Traced {
         return traceJson;
     }
 
-    private static class NumericAwareComparator implements Comparator<JsonNode> {
+    private static class NumericAwareComparator implements Comparator<JsonNode>, Serializable {
         @Override
         public int compare(JsonNode o1, JsonNode o2) {
             if (o1.equals(o2)) {
