@@ -48,17 +48,14 @@ final class SaplMethodSecuritySelector implements ImportSelector {
     }
 
     private static final class AutoProxyRegistrarSelector extends AdviceModeImportSelector<EnableSaplMethodSecurity> {
-
-        private static final String[] IMPORTS         = new String[] { AutoProxyRegistrar.class.getName() };
-        private static final String[] ASPECTJ_IMPORTS = new String[] {
-                SaplMethodSecurityAspectJAutoProxyRegistrar.class.getName() };
+        // Spring security also support AspectJ, SAPL does (currently) not.
+        private static final String[] IMPORTS = new String[] { AutoProxyRegistrar.class.getName() };
 
         @Override
         protected String[] selectImports(@NonNull AdviceMode adviceMode) {
-            return switch (adviceMode) {
-            case PROXY -> IMPORTS;
-            case ASPECTJ -> ASPECTJ_IMPORTS;
-            };
+            if (adviceMode != AdviceMode.PROXY)
+                throw new IllegalStateException("SAPL does only support AdviceMode.PROXY. AspectJ is unsupported.");
+            return IMPORTS;
         }
 
     }
