@@ -15,6 +15,7 @@
  */
 package io.sapl.test.coverage.api;
 
+import java.io.IOException;
 import java.util.List;
 
 import io.sapl.test.coverage.api.model.PolicyConditionHit;
@@ -32,7 +33,7 @@ public interface CoverageHitReader {
      * 
      * @return List of {@link PolicySetHit}
      */
-    List<PolicySetHit> readPolicySetHits();
+    List<PolicySetHit> readPolicySetHits() throws IOException;
 
     /**
      * Internal method used by SAPL Coverage Reading to read all hits of
@@ -40,15 +41,16 @@ public interface CoverageHitReader {
      * 
      * @return List of {@link PolicySetHit}
      */
-    List<PolicyHit> readPolicyHits();
+    List<PolicyHit> readPolicyHits() throws IOException;
 
     /**
      * Internal method used by SAPL Coverage Reading to read all hits of
      * io.sapl.grammar.sapl.Condition's
      * 
      * @return List of {@link PolicySetHit}
+     * @throws IOException 
      */
-    List<PolicyConditionHit> readPolicyConditionHits();
+    List<PolicyConditionHit> readPolicyConditionHits() throws IOException;
 
     /**
      * Deletes all files used for coverage recording

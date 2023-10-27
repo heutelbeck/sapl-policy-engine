@@ -15,6 +15,7 @@
  */
 package io.sapl.mavenplugin.test.coverage;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Locale;
@@ -72,6 +73,15 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
     @Parameter(defaultValue = "true")
     private boolean enableHtmlReport;
 
+    @Parameter(defaultValue = "true")
+    private boolean failOnDisabledTests;
+
+    @Parameter(property = "maven.test.skip", defaultValue = "false", required = false)
+    private boolean mavenTestSkip;
+
+    @Parameter(property = "skipTests", defaultValue = "false", required = false, readonly = false)
+    private boolean skipTests;
+
     private final SaplDocumentReader saplDocumentReader;
 
     private final CoverageTargetHelper coverageTargetHelper;
@@ -101,14 +111,54 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
+
         if (!this.coverageEnabled) {
-            getLog().info("Policy Coverage Collection is disabled");
+            getLog().error("Policy coverage collection is disabled");
+            getLog().error(
+                    "This likely means, that in sapl-maven-plugin configuration in this modules pom.xml the executions block is misconfigured or missing.");
+            getLog().error("Please make sure to add the following to your plug-in configuration_");
+            getLog().error("<executions>");
+            getLog().error("    <execution>");
+            getLog().error("        <id>coverage</id>");
+            getLog().error("        <goals>");
+            getLog().error("            <goal>enable-coverage-collection</goal>");
+            getLog().error("            <goal>report-coverage-information</goal>");
+            getLog().error("        </goals>");
+            getLog().error("    </execution>");
+            getLog().error("</executions>");
+            throw new MojoFailureException(
+                    "Cannot report and validate SAPL code coverage requirements if coverage collection is disabled. For details, inspect build log.");
+        }
+
+        var buildConfiguredToSkipTests = mavenTestSkip || skipTests;
+
+        if (buildConfiguredToSkipTests && this.failOnDisabledTests) {
+            getLog().error("Tests were skipped, but the sapl-maven-plugin is configured to enforce tests to be run.");
+            getLog().error(
+                    "This means, that the build has been run with '-Dmaven.test.skip=true' or '-DskipTests' and the sapl-maven-plugin configuration parameter 'failOnDisabledTests' was set to true. If this is not the intended behaviour, change this parameter to 'false'.");
+            throw new MojoFailureException(
+                    "SAPL test requirements not passed. Tests must be enabled for the build to complete. For details, inspect build log.");
+        }
+
+        if (buildConfiguredToSkipTests && !this.failOnDisabledTests) {
+            getLog().info(
+                    "Tests disabled. Skipping coverage validation requirements validation. If you want the build to fail in this case, set the sapl-maven-plugin configuration parameter 'failOnDisabledTests' to true.");
             return;
         }
 
-        Collection<SaplDocument> documents = readSaplDocuments();
-        CoverageTargets          targets   = readAvailableTargets(documents);
-        CoverageTargets          hits      = readHits();
+        var             documents = readSaplDocuments();
+        var             targets   = readAvailableTargets(documents);
+        CoverageTargets hits;
+        try {
+            hits = readHits();
+        } catch (IOException e) {
+            getLog().error(
+                    String.format("Error test report data. %s: %s", e.getClass().getCanonicalName(), e.getMessage()));
+            getLog().error("Probable causes for this error:");
+            getLog().error(" - There are not tests of SAPL policies in this module.");
+            getLog().error(" - The build has skipped tests but the sapl-maven-plugin is still executed.");
+            throw new MojoFailureException("Failed reading data from SAPL tests. For details, inspect build log.");
+        }
 
         var actualPolicySetHitRatio       = this.ratioCalculator.calculateRatio(targets.getPolicySets(),
                 hits.getPolicySets());
@@ -161,37 +211,31 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
     private void breakLifecycleIfRatiosNotFulfilled(boolean isPolicySetRatioFulfilled, boolean isPolicyRatioFulfilled,
             boolean isPolicyConditionRatioFulfilled) throws MojoFailureException {
         if (isPolicySetRatioFulfilled && isPolicyRatioFulfilled && isPolicyConditionRatioFulfilled) {
-            getLog().info("All coverage criteria passed");
+            getLog().info("All coverage criteria passed.");
             getLog().info("");
             getLog().info("");
         } else {
             throw new MojoFailureException(
-                    "One or more SAPL Coverage Ratios aren't fulfilled! Find further information above.");
+                    "One or more SAPL Coverage Ratios aren't fulfilled. For details, inspect build log.");
         }
     }
 
     private Collection<SaplDocument> readSaplDocuments() throws MojoExecutionException {
-        getLog().debug("Loading coverage targets");
-        var docs = this.saplDocumentReader.retrievePolicyDocuments(getLog(), project, this.policyPath);
-        getLog().debug("Successful read coverage targets");
-        return docs;
+        return this.saplDocumentReader.retrievePolicyDocuments(getLog(), project, this.policyPath);
     }
 
     private CoverageTargets readAvailableTargets(Collection<SaplDocument> documents) {
         return this.coverageTargetHelper.getCoverageTargets(documents);
     }
 
-    private CoverageTargets readHits() {
-        getLog().debug("Loading coverage hits");
-        var hits = this.coverageAPIHelper
+    private CoverageTargets readHits() throws IOException {
+        return this.coverageAPIHelper
                 .readHits(PathHelper.resolveBaseDir(outputDir, project.getBuild().getDirectory(), getLog()));
-        getLog().debug("Successful read coverage hits");
-        return hits;
     }
 
     private boolean checkPolicySetRatio(Collection<PolicySetHit> targets, float ratio) {
         if (targets.isEmpty()) {
-            getLog().info("There are no PolicySets to hit");
+            getLog().info("There are no PolicySets to hit.");
             return true;
         }
 
@@ -199,7 +243,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 
         if (ratio < policySetHitRatio) {
             getLog().error(String.format(Locale.US,
-                    "Policy Set Hit Ratio not fulfilled - Expected greater or equal %.2f but got %.2f",
+                    "Policy Set Hit Ratio not fulfilled. Expected greater or equal %.2f but got %.2f",
                     policySetHitRatio, ratio));
             return false;
         } else {
@@ -209,7 +253,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 
     private boolean checkPolicyRatio(Collection<PolicyHit> targets, float ratio) {
         if (targets.isEmpty()) {
-            getLog().info("There are no Policies to hit");
+            getLog().info("There are no Policies to hit.");
             return true;
         }
 
@@ -217,7 +261,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 
         if (ratio < policyHitRatio) {
             getLog().error(String.format(Locale.US,
-                    "Policy Hit Ratio not fulfilled - Expected greater or equal %.2f but got %.2f", policyHitRatio,
+                    "Policy Hit Ratio not fulfilled. Expected greater or equal %.2f but got %.2f", policyHitRatio,
                     ratio));
             return false;
         } else {
@@ -227,7 +271,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 
     private boolean checkPolicyConditionRatio(Collection<PolicyConditionHit> targets, float ratio) {
         if (targets.isEmpty()) {
-            getLog().info("There are no PolicyConditions to hit");
+            getLog().info("There are no PolicyConditions to hit.");
             return true;
         }
 
@@ -235,7 +279,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 
         if (ratio < policyConditionHitRatio) {
             getLog().error(String.format(Locale.US,
-                    "Policy Condition Hit Ratio not fulfilled - Expected greater or equal %.2f but got %.2f",
+                    "Policy Condition Hit Ratio not fulfilled. Expected greater or equal %.2f but got %.2f",
                     policyConditionHitRatio, ratio));
             return false;
         } else {

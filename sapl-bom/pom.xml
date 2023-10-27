@@ -139,11 +139,6 @@
 			</dependency>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
-				<artifactId>sapl-editor-vaadin</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>${project.groupId}</groupId>
 				<artifactId>sapl-jwt</artifactId>
 				<version>${project.version}</version>
 			</dependency>
@@ -177,6 +172,11 @@
     	        <artifactId>sapl-vaadin-theme</artifactId>
 				<version>${project.version}</version>
 	        </dependency>
+			<dependency>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>sapl-vaadin-editor</artifactId>
+				<version>${project.version}</version>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 

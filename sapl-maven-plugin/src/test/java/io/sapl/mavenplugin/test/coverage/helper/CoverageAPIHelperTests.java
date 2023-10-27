@@ -17,6 +17,7 @@ package io.sapl.mavenplugin.test.coverage.helper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -44,7 +45,7 @@ class CoverageAPIHelperTests {
     }
 
     @Test
-    void test() {
+    void test() throws IOException {
         var helper = new CoverageAPIHelper();
         var writer = CoverageAPIFactory.constructCoverageHitRecorder(baseDir);
 

@@ -99,9 +99,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
         mojo.setLog(this.log);
 
-        mojo.execute();
-        verify(log).info("Policy Coverage Collection is disabled");
-
+        assertThrows(MojoFailureException.class, () -> mojo.execute());
     }
 
     @Test
@@ -123,7 +121,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
         verifyReporterAreCalled();
 
-        verify(log).info("All coverage criteria passed");
+        verify(log).info("All coverage criteria passed.");
     }
 
     @Test
@@ -145,7 +143,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
         verifyReporterAreCalled();
 
-        verify(log).error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal 80.00 but got 50.00");
+        verify(log).error("Policy Condition Hit Ratio not fulfilled. Expected greater or equal 80.00 but got 50.00");
     }
 
     @Test
@@ -167,7 +165,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
         verifyReporterAreCalled();
 
-        verify(log).error("Policy Hit Ratio not fulfilled - Expected greater or equal 100.00 but got 50.00");
+        verify(log).error("Policy Hit Ratio not fulfilled. Expected greater or equal 100.00 but got 50.00");
     }
 
     @Test
@@ -189,7 +187,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
         verifyReporterAreCalled();
 
-        verify(log).error("Policy Set Hit Ratio not fulfilled - Expected greater or equal 100.00 but got 50.00");
+        verify(log).error("Policy Set Hit Ratio not fulfilled. Expected greater or equal 100.00 but got 50.00");
 
     }
 
@@ -212,8 +210,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
         verifyReporterAreCalled();
 
-        verify(log).error("Policy Set Hit Ratio not fulfilled - Expected greater or equal 100.00 but got 50.00");
-        verify(log).error("Policy Hit Ratio not fulfilled - Expected greater or equal 100.00 but got 50.00");
+        verify(log).error("Policy Set Hit Ratio not fulfilled. Expected greater or equal 100.00 but got 50.00");
+        verify(log).error("Policy Hit Ratio not fulfilled. Expected greater or equal 100.00 but got 50.00");
     }
 
     @Test
@@ -235,8 +233,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
         verifyReporterAreCalled();
 
-        verify(log).error("Policy Set Hit Ratio not fulfilled - Expected greater or equal 100.00 but got 50.00");
-        verify(log).error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal 80.00 but got 50.00");
+        verify(log).error("Policy Set Hit Ratio not fulfilled. Expected greater or equal 100.00 but got 50.00");
+        verify(log).error("Policy Condition Hit Ratio not fulfilled. Expected greater or equal 80.00 but got 50.00");
     }
 
     @Test
@@ -258,8 +256,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
         verifyReporterAreCalled();
 
-        verify(log).error("Policy Hit Ratio not fulfilled - Expected greater or equal 100.00 but got 50.00");
-        verify(log).error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal 80.00 but got 50.00");
+        verify(log).error("Policy Hit Ratio not fulfilled. Expected greater or equal 100.00 but got 50.00");
+        verify(log).error("Policy Condition Hit Ratio not fulfilled. Expected greater or equal 80.00 but got 50.00");
     }
 
     @Test
@@ -281,9 +279,9 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
         verifyReporterAreCalled();
 
-        verify(log).error("Policy Set Hit Ratio not fulfilled - Expected greater or equal 100.00 but got 50.00");
-        verify(log).error("Policy Hit Ratio not fulfilled - Expected greater or equal 100.00 but got 50.00");
-        verify(log).error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal 80.00 but got 50.00");
+        verify(log).error("Policy Set Hit Ratio not fulfilled. Expected greater or equal 100.00 but got 50.00");
+        verify(log).error("Policy Hit Ratio not fulfilled. Expected greater or equal 100.00 but got 50.00");
+        verify(log).error("Policy Condition Hit Ratio not fulfilled. Expected greater or equal 80.00 but got 50.00");
     }
 
     @Test
@@ -305,10 +303,10 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
         verifyReporterAreCalled();
 
-        verify(log).info("All coverage criteria passed");
-        verify(log).info("There are no PolicySets to hit");
-        verify(log).info("There are no Policies to hit");
-        verify(log).info("There are no PolicyConditions to hit");
+        verify(log).info("All coverage criteria passed.");
+        verify(log).info("There are no PolicySets to hit.");
+        verify(log).info("There are no Policies to hit.");
+        verify(log).info("There are no PolicyConditions to hit.");
     }
 
     private void verifyReporterAreCalled() throws MojoExecutionException {
@@ -339,7 +337,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         verify(this.htmlReporter, times(1)).generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat());
         verify(this.sonarReporter, never()).generateSonarLineCoverageReport(any(), any(), any(), any(), any());
 
-        verify(log).info("All coverage criteria passed");
+        verify(log).info("All coverage criteria passed.");
     }
 
     @Test
@@ -361,7 +359,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         verify(this.htmlReporter, never()).generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat());
         verify(this.sonarReporter, times(1)).generateSonarLineCoverageReport(any(), any(), any(), any(), any());
 
-        verify(log).info("All coverage criteria passed");
+        verify(log).info("All coverage criteria passed.");
     }
 
     @Test
@@ -383,7 +381,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         verify(this.htmlReporter, never()).generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat());
         verify(this.sonarReporter, never()).generateSonarLineCoverageReport(any(), any(), any(), any(), any());
 
-        verify(log).info("All coverage criteria passed");
+        verify(log).info("All coverage criteria passed.");
     }
 
 }

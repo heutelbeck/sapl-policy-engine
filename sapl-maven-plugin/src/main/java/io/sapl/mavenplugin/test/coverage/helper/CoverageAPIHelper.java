@@ -15,6 +15,7 @@
  */
 package io.sapl.mavenplugin.test.coverage.helper;
 
+import java.io.IOException;
 import java.nio.file.Path;
 
 import javax.inject.Named;
@@ -27,7 +28,7 @@ import io.sapl.test.coverage.api.CoverageAPIFactory;
 @Singleton
 public class CoverageAPIHelper {
 
-    public CoverageTargets readHits(Path baseDir) {
+    public CoverageTargets readHits(Path baseDir) throws IOException {
         var reader = CoverageAPIFactory.constructCoverageHitReader(baseDir);
         return new CoverageTargets(reader.readPolicySetHits(), reader.readPolicyHits(),
                 reader.readPolicyConditionHits());

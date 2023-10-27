@@ -69,7 +69,7 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
             if (!doesLineExistsInFile(filePath, lineToAdd))
                 appendLineToFile(filePath, lineToAdd);
         } catch (IOException e) {
-            log.error("Error writing File " + filePath, e);
+            log.error("Error writing File {}", filePath, e);
         }
     }
 
@@ -85,28 +85,22 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
     }
 
     @Override
-    public List<PolicySetHit> readPolicySetHits() {
+    public List<PolicySetHit> readPolicySetHits() throws IOException {
         return readFileLines(filePathPolicySetHits).stream().map(PolicySetHit::fromString).toList();
     }
 
     @Override
-    public List<PolicyHit> readPolicyHits() {
+    public List<PolicyHit> readPolicyHits() throws IOException {
         return readFileLines(filePathPolicyHits).stream().map(PolicyHit::fromString).toList();
     }
 
     @Override
-    public List<PolicyConditionHit> readPolicyConditionHits() {
+    public List<PolicyConditionHit> readPolicyConditionHits() throws IOException {
         return readFileLines(filePathPolicyConditionHits).stream().map(PolicyConditionHit::fromString).toList();
     }
 
-    private List<String> readFileLines(Path filePathPolicySetHits) {
-        try {
-            return Files.readAllLines(filePathPolicySetHits);
-        } catch (IOException e) {
-            log.error(String.format("Error reading File %s. Is the policy coverage recording disabled?",
-                    filePathPolicySetHits.toAbsolutePath()), e);
-        }
-        return new LinkedList<>();
+    private List<String> readFileLines(Path filePathPolicySetHits) throws IOException {
+        return Files.readAllLines(filePathPolicySetHits);
     }
 
     @Override
@@ -120,7 +114,7 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
         try {
             Files.deleteIfExists(filePath);
         } catch (IOException e) {
-            log.error("Error deleting File " + filePath, e);
+            log.error("Error deleting File {}", filePath, e);
         }
     }
 
@@ -141,7 +135,7 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
                 Files.createFile(filePath);
             }
         } catch (IOException e) {
-            log.error("Error creating File " + filePath, e);
+            log.error("Error creating File {}", filePath, e);
         }
     }
 
