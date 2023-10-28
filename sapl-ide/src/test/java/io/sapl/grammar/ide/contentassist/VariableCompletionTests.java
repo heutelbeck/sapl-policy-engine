@@ -58,6 +58,7 @@ import org.springframework.test.context.ContextConfiguration;
 
 	@Test
 	void testCompletion_SuggestVariableInBody_NotSuggestOutOfScopeVariable() {
+
 		testCompletion((TestCompletionConfiguration it) -> {
 			String policy = "policy \"test\" permit where var foo = 5; var bar = 6;";
 			String cursor = "policy \"test\" permit where var foo = 5; ";

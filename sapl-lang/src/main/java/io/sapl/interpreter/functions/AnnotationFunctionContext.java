@@ -278,6 +278,15 @@ public class AnnotationFunctionContext implements FunctionContext {
 	}
 
 	@Override
+	public Map<String, String> getFunctionSchemas(){
+		var schemas = new HashMap<String, String>();
+		for (var entry : functions.entrySet()) {
+			schemas.put(entry.getKey(), entry.getValue().functionSchema);
+		}
+		return schemas;
+	}
+
+	@Override
 	public Collection<String> getAllFullyQualifiedFunctions() {
 		return functions.keySet();
 	}

@@ -24,6 +24,7 @@ import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.LoggingFunctionLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
+import io.sapl.functions.SchemaTestFunctionLibrary;
 
 /**
  * This configuration deploys the default function libraries for the PDP.
@@ -31,11 +32,11 @@ import io.sapl.functions.TemporalFunctionLibrary;
 @AutoConfiguration
 public class FunctionLibrariesAutoConfiguration {
 
-	@Bean
+/*	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	FilterFunctionLibrary filterFunctionLibrary() {
 		return new FilterFunctionLibrary();
-	}
+	}*/
 
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
@@ -53,6 +54,12 @@ public class FunctionLibrariesAutoConfiguration {
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	LoggingFunctionLibrary loggingFunctionLibrary() {
 		return new LoggingFunctionLibrary();
+	}
+
+	@Bean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+	SchemaTestFunctionLibrary schemaTestFunctionLibrary() {
+		return new SchemaTestFunctionLibrary();
 	}
 
 }

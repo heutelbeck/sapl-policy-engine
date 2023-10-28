@@ -15,6 +15,8 @@ public class SchemaParser {
 
     private static final int MAX_DEPTH = 20;
 
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     private static final Collection<String> RESERVED_KEYWORDS = Set.of(
             "$schema", "$id",
             "additionalProperties", "allOf", "anyOf", "dependentRequired", "description", "enum", "format", "items",
@@ -27,7 +29,7 @@ public class SchemaParser {
         JsonNode schemaNode;
         try {
             schemaNode = mapper.readTree(schema);
-        } catch (JsonProcessingException e) {
+        } catch (Exception e) {
             return new LinkedList<>();
         }
 

@@ -575,7 +575,70 @@
                     });
                 }
 
+                @Test
+                void testCompletion_PolicyBody_function_without_import() {
+                    testCompletion((TestCompletionConfiguration it) -> {
+                        String policy = """
+                                policy "test" deny where var foo = schemaTest.person;
+                                foo""";
 
+                        String cursor = "foo";
+                        it.setModel(policy);
+                        it.setLine(1);
+                        it.setColumn(cursor.length());
+
+                        it.setAssertCompletionList(completionList -> {
+                            var expected = List.of("foo", "foo.name");
+                            //var unwanted = List.of("foo.patternProperties", "foo.patternProperties.^S_");
+                            assertProposalsSimple(expected, completionList);
+                            // assertDoesNotContainProposals(unwanted, completionList);
+                        });
+                    });
+                }
+
+                @Test
+                void testCompletion_PolicyBody_function_with_wildcard_import() {
+                    testCompletion((TestCompletionConfiguration it) -> {
+                        String policy = """
+                                import schemaTest.*
+                                policy "test" deny where var foo = person;
+                                foo""";
+
+                        String cursor = "foo";
+                        it.setModel(policy);
+                        it.setLine(2);
+                        it.setColumn(cursor.length());
+
+                        it.setAssertCompletionList(completionList -> {
+                            var expected = List.of("foo", "foo.name");
+                            //var unwanted = List.of("foo.patternProperties", "foo.patternProperties.^S_");
+                            assertProposalsSimple(expected, completionList);
+                           // assertDoesNotContainProposals(unwanted, completionList);
+                        });
+                    });
+                }
+
+                @Test
+                void testCompletion_PolicyBody_function_with_alias_import() {
+                    testCompletion((TestCompletionConfiguration it) -> {
+                        String policy = """
+                                import schemaTest as test
+                                policy "test" deny where var foo = test.person;
+                                foo""";
+
+                        String cursor = "foo";
+                        it.setModel(policy);
+                        it.setLine(2);
+                        it.setColumn(cursor.length());
+
+                        it.setAssertCompletionList(completionList -> {
+                            var expected = List.of("foo", "foo.name");
+                            //var unwanted = List.of("foo.patternProperties", "foo.patternProperties.^S_");
+                            assertProposalsSimple(expected, completionList);
+                            // assertDoesNotContainProposals(unwanted, completionList);
+                        });
+                    });
+                }
 
             }
 

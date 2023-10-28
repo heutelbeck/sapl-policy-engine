@@ -15,11 +15,7 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
@@ -35,11 +31,24 @@ class TestFunctionContext implements FunctionContext {
 		availableLibraries.put("filter", Set.of("blacken", "remove", "replace"));
 		availableLibraries.put("standard", Set.of("length", "numberToString"));
 		availableLibraries.put("time", Set.of("after", "before", "between"));
+		availableLibraries.put("schemaTest", Set.of("person"));
 	}
 
-	@Override
+/*	@Override
 	public Boolean isProvidedFunction(String function) {
 		throw new UnsupportedOperationException();
+	}*/
+
+	@Override
+	public Boolean isProvidedFunction(String function){
+		List<String> availableFunctions = new ArrayList<>();
+		for (var lib : availableLibraries.entrySet()) {
+			var key = lib.getKey();
+			for (var value : lib.getValue()){
+				availableFunctions.add(key.concat(".").concat(value));
+			}
+		}
+		return availableFunctions.contains(function);
 	}
 
 	@Override
@@ -71,12 +80,26 @@ class TestFunctionContext implements FunctionContext {
 	@Override
 	public Collection<String> getAllFullyQualifiedFunctions() {
 		return List.of("filter.blacken", "filter.remove", "filter.replace", "standard.length",
-				"standard.numberToString", "time.after", "time.before", "time.between");
+				"standard.numberToString", "time.after", "time.before", "time.between", "schemaTest.person.name");
 	}
 
 	@Override
 	public Map<String, String> getDocumentedCodeTemplates() {
 		return Map.of("filter.blacken", "documentation");
+	}
+
+	@Override
+	public Map<String, String> getFunctionSchemas() {
+		final String PERSON_SCHEMA = """
+				{
+				  "type": "object",
+				  "properties": {
+				  "name": { "type": "string" }
+				  }
+				}""";
+		var schemas = new HashMap<String, String>();
+		schemas.put("schemaTest.person", PERSON_SCHEMA);
+		return schemas;
 	}
 
 }

@@ -203,11 +203,12 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		if ("value".equals(feature)) {
 			// try to resolve for available variables
 
-			var helper = new ValueDefinitionProposalExtractionHelper(variablesAndCombinatorSource, context);
+			var helper = new ValueDefinitionProposalExtractionHelper(variablesAndCombinatorSource, functionContext, attributeContext, context);
 			var definedValues = helper.getProposals(model, ValueDefinitionProposalExtractionHelper.ProposalType.VALUE);
 			// add variables to list of proposals
 			addSimpleProposals(definedValues, context, acceptor);
 
+			var test = model.eContainer() instanceof Condition;
 			// try to move up to the policy body
 			if (model.eContainer() instanceof Condition) {
 				model = TreeNavigationHelper.goToFirstParent(model, PolicyBody.class);
@@ -278,7 +279,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 	}
 
 	private Collection<String> getValidSchemas(ContentAssistContext context, EObject model) {
-		var helper = new ValueDefinitionProposalExtractionHelper(variablesAndCombinatorSource, context);
+		var helper = new ValueDefinitionProposalExtractionHelper(variablesAndCombinatorSource, functionContext, attributeContext, context);
 		return helper.getProposals(model, ValueDefinitionProposalExtractionHelper.ProposalType.SCHEMA);
 	}
 
