@@ -29,15 +29,11 @@ public class SchemaValidationLibrary {
             "If schema cannot be converted to a JSON schema, throws an IllegalArgumentException." +
             "If node is compliant with schema, returns TRUE, else returns FALSE.";
 
-    private static final String INVALID_JSON_OBJECT = "Illegal parameter for JSON object. jsonObject parameter must be a valid JSON object or a String that can be converted to a JSON object.";
-
-    private static final String INVALID_JSON_SCHEMA = "Illegal parameter for JSON schema. jsonSchema parameter must be a String that can be converted to a valid JSON schema.";
-
     private static final SpecVersion.VersionFlag SPEC_VERSION_JSON_SCHEMA = SpecVersion.VersionFlag.V7;
 
 
     @Function(docs = ISCOMPLIANTWITHSCHEMA_VAL_DOC)
-    public static Val isCompliantWithSchema(@JsonObject @Text Val jsonObject, @Text Val schema){
+    public static Val isCompliantWithSchema(@JsonObject @Text Val jsonObject, @Text Val schema) throws JsonProcessingException {
         JsonNode node = null;
         String schemaAsString = schema.get().asText();
 
@@ -55,24 +51,14 @@ public class SchemaValidationLibrary {
         return jsonSchemaFromString(schema).validate(node).isEmpty();
     }
 
-    private static JsonNode jsonNodeFromString(String node){
-        JsonNode jsonNode;
-        try {
-            jsonNode = new ObjectMapper().readTree(node);
-        } catch (JsonProcessingException e) {
-            throw new IllegalArgumentException(INVALID_JSON_OBJECT, e);
-        }
-        return jsonNode;
+    private static JsonNode jsonNodeFromString(String node) throws JsonProcessingException{
+        return new ObjectMapper().readTree(node);
     }
 
     private static JsonSchema jsonSchemaFromString(String schema) {
         JsonSchema jsonSchema;
         var jsonSchemaFactory = JsonSchemaFactory.getInstance(SPEC_VERSION_JSON_SCHEMA);
-        try {
-            jsonSchema = jsonSchemaFactory.getSchema(schema);
-        } catch (Exception e){
-            throw new IllegalArgumentException(INVALID_JSON_SCHEMA, e);
-        }
+        jsonSchema = jsonSchemaFactory.getSchema(schema);
         return jsonSchema;
     }
 

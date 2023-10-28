@@ -15,8 +15,10 @@
  */
 package io.sapl.functions;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.networknt.schema.JsonSchemaException;
 import io.sapl.api.interpreter.Val;
 import org.junit.jupiter.api.Test;
 
@@ -59,7 +61,7 @@ class SchemaValidationLibraryTest {
     }
 
     @Test
-    void isCompliantWithSchema_valid_string_input(){
+    void isCompliantWithSchema_valid_string_input() throws JsonProcessingException {
         var result = isCompliantWithSchema(Val.of(COMPLIANT_JSON), Val.of(VALID_SCHEMA));
         assertThat(result, is(val(true)));
     }
@@ -72,7 +74,7 @@ class SchemaValidationLibraryTest {
     }
 
     @Test
-    void isCompliantWithSchema_non_compliant_string_input(){
+    void isCompliantWithSchema_non_compliant_string_input() throws JsonProcessingException {
         var result = isCompliantWithSchema(Val.of(INCOMPLIANT_VALID_JSON), Val.of(VALID_SCHEMA));
         assertThat(result, is(val(false)));
     }
@@ -88,7 +90,7 @@ class SchemaValidationLibraryTest {
     void isCompliantWithSchema_invalid_json_input(){
         var jsonAsVal = Val.of(INVALID_JSON);
         var schemaAsVal = Val.of(VALID_SCHEMA);
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(JsonParseException.class,
                 () -> isCompliantWithSchema(jsonAsVal, schemaAsVal));
     }
 
@@ -96,7 +98,7 @@ class SchemaValidationLibraryTest {
     void isCompliantWithSchema_invalid_json_schema(){
         var jsonAsVal = Val.of(COMPLIANT_JSON);
         var schemaAsVal = Val.of(INVALID_SCHEMA);
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(JsonSchemaException.class,
                 () -> isCompliantWithSchema(jsonAsVal, schemaAsVal));
     }
 

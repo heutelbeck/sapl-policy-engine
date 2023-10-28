@@ -43,88 +43,87 @@ import static io.sapl.util.filemonitoring.FileMonitorUtil.resolveHomeFolderIfPre
 @Slf4j
 public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombinatorSource {
 
-	private static final String CONFIG_FILE_GLOB_PATTERN = "pdp.json";
+    private static final String CONFIG_FILE_GLOB_PATTERN = "pdp.json";
 
-	private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
-	private final String watchDir;
+    private final String watchDir;
 
-	private final String configPath;
+    private final String configPath;
 
-	private final Flux<Optional<PolicyDecisionPointConfiguration>> configFlux;
+    private final Flux<Optional<PolicyDecisionPointConfiguration>> configFlux;
 
-	private final Disposable monitorSubscription;
+    private final Disposable monitorSubscription;
 
-	public FileSystemVariablesAndCombinatorSource(String configurationPath) {
-		configPath = configurationPath;
-		watchDir = resolveHomeFolderIfPresent(configurationPath);
-		log.info("Monitor folder for config: {}", watchDir);
-		Flux<FileEvent> monitoringFlux = monitorDirectory(watchDir,
-				file -> CONFIG_FILE_GLOB_PATTERN.equals(file.getName()));
-		configFlux = monitoringFlux.scan(loadConfig(), (__, fileEvent) -> processWatcherEvent(fileEvent))
-				.distinctUntilChanged().share().cache(1);
-		monitorSubscription = Flux.from(configFlux).subscribe();
-	}
+    public FileSystemVariablesAndCombinatorSource(String configurationPath) {
+        configPath = configurationPath;
+        watchDir = resolveHomeFolderIfPresent(configurationPath);
+        log.info("Monitor folder for config: {}", watchDir);
+        Flux<FileEvent> monitoringFlux = monitorDirectory(watchDir,
+                file -> CONFIG_FILE_GLOB_PATTERN.equals(file.getName()));
+        configFlux = monitoringFlux.scan(loadConfig(), (__, fileEvent) -> processWatcherEvent(fileEvent))
+                .distinctUntilChanged().share().cache(1);
+        monitorSubscription = Flux.from(configFlux).subscribe();
+    }
 
-	private Optional<PolicyDecisionPointConfiguration> loadConfig() {
-		Path configurationFile = Paths.get(watchDir, CONFIG_FILE_GLOB_PATTERN);
-		log.info("Loading config from: {}", configurationFile.toAbsolutePath());
-		if (Files.notExists(configurationFile, LinkOption.NOFOLLOW_LINKS)) {
-			// If file does not exist, return default configuration
-			log.info("No config file present. Use default config.");
-			return Optional.of(new PolicyDecisionPointConfiguration());
-		}
-		try {
-			return Optional.of(MAPPER.readValue(configurationFile.toFile(), PolicyDecisionPointConfiguration.class));
-		}
-		catch (IOException e) {
-			return Optional.empty();
-		}
-	}
+    private Optional<PolicyDecisionPointConfiguration> loadConfig() {
+        Path configurationFile = Paths.get(watchDir, CONFIG_FILE_GLOB_PATTERN);
+        log.info("Loading config from: {}", configurationFile.toAbsolutePath());
+        if (Files.notExists(configurationFile, LinkOption.NOFOLLOW_LINKS)) {
+            // If file does not exist, return default configuration
+            log.info("No config file present. Use default config.");
+            return Optional.of(new PolicyDecisionPointConfiguration());
+        }
+        try {
+            return Optional.of(MAPPER.readValue(configurationFile.toFile(), PolicyDecisionPointConfiguration.class));
+        } catch (IOException e) {
+            return Optional.empty();
+        }
+    }
 
-	@Override
-	public Flux<Optional<CombiningAlgorithm>> getCombiningAlgorithm() {
-		return Flux.from(configFlux)
-				.switchMap(config -> config
-						.map(policyDecisionPointConfiguration -> Flux.just(Optional.of(CombiningAlgorithmFactory
-								.getCombiningAlgorithm(policyDecisionPointConfiguration.getAlgorithm()))))
-						.orElseGet(() -> Flux.just(Optional.empty())));
-	}
+    @Override
+    public Flux<Optional<CombiningAlgorithm>> getCombiningAlgorithm() {
+        return Flux.from(configFlux)
+                .switchMap(config -> config
+                        .map(policyDecisionPointConfiguration -> Flux.just(Optional.of(CombiningAlgorithmFactory
+                                .getCombiningAlgorithm(policyDecisionPointConfiguration.getAlgorithm()))))
+                        .orElseGet(() -> Flux.just(Optional.empty())));
+    }
 
-	@Override
-	public Flux<Optional<Map<String, JsonNode>>> getVariables() {
+    @Override
+    public Flux<Optional<Map<String, JsonNode>>> getVariables() {
 
-		Map<String, JsonNode> schemaMap = new HashMap<>();
-		File[] jsonFiles = new File(configPath).listFiles((dir, name) -> name.endsWith(".json"));
+        Map<String, JsonNode> schemaMap = new HashMap<>();
+        File[] jsonFiles = new File(configPath).listFiles((dir, name) -> name.endsWith(".json"));
 
-		if (jsonFiles.length > 0){
-			for (File jsonFile: jsonFiles)
-				try {
-					String keyString = jsonFile.getName().substring(0, jsonFile.getName().lastIndexOf('.'));
-					JsonNode node = MAPPER.readTree(jsonFile);
-					schemaMap.put(keyString, node);
-				} catch (Exception e) {
-					log.info("Error reading variables from file system: {}", e.getMessage());
-				}
-		}
-		Optional<Map<String, JsonNode>> optSchemaMap = Optional.ofNullable(schemaMap);
+        if ((jsonFiles != null ? jsonFiles.length : 0) > 0) {
+            for (File jsonFile : jsonFiles)
+                try {
+                    String keyString = jsonFile.getName().substring(0, jsonFile.getName().lastIndexOf('.'));
+                    JsonNode node = MAPPER.readTree(jsonFile);
+                    schemaMap.put(keyString, node);
+                } catch (Exception e) {
+                    log.info("Error reading variables from file system: {}", e.getMessage());
+                }
+        }
+        Optional<Map<String, JsonNode>> optSchemaMap = Optional.ofNullable(schemaMap);
 
-		return Flux.just(optSchemaMap);
-	}
+        return Flux.just(optSchemaMap);
+    }
 
-	private Optional<PolicyDecisionPointConfiguration> processWatcherEvent(FileEvent fileEvent) {
-		if (fileEvent instanceof FileDeletedEvent) {
-			log.info("Configuration file deleted. Reverting to default config.");
-			return Optional.of(new PolicyDecisionPointConfiguration());
-		}
-		// MODIFY or CREATED
-		return loadConfig();
-	}
+    private Optional<PolicyDecisionPointConfiguration> processWatcherEvent(FileEvent fileEvent) {
+        if (fileEvent instanceof FileDeletedEvent) {
+            log.info("Configuration file deleted. Reverting to default config.");
+            return Optional.of(new PolicyDecisionPointConfiguration());
+        }
+        // MODIFY or CREATED
+        return loadConfig();
+    }
 
-	@Override
-	public void destroy() {
-		if (!monitorSubscription.isDisposed())
-			monitorSubscription.dispose();
-	}
+    @Override
+    public void destroy() {
+        if (!monitorSubscription.isDisposed())
+            monitorSubscription.dispose();
+    }
 
 }

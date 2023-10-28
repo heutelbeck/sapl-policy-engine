@@ -11,69 +11,19 @@ import java.util.*;
 @RequiredArgsConstructor
 public class SchemaParser {
 
-    private final Map<String, JsonNode> variables;
-
     private static final int MAX_DEPTH = 20;
-
     private static final ObjectMapper MAPPER = new ObjectMapper();
-
     private static final Collection<String> RESERVED_KEYWORDS = Set.of(
             "$schema", "$id",
             "additionalProperties", "allOf", "anyOf", "dependentRequired", "description", "enum", "format", "items",
             "oneOf", "properties", "required", "title", "type"
-            );
+    );
+    private final Map<String, JsonNode> variables;
 
-    public List<String> generatePaths(String schema) {
-
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode schemaNode;
-        try {
-            schemaNode = mapper.readTree(schema);
-        } catch (Exception e) {
-            return new LinkedList<>();
-        }
-
-        var jsonPaths = getJsonPaths(schemaNode, "", schemaNode, 0);
-        jsonPaths.removeIf(s -> s.startsWith("$defs"));
-        jsonPaths.removeIf(RESERVED_KEYWORDS::contains);
-        return jsonPaths;
-    }
-
-
-    private List<String> getJsonPaths(JsonNode jsonNode, String parentPath, final JsonNode originalSchema, int depth){
-
-        Collection<String> paths = new HashSet<>();
-
-        depth++;
-        if (depth > MAX_DEPTH)
-            return new ArrayList<>();
-
-        if (jsonNode != null && jsonNode.isObject()) {
-            if (propertyIsArray(jsonNode)){
-                var items = jsonNode.get("items");
-                if (items != null){
-                    if(items.isArray())
-                        paths.addAll(constructPathsFromArray(items, parentPath, originalSchema, depth));
-                    else
-                        paths.addAll(constructPathFromNonArrayProperty(items, parentPath, originalSchema, depth));
-                } else
-                    paths.add(parentPath);
-            } else {
-                paths.addAll(constructPathFromNonArrayProperty(jsonNode, parentPath, originalSchema, depth));
-            }
-        } else if (jsonNode != null && jsonNode.isArray()) {
-            paths.addAll(constructPathsFromArray(jsonNode, parentPath, originalSchema, depth));
-        } else {
-            paths.add(parentPath);
-        }
-
-        return new ArrayList<>(paths);
-    }
-
-    private static boolean propertyIsArray(JsonNode jsonNode){
+    private static boolean propertyIsArray(JsonNode jsonNode) {
         var typeNode = jsonNode.get("type");
 
-        if (typeNode != null){
+        if (typeNode != null) {
             var type = typeNode.textValue();
             return "array".equals(type);
         } else
@@ -84,21 +34,21 @@ public class SchemaParser {
         JsonNode refNode;
         String schemaName;
         String internalRef = null;
-        if (ref.contains("#/")){
+        if (ref.contains("#/")) {
             var refSplit = ref.split("#/", 2);
-            schemaName = refSplit[0].replaceAll("\\.json$", "").replace("/","");
+            schemaName = refSplit[0].replaceAll("\\.json$", "").replace("/", "");
             internalRef = "#/".concat(refSplit[1]);
         } else {
             schemaName = ref.replaceAll("\\.json$", "");
         }
         refNode = variables.get(schemaName);
-        if (internalRef != null && refNode != null){
+        if (internalRef != null && refNode != null) {
             refNode = getReferencedNodeFromSameDocument(refNode, internalRef);
         }
         return refNode;
     }
 
-    private static JsonNode getReferencedNodeFromSameDocument(JsonNode originalSchema, String ref){
+    private static JsonNode getReferencedNodeFromSameDocument(JsonNode originalSchema, String ref) {
         if ("#".equals(ref))
             return originalSchema;
         ref = ref.replace("#/", "");
@@ -114,6 +64,67 @@ public class SchemaParser {
         }
 
         return currentNode;
+    }
+
+    private static List<String> handleEnum(JsonNode jsonNode, String parentPath) {
+        var enumValuesNode = jsonNode.get("enum");
+        String[] enumValuesArray;
+        var paths = new LinkedList<String>();
+        try {
+            enumValuesArray = MAPPER.treeToValue(enumValuesNode, String[].class);
+        } catch (JsonProcessingException e) {
+            return new LinkedList<>();
+        }
+        List<String> enumValues = new ArrayList<>(Arrays.asList(enumValuesArray));
+        for (String enumPath : enumValues) {
+            paths.add(parentPath + "." + enumPath);
+        }
+        return paths;
+    }
+
+    public List<String> generatePaths(String schema) {
+
+        JsonNode schemaNode;
+        try {
+            schemaNode = MAPPER.readTree(schema);
+        } catch (Exception e) {
+            return new LinkedList<>();
+        }
+
+        var jsonPaths = getJsonPaths(schemaNode, "", schemaNode, 0);
+        jsonPaths.removeIf(s -> s.startsWith("$defs"));
+        jsonPaths.removeIf(RESERVED_KEYWORDS::contains);
+        return jsonPaths;
+    }
+
+    private List<String> getJsonPaths(JsonNode jsonNode, String parentPath, final JsonNode originalSchema, int depth) {
+
+        Collection<String> paths = new HashSet<>();
+
+        depth++;
+        if (depth > MAX_DEPTH)
+            return new ArrayList<>();
+
+        if (jsonNode != null && jsonNode.isObject()) {
+            if (propertyIsArray(jsonNode)) {
+                var items = jsonNode.get("items");
+                if (items != null) {
+                    if (items.isArray())
+                        paths.addAll(constructPathsFromArray(items, parentPath, originalSchema, depth));
+                    else
+                        paths.addAll(constructPathFromNonArrayProperty(items, parentPath, originalSchema, depth));
+                } else
+                    paths.add(parentPath);
+            } else {
+                paths.addAll(constructPathFromNonArrayProperty(jsonNode, parentPath, originalSchema, depth));
+            }
+        } else if (jsonNode != null && jsonNode.isArray()) {
+            paths.addAll(constructPathsFromArray(jsonNode, parentPath, originalSchema, depth));
+        } else {
+            paths.add(parentPath);
+        }
+
+        return new ArrayList<>(paths);
     }
 
     private Collection<String> constructPathsFromArray(JsonNode jsonNode, String parentPath, JsonNode originalSchema, int depth) {
@@ -135,7 +146,7 @@ public class SchemaParser {
         List<String> enumPaths = new LinkedList<>();
 
         Iterator<String> fieldNames = jsonNode.fieldNames();
-        if(!fieldNames.hasNext())
+        if (!fieldNames.hasNext())
             paths.add(parentPath);
         while (fieldNames.hasNext()) {
             String fieldName = fieldNames.next();
@@ -144,13 +155,13 @@ public class SchemaParser {
             if ("$ref".equals(fieldName)) {
                 childNode = handleReferences(originalSchema, childNode);
                 currentPath = parentPath;
-            } else if ("enum".equals(fieldName)){
+            } else if ("enum".equals(fieldName)) {
                 enumPaths = handleEnum(jsonNode, parentPath);
                 currentPath = parentPath;
-            } else if("patternProperties".equals(fieldName)) {
+            } else if ("patternProperties".equals(fieldName)) {
                 childNode = JsonNodeFactory.instance.nullNode();
                 currentPath = parentPath;
-            } else if(RESERVED_KEYWORDS.contains(fieldName)) {
+            } else if (RESERVED_KEYWORDS.contains(fieldName)) {
                 currentPath = parentPath;
             } else {
                 currentPath = parentPath.isEmpty() ? fieldName : parentPath + "." + fieldName;
@@ -170,23 +181,6 @@ public class SchemaParser {
             refNode = getReferencedNodeFromDifferentDocument(childNode.textValue(), variables);
         }
         return refNode;
-    }
-
-    private static List<String> handleEnum(JsonNode jsonNode, String parentPath) {
-        var enumValuesNode = jsonNode.get("enum");
-        ObjectMapper mapper = new ObjectMapper();
-        String[] enumValuesArray;
-        var paths = new LinkedList<String>();
-        try {
-            enumValuesArray = mapper.treeToValue(enumValuesNode, String[].class);
-        } catch (JsonProcessingException e) {
-            return new LinkedList<>();
-        }
-        List<String> enumValues = new ArrayList<>(Arrays.asList(enumValuesArray));
-        for (String enumPath : enumValues){
-            paths.add(parentPath + "." + enumPath);
-        }
-        return paths;
     }
 
 }

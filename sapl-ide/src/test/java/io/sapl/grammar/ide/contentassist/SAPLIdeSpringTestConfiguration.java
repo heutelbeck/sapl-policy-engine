@@ -15,34 +15,43 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import io.sapl.interpreter.InitializationException;
-import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import io.sapl.grammar.ide.contentassist.filesystem.FileSystemVariablesAndCombinatorSource;
+import io.sapl.interpreter.InitializationException;
+import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.pdp.config.VariablesAndCombinatorSource;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AttributeContext;
+import org.springframework.context.annotation.Primary;
 
 @ComponentScan
 @Configuration
 class SAPLIdeSpringTestConfiguration {
 
-	@Bean
-	FunctionContext functionContext() {
-		return new TestFunctionContext();
-	}
+    @Bean
+    FunctionContext functionContext() {
+        return new TestFunctionContext();
+    }
 
-	@Bean
-	AttributeContext attributeContext() {
-		return new TestAttributeContext();
-	}
+    @Bean
+    AttributeContext attributeContext() {
+        return new TestAttributeContext();
+    }
 
-	@Bean
-	public VariablesAndCombinatorSource variablesAndCombinatorSource() throws InitializationException {
-		String configPath = "src/test/resources";
-		return new FileSystemVariablesAndCombinatorSource(configPath);
-	}
+    @Bean
+    @Primary
+    public VariablesAndCombinatorSource variablesAndCombinatorSource() throws InitializationException {
+        String configPath = "src/test/resources";
+        return new FileSystemVariablesAndCombinatorSource(configPath);
+    }
+
+    @Bean
+    @Qualifier("variablesAndCombinatorSource_no_variables")
+    public VariablesAndCombinatorSource variablesAndCombinatorSource_no_variables() throws InitializationException {
+        String configPath = "src/test/resources/empty";
+        return new FileSystemVariablesAndCombinatorSource(configPath);
+    }
 
 }
