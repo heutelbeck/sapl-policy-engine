@@ -32,11 +32,11 @@ import io.sapl.functions.SchemaTestFunctionLibrary;
 @AutoConfiguration
 public class FunctionLibrariesAutoConfiguration {
 
-/*	@Bean
+	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	FilterFunctionLibrary filterFunctionLibrary() {
 		return new FilterFunctionLibrary();
-	}*/
+	}
 
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)

@@ -252,4 +252,9 @@ public class MockingFunctionContext implements FunctionContext {
 		return Map.of();
 	}
 
+	@Override
+	public Map<String, String> getFunctionSchemas()  {
+		return Map.of();
+	}
+
 }
