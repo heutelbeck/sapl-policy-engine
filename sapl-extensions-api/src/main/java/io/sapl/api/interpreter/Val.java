@@ -40,16 +40,19 @@ import reactor.core.publisher.Mono;
 
 public class Val implements Traced {
 
-    static final String ERROR_TEXT                           = "ERROR";
-    static final String UNDEFINED_TEXT                       = "undefined";
-    static final String UNKNOWN_ERROR                        = "Unknown Error";
-    static final String UNDEFINED_VALUE_ERROR                = "Undefined value error.";
-    static final String OBJECT_OPERATION_TYPE_MISMATCH_S     = "Type mismatch. Expected an object, but got %s.";
-    static final String ARRAY_OPERATION_TYPE_MISMATCH_S      = "Type mismatch. Expected an array, but got %s.";
-    static final String BOOLEAN_OPERATION_TYPE_MISMATCH_S    = "Type mismatch. Boolean operation expects boolean values, but got: '%s'.";
-    static final String NUMBER_OPERATION_TYPE_MISMATCH_S     = "Type mismatch. Number operation expects number values, but got: '%s'.";
-    static final String TEXT_OPERATION_TYPE_MISMATCH_S       = "Type mismatch. Text operation expects text values, but got: '%s'.";
-    static final String ARITHMETIC_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Number operation expects number values, but got: '%s'.";
+    static final String ERROR_LITERAL                              = "ERROR";
+    static final String UNDEFINED_LITERAL                          = "undefined";
+    static final String VALUE_IS_AN_ERROR_S_ERROR                  = "Value is an error: '%s'.";
+    static final String VALUE_UNDEFINED_ERROR                      = "Value undefined";
+    static final String VALUE_NOT_AN_ERROR                         = "Value not an error.";
+    static final String UNKNOWN_ERROR                              = "Unknown Error";
+    static final String UNDEFINED_VALUE_ERROR                      = "Undefined value error.";
+    static final String OBJECT_OPERATION_TYPE_MISMATCH_S_ERROR     = "Type mismatch. Expected an object, but got %s.";
+    static final String ARRAY_OPERATION_TYPE_MISMATCH_S_ERROR      = "Type mismatch. Expected an array, but got %s.";
+    static final String BOOLEAN_OPERATION_TYPE_MISMATCH_S_ERROR    = "Type mismatch. Boolean operation expects boolean values, but got: '%s'.";
+    static final String NUMBER_OPERATION_TYPE_MISMATCH_S_ERROR     = "Type mismatch. Number operation expects number values, but got: '%s'.";
+    static final String TEXT_OPERATION_TYPE_MISMATCH_S_ERROR       = "Type mismatch. Text operation expects text values, but got: '%s'.";
+    static final String ARITHMETIC_OPERATION_TYPE_MISMATCH_S_ERROR = "Type mismatch. Number operation expects number values, but got: '%s'.";
 
     /**
      * Convenience Instance of a JsonNodeFactory.
@@ -179,7 +182,7 @@ public class Val implements Traced {
      * @return the Val with attached trace
      */
     public Val withParentTrace(Class<?> operation, Traced parentValue) {
-        return withTrace(new Trace(operation, new ExpressionArgument("parentValue", parentValue)));
+        return withTrace(new Trace(operation, new ExpressionArgument(Trace.PARENT_VALUE, parentValue)));
     }
 
     /**
@@ -243,7 +246,7 @@ public class Val implements Traced {
      * @return a Val with a formatted error message.
      */
     public static Val error(String errorMessage, Object... args) {
-        return new Val(String.format(errorMessage == null ? "Undefined Error" : errorMessage, args));
+        return new Val(String.format(errorMessage == null ? UNKNOWN_ERROR : errorMessage, args));
     }
 
     /**
@@ -253,7 +256,7 @@ public class Val implements Traced {
      */
     public static Val error(Throwable throwable) {
         if (throwable == null)
-            return new Val("Undefined Error");
+            return new Val(UNKNOWN_ERROR);
 
         return (throwable.getMessage() == null || throwable.getMessage().isBlank())
                 ? new Val(throwable.getClass().getSimpleName())
@@ -294,7 +297,7 @@ public class Val implements Traced {
         if (isError()) {
             return errorMessage;
         }
-        throw new NoSuchElementException("Value not an error");
+        throw new NoSuchElementException(VALUE_NOT_AN_ERROR);
     }
 
     /**
@@ -317,10 +320,10 @@ public class Val implements Traced {
      */
     public JsonNode get() {
         if (isError()) {
-            throw new NoSuchElementException("Value is an error: " + getMessage());
+            throw new NoSuchElementException(String.format(VALUE_IS_AN_ERROR_S_ERROR, getMessage()));
         }
         if (value == null) {
-            throw new NoSuchElementException("Value undefined");
+            throw new NoSuchElementException(VALUE_UNDEFINED_ERROR);
         }
         return value;
     }
@@ -550,7 +553,7 @@ public class Val implements Traced {
             return false;
         }
         if (isError()) {
-            return errorMessage.equals(other.getMessage());
+            return Objects.equals(errorMessage, other.getMessage());
         }
         if (isDefined() != other.isDefined()) {
             return false;
@@ -558,7 +561,6 @@ public class Val implements Traced {
         if (value == null) {
             return true;
         }
-
         return value.equals(NUMBERIC_AWARE_COMPARATOR, other.get());
     }
 
@@ -587,13 +589,10 @@ public class Val implements Traced {
     }
 
     private static int hashCodeOfArrayNode(ArrayNode arrayNode) {
-        if (arrayNode == null)
-            return 0;
-
         int hash = 1;
 
         for (JsonNode element : arrayNode)
-            hash = 31 * hash + (element == null ? 0 : hashCodeOfJsonNode(element));
+            hash = 31 * hash + hashCodeOfJsonNode(element);
 
         return hash;
     }
@@ -617,9 +616,9 @@ public class Val implements Traced {
             return "SECRET";
         }
         if (isError()) {
-            return "ERROR[" + errorMessage + "]";
+            return ERROR_LITERAL + '[' + errorMessage + ']';
         }
-        return value != null ? value.toString() : UNDEFINED_TEXT;
+        return value != null ? value.toString() : UNDEFINED_LITERAL;
     }
 
     /**
@@ -779,7 +778,7 @@ public class Val implements Traced {
         if (value.isBoolean()) {
             return Flux.just(value.get().booleanValue());
         }
-        return Flux.error(new PolicyEvaluationException(BOOLEAN_OPERATION_TYPE_MISMATCH_S, typeOf(value)));
+        return Flux.error(new PolicyEvaluationException(BOOLEAN_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(value)));
     }
 
     /**
@@ -790,7 +789,7 @@ public class Val implements Traced {
         if (isBoolean()) {
             return value.booleanValue();
         }
-        throw new PolicyEvaluationException(BOOLEAN_OPERATION_TYPE_MISMATCH_S, typeOf(this));
+        throw new PolicyEvaluationException(BOOLEAN_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(this));
     }
 
     /**
@@ -801,7 +800,7 @@ public class Val implements Traced {
         if (isNumber()) {
             return value.longValue();
         }
-        throw new PolicyEvaluationException(NUMBER_OPERATION_TYPE_MISMATCH_S, typeOf(this));
+        throw new PolicyEvaluationException(NUMBER_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(this));
     }
 
     /**
@@ -810,7 +809,7 @@ public class Val implements Traced {
      */
     public String getText() {
         if (isUndefined()) {
-            return UNDEFINED_TEXT;
+            return UNDEFINED_LITERAL;
         }
         if (isTextual()) {
             return value.textValue();
@@ -826,7 +825,7 @@ public class Val implements Traced {
      */
     public static Val requireBoolean(Val value) {
         if (!value.isBoolean()) {
-            return Val.error(BOOLEAN_OPERATION_TYPE_MISMATCH_S, typeOf(value));
+            return Val.error(BOOLEAN_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(value));
         }
         return value;
     }
@@ -868,7 +867,10 @@ public class Val implements Traced {
         if (this.isDefined()) {
             return value;
         }
-        throw new PolicyEvaluationException(BOOLEAN_OPERATION_TYPE_MISMATCH_S, typeOf(this));
+        if (this.isError()) {
+            throw new PolicyEvaluationException(String.format(VALUE_IS_AN_ERROR_S_ERROR, getMessage()));
+        }
+        throw new PolicyEvaluationException(UNDEFINED_VALUE_ERROR);
     }
 
     /**
@@ -877,7 +879,7 @@ public class Val implements Traced {
      */
     public static Flux<ArrayNode> toArrayNode(Val value) {
         if (value.isUndefined() || !value.get().isArray()) {
-            return Flux.error(new PolicyEvaluationException(ARRAY_OPERATION_TYPE_MISMATCH_S, typeOf(value)));
+            return Flux.error(new PolicyEvaluationException(ARRAY_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(value)));
         }
         return Flux.just((ArrayNode) value.get());
     }
@@ -890,7 +892,7 @@ public class Val implements Traced {
         if (this.isArray()) {
             return (ArrayNode) value;
         }
-        throw new PolicyEvaluationException(ARRAY_OPERATION_TYPE_MISMATCH_S, typeOf(this));
+        throw new PolicyEvaluationException(ARRAY_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(this));
     }
 
     /**
@@ -901,7 +903,7 @@ public class Val implements Traced {
         if (this.isObject()) {
             return (ObjectNode) value;
         }
-        throw new PolicyEvaluationException(ARRAY_OPERATION_TYPE_MISMATCH_S, typeOf(this));
+        throw new PolicyEvaluationException(OBJECT_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(this));
     }
 
     /**
@@ -912,7 +914,7 @@ public class Val implements Traced {
         if (this.isNumber()) {
             return value.decimalValue();
         }
-        throw new PolicyEvaluationException(ARITHMETIC_OPERATION_TYPE_MISMATCH_S, typeOf(this));
+        throw new PolicyEvaluationException(ARITHMETIC_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(this));
     }
 
     /**
@@ -926,7 +928,7 @@ public class Val implements Traced {
             return value;
         }
         if (value.isUndefined() || !value.get().isArray()) {
-            return Val.error(ARRAY_OPERATION_TYPE_MISMATCH_S, typeOf(value));
+            return Val.error(ARRAY_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(value));
         }
         return value;
     }
@@ -940,7 +942,7 @@ public class Val implements Traced {
      */
     public static Flux<ObjectNode> toObjectNode(Val value) {
         if (value.isUndefined() || !value.get().isObject()) {
-            return Flux.error(new PolicyEvaluationException(OBJECT_OPERATION_TYPE_MISMATCH_S, typeOf(value)));
+            return Flux.error(new PolicyEvaluationException(OBJECT_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(value)));
         }
         return Flux.just((ObjectNode) value.get());
     }
@@ -956,7 +958,7 @@ public class Val implements Traced {
             return value;
         }
         if (value.isUndefined() || !value.get().isObject()) {
-            return Val.error(OBJECT_OPERATION_TYPE_MISMATCH_S, typeOf(value));
+            return Val.error(OBJECT_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(value));
         }
         return value;
     }
@@ -969,7 +971,7 @@ public class Val implements Traced {
      */
     public static Flux<String> toText(Val value) {
         if (value.isUndefined() || !value.get().isTextual()) {
-            return Flux.error(new PolicyEvaluationException(TEXT_OPERATION_TYPE_MISMATCH_S, typeOf(value)));
+            return Flux.error(new PolicyEvaluationException(TEXT_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(value)));
         }
         return Flux.just(value.get().textValue());
     }
@@ -985,7 +987,7 @@ public class Val implements Traced {
             return value;
         }
         if (value.isUndefined() || !value.get().isTextual()) {
-            return Val.error(TEXT_OPERATION_TYPE_MISMATCH_S, typeOf(value));
+            return Val.error(TEXT_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(value));
         }
         return value;
     }
@@ -999,7 +1001,7 @@ public class Val implements Traced {
      */
     public static Flux<BigDecimal> toBigDecimal(Val value) {
         if (value.isUndefined() || !value.get().isNumber()) {
-            return Flux.error(new PolicyEvaluationException(ARITHMETIC_OPERATION_TYPE_MISMATCH_S, typeOf(value)));
+            return Flux.error(new PolicyEvaluationException(ARITHMETIC_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(value)));
         }
         return Flux.just(value.get().decimalValue());
     }
@@ -1015,7 +1017,7 @@ public class Val implements Traced {
             return value;
         }
         if (value.isUndefined() || !value.get().isNumber()) {
-            return Val.error(ARITHMETIC_OPERATION_TYPE_MISMATCH_S, typeOf(value));
+            return Val.error(ARITHMETIC_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(value));
         }
         return value;
     }
@@ -1036,9 +1038,9 @@ public class Val implements Traced {
      */
     public static String typeOf(Val value) {
         if (value.isError()) {
-            return ERROR_TEXT;
+            return ERROR_LITERAL;
         }
-        return value.isDefined() ? value.get().getNodeType().toString() : UNDEFINED_TEXT;
+        return value.isDefined() ? value.get().getNodeType().toString() : UNDEFINED_LITERAL;
     }
 
     /**
@@ -1062,7 +1064,7 @@ public class Val implements Traced {
         }
 
         var traceJson = JSON.objectNode();
-        traceJson.set("value", val);
+        traceJson.set(Trace.VALUE, val);
         if (trace != null) {
             traceJson.set(Trace.TRACE_KEY, trace.getTrace());
         }

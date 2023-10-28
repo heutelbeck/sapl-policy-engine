@@ -15,15 +15,15 @@
  */
 package io.sapl.api.pdp;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Test;
 
-class DecisionTest {
+class DecisionTests {
 
     @Test
     void decisionTest() {
-        assertThrows(IllegalArgumentException.class, () -> Decision.valueOf(""));
+        assertThatThrownBy(() -> Decision.valueOf("")).isInstanceOf(IllegalArgumentException.class);
     }
 
 }

@@ -15,57 +15,56 @@
  */
 package io.sapl.api.interpreter;
 
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.Test;
 
-class PolicyEvaluationExceptionTest {
+class PolicyEvaluationExceptionTests {
 
     private static final String MESSAGE_STRING_1 = "MESSAGE STRING 1";
-
     private static final String MESSAGE_STRING_D = "MESSAGE STRING %d";
 
     @Test
     void defaultConstructor() {
         var exception = new PolicyEvaluationException();
-        assertThat(exception, notNullValue());
+        assertThat(exception).isNotNull();
     }
 
     @Test
     void exceptionHoldsMessage() {
         var exception = new PolicyEvaluationException(MESSAGE_STRING_D);
-        assertEquals(MESSAGE_STRING_D, exception.getMessage());
+        assertThat(exception.getMessage()).isEqualTo(MESSAGE_STRING_D);
     }
 
     @Test
     void exceptionHoldsFormattedMessage() {
         var exception = new PolicyEvaluationException(MESSAGE_STRING_D, 1);
-        assertEquals(MESSAGE_STRING_1, exception.getMessage());
+        assertThat(exception.getMessage()).isEqualTo(MESSAGE_STRING_1);
     }
 
     @Test
     void exceptionHoldsFormattedMessageAndCause() {
         var exception = new PolicyEvaluationException(new RuntimeException(), MESSAGE_STRING_D, 1);
-        assertAll(() -> assertEquals(MESSAGE_STRING_1, exception.getMessage()),
-                () -> assertThat(exception.getCause(), is(instanceOf(RuntimeException.class))));
+        var sa        = new SoftAssertions();
+        sa.assertThat(exception.getMessage()).isEqualTo(MESSAGE_STRING_1);
+        sa.assertThat(exception.getCause()).isInstanceOf(RuntimeException.class);
+        sa.assertAll();
     }
 
     @Test
     void exceptionHoldsMessageAndCause() {
         var exception = new PolicyEvaluationException(MESSAGE_STRING_D, new RuntimeException());
-        assertAll(() -> assertEquals(MESSAGE_STRING_D, exception.getMessage()),
-                () -> assertThat(exception.getCause(), is(instanceOf(RuntimeException.class))));
+        var sa        = new SoftAssertions();
+        sa.assertThat(exception.getMessage()).isEqualTo(MESSAGE_STRING_D);
+        sa.assertThat(exception.getCause()).isInstanceOf(RuntimeException.class);
+        sa.assertAll();
     }
 
     @Test
     void exceptionHoldsCause() {
         var exception = new PolicyEvaluationException(new RuntimeException());
-        assertThat(exception.getCause(), is(instanceOf(RuntimeException.class)));
+        assertThat(exception.getCause()).isInstanceOf(RuntimeException.class);
     }
 
 }

@@ -15,65 +15,63 @@
  */
 package io.sapl.api.pdp;
 
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonArray;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonInt;
-import static com.spotify.hamcrest.optional.OptionalMatchers.emptyOptional;
-import static com.spotify.hamcrest.optional.OptionalMatchers.optionalWithValue;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
-class AuthorizationDecisionTest {
+class AuthorizationDecisionTests {
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
     @Test
     void defaultConstructorResultsInNoEntriesAndIndeterminate() {
+        var sa       = new SoftAssertions();
         var decision = new AuthorizationDecision();
-        assertAll(() -> assertEquals(Decision.INDETERMINATE, decision.getDecision()),
-                () -> assertThat(decision.getAdvice(), is(emptyOptional())),
-                () -> assertThat(decision.getObligations(), is(emptyOptional())),
-                () -> assertThat(decision.getResource(), is(emptyOptional())));
+        sa.assertThat(decision.getDecision()).isEqualTo(Decision.INDETERMINATE);
+        sa.assertThat(decision.getAdvice()).isEmpty();
+        sa.assertThat(decision.getObligations()).isEmpty();
+        sa.assertThat(decision.getResource()).isEmpty();
+        sa.assertAll();
     }
 
     @Test
     void decisionConstructorResultsInNoEntries() {
+        var sa       = new SoftAssertions();
         var decision = new AuthorizationDecision(Decision.DENY);
-        assertAll(() -> assertEquals(Decision.DENY, decision.getDecision()),
-                () -> assertThat(decision.getAdvice(), is(emptyOptional())),
-                () -> assertThat(decision.getObligations(), is(emptyOptional())),
-                () -> assertThat(decision.getResource(), is(emptyOptional())));
+        sa.assertThat(decision.getDecision()).isEqualTo(Decision.DENY);
+        sa.assertThat(decision.getAdvice()).isEmpty();
+        sa.assertThat(decision.getObligations()).isEmpty();
+        sa.assertThat(decision.getResource()).isEmpty();
+        sa.assertAll();
     }
 
     @Test
     void decisionConstructorNull() {
-        assertThrows(NullPointerException.class, () -> new AuthorizationDecision(null));
+        assertThatThrownBy(() -> new AuthorizationDecision(null)).isInstanceOf(NullPointerException.class);
     }
 
     @Test
     void withAdviceNull() {
         var decision = new AuthorizationDecision();
-        assertThrows(NullPointerException.class, () -> decision.withAdvice(null));
+        assertThatThrownBy(() -> decision.withAdvice(null)).isInstanceOf(NullPointerException.class);
     }
 
     @Test
     void withDecisionNull() {
         var decision = new AuthorizationDecision();
-        assertThrows(NullPointerException.class, () -> decision.withDecision(null));
+        assertThatThrownBy(() -> decision.withDecision(null)).isInstanceOf(NullPointerException.class);
     }
 
     @Test
     void withAdviceEmpty() {
         var advice   = JSON.arrayNode();
         var decision = new AuthorizationDecision().withAdvice(advice);
-        assertThat(decision.getAdvice(), is(emptyOptional()));
+        assertThat(decision.getAdvice()).isEmpty();
     }
 
     @Test
@@ -81,20 +79,20 @@ class AuthorizationDecisionTest {
         var advice = JSON.arrayNode();
         advice.add(JSON.numberNode(0));
         var decision = new AuthorizationDecision().withAdvice(advice);
-        assertThat(decision.getAdvice(), is(optionalWithValue(is(jsonArray(contains(jsonInt(0)))))));
+        assertThatJson(decision.getAdvice().get()).isArray().containsAnyOf(0);
     }
 
     @Test
     void withObligationsEmpty() {
         var obligations = JSON.arrayNode();
         var decision    = new AuthorizationDecision().withObligations(obligations);
-        assertThat(decision.getObligations(), is(emptyOptional()));
+        assertThat(decision.getObligations()).isEmpty();
     }
 
     @Test
     void withObligationsNull() {
         var decision = new AuthorizationDecision();
-        assertThrows(NullPointerException.class, () -> decision.withObligations(null));
+        assertThatThrownBy(() -> decision.withObligations(null)).isInstanceOf(NullPointerException.class);
     }
 
     @Test
@@ -102,25 +100,25 @@ class AuthorizationDecisionTest {
         var obligations = JSON.arrayNode();
         obligations.add(JSON.numberNode(0));
         var decision = new AuthorizationDecision().withObligations(obligations);
-        assertThat(decision.getObligations(), is(optionalWithValue(is(jsonArray(contains(jsonInt(0)))))));
+        assertThatJson(decision.getObligations().get()).isArray().containsAnyOf(0);
     }
 
     @Test
     void withResourceNull() {
         var decision = new AuthorizationDecision();
-        assertThrows(NullPointerException.class, () -> decision.withResource(null));
+        assertThatThrownBy(() -> decision.withResource(null)).isInstanceOf(NullPointerException.class);
     }
 
     @Test
     void withResource() {
         var decision = new AuthorizationDecision().withResource(JSON.numberNode(0));
-        assertThat(decision.getResource(), is(optionalWithValue(is(jsonInt(0)))));
+        assertThatJson(decision.getResource().get()).isPresent().isEqualTo(0);
     }
 
     @Test
     void withDecision() {
         var decision = AuthorizationDecision.DENY.withDecision(Decision.PERMIT);
-        assertThat(decision.getDecision(), is(Decision.PERMIT));
+        assertThat(decision.getDecision()).isEqualTo(Decision.PERMIT);
     }
 
 }
