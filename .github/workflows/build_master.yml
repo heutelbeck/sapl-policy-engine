@@ -13,12 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-name: Build
+name: Build Master
 
 on:
   workflow_dispatch:
   push:
-    branches: [master, test_actions]
+    branches: "master"
     paths-ignore: ["sapl-documentation/**", ".github/build_documentation.yml"]
 
 jobs:
@@ -46,11 +46,11 @@ jobs:
         cache: 'maven'
 
     - name: Run tests
-      run: mvn -B package javadoc:jar
+      run: mvn -B package javadoc:jar -Pproduction
   
   analyze:
     needs: [tests]
-    name: FTK SonarQube - Code Analysis, Test Coverage, Integration Tests
+    name: SonarQube
     runs-on: ubuntu-latest
     timeout-minutes: 20
     
@@ -110,7 +110,7 @@ jobs:
 
   sonarcloud_analyze:
     needs: [tests]
-    name: SonarCloud - Code Analysis, Test Coverage, Integration Tests for Sonarcloud
+    name: SonarCloud
     runs-on: ubuntu-latest
     timeout-minutes: 20
     
