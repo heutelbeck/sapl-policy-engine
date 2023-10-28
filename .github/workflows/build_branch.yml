@@ -19,7 +19,7 @@ on:
   workflow_dispatch:
   push:
     branches: ["json_schema_contentassist", "adroefke-add-sapl-test-lang"]
-    paths-ignore: ["sapl-documentation/**", ".github/build_documentation.yml"]
+    paths-ignore: ["sapl-documentation/**", ".github/build_documentation.yml", ".github/build_master.yml", ".github/build_request.yml"]
 
 jobs:
   tests:

@@ -19,7 +19,7 @@ on:
   workflow_dispatch:
   push:
     branches: "master"
-    paths-ignore: ["sapl-documentation/**", ".github/build_documentation.yml"]
+    paths-ignore: ["sapl-documentation/**", ".github/build_documentation.yml", ".github/build_branch.yml", ".github/build_request.yml"]
 
 jobs:
   tests:
