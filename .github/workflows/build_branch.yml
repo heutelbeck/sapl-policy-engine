@@ -18,7 +18,7 @@ name: Build Branch
 on:
   workflow_dispatch:
   push:
-    branches: "json_schema_contentassist"
+    branches: ["json_schema_contentassist", "adroefke-add-sapl-test-lang"]
     paths-ignore: ["sapl-documentation/**", ".github/build_documentation.yml"]
 
 jobs:
