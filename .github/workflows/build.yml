@@ -25,7 +25,7 @@ jobs:
   tests:
     strategy:
       matrix:
-        java: [ '17', '21-ea' ]
+        java: [ '17', '21' ]
         os: [ubuntu-latest] # , windows-latest, macos-latest]
     name: Unit Tests (JDK ${{ matrix.java }} on ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -45,17 +45,12 @@ jobs:
         java-version: ${{ matrix.java }}
         cache: 'maven'
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-
     - name: Run tests
       run: mvn -B package javadoc:jar
   
   analyze:
     needs: [tests]
-    name: Code Analysis, Test Coverage, Integration Tests
+    name: FTK SonarQube - Code Analysis, Test Coverage, Integration Tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
     
@@ -70,14 +65,9 @@ jobs:
     - name: Set up JDK 17
       uses: actions/setup-java@v3
       with:
-        distribution: 'adopt'
+        distribution: temurin
         java-version: 17
         cache: 'maven'
-
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
 
     - name: Configure servers
       uses: s4u/maven-settings-action@v2.8.0
@@ -118,8 +108,65 @@ jobs:
     - name: Clean up local repository before caching 
       run: rm -rf ~/.m2/repository/io/sapl
 
+  sonarcloud_analyze:
+    needs: [tests]
+    name: SonarCloud - Code Analysis, Test Coverage, Integration Tests for Sonarcloud
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    
+    steps:
+    - name: Check out
+      uses: actions/checkout@v3
+      with:
+        lfs: true
+        # avoid shallow clone to ensure correct sonarqube auto assignment of blame
+        fetch-depth: 0
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        distribution: temurin
+        java-version: 17
+        cache: 'maven'
+
+    - name: Configure servers
+      uses: s4u/maven-settings-action@v2.8.0
+      with:
+        githubServer: false
+        servers: |
+          [{
+              "id": "ghcr.io",
+              "username": "${{ secrets.GHUB_USERNAME }}",
+              "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
+           }]
+    
+    - name: Add auth-host to /etc/hosts for OAuth Integration Tests
+      run: sudo sh -c 'echo "127.0.0.1 auth-host" >> /etc/hosts'
+      
+    - name: Build Modules
+      run: mvn -B install -DskipTests
+
+    - name: Build SAPL Server LT Image
+      run: mvn -B dockerfile:build -pl sapl-server-lt -P docker -DskipTests
+
+    - name: Cache SonarCloud packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.sonar/cache
+        key: ${{ runner.os }}-sonar
+        restore-keys: ${{ runner.os }}-sonar
+  
+    - name: Run analysis (Unit Tests, IT, JaCoCo, Sonar)    
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+        SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
+      run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar failsafe:integration-test -Pcoverage,it -Dsonar.login=${SONAR_TOKEN} -Dsonar.organization=heutelbeck -Dsonar.host.url=https://sonarcloud.io -Dsonar.projectKey=heutelbeck_sapl-policy-engine
+
+    - name: Clean up local repository before caching 
+      run: rm -rf ~/.m2/repository/io/sapl
+
   deploy:
-    needs: [analyze]
+    needs: [analyze,sonarcloud_analyze]
     name: Deploy to central
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -134,7 +181,7 @@ jobs:
     - name: Set up JDK 17
       uses: actions/setup-java@v3
       with:
-        distribution: 'adopt'
+        distribution: temurin
         java-version: 17
         cache: 'maven'
 

@@ -103,6 +103,42 @@ class SaplAttributeRegistryTests {
 		expectSubjectExpressionStringInAttribute(TestClass.class, "'onInterfaceMethod'");
 	}
 
+	interface TestGenericInterface<E, I> {
+
+		void doSomethingGeneric();
+
+	}
+
+	interface TestDomainInterface {
+
+		@PreEnforce(subject = "'onDomainInterfaceMethod'")
+		void doSomething();
+
+	}
+
+	interface CombinedInterface extends TestGenericInterface<Object, Long>, TestDomainInterface {
+
+	}
+
+	
+	@Test
+	void whenAnnotationOnlyCoplexInterfaceHierarchy_ThenReturnsThat() throws NoSuchMethodException {
+		class Implementation implements CombinedInterface {
+
+			@Override
+			public void doSomethingGeneric() {
+				// NOOP
+			}
+
+			@Override
+			public void doSomething() {
+				// NOOP
+			}
+		}
+
+		expectSubjectExpressionStringInAttribute(Implementation.class, "'onDomainInterfaceMethod'");
+	}
+
 	@PreEnforce(subject = "'onInterface'")
 	interface TestInterfaceAnnotatedOnInterface {
 		void doSomething();
@@ -211,17 +247,12 @@ class SaplAttributeRegistryTests {
 		expectSubjectExpressionStringInAttribute(TestClass.class, "'onDefaultInterfaceMethod'");
 	}
 
-	private void expectSubjectExpressionStringInAttribute(Class<?> clazz,
-			String expectedExpressionString) {
+	private void expectSubjectExpressionStringInAttribute(Class<?> clazz, String expectedExpressionString) {
 		var sut        = new SaplAttributeRegistry();
 		var mi         = MethodInvocationUtils.createFromClass(clazz, "doSomething");
 		var attributes = sut.getAllSaplAttributes(mi);
-		assertThat(attributes, hasValue(
-				is(pojo(SaplAttribute.class)
-						.where("subjectExpression",
-								is(pojo(Expression.class)
-										.where("getExpressionString",
-												is(expectedExpressionString)))))));
+		assertThat(attributes, hasValue(is(pojo(SaplAttribute.class).where("subjectExpression",
+				is(pojo(Expression.class).where("getExpressionString", is(expectedExpressionString)))))));
 	}
 
 }
