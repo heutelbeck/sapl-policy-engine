@@ -10,10 +10,10 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.hamcrest.Matchers;
 import io.sapl.test.Helper;
 import io.sapl.test.dsl.interpreter.matcher.AuthorizationDecisionMatcherInterpreter;
+import io.sapl.test.dsl.interpreter.matcher.MultipleAmountInterpreter;
 import io.sapl.test.grammar.sAPLTest.*;
 import io.sapl.test.steps.ExpectOrVerifyStep;
 import io.sapl.test.steps.VerifyStep;
-import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.List;
 import org.hamcrest.Matcher;
@@ -40,6 +40,8 @@ class ExpectInterpreterTest {
     private AuthorizationDecisionMatcherInterpreter authorizationDecisionMatcherInterpreterMock;
     @Mock
     private DurationInterpreter durationInterpreterMock;
+    @Mock
+    private MultipleAmountInterpreter multipleAmountInterpreter;
 
     @InjectMocks
     private ExpectInterpreter expectInterpreter;
@@ -153,8 +155,9 @@ class ExpectInterpreterTest {
 
                 final var multipleMock = mock(Multiple.class);
                 when(nextMock.getAmount()).thenReturn(multipleMock);
-                when(multipleMock.getAmount()).thenReturn(BigDecimal.valueOf(3));
+                when(multipleMock.getAmount()).thenReturn("3x");
 
+                when(multipleAmountInterpreter.getAmountFromMultipleAmountString("3x")).thenReturn(3);
                 when(nextMock.getExpectedDecision()).thenReturn(io.sapl.test.grammar.sAPLTest.AuthorizationDecision.DENY);
 
                 when(expectOrVerifyStepMock.expectNextDeny(3)).thenReturn(expectOrVerifyStepMock);
@@ -214,8 +217,9 @@ class ExpectInterpreterTest {
 
                 final var multipleMock = mock(Multiple.class);
                 when(nextMock.getAmount()).thenReturn(multipleMock);
-                when(multipleMock.getAmount()).thenReturn(BigDecimal.valueOf(5));
+                when(multipleMock.getAmount()).thenReturn("5x");
 
+                when(multipleAmountInterpreter.getAmountFromMultipleAmountString("5x")).thenReturn(5);
                 when(nextMock.getExpectedDecision()).thenReturn(io.sapl.test.grammar.sAPLTest.AuthorizationDecision.NOT_APPLICABLE);
 
                 when(expectOrVerifyStepMock.expectNextNotApplicable(5)).thenReturn(expectOrVerifyStepMock);

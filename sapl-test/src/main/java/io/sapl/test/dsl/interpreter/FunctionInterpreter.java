@@ -2,6 +2,7 @@ package io.sapl.test.dsl.interpreter;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.Imports;
+import io.sapl.test.dsl.interpreter.matcher.MultipleAmountInterpreter;
 import io.sapl.test.dsl.interpreter.matcher.ValMatcherInterpreter;
 import io.sapl.test.grammar.sAPLTest.Function;
 import io.sapl.test.grammar.sAPLTest.FunctionInvokedOnce;
@@ -17,6 +18,7 @@ public class FunctionInterpreter {
 
     private final ValInterpreter valInterpreter;
     private final ValMatcherInterpreter matcherInterpreter;
+    private final MultipleAmountInterpreter multipleAmountInterpreter;
 
     GivenOrWhenStep interpretFunction(final GivenOrWhenStep initial, final Function function) {
         final var importName = function.getImportName();
@@ -25,7 +27,7 @@ public class FunctionInterpreter {
         var timesCalled = 0;
 
         if (function.getAmount() instanceof Multiple multiple) {
-            timesCalled = multiple.getAmount().intValue();
+            timesCalled = multipleAmountInterpreter.getAmountFromMultipleAmountString(multiple.getAmount());
         } else if (function.getAmount() instanceof Once) {
             timesCalled = 1;
         }

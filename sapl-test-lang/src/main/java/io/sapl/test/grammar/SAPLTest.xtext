@@ -120,9 +120,12 @@ enum AuthorizationDecision:
 AuthorizationSubscription:
 	'subject' subject=Value 'attempts' 'action' action=Value 'on' 'resource' resource=Value ('with' 'environment' environment=Value)?;
 
+terminal MultipleAmount:
+    (('2'..'9')|(('1'..'9')('0'..'9')+))'x';
+
 NumericAmount:
     {Once} 'once' |
-    {Multiple} amount=JSONNUMBER 'times';
+    {Multiple} amount=MultipleAmount;
 
 Duration: duration=STRING;
 

@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import io.sapl.test.Helper;
 import io.sapl.test.Imports;
+import io.sapl.test.dsl.interpreter.matcher.MultipleAmountInterpreter;
 import io.sapl.test.dsl.interpreter.matcher.ValMatcherInterpreter;
 import io.sapl.test.grammar.sAPLTest.Function;
 import io.sapl.test.grammar.sAPLTest.FunctionInvokedOnce;
@@ -19,7 +20,6 @@ import io.sapl.test.grammar.sAPLTest.ValMatcher;
 import io.sapl.test.grammar.sAPLTest.Value;
 import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.verification.TimesCalledVerification;
-import java.math.BigDecimal;
 import java.util.List;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.AfterEach;
@@ -27,26 +27,29 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.MockedStatic;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class FunctionInterpreterTest {
 
+    @Mock
     private ValInterpreter valInterpreterMock;
+    @Mock
     private ValMatcherInterpreter matcherInterpreterMock;
-    private GivenOrWhenStep givenOrWhenStepMock;
-    private MockedStatic<Imports> importsMockedStatic;
+    @Mock
+    private MultipleAmountInterpreter multipleAmountInterpreter;
+    @InjectMocks
     private FunctionInterpreter functionInterpreter;
 
-    @BeforeEach
-    void setUp() {
-        valInterpreterMock = mock(ValInterpreter.class);
-        matcherInterpreterMock = mock(ValMatcherInterpreter.class);
-        givenOrWhenStepMock = mock(GivenOrWhenStep.class);
-        importsMockedStatic = mockStatic(Imports.class);
+    @Mock
+    private GivenOrWhenStep givenOrWhenStepMock;
+    private final MockedStatic<Imports> importsMockedStatic = mockStatic(Imports.class);
 
-        functionInterpreter = new FunctionInterpreter(valInterpreterMock, matcherInterpreterMock);
-    }
 
     @AfterEach
     void tearDown() {
@@ -160,7 +163,9 @@ class FunctionInterpreterTest {
             final var multipleMock = mock(Multiple.class);
 
             when(functionMock.getAmount()).thenReturn(multipleMock);
-            when(multipleMock.getAmount()).thenReturn(BigDecimal.valueOf(3));
+            when(multipleMock.getAmount()).thenReturn("3x");
+
+            when(multipleAmountInterpreter.getAmountFromMultipleAmountString("3x")).thenReturn(3);
 
             final var functionParametersMock = mock(FunctionParameters.class);
             when(functionMock.getParameters()).thenReturn(functionParametersMock);
@@ -204,7 +209,9 @@ class FunctionInterpreterTest {
             final var multipleMock = mock(Multiple.class);
 
             when(functionMock.getAmount()).thenReturn(multipleMock);
-            when(multipleMock.getAmount()).thenReturn(BigDecimal.valueOf(3));
+            when(multipleMock.getAmount()).thenReturn("3x");
+
+            when(multipleAmountInterpreter.getAmountFromMultipleAmountString("3x")).thenReturn(3);
 
             final var functionParametersMock = mock(FunctionParameters.class);
             when(functionMock.getParameters()).thenReturn(functionParametersMock);

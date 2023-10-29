@@ -10,6 +10,7 @@ import io.sapl.test.dsl.interpreter.constructorwrappers.SaplIntegrationTestFixtu
 import io.sapl.test.dsl.interpreter.constructorwrappers.SaplUnitTestFixtureConstructorWrapper;
 import io.sapl.test.dsl.interpreter.matcher.AuthorizationDecisionMatcherInterpreter;
 import io.sapl.test.dsl.interpreter.matcher.JsonNodeMatcherInterpreter;
+import io.sapl.test.dsl.interpreter.matcher.MultipleAmountInterpreter;
 import io.sapl.test.dsl.interpreter.matcher.StringMatcherInterpreter;
 import io.sapl.test.dsl.interpreter.matcher.ValMatcherInterpreter;
 import io.sapl.test.dsl.lang.DefaultSaplTestInterpreter;
@@ -51,11 +52,12 @@ public class TestBuilder {
 
         final var durationInterpreter = new DurationInterpreter();
         final var attributeInterpreter = new AttributeInterpreter(valInterpreter, matcherInterpreter, durationInterpreter);
-        final var functionInterpreter = new FunctionInterpreter(valInterpreter, matcherInterpreter);
+        final var multipleAmountInterpreter = new MultipleAmountInterpreter();
+        final var functionInterpreter = new FunctionInterpreter(valInterpreter, matcherInterpreter, multipleAmountInterpreter);
         final var authorizationDecisionInterpreter = new AuthorizationDecisionInterpreter(valInterpreter, objectMapper);
         final var authorizationSubscriptionInterpreter = new AuthorizationSubscriptionInterpreter(valInterpreter);
         final var authorizationDecisionMatcherInterpreter = new AuthorizationDecisionMatcherInterpreter(valInterpreter, jsonNodeMatcherInterpreter);
-        final var expectInterpreter = new ExpectInterpreter(valInterpreter, authorizationDecisionInterpreter, authorizationDecisionMatcherInterpreter, durationInterpreter);
+        final var expectInterpreter = new ExpectInterpreter(valInterpreter, authorizationDecisionInterpreter, authorizationDecisionMatcherInterpreter, durationInterpreter, multipleAmountInterpreter);
 
         final var whenStepBuilder = new DefaultWhenStepBuilder(functionInterpreter, attributeInterpreter);
         final var expectStepBuilder = new DefaultExpectStepBuilder(authorizationSubscriptionInterpreter);

@@ -4,6 +4,7 @@ import static org.hamcrest.Matchers.allOf;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.test.dsl.interpreter.matcher.AuthorizationDecisionMatcherInterpreter;
+import io.sapl.test.dsl.interpreter.matcher.MultipleAmountInterpreter;
 import io.sapl.test.grammar.sAPLTest.AttributeAdjustment;
 import io.sapl.test.grammar.sAPLTest.Await;
 import io.sapl.test.grammar.sAPLTest.Multiple;
@@ -25,6 +26,7 @@ public class ExpectInterpreter {
     private final AuthorizationDecisionInterpreter authorizationDecisionInterpreter;
     private final AuthorizationDecisionMatcherInterpreter authorizationDecisionMatcherInterpreter;
     private final DurationInterpreter durationInterpreter;
+    private final MultipleAmountInterpreter multipleAmountInterpreter;
 
     VerifyStep interpretSingleExpect(final ExpectOrVerifyStep expectOrVerifyStep, final SingleExpect singleExpect) {
         final var decision = singleExpect.getDecision();
@@ -65,7 +67,7 @@ public class ExpectInterpreter {
     }
 
     private ExpectOrVerifyStep constructNext(final ExpectOrVerifyStep expectOrVerifyStep, final Next nextExpect) {
-        final var actualAmount = nextExpect.getAmount() instanceof Multiple multiple ? multiple.getAmount().intValue() : 1;
+        final var actualAmount = nextExpect.getAmount() instanceof Multiple multiple ? multipleAmountInterpreter.getAmountFromMultipleAmountString(multiple.getAmount()) : 1;
 
         return switch (nextExpect.getExpectedDecision()) {
             case PERMIT -> expectOrVerifyStep.expectNextPermit(actualAmount);
