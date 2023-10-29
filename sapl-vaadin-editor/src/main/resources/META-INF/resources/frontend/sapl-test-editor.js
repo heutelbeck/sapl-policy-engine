@@ -100,6 +100,7 @@ class SAPLTestEditor extends LitElement {
       xtextLang: self.xtextLang,
       sendFullText: true,
       syntaxDefinition: "xtext/sapltest",
+      baseUrl: "/sapl-test/",
       readOnly: false,
       lineNumbers: self.hasLineNumbers,
       showCursorWhenSelecting: true,

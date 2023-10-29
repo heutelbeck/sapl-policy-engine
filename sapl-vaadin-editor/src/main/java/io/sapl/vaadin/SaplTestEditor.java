@@ -26,7 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * An editor component for SAPL documents supporting code-completion,
+ * An editor component for SAPLTest documents supporting code-completion,
  * syntax-highlighting, and linting.
  */
 @Tag("sapl-test-editor")

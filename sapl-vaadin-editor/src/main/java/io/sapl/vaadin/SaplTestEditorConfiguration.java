@@ -19,7 +19,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
- * Configuration object to initialize the SAPL Editor.
+ * Configuration object to initialize the SAPLTest Editor.
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

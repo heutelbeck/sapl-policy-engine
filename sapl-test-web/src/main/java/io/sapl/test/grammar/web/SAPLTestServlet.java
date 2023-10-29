@@ -24,7 +24,7 @@ import org.eclipse.xtext.util.DisposableRegistry;
 /**
  * Deploy this class into a servlet container to enable DSL-specific services.
  */
-@WebServlet(name = "XtextServices", urlPatterns = "/xtext-service/*")
+@WebServlet(name = "SaplTestXtextServices", urlPatterns = "/sapl-test/xtext-service/*")
 public class SAPLTestServlet extends XtextServlet {
 
 	private transient DisposableRegistry disposableRegistry;
