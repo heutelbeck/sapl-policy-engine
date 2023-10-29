@@ -17,7 +17,7 @@ package io.sapl.grammar.sapl.impl;
 
 import static io.sapl.api.pdp.AuthorizationDecision.INDETERMINATE;
 import static io.sapl.api.pdp.AuthorizationDecision.PERMIT;
-import static io.sapl.grammar.sapl.impl.util.TestUtil.hasDecision;
+import static io.sapl.testutil.TestUtil.hasDecision;
 
 import java.util.Map;
 import java.util.stream.Stream;
@@ -29,10 +29,10 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.interpreter.context.AuthorizationContext;
+import io.sapl.testutil.MockUtil;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 

@@ -15,6 +15,7 @@
  */
 package io.sapl.interpreter.pip;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -39,10 +40,10 @@ import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.validation.Bool;
 import io.sapl.api.validation.Text;
-import io.sapl.grammar.sapl.impl.util.ParserUtil;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
+import io.sapl.testutil.ParserUtil;
 import jakarta.validation.constraints.NotNull;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
@@ -53,7 +54,7 @@ class AnnotationAttributeContextTests {
     @Test
     void when_classHasNoAnnotation_fail() {
         assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(
-                "I am an instance of a class without @PolicyInformationPoint annotation"));
+                "I am an instance of a class without a @PolicyInformationPoint annotation"));
     }
 
     @Test
@@ -71,7 +72,7 @@ class AnnotationAttributeContextTests {
         @PolicyInformationPoint(name = "somePip")
         class PIP {
 
-            @Attribute
+            @EnvironmentAttribute
             public Flux<Val> x() {
                 return null;
             }
@@ -79,7 +80,9 @@ class AnnotationAttributeContextTests {
         }
 
         var pip = new PIP();
-        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(pip, pip));
+        assertThatThrownBy(() -> new AnnotationAttributeContext(pip, pip)).isInstanceOf(InitializationException.class)
+                .hasMessage(String.format(
+                        AnnotationAttributeContext.A_PIP_WITH_THE_NAME_S_HAS_ALREADY_BEEN_REGISTERED_ERROR, "somePip"));
     }
 
     @Test
@@ -105,7 +108,7 @@ class AnnotationAttributeContextTests {
 
             @Attribute
             void x() {
-                /* NOOP */
+                // NOOP
             }
 
         }
@@ -212,7 +215,7 @@ class AnnotationAttributeContextTests {
         @PolicyInformationPoint
         class PIP {
 
-            @Attribute
+            @EnvironmentAttribute
             public Flux<Val> x(Map<String, String> variables) {
                 return null;
             }
@@ -221,6 +224,33 @@ class AnnotationAttributeContextTests {
 
         var pip = new PIP();
         assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(pip));
+
+        @PolicyInformationPoint
+        class PIP2 {
+
+            @EnvironmentAttribute
+            public Flux<Val> x(Map<Double, String> variables) {
+                return null;
+            }
+
+        }
+
+        var pip2 = new PIP2();
+        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(pip2));
+
+        @PolicyInformationPoint
+        class PIP3 {
+
+            @EnvironmentAttribute
+            public Flux<Val> x(Map<Double, JsonNode> variables) {
+                return null;
+            }
+
+        }
+
+        var pip3 = new PIP3();
+        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(pip3));
+
     }
 
     @Test
@@ -253,7 +283,28 @@ class AnnotationAttributeContextTests {
         }
 
         var pip = new PIP();
-        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(pip));
+
+        assertThatThrownBy(() -> new AnnotationAttributeContext(pip)).isInstanceOf(InitializationException.class)
+                .hasMessage(
+                        String.format(AnnotationAttributeContext.FIRST_PARAMETER_S_UNEXPECTED_S_ERROR, "x", "Object"));
+    }
+
+    @Test
+    void when_noParameter_fail() {
+        @PolicyInformationPoint
+        class PIP {
+
+            @Attribute
+            public Flux<Val> x() {
+                return null;
+            }
+
+        }
+
+        var pip = new PIP();
+
+        assertThatThrownBy(() -> new AnnotationAttributeContext(pip)).isInstanceOf(InitializationException.class)
+                .hasMessage(String.format(AnnotationAttributeContext.FIRST_PARAMETER_NOT_PRESENT_S_ERROR, "x"));
     }
 
     @Test
@@ -518,6 +569,45 @@ class AnnotationAttributeContextTests {
         var expression   = ParserUtil.expression("\"\".<test.attribute(\"param1\",\"param2\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
                 .expectNext(Val.of("param2")).verifyComplete();
+    }
+
+    @Test
+    void when_varArgsWithVariablesAndVarArgsAndNoArguments_evaluates() throws InitializationException, IOException {
+        @PolicyInformationPoint(name = "test")
+        class PIP {
+
+            @Attribute
+            public Flux<Val> attribute(Val leftHand, Map<String, JsonNode> variables, @Text Val... params) {
+                return Flux.just(leftHand);
+            }
+
+        }
+
+        var pip          = new PIP();
+        var attributeCtx = new AnnotationAttributeContext(pip);
+        var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
+        var expression   = ParserUtil.expression("\"\".<test.attribute>");
+        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+                .expectNext(Val.of("")).verifyComplete();
+    }
+
+    @Test
+    void when_varArgsWithotVariablesAndVarArgsAndNoArguments_evaluates() throws InitializationException, IOException {
+        @PolicyInformationPoint(name = "test")
+        class PIP {
+
+            @Attribute
+            public Flux<Val> attribute(Val leftHand, @Text Val... params) {
+                return Flux.just(leftHand);
+            }
+        }
+
+        var pip          = new PIP();
+        var attributeCtx = new AnnotationAttributeContext(pip);
+        var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
+        var expression   = ParserUtil.expression("\"\".<test.attribute(\"A\",\"B\")>");
+        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+                .expectNext(Val.of("")).verifyComplete();
     }
 
     @Test

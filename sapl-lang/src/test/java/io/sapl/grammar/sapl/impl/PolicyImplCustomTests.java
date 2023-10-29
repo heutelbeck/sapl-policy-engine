@@ -15,7 +15,7 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.TestUtil.hasDecision;
+import static io.sapl.testutil.TestUtil.hasDecision;
 
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -30,8 +30,8 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.testutil.MockUtil;
 import reactor.test.StepVerifier;
 
 class PolicyImplCustomTests {

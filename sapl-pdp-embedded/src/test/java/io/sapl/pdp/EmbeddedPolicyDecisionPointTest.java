@@ -83,12 +83,12 @@ class EmbeddedPolicyDecisionPointTest {
     }
 
     @Test
-    void decide_withEmptyRequest_shouldBeNotApplicable() {
+    void decide_withEmptyRequest_shouldBeDenyForDenyUnlessPermitAlgorithm() {
         AuthorizationSubscription         emptyAuthzSubscription = new AuthorizationSubscription(JSON.nullNode(),
                 JSON.nullNode(), JSON.nullNode(), JSON.nullNode());
         final Flux<AuthorizationDecision> authzDecisionFlux      = pdp.decide(emptyAuthzSubscription);
         StepVerifier.create(authzDecisionFlux)
-                .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.NOT_APPLICABLE).thenCancel()
+                .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.DENY).thenCancel()
                 .verify();
     }
 

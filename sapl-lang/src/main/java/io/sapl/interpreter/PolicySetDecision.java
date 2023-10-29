@@ -86,8 +86,9 @@ public class PolicySetDecision implements DocumentEvaluationResult {
         var trace = Val.JSON.objectNode();
         trace.set(Trace.DOCUMENT_TYPE, Val.JSON.textNode("policy set"));
         trace.set(Trace.POLICY_SET_NAME, Val.JSON.textNode(documentName));
-        trace.set(Trace.COMBINED_DECISION, combinedDecision.getTrace());
-        errorMessage.ifPresent(error -> trace.set(Trace.ERROR, Val.JSON.textNode(errorMessage.get())));
+        if (combinedDecision != null)
+            trace.set(Trace.COMBINED_DECISION, combinedDecision.getTrace());
+        errorMessage.ifPresent(error -> trace.set(Trace.ERROR_MESSAGE, Val.JSON.textNode(errorMessage.get())));
         targetResult.ifPresent(target -> trace.set(Trace.TARGET, target.getTrace()));
         return trace;
     }

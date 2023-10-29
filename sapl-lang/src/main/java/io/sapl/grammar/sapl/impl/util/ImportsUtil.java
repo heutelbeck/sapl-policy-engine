@@ -34,13 +34,10 @@ import reactor.util.context.Context;
 
 @UtilityClass
 public class ImportsUtil {
-    private static final String IMPORT_EXISTS = "An import for name '%s' already exists.";
-
-    private static final String IMPORT_NOT_FOUND = "Import '%s' was not found.";
-
-    private static final String WILDCARD_IMPORT_EXISTS = "Wildcard import of '%s' not possible as an import for name '%s' already exists.";
-
-    private static final String LIBRARY_IMPORT_EXISTS = "Library import of '%s' not possible as an import for name '%s' already exists.";
+    private static final String IMPORT_EXISTS_ERROR          = "An import for name '%s' already exists.";
+    private static final String IMPORT_NOT_FOUND_ERROR       = "Import '%s' was not found.";
+    private static final String WILDCARD_IMPORT_EXISTS_ERROR = "Wildcard import of '%s' not possible as an import for name '%s' already exists.";
+    private static final String LIBRARY_IMPORT_EXISTS_ERROR  = "Library import of '%s' not possible as an import for name '%s' already exists.";
 
     public static Context loadImportsIntoContext(EObject startNode, Context ctx) {
         var imports = fetchImportsFromParents(startNode, AuthorizationContext.getAttributeContext(ctx),
@@ -90,12 +87,12 @@ public class ImportsUtil {
         var fullyQualifiedFunctionName = String.join(".", library, functionName);
 
         if (imports.containsKey(functionName))
-            throw new PolicyEvaluationException(IMPORT_EXISTS, fullyQualifiedFunctionName);
+            throw new PolicyEvaluationException(IMPORT_EXISTS_ERROR, fullyQualifiedFunctionName);
 
         if (evaluationContextProvidesFunction(attributeContext, functionContext, fullyQualifiedFunctionName))
             imports.put(functionName, fullyQualifiedFunctionName);
         else
-            throw new PolicyEvaluationException(IMPORT_NOT_FOUND, fullyQualifiedFunctionName);
+            throw new PolicyEvaluationException(IMPORT_NOT_FOUND_ERROR, fullyQualifiedFunctionName);
     }
 
     private static boolean evaluationContextProvidesFunction(AttributeContext attributeContext,
@@ -108,7 +105,7 @@ public class ImportsUtil {
             LibraryFunctionProvider functionProvider) {
         for (var name : functionProvider.providedFunctionsOfLibrary(library)) {
             if (imports.put(name, String.join(".", library, name)) != null)
-                throw new PolicyEvaluationException(WILDCARD_IMPORT_EXISTS, library, name);
+                throw new PolicyEvaluationException(WILDCARD_IMPORT_EXISTS_ERROR, library, name);
         }
     }
 
@@ -117,7 +114,7 @@ public class ImportsUtil {
         for (var name : functionProvider.providedFunctionsOfLibrary(library)) {
             var key = String.join(".", alias, name);
             if (imports.put(key, String.join(".", library, name)) != null)
-                throw new PolicyEvaluationException(LIBRARY_IMPORT_EXISTS, library, name);
+                throw new PolicyEvaluationException(LIBRARY_IMPORT_EXISTS_ERROR, library, name);
         }
     }
 

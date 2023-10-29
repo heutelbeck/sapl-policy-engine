@@ -18,7 +18,7 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.api.pdp.AuthorizationDecision.INDETERMINATE;
 import static io.sapl.api.pdp.AuthorizationDecision.NOT_APPLICABLE;
 import static io.sapl.api.pdp.AuthorizationDecision.PERMIT;
-import static io.sapl.grammar.sapl.impl.util.TestUtil.hasDecision;
+import static io.sapl.testutil.TestUtil.hasDecision;
 
 import java.util.stream.Stream;
 
@@ -27,8 +27,8 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.testutil.MockUtil;
 import reactor.test.StepVerifier;
 
 class PolicyBodyImplCustomTests {

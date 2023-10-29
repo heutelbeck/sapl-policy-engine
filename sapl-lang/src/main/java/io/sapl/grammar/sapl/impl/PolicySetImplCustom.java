@@ -46,12 +46,18 @@ public class PolicySetImplCustom extends PolicySetImpl {
         return combinedDecisions.map(combined -> PolicySetDecision.of(combined, getSaplName()));
     }
 
+    /**
+     * Maps error or non-boolean to the matching evaluation result.
+     * 
+     * @param targetValue the evaluation result of the target expression (must be
+     *                    non-Boolean or error).
+     * @Returns the matching evaluation result.
+     */
     @Override
     public DocumentEvaluationResult targetResult(Val targetValue) {
         if (targetValue.isError())
             return PolicySetDecision.ofTargetError(getSaplName(), targetValue, this.algorithm.getName());
         return PolicySetDecision.notApplicable(getSaplName(), targetValue, this.algorithm.getName());
-
     }
 
     @Override

@@ -39,7 +39,6 @@ public class ReportBuilderUtil {
     public static final String DOCUMENT_REPORTS           = "documentReports";
     public static final String DOCUMENT_TYPE              = "documentType";
     public static final String ENTITLEMENT                = "entitlement";
-    public static final String ERROR                      = "error";
     public static final String ERRORS                     = "errors";
     public static final String ERROR_MESSAGE              = "errorMessage";
     public static final String EVALUATED_POLICIES         = "evaluatedPolicies";
@@ -64,8 +63,8 @@ public class ReportBuilderUtil {
         if (combinedDecision != null) {
             var pdpCombiningAlgorithm = combinedDecision.get(Trace.COMBINING_ALGORITHM);
             report.set(PDP_COMBINING_ALGORITHM, pdpCombiningAlgorithm);
-            if (combinedDecision.get(Trace.ERROR) != null) {
-                report.set(ERROR, combinedDecision.get(Trace.ERROR));
+            if (combinedDecision.get(Trace.ERROR_MESSAGE) != null) {
+                report.set(ERROR_MESSAGE, combinedDecision.get(Trace.ERROR_MESSAGE));
             }
         }
         report.set(MATCHING_DOCUMENTS, trace.get(Trace.MATCHING_DOCUMENTS));

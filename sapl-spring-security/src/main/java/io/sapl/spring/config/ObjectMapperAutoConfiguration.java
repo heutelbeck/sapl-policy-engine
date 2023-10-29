@@ -58,9 +58,6 @@ public class ObjectMapperAutoConfiguration {
 
     /**
      * Register serializers for creating authorization subscriptions.
-     * 
-     * @author Dominic Heutelbeck
-     *
      */
     @Configuration
     public static class BasicModuleRegistrationConfiguration {
@@ -80,9 +77,6 @@ public class ObjectMapperAutoConfiguration {
 
     /**
      * Register serializers for Servlet-based authorization subscriptions.
-     * 
-     * @author Dominic Heutelbeck
-     *
      */
     @Configuration
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
@@ -100,9 +94,6 @@ public class ObjectMapperAutoConfiguration {
 
     /**
      * Register serializers for Webflux-based authorization subscriptions.
-     * 
-     * @author Dominic Heutelbeck
-     *
      */
     @Configuration
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)

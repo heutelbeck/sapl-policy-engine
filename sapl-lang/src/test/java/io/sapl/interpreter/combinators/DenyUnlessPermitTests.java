@@ -15,11 +15,14 @@
  */
 package io.sapl.interpreter.combinators;
 
+import static io.sapl.api.pdp.Decision.DENY;
+import static io.sapl.api.pdp.Decision.PERMIT;
 import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateAdvice;
 import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateDecision;
 import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateObligations;
 import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateResource;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -33,7 +36,8 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import static io.sapl.api.pdp.Decision.*;
+import io.sapl.grammar.sapl.impl.DenyUnlessPermitCombiningAlgorithmImplCustom;
+import reactor.test.StepVerifier;
 
 class DenyUnlessPermitTests {
 
@@ -115,6 +119,13 @@ class DenyUnlessPermitTests {
 		var expected  = Optional.<JsonNode>of(JSON.booleanNode(true));
 		validateResource(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
 	}
+	
+    @Test
+    void noDecisionsIsDeny() {
+        var algorithm = new DenyUnlessPermitCombiningAlgorithmImplCustom();
+        StepVerifier.create(algorithm.combinePolicies(List.of())).expectNextMatches(combinedDecision -> combinedDecision
+                .getAuthorizationDecision().getDecision() == Decision.DENY).verifyComplete();
+    }
 
 	@Test
 	void collectObligationDeny() {

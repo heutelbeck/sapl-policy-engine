@@ -15,8 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionEvaluatesTo;
-import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsErrors;
+import static io.sapl.testutil.TestUtil.assertExpressionEvaluatesTo;
+import static io.sapl.testutil.TestUtil.assertExpressionReturnsErrors;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Expression;
-import io.sapl.grammar.sapl.impl.util.MockUtil;
+import io.sapl.testutil.MockUtil;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 

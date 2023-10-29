@@ -15,8 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionErrors;
-import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsError;
+import static io.sapl.testutil.TestUtil.assertExpressionErrors;
+import static io.sapl.testutil.TestUtil.assertExpressionReturnsError;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -33,10 +33,10 @@ import org.junit.jupiter.params.provider.MethodSource;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.AttributeFinderStep;
 import io.sapl.grammar.sapl.SaplFactory;
-import io.sapl.grammar.sapl.impl.util.MockUtil;
-import io.sapl.grammar.sapl.impl.util.ParserUtil;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.testutil.MockUtil;
+import io.sapl.testutil.ParserUtil;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 

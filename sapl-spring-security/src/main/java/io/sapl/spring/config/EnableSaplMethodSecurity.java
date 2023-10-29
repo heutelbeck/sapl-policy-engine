@@ -26,8 +26,6 @@ import org.springframework.context.annotation.Import;
 
 /**
  * Enables SAPL Method Security.
- * 
- * @author Dominic Heutelbeck
  * @since 3.0.0
  */
 @Documented

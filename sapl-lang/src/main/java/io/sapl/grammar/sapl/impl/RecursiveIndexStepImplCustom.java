@@ -40,19 +40,11 @@ import reactor.util.function.Tuples;
  * value, e.g. {@code 'arr..[2]'}.
  * <p>
  * Grammar: {@code Step: '..' ({RecursiveIndexStep} '[' index=JSONNUMBER ']') ;}
- * 
- * @author Dominic Heutelbeck
- *
  */
 public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 
-    private static final String INDEX_WAS_NULL_ERROR = "Index was null.";
-
     @Override
     public Flux<Val> apply(@NonNull Val parentValue) {
-        if (index == null) {
-            return Flux.just(Val.error(INDEX_WAS_NULL_ERROR).withParentTrace(RecursiveIndexStep.class, parentValue));
-        }
         return Flux.just(applyToValue(parentValue).withTrace(RecursiveIndexStep.class,
                 Map.of(Trace.PARENT_VALUE, parentValue, Trace.INDEX, Val.of(index.intValue()))));
     }

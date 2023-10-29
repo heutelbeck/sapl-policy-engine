@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.sapl.impl.util;
+package io.sapl.testutil;
 
 import java.util.function.Predicate;
 
@@ -56,18 +56,20 @@ public class TestUtil {
 
     @SneakyThrows
     public static void assertExpressionEvaluatesTo(String expression, String... expected) {
-        if (DEBUG_TESTS) {
-            log.debug("Expression: {}", expression);
-            for (var e : expected)
-                log.debug("Expected  : {}", e);
-        }
-
         var expectations = new Val[expected.length];
         var i            = 0;
         for (var ex : expected) {
             expectations[i++] = Val.ofJson(ex);
         }
-        assertExpressionEvaluatesTo(ParserUtil.expression(expression), expectations);
+        var parsedExpression = ParserUtil.expression(expression);
+        if (DEBUG_TESTS) {
+            log.debug("Expression: {}", expression);
+            for (var e : expected)
+                log.debug("Expected  : {}", e);
+            EObjectUtil.dump(parsedExpression);
+        }
+
+        assertExpressionEvaluatesTo(parsedExpression, expectations);
     }
 
     @SneakyThrows

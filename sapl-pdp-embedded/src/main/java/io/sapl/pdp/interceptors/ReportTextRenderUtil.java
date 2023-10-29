@@ -38,7 +38,7 @@ public class ReportTextRenderUtil {
                 .append('\n');
         report.append("Timestamp   : ").append(jsonReport.get(ReportBuilderUtil.TIMESTAMP).textValue()).append('\n');
         report.append("Algorithm   : ").append(jsonReport.get(ReportBuilderUtil.PDP_COMBINING_ALGORITHM)).append('\n');
-        var topLevelError = jsonReport.get(ReportBuilderUtil.ERROR);
+        var topLevelError = jsonReport.get(ReportBuilderUtil.ERROR_MESSAGE);
         if (topLevelError != null) {
             report.append("PDP Error   : ").append(topLevelError).append('\n');
         }

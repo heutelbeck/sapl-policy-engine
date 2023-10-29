@@ -34,7 +34,7 @@ import io.sapl.grammar.sapl.ConditionStep;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.grammar.sapl.RecursiveIndexStep;
 import io.sapl.grammar.sapl.Step;
-import io.sapl.grammar.sapl.impl.util.ParserUtil;
+import io.sapl.testutil.ParserUtil;
 import reactor.test.StepVerifier;
 
 class StepApplyNullCheckAndErrorPropagationTests {

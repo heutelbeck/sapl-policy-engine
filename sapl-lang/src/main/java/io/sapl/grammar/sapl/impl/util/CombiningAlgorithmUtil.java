@@ -34,9 +34,10 @@ import reactor.core.publisher.Flux;
 public class CombiningAlgorithmUtil {
 
     public static Flux<CombinedDecision> eagerlyCombinePolicyElements(List<PolicyElement> policyElements,
-            Function<DocumentEvaluationResult[], CombinedDecision> combinator, String algorithmName) {
+            Function<DocumentEvaluationResult[], CombinedDecision> combinator, String algorithmName,
+            AuthorizationDecision defaultDecisionIfEmpty) {
         if (policyElements.isEmpty())
-            return Flux.just(CombinedDecision.of(AuthorizationDecision.NOT_APPLICABLE, algorithmName));
+            return Flux.just(CombinedDecision.of(defaultDecisionIfEmpty, algorithmName));
         var policyDecisions = eagerPolicyElementDecisionFluxes(policyElements);
         return Flux.combineLatest(policyDecisions, decisionObjects -> combinator
                 .apply(Arrays.copyOf(decisionObjects, decisionObjects.length, DocumentEvaluationResult[].class)));

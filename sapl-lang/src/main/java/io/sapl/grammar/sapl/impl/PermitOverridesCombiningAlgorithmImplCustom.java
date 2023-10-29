@@ -60,7 +60,8 @@ public class PermitOverridesCombiningAlgorithmImplCustom extends PermitOverrides
 
     @Override
     public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
-        return CombiningAlgorithmUtil.eagerlyCombinePolicyElements(policies, this::combinator, getName());
+        return CombiningAlgorithmUtil.eagerlyCombinePolicyElements(policies, this::combinator, getName(),
+                AuthorizationDecision.NOT_APPLICABLE);
     }
 
     @Override
@@ -69,9 +70,6 @@ public class PermitOverridesCombiningAlgorithmImplCustom extends PermitOverrides
     }
 
     private CombinedDecision combinator(DocumentEvaluationResult[] policyDecisions) {
-        if (policyDecisions.length == 0)
-            return CombinedDecision.of(AuthorizationDecision.NOT_APPLICABLE, getName());
-
         var entitlement = NOT_APPLICABLE;
         var collector   = new ObligationAdviceCollector();
         var resource    = Optional.<JsonNode>empty();

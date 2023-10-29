@@ -44,8 +44,6 @@ import reactor.core.Exceptions;
  * {@link Authentication} may invoke the {@link MethodInvocation} by calling a
  * Policy Decision Point based on the expressions from the {@link PreEnforce}
  * annotation.
- *
- * @author Dominic Heutelbeck
  * @since 3.0.0
  */
 @RequiredArgsConstructor

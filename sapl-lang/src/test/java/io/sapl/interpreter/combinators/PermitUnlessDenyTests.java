@@ -22,6 +22,7 @@ import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateDecisio
 import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateObligations;
 import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateResource;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -35,6 +36,8 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
+import io.sapl.grammar.sapl.impl.PermitUnlessDenyCombiningAlgorithmImplCustom;
+import reactor.test.StepVerifier;
 
 class PermitUnlessDenyTests {
 
@@ -132,7 +135,12 @@ class PermitUnlessDenyTests {
 	void validateDecisionTests(String document, Decision expectedDecision ) {
 		validateDecision(EMPTY_AUTH_SUBSCRIPTION, document, expectedDecision);
 	}
-
+    @Test
+    void noDecisionsIsPermit() {
+        var algorithm = new PermitUnlessDenyCombiningAlgorithmImplCustom();
+        StepVerifier.create(algorithm.combinePolicies(List.of())).expectNextMatches(combinedDecision -> combinedDecision
+                .getAuthorizationDecision().getDecision() == Decision.PERMIT).verifyComplete();
+    }
 	@Test
 	void singlePermitTransformationResource() {
 		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" permit transform true";

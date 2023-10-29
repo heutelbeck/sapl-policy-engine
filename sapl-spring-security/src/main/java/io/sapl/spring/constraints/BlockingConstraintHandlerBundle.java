@@ -35,9 +35,6 @@ import lombok.RequiredArgsConstructor;
  * This bundle aggregates all constraint handlers for a specific decision which
  * are useful in a blocking PostEnforce scenario.
  * <p>
- * 
- * @author Dominic Heutelbeck
- *
  * @param <T> return type
  */
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)

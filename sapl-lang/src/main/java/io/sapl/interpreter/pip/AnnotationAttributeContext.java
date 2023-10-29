@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -53,11 +54,12 @@ import reactor.core.publisher.Flux;
 @NoArgsConstructor
 public class AnnotationAttributeContext implements AttributeContext {
 
-    private static final String NO_POLICY_INFORMATION_POINT_ANNOTATION = "Provided class has no @PolicyInformationPoint annotation.";
-
-    private static final String UNKNOWN_ATTRIBUTE = "Unknown attribute %s";
-
-    private static final String RETURN_TYPE_MUST_BE_FLUX_OF_VALUES = "The return type of an attribute finder must be Flux<Val>. Was: %s";
+    static final String FIRST_PARAMETER_NOT_PRESENT_S_ERROR                     = "Argument missing. First parameter of the method '%s' must be a Val for taking in the left-hand argument, but no argument was present.";
+    static final String FIRST_PARAMETER_S_UNEXPECTED_S_ERROR                    = "First parameter of the method %s has an unexpected type. Was expecting a Val but got %s.";
+    static final String A_PIP_WITH_THE_NAME_S_HAS_ALREADY_BEEN_REGISTERED_ERROR = "A PIP with the name '%s' has already been registered.";
+    static final String NO_POLICY_INFORMATION_POINT_ANNOTATION_ERROR            = "Provided class has no @PolicyInformationPoint annotation.";
+    static final String UNKNOWN_ATTRIBUTE_ERROR                                 = "Unknown attribute %s";
+    static final String RETURN_TYPE_MUST_BE_FLUX_OF_VALUES_ERROR                = "The return type of an attribute finder must be Flux<Val>. Was: %s";
 
     private final Map<String, Set<String>> attributeNamesByPipName = new HashMap<>();
 
@@ -88,7 +90,7 @@ public class AnnotationAttributeContext implements AttributeContext {
             Map<String, JsonNode> variables) {
         var attributeMetadata = lookupAttribute(attributeName, numberOfArguments(arguments), false);
         if (attributeMetadata == null)
-            return Flux.just(Val.error(UNKNOWN_ATTRIBUTE, attributeName));
+            return Flux.just(Val.error(UNKNOWN_ATTRIBUTE_ERROR, attributeName));
         return evaluateAttribute(attributeName, attributeMetadata, leftHandValue, arguments, variables);
     }
 
@@ -97,7 +99,7 @@ public class AnnotationAttributeContext implements AttributeContext {
             Map<String, JsonNode> variables) {
         var attributeMetadata = lookupAttribute(attributeName, numberOfArguments(arguments), true);
         if (attributeMetadata == null)
-            return Flux.just(Val.error(UNKNOWN_ATTRIBUTE, attributeName));
+            return Flux.just(Val.error(UNKNOWN_ATTRIBUTE_ERROR, attributeName));
         return evaluateEnvironmentAttribute(attributeName, attributeMetadata, arguments, variables);
     }
 
@@ -144,9 +146,7 @@ public class AnnotationAttributeContext implements AttributeContext {
                 return ((Flux<Val>) method.invoke(pip, invocationParameters)).map(
                         val -> addTraceToAttributeFinderInvokationResult(attributeName, invocationParameters, val));
             } catch (InvocationTargetException | IllegalAccessException | IllegalArgumentException e) {
-                if (e.getCause() != null)
-                    return Val.errorFlux(e.getCause().getMessage());
-                return Val.errorFlux(e.getMessage());
+                return Flux.just(ErrorUtil.causeOrMessage(e));
             }
         };
     }
@@ -308,14 +308,15 @@ public class AnnotationAttributeContext implements AttributeContext {
         var pipAnnotation = clazz.getAnnotation(PolicyInformationPoint.class);
 
         if (pipAnnotation == null)
-            throw new InitializationException(NO_POLICY_INFORMATION_POINT_ANNOTATION);
+            throw new InitializationException(NO_POLICY_INFORMATION_POINT_ANNOTATION_ERROR);
 
         var pipName = pipAnnotation.name();
         if (pipName.isBlank())
             pipName = clazz.getSimpleName();
 
         if (attributeNamesByPipName.containsKey(pipName))
-            throw new InitializationException("A PIP with the name '" + pipName + "' has already been registered.");
+            throw new InitializationException(
+                    String.format(A_PIP_WITH_THE_NAME_S_HAS_ALREADY_BEEN_REGISTERED_ERROR, pipName));
 
         attributeNamesByPipName.put(pipName, new HashSet<>());
         var pipDocumentation = new PolicyInformationPointDocumentation(pipName, pipAnnotation.description(), pip);
@@ -419,23 +420,21 @@ public class AnnotationAttributeContext implements AttributeContext {
 
     private void assertFirstParameterIsVal(Method method) throws InitializationException {
         if (method.getParameterCount() == 0)
-            throw new InitializationException("Argument missing. First parameter of the method " + method.getName()
-                    + " must be a Val for taking in the left-hand argument, but no argument was present.");
+            throw new InitializationException(String.format(FIRST_PARAMETER_NOT_PRESENT_S_ERROR, method.getName()));
         if (!parameterTypeIsVal(method, 0))
-            throw new InitializationException("First parameter of the method " + method.getName()
-                    + " has an unexpected type. Was expecting a Val but got "
-                    + method.getParameters()[0].getType().getSimpleName());
+            throw new InitializationException(String.format(FIRST_PARAMETER_S_UNEXPECTED_S_ERROR, method.getName(),
+                    method.getParameters()[0].getType().getSimpleName()));
     }
 
     private void assertValidReturnType(Method method) throws InitializationException {
         var returnType        = method.getReturnType();
         var genericReturnType = method.getGenericReturnType();
         if (!(genericReturnType instanceof ParameterizedType))
-            throw new InitializationException(RETURN_TYPE_MUST_BE_FLUX_OF_VALUES, returnType.getName());
+            throw new InitializationException(RETURN_TYPE_MUST_BE_FLUX_OF_VALUES_ERROR, returnType.getName());
 
         var returnTypeArgument = (Class<?>) ((ParameterizedType) genericReturnType).getActualTypeArguments()[0];
         if (!Flux.class.isAssignableFrom(returnType) || !Val.class.isAssignableFrom(returnTypeArgument)) {
-            throw new InitializationException(RETURN_TYPE_MUST_BE_FLUX_OF_VALUES,
+            throw new InitializationException(RETURN_TYPE_MUST_BE_FLUX_OF_VALUES_ERROR,
                     returnType.getName() + '<' + returnTypeArgument.getName() + '>');
         }
     }
@@ -540,14 +539,9 @@ public class AnnotationAttributeContext implements AttributeContext {
             for (var attribute : entry.getValue()) {
                 var attributeCodeTemplate = attribute.getDocumentationCodeTemplate();
                 for (var doc : pipDocumentations) {
-                    if (!documentedAttributeCodeTemplates.containsKey(doc.name)) {
-                        documentedAttributeCodeTemplates.put(doc.name, doc.description);
-                    }
-                    var documentationForCodeTemplate = doc.getDocumentation().get(attributeCodeTemplate);
-                    if (documentationForCodeTemplate != null) {
-                        documentedAttributeCodeTemplates.put(attribute.fullyQualifiedName(),
-                                documentationForCodeTemplate);
-                    }
+                    documentedAttributeCodeTemplates.putIfAbsent(doc.name, doc.description);
+                    Optional.ofNullable(doc.getDocumentation().get(attributeCodeTemplate)).ifPresent(
+                            template -> documentedAttributeCodeTemplates.put(attribute.fullyQualifiedName(), template));
                 }
             }
         }
