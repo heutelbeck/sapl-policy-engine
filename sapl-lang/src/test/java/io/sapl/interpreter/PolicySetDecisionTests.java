@@ -8,7 +8,7 @@ import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 
-public class PolicySetDecisionTests {
+class PolicySetDecisionTests {
 
     @Test
     void error() {

@@ -16,6 +16,6 @@ class AuthorizationSubscriptionInterceptorTests {
     void compareTo() {
         AuthorizationSubscriptionInterceptor interceptor1 = t -> t;
         AuthorizationSubscriptionInterceptor interceptor2 = t -> t;
-        assertThat(interceptor1.compareTo(interceptor2)).isZero();
+        assertThat(interceptor1).isEqualByComparingTo(interceptor2);
     }
 }

@@ -18,7 +18,7 @@ class FilterAlgorithmUtilTests {
                 getClass());
         StepVerifier.create(actualFiltered).expectNextMatches(actual -> {
             return actual.equals(expected)
-                    && actual.getTrace().get("trace").get("operator").asText().equals("ConditionStep");
+                    && "ConditionStep".equals(actual.getTrace().get("trace").get("operator").asText());
         }).verifyComplete();
     }
 }

@@ -11,7 +11,7 @@ import io.sapl.api.interpreter.Trace;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 
-public class CombinedDecisionTests {
+class CombinedDecisionTests {
 
     @Test
     void error() {

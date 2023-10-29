@@ -8,7 +8,7 @@ import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.Decision;
 
-public class PolicyDecisionTests {
+class PolicyDecisionTests {
 
     @Test
     void fromWhereResult() {

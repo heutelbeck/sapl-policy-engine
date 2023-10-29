@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
 
-public class ErrorUtilTests {
+class ErrorUtilTests {
 
     @Test
     void withCauseReturnsCauseMessage() {
