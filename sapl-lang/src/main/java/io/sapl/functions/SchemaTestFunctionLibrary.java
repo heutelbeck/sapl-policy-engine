@@ -22,25 +22,31 @@ import io.sapl.api.validation.Schema;
 import lombok.NoArgsConstructor;
 
 /**
- * Function library implementing the blacken, replace, and remove filter functions. 
- * 
+ * Function library implementing the blacken, replace, and remove filter functions.
+ *
  * @author Dominic Heutelbeck
  */
 @NoArgsConstructor
 @FunctionLibrary(name = "SchemaTestLibrary")
 public class SchemaTestFunctionLibrary {
 
-	final static String personSchema = "{\"name\": {\"type\": \"string\"}, \"age\": {\"type\": \"number\"}}";
-	final static String jsonValueSchema = "{\"type\": \"string\"}}";
+	static final String JSON_VALUE_SCHEMA = "{\"type\": \"string\"}}";
+	static final String PERSON_SCHEMA = "{\"name\": {\"type\": \"string\"}, \"age\": {\"type\": \"number\"}}";
 
-	@Function(name = "schemaFun", schema = personSchema)
-	public static Val schemaFun() {return Val.of(true); }
+    @Function(name = "schemaFun", schema = PERSON_SCHEMA)
+    public static Val schemaFun() {
+        return Val.of(true);
+    }
 
-	@Function(name = "schemaParam")
-	public static Val schemaParam(@Schema(value = personSchema) Val person) {return Val.of(true); }
+    @Function(name = "schemaParam")
+    public static Val schemaParam(@Schema(value = PERSON_SCHEMA) Val person) {
+        return Val.of(true);
+    }
 
-	@Function(name = "schemaParam2")
-	public static Val schemaParam2(@Schema(value = jsonValueSchema) Val person) {return Val.of(true); }
+    @Function(name = "schemaParam2")
+    public static Val schemaParam2(@Schema(value = JSON_VALUE_SCHEMA) Val person) {
+        return Val.of(true);
+    }
 
 
 }

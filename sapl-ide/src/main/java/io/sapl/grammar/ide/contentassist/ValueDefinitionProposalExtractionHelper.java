@@ -146,21 +146,10 @@ public class ValueDefinitionProposalExtractionHelper {
                 // add any encountered valuable to the list of proposals
                 if (aStatement instanceof ValueDefinition valueDefinition) {
                     if (valueDefinition.getEval() instanceof BasicIdentifier basicExpression) {
+                        var stepsString = combineKeySteps(basicExpression);
                         var identifier = basicExpression.getIdentifier();
-                        var steps = basicExpression.getSteps();
-                        var stepsString = new LinkedList<String>();
-                        for (var step : steps) {
-                            KeyStep keyStep = (KeyStep) step;
-                            stepsString.add(keyStep.getId());
-                        }
                         var imports = ImportsUtil.fetchImports(getSapl(), attributeContext, functionContext);
-                        var name = "";
-                        if (!stepsString.isEmpty()) {
-                            name = String.join(".", stepsString);
-                            name = identifier.concat(".").concat(name);
-                        } else {
-                            name = FunctionUtil.resolveAbsoluteFunctionName(identifier, imports);
-                        }
+                        var name = getFunctionName(stepsString, identifier, imports);
                         var absName = FunctionUtil.resolveAbsoluteFunctionName(name, imports);
                         var functionSchema = functionContext.getFunctionSchemas().get(absName);
                         functionSchemaTemplates = new SchemaProposals(variablesAndCombinatorSource).schemaTemplatesFromJson(functionSchema);
@@ -178,6 +167,27 @@ public class ValueDefinitionProposalExtractionHelper {
         proposalTemplates.addAll(functionSchemaTemplates);
 
         return proposalTemplates;
+    }
+
+    private String getFunctionName(List<String> stepsString, String identifier, Map<String, String> imports) {
+        var name = "";
+        if (!stepsString.isEmpty()) {
+            name = String.join(".", stepsString);
+            name = identifier.concat(".").concat(name);
+        } else {
+            name = FunctionUtil.resolveAbsoluteFunctionName(identifier, imports);
+        }
+        return name;
+    }
+
+    private List<String> combineKeySteps(BasicIdentifier basicExpression) {
+        var stepsString = new LinkedList<String>();
+        var steps = basicExpression.getSteps();
+        for (var step : steps) {
+            KeyStep keyStep = (KeyStep) step;
+            stepsString.add(keyStep.getId());
+        }
+        return stepsString;
     }
 
     private List<String> getProposalTemplates(ValueDefinition valueDefinition, Iterable<Expression> schemaVarExpression) {

@@ -148,7 +148,8 @@ public class ParameterTypeValidator {
             if (annotations.length - 1 - index >= 0)
                 System.arraycopy(annotations, index + 1, annotations, index, annotations.length - 1 - index);
 
-            annotations[annotations.length - 1] = schemaAnnotation;
+            if (annotations.length > 0)
+            	annotations[annotations.length - 1] = schemaAnnotation;
         }
     }
 

@@ -159,10 +159,10 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             return;
         }
 
-        if ("schemaexpression".equals(feature)) {
-            var validSchemas = getValidSchemas(context, model);
-            addSimpleProposals(validSchemas, context, acceptor);
-        }
+        // Feature is schemaexpression
+        var validSchemas = getValidSchemas(context, model);
+        addSimpleProposals(validSchemas, context, acceptor);
+
     }
 
     private void handleBasicProposals(String feature, ContentAssistContext context,
@@ -201,34 +201,38 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
             // look up all defined variables in the policy
             if (model instanceof PolicyBody policyBody) {
-                Collection<String> definedValuesPolicyBody = new HashSet<>();
-
+                Collection<String> definedValuesPolicyBody;
                 int currentOffset = context.getOffset();
 
-                // iterate through defined statements which are either conditions or
-                // variables
-                for (var statement : policyBody.getStatements()) {
-                    // add any encountered valuable to the list of proposals
-                    if (statement instanceof ValueDefinition valueDefinition) {
-
-                        // check if variable definition is happening after cursor
-                        INode valueDefinitionNode = NodeModelUtils.getNode(valueDefinition);
-                        int valueDefinitionOffset = valueDefinitionNode.getOffset();
-
-                        if (currentOffset > valueDefinitionOffset) {
-                            definedValuesPolicyBody.add(valueDefinition.getName());
-                        } else {
-                            break;
-                        }
-                    }
-                }
-
+                definedValuesPolicyBody = getValuesDefinedInPolicyBodyAboveCursor(policyBody, currentOffset);
                 // add variables to list of proposals
                 addSimpleProposals(definedValuesPolicyBody, context, acceptor);
             }
             // add authorization subscriptions proposals
             addSimpleProposals(authzSubProposals, context, acceptor);
         }
+    }
+
+    private Collection<String> getValuesDefinedInPolicyBodyAboveCursor(PolicyBody policyBody, int currentOffset) {
+        Collection<String> definedValuesPolicyBody = new HashSet<>();
+        // iterate through defined statements which are either conditions or
+        // variables
+        for (var statement : policyBody.getStatements()) {
+            // add any encountered valuable to the list of proposals
+            if (statement instanceof ValueDefinition valueDefinition) {
+
+                // check if variable definition is happening after cursor
+                INode valueDefinitionNode = NodeModelUtils.getNode(valueDefinition);
+                int valueDefinitionOffset = valueDefinitionNode.getOffset();
+
+                if (currentOffset > valueDefinitionOffset) {
+                    definedValuesPolicyBody.add(valueDefinition.getName());
+                } else {
+                    break;
+                }
+            }
+        }
+        return definedValuesPolicyBody;
     }
 
     private void addDocumentationToImportProposals(Collection<String> proposals, ContentAssistContext context,

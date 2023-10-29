@@ -107,14 +107,7 @@ public class SchemaParser {
 
         if (jsonNode != null && jsonNode.isObject()) {
             if (propertyIsArray(jsonNode)) {
-                var items = jsonNode.get("items");
-                if (items != null) {
-                    if (items.isArray())
-                        paths.addAll(constructPathsFromArray(items, parentPath, originalSchema, depth));
-                    else
-                        paths.addAll(constructPathFromNonArrayProperty(items, parentPath, originalSchema, depth));
-                } else
-                    paths.add(parentPath);
+                paths = handleArray(jsonNode, parentPath, originalSchema, depth);
             } else {
                 paths.addAll(constructPathFromNonArrayProperty(jsonNode, parentPath, originalSchema, depth));
             }
@@ -125,6 +118,19 @@ public class SchemaParser {
         }
 
         return new ArrayList<>(paths);
+    }
+
+    private Collection<String> handleArray(JsonNode jsonNode, String parentPath, JsonNode originalSchema, int depth) {
+        Collection<String> paths = new HashSet<>();
+        var items = jsonNode.get("items");
+        if (items != null) {
+            if (items.isArray())
+                paths.addAll(constructPathsFromArray(items, parentPath, originalSchema, depth));
+            else
+                paths.addAll(constructPathFromNonArrayProperty(items, parentPath, originalSchema, depth));
+        } else
+            paths.add(parentPath);
+        return paths;
     }
 
     private Collection<String> constructPathsFromArray(JsonNode jsonNode, String parentPath, JsonNode originalSchema, int depth) {

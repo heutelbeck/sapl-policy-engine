@@ -230,6 +230,40 @@
                 }
 
                 @Test
+                void testCompletion_PolicyBody_Invalid_EnumArray() {
+                    testCompletion((TestCompletionConfiguration it) -> {
+                        String policy = """
+                                policy "test" permit where var bar = 3; var foo = "test" schema
+                                {
+                                   "type": "object",
+                                   "properties": {
+                                 	"java": {
+                                 		"type": "object",
+                                 		"properties": {
+                                 			"name": {
+                                 				"type": "number",
+                                 				"enum": [{"first_name": "Alice"}, {"second_name": "Smith"}]
+                                 			}
+                                 		}		
+                                     }
+                                   }
+                                 };
+                                 foo""";
+
+                        String cursor = "foo";
+                        it.setModel(policy);
+                        it.setLine(15);
+                        it.setColumn(cursor.length());
+
+                        it.setAssertCompletionList(completionList -> {
+                            var expected = List.of(
+                                    "foo", "foo.name", "foo.name.first_name", "foo.name.second_name");
+                            assertProposalsSimple(expected, completionList);
+                        });
+                    });
+                }
+
+                @Test
                 void testCompletion_PolicyBody_SuggestArrayItems() {
                     testCompletion((TestCompletionConfiguration it) -> {
                         String policy = """
