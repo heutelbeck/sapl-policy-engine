@@ -34,54 +34,52 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 
 class HasResourceTests {
+    private final static ObjectMapper MAPPER = new ObjectMapper();
 
     @Test
     void test() {
-        ObjectMapper mapper   = new ObjectMapper();
-        ObjectNode   resource = mapper.createObjectNode();
+        var resource = MAPPER.createObjectNode();
         resource.put("foo", "bar");
-        AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.of(resource), null, null);
+        var decision         = new AuthorizationDecision(Decision.PERMIT, Optional.of(resource), null, null);
+        var matcherUnderTest = hasResource(resource);
+        assertThat(decision, is(matcherUnderTest));
+    }
 
-        var sut = hasResource(resource);
-
-        assertThat(dec, is(sut));
+    @Test
+    void testEmptyMatcher() {
+        var resource = MAPPER.createObjectNode();
+        resource.put("foo", "bar");
+        var decision         = new AuthorizationDecision(Decision.PERMIT, Optional.of(resource), null, null);
+        var matcherUnderTest = hasResource();
+        assertThat(decision, is(matcherUnderTest));
     }
 
     @Test
     void test_neg() {
-        ObjectMapper mapper           = new ObjectMapper();
-        ObjectNode   expectedResource = mapper.createObjectNode();
+        var expectedResource = MAPPER.createObjectNode();
         expectedResource.put("foo", "bar");
-        ObjectNode actualResource = mapper.createObjectNode();
+        var actualResource = MAPPER.createObjectNode();
         actualResource.put("xxx", "yyy");
-        AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.of(actualResource), null, null);
-
-        var sut = hasResource(expectedResource);
-
-        assertThat(dec, not(is(sut)));
+        var decision         = new AuthorizationDecision(Decision.PERMIT, Optional.of(actualResource), null, null);
+        var matcherUnderTest = hasResource(expectedResource);
+        assertThat(decision, not(is(matcherUnderTest)));
     }
 
     @Test
     void test_nullDecision() {
-        ObjectMapper mapper   = new ObjectMapper();
-        ObjectNode   resource = mapper.createObjectNode();
+        var resource = MAPPER.createObjectNode();
         resource.put("foo", "bar");
-
-        var sut = hasResource(resource);
-
-        assertThat(null, not(is(sut)));
+        var matcherUnderTest = hasResource(resource);
+        assertThat(null, not(is(matcherUnderTest)));
     }
 
     @Test
     void test_emptyResource() {
-        ObjectMapper mapper   = new ObjectMapper();
-        ObjectNode   resource = mapper.createObjectNode();
+        var resource = MAPPER.createObjectNode();
         resource.put("foo", "bar");
-        AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), null, null);
-
-        var sut = hasResource(resource);
-
-        assertThat(dec, not(is(sut)));
+        var decision         = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), null, null);
+        var matcherUnderTest = hasResource(resource);
+        assertThat(decision, not(is(matcherUnderTest)));
     }
 
     @Test
@@ -91,17 +89,17 @@ class HasResourceTests {
 
     @Test
     void testDescriptionEmptyMatcher() {
-        var                     sut         = hasResource();
-        final StringDescription description = new StringDescription();
-        sut.describeTo(description);
+        var matcherUnderTest = hasResource();
+        var description      = new StringDescription();
+        matcherUnderTest.describeTo(description);
         assertThat(description.toString(), is("a resource with any JsonNode"));
     }
 
     @Test
     void testDescriptionMatcher() {
-        var                     sut         = hasResource(jsonText("value"));
-        final StringDescription description = new StringDescription();
-        sut.describeTo(description);
+        var matcherUnderTest = hasResource(jsonText("value"));
+        var description      = new StringDescription();
+        matcherUnderTest.describeTo(description);
         assertThat(description.toString(), is("a resource with a text node with value that is \"value\""));
     }
 
