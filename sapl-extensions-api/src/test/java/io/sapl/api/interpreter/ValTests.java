@@ -705,7 +705,7 @@ class ValTests {
     void secretsManagement() {
         var secret = Val.of("not to be known").asSecret().withTrace(getClass());
         assertThat(secret.isSecret()).isTrue();
-        assertThat(secret.toString()).isEqualTo("SECRET");
+        assertThat(secret).hasToString("SECRET");
         assertThatJson(secret.getTrace()).inPath("$.value").isString().isEqualTo("|SECRET|");
     }
 
