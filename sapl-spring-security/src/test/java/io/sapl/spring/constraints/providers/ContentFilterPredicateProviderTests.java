@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,72 +15,77 @@
  */
 package io.sapl.spring.constraints.providers;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 class ContentFilterPredicateProviderTests {
-	private final static ObjectMapper MAPPER = new ObjectMapper();
+    private final static ObjectMapper MAPPER = new ObjectMapper();
 
-	@Test
-	void when_constraintIsNull_then_notResponsible() {
-		var      sut        = new ContentFilterPredicateProvider(MAPPER);
-		JsonNode constraint = null;
-		assertThat(sut.isResponsible(constraint), is(false));
+    @Test
+    void when_constraintIsNull_then_notResponsible() {
+        var      sut        = new ContentFilterPredicateProvider(MAPPER);
+        JsonNode constraint = null;
+        assertThat(sut.isResponsible(constraint), is(false));
+    }
+
+    @Test
+    void when_constraintNonObject_then_notResponsible() throws JsonProcessingException {
+        var sut        = new ContentFilterPredicateProvider(MAPPER);
+        var constraint = MAPPER.readTree("123");
+        assertThat(sut.isResponsible(constraint), is(false));
+    }
+
+    @Test
+    void when_constraintNoType_then_notResponsible() throws JsonProcessingException {
+        var sut        = new ContentFilterPredicateProvider(MAPPER);
+        var constraint = MAPPER.readTree("{ }");
+        assertThat(sut.isResponsible(constraint), is(false));
+    }
+
+    private static Stream<Arguments> provideTestCases() {
+        // @formatter:off
+		return Stream.of(
+				// when_constraintTypeNonTextual_then_notResponsible
+			    Arguments.of("""
+					{
+			    		"type" : 123
+					}
+					""", Boolean.FALSE),
+				// when_constraintWrongType_then_notResponsible
+			    Arguments.of("""
+					{
+						"type" : "unrelatedType"
+					}
+					""", Boolean.FALSE),
+				// when_constraintTypeCorrect_then_isResponsible
+			    Arguments.of("""
+					{
+						"type" : "jsonContentFilterPredicate"
+					}
+					""", Boolean.TRUE)
+			);
+		// @formater:on
 	}
 
-	@Test
-	void when_constraintNonObject_then_notResponsible() throws JsonProcessingException {
+	@ParameterizedTest
+	@MethodSource("provideTestCases")
+	void validateResponsiblility(String constraint, boolean expectedResponsiblity) throws JsonProcessingException {
 		var sut        = new ContentFilterPredicateProvider(MAPPER);
-		var constraint = MAPPER.readTree("123");
-		assertThat(sut.isResponsible(constraint), is(false));
+		var jsonConstraint = MAPPER.readTree(constraint);
+		assertThat(sut.isResponsible(jsonConstraint), is(expectedResponsiblity));
 	}
 
-	@Test
-	void when_constraintNoType_then_notResponsible() throws JsonProcessingException {
-		var sut        = new ContentFilterPredicateProvider(MAPPER);
-		var constraint = MAPPER.readTree("{ }");
-		assertThat(sut.isResponsible(constraint), is(false));
-	}
-
-	@Test
-	void when_constraintTypeNonTextual_then_notResponsible() throws JsonProcessingException {
-		var sut        = new ContentFilterPredicateProvider(MAPPER);
-		var constraint = MAPPER.readTree("""
-				{
-					"type" : 123
-				}
-				""");
-		assertThat(sut.isResponsible(constraint), is(false));
-	}
-
-	@Test
-	void when_constraintWrongType_then_notResponsible() throws JsonProcessingException {
-		var sut        = new ContentFilterPredicateProvider(MAPPER);
-		var constraint = MAPPER.readTree("""
-				{
-					"type" : "unrelatedType"
-				}
-				""");
-		assertThat(sut.isResponsible(constraint), is(false));
-	}
-
-	@Test
-	void when_constraintTypeCorrect_then_isResponsible() throws JsonProcessingException {
-		var sut        = new ContentFilterPredicateProvider(MAPPER);
-		var constraint = MAPPER.readTree("""
-				{
-					"type" : "jsonContentFilterPredicate"
-				}
-				""");
-		assertThat(sut.isResponsible(constraint), is(true));
-	}
-	
 	@Test
 	void when_predicateNotMatching_then_False() throws JsonProcessingException {
 		var sut        = new ContentFilterPredicateProvider(MAPPER);

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,9 +15,6 @@
  */
 package io.sapl.grammar.sapl.impl.util;
 
-import java.util.function.BiFunction;
-import java.util.function.Function;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.BinaryOperator;
 import io.sapl.grammar.sapl.UnaryOperator;
@@ -27,65 +24,57 @@ import reactor.core.publisher.Flux;
 @UtilityClass
 public class OperatorUtil {
 
-	public static Flux<Val> operator(
-			BinaryOperator operator,
-			Function<Val, Val> leftTypeRequirement,
-			Function<Val, Val> rightTypeRequirement,
-			BiFunction<Val, Val, Val> transformation) {
-		var left  = operator.getLeft().evaluate().map(leftTypeRequirement);
-		var right = operator.getRight().evaluate().map(rightTypeRequirement);
-		return Flux.combineLatest(left, right, errorOrDo(transformation));
-	}
+    public static Flux<Val> operator(BinaryOperator operator, java.util.function.UnaryOperator<Val> leftTypeRequirement,
+            java.util.function.UnaryOperator<Val> rightTypeRequirement,
+            java.util.function.BinaryOperator<Val> transformation) {
+        var left  = operator.getLeft().evaluate().map(leftTypeRequirement);
+        var right = operator.getRight().evaluate().map(rightTypeRequirement);
+        return Flux.combineLatest(left, right, errorOrDo(transformation));
+    }
 
-	public static Flux<Val> arithmeticOperator(
-			
-			BinaryOperator operator,
-			BiFunction<Val, Val, Val> transformation) {
-		return operator(operator, Val::requireBigDecimal, Val::requireBigDecimal, transformation);
-	}
+    public static Flux<Val> arithmeticOperator(BinaryOperator operator,
+            java.util.function.BinaryOperator<Val> transformation) {
+        return operator(operator, Val::requireBigDecimal, Val::requireBigDecimal, transformation);
+    }
 
-	public static Flux<Val> arithmeticOperator(
-			UnaryOperator unaryOperator,
-			Function<Val, Val> transformation) {
-		return operator(unaryOperator, Val::requireBigDecimal, transformation);
-	}
+    public static Flux<Val> arithmeticOperator(UnaryOperator unaryOperator,
+            java.util.function.UnaryOperator<Val> transformation) {
+        return operator(unaryOperator, Val::requireBigDecimal, transformation);
+    }
 
-	public static Flux<Val> booleanOperator(
-			BinaryOperator operator,
-			BiFunction<Val, Val, Val> transformation) {
-		return operator(operator, Val::requireBoolean, Val::requireBoolean, transformation);
-	}
+    public static Flux<Val> booleanOperator(BinaryOperator operator,
+            java.util.function.BinaryOperator<Val> transformation) {
+        return operator(operator, Val::requireBoolean, Val::requireBoolean, transformation);
+    }
 
-	public static Flux<Val> operator(
-			BinaryOperator operator,
-			BiFunction<Val, Val, Val> transformation) {
-		return operator(operator, Function.identity(), Function.identity(), transformation);
-	}
+    public static Flux<Val> operator(BinaryOperator operator, java.util.function.BinaryOperator<Val> transformation) {
+        return operator(operator, java.util.function.UnaryOperator.identity(),
+                java.util.function.UnaryOperator.identity(), transformation);
+    }
 
-	public static Flux<Val> operator(
-			UnaryOperator unaryOperator,
-			Function<Val, Val> typeRequirement,
-			Function<Val, Val> transformation) {
-		return unaryOperator.getExpression().evaluate().map(typeRequirement)
-				.map(errorOrDo(transformation));
-	}
+    public static Flux<Val> operator(UnaryOperator unaryOperator, java.util.function.UnaryOperator<Val> typeRequirement,
+            java.util.function.UnaryOperator<Val> transformation) {
+        return unaryOperator.getExpression().evaluate().map(typeRequirement).map(errorOrDo(transformation));
+    }
 
-	public static BiFunction<Val, Val, Val> errorOrDo(BiFunction<Val, Val, Val> transformation) {
-		return (left, right) -> {
-			if (left.isError())
-				return left;
-			if (right.isError())
-				return right;
-			return transformation.apply(left, right);
-		};
-	}
+    public static java.util.function.BinaryOperator<Val> errorOrDo(
+            java.util.function.BinaryOperator<Val> transformation) {
+        return (left, right) -> {
+            if (left.isError())
+                return left;
+            if (right.isError())
+                return right;
+            return transformation.apply(left, right);
+        };
+    }
 
-	public static Function<Val, Val> errorOrDo(Function<Val, Val> transformation) {
-		return value -> {
-			if (value.isError())
-				return value;
-			return transformation.apply(value);
-		};
-	}
+    public static java.util.function.UnaryOperator<Val> errorOrDo(
+            java.util.function.UnaryOperator<Val> transformation) {
+        return value -> {
+            if (value.isError())
+                return value;
+            return transformation.apply(value);
+        };
+    }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,21 +24,21 @@ import javax.inject.Singleton;
 @Singleton
 public class CoverageRatioCalculator {
 
-	public <T> float calculateRatio(Collection<T> availableCoverageTargets, Collection<T> hitTargets) {
-		float targets = availableCoverageTargets.size();
-		int hits = 0;
+    public <T> float calculateRatio(Collection<T> availableCoverageTargets, Collection<T> hitTargets) {
+        float targets = availableCoverageTargets.size();
+        int   hits    = 0;
 
-		for (T hit : hitTargets) {
-			if (availableCoverageTargets.contains(hit)) {
-				hits++;
-			}
-		}
+        for (T hit : hitTargets) {
+            if (availableCoverageTargets.contains(hit)) {
+                hits++;
+            }
+        }
 
-		if (hitTargets.isEmpty() || hits == 0) {
-			return 0;
-		}
+        if (hitTargets.isEmpty() || hits == 0) {
+            return 0;
+        }
 
-		return (hits / targets) * 100;
-	}
+        return (hits / targets) * 100;
+    }
 
 }

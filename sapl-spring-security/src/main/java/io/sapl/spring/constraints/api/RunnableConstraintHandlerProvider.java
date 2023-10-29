@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,12 +19,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 public interface RunnableConstraintHandlerProvider extends Responsible {
 
-	enum Signal {
-		ON_CANCEL, ON_COMPLETE, ON_TERMINATE, AFTER_TERMINATE, ON_DECISION
-	}
+    enum Signal {
+        ON_CANCEL, ON_COMPLETE, ON_TERMINATE, AFTER_TERMINATE, ON_DECISION
+    }
 
-	RunnableConstraintHandlerProvider.Signal getSignal();
+    RunnableConstraintHandlerProvider.Signal getSignal();
 
-	Runnable getHandler(JsonNode constraint);
+    Runnable getHandler(JsonNode constraint);
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 public interface SubscriptionHandlerProvider extends Responsible {
 
-	Consumer<Subscription> getHandler(JsonNode constraint);
+    Consumer<Subscription> getHandler(JsonNode constraint);
 
 }

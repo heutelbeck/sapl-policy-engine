@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,50 +27,49 @@ import io.sapl.api.pdp.Decision;
 
 public class ObligationAdviceCollector {
 
-	private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
+    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	final Map<Decision, ArrayNode> obligations = new EnumMap<>(Decision.class);
+    final Map<Decision, ArrayNode> obligations = new EnumMap<>(Decision.class);
 
-	final Map<Decision, ArrayNode> advice = new EnumMap<>(Decision.class);
+    final Map<Decision, ArrayNode> advice = new EnumMap<>(Decision.class);
 
-	public ObligationAdviceCollector() {
-		obligations.put(Decision.DENY, JSON.arrayNode());
-		obligations.put(Decision.PERMIT, JSON.arrayNode());
-		advice.put(Decision.DENY, JSON.arrayNode());
-		advice.put(Decision.PERMIT, JSON.arrayNode());
-	}
+    public ObligationAdviceCollector() {
+        obligations.put(Decision.DENY, JSON.arrayNode());
+        obligations.put(Decision.PERMIT, JSON.arrayNode());
+        advice.put(Decision.DENY, JSON.arrayNode());
+        advice.put(Decision.PERMIT, JSON.arrayNode());
+    }
 
-	public void registerDecisionsObligationsAndAdvice(AuthorizationDecision authzDecision) {
-		if (authzDecision.getDecision() != Decision.PERMIT && authzDecision.getDecision() != Decision.DENY)
-			return;
-		registerObligationIfPresent(authzDecision);
-		registerAdviceIfPresent(authzDecision);
-	}
+    public void registerDecisionsObligationsAndAdvice(AuthorizationDecision authzDecision) {
+        if (authzDecision.getDecision() != Decision.PERMIT && authzDecision.getDecision() != Decision.DENY)
+            return;
+        registerObligationIfPresent(authzDecision);
+        registerAdviceIfPresent(authzDecision);
+    }
 
-	private void registerAdviceIfPresent(AuthorizationDecision authzDecision) {
-		if (authzDecision.getAdvice().isPresent())
-			advice.get(authzDecision.getDecision()).addAll(authzDecision.getAdvice().get());
-	}
+    private void registerAdviceIfPresent(AuthorizationDecision authzDecision) {
+        authzDecision.getAdvice().ifPresent(newAdvice -> advice.get(authzDecision.getDecision()).addAll(newAdvice));
+    }
 
-	private void registerObligationIfPresent(AuthorizationDecision authzDecision) {
-		if (authzDecision.getObligations().isPresent())
-			obligations.get(authzDecision.getDecision()).addAll(authzDecision.getObligations().get());
-	}
+    private void registerObligationIfPresent(AuthorizationDecision authzDecision) {
+        authzDecision.getObligations()
+                .ifPresent(newObligations -> obligations.get(authzDecision.getDecision()).addAll(newObligations));
+    }
 
-	public void add(AuthorizationDecision authzDecision) {
-		registerDecisionsObligationsAndAdvice(authzDecision);
-	}
+    public void add(AuthorizationDecision authzDecision) {
+        registerDecisionsObligationsAndAdvice(authzDecision);
+    }
 
-	public Optional<ArrayNode> getObligations(Decision decision) {
-		if ((decision == Decision.PERMIT || decision == Decision.DENY) && obligations.get(decision).size() > 0)
-			return Optional.of(obligations.get(decision));
-		return Optional.empty();
-	}
+    public Optional<ArrayNode> getObligations(Decision decision) {
+        if ((decision == Decision.PERMIT || decision == Decision.DENY) && obligations.get(decision).size() > 0)
+            return Optional.of(obligations.get(decision));
+        return Optional.empty();
+    }
 
-	public Optional<ArrayNode> getAdvice(Decision decision) {
-		if ((decision == Decision.PERMIT || decision == Decision.DENY) && advice.get(decision).size() > 0)
-			return Optional.of(advice.get(decision));
-		return Optional.empty();
-	}
+    public Optional<ArrayNode> getAdvice(Decision decision) {
+        if ((decision == Decision.PERMIT || decision == Decision.DENY) && advice.get(decision).size() > 0)
+            return Optional.of(advice.get(decision));
+        return Optional.empty();
+    }
 
 }

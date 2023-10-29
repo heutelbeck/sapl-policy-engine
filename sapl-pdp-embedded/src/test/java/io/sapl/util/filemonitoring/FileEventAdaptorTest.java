@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,20 +29,20 @@ import reactor.core.publisher.FluxSink;
 
 class FileEventAdaptorTest {
 
-	@Test
-	void doTest() {
-		@SuppressWarnings("unchecked")
-		var sinkMock = (FluxSink<FileEvent>) mock(FluxSink.class);
-		when(sinkMock.next(any())).thenReturn(null);
+    @Test
+    void doTest() {
+        @SuppressWarnings("unchecked")
+        var sinkMock = (FluxSink<FileEvent>) mock(FluxSink.class);
+        when(sinkMock.next(any())).thenReturn(null);
 
-		var fileMock = mock(File.class);
+        var fileMock = mock(File.class);
 
-		var eventAdaptor = new FileEventAdaptor(sinkMock);
-		eventAdaptor.onFileCreate(fileMock);
-		eventAdaptor.onFileChange(fileMock);
-		eventAdaptor.onFileDelete(fileMock);
+        var eventAdaptor = new FileEventAdaptor(sinkMock);
+        eventAdaptor.onFileCreate(fileMock);
+        eventAdaptor.onFileChange(fileMock);
+        eventAdaptor.onFileDelete(fileMock);
 
-		verify(sinkMock, times(3)).next(any());
-	}
+        verify(sinkMock, times(3)).next(any());
+    }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  */
 package io.sapl.grammar.sapl.impl.util;
 
-import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
@@ -26,28 +26,28 @@ import reactor.core.publisher.Flux;
 
 @UtilityClass
 public class SelectorUtil {
-	public static Supplier<Flux<Val>> toArrayElementSelector(BiFunction<Integer, Val, Boolean> selector) {
-		return () -> Flux.deferContextual(ctx -> {
-			var relativeNode = AuthorizationContext.getRelativeNode(ctx);
-			var index        = AuthorizationContext.getIndex(ctx);
-			try {
-				return Flux.just(Val.of(selector.apply(index, relativeNode)));
-			} catch (PolicyEvaluationException e) {
-				return Flux.just(Val.error(e.getMessage()));
-			}
-		});
-	}
+    public static Supplier<Flux<Val>> toArrayElementSelector(BiPredicate<Integer, Val> selector) {
+        return () -> Flux.deferContextual(ctx -> {
+            var relativeNode = AuthorizationContext.getRelativeNode(ctx);
+            var index        = AuthorizationContext.getIndex(ctx);
+            try {
+                return Flux.just(Val.of(selector.test(index, relativeNode)));
+            } catch (PolicyEvaluationException e) {
+                return Flux.just(Val.error(e.getMessage()));
+            }
+        });
+    }
 
-	public static Supplier<Flux<Val>> toObjectFieldSelector(BiFunction<String, Val, Boolean> selector) {
-		return () -> Flux.deferContextual(ctx -> {
-			var relativeNode = AuthorizationContext.getRelativeNode(ctx);
-			var key          = AuthorizationContext.getKey(ctx);
-			try {
-				return Flux.just(Val.of(selector.apply(key, relativeNode)));
-			} catch (PolicyEvaluationException e) {
-				return Flux.just(Val.error(e.getMessage()));
-			}
-		});
-	}
+    public static Supplier<Flux<Val>> toObjectFieldSelector(BiPredicate<String, Val> selector) {
+        return () -> Flux.deferContextual(ctx -> {
+            var relativeNode = AuthorizationContext.getRelativeNode(ctx);
+            var key          = AuthorizationContext.getKey(ctx);
+            try {
+                return Flux.just(Val.of(selector.test(key, relativeNode)));
+            } catch (PolicyEvaluationException e) {
+                return Flux.just(Val.error(e.getMessage()));
+            }
+        });
+    }
 
 }

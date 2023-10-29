@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,26 +32,27 @@ import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 
 class DocumentationAutoConfigurationTests {
 
-	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-			.withConfiguration(AutoConfigurations.of(DocumentationAutoConfiguration.class));
+    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
+            .withConfiguration(AutoConfigurations.of(DocumentationAutoConfiguration.class));
 
-	@Test
-	void whenContextLoaded_thenDocumentationBeansArePresent() {
+    @Test
+    void whenContextLoaded_thenDocumentationBeansArePresent() {
 
-		var mockAttributeContext = mock(AttributeContext.class);
-		var mockPipDoc = new PolicyInformationPointDocumentation("PIP name", "PIP description", "A MOCK PIP OBJECT");
-		when(mockAttributeContext.getDocumentation()).thenReturn(List.of(mockPipDoc));
+        var mockAttributeContext = mock(AttributeContext.class);
+        var mockPipDoc           = new PolicyInformationPointDocumentation("PIP name", "PIP description",
+                "A MOCK PIP OBJECT");
+        when(mockAttributeContext.getDocumentation()).thenReturn(List.of(mockPipDoc));
 
-		var functionContext = mock(FunctionContext.class);
-		var mockFunDoc = new LibraryDocumentation("Library name", "Library description", "A MOCK LIBRARY OBJECT");
-		when(functionContext.getDocumentation()).thenReturn(List.of(mockFunDoc));
+        var functionContext = mock(FunctionContext.class);
+        var mockFunDoc      = new LibraryDocumentation("Library name", "Library description", "A MOCK LIBRARY OBJECT");
+        when(functionContext.getDocumentation()).thenReturn(List.of(mockFunDoc));
 
-		contextRunner.withBean(AttributeContext.class, () -> mockAttributeContext)
-				.withBean(FunctionContext.class, () -> functionContext).run(context -> {
-					assertThat(context).hasNotFailed();
-					assertThat(context).hasSingleBean(PolicyInformationPointsDocumentation.class);
-					assertThat(context).hasSingleBean(FunctionLibrariesDocumentation.class);
-				});
-	}
+        contextRunner.withBean(AttributeContext.class, () -> mockAttributeContext)
+                .withBean(FunctionContext.class, () -> functionContext).run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(PolicyInformationPointsDocumentation.class);
+                    assertThat(context).hasSingleBean(FunctionLibrariesDocumentation.class);
+                });
+    }
 
 }

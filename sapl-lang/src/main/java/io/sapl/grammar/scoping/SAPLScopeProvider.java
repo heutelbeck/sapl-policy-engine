@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,9 @@ package io.sapl.grammar.scoping;
 /**
  * This class contains custom scoping description.
  * <p>
- * See <a href="https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#scoping">Scoping</a> on
- * how and when to use it.
+ * See <a href=
+ * "https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#scoping">Scoping</a>
+ * on how and when to use it.
  */
 public class SAPLScopeProvider extends AbstractSAPLScopeProvider {
 

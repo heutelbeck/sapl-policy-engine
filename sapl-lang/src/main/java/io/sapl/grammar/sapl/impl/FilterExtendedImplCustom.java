@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import java.util.function.Function;
 
 import org.reactivestreams.Publisher;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterExtended;
 import io.sapl.grammar.sapl.FilterStatement;
@@ -28,45 +29,47 @@ import reactor.core.publisher.Flux;
 
 public class FilterExtendedImplCustom extends FilterExtendedImpl {
 
-	@Override
-	public Flux<Val> apply(Val unfilteredValue) {
-		if (unfilteredValue.isError()) {
-			return Flux
-					.just(unfilteredValue.withTrace(FilterExtended.class, Map.of("unfilteredValue", unfilteredValue)));
-		}
-		if (unfilteredValue.isUndefined()) {
-			return Flux.just(Val.error("Filters cannot be applied to undefined values.").withTrace(FilterExtended.class,
-					Map.of("unfilteredValue", unfilteredValue)));
-		}
-		if (statements == null) {
-			return Flux
-					.just(unfilteredValue.withTrace(FilterExtended.class, Map.of("unfilteredValue", unfilteredValue)));
-		}
-		return Flux.just(unfilteredValue).switchMap(applyFilterStatements());
-	}
+    private static final String FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED_VALUES_ERROR = "Filters cannot be applied to undefined values.";
 
-	private Function<? super Val, Publisher<? extends Val>> applyFilterStatements() {
-		return applyFilterStatements(0);
-	}
+    @Override
+    public Flux<Val> apply(Val unfilteredValue) {
+        if (unfilteredValue.isError()) {
+            return Flux.just(
+                    unfilteredValue.withTrace(FilterExtended.class, Map.of(Trace.UNFILTERED_VALUE, unfilteredValue)));
+        }
+        if (unfilteredValue.isUndefined()) {
+            return Flux.just(Val.error(FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED_VALUES_ERROR)
+                    .withTrace(FilterExtended.class, Map.of(Trace.UNFILTERED_VALUE, unfilteredValue)));
+        }
+        if (statements == null) {
+            return Flux.just(
+                    unfilteredValue.withTrace(FilterExtended.class, Map.of(Trace.UNFILTERED_VALUE, unfilteredValue)));
+        }
+        return Flux.just(unfilteredValue).switchMap(applyFilterStatements());
+    }
 
-	private Function<? super Val, Publisher<? extends Val>> applyFilterStatements(int statementId) {
-		if (statementId == statements.size()) {
-			return Flux::just;
-		}
+    private Function<? super Val, Publisher<? extends Val>> applyFilterStatements() {
+        return applyFilterStatements(0);
+    }
 
-		return value -> applyFilterStatement(value, statements.get(statementId))
-				.switchMap(applyFilterStatements(statementId + 1));
-	}
+    private Function<? super Val, Publisher<? extends Val>> applyFilterStatements(int statementId) {
+        if (statementId == statements.size()) {
+            return Flux::just;
+        }
 
-	private Flux<Val> applyFilterStatement(Val unfilteredValue, FilterStatement statement) {
-		if (statement.getTarget().getSteps().size() == 0) {
-			// the expression has no steps. apply filter to unfiltered node directly
-			return FilterAlgorithmUtil.applyFilterFunction(unfilteredValue, statement.getArguments(),
-					statement.getFsteps(), statement.isEach());
-		} else {
-			// descent with steps
-			return statement.getTarget().getSteps().get(0).applyFilterStatement(unfilteredValue, 0, statement);
-		}
-	}
+        return value -> applyFilterStatement(value, statements.get(statementId))
+                .switchMap(applyFilterStatements(statementId + 1));
+    }
+
+    private Flux<Val> applyFilterStatement(Val unfilteredValue, FilterStatement statement) {
+        if (statement.getTarget().getSteps().isEmpty()) {
+            // the expression has no steps. apply filter to unfiltered node directly
+            return FilterAlgorithmUtil.applyFilterFunction(unfilteredValue, statement.getArguments(),
+                    statement.getFsteps(), statement.isEach());
+        } else {
+            // descent with steps
+            return statement.getTarget().getSteps().get(0).applyFilterStatement(unfilteredValue, 0, statement);
+        }
+    }
 
 }

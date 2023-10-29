@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package io.sapl.mavenplugin.test.coverage.helper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -30,31 +31,31 @@ import io.sapl.test.coverage.api.model.PolicySetHit;
 
 class CoverageAPIHelperTests {
 
-	private Path baseDir;
+    private Path baseDir;
 
-	@BeforeEach
-	void setup() {
-		baseDir = Paths.get("target/sapl-coverage");
-		TestFileHelper.deleteDirectory(baseDir.toFile());
-	}
+    @BeforeEach
+    void setup() {
+        baseDir = Paths.get("target/sapl-coverage");
+        TestFileHelper.deleteDirectory(baseDir.toFile());
+    }
 
-	@AfterEach
-	void cleanup() {
-		TestFileHelper.deleteDirectory(baseDir.toFile());
-	}
+    @AfterEach
+    void cleanup() {
+        TestFileHelper.deleteDirectory(baseDir.toFile());
+    }
 
-	@Test
-	void test() {
-		var helper = new CoverageAPIHelper();
-		var writer = CoverageAPIFactory.constructCoverageHitRecorder(baseDir);
+    @Test
+    void test() throws IOException {
+        var helper = new CoverageAPIHelper();
+        var writer = CoverageAPIFactory.constructCoverageHitRecorder(baseDir);
 
-		var hits1 = helper.readHits(baseDir);
-		assertEquals(0, hits1.getPolicySets().size());
+        var hits1 = helper.readHits(baseDir);
+        assertEquals(0, hits1.getPolicySets().size());
 
-		writer.recordPolicySetHit(new PolicySetHit("testSet"));
-		var hits2 = helper.readHits(baseDir);
-		assertEquals(1, hits2.getPolicySets().size());
+        writer.recordPolicySetHit(new PolicySetHit("testSet"));
+        var hits2 = helper.readHits(baseDir);
+        assertEquals(1, hits2.getPolicySets().size());
 
-	}
+    }
 
 }

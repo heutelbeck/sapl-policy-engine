@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,32 +28,32 @@ import lombok.Getter;
 @AllArgsConstructor
 public class PolicyHit {
 
-	/**
-	 * Identifier of {@link io.sapl.grammar.sapl.PolicySet} of hit policy. Empty if
-	 * {@link io.sapl.grammar.sapl.Policy} isn't in a
-	 * {@link io.sapl.grammar.sapl.PolicySet}.
-	 */
-	private String policySetId;
+    /**
+     * Identifier of {@link io.sapl.grammar.sapl.PolicySet} of hit policy. Empty if
+     * {@link io.sapl.grammar.sapl.Policy} isn't in a
+     * {@link io.sapl.grammar.sapl.PolicySet}.
+     */
+    private String policySetId;
 
-	/**
-	 * Identifier of hit {@link io.sapl.grammar.sapl.Policy}
-	 */
-	private String policyId;
+    /**
+     * Identifier of hit {@link io.sapl.grammar.sapl.Policy}
+     */
+    private String policyId;
 
-	@Override
-	public String toString() {
-		return policySetId + CoverageHitConstants.DELIMITER + policyId;
-	}
+    @Override
+    public String toString() {
+        return policySetId + CoverageHitConstants.DELIMITER + policyId;
+    }
 
-	/**
-	 * Converts a String to PolicyHit.
-	 * 
-	 * @param policyToStringResult a condition result expressed in a String
-	 * @return the expressed PolicyHit
-	 */
-	public static PolicyHit fromString(String policyToStringResult) {
-		String[] split = policyToStringResult.split(CoverageHitConstants.DELIMITER_MATCH_REGEX);
-		return new PolicyHit(split[0], split[1]);
-	}
+    /**
+     * Converts a String to PolicyHit.
+     * 
+     * @param policyToStringResult a condition result expressed in a String
+     * @return the expressed PolicyHit
+     */
+    public static PolicyHit fromString(String policyToStringResult) {
+        String[] split = policyToStringResult.split(CoverageHitConstants.DELIMITER_MATCH_REGEX);
+        return new PolicyHit(split[0], split[1]);
+    }
 
 }

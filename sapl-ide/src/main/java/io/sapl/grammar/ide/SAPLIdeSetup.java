@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,11 +28,11 @@ import io.sapl.grammar.SAPLStandaloneSetup;
  */
 public class SAPLIdeSetup extends SAPLStandaloneSetup {
 
-	@Override
-	public Injector createInjector() {
-		SAPLRuntimeModule saplRuntimeModule = new SAPLRuntimeModule();
-		SAPLIdeModule saplIdeModule = new SAPLIdeModule();
-		return Guice.createInjector(Modules2.mixin(saplRuntimeModule, saplIdeModule));
-	}
+    @Override
+    public Injector createInjector() {
+        SAPLRuntimeModule saplRuntimeModule = new SAPLRuntimeModule();
+        SAPLIdeModule     saplIdeModule     = new SAPLIdeModule();
+        return Guice.createInjector(Modules2.mixin(saplRuntimeModule, saplIdeModule));
+    }
 
 }

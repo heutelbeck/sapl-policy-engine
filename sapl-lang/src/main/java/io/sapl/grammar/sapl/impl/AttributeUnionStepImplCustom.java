@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,25 +36,25 @@ import reactor.core.publisher.Flux;
  */
 public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 
-	@Override
-	public Flux<Val> apply(@NonNull Val parentValue) {
-		return StepAlgorithmUtil.applyOnObject(parentValue, SelectorUtil.toObjectFieldSelector(this::hasKey),
-				parameters(), AttributeUnionStep.class);
-	}
+    @Override
+    public Flux<Val> apply(@NonNull Val parentValue) {
+        return StepAlgorithmUtil.applyOnObject(parentValue, SelectorUtil.toObjectFieldSelector(this::hasKey),
+                parameters(), AttributeUnionStep.class);
+    }
 
-	@Override
-	public Flux<Val> applyFilterStatement(@NonNull Val unfilteredValue, int stepId,
-			@NonNull FilterStatement statement) {
-		return FilterAlgorithmUtil.applyFilterOnObject(unfilteredValue, stepId,
-				SelectorUtil.toObjectFieldSelector(this::hasKey), statement, ArraySlicingStep.class);
-	}
+    @Override
+    public Flux<Val> applyFilterStatement(@NonNull Val unfilteredValue, int stepId,
+            @NonNull FilterStatement statement) {
+        return FilterAlgorithmUtil.applyFilterOnObject(unfilteredValue, stepId,
+                SelectorUtil.toObjectFieldSelector(this::hasKey), statement, ArraySlicingStep.class);
+    }
 
-	private boolean hasKey(String key, Val value) {
-		return attributes.contains(key);
-	}
+    private boolean hasKey(String key, Val value) {
+        return attributes.contains(key);
+    }
 
-	private String parameters() {
-		return "[" + (attributes == null ? "" : String.join(",", attributes)) + "]";
-	}
+    private String parameters() {
+        return "[" + (attributes == null ? "" : String.join(",", attributes)) + "]";
+    }
 
 }

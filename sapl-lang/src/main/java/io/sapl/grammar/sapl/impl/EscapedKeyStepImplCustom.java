@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.Map;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.EscapedKeyStep;
 import io.sapl.grammar.sapl.FilterStatement;
@@ -31,14 +32,14 @@ import reactor.core.publisher.Flux;
  */
 public class EscapedKeyStepImplCustom extends EscapedKeyStepImpl {
 
-	@Override
-	public Flux<Val> apply(@NonNull Val parentValue) {
-		return Flux.just(KeyStepImplCustom.applyToValue(parentValue, id).withTrace(EscapedKeyStep.class,
-				Map.of("parentValue", parentValue, "id", Val.of(id))));
-	}
+    @Override
+    public Flux<Val> apply(@NonNull Val parentValue) {
+        return Flux.just(KeyStepImplCustom.applyToValue(parentValue, id).withTrace(EscapedKeyStep.class,
+                Map.of(Trace.PARENT_VALUE, parentValue, Trace.IDENTIFIER, Val.of(id))));
+    }
 
-	@Override
-	public Flux<Val> applyFilterStatement(@NonNull Val parentValue, int stepId, @NonNull FilterStatement statement) {
-		return KeyStepImplCustom.applyKeyStepFilterStatement(id, parentValue, stepId, statement);
-	}
+    @Override
+    public Flux<Val> applyFilterStatement(@NonNull Val parentValue, int stepId, @NonNull FilterStatement statement) {
+        return KeyStepImplCustom.applyKeyStepFilterStatement(id, parentValue, stepId, statement);
+    }
 }

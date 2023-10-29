@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,13 +22,13 @@ import reactor.core.publisher.Mono;
 
 public class ApiKeyReactiveAuthenticationManager implements ReactiveAuthenticationManager {
 
-	@Override
-	public Mono<Authentication> authenticate(Authentication authentication) {
-		return Mono.fromSupplier(() -> {
-			if (authentication != null && authentication.getCredentials() != null) {
-				authentication.setAuthenticated(true);
-			}
-			return authentication;
-		});
-	}
+    @Override
+    public Mono<Authentication> authenticate(Authentication authentication) {
+        return Mono.fromSupplier(() -> {
+            if (authentication != null && authentication.getCredentials() != null) {
+                authentication.setAuthenticated(true);
+            }
+            return authentication;
+        });
+    }
 }

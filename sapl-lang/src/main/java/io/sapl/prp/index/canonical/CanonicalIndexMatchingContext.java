@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,67 +20,67 @@ import lombok.Setter;
 
 public class CanonicalIndexMatchingContext {
 
-	private final Bitmask candidatesMask;
+    private final Bitmask candidatesMask;
 
-	@Getter
-	private final Bitmask matchingCandidatesMask;
+    @Getter
+    private final Bitmask matchingCandidatesMask;
 
-	private final int[] trueLiteralsOfConjunction;
+    private final int[] trueLiteralsOfConjunction;
 
-	private final int[] eliminatedFormulasWithConjunction;
+    private final int[] eliminatedFormulasWithConjunction;
 
-	@Getter
-	@Setter
-	private boolean errorsInTargets = false;
+    @Getter
+    @Setter
+    private boolean errorsInTargets = false;
 
-	public CanonicalIndexMatchingContext(int numberOfConjunctions) {
-		candidatesMask = new Bitmask();
-		candidatesMask.set(0, numberOfConjunctions);
+    public CanonicalIndexMatchingContext(int numberOfConjunctions) {
+        candidatesMask = new Bitmask();
+        candidatesMask.set(0, numberOfConjunctions);
 
-		matchingCandidatesMask = new Bitmask();
+        matchingCandidatesMask = new Bitmask();
 
-		trueLiteralsOfConjunction         = new int[numberOfConjunctions];
-		eliminatedFormulasWithConjunction = new int[numberOfConjunctions];
-	}
+        trueLiteralsOfConjunction         = new int[numberOfConjunctions];
+        eliminatedFormulasWithConjunction = new int[numberOfConjunctions];
+    }
 
-	Bitmask getCopyOfCandidates() {
-		return new Bitmask(candidatesMask);
-	}
+    Bitmask getCopyOfCandidates() {
+        return new Bitmask(candidatesMask);
+    }
 
-	boolean isRemainingCandidate(int candidateIndex) {
-		return candidatesMask.isSet(candidateIndex);
-	}
+    boolean isRemainingCandidate(int candidateIndex) {
+        return candidatesMask.isSet(candidateIndex);
+    }
 
-	boolean isPredicateReferencedInCandidates(final Predicate predicate) {
-		return predicate.getConjunctions().intersects(candidatesMask);
-	}
+    boolean isPredicateReferencedInCandidates(final Predicate predicate) {
+        return predicate.getConjunctions().intersects(candidatesMask);
+    }
 
-	void incrementTrueLiteralsForConjunction(int conjunctionIndex) {
-		trueLiteralsOfConjunction[conjunctionIndex] += 1;
-	}
+    void incrementTrueLiteralsForConjunction(int conjunctionIndex) {
+        trueLiteralsOfConjunction[conjunctionIndex] += 1;
+    }
 
-	void increaseNumberOfEliminatedFormulasForConjunction(int conjunctionIndex, long numberOfEliminatedFormulas) {
-		eliminatedFormulasWithConjunction[conjunctionIndex] += numberOfEliminatedFormulas;
-	}
+    void increaseNumberOfEliminatedFormulasForConjunction(int conjunctionIndex, long numberOfEliminatedFormulas) {
+        eliminatedFormulasWithConjunction[conjunctionIndex] += numberOfEliminatedFormulas;
+    }
 
-	boolean isConjunctionSatisfied(int conjunctionIndex, int numberOfLiteralsInConjunction) {
-		return trueLiteralsOfConjunction[conjunctionIndex] == numberOfLiteralsInConjunction;
-	}
+    boolean isConjunctionSatisfied(int conjunctionIndex, int numberOfLiteralsInConjunction) {
+        return trueLiteralsOfConjunction[conjunctionIndex] == numberOfLiteralsInConjunction;
+    }
 
-	boolean areAllFunctionsEliminated(int conjunctionIndex, int numberOfFormulasWithConjunction) {
-		return eliminatedFormulasWithConjunction[conjunctionIndex] == numberOfFormulasWithConjunction;
-	}
+    boolean areAllFunctionsEliminated(int conjunctionIndex, int numberOfFormulasWithConjunction) {
+        return eliminatedFormulasWithConjunction[conjunctionIndex] == numberOfFormulasWithConjunction;
+    }
 
-	void addSatisfiedCandidates(Bitmask satisfiedCandidates) {
-		matchingCandidatesMask.or(satisfiedCandidates);
-	}
+    void addSatisfiedCandidates(Bitmask satisfiedCandidates) {
+        matchingCandidatesMask.or(satisfiedCandidates);
+    }
 
-	void addCandidates(Bitmask candidatesToAdd) {
-		candidatesMask.or(candidatesToAdd);
-	}
+    void addCandidates(Bitmask candidatesToAdd) {
+        candidatesMask.or(candidatesToAdd);
+    }
 
-	void removeCandidates(Bitmask candidatesToRemove) {
-		candidatesMask.andNot(candidatesToRemove);
-	}
+    void removeCandidates(Bitmask candidatesToRemove) {
+        candidatesMask.andNot(candidatesToRemove);
+    }
 
 }

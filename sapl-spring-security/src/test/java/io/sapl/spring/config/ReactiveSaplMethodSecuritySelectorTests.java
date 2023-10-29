@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,17 +25,17 @@ import org.springframework.context.annotation.AdviceMode;
 
 class ReactiveSaplMethodSecuritySelectorTests {
 
-	@Test
-	void when_AdviceModeNotProxy_throwIllegalState() {
-		var sut = new ReactiveSaplMethodSecuritySelector();
-		assertThrows(IllegalStateException.class, () -> sut.selectImports(AdviceMode.ASPECTJ));
-	}
+    @Test
+    void when_AdviceModeNotProxy_throwIllegalState() {
+        var sut = new ReactiveSaplMethodSecuritySelector();
+        assertThrows(IllegalStateException.class, () -> sut.selectImports(AdviceMode.ASPECTJ));
+    }
 
-	@Test
-	void when_AdviceModeProxy_thenRegistrarAndSaplConfigIncludedInSelectImports() {
-		var sut    = new ReactiveSaplMethodSecuritySelector();
-		var actual = sut.selectImports(AdviceMode.PROXY);
-		assertThat(actual, is(arrayContainingInAnyOrder(ReactiveSaplMethodSecurityConfiguration.class.getName())));
-	}
+    @Test
+    void when_AdviceModeProxy_thenRegistrarAndSaplConfigIncludedInSelectImports() {
+        var sut    = new ReactiveSaplMethodSecuritySelector();
+        var actual = sut.selectImports(AdviceMode.PROXY);
+        assertThat(actual, is(arrayContainingInAnyOrder(ReactiveSaplMethodSecurityConfiguration.class.getName())));
+    }
 
 }

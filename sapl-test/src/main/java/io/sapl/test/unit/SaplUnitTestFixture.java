@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,70 +32,71 @@ import reactor.core.Exceptions;
 
 public class SaplUnitTestFixture extends SaplTestFixtureTemplate {
 
-	private static final String ERROR_MESSAGE_MISSING_SAPL_DOCUMENT_NAME = """
-			Before constructing a test case you have to specify the filename where to find your SAPL policy!
+    private static final String ERROR_MESSAGE_MISSING_SAPL_DOCUMENT_NAME = """
+            Before constructing a test case you have to specify the filename where to find your SAPL policy!
 
-			Probably you forgot to call ".setSaplDocumentName("")\"""";
+            Probably you forgot to call ".setSaplDocumentName("")\"""";
 
-	private final String saplDocumentName;
+    private final String saplDocumentName;
 
-	/**
-	 * Fixture for constructing a unit test case
-	 * @param saplDocumentName path relative to your classpath to the sapl document. If
-	 * your policies are located at the root of the classpath or in the standard path
-	 * {@code "policies/"} in your {@code resources} folder you only have to specify the
-	 * name of the .sapl file. If your policies are located at some special place you have
-	 * to configure a relative path like
-	 * {@code "yourSpecialDirectory/policies/myPolicy.sapl"}
-	 */
-	public SaplUnitTestFixture(String saplDocumentName) {
-		this.saplDocumentName = saplDocumentName;
-	}
+    /**
+     * Fixture for constructing a unit test case
+     * 
+     * @param saplDocumentName path relative to your classpath to the sapl document.
+     *                         If your policies are located at the root of the
+     *                         classpath or in the standard path {@code "policies/"}
+     *                         in your {@code resources} folder you only have to
+     *                         specify the name of the .sapl file. If your policies
+     *                         are located at some special place you have to
+     *                         configure a relative path like
+     *                         {@code "yourSpecialDirectory/policies/myPolicy.sapl"}
+     */
+    public SaplUnitTestFixture(String saplDocumentName) {
+        this.saplDocumentName = saplDocumentName;
+    }
 
-	@Override
-	public GivenStep constructTestCaseWithMocks() {
-		if (this.saplDocumentName == null || this.saplDocumentName.isEmpty()) {
-			throw new SaplTestException(ERROR_MESSAGE_MISSING_SAPL_DOCUMENT_NAME);
-		}
-		return StepBuilder.newBuilderAtGivenStep(readSaplDocument(), this.attributeCtx, this.functionCtx,
-				this.variables);
-	}
+    @Override
+    public GivenStep constructTestCaseWithMocks() {
+        if (this.saplDocumentName == null || this.saplDocumentName.isEmpty()) {
+            throw new SaplTestException(ERROR_MESSAGE_MISSING_SAPL_DOCUMENT_NAME);
+        }
+        return StepBuilder.newBuilderAtGivenStep(readSaplDocument(), this.attributeCtx, this.functionCtx,
+                this.variables);
+    }
 
-	@Override
-	public WhenStep constructTestCase() {
-		if (this.saplDocumentName == null || this.saplDocumentName.isEmpty()) {
-			throw new SaplTestException(ERROR_MESSAGE_MISSING_SAPL_DOCUMENT_NAME);
-		}
-		return StepBuilder.newBuilderAtWhenStep(readSaplDocument(), this.attributeCtx, this.functionCtx,
-				this.variables);
-	}
+    @Override
+    public WhenStep constructTestCase() {
+        if (this.saplDocumentName == null || this.saplDocumentName.isEmpty()) {
+            throw new SaplTestException(ERROR_MESSAGE_MISSING_SAPL_DOCUMENT_NAME);
+        }
+        return StepBuilder.newBuilderAtWhenStep(readSaplDocument(), this.attributeCtx, this.functionCtx,
+                this.variables);
+    }
 
-	private SAPL readSaplDocument() {
-		String filename = constructFileEnding(this.saplDocumentName);
+    private SAPL readSaplDocument() {
+        String filename = constructFileEnding(this.saplDocumentName);
 
-		SAPLInterpreter interpreter = new TestSaplInterpreter(
-				CoverageAPIFactory.constructCoverageHitRecorder(resolveCoverageBaseDir()));
+        SAPLInterpreter interpreter = new TestSaplInterpreter(
+                CoverageAPIFactory.constructCoverageHitRecorder(resolveCoverageBaseDir()));
 
-		return interpreter.parse(findFileOnClasspath(filename));
-	}
+        return interpreter.parse(findFileOnClasspath(filename));
+    }
 
-	private String constructFileEnding(String filename) {
-		if (this.saplDocumentName.endsWith(".sapl")) {
-			return filename;
-		}
-		else {
-			return filename + ".sapl";
-		}
-	}
+    private String constructFileEnding(String filename) {
+        if (this.saplDocumentName.endsWith(".sapl")) {
+            return filename;
+        } else {
+            return filename + ".sapl";
+        }
+    }
 
-	private String findFileOnClasspath(String filename) {
-		Path path = ClasspathHelper.findPathOnClasspath(getClass().getClassLoader(), filename);
-		try {
-			return Files.readString(path);
-		}
-		catch (IOException e) {
-			throw Exceptions.propagate(e);
-		}
-	}
+    private String findFileOnClasspath(String filename) {
+        Path path = ClasspathHelper.findPathOnClasspath(getClass().getClassLoader(), filename);
+        try {
+            return Files.readString(path);
+        } catch (IOException e) {
+            throw Exceptions.propagate(e);
+        }
+    }
 
 }

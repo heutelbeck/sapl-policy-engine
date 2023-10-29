@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,24 +30,24 @@ import lombok.extern.slf4j.Slf4j;
 @AutoConfigureAfter({ AttributeContextAutoConfiguration.class, FunctionContextAutoConfiguration.class })
 public class DocumentationAutoConfiguration {
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	PolicyInformationPointsDocumentation pipDocumentation(AttributeContext attributeCtx) {
-		log.info("Provisioning PIP Documentation Bean");
-		for (var doc : attributeCtx.getDocumentation()) {
-			log.debug("AttributeCtx contains: {}", doc.getName());
-		}
-		return new PolicyInformationPointsDocumentation(attributeCtx.getDocumentation());
-	}
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    PolicyInformationPointsDocumentation pipDocumentation(AttributeContext attributeCtx) {
+        log.info("Provisioning PIP Documentation Bean");
+        for (var doc : attributeCtx.getDocumentation()) {
+            log.debug("AttributeCtx contains: {}", doc.getName());
+        }
+        return new PolicyInformationPointsDocumentation(attributeCtx.getDocumentation());
+    }
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	FunctionLibrariesDocumentation functionDocumentation(FunctionContext functionCtx) {
-		log.info("Provisioning Function Libraries Documentation Bean");
-		for (var doc : functionCtx.getDocumentation()) {
-			log.debug("FunctionCtx contains: {}", doc.getName());
-		}
-		return new FunctionLibrariesDocumentation(functionCtx.getDocumentation());
-	}
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    FunctionLibrariesDocumentation functionDocumentation(FunctionContext functionCtx) {
+        log.info("Provisioning Function Libraries Documentation Bean");
+        for (var doc : functionCtx.getDocumentation()) {
+            log.debug("FunctionCtx contains: {}", doc.getName());
+        }
+        return new FunctionLibrariesDocumentation(functionCtx.getDocumentation());
+    }
 
 }

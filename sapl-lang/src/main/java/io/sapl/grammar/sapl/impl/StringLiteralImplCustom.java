@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,9 +21,9 @@ import reactor.core.publisher.Flux;
 
 public class StringLiteralImplCustom extends StringLiteralImpl {
 
-	@Override
-	public Flux<Val> evaluate() {
-		return Flux.just(Val.of(getString()).withTrace(StringLiteral.class));
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        return Flux.just(Val.of(getString()).withTrace(StringLiteral.class));
+    }
 
 }

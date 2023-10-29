@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,9 +28,9 @@ import reactor.core.publisher.Flux;
  */
 public class BasicValueImplCustom extends BasicValueImpl {
 
-	@Override
-	public Flux<Val> evaluate() {
-		return getValue().evaluate().switchMap(resolveStepsFiltersAndSubTemplates(steps));
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        return getValue().evaluate().switchMap(v -> resolveStepsFiltersAndSubTemplates(steps).apply(v));
+    }
 
 }

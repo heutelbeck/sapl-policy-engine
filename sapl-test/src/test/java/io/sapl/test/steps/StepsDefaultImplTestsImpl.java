@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,48 +35,48 @@ import reactor.test.StepVerifier;
 
 class StepsDefaultImplTestsImpl extends StepsDefaultImpl {
 
-	SAPL document;
+    SAPL document;
 
-	StepsDefaultImplTestsImpl(String document, AttributeContext attrCtx, FunctionContext funcCtx,
-			Map<String, JsonNode> variables) {
-		this.document                = new DefaultSAPLInterpreter().parse(document);
-		this.mockingFunctionContext  = new MockingFunctionContext(funcCtx);
-		this.mockingAttributeContext = new MockingAttributeContext(attrCtx);
-		this.variables               = variables;
-		this.mockedAttributeValues   = new LinkedList<>();
-	}
+    StepsDefaultImplTestsImpl(String document, AttributeContext attrCtx, FunctionContext funcCtx,
+            Map<String, JsonNode> variables) {
+        this.document                = new DefaultSAPLInterpreter().parse(document);
+        this.mockingFunctionContext  = new MockingFunctionContext(funcCtx);
+        this.mockingAttributeContext = new MockingAttributeContext(attrCtx);
+        this.variables               = variables;
+        this.mockedAttributeValues   = new LinkedList<>();
+    }
 
-	@Override
-	protected void createStepVerifier(AuthorizationSubscription authzSub) {
+    @Override
+    protected void createStepVerifier(AuthorizationSubscription authzSub) {
 
-		var matchResult = this.document.matches().contextWrite(ctx -> {
-			ctx = AuthorizationContext.setAttributeContext(ctx, this.mockingAttributeContext);
-			ctx = AuthorizationContext.setFunctionContext(ctx, this.mockingFunctionContext);
-			ctx = AuthorizationContext.setVariables(ctx, this.variables);
-			ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSub);
-			return ctx;
-		}).block();
+        var matchResult = this.document.matches().contextWrite(ctx -> {
+            ctx = AuthorizationContext.setAttributeContext(ctx, this.mockingAttributeContext);
+            ctx = AuthorizationContext.setFunctionContext(ctx, this.mockingFunctionContext);
+            ctx = AuthorizationContext.setVariables(ctx, this.variables);
+            ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSub);
+            return ctx;
+        }).block();
 
-		if (matchResult.isBoolean() && matchResult.getBoolean()) {
+        if (matchResult.isBoolean() && matchResult.getBoolean()) {
 
-			this.steps = StepVerifier.create(this.document.evaluate()
-					.map(DocumentEvaluationResult::getAuthorizationDecision).contextWrite(ctx -> {
-						ctx = AuthorizationContext.setAttributeContext(ctx, this.mockingAttributeContext);
-						ctx = AuthorizationContext.setFunctionContext(ctx, this.mockingFunctionContext);
-						ctx = AuthorizationContext.setVariables(ctx, this.variables);
-						ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSub);
-						return ctx;
-					}));
+            this.steps = StepVerifier.create(this.document.evaluate()
+                    .map(DocumentEvaluationResult::getAuthorizationDecision).contextWrite(ctx -> {
+                        ctx = AuthorizationContext.setAttributeContext(ctx, this.mockingAttributeContext);
+                        ctx = AuthorizationContext.setFunctionContext(ctx, this.mockingFunctionContext);
+                        ctx = AuthorizationContext.setVariables(ctx, this.variables);
+                        ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSub);
+                        return ctx;
+                    }));
 
-			for (AttributeMockReturnValues mock : this.mockedAttributeValues) {
-				String fullName = mock.getFullName();
-				for (var val : mock.getMockReturnValues()) {
-					this.steps = this.steps.then(() -> this.mockingAttributeContext.mockEmit(fullName, val));
-				}
-			}
-		} else {
-			this.steps = StepVerifier.create(Flux.just(AuthorizationDecision.NOT_APPLICABLE));
-		}
-	}
+            for (AttributeMockReturnValues mock : this.mockedAttributeValues) {
+                String fullName = mock.getFullName();
+                for (var val : mock.getMockReturnValues()) {
+                    this.steps = this.steps.then(() -> this.mockingAttributeContext.mockEmit(fullName, val));
+                }
+            }
+        } else {
+            this.steps = StepVerifier.create(Flux.just(AuthorizationDecision.NOT_APPLICABLE));
+        }
+    }
 
 }

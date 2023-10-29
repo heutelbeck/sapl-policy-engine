@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,31 +27,31 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 class ContentFilterUtilTests {
-	private final static ObjectMapper MAPPER = new ObjectMapper();
+    private final static ObjectMapper MAPPER = new ObjectMapper();
 
-	@Data
-	@NoArgsConstructor
-	@AllArgsConstructor
-	public static class DataPoint {
-		String  a = "";
-		Integer b = 0;
-	}
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class DataPoint {
+        String  a = "";
+        Integer b = 0;
+    }
 
-	@Test
-	void test() throws JsonProcessingException {
-		var constraint = MAPPER.readTree("""
-				{
-					"conditions" : [
-						{
-							"path" : "$.a",
-							"type" : "=~", 
-							"value" : "^.BC$"
-						}
-					] 
-				}
-				""");
-		var condition  = ContentFilterUtil.predicateFromConditions(constraint, MAPPER);
-		var data       = new DataPoint("ABC", 100);
-		assertTrue(condition.test(data));
-	}
+    @Test
+    void test() throws JsonProcessingException {
+        var constraint = MAPPER.readTree("""
+                {
+                	"conditions" : [
+                		{
+                			"path" : "$.a",
+                			"type" : "=~",
+                			"value" : "^.BC$"
+                		}
+                	]
+                }
+                """);
+        var condition  = ContentFilterUtil.predicateFromConditions(constraint, MAPPER);
+        var data       = new DataPoint("ABC", 100);
+        assertTrue(condition.test(data));
+    }
 }

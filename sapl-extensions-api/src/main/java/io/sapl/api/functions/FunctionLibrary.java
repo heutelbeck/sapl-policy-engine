@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,21 +24,22 @@ import java.lang.annotation.Target;
 /**
  * Annotation to indicate that a class is a function library.
  * <p>
- * The name defaults to the class name if not explicitly declared as a parameter.
+ * The name defaults to the class name if not explicitly declared as a
+ * parameter.
  */
 @Inherited
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface FunctionLibrary {
 
-	/**
-	 * @return the library name
-	 */
-	String name() default "";
+    /**
+     * @return the library name
+     */
+    String name() default "";
 
-	/**
-	 * @return a string describing the library
-	 */
-	String description() default "";
+    /**
+     * @return a string describing the library
+     */
+    String description() default "";
 
 }

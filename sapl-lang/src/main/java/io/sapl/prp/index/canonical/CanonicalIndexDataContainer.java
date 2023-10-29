@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,71 +32,71 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class CanonicalIndexDataContainer {
 
-	private final Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments;
+    private final Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments;
 
-	private final Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas;
+    private final Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas;
 
-	@Getter
-	private final ImmutableList<Predicate> predicateOrder;
+    @Getter
+    private final ImmutableList<Predicate> predicateOrder;
 
-	private final List<Set<DisjunctiveFormula>> relatedFormulas;
+    private final List<Set<DisjunctiveFormula>> relatedFormulas;
 
-	private final Map<DisjunctiveFormula, Bitmask> relatedCandidates;
+    private final Map<DisjunctiveFormula, Bitmask> relatedCandidates;
 
-	private final Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction;
+    private final Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction;
 
-	private final int[] numberOfLiteralsInConjunction;
+    private final int[] numberOfLiteralsInConjunction;
 
-	private final int[] numberOfFormulasWithConjunction;
+    private final int[] numberOfFormulasWithConjunction;
 
-	@Getter
-	private final int numberOfConjunctions;
+    @Getter
+    private final int numberOfConjunctions;
 
-	public CanonicalIndexDataContainer(Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments,
-			Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas, Collection<Predicate> predicateOrder,
-			List<Set<DisjunctiveFormula>> relatedFormulas, Map<DisjunctiveFormula, Bitmask> relatedCandidates,
-			Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction, int[] numberOfLiteralsInConjunction,
-			int[] numberOfFormulasWithConjunction) {
+    public CanonicalIndexDataContainer(Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments,
+            Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas, Collection<Predicate> predicateOrder,
+            List<Set<DisjunctiveFormula>> relatedFormulas, Map<DisjunctiveFormula, Bitmask> relatedCandidates,
+            Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction, int[] numberOfLiteralsInConjunction,
+            int[] numberOfFormulasWithConjunction) {
 
-		this(formulaToDocuments, clauseToFormulas, ImmutableList.copyOf(predicateOrder), relatedFormulas,
-				relatedCandidates, conjunctionsInFormulasReferencingConjunction, numberOfLiteralsInConjunction,
-				numberOfFormulasWithConjunction, numberOfLiteralsInConjunction.length);
-	}
+        this(formulaToDocuments, clauseToFormulas, ImmutableList.copyOf(predicateOrder), relatedFormulas,
+                relatedCandidates, conjunctionsInFormulasReferencingConjunction, numberOfLiteralsInConjunction,
+                numberOfFormulasWithConjunction, numberOfLiteralsInConjunction.length);
+    }
 
-	public CanonicalIndexDataContainer(Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments,
-			Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas, ImmutableList<Predicate> predicateOrder,
-			List<Set<DisjunctiveFormula>> relatedFormulas, Map<DisjunctiveFormula, Bitmask> relatedCandidates,
-			Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction, int[] numberOfLiteralsInConjunction,
-			int[] numberOfFormulasWithConjunction, int numberOfConjunctions) {
-		this.formulaToDocuments = formulaToDocuments;
-		this.clauseToFormulas = clauseToFormulas;
-		this.predicateOrder = predicateOrder;
-		this.relatedFormulas = relatedFormulas;
-		this.relatedCandidates = relatedCandidates;
-		this.conjunctionsInFormulasReferencingConjunction = conjunctionsInFormulasReferencingConjunction;
-		this.numberOfLiteralsInConjunction = numberOfLiteralsInConjunction.clone();
-		this.numberOfFormulasWithConjunction = numberOfFormulasWithConjunction.clone();
-		this.numberOfConjunctions = numberOfConjunctions;
-	}
+    public CanonicalIndexDataContainer(Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments,
+            Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas, ImmutableList<Predicate> predicateOrder,
+            List<Set<DisjunctiveFormula>> relatedFormulas, Map<DisjunctiveFormula, Bitmask> relatedCandidates,
+            Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction, int[] numberOfLiteralsInConjunction,
+            int[] numberOfFormulasWithConjunction, int numberOfConjunctions) {
+        this.formulaToDocuments                           = formulaToDocuments;
+        this.clauseToFormulas                             = clauseToFormulas;
+        this.predicateOrder                               = predicateOrder;
+        this.relatedFormulas                              = relatedFormulas;
+        this.relatedCandidates                            = relatedCandidates;
+        this.conjunctionsInFormulasReferencingConjunction = conjunctionsInFormulasReferencingConjunction;
+        this.numberOfLiteralsInConjunction                = numberOfLiteralsInConjunction.clone();
+        this.numberOfFormulasWithConjunction              = numberOfFormulasWithConjunction.clone();
+        this.numberOfConjunctions                         = numberOfConjunctions;
+    }
 
-	public int getNumberOfLiteralsInConjunction(int conjunctionIndex) {
-		return numberOfLiteralsInConjunction[conjunctionIndex];
-	}
+    public int getNumberOfLiteralsInConjunction(int conjunctionIndex) {
+        return numberOfLiteralsInConjunction[conjunctionIndex];
+    }
 
-	public int getNumberOfFormulasWithConjunction(int conjunctionIndex) {
-		return numberOfFormulasWithConjunction[conjunctionIndex];
-	}
+    public int getNumberOfFormulasWithConjunction(int conjunctionIndex) {
+        return numberOfFormulasWithConjunction[conjunctionIndex];
+    }
 
-	public Set<CTuple> getConjunctionsInFormulasReferencingConjunction(int conjunctionIndex) {
-		return conjunctionsInFormulasReferencingConjunction.get(conjunctionIndex);
-	}
+    public Set<CTuple> getConjunctionsInFormulasReferencingConjunction(int conjunctionIndex) {
+        return conjunctionsInFormulasReferencingConjunction.get(conjunctionIndex);
+    }
 
-	Set<DisjunctiveFormula> getRelatedFormulas(int conjunctionIndex) {
-		return relatedFormulas.get(conjunctionIndex);
-	}
+    Set<DisjunctiveFormula> getRelatedFormulas(int conjunctionIndex) {
+        return relatedFormulas.get(conjunctionIndex);
+    }
 
-	Set<SAPL> getPoliciesIncludingFormula(DisjunctiveFormula formula) {
-		return formulaToDocuments.get(formula);
-	}
+    Set<SAPL> getPoliciesIncludingFormula(DisjunctiveFormula formula) {
+        return formulaToDocuments.get(formula);
+    }
 
 }

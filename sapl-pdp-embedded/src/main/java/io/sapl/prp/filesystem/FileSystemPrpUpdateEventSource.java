@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,47 +33,47 @@ import reactor.util.function.Tuples;
 @Slf4j
 public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 
-	private static final String SAPL_SUFFIX = ".sapl";
+    private static final String SAPL_SUFFIX = ".sapl";
 
-	private final SAPLInterpreter interpreter;
+    private final SAPLInterpreter interpreter;
 
-	private final String watchDir;
+    private final String watchDir;
 
-	public FileSystemPrpUpdateEventSource(String policyPath, SAPLInterpreter interpreter) {
-		this.interpreter = interpreter;
-		watchDir = resolveHomeFolderIfPresent(policyPath);
-		log.info("Monitoring for SAPL documents: {}", watchDir);
-	}
+    public FileSystemPrpUpdateEventSource(String policyPath, SAPLInterpreter interpreter) {
+        this.interpreter = interpreter;
+        watchDir         = resolveHomeFolderIfPresent(policyPath);
+        log.info("Monitoring for SAPL documents: {}", watchDir);
+    }
 
-	@Override
-	public void dispose() {
-		// NOOP
-	}
+    @Override
+    public void dispose() {
+        // NOOP
+    }
 
-	@Override
-	public Flux<PrpUpdateEvent> getUpdates() {
-		var seedIndex = new ImmutableFileIndex(this.watchDir, interpreter);
-		var initialEvent = seedIndex.getUpdateEvent();
-		var monitoringFlux = FileMonitorUtil.monitorDirectory(watchDir, file -> file.getName().endsWith(SAPL_SUFFIX));
-		log.debug("Initial event: {}", initialEvent);
-		return Mono.just(initialEvent).concatWith(directoryMonitor(monitoringFlux, seedIndex));
-	}
+    @Override
+    public Flux<PrpUpdateEvent> getUpdates() {
+        var seedIndex      = new ImmutableFileIndex(this.watchDir, interpreter);
+        var initialEvent   = seedIndex.getUpdateEvent();
+        var monitoringFlux = FileMonitorUtil.monitorDirectory(watchDir, file -> file.getName().endsWith(SAPL_SUFFIX));
+        log.debug("Initial event: {}", initialEvent);
+        return Mono.just(initialEvent).concatWith(directoryMonitor(monitoringFlux, seedIndex));
+    }
 
-	private Flux<PrpUpdateEvent> directoryMonitor(Flux<FileEvent> fileEvents, ImmutableFileIndex seedIndex) {
-		return fileEvents.scan(createInitialTuple(seedIndex), this::processFileEvent)
-				.filter(tuple -> tuple.getT1().isPresent()).map(Tuple2::getT1).map(Optional::get);
-	}
+    private Flux<PrpUpdateEvent> directoryMonitor(Flux<FileEvent> fileEvents, ImmutableFileIndex seedIndex) {
+        return fileEvents.scan(createInitialTuple(seedIndex), this::processFileEvent)
+                .filter(tuple -> tuple.getT1().isPresent()).map(Tuple2::getT1).map(Optional::get);
+    }
 
-	private Tuple2<Optional<PrpUpdateEvent>, ImmutableFileIndex> createInitialTuple(ImmutableFileIndex seedIndex) {
-		return Tuples.of(Optional.empty(), seedIndex);
-	}
+    private Tuple2<Optional<PrpUpdateEvent>, ImmutableFileIndex> createInitialTuple(ImmutableFileIndex seedIndex) {
+        return Tuples.of(Optional.empty(), seedIndex);
+    }
 
-	private Tuple2<Optional<PrpUpdateEvent>, ImmutableFileIndex> processFileEvent(
-			Tuple2<Optional<PrpUpdateEvent>, ImmutableFileIndex> tuple, FileEvent fileEvent) {
-		var index = tuple.getT2();
-		var newIndex = index.afterFileEvent(fileEvent);
-		log.debug("Update event: {}", newIndex.getUpdateEvent());
-		return Tuples.of(Optional.of(newIndex.getUpdateEvent()), newIndex);
-	}
+    private Tuple2<Optional<PrpUpdateEvent>, ImmutableFileIndex> processFileEvent(
+            Tuple2<Optional<PrpUpdateEvent>, ImmutableFileIndex> tuple, FileEvent fileEvent) {
+        var index    = tuple.getT2();
+        var newIndex = index.afterFileEvent(fileEvent);
+        log.debug("Update event: {}", newIndex.getUpdateEvent());
+        return Tuples.of(Optional.of(newIndex.getUpdateEvent()), newIndex);
+    }
 
 }

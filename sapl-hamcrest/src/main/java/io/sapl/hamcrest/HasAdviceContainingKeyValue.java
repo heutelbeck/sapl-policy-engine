@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,69 +31,69 @@ import io.sapl.api.pdp.AuthorizationDecision;
  */
 public class HasAdviceContainingKeyValue extends TypeSafeDiagnosingMatcher<AuthorizationDecision> {
 
-	private final String key;
+    private final String key;
 
-	private final Optional<Matcher<? super JsonNode>> valueMatcher;
+    private final Optional<Matcher<? super JsonNode>> valueMatcher;
 
-	/**
-	 * Checks for the presence of an advice containing a field with the given key
-	 * and a value matching a matcher.
-	 * 
-	 * @param key   a key
-	 * @param value a value matcher.
-	 */
-	public HasAdviceContainingKeyValue(String key, Matcher<? super JsonNode> value) {
-		super(AuthorizationDecision.class);
-		this.key          = Objects.requireNonNull(key);
-		this.valueMatcher = Optional.of(Objects.requireNonNull(value));
-	}
+    /**
+     * Checks for the presence of an advice containing a field with the given key
+     * and a value matching a matcher.
+     * 
+     * @param key   a key
+     * @param value a value matcher.
+     */
+    public HasAdviceContainingKeyValue(String key, Matcher<? super JsonNode> value) {
+        super(AuthorizationDecision.class);
+        this.key          = Objects.requireNonNull(key);
+        this.valueMatcher = Optional.of(Objects.requireNonNull(value));
+    }
 
-	/**
-	 * Checks for the presence of an advice containing a field with the given key.
-	 * 
-	 * @param key a key
-	 */
-	public HasAdviceContainingKeyValue(String key) {
-		super(AuthorizationDecision.class);
-		this.key          = Objects.requireNonNull(key);
-		this.valueMatcher = Optional.empty();
-	}
+    /**
+     * Checks for the presence of an advice containing a field with the given key.
+     * 
+     * @param key a key
+     */
+    public HasAdviceContainingKeyValue(String key) {
+        super(AuthorizationDecision.class);
+        this.key          = Objects.requireNonNull(key);
+        this.valueMatcher = Optional.empty();
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText(String.format("the decision has an advice containing key %s", this.key));
+    @Override
+    public void describeTo(Description description) {
+        description.appendText(String.format("the decision has an advice containing key %s", this.key));
 
-		this.valueMatcher.ifPresentOrElse(matcher -> description.appendText(" with ").appendDescriptionOf(matcher),
-				() -> description.appendText(" with any value"));
-	}
+        this.valueMatcher.ifPresentOrElse(matcher -> description.appendText(" with ").appendDescriptionOf(matcher),
+                () -> description.appendText(" with any value"));
+    }
 
-	@Override
-	protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
-		var optionalAdvice = decision.getAdvice();
-		if (optionalAdvice.isEmpty()) {
-			mismatchDescription.appendText("decision didn't contain any advice");
-			return false;
-		}
+    @Override
+    protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
+        var optionalAdvice = decision.getAdvice();
+        if (optionalAdvice.isEmpty()) {
+            mismatchDescription.appendText("decision didn't contain any advice");
+            return false;
+        }
 
-		var containsAdvice = false;
+        var containsAdvice = false;
 
-		for (JsonNode advice : optionalAdvice.get()) {
-			var iterator = advice.fields();
-			while (iterator.hasNext()) {
-				var entry = iterator.next();
-				if (entry.getKey().equals(this.key)
-						&& (this.valueMatcher.isEmpty() || this.valueMatcher.get().matches(entry.getValue()))) {
-					containsAdvice = true;
-				}
-			}
-		}
+        for (JsonNode advice : optionalAdvice.get()) {
+            var iterator = advice.fields();
+            while (iterator.hasNext()) {
+                var entry = iterator.next();
+                if (entry.getKey().equals(this.key)
+                        && (this.valueMatcher.isEmpty() || this.valueMatcher.get().matches(entry.getValue()))) {
+                    containsAdvice = true;
+                }
+            }
+        }
 
-		if (containsAdvice) {
-			return true;
-		} else {
-			mismatchDescription.appendText("no entry in advice matched");
-			return false;
-		}
-	}
+        if (containsAdvice) {
+            return true;
+        } else {
+            mismatchDescription.appendText("no entry in advice matched");
+            return false;
+        }
+    }
 
 }

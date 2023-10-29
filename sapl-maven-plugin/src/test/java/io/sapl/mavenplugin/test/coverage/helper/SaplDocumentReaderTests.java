@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,58 +40,58 @@ import io.sapl.mavenplugin.test.coverage.model.SaplDocument;
 
 class SaplDocumentReaderTests {
 
-	private MavenProjectStub project;
+    private MavenProjectStub project;
 
-	private SaplDocumentReader reader;
+    private SaplDocumentReader reader;
 
-	@BeforeEach
-	void setup() {
-		project = new MavenProjectStub();
-		project.setRuntimeClasspathElements(List.of("target/classes"));
-		reader = new SaplDocumentReader();
-	}
+    @BeforeEach
+    void setup() {
+        project = new MavenProjectStub();
+        project.setRuntimeClasspathElements(List.of("target/classes"));
+        reader = new SaplDocumentReader();
+    }
 
-	@Test
-	void test() throws MojoExecutionException {
-		String policyPath = "policies";
-		Collection<SaplDocument> documents = reader.retrievePolicyDocuments(new SilentLog(), project, policyPath);
-		assertEquals(2, documents.size());
-	}
+    @Test
+    void test() throws MojoExecutionException {
+        String                   policyPath = "policies";
+        Collection<SaplDocument> documents  = reader.retrievePolicyDocuments(new SilentLog(), project, policyPath);
+        assertEquals(2, documents.size());
+    }
 
-	@Test
-	void test_nonExistentPath() {
-		assertThrows(MojoExecutionException.class, () -> reader.retrievePolicyDocuments(new SilentLog(), project,
-				"src" + File.separator + "test" + File.separator + "resources" + File.separator + "policies"));
-	}
+    @Test
+    void test_nonExistentPath() {
+        assertThrows(MojoExecutionException.class, () -> reader.retrievePolicyDocuments(new SilentLog(), project,
+                "src" + File.separator + "test" + File.separator + "resources" + File.separator + "policies"));
+    }
 
-	@Test
-	void test_pathPointsToFile() {
-		assertThrows(MojoExecutionException.class, () -> reader.retrievePolicyDocuments(new SilentLog(), project,
-				"policies" + File.separator + "policy_1.sapl"));
-	}
+    @Test
+    void test_pathPointsToFile() {
+        assertThrows(MojoExecutionException.class, () -> reader.retrievePolicyDocuments(new SilentLog(), project,
+                "policies" + File.separator + "policy_1.sapl"));
+    }
 
-	@Test
-	void test_FilePathWithDot() throws MojoExecutionException {
-		Collection<SaplDocument> documents = reader.retrievePolicyDocuments(new SilentLog(), project,
-				"." + File.separator + "policies");
-		assertEquals(2, documents.size());
-	}
+    @Test
+    void test_FilePathWithDot() throws MojoExecutionException {
+        Collection<SaplDocument> documents = reader.retrievePolicyDocuments(new SilentLog(), project,
+                "." + File.separator + "policies");
+        assertEquals(2, documents.size());
+    }
 
-	@Test
-	void test_File_IOException() {
-		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
-			mockedFiles.when(() -> Files.readString(Mockito.any())).thenThrow(IOException.class);
-			assertThrows(MojoExecutionException.class,
-					() -> reader.retrievePolicyDocuments(new SilentLog(), project, "." + File.separator + "policies"));
-		}
-	}
+    @Test
+    void test_File_IOException() {
+        try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
+            mockedFiles.when(() -> Files.readString(Mockito.any())).thenThrow(IOException.class);
+            assertThrows(MojoExecutionException.class,
+                    () -> reader.retrievePolicyDocuments(new SilentLog(), project, "." + File.separator + "policies"));
+        }
+    }
 
-	@Test
-	void test_DependencyResolutionRequiredException() throws DependencyResolutionRequiredException {
-		var project = mock(MavenProject.class);
-		when(project.getRuntimeClasspathElements()).thenThrow(DependencyResolutionRequiredException.class);
-		assertThrows(MojoExecutionException.class,
-				() -> reader.retrievePolicyDocuments(new SilentLog(), project, "." + File.separator + "policies"));
-	}
+    @Test
+    void test_DependencyResolutionRequiredException() throws DependencyResolutionRequiredException {
+        var project = mock(MavenProject.class);
+        when(project.getRuntimeClasspathElements()).thenThrow(DependencyResolutionRequiredException.class);
+        assertThrows(MojoExecutionException.class,
+                () -> reader.retrievePolicyDocuments(new SilentLog(), project, "." + File.separator + "policies"));
+    }
 
 }

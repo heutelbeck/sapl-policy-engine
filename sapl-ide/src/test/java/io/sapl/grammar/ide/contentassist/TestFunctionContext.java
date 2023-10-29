@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,11 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
@@ -34,11 +38,6 @@ class TestFunctionContext implements FunctionContext {
 		availableLibraries.put("schemaTest", Set.of("person"));
 	}
 
-/*	@Override
-	public Boolean isProvidedFunction(String function) {
-		throw new UnsupportedOperationException();
-	}*/
-
 	@Override
 	public Boolean isProvidedFunction(String function){
 		List<String> availableFunctions = new ArrayList<>();
@@ -49,26 +48,33 @@ class TestFunctionContext implements FunctionContext {
 			}
 		}
 		return availableFunctions.contains(function);
-	}
 
-	@Override
-	public Collection<String> providedFunctionsOfLibrary(String pipName) {
-		return availableLibraries.getOrDefault(pipName, Set.of());
-	}
+    @Override
+    public Collection<String> providedFunctionsOfLibrary(String pipName) {
+        return availableLibraries.getOrDefault(pipName, Set.of());
+    }
 
-	@Override
-	public Collection<String> getAvailableLibraries() {
-		return availableLibraries.keySet();
-	}
+    @Override
+    public Collection<String> getAvailableLibraries() {
+        return availableLibraries.keySet();
+    }
 
-	@Override
-	public Val evaluate(String function, Val... parameters) {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public Val evaluate(String function, Val... parameters) {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public Collection<LibraryDocumentation> getDocumentation() {
-		throw new UnsupportedOperationException();
+    @Override
+    public Collection<LibraryDocumentation> getDocumentation() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public List<String> getCodeTemplates() {
+        return List.of("filter.blacken", "filter.remove", "filter.replace", "standard.length",
+                "standard.numberToString", "time.after", "time.before", "time.between");
+    }
+
 	}
 
 	@Override
@@ -83,10 +89,10 @@ class TestFunctionContext implements FunctionContext {
 				"standard.numberToString", "time.after", "time.before", "time.between", "schemaTest.person.name");
 	}
 
-	@Override
-	public Map<String, String> getDocumentedCodeTemplates() {
-		return Map.of("filter.blacken", "documentation");
-	}
+    @Override
+    public Map<String, String> getDocumentedCodeTemplates() {
+        return Map.of("filter.blacken", "documentation");
+    }
 
 	@Override
 	public Map<String, String> getFunctionSchemas() {

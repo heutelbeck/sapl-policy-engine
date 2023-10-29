@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,68 +40,60 @@ import reactor.test.StepVerifier;
 //@Disabled // This one ?
 class SaplMqttClientExceptionIT {
 
-	private final static long DELAY_MS = 500L;
+    private final static long DELAY_MS = 500L;
 
-	@TempDir
-	Path configDir;
+    @TempDir
+    Path configDir;
 
-	@TempDir
-	Path dataDir;
+    @TempDir
+    Path dataDir;
 
-	@TempDir
-	Path extensionsDir;
+    @TempDir
+    Path extensionsDir;
 
-	EmbeddedHiveMQ mqttBroker;
-	SaplMqttClient saplMqttClient;
+    EmbeddedHiveMQ mqttBroker;
+    SaplMqttClient saplMqttClient;
 
-	@BeforeEach
-	void beforeEach() {
-		this.mqttBroker     = buildAndStartBroker(configDir, dataDir, extensionsDir);
-		this.saplMqttClient = new SaplMqttClient();
-	}
+    @BeforeEach
+    void beforeEach() {
+        this.mqttBroker     = buildAndStartBroker(configDir, dataDir, extensionsDir);
+        this.saplMqttClient = new SaplMqttClient();
+    }
 
-	@AfterEach
-	void afterEach() {
-		stopBroker(mqttBroker);
-	}
+    @AfterEach
+    void afterEach() {
+        stopBroker(mqttBroker);
+    }
 
-	@Test
-	void when_exceptionOccursWhileBuildingMessageFlux_then_returnFluxWithValOfError() {
-		// GIVEN
-		var topics = "topic";
+    @Test
+    void when_exceptionOccursWhileBuildingMessageFlux_then_returnFluxWithValOfError() {
+        // GIVEN
+        var topics = "topic";
 
-		// WHEN
-		var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), null);
+        // WHEN
+        var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), null);
 
-		// THEN
-		StepVerifier.create(saplMqttMessageFlux)
-				.thenAwait(Duration.ofMillis(1 * DELAY_MS))
-				.expectNext(Val.error("Failed to build stream of messages."))
-				.thenCancel()
-				.verify();
-	}
+        // THEN
+        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(1 * DELAY_MS))
+                .expectNext(Val.error("Failed to build stream of messages.")).thenCancel().verify();
+    }
 
-	@Test
-	@Disabled // This test causes side effects and makes
-				// SaplMqttClientSubscriptionsIT.when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics
-				// fail by timeout
-	void when_exceptionOccursInTheMessageFlux_then_returnFluxWithValOfError() {
-		// GIVEN
-		var topics = "topic";
+    @Test
+    @Disabled("This test causes side effects and makes SaplMqttClientSubscriptionsIT.when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics fail by timeout")
+    void when_exceptionOccursInTheMessageFlux_then_returnFluxWithValOfError() {
+        // GIVEN
+        var topics = "topic";
 
-		// WHEN
-		var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), Map.of());
+        // WHEN
+        var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), Map.of());
 
-		try (MockedStatic<DefaultResponseUtility> defaultResponseUtilityMockedStatic = Mockito
-				.mockStatic(DefaultResponseUtility.class)) {
-			defaultResponseUtilityMockedStatic.when(() -> DefaultResponseUtility.getDefaultResponseConfig(any(), any()))
-					.thenThrow(new RuntimeException("Error in stream"));
-			// THEN
-			StepVerifier.create(saplMqttMessageFlux)
-					.thenAwait(Duration.ofMillis(1 * DELAY_MS))
-					.expectNext(Val.error("Error in stream"))
-					.thenCancel()
-					.verify();
-		}
-	}
+        try (MockedStatic<DefaultResponseUtility> defaultResponseUtilityMockedStatic = Mockito
+                .mockStatic(DefaultResponseUtility.class)) {
+            defaultResponseUtilityMockedStatic.when(() -> DefaultResponseUtility.getDefaultResponseConfig(any(), any()))
+                    .thenThrow(new RuntimeException("Error in stream"));
+            // THEN
+            StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(1 * DELAY_MS))
+                    .expectNext(Val.error("Error in stream")).thenCancel().verify();
+        }
+    }
 }

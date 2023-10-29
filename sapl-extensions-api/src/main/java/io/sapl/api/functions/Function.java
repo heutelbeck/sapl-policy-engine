@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,23 +21,25 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Declares a method in a class to be a function library usable within SAPL policies.
+ * Declares a method in a class to be a function library usable within SAPL
+ * policies.
  * <p>
- * The name defaults to the method name if not explicitly declared as a parameter.
+ * The name defaults to the method name if not explicitly declared as a
+ * parameter.
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Function {
 
-	/**
-	 * @return the function name.
-	 */
-	String name() default "";
+    /**
+     * @return the function name.
+     */
+    String name() default "";
 
-	/**
-	 * @return function documentation
-	 */
-	String docs() default "";
+    /**
+     * @return function documentation
+     */
+    String docs() default "";
 
 	/**
 	 * @return function json schema

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,118 +32,118 @@ import io.sapl.test.verification.MockRunInformation;
  */
 class ImportsTests {
 
-	@Test
-	void test_times_specificNumber() {
-		var mockRunInformation = new MockRunInformation("test.test");
-		mockRunInformation.saveCall(new MockCall(Val.of(1)));
-		mockRunInformation.saveCall(new MockCall(Val.of(1)));
-		var verification = times(2);
+    @Test
+    void test_times_specificNumber() {
+        var mockRunInformation = new MockRunInformation("test.test");
+        mockRunInformation.saveCall(new MockCall(Val.of(1)));
+        mockRunInformation.saveCall(new MockCall(Val.of(1)));
+        var verification = times(2);
 
-		var isAssertionErrorThrown = false;
-		try {
-			verification.verify(mockRunInformation);
-		} catch (AssertionError e) {
-			isAssertionErrorThrown = true;
-		}
+        var isAssertionErrorThrown = false;
+        try {
+            verification.verify(mockRunInformation);
+        } catch (AssertionError e) {
+            isAssertionErrorThrown = true;
+        }
 
-		assertThat(isAssertionErrorThrown).isFalse();
-	}
+        assertThat(isAssertionErrorThrown).isFalse();
+    }
 
-	@Test
-	void test_times_specificNumber_failure() {
-		var mockRunInformation = new MockRunInformation("test.test");
-		mockRunInformation.saveCall(new MockCall(Val.of(1)));
-		var verification = times(2);
+    @Test
+    void test_times_specificNumber_failure() {
+        var mockRunInformation = new MockRunInformation("test.test");
+        mockRunInformation.saveCall(new MockCall(Val.of(1)));
+        var verification = times(2);
 
-		var isAssertionErrorThrown = false;
-		try {
-			verification.verify(mockRunInformation);
-		} catch (AssertionError e) {
-			isAssertionErrorThrown = true;
-		}
+        var isAssertionErrorThrown = false;
+        try {
+            verification.verify(mockRunInformation);
+        } catch (AssertionError e) {
+            isAssertionErrorThrown = true;
+        }
 
-		assertThat(isAssertionErrorThrown).isTrue();
-	}
+        assertThat(isAssertionErrorThrown).isTrue();
+    }
 
-	@Test
-	void test_times_never() {
-		var mockRunInformation = new MockRunInformation("test.test");
-		var verification       = never();
+    @Test
+    void test_times_never() {
+        var mockRunInformation = new MockRunInformation("test.test");
+        var verification       = never();
 
-		var isAssertionErrorThrown = false;
-		try {
-			verification.verify(mockRunInformation);
-		} catch (AssertionError e) {
-			isAssertionErrorThrown = true;
-		}
+        var isAssertionErrorThrown = false;
+        try {
+            verification.verify(mockRunInformation);
+        } catch (AssertionError e) {
+            isAssertionErrorThrown = true;
+        }
 
-		assertThat(isAssertionErrorThrown).isFalse();
-	}
+        assertThat(isAssertionErrorThrown).isFalse();
+    }
 
-	@Test
-	void test_times_never_failure() {
-		var mockRunInformation = new MockRunInformation("test.test");
-		mockRunInformation.saveCall(new MockCall(Val.of(1)));
-		var verification = never();
+    @Test
+    void test_times_never_failure() {
+        var mockRunInformation = new MockRunInformation("test.test");
+        mockRunInformation.saveCall(new MockCall(Val.of(1)));
+        var verification = never();
 
-		var isAssertionErrorThrown = false;
-		try {
-			verification.verify(mockRunInformation);
-		} catch (AssertionError e) {
-			isAssertionErrorThrown = true;
-		}
+        var isAssertionErrorThrown = false;
+        try {
+            verification.verify(mockRunInformation);
+        } catch (AssertionError e) {
+            isAssertionErrorThrown = true;
+        }
 
-		assertThat(isAssertionErrorThrown).isTrue();
-	}
+        assertThat(isAssertionErrorThrown).isTrue();
+    }
 
-	@Test
-	void test_times_anyTimes_0() {
-		var mockRunInformation = new MockRunInformation("test.test");
-		var verification       = anyTimes();
+    @Test
+    void test_times_anyTimes_0() {
+        var mockRunInformation = new MockRunInformation("test.test");
+        var verification       = anyTimes();
 
-		var isAssertionErrorThrown = false;
-		try {
-			verification.verify(mockRunInformation);
-		} catch (AssertionError e) {
-			isAssertionErrorThrown = true;
-		}
+        var isAssertionErrorThrown = false;
+        try {
+            verification.verify(mockRunInformation);
+        } catch (AssertionError e) {
+            isAssertionErrorThrown = true;
+        }
 
-		assertThat(isAssertionErrorThrown).isFalse();
-	}
+        assertThat(isAssertionErrorThrown).isFalse();
+    }
 
-	@Test
-	void test_times_anyTimes_1() {
-		var mockRunInformation = new MockRunInformation("test.test");
-		mockRunInformation.saveCall(new MockCall(Val.of(1)));
-		var verification = anyTimes();
+    @Test
+    void test_times_anyTimes_1() {
+        var mockRunInformation = new MockRunInformation("test.test");
+        mockRunInformation.saveCall(new MockCall(Val.of(1)));
+        var verification = anyTimes();
 
-		var isAssertionErrorThrown = false;
-		try {
-			verification.verify(mockRunInformation);
-		} catch (AssertionError e) {
-			isAssertionErrorThrown = true;
-		}
+        var isAssertionErrorThrown = false;
+        try {
+            verification.verify(mockRunInformation);
+        } catch (AssertionError e) {
+            isAssertionErrorThrown = true;
+        }
 
-		assertThat(isAssertionErrorThrown).isFalse();
-	}
+        assertThat(isAssertionErrorThrown).isFalse();
+    }
 
-	@Test
-	void test_times_anyTimes_N() {
-		var mockRunInformation = new MockRunInformation("test.test");
-		mockRunInformation.saveCall(new MockCall(Val.of(1)));
-		mockRunInformation.saveCall(new MockCall(Val.of(1)));
-		mockRunInformation.saveCall(new MockCall(Val.of(1)));
-		mockRunInformation.saveCall(new MockCall(Val.of(1)));
-		var verification = anyTimes();
+    @Test
+    void test_times_anyTimes_N() {
+        var mockRunInformation = new MockRunInformation("test.test");
+        mockRunInformation.saveCall(new MockCall(Val.of(1)));
+        mockRunInformation.saveCall(new MockCall(Val.of(1)));
+        mockRunInformation.saveCall(new MockCall(Val.of(1)));
+        mockRunInformation.saveCall(new MockCall(Val.of(1)));
+        var verification = anyTimes();
 
-		var isAssertionErrorThrown = false;
-		try {
-			verification.verify(mockRunInformation);
-		} catch (AssertionError e) {
-			isAssertionErrorThrown = true;
-		}
+        var isAssertionErrorThrown = false;
+        try {
+            verification.verify(mockRunInformation);
+        } catch (AssertionError e) {
+            isAssertionErrorThrown = true;
+        }
 
-		assertThat(isAssertionErrorThrown).isFalse();
-	}
+        assertThat(isAssertionErrorThrown).isFalse();
+    }
 
 }

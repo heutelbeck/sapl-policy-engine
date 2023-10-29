@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,71 +40,67 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 class ErrorUtilityTest {
-	@Test
-	void when_isConnectionClosedException_then_returnTrue() {
-		assertTrue(isErrorRelevantToRemoveClientCache(new ConnectionClosedException("error")));
-	}
+    @Test
+    void when_isConnectionClosedException_then_returnTrue() {
+        assertTrue(isErrorRelevantToRemoveClientCache(new ConnectionClosedException("error")));
+    }
 
-	@Test
-	void when_isConnectionFailedException_then_returnTrue() {
-		assertTrue(isErrorRelevantToRemoveClientCache(new ConnectionFailedException("error")));
-	}
+    @Test
+    void when_isConnectionFailedException_then_returnTrue() {
+        assertTrue(isErrorRelevantToRemoveClientCache(new ConnectionFailedException("error")));
+    }
 
-	@Test
-	void when_isMqttSessionExpiredException_then_returnTrue() {
-		assertTrue(isErrorRelevantToRemoveClientCache(new MqttSessionExpiredException("error",
-				new ConnectionFailedException("error"))));
-	}
+    @Test
+    void when_isMqttSessionExpiredException_then_returnTrue() {
+        assertTrue(isErrorRelevantToRemoveClientCache(
+                new MqttSessionExpiredException("error", new ConnectionFailedException("error"))));
+    }
 
-	@Test
-	void when_isMqttClientStateExceptionAndClientIsNotConnected_then_returnTrue() {
-		assertTrue(isErrorRelevantToRemoveClientCache(
-				new MqttClientStateException(MqttClientStateExceptions.notConnected().getMessage())));
-	}
+    @Test
+    void when_isMqttClientStateExceptionAndClientIsNotConnected_then_returnTrue() {
+        assertTrue(isErrorRelevantToRemoveClientCache(
+                new MqttClientStateException(MqttClientStateExceptions.notConnected().getMessage())));
+    }
 
-	@Test
-	void when_isMqttClientStateExceptionAndClientIsConnected_then_returnFalse() {
-		assertFalse(isErrorRelevantToRemoveClientCache(
-				new MqttClientStateException(MqttClientStateExceptions.alreadyConnected().getMessage())));
-	}
+    @Test
+    void when_isMqttClientStateExceptionAndClientIsConnected_then_returnFalse() {
+        assertFalse(isErrorRelevantToRemoveClientCache(
+                new MqttClientStateException(MqttClientStateExceptions.alreadyConnected().getMessage())));
+    }
 
-	@Test
-	void when_evaluatingIfDisconnectWasCausedByClientAndWasCausedByServer_then_returnFalse() {
-		// GIVEN
-		var mqtt5DisconnectExceptionMock = mock(Mqtt5DisconnectException.class);
-		when(mqtt5DisconnectExceptionMock.getMessage()).thenReturn("Server sent " + Mqtt5MessageType.DISCONNECT);
+    @Test
+    void when_evaluatingIfDisconnectWasCausedByClientAndWasCausedByServer_then_returnFalse() {
+        // GIVEN
+        var mqtt5DisconnectExceptionMock = mock(Mqtt5DisconnectException.class);
+        when(mqtt5DisconnectExceptionMock.getMessage()).thenReturn("Server sent " + Mqtt5MessageType.DISCONNECT);
 
-		// WHEN
-		boolean isClientCausedDisconnect = isClientCausedDisconnect(new Throwable(mqtt5DisconnectExceptionMock));
+        // WHEN
+        boolean isClientCausedDisconnect = isClientCausedDisconnect(new Throwable(mqtt5DisconnectExceptionMock));
 
-		// THEN
-		assertFalse(isClientCausedDisconnect);
-	}
+        // THEN
+        assertFalse(isClientCausedDisconnect);
+    }
 
-	@Test
-	void when_clientSendDisconnect_then_clientCausedTheDisconnect() {
-		// GIVEN
-		var disconnectException        = new Mqtt5DisconnectException(
-				Mqtt5Disconnect.builder().build(),
-				"Client sent " + Mqtt5MessageType.DISCONNECT);
-		var wrappedDisconnectException = new RuntimeException(disconnectException);
+    @Test
+    void when_clientSendDisconnect_then_clientCausedTheDisconnect() {
+        // GIVEN
+        var disconnectException        = new Mqtt5DisconnectException(Mqtt5Disconnect.builder().build(),
+                "Client sent " + Mqtt5MessageType.DISCONNECT);
+        var wrappedDisconnectException = new RuntimeException(disconnectException);
 
-		// WHEN
-		boolean isCausedByClient = isClientCausedDisconnect(wrappedDisconnectException);
+        // WHEN
+        boolean isCausedByClient = isClientCausedDisconnect(wrappedDisconnectException);
 
-		// THEN
-		assertTrue(isCausedByClient);
-	}
+        // THEN
+        assertTrue(isCausedByClient);
+    }
 
-	@Test
-	void when_errorIsNoSuchElementException_then_doNotRetry() {
-		// GIVEN
-		var errorFlux = Flux.error(new NoSuchElementException("No element"))
-				.retryWhen(getRetrySpec(null));
+    @Test
+    void when_errorIsNoSuchElementException_then_doNotRetry() {
+        // GIVEN
+        var errorFlux = Flux.error(new NoSuchElementException("No element")).retryWhen(getRetrySpec(null));
 
-		// THEN
-		StepVerifier.create(errorFlux)
-				.expectError(NoSuchElementException.class)
-				.verify();
-	}
+        // THEN
+        StepVerifier.create(errorFlux).expectError(NoSuchElementException.class).verify();
+    }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,23 +23,23 @@ import reactor.core.publisher.Flux;
  */
 public interface PolicyRetrievalPoint {
 
-	/**
-	 * Returns a {@link Flux} of policy retrieval results containing all the
-	 * policies or policy sets having a target expression that matches the given
-	 * authorization subscription. The given function context and variables
-	 * constitute the environment the target expressions are evaluated in.
-	 * 
-	 * @return a {@link Flux} providing the policy retrieval results containing all
-	 *         the matching policies or policy sets. New results are only added to
-	 *         the stream if they are different from the preceding result.
-	 */
-	Flux<PolicyRetrievalResult> retrievePolicies();
+    /**
+     * Returns a {@link Flux} of policy retrieval results containing all the
+     * policies or policy sets having a target expression that matches the given
+     * authorization subscription. The given function context and variables
+     * constitute the environment the target expressions are evaluated in.
+     * 
+     * @return a {@link Flux} providing the policy retrieval results containing all
+     *         the matching policies or policy sets. New results are only added to
+     *         the stream if they are different from the preceding result.
+     */
+    Flux<PolicyRetrievalResult> retrievePolicies();
 
-	/**
-	 * Release all claimed resources
-	 */
-	default void destroy() throws Exception {
-		// NOOP
-	};
+    /**
+     * Release all claimed resources
+     */
+    default void destroy() {
+        // NOOP
+    }
 
 }

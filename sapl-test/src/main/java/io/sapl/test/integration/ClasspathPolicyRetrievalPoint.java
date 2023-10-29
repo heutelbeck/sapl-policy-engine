@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,58 +36,58 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
-	private static final String POLICIES_FILE_GLOB_PATTERN = "*.sapl";
+    private static final String POLICIES_FILE_GLOB_PATTERN = "*.sapl";
 
-	private final Map<String, SAPL> documents;
+    private final Map<String, SAPL> documents;
 
-	ClasspathPolicyRetrievalPoint(Path path, SAPLInterpreter interpreter) {
-		this.documents = readPoliciesFromDirectory(path.toString(), interpreter);
-	}
+    ClasspathPolicyRetrievalPoint(Path path, SAPLInterpreter interpreter) {
+        this.documents = readPoliciesFromDirectory(path.toString(), interpreter);
+    }
 
-	private Map<String, SAPL> readPoliciesFromDirectory(String path, SAPLInterpreter interpreter) {
-		Map<String, SAPL> documents           = new HashMap<>();
-		Path              policyDirectoryPath = ClasspathHelper.findPathOnClasspath(getClass().getClassLoader(), path);
-		log.debug("reading policies from directory {}", policyDirectoryPath);
+    private Map<String, SAPL> readPoliciesFromDirectory(String path, SAPLInterpreter interpreter) {
+        Map<String, SAPL> documentsByName     = new HashMap<>();
+        Path              policyDirectoryPath = ClasspathHelper.findPathOnClasspath(getClass().getClassLoader(), path);
+        log.debug("reading policies from directory {}", policyDirectoryPath);
 
-		try (DirectoryStream<Path> stream = Files.newDirectoryStream(policyDirectoryPath, POLICIES_FILE_GLOB_PATTERN)) {
-			for (Path filePath : stream) {
-				log.info("loading policy: {}", filePath.toAbsolutePath());
-				SAPL sapl = interpreter.parse(Files.newInputStream(filePath));
-				documents.put(sapl.getPolicyElement().getSaplName(), sapl);
-			}
-		} catch (IOException | PolicyEvaluationException e) {
-			throw Exceptions.propagate(e);
-		}
-		return documents;
-	}
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(policyDirectoryPath, POLICIES_FILE_GLOB_PATTERN)) {
+            for (Path filePath : stream) {
+                log.info("loading policy: {}", filePath.toAbsolutePath());
+                SAPL sapl = interpreter.parse(Files.newInputStream(filePath));
+                documentsByName.put(sapl.getPolicyElement().getSaplName(), sapl);
+            }
+        } catch (IOException | PolicyEvaluationException e) {
+            throw Exceptions.propagate(e);
+        }
+        return documentsByName;
+    }
 
-	@Override
-	public Flux<PolicyRetrievalResult> retrievePolicies() {
-		var retrieval = Mono.just(new PolicyRetrievalResult());
-		for (SAPL document : documents.values()) {
-			retrieval = retrieval.flatMap(retrievalResult -> document.matches().map(match -> {
-				if (match.isError()) {
-					return retrievalResult.withError();
-				}
-				if (match.getBoolean()) {
-					return retrievalResult.withMatch(document);
-				}
-				return retrievalResult;
-			}));
-		}
+    @Override
+    public Flux<PolicyRetrievalResult> retrievePolicies() {
+        var retrieval = Mono.just(new PolicyRetrievalResult());
+        for (SAPL document : documents.values()) {
+            retrieval = retrieval.flatMap(retrievalResult -> document.matches().map(match -> {
+                if (match.isError()) {
+                    return retrievalResult.withError();
+                }
+                if (match.getBoolean()) {
+                    return retrievalResult.withMatch(document);
+                }
+                return retrievalResult;
+            }));
+        }
 
-		return Flux.from(retrieval).doOnNext(this::logMatching);
-	}
+        return Flux.from(retrieval).doOnNext(this::logMatching);
+    }
 
-	private void logMatching(PolicyRetrievalResult result) {
-		if (result.getMatchingDocuments().isEmpty()) {
-			log.trace("|-- Matching documents: NONE");
-		} else {
-			log.trace("|-- Matching documents:");
-			for (SAPL doc : result.getMatchingDocuments())
-				log.trace("| |-- * {} ", doc);
-		}
-		log.trace("|");
-	}
+    private void logMatching(PolicyRetrievalResult result) {
+        if (result.getMatchingDocuments().isEmpty()) {
+            log.trace("|-- Matching documents: NONE");
+        } else {
+            log.trace("|-- Matching documents:");
+            for (SAPL doc : result.getMatchingDocuments())
+                log.trace("| |-- * {} ", doc);
+        }
+        log.trace("|");
+    }
 
 }

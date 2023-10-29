@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,51 +29,51 @@ import io.sapl.interpreter.functions.FunctionContext;
 
 class FunctionContextAutoConfigurationTests {
 
-	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-			.withConfiguration(AutoConfigurations.of(FunctionContextAutoConfiguration.class));
+    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
+            .withConfiguration(AutoConfigurations.of(FunctionContextAutoConfiguration.class));
 
-	@Test
-	void whenContextLoaded_thenAFunctionContextIsPresent() {
-		contextRunner.run(context -> {
-			assertThat(context).hasNotFailed();
-			assertThat(context).hasSingleBean(FunctionContext.class);
-		});
-	}
+    @Test
+    void whenContextLoaded_thenAFunctionContextIsPresent() {
+        contextRunner.run(context -> {
+            assertThat(context).hasNotFailed();
+            assertThat(context).hasSingleBean(FunctionContext.class);
+        });
+    }
 
-	@Test
-	void whenDefaultLibrariesArePresent_thenAFunctionContextIsPresentAndLoadedThem() {
-		contextRunner.withConfiguration(AutoConfigurations.of(FunctionLibrariesAutoConfiguration.class))
-				.run(context -> {
-					assertThat(context).hasNotFailed();
-					assertThat(context).hasSingleBean(FunctionContext.class);
-					assertThat(context.getBean(FunctionContext.class).isProvidedFunction("filter.blacken")).isTrue();
-					assertThat(context.getBean(FunctionContext.class).isProvidedFunction("standard.length")).isTrue();
-					assertThat(context.getBean(FunctionContext.class).isProvidedFunction("time.after")).isTrue();
-				});
-	}
+    @Test
+    void whenDefaultLibrariesArePresent_thenAFunctionContextIsPresentAndLoadedThem() {
+        contextRunner.withConfiguration(AutoConfigurations.of(FunctionLibrariesAutoConfiguration.class))
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(FunctionContext.class);
+                    assertThat(context.getBean(FunctionContext.class).isProvidedFunction("filter.blacken")).isTrue();
+                    assertThat(context.getBean(FunctionContext.class).isProvidedFunction("standard.length")).isTrue();
+                    assertThat(context.getBean(FunctionContext.class).isProvidedFunction("time.after")).isTrue();
+                });
+    }
 
-	@Test
-	void whenFunctionContextIsPresent_thenDoNotLoadANewOne() {
-		contextRunner.withBean(FunctionContext.class, () -> mock(FunctionContext.class)).run(context -> {
-			assertThat(context).hasNotFailed();
-			assertThat(context).hasSingleBean(FunctionContext.class);
-			assertThat(context).doesNotHaveBean(AnnotationFunctionContext.class);
-		});
-	}
+    @Test
+    void whenFunctionContextIsPresent_thenDoNotLoadANewOne() {
+        contextRunner.withBean(FunctionContext.class, () -> mock(FunctionContext.class)).run(context -> {
+            assertThat(context).hasNotFailed();
+            assertThat(context).hasSingleBean(FunctionContext.class);
+            assertThat(context).doesNotHaveBean(AnnotationFunctionContext.class);
+        });
+    }
 
-	@Test
-	void whenBadLibraryIsPresent_thenContextFailsToLoad() {
-		contextRunner.withBean(BadFunctionLibrary.class, BadFunctionLibrary::new)
-				.run(context -> assertThat(context).hasFailed());
-	}
+    @Test
+    void whenBadLibraryIsPresent_thenContextFailsToLoad() {
+        contextRunner.withBean(BadFunctionLibrary.class, BadFunctionLibrary::new)
+                .run(context -> assertThat(context).hasFailed());
+    }
 
-	@FunctionLibrary
-	protected static class BadFunctionLibrary {
+    @FunctionLibrary
+    protected static class BadFunctionLibrary {
 
-		@Function
-		void iAmABadSignatureFunction(Integer i, Float f) {
-		}
+        @Function
+        void iAmABadSignatureFunction(Integer i, Float f) {
+        }
 
-	}
+    }
 
 }

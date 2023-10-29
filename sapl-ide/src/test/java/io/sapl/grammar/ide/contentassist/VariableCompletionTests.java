@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,127 +27,126 @@ import org.springframework.test.context.ContextConfiguration;
  */
 @SpringBootTest
 @ContextConfiguration(classes = SAPLIdeSpringTestConfiguration.class)
- class VariableCompletionTests extends CompletionTests {
+class VariableCompletionTests extends CompletionTests {
 
-	@Test
-	void testCompletion_SuggestVariableInBody() {
-		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "policy \"test\" permit where var foo = 5; var bar = 6; ";
-			it.setModel(policy);
-			it.setColumn(policy.length());
-			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("advice", "obligation", "transform",  "var", "action", "bar", "environment",
-						"foo", "resource", "subject");
-				assertProposalsSimple(expected, completionList);
-			});
-		});
-	}
+    @Test
+    void testCompletion_SuggestVariableInBody() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "policy \"test\" permit where var foo = 5; var bar = 6; ";
+            it.setModel(policy);
+            it.setColumn(policy.length());
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("advice", "obligation", "transform", "var", "action", "bar", "environment",
+                        "foo", "resource", "subject");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
 
-	@Test
-	void testCompletion_SuggestVariableInBodyAfterSubject() {
-		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "policy \"test\" permit where var foo = 5; var bar = 6; subject.attribute == ";
-			it.setModel(policy);
-			it.setColumn(policy.length());
-			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("action", "bar", "environment", "foo", "resource", "subject");
-				assertProposalsSimple(expected, completionList);
-			});
-		});
-	}
+    @Test
+    void testCompletion_SuggestVariableInBodyAfterSubject() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "policy \"test\" permit where var foo = 5; var bar = 6; subject.attribute == ";
+            it.setModel(policy);
+            it.setColumn(policy.length());
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("action", "bar", "environment", "foo", "resource", "subject");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
 
-	@Test
-	void testCompletion_SuggestVariableInBody_NotSuggestOutOfScopeVariable() {
+    @Test
+    void testCompletion_SuggestVariableInBody_NotSuggestOutOfScopeVariable() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "policy \"test\" permit where var foo = 5; var bar = 6;";
+            String cursor = "policy \"test\" permit where var foo = 5; ";
+            it.setModel(policy);
+            it.setColumn(cursor.length());
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("advice", "obligation", "transform", "var", "action", "environment", "foo",
+                        "resource", "subject");
+                var unwanted = List.of("bar");
+                assertProposalsSimple(expected, completionList);
+                assertDoesNotContainProposals(unwanted, completionList);
+            });
+        });
+    }
 
-		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "policy \"test\" permit where var foo = 5; var bar = 6;";
-			String cursor = "policy \"test\" permit where var foo = 5; ";
-			it.setModel(policy);
-			it.setColumn(cursor.length());
-			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("advice", "obligation", "transform", "var", "action", "environment", "foo",
-						"resource", "subject");
-				var unwanted = List.of("bar");
-				assertProposalsSimple(expected, completionList);
-				assertDoesNotContainProposals(unwanted, completionList);
-			});
-		});
-	}
+    @Test
+    void testCompletion_SuggestVariableInBodyAfterSubject_NotSuggestOutOfScopeVariable() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "policy \"test\" permit where var foo = 5; subject.attribute == abc; subject.attribute == var bar = 6;";
+            String cursor = "policy \"test\" permit where var foo = 5; subject.attribute == abc; subject.attribute == ";
+            it.setModel(policy);
+            it.setColumn(cursor.length());
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("action", "environment", "foo", "resource", "subject");
+                var unwanted = List.of("bar");
+                assertProposalsSimple(expected, completionList);
+                assertDoesNotContainProposals(unwanted, completionList);
+            });
+        });
+    }
 
-	@Test
-	void testCompletion_SuggestVariableInBodyAfterSubject_NotSuggestOutOfScopeVariable() {
-		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "policy \"test\" permit where var foo = 5; subject.attribute == abc; subject.attribute == var bar = 6;";
-			String cursor = "policy \"test\" permit where var foo = 5; subject.attribute == abc; subject.attribute == ";
-			it.setModel(policy);
-			it.setColumn(cursor.length());
-			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("action", "environment", "foo", "resource", "subject");
-				var unwanted = List.of("bar");
-				assertProposalsSimple(expected, completionList);
-				assertDoesNotContainProposals(unwanted, completionList);
-			});
-		});
-	}
+    @Test
+    void testCompletion_SuggestFunctionsFromSimpleImport() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "import time.before\npolicy \"test policy\" deny where var foo = 5;";
+            String cursor = "policy \"test policy\" deny where var foo = 5;";
+            it.setModel(policy);
+            it.setLine(1);
+            it.setColumn(cursor.length());
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("time.after", "time.before", "time.between");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
 
-	@Test
-	void testCompletion_SuggestFunctionsFromSimpleImport() {
-		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "import time.before\npolicy \"test policy\" deny where var foo = 5;";
-			String cursor = "policy \"test policy\" deny where var foo = 5;";
-			it.setModel(policy);
-			it.setLine(1);
-			it.setColumn(cursor.length());
-			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("time.after", "time.before", "time.between");
-				assertProposalsSimple(expected, completionList);
-			});
-		});
-	}
+    @Test
+    void testCompletion_SuggestFunctionsFromWildcardImport() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "import time.*\npolicy \"test policy\" deny where var foo = 5;";
+            String cursor = "policy \"test policy\" deny where var foo = 5;";
+            it.setModel(policy);
+            it.setLine(1);
+            it.setColumn(cursor.length());
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("time.after", "time.before", "time.between");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
 
-	@Test
-	void testCompletion_SuggestFunctionsFromWildcardImport() {
-		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "import time.*\npolicy \"test policy\" deny where var foo = 5;";
-			String cursor = "policy \"test policy\" deny where var foo = 5;";
-			it.setModel(policy);
-			it.setLine(1);
-			it.setColumn(cursor.length());
-			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("time.after", "time.before", "time.between");
-				assertProposalsSimple(expected, completionList);
-			});
-		});
-	}
+    @Test
+    void testCompletion_SuggestFunctionsFromLibraryImport() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "import time as abc\npolicy \"test policy\" deny where var foo = 5;";
+            String cursor = "policy \"test policy\" deny where var foo = 5;";
+            it.setModel(policy);
+            it.setLine(1);
+            it.setColumn(cursor.length());
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("abc.after", "abc.before", "abc.between");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
 
-	@Test
-	void testCompletion_SuggestFunctionsFromLibraryImport() {
-		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "import time as abc\npolicy \"test policy\" deny where var foo = 5;";
-			String cursor = "policy \"test policy\" deny where var foo = 5;";
-			it.setModel(policy);
-			it.setLine(1);
-			it.setColumn(cursor.length());
-			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("abc.after", "abc.before", "abc.between");
-				assertProposalsSimple(expected, completionList);
-			});
-		});
-	}
-
-	@Test
-	void testCompletion_SuggestRenamedFunctionFromLibraryImport() {
-		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "import time.before as abc\npolicy \"test policy\" deny where var foo = 5;";
-			String cursor = "policy \"test policy\" deny where var foo = 5;";
-			it.setModel(policy);
-			it.setLine(1);
-			it.setColumn(cursor.length());
-			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("abc");
-				assertProposalsSimple(expected, completionList);
-			});
-		});
-	}
+    @Test
+    void testCompletion_SuggestRenamedFunctionFromLibraryImport() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "import time.before as abc\npolicy \"test policy\" deny where var foo = 5;";
+            String cursor = "policy \"test policy\" deny where var foo = 5;";
+            it.setModel(policy);
+            it.setLine(1);
+            it.setColumn(cursor.length());
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("abc");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
 
 }

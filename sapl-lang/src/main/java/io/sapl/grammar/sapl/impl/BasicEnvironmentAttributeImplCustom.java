@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.Map;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.AttributeFinderStep;
 import io.sapl.grammar.sapl.impl.util.FunctionUtil;
@@ -29,21 +30,21 @@ import reactor.core.publisher.Flux;
  */
 public class BasicEnvironmentAttributeImplCustom extends BasicEnvironmentAttributeImpl {
 
-	private static final String EXTERNAL_ATTRIBUTE_IN_TARGET = "Attribute resolution error. Attributes not allowed in target.";
+    private static final String EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR = "Attribute resolution error. Attributes not allowed in target.";
 
-	@Override
-	public Flux<Val> evaluate() {
-		return Flux.deferContextual(ctxView -> {
-			var attributeName = FunctionUtil.resolveAbsoluteFunctionName(getIdSteps(),
-					AuthorizationContext.getImports(ctxView));
+    @Override
+    public Flux<Val> evaluate() {
+        return Flux.deferContextual(ctxView -> {
+            var attributeName = FunctionUtil.resolveAbsoluteFunctionName(getIdSteps(),
+                    AuthorizationContext.getImports(ctxView));
 
-			if (TargetExpressionUtil.isInTargetExpression(this))
-				return Flux.just(Val.error(EXTERNAL_ATTRIBUTE_IN_TARGET).withTrace(AttributeFinderStep.class,
-						Map.of("attribute", Val.of(attributeName))));
+            if (TargetExpressionUtil.isInTargetExpression(this))
+                return Flux.just(Val.error(EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR).withTrace(AttributeFinderStep.class,
+                        Map.of(Trace.ATTRIBUTE, Val.of(attributeName))));
 
-			return AuthorizationContext.getAttributeContext(ctxView).evaluateEnvironmentAttribute(attributeName,
-					getArguments(), AuthorizationContext.getVariables(ctxView)).distinctUntilChanged();
-		});
-	}
+            return AuthorizationContext.getAttributeContext(ctxView).evaluateEnvironmentAttribute(attributeName,
+                    getArguments(), AuthorizationContext.getVariables(ctxView)).distinctUntilChanged();
+        });
+    }
 
 }

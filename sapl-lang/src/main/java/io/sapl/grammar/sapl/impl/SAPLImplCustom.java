@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,25 +23,24 @@ import reactor.core.publisher.Mono;
 
 public class SAPLImplCustom extends SAPLImpl {
 
+    @Override
+    public Mono<Val> matches() {
+        return getPolicyElement().matches();
+    }
 
-	@Override
-	public Mono<Val> matches() {
-		return getPolicyElement().matches();
-	}
+    @Override
+    public Flux<DocumentEvaluationResult> evaluate() {
+        return policyElement.evaluate().contextWrite(ctx -> ImportsUtil.loadImportsIntoContext(this, ctx))
+                .onErrorResume(this::importFailure);
+    }
 
-	@Override
-	public Flux<DocumentEvaluationResult> evaluate() {
-		return policyElement.evaluate().contextWrite(ctx -> ImportsUtil.loadImportsIntoContext(this, ctx))
-				.onErrorResume(this::importFailure);
-	}
+    private Flux<DocumentEvaluationResult> importFailure(Throwable error) {
+        return Flux.just(policyElement.importError(error.getMessage()));
+    }
 
-	private Flux<DocumentEvaluationResult> importFailure(Throwable error) {
-		return Flux.just(policyElement.importError(error.getMessage()));
-	}
-
-	@Override
-	public String toString() {
-		return getPolicyElement().getSaplName();
-	}
+    @Override
+    public String toString() {
+        return getPolicyElement().getSaplName();
+    }
 
 }

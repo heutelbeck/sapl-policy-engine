@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package io.sapl.mavenplugin.test.coverage.helper;
 
+import java.io.IOException;
 import java.nio.file.Path;
 
 import javax.inject.Named;
@@ -27,10 +28,10 @@ import io.sapl.test.coverage.api.CoverageAPIFactory;
 @Singleton
 public class CoverageAPIHelper {
 
-	public CoverageTargets readHits(Path baseDir) {
-		var reader = CoverageAPIFactory.constructCoverageHitReader(baseDir);
-		return new CoverageTargets(reader.readPolicySetHits(), reader.readPolicyHits(),
-				reader.readPolicyConditionHits());
-	}
+    public CoverageTargets readHits(Path baseDir) throws IOException {
+        var reader = CoverageAPIFactory.constructCoverageHitReader(baseDir);
+        return new CoverageTargets(reader.readPolicySetHits(), reader.readPolicyHits(),
+                reader.readPolicyConditionHits());
+    }
 
 }

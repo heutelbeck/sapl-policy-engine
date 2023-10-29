@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,14 +23,15 @@ import org.eclipse.xtext.generator.IGeneratorContext;
 /**
  * Generates code from your model files on save.
  * <p>
- * See
- * <a href="https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#code-generation">
- *     Code Generation</a>
+ * See <a href=
+ * "https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#code-generation">
+ * Code Generation</a>
  */
 public class SAPLGenerator extends AbstractGenerator {
 
-	@Override
-	public void doGenerate(final Resource resource, final IFileSystemAccess2 fsa, final IGeneratorContext context) {
-	}
+    @Override
+    public void doGenerate(final Resource resource, final IFileSystemAccess2 fsa, final IGeneratorContext context) {
+        // NOOP - part of the XText scaffolding.
+    }
 
 }

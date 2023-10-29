@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import static io.sapl.grammar.sapl.impl.util.OperatorUtil.arithmeticOperator;
 import java.math.BigDecimal;
 import java.util.Map;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Modulo;
 import reactor.core.publisher.Flux;
@@ -29,17 +30,19 @@ import reactor.core.publisher.Flux;
  */
 public class ModuloImplCustom extends ModuloImpl {
 
-	@Override
-	public Flux<Val> evaluate() {
-		return arithmeticOperator(this, this::divide);
-	}
+    private static final String DIVISION_BY_ZERO_ERROR = "Division by zero";
 
-	private Val divide(Val dividend, Val divisor) {
-		if (divisor.decimalValue().compareTo(BigDecimal.ZERO) == 0)
-			return Val.error("Division by zero").withTrace(Modulo.class,
-					Map.of("dividend", dividend, "divisor", divisor));
-		return Val.of(dividend.decimalValue().remainder(divisor.decimalValue())).withTrace(Modulo.class,
-				Map.of("dividend", dividend, "divisor", divisor));
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        return arithmeticOperator(this, this::divide);
+    }
+
+    private Val divide(Val dividend, Val divisor) {
+        if (divisor.decimalValue().compareTo(BigDecimal.ZERO) == 0)
+            return Val.error(DIVISION_BY_ZERO_ERROR).withTrace(Modulo.class,
+                    Map.of(Trace.DIVIDEND, dividend, Trace.DIVISOR, divisor));
+        return Val.of(dividend.decimalValue().remainder(divisor.decimalValue())).withTrace(Modulo.class,
+                Map.of(Trace.DIVIDEND, dividend, Trace.DIVISOR, divisor));
+    }
 
 }

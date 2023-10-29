@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,36 +34,36 @@ import reactor.core.publisher.SignalType;
 
 class ClasspathVariablesAndCombinatorSourceTests {
 
-	@Test
-	void doTest() throws Exception {
-		var configProvider = new ClasspathVariablesAndCombinatorSource("policiesIT", new ObjectMapper(), null, null);
-		assertThat(configProvider.getCombiningAlgorithm().blockFirst().get())
-				.isInstanceOf(DenyUnlessPermitCombiningAlgorithmImplCustom.class);
-		assertThat(configProvider.getVariables().log(null, Level.INFO, SignalType.ON_NEXT).blockFirst().get().keySet())
-				.isEmpty();
-		configProvider.destroy();
-	}
+    @Test
+    void doTest() throws Exception {
+        var configProvider = new ClasspathVariablesAndCombinatorSource("policiesIT", new ObjectMapper(), null, null);
+        assertThat(configProvider.getCombiningAlgorithm().blockFirst().get())
+                .isInstanceOf(DenyUnlessPermitCombiningAlgorithmImplCustom.class);
+        assertThat(configProvider.getVariables().log(null, Level.INFO, SignalType.ON_NEXT).blockFirst().get().keySet())
+                .isEmpty();
+        configProvider.destroy();
+    }
 
-	@Test
-	void test_nullPath() {
-		assertThatNullPointerException()
-				.isThrownBy(() -> new ClasspathVariablesAndCombinatorSource(null, new ObjectMapper(), null, null));
-	}
+    @Test
+    void test_nullPath() {
+        assertThatNullPointerException()
+                .isThrownBy(() -> new ClasspathVariablesAndCombinatorSource(null, new ObjectMapper(), null, null));
+    }
 
-	@Test
-	void test_nullObjectMapper() {
-		assertThatNullPointerException()
-				.isThrownBy(() -> new ClasspathVariablesAndCombinatorSource("", null, null, null));
-	}
+    @Test
+    void test_nullObjectMapper() {
+        assertThatNullPointerException()
+                .isThrownBy(() -> new ClasspathVariablesAndCombinatorSource("", null, null, null));
+    }
 
-	@Test
-	void test_IOException() throws IOException {
-		var mapper = Mockito.mock(ObjectMapper.class);
-		Mockito.when(mapper.readValue((File) Mockito.any(), Mockito.<Class<PolicyDecisionPointConfiguration>>any()))
-				.thenThrow(new IOException());
-		assertThatExceptionOfType(RuntimeException.class)
-				.isThrownBy(() -> new ClasspathVariablesAndCombinatorSource("policiesIT", mapper, null, null))
-				.withCauseInstanceOf(IOException.class);
-	}
+    @Test
+    void test_IOException() throws IOException {
+        var mapper = Mockito.mock(ObjectMapper.class);
+        Mockito.when(mapper.readValue((File) Mockito.any(), Mockito.<Class<PolicyDecisionPointConfiguration>>any()))
+                .thenThrow(new IOException());
+        assertThatExceptionOfType(RuntimeException.class)
+                .isThrownBy(() -> new ClasspathVariablesAndCombinatorSource("policiesIT", mapper, null, null))
+                .withCauseInstanceOf(IOException.class);
+    }
 
 }

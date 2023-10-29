@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,13 +20,13 @@ import org.eclipse.xtext.parser.antlr.ISyntaxErrorMessageProvider;
 import io.sapl.grammar.validation.SAPLSyntaxErrorMessageProvider;
 
 /**
- * Use this class to register components to be used at runtime / without the Equinox
- * extension registry.
+ * Use this class to register components to be used at runtime / without the
+ * Equinox extension registry.
  */
 public class SAPLRuntimeModule extends AbstractSAPLRuntimeModule {
 
-	public Class<? extends ISyntaxErrorMessageProvider> bindSyntaxErrorMessageProvider() {
-		return SAPLSyntaxErrorMessageProvider.class;
-	}
+    public Class<? extends ISyntaxErrorMessageProvider> bindSyntaxErrorMessageProvider() {
+        return SAPLSyntaxErrorMessageProvider.class;
+    }
 
 }

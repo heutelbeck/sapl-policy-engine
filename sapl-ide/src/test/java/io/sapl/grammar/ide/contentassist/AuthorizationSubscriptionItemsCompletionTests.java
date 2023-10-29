@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,77 +23,77 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 
 /**
- * Tests regarding the auto-completion of the keywords subject, resource, action,
- * environment
+ * Tests regarding the auto-completion of the keywords subject, resource,
+ * action, environment
  */
 @SpringBootTest
 @ContextConfiguration(classes = SAPLIdeSpringTestConfiguration.class)
 class AuthorizationSubscriptionItemsCompletionTests extends CompletionTests {
 
-	@Test
-	void testCompletion_AuthorizationSubscriptionItemsInTargetExpression() {
-		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "policy \"test\" permit ";
-			it.setModel(policy);
-			it.setColumn(policy.length());
-			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("advice", "obligation", "transform", "where", "action", "environment",
-						"resource", "subject");
-				assertProposalsSimple(expected, completionList);
-			});
-		});
-	}
+    @Test
+    void testCompletion_AuthorizationSubscriptionItemsInTargetExpression() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "policy \"test\" permit ";
+            it.setModel(policy);
+            it.setColumn(policy.length());
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("advice", "obligation", "transform", "where", "action", "environment",
+                        "resource", "subject");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
 
-	@Test
-	void testCompletion_AuthorizationSubscriptionItemsInBody() {
-		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "policy \"test\" permit where ";
-			it.setModel(policy);
-			it.setColumn(policy.length());
-			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("var", "action", "environment", "resource", "subject");
-				assertProposalsSimple(expected, completionList);
-			});
-		});
-	}
+    @Test
+    void testCompletion_AuthorizationSubscriptionItemsInBody() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "policy \"test\" permit where ";
+            it.setModel(policy);
+            it.setColumn(policy.length());
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("var", "action", "environment", "resource", "subject");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
 
-	@Test
-	void testCompletion_NoTechnicalProposalsAfterAuthorizationSubscriptionItem() {
-		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "policy \"test\" permit where subject.";
-			it.setModel(policy);
-			it.setColumn(policy.length());
-			it.setAssertCompletionList(completionList -> {
-				var unwantedProposals = List.of("\"id\"", "id", "idSteps");
-				assertDoesNotContainProposals(unwantedProposals, completionList);
-			});
-		});
-	}
+    @Test
+    void testCompletion_NoTechnicalProposalsAfterAuthorizationSubscriptionItem() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "policy \"test\" permit where subject.";
+            it.setModel(policy);
+            it.setColumn(policy.length());
+            it.setAssertCompletionList(completionList -> {
+                var unwantedProposals = List.of("\"id\"", "id", "idSteps");
+                assertDoesNotContainProposals(unwantedProposals, completionList);
+            });
+        });
+    }
 
-	@Test
-	void testCompletion_SuggestAttributesForEnvironmentalAttribute() {
-		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "policy \"test\" permit where <";
-			it.setModel(policy);
-			it.setColumn(policy.length());
-			it.setAssertCompletionList(completionList -> {
-				var expectedProposals = List.of("clock.now", "clock.ticker", "clock.millis");
-				assertProposalsSimple(expectedProposals, completionList);
-			});
-		});
-	}
+    @Test
+    void testCompletion_SuggestAttributesForEnvironmentalAttribute() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "policy \"test\" permit where <";
+            it.setModel(policy);
+            it.setColumn(policy.length());
+            it.setAssertCompletionList(completionList -> {
+                var expectedProposals = List.of("clock.now", "clock.ticker", "clock.millis");
+                assertProposalsSimple(expectedProposals, completionList);
+            });
+        });
+    }
 
-	@Test
-	void testCompletion_SuggestAttributesForHeadEnvironmentalAttribute() {
-		testCompletion((TestCompletionConfiguration it) -> {
-			String policy = "policy \"test\" permit where |<";
-			it.setModel(policy);
-			it.setColumn(policy.length());
-			it.setAssertCompletionList(completionList -> {
-				var expectedProposals = List.of("clock.now", "clock.ticker", "clock.millis");
-				assertProposalsSimple(expectedProposals, completionList);
-			});
-		});
-	}
+    @Test
+    void testCompletion_SuggestAttributesForHeadEnvironmentalAttribute() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "policy \"test\" permit where |<";
+            it.setModel(policy);
+            it.setColumn(policy.length());
+            it.setAssertCompletionList(completionList -> {
+                var expectedProposals = List.of("clock.now", "clock.ticker", "clock.millis");
+                assertProposalsSimple(expectedProposals, completionList);
+            });
+        });
+    }
 
 }

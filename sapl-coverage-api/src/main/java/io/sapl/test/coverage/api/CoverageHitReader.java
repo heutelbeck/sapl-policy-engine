@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package io.sapl.test.coverage.api;
 
+import java.io.IOException;
 import java.util.List;
 
 import io.sapl.test.coverage.api.model.PolicyConditionHit;
@@ -26,30 +27,34 @@ import io.sapl.test.coverage.api.model.PolicySetHit;
  */
 public interface CoverageHitReader {
 
-	/**
-	 * Internal method used by SAPL Coverage Reading to read all hits of
-	 * io.sapl.grammar.sapl.PolicySet's
-	 * @return List of {@link PolicySetHit}
-	 */
-	List<PolicySetHit> readPolicySetHits();
+    /**
+     * Internal method used by SAPL Coverage Reading to read all hits of
+     * io.sapl.grammar.sapl.PolicySet's
+     * 
+     * @return List of {@link PolicySetHit}
+     */
+    List<PolicySetHit> readPolicySetHits() throws IOException;
 
-	/**
-	 * Internal method used by SAPL Coverage Reading to read all hits of
-	 * io.sapl.grammar.sapl.Policy's
-	 * @return List of {@link PolicySetHit}
-	 */
-	List<PolicyHit> readPolicyHits();
+    /**
+     * Internal method used by SAPL Coverage Reading to read all hits of
+     * io.sapl.grammar.sapl.Policy's
+     * 
+     * @return List of {@link PolicySetHit}
+     */
+    List<PolicyHit> readPolicyHits() throws IOException;
 
-	/**
-	 * Internal method used by SAPL Coverage Reading to read all hits of
-	 * io.sapl.grammar.sapl.Condition's
-	 * @return List of {@link PolicySetHit}
-	 */
-	List<PolicyConditionHit> readPolicyConditionHits();
+    /**
+     * Internal method used by SAPL Coverage Reading to read all hits of
+     * io.sapl.grammar.sapl.Condition's
+     * 
+     * @return List of {@link PolicySetHit}
+     * @throws IOException 
+     */
+    List<PolicyConditionHit> readPolicyConditionHits() throws IOException;
 
-	/**
-	 * Deletes all files used for coverage recording
-	 */
-	void cleanCoverageHitFiles();
+    /**
+     * Deletes all files used for coverage recording
+     */
+    void cleanCoverageHitFiles();
 
 }

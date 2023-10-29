@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,20 +19,21 @@ import static io.sapl.grammar.sapl.impl.util.OperatorUtil.arithmeticOperator;
 
 import java.util.Map;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Minus;
 import reactor.core.publisher.Flux;
 
 public class MinusImplCustom extends MinusImpl {
 
-	@Override
-	public Flux<Val> evaluate() {
-		return arithmeticOperator(this, this::subtract);
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        return arithmeticOperator(this, this::subtract);
+    }
 
-	private Val subtract(Val minuend, Val subtrahend) {
-		return Val.of(minuend.decimalValue().subtract(subtrahend.decimalValue())).withTrace(Minus.class,
-				Map.of("minuend", minuend, "subtrahend", subtrahend));
-	}
+    private Val subtract(Val minuend, Val subtrahend) {
+        return Val.of(minuend.decimalValue().subtract(subtrahend.decimalValue())).withTrace(Minus.class,
+                Map.of(Trace.MINUEND, minuend, Trace.SUBTRAHEND, subtrahend));
+    }
 
 }

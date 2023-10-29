@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -71,302 +71,301 @@ import reactor.test.StepVerifier;
 
 class PostEnforcePolicyEnforcementPointTests {
 
-	private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
-
-	private WebfluxAuthorizationSubscriptionBuilderService subscriptionBuilderService;
-
-	private MethodInvocation invocation;
-
-	private ObjectMapper mapper;
-
-	private Mono<Integer> resourceAccessPoint;
-
-	private SaplAttribute defaultAttribute;
-
-	private PolicyDecisionPoint pdp;
-
-	List<RunnableConstraintHandlerProvider> globalRunnableProviders;
-
-	List<ConsumerConstraintHandlerProvider<?>> globalConsumerProviders;
-
-	List<SubscriptionHandlerProvider> globalSubscriptionHandlerProviders;
-
-	List<RequestHandlerProvider> globalRequestHandlerProviders;
-
-	List<MappingConstraintHandlerProvider<?>> globalMappingHandlerProviders;
-
-	List<ErrorMappingConstraintHandlerProvider> globalErrorMappingHandlerProviders;
-
-	List<ErrorHandlerProvider> globalErrorHandlerProviders;
-
-	List<FilterPredicateConstraintHandlerProvider> globalFilterPredicateProviders;
-
-	List<MethodInvocationConstraintHandlerProvider> globalInvocationHandlerProviders;
-
-	@BeforeEach
-	void beforeEach() {
-		mapper = new ObjectMapper();
-		SimpleModule module = new SimpleModule();
-		module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
-		module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
-		module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
-		mapper.registerModule(module);
-		subscriptionBuilderService = new WebfluxAuthorizationSubscriptionBuilderService(
-				new DefaultMethodSecurityExpressionHandler(), mapper);
-		var testClass = new TestClass();
-		resourceAccessPoint = testClass.publicInteger();
-		invocation          = MethodInvocationUtils.createFromClass(testClass, TestClass.class, "publicInteger", null,
-				null);
-
-		defaultAttribute                   = postEnforceAttributeFrom("'the subject'", "'the action'", "returnObject",
-				"'the environment'", Integer.class);
-		pdp                                = mock(PolicyDecisionPoint.class);
-		globalRunnableProviders            = new LinkedList<>();
-		globalConsumerProviders            = new LinkedList<>();
-		globalSubscriptionHandlerProviders = new LinkedList<>();
-		globalRequestHandlerProviders      = new LinkedList<>();
-		globalMappingHandlerProviders      = new LinkedList<>();
-		globalErrorMappingHandlerProviders = new LinkedList<>();
-		globalErrorHandlerProviders        = new LinkedList<>();
-		globalFilterPredicateProviders     = new LinkedList<>();
-		globalInvocationHandlerProviders   = new LinkedList<>();
-	}
-
-	private ConstraintEnforcementService buildConstraintHandlerService() {
-		return new ConstraintEnforcementService(globalRunnableProviders, globalConsumerProviders,
-				globalSubscriptionHandlerProviders, globalRequestHandlerProviders, globalMappingHandlerProviders,
-				globalErrorMappingHandlerProviders, globalErrorHandlerProviders, globalFilterPredicateProviders,
-				globalInvocationHandlerProviders, mapper);
-	}
-
-	@Test
-	void when_Deny_ErrorIsRaisedAndStreamCompleteEvenWithOnErrorContinue() {
-		var constraintsService = buildConstraintHandlerService();
-		var decisions          = Flux.just(AuthorizationDecision.DENY);
-		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
-		var onErrorContinue = errorAndCauseConsumer();
-		var doOnError       = errorConsumer();
-		var sut             = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
-				.postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute);
-
-		StepVerifier.create(sut.doOnError(doOnError).onErrorContinue(onErrorContinue))
-				.expectError(AccessDeniedException.class).verify();
-
-		verify(onErrorContinue, times(0)).accept(any(), any());
-		verify(doOnError, times(1)).accept(any());
-	}
-
-	@Test
-	void when_Permit_AccessIsGranted() {
-		var constraintsService = buildConstraintHandlerService();
-		var decisions          = Flux.just(AuthorizationDecision.PERMIT);
-		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
-		var sut = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
-				.postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute)
-				.cast(Integer.class);
-		StepVerifier.create(sut).expectNext(420).verifyComplete();
-	}
-
-	@Test
-	void when_PermitWithObligations_and_allObligationsSucceed_then_AccessIsGranted() {
-		var handler = spy(new SubscriptionHandlerProvider() {
-
-			@Override
-			public boolean isResponsible(JsonNode constraint) {
-				return true;
-			}
-
-			@Override
-			public Consumer<Subscription> getHandler(JsonNode constraint) {
-				return this::accept;
-			}
-
-			public void accept(Subscription s) {
-				// NOOP
-			}
-
-		});
-		this.globalSubscriptionHandlerProviders.add(handler);
-		var constraintsService = buildConstraintHandlerService();
-		var decisions          = decisionFluxOnePermitWithObligation();
-		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
-		var sut = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
-				.postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute)
-				.cast(Integer.class);
-
-		StepVerifier.create(sut).expectNext(420).verifyComplete();
-
-		verify(handler, times(1)).accept(any());
-	}
-
-	@Test
-	void when_PermitWithObligations_then_ObligationsAreApplied_and_AccessIsGranted() {
-		var handler = spy(new MappingConstraintHandlerProvider<Integer>() {
-
-			@Override
-			public boolean isResponsible(JsonNode constraint) {
-				return true;
-			}
-
-			@Override
-			public Class<Integer> getSupportedType() {
-				return Integer.class;
-			}
-
-			@Override
-			public UnaryOperator<Integer> getHandler(JsonNode constraint) {
-				return s -> s + constraint.asInt();
-			}
-		});
-		this.globalMappingHandlerProviders.add(handler);
-		var constraintsService = buildConstraintHandlerService();
-		var decisions          = decisionFluxOnePermitWithObligation();
-		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
-		var sut = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
-				.postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute)
-				.cast(Integer.class);
-
-		StepVerifier.create(sut).expectNext(10420).verifyComplete();
-
-		verify(handler, times(1)).getHandler(any());
-	}
-
-	@Test
-	void when_PermitWithObligations_and_oneObligationFails_thenAccessIsDeniedOnFailure() {
-		var handler = spy(new MappingConstraintHandlerProvider<Integer>() {
-
-			@Override
-			public boolean isResponsible(JsonNode constraint) {
-				return true;
-			}
-
-			@Override
-			public Class<Integer> getSupportedType() {
-				return Integer.class;
-			}
-
-			@Override
-			public UnaryOperator<Integer> getHandler(JsonNode constraint) {
-				return s -> {
-					throw new IllegalArgumentException("I FAILED TO OBLIGE");
-				};
-			}
-		});
-		this.globalMappingHandlerProviders.add(handler);
-		var constraintsService = buildConstraintHandlerService();
-		var decisions          = decisionFluxOnePermitWithObligation();
-		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
-		var onErrorContinue = errorAndCauseConsumer();
-		var doOnError       = errorConsumer();
-		var sut             = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
-				.postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute);
-
-		StepVerifier.create(sut.doOnError(doOnError).onErrorContinue(onErrorContinue))
-				.expectError(AccessDeniedException.class).verify();
-
-		verify(onErrorContinue, times(0)).accept(any(), any());
-		verify(doOnError, times(1)).accept(any());
-	}
-
-	@Test
-	void when_PermitWithResource_thenAccessIsGrantedAndOnlyResourceFromPolicyInStream() {
-		var handler = spy(new MappingConstraintHandlerProvider<Integer>() {
-
-			@Override
-			public boolean isResponsible(JsonNode constraint) {
-				return true;
-			}
-
-			@Override
-			public Class<Integer> getSupportedType() {
-				return Integer.class;
-			}
-
-			@Override
-			public UnaryOperator<Integer> getHandler(JsonNode constraint) {
-				return s -> s + constraint.asInt();
-			}
-		});
-		this.globalMappingHandlerProviders.add(handler);
-		var constraintsService = buildConstraintHandlerService();
-		var obligations        = JSON.arrayNode();
-		obligations.add(JSON.numberNode(-69));
-		var decisions       = Flux
-				.just(AuthorizationDecision.PERMIT.withObligations(obligations).withResource(JSON.numberNode(69)));
-		var onErrorContinue = errorAndCauseConsumer();
-		var doOnError       = errorConsumer();
-
-		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
-		var sut = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
-				.postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute)
-				.cast(Integer.class);
-
-		StepVerifier.create(sut).expectNext(0).verifyComplete();
-
-		verify(onErrorContinue, times(0)).accept(any(), any());
-		verify(doOnError, times(0)).accept(any());
-	}
-
-	@Test
-	void when_PermitWithResource_and_typeMismatch_thenAccessIsGrantedAndOnlyResourceFromPolicyInStream() {
-
-		var constraintsService = buildConstraintHandlerService();
-		var decisions          = Flux
-				.just(AuthorizationDecision.PERMIT.withResource(JSON.textNode("I CAUSE A TYPE MISMATCH")));
-		var onErrorContinue    = errorAndCauseConsumer();
-		var doOnError          = errorConsumer();
-
-		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
-		var sut = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
-				.postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute)
-				.doOnError(doOnError).onErrorContinue(onErrorContinue).cast(Integer.class);
-
-		StepVerifier.create(sut)
-				.expectError(AccessDeniedException.class).verify();
-
-		verify(onErrorContinue, times(0)).accept(any(), any());
-		verify(doOnError, times(1)).accept(any());
-	}
-
-	public Flux<AuthorizationDecision> decisionFluxOnePermitWithObligation() {
-		var plus10000  = JSON.numberNode(10000L);
-		var obligation = JSON.arrayNode();
-		obligation.add(plus10000);
-		return Flux.just(AuthorizationDecision.PERMIT.withObligations(obligation));
-	}
-
-	@SuppressWarnings("unchecked")
-	private BiConsumer<Throwable, Object> errorAndCauseConsumer() {
-		return (BiConsumer<Throwable, Object>) mock(BiConsumer.class);
-	}
-
-	@SuppressWarnings("unchecked")
-	private Consumer<Throwable> errorConsumer() {
-		return (Consumer<Throwable>) mock(Consumer.class);
-	}
-
-	public static class TestClass {
-
-		public Mono<Integer> publicInteger() {
-			return Mono.just(420);
-		}
-
-	}
-
-	@Getter
-	public static class BadForJackson {
-
-		private String bad;
-
-	}
-
-	private SaplAttribute postEnforceAttributeFrom(String subject, String action, String resource, String environment,
-			Class<?> genericsType) {
-		return new SaplAttribute(PostEnforce.class, toExpression(subject), toExpression(action), toExpression(resource),
-				toExpression(environment), genericsType);
-	}
-
-	private static Expression toExpression(String expression) {
-		return new SpelExpressionParser().parseExpression(expression);
-	}
+    private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
+
+    private WebfluxAuthorizationSubscriptionBuilderService subscriptionBuilderService;
+
+    private MethodInvocation invocation;
+
+    private ObjectMapper mapper;
+
+    private Mono<Integer> resourceAccessPoint;
+
+    private SaplAttribute defaultAttribute;
+
+    private PolicyDecisionPoint pdp;
+
+    List<RunnableConstraintHandlerProvider> globalRunnableProviders;
+
+    List<ConsumerConstraintHandlerProvider<?>> globalConsumerProviders;
+
+    List<SubscriptionHandlerProvider> globalSubscriptionHandlerProviders;
+
+    List<RequestHandlerProvider> globalRequestHandlerProviders;
+
+    List<MappingConstraintHandlerProvider<?>> globalMappingHandlerProviders;
+
+    List<ErrorMappingConstraintHandlerProvider> globalErrorMappingHandlerProviders;
+
+    List<ErrorHandlerProvider> globalErrorHandlerProviders;
+
+    List<FilterPredicateConstraintHandlerProvider> globalFilterPredicateProviders;
+
+    List<MethodInvocationConstraintHandlerProvider> globalInvocationHandlerProviders;
+
+    @BeforeEach
+    void beforeEach() {
+        mapper = new ObjectMapper();
+        SimpleModule module = new SimpleModule();
+        module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
+        module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
+        module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
+        mapper.registerModule(module);
+        subscriptionBuilderService = new WebfluxAuthorizationSubscriptionBuilderService(
+                new DefaultMethodSecurityExpressionHandler(), mapper);
+        var testClass = new TestClass();
+        resourceAccessPoint = testClass.publicInteger();
+        invocation          = MethodInvocationUtils.createFromClass(testClass, TestClass.class, "publicInteger", null,
+                null);
+
+        defaultAttribute                   = postEnforceAttributeFrom("'the subject'", "'the action'", "returnObject",
+                "'the environment'", Integer.class);
+        pdp                                = mock(PolicyDecisionPoint.class);
+        globalRunnableProviders            = new LinkedList<>();
+        globalConsumerProviders            = new LinkedList<>();
+        globalSubscriptionHandlerProviders = new LinkedList<>();
+        globalRequestHandlerProviders      = new LinkedList<>();
+        globalMappingHandlerProviders      = new LinkedList<>();
+        globalErrorMappingHandlerProviders = new LinkedList<>();
+        globalErrorHandlerProviders        = new LinkedList<>();
+        globalFilterPredicateProviders     = new LinkedList<>();
+        globalInvocationHandlerProviders   = new LinkedList<>();
+    }
+
+    private ConstraintEnforcementService buildConstraintHandlerService() {
+        return new ConstraintEnforcementService(globalRunnableProviders, globalConsumerProviders,
+                globalSubscriptionHandlerProviders, globalRequestHandlerProviders, globalMappingHandlerProviders,
+                globalErrorMappingHandlerProviders, globalErrorHandlerProviders, globalFilterPredicateProviders,
+                globalInvocationHandlerProviders, mapper);
+    }
+
+    @Test
+    void when_Deny_ErrorIsRaisedAndStreamCompleteEvenWithOnErrorContinue() {
+        var constraintsService = buildConstraintHandlerService();
+        var decisions          = Flux.just(AuthorizationDecision.DENY);
+        when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
+        var onErrorContinue = errorAndCauseConsumer();
+        var doOnError       = errorConsumer();
+        var sut             = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
+                .postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute);
+
+        StepVerifier.create(sut.doOnError(doOnError).onErrorContinue(onErrorContinue))
+                .expectError(AccessDeniedException.class).verify();
+
+        verify(onErrorContinue, times(0)).accept(any(), any());
+        verify(doOnError, times(1)).accept(any());
+    }
+
+    @Test
+    void when_Permit_AccessIsGranted() {
+        var constraintsService = buildConstraintHandlerService();
+        var decisions          = Flux.just(AuthorizationDecision.PERMIT);
+        when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
+        var sut = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
+                .postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute)
+                .cast(Integer.class);
+        StepVerifier.create(sut).expectNext(420).verifyComplete();
+    }
+
+    @Test
+    void when_PermitWithObligations_and_allObligationsSucceed_then_AccessIsGranted() {
+        var handler = spy(new SubscriptionHandlerProvider() {
+
+            @Override
+            public boolean isResponsible(JsonNode constraint) {
+                return true;
+            }
+
+            @Override
+            public Consumer<Subscription> getHandler(JsonNode constraint) {
+                return this::accept;
+            }
+
+            public void accept(Subscription s) {
+                // NOOP
+            }
+
+        });
+        this.globalSubscriptionHandlerProviders.add(handler);
+        var constraintsService = buildConstraintHandlerService();
+        var decisions          = decisionFluxOnePermitWithObligation();
+        when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
+        var sut = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
+                .postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute)
+                .cast(Integer.class);
+
+        StepVerifier.create(sut).expectNext(420).verifyComplete();
+
+        verify(handler, times(1)).accept(any());
+    }
+
+    @Test
+    void when_PermitWithObligations_then_ObligationsAreApplied_and_AccessIsGranted() {
+        var handler = spy(new MappingConstraintHandlerProvider<Integer>() {
+
+            @Override
+            public boolean isResponsible(JsonNode constraint) {
+                return true;
+            }
+
+            @Override
+            public Class<Integer> getSupportedType() {
+                return Integer.class;
+            }
+
+            @Override
+            public UnaryOperator<Integer> getHandler(JsonNode constraint) {
+                return s -> s + constraint.asInt();
+            }
+        });
+        this.globalMappingHandlerProviders.add(handler);
+        var constraintsService = buildConstraintHandlerService();
+        var decisions          = decisionFluxOnePermitWithObligation();
+        when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
+        var sut = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
+                .postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute)
+                .cast(Integer.class);
+
+        StepVerifier.create(sut).expectNext(10420).verifyComplete();
+
+        verify(handler, times(1)).getHandler(any());
+    }
+
+    @Test
+    void when_PermitWithObligations_and_oneObligationFails_thenAccessIsDeniedOnFailure() {
+        var handler = spy(new MappingConstraintHandlerProvider<Integer>() {
+
+            @Override
+            public boolean isResponsible(JsonNode constraint) {
+                return true;
+            }
+
+            @Override
+            public Class<Integer> getSupportedType() {
+                return Integer.class;
+            }
+
+            @Override
+            public UnaryOperator<Integer> getHandler(JsonNode constraint) {
+                return s -> {
+                    throw new IllegalArgumentException("I FAILED TO OBLIGE");
+                };
+            }
+        });
+        this.globalMappingHandlerProviders.add(handler);
+        var constraintsService = buildConstraintHandlerService();
+        var decisions          = decisionFluxOnePermitWithObligation();
+        when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
+        var onErrorContinue = errorAndCauseConsumer();
+        var doOnError       = errorConsumer();
+        var sut             = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
+                .postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute);
+
+        StepVerifier.create(sut.doOnError(doOnError).onErrorContinue(onErrorContinue))
+                .expectError(AccessDeniedException.class).verify();
+
+        verify(onErrorContinue, times(0)).accept(any(), any());
+        verify(doOnError, times(1)).accept(any());
+    }
+
+    @Test
+    void when_PermitWithResource_thenAccessIsGrantedAndOnlyResourceFromPolicyInStream() {
+        var handler = spy(new MappingConstraintHandlerProvider<Integer>() {
+
+            @Override
+            public boolean isResponsible(JsonNode constraint) {
+                return true;
+            }
+
+            @Override
+            public Class<Integer> getSupportedType() {
+                return Integer.class;
+            }
+
+            @Override
+            public UnaryOperator<Integer> getHandler(JsonNode constraint) {
+                return s -> s + constraint.asInt();
+            }
+        });
+        this.globalMappingHandlerProviders.add(handler);
+        var constraintsService = buildConstraintHandlerService();
+        var obligations        = JSON.arrayNode();
+        obligations.add(JSON.numberNode(-69));
+        var decisions       = Flux
+                .just(AuthorizationDecision.PERMIT.withObligations(obligations).withResource(JSON.numberNode(69)));
+        var onErrorContinue = errorAndCauseConsumer();
+        var doOnError       = errorConsumer();
+
+        when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
+        var sut = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
+                .postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute)
+                .cast(Integer.class);
+
+        StepVerifier.create(sut).expectNext(0).verifyComplete();
+
+        verify(onErrorContinue, times(0)).accept(any(), any());
+        verify(doOnError, times(0)).accept(any());
+    }
+
+    @Test
+    void when_PermitWithResource_and_typeMismatch_thenAccessIsGrantedAndOnlyResourceFromPolicyInStream() {
+
+        var constraintsService = buildConstraintHandlerService();
+        var decisions          = Flux
+                .just(AuthorizationDecision.PERMIT.withResource(JSON.textNode("I CAUSE A TYPE MISMATCH")));
+        var onErrorContinue    = errorAndCauseConsumer();
+        var doOnError          = errorConsumer();
+
+        when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
+        var sut = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
+                .postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute)
+                .doOnError(doOnError).onErrorContinue(onErrorContinue).cast(Integer.class);
+
+        StepVerifier.create(sut).expectError(AccessDeniedException.class).verify();
+
+        verify(onErrorContinue, times(0)).accept(any(), any());
+        verify(doOnError, times(1)).accept(any());
+    }
+
+    public Flux<AuthorizationDecision> decisionFluxOnePermitWithObligation() {
+        var plus10000  = JSON.numberNode(10000L);
+        var obligation = JSON.arrayNode();
+        obligation.add(plus10000);
+        return Flux.just(AuthorizationDecision.PERMIT.withObligations(obligation));
+    }
+
+    @SuppressWarnings("unchecked")
+    private BiConsumer<Throwable, Object> errorAndCauseConsumer() {
+        return (BiConsumer<Throwable, Object>) mock(BiConsumer.class);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Consumer<Throwable> errorConsumer() {
+        return (Consumer<Throwable>) mock(Consumer.class);
+    }
+
+    public static class TestClass {
+
+        public Mono<Integer> publicInteger() {
+            return Mono.just(420);
+        }
+
+    }
+
+    @Getter
+    public static class BadForJackson {
+
+        private String bad;
+
+    }
+
+    private SaplAttribute postEnforceAttributeFrom(String subject, String action, String resource, String environment,
+            Class<?> genericsType) {
+        return new SaplAttribute(PostEnforce.class, toExpression(subject), toExpression(action), toExpression(resource),
+                toExpression(environment), genericsType);
+    }
+
+    private static Expression toExpression(String expression) {
+        return new SpelExpressionParser().parseExpression(expression);
+    }
 }

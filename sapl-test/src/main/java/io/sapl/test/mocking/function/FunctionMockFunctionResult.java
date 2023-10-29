@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,40 +24,40 @@ import io.sapl.test.verification.TimesCalledVerification;
 
 public class FunctionMockFunctionResult implements FunctionMock {
 
-	private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_FUNCTION = "You already defined a Mock for %s which is always returning a specified value from your lambda-Expression";
+    private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_FUNCTION = "You already defined a Mock for %s which is always returning a specified value from your lambda-Expression";
 
-	private final String fullName;
+    private final String fullName;
 
-	final Function<Val[], Val> returnValue;
+    final Function<Val[], Val> returnValue;
 
-	private final TimesCalledVerification timesCalledVerification;
+    private final TimesCalledVerification timesCalledVerification;
 
-	private final MockRunInformation mockRunInformation;
+    private final MockRunInformation mockRunInformation;
 
-	public FunctionMockFunctionResult(String fullName, Function<Val[], Val> returns,
-			TimesCalledVerification verification) {
-		this.fullName                = fullName;
-		this.returnValue             = returns;
-		this.timesCalledVerification = verification;
+    public FunctionMockFunctionResult(String fullName, Function<Val[], Val> returns,
+            TimesCalledVerification verification) {
+        this.fullName                = fullName;
+        this.returnValue             = returns;
+        this.timesCalledVerification = verification;
 
-		this.mockRunInformation = new MockRunInformation(fullName);
-	}
+        this.mockRunInformation = new MockRunInformation(fullName);
+    }
 
-	@Override
-	public Val evaluateFunctionCall(Val... parameter) {
-		this.mockRunInformation.saveCall(new MockCall(parameter));
-		return this.returnValue.apply(parameter).withTrace(FunctionMockFunctionResult.class);
-	}
+    @Override
+    public Val evaluateFunctionCall(Val... parameter) {
+        this.mockRunInformation.saveCall(new MockCall(parameter));
+        return this.returnValue.apply(parameter).withTrace(FunctionMockFunctionResult.class);
+    }
 
-	@Override
-	public void assertVerifications() {
-		this.timesCalledVerification.verify(this.mockRunInformation);
+    @Override
+    public void assertVerifications() {
+        this.timesCalledVerification.verify(this.mockRunInformation);
 
-	}
+    }
 
-	@Override
-	public String getErrorMessageForCurrentMode() {
-		return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_FUNCTION, this.fullName);
-	}
+    @Override
+    public String getErrorMessageForCurrentMode() {
+        return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_FUNCTION, this.fullName);
+    }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,21 +20,23 @@ package io.sapl.interpreter;
  */
 public class InitializationException extends Exception {
 
-	/**
-	 * Create a new FunctionException
-	 * @param message a message
-	 */
-	public InitializationException(String message) {
-		super(message);
-	}
+    /**
+     * Create a new FunctionException
+     * 
+     * @param message a message
+     */
+    public InitializationException(String message) {
+        super(message);
+    }
 
-	/**
-	 * Create a new PolicyEvaluationException
-	 * @param format format string
-	 * @param args arguments for format string
-	 */
-	public InitializationException(String format, Object... args) {
-		super(String.format(format, args));
-	}
+    /**
+     * Create a new PolicyEvaluationException
+     * 
+     * @param format format string
+     * @param args   arguments for format string
+     */
+    public InitializationException(String format, Object... args) {
+        super(String.format(format, args));
+    }
 
 }

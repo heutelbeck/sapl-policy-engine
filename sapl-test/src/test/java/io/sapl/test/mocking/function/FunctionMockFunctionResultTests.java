@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,45 +28,45 @@ import io.sapl.api.interpreter.Val;
 
 class FunctionMockFunctionResultTests {
 
-	private final Function<Val[], Val> returns = (call) -> {
-		var param0 = call[0].get().asDouble();
-		var param1 = call[1].get().asDouble();
-		return param0 % param1 == 0 ? Val.of(true) : Val.of(false);
-	};
+    private final Function<Val[], Val> returns = (call) -> {
+        var param0 = call[0].get().asDouble();
+        var param1 = call[1].get().asDouble();
+        return param0 % param1 == 0 ? Val.of(true) : Val.of(false);
+    };
 
-	@Test
-	void test() {
-		var mock = new FunctionMockFunctionResult("foo", returns, times(1));
-		assertThat(mock.evaluateFunctionCall(Val.of(4), Val.of(2))).isEqualTo(Val.of(true));
-	}
+    @Test
+    void test() {
+        var mock = new FunctionMockFunctionResult("foo", returns, times(1));
+        assertThat(mock.evaluateFunctionCall(Val.of(4), Val.of(2))).isEqualTo(Val.of(true));
+    }
 
-	@Test
-	void test_multipleTimes() {
-		var mock = new FunctionMockFunctionResult("foo", returns, times(3));
-		assertThat(mock.evaluateFunctionCall(Val.of(4), Val.of(2))).isEqualTo(Val.of(true));
-		assertThat(mock.evaluateFunctionCall(Val.of(4), Val.of(3))).isEqualTo(Val.of(false));
-		assertThat(mock.evaluateFunctionCall(Val.of(4), Val.of(4))).isEqualTo(Val.of(true));
+    @Test
+    void test_multipleTimes() {
+        var mock = new FunctionMockFunctionResult("foo", returns, times(3));
+        assertThat(mock.evaluateFunctionCall(Val.of(4), Val.of(2))).isEqualTo(Val.of(true));
+        assertThat(mock.evaluateFunctionCall(Val.of(4), Val.of(3))).isEqualTo(Val.of(false));
+        assertThat(mock.evaluateFunctionCall(Val.of(4), Val.of(4))).isEqualTo(Val.of(true));
 
-		assertThatNoException().isThrownBy(mock::assertVerifications);
-	}
+        assertThatNoException().isThrownBy(mock::assertVerifications);
+    }
 
-	@Test
-	void test_errorMessage() {
-		var mock = new FunctionMockFunctionResult("foo", returns, times(1));
-		assertThat(mock.getErrorMessageForCurrentMode()).isNotEmpty();
-	}
+    @Test
+    void test_errorMessage() {
+        var mock = new FunctionMockFunctionResult("foo", returns, times(1));
+        assertThat(mock.getErrorMessageForCurrentMode()).isNotEmpty();
+    }
 
-	@Test
-	void test_invalidNumberParams_TooLess_Exception() {
-		var val4 = Val.of(4);
-		var mock = new FunctionMockFunctionResult("foo", returns, times(1));
-		assertThatExceptionOfType(IndexOutOfBoundsException.class).isThrownBy(() -> mock.evaluateFunctionCall(val4));
-	}
+    @Test
+    void test_invalidNumberParams_TooLess_Exception() {
+        var val4 = Val.of(4);
+        var mock = new FunctionMockFunctionResult("foo", returns, times(1));
+        assertThatExceptionOfType(IndexOutOfBoundsException.class).isThrownBy(() -> mock.evaluateFunctionCall(val4));
+    }
 
-	@Test
-	void test_invalidNumberParams_TooMuch_Ignored() {
-		var mock = new FunctionMockFunctionResult("foo", returns, times(1));
-		assertThat(mock.evaluateFunctionCall(Val.of(4), Val.of(2), Val.of("ignored"))).isEqualTo(Val.of(true));
-	}
+    @Test
+    void test_invalidNumberParams_TooMuch_Ignored() {
+        var mock = new FunctionMockFunctionResult("foo", returns, times(1));
+        assertThat(mock.evaluateFunctionCall(Val.of(4), Val.of(2), Val.of("ignored"))).isEqualTo(Val.of(true));
+    }
 
 }

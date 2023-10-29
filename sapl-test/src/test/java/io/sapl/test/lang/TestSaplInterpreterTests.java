@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,37 +24,37 @@ import io.sapl.test.coverage.api.CoverageHitRecorder;
 
 class TestSaplInterpreterTests {
 
-	private static final String POLICY_ID = "test";
+    private static final String POLICY_ID = "test";
 
-	@Test
-	void testTestModeImplAreCreatedIfSystemPropertyIsNotSet() {
-		var interpreter    = new TestSaplInterpreter(Mockito.mock(CoverageHitRecorder.class));
-		var policyDocument = "policy \"" + POLICY_ID + "\" permit";
-		var document       = interpreter.parse(policyDocument);
+    @Test
+    void testTestModeImplAreCreatedIfSystemPropertyIsNotSet() {
+        var interpreter    = new TestSaplInterpreter(Mockito.mock(CoverageHitRecorder.class));
+        var policyDocument = "policy \"" + POLICY_ID + "\" permit";
+        var document       = interpreter.parse(policyDocument);
 
-		assertThat(document.getPolicyElement()).isInstanceOf(PolicyImplCustomCoverage.class);
-	}
+        assertThat(document.getPolicyElement()).isInstanceOf(PolicyImplCustomCoverage.class);
+    }
 
-	@Test
-	void testTestModeImplAreCreatedIfSystemPropertyIsTrue() {
-		System.setProperty("io.sapl.test.coverage.collect", "true");
-		var interpreter    = new TestSaplInterpreter(Mockito.mock(CoverageHitRecorder.class));
-		var policyDocument = "policy \"" + POLICY_ID + "\" permit";
-		var document       = interpreter.parse(policyDocument);
+    @Test
+    void testTestModeImplAreCreatedIfSystemPropertyIsTrue() {
+        System.setProperty("io.sapl.test.coverage.collect", "true");
+        var interpreter    = new TestSaplInterpreter(Mockito.mock(CoverageHitRecorder.class));
+        var policyDocument = "policy \"" + POLICY_ID + "\" permit";
+        var document       = interpreter.parse(policyDocument);
 
-		assertThat(document.getPolicyElement()).isInstanceOf(PolicyImplCustomCoverage.class);
-		System.clearProperty("io.sapl.test.coverage.collect");
-	}
+        assertThat(document.getPolicyElement()).isInstanceOf(PolicyImplCustomCoverage.class);
+        System.clearProperty("io.sapl.test.coverage.collect");
+    }
 
-	@Test
-	void testTestModeImplAreCreatedIfSystemPropertyIsFalse() {
-		System.setProperty("io.sapl.test.coverage.collect", "false");
-		var interpreter    = new TestSaplInterpreter(Mockito.mock(CoverageHitRecorder.class));
-		var policyDocument = "policy \"" + POLICY_ID + "\" permit";
-		var document       = interpreter.parse(policyDocument);
+    @Test
+    void testTestModeImplAreCreatedIfSystemPropertyIsFalse() {
+        System.setProperty("io.sapl.test.coverage.collect", "false");
+        var interpreter    = new TestSaplInterpreter(Mockito.mock(CoverageHitRecorder.class));
+        var policyDocument = "policy \"" + POLICY_ID + "\" permit";
+        var document       = interpreter.parse(policyDocument);
 
-		assertThat(document.getPolicyElement()).isNotInstanceOf(PolicyImplCustomCoverage.class);
-		System.clearProperty("io.sapl.test.coverage.collect");
-	}
+        assertThat(document.getPolicyElement()).isNotInstanceOf(PolicyImplCustomCoverage.class);
+        System.clearProperty("io.sapl.test.coverage.collect");
+    }
 
 }

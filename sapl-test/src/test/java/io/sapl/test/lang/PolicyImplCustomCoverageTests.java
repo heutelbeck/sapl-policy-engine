@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,56 +37,56 @@ import io.sapl.test.coverage.api.model.PolicyHit;
 
 class PolicyImplCustomCoverageTests {
 
-	CoverageHitRecorder recorder;
+    CoverageHitRecorder recorder;
 
-	private SAPLInterpreter INTERPRETER;
+    private SAPLInterpreter INTERPRETER;
 
-	@BeforeEach
-	void setup() {
-		this.recorder    = mock(CoverageHitRecorder.class);
-		this.INTERPRETER = new TestSaplInterpreter(this.recorder);
-	}
+    @BeforeEach
+    void setup() {
+        this.recorder    = mock(CoverageHitRecorder.class);
+        this.INTERPRETER = new TestSaplInterpreter(this.recorder);
+    }
 
-	@Test
-	void test_Match() {
-		var policy   = INTERPRETER.parse("policy \"p\" permit action == \"read\"");
-		var authzSub = AuthorizationSubscription.of("willi", "read", "something");
-		assertThat(policy.matches().contextWrite(ctx -> {
-			ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
-			ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
-			ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
-			ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSub);
-			return ctx;
-		}).block().getBoolean()).isTrue();
-		verify(this.recorder, times(1)).recordPolicyHit(isA(PolicyHit.class));
-	}
+    @Test
+    void test_Match() {
+        var policy   = INTERPRETER.parse("policy \"p\" permit action == \"read\"");
+        var authzSub = AuthorizationSubscription.of("willi", "read", "something");
+        assertThat(policy.matches().contextWrite(ctx -> {
+            ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+            ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+            ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
+            ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSub);
+            return ctx;
+        }).block().getBoolean()).isTrue();
+        verify(this.recorder, times(1)).recordPolicyHit(isA(PolicyHit.class));
+    }
 
-	@Test
-	void test_NotMatching() {
-		var policy   = INTERPRETER.parse("policy \"p\" permit action == \"read\"");
-		var authzSub = AuthorizationSubscription.of("willi", "write", "something");
-		assertThat(policy.matches().contextWrite(ctx -> {
-			ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
-			ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
-			ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
-			ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSub);
-			return ctx;
-		}).block().getBoolean()).isFalse();
-		verify(this.recorder, never()).recordPolicyHit(isA(PolicyHit.class));
-	}
+    @Test
+    void test_NotMatching() {
+        var policy   = INTERPRETER.parse("policy \"p\" permit action == \"read\"");
+        var authzSub = AuthorizationSubscription.of("willi", "write", "something");
+        assertThat(policy.matches().contextWrite(ctx -> {
+            ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+            ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+            ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
+            ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSub);
+            return ctx;
+        }).block().getBoolean()).isFalse();
+        verify(this.recorder, never()).recordPolicyHit(isA(PolicyHit.class));
+    }
 
-	@Test
-	void test_matchesThrowsError() {
-		var policy   = INTERPRETER.parse("policy \"p\" permit 1/0 == \"test\"");
-		var authzSub = AuthorizationSubscription.of("willi", "write", "something");
-		assertThat(policy.matches().contextWrite(ctx -> {
-			ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
-			ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
-			ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
-			ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSub);
-			return ctx;
-		}).block().isBoolean()).isFalse();
-		verify(this.recorder, never()).recordPolicyHit(isA(PolicyHit.class));
-	}
+    @Test
+    void test_matchesThrowsError() {
+        var policy   = INTERPRETER.parse("policy \"p\" permit 1/0 == \"test\"");
+        var authzSub = AuthorizationSubscription.of("willi", "write", "something");
+        assertThat(policy.matches().contextWrite(ctx -> {
+            ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+            ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+            ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
+            ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSub);
+            return ctx;
+        }).block().isBoolean()).isFalse();
+        verify(this.recorder, never()).recordPolicyHit(isA(PolicyHit.class));
+    }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@ package io.sapl.prp.index.naive;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.prp.PolicyRetrievalResult;
@@ -38,73 +37,73 @@ import reactor.util.function.Tuples;
 @ToString
 public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumentIndex {
 
-	private final Map<String, SAPL> documentsByName;
+    private final Map<String, SAPL> documentsByName;
 
-	private final boolean consistent;
+    private final boolean consistent;
 
-	public NaiveImmutableParsedDocumentIndex() {
-		documentsByName = new HashMap<>();
-		consistent      = true;
-	}
+    public NaiveImmutableParsedDocumentIndex() {
+        documentsByName = new HashMap<>();
+        consistent      = true;
+    }
 
-	private NaiveImmutableParsedDocumentIndex(Map<String, SAPL> documentsByName, boolean consistent) {
-		this.documentsByName = documentsByName;
-		this.consistent      = consistent;
-	}
+    private NaiveImmutableParsedDocumentIndex(Map<String, SAPL> documentsByName, boolean consistent) {
+        this.documentsByName = documentsByName;
+        this.consistent      = consistent;
+    }
 
-	@Override
-	public Mono<PolicyRetrievalResult> retrievePolicies() {
-		return retrievePoliciesCollector();
-	}
+    @Override
+    public Mono<PolicyRetrievalResult> retrievePolicies() {
+        return retrievePoliciesCollector();
+    }
 
-	public Mono<PolicyRetrievalResult> retrievePoliciesCollector() {
-		if (!consistent)
-			return Mono.just(new PolicyRetrievalResult().withInvalidState());
+    public Mono<PolicyRetrievalResult> retrievePoliciesCollector() {
+        if (!consistent)
+            return Mono.just(new PolicyRetrievalResult().withInvalidState());
 
-		var documentsWithMatchingInformation = Flux.merge(documentsByName.values().stream()
-				.map(document -> document.matches().map(val -> Tuples.of(document, val))).collect(Collectors.toList()));
+        var documentsWithMatchingInformation = Flux.merge(documentsByName.values().stream()
+                .map(document -> document.matches().map(val -> Tuples.of(document, val))).toList());
 
-		return documentsWithMatchingInformation.reduce(new PolicyRetrievalResult(),
-				(policyRetrievalResult, documentWithMatchingInformation) -> {
-					var match = documentWithMatchingInformation.getT2();
-					if (match.isError())
-						return policyRetrievalResult.withError();
-					if (!match.isBoolean()) {
-						log.error("matching returned error. (Should never happen): {}", match.getMessage());
-						return policyRetrievalResult.withError();
-					}
-					if (match.getBoolean())
-						return policyRetrievalResult.withMatch(documentWithMatchingInformation.getT1());
+        return documentsWithMatchingInformation.reduce(new PolicyRetrievalResult(),
+                (policyRetrievalResult, documentWithMatchingInformation) -> {
+                    var match = documentWithMatchingInformation.getT2();
+                    if (match.isError())
+                        return policyRetrievalResult.withError();
+                    if (!match.isBoolean()) {
+                        log.error("Matching returned error. Should never happen. Error: {}", match.getMessage());
+                        return policyRetrievalResult.withError();
+                    }
+                    if (match.getBoolean())
+                        return policyRetrievalResult.withMatch(documentWithMatchingInformation.getT1());
 
-					return policyRetrievalResult;
-				});
-	}
+                    return policyRetrievalResult;
+                });
+    }
 
-	@Override
-	public ImmutableParsedDocumentIndex apply(PrpUpdateEvent event) {
-		// Do a shallow copy. String is immutable, and SAPL is assumed to be too.
-		var newDocuments        = new HashMap<>(documentsByName);
-		var newConsistencyState = consistent;
-		for (var update : event.getUpdates()) {
-			if (update.getType() == Type.CONSISTENT) {
-				newConsistencyState = true;
-			} else if (update.getType() == Type.INCONSISTENT) {
-				newConsistencyState = false;
-			} else {
-				applyUpdate(newDocuments, update);
-			}
-		}
-		return new NaiveImmutableParsedDocumentIndex(newDocuments, newConsistencyState);
-	}
+    @Override
+    public ImmutableParsedDocumentIndex apply(PrpUpdateEvent event) {
+        // Do a shallow copy. String is immutable, and SAPL is assumed to be too.
+        var newDocuments        = new HashMap<>(documentsByName);
+        var newConsistencyState = consistent;
+        for (var update : event.getUpdates()) {
+            if (update.getType() == Type.CONSISTENT) {
+                newConsistencyState = true;
+            } else if (update.getType() == Type.INCONSISTENT) {
+                newConsistencyState = false;
+            } else {
+                applyUpdate(newDocuments, update);
+            }
+        }
+        return new NaiveImmutableParsedDocumentIndex(newDocuments, newConsistencyState);
+    }
 
-	// only PUBLISH or WITHDRAW
-	private void applyUpdate(Map<String, SAPL> newDocuments, PrpUpdateEvent.Update update) {
-		var name = update.getDocument().getPolicyElement().getSaplName();
-		if (update.getType() == Type.WITHDRAW) {
-			newDocuments.remove(name);
-		} else {
-			newDocuments.put(name, update.getDocument());
-		}
-	}
+    // only PUBLISH or WITHDRAW
+    private void applyUpdate(Map<String, SAPL> newDocuments, PrpUpdateEvent.Update update) {
+        var name = update.getDocument().getPolicyElement().getSaplName();
+        if (update.getType() == Type.WITHDRAW) {
+            newDocuments.remove(name);
+        } else {
+            newDocuments.put(name, update.getDocument());
+        }
+    }
 
 }

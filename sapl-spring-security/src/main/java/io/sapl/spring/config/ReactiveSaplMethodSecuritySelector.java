@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,24 +29,24 @@ import lombok.NonNull;
  */
 public class ReactiveSaplMethodSecuritySelector extends AdviceModeImportSelector<EnableReactiveSaplMethodSecurity> {
 
-	@Override
-	protected String[] selectImports(@NonNull AdviceMode adviceMode) {
-		if (adviceMode == AdviceMode.PROXY) {
-			return getProxyImports();
-		}
-		throw new IllegalStateException("AdviceMode " + adviceMode + " is not supported");
-	}
+    @Override
+    protected String[] selectImports(@NonNull AdviceMode adviceMode) {
+        if (adviceMode == AdviceMode.PROXY) {
+            return getProxyImports();
+        }
+        throw new IllegalStateException("AdviceMode " + adviceMode + " is not supported");
+    }
 
-	/**
-	 * Return the imports to use if the {@link AdviceMode} is set to
-	 * {@link AdviceMode#PROXY}.
-	 * <p>
-	 * Take care of adding the necessary JSR-107 import if it is available.
-	 */
-	private String[] getProxyImports() {
-		List<String> result = new ArrayList<>();
-		result.add(ReactiveSaplMethodSecurityConfiguration.class.getName());
-		return result.toArray(new String[0]);
-	}
+    /**
+     * Return the imports to use if the {@link AdviceMode} is set to
+     * {@link AdviceMode#PROXY}.
+     * <p>
+     * Take care of adding the necessary JSR-107 import if it is available.
+     */
+    private String[] getProxyImports() {
+        List<String> result = new ArrayList<>();
+        result.add(ReactiveSaplMethodSecurityConfiguration.class.getName());
+        return result.toArray(new String[0]);
+    }
 
 }

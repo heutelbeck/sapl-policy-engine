@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,34 +25,31 @@ import io.sapl.api.validation.Text;
 @FunctionLibrary(name = "simple", description = "some simple functions")
 public class SimpleFunctionLibrary {
 
-	@Function
-	public Val length(Val parameter) {
-		Val result = Val.UNDEFINED;
-		if (parameter.isArray()) {
-			result = Val.of(parameter.get().size());
-		}
-		else if (parameter.isTextual()) {
-			result = Val.of(parameter.get().asText().length());
-		}
-		else {
-			throw new PolicyEvaluationException(
-					"length() parameter must be a string or an array, found " + parameter + ".");
-		}
-		return result;
-	}
+    @Function
+    public Val length(Val parameter) {
+        Val result = Val.UNDEFINED;
+        if (parameter.isArray()) {
+            result = Val.of(parameter.get().size());
+        } else if (parameter.isTextual()) {
+            result = Val.of(parameter.get().asText().length());
+        } else {
+            throw new PolicyEvaluationException(
+                    "length() parameter must be a string or an array, found " + parameter + ".");
+        }
+        return result;
+    }
 
-	@Function
-	public Val append(@Text @Number Val... parameters) {
-		StringBuilder builder = new StringBuilder();
-		for (Val parameter : parameters) {
-			if (parameter.isTextual()) {
-				builder.append(parameter.get().asText());
-			}
-			else if (parameter.isNumber()) {
-				builder.append(parameter.get().asInt());
-			}
-		}
-		return Val.of(builder.toString());
-	}
+    @Function
+    public Val append(@Text @Number Val... parameters) {
+        StringBuilder builder = new StringBuilder();
+        for (Val parameter : parameters) {
+            if (parameter.isTextual()) {
+                builder.append(parameter.get().asText());
+            } else if (parameter.isNumber()) {
+                builder.append(parameter.get().asInt());
+            }
+        }
+        return Val.of(builder.toString());
+    }
 
 }

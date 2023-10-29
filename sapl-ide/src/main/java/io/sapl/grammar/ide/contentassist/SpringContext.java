@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,39 +21,40 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
 /**
- * This class is used to capture a Spring ApplicationContext for xText managed classes to
- * resolve bean dependencies. This class is both created by Spring and Guice and uses the
- * static applicationContext to resolve dependencies.
+ * This class is used to capture a Spring ApplicationContext for xText managed
+ * classes to resolve bean dependencies. This class is both created by Spring
+ * and Guice and uses the static applicationContext to resolve dependencies.
  */
 @Component
 public class SpringContext implements ApplicationContextAware {
 
-	private static ApplicationContext applicationContext;
+    private static ApplicationContext applicationContext;
 
-	/**
-	 * Resolves a spring bean dependency in the current application context.
-	 * @param <T> The type of the searched bean.
-	 * @param clazz The class definition of the searched bean.
-	 * @return Returns a bean that matches the provided class type.
-	 */
-	public static <T> T getBean(Class<T> clazz) {
-		ApplicationContext localContext = applicationContext;
-		if (localContext == null) {
-			throw new IllegalStateException("Spring ApplicationContext was not set");
-		}
-		return localContext.getBean(clazz);
-	}
+    /**
+     * Resolves a spring bean dependency in the current application context.
+     * 
+     * @param <T>   The type of the searched bean.
+     * @param clazz The class definition of the searched bean.
+     * @return Returns a bean that matches the provided class type.
+     */
+    public static <T> T getBean(Class<T> clazz) {
+        ApplicationContext localContext = applicationContext;
+        if (localContext == null) {
+            throw new IllegalStateException("Spring ApplicationContext was not set");
+        }
+        return localContext.getBean(clazz);
+    }
 
-	@Override
-	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-		SpringContext.applicationContext = applicationContext;
-	}
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        SpringContext.applicationContext = applicationContext;
+    }
 
-	/**
-	 * @return the Spring ApplicationContext
-	 */
-	public ApplicationContext getApplicationContext() {
-		return SpringContext.applicationContext;
-	}
+    /**
+     * @return the Spring ApplicationContext
+     */
+    public ApplicationContext getApplicationContext() {
+        return SpringContext.applicationContext;
+    }
 
 }

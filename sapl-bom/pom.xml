@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+    Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -139,11 +139,6 @@
 			</dependency>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
-				<artifactId>sapl-editor-vaadin</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>${project.groupId}</groupId>
 				<artifactId>sapl-jwt</artifactId>
 				<version>${project.version}</version>
 			</dependency>
@@ -177,6 +172,11 @@
     	        <artifactId>sapl-vaadin-theme</artifactId>
 				<version>${project.version}</version>
 	        </dependency>
+			<dependency>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>sapl-vaadin-editor</artifactId>
+				<version>${project.version}</version>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 

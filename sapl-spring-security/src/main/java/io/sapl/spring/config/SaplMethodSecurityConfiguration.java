@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,63 +44,63 @@ import lombok.extern.slf4j.Slf4j;
 @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 class SaplMethodSecurityConfiguration {
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	WebAuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService(
-			ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider,
-			ObjectProvider<ObjectMapper> mapperProvider, ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
-			ApplicationContext context) {
-		return new WebAuthorizationSubscriptionBuilderService(expressionHandlerProvider, mapperProvider,
-				defaultsProvider, context);
-	}
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    WebAuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService(
+            ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider,
+            ObjectProvider<ObjectMapper> mapperProvider, ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
+            ApplicationContext context) {
+        return new WebAuthorizationSubscriptionBuilderService(expressionHandlerProvider, mapperProvider,
+                defaultsProvider, context);
+    }
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	Advisor preEnforcePolicyEnforcementPoint(ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
-			ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider,
-			ObjectProvider<SecurityContextHolderStrategy> strategyProvider,
-			ObjectProvider<ObservationRegistry> registryProvider, ApplicationContext context,
-			PolicyDecisionPoint policyDecisionPoint, SaplAttributeRegistry attributeRegistry,
-			ConstraintEnforcementService constraintEnforcementService,
-			WebAuthorizationSubscriptionBuilderService subscriptionBuilder) {
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    Advisor preEnforcePolicyEnforcementPoint(ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
+            ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider,
+            ObjectProvider<SecurityContextHolderStrategy> strategyProvider,
+            ObjectProvider<ObservationRegistry> registryProvider, ApplicationContext context,
+            PolicyDecisionPoint policyDecisionPoint, SaplAttributeRegistry attributeRegistry,
+            ConstraintEnforcementService constraintEnforcementService,
+            WebAuthorizationSubscriptionBuilderService subscriptionBuilder) {
 
-		log.debug("Deploy @PreEnforce Policy Enforcement Point");
-		var policyEnforcementPoint = new PreEnforcePolicyEnforcementPoint(policyDecisionPoint, attributeRegistry,
-				constraintEnforcementService, subscriptionBuilder);
-		return PolicyEnforcementPointAroundMethodInterceptor.preEnforce(policyEnforcementPoint);
-	}
+        log.debug("Deploy @PreEnforce Policy Enforcement Point");
+        var policyEnforcementPoint = new PreEnforcePolicyEnforcementPoint(policyDecisionPoint, attributeRegistry,
+                constraintEnforcementService, subscriptionBuilder);
+        return PolicyEnforcementPointAroundMethodInterceptor.preEnforce(policyEnforcementPoint);
+    }
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	Advisor postEnforcePolicyEnforcementPoint(ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
-			ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider,
-			ObjectProvider<SecurityContextHolderStrategy> strategyProvider,
-			ObjectProvider<ObservationRegistry> registryProvider, ApplicationContext context,
-			PolicyDecisionPoint policyDecisionPoint, SaplAttributeRegistry attributeRegistry,
-			ConstraintEnforcementService constraintEnforcementService,
-			WebAuthorizationSubscriptionBuilderService subscriptionBuilder) {
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    Advisor postEnforcePolicyEnforcementPoint(ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
+            ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider,
+            ObjectProvider<SecurityContextHolderStrategy> strategyProvider,
+            ObjectProvider<ObservationRegistry> registryProvider, ApplicationContext context,
+            PolicyDecisionPoint policyDecisionPoint, SaplAttributeRegistry attributeRegistry,
+            ConstraintEnforcementService constraintEnforcementService,
+            WebAuthorizationSubscriptionBuilderService subscriptionBuilder) {
 
-		log.debug("Deploy @PostEnforce Policy Enforcement Point");
-		var policyEnforcementPoint = new PostEnforcePolicyEnforcementPoint(policyDecisionPoint, attributeRegistry,
-				constraintEnforcementService, subscriptionBuilder);
-		return PolicyEnforcementPointAroundMethodInterceptor.postEnforce(policyEnforcementPoint);
-	}
+        log.debug("Deploy @PostEnforce Policy Enforcement Point");
+        var policyEnforcementPoint = new PostEnforcePolicyEnforcementPoint(policyDecisionPoint, attributeRegistry,
+                constraintEnforcementService, subscriptionBuilder);
+        return PolicyEnforcementPointAroundMethodInterceptor.postEnforce(policyEnforcementPoint);
+    }
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	SaplAttributeRegistry saplAttributeRegistry(ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
-			ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider, ApplicationContext context) {
-		var expressionProvider = expressionHandlerProvider
-				.getIfAvailable(() -> defaultExpressionHandler(defaultsProvider, context));
-		return new SaplAttributeRegistry(expressionProvider);
-	}
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    SaplAttributeRegistry saplAttributeRegistry(ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
+            ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider, ApplicationContext context) {
+        var expressionProvider = expressionHandlerProvider
+                .getIfAvailable(() -> defaultExpressionHandler(defaultsProvider, context));
+        return new SaplAttributeRegistry(expressionProvider);
+    }
 
-	private static MethodSecurityExpressionHandler defaultExpressionHandler(
-			ObjectProvider<GrantedAuthorityDefaults> defaultsProvider, ApplicationContext context) {
-		DefaultMethodSecurityExpressionHandler handler = new DefaultMethodSecurityExpressionHandler();
-		defaultsProvider.ifAvailable(d -> handler.setDefaultRolePrefix(d.getRolePrefix()));
-		handler.setApplicationContext(context);
-		return handler;
-	}
+    private static MethodSecurityExpressionHandler defaultExpressionHandler(
+            ObjectProvider<GrantedAuthorityDefaults> defaultsProvider, ApplicationContext context) {
+        DefaultMethodSecurityExpressionHandler handler = new DefaultMethodSecurityExpressionHandler();
+        defaultsProvider.ifAvailable(d -> handler.setDefaultRolePrefix(d.getRolePrefix()));
+        handler.setApplicationContext(context);
+        return handler;
+    }
 
 }

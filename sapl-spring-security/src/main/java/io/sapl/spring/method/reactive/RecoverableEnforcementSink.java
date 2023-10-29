@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,23 +24,23 @@ import reactor.util.function.Tuples;
 
 public class RecoverableEnforcementSink<T> implements Consumer<FluxSink<Tuple2<Optional<T>, Optional<Throwable>>>> {
 
-	private FluxSink<Tuple2<Optional<T>, Optional<Throwable>>> fluxSink;
+    private FluxSink<Tuple2<Optional<T>, Optional<Throwable>>> fluxSink;
 
-	@Override
-	public void accept(FluxSink<Tuple2<Optional<T>, Optional<Throwable>>> fluxSink) {
-		this.fluxSink = fluxSink;
-	}
+    @Override
+    public void accept(FluxSink<Tuple2<Optional<T>, Optional<Throwable>>> fluxSink) {
+        this.fluxSink = fluxSink;
+    }
 
-	public void next(T value) {
-		fluxSink.next(Tuples.of(Optional.of(value), Optional.empty()));
-	}
+    public void next(T value) {
+        fluxSink.next(Tuples.of(Optional.of(value), Optional.empty()));
+    }
 
-	public void error(Throwable e) {
-		fluxSink.next(Tuples.of(Optional.empty(), Optional.of(e)));
-	}
+    public void error(Throwable e) {
+        fluxSink.next(Tuples.of(Optional.empty(), Optional.of(e)));
+    }
 
-	public void complete() {
-		fluxSink.complete();
-	}
+    public void complete() {
+        fluxSink.complete();
+    }
 
 }

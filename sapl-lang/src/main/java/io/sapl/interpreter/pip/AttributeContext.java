@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,17 +27,17 @@ import reactor.core.publisher.Flux;
 
 public interface AttributeContext extends LibraryFunctionProvider {
 
-	Flux<Val> evaluateAttribute(String attributeName, Val leftHandValue, Arguments arguments,
-			Map<String, JsonNode> variables);
+    Flux<Val> evaluateAttribute(String attributeName, Val leftHandValue, Arguments arguments,
+            Map<String, JsonNode> variables);
 
-	Flux<Val> evaluateEnvironmentAttribute(String attributeName, Arguments arguments, Map<String, JsonNode> variables);
+    Flux<Val> evaluateEnvironmentAttribute(String attributeName, Arguments arguments, Map<String, JsonNode> variables);
 
-	Collection<PolicyInformationPointDocumentation> getDocumentation();
+    Collection<PolicyInformationPointDocumentation> getDocumentation();
 
-	List<String> getEnvironmentAttributeCodeTemplates();
+    List<String> getEnvironmentAttributeCodeTemplates();
 
-	List<String> getAttributeCodeTemplates();
+    List<String> getAttributeCodeTemplates();
 
-	Map<String, String> getDocumentedAttributeCodeTemplates();
-	
+    Map<String, String> getDocumentedAttributeCodeTemplates();
+
 }

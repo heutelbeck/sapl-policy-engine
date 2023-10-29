@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,29 +30,29 @@ import reactor.core.publisher.Flux;
 @PolicyInformationPoint(name = TestPIP.NAME, description = TestPIP.DESCRIPTION)
 public class TestPIP {
 
-	public static final String NAME = "sapl.pip.test";
+    public static final String NAME = "sapl.pip.test";
 
-	public static final String DESCRIPTION = "Policy information Point for testing";
+    public static final String DESCRIPTION = "Policy information Point for testing";
 
-	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	@Attribute
-	public Flux<Val> echo(Val value, Map<String, JsonNode> variables) {
-		return Flux.just(value);
-	}
+    @Attribute
+    public Flux<Val> echo(Val value, Map<String, JsonNode> variables) {
+        return Flux.just(value);
+    }
 
-	@Attribute
-	public Flux<Val> echoRepeat(Val value, Map<String, JsonNode> variables, Val repetitions) {
-		return Flux.just(Val
-				.of(StringUtils.repeat(value.orElse(JSON.textNode("undefined")).asText(), repetitions.get().asInt())));
-	}
+    @Attribute
+    public Flux<Val> echoRepeat(Val value, Map<String, JsonNode> variables, Val repetitions) {
+        return Flux.just(Val
+                .of(StringUtils.repeat(value.orElse(JSON.textNode("undefined")).asText(), repetitions.get().asInt())));
+    }
 
-	@Attribute
-	public Flux<Val> someVariableOrNull(Val value, Map<String, JsonNode> variables) {
-		if (value.isDefined() && variables.containsKey(value.get().asText())) {
-			return Flux.just(Val.of(variables.get(value.get().asText()).deepCopy()));
-		}
-		return Val.fluxOfNull();
-	}
+    @Attribute
+    public Flux<Val> someVariableOrNull(Val value, Map<String, JsonNode> variables) {
+        if (value.isDefined() && variables.containsKey(value.get().asText())) {
+            return Flux.just(Val.of(variables.get(value.get().asText()).deepCopy()));
+        }
+        return Val.fluxOfNull();
+    }
 
 }

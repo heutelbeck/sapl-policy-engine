@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,21 +25,21 @@ import reactor.core.publisher.FluxSink;
 @RequiredArgsConstructor
 public class FileEventAdaptor extends FileAlterationListenerAdaptor {
 
-	private final FluxSink<FileEvent> emitter;
+    private final FluxSink<FileEvent> emitter;
 
-	@Override
-	public void onFileCreate(File file) {
-		emitter.next(new FileCreatedEvent(file));
-	}
+    @Override
+    public void onFileCreate(File file) {
+        emitter.next(new FileCreatedEvent(file));
+    }
 
-	@Override
-	public void onFileDelete(File file) {
-		emitter.next(new FileDeletedEvent(file));
-	}
+    @Override
+    public void onFileDelete(File file) {
+        emitter.next(new FileDeletedEvent(file));
+    }
 
-	@Override
-	public void onFileChange(File file) {
-		emitter.next(new FileChangedEvent(file));
-	}
+    @Override
+    public void onFileChange(File file) {
+        emitter.next(new FileChangedEvent(file));
+    }
 
 }

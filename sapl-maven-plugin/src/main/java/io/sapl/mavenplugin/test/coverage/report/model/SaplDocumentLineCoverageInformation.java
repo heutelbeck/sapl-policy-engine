@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,25 +20,25 @@ import lombok.Getter;
 @Getter
 public class SaplDocumentLineCoverageInformation {
 
-	private final int lineNumber;
+    private final int lineNumber;
 
-	private LineCoveredValue coveredValue;
+    private LineCoveredValue coveredValue;
 
-	private int branchesToCover;
+    private int branchesToCover;
 
-	private int coveredBranches;
+    private int coveredBranches;
 
-	public SaplDocumentLineCoverageInformation(int lineNumber) {
-		this.lineNumber = lineNumber;
-		this.coveredValue = LineCoveredValue.IRRELEVANT;
-		this.branchesToCover = 0;
-		this.coveredBranches = 0;
-	}
+    public SaplDocumentLineCoverageInformation(int lineNumber) {
+        this.lineNumber      = lineNumber;
+        this.coveredValue    = LineCoveredValue.IRRELEVANT;
+        this.branchesToCover = 0;
+        this.coveredBranches = 0;
+    }
 
-	public void setCoveredValue(LineCoveredValue value, int coveredBranches, int branchesToCover) {
-		this.coveredValue = value;
-		this.coveredBranches = coveredBranches;
-		this.branchesToCover = branchesToCover;
-	}
+    public void setCoveredValue(LineCoveredValue value, int coveredBranches, int branchesToCover) {
+        this.coveredValue    = value;
+        this.coveredBranches = coveredBranches;
+        this.branchesToCover = branchesToCover;
+    }
 
 }

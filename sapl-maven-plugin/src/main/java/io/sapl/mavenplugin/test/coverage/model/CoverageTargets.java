@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,22 +27,22 @@ import lombok.Getter;
 @AllArgsConstructor
 public class CoverageTargets {
 
-	private Collection<PolicySetHit> policySets;
+    private Collection<PolicySetHit> policySets;
 
-	private Collection<PolicyHit> policies;
+    private Collection<PolicyHit> policies;
 
-	private Collection<PolicyConditionHit> policyConditions;
+    private Collection<PolicyConditionHit> policyConditions;
 
-	public boolean isPolicySetHit(PolicySetHit possibleHit) {
-		return this.policySets.contains(possibleHit);
-	}
+    public boolean isPolicySetHit(PolicySetHit possibleHit) {
+        return this.policySets.contains(possibleHit);
+    }
 
-	public boolean isPolicyHit(PolicyHit possibleHit) {
-		return this.policies.contains(possibleHit);
-	}
+    public boolean isPolicyHit(PolicyHit possibleHit) {
+        return this.policies.contains(possibleHit);
+    }
 
-	public boolean isPolicyConditionHit(PolicyConditionHit possibleHit) {
-		return this.policyConditions.contains(possibleHit);
-	}
+    public boolean isPolicyConditionHit(PolicyConditionHit possibleHit) {
+        return this.policyConditions.contains(possibleHit);
+    }
 
 }

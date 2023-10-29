@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,32 +27,32 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ContentFilteringProvider implements MappingConstraintHandlerProvider<Object> {
 
-	private static final String CONSTRAINT_TYPE = "filterJsonContent";
-	private static final String TYPE            = "type";
+    private static final String CONSTRAINT_TYPE = "filterJsonContent";
+    private static final String TYPE            = "type";
 
-	private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
-	@Override
-	public boolean isResponsible(JsonNode constraint) {
-		if (constraint == null || !constraint.isObject())
-			return false;
+    @Override
+    public boolean isResponsible(JsonNode constraint) {
+        if (constraint == null || !constraint.isObject())
+            return false;
 
-		var type = constraint.get(TYPE);
+        var type = constraint.get(TYPE);
 
-		if (Objects.isNull(type) || !type.isTextual())
-			return false;
+        if (Objects.isNull(type) || !type.isTextual())
+            return false;
 
-		return CONSTRAINT_TYPE.equals(type.asText());
-	}
+        return CONSTRAINT_TYPE.equals(type.asText());
+    }
 
-	@Override
-	public Class<Object> getSupportedType() {
-		return Object.class;
-	}
+    @Override
+    public Class<Object> getSupportedType() {
+        return Object.class;
+    }
 
-	@Override
-	public UnaryOperator<Object> getHandler(JsonNode constraint) {
-		return ContentFilterUtil.getHandler(constraint, objectMapper);
-	}
+    @Override
+    public UnaryOperator<Object> getHandler(JsonNode constraint) {
+        return ContentFilterUtil.getHandler(constraint, objectMapper);
+    }
 
 }

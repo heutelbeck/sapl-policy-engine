@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,20 +24,20 @@ import reactor.core.publisher.Mono;
 @Getter
 public class Predicate {
 
-	private final Bool bool;
+    private final Bool bool;
 
-	private final Bitmask conjunctions = new Bitmask();
+    private final Bitmask conjunctions = new Bitmask();
 
-	private final Bitmask falseForTruePredicate = new Bitmask();
+    private final Bitmask falseForTruePredicate = new Bitmask();
 
-	private final Bitmask falseForFalsePredicate = new Bitmask();
+    private final Bitmask falseForFalsePredicate = new Bitmask();
 
-	public Predicate(final Bool bool) {
-		this.bool = Preconditions.checkNotNull(bool);
-	}
+    public Predicate(final Bool bool) {
+        this.bool = Preconditions.checkNotNull(bool);
+    }
 
-	public Mono<Val> evaluate() {
-		return getBool().evaluateExpression();
-	}
+    public Mono<Val> evaluate() {
+        return getBool().evaluateExpression();
+    }
 
 }

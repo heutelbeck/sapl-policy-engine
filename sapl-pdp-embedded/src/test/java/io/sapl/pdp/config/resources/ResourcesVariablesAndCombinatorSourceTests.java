@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,91 +38,90 @@ import io.sapl.util.JarUtil;
 
 class ResourcesVariablesAndCombinatorSourceTests {
 
-	@Test
-	void test_guard_clauses() {
-		assertThrows(NullPointerException.class, () -> new ResourcesVariablesAndCombinatorSource(null, null));
-		assertThrows(NullPointerException.class, () -> new ResourcesVariablesAndCombinatorSource("", null));
-		assertThrows(NullPointerException.class,
-				() -> new ResourcesVariablesAndCombinatorSource(null, mock(ObjectMapper.class)));
+    @Test
+    void test_guard_clauses() {
+        assertThrows(NullPointerException.class, () -> new ResourcesVariablesAndCombinatorSource(null, null));
+        assertThrows(NullPointerException.class, () -> new ResourcesVariablesAndCombinatorSource("", null));
+        assertThrows(NullPointerException.class,
+                () -> new ResourcesVariablesAndCombinatorSource(null, mock(ObjectMapper.class)));
 
-		assertThrows(NullPointerException.class, () -> new ResourcesVariablesAndCombinatorSource(null, null, null));
-		assertThrows(NullPointerException.class, () -> new ResourcesVariablesAndCombinatorSource(null, "", null));
-		assertThrows(NullPointerException.class,
-				() -> new ResourcesVariablesAndCombinatorSource(null, null, mock(ObjectMapper.class)));
-		assertThrows(NullPointerException.class,
-				() -> new ResourcesVariablesAndCombinatorSource(this.getClass(), null, null));
-		assertThrows(NullPointerException.class,
-				() -> new ResourcesVariablesAndCombinatorSource(this.getClass(), "", null));
+        assertThrows(NullPointerException.class, () -> new ResourcesVariablesAndCombinatorSource(null, null, null));
+        assertThrows(NullPointerException.class, () -> new ResourcesVariablesAndCombinatorSource(null, "", null));
+        assertThrows(NullPointerException.class,
+                () -> new ResourcesVariablesAndCombinatorSource(null, null, mock(ObjectMapper.class)));
+        var thisClass = this.getClass();
+        assertThrows(NullPointerException.class,
+                () -> new ResourcesVariablesAndCombinatorSource(thisClass, null, null));
+        assertThrows(NullPointerException.class, () -> new ResourcesVariablesAndCombinatorSource(thisClass, "", null));
 
-	}
+    }
 
-	@Test
-	void ifExecutedDuringUnitTests_thenLoadConfigurationFileFromFileSystem() throws Exception {
-		var configProvider = new ResourcesVariablesAndCombinatorSource("/valid_config");
-		var algo = configProvider.getCombiningAlgorithm().blockFirst();
-		var variables = configProvider.getVariables().blockFirst();
-		configProvider.destroy();
+    @Test
+    void ifExecutedDuringUnitTests_thenLoadConfigurationFileFromFileSystem() throws Exception {
+        var configProvider = new ResourcesVariablesAndCombinatorSource("/valid_config");
+        var algo           = configProvider.getCombiningAlgorithm().blockFirst();
+        var variables      = configProvider.getVariables().blockFirst();
+        configProvider.destroy();
 
-		assertThat(algo.get() instanceof PermitUnlessDenyCombiningAlgorithm, is(true));
-		assertThat(variables.get().size(), is(2));
-	}
+        assertThat(algo.get() instanceof PermitUnlessDenyCombiningAlgorithm, is(true));
+        assertThat(variables.get().size(), is(2));
+    }
 
-	@Test
-	void ifExecutedDuringUnitTestsAndNoConfigFilePresent_thenLoadDefaultConfiguration() throws Exception {
-		var configProvider = new ResourcesVariablesAndCombinatorSource("");
-		var algo = configProvider.getCombiningAlgorithm().blockFirst();
-		var variables = configProvider.getVariables().blockFirst();
-		configProvider.destroy();
+    @Test
+    void ifExecutedDuringUnitTestsAndNoConfigFilePresent_thenLoadDefaultConfiguration() throws Exception {
+        var configProvider = new ResourcesVariablesAndCombinatorSource("");
+        var algo           = configProvider.getCombiningAlgorithm().blockFirst();
+        var variables      = configProvider.getVariables().blockFirst();
+        configProvider.destroy();
 
-		assertThat(algo.get() instanceof DenyOverridesCombiningAlgorithm, is(true));
-		assertThat(variables.get().size(), is(0));
-	}
+        assertThat(algo.get() instanceof DenyOverridesCombiningAlgorithm, is(true));
+        assertThat(variables.get().size(), is(0));
+    }
 
-	@Test
-	void ifExecutedDuringUnitTestsAndConfigFileBroken_thenPropagateException() {
-		assertThrows(InitializationException.class, () -> new ResourcesVariablesAndCombinatorSource("/broken_config"));
-	}
+    @Test
+    void ifExecutedDuringUnitTestsAndConfigFileBroken_thenPropagateException() {
+        assertThrows(InitializationException.class, () -> new ResourcesVariablesAndCombinatorSource("/broken_config"));
+    }
 
-	@Test
-	void ifExecutedInJar_thenLoadConfigurationFileFromJar() throws Exception {
-		var url = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/policies");
-		try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
-			mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);
+    @Test
+    void ifExecutedInJar_thenLoadConfigurationFileFromJar() throws Exception {
+        var url = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/policies");
+        try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
+            mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);
 
-			var configProvider = new ResourcesVariablesAndCombinatorSource();
-			var algo = configProvider.getCombiningAlgorithm().blockFirst();
-			var variables = configProvider.getVariables().blockFirst();
-			configProvider.destroy();
+            var configProvider = new ResourcesVariablesAndCombinatorSource();
+            var algo           = configProvider.getCombiningAlgorithm().blockFirst();
+            var variables      = configProvider.getVariables().blockFirst();
+            configProvider.destroy();
 
-			assertThat(algo.get() instanceof PermitUnlessDenyCombiningAlgorithm, is(true));
-			assertThat(variables.get().size(), is(2));
-		}
-	}
+            assertThat(algo.get() instanceof PermitUnlessDenyCombiningAlgorithm, is(true));
+            assertThat(variables.get().size(), is(2));
+        }
+    }
 
-	@Test
-	void ifExecutedInJarAndConfigFileBroken_thenPropagateException() throws MalformedURLException {
-		var url = new URL("jar:" + ClassLoader.getSystemResource("broken_config_in_jar.jar") + "!/policies");
-		try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
-			mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);
-			assertThrows(InitializationException.class, () -> new ResourcesVariablesAndCombinatorSource("/policies"));
-		}
-	}
+    @Test
+    void ifExecutedInJarAndConfigFileBroken_thenPropagateException() throws MalformedURLException {
+        var url = new URL("jar:" + ClassLoader.getSystemResource("broken_config_in_jar.jar") + "!/policies");
+        try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
+            mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);
+            assertThrows(InitializationException.class, () -> new ResourcesVariablesAndCombinatorSource("/policies"));
+        }
+    }
 
-	@Test
-	void ifExecutedInJarAndNoConfigFilePresent_thenLoadDefaultConfiguration()
-			throws Exception {
-		var url = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/not_existing");
-		try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
-			mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);
+    @Test
+    void ifExecutedInJarAndNoConfigFilePresent_thenLoadDefaultConfiguration() throws Exception {
+        var url = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/not_existing");
+        try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
+            mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);
 
-			var configProvider = new ResourcesVariablesAndCombinatorSource("/not_existing");
-			var algo = configProvider.getCombiningAlgorithm().blockFirst();
-			var variables = configProvider.getVariables().blockFirst();
-			configProvider.destroy();
+            var configProvider = new ResourcesVariablesAndCombinatorSource("/not_existing");
+            var algo           = configProvider.getCombiningAlgorithm().blockFirst();
+            var variables      = configProvider.getVariables().blockFirst();
+            configProvider.destroy();
 
-			assertThat(algo.get() instanceof DenyOverridesCombiningAlgorithm, is(true));
-			assertThat(variables.get().size(), is(0));
-		}
-	}
+            assertThat(algo.get() instanceof DenyOverridesCombiningAlgorithm, is(true));
+            assertThat(variables.get().size(), is(0));
+        }
+    }
 
 }

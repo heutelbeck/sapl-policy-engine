@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,21 +27,20 @@ import io.sapl.test.coverage.api.CoverageHitRecorder;
 
 public class TestSaplInterpreter extends DefaultSAPLInterpreter {
 
-	protected static final Injector INJECTOR = new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();
+    protected static final Injector INJECTOR = new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();
 
-	public TestSaplInterpreter(CoverageHitRecorder recorder) {
+    public TestSaplInterpreter(CoverageHitRecorder recorder) {
 
-		String property = System.getProperty("io.sapl.test.coverage.collect");
+        String property = System.getProperty("io.sapl.test.coverage.collect");
 
-		if (property == null || Boolean.parseBoolean(property)) {
-			INJECTOR.getInstance(XtextResourceSet.class).getPackageRegistry().getEPackage(SaplPackage.eNS_URI)
-					.setEFactoryInstance(new SaplFactoryImplCoverage(recorder));
-		}
-		else {
-			// if disabled, set default SaplFactory
-			INJECTOR.getInstance(XtextResourceSet.class).getPackageRegistry().getEPackage(SaplPackage.eNS_URI)
-					.setEFactoryInstance(new SaplFactoryImpl());
-		}
-	}
+        if (property == null || Boolean.parseBoolean(property)) {
+            INJECTOR.getInstance(XtextResourceSet.class).getPackageRegistry().getEPackage(SaplPackage.eNS_URI)
+                    .setEFactoryInstance(new SaplFactoryImplCoverage(recorder));
+        } else {
+            // if disabled, set default SaplFactory
+            INJECTOR.getInstance(XtextResourceSet.class).getPackageRegistry().getEPackage(SaplPackage.eNS_URI)
+                    .setEFactoryInstance(new SaplFactoryImpl());
+        }
+    }
 
 }

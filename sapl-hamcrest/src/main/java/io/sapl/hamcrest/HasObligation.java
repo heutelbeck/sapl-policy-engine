@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,57 +31,57 @@ import io.sapl.api.pdp.AuthorizationDecision;
  */
 public class HasObligation extends TypeSafeDiagnosingMatcher<AuthorizationDecision> {
 
-	private final Optional<Matcher<? super JsonNode>> jsonMatcher;
+    private final Optional<Matcher<? super JsonNode>> jsonMatcher;
 
-	/**
-	 * Checks for the presence of any obligation matching a matcher.
-	 * 
-	 * @param jsonMatcher matcher for obligation objects.
-	 */
-	public HasObligation(Matcher<? super JsonNode> jsonMatcher) {
-		super(AuthorizationDecision.class);
-		this.jsonMatcher = Optional.of(Objects.requireNonNull(jsonMatcher));
-	}
+    /**
+     * Checks for the presence of any obligation matching a matcher.
+     * 
+     * @param jsonMatcher matcher for obligation objects.
+     */
+    public HasObligation(Matcher<? super JsonNode> jsonMatcher) {
+        super(AuthorizationDecision.class);
+        this.jsonMatcher = Optional.of(Objects.requireNonNull(jsonMatcher));
+    }
 
-	/**
-	 * Checks for the presence of any obligation.
-	 */
-	public HasObligation() {
-		super(AuthorizationDecision.class);
-		this.jsonMatcher = Optional.empty();
-	}
+    /**
+     * Checks for the presence of any obligation.
+     */
+    public HasObligation() {
+        super(AuthorizationDecision.class);
+        this.jsonMatcher = Optional.empty();
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("the decision has an obligation equals ");
-		this.jsonMatcher.ifPresentOrElse(description::appendDescriptionOf,
-				() -> description.appendText("any obligation"));
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("the decision has an obligation equals ");
+        this.jsonMatcher.ifPresentOrElse(description::appendDescriptionOf,
+                () -> description.appendText("any obligation"));
+    }
 
-	@Override
-	protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
-		var obligations = decision.getObligations();
-		if (obligations.isEmpty()) {
-			mismatchDescription.appendText("decision didn't contain any obligations");
-			return false;
-		}
+    @Override
+    protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
+        var obligations = decision.getObligations();
+        if (obligations.isEmpty()) {
+            mismatchDescription.appendText("decision didn't contain any obligations");
+            return false;
+        }
 
-		if (jsonMatcher.isEmpty()) {
-			return true;
-		}
+        if (jsonMatcher.isEmpty()) {
+            return true;
+        }
 
-		var containsObligation = false;
-		for (JsonNode node : obligations.get()) {
-			if (this.jsonMatcher.get().matches(node))
-				containsObligation = true;
-		}
+        var containsObligation = false;
+        for (JsonNode node : obligations.get()) {
+            if (this.jsonMatcher.get().matches(node))
+                containsObligation = true;
+        }
 
-		if (containsObligation) {
-			return true;
-		} else {
-			mismatchDescription.appendText("no obligation matched");
-			return false;
-		}
-	}
+        if (containsObligation) {
+            return true;
+        } else {
+            mismatchDescription.appendText("no obligation matched");
+            return false;
+        }
+    }
 
 }

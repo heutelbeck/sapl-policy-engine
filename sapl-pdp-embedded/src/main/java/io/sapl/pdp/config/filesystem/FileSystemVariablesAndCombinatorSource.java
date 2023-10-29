@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,73 +42,72 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombinatorSource {
 
-	private static final String CONFIG_FILE_GLOB_PATTERN = "pdp.json";
+    private static final String CONFIG_FILE_GLOB_PATTERN = "pdp.json";
 
-	private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
-	private final String watchDir;
+    private final String watchDir;
 
-	private final Flux<Optional<PolicyDecisionPointConfiguration>> configFlux;
+    private final Flux<Optional<PolicyDecisionPointConfiguration>> configFlux;
 
-	private final Disposable monitorSubscription;
+    private final Disposable monitorSubscription;
 
-	public FileSystemVariablesAndCombinatorSource(String configurationPath) {
-		watchDir = resolveHomeFolderIfPresent(configurationPath);
-		log.info("Monitor folder for config: {}", watchDir);
-		Flux<FileEvent> monitoringFlux = monitorDirectory(watchDir,
-				file -> CONFIG_FILE_GLOB_PATTERN.equals(file.getName()));
-		configFlux = monitoringFlux.scan(loadConfig(), (__, fileEvent) -> processWatcherEvent(fileEvent))
-				.distinctUntilChanged().share().cache(1);
-		monitorSubscription = Flux.from(configFlux).subscribe();
-	}
+    public FileSystemVariablesAndCombinatorSource(String configurationPath) {
+        watchDir = resolveHomeFolderIfPresent(configurationPath);
+        log.info("Monitoring folder for PDP configuration: {}", watchDir);
+        var monitoringFlux = monitorDirectory(watchDir, file -> CONFIG_FILE_GLOB_PATTERN.equals(file.getName()));
+        configFlux          = monitoringFlux.scan(loadConfig(), (x, fileEvent) -> processWatcherEvent(fileEvent))
+                .distinctUntilChanged().share().cache(1);
+        monitorSubscription = Flux.from(configFlux).subscribe();
+    }
 
-	private Optional<PolicyDecisionPointConfiguration> loadConfig() {
-		Path configurationFile = Paths.get(watchDir, CONFIG_FILE_GLOB_PATTERN);
-		log.info("Loading config from: {}", configurationFile.toAbsolutePath());
-		if (Files.notExists(configurationFile, LinkOption.NOFOLLOW_LINKS)) {
-			// If file does not exist, return default configuration
-			log.info("No config file present. Use default config.");
-			return Optional.of(new PolicyDecisionPointConfiguration());
-		}
-		try {
-			return Optional.of(MAPPER.readValue(configurationFile.toFile(), PolicyDecisionPointConfiguration.class));
-		}
-		catch (IOException e) {
-			return Optional.empty();
-		}
-	}
+    private Optional<PolicyDecisionPointConfiguration> loadConfig() {
+        Path configurationFile = Paths.get(watchDir, CONFIG_FILE_GLOB_PATTERN);
+        log.info("Loading PDP configuration from: {}", configurationFile.toAbsolutePath());
+        if (Files.notExists(configurationFile, LinkOption.NOFOLLOW_LINKS)) {
+            // If file does not exist, return default configuration
+            log.info("No PDP configuration file present. Use default configuration.");
+            return Optional.of(new PolicyDecisionPointConfiguration());
+        }
+        try {
+            return Optional.of(MAPPER.readValue(configurationFile.toFile(), PolicyDecisionPointConfiguration.class));
+        } catch (IOException e) {
+            log.info("Error reading PDP configuration file. No configuration available.", e);
+            return Optional.empty();
+        }
+    }
 
-	@Override
-	public Flux<Optional<CombiningAlgorithm>> getCombiningAlgorithm() {
-		return Flux.from(configFlux)
-				.switchMap(config -> config
-						.map(policyDecisionPointConfiguration -> Flux.just(Optional.of(CombiningAlgorithmFactory
-								.getCombiningAlgorithm(policyDecisionPointConfiguration.getAlgorithm()))))
-						.orElseGet(() -> Flux.just(Optional.empty())));
-	}
+    @Override
+    public Flux<Optional<CombiningAlgorithm>> getCombiningAlgorithm() {
+        return Flux.from(configFlux)
+                .switchMap(config -> config
+                        .map(policyDecisionPointConfiguration -> Flux.just(Optional.of(CombiningAlgorithmFactory
+                                .getCombiningAlgorithm(policyDecisionPointConfiguration.getAlgorithm()))))
+                        .orElseGet(() -> Flux.just(Optional.empty())));
+    }
 
-	@Override
-	public Flux<Optional<Map<String, JsonNode>>> getVariables() {
-		return Flux.from(configFlux)
-				.switchMap(config -> config
-						.map(policyDecisionPointConfiguration -> Flux
-								.just(Optional.of(policyDecisionPointConfiguration.getVariables())))
-						.orElseGet(() -> Flux.just(Optional.empty())));
-	}
+    @Override
+    public Flux<Optional<Map<String, JsonNode>>> getVariables() {
+        return Flux.from(configFlux)
+                .switchMap(config -> config
+                        .map(policyDecisionPointConfiguration -> Flux
+                                .just(Optional.of(policyDecisionPointConfiguration.getVariables())))
+                        .orElseGet(() -> Flux.just(Optional.empty())));
+    }
 
-	private Optional<PolicyDecisionPointConfiguration> processWatcherEvent(FileEvent fileEvent) {
-		if (fileEvent instanceof FileDeletedEvent) {
-			log.info("Configuration file deleted. Reverting to default config.");
-			return Optional.of(new PolicyDecisionPointConfiguration());
-		}
-		// MODIFY or CREATED
-		return loadConfig();
-	}
+    private Optional<PolicyDecisionPointConfiguration> processWatcherEvent(FileEvent fileEvent) {
+        if (fileEvent instanceof FileDeletedEvent) {
+            log.info("Configuration file deleted. Reverting to default config.");
+            return Optional.of(new PolicyDecisionPointConfiguration());
+        }
+        // MODIFY or CREATED
+        return loadConfig();
+    }
 
-	@Override
-	public void destroy() {
-		if (!monitorSubscription.isDisposed())
-			monitorSubscription.dispose();
-	}
+    @Override
+    public void destroy() {
+        if (!monitorSubscription.isDisposed())
+            monitorSubscription.dispose();
+    }
 
 }

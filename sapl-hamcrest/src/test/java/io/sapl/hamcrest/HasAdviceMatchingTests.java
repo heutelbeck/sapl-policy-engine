@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,65 +36,65 @@ import io.sapl.api.pdp.Decision;
 
 class HasAdviceMatchingTests {
 
-	@Test
-	void test() {
-		Predicate<JsonNode> pred    = (JsonNode jsonNode) -> jsonNode.has("foo");
-		var                 matcher = Matchers.hasAdviceMatching(pred);
+    @Test
+    void test() {
+        Predicate<JsonNode> pred    = (JsonNode jsonNode) -> jsonNode.has("foo");
+        var                 matcher = Matchers.hasAdviceMatching(pred);
 
-		ObjectMapper mapper = new ObjectMapper();
-		ObjectNode   advice = mapper.createObjectNode();
-		advice.put("foo", "bar");
-		ArrayNode adviceArray = mapper.createArrayNode();
-		adviceArray.add(advice);
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
-				Optional.of(adviceArray));
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode   advice = mapper.createObjectNode();
+        advice.put("foo", "bar");
+        ArrayNode adviceArray = mapper.createArrayNode();
+        adviceArray.add(advice);
+        AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
+                Optional.of(adviceArray));
 
-		assertThat(dec, is(matcher));
-	}
+        assertThat(dec, is(matcher));
+    }
 
-	@Test
-	void test_neg() {
-		Predicate<JsonNode> pred    = (JsonNode jsonNode) -> jsonNode.has("xxx");
-		var                 matcher = Matchers.hasAdviceMatching(pred);
+    @Test
+    void test_neg() {
+        Predicate<JsonNode> pred    = (JsonNode jsonNode) -> jsonNode.has("xxx");
+        var                 matcher = Matchers.hasAdviceMatching(pred);
 
-		ObjectMapper mapper = new ObjectMapper();
-		ObjectNode   advice = mapper.createObjectNode();
-		advice.put("foo", "bar");
-		ArrayNode adviceArray = mapper.createArrayNode();
-		adviceArray.add(advice);
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
-				Optional.of(adviceArray));
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode   advice = mapper.createObjectNode();
+        advice.put("foo", "bar");
+        ArrayNode adviceArray = mapper.createArrayNode();
+        adviceArray.add(advice);
+        AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
+                Optional.of(adviceArray));
 
-		assertThat(dec, not(is(matcher)));
-	}
+        assertThat(dec, not(is(matcher)));
+    }
 
-	@Test
-	void test_nullDecision() {
-		Predicate<JsonNode> pred    = (JsonNode jsonNode) -> jsonNode.has("foo");
-		var                 matcher = Matchers.hasAdviceMatching(pred);
-		assertThat(null, not(is(matcher)));
-	}
+    @Test
+    void test_nullDecision() {
+        Predicate<JsonNode> pred    = (JsonNode jsonNode) -> jsonNode.has("foo");
+        var                 matcher = Matchers.hasAdviceMatching(pred);
+        assertThat(null, not(is(matcher)));
+    }
 
-	@Test
-	void test_nullPredicate() {
-		assertThrows(NullPointerException.class, () -> Matchers.hasAdviceMatching(null));
-	}
+    @Test
+    void test_nullPredicate() {
+        assertThrows(NullPointerException.class, () -> Matchers.hasAdviceMatching(null));
+    }
 
-	@Test
-	void test_emptyAdvice() {
-		Predicate<JsonNode> pred    = (JsonNode jsonNode) -> jsonNode.has("foo");
-		var                 matcher = Matchers.hasAdviceMatching(pred);
-		assertThat(new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.empty()),
-				not(is(matcher)));
-	}
+    @Test
+    void test_emptyAdvice() {
+        Predicate<JsonNode> pred    = (JsonNode jsonNode) -> jsonNode.has("foo");
+        var                 matcher = Matchers.hasAdviceMatching(pred);
+        assertThat(new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.empty()),
+                not(is(matcher)));
+    }
 
-	@Test
-	void testDescriptionForMatcher() {
-		Predicate<JsonNode>     pred        = (JsonNode jsonNode) -> jsonNode.has("foo");
-		var                     sut         = Matchers.hasAdviceMatching(pred);
-		final StringDescription description = new StringDescription();
-		sut.describeTo(description);
-		assertThat(description.toString(), is("the decision has an advice matching the predicate"));
-	}
+    @Test
+    void testDescriptionForMatcher() {
+        Predicate<JsonNode>     pred        = (JsonNode jsonNode) -> jsonNode.has("foo");
+        var                     sut         = Matchers.hasAdviceMatching(pred);
+        final StringDescription description = new StringDescription();
+        sut.describeTo(description);
+        assertThat(description.toString(), is("the decision has an advice matching the predicate"));
+    }
 
 }

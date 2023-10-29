@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,40 +27,41 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 class SaplTestsFixtureTemplateTestsImplTest {
 
-	private SaplTestsFixtureTemplateTestsImpl sud;
+    private SaplTestsFixtureTemplateTestsImpl sut;
 
-	private ObjectMapper mapper;
+    private ObjectMapper mapper;
 
-	@BeforeEach
-	void setup() {
-		this.sud    = new SaplTestsFixtureTemplateTestsImpl();
-		this.mapper = new ObjectMapper();
-	}
+    @BeforeEach
+    void setup() {
+        this.sut    = new SaplTestsFixtureTemplateTestsImpl();
+        this.mapper = new ObjectMapper();
+    }
 
-	@Test
-	void test() {
-		assertThat(this.sud.resolveCoverageBaseDir()).isEqualTo(Paths.get("target", "sapl-coverage"));
-	}
+    @Test
+    void test() {
+        assertThat(this.sut.resolveCoverageBaseDir()).isEqualTo(Paths.get("target", "sapl-coverage"));
+    }
 
-	@Test
-	void test_withJavaProperty() {
-		System.setProperty("io.sapl.test.outputDir", "test-target");
-		assertThat(this.sud.resolveCoverageBaseDir()).isEqualTo(Paths.get("test-target", "sapl-coverage"));
-		System.clearProperty("io.sapl.test.outputDir");
-	}
+    @Test
+    void test_withJavaProperty() {
+        System.setProperty("io.sapl.test.outputDir", "test-target");
+        assertThat(this.sut.resolveCoverageBaseDir()).isEqualTo(Paths.get("test-target", "sapl-coverage"));
+        System.clearProperty("io.sapl.test.outputDir");
+    }
 
-	@Test
-	void test_registerVariable() {
-		this.sud.registerVariable("test", this.mapper.createObjectNode());
-		assertThat(this.sud.getVariablesMap().containsKey("test")).isTrue();
-	}
+    @Test
+    void test_registerVariable() {
+        this.sut.registerVariable("test", this.mapper.createObjectNode());
+        assertThat(this.sut.getVariablesMap()).containsKey("test");
+    }
 
-	@Test
-	void test_registerVariable_twoTimes() {
-		this.sud.registerVariable("test", this.mapper.createObjectNode());
-		assertThatExceptionOfType(SaplTestException.class)
-				.isThrownBy(() -> this.sud.registerVariable("test", this.mapper.createObjectNode()))
-				.withMessage("The VariableContext already contains a key \"test\"");
-	}
+    @Test
+    void test_registerVariable_twoTimes() {
+        this.sut.registerVariable("test", this.mapper.createObjectNode());
+        var objectNode = this.mapper.createObjectNode();
+        assertThatExceptionOfType(SaplTestException.class)
+                .isThrownBy(() -> this.sut.registerVariable("test", objectNode))
+                .withMessage("The VariableContext already contains a key \"test\"");
+    }
 
 }

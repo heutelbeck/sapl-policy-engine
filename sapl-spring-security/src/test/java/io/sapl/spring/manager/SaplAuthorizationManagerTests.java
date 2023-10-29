@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,71 +48,71 @@ import reactor.core.publisher.Flux;
 
 class SaplAuthorizationManagerTests {
 
-	private ObjectMapper                       mapper;
-	private PolicyDecisionPoint                pdp;
-	private ConstraintEnforcementService       constraintHandlers;
-	private BlockingConstraintHandlerBundle<?> bundle;
-	private Authentication                     authentication;
+    private ObjectMapper                       mapper;
+    private PolicyDecisionPoint                pdp;
+    private ConstraintEnforcementService       constraintHandlers;
+    private BlockingConstraintHandlerBundle<?> bundle;
+    private Authentication                     authentication;
 
-	@BeforeEach
-	void setUpMocks() {
-		mapper = new ObjectMapper();
-		mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-		SimpleModule module = new SimpleModule();
-		module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
-		mapper.registerModule(module);
-		authentication     = mock(Authentication.class);
-		pdp                = mock(PolicyDecisionPoint.class);
-		constraintHandlers = mock(ConstraintEnforcementService.class);
-		bundle             = mock(BlockingConstraintHandlerBundle.class);
-		doReturn(bundle).when(constraintHandlers).accessManagerBundleFor(any());
-	}
+    @BeforeEach
+    void setUpMocks() {
+        mapper = new ObjectMapper();
+        mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+        SimpleModule module = new SimpleModule();
+        module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
+        mapper.registerModule(module);
+        authentication     = mock(Authentication.class);
+        pdp                = mock(PolicyDecisionPoint.class);
+        constraintHandlers = mock(ConstraintEnforcementService.class);
+        bundle             = mock(BlockingConstraintHandlerBundle.class);
+        doReturn(bundle).when(constraintHandlers).accessManagerBundleFor(any());
+    }
 
-	@Test
-	void whenPermit_thenGranted() throws IOException, ServletException {
-		var sut = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
-		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-		var ctx = mock(RequestAuthorizationContext.class);
-		assertThat(sut.check(() -> authentication, ctx))
-				.matches(org.springframework.security.authorization.AuthorizationDecision::isGranted);
-		verify(bundle, times(1)).handleOnDecisionConstraints();
-	}
+    @Test
+    void whenPermit_thenGranted() throws IOException, ServletException {
+        var sut = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
+        when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+        var ctx = mock(RequestAuthorizationContext.class);
+        assertThat(sut.check(() -> authentication, ctx))
+                .matches(org.springframework.security.authorization.AuthorizationDecision::isGranted);
+        verify(bundle, times(1)).handleOnDecisionConstraints();
+    }
 
-	@Test
-	void whenIndeterminate_thenDenied() throws IOException, ServletException {
-		var sut = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
-		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.INDETERMINATE));
-		var ctx = mock(RequestAuthorizationContext.class);
-		assertThat(sut.check(() -> authentication, ctx)).matches(dec -> !dec.isGranted());
-		verify(bundle, times(1)).handleOnDecisionConstraints();
-	}
+    @Test
+    void whenIndeterminate_thenDenied() throws IOException, ServletException {
+        var sut = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
+        when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.INDETERMINATE));
+        var ctx = mock(RequestAuthorizationContext.class);
+        assertThat(sut.check(() -> authentication, ctx)).matches(dec -> !dec.isGranted());
+        verify(bundle, times(1)).handleOnDecisionConstraints();
+    }
 
-	@Test
-	void whenNullDecision_thenDenied() throws IOException, ServletException {
-		var sut = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
-		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.empty());
-		var ctx = mock(RequestAuthorizationContext.class);
-		assertThat(sut.check(() -> authentication, ctx)).matches(dec -> !dec.isGranted());
-	}
+    @Test
+    void whenNullDecision_thenDenied() throws IOException, ServletException {
+        var sut = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
+        when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.empty());
+        var ctx = mock(RequestAuthorizationContext.class);
+        assertThat(sut.check(() -> authentication, ctx)).matches(dec -> !dec.isGranted());
+    }
 
-	@Test
-	void whenHasResource_thenDenied() throws IOException, ServletException {
-		var sut      = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
-		var decision = AuthorizationDecision.PERMIT.withResource(mapper.createObjectNode());
-		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(decision));
-		var ctx = mock(RequestAuthorizationContext.class);
-		assertThat(sut.check(() -> authentication, ctx)).matches(dec -> !dec.isGranted());
-	}
+    @Test
+    void whenHasResource_thenDenied() throws IOException, ServletException {
+        var sut      = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
+        var decision = AuthorizationDecision.PERMIT.withResource(mapper.createObjectNode());
+        when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(decision));
+        var ctx = mock(RequestAuthorizationContext.class);
+        assertThat(sut.check(() -> authentication, ctx)).matches(dec -> !dec.isGranted());
+    }
 
-	@Test
-	void whenObligationsFail_thenAccessDenied() throws IOException, ServletException {
-		var sut = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
-		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-		doThrow(new AccessDeniedException("")).when(bundle).handleOnDecisionConstraints();
+    @Test
+    void whenObligationsFail_thenAccessDenied() throws IOException, ServletException {
+        var sut = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
+        when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+        doThrow(new AccessDeniedException("")).when(bundle).handleOnDecisionConstraints();
 
-		var ctx = mock(RequestAuthorizationContext.class);
-		assertThat(sut.check(() -> authentication, ctx)).matches(dec -> !dec.isGranted());
-		verify(bundle, times(1)).handleOnDecisionConstraints();
-	}
+        var ctx = mock(RequestAuthorizationContext.class);
+        assertThat(sut.check(() -> authentication, ctx)).matches(dec -> !dec.isGranted());
+        verify(bundle, times(1)).handleOnDecisionConstraints();
+    }
 
 }

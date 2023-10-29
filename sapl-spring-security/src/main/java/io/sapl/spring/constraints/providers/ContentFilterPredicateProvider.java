@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,26 +27,26 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ContentFilterPredicateProvider implements FilterPredicateConstraintHandlerProvider {
 
-	private static final String CONSTRAINT_TYPE = "jsonContentFilterPredicate";
-	private static final String TYPE            = "type";
+    private static final String CONSTRAINT_TYPE = "jsonContentFilterPredicate";
+    private static final String TYPE            = "type";
 
-	private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
-	@Override
-	public boolean isResponsible(JsonNode constraint) {
-		if (constraint == null || !constraint.isObject())
-			return false;
+    @Override
+    public boolean isResponsible(JsonNode constraint) {
+        if (constraint == null || !constraint.isObject())
+            return false;
 
-		var type = constraint.get(TYPE);
+        var type = constraint.get(TYPE);
 
-		if (Objects.isNull(type) || !type.isTextual())
-			return false;
+        if (Objects.isNull(type) || !type.isTextual())
+            return false;
 
-		return CONSTRAINT_TYPE.equals(type.asText());
-	}
+        return CONSTRAINT_TYPE.equals(type.asText());
+    }
 
-	@Override
-	public Predicate<Object> getHandler(JsonNode constraint) {
-		return ContentFilterUtil.predicateFromConditions(constraint, objectMapper);
-	}
+    @Override
+    public Predicate<Object> getHandler(JsonNode constraint) {
+        return ContentFilterUtil.predicateFromConditions(constraint, objectMapper);
+    }
 }

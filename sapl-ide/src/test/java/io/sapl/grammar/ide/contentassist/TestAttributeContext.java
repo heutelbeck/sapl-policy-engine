@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,63 +32,63 @@ import reactor.core.publisher.Flux;
 
 class TestAttributeContext implements AttributeContext {
 
-	private final Map<String, Set<String>> availableLibraries;
+    private final Map<String, Set<String>> availableLibraries;
 
-	public TestAttributeContext() {
-		availableLibraries = new HashMap<>();
-		availableLibraries.put("clock", Set.of("now", "millis", "ticker"));
-	}
+    public TestAttributeContext() {
+        availableLibraries = new HashMap<>();
+        availableLibraries.put("clock", Set.of("now", "millis", "ticker"));
+    }
 
-	@Override
-	public Boolean isProvidedFunction(String function) {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public Boolean isProvidedFunction(String function) {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public Collection<String> providedFunctionsOfLibrary(String pipName) {
-		return availableLibraries.getOrDefault(pipName, new HashSet<>());
-	}
+    @Override
+    public Collection<String> providedFunctionsOfLibrary(String pipName) {
+        return availableLibraries.getOrDefault(pipName, new HashSet<>());
+    }
 
-	@Override
-	public Collection<String> getAvailableLibraries() {
-		return availableLibraries.keySet();
-	}
+    @Override
+    public Collection<String> getAvailableLibraries() {
+        return availableLibraries.keySet();
+    }
 
-	@Override
-	public Collection<PolicyInformationPointDocumentation> getDocumentation() {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public Collection<PolicyInformationPointDocumentation> getDocumentation() {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public List<String> getEnvironmentAttributeCodeTemplates() {
-		return List.of("clock.now", "clock.millis", "clock.ticker");
-	}
+    @Override
+    public List<String> getEnvironmentAttributeCodeTemplates() {
+        return List.of("clock.now", "clock.millis", "clock.ticker");
+    }
 
-	@Override
-	public Collection<String> getAllFullyQualifiedFunctions() {
-		return List.of("clock.now", "clock.millis", "clock.ticker");
-	}
+    @Override
+    public Collection<String> getAllFullyQualifiedFunctions() {
+        return List.of("clock.now", "clock.millis", "clock.ticker");
+    }
 
-	@Override
-	public List<String> getAttributeCodeTemplates() {
-		return List.of("clock.now", "clock.millis", "clock.ticker");
-	}
+    @Override
+    public List<String> getAttributeCodeTemplates() {
+        return List.of("clock.now", "clock.millis", "clock.ticker");
+    }
 
-	@Override
-	public Flux<Val> evaluateAttribute(String attribute, Val value, Arguments arguments,
-			Map<String, JsonNode> variables) {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public Flux<Val> evaluateAttribute(String attribute, Val value, Arguments arguments,
+            Map<String, JsonNode> variables) {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public Flux<Val> evaluateEnvironmentAttribute(String attribute, Arguments arguments,
-			Map<String, JsonNode> variables) {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public Flux<Val> evaluateEnvironmentAttribute(String attribute, Arguments arguments,
+            Map<String, JsonNode> variables) {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public Map<String, String> getDocumentedAttributeCodeTemplates() {
-		return Map.of("clock.now", "documentation");
-	}
+    @Override
+    public Map<String, String> getDocumentedAttributeCodeTemplates() {
+        return Map.of("clock.now", "documentation");
+    }
 
 }

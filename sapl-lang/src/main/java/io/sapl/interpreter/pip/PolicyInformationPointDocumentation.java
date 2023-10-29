@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
  */
 package io.sapl.interpreter.pip;
 
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,17 +26,17 @@ import lombok.RequiredArgsConstructor;
 @Data
 @NoArgsConstructor(force = true)
 @RequiredArgsConstructor
-public class PolicyInformationPointDocumentation implements Serializable {
+public class PolicyInformationPointDocumentation {
 
-	@NonNull
-	String name;
+    @NonNull
+    String name;
 
-	@NonNull
-	String description;
+    @NonNull
+    String description;
 
-	@NonNull
-	Object policyInformationPoint;
+    @NonNull
+    Object policyInformationPoint;
 
-	Map<String, String> documentation = new HashMap<>();
+    Map<String, String> documentation = new HashMap<>();
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,23 +27,24 @@ import lombok.Getter;
 @AllArgsConstructor
 public class PolicySetHit {
 
-	/**
-	 * PolicySetId of hit {@link io.sapl.grammar.sapl.PolicySet}
-	 */
-	private String policySetId;
+    /**
+     * PolicySetId of hit {@link io.sapl.grammar.sapl.PolicySet}
+     */
+    private String policySetId;
 
-	@Override
-	public String toString() {
-		return policySetId;
-	}
+    @Override
+    public String toString() {
+        return policySetId;
+    }
 
-	/**
-	 * Loads a {@link PolicySetHit} from a String.
-	 * @param policySetToStringResult input String
-	 * @return the PolicySetHit.
-	 */
-	public static PolicySetHit fromString(String policySetToStringResult) {
-		return new PolicySetHit(policySetToStringResult);
-	}
+    /**
+     * Loads a {@link PolicySetHit} from a String.
+     * 
+     * @param policySetToStringResult input String
+     * @return the PolicySetHit.
+     */
+    public static PolicySetHit fromString(String policySetToStringResult) {
+        return new PolicySetHit(policySetToStringResult);
+    }
 
 }

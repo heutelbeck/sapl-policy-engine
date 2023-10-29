@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import io.sapl.grammar.sapl.SAPL;
 import io.sapl.grammar.sapl.impl.util.ImportsUtil;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.prp.PolicyRetrievalException;
 import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEvent.Type;
@@ -37,105 +38,105 @@ import reactor.core.publisher.Mono;
 
 public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDocumentIndex {
 
-	private final CanonicalIndexDataContainer indexDataContainer;
+    private final CanonicalIndexDataContainer indexDataContainer;
 
-	private final Map<String, SAPL> documents;
+    private final Map<String, SAPL> documents;
 
-	private final PredicateOrderStrategy predicateOrderStrategy;
+    private final PredicateOrderStrategy predicateOrderStrategy;
 
-	private final boolean consistent;
+    private final boolean consistent;
 
-	private final AttributeContext attributeCtx;
+    private final AttributeContext attributeCtx;
 
-	private final FunctionContext functionCtx;
+    private final FunctionContext functionCtx;
 
-	public CanonicalImmutableParsedDocumentIndex(PredicateOrderStrategy predicateOrderStrategy,
-			AttributeContext attributeCtx, FunctionContext functionCtx) {
-		this(Collections.emptyMap(), predicateOrderStrategy, true, attributeCtx, functionCtx);
-	}
+    public CanonicalImmutableParsedDocumentIndex(PredicateOrderStrategy predicateOrderStrategy,
+            AttributeContext attributeCtx, FunctionContext functionCtx) {
+        this(Collections.emptyMap(), predicateOrderStrategy, true, attributeCtx, functionCtx);
+    }
 
-	public CanonicalImmutableParsedDocumentIndex(AttributeContext attributeCtx, FunctionContext functionCtx) {
-		this(Collections.emptyMap(), new DefaultPredicateOrderStrategy(), true, attributeCtx, functionCtx);
-	}
+    public CanonicalImmutableParsedDocumentIndex(AttributeContext attributeCtx, FunctionContext functionCtx) {
+        this(Collections.emptyMap(), new DefaultPredicateOrderStrategy(), true, attributeCtx, functionCtx);
+    }
 
-	private CanonicalImmutableParsedDocumentIndex(Map<String, SAPL> updatedDocuments,
-			PredicateOrderStrategy predicateOrderStrategy, boolean consistent, AttributeContext attributeCtx,
-			FunctionContext functionCtx) {
-		this.documents              = updatedDocuments;
-		this.predicateOrderStrategy = predicateOrderStrategy;
-		this.consistent             = consistent;
-		this.attributeCtx           = attributeCtx;
-		this.functionCtx            = functionCtx;
+    private CanonicalImmutableParsedDocumentIndex(Map<String, SAPL> updatedDocuments,
+            PredicateOrderStrategy predicateOrderStrategy, boolean consistent, AttributeContext attributeCtx,
+            FunctionContext functionCtx) {
+        this.documents              = updatedDocuments;
+        this.predicateOrderStrategy = predicateOrderStrategy;
+        this.consistent             = consistent;
+        this.attributeCtx           = attributeCtx;
+        this.functionCtx            = functionCtx;
 
-		Map<String, DisjunctiveFormula> targets = this.documents.entrySet().stream()
-				.collect(Collectors.toMap(Entry::getKey, entry -> retainTarget(entry.getValue())));
+        Map<String, DisjunctiveFormula> targets = this.documents.entrySet().stream()
+                .collect(Collectors.toMap(Entry::getKey, entry -> retainTarget(entry.getValue())));
 
-		this.indexDataContainer = new CanonicalIndexDataCreationStrategy(predicateOrderStrategy).constructNew(documents,
-				targets);
-	}
+        this.indexDataContainer = new CanonicalIndexDataCreationStrategy(predicateOrderStrategy).constructNew(documents,
+                targets);
+    }
 
-	CanonicalImmutableParsedDocumentIndex recreateIndex(Map<String, SAPL> updatedDocuments, boolean consistent) {
-		return new CanonicalImmutableParsedDocumentIndex(updatedDocuments, predicateOrderStrategy, consistent,
-				attributeCtx, functionCtx);
-	}
+    CanonicalImmutableParsedDocumentIndex recreateIndex(Map<String, SAPL> updatedDocuments, boolean consistent) {
+        return new CanonicalImmutableParsedDocumentIndex(updatedDocuments, predicateOrderStrategy, consistent,
+                attributeCtx, functionCtx);
+    }
 
-	@Override
-	public Mono<PolicyRetrievalResult> retrievePolicies() {
-		if (!consistent) {
-			return Mono.just(new PolicyRetrievalResult(new ArrayList<>(), true, false));
-		}
-		try {
-			return CanonicalIndexAlgorithm.match(indexDataContainer);
-		} catch (PolicyEvaluationException e) {
-			return Mono.just(new PolicyRetrievalResult(new ArrayList<>(), true, true));
-		}
-	}
+    @Override
+    public Mono<PolicyRetrievalResult> retrievePolicies() {
+        if (!consistent) {
+            return Mono.just(new PolicyRetrievalResult(new ArrayList<>(), true, false));
+        }
+        try {
+            return CanonicalIndexAlgorithm.match(indexDataContainer);
+        } catch (PolicyEvaluationException e) {
+            return Mono.just(new PolicyRetrievalResult(new ArrayList<>(), true, true));
+        }
+    }
 
-	@Override
-	public ImmutableParsedDocumentIndex apply(PrpUpdateEvent event) {
-		var newDocuments        = new HashMap<>(documents);
-		var newConsistencyState = consistent;
-		for (var update : event.getUpdates()) {
-			if (update.getType() == Type.CONSISTENT) {
-				newConsistencyState = true;
-			} else if (update.getType() == Type.INCONSISTENT) {
-				newConsistencyState = false;
-			} else {
-				applyUpdate(newDocuments, update);
-			}
-		}
-		return recreateIndex(newDocuments, newConsistencyState);
-	}
+    @Override
+    public ImmutableParsedDocumentIndex apply(PrpUpdateEvent event) {
+        var newDocuments        = new HashMap<>(documents);
+        var newConsistencyState = consistent;
+        for (var update : event.getUpdates()) {
+            if (update.getType() == Type.CONSISTENT) {
+                newConsistencyState = true;
+            } else if (update.getType() == Type.INCONSISTENT) {
+                newConsistencyState = false;
+            } else {
+                applyUpdate(newDocuments, update);
+            }
+        }
+        return recreateIndex(newDocuments, newConsistencyState);
+    }
 
-	// only PUBLISH or WITHDRAW
-	void applyUpdate(Map<String, SAPL> newDocuments, PrpUpdateEvent.Update update) {
-		var name = update.getDocument().getPolicyElement().getSaplName();
-		if (update.getType() == Type.WITHDRAW) {
-			newDocuments.remove(name);
-		} else {
-			if (newDocuments.containsKey(name)) {
-				throw new RuntimeException("Fatal error. Policy name collision. A document with a name ('" + name
-						+ "') identical to an existing document was published to the PRP.");
-			}
-			newDocuments.put(name, update.getDocument());
-		}
-	}
+    // only PUBLISH or WITHDRAW
+    void applyUpdate(Map<String, SAPL> newDocuments, PrpUpdateEvent.Update update) {
+        var name = update.getDocument().getPolicyElement().getSaplName();
+        if (update.getType() == Type.WITHDRAW) {
+            newDocuments.remove(name);
+        } else {
+            if (newDocuments.containsKey(name)) {
+                throw new PolicyRetrievalException("Fatal error. Policy name collision. A document with a name ('"
+                        + name + "') identical to an existing document was published to the PRP.");
+            }
+            newDocuments.put(name, update.getDocument());
+        }
+    }
 
-	private DisjunctiveFormula retainTarget(SAPL sapl) {
-		try {
-			var                targetExpression = sapl.getPolicyElement().getTargetExpression();
-			DisjunctiveFormula targetFormula;
-			if (targetExpression == null) {
-				targetFormula = new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
-			} else {
-				var imports = ImportsUtil.fetchImports(sapl, attributeCtx, functionCtx);
-				targetFormula = TreeWalker.walk(targetExpression, imports);
-			}
+    private DisjunctiveFormula retainTarget(SAPL sapl) {
+        try {
+            var                targetExpression = sapl.getPolicyElement().getTargetExpression();
+            DisjunctiveFormula targetFormula;
+            if (targetExpression == null) {
+                targetFormula = new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
+            } else {
+                var imports = ImportsUtil.fetchImports(sapl, attributeCtx, functionCtx);
+                targetFormula = TreeWalker.walk(targetExpression, imports);
+            }
 
-			return targetFormula;
-		} catch (PolicyEvaluationException e) {
-			return new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
-		}
-	}
+            return targetFormula;
+        } catch (PolicyEvaluationException e) {
+            return new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
+        }
+    }
 
 }

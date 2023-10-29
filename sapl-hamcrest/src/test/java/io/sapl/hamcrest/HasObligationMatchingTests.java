@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,52 +38,52 @@ import io.sapl.api.pdp.AuthorizationDecision;
 
 class HasObligationMatchingTests {
 
-	private static final ObjectMapper        MAPPER               = new ObjectMapper();
-	private static final Predicate<JsonNode> FOO_IS_BAR_PREDICATE = x -> is(
-			jsonObject().where("foo", is(jsonText("bar")))).matches(x);
+    private static final ObjectMapper        MAPPER               = new ObjectMapper();
+    private static final Predicate<JsonNode> FOO_IS_BAR_PREDICATE = x -> is(
+            jsonObject().where("foo", is(jsonText("bar")))).matches(x);
 
-	@Test
-	void test() throws JsonProcessingException {
-		var obligations = MAPPER.readValue("[ {\"foo\" : \"bar\" }]", ArrayNode.class);
-		var decision    = AuthorizationDecision.PERMIT.withObligations(obligations);
-		assertThat(decision, hasObligationMatching(FOO_IS_BAR_PREDICATE));
-	}
+    @Test
+    void test() throws JsonProcessingException {
+        var obligations = MAPPER.readValue("[ {\"foo\" : \"bar\" }]", ArrayNode.class);
+        var decision    = AuthorizationDecision.PERMIT.withObligations(obligations);
+        assertThat(decision, hasObligationMatching(FOO_IS_BAR_PREDICATE));
+    }
 
-	@Test
-	void testConvenienceMatcherObligationString() throws JsonProcessingException {
-		var obligations = MAPPER.readValue("[ {\"foo\" : \"bar\" }, \"food\"]", ArrayNode.class);
-		var decision    = AuthorizationDecision.PERMIT.withObligations(obligations);
-		assertThat(decision, hasObligation("food"));
-	}
+    @Test
+    void testConvenienceMatcherObligationString() throws JsonProcessingException {
+        var obligations = MAPPER.readValue("[ {\"foo\" : \"bar\" }, \"food\"]", ArrayNode.class);
+        var decision    = AuthorizationDecision.PERMIT.withObligations(obligations);
+        assertThat(decision, hasObligation("food"));
+    }
 
-	@Test
-	void test_neg() throws JsonProcessingException {
-		var obligations = MAPPER.readValue("[ {\"xxx\" : \"bar\" }]", ArrayNode.class);
-		var decision    = AuthorizationDecision.PERMIT.withObligations(obligations);
-		assertThat(decision, not(hasObligationMatching(FOO_IS_BAR_PREDICATE)));
-	}
+    @Test
+    void test_neg() throws JsonProcessingException {
+        var obligations = MAPPER.readValue("[ {\"xxx\" : \"bar\" }]", ArrayNode.class);
+        var decision    = AuthorizationDecision.PERMIT.withObligations(obligations);
+        assertThat(decision, not(hasObligationMatching(FOO_IS_BAR_PREDICATE)));
+    }
 
-	@Test
-	void test_nullDecision() {
-		assertThat(null, not(hasObligationMatching(FOO_IS_BAR_PREDICATE)));
-	}
+    @Test
+    void test_nullDecision() {
+        assertThat(null, not(hasObligationMatching(FOO_IS_BAR_PREDICATE)));
+    }
 
-	@Test
-	void test_nullPredicate() {
-		assertThrows(NullPointerException.class, () -> Matchers.hasObligationMatching(null));
-	}
+    @Test
+    void test_nullPredicate() {
+        assertThrows(NullPointerException.class, () -> Matchers.hasObligationMatching(null));
+    }
 
-	@Test
-	void test_emptyObligation() {
-		assertThat(AuthorizationDecision.PERMIT, not(hasObligationMatching(FOO_IS_BAR_PREDICATE)));
-	}
+    @Test
+    void test_emptyObligation() {
+        assertThat(AuthorizationDecision.PERMIT, not(hasObligationMatching(FOO_IS_BAR_PREDICATE)));
+    }
 
-	@Test
-	void testDescriptionForMatcher() {
-		var sut         = hasObligationMatching(FOO_IS_BAR_PREDICATE);
-		var description = new StringDescription();
-		sut.describeTo(description);
-		assertThat(description.toString(), is("the decision has an obligation matching the predicate"));
-	}
+    @Test
+    void testDescriptionForMatcher() {
+        var sut         = hasObligationMatching(FOO_IS_BAR_PREDICATE);
+        var description = new StringDescription();
+        sut.describeTo(description);
+        assertThat(description.toString(), is("the decision has an obligation matching the predicate"));
+    }
 
 }

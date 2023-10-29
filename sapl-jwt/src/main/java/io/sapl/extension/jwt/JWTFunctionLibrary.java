@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package io.sapl.extension.jwt;
 
 import java.text.ParseException;
 import java.time.Instant;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -49,42 +50,42 @@ import lombok.RequiredArgsConstructor;
 @FunctionLibrary(name = JWTFunctionLibrary.NAME, description = JWTFunctionLibrary.DESCRIPTION)
 public class JWTFunctionLibrary {
 
-	static final String NAME        = "jwt";
-	static final String DESCRIPTION = "Functions for evaluating Json Web Tokens. The contents of the token are returned without verifying the token's validity.";
+    static final String NAME        = "jwt";
+    static final String DESCRIPTION = "Functions for evaluating Json Web Tokens. The contents of the token are returned without verifying the token's validity.";
 
-	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	private final ObjectMapper mapper;
+    private final ObjectMapper mapper;
 
-	/**
-	 * @param rawToken a raw JWT token.
-	 * @return the contents of the JWT token as a Val.
-	 */
-	@Function
-	public Val parseJwt(@Text Val rawToken) {
-		try {
-			var signedJwt = SignedJWT.parse(rawToken.getText());
-			var jsonToken = JSON.objectNode();
-			var payload   = mapper.convertValue(signedJwt.getPayload().toJSONObject(), JsonNode.class);
-			ifPresentReplaceEpocFieldWithIsoTime(payload, "nbf");
-			ifPresentReplaceEpocFieldWithIsoTime(payload, "exp");
-			ifPresentReplaceEpocFieldWithIsoTime(payload, "iat");
-			jsonToken.set("header", mapper.convertValue(signedJwt.getHeader().toJSONObject(), JsonNode.class));
-			jsonToken.set("payload", payload);
-			return Val.of(jsonToken);
-		} catch (ParseException e) {
-			return Val.error(e);
-		}
-	}
+    /**
+     * @param rawToken a raw JWT token.
+     * @return the contents of the JWT token as a Val.
+     */
+    @Function
+    public Val parseJwt(@Text Val rawToken) {
+        try {
+            var signedJwt = SignedJWT.parse(rawToken.getText());
+            var jsonToken = JSON.objectNode();
+            var payload   = mapper.convertValue(signedJwt.getPayload().toJSONObject(), JsonNode.class);
+            ifPresentReplaceEpocFieldWithIsoTime(payload, "nbf");
+            ifPresentReplaceEpocFieldWithIsoTime(payload, "exp");
+            ifPresentReplaceEpocFieldWithIsoTime(payload, "iat");
+            jsonToken.set("header", mapper.convertValue(signedJwt.getHeader().toJSONObject(), JsonNode.class));
+            jsonToken.set("payload", payload);
+            return Val.of(jsonToken);
+        } catch (ParseException e) {
+            return Val.error(e);
+        }
+    }
 
-	private void ifPresentReplaceEpocFieldWithIsoTime(JsonNode payload, String key) {
-		if (!(payload.isObject() && payload.has(key) && payload.get(key).isNumber()))
-			return;
+    private void ifPresentReplaceEpocFieldWithIsoTime(JsonNode payload, String key) {
+        if (!(payload.isObject() && payload.has(key) && payload.get(key).isNumber()))
+            return;
 
-		var epocSeconds = payload.get(key).asLong();
-		var isoString   = Instant.ofEpochSecond(epocSeconds).toString();
+        var epocSeconds = payload.get(key).asLong();
+        var isoString   = Instant.ofEpochSecond(epocSeconds).toString();
 
-		((ObjectNode) payload).set(key, JSON.textNode(isoString));
-	}
+        ((ObjectNode) payload).set(key, JSON.textNode(isoString));
+    }
 
 }

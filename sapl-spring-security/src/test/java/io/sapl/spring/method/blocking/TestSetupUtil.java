@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,27 +38,27 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class TestSetupUtil {
 
-	public static ObjectMapper objectMapperWithSerializers() {
-		var module = new SimpleModule();
-		module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
-		module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
-		module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
-		var mapper = new ObjectMapper();
-		mapper.registerModule(module);
-		return mapper;
-	}
+    public static ObjectMapper objectMapperWithSerializers() {
+        var module = new SimpleModule();
+        module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
+        module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
+        module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
+        var mapper = new ObjectMapper();
+        mapper.registerModule(module);
+        return mapper;
+    }
 
-	@SuppressWarnings("unchecked")
-	public static WebAuthorizationSubscriptionBuilderService subsctiptionBuilderService() {
-		var mapper                        = objectMapperWithSerializers();
-		var mockExpressionHandlerProvider = mock(ObjectProvider.class);
-		when(mockExpressionHandlerProvider.getIfAvailable(any()))
-				.thenReturn(new DefaultMethodSecurityExpressionHandler());
-		var mockMapperProvider = mock(ObjectProvider.class);
-		when(mockMapperProvider.getIfAvailable(any())).thenReturn(mapper);
-		var mockDefaultsProvider = mock(ObjectProvider.class);
-		var mockContext          = mock(ApplicationContext.class);
-		return new WebAuthorizationSubscriptionBuilderService(mockExpressionHandlerProvider, mockMapperProvider,
-				mockDefaultsProvider, mockContext);
-	}
+    @SuppressWarnings("unchecked")
+    public static WebAuthorizationSubscriptionBuilderService subsctiptionBuilderService() {
+        var mapper                        = objectMapperWithSerializers();
+        var mockExpressionHandlerProvider = mock(ObjectProvider.class);
+        when(mockExpressionHandlerProvider.getIfAvailable(any()))
+                .thenReturn(new DefaultMethodSecurityExpressionHandler());
+        var mockMapperProvider = mock(ObjectProvider.class);
+        when(mockMapperProvider.getIfAvailable(any())).thenReturn(mapper);
+        var mockDefaultsProvider = mock(ObjectProvider.class);
+        var mockContext          = mock(ApplicationContext.class);
+        return new WebAuthorizationSubscriptionBuilderService(mockExpressionHandlerProvider, mockMapperProvider,
+                mockDefaultsProvider, mockContext);
+    }
 }

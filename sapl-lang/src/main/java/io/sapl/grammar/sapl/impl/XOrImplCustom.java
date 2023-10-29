@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import static io.sapl.grammar.sapl.impl.util.OperatorUtil.booleanOperator;
 
 import java.util.Map;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.XOr;
 import reactor.core.publisher.Flux;
@@ -31,14 +32,14 @@ import reactor.core.publisher.Flux;
  */
 public class XOrImplCustom extends XOrImpl {
 
-	@Override
-	public Flux<Val> evaluate() {
-		return booleanOperator(this, this::xor);
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        return booleanOperator(this, this::xor);
+    }
 
-	private Val xor(Val left, Val right) {
-		return Val.of(left.getBoolean() ^ right.getBoolean()).withTrace(XOr.class,
-				Map.of("left", left, "right", right));
-	}
+    private Val xor(Val left, Val right) {
+        return Val.of(left.getBoolean() ^ right.getBoolean()).withTrace(XOr.class,
+                Map.of(Trace.LEFT, left, Trace.RIGHT, right));
+    }
 
 }

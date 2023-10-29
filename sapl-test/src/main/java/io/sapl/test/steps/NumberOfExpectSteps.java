@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,18 +17,18 @@ package io.sapl.test.steps;
 
 public class NumberOfExpectSteps {
 
-	private int number;
+    private int number;
 
-	public NumberOfExpectSteps() {
-		this.number = 0;
-	}
+    public NumberOfExpectSteps() {
+        this.number = 0;
+    }
 
-	public int getNumberOfExpectSteps() {
-		return this.number;
-	}
+    public int getNumberOfExpectSteps() {
+        return this.number;
+    }
 
-	public void addExpectStep() {
-		this.number++;
-	}
+    public void addExpectStep() {
+        this.number++;
+    }
 
 }

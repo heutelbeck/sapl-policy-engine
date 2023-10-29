@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,30 +29,30 @@ import io.sapl.test.unit.SaplUnitTestFixture;
 
 class B_PolicyWithSimpleFunctionTests {
 
-	private SaplTestFixture fixture;
+    private SaplTestFixture fixture;
 
-	@BeforeEach
-	void setUp() {
-		fixture = new SaplUnitTestFixture("policyWithSimpleFunction");
-	}
+    @BeforeEach
+    void setUp() {
+        fixture = new SaplUnitTestFixture("policyWithSimpleFunction");
+    }
 
-	@Test
-	void test_policyWithSimpleFunction() throws InitializationException {
-		fixture.registerFunctionLibrary(new TemporalFunctionLibrary()) // do not mock function in this unit test
-				.constructTestCase().when(AuthorizationSubscription.of("willi", "read", "something")).expectPermit()
-				.verify();
-	}
+    @Test
+    void test_policyWithSimpleFunction() throws InitializationException {
+        fixture.registerFunctionLibrary(new TemporalFunctionLibrary()) // do not mock function in this unit test
+                .constructTestCase().when(AuthorizationSubscription.of("willi", "read", "something")).expectPermit()
+                .verify();
+    }
 
-	@Test
-	void test_policyWithSimpleMockedFunction() {
-		fixture.constructTestCaseWithMocks().givenFunction("time.dayOfWeek", Val.of("SATURDAY"))
-				.when(AuthorizationSubscription.of("willi", "read", "something")).expectPermit().verify();
-	}
+    @Test
+    void test_policyWithSimpleMockedFunction() {
+        fixture.constructTestCaseWithMocks().givenFunction("time.dayOfWeek", Val.of("SATURDAY"))
+                .when(AuthorizationSubscription.of("willi", "read", "something")).expectPermit().verify();
+    }
 
-	@Test
-	void test_policyWithSimpleMockedFunction_VerifyTimesCalled() {
-		fixture.constructTestCaseWithMocks().givenFunction("time.dayOfWeek", Val.of("SATURDAY"), times(1))
-				.when(AuthorizationSubscription.of("willi", "read", "something")).expectPermit().verify();
-	}
+    @Test
+    void test_policyWithSimpleMockedFunction_VerifyTimesCalled() {
+        fixture.constructTestCaseWithMocks().givenFunction("time.dayOfWeek", Val.of("SATURDAY"), times(1))
+                .when(AuthorizationSubscription.of("willi", "read", "something")).expectPermit().verify();
+    }
 
 }

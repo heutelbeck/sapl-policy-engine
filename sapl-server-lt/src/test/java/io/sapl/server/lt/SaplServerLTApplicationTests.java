@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,17 +24,17 @@ import org.springframework.boot.SpringApplication;
 
 class SaplServerLTApplicationTests {
 
-	@Test
-	void main() {
-		try (MockedStatic<SpringApplication> theMock = mockStatic(SpringApplication.class)) {
-			theMock.when(this::runNoArgs).thenReturn(null);
-			SAPLServerLTApplication.main(new String[] {});
-			theMock.verify(this::runNoArgs, times(1));
-		}
-	}
+    @Test
+    void main() {
+        try (MockedStatic<SpringApplication> theMock = mockStatic(SpringApplication.class)) {
+            theMock.when(this::runNoArgs).thenReturn(null);
+            SAPLServerLTApplication.main(new String[] {});
+            theMock.verify(this::runNoArgs, times(1));
+        }
+    }
 
-	private void runNoArgs() {
-		SpringApplication.run(SAPLServerLTApplication.class);
-	}
+    private void runNoArgs() {
+        SpringApplication.run(SAPLServerLTApplication.class);
+    }
 
 }

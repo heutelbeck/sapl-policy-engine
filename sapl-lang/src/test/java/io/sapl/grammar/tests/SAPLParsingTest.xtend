@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ import io.sapl.grammar.validation.SAPLSyntaxErrorMessageProvider
  */
 @ExtendWith(InjectionExtension)
 @InjectWith(SAPLInjectorProvider)
-class SAPLParsingTest {
+class SAPLParsingTest { // Note: do not rename, else XText generates a test template with this name. 
 
 	@Inject extension ParseHelper<SAPL> parseHelper
 	@Inject extension ValidationTestHelper validator
@@ -111,7 +111,7 @@ class SAPLParsingTest {
 	@Test
 	def void emptyPolicy() {
 		''' '''.parse.assertError(SaplPackage::eINSTANCE.SAPL, Diagnostic.SYNTAX_DIAGNOSTIC,
-			SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT);
+			SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT_ERROR);
 	}
 
 	@Test

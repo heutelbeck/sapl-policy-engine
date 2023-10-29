@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,15 +32,15 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class LibraryDocumentation {
 
-	@NonNull
-	String name;
+    @NonNull
+    String name;
 
-	@NonNull
-	String description;
+    @NonNull
+    String description;
 
-	@NonNull
-	Object library;
+    @NonNull
+    Object library;
 
-	Map<String, String> documentation = new HashMap<>();
+    Map<String, String> documentation = new HashMap<>();
 
 }

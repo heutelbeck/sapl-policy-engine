@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package io.sapl.grammar.sapl.impl.util;
 
+import java.io.Serializable;
 import java.util.Comparator;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -28,62 +29,62 @@ import io.sapl.api.interpreter.Val;
  */
 public class ArrayUtil {
 
-	private final static NumericAwareComparator EQ = new NumericAwareComparator();
+    private final static NumericAwareComparator EQ = new NumericAwareComparator();
 
-	public static Val numberArray(Integer... values) {
-		var array = Val.JSON.arrayNode();
-		for (var val : values) {
-			array.add(val);
-		}
-		return Val.of(array);
-	}
+    public static Val numberArray(Integer... values) {
+        var array = Val.JSON.arrayNode();
+        for (var val : values) {
+            array.add(val);
+        }
+        return Val.of(array);
+    }
 
-	public static Val numberArrayRange(int from, int to) {
-		var array = Val.JSON.arrayNode();
-		if (from < to) {
-			for (int i = from; i <= to; i++) {
-				array.add(i);
-			}
-		} else {
-			for (int i = from; i >= to; i--) {
-				array.add(i);
-			}
-		}
-		return Val.of(array);
-	}
+    public static Val numberArrayRange(int from, int to) {
+        var array = Val.JSON.arrayNode();
+        if (from < to) {
+            for (int i = from; i <= to; i++) {
+                array.add(i);
+            }
+        } else {
+            for (int i = from; i >= to; i--) {
+                array.add(i);
+            }
+        }
+        return Val.of(array);
+    }
 
-	public static boolean arraysMatchWithSetSemantics(Val result, Val expected) {
-		if (result.getArrayNode().size() != expected.getArrayNode().size())
-			return false;
-		var iter = expected.getArrayNode().elements();
-		while (iter.hasNext()) {
-			var element = iter.next();
-			if (!containsElement(result.getArrayNode(), element))
-				return false;
-		}
-		return true;
-	}
+    public static boolean arraysMatchWithSetSemantics(Val result, Val expected) {
+        if (result.getArrayNode().size() != expected.getArrayNode().size())
+            return false;
+        var iter = expected.getArrayNode().elements();
+        while (iter.hasNext()) {
+            var element = iter.next();
+            if (!containsElement(result.getArrayNode(), element))
+                return false;
+        }
+        return true;
+    }
 
-	private static boolean containsElement(ArrayNode arrayNode, JsonNode element) {
-		var iter = arrayNode.elements();
-		while (iter.hasNext()) {
-			var arrayElement = iter.next();
-			if (element.equals(EQ, arrayElement))
-				return true;
-		}
-		return false;
-	}
+    private static boolean containsElement(ArrayNode arrayNode, JsonNode element) {
+        var iter = arrayNode.elements();
+        while (iter.hasNext()) {
+            var arrayElement = iter.next();
+            if (element.equals(EQ, arrayElement))
+                return true;
+        }
+        return false;
+    }
 
-	private static class NumericAwareComparator implements Comparator<JsonNode> {
-		@Override
-		public int compare(JsonNode o1, JsonNode o2) {
-			if (o1.equals(o2)) {
-				return 0;
-			}
-			if ((o1 instanceof NumericNode) && (o2 instanceof NumericNode)) {
-				return o1.decimalValue().compareTo(o2.decimalValue());
-			}
-			return 1;
-		}
-	}
+    private static class NumericAwareComparator implements Comparator<JsonNode>, Serializable {
+        @Override
+        public int compare(JsonNode o1, JsonNode o2) {
+            if (o1.equals(o2)) {
+                return 0;
+            }
+            if ((o1 instanceof NumericNode) && (o2 instanceof NumericNode)) {
+                return o1.decimalValue().compareTo(o2.decimalValue());
+            }
+            return 1;
+        }
+    }
 }

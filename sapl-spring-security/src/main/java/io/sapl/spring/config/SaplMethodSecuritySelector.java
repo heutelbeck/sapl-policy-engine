@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,33 +34,30 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 final class SaplMethodSecuritySelector implements ImportSelector {
 
-	private final ImportSelector autoProxy = new AutoProxyRegistrarSelector();
+    private final ImportSelector autoProxy = new AutoProxyRegistrarSelector();
 
-	@Override
-	public String @lombok.NonNull [] selectImports(@NonNull AnnotationMetadata importMetadata) {
-		if (!importMetadata.hasAnnotation(EnableSaplMethodSecurity.class.getName())) {
-			return new String[0];
-		}
-		log.debug("Blocking SAPL method security activated.");
-		var imports = new ArrayList<>(Arrays.asList(this.autoProxy.selectImports(importMetadata)));
-		imports.add(SaplMethodSecurityConfiguration.class.getName());
-		return imports.toArray(new String[0]);
-	}
+    @Override
+    public String @lombok.NonNull [] selectImports(@NonNull AnnotationMetadata importMetadata) {
+        if (!importMetadata.hasAnnotation(EnableSaplMethodSecurity.class.getName())) {
+            return new String[0];
+        }
+        log.debug("Blocking SAPL method security activated.");
+        var imports = new ArrayList<>(Arrays.asList(this.autoProxy.selectImports(importMetadata)));
+        imports.add(SaplMethodSecurityConfiguration.class.getName());
+        return imports.toArray(new String[0]);
+    }
 
-	private static final class AutoProxyRegistrarSelector extends AdviceModeImportSelector<EnableSaplMethodSecurity> {
+    private static final class AutoProxyRegistrarSelector extends AdviceModeImportSelector<EnableSaplMethodSecurity> {
+        // Spring security also support AspectJ, SAPL does (currently) not.
+        private static final String[] IMPORTS = new String[] { AutoProxyRegistrar.class.getName() };
 
-		private static final String[] IMPORTS         = new String[] { AutoProxyRegistrar.class.getName() };
-		private static final String[] ASPECTJ_IMPORTS = new String[] {
-				SaplMethodSecurityAspectJAutoProxyRegistrar.class.getName() };
+        @Override
+        protected String[] selectImports(@NonNull AdviceMode adviceMode) {
+            if (adviceMode != AdviceMode.PROXY)
+                throw new IllegalStateException("SAPL does only support AdviceMode.PROXY. AspectJ is unsupported.");
+            return IMPORTS;
+        }
 
-		@Override
-		protected String[] selectImports(@NonNull AdviceMode adviceMode) {
-			return switch (adviceMode) {
-			case PROXY -> IMPORTS;
-			case ASPECTJ -> ASPECTJ_IMPORTS;
-			};
-		}
-
-	}
+    }
 
 }

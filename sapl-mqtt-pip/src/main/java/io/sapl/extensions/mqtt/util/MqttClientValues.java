@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,73 +32,73 @@ import reactor.core.publisher.Mono;
  */
 @Data
 public final class MqttClientValues {
-	private final String               clientId;
-	private final Mqtt5ReactorClient   mqttReactorClient;
-	private final ObjectNode           mqttBrokerConfig;
-	private final Mono<Mqtt5ConnAck>   clientConnection;
-	@Getter(AccessLevel.NONE)
-	private final Map<String, Integer> topicSubscriptionsCountMap;
+    private final String               clientId;
+    private final Mqtt5ReactorClient   mqttReactorClient;
+    private final ObjectNode           mqttBrokerConfig;
+    private final Mono<Mqtt5ConnAck>   clientConnection;
+    @Getter(AccessLevel.NONE)
+    private final Map<String, Integer> topicSubscriptionsCountMap;
 
-	/**
-	 * Caches the given client specifics.
-	 * 
-	 * @param clientId          the referenced mqtt client
-	 * @param mqttReactorClient the mqtt reactor client
-	 * @param mqttBrokerConfig  the configuration of the connection to the mqtt
-	 *                          broker
-	 * @param clientConnection  the mqtt client connection
-	 */
-	public MqttClientValues(String clientId, Mqtt5ReactorClient mqttReactorClient, ObjectNode mqttBrokerConfig,
-			Mono<Mqtt5ConnAck> clientConnection) {
-		this.clientId                   = clientId;
-		this.mqttReactorClient          = mqttReactorClient;
-		this.mqttBrokerConfig           = mqttBrokerConfig.deepCopy();
-		this.clientConnection           = clientConnection;
-		this.topicSubscriptionsCountMap = new HashMap<>();
-	}
+    /**
+     * Caches the given client specifics.
+     * 
+     * @param clientId          the referenced mqtt client
+     * @param mqttReactorClient the mqtt reactor client
+     * @param mqttBrokerConfig  the configuration of the connection to the mqtt
+     *                          broker
+     * @param clientConnection  the mqtt client connection
+     */
+    public MqttClientValues(String clientId, Mqtt5ReactorClient mqttReactorClient, ObjectNode mqttBrokerConfig,
+            Mono<Mqtt5ConnAck> clientConnection) {
+        this.clientId                   = clientId;
+        this.mqttReactorClient          = mqttReactorClient;
+        this.mqttBrokerConfig           = mqttBrokerConfig.deepCopy();
+        this.clientConnection           = clientConnection;
+        this.topicSubscriptionsCountMap = new HashMap<>();
+    }
 
-	/**
-	 * Returns a deep copy of the mqtt broker configuration.
-	 * 
-	 * @return returns the mqtt broker configuration
-	 */
-	public ObjectNode getMqttBrokerConfig() {
-		return this.mqttBrokerConfig.deepCopy();
-	}
+    /**
+     * Returns a deep copy of the mqtt broker configuration.
+     * 
+     * @return returns the mqtt broker configuration
+     */
+    public ObjectNode getMqttBrokerConfig() {
+        return this.mqttBrokerConfig.deepCopy();
+    }
 
-	/**
-	 * Adds 1 to the existing count. If there was no entry for the referenced count
-	 * before, then a new entry will be set to the count of 1.
-	 * 
-	 * @param topic the reference for the topic count
-	 */
-	public void countTopicSubscriptionsCountMapUp(String topic) {
-		topicSubscriptionsCountMap.merge(topic, 1, Integer::sum);
-	}
+    /**
+     * Adds 1 to the existing count. If there was no entry for the referenced count
+     * before, then a new entry will be set to the count of 1.
+     * 
+     * @param topic the reference for the topic count
+     */
+    public void countTopicSubscriptionsCountMapUp(String topic) {
+        topicSubscriptionsCountMap.merge(topic, 1, Integer::sum);
+    }
 
-	/**
-	 * Reduces the count by one. If the new count would be 0 than the topic
-	 * reference will be deleted.
-	 * 
-	 * @param topic the reference for the topic count
-	 * @return returns true in case there is a new positive count for the topic
-	 *         otherwise returns false
-	 */
-	public boolean countTopicSubscriptionsCountMapDown(String topic) {
-		int count = topicSubscriptionsCountMap.remove(topic);
-		if (count > 1) {
-			topicSubscriptionsCountMap.put(topic, count - 1);
-			return true;
-		}
-		return false;
-	}
+    /**
+     * Reduces the count by one. If the new count would be 0 than the topic
+     * reference will be deleted.
+     * 
+     * @param topic the reference for the topic count
+     * @return returns true in case there is a new positive count for the topic
+     *         otherwise returns false
+     */
+    public boolean countTopicSubscriptionsCountMapDown(String topic) {
+        int count = topicSubscriptionsCountMap.remove(topic);
+        if (count > 1) {
+            topicSubscriptionsCountMap.put(topic, count - 1);
+            return true;
+        }
+        return false;
+    }
 
-	/**
-	 * Evaluates whether the topic subscription count map contains any entries.
-	 * 
-	 * @return returns true in case the map is empty, otherwise returns false
-	 */
-	public boolean isTopicSubscriptionsCountMapEmpty() {
-		return topicSubscriptionsCountMap.isEmpty();
-	}
+    /**
+     * Evaluates whether the topic subscription count map contains any entries.
+     * 
+     * @return returns true in case the map is empty, otherwise returns false
+     */
+    public boolean isTopicSubscriptionsCountMapEmpty() {
+        return topicSubscriptionsCountMap.isEmpty();
+    }
 }

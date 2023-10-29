@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,11 +26,11 @@ import reactor.core.publisher.Flux;
  */
 public class BasicGroupImplCustom extends BasicGroupImpl {
 
-	@Override
-	public Flux<Val> evaluate() {
-		final Flux<Val> evaluatedExpressions = getExpression().evaluate();
-		return evaluatedExpressions.switchMap(resolveStepsFiltersAndSubTemplates(steps))
-				.map(val -> val.withTrace(BasicGroup.class,val));
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        final Flux<Val> evaluatedExpressions = getExpression().evaluate();
+        return evaluatedExpressions.switchMap(v -> resolveStepsFiltersAndSubTemplates(steps).apply(v))
+                .map(val -> val.withTrace(BasicGroup.class, val));
+    }
 
 }

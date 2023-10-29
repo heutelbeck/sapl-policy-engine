@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,8 +25,8 @@ import org.springframework.context.annotation.ComponentScan;
 @EnableConfigurationProperties(SAPLServerLTProperties.class)
 public class SAPLServerLTApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(SAPLServerLTApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(SAPLServerLTApplication.class, args);
+    }
 
 }

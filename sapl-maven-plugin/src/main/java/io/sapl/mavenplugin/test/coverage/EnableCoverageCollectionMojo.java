@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,25 +27,24 @@ import org.apache.maven.plugins.annotations.Parameter;
 @Mojo(name = "enable-coverage-collection", defaultPhase = LifecyclePhase.PROCESS_TEST_CLASSES)
 public class EnableCoverageCollectionMojo extends AbstractMojo {
 
-	@Parameter(defaultValue = "true")
-	private boolean coverageEnabled;
+    @Parameter(defaultValue = "true")
+    private boolean coverageEnabled;
 
-	@Parameter
-	private String outputDir;
+    @Parameter
+    private String outputDir;
 
-	@Parameter(defaultValue = "${project.build.directory}")
-	private String projectBuildDir;
+    @Parameter(defaultValue = "${project.build.directory}")
+    private String projectBuildDir;
 
-	@Override
-	public void execute() throws MojoExecutionException {
-		if (this.coverageEnabled) {
-			try {
-				FileUtils.deleteDirectory(PathHelper.resolveBaseDir(outputDir, projectBuildDir, getLog()).toFile());
-			}
-			catch (IOException e) {
-				throw new MojoExecutionException("Failed to delete directory", e);
-			}
-		}
-	}
+    @Override
+    public void execute() throws MojoExecutionException {
+        if (this.coverageEnabled) {
+            try {
+                FileUtils.deleteDirectory(PathHelper.resolveBaseDir(outputDir, projectBuildDir, getLog()).toFile());
+            } catch (IOException e) {
+                throw new MojoExecutionException("Failed to delete directory", e);
+            }
+        }
+    }
 
 }

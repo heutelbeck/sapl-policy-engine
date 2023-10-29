@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@ package io.sapl.test.verification;
 
 public interface MockingVerification {
 
-	void verify(MockRunInformation mockRunInformation);
+    void verify(MockRunInformation mockRunInformation);
 
-	void verify(MockRunInformation mockRunInformation, String verificationFailedMessage);
+    void verify(MockRunInformation mockRunInformation, String verificationFailedMessage);
 
 }

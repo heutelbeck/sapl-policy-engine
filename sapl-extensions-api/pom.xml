@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+    Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -61,7 +61,6 @@
 			<version>2.0.0</version>
 			<scope>provided</scope>
 		</dependency>
-
 		<!-- Utility -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
@@ -75,18 +74,18 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>com.spotify</groupId>
-			<artifactId>hamcrest-jackson</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.spotify</groupId>
-			<artifactId>hamcrest-optional</artifactId>
+			<groupId>net.javacrumbs.json-unit</groupId>
+			<artifactId>json-unit-assertj</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>io.projectreactor</groupId>
 			<artifactId>reactor-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-nop</artifactId>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

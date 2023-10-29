@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,15 +24,15 @@ import io.sapl.api.interpreter.Val;
 
 public class FunctionParameters {
 
-	private final List<Matcher<Val>> matchers;
+    private final List<Matcher<Val>> matchers;
 
-	@SafeVarargs
-	public FunctionParameters(Matcher<Val>... matcher) {
-		this.matchers = Arrays.asList(matcher);
-	}
+    @SafeVarargs
+    public FunctionParameters(Matcher<Val>... matcher) {
+        this.matchers = Arrays.asList(matcher);
+    }
 
-	public List<Matcher<Val>> getParameterMatchers() {
-		return this.matchers;
-	}
+    public List<Matcher<Val>> getParameterMatchers() {
+        return this.matchers;
+    }
 
 }

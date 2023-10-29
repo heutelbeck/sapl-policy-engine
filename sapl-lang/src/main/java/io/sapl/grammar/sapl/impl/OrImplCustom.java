@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.Map;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Or;
 import io.sapl.grammar.sapl.impl.util.TargetExpressionUtil;
@@ -30,26 +31,26 @@ import reactor.core.publisher.Flux;
  */
 public class OrImplCustom extends OrImpl {
 
-	private static final String LAZY_OPERATOR_IN_TARGET = "Lazy OR operator is not allowed in the target";
+    private static final String LAZY_OPERATOR_IN_TARGET_ERROR = "Lazy OR operator is not allowed in the target";
 
-	@Override
-	public Flux<Val> evaluate() {
-		if (TargetExpressionUtil.isInTargetExpression(this)) {
-			// lazy evaluation is not allowed in target expressions.
-			return Flux.just(Val.error(LAZY_OPERATOR_IN_TARGET).withTrace(Or.class));
-		}
-		var left = getLeft().evaluate().map(Val::requireBoolean);
-		return left.switchMap(leftResult -> {
-			if (leftResult.isError()) {
-				return Flux.just(leftResult);
-			}
-			// Lazy evaluation of the right expression
-			if (!leftResult.getBoolean()) {
-				return getRight().evaluate().map(Val::requireBoolean).map(rightResult -> rightResult.withTrace(Or.class,
-						Map.of("left", leftResult, "right", rightResult)));
-			}
-			return Flux.just(Val.TRUE.withTrace(Or.class, Map.of("left", leftResult)));
-		});
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        if (TargetExpressionUtil.isInTargetExpression(this)) {
+            // lazy evaluation is not allowed in target expressions.
+            return Flux.just(Val.error(LAZY_OPERATOR_IN_TARGET_ERROR).withTrace(Or.class));
+        }
+        var left = getLeft().evaluate().map(Val::requireBoolean);
+        return left.switchMap(leftResult -> {
+            if (leftResult.isError()) {
+                return Flux.just(leftResult);
+            }
+            // Lazy evaluation of the right expression
+            if (!leftResult.getBoolean()) {
+                return getRight().evaluate().map(Val::requireBoolean).map(rightResult -> rightResult.withTrace(Or.class,
+                        Map.of(Trace.LEFT, leftResult, Trace.RIGHT, rightResult)));
+            }
+            return Flux.just(Val.TRUE.withTrace(Or.class, Map.of(Trace.LEFT, leftResult)));
+        });
+    }
 
 }

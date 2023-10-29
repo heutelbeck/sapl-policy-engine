@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,27 +29,27 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class PolicyImplCustomCoverage extends PolicyImplCustom {
 
-	private final CoverageHitRecorder hitRecorder;
+    private final CoverageHitRecorder hitRecorder;
 
-	PolicyImplCustomCoverage(CoverageHitRecorder recorder) {
-		this.hitRecorder = recorder;
-	}
+    PolicyImplCustomCoverage(CoverageHitRecorder recorder) {
+        this.hitRecorder = recorder;
+    }
 
-	@Override
-	public Mono<Val> matches() {
-		return super.matches().doOnNext(matches -> {
-			if (matches.isBoolean() && matches.getBoolean()) {
-				String  policySetId = "";
-				EObject eContainer  = eContainer();
-				if (eContainer.eClass().equals(SaplPackage.Literals.POLICY_SET)) {
-					policySetId = ((PolicySet) eContainer()).getSaplName();
-				}
-				PolicyHit hit = new PolicyHit(policySetId, getSaplName());
-				log.trace("| | | | |-- Hit Policy: " + hit);
-				this.hitRecorder.recordPolicyHit(hit);
-			}
-		});
+    @Override
+    public Mono<Val> matches() {
+        return super.matches().doOnNext(matches -> {
+            if (matches.isBoolean() && matches.getBoolean()) {
+                String  policySetId = "";
+                EObject eContainer  = eContainer();
+                if (eContainer.eClass().equals(SaplPackage.Literals.POLICY_SET)) {
+                    policySetId = ((PolicySet) eContainer()).getSaplName();
+                }
+                PolicyHit hit = new PolicyHit(policySetId, getSaplName());
+                log.trace("| | | | |-- Hit Policy: " + hit);
+                this.hitRecorder.recordPolicyHit(hit);
+            }
+        });
 
-	}
+    }
 
 }

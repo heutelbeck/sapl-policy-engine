@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,13 +27,13 @@ import lombok.Data;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class AttributeMockReturnValues {
 
-	private final String fullName;
+    private final String fullName;
 
-	private final List<Val> mockReturnValues;
+    private final List<Val> mockReturnValues;
 
-	public static AttributeMockReturnValues of(String fullName, List<Val> mockReturnValues) {
-		var tracedMockValues = new ArrayList<Val>(mockReturnValues.size());
-		mockReturnValues.forEach(mockVal -> tracedMockValues.add(mockVal.withTrace(AttributeMockReturnValues.class)));
-		return new AttributeMockReturnValues(fullName, tracedMockValues);
-	}
+    public static AttributeMockReturnValues of(String fullName, List<Val> mockReturnValues) {
+        var tracedMockValues = new ArrayList<Val>(mockReturnValues.size());
+        mockReturnValues.forEach(mockVal -> tracedMockValues.add(mockVal.withTrace(AttributeMockReturnValues.class)));
+        return new AttributeMockReturnValues(fullName, tracedMockValues);
+    }
 }

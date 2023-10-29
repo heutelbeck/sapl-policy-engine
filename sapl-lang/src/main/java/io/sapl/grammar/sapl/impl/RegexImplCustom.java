@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import java.util.regex.PatternSyntaxException;
 
 import org.checkerframework.checker.regex.qual.Regex;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import reactor.core.publisher.Flux;
 
@@ -32,31 +33,32 @@ import reactor.core.publisher.Flux;
  */
 public class RegexImplCustom extends RegexImpl {
 
-	private static final String REGEX_SYNTAX_ERROR = "Syntax error in regular expression '%s'.";
+    private static final String REGEX_SYNTAX_ERROR = "Syntax error in regular expression '%s'.";
 
-	@Override
-	public Flux<Val> evaluate() {
-		var leftFlux  = getLeft().evaluate();
-		var rightFlux = getRight().evaluate().map(Val::requireText);
-		return Flux.combineLatest(leftFlux, rightFlux, this::matchRegexp);
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        var leftFlux  = getLeft().evaluate();
+        var rightFlux = getRight().evaluate().map(Val::requireText);
+        return Flux.combineLatest(leftFlux, rightFlux, this::matchRegexp);
+    }
 
-	private Val matchRegexp(Val left, Val right) {
-		if (left.isError()) {
-			return left;
-		}
-		if (right.isError()) {
-			return right;
-		}
-		if (!left.isTextual()) {
-			return Val.FALSE.withTrace(Regex.class, Map.of("left", left, "right", right));
-		}
-		try {
-			return Val.of(Pattern.matches(right.getText(), left.getText())).withTrace(Regex.class,
-					Map.of("left", left, "right", right));
-		} catch (PatternSyntaxException e) {
-			return Val.error(REGEX_SYNTAX_ERROR, right).withTrace(Regex.class, Map.of("left", left, "right", right));
-		}
-	}
+    private Val matchRegexp(Val left, Val right) {
+        if (left.isError()) {
+            return left;
+        }
+        if (right.isError()) {
+            return right;
+        }
+        if (!left.isTextual()) {
+            return Val.FALSE.withTrace(Regex.class, Map.of(Trace.LEFT, left, Trace.RIGHT, right));
+        }
+        try {
+            return Val.of(Pattern.matches(right.getText(), left.getText())).withTrace(Regex.class,
+                    Map.of(Trace.LEFT, left, Trace.RIGHT, right));
+        } catch (PatternSyntaxException e) {
+            return Val.error(REGEX_SYNTAX_ERROR, right).withTrace(Regex.class,
+                    Map.of(Trace.LEFT, left, Trace.RIGHT, right));
+        }
+    }
 
 }

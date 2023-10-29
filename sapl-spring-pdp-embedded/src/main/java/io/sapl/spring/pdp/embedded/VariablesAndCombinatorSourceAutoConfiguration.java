@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,19 +36,19 @@ import lombok.extern.slf4j.Slf4j;
 @EnableConfigurationProperties(EmbeddedPDPProperties.class)
 public class VariablesAndCombinatorSourceAutoConfiguration {
 
-	private final EmbeddedPDPProperties pdpProperties;
+    private final EmbeddedPDPProperties pdpProperties;
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	@ConditionalOnMissingBean(VariablesAndCombinatorSource.class)
-	VariablesAndCombinatorSource variablesAndCombinatorSource() throws InitializationException {
-		log.info("Deploying {} VariablesAndCombinatorSource configuration provider. Sourcing data from: {}",
-				pdpProperties.getPdpConfigType(), pdpProperties.getConfigPath());
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @ConditionalOnMissingBean(VariablesAndCombinatorSource.class)
+    VariablesAndCombinatorSource variablesAndCombinatorSource() throws InitializationException {
+        log.info("Deploying {} VariablesAndCombinatorSource configuration provider. Sourcing data from: {}",
+                pdpProperties.getPdpConfigType(), pdpProperties.getConfigPath());
 
-		if (pdpProperties.getPdpConfigType() == PDPDataSource.FILESYSTEM)
-			return new FileSystemVariablesAndCombinatorSource(pdpProperties.getConfigPath());
+        if (pdpProperties.getPdpConfigType() == PDPDataSource.FILESYSTEM)
+            return new FileSystemVariablesAndCombinatorSource(pdpProperties.getConfigPath());
 
-		return new ResourcesVariablesAndCombinatorSource(pdpProperties.getConfigPath());
-	}
+        return new ResourcesVariablesAndCombinatorSource(pdpProperties.getConfigPath());
+    }
 
 }

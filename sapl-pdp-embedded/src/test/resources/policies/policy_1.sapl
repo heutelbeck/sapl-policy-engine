@@ -3,6 +3,6 @@ permit
     action == "read"
 where
     subject.<test.upper> == "WILLI";
-    time.dayOfWeekFrom(<time.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
+    time.dayOfWeek(<time.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
 
 

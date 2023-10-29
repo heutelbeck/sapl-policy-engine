@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,4 +22,5 @@ import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 /**
  * Holds the documentation for all deployed Policy Information Points.
  */
-public record PolicyInformationPointsDocumentation(Collection<PolicyInformationPointDocumentation> documentation) {}
+public record PolicyInformationPointsDocumentation(Collection<PolicyInformationPointDocumentation> documentation) {
+}

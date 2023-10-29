@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,73 +31,73 @@ import io.sapl.api.pdp.AuthorizationDecision;
  */
 public class HasObligationContainingKeyValue extends TypeSafeDiagnosingMatcher<AuthorizationDecision> {
 
-	private final String key;
+    private final String key;
 
-	private final Optional<Matcher<? super JsonNode>> valueMatcher;
+    private final Optional<Matcher<? super JsonNode>> valueMatcher;
 
-	/**
-	 * Checks for the presence of an obligation containing a field with the given
-	 * key and a value matching a matcher.
-	 * 
-	 * @param key   a key
-	 * @param value a value matcher.
-	 */
-	public HasObligationContainingKeyValue(String key, Matcher<? super JsonNode> value) {
-		super(AuthorizationDecision.class);
-		this.key          = Objects.requireNonNull(key);
-		this.valueMatcher = Optional.of(Objects.requireNonNull(value));
-	}
+    /**
+     * Checks for the presence of an obligation containing a field with the given
+     * key and a value matching a matcher.
+     * 
+     * @param key   a key
+     * @param value a value matcher.
+     */
+    public HasObligationContainingKeyValue(String key, Matcher<? super JsonNode> value) {
+        super(AuthorizationDecision.class);
+        this.key          = Objects.requireNonNull(key);
+        this.valueMatcher = Optional.of(Objects.requireNonNull(value));
+    }
 
-	/**
-	 * Checks for the presence of an obligation containing a field with the given
-	 * key.
-	 * 
-	 * @param key a key
-	 */
-	public HasObligationContainingKeyValue(String key) {
-		super(AuthorizationDecision.class);
-		this.key          = Objects.requireNonNull(key);
-		this.valueMatcher = Optional.empty();
-	}
+    /**
+     * Checks for the presence of an obligation containing a field with the given
+     * key.
+     * 
+     * @param key a key
+     */
+    public HasObligationContainingKeyValue(String key) {
+        super(AuthorizationDecision.class);
+        this.key          = Objects.requireNonNull(key);
+        this.valueMatcher = Optional.empty();
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText(String.format("the decision has an obligation containing key %s", this.key));
+    @Override
+    public void describeTo(Description description) {
+        description.appendText(String.format("the decision has an obligation containing key %s", this.key));
 
-		this.valueMatcher.ifPresentOrElse(matcher -> description.appendText(" with ").appendDescriptionOf(matcher),
-				() -> description.appendText(" with any value"));
-	}
+        this.valueMatcher.ifPresentOrElse(matcher -> description.appendText(" with ").appendDescriptionOf(matcher),
+                () -> description.appendText(" with any value"));
+    }
 
-	@Override
-	protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
-		var obligations = decision.getObligations();
-		if (obligations.isEmpty()) {
-			mismatchDescription.appendText("decision didn't contain any obligations");
-			return false;
-		}
+    @Override
+    protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
+        var obligations = decision.getObligations();
+        if (obligations.isEmpty()) {
+            mismatchDescription.appendText("decision didn't contain any obligations");
+            return false;
+        }
 
-		var containsObligationKeyValue = false;
+        var containsObligationKeyValue = false;
 
-		// iterate over all obligations
-		for (JsonNode obligation : obligations.get()) {
-			var iterator = obligation.fields();
-			// iterate over fields in this obligation
-			while (iterator.hasNext()) {
-				var entry = iterator.next();
-				// check if key/value exists
-				if (entry.getKey().equals(this.key)
-						&& (this.valueMatcher.isEmpty() || this.valueMatcher.get().matches(entry.getValue()))) {
-					containsObligationKeyValue = true;
-				}
-			}
-		}
+        // iterate over all obligations
+        for (JsonNode obligation : obligations.get()) {
+            var iterator = obligation.fields();
+            // iterate over fields in this obligation
+            while (iterator.hasNext()) {
+                var entry = iterator.next();
+                // check if key/value exists
+                if (entry.getKey().equals(this.key)
+                        && (this.valueMatcher.isEmpty() || this.valueMatcher.get().matches(entry.getValue()))) {
+                    containsObligationKeyValue = true;
+                }
+            }
+        }
 
-		if (containsObligationKeyValue) {
-			return true;
-		} else {
-			mismatchDescription.appendText("no entry in all obligations matched");
-			return false;
-		}
-	}
+        if (containsObligationKeyValue) {
+            return true;
+        } else {
+            mismatchDescription.appendText("no entry in all obligations matched");
+            return false;
+        }
+    }
 
 }

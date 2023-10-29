@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,10 +22,10 @@ import io.sapl.api.interpreter.Val;
 @FunctionLibrary(name = "string")
 public class MockXACMLStringFunctionLibrary {
 
-	@Function
-	public Val starts_with(Val string, Val start) {
-		String str = string.get().asText();
-		return Val.of(str.startsWith(start.get().asText()));
-	}
+    @Function
+    public Val starts_with(Val string, Val start) {
+        String str = string.get().asText();
+        return Val.of(str.startsWith(start.get().asText()));
+    }
 
 }

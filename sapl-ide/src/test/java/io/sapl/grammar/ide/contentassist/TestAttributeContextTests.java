@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,70 +29,70 @@ import org.junit.jupiter.api.Test;
 
 class TestAttributeContextTests {
 
-	@Test
-	void isProvidedFunctionThrowsUnsupportedOperationException() {
-		var context = new TestAttributeContext();
-		assertThrows(UnsupportedOperationException.class, () -> context.isProvidedFunction(""));
-	}
+    @Test
+    void isProvidedFunctionThrowsUnsupportedOperationException() {
+        var context = new TestAttributeContext();
+        assertThrows(UnsupportedOperationException.class, () -> context.isProvidedFunction(""));
+    }
 
-	@Test
-	void providedFunctionsOfLibraryReturnsFunctionsForKnownPip() {
-		var                context   = new TestAttributeContext();
-		Collection<String> functions = context.providedFunctionsOfLibrary("clock");
-		assertThat(functions, hasItems("now", "millis", "ticker"));
-	}
+    @Test
+    void providedFunctionsOfLibraryReturnsFunctionsForKnownPip() {
+        var                context   = new TestAttributeContext();
+        Collection<String> functions = context.providedFunctionsOfLibrary("clock");
+        assertThat(functions, hasItems("now", "millis", "ticker"));
+    }
 
-	@Test
-	void providedFunctionsOfLibraryReturnsNoFunctionsForUnknownPip() {
-		var      context   = new TestAttributeContext();
-		Object[] functions = context.providedFunctionsOfLibrary("foo").toArray();
-		assertEquals(0, functions.length);
-	}
+    @Test
+    void providedFunctionsOfLibraryReturnsNoFunctionsForUnknownPip() {
+        var      context   = new TestAttributeContext();
+        Object[] functions = context.providedFunctionsOfLibrary("foo").toArray();
+        assertEquals(0, functions.length);
+    }
 
-	@Test
-	void getAvailableLibrariesReturnsClockPip() {
-		var                context   = new TestAttributeContext();
-		Collection<String> libraries = context.getAvailableLibraries();
-		assertThat(libraries, hasItem("clock"));
-	}
+    @Test
+    void getAvailableLibrariesReturnsClockPip() {
+        var                context   = new TestAttributeContext();
+        Collection<String> libraries = context.getAvailableLibraries();
+        assertThat(libraries, hasItem("clock"));
+    }
 
-	@Test
-	void getDocumentationThrowsUnsupportedOperationException() {
-		var context = new TestAttributeContext();
-		assertThrows(UnsupportedOperationException.class, context::getDocumentation);
-	}
+    @Test
+    void getDocumentationThrowsUnsupportedOperationException() {
+        var context = new TestAttributeContext();
+        assertThrows(UnsupportedOperationException.class, context::getDocumentation);
+    }
 
-	@Test
-	void evaluateAttributeThrowsUnsupportedOperationException() {
-		var context = new TestAttributeContext();
-		assertThrows(UnsupportedOperationException.class, () -> context.evaluateAttribute(null, null, null, null));
-	}
+    @Test
+    void evaluateAttributeThrowsUnsupportedOperationException() {
+        var context = new TestAttributeContext();
+        assertThrows(UnsupportedOperationException.class, () -> context.evaluateAttribute(null, null, null, null));
+    }
 
-	@Test
-	void evaluateEnvironmentAttributeThrowsUnsupportedOperationException() {
-		var context = new TestAttributeContext();
-		assertThrows(UnsupportedOperationException.class, () -> context.evaluateEnvironmentAttribute(null, null, null));
-	}
+    @Test
+    void evaluateEnvironmentAttributeThrowsUnsupportedOperationException() {
+        var context = new TestAttributeContext();
+        assertThrows(UnsupportedOperationException.class, () -> context.evaluateEnvironmentAttribute(null, null, null));
+    }
 
-	@Test
-	void getCodeTemplatesWithPrefixReturnsAllKnownFunctions() {
-		var                context   = new TestAttributeContext();
-		Collection<String> functions = context.getEnvironmentAttributeCodeTemplates();
-		assertThat(functions, hasItems("clock.now", "clock.millis", "clock.ticker"));
-	}
+    @Test
+    void getCodeTemplatesWithPrefixReturnsAllKnownFunctions() {
+        var                context   = new TestAttributeContext();
+        Collection<String> functions = context.getEnvironmentAttributeCodeTemplates();
+        assertThat(functions, hasItems("clock.now", "clock.millis", "clock.ticker"));
+    }
 
-	@Test
-	void getAllFullyQualifiedFunctionsReturnsAllKnownFunctions() {
-		var                context   = new TestAttributeContext();
-		Collection<String> functions = context.getAllFullyQualifiedFunctions();
-		assertThat(functions, hasItems("clock.now", "clock.millis", "clock.ticker"));
-	}
+    @Test
+    void getAllFullyQualifiedFunctionsReturnsAllKnownFunctions() {
+        var                context   = new TestAttributeContext();
+        Collection<String> functions = context.getAllFullyQualifiedFunctions();
+        assertThat(functions, hasItems("clock.now", "clock.millis", "clock.ticker"));
+    }
 
-	@Test
-	void getDocumentedAttributeCodeTemplatesReturnsAllKnownDocumentedCodeTemplates() {
-		var                 context   = new TestAttributeContext();
-		Map<String, String> functions = context.getDocumentedAttributeCodeTemplates();
-		assertThat(functions, IsMapContaining.hasEntry("clock.now", "documentation"));
-	}
+    @Test
+    void getDocumentedAttributeCodeTemplatesReturnsAllKnownDocumentedCodeTemplates() {
+        var                 context   = new TestAttributeContext();
+        Map<String, String> functions = context.getDocumentedAttributeCodeTemplates();
+        assertThat(functions, IsMapContaining.hasEntry("clock.now", "documentation"));
+    }
 
 }

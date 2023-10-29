@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,28 +37,28 @@ import reactor.test.StepVerifier;
 
 class FileSystemPrpUpdateEventSourceTest {
 
-	@Test
-	void testProcessFileEvent() {
-		var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/empty", new DefaultSAPLInterpreter());
+    @Test
+    void testProcessFileEvent() {
+        var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/empty", new DefaultSAPLInterpreter());
 
-		try (MockedConstruction<ImmutableFileIndex> mocked = Mockito.mockConstruction(ImmutableFileIndex.class,
-				(mock, context) -> {
-					when(mock.afterFileEvent(any())).thenReturn(mock);
-					when(mock.getUpdateEvent()).thenReturn(new PrpUpdateEvent(Collections.emptyList()));
-				})) {
+        try (MockedConstruction<ImmutableFileIndex> mocked = Mockito.mockConstruction(ImmutableFileIndex.class,
+                (mock, context) -> {
+                    when(mock.afterFileEvent(any())).thenReturn(mock);
+                    when(mock.getUpdateEvent()).thenReturn(new PrpUpdateEvent(Collections.emptyList()));
+                })) {
 
-			try (MockedStatic<FileMonitorUtil> mock = mockStatic(FileMonitorUtil.class)) {
-				mock.when(() -> FileMonitorUtil.monitorDirectory(any(), any()))
-						.thenReturn(Flux.just(new FileCreatedEvent(null), new FileDeletedEvent(null)));
+            try (MockedStatic<FileMonitorUtil> mock = mockStatic(FileMonitorUtil.class)) {
+                mock.when(() -> FileMonitorUtil.monitorDirectory(any(), any()))
+                        .thenReturn(Flux.just(new FileCreatedEvent(null), new FileDeletedEvent(null)));
 
-				var updates = source.getUpdates();
-				StepVerifier.create(updates).expectNextCount(2L).thenCancel().verify();
+                var updates = source.getUpdates();
+                StepVerifier.create(updates).expectNextCount(2L).thenCancel().verify();
 
-				mock.verify(() -> FileMonitorUtil.monitorDirectory(any(), any()), times(1));
-			}
-		}
+                mock.verify(() -> FileMonitorUtil.monitorDirectory(any(), any()), times(1));
+            }
+        }
 
-		source.dispose();
-	}
+        source.dispose();
+    }
 
 }

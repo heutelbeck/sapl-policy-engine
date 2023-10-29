@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,15 +32,15 @@ import lombok.RequiredArgsConstructor;
 @EnableConfigurationProperties(EmbeddedPDPProperties.class)
 public class InterceptorAutoConfiguration {
 
-	private final ObjectMapper          mapper;
-	private final EmbeddedPDPProperties properties;
+    private final ObjectMapper          mapper;
+    private final EmbeddedPDPProperties properties;
 
-	@Bean
-	@ConditionalOnMissingBean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	ReportingDecisionInterceptor reportingDecisionInterceptor() {
-		return new ReportingDecisionInterceptor(mapper, properties.isPrettyPrintReports(), properties.isPrintTrace(),
-				properties.isPrintJsonReport(), properties.isPrintTextReport());
-	}
+    @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    ReportingDecisionInterceptor reportingDecisionInterceptor() {
+        return new ReportingDecisionInterceptor(mapper, properties.isPrettyPrintReports(), properties.isPrintTrace(),
+                properties.isPrintJsonReport(), properties.isPrintTextReport());
+    }
 
 }

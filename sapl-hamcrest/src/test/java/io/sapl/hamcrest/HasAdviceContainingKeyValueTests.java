@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,79 +34,79 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.sapl.api.pdp.AuthorizationDecision;
 
 class HasAdviceContainingKeyValueTests {
-	private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
-	@Test
-	void test() throws JsonProcessingException {
-		var advice   = MAPPER.readValue("[ {\"foo\" : \"bar\", \"key\" : \"value\"  }]", ArrayNode.class);
-		var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
-		assertThat(decision, hasAdviceContainingKeyValue("key", jsonText("value")));
-	}
+    @Test
+    void test() throws JsonProcessingException {
+        var advice   = MAPPER.readValue("[ {\"foo\" : \"bar\", \"key\" : \"value\"  }]", ArrayNode.class);
+        var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
+        assertThat(decision, hasAdviceContainingKeyValue("key", jsonText("value")));
+    }
 
-	@Test
-	void test_neg() throws JsonProcessingException {
-		var advice   = MAPPER.readValue("[ {\"foo\" : \"bar\", \"key\" : \"value\"  }]", ArrayNode.class);
-		var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
-		assertThat(decision, not(hasAdviceContainingKeyValue("xxx", jsonText("yyy"))));
-	}
+    @Test
+    void test_neg() throws JsonProcessingException {
+        var advice   = MAPPER.readValue("[ {\"foo\" : \"bar\", \"key\" : \"value\"  }]", ArrayNode.class);
+        var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
+        assertThat(decision, not(hasAdviceContainingKeyValue("xxx", jsonText("yyy"))));
+    }
 
-	@Test
-	void test_nullDecision() {
-		assertThat(null, not(hasAdviceContainingKeyValue("key", jsonText("value"))));
-	}
+    @Test
+    void test_nullDecision() {
+        assertThat(null, not(hasAdviceContainingKeyValue("key", jsonText("value"))));
+    }
 
-	@Test
-	void test_nullKey() {
-		var text = jsonText("value");
-		assertThrows(NullPointerException.class, () -> hasAdviceContainingKeyValue(null, text));
-	}
+    @Test
+    void test_nullKey() {
+        var text = jsonText("value");
+        assertThrows(NullPointerException.class, () -> hasAdviceContainingKeyValue(null, text));
+    }
 
-	@Test
-	void test_nullValue() {
-		assertThrows(NullPointerException.class, () -> hasAdviceContainingKeyValue("key", (Matcher<JsonNode>) null));
-	}
+    @Test
+    void test_nullValue() {
+        assertThrows(NullPointerException.class, () -> hasAdviceContainingKeyValue("key", (Matcher<JsonNode>) null));
+    }
 
-	@Test
-	void test_emptyAdvice() {
-		assertThat(AuthorizationDecision.PERMIT, not(hasAdviceContainingKeyValue("key", jsonText("value"))));
-	}
+    @Test
+    void test_emptyAdvice() {
+        assertThat(AuthorizationDecision.PERMIT, not(hasAdviceContainingKeyValue("key", jsonText("value"))));
+    }
 
-	@Test
-	void test_emptyMatcher() throws JsonProcessingException {
-		var advice   = MAPPER.readValue("[ {\"foo\" : \"bar\", \"key\" : \"value\"  }]", ArrayNode.class);
-		var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
-		assertThat(decision, hasAdviceContainingKeyValue("key"));
-	}
+    @Test
+    void test_emptyMatcher() throws JsonProcessingException {
+        var advice   = MAPPER.readValue("[ {\"foo\" : \"bar\", \"key\" : \"value\"  }]", ArrayNode.class);
+        var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
+        assertThat(decision, hasAdviceContainingKeyValue("key"));
+    }
 
-	@Test
-	void test_StringValueMatcher() throws JsonProcessingException {
-		var advice   = MAPPER.readValue("[ {\"foo\" : \"bar\", \"key\" : \"value\"  }]", ArrayNode.class);
-		var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
-		assertThat(decision, hasAdviceContainingKeyValue("key", "value"));
-	}
+    @Test
+    void test_StringValueMatcher() throws JsonProcessingException {
+        var advice   = MAPPER.readValue("[ {\"foo\" : \"bar\", \"key\" : \"value\"  }]", ArrayNode.class);
+        var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
+        assertThat(decision, hasAdviceContainingKeyValue("key", "value"));
+    }
 
-	@Test
-	void test_MatchingKey_NotMatchingValue() throws JsonProcessingException {
-		var advice   = MAPPER.readValue("[ {\"foo\" : \"bar\", \"key\" : \"value\"  }]", ArrayNode.class);
-		var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
-		assertThat(decision, not(hasAdviceContainingKeyValue("key", "xxx")));
-	}
+    @Test
+    void test_MatchingKey_NotMatchingValue() throws JsonProcessingException {
+        var advice   = MAPPER.readValue("[ {\"foo\" : \"bar\", \"key\" : \"value\"  }]", ArrayNode.class);
+        var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
+        assertThat(decision, not(hasAdviceContainingKeyValue("key", "xxx")));
+    }
 
-	@Test
-	void testDescriptionForMatcherEmptyMatcher() {
-		var sut         = Matchers.hasAdviceContainingKeyValue("key");
-		var description = new StringDescription();
-		sut.describeTo(description);
-		assertThat(description.toString(), is("the decision has an advice containing key key with any value"));
-	}
+    @Test
+    void testDescriptionForMatcherEmptyMatcher() {
+        var sut         = Matchers.hasAdviceContainingKeyValue("key");
+        var description = new StringDescription();
+        sut.describeTo(description);
+        assertThat(description.toString(), is("the decision has an advice containing key key with any value"));
+    }
 
-	@Test
-	void testDescriptionForMatcher() {
-		var sut         = Matchers.hasAdviceContainingKeyValue("key", jsonText("value"));
-		var description = new StringDescription();
-		sut.describeTo(description);
-		assertThat(description.toString(),
-				is("the decision has an advice containing key key with a text node with value that is \"value\""));
-	}
+    @Test
+    void testDescriptionForMatcher() {
+        var sut         = Matchers.hasAdviceContainingKeyValue("key", jsonText("value"));
+        var description = new StringDescription();
+        sut.describeTo(description);
+        assertThat(description.toString(),
+                is("the decision has an advice containing key key with a text node with value that is \"value\""));
+    }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,51 +24,49 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class ConjunctiveClauseReductionSupport {
 
-	static void reduceConstants(final List<Literal> data) {
-		ListIterator<Literal> iter = data.listIterator();
-		while (iter.hasNext() && data.size() > 1) {
-			Literal literal = iter.next();
-			if (literal.isImmutable()) {
-				if (!literal.evaluate()) {
-					data.clear();
-					data.add(literal);
-					return;
-				}
-				else {
-					iter.remove();
-				}
-			}
-		}
-	}
+    static void reduceConstants(final List<Literal> data) {
+        ListIterator<Literal> iter = data.listIterator();
+        while (iter.hasNext() && data.size() > 1) {
+            Literal literal = iter.next();
+            if (literal.isImmutable()) {
+                if (!literal.evaluate()) {
+                    data.clear();
+                    data.add(literal);
+                    return;
+                } else {
+                    iter.remove();
+                }
+            }
+        }
+    }
 
-	static void reduceFormula(final List<Literal> data) {
-		ListIterator<Literal> pointer = data.listIterator();
-		while (pointer.hasNext()) {
-			Literal lhs = pointer.next();
-			if (lhs != null && reduceFormulaStep(data, pointer, lhs)) {
-				break;
-			}
-		}
-		data.removeIf(Objects::isNull);
-	}
+    static void reduceFormula(final List<Literal> data) {
+        ListIterator<Literal> pointer = data.listIterator();
+        while (pointer.hasNext()) {
+            Literal lhs = pointer.next();
+            if (lhs != null && reduceFormulaStep(data, pointer, lhs)) {
+                break;
+            }
+        }
+        data.removeIf(Objects::isNull);
+    }
 
-	private static boolean reduceFormulaStep(final List<Literal> data, final ListIterator<Literal> pointer,
-			final Literal value) {
-		ListIterator<Literal> forward = data.listIterator(pointer.nextIndex());
-		while (forward.hasNext()) {
-			Literal rhs = forward.next();
-			if (value.sharesBool(rhs)) {
-				if (value.sharesNegation(rhs)) {
-					forward.set(null);
-				}
-				else {
-					data.clear();
-					data.add(new Literal(new Bool(false)));
-					return true;
-				}
-			}
-		}
-		return false;
-	}
+    private static boolean reduceFormulaStep(final List<Literal> data, final ListIterator<Literal> pointer,
+            final Literal value) {
+        ListIterator<Literal> forward = data.listIterator(pointer.nextIndex());
+        while (forward.hasNext()) {
+            Literal rhs = forward.next();
+            if (value.sharesBool(rhs)) {
+                if (value.sharesNegation(rhs)) {
+                    forward.set(null);
+                } else {
+                    data.clear();
+                    data.add(new Literal(new Bool(false)));
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 
 }

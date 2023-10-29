@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,47 +33,49 @@ import reactor.core.publisher.Sinks;
 
 public class AttributeMockPublisher implements AttributeMock {
 
-	private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_TIMING_MODE = "You already defined a Mock for %s which is returning specified values";
+    private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_TIMING_MODE = "You already defined a Mock for %s which is returning specified values";
 
-	private final String fullName;
+    private final String fullName;
 
-	private final Sinks.Many<Val> publisher;
+    private final Sinks.Many<Val> publisher;
 
-	private final Flux<Val> returnFlux;
+    private final Flux<Val> returnFlux;
 
-	private final MockRunInformation mockRunInformation;
+    private final MockRunInformation mockRunInformation;
 
-	private final List<MockingVerification> listMockingVerifications;
+    private final List<MockingVerification> listMockingVerifications;
 
-	public AttributeMockPublisher(String fullName) {
-		this.fullName = fullName;
-		this.mockRunInformation = new MockRunInformation(fullName);
-		this.listMockingVerifications = new LinkedList<>();
-		this.listMockingVerifications.add(times(greaterThanOrEqualTo(1)));
+    public AttributeMockPublisher(String fullName) {
+        this.fullName                 = fullName;
+        this.mockRunInformation       = new MockRunInformation(fullName);
+        this.listMockingVerifications = new LinkedList<>();
+        this.listMockingVerifications.add(times(greaterThanOrEqualTo(1)));
 
-		this.publisher = Sinks.many().replay().latest();
-		this.returnFlux = this.publisher.asFlux();
+        this.publisher  = Sinks.many().replay().latest();
+        this.returnFlux = this.publisher.asFlux();
 
-	}
+    }
 
-	public void mockEmit(Val returns) {
-		this.publisher.tryEmitNext(returns);
-	}
+    public void mockEmit(Val returns) {
+        this.publisher.tryEmitNext(returns);
+    }
 
-	@Override
-	public Flux<Val> evaluate(String attributeName, Val parentValue, Map<String, JsonNode> variables, List<Flux<Val>> args) {
-		this.mockRunInformation.saveCall(new MockCall());
-		return this.returnFlux.map(val->val.withTrace(AttributeMockPublisher.class,Map.of("attributeName",Val.of(attributeName))));
-	}
+    @Override
+    public Flux<Val> evaluate(String attributeName, Val parentValue, Map<String, JsonNode> variables,
+            List<Flux<Val>> args) {
+        this.mockRunInformation.saveCall(new MockCall());
+        return this.returnFlux.map(
+                val -> val.withTrace(AttributeMockPublisher.class, Map.of("attributeName", Val.of(attributeName))));
+    }
 
-	@Override
-	public void assertVerifications() {
-		this.listMockingVerifications.forEach((verification) -> verification.verify(this.mockRunInformation));
-	}
+    @Override
+    public void assertVerifications() {
+        this.listMockingVerifications.forEach(verification -> verification.verify(this.mockRunInformation));
+    }
 
-	@Override
-	public String getErrorMessageForCurrentMode() {
-		return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_TIMING_MODE, this.fullName);
-	}
+    @Override
+    public String getErrorMessageForCurrentMode() {
+        return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_TIMING_MODE, this.fullName);
+    }
 
 }

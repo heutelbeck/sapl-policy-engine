@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,21 +15,27 @@
  */
 package io.sapl.grammar.web;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
 import org.junit.jupiter.api.Test;
 
 class SaplServletTests {
 
-	@Test
-	void canInitAndDestroyServletWithoutException() {
-		var servlet = new SAPLServlet();
-		servlet.init();
-		servlet.destroy();
-	}
+    @Test
+    void canInitAndDestroyServletWithoutException() {
+        assertDoesNotThrow(() -> {
+            var servlet = new SAPLServlet();
+            servlet.init();
+            servlet.destroy();
+        });
+    }
 
-	@Test
-	void canJustDestroyServletWithoutException() {
-		var servlet = new SAPLServlet();
-		servlet.destroy();
-	}
+    @Test
+    void canJustDestroyServletWithoutException() {
+        assertDoesNotThrow(() -> {
+            var servlet = new SAPLServlet();
+            servlet.destroy();
+        });
+    }
 
 }

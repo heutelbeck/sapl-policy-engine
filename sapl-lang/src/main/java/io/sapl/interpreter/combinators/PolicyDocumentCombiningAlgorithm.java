@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,11 @@
 package io.sapl.interpreter.combinators;
 
 /**
- * Enumeration of the algorithms supported by the SAPL policy engine to combine SAPL
- * documents (holding a policy set or a policy).
+ * Enumeration of the algorithms supported by the SAPL policy engine to combine
+ * SAPL documents (holding a policy set or a policy).
  */
 public enum PolicyDocumentCombiningAlgorithm {
 
-	DENY_OVERRIDES, PERMIT_OVERRIDES, ONLY_ONE_APPLICABLE, DENY_UNLESS_PERMIT, PERMIT_UNLESS_DENY
+    DENY_OVERRIDES, PERMIT_OVERRIDES, ONLY_ONE_APPLICABLE, DENY_UNLESS_PERMIT, PERMIT_UNLESS_DENY
 
 }

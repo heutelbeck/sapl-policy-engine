@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
  */
 package io.sapl.prp.resources;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
 import org.junit.jupiter.api.Test;
 
 import io.sapl.interpreter.InitializationException;
@@ -22,9 +24,9 @@ import io.sapl.pdp.PolicyDecisionPointFactory;
 
 class ResourcesPolicyRetrievalPointTest {
 
-	@Test
-	void loadPolicies() throws InitializationException {
-		PolicyDecisionPointFactory.resourcesPolicyDecisionPoint();
-	}
+    @Test
+    void loadPolicies() throws InitializationException {
+        assertDoesNotThrow(() -> PolicyDecisionPointFactory.resourcesPolicyDecisionPoint());
+    }
 
 }

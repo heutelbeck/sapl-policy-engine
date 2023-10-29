@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,10 +24,10 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class InvocationUtil {
 
-	@SneakyThrows
-	@SuppressWarnings("unchecked")
-	public static <T> Publisher<T> proceed(final MethodInvocation invocation) {
-		return (Publisher<T>) invocation.proceed();
-	}
+    @SneakyThrows
+    @SuppressWarnings("unchecked")
+    public static <T> Publisher<T> proceed(final MethodInvocation invocation) {
+        return (Publisher<T>) invocation.proceed();
+    }
 
 }

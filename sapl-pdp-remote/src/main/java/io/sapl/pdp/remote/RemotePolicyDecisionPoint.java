@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,15 +17,15 @@ package io.sapl.pdp.remote;
 
 public class RemotePolicyDecisionPoint {
 
-    public static RemotePolicyDecisionPoint builder(){
+    public static RemotePolicyDecisionPoint builder() {
         return new RemotePolicyDecisionPoint();
     }
 
-    public RemoteHttpPolicyDecisionPoint.RemoteHttpPolicyDecisionPointBuilder http(){
+    public RemoteHttpPolicyDecisionPoint.RemoteHttpPolicyDecisionPointBuilder http() {
         return RemoteHttpPolicyDecisionPoint.builder();
     }
 
-    public RemoteRsocketPolicyDecisionPoint.RemoteRsocketPolicyDecisionPointBuilder rsocket(){
+    public RemoteRsocketPolicyDecisionPoint.RemoteRsocketPolicyDecisionPointBuilder rsocket() {
         return RemoteRsocketPolicyDecisionPoint.builder();
     }
 

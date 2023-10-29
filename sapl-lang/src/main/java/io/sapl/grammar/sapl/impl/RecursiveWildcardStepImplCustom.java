@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.grammar.sapl.RecursiveWildcardStep;
@@ -36,58 +37,58 @@ import reactor.core.publisher.Flux;
  */
 public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 
-	private static final String CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE = "Cannot descent on an undefined value.";
+    private static final String CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE_ERROR = "Cannot descent on an undefined value.";
 
-	@Override
-	public Flux<Val> apply(@NonNull Val parentValue) {
-		return Flux.just(
-				applyToValue(parentValue).withTrace(RecursiveWildcardStep.class, Map.of("parentValue", parentValue)));
-	}
+    @Override
+    public Flux<Val> apply(@NonNull Val parentValue) {
+        return Flux.just(applyToValue(parentValue).withTrace(RecursiveWildcardStep.class,
+                Map.of(Trace.PARENT_VALUE, parentValue)));
+    }
 
-	public Val applyToValue(@NonNull Val parentValue) {
-		if (parentValue.isError()) {
-			return parentValue;
-		}
-		if (parentValue.isUndefined()) {
-			return Val.error(CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE);
-		}
-		if (!parentValue.isArray() && !parentValue.isObject()) {
-			return Val.ofEmptyArray();
-		}
-		return Val.of(collect(parentValue.get(), Val.JSON.arrayNode()));
-	}
+    public Val applyToValue(@NonNull Val parentValue) {
+        if (parentValue.isError()) {
+            return parentValue;
+        }
+        if (parentValue.isUndefined()) {
+            return Val.error(CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE_ERROR);
+        }
+        if (!parentValue.isArray() && !parentValue.isObject()) {
+            return Val.ofEmptyArray();
+        }
+        return Val.of(collect(parentValue.get(), Val.JSON.arrayNode()));
+    }
 
-	private ArrayNode collect(JsonNode node, ArrayNode results) {
-		if (node.isArray()) {
-			for (var item : node) {
-				if (item.isObject() || item.isArray()) {
-					results.add(item);
-				}
-				collect(item, results);
-			}
-		} else if (node.isObject()) {
-			var iter = node.fields();
-			while (iter.hasNext()) {
-				var item = iter.next().getValue();
-				if (item.isObject() || item.isArray()) {
-					results.add(item);
-				}
-				collect(item, results);
-			}
-		} else {
-			results.add(node);
-		}
-		return results;
-	}
+    private ArrayNode collect(JsonNode node, ArrayNode results) {
+        if (node.isArray()) {
+            for (var item : node) {
+                if (item.isObject() || item.isArray()) {
+                    results.add(item);
+                }
+                collect(item, results);
+            }
+        } else if (node.isObject()) {
+            var iter = node.fields();
+            while (iter.hasNext()) {
+                var item = iter.next().getValue();
+                if (item.isObject() || item.isArray()) {
+                    results.add(item);
+                }
+                collect(item, results);
+            }
+        } else {
+            results.add(node);
+        }
+        return results;
+    }
 
-	@Override
-	public Flux<Val> applyFilterStatement(@NonNull Val unfilteredValue, int stepId,
-			@NonNull FilterStatement statement) {
-		// This type of recursion does not translate well to filtering.
-		// Basically just apply filter to top-level matches and do recursion with steps.
-		// @.* is basically equivalent to @..* here.
-		return FilterAlgorithmUtil.applyFilter(unfilteredValue, stepId, WildcardStepImplCustom::wildcard, statement,
-				WildcardStep.class);
-	}
+    @Override
+    public Flux<Val> applyFilterStatement(@NonNull Val unfilteredValue, int stepId,
+            @NonNull FilterStatement statement) {
+        // This type of recursion does not translate well to filtering.
+        // Basically just apply filter to top-level matches and do recursion with steps.
+        // @.* is basically equivalent to @..* here.
+        return FilterAlgorithmUtil.applyFilter(unfilteredValue, stepId, WildcardStepImplCustom::wildcard, statement,
+                WildcardStep.class);
+    }
 
 }

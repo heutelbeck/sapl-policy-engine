@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,39 +24,39 @@ import lombok.Data;
 
 public class MockRunInformation {
 
-	private final String fullName;
+    private final String fullName;
 
-	private final List<CallWithMetadata> timesCalled;
+    private final List<CallWithMetadata> timesCalled;
 
-	public MockRunInformation(String fullName) {
-		this.fullName = fullName;
-		this.timesCalled = new LinkedList<>();
-	}
+    public MockRunInformation(String fullName) {
+        this.fullName    = fullName;
+        this.timesCalled = new LinkedList<>();
+    }
 
-	public String getFullName() {
-		return this.fullName;
-	}
+    public String getFullName() {
+        return this.fullName;
+    }
 
-	public int getTimesCalled() {
-		return timesCalled.size();
-	}
+    public int getTimesCalled() {
+        return timesCalled.size();
+    }
 
-	public List<CallWithMetadata> getCalls() {
-		return this.timesCalled;
-	}
+    public List<CallWithMetadata> getCalls() {
+        return this.timesCalled;
+    }
 
-	public void saveCall(MockCall call) {
-		this.timesCalled.add(new CallWithMetadata(false, call));
-	}
+    public void saveCall(MockCall call) {
+        this.timesCalled.add(new CallWithMetadata(false, call));
+    }
 
-	@Data
-	@AllArgsConstructor
-	public static class CallWithMetadata {
+    @Data
+    @AllArgsConstructor
+    public static class CallWithMetadata {
 
-		private boolean isUsed;
+        private boolean isUsed;
 
-		private MockCall call;
+        private MockCall call;
 
-	}
+    }
 
 }

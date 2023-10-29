@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,35 +24,38 @@ import io.sapl.test.coverage.api.model.PolicySetHit;
  */
 public interface CoverageHitRecorder {
 
-	/**
-	 * Internal method used by SAPL Coverage Recording to record a hit of an
-	 * io.sapl.grammar.sapl.PolicySet
-	 * @param hit a policy hit
-	 */
-	void recordPolicySetHit(PolicySetHit hit);
+    /**
+     * Internal method used by SAPL Coverage Recording to record a hit of an
+     * io.sapl.grammar.sapl.PolicySet
+     * 
+     * @param hit a policy hit
+     */
+    void recordPolicySetHit(PolicySetHit hit);
 
-	/**
-	 * Internal method used by SAPL Coverage Recording to record a hit of an
-	 * io.sapl.grammar.sapl.Policy
-	 * @param hit a policy hit
-	 */
-	void recordPolicyHit(PolicyHit hit);
+    /**
+     * Internal method used by SAPL Coverage Recording to record a hit of an
+     * io.sapl.grammar.sapl.Policy
+     * 
+     * @param hit a policy hit
+     */
+    void recordPolicyHit(PolicyHit hit);
 
-	/**
-	 * Internal method used by SAPL Coverage Recording to record a hit of an
-	 * io.sapl.grammar.sapl.Condition
-	 * @param hit a policy condition hit
-	 */
-	void recordPolicyConditionHit(PolicyConditionHit hit);
+    /**
+     * Internal method used by SAPL Coverage Recording to record a hit of an
+     * io.sapl.grammar.sapl.Condition
+     * 
+     * @param hit a policy condition hit
+     */
+    void recordPolicyConditionHit(PolicyConditionHit hit);
 
-	/**
-	 * Deletes all files used for coverage recording
-	 */
-	void cleanCoverageHitFiles();
+    /**
+     * Deletes all files used for coverage recording
+     */
+    void cleanCoverageHitFiles();
 
-	/**
-	 * Creates files in target/ dir used for coverage reporting
-	 */
-	void createCoverageHitFiles();
+    /**
+     * Creates files in target/ dir used for coverage reporting
+     */
+    void createCoverageHitFiles();
 
 }

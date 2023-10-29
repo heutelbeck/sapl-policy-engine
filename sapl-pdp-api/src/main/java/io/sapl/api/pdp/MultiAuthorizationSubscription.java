@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,14 +33,15 @@ import lombok.NoArgsConstructor;
 import lombok.NonNull;
 
 /**
- * A multi-subscription holds a list of subjects, a list of actions, a list of resources,
- * a list of environments (which are the elements of a {@link AuthorizationSubscription
- * SAPL authorization subscription}) and a map holding subscription IDs and corresponding
- * {@link AuthorizationSubscriptionElements authorization subscription elements}. It
- * provides methods to
- * {@link #addAuthorizationSubscription(String, Object, Object, Object, Object) add}
- * single authorization subscriptions and to {@link #iterator() iterate} over all the
- * authorization subscriptions.
+ * A multi-subscription holds a list of subjects, a list of actions, a list of
+ * resources, a list of environments (which are the elements of a
+ * {@link AuthorizationSubscription SAPL authorization subscription}) and a map
+ * holding subscription IDs and corresponding
+ * {@link AuthorizationSubscriptionElements authorization subscription
+ * elements}. It provides methods to
+ * {@link #addAuthorizationSubscription(String, Object, Object, Object, Object)
+ * add} single authorization subscriptions and to {@link #iterator() iterate}
+ * over all the authorization subscriptions.
  *
  * @see AuthorizationSubscription
  */
@@ -49,168 +50,186 @@ import lombok.NonNull;
 @JsonInclude(NON_EMPTY)
 public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuthorizationSubscription> {
 
-	private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
+    private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
 
-	@NotEmpty
-	List<Object> subjects = new ArrayList<>();
+    @NotEmpty
+    List<Object> subjects = new ArrayList<>();
 
-	@NotEmpty
-	List<Object> actions = new ArrayList<>();
+    @NotEmpty
+    List<Object> actions = new ArrayList<>();
 
-	@NotEmpty
-	List<Object> resources = new ArrayList<>();
+    @NotEmpty
+    List<Object> resources = new ArrayList<>();
 
-	List<Object> environments = new ArrayList<>();
+    List<Object> environments = new ArrayList<>();
 
-	@NotEmpty
-	Map<String, AuthorizationSubscriptionElements> authorizationSubscriptions = new HashMap<>();
+    @NotEmpty
+    Map<String, AuthorizationSubscriptionElements> authorizationSubscriptions = new HashMap<>();
 
-	/**
-	 * Convenience method to add an authorization subscription without environment data.
-	 * Calls {@code addAuthorizationSubscription(String, Object, Object, Object)
-	 * addAuthorizationSubscription(subscriptionId, subject, action, resource, null)}.
-	 * @param subscriptionId the id identifying the authorization subscription to be
-	 * added.
-	 * @param subject the subject of the authorization subscription to be added.
-	 * @param action the action of the authorization subscription to be added.
-	 * @param resource the resource of the authorization subscription to be added.
-	 * @return this {@code MultiAuthorizationSubscription} instance to support chaining of
-	 * multiple calls to {@code addAuthorizationSubscription}.
-	 */
-	public MultiAuthorizationSubscription addAuthorizationSubscription(String subscriptionId, Object subject,
-			Object action, Object resource) {
-		return addAuthorizationSubscription(subscriptionId, subject, action, resource, null);
-	}
+    /**
+     * Convenience method to add an authorization subscription without environment
+     * data. Calls
+     * {@code addAuthorizationSubscription(String, Object, Object, Object)
+     * addAuthorizationSubscription(subscriptionId, subject, action, resource, null)}.
+     * 
+     * @param subscriptionId the id identifying the authorization subscription to be
+     *                       added.
+     * @param subject        the subject of the authorization subscription to be
+     *                       added.
+     * @param action         the action of the authorization subscription to be
+     *                       added.
+     * @param resource       the resource of the authorization subscription to be
+     *                       added.
+     * @return this {@code MultiAuthorizationSubscription} instance to support
+     *         chaining of multiple calls to {@code addAuthorizationSubscription}.
+     */
+    public MultiAuthorizationSubscription addAuthorizationSubscription(String subscriptionId, Object subject,
+            Object action, Object resource) {
+        return addAuthorizationSubscription(subscriptionId, subject, action, resource, null);
+    }
 
-	/**
-	 * Convenience method to add an authorization subscription without environment data.
-	 * Calls {@link #addAuthorizationSubscription(String, Object, Object, Object)
-	 * addAuthorizationSubscription(subscriptionId, subject, action, resource, null)}.
-	 * @param subscriptionId the id identifying the authorization subscription to be
-	 * added.
-	 * @param subscription an authorization subscription.
-	 * @return this {@code MultiAuthorizationSubscription} instance to support chaining of
-	 * multiple calls to {@code addAuthorizationSubscription}.
-	 */
-	public MultiAuthorizationSubscription addAuthorizationSubscription(String subscriptionId,
-			AuthorizationSubscription subscription) {
-		return addAuthorizationSubscription(subscriptionId, subscription.getSubject(), subscription.getAction(),
-				subscription.getResource(), subscription.getEnvironment());
-	}
+    /**
+     * Convenience method to add an authorization subscription without environment
+     * data. Calls
+     * {@link #addAuthorizationSubscription(String, Object, Object, Object)
+     * addAuthorizationSubscription(subscriptionId, subject, action, resource,
+     * null)}.
+     * 
+     * @param subscriptionId the id identifying the authorization subscription to be
+     *                       added.
+     * @param subscription   an authorization subscription.
+     * @return this {@code MultiAuthorizationSubscription} instance to support
+     *         chaining of multiple calls to {@code addAuthorizationSubscription}.
+     */
+    public MultiAuthorizationSubscription addAuthorizationSubscription(String subscriptionId,
+            AuthorizationSubscription subscription) {
+        return addAuthorizationSubscription(subscriptionId, subscription.getSubject(), subscription.getAction(),
+                subscription.getResource(), subscription.getEnvironment());
+    }
 
-	/**
-	 * Adds the authorization subscription defined by the given subject, action, resource
-	 * and environment. The given {@code subscriptionId} is associated with the according
-	 * decision to allow the recipient of the PDP decision to correlate
-	 * subscription/decision pairs.
-	 * @param subscriptionId the id identifying the authorization subscription to be
-	 * added.
-	 * @param subject the subject of the authorization subscription to be added.
-	 * @param action the action of the authorization subscription to be added.
-	 * @param resource the resource of the authorization subscription to be added.
-	 * @param environment the environment of the authorization subscription to be added.
-	 * @return this {@code MultiAuthorizationSubscription} instance to support chaining of
-	 * multiple calls to {@code addAuthorizationSubscription}.
-	 */
-	public MultiAuthorizationSubscription addAuthorizationSubscription(@NonNull String subscriptionId, @NonNull Object subject,
-			@NonNull Object action, @NonNull Object resource, Object environment) {
+    /**
+     * Adds the authorization subscription defined by the given subject, action,
+     * resource and environment. The given {@code subscriptionId} is associated with
+     * the according decision to allow the recipient of the PDP decision to
+     * correlate subscription/decision pairs.
+     * 
+     * @param subscriptionId the id identifying the authorization subscription to be
+     *                       added.
+     * @param subject        the subject of the authorization subscription to be
+     *                       added.
+     * @param action         the action of the authorization subscription to be
+     *                       added.
+     * @param resource       the resource of the authorization subscription to be
+     *                       added.
+     * @param environment    the environment of the authorization subscription to be
+     *                       added.
+     * @return this {@code MultiAuthorizationSubscription} instance to support
+     *         chaining of multiple calls to {@code addAuthorizationSubscription}.
+     */
+    public MultiAuthorizationSubscription addAuthorizationSubscription(@NonNull String subscriptionId,
+            @NonNull Object subject, @NonNull Object action, @NonNull Object resource, Object environment) {
 
-		if (authorizationSubscriptions.containsKey(subscriptionId))
-			throw new IllegalArgumentException("Cannot add two subscriptions with the same ID: " + subscriptionId);
+        if (authorizationSubscriptions.containsKey(subscriptionId))
+            throw new IllegalArgumentException("Cannot add two subscriptions with the same ID: " + subscriptionId);
 
-		var subjectId = ensureIsElementOfListAndReturnIndex(subject, subjects);
-		var actionId = ensureIsElementOfListAndReturnIndex(action, actions);
-		var resourceId = ensureIsElementOfListAndReturnIndex(resource, resources);
-		var environmentId = ensureIsElementOfListAndReturnIndex(environment, environments);
+        var subjectId     = ensureIsElementOfListAndReturnIndex(subject, subjects);
+        var actionId      = ensureIsElementOfListAndReturnIndex(action, actions);
+        var resourceId    = ensureIsElementOfListAndReturnIndex(resource, resources);
+        var environmentId = ensureIsElementOfListAndReturnIndex(environment, environments);
 
-		authorizationSubscriptions.put(subscriptionId,
-				new AuthorizationSubscriptionElements(subjectId, actionId, resourceId, environmentId));
-		return this;
-	}
+        authorizationSubscriptions.put(subscriptionId,
+                new AuthorizationSubscriptionElements(subjectId, actionId, resourceId, environmentId));
+        return this;
+    }
 
-	private Integer ensureIsElementOfListAndReturnIndex(Object element, List<Object> list) {
-		if(element == null) 
-			return null;
-		
-		int index = list.indexOf(element);
-		if (index == -1) {
-			index = list.size();
-			list.add(element);
-		}
-		return index;
-	}
+    private Integer ensureIsElementOfListAndReturnIndex(Object element, List<Object> list) {
+        if (element == null)
+            return null;
 
-	/**
-	 * @return {@code true} if this multi-subscription holds at least one authorization
-	 * subscription, {@code false} otherwise.
-	 */
-	public boolean hasAuthorizationSubscriptions() {
-		return !authorizationSubscriptions.isEmpty();
-	}
+        int index = list.indexOf(element);
+        if (index == -1) {
+            index = list.size();
+            list.add(element);
+        }
+        return index;
+    }
 
-	/**
-	 * Returns the authorization subscription related to the given ID or {@code null} if
-	 * this multi-subscription contains no such ID.
-	 * @param subscriptionId the ID of the authorization subscription to be returned.
-	 * @return the authorization subscription related to the given ID or {@code null}.
-	 */
-	public AuthorizationSubscription getAuthorizationSubscriptionWithId(String subscriptionId) {
-		final AuthorizationSubscriptionElements subscriptionElements = authorizationSubscriptions.get(subscriptionId);
-		if (subscriptionElements != null) {
-			return toAuthzSubscription(subscriptionElements);
-		}
-		return null;
-	}
+    /**
+     * @return {@code true} if this multi-subscription holds at least one
+     *         authorization subscription, {@code false} otherwise.
+     */
+    public boolean hasAuthorizationSubscriptions() {
+        return !authorizationSubscriptions.isEmpty();
+    }
 
-	/**
-	 * @return an {@link Iterator iterator} providing access to the
-	 * {@link IdentifiableAuthorizationSubscription identifiable authorization
-	 * subscriptions} created from the data held by this multi-subscription.
-	 */
-	@Override
-	public Iterator<IdentifiableAuthorizationSubscription> iterator() {
-		final Iterator<Map.Entry<String, AuthorizationSubscriptionElements>> subscriptionIterator = authorizationSubscriptions
-				.entrySet().iterator();
-		return new Iterator<>() {
-			@Override
-			public boolean hasNext() {
-				return subscriptionIterator.hasNext();
-			}
+    /**
+     * Returns the authorization subscription related to the given ID or
+     * {@code null} if this multi-subscription contains no such ID.
+     * 
+     * @param subscriptionId the ID of the authorization subscription to be
+     *                       returned.
+     * @return the authorization subscription related to the given ID or
+     *         {@code null}.
+     */
+    public AuthorizationSubscription getAuthorizationSubscriptionWithId(String subscriptionId) {
+        return toAuthzSubscription(authorizationSubscriptions.get(subscriptionId));
+    }
 
-			@Override
-			public IdentifiableAuthorizationSubscription next() {
-				final Map.Entry<String, AuthorizationSubscriptionElements> entry = subscriptionIterator.next();
-				final String id = entry.getKey();
-				final AuthorizationSubscriptionElements subscriptionElements = entry.getValue();
-				final AuthorizationSubscription authzSubscription = toAuthzSubscription(subscriptionElements);
-				return new IdentifiableAuthorizationSubscription(id, authzSubscription);
-			}
-		};
-	}
+    /**
+     * @return an {@link Iterator iterator} providing access to the
+     *         {@link IdentifiableAuthorizationSubscription identifiable
+     *         authorization subscriptions} created from the data held by this
+     *         multi-subscription.
+     */
+    @Override
+    public Iterator<IdentifiableAuthorizationSubscription> iterator() {
+        final Iterator<Map.Entry<String, AuthorizationSubscriptionElements>> subscriptionIterator = authorizationSubscriptions
+                .entrySet().iterator();
+        return new Iterator<>() {
+            @Override
+            public boolean hasNext() {
+                return subscriptionIterator.hasNext();
+            }
 
-	@Override
-	public String toString() {
-		final StringBuilder sb = new StringBuilder("MultiAuthorizationSubscription {");
-		for (IdentifiableAuthorizationSubscription subscription : this) {
-			sb.append("\n\t[").append("SUBSCRIPTION-ID: ").append(subscription.authorizationSubscriptionId())
-					.append(" | ").append("SUBJECT: ").append(subscription.authorizationSubscription().getSubject())
-					.append(" | ").append("ACTION: ").append(subscription.authorizationSubscription().getAction())
-					.append(" | ").append("RESOURCE: ")
-					.append(subscription.authorizationSubscription().getResource()).append(" | ")
-					.append("ENVIRONMENT: ").append(subscription.authorizationSubscription().getEnvironment())
-					.append(']');
-		}
-		sb.append("\n}");
-		return sb.toString();
-	}
+            @Override
+            public IdentifiableAuthorizationSubscription next() {
+                final Map.Entry<String, AuthorizationSubscriptionElements> entry                = subscriptionIterator
+                        .next();
+                final String                                               id                   = entry.getKey();
+                final AuthorizationSubscriptionElements                    subscriptionElements = entry.getValue();
+                final AuthorizationSubscription                            authzSubscription    = toAuthzSubscription(
+                        subscriptionElements);
+                return new IdentifiableAuthorizationSubscription(id, authzSubscription);
+            }
+        };
+    }
 
-	private AuthorizationSubscription toAuthzSubscription(AuthorizationSubscriptionElements subscriptionElements) {
-		final Object subject = subjects.get(subscriptionElements.getSubjectId());
-		final Object action = actions.get(subscriptionElements.getActionId());
-		final Object resource = resources.get(subscriptionElements.getResourceId());
-		final Object environment = subscriptionElements.getEnvironmentId() == null?null:environments.get(subscriptionElements.getEnvironmentId());
-		return new AuthorizationSubscription(MAPPER.valueToTree(subject), MAPPER.valueToTree(action),
-				MAPPER.valueToTree(resource), environment==null?null:MAPPER.valueToTree(environment));
-	}
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("MultiAuthorizationSubscription {");
+        for (IdentifiableAuthorizationSubscription subscription : this) {
+            sb.append("\n\t[").append("SUBSCRIPTION-ID: ").append(subscription.authorizationSubscriptionId())
+                    .append(" | ").append("SUBJECT: ").append(subscription.authorizationSubscription().getSubject())
+                    .append(" | ").append("ACTION: ").append(subscription.authorizationSubscription().getAction())
+                    .append(" | ").append("RESOURCE: ").append(subscription.authorizationSubscription().getResource())
+                    .append(" | ").append("ENVIRONMENT: ")
+                    .append(subscription.authorizationSubscription().getEnvironment()).append(']');
+        }
+        sb.append("\n}");
+        return sb.toString();
+    }
+
+    private AuthorizationSubscription toAuthzSubscription(AuthorizationSubscriptionElements subscriptionElements) {
+        if (subscriptionElements == null)
+            return null;
+
+        final Object subject     = subjects.get(subscriptionElements.getSubjectId());
+        final Object action      = actions.get(subscriptionElements.getActionId());
+        final Object resource    = resources.get(subscriptionElements.getResourceId());
+        final Object environment = subscriptionElements.getEnvironmentId() == null ? null
+                : environments.get(subscriptionElements.getEnvironmentId());
+        return new AuthorizationSubscription(MAPPER.valueToTree(subject), MAPPER.valueToTree(action),
+                MAPPER.valueToTree(resource), environment == null ? null : MAPPER.valueToTree(environment));
+    }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,21 +28,21 @@ import reactor.util.context.ContextView;
  */
 public class BasicRelativeImplCustom extends BasicRelativeImpl {
 
-	private static final String NO_RELATIVE_NODE = "Relative expression error. No relative node.";
+    private static final String NO_RELATIVE_NODE_ERROR = "Relative expression error. No relative node.";
 
-	@Override
-	public Flux<Val> evaluate() {
-		return Flux.deferContextual(this::evaluateRelativeNode);
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        return Flux.deferContextual(this::evaluateRelativeNode);
+    }
 
-	private Flux<Val> evaluateRelativeNode(ContextView ctx) {
-		var relativeNode = AuthorizationContext.getRelativeNode(ctx);
+    private Flux<Val> evaluateRelativeNode(ContextView ctx) {
+        var relativeNode = AuthorizationContext.getRelativeNode(ctx);
 
-		if (relativeNode.isUndefined())
-			return Flux.just(Val.error(NO_RELATIVE_NODE).withTrace(BasicRelative.class));
+        if (relativeNode.isUndefined())
+            return Flux.just(Val.error(NO_RELATIVE_NODE_ERROR).withTrace(BasicRelative.class));
 
-		return Flux.just(relativeNode.withTrace(BasicRelative.class, relativeNode))
-				.switchMap(resolveStepsFiltersAndSubTemplates(steps));
-	}
+        return Flux.just(relativeNode.withTrace(BasicRelative.class, relativeNode))
+                .switchMap(v -> resolveStepsFiltersAndSubTemplates(steps).apply(v));
+    }
 
 }

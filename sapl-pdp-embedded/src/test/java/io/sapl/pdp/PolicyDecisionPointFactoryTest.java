@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,20 +27,20 @@ import io.sapl.interpreter.InitializationException;
 
 class PolicyDecisionPointFactoryTest {
 
-	@Test
-	void test_factory_methods() throws InitializationException {
-		assertThat(PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(), notNullValue());
-		assertThat(PolicyDecisionPointFactory.filesystemPolicyDecisionPoint("src/main/resources/policies"),
-				notNullValue());
-		assertThat(PolicyDecisionPointFactory.filesystemPolicyDecisionPoint("src/main/resources/policies",
-				Collections.singletonList(new TestPIP()), Collections.emptyList()), notNullValue());
+    @Test
+    void test_factory_methods() throws InitializationException {
+        assertThat(PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(), notNullValue());
+        assertThat(PolicyDecisionPointFactory.filesystemPolicyDecisionPoint("src/main/resources/policies"),
+                notNullValue());
+        assertThat(PolicyDecisionPointFactory.filesystemPolicyDecisionPoint("src/main/resources/policies",
+                Collections.singletonList(new TestPIP()), Collections.emptyList()), notNullValue());
 
-		assertThat(PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(Collections.singletonList(new TestPIP()),
-				Collections.singletonList(new FilterFunctionLibrary())), notNullValue());
+        assertThat(PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(Collections.singletonList(new TestPIP()),
+                Collections.singletonList(new FilterFunctionLibrary())), notNullValue());
 
-		assertThat(PolicyDecisionPointFactory.resourcesPolicyDecisionPoint(), notNullValue());
-		assertThat(PolicyDecisionPointFactory.resourcesPolicyDecisionPoint(Collections.singletonList(new TestPIP()),
-				Collections.emptyList()), notNullValue());
-	}
+        assertThat(PolicyDecisionPointFactory.resourcesPolicyDecisionPoint(), notNullValue());
+        assertThat(PolicyDecisionPointFactory.resourcesPolicyDecisionPoint(Collections.singletonList(new TestPIP()),
+                Collections.emptyList()), notNullValue());
+    }
 
 }

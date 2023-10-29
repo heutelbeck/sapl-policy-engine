@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,188 +46,153 @@ import reactor.test.StepVerifier;
 
 class SaplMqttClientPayloadFormatIT {
 
-	private final static String BYTE_ARRAY_TOPIC = "byteArrayTopic";
-	private final static String JSON_TOPIC       = "jsonTopic";
-	private final static long   DELAY_MS         = 1000L;
+    private final static String BYTE_ARRAY_TOPIC = "byteArrayTopic";
+    private final static String JSON_TOPIC       = "jsonTopic";
+    private final static long   DELAY_MS         = 1000L;
 
-	private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
+    private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	@TempDir
-	Path configDir;
+    @TempDir
+    Path configDir;
 
-	@TempDir
-	Path dataDir;
+    @TempDir
+    Path dataDir;
 
-	@TempDir
-	Path extensionsDir;
+    @TempDir
+    Path extensionsDir;
 
-	EmbeddedHiveMQ      mqttBroker;
-	Mqtt5BlockingClient mqttClient;
-	SaplMqttClient      saplMqttClient;
+    EmbeddedHiveMQ      mqttBroker;
+    Mqtt5BlockingClient mqttClient;
+    SaplMqttClient      saplMqttClient;
 
-	@BeforeEach
-	void beforeEach() {
-		this.mqttBroker     = buildAndStartBroker(configDir, dataDir, extensionsDir);
-		this.mqttClient     = startClient();
-		this.saplMqttClient = new SaplMqttClient();
-	}
+    @BeforeEach
+    void beforeEach() {
+        this.mqttBroker     = buildAndStartBroker(configDir, dataDir, extensionsDir);
+        this.mqttClient     = startClient();
+        this.saplMqttClient = new SaplMqttClient();
+    }
 
-	@AfterEach
-	void afterEach() {
-		mqttClient.disconnect();
-		stopBroker(mqttBroker);
-	}
+    @AfterEach
+    void afterEach() {
+        mqttClient.disconnect();
+        stopBroker(mqttBroker);
+    }
 
-	@Test
-	@Timeout(15)
-	void when_mqttMessageContentTypeIsJson_then_getValOfJson() throws InitializationException {
-		// GIVEN
-		var topic       = JSON.arrayNode().add(JSON_TOPIC);
-		var jsonMessage = JSON.arrayNode().add("message1").add(JSON.objectNode()
-				.put("key", "value"));
+    @Test
+    @Timeout(15)
+    void when_mqttMessageContentTypeIsJson_then_getValOfJson() throws InitializationException {
+        // GIVEN
+        var topic       = JSON.arrayNode().add(JSON_TOPIC);
+        var jsonMessage = JSON.arrayNode().add("message1").add(JSON.objectNode().put("key", "value"));
 
-		// WHEN
-		var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topic), buildVariables())
-				.filter(val -> !val.isUndefined());
+        // WHEN
+        var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topic), buildVariables())
+                .filter(val -> !val.isUndefined());
 
-		// THEN
-		StepVerifier.create(saplMqttMessageFlux)
-				.thenAwait(Duration.ofMillis(2 * DELAY_MS))
-				.then(() -> mqttClient.publish(buildMqttPublishJsonMessage(jsonMessage)))
-				.expectNextMatches((value) -> value.get().equals(jsonMessage))
-				.thenCancel()
-				.verify();
-	}
+        // THEN
+        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(2 * DELAY_MS))
+                .then(() -> mqttClient.publish(buildMqttPublishJsonMessage(jsonMessage)))
+                .expectNextMatches((value) -> value.get().equals(jsonMessage)).thenCancel().verify();
+    }
 
-	@Test
-	@Timeout(10)
-	void when_inconsistentMqttMessageIsPublished_then_getValOfError() throws InitializationException {
-		// GIVEN
-		var topic       = JSON.arrayNode().add("topic");
-		var jsonMessage = "{test}";
-		var mqttMessage = Mqtt5Publish.builder()
-				.topic("topic")
-				.qos(MqttQos.AT_MOST_ONCE)
-				.retain(true)
-				.payloadFormatIndicator(Mqtt5PayloadFormatIndicator.UTF_8)
-				.payload(jsonMessage.getBytes(StandardCharsets.UTF_8))
-				.contentType("application/json")
-				.build();
+    @Test
+    @Timeout(10)
+    void when_inconsistentMqttMessageIsPublished_then_getValOfError() throws InitializationException {
+        // GIVEN
+        var topic       = JSON.arrayNode().add("topic");
+        var jsonMessage = "{test}";
+        var mqttMessage = Mqtt5Publish.builder().topic("topic").qos(MqttQos.AT_MOST_ONCE).retain(true)
+                .payloadFormatIndicator(Mqtt5PayloadFormatIndicator.UTF_8)
+                .payload(jsonMessage.getBytes(StandardCharsets.UTF_8)).contentType("application/json").build();
 
-		// WHEN
-		var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topic), buildVariables())
-				.filter(val -> !val.isUndefined());
+        // WHEN
+        var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topic), buildVariables())
+                .filter(val -> !val.isUndefined());
 
-		// THEN
-		StepVerifier.create(saplMqttMessageFlux)
-				.thenAwait(Duration.ofMillis(2 * DELAY_MS))
-				.then(() -> mqttClient.publish(mqttMessage))
-				.expectNextMatches((value) -> Objects.equals(value.getValType(), Val.error().getValType()))
-				.thenCancel()
-				.verify();
-	}
+        // THEN
+        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(2 * DELAY_MS))
+                .then(() -> mqttClient.publish(mqttMessage))
+                .expectNextMatches((value) -> Objects.equals(value.getValType(), Val.error().getValType())).thenCancel()
+                .verify();
+    }
 
-	@Test
-	@Timeout(10)
-	void when_mqttMessagePayloadIsFormatIsByteArray_then_getArrayOfBytesAsInts() throws InitializationException {
-		// GIVEN
-		var topic   = JSON.arrayNode().add(BYTE_ARRAY_TOPIC);
-		var message = "byteArray";
+    @Test
+    @Timeout(10)
+    void when_mqttMessagePayloadIsFormatIsByteArray_then_getArrayOfBytesAsInts() throws InitializationException {
+        // GIVEN
+        var topic   = JSON.arrayNode().add(BYTE_ARRAY_TOPIC);
+        var message = "byteArray";
 
-		// WHEN
-		var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topic), buildVariables())
-				.filter(val -> !val.isUndefined());
+        // WHEN
+        var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topic), buildVariables())
+                .filter(val -> !val.isUndefined());
 
-		// THEN
-		StepVerifier.create(saplMqttMessageFlux)
-				.thenAwait(Duration.ofMillis(2 * DELAY_MS))
-				.then(() -> mqttClient.publish(buildMqttPublishByteArrayMessageWithIndicator(message)))
-				.expectNextMatches((valueArray) -> valueArray.get()
-						.equals(convertBytesToArrayNode(message.getBytes(StandardCharsets.UTF_8))))
-				.thenCancel()
-				.verify();
-	}
+        // THEN
+        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(2 * DELAY_MS))
+                .then(() -> mqttClient.publish(buildMqttPublishByteArrayMessageWithIndicator(message)))
+                .expectNextMatches((valueArray) -> valueArray.get()
+                        .equals(convertBytesToArrayNode(message.getBytes(StandardCharsets.UTF_8))))
+                .thenCancel().verify();
+    }
 
-	@Test
-	@Timeout(10)
-	void when_mqttMessagePayloadIsUtf8EncodedAndNoFormatIndicatorSet_then_getPayloadAsText()
-			throws InitializationException {
-		// GIVEN
-		var topic   = JSON.arrayNode().add(BYTE_ARRAY_TOPIC);
-		var message = "byteArray";
+    @Test
+    @Timeout(10)
+    void when_mqttMessagePayloadIsUtf8EncodedAndNoFormatIndicatorSet_then_getPayloadAsText()
+            throws InitializationException {
+        // GIVEN
+        var topic   = JSON.arrayNode().add(BYTE_ARRAY_TOPIC);
+        var message = "byteArray";
 
-		// WHEN
-		var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topic), buildVariables())
-				.filter(val -> !val.isUndefined());
+        // WHEN
+        var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topic), buildVariables())
+                .filter(val -> !val.isUndefined());
 
-		// THEN
-		StepVerifier.create(saplMqttMessageFlux)
-				.thenAwait(Duration.ofMillis(1500))
-				.then(() -> mqttClient.publish(buildMqttPublishByteArrayMessageWithoutIndicator(message)))
-				.expectNextMatches((valueArray) -> valueArray.get().textValue().equals(message))
-				.thenCancel()
-				.verify();
-	}
+        // THEN
+        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(1500))
+                .then(() -> mqttClient.publish(buildMqttPublishByteArrayMessageWithoutIndicator(message)))
+                .expectNextMatches((valueArray) -> valueArray.get().textValue().equals(message)).thenCancel().verify();
+    }
 
-	@Test
-	@Timeout(10)
-	void when_mqttMessagePayloadIsNonValidUtf8EncodedAndNoFormatIndicatorSet_then_getPayloadAsBytes()
-			throws InitializationException {
-		// GIVEN
-		var topic   = JSON.arrayNode().add(BYTE_ARRAY_TOPIC);
-		var message = "ßß";
+    @Test
+    @Timeout(10)
+    void when_mqttMessagePayloadIsNonValidUtf8EncodedAndNoFormatIndicatorSet_then_getPayloadAsBytes()
+            throws InitializationException {
+        // GIVEN
+        var topic   = JSON.arrayNode().add(BYTE_ARRAY_TOPIC);
+        var message = "ßß";
 
-		// WHEN
-		var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topic), buildVariables())
-				.filter(val -> !val.isUndefined());
+        // WHEN
+        var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topic), buildVariables())
+                .filter(val -> !val.isUndefined());
 
-		// THEN
-		StepVerifier.create(saplMqttMessageFlux)
-				.thenAwait(Duration.ofMillis(1500))
-				.then(() -> mqttClient
-						.publish(buildMqttPublishByteArrayMessageWithoutIndicatorAndNoValidEncoding(message)))
-				.expectNextMatches((valueArray) -> valueArray.get()
-						.equals(convertBytesToArrayNode(message.getBytes(StandardCharsets.UTF_16))))
-				.thenCancel()
-				.verify();
-	}
+        // THEN
+        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(1500))
+                .then(() -> mqttClient
+                        .publish(buildMqttPublishByteArrayMessageWithoutIndicatorAndNoValidEncoding(message)))
+                .expectNextMatches((valueArray) -> valueArray.get()
+                        .equals(convertBytesToArrayNode(message.getBytes(StandardCharsets.UTF_16))))
+                .thenCancel().verify();
+    }
 
-	private static Mqtt5Publish buildMqttPublishJsonMessage(JsonNode payload) {
-		return Mqtt5Publish.builder()
-				.topic(JSON_TOPIC)
-				.qos(MqttQos.AT_MOST_ONCE)
-				.retain(true)
-				.payload(payload.toString().getBytes(StandardCharsets.UTF_8))
-				.payloadFormatIndicator(Mqtt5PayloadFormatIndicator.UTF_8)
-				.contentType("application/json")
-				.build();
-	}
+    private static Mqtt5Publish buildMqttPublishJsonMessage(JsonNode payload) {
+        return Mqtt5Publish.builder().topic(JSON_TOPIC).qos(MqttQos.AT_MOST_ONCE).retain(true)
+                .payload(payload.toString().getBytes(StandardCharsets.UTF_8))
+                .payloadFormatIndicator(Mqtt5PayloadFormatIndicator.UTF_8).contentType("application/json").build();
+    }
 
-	private static Mqtt5Publish buildMqttPublishByteArrayMessageWithIndicator(String payload) {
-		return Mqtt5Publish.builder()
-				.topic(BYTE_ARRAY_TOPIC)
-				.qos(MqttQos.AT_MOST_ONCE)
-				.retain(true)
-				.payloadFormatIndicator(Mqtt5PayloadFormatIndicator.UNSPECIFIED)
-				.payload(payload.getBytes(StandardCharsets.UTF_8))
-				.build();
-	}
+    private static Mqtt5Publish buildMqttPublishByteArrayMessageWithIndicator(String payload) {
+        return Mqtt5Publish.builder().topic(BYTE_ARRAY_TOPIC).qos(MqttQos.AT_MOST_ONCE).retain(true)
+                .payloadFormatIndicator(Mqtt5PayloadFormatIndicator.UNSPECIFIED)
+                .payload(payload.getBytes(StandardCharsets.UTF_8)).build();
+    }
 
-	private static Mqtt5Publish buildMqttPublishByteArrayMessageWithoutIndicator(String payload) {
-		return Mqtt5Publish.builder()
-				.topic(BYTE_ARRAY_TOPIC)
-				.qos(MqttQos.AT_MOST_ONCE)
-				.retain(true)
-				.payload(payload.getBytes(StandardCharsets.UTF_8))
-				.build();
-	}
+    private static Mqtt5Publish buildMqttPublishByteArrayMessageWithoutIndicator(String payload) {
+        return Mqtt5Publish.builder().topic(BYTE_ARRAY_TOPIC).qos(MqttQos.AT_MOST_ONCE).retain(true)
+                .payload(payload.getBytes(StandardCharsets.UTF_8)).build();
+    }
 
-	private static Mqtt5Publish buildMqttPublishByteArrayMessageWithoutIndicatorAndNoValidEncoding(String payload) {
-		return Mqtt5Publish.builder()
-				.topic(BYTE_ARRAY_TOPIC)
-				.qos(MqttQos.AT_MOST_ONCE)
-				.retain(true)
-				.payload(payload.getBytes(StandardCharsets.UTF_16))
-				.build();
-	}
+    private static Mqtt5Publish buildMqttPublishByteArrayMessageWithoutIndicatorAndNoValidEncoding(String payload) {
+        return Mqtt5Publish.builder().topic(BYTE_ARRAY_TOPIC).qos(MqttQos.AT_MOST_ONCE).retain(true)
+                .payload(payload.getBytes(StandardCharsets.UTF_16)).build();
+    }
 }

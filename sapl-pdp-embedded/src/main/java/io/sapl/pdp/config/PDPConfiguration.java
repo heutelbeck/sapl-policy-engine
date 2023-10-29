@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,13 +27,13 @@ import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 
 public record PDPConfiguration(AttributeContext attributeContext, FunctionContext functionContext,
-							   Map<String, JsonNode> variables, CombiningAlgorithm documentsCombinator,
-							   UnaryOperator<TracedDecision> decisionInterceptorChain,
-							   UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain) {
+        Map<String, JsonNode> variables, CombiningAlgorithm documentsCombinator,
+        UnaryOperator<TracedDecision> decisionInterceptorChain,
+        UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain) {
 
-	public boolean isValid() {
-		return attributeContext != null && functionContext != null && variables != null && documentsCombinator != null
-				&& decisionInterceptorChain != null && subscriptionInterceptorChain != null;
-	}
+    public boolean isValid() {
+        return attributeContext != null && functionContext != null && variables != null && documentsCombinator != null
+                && decisionInterceptorChain != null && subscriptionInterceptorChain != null;
+    }
 
 }

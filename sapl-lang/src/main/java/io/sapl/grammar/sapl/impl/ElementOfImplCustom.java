@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.ElementOf;
 import reactor.core.publisher.Flux;
@@ -34,37 +35,38 @@ import reactor.core.publisher.Flux;
  */
 public class ElementOfImplCustom extends ElementOfImpl {
 
-	@Override
-	public Flux<Val> evaluate() {
-		return operator(this, this::tracedElementOf);
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        return operator(this, this::tracedElementOf);
+    }
 
-	private Val tracedElementOf(Val needle, Val haystack) {
-		return elementOf(needle, haystack).withTrace(ElementOf.class, Map.of("needle", needle, "haystack", haystack));
-	}
+    private Val tracedElementOf(Val needle, Val haystack) {
+        return elementOf(needle, haystack).withTrace(ElementOf.class,
+                Map.of(Trace.NEEDLE, needle, Trace.HAYSTACK, haystack));
+    }
 
-	private Val elementOf(Val needle, Val haystack) {
-		if (needle.isUndefined() || haystack.isUndefined() || !haystack.isArray())
-			return Val.FALSE;
+    private Val elementOf(Val needle, Val haystack) {
+        if (needle.isUndefined() || haystack.isUndefined() || !haystack.isArray())
+            return Val.FALSE;
 
-		for (JsonNode arrayItem : haystack.get())
-			if (needleAndArrayElementAreEquivalent(needle, arrayItem))
-				return Val.TRUE;
+        for (JsonNode arrayItem : haystack.get())
+            if (needleAndArrayElementAreEquivalent(needle, arrayItem))
+                return Val.TRUE;
 
-		return Val.FALSE;
-	}
+        return Val.FALSE;
+    }
 
-	private boolean needleAndArrayElementAreEquivalent(Val needle, JsonNode arrayItem) {
-		return (bothValuesAreNumbers(needle, arrayItem) && bothNumbersAreEqual(needle, arrayItem))
-				|| needle.get().equals(arrayItem);
-	}
+    private boolean needleAndArrayElementAreEquivalent(Val needle, JsonNode arrayItem) {
+        return (bothValuesAreNumbers(needle, arrayItem) && bothNumbersAreEqual(needle, arrayItem))
+                || needle.get().equals(arrayItem);
+    }
 
-	private boolean bothValuesAreNumbers(Val needle, JsonNode arrayItem) {
-		return needle.isNumber() && arrayItem.isNumber();
-	}
+    private boolean bothValuesAreNumbers(Val needle, JsonNode arrayItem) {
+        return needle.isNumber() && arrayItem.isNumber();
+    }
 
-	private boolean bothNumbersAreEqual(Val needle, JsonNode arrayItem) {
-		return needle.get().decimalValue().compareTo(arrayItem.decimalValue()) == 0;
-	}
+    private boolean bothNumbersAreEqual(Val needle, JsonNode arrayItem) {
+        return needle.get().decimalValue().compareTo(arrayItem.decimalValue()) == 0;
+    }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,43 +28,43 @@ import io.sapl.api.interpreter.Val;
  */
 public class IsValError extends TypeSafeDiagnosingMatcher<Val> {
 
-	private final Matcher<? super String> stringMatcher;
+    private final Matcher<? super String> stringMatcher;
 
-	/**
-	 * Val Matcher to check for error Val values with a given String matcher.
-	 * 
-	 * @param stringMatcher a String matcher
-	 */
-	public IsValError(Matcher<? super String> stringMatcher) {
-		super(Val.class);
-		this.stringMatcher = Objects.requireNonNull(stringMatcher);
-	}
+    /**
+     * Val Matcher to check for error Val values with a given String matcher.
+     * 
+     * @param stringMatcher a String matcher
+     */
+    public IsValError(Matcher<? super String> stringMatcher) {
+        super(Val.class);
+        this.stringMatcher = Objects.requireNonNull(stringMatcher);
+    }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("an error with message that ").appendDescriptionOf(stringMatcher);
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("an error with message that ").appendDescriptionOf(stringMatcher);
+    }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	protected boolean matchesSafely(Val item, Description mismatchDescription) {
-		if (!item.isError()) {
-			mismatchDescription.appendText("a value that is ").appendValue(item);
-			return false;
-		}
-		var message = item.getMessage();
-		if (stringMatcher.matches(message)) {
-			return true;
-		} else {
-			mismatchDescription.appendText("was an error with a message that ");
-			stringMatcher.describeMismatch(message, mismatchDescription);
-			return false;
-		}
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected boolean matchesSafely(Val item, Description mismatchDescription) {
+        if (!item.isError()) {
+            mismatchDescription.appendText("a value that is ").appendValue(item);
+            return false;
+        }
+        var message = item.getMessage();
+        if (stringMatcher.matches(message)) {
+            return true;
+        } else {
+            mismatchDescription.appendText("was an error with a message that ");
+            stringMatcher.describeMismatch(message, mismatchDescription);
+            return false;
+        }
+    }
 
 }

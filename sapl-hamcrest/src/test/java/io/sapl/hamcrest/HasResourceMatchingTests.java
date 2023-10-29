@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,59 +36,59 @@ import io.sapl.api.pdp.Decision;
 
 class HasResourceMatchingTests {
 
-	@Test
-	void test() {
-		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
-		var sut = hasResourceMatching(pred);
+    @Test
+    void test() {
+        Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
+        var                 sut  = hasResourceMatching(pred);
 
-		ObjectMapper mapper = new ObjectMapper();
-		ObjectNode resource = mapper.createObjectNode();
-		resource.put("foo", "bar");
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.of(resource), null, null);
+        ObjectMapper mapper   = new ObjectMapper();
+        ObjectNode   resource = mapper.createObjectNode();
+        resource.put("foo", "bar");
+        AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.of(resource), null, null);
 
-		assertThat(dec, is(sut));
-	}
+        assertThat(dec, is(sut));
+    }
 
-	@Test
-	void test_neg() {
-		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("xxx");
-		var sut = hasResourceMatching(pred);
+    @Test
+    void test_neg() {
+        Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("xxx");
+        var                 sut  = hasResourceMatching(pred);
 
-		ObjectMapper mapper = new ObjectMapper();
-		ObjectNode resource = mapper.createObjectNode();
-		resource.put("foo", "bar");
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.of(resource), null, null);
+        ObjectMapper mapper   = new ObjectMapper();
+        ObjectNode   resource = mapper.createObjectNode();
+        resource.put("foo", "bar");
+        AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.of(resource), null, null);
 
-		assertThat(dec, not(is(sut)));
-	}
+        assertThat(dec, not(is(sut)));
+    }
 
-	@Test
-	void test_nullDecision() {
-		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
-		var sut = hasResourceMatching(pred);
-		assertThat(null, not(is(sut)));
-	}
+    @Test
+    void test_nullDecision() {
+        Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
+        var                 sut  = hasResourceMatching(pred);
+        assertThat(null, not(is(sut)));
+    }
 
-	@Test
-	void test_resourceEmpty() {
-		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
-		var sut = hasResourceMatching(pred);
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), null, null);
-		assertThat(dec, not(is(sut)));
-	}
+    @Test
+    void test_resourceEmpty() {
+        Predicate<JsonNode>   pred = (JsonNode jsonNode) -> jsonNode.has("foo");
+        var                   sut  = hasResourceMatching(pred);
+        AuthorizationDecision dec  = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), null, null);
+        assertThat(dec, not(is(sut)));
+    }
 
-	@Test
-	void test_nullPredicate() {
-		assertThrows(NullPointerException.class, () -> hasResourceMatching(null));
-	}
+    @Test
+    void test_nullPredicate() {
+        assertThrows(NullPointerException.class, () -> hasResourceMatching(null));
+    }
 
-	@Test
-	void testDescriptionForMatcher() {
-		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
-		var sut = hasResourceMatching(pred);
-		final StringDescription description = new StringDescription();
-		sut.describeTo(description);
-		assertThat(description.toString(), is("the decision has a resource matching the predicate"));
-	}
+    @Test
+    void testDescriptionForMatcher() {
+        Predicate<JsonNode>     pred        = (JsonNode jsonNode) -> jsonNode.has("foo");
+        var                     sut         = hasResourceMatching(pred);
+        final StringDescription description = new StringDescription();
+        sut.describeTo(description);
+        assertThat(description.toString(), is("the decision has a resource matching the predicate"));
+    }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,17 +28,17 @@ import io.sapl.pip.TimePolicyInformationPoint;
 @AutoConfiguration
 public class PolicyInformationPointsAutoConfiguration {
 
-	@Bean
-	@ConditionalOnMissingBean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	Clock clock() {
-		return Clock.systemUTC();
-	}
+    @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    Clock clock() {
+        return Clock.systemUTC();
+    }
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	TimePolicyInformationPoint timePolicyInformationPoint(Clock clock) {
-		return new TimePolicyInformationPoint(clock);
-	}
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    TimePolicyInformationPoint timePolicyInformationPoint(Clock clock) {
+        return new TimePolicyInformationPoint(clock);
+    }
 
 }

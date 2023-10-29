@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,17 +35,17 @@ import lombok.extern.slf4j.Slf4j;
 @AutoConfigureAfter({ FunctionLibrariesAutoConfiguration.class, PolicyInformationPointsAutoConfiguration.class })
 public class PDPAutoConfiguration {
 
-	private final PolicyRetrievalPoint policyRetrievalPoint;
+    private final PolicyRetrievalPoint policyRetrievalPoint;
 
-	private final PDPConfigurationProvider configurationProvider;
+    private final PDPConfigurationProvider configurationProvider;
 
-	@Bean
-	@ConditionalOnMissingBean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	PolicyDecisionPoint policyDecisionPoint() {
-		log.info("Deploying embedded Policy Decision Point. ConfigProvider: {} PRP: {}",
-				configurationProvider.getClass().getSimpleName(), policyRetrievalPoint.getClass().getSimpleName());
-		return new EmbeddedPolicyDecisionPoint(configurationProvider, policyRetrievalPoint);
-	}
+    @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    PolicyDecisionPoint policyDecisionPoint() {
+        log.info("Deploying embedded Policy Decision Point. ConfigProvider: {} PRP: {}",
+                configurationProvider.getClass().getSimpleName(), policyRetrievalPoint.getClass().getSimpleName());
+        return new EmbeddedPolicyDecisionPoint(configurationProvider, policyRetrievalPoint);
+    }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,8 @@
 package io.sapl.test.steps;
 
 /**
- * Composite Step to allow repeating of {@link io.sapl.test.steps.WhenStep} or go over to a {@link io.sapl.test.steps.GivenStep}
+ * Composite Step to allow repeating of {@link io.sapl.test.steps.WhenStep} or
+ * go over to a {@link io.sapl.test.steps.GivenStep}
  */
 public interface GivenOrWhenStep extends GivenStep, WhenStep {
 

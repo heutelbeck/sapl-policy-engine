@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,25 +29,25 @@ import java.util.List;
 @ConfigurationProperties(prefix = "io.sapl.server-lt")
 public class SAPLServerLTProperties {
 
-	// authentication methods
-	private boolean allowNoAuth     = false;
-	private boolean allowBasicAuth  = true;
-	private boolean allowApiKeyAuth = false;
-	private boolean allowOauth2Auth = false;
+    // authentication methods
+    private boolean allowNoAuth     = false;
+    private boolean allowBasicAuth  = true;
+    private boolean allowApiKeyAuth = false;
+    private boolean allowOauth2Auth = false;
 
-	// Basic authentication
-	private String key    = "";
-	private String secret = "";
+    // Basic authentication
+    private String key    = "";
+    private String secret = "";
 
-	// API Key authentication
-	private String       apiKeyHeaderName = "API_KEY";
-	private List<String> allowedApiKeys   = List.of();
+    // API Key authentication
+    private String       apiKeyHeaderName = "API_KEY";
+    private List<String> allowedApiKeys   = List.of();
 
-	public List<String> getAllowedApiKeys() {
-		return Collections.unmodifiableList(allowedApiKeys);
-	}
+    public List<String> getAllowedApiKeys() {
+        return Collections.unmodifiableList(allowedApiKeys);
+    }
 
-	public void setAllowedApiKeys(Collection<String> allowedApiKeys) {
-		this.allowedApiKeys = new ArrayList<>(allowedApiKeys);
-	}
+    public void setAllowedApiKeys(Collection<String> allowedApiKeys) {
+        this.allowedApiKeys = new ArrayList<>(allowedApiKeys);
+    }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,128 +47,128 @@ import reactor.util.context.ContextView;
 @RequiredArgsConstructor
 public class WebfluxAuthorizationSubscriptionBuilderService {
 
-	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	private static final Authentication ANONYMOUS = new AnonymousAuthenticationToken("key", "anonymous",
-			AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
+    private static final Authentication ANONYMOUS = new AnonymousAuthenticationToken("key", "anonymous",
+            AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
 
-	private final MethodSecurityExpressionHandler expressionHandler;
+    private final MethodSecurityExpressionHandler expressionHandler;
 
-	private final ObjectMapper mapper;
+    private final ObjectMapper mapper;
 
-	public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
-			SaplAttribute attribute) {
-		return Mono.deferContextual(contextView -> constructAuthorizationSubscriptionFromContextView(methodInvocation,
-				attribute, contextView, Optional.empty()));
-	}
+    public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
+            SaplAttribute attribute) {
+        return Mono.deferContextual(contextView -> constructAuthorizationSubscriptionFromContextView(methodInvocation,
+                attribute, contextView, Optional.empty()));
+    }
 
-	public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
-			SaplAttribute attribute, Object returnedObject) {
-		return Mono.deferContextual(contextView -> constructAuthorizationSubscriptionFromContextView(methodInvocation,
-				attribute, contextView, Optional.ofNullable(returnedObject)));
-	}
+    public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
+            SaplAttribute attribute, Object returnedObject) {
+        return Mono.deferContextual(contextView -> constructAuthorizationSubscriptionFromContextView(methodInvocation,
+                attribute, contextView, Optional.ofNullable(returnedObject)));
+    }
 
-	private Mono<? extends AuthorizationSubscription> constructAuthorizationSubscriptionFromContextView(
-			MethodInvocation methodInvocation, SaplAttribute attribute, ContextView contextView,
-			Optional<Object> returnedObject) {
-		Optional<ServerWebExchange>     serverWebExchange = contextView.getOrEmpty(ServerWebExchange.class);
-		Optional<ServerHttpRequest>     serverHttpRequest = serverWebExchange.map(ServerWebExchange::getRequest);
-		Optional<Mono<SecurityContext>> securityContext   = contextView.getOrEmpty(SecurityContext.class);
-		Mono<Authentication>            authentication    = securityContext
-				.map(ctx -> ctx.map(SecurityContext::getAuthentication).defaultIfEmpty(ANONYMOUS))
-				.orElseGet(() -> Mono.just(ANONYMOUS));
-		return authentication.map(authn -> constructAuthorizationSubscription(authn, serverHttpRequest,
-				methodInvocation, attribute, returnedObject));
-	}
+    private Mono<? extends AuthorizationSubscription> constructAuthorizationSubscriptionFromContextView(
+            MethodInvocation methodInvocation, SaplAttribute attribute, ContextView contextView,
+            Optional<Object> returnedObject) {
+        Optional<ServerWebExchange>     serverWebExchange = contextView.getOrEmpty(ServerWebExchange.class);
+        Optional<ServerHttpRequest>     serverHttpRequest = serverWebExchange.map(ServerWebExchange::getRequest);
+        Optional<Mono<SecurityContext>> securityContext   = contextView.getOrEmpty(SecurityContext.class);
+        Mono<Authentication>            authentication    = securityContext
+                .map(ctx -> ctx.map(SecurityContext::getAuthentication).defaultIfEmpty(ANONYMOUS))
+                .orElseGet(() -> Mono.just(ANONYMOUS));
+        return authentication.map(authn -> constructAuthorizationSubscription(authn, serverHttpRequest,
+                methodInvocation, attribute, returnedObject));
+    }
 
-	private AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
-			Optional<ServerHttpRequest> serverHttpRequest, MethodInvocation methodInvocation, SaplAttribute attribute,
-			Optional<Object> returnedObject) {
-		var evaluationCtx = expressionHandler.createEvaluationContext(authentication, methodInvocation);
-		returnedObject.ifPresent(returnObject -> expressionHandler.setReturnObject(returnObject, evaluationCtx));
+    private AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
+            Optional<ServerHttpRequest> serverHttpRequest, MethodInvocation methodInvocation, SaplAttribute attribute,
+            Optional<Object> returnedObject) {
+        var evaluationCtx = expressionHandler.createEvaluationContext(authentication, methodInvocation);
+        returnedObject.ifPresent(returnObject -> expressionHandler.setReturnObject(returnObject, evaluationCtx));
 
-		var subject     = retrieveSubject(authentication, attribute, evaluationCtx);
-		var action      = retrieveAction(methodInvocation, attribute, evaluationCtx, serverHttpRequest);
-		var resource    = retrieveResource(methodInvocation, attribute, evaluationCtx, serverHttpRequest);
-		var environment = retrieveEnvironment(attribute, evaluationCtx);
-		return new AuthorizationSubscription(mapper.valueToTree(subject), mapper.valueToTree(action),
-				mapper.valueToTree(resource), mapper.valueToTree(environment));
-	}
+        var subject     = retrieveSubject(authentication, attribute, evaluationCtx);
+        var action      = retrieveAction(methodInvocation, attribute, evaluationCtx, serverHttpRequest);
+        var resource    = retrieveResource(methodInvocation, attribute, evaluationCtx, serverHttpRequest);
+        var environment = retrieveEnvironment(attribute, evaluationCtx);
+        return new AuthorizationSubscription(mapper.valueToTree(subject), mapper.valueToTree(action),
+                mapper.valueToTree(resource), mapper.valueToTree(environment));
+    }
 
-	private JsonNode retrieveSubject(Authentication authentication, SaplAttribute attr, EvaluationContext ctx) {
-		if (attr.subjectExpression() != null)
-			return evaluateToJson(attr.subjectExpression(), ctx);
+    private JsonNode retrieveSubject(Authentication authentication, SaplAttribute attr, EvaluationContext ctx) {
+        if (attr.subjectExpression() != null)
+            return evaluateToJson(attr.subjectExpression(), ctx);
 
-		ObjectNode subject = mapper.valueToTree(authentication);
+        ObjectNode subject = mapper.valueToTree(authentication);
 
-		// sanitize the authentication depending on the application context, the
-		// authentication may still contain credentials information, which should not be
-		// sent over the wire to the PDP
+        // sanitize the authentication depending on the application context, the
+        // authentication may still contain credentials information, which should not be
+        // sent over the wire to the PDP
 
-		subject.remove("credentials");
-		var principal = subject.get("principal");
-		if (principal instanceof ObjectNode objectPrincipal)
-			objectPrincipal.remove("password");
+        subject.remove("credentials");
+        var principal = subject.get("principal");
+        if (principal instanceof ObjectNode objectPrincipal)
+            objectPrincipal.remove("password");
 
-		return subject;
-	}
+        return subject;
+    }
 
-	private JsonNode evaluateToJson(Expression expr, EvaluationContext ctx) {
-		try {
-			return mapper.valueToTree(expr.getValue(ctx));
-		} catch (EvaluationException e) {
-			throw new IllegalArgumentException("Failed to evaluate expression '" + expr.getExpressionString() + "'", e);
-		}
-	}
+    private JsonNode evaluateToJson(Expression expr, EvaluationContext ctx) {
+        try {
+            return mapper.valueToTree(expr.getValue(ctx));
+        } catch (EvaluationException e) {
+            throw new IllegalArgumentException("Failed to evaluate expression '" + expr.getExpressionString() + "'", e);
+        }
+    }
 
-	private Object retrieveAction(MethodInvocation mi, SaplAttribute attr, EvaluationContext ctx,
-			Optional<?> requestObject) {
-		if (attr.actionExpression() == null)
-			return retrieveAction(mi, requestObject);
-		return evaluateToJson(attr.actionExpression(), ctx);
-	}
+    private Object retrieveAction(MethodInvocation mi, SaplAttribute attr, EvaluationContext ctx,
+            Optional<?> requestObject) {
+        if (attr.actionExpression() == null)
+            return retrieveAction(mi, requestObject);
+        return evaluateToJson(attr.actionExpression(), ctx);
+    }
 
-	private Object retrieveAction(MethodInvocation mi, Optional<?> requestObject) {
-		var actionNode = mapper.createObjectNode();
-		requestObject.ifPresent(request -> actionNode.set("http", mapper.valueToTree(request)));
-		var java      = (ObjectNode) mapper.valueToTree(mi);
-		var arguments = mi.getArguments();
-		if (arguments.length > 0) {
-			var array = JSON.arrayNode();
-			for (Object o : arguments) {
-				try {
-					array.add(mapper.valueToTree(o));
-				} catch (IllegalArgumentException e) {
-					// drop of not mappable to JSON
-				}
-			}
-			if (array.size() > 0)
-				java.set("arguments", array);
-		}
-		actionNode.set("java", java);
-		return actionNode;
-	}
+    private Object retrieveAction(MethodInvocation mi, Optional<?> requestObject) {
+        var actionNode = mapper.createObjectNode();
+        requestObject.ifPresent(request -> actionNode.set("http", mapper.valueToTree(request)));
+        var java      = (ObjectNode) mapper.valueToTree(mi);
+        var arguments = mi.getArguments();
+        if (arguments.length > 0) {
+            var array = JSON.arrayNode();
+            for (Object o : arguments) {
+                try {
+                    array.add(mapper.valueToTree(o));
+                } catch (IllegalArgumentException e) {
+                    // drop of not mappable to JSON
+                }
+            }
+            if (array.size() > 0)
+                java.set("arguments", array);
+        }
+        actionNode.set("java", java);
+        return actionNode;
+    }
 
-	private Object retrieveResource(MethodInvocation mi, SaplAttribute attr, EvaluationContext ctx,
-			Optional<ServerHttpRequest> serverHttpRequest) {
-		if (attr.resourceExpression() == null)
-			return retrieveResource(mi, serverHttpRequest);
-		return evaluateToJson(attr.resourceExpression(), ctx);
-	}
+    private Object retrieveResource(MethodInvocation mi, SaplAttribute attr, EvaluationContext ctx,
+            Optional<ServerHttpRequest> serverHttpRequest) {
+        if (attr.resourceExpression() == null)
+            return retrieveResource(mi, serverHttpRequest);
+        return evaluateToJson(attr.resourceExpression(), ctx);
+    }
 
-	private Object retrieveResource(MethodInvocation mi, Optional<ServerHttpRequest> serverHttpRequest) {
-		var resourceNode = mapper.createObjectNode();
-		// The action is in the context of an HTTP request. Adding it to the resource.
-		serverHttpRequest.ifPresent(request -> resourceNode.set("http", mapper.valueToTree(request)));
-		var java = (ObjectNode) mapper.valueToTree(mi);
-		resourceNode.set("java", java);
-		return resourceNode;
-	}
+    private Object retrieveResource(MethodInvocation mi, Optional<ServerHttpRequest> serverHttpRequest) {
+        var resourceNode = mapper.createObjectNode();
+        // The action is in the context of an HTTP request. Adding it to the resource.
+        serverHttpRequest.ifPresent(request -> resourceNode.set("http", mapper.valueToTree(request)));
+        var java = (ObjectNode) mapper.valueToTree(mi);
+        resourceNode.set("java", java);
+        return resourceNode;
+    }
 
-	private Object retrieveEnvironment(SaplAttribute attr, EvaluationContext ctx) {
-		if (attr.environmentExpression() == null)
-			return null;
-		return evaluateToJson(attr.environmentExpression(), ctx);
-	}
+    private Object retrieveEnvironment(SaplAttribute attr, EvaluationContext ctx) {
+        if (attr.environmentExpression() == null)
+            return null;
+        return evaluateToJson(attr.environmentExpression(), ctx);
+    }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextHolderStrategy;
@@ -50,98 +51,98 @@ import reactor.core.Exceptions;
 @RequiredArgsConstructor
 public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
-	private final Supplier<Authentication> authenticationSupplier = getAuthentication(
-			SecurityContextHolder.getContextHolderStrategy());
+    private final Supplier<Authentication> authenticationSupplier = getAuthentication(
+            SecurityContextHolder.getContextHolderStrategy());
 
-	private final PolicyDecisionPoint                        policyDecisionPoint;
-	private final SaplAttributeRegistry                      attributeRegistry;
-	private final ConstraintEnforcementService               constraintEnforcementService;
-	private final WebAuthorizationSubscriptionBuilderService subscriptionBuilder;
+    private final PolicyDecisionPoint                        policyDecisionPoint;
+    private final SaplAttributeRegistry                      attributeRegistry;
+    private final ConstraintEnforcementService               constraintEnforcementService;
+    private final WebAuthorizationSubscriptionBuilderService subscriptionBuilder;
 
-	@Override
-	public Object invoke(@NonNull MethodInvocation methodInvocation) throws Throwable {
+    @Override
+    public Object invoke(@NonNull MethodInvocation methodInvocation) throws Throwable {
 
-		var attribute = attributeRegistry.getSaplAttributeForAnnotationType(methodInvocation, PreEnforce.class);
-		if (attribute.isEmpty()) {
-			return methodInvocation.proceed();
-		}
-		var saplAttribute = attribute.get();
+        var attribute = attributeRegistry.getSaplAttributeForAnnotationType(methodInvocation, PreEnforce.class);
+        if (attribute.isEmpty()) {
+            return methodInvocation.proceed();
+        }
+        var saplAttribute = attribute.get();
 
-		var authzDecision = getAuthorizationFromPolicyDecisionPoint(methodInvocation, saplAttribute);
+        var authzDecision = getAuthorizationFromPolicyDecisionPoint(methodInvocation, saplAttribute);
 
-		var methodReturnType = methodInvocation.getMethod().getReturnType();
-		var bundleReturnType = methodReturnType;
+        var methodReturnType = methodInvocation.getMethod().getReturnType();
+        var bundleReturnType = methodReturnType;
 
-		var methodReturnsOptional = Optional.class.isAssignableFrom(methodReturnType);
-		if (methodReturnsOptional) {
-			bundleReturnType = saplAttribute.genericsType();
-		}
+        var methodReturnsOptional = Optional.class.isAssignableFrom(methodReturnType);
+        if (methodReturnsOptional) {
+            bundleReturnType = saplAttribute.genericsType();
+        }
 
-		var blockingPreEnforceBundle = constraintEnforcementService.blockingPreEnforceBundleFor(authzDecision,
-				bundleReturnType);
-		if (blockingPreEnforceBundle == null) {
-			throw new AccessDeniedException(
-					"Access Denied by @PreEnforce PEP. Failed to construct constraint handlers for decision. The ConstraintEnforcementService unexpectedly returned null");
-		}
+        var blockingPreEnforceBundle = constraintEnforcementService.blockingPreEnforceBundleFor(authzDecision,
+                bundleReturnType);
+        if (blockingPreEnforceBundle == null) {
+            throw new AccessDeniedException(
+                    "Access Denied by @PreEnforce PEP. Failed to construct constraint handlers for decision. The ConstraintEnforcementService unexpectedly returned null");
+        }
 
-		try {
-			blockingPreEnforceBundle.handleOnDecisionConstraints();
+        try {
+            blockingPreEnforceBundle.handleOnDecisionConstraints();
 
-			var notGranted = authzDecision.getDecision() != Decision.PERMIT;
-			if (notGranted)
-				throw new AccessDeniedException("Access Denied. Action not permitted.");
+            var notGranted = authzDecision.getDecision() != Decision.PERMIT;
+            if (notGranted)
+                throw new AccessDeniedException("Access Denied. Action not permitted.");
 
-			blockingPreEnforceBundle.handleMethodInvocationHandlers(methodInvocation);
+            blockingPreEnforceBundle.handleMethodInvocationHandlers(methodInvocation);
 
-			var returnedObject = methodInvocation.proceed();
+            var returnedObject = methodInvocation.proceed();
 
-			var unpackedObject = returnedObject;
-			if (returnedObject instanceof Optional<?> optional) {
-				unpackedObject = optional.orElse(null);
-			}
+            var unpackedObject = returnedObject;
+            if (returnedObject instanceof Optional<?> optional) {
+                unpackedObject = optional.orElse(null);
+            }
 
-			unpackedObject = blockingPreEnforceBundle.handleAllOnNextConstraints(unpackedObject);
+            unpackedObject = blockingPreEnforceBundle.handleAllOnNextConstraints(unpackedObject);
 
-			if (methodReturnsOptional) {
-				return Optional.ofNullable(unpackedObject);
-			}
+            if (methodReturnsOptional) {
+                return Optional.ofNullable(unpackedObject);
+            }
 
-			return unpackedObject;
-		} catch (Throwable t) {
-			Exceptions.throwIfFatal(t);
-			throw blockingPreEnforceBundle.handleAllOnErrorConstraints(t);
-		}
-	}
+            return unpackedObject;
+        } catch (Throwable t) {
+            Exceptions.throwIfFatal(t);
+            throw blockingPreEnforceBundle.handleAllOnErrorConstraints(t);
+        }
+    }
 
-	private AuthorizationDecision getAuthorizationFromPolicyDecisionPoint(
-			MethodInvocation methodInvocation, SaplAttribute attribute) {
-		var authzSubscription = subscriptionBuilder.constructAuthorizationSubscription(authenticationSupplier.get(),
-				methodInvocation, attribute);
+    private AuthorizationDecision getAuthorizationFromPolicyDecisionPoint(MethodInvocation methodInvocation,
+            SaplAttribute attribute) {
+        var authzSubscription = subscriptionBuilder.constructAuthorizationSubscription(authenticationSupplier.get(),
+                methodInvocation, attribute);
 
-		var authzDecisions = policyDecisionPoint.decide(authzSubscription);
-		if (authzDecisions == null) {
-			throw new AccessDeniedException(
-					String.format("Access Denied by @PreEnforce PEP. PDP returned null. %s", attribute));
-		}
+        var authzDecisions = policyDecisionPoint.decide(authzSubscription);
+        if (authzDecisions == null) {
+            throw new AccessDeniedException(
+                    String.format("Access Denied by @PreEnforce PEP. PDP returned null. %s", attribute));
+        }
 
-		var authzDecision = authzDecisions.blockFirst();
-		if (authzDecision == null) {
-			throw new AccessDeniedException(
-					String.format("Access Denied by @PreEnforce PEP. PDP decision stream was empty. %s", attribute));
-		}
+        var authzDecision = authzDecisions.blockFirst();
+        if (authzDecision == null) {
+            throw new AccessDeniedException(
+                    String.format("Access Denied by @PreEnforce PEP. PDP decision stream was empty. %s", attribute));
+        }
 
-		return authzDecision;
-	}
+        return authzDecision;
+    }
 
-	private static Supplier<Authentication> getAuthentication(SecurityContextHolderStrategy strategy) {
-		return () -> {
-			var authentication = strategy.getContext().getAuthentication();
-			if (authentication == null) {
-				throw new AuthenticationCredentialsNotFoundException(
-						"An Authentication object was not found in the SecurityContext");
-			}
-			return authentication;
-		};
-	}
+    private static Supplier<Authentication> getAuthentication(SecurityContextHolderStrategy strategy) {
+        return () -> {
+            var authentication = strategy.getContext().getAuthentication();
+            if (authentication == null) {
+                throw new AuthenticationCredentialsNotFoundException(
+                        "An Authentication object was not found in the SecurityContext");
+            }
+            return authentication;
+        };
+    }
 
 }

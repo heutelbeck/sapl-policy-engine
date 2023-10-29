@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,29 +25,29 @@ import io.sapl.test.SaplTestException;
 
 class MockCallTests {
 
-	@Test
-	void test() {
-		var call = new MockCall(Val.of("foo"));
+    @Test
+    void test() {
+        var call = new MockCall(Val.of("foo"));
 
-		assertThat(call.getNumberOfArguments()).isEqualTo(1);
-		assertThat(call.getArgument(0)).isEqualTo(Val.of("foo"));
-		assertThat(call.getListOfArguments().size()).isEqualTo(1);
-	}
+        assertThat(call.getNumberOfArguments()).isEqualTo(1);
+        assertThat(call.getArgument(0)).isEqualTo(Val.of("foo"));
+        assertThat(call.getListOfArguments()).hasSize(1);
+    }
 
-	@Test
-	void test_invalidIndex() {
-		var call = new MockCall(Val.of("foo"));
+    @Test
+    void test_invalidIndex() {
+        var call = new MockCall(Val.of("foo"));
 
-		assertThat(call.getNumberOfArguments()).isEqualTo(1);
-		assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> call.getArgument(1));
-	}
+        assertThat(call.getNumberOfArguments()).isEqualTo(1);
+        assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> call.getArgument(1));
+    }
 
-	@Test
-	void test_modifyParameterList() {
-		var call = new MockCall(Val.of("foo"));
-
-		assertThatExceptionOfType(UnsupportedOperationException.class)
-				.isThrownBy(() -> call.getListOfArguments().add(Val.of("barr")));
-	}
+    @Test
+    void test_modifyParameterList() {
+        var call      = new MockCall(Val.of("foo"));
+        var barr      = Val.of("barr");
+        var arguments = call.getListOfArguments();
+        assertThatExceptionOfType(UnsupportedOperationException.class).isThrownBy(() -> arguments.add(barr));
+    }
 
 }

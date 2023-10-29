@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,96 +51,96 @@ import lombok.extern.slf4j.Slf4j;
 @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 public class ReactiveSaplMethodSecurityConfiguration {
 
-	@NonNull
-	private final PolicyDecisionPoint pdp;
+    @NonNull
+    private final PolicyDecisionPoint pdp;
 
-	@NonNull
-	private final ConstraintEnforcementService constraintHandlerService;
+    @NonNull
+    private final ConstraintEnforcementService constraintHandlerService;
 
-	@NonNull
-	private final ObjectMapper mapper;
+    @NonNull
+    private final ObjectMapper mapper;
 
-	private GrantedAuthorityDefaults grantedAuthorityDefaults;
+    private GrantedAuthorityDefaults grantedAuthorityDefaults;
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	Advisor reactiveSaplMethodSecurityPolicyEnforcementPoint(SaplAttributeRegistry source,
-			MethodSecurityExpressionHandler expressionHandler,
-			WebfluxAuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService,
-			PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint,
-			PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint) {
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    Advisor reactiveSaplMethodSecurityPolicyEnforcementPoint(SaplAttributeRegistry source,
+            MethodSecurityExpressionHandler expressionHandler,
+            WebfluxAuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService,
+            PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint,
+            PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint) {
 
-		log.debug("Deploy ReactiveSaplMethodInterceptor");
-		var policyEnforcementPoint = new ReactiveSaplMethodInterceptor(source, expressionHandler, pdp,
-				constraintHandlerService, mapper, authorizationSubscriptionBuilderService,
-				preEnforcePolicyEnforcementPoint, postEnforcePolicyEnforcementPoint);
-		return PolicyEnforcementPointAroundMethodInterceptor.reactive(policyEnforcementPoint);
-	}
+        log.debug("Deploy ReactiveSaplMethodInterceptor");
+        var policyEnforcementPoint = new ReactiveSaplMethodInterceptor(source, expressionHandler, pdp,
+                constraintHandlerService, mapper, authorizationSubscriptionBuilderService,
+                preEnforcePolicyEnforcementPoint, postEnforcePolicyEnforcementPoint);
+        return PolicyEnforcementPointAroundMethodInterceptor.reactive(policyEnforcementPoint);
+    }
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	ReactiveSaplMethodInterceptor securityMethodInterceptor(SaplAttributeRegistry source,
-			MethodSecurityExpressionHandler handler,
-			WebfluxAuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService,
-			PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint,
-			PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint) {
-		return new ReactiveSaplMethodInterceptor(source, handler, pdp,
-				constraintHandlerService, mapper, authorizationSubscriptionBuilderService,
-				preEnforcePolicyEnforcementPoint, postEnforcePolicyEnforcementPoint);
-	}
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    ReactiveSaplMethodInterceptor securityMethodInterceptor(SaplAttributeRegistry source,
+            MethodSecurityExpressionHandler handler,
+            WebfluxAuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService,
+            PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint,
+            PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint) {
+        return new ReactiveSaplMethodInterceptor(source, handler, pdp, constraintHandlerService, mapper,
+                authorizationSubscriptionBuilderService, preEnforcePolicyEnforcementPoint,
+                postEnforcePolicyEnforcementPoint);
+    }
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	protected PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint(
-			ConstraintEnforcementService constraintHandlerService) {
-		return new PreEnforcePolicyEnforcementPoint(constraintHandlerService);
-	}
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    protected PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint(
+            ConstraintEnforcementService constraintHandlerService) {
+        return new PreEnforcePolicyEnforcementPoint(constraintHandlerService);
+    }
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	protected PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint(PolicyDecisionPoint pdp,
-			ConstraintEnforcementService constraintHandlerService,
-			WebfluxAuthorizationSubscriptionBuilderService subscriptionBuilder) {
-		return new PostEnforcePolicyEnforcementPoint(pdp, constraintHandlerService, subscriptionBuilder);
-	}
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    protected PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint(PolicyDecisionPoint pdp,
+            ConstraintEnforcementService constraintHandlerService,
+            WebfluxAuthorizationSubscriptionBuilderService subscriptionBuilder) {
+        return new PostEnforcePolicyEnforcementPoint(pdp, constraintHandlerService, subscriptionBuilder);
+    }
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	protected WebfluxAuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService(
-			MethodSecurityExpressionHandler methodSecurityHandler) {
-		return new WebfluxAuthorizationSubscriptionBuilderService(methodSecurityHandler, mapper);
-	}
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    protected WebfluxAuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService(
+            MethodSecurityExpressionHandler methodSecurityHandler) {
+        return new WebfluxAuthorizationSubscriptionBuilderService(methodSecurityHandler, mapper);
+    }
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	MethodSecurityExpressionHandler methodSecurityExpressionHandler() {
-		var handler = new DefaultMethodSecurityExpressionHandler();
-		if (this.grantedAuthorityDefaults != null) {
-			handler.setDefaultRolePrefix(this.grantedAuthorityDefaults.getRolePrefix());
-		}
-		return handler;
-	}
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    MethodSecurityExpressionHandler methodSecurityExpressionHandler() {
+        var handler = new DefaultMethodSecurityExpressionHandler();
+        if (this.grantedAuthorityDefaults != null) {
+            handler.setDefaultRolePrefix(this.grantedAuthorityDefaults.getRolePrefix());
+        }
+        return handler;
+    }
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	SaplAttributeRegistry saplAttributeRegistry(ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
-			ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider, ApplicationContext context) {
-		var exprProvider = expressionHandlerProvider
-				.getIfAvailable(() -> defaultExpressionHandler(defaultsProvider, context));
-		return new SaplAttributeRegistry(exprProvider);
-	}
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    SaplAttributeRegistry saplAttributeRegistry(ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
+            ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider, ApplicationContext context) {
+        var exprProvider = expressionHandlerProvider
+                .getIfAvailable(() -> defaultExpressionHandler(defaultsProvider, context));
+        return new SaplAttributeRegistry(exprProvider);
+    }
 
-	private static MethodSecurityExpressionHandler defaultExpressionHandler(
-			ObjectProvider<GrantedAuthorityDefaults> defaultsProvider, ApplicationContext context) {
-		DefaultMethodSecurityExpressionHandler handler = new DefaultMethodSecurityExpressionHandler();
-		defaultsProvider.ifAvailable(d -> handler.setDefaultRolePrefix(d.getRolePrefix()));
-		handler.setApplicationContext(context);
-		return handler;
-	}
+    private static MethodSecurityExpressionHandler defaultExpressionHandler(
+            ObjectProvider<GrantedAuthorityDefaults> defaultsProvider, ApplicationContext context) {
+        DefaultMethodSecurityExpressionHandler handler = new DefaultMethodSecurityExpressionHandler();
+        defaultsProvider.ifAvailable(d -> handler.setDefaultRolePrefix(d.getRolePrefix()));
+        handler.setApplicationContext(context);
+        return handler;
+    }
 
-	@Autowired(required = false)
-	void setGrantedAuthorityDefaults(GrantedAuthorityDefaults grantedAuthorityDefaults) {
-		this.grantedAuthorityDefaults = grantedAuthorityDefaults;
-	}
+    @Autowired(required = false)
+    void setGrantedAuthorityDefaults(GrantedAuthorityDefaults grantedAuthorityDefaults) {
+        this.grantedAuthorityDefaults = grantedAuthorityDefaults;
+    }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,15 +22,15 @@ import org.springframework.context.ApplicationContext;
 
 class SpringContextTests {
 
-	@Test
-	void getBeanThrowsIllegalStateExceptionWhenApplicationContextIsNotSet() {
-		SpringContext      springContext      = new SpringContext();
-		ApplicationContext applicationContext = springContext.getApplicationContext();
-		springContext.setApplicationContext(null);
+    @Test
+    void getBeanThrowsIllegalStateExceptionWhenApplicationContextIsNotSet() {
+        SpringContext      springContext      = new SpringContext();
+        ApplicationContext applicationContext = springContext.getApplicationContext();
+        springContext.setApplicationContext(null);
 
-		assertThrows(IllegalStateException.class, () -> SpringContext.getBean(Object.class));
+        assertThrows(IllegalStateException.class, () -> SpringContext.getBean(Object.class));
 
-		springContext.setApplicationContext(applicationContext);
-	}
+        springContext.setApplicationContext(applicationContext);
+    }
 
 }

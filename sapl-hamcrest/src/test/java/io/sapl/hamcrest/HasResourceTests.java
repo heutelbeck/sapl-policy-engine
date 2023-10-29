@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,75 +34,73 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 
 class HasResourceTests {
+    private final static ObjectMapper MAPPER = new ObjectMapper();
 
-	@Test
-	void test() {
-		ObjectMapper mapper   = new ObjectMapper();
-		ObjectNode   resource = mapper.createObjectNode();
-		resource.put("foo", "bar");
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.of(resource), null, null);
+    @Test
+    void test() {
+        var resource = MAPPER.createObjectNode();
+        resource.put("foo", "bar");
+        var decision         = new AuthorizationDecision(Decision.PERMIT, Optional.of(resource), null, null);
+        var matcherUnderTest = hasResource(resource);
+        assertThat(decision, is(matcherUnderTest));
+    }
 
-		var sut = hasResource(resource);
+    @Test
+    void testEmptyMatcher() {
+        var resource = MAPPER.createObjectNode();
+        resource.put("foo", "bar");
+        var decision         = new AuthorizationDecision(Decision.PERMIT, Optional.of(resource), null, null);
+        var matcherUnderTest = hasResource();
+        assertThat(decision, is(matcherUnderTest));
+    }
 
-		assertThat(dec, is(sut));
-	}
+    @Test
+    void test_neg() {
+        var expectedResource = MAPPER.createObjectNode();
+        expectedResource.put("foo", "bar");
+        var actualResource = MAPPER.createObjectNode();
+        actualResource.put("xxx", "yyy");
+        var decision         = new AuthorizationDecision(Decision.PERMIT, Optional.of(actualResource), null, null);
+        var matcherUnderTest = hasResource(expectedResource);
+        assertThat(decision, not(is(matcherUnderTest)));
+    }
 
-	@Test
-	void test_neg() {
-		ObjectMapper mapper           = new ObjectMapper();
-		ObjectNode   expectedResource = mapper.createObjectNode();
-		expectedResource.put("foo", "bar");
-		ObjectNode actualResource = mapper.createObjectNode();
-		actualResource.put("xxx", "yyy");
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.of(actualResource), null, null);
+    @Test
+    void test_nullDecision() {
+        var resource = MAPPER.createObjectNode();
+        resource.put("foo", "bar");
+        var matcherUnderTest = hasResource(resource);
+        assertThat(null, not(is(matcherUnderTest)));
+    }
 
-		var sut = hasResource(expectedResource);
+    @Test
+    void test_emptyResource() {
+        var resource = MAPPER.createObjectNode();
+        resource.put("foo", "bar");
+        var decision         = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), null, null);
+        var matcherUnderTest = hasResource(resource);
+        assertThat(decision, not(is(matcherUnderTest)));
+    }
 
-		assertThat(dec, not(is(sut)));
-	}
+    @Test
+    void test_nullJsonNode() {
+        assertThrows(NullPointerException.class, () -> hasResource((ObjectNode) null));
+    }
 
-	@Test
-	void test_nullDecision() {
-		ObjectMapper mapper   = new ObjectMapper();
-		ObjectNode   resource = mapper.createObjectNode();
-		resource.put("foo", "bar");
+    @Test
+    void testDescriptionEmptyMatcher() {
+        var matcherUnderTest = hasResource();
+        var description      = new StringDescription();
+        matcherUnderTest.describeTo(description);
+        assertThat(description.toString(), is("a resource with any JsonNode"));
+    }
 
-		var sut = hasResource(resource);
-
-		assertThat(null, not(is(sut)));
-	}
-
-	@Test
-	void test_emptyResource() {
-		ObjectMapper mapper   = new ObjectMapper();
-		ObjectNode   resource = mapper.createObjectNode();
-		resource.put("foo", "bar");
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), null, null);
-
-		var sut = hasResource(resource);
-
-		assertThat(dec, not(is(sut)));
-	}
-
-	@Test
-	void test_nullJsonNode() {
-		assertThrows(NullPointerException.class, () -> hasResource((ObjectNode) null));
-	}
-
-	@Test
-	void testDescriptionEmptyMatcher() {
-		var                     sut         = hasResource();
-		final StringDescription description = new StringDescription();
-		sut.describeTo(description);
-		assertThat(description.toString(), is("a resource with any JsonNode"));
-	}
-
-	@Test
-	void testDescriptionMatcher() {
-		var                     sut         = hasResource(jsonText("value"));
-		final StringDescription description = new StringDescription();
-		sut.describeTo(description);
-		assertThat(description.toString(), is("a resource with a text node with value that is \"value\""));
-	}
+    @Test
+    void testDescriptionMatcher() {
+        var matcherUnderTest = hasResource(jsonText("value"));
+        var description      = new StringDescription();
+        matcherUnderTest.describeTo(description);
+        assertThat(description.toString(), is("a resource with a text node with value that is \"value\""));
+    }
 
 }

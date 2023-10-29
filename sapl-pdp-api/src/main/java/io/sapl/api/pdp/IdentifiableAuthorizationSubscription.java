@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,13 +18,14 @@ package io.sapl.api.pdp;
 import lombok.NonNull;
 
 /**
- * Holds an {@link AuthorizationSubscription SAPL authorization subscription} together
- * with an ID used to identify the authorization subscription and to assign the
- * authorization subscription its corresponding {@link AuthorizationDecision SAPL
- * authorization decision}.
+ * Holds an {@link AuthorizationSubscription SAPL authorization subscription}
+ * together with an ID used to identify the authorization subscription and to
+ * assign the authorization subscription its corresponding
+ * {@link AuthorizationDecision SAPL authorization decision}.
  *
  * @see AuthorizationSubscription
  * @see IdentifiableAuthorizationDecision
  */
 public record IdentifiableAuthorizationSubscription(@NonNull String authorizationSubscriptionId,
-													@NonNull AuthorizationSubscription authorizationSubscription) {}
+        @NonNull AuthorizationSubscription authorizationSubscription) {
+}

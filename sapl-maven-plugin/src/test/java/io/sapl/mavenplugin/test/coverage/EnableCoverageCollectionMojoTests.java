@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,50 +34,50 @@ import org.mockito.Mockito;
 
 class EnableCoverageCollectionMojoTests extends AbstractMojoTestCase {
 
-	private Log log;
+    private Log log;
 
-	@BeforeEach
-	void setup() throws Exception {
-		super.setUp();
+    @BeforeEach
+    void setup() throws Exception {
+        super.setUp();
 
-		log = Mockito.mock(Log.class);
-	}
+        log = Mockito.mock(Log.class);
+    }
 
-	@Test
-	void test_disableCoverage() throws Exception {
+    @Test
+    void test_disableCoverage() throws Exception {
 
-		Path pom = Paths.get("src", "test", "resources", "pom", "pom_withoutProject_coverageDisabled.xml");
-		var mojo = (EnableCoverageCollectionMojo) lookupMojo("enable-coverage-collection", pom.toFile());
-		mojo.setLog(this.log);
+        Path pom  = Paths.get("src", "test", "resources", "pom", "pom_withoutProject_coverageDisabled.xml");
+        var  mojo = (EnableCoverageCollectionMojo) lookupMojo("enable-coverage-collection", pom.toFile());
+        mojo.setLog(this.log);
 
-		assertDoesNotThrow(mojo::execute);
-	}
+        assertDoesNotThrow(mojo::execute);
+    }
 
-	@Test
-	void test() throws Exception {
-		Path pom = Paths.get("src", "test", "resources", "pom", "pom_withoutProject.xml");
-		var mojo = (EnableCoverageCollectionMojo) lookupMojo("enable-coverage-collection", pom.toFile());
-		mojo.setLog(this.log);
+    @Test
+    void test() throws Exception {
+        Path pom  = Paths.get("src", "test", "resources", "pom", "pom_withoutProject.xml");
+        var  mojo = (EnableCoverageCollectionMojo) lookupMojo("enable-coverage-collection", pom.toFile());
+        mojo.setLog(this.log);
 
-		try (MockedStatic<PathHelper> pathHelper = Mockito.mockStatic(PathHelper.class)) {
-			pathHelper.when(() -> PathHelper.resolveBaseDir(any(), any(), any())).thenReturn(Paths.get("tmp"));
-			assertDoesNotThrow(mojo::execute);
-		}
-	}
+        try (MockedStatic<PathHelper> pathHelper = Mockito.mockStatic(PathHelper.class)) {
+            pathHelper.when(() -> PathHelper.resolveBaseDir(any(), any(), any())).thenReturn(Paths.get("tmp"));
+            assertDoesNotThrow(mojo::execute);
+        }
+    }
 
-	@Test
-	void when_deleteFails_MojoException() throws Exception {
-		Path pom = Paths.get("src", "test", "resources", "pom", "pom_withoutProject.xml");
-		var mojo = (EnableCoverageCollectionMojo) lookupMojo("enable-coverage-collection", pom.toFile());
-		mojo.setLog(this.log);
+    @Test
+    void when_deleteFails_MojoException() throws Exception {
+        Path pom  = Paths.get("src", "test", "resources", "pom", "pom_withoutProject.xml");
+        var  mojo = (EnableCoverageCollectionMojo) lookupMojo("enable-coverage-collection", pom.toFile());
+        mojo.setLog(this.log);
 
-		try (MockedStatic<PathHelper> pathHelper = Mockito.mockStatic(PathHelper.class)) {
-			try (MockedStatic<FileUtils> fileUtil = Mockito.mockStatic(FileUtils.class)) {
-				pathHelper.when(() -> PathHelper.resolveBaseDir(any(), any(), any())).thenReturn(Paths.get("tmp"));
-				fileUtil.when(() -> FileUtils.deleteDirectory(any())).thenThrow(new IOException());
-				assertThrows(MojoExecutionException.class, mojo::execute);
-			}
-		}
-	}
+        try (MockedStatic<PathHelper> pathHelper = Mockito.mockStatic(PathHelper.class)) {
+            try (MockedStatic<FileUtils> fileUtil = Mockito.mockStatic(FileUtils.class)) {
+                pathHelper.when(() -> PathHelper.resolveBaseDir(any(), any(), any())).thenReturn(Paths.get("tmp"));
+                fileUtil.when(() -> FileUtils.deleteDirectory(any())).thenThrow(new IOException());
+                assertThrows(MojoExecutionException.class, mojo::execute);
+            }
+        }
+    }
 
 }

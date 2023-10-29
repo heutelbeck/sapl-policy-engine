@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,18 +21,19 @@ import org.junit.jupiter.api.Test;
 
 class SaplTestExceptionTests {
 
-	@Test
-	void test_noMessage() {
-		assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> {
-			throw new SaplTestException();
-		}).withMessage(null);
-	}
+    @Test
+    void test_noMessage() {
+        assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> {
+            throw new SaplTestException();
+        }).withMessage(null);
+    }
 
-	@Test
-	void test_messageAndNestedException() {
-		assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> {
-			throw new SaplTestException("exception", new SaplTestException("nestedException"));
-		}).withMessage("exception").withCauseInstanceOf(SaplTestException.class);
-	}
+    @Test
+    void test_messageAndNestedException() {
+        var exception = new SaplTestException("nestedException");
+        assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> {
+            throw new SaplTestException("exception", exception);
+        }).withMessage("exception").withCauseInstanceOf(SaplTestException.class);
+    }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,20 +31,20 @@ import reactor.core.publisher.Flux;
  */
 public class WildcardStepImplCustom extends WildcardStepImpl {
 
-	@Override
-	public Flux<Val> apply(@NonNull Val parentValue) {
-		return StepAlgorithmUtil.apply(parentValue, WildcardStepImplCustom::wildcard, "*", WildcardStep.class);
-	}
+    @Override
+    public Flux<Val> apply(@NonNull Val parentValue) {
+        return StepAlgorithmUtil.apply(parentValue, WildcardStepImplCustom::wildcard, "*", WildcardStep.class);
+    }
 
-	@Override
-	public Flux<Val> applyFilterStatement(@NonNull Val unfilteredValue, int stepId,
-			@NonNull FilterStatement statement) {
-		return FilterAlgorithmUtil.applyFilter(unfilteredValue, stepId, WildcardStepImplCustom::wildcard, statement,
-				WildcardStep.class);
-	}
+    @Override
+    public Flux<Val> applyFilterStatement(@NonNull Val unfilteredValue, int stepId,
+            @NonNull FilterStatement statement) {
+        return FilterAlgorithmUtil.applyFilter(unfilteredValue, stepId, WildcardStepImplCustom::wildcard, statement,
+                WildcardStep.class);
+    }
 
-	public static Flux<Val> wildcard() {
-		return Flux.just(Val.TRUE.withTrace(WildcardStep.class));
-	}
+    public static Flux<Val> wildcard() {
+        return Flux.just(Val.TRUE.withTrace(WildcardStep.class));
+    }
 
 }

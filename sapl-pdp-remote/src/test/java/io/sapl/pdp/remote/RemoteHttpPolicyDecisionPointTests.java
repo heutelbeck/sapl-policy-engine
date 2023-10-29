@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,156 +51,142 @@ import reactor.test.StepVerifier;
 
 class RemoteHttpPolicyDecisionPointTests {
 
-	private static final String ID = "id1";
+    private static final String ID = "id1";
 
-	private static final String RESOURCE = "resource";
+    private static final String RESOURCE = "resource";
 
-	private static final String ACTION = "action";
+    private static final String ACTION = "action";
 
-	private static final String SUBJECT = "subject";
+    private static final String SUBJECT = "subject";
 
-	private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
+    private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
 
-	private MockWebServer server;
+    private MockWebServer server;
 
-	private RemoteHttpPolicyDecisionPoint pdp;
+    private RemoteHttpPolicyDecisionPoint pdp;
 
-	@BeforeAll
-	static void setupLog() {
-		// Route MockWebServer logs to shared logs
-		SLF4JBridgeHandler.removeHandlersForRootLogger();
-		SLF4JBridgeHandler.install();
-		Hooks.onOperatorDebug();
-	}
+    @BeforeAll
+    static void setupLog() {
+        // Route MockWebServer logs to shared logs
+        SLF4JBridgeHandler.removeHandlersForRootLogger();
+        SLF4JBridgeHandler.install();
+        Hooks.onOperatorDebug();
+    }
 
-	@BeforeEach
-	void startServer() throws IOException {
-		server = new MockWebServer();
-		server.start();
-		pdp = RemotePolicyDecisionPoint.builder()
-				.http()
-				.baseUrl(this.server.url("/").toString())
-				.basicAuth("secret", "key")
-				.build();
-		pdp.setBackoffFactor(2);
-		pdp.setFirstBackoffMillis(100);
-		pdp.setMaxBackOffMillis(200);
-	}
+    @BeforeEach
+    void startServer() throws IOException {
+        server = new MockWebServer();
+        server.start();
+        pdp = RemotePolicyDecisionPoint.builder().http().baseUrl(this.server.url("/").toString())
+                .basicAuth("secret", "key").build();
+        pdp.setBackoffFactor(2);
+        pdp.setFirstBackoffMillis(100);
+        pdp.setMaxBackOffMillis(200);
+    }
 
-	@AfterEach
-	void shutdownServer() throws IOException {
-		server.shutdown();
-	}
+    @AfterEach
+    void shutdownServer() throws IOException {
+        server.shutdown();
+    }
 
-	@Test
-	void whenSubscribingIncludingErrors_thenAfterErrorsCloseConnectionsAndReconnection()
-			throws JsonProcessingException {
-		// The first is propagated. The second results in an error. The third is dropped
-		// due to the error
-		prepareDecisions(
-				new AuthorizationDecision[] { AuthorizationDecision.DENY, null, AuthorizationDecision.PERMIT });
-		prepareDecisions(
-				new AuthorizationDecision[] { AuthorizationDecision.PERMIT, null, AuthorizationDecision.PERMIT });
-		prepareDecisions(new AuthorizationDecision[] { AuthorizationDecision.INDETERMINATE, null,
-				AuthorizationDecision.PERMIT });
-		prepareDecisions(new AuthorizationDecision[] { AuthorizationDecision.NOT_APPLICABLE, null,
-				AuthorizationDecision.PERMIT });
+    @Test
+    void whenSubscribingIncludingErrors_thenAfterErrorsCloseConnectionsAndReconnection()
+            throws JsonProcessingException {
+        // The first is propagated. The second results in an error. The third is dropped
+        // due to the error
+        prepareDecisions(
+                new AuthorizationDecision[] { AuthorizationDecision.DENY, null, AuthorizationDecision.PERMIT });
+        prepareDecisions(
+                new AuthorizationDecision[] { AuthorizationDecision.PERMIT, null, AuthorizationDecision.PERMIT });
+        prepareDecisions(new AuthorizationDecision[] { AuthorizationDecision.INDETERMINATE, null,
+                AuthorizationDecision.PERMIT });
+        prepareDecisions(new AuthorizationDecision[] { AuthorizationDecision.NOT_APPLICABLE, null,
+                AuthorizationDecision.PERMIT });
 
-		var subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE);
+        var subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE);
 
-		StepVerifier.create(pdp.decide(subscription))
-				.expectNext(AuthorizationDecision.DENY, AuthorizationDecision.INDETERMINATE,
-						AuthorizationDecision.PERMIT, AuthorizationDecision.INDETERMINATE,
-						AuthorizationDecision.NOT_APPLICABLE, AuthorizationDecision.INDETERMINATE)
-				.thenCancel().verify();
-	}
+        StepVerifier.create(pdp.decide(subscription))
+                .expectNext(AuthorizationDecision.DENY, AuthorizationDecision.INDETERMINATE,
+                        AuthorizationDecision.PERMIT, AuthorizationDecision.INDETERMINATE,
+                        AuthorizationDecision.NOT_APPLICABLE, AuthorizationDecision.INDETERMINATE)
+                .thenCancel().verify();
+    }
 
-	@Test
-	void whenSubscribingMultiDecideAll_thenGetResults() throws JsonProcessingException {
-		var decision1 = new MultiAuthorizationDecision();
-		decision1.setAuthorizationDecisionForSubscriptionWithId(ID, AuthorizationDecision.PERMIT);
-		var decision2 = new MultiAuthorizationDecision();
-		decision2.setAuthorizationDecisionForSubscriptionWithId(ID, AuthorizationDecision.DENY);
-		var indeterminate = MultiAuthorizationDecision.indeterminate();
+    @Test
+    void whenSubscribingMultiDecideAll_thenGetResults() throws JsonProcessingException {
+        var decision1 = new MultiAuthorizationDecision();
+        decision1.setAuthorizationDecisionForSubscriptionWithId(ID, AuthorizationDecision.PERMIT);
+        var decision2 = new MultiAuthorizationDecision();
+        decision2.setAuthorizationDecisionForSubscriptionWithId(ID, AuthorizationDecision.DENY);
+        var indeterminate = MultiAuthorizationDecision.indeterminate();
 
-		prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2, null });
-		prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2 });
+        prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2, null });
+        prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2 });
 
-		var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, SUBJECT, ACTION,
-				RESOURCE);
+        var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, SUBJECT, ACTION,
+                RESOURCE);
 
-		StepVerifier.create(pdp.decideAll(subscription))
-				.expectNext(decision1, decision2, indeterminate, decision1, decision2).thenCancel().verify();
-	}
+        StepVerifier.create(pdp.decideAll(subscription))
+                .expectNext(decision1, decision2, indeterminate, decision1, decision2).thenCancel().verify();
+    }
 
-	@Test
-	void whenSubscribingMultiDecide_thenGetResults() throws JsonProcessingException {
-		var decision1     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.PERMIT);
-		var decision2     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.DENY);
-		var indeterminate = IdentifiableAuthorizationDecision.INDETERMINATE;
+    @Test
+    void whenSubscribingMultiDecide_thenGetResults() throws JsonProcessingException {
+        var decision1     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.PERMIT);
+        var decision2     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.DENY);
+        var indeterminate = IdentifiableAuthorizationDecision.INDETERMINATE;
 
-		prepareDecisions(new IdentifiableAuthorizationDecision[] { decision1, decision2, null });
-		prepareDecisions(new IdentifiableAuthorizationDecision[] { decision1, decision2 });
+        prepareDecisions(new IdentifiableAuthorizationDecision[] { decision1, decision2, null });
+        prepareDecisions(new IdentifiableAuthorizationDecision[] { decision1, decision2 });
 
-		var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, SUBJECT, ACTION,
-				RESOURCE);
+        var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, SUBJECT, ACTION,
+                RESOURCE);
 
-		StepVerifier.create(pdp.decide(subscription))
-				.expectNext(decision1, decision2, indeterminate, decision1, decision2).thenCancel().verify();
-	}
+        StepVerifier.create(pdp.decide(subscription))
+                .expectNext(decision1, decision2, indeterminate, decision1, decision2).thenCancel().verify();
+    }
 
-	private void prepareDecisions(Object[] decisions) throws JsonProcessingException {
-		StringBuilder body = new StringBuilder();
-		for (var decision : decisions) {
-			if (decision == null)
-				body.append("data: INTENDED INVALID VALUE TO CAUSE AN ERROR\n\n");
-			else {
-				/* "text/event-stream" */
-				body.append("data: ").append(MAPPER.writeValueAsString(decision)).append("\n\n");
-			}
-		}
-		var response = new MockResponse()
-				.setHeader(HttpHeaders.CONTENT_TYPE,
-						MediaType.TEXT_EVENT_STREAM_VALUE /* .APPLICATION_NDJSON_VALUE */)
-				.setResponseCode(HttpStatus.OK.value()).setBody(body.toString());
-		server.enqueue(response);
-	}
+    private void prepareDecisions(Object[] decisions) throws JsonProcessingException {
+        StringBuilder body = new StringBuilder();
+        for (var decision : decisions) {
+            if (decision == null)
+                body.append("data: INTENDED INVALID VALUE TO CAUSE AN ERROR\n\n");
+            else {
+                /* "text/event-stream" */
+                body.append("data: ").append(MAPPER.writeValueAsString(decision)).append("\n\n");
+            }
+        }
+        var response = new MockResponse()
+                .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.TEXT_EVENT_STREAM_VALUE /* .APPLICATION_NDJSON_VALUE */)
+                .setResponseCode(HttpStatus.OK.value()).setBody(body.toString());
+        server.enqueue(response);
+    }
 
-	@Test
-	void construct() {
-		var pdp = RemotePolicyDecisionPoint.builder()
-				.http()
-				.baseUrl("http://localhost")
-				.basicAuth("secret", "key")
-				.build();
-		assertThat(pdp, notNullValue());
-	}
+    @Test
+    void construct() {
+        var pdp = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost").basicAuth("secret", "key")
+                .build();
+        assertThat(pdp, notNullValue());
+    }
 
-	@Test
-	void constructWithSslContext() throws SSLException {
-		var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
-		var pdp        = RemotePolicyDecisionPoint.builder()
-				.http()
-				.baseUrl("http://localhost")
-				.basicAuth("secret", "key")
-				.secure(sslContext)
-				.build();
-		assertThat(pdp, notNullValue());
-	}
+    @Test
+    void constructWithSslContext() throws SSLException {
+        var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+        var pdp        = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
+                .basicAuth("secret", "key").secure(sslContext).build();
+        assertThat(pdp, notNullValue());
+    }
 
-	@Test
-	void settersAndGetters() {
-		var pdp = RemotePolicyDecisionPoint.builder()
-				.http()
-				.baseUrl("http://localhost")
-				.basicAuth("secret", "key")
-				.build();
-		pdp.setBackoffFactor(999);
-		pdp.setFirstBackoffMillis(998);
-		pdp.setMaxBackOffMillis(1001);
-		assertAll(() -> assertThat(pdp.getBackoffFactor(), is(999)),
-				() -> assertThat(pdp.getFirstBackoffMillis(), is(998)),
-				() -> assertThat(pdp.getMaxBackOffMillis(), is(1001)));
-	}
+    @Test
+    void settersAndGetters() {
+        var pdp = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost").basicAuth("secret", "key")
+                .build();
+        pdp.setBackoffFactor(999);
+        pdp.setFirstBackoffMillis(998);
+        pdp.setMaxBackOffMillis(1001);
+        assertAll(() -> assertThat(pdp.getBackoffFactor(), is(999)),
+                () -> assertThat(pdp.getFirstBackoffMillis(), is(998)),
+                () -> assertThat(pdp.getMaxBackOffMillis(), is(1001)));
+    }
 
 }

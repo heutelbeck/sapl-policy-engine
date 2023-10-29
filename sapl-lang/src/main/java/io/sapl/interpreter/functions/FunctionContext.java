@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,13 +24,13 @@ import io.sapl.interpreter.pip.LibraryFunctionProvider;
 
 public interface FunctionContext extends LibraryFunctionProvider {
 
-	Val evaluate(String function, Val... parameters);
+    Val evaluate(String function, Val... parameters);
 
-	Collection<LibraryDocumentation> getDocumentation();
+    Collection<LibraryDocumentation> getDocumentation();
 
-	List<String> getCodeTemplates();
+    List<String> getCodeTemplates();
 
-	Map<String, String> getDocumentedCodeTemplates();
+    Map<String, String> getDocumentedCodeTemplates();
 
 	Map<String, String> getFunctionSchemas();
 }

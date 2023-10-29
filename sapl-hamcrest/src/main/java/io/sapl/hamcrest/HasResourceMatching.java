@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,38 +31,38 @@ import io.sapl.api.pdp.AuthorizationDecision;
  */
 public class HasResourceMatching extends TypeSafeDiagnosingMatcher<AuthorizationDecision> {
 
-	private final Predicate<? super JsonNode> predicate;
+    private final Predicate<? super JsonNode> predicate;
 
-	/**
-	 * Checks if the resource fulfills a Predicate.
-	 * 
-	 * @param jsonPredicate a predicate on the Resource
-	 */
-	public HasResourceMatching(Predicate<? super JsonNode> jsonPredicate) {
-		super(AuthorizationDecision.class);
-		this.predicate = Objects.requireNonNull(jsonPredicate);
-	}
+    /**
+     * Checks if the resource fulfills a Predicate.
+     * 
+     * @param jsonPredicate a predicate on the Resource
+     */
+    public HasResourceMatching(Predicate<? super JsonNode> jsonPredicate) {
+        super(AuthorizationDecision.class);
+        this.predicate = Objects.requireNonNull(jsonPredicate);
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("the decision has a resource matching the predicate");
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("the decision has a resource matching the predicate");
+    }
 
-	@Override
-	protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
-		var resource = decision.getResource();
-		if (resource.isEmpty()) {
-			mismatchDescription.appendText("decision didn't contain a resource");
-			return false;
-		}
+    @Override
+    protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
+        var resource = decision.getResource();
+        if (resource.isEmpty()) {
+            mismatchDescription.appendText("decision didn't contain a resource");
+            return false;
+        }
 
-		var json = resource.get();
-		if (this.predicate.test(json)) {
-			return true;
-		} else {
-			mismatchDescription.appendText("was resource that matches the predicate");
-			return false;
-		}
-	}
+        var json = resource.get();
+        if (this.predicate.test(json)) {
+            return true;
+        } else {
+            mismatchDescription.appendText("was resource that matches the predicate");
+            return false;
+        }
+    }
 
 }

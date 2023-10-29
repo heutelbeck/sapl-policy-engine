@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import static io.sapl.grammar.sapl.impl.util.OperatorUtil.arithmeticOperator;
 
 import java.util.Map;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.More;
 import reactor.core.publisher.Flux;
@@ -31,15 +32,15 @@ import reactor.core.publisher.Flux;
  */
 public class MoreImplCustom extends MoreImpl {
 
-	@Override
-	public Flux<Val> evaluate() {
-		return arithmeticOperator(this, this::moreThan);
+    @Override
+    public Flux<Val> evaluate() {
+        return arithmeticOperator(this, this::moreThan);
 
-	}
+    }
 
-	private Val moreThan(Val left, Val right) {
-		return Val.of(left.decimalValue().compareTo(right.decimalValue()) > 0).withTrace(More.class,
-				Map.of("left", left, "right", right));
-	}
+    private Val moreThan(Val left, Val right) {
+        return Val.of(left.decimalValue().compareTo(right.decimalValue()) > 0).withTrace(More.class,
+                Map.of(Trace.LEFT, left, Trace.RIGHT, right));
+    }
 
 }

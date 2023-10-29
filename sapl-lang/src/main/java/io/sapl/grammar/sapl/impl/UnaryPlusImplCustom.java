@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,9 +23,9 @@ import reactor.core.publisher.Flux;
 
 public class UnaryPlusImplCustom extends UnaryPlusImpl {
 
-	@Override
-	public Flux<Val> evaluate() {
-		return arithmeticOperator(this, val -> val.withTrace(UnaryPlus.class, val));
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        return arithmeticOperator(this, val -> val.withTrace(UnaryPlus.class, val));
+    }
 
 }

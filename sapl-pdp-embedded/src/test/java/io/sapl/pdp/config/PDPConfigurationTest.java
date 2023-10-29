@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,25 +30,25 @@ import io.sapl.interpreter.pip.AttributeContext;
 
 class PDPConfigurationTest {
 
-	@Test
-	void testIsValid() {
-		assertThat(new PDPConfiguration(null, mock(FunctionContext.class), new HashMap<>(),
-				mock(CombiningAlgorithm.class), UnaryOperator.identity(), UnaryOperator.identity()).isValid(),
-				is(false));
-		assertThat(
-				new PDPConfiguration(mock(AttributeContext.class), null, new HashMap<>(),
-						mock(CombiningAlgorithm.class), UnaryOperator.identity(), UnaryOperator.identity()).isValid(),
-				is(false));
-		assertThat(
-				new PDPConfiguration(mock(AttributeContext.class), mock(FunctionContext.class), null,
-						mock(CombiningAlgorithm.class), UnaryOperator.identity(), UnaryOperator.identity()).isValid(),
-				is(false));
-		assertThat(new PDPConfiguration(mock(AttributeContext.class), mock(FunctionContext.class), new HashMap<>(),
-				null, UnaryOperator.identity(), UnaryOperator.identity()).isValid(), is(false));
-		assertThat(
-				new PDPConfiguration(mock(AttributeContext.class), mock(FunctionContext.class), new HashMap<>(),
-						mock(CombiningAlgorithm.class), UnaryOperator.identity(), UnaryOperator.identity()).isValid(),
-				is(true));
-	}
+    @Test
+    void testIsValid() {
+        assertThat(new PDPConfiguration(null, mock(FunctionContext.class), new HashMap<>(),
+                mock(CombiningAlgorithm.class), UnaryOperator.identity(), UnaryOperator.identity()).isValid(),
+                is(false));
+        assertThat(
+                new PDPConfiguration(mock(AttributeContext.class), null, new HashMap<>(),
+                        mock(CombiningAlgorithm.class), UnaryOperator.identity(), UnaryOperator.identity()).isValid(),
+                is(false));
+        assertThat(
+                new PDPConfiguration(mock(AttributeContext.class), mock(FunctionContext.class), null,
+                        mock(CombiningAlgorithm.class), UnaryOperator.identity(), UnaryOperator.identity()).isValid(),
+                is(false));
+        assertThat(new PDPConfiguration(mock(AttributeContext.class), mock(FunctionContext.class), new HashMap<>(),
+                null, UnaryOperator.identity(), UnaryOperator.identity()).isValid(), is(false));
+        assertThat(
+                new PDPConfiguration(mock(AttributeContext.class), mock(FunctionContext.class), new HashMap<>(),
+                        mock(CombiningAlgorithm.class), UnaryOperator.identity(), UnaryOperator.identity()).isValid(),
+                is(true));
+    }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,45 +28,45 @@ import lombok.Getter;
 @AllArgsConstructor
 public class PolicyConditionHit {
 
-	/**
-	 * Identifier of {@link io.sapl.grammar.sapl.PolicySet} of hit
-	 * {@link io.sapl.grammar.sapl.Policy}. Empty if
-	 * {@link io.sapl.grammar.sapl.Policy} isn't in a
-	 * {@link io.sapl.grammar.sapl.PolicySet}.
-	 */
-	String policySetId;
+    /**
+     * Identifier of {@link io.sapl.grammar.sapl.PolicySet} of hit
+     * {@link io.sapl.grammar.sapl.Policy}. Empty if
+     * {@link io.sapl.grammar.sapl.Policy} isn't in a
+     * {@link io.sapl.grammar.sapl.PolicySet}.
+     */
+    String policySetId;
 
-	/**
-	 * Identifier of hit {@link io.sapl.grammar.sapl.Policy}
-	 */
-	String policyId;
+    /**
+     * Identifier of hit {@link io.sapl.grammar.sapl.Policy}
+     */
+    String policyId;
 
-	/**
-	 * StatementId of {@link io.sapl.grammar.sapl.Condition} hit in
-	 * {@link io.sapl.grammar.sapl.Policy}
-	 */
-	int conditionStatementId;
+    /**
+     * StatementId of {@link io.sapl.grammar.sapl.Condition} hit in
+     * {@link io.sapl.grammar.sapl.Policy}
+     */
+    int conditionStatementId;
 
-	/**
-	 * Result of evaluation {@link io.sapl.grammar.sapl.Condition}
-	 */
-	boolean conditionResult;
+    /**
+     * Result of evaluation {@link io.sapl.grammar.sapl.Condition}
+     */
+    boolean conditionResult;
 
-	@Override
-	public String toString() {
-		return policySetId + CoverageHitConstants.DELIMITER + policyId + CoverageHitConstants.DELIMITER
-				+ conditionStatementId + CoverageHitConstants.DELIMITER + conditionResult;
-	}
+    @Override
+    public String toString() {
+        return policySetId + CoverageHitConstants.DELIMITER + policyId + CoverageHitConstants.DELIMITER
+                + conditionStatementId + CoverageHitConstants.DELIMITER + conditionResult;
+    }
 
-	/**
-	 * Converts a String to PolicyConditionHit.
-	 * 
-	 * @param policyConditionToStringResult a condition result expressed in a String
-	 * @return the expressed PolicyConditionHit
-	 */
-	public static PolicyConditionHit fromString(String policyConditionToStringResult) {
-		var split = policyConditionToStringResult.split(CoverageHitConstants.DELIMITER_MATCH_REGEX);
-		return new PolicyConditionHit(split[0], split[1], Integer.parseInt(split[2]), Boolean.parseBoolean(split[3]));
-	}
+    /**
+     * Converts a String to PolicyConditionHit.
+     * 
+     * @param policyConditionToStringResult a condition result expressed in a String
+     * @return the expressed PolicyConditionHit
+     */
+    public static PolicyConditionHit fromString(String policyConditionToStringResult) {
+        var split = policyConditionToStringResult.split(CoverageHitConstants.DELIMITER_MATCH_REGEX);
+        return new PolicyConditionHit(split[0], split[1], Integer.parseInt(split[2]), Boolean.parseBoolean(split[3]));
+    }
 
 }

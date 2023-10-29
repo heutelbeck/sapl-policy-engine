@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,65 +32,65 @@ import io.sapl.api.pdp.Decision;
 
 class IsDecisionTests {
 
-	@Test
-	void testPermit() {
-		var sut = isPermit();
-		assertThat(new AuthorizationDecision(Decision.PERMIT), is(sut));
-		assertThat(new AuthorizationDecision(Decision.DENY), not(is(sut)));
-		assertThat(new AuthorizationDecision(Decision.NOT_APPLICABLE), not(is(sut)));
-		assertThat(new AuthorizationDecision(Decision.INDETERMINATE), not(is(sut)));
-	}
+    @Test
+    void testPermit() {
+        var sut = isPermit();
+        assertThat(new AuthorizationDecision(Decision.PERMIT), is(sut));
+        assertThat(new AuthorizationDecision(Decision.DENY), not(is(sut)));
+        assertThat(new AuthorizationDecision(Decision.NOT_APPLICABLE), not(is(sut)));
+        assertThat(new AuthorizationDecision(Decision.INDETERMINATE), not(is(sut)));
+    }
 
-	@Test
-	void testDeny() {
-		var sut = isDeny();
-		assertThat(new AuthorizationDecision(Decision.PERMIT), not(is(sut)));
-		assertThat(new AuthorizationDecision(Decision.DENY), is(sut));
-		assertThat(new AuthorizationDecision(Decision.NOT_APPLICABLE), not(is(sut)));
-		assertThat(new AuthorizationDecision(Decision.INDETERMINATE), not(is(sut)));
-	}
+    @Test
+    void testDeny() {
+        var sut = isDeny();
+        assertThat(new AuthorizationDecision(Decision.PERMIT), not(is(sut)));
+        assertThat(new AuthorizationDecision(Decision.DENY), is(sut));
+        assertThat(new AuthorizationDecision(Decision.NOT_APPLICABLE), not(is(sut)));
+        assertThat(new AuthorizationDecision(Decision.INDETERMINATE), not(is(sut)));
+    }
 
-	@Test
-	void testIsNotApplicable() {
-		var sut = isNotApplicable();
-		assertThat(new AuthorizationDecision(Decision.PERMIT), not(is(sut)));
-		assertThat(new AuthorizationDecision(Decision.DENY), not(is(sut)));
-		assertThat(new AuthorizationDecision(Decision.NOT_APPLICABLE), is(sut));
-		assertThat(new AuthorizationDecision(Decision.INDETERMINATE), not(is(sut)));
-	}
+    @Test
+    void testIsNotApplicable() {
+        var sut = isNotApplicable();
+        assertThat(new AuthorizationDecision(Decision.PERMIT), not(is(sut)));
+        assertThat(new AuthorizationDecision(Decision.DENY), not(is(sut)));
+        assertThat(new AuthorizationDecision(Decision.NOT_APPLICABLE), is(sut));
+        assertThat(new AuthorizationDecision(Decision.INDETERMINATE), not(is(sut)));
+    }
 
-	@Test
-	void testIndeterminate() {
-		var sut = isIndeterminate();
-		assertThat(new AuthorizationDecision(Decision.PERMIT), not(is(sut)));
-		assertThat(new AuthorizationDecision(Decision.DENY), not(is(sut)));
-		assertThat(new AuthorizationDecision(Decision.NOT_APPLICABLE), not(is(sut)));
-		assertThat(new AuthorizationDecision(Decision.INDETERMINATE), is(sut));
-	}
+    @Test
+    void testIndeterminate() {
+        var sut = isIndeterminate();
+        assertThat(new AuthorizationDecision(Decision.PERMIT), not(is(sut)));
+        assertThat(new AuthorizationDecision(Decision.DENY), not(is(sut)));
+        assertThat(new AuthorizationDecision(Decision.NOT_APPLICABLE), not(is(sut)));
+        assertThat(new AuthorizationDecision(Decision.INDETERMINATE), is(sut));
+    }
 
-	@Test
-	void testAnyDec() {
-		var sut = anyDecision();
-		assertThat(new AuthorizationDecision(Decision.PERMIT), is(sut));
-		assertThat(new AuthorizationDecision(Decision.DENY), is(sut));
-		assertThat(new AuthorizationDecision(Decision.NOT_APPLICABLE), is(sut));
-		assertThat(new AuthorizationDecision(Decision.INDETERMINATE), is(sut));
-	}
+    @Test
+    void testAnyDec() {
+        var sut = anyDecision();
+        assertThat(new AuthorizationDecision(Decision.PERMIT), is(sut));
+        assertThat(new AuthorizationDecision(Decision.DENY), is(sut));
+        assertThat(new AuthorizationDecision(Decision.NOT_APPLICABLE), is(sut));
+        assertThat(new AuthorizationDecision(Decision.INDETERMINATE), is(sut));
+    }
 
-	@Test
-	void testDescriptionForEmptyConstructor() {
-		var sut = new IsDecision();
-		final StringDescription description = new StringDescription();
-		sut.describeTo(description);
-		assertThat(description.toString(), is("the decision is any decision"));
-	}
+    @Test
+    void testDescriptionForEmptyConstructor() {
+        var                     sut         = new IsDecision();
+        final StringDescription description = new StringDescription();
+        sut.describeTo(description);
+        assertThat(description.toString(), is("the decision is any decision"));
+    }
 
-	@Test
-	void testDescriptionForDecisionConstructor() {
-		var sut = isPermit();
-		final StringDescription description = new StringDescription();
-		sut.describeTo(description);
-		assertThat(description.toString(), is("the decision is PERMIT"));
-	}
+    @Test
+    void testDescriptionForDecisionConstructor() {
+        var                     sut         = isPermit();
+        final StringDescription description = new StringDescription();
+        sut.describeTo(description);
+        assertThat(description.toString(), is("the decision is PERMIT"));
+    }
 
 }

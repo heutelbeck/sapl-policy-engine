@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,10 @@ import java.util.function.Function;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.api.validation.*;
+import io.sapl.api.validation.Array;
+import io.sapl.api.validation.Bool;
+import io.sapl.api.validation.Int;
+import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Long;
 import io.sapl.api.validation.Number;
 import io.sapl.functions.SchemaValidationLibrary;
@@ -33,46 +36,46 @@ import reactor.core.publisher.Flux;
 @UtilityClass
 public class ParameterTypeValidator {
 
-	private static final String ILLEGAL_PARAMETER_TYPE = "Illegal parameter type. Got: %s Expected: %s";
+    private static final String ILLEGAL_PARAMETER_TYPE = "Illegal parameter type. Got: %s Expected: %s";
 
     private static final String NON_COMPLIANT_WITH_SCHEMA = "Illegal parameter type. Parameter does not comply with required schema. Got: %s Expected schema: %s";
 
     private static final Set<Class<?>> VALIDATION_ANNOTATIONS = Set.of(Number.class, Int.class, Long.class, Bool.class,
-			Text.class, Array.class, JsonObject.class, Schema.class);
+            Text.class, Array.class, JsonObject.class, Schema.class);
 
-	public static void validateType(Val parameterValue, Parameter parameterType) throws IllegalParameterType {
-		if (hasNoValidationAnnotations(parameterType))
-			return;
+    public static void validateType(Val parameterValue, Parameter parameterType) throws IllegalParameterType {
+        if (hasNoValidationAnnotations(parameterType))
+            return;
 
-		if (parameterValue.isError())
-			throw new IllegalParameterType(
-					String.format(ILLEGAL_PARAMETER_TYPE, "error", listAllowedTypes(parameterType.getAnnotations())));
+        if (parameterValue.isError())
+            throw new IllegalParameterType(
+                    String.format(ILLEGAL_PARAMETER_TYPE, "error", listAllowedTypes(parameterType.getAnnotations())));
 
-		if (parameterValue.isUndefined())
-			throw new IllegalParameterType(String.format(ILLEGAL_PARAMETER_TYPE, "undefined",
-					listAllowedTypes(parameterType.getAnnotations())));
+        if (parameterValue.isUndefined())
+            throw new IllegalParameterType(String.format(ILLEGAL_PARAMETER_TYPE, "undefined",
+                    listAllowedTypes(parameterType.getAnnotations())));
 
-		validateJsonNodeType(parameterValue.get(), parameterType);
-	}
+        validateJsonNodeType(parameterValue.get(), parameterType);
+    }
 
-	public static Flux<Val> validateType(Flux<Val> parameterFlux, Parameter parameterType) {
-		if (hasNoValidationAnnotations(parameterType))
-			return parameterFlux;
-		return parameterFlux.map(mapInvalidToError(parameterType));
-	}
+    public static Flux<Val> validateType(Flux<Val> parameterFlux, Parameter parameterType) {
+        if (hasNoValidationAnnotations(parameterType))
+            return parameterFlux;
+        return parameterFlux.map(mapInvalidToError(parameterType));
+    }
 
-	private static Function<Val, Val> mapInvalidToError(Parameter parameterType) {
-		return val -> {
-			try {
-				validateType(val, parameterType);
-			} catch (IllegalParameterType e) {
-				return Val.error(e);
-			}
-			return val;
-		};
-	}
+    private static Function<Val, Val> mapInvalidToError(Parameter parameterType) {
+        return val -> {
+            try {
+                validateType(val, parameterType);
+            } catch (IllegalParameterType e) {
+                return Val.error(e);
+            }
+            return val;
+        };
+    }
 
-	private static void validateJsonNodeType(JsonNode node, Parameter parameterType) throws IllegalParameterType {
+    private static void validateJsonNodeType(JsonNode node, Parameter parameterType) throws IllegalParameterType {
         Annotation[] annotations = parameterType.getAnnotations();
         String errorText;
         moveSchemaAnnotationToTheEndIfItExists(annotations);
@@ -97,14 +100,14 @@ public class ParameterTypeValidator {
 
     }
 
-	private static boolean nodeContentsMatchesTypeGivenByAnnotation(JsonNode node, Annotation annotation) {
-		return (Number.class.isAssignableFrom(annotation.getClass()) && node.isNumber())
-				|| (Int.class.isAssignableFrom(annotation.getClass()) && node.isNumber() && node.canConvertToInt())
-				|| (Long.class.isAssignableFrom(annotation.getClass()) && node.isNumber() && node.canConvertToLong())
-				|| (Bool.class.isAssignableFrom(annotation.getClass()) && node.isBoolean())
-				|| (Text.class.isAssignableFrom(annotation.getClass()) && node.isTextual())
-				|| (Array.class.isAssignableFrom(annotation.getClass()) && node.isArray())
-				|| (JsonObject.class.isAssignableFrom(annotation.getClass()) && node.isObject());
+    private static boolean nodeContentsMatchesTypeGivenByAnnotation(JsonNode node, Annotation annotation) {
+        return (Number.class.isAssignableFrom(annotation.getClass()) && node.isNumber())
+                || (Int.class.isAssignableFrom(annotation.getClass()) && node.isNumber() && node.canConvertToInt())
+                || (Long.class.isAssignableFrom(annotation.getClass()) && node.isNumber() && node.canConvertToLong())
+                || (Bool.class.isAssignableFrom(annotation.getClass()) && node.isBoolean())
+                || (Text.class.isAssignableFrom(annotation.getClass()) && node.isTextual())
+                || (Array.class.isAssignableFrom(annotation.getClass()) && node.isArray())
+                || (JsonObject.class.isAssignableFrom(annotation.getClass()) && node.isObject());
 	}
 
     private static boolean nodeCompliantWithSchema(JsonNode node, Annotation annotation) {

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -39,61 +38,60 @@ import reactor.core.publisher.Flux;
 
 public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPConfigurationProvider {
 
-	private final AttributeContext attributeCtx;
+    private final AttributeContext attributeCtx;
 
-	private final FunctionContext functionCtx;
+    private final FunctionContext functionCtx;
 
-	private final VariablesAndCombinatorSource variablesAndCombinatorSource;
+    private final VariablesAndCombinatorSource variablesAndCombinatorSource;
 
-	private final List<AuthorizationSubscriptionInterceptor> subscriptionInterceptors;
+    private final List<AuthorizationSubscriptionInterceptor> subscriptionInterceptors;
 
-	private final List<TracedDecisionInterceptor> decisionInterceptors;
+    private final List<TracedDecisionInterceptor> decisionInterceptors;
 
-	public FixedFunctionsAndAttributesPDPConfigurationProvider(AttributeContext attributeCtx,
-			FunctionContext functionCtx, VariablesAndCombinatorSource variablesAndCombinatorSource,
-			Collection<AuthorizationSubscriptionInterceptor> subscriptionInterceptors,
-			Collection<TracedDecisionInterceptor> decisionInterceptors) {
-		this.attributeCtx					= attributeCtx;
-		this.functionCtx					= functionCtx;
-		this.variablesAndCombinatorSource	= variablesAndCombinatorSource;
-		this.subscriptionInterceptors		= subscriptionInterceptors.stream().sorted(Comparator.reverseOrder())
-				.collect(Collectors.toList());
-		this.decisionInterceptors			= decisionInterceptors.stream().sorted(Comparator.reverseOrder())
-				.collect(Collectors.toList());
-	}
+    public FixedFunctionsAndAttributesPDPConfigurationProvider(AttributeContext attributeCtx,
+            FunctionContext functionCtx, VariablesAndCombinatorSource variablesAndCombinatorSource,
+            Collection<AuthorizationSubscriptionInterceptor> subscriptionInterceptors,
+            Collection<TracedDecisionInterceptor> decisionInterceptors) {
+        this.attributeCtx                 = attributeCtx;
+        this.functionCtx                  = functionCtx;
+        this.variablesAndCombinatorSource = variablesAndCombinatorSource;
+        this.subscriptionInterceptors     = subscriptionInterceptors.stream().sorted(Comparator.reverseOrder())
+                .toList();
+        this.decisionInterceptors         = decisionInterceptors.stream().sorted(Comparator.reverseOrder()).toList();
+    }
 
-	@Override
-	public Flux<PDPConfiguration> pdpConfiguration() {
-		return Flux.combineLatest(variablesAndCombinatorSource.getCombiningAlgorithm(),
-				variablesAndCombinatorSource.getVariables(), this::createConfiguration);
-	}
+    @Override
+    public Flux<PDPConfiguration> pdpConfiguration() {
+        return Flux.combineLatest(variablesAndCombinatorSource.getCombiningAlgorithm(),
+                variablesAndCombinatorSource.getVariables(), this::createConfiguration);
+    }
 
-	private PDPConfiguration createConfiguration(Optional<CombiningAlgorithm> combinator,
-			Optional<Map<String, JsonNode>> variables) {
-		return new PDPConfiguration(attributeCtx, functionCtx, variables.orElse(null), combinator.orElse(null),
-				decisionInterceptorChain(), subscriptionInterceptorChain());
-	}
+    private PDPConfiguration createConfiguration(Optional<CombiningAlgorithm> combinator,
+            Optional<Map<String, JsonNode>> variables) {
+        return new PDPConfiguration(attributeCtx, functionCtx, variables.orElse(null), combinator.orElse(null),
+                decisionInterceptorChain(), subscriptionInterceptorChain());
+    }
 
-	private UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain() {
-		return t -> {
-			for (var intercept : subscriptionInterceptors) {
-				t = intercept.apply(t);
-			}
-			return t;
-		};
-	}
+    private UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain() {
+        return t -> {
+            for (var intercept : subscriptionInterceptors) {
+                t = intercept.apply(t);
+            }
+            return t;
+        };
+    }
 
-	private UnaryOperator<TracedDecision> decisionInterceptorChain() {
-		return t -> {
-			for (var intercept : decisionInterceptors) {
-				t = intercept.apply(t);
-			}
-			return t;
-		};
-	}
+    private UnaryOperator<TracedDecision> decisionInterceptorChain() {
+        return t -> {
+            for (var intercept : decisionInterceptors) {
+                t = intercept.apply(t);
+            }
+            return t;
+        };
+    }
 
-	@Override
-	public void destroy() throws Exception {
-		variablesAndCombinatorSource.destroy();
-	}
+    @Override
+    public void destroy() {
+        variablesAndCombinatorSource.destroy();
+    }
 }

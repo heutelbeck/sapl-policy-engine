@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,10 +19,10 @@ import io.sapl.api.interpreter.Val;
 
 public interface FunctionMock {
 
-	Val evaluateFunctionCall(Val... parameter);
+    Val evaluateFunctionCall(Val... parameter);
 
-	void assertVerifications();
+    void assertVerifications();
 
-	String getErrorMessageForCurrentMode();
+    String getErrorMessageForCurrentMode();
 
 }

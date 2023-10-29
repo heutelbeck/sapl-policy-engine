@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,17 +25,17 @@ import reactor.core.publisher.Mono;
 
 public interface InMemoryDocumentIndex {
 
-	void insert(String documentKey, String document);
+    void insert(String documentKey, String document);
 
-	void publish(String documentKey);
+    void publish(String documentKey);
 
-	void withdraw(String documentKey);
+    void withdraw(String documentKey);
 
-	void updateFunctionContext(FunctionContext functionCtx);
+    void updateFunctionContext(FunctionContext functionCtx);
 
-	void setLiveMode();
+    void setLiveMode();
 
-	Mono<PolicyRetrievalResult> retrievePolicies(AuthorizationSubscription authzSubscription,
-			FunctionContext functionCtx, Map<String, JsonNode> variables);
+    Mono<PolicyRetrievalResult> retrievePolicies(AuthorizationSubscription authzSubscription,
+            FunctionContext functionCtx, Map<String, JsonNode> variables);
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,21 +30,21 @@ import io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSource;
 
 class FixedFunctionsAndAttributesPDPConfigurationProviderTest {
 
-	@Test
-	void do_test() throws Exception {
-		var source   = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
-		var attrCtx  = new AnnotationAttributeContext();
-		var funcCtx  = new AnnotationFunctionContext();
-		var provider = new FixedFunctionsAndAttributesPDPConfigurationProvider(attrCtx, funcCtx, source, List.of(),
-				List.of());
-		var config   = provider.pdpConfiguration().blockFirst();
-		provider.destroy();
+    @Test
+    void do_test() throws Exception {
+        var source   = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
+        var attrCtx  = new AnnotationAttributeContext();
+        var funcCtx  = new AnnotationFunctionContext();
+        var provider = new FixedFunctionsAndAttributesPDPConfigurationProvider(attrCtx, funcCtx, source, List.of(),
+                List.of());
+        var config   = provider.pdpConfiguration().blockFirst();
+        provider.destroy();
 
-		assertThat(config.documentsCombinator() instanceof DenyUnlessPermitCombiningAlgorithm, is(true));
-		assertThat(config.attributeContext(), is(attrCtx));
-		assertThat(config.functionContext(), is(funcCtx));
-		assertThat(config.variables(), notNullValue());
-		assertThat(config.isValid(), is(true));
-	}
+        assertThat(config.documentsCombinator() instanceof DenyUnlessPermitCombiningAlgorithm, is(true));
+        assertThat(config.attributeContext(), is(attrCtx));
+        assertThat(config.functionContext(), is(funcCtx));
+        assertThat(config.variables(), notNullValue());
+        assertThat(config.isValid(), is(true));
+    }
 
 }

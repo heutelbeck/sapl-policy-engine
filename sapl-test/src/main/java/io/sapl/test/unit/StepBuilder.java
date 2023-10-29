@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,83 +45,83 @@ import reactor.util.context.Context;
  */
 class StepBuilder {
 
-	/**
-	 * Create Builder starting at the Given-Step. Only for internal usage.
-	 * 
-	 * @param document containing the {@link SAPL} policy to evaluate
-	 * @return {@link GivenStep} to start constructing the test case.
-	 */
-	static GivenStep newBuilderAtGivenStep(SAPL document, AttributeContext attrCtx, FunctionContext funcCtx,
-			Map<String, JsonNode> variables) {
-		return new Steps(document, attrCtx, funcCtx, variables);
-	}
+    /**
+     * Create Builder starting at the Given-Step. Only for internal usage.
+     * 
+     * @param document containing the {@link SAPL} policy to evaluate
+     * @return {@link GivenStep} to start constructing the test case.
+     */
+    static GivenStep newBuilderAtGivenStep(SAPL document, AttributeContext attrCtx, FunctionContext funcCtx,
+            Map<String, JsonNode> variables) {
+        return new Steps(document, attrCtx, funcCtx, variables);
+    }
 
-	/**
-	 * Create Builder starting at the When-Step. Only for internal usage.
-	 * 
-	 * @param document containing the {@link SAPL} policy to evaluate
-	 * @return {@link WhenStep} to start constructing the test case.
-	 */
-	static WhenStep newBuilderAtWhenStep(SAPL document, AttributeContext attrCtx, FunctionContext funcCtx,
-			Map<String, JsonNode> variables) {
-		return new Steps(document, attrCtx, funcCtx, variables);
-	}
+    /**
+     * Create Builder starting at the When-Step. Only for internal usage.
+     * 
+     * @param document containing the {@link SAPL} policy to evaluate
+     * @return {@link WhenStep} to start constructing the test case.
+     */
+    static WhenStep newBuilderAtWhenStep(SAPL document, AttributeContext attrCtx, FunctionContext funcCtx,
+            Map<String, JsonNode> variables) {
+        return new Steps(document, attrCtx, funcCtx, variables);
+    }
 
-	// disable default constructor
-	private StepBuilder() {
-	}
+    // disable default constructor
+    private StepBuilder() {
+    }
 
-	/**
-	 * Implementing all step interfaces. Always returning \"this\" to enable
-	 * Builder-Pattern but as a step interface
-	 */
-	private static class Steps extends StepsDefaultImpl {
+    /**
+     * Implementing all step interfaces. Always returning \"this\" to enable
+     * Builder-Pattern but as a step interface
+     */
+    private static class Steps extends StepsDefaultImpl {
 
-		final SAPL document;
+        final SAPL document;
 
-		Steps(SAPL document, AttributeContext attrCtx, FunctionContext funcCtx, Map<String, JsonNode> variables) {
-			this.document                = document;
-			this.mockingFunctionContext  = new MockingFunctionContext(funcCtx);
-			this.mockingAttributeContext = new MockingAttributeContext(attrCtx);
-			this.variables               = variables;
-			this.mockedAttributeValues   = new LinkedList<>();
-		}
+        Steps(SAPL document, AttributeContext attrCtx, FunctionContext funcCtx, Map<String, JsonNode> variables) {
+            this.document                = document;
+            this.mockingFunctionContext  = new MockingFunctionContext(funcCtx);
+            this.mockingAttributeContext = new MockingAttributeContext(attrCtx);
+            this.variables               = variables;
+            this.mockedAttributeValues   = new LinkedList<>();
+        }
 
-		@Override
-		protected void createStepVerifier(AuthorizationSubscription authzSub) {
-			Val matchResult = this.document.matches().contextWrite(setUpContext(authzSub)).block();
-			if (matchResult != null && matchResult.isBoolean() && matchResult.getBoolean()) {
-				if (this.withVirtualTime) {
-					this.steps = StepVerifier.withVirtualTime(
-							() -> this.document.evaluate().map(DocumentEvaluationResult::getAuthorizationDecision)
-									.contextWrite(setUpContext(authzSub)));
-				} else {
-					this.steps = StepVerifier
-							.create(this.document.evaluate().map(DocumentEvaluationResult::getAuthorizationDecision)
-									.contextWrite(setUpContext(authzSub)));
-				}
+        @Override
+        protected void createStepVerifier(AuthorizationSubscription authzSub) {
+            Val matchResult = this.document.matches().contextWrite(setUpContext(authzSub)).block();
+            if (matchResult != null && matchResult.isBoolean() && matchResult.getBoolean()) {
+                if (this.withVirtualTime) {
+                    this.steps = StepVerifier.withVirtualTime(
+                            () -> this.document.evaluate().map(DocumentEvaluationResult::getAuthorizationDecision)
+                                    .contextWrite(setUpContext(authzSub)));
+                } else {
+                    this.steps = StepVerifier
+                            .create(this.document.evaluate().map(DocumentEvaluationResult::getAuthorizationDecision)
+                                    .contextWrite(setUpContext(authzSub)));
+                }
 
-				for (AttributeMockReturnValues mock : this.mockedAttributeValues) {
-					String fullName = mock.getFullName();
-					for (Val val : mock.getMockReturnValues()) {
-						this.steps = this.steps.then(() -> this.mockingAttributeContext.mockEmit(fullName, val));
-					}
-				}
-			} else {
-				this.steps = StepVerifier.create(Flux.just(AuthorizationDecision.NOT_APPLICABLE));
-			}
-		}
+                for (AttributeMockReturnValues mock : this.mockedAttributeValues) {
+                    String fullName = mock.getFullName();
+                    for (Val val : mock.getMockReturnValues()) {
+                        this.steps = this.steps.then(() -> this.mockingAttributeContext.mockEmit(fullName, val));
+                    }
+                }
+            } else {
+                this.steps = StepVerifier.create(Flux.just(AuthorizationDecision.NOT_APPLICABLE));
+            }
+        }
 
-		private Function<Context, Context> setUpContext(AuthorizationSubscription authzSub) {
-			return ctx -> {
-				ctx = AuthorizationContext.setAttributeContext(ctx, this.mockingAttributeContext);
-				ctx = AuthorizationContext.setFunctionContext(ctx, this.mockingFunctionContext);
-				ctx = AuthorizationContext.setVariables(ctx, this.variables);
-				ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSub);
-				return ctx;
-			};
-		}
+        private Function<Context, Context> setUpContext(AuthorizationSubscription authzSub) {
+            return ctx -> {
+                ctx = AuthorizationContext.setAttributeContext(ctx, this.mockingAttributeContext);
+                ctx = AuthorizationContext.setFunctionContext(ctx, this.mockingFunctionContext);
+                ctx = AuthorizationContext.setVariables(ctx, this.variables);
+                ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSub);
+                return ctx;
+            };
+        }
 
-	}
+    }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,31 +30,31 @@ import io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSource;
 
 class VariablesAndCombinatorSourceAutoConfigurationTest {
 
-	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-			.withConfiguration(AutoConfigurations.of(VariablesAndCombinatorSourceAutoConfiguration.class));
+    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
+            .withConfiguration(AutoConfigurations.of(VariablesAndCombinatorSourceAutoConfiguration.class));
 
-	@TempDir
-	File tempDir;
+    @TempDir
+    File tempDir;
 
-	@Test
-	void whenFilesystemIsSet_thenFilesystemSourceIsDeployed() {
-		contextRunner.withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=FILESYSTEM",
-				"io.sapl.pdp.embedded.configPath=" + tempDir).run(context -> {
-					assertThat(context).hasNotFailed();
-					assertThat(context).hasSingleBean(VariablesAndCombinatorSource.class);
-					assertThat(context).hasSingleBean(FileSystemVariablesAndCombinatorSource.class);
-				});
-	}
+    @Test
+    void whenFilesystemIsSet_thenFilesystemSourceIsDeployed() {
+        contextRunner.withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=FILESYSTEM",
+                "io.sapl.pdp.embedded.configPath=" + tempDir).run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(VariablesAndCombinatorSource.class);
+                    assertThat(context).hasSingleBean(FileSystemVariablesAndCombinatorSource.class);
+                });
+    }
 
-	@Test
-	void whenResourcesIsSet_thenResourcesSourceIsDeployed() {
-		contextRunner
-				.withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=RESOURCES", "io.sapl.pdp.embedded.configPath=/")
-				.run(context -> {
-					assertThat(context).hasNotFailed();
-					assertThat(context).hasSingleBean(VariablesAndCombinatorSource.class);
-					assertThat(context).hasSingleBean(ResourcesVariablesAndCombinatorSource.class);
-				});
-	}
+    @Test
+    void whenResourcesIsSet_thenResourcesSourceIsDeployed() {
+        contextRunner
+                .withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=RESOURCES", "io.sapl.pdp.embedded.configPath=/")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(VariablesAndCombinatorSource.class);
+                    assertThat(context).hasSingleBean(ResourcesVariablesAndCombinatorSource.class);
+                });
+    }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,8 +21,9 @@ import com.fasterxml.jackson.databind.JsonNode;
  * Interface for all calculation results that are traced.
  */
 public interface Traced {
-	/**
-	 * @return a JSON representation of the trace.
-	 */
-	JsonNode getTrace();
+
+    /**
+     * @return a JSON representation of the trace.
+     */
+    JsonNode getTrace();
 }

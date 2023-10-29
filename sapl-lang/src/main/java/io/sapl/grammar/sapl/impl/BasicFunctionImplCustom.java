@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,11 +28,11 @@ import reactor.core.publisher.Flux;
  */
 public class BasicFunctionImplCustom extends BasicFunctionImpl {
 
-	@Override
-	public Flux<Val> evaluate() {
-		return FunctionUtil.combineArgumentFluxes(arguments)
-				.concatMap(parameters -> FunctionUtil.evaluateFunctionMono(fsteps, parameters))
-				.switchMap(resolveStepsFiltersAndSubTemplates(steps));
-	}
+    @Override
+    public Flux<Val> evaluate() {
+        return FunctionUtil.combineArgumentFluxes(arguments)
+                .concatMap(parameters -> FunctionUtil.evaluateFunctionMono(fsteps, parameters))
+                .switchMap(v -> resolveStepsFiltersAndSubTemplates(steps).apply(v));
+    }
 
 }

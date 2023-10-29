@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,27 +22,27 @@ import io.sapl.test.SaplTestException;
 
 public class MockCall {
 
-	private static final String ERROR_INVALID_ARGUMENT_INDEX = "Requested index %d for function call parameters but there are only %d parameters. Did you forget to check with \"getNumberOfArguments()\"";
+    private static final String ERROR_INVALID_ARGUMENT_INDEX = "Requested index %d for function call parameters but there are only %d parameters. Did you forget to check with \"getNumberOfArguments()\"";
 
-	private final Val[] parameter;
+    private final Val[] parameter;
 
-	public MockCall(Val... parameter) {
-		this.parameter = parameter;
-	}
+    public MockCall(Val... parameter) {
+        this.parameter = parameter;
+    }
 
-	public int getNumberOfArguments() {
-		return this.parameter.length;
-	}
+    public int getNumberOfArguments() {
+        return this.parameter.length;
+    }
 
-	public Val getArgument(int index) {
-		if (index > this.parameter.length - 1) {
-			throw new SaplTestException(String.format(ERROR_INVALID_ARGUMENT_INDEX, index, getNumberOfArguments()));
-		}
-		return this.parameter[index];
-	}
+    public Val getArgument(int index) {
+        if (index > this.parameter.length - 1) {
+            throw new SaplTestException(String.format(ERROR_INVALID_ARGUMENT_INDEX, index, getNumberOfArguments()));
+        }
+        return this.parameter[index];
+    }
 
-	public List<Val> getListOfArguments() {
-		return List.of(this.parameter);
-	}
+    public List<Val> getListOfArguments() {
+        return List.of(this.parameter);
+    }
 
 }

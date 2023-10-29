@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,12 +22,12 @@ import io.sapl.api.interpreter.Val;
 @FunctionLibrary(name = "date")
 public class MockXACMLDateFunctionLibrary {
 
-	@Function
-	public Val diff(Val type, Val to, Val from) {
-		if ("years".equals(type.get().asText())) {
-			return Val.of(15L);
-		}
-		return Val.of(5L);
-	}
+    @Function
+    public Val diff(Val type, Val to, Val from) {
+        if ("years".equals(type.get().asText())) {
+            return Val.of(15L);
+        }
+        return Val.of(5L);
+    }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,47 +46,47 @@ import reactor.core.publisher.Flux;
  */
 public class PermitUnlessDenyCombiningAlgorithmImplCustom extends PermitUnlessDenyCombiningAlgorithmImpl {
 
-	@Override
-	public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
-		return CombiningAlgorithmUtil.eagerlyCombinePolicyElements(policies, this::combinator, getName());
-	}
+    @Override
+    public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
+        return CombiningAlgorithmUtil.eagerlyCombinePolicyElements(policies, this::combinator, getName());
+    }
 
-	@Override
-	public String getName() {
-		return "PERMIT_UNLESS_DENY";
-	}
+    @Override
+    public String getName() {
+        return "PERMIT_UNLESS_DENY";
+    }
 
-	private CombinedDecision combinator(DocumentEvaluationResult[] policyDecisions) {
-		if (policyDecisions.length == 0)
-			return CombinedDecision.of(AuthorizationDecision.PERMIT, getName());
+    private CombinedDecision combinator(DocumentEvaluationResult[] policyDecisions) {
+        if (policyDecisions.length == 0)
+            return CombinedDecision.of(AuthorizationDecision.PERMIT, getName());
 
-		var entitlement = PERMIT;
-		var collector   = new ObligationAdviceCollector();
-		var resource    = Optional.<JsonNode>empty();
-		var decisions   = new LinkedList<DocumentEvaluationResult>();
-		for (var policyDecision : policyDecisions) {
-			decisions.add(policyDecision);
-			var authzDecision = policyDecision.getAuthorizationDecision();
-			if (authzDecision.getDecision() == DENY) {
-				entitlement = DENY;
-			}
-			collector.add(authzDecision);
-			if (authzDecision.getResource().isPresent()) {
-				if (resource.isPresent()) {
-					// this is a transformation uncertainty.
-					// another policy already defined a transformation
-					// this the overall result is basically INDETERMINATE.
-					// However, DENY overrides with this algorithm.
-					entitlement = DENY;
-				} else {
-					resource = authzDecision.getResource();
-				}
-			}
-		}
+        var entitlement = PERMIT;
+        var collector   = new ObligationAdviceCollector();
+        var resource    = Optional.<JsonNode>empty();
+        var decisions   = new LinkedList<DocumentEvaluationResult>();
+        for (var policyDecision : policyDecisions) {
+            decisions.add(policyDecision);
+            var authzDecision = policyDecision.getAuthorizationDecision();
+            if (authzDecision.getDecision() == DENY) {
+                entitlement = DENY;
+            }
+            collector.add(authzDecision);
+            if (authzDecision.getResource().isPresent()) {
+                if (resource.isPresent()) {
+                    // this is a transformation uncertainty.
+                    // another policy already defined a transformation
+                    // this the overall result is basically INDETERMINATE.
+                    // However, DENY overrides with this algorithm.
+                    entitlement = DENY;
+                } else {
+                    resource = authzDecision.getResource();
+                }
+            }
+        }
 
-		var finalDecision = new AuthorizationDecision(entitlement, resource, collector.getObligations(entitlement),
-				collector.getAdvice(entitlement));
-		return CombinedDecision.of(finalDecision, getName(), decisions);
-	}
+        var finalDecision = new AuthorizationDecision(entitlement, resource, collector.getObligations(entitlement),
+                collector.getAdvice(entitlement));
+        return CombinedDecision.of(finalDecision, getName(), decisions);
+    }
 
 }

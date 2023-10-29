@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,21 +25,21 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class TestFileHelper {
 
-	/**
-	 * Deletes a directory.
-	 * 
-	 * @param directoryToBeDeleted a directory
-	 * @return true if and only if the file or directory is successfully deleted;
-	 *         false otherwise
-	 */
-	public static boolean deleteDirectory(File directoryToBeDeleted) {
-		File[] allContents = directoryToBeDeleted.listFiles();
-		if (allContents != null) {
-			for (File file : allContents) {
-				deleteDirectory(file);
-			}
-		}
-		return directoryToBeDeleted.delete();
-	}
+    /**
+     * Deletes a directory.
+     * 
+     * @param directoryToBeDeleted a directory
+     * @return true if and only if the file or directory is successfully deleted;
+     *         false otherwise
+     */
+    public static boolean deleteDirectory(File directoryToBeDeleted) {
+        File[] allContents = directoryToBeDeleted.listFiles();
+        if (allContents != null) {
+            for (File file : allContents) {
+                deleteDirectory(file);
+            }
+        }
+        return directoryToBeDeleted.delete();
+    }
 
 }

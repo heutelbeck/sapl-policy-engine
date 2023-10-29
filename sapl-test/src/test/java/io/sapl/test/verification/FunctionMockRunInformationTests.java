@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,28 +24,28 @@ import io.sapl.test.mocking.MockCall;
 
 class FunctionMockRunInformationTests {
 
-	@Test
-	void test_initialization() {
-		var fullName = "foo";
-		var mock     = new MockRunInformation(fullName);
+    @Test
+    void test_initialization() {
+        var fullName = "foo";
+        var mock     = new MockRunInformation(fullName);
 
-		assertThat(mock.getFullName()).isEqualTo(fullName);
-		assertThat(mock.getTimesCalled()).isZero();
-		assertThat(mock.getCalls()).isNotNull();
-	}
+        assertThat(mock.getFullName()).isEqualTo(fullName);
+        assertThat(mock.getTimesCalled()).isZero();
+        assertThat(mock.getCalls()).isNotNull();
+    }
 
-	@Test
-	void test_increase() {
-		var fullName = "foo";
-		var call     = new MockCall(Val.of("foo"));
-		var mock     = new MockRunInformation(fullName);
+    @Test
+    void test_increase() {
+        var fullName = "foo";
+        var call     = new MockCall(Val.of("foo"));
+        var mock     = new MockRunInformation(fullName);
 
-		mock.saveCall(call);
+        mock.saveCall(call);
 
-		assertThat(mock.getTimesCalled()).isEqualTo(1);
-		assertThat(mock.getCalls().get(0).isUsed()).isFalse();
-		assertThat(mock.getCalls().get(0).getCall().getNumberOfArguments()).isEqualTo(1);
-		assertThat(mock.getCalls().get(0).getCall().getArgument(0)).isEqualTo(Val.of("foo"));
-	}
+        assertThat(mock.getTimesCalled()).isEqualTo(1);
+        assertThat(mock.getCalls().get(0).isUsed()).isFalse();
+        assertThat(mock.getCalls().get(0).getCall().getNumberOfArguments()).isEqualTo(1);
+        assertThat(mock.getCalls().get(0).getCall().getArgument(0)).isEqualTo(Val.of("foo"));
+    }
 
 }

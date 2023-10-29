@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,30 +21,30 @@ import reactor.core.publisher.Flux;
 
 public class GenericInMemoryIndexedPolicyRetrievalPoint implements PolicyRetrievalPoint, Disposable {
 
-	private final Flux<ImmutableParsedDocumentIndex> index;
+    private final Flux<ImmutableParsedDocumentIndex> index;
 
-	private final Disposable indexSubscription;
+    private final Disposable indexSubscription;
 
-	private final PrpUpdateEventSource eventSource;
+    private final PrpUpdateEventSource eventSource;
 
-	public GenericInMemoryIndexedPolicyRetrievalPoint(ImmutableParsedDocumentIndex seedIndex,
-			PrpUpdateEventSource eventSource) {
-		this.eventSource = eventSource;
-		index            = Flux.from(eventSource.getUpdates()).scan(seedIndex, ImmutableParsedDocumentIndex::apply)
-				.skip(1L).share().cache(1);
-		// initial subscription, so that the index starts building upon startup
-		indexSubscription = Flux.from(index).subscribe();
-	}
+    public GenericInMemoryIndexedPolicyRetrievalPoint(ImmutableParsedDocumentIndex seedIndex,
+            PrpUpdateEventSource eventSource) {
+        this.eventSource = eventSource;
+        index            = Flux.from(eventSource.getUpdates()).scan(seedIndex, ImmutableParsedDocumentIndex::apply)
+                .skip(1L).share().cache(1);
+        // initial subscription, so that the index starts building upon startup
+        indexSubscription = Flux.from(index).subscribe();
+    }
 
-	@Override
-	public Flux<PolicyRetrievalResult> retrievePolicies() {
-		return Flux.from(index).flatMap(ImmutableParsedDocumentIndex::retrievePolicies);
-	}
+    @Override
+    public Flux<PolicyRetrievalResult> retrievePolicies() {
+        return Flux.from(index).flatMap(ImmutableParsedDocumentIndex::retrievePolicies);
+    }
 
-	@Override
-	public void dispose() {
-		indexSubscription.dispose();
-		eventSource.dispose();
-	}
+    @Override
+    public void dispose() {
+        indexSubscription.dispose();
+        eventSource.dispose();
+    }
 
 }

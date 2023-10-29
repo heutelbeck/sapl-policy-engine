@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,21 +22,19 @@ import com.google.inject.Injector;
 import io.sapl.grammar.sapl.SaplPackage;
 
 /**
- * Initialization support for running Xtext languages without Equinox extension registry.
+ * Initialization support for running Xtext languages without Equinox extension
+ * registry.
  */
 public class SAPLStandaloneSetup extends SAPLStandaloneSetupGenerated {
 
-	public static void doSetup() {
-		new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();
-	}
+    public static void doSetup() {
+        new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();
+    }
 
-	@Override
-	public void register(final Injector injector) {
-		boolean containsKey = EPackage.Registry.INSTANCE.containsKey(SaplPackage.eNS_URI);
-		if (!containsKey) {
-			EPackage.Registry.INSTANCE.put(SaplPackage.eNS_URI, SaplPackage.eINSTANCE);
-		}
-		super.register(injector);
-	}
+    @Override
+    public void register(final Injector injector) {
+        EPackage.Registry.INSTANCE.computeIfAbsent(SaplPackage.eNS_URI, key -> SaplPackage.eINSTANCE);
+        super.register(injector);
+    }
 
 }

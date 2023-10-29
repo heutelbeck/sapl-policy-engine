@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,30 +27,30 @@ import io.sapl.api.interpreter.Val;
 
 class IsValUndefinedTests {
 
-	@Test
-	void testTypeFalseError() {
-		var sut = valUndefined();
-		assertThat(Val.error(), not(is(sut)));
-	}
+    @Test
+    void testTypeFalseError() {
+        var sut = valUndefined();
+        assertThat(Val.error(), not(is(sut)));
+    }
 
-	@Test
-	void testTypeFalseValue() {
-		var sut = valUndefined();
-		assertThat(Val.TRUE, not(is(sut)));
-	}
+    @Test
+    void testTypeFalseValue() {
+        var sut = valUndefined();
+        assertThat(Val.TRUE, not(is(sut)));
+    }
 
-	@Test
-	void testType() {
-		var sut = valUndefined();
-		assertThat(Val.UNDEFINED, is(sut));
-	}
+    @Test
+    void testType() {
+        var sut = valUndefined();
+        assertThat(Val.UNDEFINED, is(sut));
+    }
 
-	@Test
-	void testDescriptionForEmptyConstructor() {
-		var sut = valUndefined();
-		final StringDescription description = new StringDescription();
-		sut.describeTo(description);
-		assertThat(description.toString(), is("undefined"));
-	}
+    @Test
+    void testDescriptionForEmptyConstructor() {
+        var                     sut         = valUndefined();
+        final StringDescription description = new StringDescription();
+        sut.describeTo(description);
+        assertThat(description.toString(), is("undefined"));
+    }
 
 }

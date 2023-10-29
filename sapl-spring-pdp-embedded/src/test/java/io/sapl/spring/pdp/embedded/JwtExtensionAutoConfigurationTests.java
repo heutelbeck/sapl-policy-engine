@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,18 +31,18 @@ import io.sapl.extension.jwt.JWTPolicyInformationPoint;
 
 class JwtExtensionAutoConfigurationTests {
 
-	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-			.withConfiguration(AutoConfigurations.of(JwtExtensionAutoConfiguration.class));
+    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
+            .withConfiguration(AutoConfigurations.of(JwtExtensionAutoConfiguration.class));
 
-	@Test
-	void whenContextLoaded_thenDefaultLibrariesArePresent() {
-		contextRunner.withBean(WebClient.Builder.class, () -> mock(WebClient.Builder.class))
-				.withBean(JWTKeyProvider.class, () -> mock(JWTKeyProvider.class))
-				.withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
-					assertThat(context).hasNotFailed();
-					assertThat(context).hasSingleBean(JWTFunctionLibrary.class);
-					assertThat(context).hasSingleBean(JWTPolicyInformationPoint.class);
-				});
-	}
+    @Test
+    void whenContextLoaded_thenDefaultLibrariesArePresent() {
+        contextRunner.withBean(WebClient.Builder.class, () -> mock(WebClient.Builder.class))
+                .withBean(JWTKeyProvider.class, () -> mock(JWTKeyProvider.class))
+                .withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(JWTFunctionLibrary.class);
+                    assertThat(context).hasSingleBean(JWTPolicyInformationPoint.class);
+                });
+    }
 
 }

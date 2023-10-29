@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,62 +44,63 @@ import io.sapl.util.JarUtil;
 
 class ResourcesPrpUpdateEventSourceTest {
 
-	static final DefaultSAPLInterpreter DEFAULT_SAPL_INTERPRETER = new DefaultSAPLInterpreter();
+    static final DefaultSAPLInterpreter DEFAULT_SAPL_INTERPRETER = new DefaultSAPLInterpreter();
 
-	@Test
-	void test_guard_clauses() {
-		assertThrows(NullPointerException.class, () -> new ResourcesPrpUpdateEventSource(null, null));
-		assertThrows(NullPointerException.class, () -> new ResourcesPrpUpdateEventSource("", null));
-		assertThrows(NullPointerException.class,
-				() -> new ResourcesPrpUpdateEventSource(null, DEFAULT_SAPL_INTERPRETER));
-		assertThrows(NullPointerException.class,
-				() -> new ResourcesPrpUpdateEventSource(null, mock(SAPLInterpreter.class)));
+    @Test
+    void test_guard_clauses() {
+        assertThrows(NullPointerException.class, () -> new ResourcesPrpUpdateEventSource(null, null));
+        assertThrows(NullPointerException.class, () -> new ResourcesPrpUpdateEventSource("", null));
+        assertThrows(NullPointerException.class,
+                () -> new ResourcesPrpUpdateEventSource(null, DEFAULT_SAPL_INTERPRETER));
+        assertThrows(NullPointerException.class,
+                () -> new ResourcesPrpUpdateEventSource(null, mock(SAPLInterpreter.class)));
 
-		assertThrows(NullPointerException.class, () -> new ResourcesPrpUpdateEventSource(null, null, null));
-		assertThrows(NullPointerException.class, () -> new ResourcesPrpUpdateEventSource(null, "", null));
-		assertThrows(NullPointerException.class,
-				() -> new ResourcesPrpUpdateEventSource(null, null, mock(SAPLInterpreter.class)));
-		assertThrows(NullPointerException.class, () -> new ResourcesPrpUpdateEventSource(this.getClass(), null, null));
-		assertThrows(NullPointerException.class, () -> new ResourcesPrpUpdateEventSource(this.getClass(), "", null));
-	}
+        assertThrows(NullPointerException.class, () -> new ResourcesPrpUpdateEventSource(null, null, null));
+        assertThrows(NullPointerException.class, () -> new ResourcesPrpUpdateEventSource(null, "", null));
+        assertThrows(NullPointerException.class,
+                () -> new ResourcesPrpUpdateEventSource(null, null, mock(SAPLInterpreter.class)));
+        var thisClass = this.getClass();
+        assertThrows(NullPointerException.class, () -> new ResourcesPrpUpdateEventSource(thisClass, null, null));
+        assertThrows(NullPointerException.class, () -> new ResourcesPrpUpdateEventSource(thisClass, "", null));
+    }
 
-	@Test
-	void readPoliciesFromDirectory() throws InitializationException {
-		var source = new ResourcesPrpUpdateEventSource("/policies", DEFAULT_SAPL_INTERPRETER);
-		var update = source.getUpdates().blockFirst();
-		assertThat(update, notNullValue());
-		assertThat(update.getUpdates().length, is(3));
-		assertThrows(RuntimeException.class,
-				() -> new ResourcesPrpUpdateEventSource("/NON-EXISTING-PATH", DEFAULT_SAPL_INTERPRETER));
-		assertThrows(PolicyEvaluationException.class,
-				() -> new ResourcesPrpUpdateEventSource("/it/invalid", DEFAULT_SAPL_INTERPRETER));
-		source.dispose();
-	}
+    @Test
+    void readPoliciesFromDirectory() throws InitializationException {
+        var source = new ResourcesPrpUpdateEventSource("/policies", DEFAULT_SAPL_INTERPRETER);
+        var update = source.getUpdates().blockFirst();
+        assertThat(update, notNullValue());
+        assertThat(update.getUpdates().length, is(3));
+        assertThrows(RuntimeException.class,
+                () -> new ResourcesPrpUpdateEventSource("/NON-EXISTING-PATH", DEFAULT_SAPL_INTERPRETER));
+        assertThrows(PolicyEvaluationException.class,
+                () -> new ResourcesPrpUpdateEventSource("/it/invalid", DEFAULT_SAPL_INTERPRETER));
+        source.dispose();
+    }
 
-	@Test
-	void ifFileIOError_exceptionPropagates() throws IOException {
-		var failingInputStream = mock(InputStream.class);
-		when(failingInputStream.read(any(), anyInt(), anyInt())).thenThrow(new IOException("to be expected"));
+    @Test
+    void ifFileIOError_exceptionPropagates() throws IOException {
+        var failingInputStream = mock(InputStream.class);
+        when(failingInputStream.read(any(), anyInt(), anyInt())).thenThrow(new IOException("to be expected"));
 
-		try (MockedStatic<Channels> mock = mockStatic(Channels.class, CALLS_REAL_METHODS)) {
-			mock.when(() -> Channels.newInputStream(any(ReadableByteChannel.class))).thenReturn(failingInputStream);
-			assertThrows(InitializationException.class,
-					() -> new ResourcesPrpUpdateEventSource("/policies", DEFAULT_SAPL_INTERPRETER));
-		}
-	}
+        try (MockedStatic<Channels> mock = mockStatic(Channels.class, CALLS_REAL_METHODS)) {
+            mock.when(() -> Channels.newInputStream(any(ReadableByteChannel.class))).thenReturn(failingInputStream);
+            assertThrows(InitializationException.class,
+                    () -> new ResourcesPrpUpdateEventSource("/policies", DEFAULT_SAPL_INTERPRETER));
+        }
+    }
 
-	@Test
-	void ifExecutedInJar_thenLoadDocumentsFromJar() throws InitializationException, MalformedURLException {
-		var url = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/policies");
-		try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
-			mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);
+    @Test
+    void ifExecutedInJar_thenLoadDocumentsFromJar() throws InitializationException, MalformedURLException {
+        var url = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/policies");
+        try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
+            mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);
 
-			var source = new ResourcesPrpUpdateEventSource("/policies", DEFAULT_SAPL_INTERPRETER);
-			var update = source.getUpdates().blockFirst();
+            var source = new ResourcesPrpUpdateEventSource("/policies", DEFAULT_SAPL_INTERPRETER);
+            var update = source.getUpdates().blockFirst();
 
-			assertThat(update, notNullValue());
-			assertThat(update.getUpdates().length, is(2));
-		}
-	}
+            assertThat(update, notNullValue());
+            assertThat(update.getUpdates().length, is(2));
+        }
+    }
 
 }

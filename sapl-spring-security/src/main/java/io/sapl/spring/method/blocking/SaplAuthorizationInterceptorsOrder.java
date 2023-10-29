@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,13 +20,13 @@ import org.springframework.security.authorization.method.AuthorizationIntercepto
 import lombok.Getter;
 
 public enum SaplAuthorizationInterceptorsOrder {
-	PRE_ENFORCE(AuthorizationInterceptorsOrder.PRE_AUTHORIZE.getOrder() - 50),
-	POST_ENFORCE(AuthorizationInterceptorsOrder.PRE_AUTHORIZE.getOrder() - 40);
+    PRE_ENFORCE(AuthorizationInterceptorsOrder.PRE_AUTHORIZE.getOrder() - 50),
+    POST_ENFORCE(AuthorizationInterceptorsOrder.PRE_AUTHORIZE.getOrder() - 40);
 
-	@Getter
-	private final int order;
+    @Getter
+    private final int order;
 
-	SaplAuthorizationInterceptorsOrder(int order) {
-		this.order = order;
-	}
+    SaplAuthorizationInterceptorsOrder(int order) {
+        this.order = order;
+    }
 }

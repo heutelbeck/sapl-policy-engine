@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,68 +34,67 @@ import reactor.test.StepVerifier;
 
 class AttributeMockForParentValueAndArgumentsTests {
 
-	private AttributeMockForParentValueAndArguments mock;
+    private AttributeMockForParentValueAndArguments mock;
 
-	@BeforeEach
-	void setUp() {
-		mock = new AttributeMockForParentValueAndArguments("attr.test");
-	}
+    @BeforeEach
+    void setUp() {
+        mock = new AttributeMockForParentValueAndArguments("attr.test");
+    }
 
-	@Test
-	void test() {
-		mock.loadMockForParentValueAndArguments(whenAttributeParams(parentValue(val(true)), arguments(val(1), val(1))),
-				Val.of(true));
-		mock.loadMockForParentValueAndArguments(whenAttributeParams(parentValue(val(true)), arguments(val(1), val(2))),
-				Val.of(false));
+    @Test
+    void test() {
+        mock.loadMockForParentValueAndArguments(whenAttributeParams(parentValue(val(true)), arguments(val(1), val(1))),
+                Val.of(true));
+        mock.loadMockForParentValueAndArguments(whenAttributeParams(parentValue(val(true)), arguments(val(1), val(2))),
+                Val.of(false));
 
-		var arguments = new LinkedList<Flux<Val>>();
-		arguments.add(Flux.just(Val.of(1)));
-		arguments.add(Flux.just(Val.of(1), Val.of(2)));
+        var arguments = new LinkedList<Flux<Val>>();
+        arguments.add(Flux.just(Val.of(1)));
+        arguments.add(Flux.just(Val.of(1), Val.of(2)));
 
-		StepVerifier.create(mock.evaluate("test.attribute", Val.of(true), null, arguments)).expectNext(Val.of(true))
-				.expectNext(Val.of(false)).thenCancel().verify();
+        StepVerifier.create(mock.evaluate("test.attribute", Val.of(true), null, arguments)).expectNext(Val.of(true))
+                .expectNext(Val.of(false)).thenCancel().verify();
 
-		mock.assertVerifications();
-	}
+        mock.assertVerifications();
+    }
 
-	@Test
-	void test_notMatchingMockForParentValue() {
-		mock.loadMockForParentValueAndArguments(whenAttributeParams(parentValue(val(true)), arguments(val(1))),
-				Val.of(true));
+    @Test
+    void test_notMatchingMockForParentValue() {
+        mock.loadMockForParentValueAndArguments(whenAttributeParams(parentValue(val(true)), arguments(val(1))),
+                Val.of(true));
 
-		var arguments = new LinkedList<Flux<Val>>();
-		arguments.add(Flux.just(Val.of(1)));
-		assertThatExceptionOfType(SaplTestException.class)
-				.isThrownBy(() -> StepVerifier.create(mock.evaluate("test.attribute", Val.of(false), null, arguments))
-						.expectNext(Val.of(true)).thenCancel().verify());
-	}
+        var arguments = new LinkedList<Flux<Val>>();
+        arguments.add(Flux.just(Val.of(1)));
+        assertThatExceptionOfType(SaplTestException.class)
+                .isThrownBy(() -> mock.evaluate("test.attribute", Val.FALSE, null, arguments));
+    }
 
-	@Test
-	void test_noMatchingMockForArguments() {
-		mock.loadMockForParentValueAndArguments(whenAttributeParams(parentValue(val(true)), arguments(val(1), val(1))),
-				Val.of(true));
+    @Test
+    void test_noMatchingMockForArguments() {
+        mock.loadMockForParentValueAndArguments(whenAttributeParams(parentValue(val(true)), arguments(val(1), val(1))),
+                Val.of(true));
 
-		var arguments = new LinkedList<Flux<Val>>();
-		arguments.add(Flux.just(Val.of(99)));
-		arguments.add(Flux.just(Val.of(99)));
+        var arguments = new LinkedList<Flux<Val>>();
+        arguments.add(Flux.just(Val.of(99)));
+        arguments.add(Flux.just(Val.of(99)));
 
-		StepVerifier.create(mock.evaluate("test.attribute", Val.of(true), null, arguments)).expectError().verify();
-	}
+        StepVerifier.create(mock.evaluate("test.attribute", Val.of(true), null, arguments)).expectError().verify();
+    }
 
-	@Test
-	void test_argumentCountNotMatching() {
-		mock.loadMockForParentValueAndArguments(whenAttributeParams(parentValue(val(true)), arguments(val(1), val(1))),
-				Val.of(true));
+    @Test
+    void test_argumentCountNotMatching() {
+        mock.loadMockForParentValueAndArguments(whenAttributeParams(parentValue(val(true)), arguments(val(1), val(1))),
+                Val.of(true));
 
-		var arguments = new LinkedList<Flux<Val>>();
-		arguments.add(Flux.just(Val.of(1)));
+        var arguments = new LinkedList<Flux<Val>>();
+        arguments.add(Flux.just(Val.of(1)));
 
-		StepVerifier.create(mock.evaluate("test.attribute", Val.of(true), null, arguments)).expectError().verify();
-	}
+        StepVerifier.create(mock.evaluate("test.attribute", Val.of(true), null, arguments)).expectError().verify();
+    }
 
-	@Test
-	void test_errorMessage() {
-		assertThat(mock.getErrorMessageForCurrentMode()).isNotEmpty();
-	}
+    @Test
+    void test_errorMessage() {
+        assertThat(mock.getErrorMessageForCurrentMode()).isNotEmpty();
+    }
 
 }

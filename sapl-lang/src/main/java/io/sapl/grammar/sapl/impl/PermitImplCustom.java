@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,9 +22,9 @@ import io.sapl.api.pdp.Decision;
  */
 public class PermitImplCustom extends PermitImpl {
 
-	@Override
-	public Decision getDecision() {
-		return Decision.PERMIT;
-	}
+    @Override
+    public Decision getDecision() {
+        return Decision.PERMIT;
+    }
 
 }

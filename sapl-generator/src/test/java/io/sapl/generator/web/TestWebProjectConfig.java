@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,9 +21,9 @@ import org.eclipse.xtext.xtext.generator.model.project.WebProjectConfig;
 
 class TestWebProjectConfig extends WebProjectConfig {
 
-	@Override
-	public IXtextGeneratorFileSystemAccess getAssets() {
-		return new XtextGeneratorFileSystemAccess("", false);
-	}
+    @Override
+    public IXtextGeneratorFileSystemAccess getAssets() {
+        return new XtextGeneratorFileSystemAccess("", false);
+    }
 
 }

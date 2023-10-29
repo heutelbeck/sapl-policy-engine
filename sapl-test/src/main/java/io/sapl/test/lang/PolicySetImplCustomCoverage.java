@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,21 +25,21 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class PolicySetImplCustomCoverage extends PolicySetImplCustom {
 
-	private final CoverageHitRecorder hitRecorder;
+    private final CoverageHitRecorder hitRecorder;
 
-	PolicySetImplCustomCoverage(CoverageHitRecorder recorder) {
-		this.hitRecorder = recorder;
-	}
+    PolicySetImplCustomCoverage(CoverageHitRecorder recorder) {
+        this.hitRecorder = recorder;
+    }
 
-	@Override
-	public Mono<Val> matches() {
-		return super.matches().doOnNext(matches -> {
-			if (matches.isBoolean() && matches.getBoolean()) {
-				PolicySetHit hit = new PolicySetHit(getSaplName());
-				log.trace("| | | | |-- Hit PolicySet: " + hit);
-				this.hitRecorder.recordPolicySetHit(hit);
-			}
-		});
-	}
+    @Override
+    public Mono<Val> matches() {
+        return super.matches().doOnNext(matches -> {
+            if (matches.isBoolean() && matches.getBoolean()) {
+                PolicySetHit hit = new PolicySetHit(getSaplName());
+                log.trace("| | | | |-- Hit PolicySet: " + hit);
+                this.hitRecorder.recordPolicySetHit(hit);
+            }
+        });
+    }
 
 }

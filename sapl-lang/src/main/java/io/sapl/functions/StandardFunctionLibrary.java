@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,57 +29,65 @@ import io.sapl.api.validation.Text;
 @FunctionLibrary(name = StandardFunctionLibrary.NAME, description = StandardFunctionLibrary.DESCRIPTION)
 public class StandardFunctionLibrary {
 
-	private static final String ON_ERROR_MAP_DOC = "onErrorMap(guardedExpression, fallbackExpression): If the guarded expression evaluates to an error, return the evaluation result of the fallbackExpression.";
+    private static final String ON_ERROR_MAP_DOC = "onErrorMap(guardedExpression, fallbackExpression): If the guarded expression evaluates to an error, return the evaluation result of the fallbackExpression.";
 
-	/**
-	 * Library name and prefix
-	 */
-	public static final String NAME = "standard";
+    /**
+     * Library name and prefix
+     */
+    public static final String NAME = "standard";
 
-	/**
-	 * Library description
-	 */
-	public static final String DESCRIPTION = "This library contains the mandatory functions for the SAPL implementation.";
+    /**
+     * Library description
+     */
+    public static final String DESCRIPTION = "This library contains the mandatory functions for the SAPL implementation.";
 
-	private static final String LENGTH_DOC = "length(JSON_VALUE): For STRING it returns the length of the STRING. "
-			+ "For ARRAY, it returns the number of elements in the array. "
-			+ "For OBJECT, it returns the number of keys in the OBJECT. "
-			+ "For NUMBER, BOOLEAN, or NULL, the function will return an error.";
+    private static final String LENGTH_DOC = "length(JSON_VALUE): For STRING it returns the length of the STRING. "
+            + "For ARRAY, it returns the number of elements in the array. "
+            + "For OBJECT, it returns the number of keys in the OBJECT. "
+            + "For NUMBER, BOOLEAN, or NULL, the function will return an error.";
 
-	private static final String NUMBER_TO_STRING_DOC = "numberToString(JSON_VALUE): For STRING it returns the input. "
-			+ "For NUMBER or BOOLEAN it returns a JSON node representing the value converted to a string. "
-			+ "For NULL it returns a JSON node representing the empty string. "
-			+ "For ARRAY or OBJECT the function will return an error.";
+    private static final String NUMBER_TO_STRING_DOC = "numberToString(JSON_VALUE): For STRING it returns the input. "
+            + "For NUMBER or BOOLEAN it returns a JSON node representing the value converted to a string. "
+            + "For NULL it returns a JSON node representing the empty string. "
+            + "For ARRAY or OBJECT the function will return an error.";
 
-	@Function(docs = LENGTH_DOC)
-	public static Val length(@Array @Text @JsonObject Val parameter) {
-		if (parameter.isTextual())
-			return Val.of(parameter.getText().length());
+    /**
+     * Even though there are only static methods in this class, the engine requires
+     * an instance for registration.
+     */
+    public StandardFunctionLibrary() {
+        // NOOP.
+    }
 
-		return Val.of(parameter.get().size());
-	}
+    @Function(docs = LENGTH_DOC)
+    public static Val length(@Array @Text @JsonObject Val parameter) {
+        if (parameter.isTextual())
+            return Val.of(parameter.getText().length());
 
-	@Function(docs = NUMBER_TO_STRING_DOC)
-	public static Val numberToString(@Text @Number @Bool Val parameter) {
-		JsonNode param = parameter.get();
-		if (param.isNumber())
-			return Val.of(param.numberValue().toString());
+        return Val.of(parameter.get().size());
+    }
 
-		if (param.isBoolean())
-			return Val.of(String.valueOf(param.booleanValue()));
+    @Function(docs = NUMBER_TO_STRING_DOC)
+    public static Val numberToString(@Text @Number @Bool Val parameter) {
+        JsonNode param = parameter.get();
+        if (param.isNumber())
+            return Val.of(param.numberValue().toString());
 
-		if (param.isNull())
-			return Val.of("");
+        if (param.isBoolean())
+            return Val.of(String.valueOf(param.booleanValue()));
 
-		return parameter;
-	}
+        if (param.isNull())
+            return Val.of("");
 
-	@Function(docs = ON_ERROR_MAP_DOC)
-	public static Val onErrorMap(Val guardedExpression, Val fallbackValue) {
-		if (guardedExpression.isError())
-			return fallbackValue;
+        return parameter;
+    }
 
-		return guardedExpression;
-	}
+    @Function(docs = ON_ERROR_MAP_DOC)
+    public static Val onErrorMap(Val guardedExpression, Val fallbackValue) {
+        if (guardedExpression.isError())
+            return fallbackValue;
+
+        return guardedExpression;
+    }
 
 }

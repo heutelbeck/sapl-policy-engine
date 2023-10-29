@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,17 +25,17 @@ import io.sapl.test.unit.SaplUnitTestFixture;
 
 class I_PolicyWithEnvironmentAttributeTests {
 
-	private SaplTestFixture fixture;
+    private SaplTestFixture fixture;
 
-	@BeforeEach
-	void setUp() {
-		fixture = new SaplUnitTestFixture("policyWithEnvironmentAttribute.sapl");
-	}
+    @BeforeEach
+    void setUp() {
+        fixture = new SaplUnitTestFixture("policyWithEnvironmentAttribute.sapl");
+    }
 
-	@Test
-	void test() {
-		fixture.constructTestCaseWithMocks().givenAttribute("org.emergencyLevel", Val.of(0))
-				.when(AuthorizationSubscription.of("WILLI", "write", "something")).expectPermit().verify();
-	}
+    @Test
+    void test() {
+        fixture.constructTestCaseWithMocks().givenAttribute("org.emergencyLevel", Val.of(0))
+                .when(AuthorizationSubscription.of("WILLI", "write", "something")).expectPermit().verify();
+    }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,14 @@
 package io.sapl.test.steps;
 
 /**
- * This is the final step in charge of executing the test case and verifying the results.
+ * This is the final step in charge of executing the test case and verifying the
+ * results.
  */
 public interface VerifyStep {
 
-	/**
-	 * Executes the test case and verifies expectations.
-	 */
-	void verify();
+    /**
+     * Executes the test case and verifies expectations.
+     */
+    void verify();
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,54 +33,54 @@ import reactor.core.publisher.Flux;
 
 class FileSystemVariablesAndCombinatorSourceTest {
 
-	@Test
-	void loadExistingConfigTest() {
-		var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources/valid_config");
-		var algo = configProvider.getCombiningAlgorithm().blockFirst();
-		var variables = configProvider.getVariables().blockFirst();
-		configProvider.destroy();
+    @Test
+    void loadExistingConfigTest() {
+        var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources/valid_config");
+        var algo           = configProvider.getCombiningAlgorithm().blockFirst();
+        var variables      = configProvider.getVariables().blockFirst();
+        configProvider.destroy();
 
-		assertThat(algo.get() instanceof PermitUnlessDenyCombiningAlgorithm, is(true));
-		assertThat(variables.get().size(), is(2));
-	}
+        assertThat(algo.get() instanceof PermitUnlessDenyCombiningAlgorithm, is(true));
+        assertThat(variables.get().size(), is(2));
+    }
 
-	@Test
-	void return_default_config_for_missing_configuration_file() {
-		var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources");
-		var algo = configProvider.getCombiningAlgorithm().blockFirst();
-		var variables = configProvider.getVariables().blockFirst();
-		configProvider.destroy();
+    @Test
+    void return_default_config_for_missing_configuration_file() {
+        var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources");
+        var algo           = configProvider.getCombiningAlgorithm().blockFirst();
+        var variables      = configProvider.getVariables().blockFirst();
+        configProvider.destroy();
 
-		assertThat(algo.get() instanceof DenyOverridesCombiningAlgorithm, is(true));
-		assertThat(variables.get().size(), is(0));
-	}
+        assertThat(algo.get() instanceof DenyOverridesCombiningAlgorithm, is(true));
+        assertThat(variables.get().size(), is(0));
+    }
 
-	@Test
-	void return_empty_optional_for_exception_during_config_load() {
-		var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources/broken_config");
-		var algo = configProvider.getCombiningAlgorithm().blockFirst();
-		var variables = configProvider.getVariables().blockFirst();
-		configProvider.destroy();
-		assertThat(algo.isEmpty(), is(true));
-		assertThat(variables.isEmpty(), is(true));
-	}
+    @Test
+    void return_empty_optional_for_exception_during_config_load() {
+        var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources/broken_config");
+        var algo           = configProvider.getCombiningAlgorithm().blockFirst();
+        var variables      = configProvider.getVariables().blockFirst();
+        configProvider.destroy();
+        assertThat(algo.isEmpty(), is(true));
+        assertThat(variables.isEmpty(), is(true));
+    }
 
-	@Test
-	void test_process_watcher_event() {
-		try (MockedStatic<FileMonitorUtil> mock = mockStatic(FileMonitorUtil.class)) {
-			mock.when(() -> FileMonitorUtil.monitorDirectory(any(), any()))
-					.thenReturn(Flux.just(new FileCreatedEvent(null), new FileDeletedEvent(null)));
+    @Test
+    void test_process_watcher_event() {
+        try (MockedStatic<FileMonitorUtil> mock = mockStatic(FileMonitorUtil.class)) {
+            mock.when(() -> FileMonitorUtil.monitorDirectory(any(), any()))
+                    .thenReturn(Flux.just(new FileCreatedEvent(null), new FileDeletedEvent(null)));
 
-			mock.when(() -> FileMonitorUtil.resolveHomeFolderIfPresent(any())).thenCallRealMethod();
+            mock.when(() -> FileMonitorUtil.resolveHomeFolderIfPresent(any())).thenCallRealMethod();
 
-			var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources/valid_config");
-			var algo = configProvider.getCombiningAlgorithm().blockLast();
-			configProvider.getVariables().blockFirst();
-			configProvider.destroy();
+            var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources/valid_config");
+            var algo           = configProvider.getCombiningAlgorithm().blockLast();
+            configProvider.getVariables().blockFirst();
+            configProvider.destroy();
 
-			mock.verify(() -> FileMonitorUtil.monitorDirectory(any(), any()), times(1));
-			assertThat(algo.get() instanceof DenyOverridesCombiningAlgorithm, is(true));
-		}
-	}
+            mock.verify(() -> FileMonitorUtil.monitorDirectory(any(), any()), times(1));
+            assertThat(algo.get() instanceof DenyOverridesCombiningAlgorithm, is(true));
+        }
+    }
 
 }

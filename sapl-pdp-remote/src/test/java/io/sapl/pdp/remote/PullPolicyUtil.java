@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,17 +24,17 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class PullPolicyUtil {
-	public ImagePullPolicy neverPull() {
-		return new AbstractImagePullPolicy() {
+    public ImagePullPolicy neverPull() {
+        return new AbstractImagePullPolicy() {
             @Override
             protected boolean shouldPullCached(DockerImageName imageName, ImageData localImageData) {
                 return false;
             }
-            
+
             @Override
             public boolean shouldPull(DockerImageName imageName) {
-            	return false;
+                return false;
             }
         };
-	}
+    }
 }

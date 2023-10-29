@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -69,79 +69,76 @@ import reactor.util.context.Context;
 
 class WebfluxAuthorizationSubscriptionBuilderServiceTests {
 
-	private Authentication                                 authentication;
-	private WebfluxAuthorizationSubscriptionBuilderService defaultWebfluxBuilderUnderTest;
-	private WebAuthorizationSubscriptionBuilderService     defaultWebBuilderUnderTest;
-	private MethodInvocation                               invocation;
-	private ObjectMapper                                   mapper;
+    private Authentication                                 authentication;
+    private WebfluxAuthorizationSubscriptionBuilderService defaultWebfluxBuilderUnderTest;
+    private WebAuthorizationSubscriptionBuilderService     defaultWebBuilderUnderTest;
+    private MethodInvocation                               invocation;
+    private ObjectMapper                                   mapper;
 
-	@BeforeEach
-	@SuppressWarnings("unchecked")
-	void beforeEach() {
-		mapper = new ObjectMapper();
-		SimpleModule module = new SimpleModule();
-		module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
-		module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
-		module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
-		mapper.registerModule(module);
-		var user = new User("the username", "the password", true, true, true, true,
-				AuthorityUtils.createAuthorityList("ROLE_USER"));
-		authentication                 = new UsernamePasswordAuthenticationToken(user, "the credentials");
-		defaultWebfluxBuilderUnderTest = new WebfluxAuthorizationSubscriptionBuilderService(
-				new DefaultMethodSecurityExpressionHandler(), mapper);
-		var mockExpressionHandlerProvider = mock(ObjectProvider.class);
-		when(mockExpressionHandlerProvider.getIfAvailable(any()))
-				.thenReturn(new DefaultMethodSecurityExpressionHandler());
-		var mockMapperProvider = mock(ObjectProvider.class);
-		when(mockMapperProvider.getIfAvailable(any())).thenReturn(mapper);
-		var mockDefaultsProvider = mock(ObjectProvider.class);
-		var mockContext          = mock(ApplicationContext.class);
-		defaultWebBuilderUnderTest = new WebAuthorizationSubscriptionBuilderService(
-				mockExpressionHandlerProvider, mockMapperProvider,
-				mockDefaultsProvider, mockContext);
-		invocation                 = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
-				"publicVoid",
-				null, null);
-	}
+    @BeforeEach
+    @SuppressWarnings("unchecked")
+    void beforeEach() {
+        mapper = new ObjectMapper();
+        SimpleModule module = new SimpleModule();
+        module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
+        module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
+        module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
+        mapper.registerModule(module);
+        var user = new User("the username", "the password", true, true, true, true,
+                AuthorityUtils.createAuthorityList("ROLE_USER"));
+        authentication                 = new UsernamePasswordAuthenticationToken(user, "the credentials");
+        defaultWebfluxBuilderUnderTest = new WebfluxAuthorizationSubscriptionBuilderService(
+                new DefaultMethodSecurityExpressionHandler(), mapper);
+        var mockExpressionHandlerProvider = mock(ObjectProvider.class);
+        when(mockExpressionHandlerProvider.getIfAvailable(any()))
+                .thenReturn(new DefaultMethodSecurityExpressionHandler());
+        var mockMapperProvider = mock(ObjectProvider.class);
+        when(mockMapperProvider.getIfAvailable(any())).thenReturn(mapper);
+        var mockDefaultsProvider = mock(ObjectProvider.class);
+        var mockContext          = mock(ApplicationContext.class);
+        defaultWebBuilderUnderTest = new WebAuthorizationSubscriptionBuilderService(mockExpressionHandlerProvider,
+                mockMapperProvider, mockDefaultsProvider, mockContext);
+        invocation                 = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
+                "publicVoid", null, null);
+    }
 
-	@Test
-	void when_expressionsAreProvided_then_SubscriptionContainsResult() {
-		var attribute    = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'", Object.class);
-		var subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
-				attribute);
-		assertAll(() -> assertThat(subscription.getSubject(), is(jsonText("a subject"))),
-				() -> assertThat(subscription.getAction(), is(jsonText("an action"))),
-				() -> assertThat(subscription.getResource(), is(jsonText("a resource"))),
-				() -> assertThat(subscription.getEnvironment(), is(jsonText("an environment"))));
-	}
+    @Test
+    void when_expressionsAreProvided_then_SubscriptionContainsResult() {
+        var attribute    = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'", Object.class);
+        var subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
+                attribute);
+        assertAll(() -> assertThat(subscription.getSubject(), is(jsonText("a subject"))),
+                () -> assertThat(subscription.getAction(), is(jsonText("an action"))),
+                () -> assertThat(subscription.getResource(), is(jsonText("a resource"))),
+                () -> assertThat(subscription.getEnvironment(), is(jsonText("an environment"))));
+    }
 
-	@Test
-	@SuppressWarnings("unchecked")
-	void when_expressionResultCannotBeMarshalledToJson_then_FactoryThrows() {
-		var attribute  = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'", Object.class);
-		var mockMapper = mock(ObjectMapper.class);
-		when(mockMapper.valueToTree(any())).thenThrow(new EvaluationException("ERROR"));
+    @Test
+    @SuppressWarnings("unchecked")
+    void when_expressionResultCannotBeMarshalledToJson_then_FactoryThrows() {
+        var attribute  = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'", Object.class);
+        var mockMapper = mock(ObjectMapper.class);
+        when(mockMapper.valueToTree(any())).thenThrow(new EvaluationException("ERROR"));
 
-		var mockExpressionHandlerProvider = mock(ObjectProvider.class);
-		when(mockExpressionHandlerProvider.getIfAvailable(any()))
-				.thenReturn(new DefaultMethodSecurityExpressionHandler());
-		var mockMapperProvider = mock(ObjectProvider.class);
-		when(mockMapperProvider.getIfAvailable(any())).thenReturn(mockMapper);
-		var mockDefaultsProvider = mock(ObjectProvider.class);
-		var mockContext          = mock(ApplicationContext.class);
-		var sut                  = new WebAuthorizationSubscriptionBuilderService(
-				mockExpressionHandlerProvider, mockMapperProvider,
-				mockDefaultsProvider, mockContext);
-		assertThrows(IllegalArgumentException.class,
-				() -> sut.constructAuthorizationSubscription(authentication, invocation, attribute));
-	}
+        var mockExpressionHandlerProvider = mock(ObjectProvider.class);
+        when(mockExpressionHandlerProvider.getIfAvailable(any()))
+                .thenReturn(new DefaultMethodSecurityExpressionHandler());
+        var mockMapperProvider = mock(ObjectProvider.class);
+        when(mockMapperProvider.getIfAvailable(any())).thenReturn(mockMapper);
+        var mockDefaultsProvider = mock(ObjectProvider.class);
+        var mockContext          = mock(ApplicationContext.class);
+        var sut                  = new WebAuthorizationSubscriptionBuilderService(mockExpressionHandlerProvider,
+                mockMapperProvider, mockDefaultsProvider, mockContext);
+        assertThrows(IllegalArgumentException.class,
+                () -> sut.constructAuthorizationSubscription(authentication, invocation, attribute));
+    }
 
-	@Test
-	void when_nullParameters_then_FactoryConstructsFromContext() {
-		var attribute    = attribute(null, null, null, null, Object.class);
-		var subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
-				attribute);
-		// @formatter:off
+    @Test
+    void when_nullParameters_then_FactoryConstructsFromContext() {
+        var attribute    = attribute(null, null, null, null, Object.class);
+        var subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
+                attribute);
+        // @formatter:off
 		assertAll(() -> assertThat(subscription.getSubject(),
 				is(jsonObject()
 						.where("name", is(jsonText("the username")))
@@ -161,15 +158,14 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
 												jsonObject().where("simpleName",is(jsonText("Object"))))))))))),
 				() -> assertThat(subscription.getEnvironment(), is(jsonNull())));
 		// @formatter:on
-	}
+    }
 
-	@Test
-	void when_returnObjectResourceAndNulls_then_FactoryConstructsFromContextWithReturnObjectInResource() {
-		var attribute    = attribute(null, null, "returnObject", null, Object.class);
-		var subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscriptionWithReturnObject(
-				authentication,
-				invocation, attribute, "the returnObject");
-		// @formatter:off
+    @Test
+    void when_returnObjectResourceAndNulls_then_FactoryConstructsFromContextWithReturnObjectInResource() {
+        var attribute    = attribute(null, null, "returnObject", null, Object.class);
+        var subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscriptionWithReturnObject(authentication,
+                invocation, attribute, "the returnObject");
+        // @formatter:off
 		assertAll(() -> assertThat(subscription.getSubject(),
 				is(jsonObject()
 						.where("name", is(jsonText("the username")))
@@ -184,17 +180,17 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
 						is(jsonText("the returnObject"))),
 				() -> assertThat(subscription.getEnvironment(), is(jsonNull())));
 		// @formatter:on
-	}
+    }
 
-	@Test
-	void when_nullParametersAndAnonymousAuthentication_then_FactoryConstructsFromContextAndNoAuthn() {
-		var attribute    = attribute(null, null, null, null, Object.class);
-		var anonymous    = new AnonymousAuthenticationToken("key", "anonymous",
-				AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
-		var subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(anonymous, invocation,
-				attribute);
+    @Test
+    void when_nullParametersAndAnonymousAuthentication_then_FactoryConstructsFromContextAndNoAuthn() {
+        var attribute    = attribute(null, null, null, null, Object.class);
+        var anonymous    = new AnonymousAuthenticationToken("key", "anonymous",
+                AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
+        var subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(anonymous, invocation,
+                attribute);
 
-		// @formatter:off
+        // @formatter:off
 		assertAll(() -> assertThat(subscription.getSubject(),
 						  is(jsonObject()
 								  .where("name", is(jsonText("anonymous")))
@@ -215,21 +211,20 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
 												jsonObject().where("simpleName",is(jsonText("Object"))))))))))),
 			      () -> assertThat(subscription.getEnvironment(), is(jsonNull())));
 		// @formatter:on
-	}
+    }
 
-	@Test
-	void when_nullParametersAndHttpRequestInContext_then_FactoryConstructsFromContextIncludingRequest() {
+    @Test
+    void when_nullParametersAndHttpRequestInContext_then_FactoryConstructsFromContextIncludingRequest() {
 
-		try (MockedStatic<RequestContextHolder> theMock = mockStatic(RequestContextHolder.class)) {
-			var request           = new MockHttpServletRequest();
-			var requestAttributes = mock(ServletRequestAttributes.class);
-			when(requestAttributes.getRequest()).thenReturn(request);
-			theMock.when(RequestContextHolder::getRequestAttributes).thenReturn(requestAttributes);
-			var attribute    = attribute(null, null, null, null, Object.class);
-			var subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication,
-					invocation,
-					attribute);
-			// @formatter:off
+        try (MockedStatic<RequestContextHolder> theMock = mockStatic(RequestContextHolder.class)) {
+            var request           = new MockHttpServletRequest();
+            var requestAttributes = mock(ServletRequestAttributes.class);
+            when(requestAttributes.getRequest()).thenReturn(request);
+            theMock.when(RequestContextHolder::getRequestAttributes).thenReturn(requestAttributes);
+            var attribute    = attribute(null, null, null, null, Object.class);
+            var subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
+                    attribute);
+            // @formatter:off
 			assertAll(() -> assertThat(subscription.getSubject(),
 					is(jsonObject()
 							.where("name", is(jsonText("the username")))
@@ -250,16 +245,16 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
 														jsonObject().where("simpleName",is(jsonText("Object"))))))))))),
 					() -> assertThat(subscription.getEnvironment(), is(jsonNull())));
 			// @formatter:on
-		}
-	}
+        }
+    }
 
-	@Test
-	void when_nullParametersInvocationHasArguments_then_FactoryConstructsFromContextIncludingArguments() {
-		var attribute          = attribute(null, null, null, null, Object.class);
-		var invocationWithArgs = MethodInvocationUtils.create(new TestClass(), "publicVoidArgs", 1);
-		var subscription       = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication,
-				invocationWithArgs, attribute);
-		// @formatter:off
+    @Test
+    void when_nullParametersInvocationHasArguments_then_FactoryConstructsFromContextIncludingArguments() {
+        var attribute          = attribute(null, null, null, null, Object.class);
+        var invocationWithArgs = MethodInvocationUtils.create(new TestClass(), "publicVoidArgs", 1);
+        var subscription       = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication,
+                invocationWithArgs, attribute);
+        // @formatter:off
 		assertAll(() -> assertThat(subscription.getSubject(),
 				is(jsonObject()
 						.where("name", is(jsonText("the username")))
@@ -281,16 +276,16 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
 				() -> assertThat(subscription.getEnvironment(), is(jsonNull())));
 		// @formatter:on
 
-	}
+    }
 
-	@Test
-	void when_nullParametersInvocationHasArgumentsThatCannotBeMappedToJson_then_FactoryConstructsFromContextExcludingProblematicArguments() {
-		var attribute             = attribute(null, null, null, null, Object.class);
-		var invocationWithBadArgs = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
-				"publicVoidProblemArg", new Class<?>[] { BadForJackson.class }, new Object[] { new BadForJackson() });
-		var subscription          = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication,
-				invocationWithBadArgs, attribute);
-		// @formatter:off
+    @Test
+    void when_nullParametersInvocationHasArgumentsThatCannotBeMappedToJson_then_FactoryConstructsFromContextExcludingProblematicArguments() {
+        var attribute             = attribute(null, null, null, null, Object.class);
+        var invocationWithBadArgs = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
+                "publicVoidProblemArg", new Class<?>[] { BadForJackson.class }, new Object[] { new BadForJackson() });
+        var subscription          = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication,
+                invocationWithBadArgs, attribute);
+        // @formatter:off
 		assertAll(() -> assertThat(subscription.getSubject(),
 				is(jsonObject()
 						.where("name", is(jsonText("the username")))
@@ -311,18 +306,18 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
 												jsonObject().where("simpleName",is(jsonText("Object"))))))))))),
 				() -> assertThat(subscription.getEnvironment(), is(jsonNull())));
 		// @formatter:on
-	}
+    }
 
-	@Test
-	void when_reactive_nullParameters_then_FactoryConstructsFromContext() {
-		ServerWebExchange serverWebExchange = MockServerWebExchange.from(MockServerHttpRequest.get("/foo/bar"));
-		SecurityContext   securityContext   = new MockSecurityContext(authentication);
-		var               attribute         = attribute(null, null, null, null, Object.class);
-		var               subscription      = defaultWebfluxBuilderUnderTest
-				.reactiveConstructAuthorizationSubscription(invocation, attribute)
-				.contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
-				.contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext))).block();
-		// @formatter:off
+    @Test
+    void when_reactive_nullParameters_then_FactoryConstructsFromContext() {
+        ServerWebExchange serverWebExchange = MockServerWebExchange.from(MockServerHttpRequest.get("/foo/bar"));
+        SecurityContext   securityContext   = new MockSecurityContext(authentication);
+        var               attribute         = attribute(null, null, null, null, Object.class);
+        var               subscription      = defaultWebfluxBuilderUnderTest
+                .reactiveConstructAuthorizationSubscription(invocation, attribute)
+                .contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
+                .contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext))).block();
+        // @formatter:off
 		assertAll(() -> assertThat(subscription.getSubject(),
 				is(jsonObject()
 						.where("name", is(jsonText("the username")))
@@ -342,15 +337,14 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
 												jsonObject().where("simpleName",is(jsonText("Object"))))))))))),
 				() -> assertThat(subscription.getEnvironment(), is(jsonNull())));
 		// @formatter:on
-	}
+    }
 
-	@Test
-	void when_reactive_nullParametersAndNoAuthn_then_FactoryConstructsFromContextAndAnonymous() {
-		var attribute    = attribute(null, null, null, null, Object.class);
-		var subscription = defaultWebfluxBuilderUnderTest
-				.reactiveConstructAuthorizationSubscription(invocation, attribute)
-				.block();
-		// @formatter:off
+    @Test
+    void when_reactive_nullParametersAndNoAuthn_then_FactoryConstructsFromContextAndAnonymous() {
+        var attribute    = attribute(null, null, null, null, Object.class);
+        var subscription = defaultWebfluxBuilderUnderTest
+                .reactiveConstructAuthorizationSubscription(invocation, attribute).block();
+        // @formatter:off
 		assertAll(() -> assertThat(subscription.getSubject(),
 						  is(jsonObject()
 								  .where("name", is(jsonText("anonymous")))
@@ -371,14 +365,14 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
 												jsonObject().where("simpleName",is(jsonText("Object"))))))))))),
 			      () -> assertThat(subscription.getEnvironment(), is(jsonNull())));
 		// @formatter:on
-	}
+    }
 
-	@Test
-	void when_reactive_returnObjectInExpression_then_FactoryConstructsReturnObjectInSubscription() {
-		var attribute    = attribute(null, null, "returnObject", null, Object.class);
-		var subscription = defaultWebfluxBuilderUnderTest
-				.reactiveConstructAuthorizationSubscription(invocation, attribute, "the returnObject").block();
-		// @formatter:off
+    @Test
+    void when_reactive_returnObjectInExpression_then_FactoryConstructsReturnObjectInSubscription() {
+        var attribute    = attribute(null, null, "returnObject", null, Object.class);
+        var subscription = defaultWebfluxBuilderUnderTest
+                .reactiveConstructAuthorizationSubscription(invocation, attribute, "the returnObject").block();
+        // @formatter:off
 		assertAll(() -> assertThat(subscription.getSubject(),
 						  is(jsonObject()
 								  .where("name", is(jsonText("anonymous")))
@@ -393,59 +387,59 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
 						  is(jsonText("the returnObject"))),
 			      () -> assertThat(subscription.getEnvironment(), is(jsonNull())));
 		// @formatter:on
-	}
+    }
 
-	private SaplAttribute attribute(String subject, String action, String resource, String environment, Class<?> type) {
-		return new SaplAttribute(PreEnforce.class, parameterToExpression(subject), parameterToExpression(action),
-				parameterToExpression(resource), parameterToExpression(environment), type);
-	}
+    private SaplAttribute attribute(String subject, String action, String resource, String environment, Class<?> type) {
+        return new SaplAttribute(PreEnforce.class, parameterToExpression(subject), parameterToExpression(action),
+                parameterToExpression(resource), parameterToExpression(environment), type);
+    }
 
-	private Expression parameterToExpression(String parameter) {
-		var parser = new SpelExpressionParser();
-		return parameter == null || parameter.isEmpty() ? null : parser.parseExpression(parameter);
-	}
+    private Expression parameterToExpression(String parameter) {
+        var parser = new SpelExpressionParser();
+        return parameter == null || parameter.isEmpty() ? null : parser.parseExpression(parameter);
+    }
 
-	public static class TestClass {
+    public static class TestClass {
 
-		public void publicVoid() {
-			/* NOOP */
-		}
+        public void publicVoid() {
+            /* NOOP */
+        }
 
-		public void publicVoidArgs(Integer x) {
-			/* NOOP */
-		}
+        public void publicVoidArgs(Integer x) {
+            /* NOOP */
+        }
 
-		public void publicVoidProblemArg(BadForJackson param) {
-			/* NOOP */
-		}
+        public void publicVoidProblemArg(BadForJackson param) {
+            /* NOOP */
+        }
 
-	}
+    }
 
-	public static class BadForJackson {
+    public static class BadForJackson {
 
-		@SuppressWarnings("unused") // for test
-		private String bad;
+        @SuppressWarnings("unused") // for test
+        private String bad;
 
-	}
+    }
 
-	static class MockSecurityContext implements SecurityContext {
+    static class MockSecurityContext implements SecurityContext {
 
-		private Authentication authentication;
+        private Authentication authentication;
 
-		MockSecurityContext(Authentication authentication) {
-			this.authentication = authentication;
-		}
+        MockSecurityContext(Authentication authentication) {
+            this.authentication = authentication;
+        }
 
-		@Override
-		public Authentication getAuthentication() {
-			return this.authentication;
-		}
+        @Override
+        public Authentication getAuthentication() {
+            return this.authentication;
+        }
 
-		@Override
-		public void setAuthentication(Authentication authentication) {
-			this.authentication = authentication;
-		}
+        @Override
+        public void setAuthentication(Authentication authentication) {
+            this.authentication = authentication;
+        }
 
-	}
+    }
 
 }

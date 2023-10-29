@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,156 +37,141 @@ import org.springframework.util.ClassUtils;
 import lombok.NonNull;
 
 public class SaplAttributeRegistry {
-	public static final List<Class<? extends Annotation>> SAPL_ANNOTATIONS = List.of(EnforceRecoverableIfDenied.class,
-			EnforceTillDenied.class, EnforceDropWhileDenied.class, PreEnforce.class, PostEnforce.class);
+    public static final List<Class<? extends Annotation>> SAPL_ANNOTATIONS = List.of(EnforceRecoverableIfDenied.class,
+            EnforceTillDenied.class, EnforceDropWhileDenied.class, PreEnforce.class, PostEnforce.class);
 
-	private final Map<Class<?>, Map<MethodClassKey, SaplAttribute>> cachedAttributes = new ConcurrentHashMap<>();
-	private final MethodSecurityExpressionHandler                   expressionHandler;
+    private final Map<Class<?>, Map<MethodClassKey, SaplAttribute>> cachedAttributes = new ConcurrentHashMap<>();
+    private final MethodSecurityExpressionHandler                   expressionHandler;
 
-	public SaplAttributeRegistry() {
-		this.expressionHandler = new DefaultMethodSecurityExpressionHandler();
-	}
+    public SaplAttributeRegistry() {
+        this.expressionHandler = new DefaultMethodSecurityExpressionHandler();
+    }
 
-	public SaplAttributeRegistry(@NonNull MethodSecurityExpressionHandler expressionHandler) {
-		this.expressionHandler = expressionHandler;
-	}
+    public SaplAttributeRegistry(@NonNull MethodSecurityExpressionHandler expressionHandler) {
+        this.expressionHandler = expressionHandler;
+    }
 
-	/**
-	 * Returns an {@link Optional} {@link SaplAttribute} for the
-	 * {@link MethodInvocation}.
-	 * 
-	 * @param <T>            the annotation type
-	 * 
-	 * @param mi             the {@link MethodInvocation} to use
-	 * @param annotationType the annotation type.
-	 * @return the {@link Optional} {@link SaplAttribute} to use
-	 */
-	public <T extends Annotation> Optional<SaplAttribute> getSaplAttributeForAnnotationType(MethodInvocation mi,
-			Class<T> annotationType) {
-		var method      = mi.getMethod();
-		var target      = mi.getThis();
-		var targetClass = (target != null) ? target.getClass() : null;
-		return getAttribute(method, targetClass, annotationType);
-	}
+    /**
+     * Returns an {@link Optional} {@link SaplAttribute} for the
+     * {@link MethodInvocation}.
+     * 
+     * @param <T>            the annotation type
+     * 
+     * @param mi             the {@link MethodInvocation} to use
+     * @param annotationType the annotation type.
+     * @return the {@link Optional} {@link SaplAttribute} to use
+     */
+    public <T extends Annotation> Optional<SaplAttribute> getSaplAttributeForAnnotationType(MethodInvocation mi,
+            Class<T> annotationType) {
+        var method      = mi.getMethod();
+        var target      = mi.getThis();
+        var targetClass = (target != null) ? target.getClass() : null;
+        return getAttribute(method, targetClass, annotationType);
+    }
 
-	public boolean hasSpringAnnotations(MethodInvocation mi) {
-		var method      = mi.getMethod();
-		var target      = mi.getThis();
-		var targetClass = (target != null) ? target.getClass() : null;
-		return hasAnnotation(method, targetClass, PreAuthorize.class)
-				|| hasAnnotation(method, targetClass, PostAuthorize.class);
-	}
+    public boolean hasSpringAnnotations(MethodInvocation mi) {
+        var method      = mi.getMethod();
+        var target      = mi.getThis();
+        var targetClass = (target != null) ? target.getClass() : null;
+        return hasAnnotation(method, targetClass, PreAuthorize.class)
+                || hasAnnotation(method, targetClass, PostAuthorize.class);
+    }
 
-	private <T extends Annotation> boolean hasAnnotation(Method method, Class<?> targetClass, Class<T> annotationType) {
-		var specificMethod = AopUtils.getMostSpecificMethod(method, targetClass);
-		var annotation    = AuthorizationAnnotationUtils
-				.findAuthorizeAnnotationOnMethodOrDeclaringClass(specificMethod, annotationType);
-		return annotation != null;
-	}
+    private <T extends Annotation> boolean hasAnnotation(Method method, Class<?> targetClass, Class<T> annotationType) {
+        var specificMethod = AopUtils.getMostSpecificMethod(method, targetClass);
+        var annotation     = AuthorizationAnnotationUtils
+                .findAuthorizeAnnotationOnMethodOrDeclaringClass(specificMethod, annotationType);
+        return annotation != null;
+    }
 
-	private <A extends Annotation> A findAnnotation(Method method, Class<?> targetClass, Class<A> annotationClass) {
-		// The method may be on an interface, but we need attributes from the target
-		// class. If the target class is null, the method will be unchanged.
-		Method specificMethod = ClassUtils.getMostSpecificMethod(method, targetClass);
-		A      annotation     = AnnotationUtils.findAnnotation(specificMethod, annotationClass);
-		if (annotation != null)
-			return annotation;
+    private <A extends Annotation> A findAnnotation(Method method, Class<?> targetClass, Class<A> annotationClass) {
+        // The method may be on an interface, but we need attributes from the target
+        // class. If the target class is null, the method will be unchanged.
+        Method specificMethod = ClassUtils.getMostSpecificMethod(method, targetClass);
+        A      annotation     = AnnotationUtils.findAnnotation(specificMethod, annotationClass);
+        if (annotation != null)
+            return annotation;
 
-		// Check the class-level (note declaringClass, not targetClass, which may not
-		// actually implement the method)
-		annotation = AnnotationUtils.findAnnotation(specificMethod.getDeclaringClass(), annotationClass);
-		return annotation;
-	}
+        // Check the class-level (note declaringClass, not targetClass, which may not
+        // actually implement the method)
+        annotation = AnnotationUtils.findAnnotation(specificMethod.getDeclaringClass(), annotationClass);
+        return annotation;
+    }
 
-	/**
-	 * @param mi the {@link MethodInvocation} to use
-	 * @return a Map of all SaplAttributes by type.
-	 */
-	public Map<Class<? extends Annotation>, SaplAttribute> getAllSaplAttributes(MethodInvocation mi) {
-		var attributes = new HashMap<Class<? extends Annotation>, SaplAttribute>();
-		for (var annotationType : SAPL_ANNOTATIONS) {
-			getSaplAttributeForAnnotationType(mi, annotationType).ifPresent(a -> attributes.put(annotationType, a));
-		}
-		return attributes;
-	}
+    /**
+     * @param mi the {@link MethodInvocation} to use
+     * @return a Map of all SaplAttributes by type.
+     */
+    public Map<Class<? extends Annotation>, SaplAttribute> getAllSaplAttributes(MethodInvocation mi) {
+        var attributes = new HashMap<Class<? extends Annotation>, SaplAttribute>();
+        for (var annotationType : SAPL_ANNOTATIONS) {
+            getSaplAttributeForAnnotationType(mi, annotationType).ifPresent(a -> attributes.put(annotationType, a));
+        }
+        return attributes;
+    }
 
-	/**
-	 * Returns an {@link Optional} {@link SaplAttribute} for the method and the
-	 * target class.
-	 * 
-	 * @param <T>            the annotation type
-	 * 
-	 * @param method         the method
-	 * @param targetClass    the target class
-	 * @param annotationType the annotation type
-	 * @return the {@link Optional} {@link SaplAttribute} to use
-	 */
-	public <T extends Annotation> Optional<SaplAttribute> getAttribute(Method method, Class<?> targetClass,
-			Class<T> annotationType) {
-		var attributesOfType = this.cachedAttributes.computeIfAbsent(annotationType, x -> new ConcurrentHashMap<>());
-		var cacheKey         = new MethodClassKey(method, targetClass);
-		var attribute        = attributesOfType.computeIfAbsent(cacheKey,
-				x -> resolveAttribute(method, targetClass, annotationType));
-		if (attribute == SaplAttribute.NULL_ATTRIBUTE) {
-			return Optional.empty();
-		}
-		return Optional.of(attribute);
-	}
+    /**
+     * Returns an {@link Optional} {@link SaplAttribute} for the method and the
+     * target class.
+     * 
+     * @param <T>            the annotation type
+     * 
+     * @param method         the method
+     * @param targetClass    the target class
+     * @param annotationType the annotation type
+     * @return the {@link Optional} {@link SaplAttribute} to use
+     */
+    public <T extends Annotation> Optional<SaplAttribute> getAttribute(Method method, Class<?> targetClass,
+            Class<T> annotationType) {
+        var attributesOfType = this.cachedAttributes.computeIfAbsent(annotationType, x -> new ConcurrentHashMap<>());
+        var cacheKey         = new MethodClassKey(method, targetClass);
+        var attribute        = attributesOfType.computeIfAbsent(cacheKey,
+                x -> resolveAttribute(method, targetClass, annotationType));
+        if (attribute == SaplAttribute.NULL_ATTRIBUTE) {
+            return Optional.empty();
+        }
+        return Optional.of(attribute);
+    }
 
-	public <T extends Annotation> SaplAttribute resolveAttribute(Method method, Class<?> targetClass,
-			Class<T> annotationType) {
-		var annotation = findAnnotation(method, targetClass, annotationType);
-		if (annotation == null) {
-			return SaplAttribute.NULL_ATTRIBUTE;
-		}
-		if (annotation instanceof PreEnforce saplAnnotation) {
-			return new SaplAttribute(annotationType,
-					parseExpression(saplAnnotation.subject()),
-					parseExpression(saplAnnotation.action()),
-					parseExpression(saplAnnotation.resource()),
-					parseExpression(saplAnnotation.environment()),
-					saplAnnotation.genericsType());
-		}
-		if (annotation instanceof PostEnforce saplAnnotation) {
-			return new SaplAttribute(annotationType,
-					parseExpression(saplAnnotation.subject()),
-					parseExpression(saplAnnotation.action()),
-					parseExpression(saplAnnotation.resource()),
-					parseExpression(saplAnnotation.environment()),
-					saplAnnotation.genericsType());
-		}
-		if (annotation instanceof EnforceRecoverableIfDenied saplAnnotation) {
-			return new SaplAttribute(annotationType,
-					parseExpression(saplAnnotation.subject()),
-					parseExpression(saplAnnotation.action()),
-					parseExpression(saplAnnotation.resource()),
-					parseExpression(saplAnnotation.environment()),
-					saplAnnotation.genericsType());
-		}
-		if (annotation instanceof EnforceTillDenied saplAnnotation) {
-			return new SaplAttribute(annotationType,
-					parseExpression(saplAnnotation.subject()),
-					parseExpression(saplAnnotation.action()),
-					parseExpression(saplAnnotation.resource()),
-					parseExpression(saplAnnotation.environment()),
-					saplAnnotation.genericsType());
-		}
-		if (annotation instanceof EnforceDropWhileDenied saplAnnotation) {
-			return new SaplAttribute(annotationType,
-					parseExpression(saplAnnotation.subject()),
-					parseExpression(saplAnnotation.action()),
-					parseExpression(saplAnnotation.resource()),
-					parseExpression(saplAnnotation.environment()),
-					saplAnnotation.genericsType());
-		}
-		return SaplAttribute.NULL_ATTRIBUTE;
-	}
+    public <T extends Annotation> SaplAttribute resolveAttribute(Method method, Class<?> targetClass,
+            Class<T> annotationType) {
+        var annotation = findAnnotation(method, targetClass, annotationType);
+        if (annotation == null) {
+            return SaplAttribute.NULL_ATTRIBUTE;
+        }
+        if (annotation instanceof PreEnforce saplAnnotation) {
+            return new SaplAttribute(annotationType, parseExpression(saplAnnotation.subject()),
+                    parseExpression(saplAnnotation.action()), parseExpression(saplAnnotation.resource()),
+                    parseExpression(saplAnnotation.environment()), saplAnnotation.genericsType());
+        }
+        if (annotation instanceof PostEnforce saplAnnotation) {
+            return new SaplAttribute(annotationType, parseExpression(saplAnnotation.subject()),
+                    parseExpression(saplAnnotation.action()), parseExpression(saplAnnotation.resource()),
+                    parseExpression(saplAnnotation.environment()), saplAnnotation.genericsType());
+        }
+        if (annotation instanceof EnforceRecoverableIfDenied saplAnnotation) {
+            return new SaplAttribute(annotationType, parseExpression(saplAnnotation.subject()),
+                    parseExpression(saplAnnotation.action()), parseExpression(saplAnnotation.resource()),
+                    parseExpression(saplAnnotation.environment()), saplAnnotation.genericsType());
+        }
+        if (annotation instanceof EnforceTillDenied saplAnnotation) {
+            return new SaplAttribute(annotationType, parseExpression(saplAnnotation.subject()),
+                    parseExpression(saplAnnotation.action()), parseExpression(saplAnnotation.resource()),
+                    parseExpression(saplAnnotation.environment()), saplAnnotation.genericsType());
+        }
+        if (annotation instanceof EnforceDropWhileDenied saplAnnotation) {
+            return new SaplAttribute(annotationType, parseExpression(saplAnnotation.subject()),
+                    parseExpression(saplAnnotation.action()), parseExpression(saplAnnotation.resource()),
+                    parseExpression(saplAnnotation.environment()), saplAnnotation.genericsType());
+        }
+        return SaplAttribute.NULL_ATTRIBUTE;
+    }
 
-	private Expression parseExpression(String source) {
-		if (source == null || source.isEmpty()) {
-			return null;
-		}
-		return this.expressionHandler.getExpressionParser().parseExpression(source);
-	}
+    private Expression parseExpression(String source) {
+        if (source == null || source.isEmpty()) {
+            return null;
+        }
+        return this.expressionHandler.getExpressionParser().parseExpression(source);
+    }
 
 }

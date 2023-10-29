@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,10 @@ package io.sapl.spring.constraints.api;
 
 public interface TypeSupport<T> {
 
-	Class<T> getSupportedType();
+    Class<T> getSupportedType();
 
-	default boolean supports(Class<?> clazz) {
-		return getSupportedType().isAssignableFrom(clazz);
-	}
+    default boolean supports(Class<?> clazz) {
+        return getSupportedType().isAssignableFrom(clazz);
+    }
 
 }

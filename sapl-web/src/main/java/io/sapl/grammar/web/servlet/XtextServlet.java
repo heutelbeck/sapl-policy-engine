@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,10 +46,10 @@ import lombok.extern.slf4j.Slf4j;
  * <pre>
  * &#64;WebServlet(name = "Xtext Services", urlPatterns = "/xtext-service/*")
  * class MyXtextServlet extends XtextServlet {
- * 	override init() {
- * 		super.init();
- * 		MyDslWebSetup.doSetup();
- * 	}
+ *     override init() {
+ *         super.init();
+ *         MyDslWebSetup.doSetup();
+ *     }
  * }
  * </pre>
  * 
@@ -59,150 +59,152 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class XtextServlet extends HttpServlet {
 
-	private final IResourceServiceProvider.Registry serviceProviderRegistry = IResourceServiceProvider.Registry.INSTANCE;
+    private static final String                                      INVALID_REQUEST           = "Invalid request ({}): {}";
+    private static final transient IResourceServiceProvider.Registry SERVICE_PROVIDER_REGISTRY = IResourceServiceProvider.Registry.INSTANCE;
+    private static final transient Gson                              GSON                      = new Gson();
 
-	private final Gson gson = new Gson();
+    @Override
+    protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        try {
+            super.service(req, resp);
+        } catch (InvalidRequestException.ResourceNotFoundException exception) {
+            log.trace(INVALID_REQUEST, req.getRequestURI(), exception.getMessage());
+            resp.sendError(HttpServletResponse.SC_NOT_FOUND, exception.getMessage());
+        } catch (InvalidRequestException.InvalidDocumentStateException exception) {
+            log.trace(INVALID_REQUEST, req.getRequestURI(), exception.getMessage());
+            resp.sendError(HttpServletResponse.SC_CONFLICT, exception.getMessage());
+        } catch (InvalidRequestException.PermissionDeniedException exception) {
+            log.trace(INVALID_REQUEST, req.getRequestURI(), exception.getMessage());
+            resp.sendError(HttpServletResponse.SC_FORBIDDEN, exception.getMessage());
+        } catch (InvalidRequestException exception) {
+            log.trace(INVALID_REQUEST, req.getRequestURI(), exception.getMessage());
+            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, exception.getMessage());
+        }
+    }
 
-	@Override
-	protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-		try {
-			super.service(req, resp);
-		} catch (InvalidRequestException.ResourceNotFoundException exception) {
-			log.trace("Invalid request (" + req.getRequestURI() + "): " + exception.getMessage());
-			resp.sendError(HttpServletResponse.SC_NOT_FOUND, exception.getMessage());
-		} catch (InvalidRequestException.InvalidDocumentStateException exception) {
-			log.trace("Invalid request (" + req.getRequestURI() + "): " + exception.getMessage());
-			resp.sendError(HttpServletResponse.SC_CONFLICT, exception.getMessage());
-		} catch (InvalidRequestException.PermissionDeniedException exception) {
-			log.trace("Invalid request (" + req.getRequestURI() + "): " + exception.getMessage());
-			resp.sendError(HttpServletResponse.SC_FORBIDDEN, exception.getMessage());
-		} catch (InvalidRequestException exception) {
-			log.trace("Invalid request (" + req.getRequestURI() + "): " + exception.getMessage());
-			resp.sendError(HttpServletResponse.SC_BAD_REQUEST, exception.getMessage());
-		}
-	}
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        XtextServiceDispatcher.ServiceDescriptor service = getService(req);
+        if (!service.isHasConflict() && (service.isHasSideEffects() || hasTextInput(service))) {
+            super.doGet(req, resp);
+        } else {
+            doService(service, resp);
+        }
+    }
 
-	@Override
-	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-		XtextServiceDispatcher.ServiceDescriptor service = getService(req);
-		if (!service.isHasConflict() && (service.isHasSideEffects() || hasTextInput(service))) {
-			super.doGet(req, resp);
-		} else {
-			doService(service, resp);
-		}
-	}
+    @Override
+    protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        XtextServiceDispatcher.ServiceDescriptor service = getService(req);
+        String                                   type    = service.getContext()
+                .getParameter(IServiceContext.SERVICE_TYPE);
+        if (!service.isHasConflict() && !Objects.equal(type, "update")) {
+            super.doPut(req, resp);
+        } else {
+            doService(service, resp);
+        }
+    }
 
-	@Override
-	protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-		XtextServiceDispatcher.ServiceDescriptor service = getService(req);
-		String type = service.getContext().getParameter(IServiceContext.SERVICE_TYPE);
-		if (!service.isHasConflict() && !Objects.equal(type, "update")) {
-			super.doPut(req, resp);
-		} else {
-			doService(service, resp);
-		}
-	}
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        XtextServiceDispatcher.ServiceDescriptor service = getService(req);
+        String                                   type    = service.getContext()
+                .getParameter(IServiceContext.SERVICE_TYPE);
+        if (!service.isHasConflict()
+                && (!service.isHasSideEffects() && !hasTextInput(service) || Objects.equal(type, "update"))) {
+            super.doPost(req, resp);
+        } else {
+            doService(service, resp);
+        }
+    }
 
-	@Override
-	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-		XtextServiceDispatcher.ServiceDescriptor service = getService(req);
-		String type = service.getContext().getParameter(IServiceContext.SERVICE_TYPE);
-		if (!service.isHasConflict()
-				&& (!service.isHasSideEffects() && !hasTextInput(service) || Objects.equal(type, "update"))) {
-			super.doPost(req, resp);
-		} else {
-			doService(service, resp);
-		}
-	}
+    protected boolean hasTextInput(XtextServiceDispatcher.ServiceDescriptor service) {
+        Set<String> parameterKeys = service.getContext().getParameterKeys();
+        return parameterKeys.contains("fullText") || parameterKeys.contains("deltaText");
+    }
 
-	protected boolean hasTextInput(XtextServiceDispatcher.ServiceDescriptor service) {
-		Set<String> parameterKeys = service.getContext().getParameterKeys();
-		return parameterKeys.contains("fullText") || parameterKeys.contains("deltaText");
-	}
+    /**
+     * Retrieve the service metadata for the given request. This involves resolving
+     * the Guice injector for the respective language, querying the
+     * {@link XtextServiceDispatcher}, and checking the permission to invoke the
+     * service.
+     */
+    protected XtextServiceDispatcher.ServiceDescriptor getService(HttpServletRequest request)
+            throws InvalidRequestException {
+        HttpServiceContext     serviceContext    = new HttpServiceContext(request);
+        Injector               injector          = getInjector(serviceContext);
+        XtextServiceDispatcher serviceDispatcher = injector.getInstance(XtextServiceDispatcher.class);
+        return serviceDispatcher.getService(serviceContext);
+    }
 
-	/**
-	 * Retrieve the service metadata for the given request. This involves resolving
-	 * the Guice injector for the respective language, querying the
-	 * {@link XtextServiceDispatcher}, and checking the permission to invoke the
-	 * service.
-	 */
-	protected XtextServiceDispatcher.ServiceDescriptor getService(HttpServletRequest request)
-			throws InvalidRequestException {
-		HttpServiceContext serviceContext = new HttpServiceContext(request);
-		Injector injector = getInjector(serviceContext);
-		XtextServiceDispatcher serviceDispatcher = injector.getInstance(XtextServiceDispatcher.class);
-		return serviceDispatcher.getService(serviceContext);
-	}
+    /**
+     * Invoke the service function of the given service descriptor and write its
+     * result to the servlet response in Json format. An exception is made for
+     * {@link IUnwrappableServiceResult}: here the document itself is written into
+     * the response instead of wrapping it into a Json object.
+     */
+    protected void doService(XtextServiceDispatcher.ServiceDescriptor service, HttpServletResponse response) {
+        try {
+            IServiceResult result = service.getService().apply();
+            response.setStatus(HttpServletResponse.SC_OK);
+            response.setCharacterEncoding(getEncoding(service, result));
+            response.setHeader("Cache-Control", "no-cache");
+            if (result instanceof IUnwrappableServiceResult unwrapResult
+                    && ((IUnwrappableServiceResult) result).getContent() != null) {
+                String contentType;
+                if (unwrapResult.getContentType() != null) {
+                    contentType = unwrapResult.getContentType();
+                } else {
+                    contentType = "text/plain";
+                }
+                response.setContentType(contentType);
+                response.getWriter().write(unwrapResult.getContent());
+            } else {
+                response.setContentType("text/x-json");
+                GSON.toJson(result, response.getWriter());
+            }
+        } catch (IOException e) {
+            throw Exceptions.sneakyThrow(e);
+        }
+    }
 
-	/**
-	 * Invoke the service function of the given service descriptor and write its
-	 * result to the servlet response in Json format. An exception is made for
-	 * {@link IUnwrappableServiceResult}: here the document itself is written into
-	 * the response instead of wrapping it into a Json object.
-	 */
-	protected void doService(XtextServiceDispatcher.ServiceDescriptor service, HttpServletResponse response) {
-		try {
-			IServiceResult result = service.getService().apply();
-			response.setStatus(HttpServletResponse.SC_OK);
-			response.setCharacterEncoding(getEncoding(service, result));
-			response.setHeader("Cache-Control", "no-cache");
-			if (result instanceof IUnwrappableServiceResult unwrapResult
-					&& ((IUnwrappableServiceResult) result).getContent() != null) {
-				String contentType;
-				if (unwrapResult.getContentType() != null) {
-					contentType = unwrapResult.getContentType();
-				} else {
-					contentType = "text/plain";
-				}
-				response.setContentType(contentType);
-				response.getWriter().write(unwrapResult.getContent());
-			} else {
-				response.setContentType("text/x-json");
-				gson.toJson(result, response.getWriter());
-			}
-		} catch (IOException e) {
-			throw Exceptions.sneakyThrow(e);
-		}
-	}
+    /**
+     * Determine the encoding to apply to servlet responses. The default is UTF-8.
+     */
+    protected String getEncoding(XtextServiceDispatcher.ServiceDescriptor service, IServiceResult result) {
+        return "UTF-8";
+    }
 
-	/**
-	 * Determine the encoding to apply to servlet responses. The default is UTF-8.
-	 */
-	protected String getEncoding(XtextServiceDispatcher.ServiceDescriptor service, IServiceResult result) {
-		return "UTF-8";
-	}
-
-	/**
-	 * Resolve the Guice injector for the language associated with the given
-	 * context.
-	 */
-	protected Injector getInjector(HttpServiceContext serviceContext)
-			throws InvalidRequestException.UnknownLanguageException {
-		IResourceServiceProvider resourceServiceProvider;
-		String parameter = serviceContext.getParameter("resource");
-		if (parameter == null) {
-			parameter = "";
-		}
-		URI emfURI = URI.createURI(parameter);
-		String contentType = serviceContext.getParameter("contentType");
-		if (Strings.isNullOrEmpty(contentType)) {
-			resourceServiceProvider = serviceProviderRegistry.getResourceServiceProvider(emfURI);
-			if (resourceServiceProvider == null) {
-				if (emfURI.toString().isEmpty()) {
-					throw new InvalidRequestException.UnknownLanguageException(
-							"Unable to identify the Xtext language: missing parameter 'resource' or 'contentType'.");
-				} else {
-					throw new InvalidRequestException.UnknownLanguageException(
-							"Unable to identify the Xtext language for resource " + emfURI + ".");
-				}
-			}
-		} else {
-			resourceServiceProvider = serviceProviderRegistry.getResourceServiceProvider(emfURI, contentType);
-			if (resourceServiceProvider == null) {
-				throw new InvalidRequestException.UnknownLanguageException(
-						"Unable to identify the Xtext language for contentType " + contentType + ".");
-			}
-		}
-		return resourceServiceProvider.get(Injector.class);
-	}
+    /**
+     * Resolve the Guice injector for the language associated with the given
+     * context.
+     */
+    protected Injector getInjector(HttpServiceContext serviceContext)
+            throws InvalidRequestException.UnknownLanguageException {
+        IResourceServiceProvider resourceServiceProvider;
+        String                   parameter = serviceContext.getParameter("resource");
+        if (parameter == null) {
+            parameter = "";
+        }
+        URI    emfURI      = URI.createURI(parameter);
+        String contentType = serviceContext.getParameter("contentType");
+        if (Strings.isNullOrEmpty(contentType)) {
+            resourceServiceProvider = SERVICE_PROVIDER_REGISTRY.getResourceServiceProvider(emfURI);
+            if (resourceServiceProvider == null) {
+                if (emfURI.toString().isEmpty()) {
+                    throw new InvalidRequestException.UnknownLanguageException(
+                            "Unable to identify the Xtext language: missing parameter 'resource' or 'contentType'.");
+                } else {
+                    throw new InvalidRequestException.UnknownLanguageException(
+                            "Unable to identify the Xtext language for resource " + emfURI + ".");
+                }
+            }
+        } else {
+            resourceServiceProvider = SERVICE_PROVIDER_REGISTRY.getResourceServiceProvider(emfURI, contentType);
+            if (resourceServiceProvider == null) {
+                throw new InvalidRequestException.UnknownLanguageException(
+                        "Unable to identify the Xtext language for contentType " + contentType + ".");
+            }
+        }
+        return resourceServiceProvider.get(Injector.class);
+    }
 }

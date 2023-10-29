@@ -1,5 +1,5 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,25 +23,25 @@ import org.junit.jupiter.api.Test;
 
 class SaplTestExceptionTest {
 
-	@Test
-	void defaultConstructor() {
-		var exception = new SaplTestException();
-		assertThat(exception.getMessage()).isNull();
-		assertThat(exception.getCause()).isNull();
-	}
+    @Test
+    void defaultConstructor() {
+        var exception = new SaplTestException();
+        assertThat(exception.getMessage()).isNull();
+        assertThat(exception.getCause()).isNull();
+    }
 
-	@Test
-	void messageConstructor() {
-		var exception = new SaplTestException("Test");
-		assertThat(exception.getMessage()).isEqualTo("Test");
-		assertThat(exception.getCause()).isNull();
-	}
+    @Test
+    void messageConstructor() {
+        var exception = new SaplTestException("Test");
+        assertThat(exception.getMessage()).isEqualTo("Test");
+        assertThat(exception.getCause()).isNull();
+    }
 
-	@Test
-	void messageAndCauseConstructor() {
-		var exception = new SaplTestException("Test", new IOException());
-		assertThat(exception.getMessage()).isEqualTo("Test");
-		assertThat(exception.getCause()).isInstanceOfAny(IOException.class);
-	}
+    @Test
+    void messageAndCauseConstructor() {
+        var exception = new SaplTestException("Test", new IOException());
+        assertThat(exception.getMessage()).isEqualTo("Test");
+        assertThat(exception.getCause()).isInstanceOfAny(IOException.class);
+    }
 
 }
