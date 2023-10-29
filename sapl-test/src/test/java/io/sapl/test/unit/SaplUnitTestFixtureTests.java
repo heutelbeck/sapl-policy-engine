@@ -15,22 +15,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.unit;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 
-
+import io.sapl.test.SaplTestException;
+import io.sapl.test.SaplTestFixture;
 import io.sapl.test.utils.DocumentHelper;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-
-import io.sapl.test.SaplTestException;
-import io.sapl.test.SaplTestFixture;
-
 
 class SaplUnitTestFixtureTests {
 
@@ -59,6 +57,30 @@ class SaplUnitTestFixtureTests {
     }
 
     @Test
+    void test_invalidSaplInputString1() {
+        var fixture = new SaplUnitTestFixture("", false);
+        assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase);
+    }
+
+    @Test
+    void test_invalidSaplInputString2() {
+        var fixture = new SaplUnitTestFixture("", false);
+        assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks);
+    }
+
+    @Test
+    void test_invalidSaplInputString3() {
+        var fixture = new SaplUnitTestFixture(null, false);
+        assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase);
+    }
+
+    @Test
+    void test_invalidSaplInputString4() {
+        var fixture = new SaplUnitTestFixture(null, false);
+        assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks);
+    }
+
+    @Test
     void test_documentHelperErrorThrows1() {
         try (MockedStatic<DocumentHelper> mockedDocumentHelper = Mockito.mockStatic(DocumentHelper.class)) {
             mockedDocumentHelper.when(() -> DocumentHelper.readSaplDocument(eq("foo.sapl"), any())).thenThrow(new RuntimeException());
@@ -76,4 +98,21 @@ class SaplUnitTestFixtureTests {
         }
     }
 
+    @Test
+    void test_documentHelperErrorThrowsForInputString1() {
+        try (MockedStatic<DocumentHelper> mockedDocumentHelper = Mockito.mockStatic(DocumentHelper.class)) {
+            mockedDocumentHelper.when(() -> DocumentHelper.readSaplDocumentFromInputString(eq("foo"), any())).thenThrow(new RuntimeException());
+            SaplTestFixture fixture = new SaplUnitTestFixture("foo", false);
+            assertThatExceptionOfType(RuntimeException.class).isThrownBy(fixture::constructTestCase);
+        }
+    }
+
+    @Test
+    void test_documentHelperErrorThrowsForInputString2() {
+        try (MockedStatic<DocumentHelper> mockedDocumentHelper = Mockito.mockStatic(DocumentHelper.class)) {
+            mockedDocumentHelper.when(() -> DocumentHelper.readSaplDocumentFromInputString(eq("foo"), any())).thenThrow(new RuntimeException());
+            SaplTestFixture fixture = new SaplUnitTestFixture("foo", false);
+            assertThatExceptionOfType(RuntimeException.class).isThrownBy(fixture::constructTestCaseWithMocks);
+        }
+    }
 }

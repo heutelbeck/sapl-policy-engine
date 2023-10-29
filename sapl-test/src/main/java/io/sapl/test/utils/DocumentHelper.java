@@ -10,7 +10,7 @@ import reactor.core.Exceptions;
 @UtilityClass
 public class DocumentHelper {
     public static SAPL readSaplDocument(final String saplDocumentName, final SAPLInterpreter saplInterpreter) {
-        if(saplDocumentName == null || saplDocumentName.isEmpty()) {
+        if (saplDocumentName == null || saplDocumentName.isEmpty()) {
             return null;
         }
 
@@ -19,11 +19,18 @@ public class DocumentHelper {
         return saplInterpreter.parse(findFileOnClasspath(filename));
     }
 
+    public static SAPL readSaplDocumentFromInputString(final String input, final SAPLInterpreter saplInterpreter) {
+        if (input == null || input.isEmpty()) {
+            return null;
+        }
+
+        return saplInterpreter.parse(input);
+    }
+
     private static String constructFileEnding(final String filename) {
         if (filename.endsWith(".sapl")) {
             return filename;
-        }
-        else {
+        } else {
             return filename + ".sapl";
         }
     }
@@ -32,8 +39,7 @@ public class DocumentHelper {
         final var path = ClasspathHelper.findPathOnClasspath(DocumentHelper.class.getClassLoader(), filename);
         try {
             return Files.readString(path);
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             throw Exceptions.propagate(e);
         }
     }

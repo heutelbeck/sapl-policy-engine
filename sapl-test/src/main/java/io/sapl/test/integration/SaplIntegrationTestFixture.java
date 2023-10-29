@@ -35,45 +35,45 @@ import io.sapl.test.lang.TestSaplInterpreter;
 import io.sapl.test.steps.GivenStep;
 import io.sapl.test.steps.WhenStep;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 
     private static final String ERROR_MESSAGE_POLICY_FOLDER_PATH_NULL = "Null is not allowed for the Path pointing to the policies folder.";
     private static final String ERROR_MESSAGE_POLICY_PATHS_NULL_OR_SINGLE_VALUE = "List of policies paths needs to contain at least 2 values.";
+    private static final String ERROR_MESSAGE_INPUT_DOCUMENTS_NULL_OR_SINGLE_VALUE = "List input documents needs to contain at least 2 values.";
+    private static final String ERROR_MESSAGE_PDP_CONFIG_NULL_OR_EMPTY = "Passed value for PDP config is null or empty.";
 
-    private final String pathToPoliciesFolder;
-
-    private final List<String> policyPaths;
-
-    private final String pdpConfigPath;
-
-    private final boolean usePolicyFolder;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private PolicyDocumentCombiningAlgorithm pdpAlgorithm = null;
-
     private Map<String, JsonNode> pdpVariables = null;
+
+    private final Supplier<PolicyRetrievalPoint> prpSupplier;
+    private final Supplier<VariablesAndCombinatorSource> variablesAndCombinatorSourceSupplier;
 
     /**
      * Fixture for constructing an integration test case
      *
-     * @param policyPath path relative to your class path (relative from
+     * @param folderPath path relative to your class path (relative from
      *                   src/main/resources, ...) to the folder containing the SAPL
      *                   documents. If your policies are located at
      *                   src/main/resources/yourSpecialDirectory you only have to
      *                   specify "yourSpecialDirectory".
      */
-    public SaplIntegrationTestFixture(final String policyPath) {
-        this.pathToPoliciesFolder = policyPath;
-        this.pdpConfigPath = policyPath;
-        this.policyPaths = null;
-        this.usePolicyFolder = true;
+    public SaplIntegrationTestFixture(final String folderPath) {
+        prpSupplier = () -> this.constructPRP(true, folderPath, null);
+        variablesAndCombinatorSourceSupplier = () -> this.constructPDPConfig(folderPath);
     }
 
     public SaplIntegrationTestFixture(final String pdpConfigPath, final List<String> policyPaths) {
-        this.policyPaths = policyPaths;
-        this.pdpConfigPath = pdpConfigPath;
-        this.pathToPoliciesFolder = null;
-        this.usePolicyFolder = false;
+        prpSupplier = () -> this.constructPRP(false, null, policyPaths);
+        variablesAndCombinatorSourceSupplier = () -> this.constructPDPConfig(pdpConfigPath);
+    }
+
+    public SaplIntegrationTestFixture(final List<String> documentStrings, final String pdpConfig) {
+        prpSupplier = () -> this.constructInputStringPRP(documentStrings);
+        variablesAndCombinatorSourceSupplier = () -> this.constructInputStringPDPConfig(pdpConfig);
     }
 
     /**
@@ -100,36 +100,40 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 
     @Override
     public GivenStep constructTestCaseWithMocks() {
-        if (this.pathToPoliciesFolder == null || this.pathToPoliciesFolder.isEmpty()) {
-            throw new SaplTestException(ERROR_MESSAGE_POLICY_FOLDER_PATH_NULL);
-        }
-        return StepBuilder.newBuilderAtGivenStep(constructPRP(), constructPDPConfig(), this.attributeCtx,
+        return StepBuilder.newBuilderAtGivenStep(prpSupplier.get(), variablesAndCombinatorSourceSupplier.get(), this.attributeCtx,
                 this.functionCtx, this.variables);
     }
 
     @Override
     public WhenStep constructTestCase() {
-        if (this.pathToPoliciesFolder == null || this.pathToPoliciesFolder.isEmpty()) {
-            throw new SaplTestException(ERROR_MESSAGE_POLICY_FOLDER_PATH_NULL);
-        }
-        return StepBuilder.newBuilderAtWhenStep(constructPRP(), constructPDPConfig(), this.attributeCtx,
+        return StepBuilder.newBuilderAtWhenStep(prpSupplier.get(), variablesAndCombinatorSourceSupplier.get(), this.attributeCtx,
                 this.functionCtx, this.variables);
     }
 
-    private PolicyRetrievalPoint constructPRP() {
+    private PolicyRetrievalPoint constructPRP(final boolean usePolicyFolder, final String pathToPoliciesFolder, final List<String> policyPaths) {
         final var interpreter = getSaplInterpreter();
 
-        if(usePolicyFolder) {
-            if(pathToPoliciesFolder == null || pathToPoliciesFolder.isEmpty()) {
+        if (usePolicyFolder) {
+            if (pathToPoliciesFolder == null || pathToPoliciesFolder.isEmpty()) {
                 throw new SaplTestException(ERROR_MESSAGE_POLICY_FOLDER_PATH_NULL);
             }
             return new ClasspathPolicyRetrievalPoint(Paths.get(pathToPoliciesFolder), interpreter);
         } else {
-            if(this.policyPaths == null || this.policyPaths.size() < 2) {
+            if (policyPaths == null || policyPaths.size() < 2) {
                 throw new SaplTestException(ERROR_MESSAGE_POLICY_PATHS_NULL_OR_SINGLE_VALUE);
             }
             return new ClasspathPolicyRetrievalPoint(policyPaths, interpreter);
         }
+    }
+
+    private PolicyRetrievalPoint constructInputStringPRP(final List<String> documentStrings) {
+        final var interpreter = getSaplInterpreter();
+
+        if (documentStrings == null || documentStrings.size() < 2) {
+            throw new SaplTestException(ERROR_MESSAGE_INPUT_DOCUMENTS_NULL_OR_SINGLE_VALUE);
+        }
+
+        return new InputStringPolicyRetrievalPoint(documentStrings, interpreter);
     }
 
     private SAPLInterpreter getSaplInterpreter() {
@@ -137,11 +141,18 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
                 CoverageAPIFactory.constructCoverageHitRecorder(resolveCoverageBaseDir()));
     }
 
-    private VariablesAndCombinatorSource constructPDPConfig() {
-        final var actualConfigPath = Objects.requireNonNullElse(this.pdpConfigPath, "");
+    private VariablesAndCombinatorSource constructPDPConfig(final String pdpConfigPath) {
+        final var actualConfigPath = Objects.requireNonNullElse(pdpConfigPath, "");
 
-        return new ClasspathVariablesAndCombinatorSource(actualConfigPath, new ObjectMapper(),
+        return new ClasspathVariablesAndCombinatorSource(actualConfigPath, objectMapper,
                 this.pdpAlgorithm, this.pdpVariables);
+    }
+
+    private VariablesAndCombinatorSource constructInputStringPDPConfig(final String input) {
+        if (input == null || input.isEmpty()) {
+            throw new SaplTestException(ERROR_MESSAGE_PDP_CONFIG_NULL_OR_EMPTY);
+        }
+        return new InputStringVariablesAndCombinatorSource(input, objectMapper, this.pdpAlgorithm, this.pdpVariables);
     }
 
 }
