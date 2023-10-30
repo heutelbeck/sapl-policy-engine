@@ -15,12 +15,12 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.TestUtil.hasDecision;
+import static io.sapl.testutil.TestUtil.hasDecision;
 
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.grammar.sapl.impl.util.MockUtil;
+import io.sapl.testutil.MockUtil;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import reactor.test.StepVerifier;
 

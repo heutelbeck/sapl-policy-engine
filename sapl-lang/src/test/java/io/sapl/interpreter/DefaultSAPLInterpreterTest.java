@@ -240,25 +240,25 @@ class DefaultSAPLInterpreterTest {
 
 	@Test
 	void variableNameEqualsSubscriptionVariableSubjectError() {
-		var policyDefinition = "policy \"p\" permit where var subject = 1;";
+		var policyDefinition = "policy \"p\" permit where var subject = {};";
 		assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyDefinition));
 	}
 
 	@Test
 	void variableNameEqualsSubscriptionVariableActionError() {
-		var policyDefinition = "policy \"p\" permit where var action = 1;";
+		var policyDefinition = "policy \"p\" permit where var action = {};";
 		assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyDefinition));
 	}
 
 	@Test
 	void variableNameEqualsSubscriptionVariableResourceError() {
-		var policyDefinition = "policy \"p\" permit where var resource = 1;";
+		var policyDefinition = "policy \"p\" permit where var resource = {};";
 		assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyDefinition));
 	}
 
 	@Test
 	void variableNameEqualsSubscriptionVariableEnvironmentError() {
-		var policyDefinition = "policy \"p\" permit where var environment = 1;";
+		var policyDefinition = "policy \"p\" permit where var environment = {};";
 		assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyDefinition));
 	}
 
