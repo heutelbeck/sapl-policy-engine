@@ -65,7 +65,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 
     /**
      * Create context from a list of function libraries.
-     * 
+     *
      * @param libraries list of function libraries @ if loading libraries fails
      * @throws InitializationException if initialization fails
      */
@@ -119,7 +119,7 @@ public class AnnotationFunctionContext implements FunctionContext {
                 return Val.error(e);
             }
         }
-        return invokeFunction(metadata, (Object[]) new Object[] { parameters });
+        return invokeFunction(metadata, new Object[] { parameters });
     }
 
     private Val invokeFunction(FunctionMetadata metadata, Object... parameters) {
@@ -174,8 +174,8 @@ public class AnnotationFunctionContext implements FunctionContext {
         if (funName.isEmpty())
             funName = method.getName();
 
-		String funSchema = funAnnotation.schema();
-		String funPathToSchema = funAnnotation.pathToSchema();
+        String funSchema = funAnnotation.schema();
+        String funPathToSchema = funAnnotation.pathToSchema();
 
         if (!Val.class.isAssignableFrom(method.getReturnType()))
             throw new InitializationException(ILLEGAL_RETURN_TYPE_FOR_IMPORT, method.getReturnType().getName());
@@ -190,7 +190,7 @@ public class AnnotationFunctionContext implements FunctionContext {
             }
         }
 
-        FunctionMetadata funMeta = new FunctionMetadata(libName, funName, library, parameters, method);
+        FunctionMetadata funMeta = new FunctionMetadata(libName, funName, funSchema, funPathToSchema, library, parameters, method);
         functions.put(funMeta.fullyQualifiedName(), funMeta);
         libMeta.documentation.put(funMeta.getDocumentationCodeTemplate(), funAnnotation.docs());
 
@@ -223,15 +223,15 @@ public class AnnotationFunctionContext implements FunctionContext {
     @AllArgsConstructor
     public static class FunctionMetadata implements LibraryEntryMetadata {
 
-		private static final String MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED = "Please only provide either a schema or a schemaPath annotation.";
+        private static final String MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED = "Please only provide either a schema or a schemaPath annotation.";
 
         String libraryName;
 
         String functionName;
 
-		String functionSchema;
+        String functionSchema;
 
-		String functionPathToSchema;
+        String functionPathToSchema;
 
         Object library;
 
@@ -283,14 +283,14 @@ public class AnnotationFunctionContext implements FunctionContext {
         return codeTemplateCache;
     }
 
-	@Override
-	public Map<String, String> getFunctionSchemas(){
-		var schemas = new HashMap<String, String>();
-		for (var entry : functions.entrySet()) {
-			schemas.put(entry.getKey(), entry.getValue().functionSchema);
-		}
-		return schemas;
-	}
+    @Override
+    public Map<String, String> getFunctionSchemas(){
+        var schemas = new HashMap<String, String>();
+        for (var entry : functions.entrySet()) {
+            schemas.put(entry.getKey(), entry.getValue().functionSchema);
+        }
+        return schemas;
+    }
 
     @Override
     public Collection<String> getAllFullyQualifiedFunctions() {
@@ -315,5 +315,4 @@ public class AnnotationFunctionContext implements FunctionContext {
         }
         return documentedCodeTemplates;
     }
-
 }

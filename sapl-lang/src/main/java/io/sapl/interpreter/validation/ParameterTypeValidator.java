@@ -29,6 +29,9 @@ import io.sapl.api.validation.Int;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Long;
 import io.sapl.api.validation.Number;
+import io.sapl.api.validation.Schema;
+import io.sapl.api.validation.Text;
+
 import io.sapl.functions.SchemaValidationLibrary;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;

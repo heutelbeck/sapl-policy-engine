@@ -15,6 +15,7 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -39,15 +40,16 @@ class TestFunctionContext implements FunctionContext {
 	}
 
 	@Override
-	public Boolean isProvidedFunction(String function){
+	public Boolean isProvidedFunction(String function) {
 		List<String> availableFunctions = new ArrayList<>();
 		for (var lib : availableLibraries.entrySet()) {
 			var key = lib.getKey();
-			for (var value : lib.getValue()){
+			for (var value : lib.getValue()) {
 				availableFunctions.add(key.concat(".").concat(value));
 			}
 		}
 		return availableFunctions.contains(function);
+	}
 
     @Override
     public Collection<String> providedFunctionsOfLibrary(String pipName) {
@@ -74,14 +76,6 @@ class TestFunctionContext implements FunctionContext {
         return List.of("filter.blacken", "filter.remove", "filter.replace", "standard.length",
                 "standard.numberToString", "time.after", "time.before", "time.between");
     }
-
-	}
-
-	@Override
-	public List<String> getCodeTemplates() {
-		return List.of("filter.blacken", "filter.remove", "filter.replace", "standard.length",
-				"standard.numberToString", "time.after", "time.before", "time.between");
-	}
 
 	@Override
 	public Collection<String> getAllFullyQualifiedFunctions() {
