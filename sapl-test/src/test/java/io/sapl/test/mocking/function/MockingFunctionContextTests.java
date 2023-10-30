@@ -161,4 +161,9 @@ class MockingFunctionContextTests {
         assertThat(this.ctx.getAvailableLibraries()).containsOnly("foo.bar");
     }
 
+    @Test
+    void test_getDocumentedAttributeCodeTemplates_isEmpty() {
+        assertThat(this.ctx.getDocumentedCodeTemplates()).isEmpty();
+    }
+
 }
