@@ -65,9 +65,4 @@ public class InputStringVariablesAndCombinatorSource implements VariablesAndComb
         return Flux.just(config.getVariables()).map(HashMap::new).map(Optional::of);
     }
 
-    @Override
-    public void dispose() {
-        // NOP nothing to dispose
-    }
-
 }

@@ -87,9 +87,4 @@ public class InputStringPolicyRetrievalPoint implements PolicyRetrievalPoint {
         }
         log.trace("|");
     }
-
-    @Override
-    public void dispose() {
-    }
-
 }
