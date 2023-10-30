@@ -49,24 +49,14 @@ import reactor.core.publisher.Flux;
  */
 public class ConditionStepImplCustom extends ConditionStepImpl {
 
-    private static final String NO_CONDITION_EXPRESSION_ERROR = "No condition expression.";
-
     @Override
     public Flux<Val> apply(@NonNull Val parentValue) {
-        if (expression == null) {
-            return Flux
-                    .just(Val.error(NO_CONDITION_EXPRESSION_ERROR).withParentTrace(ConditionStep.class, parentValue));
-        }
         return StepAlgorithmUtil.apply(parentValue, expression::evaluate, Trace.CONDITION_EXPRESSION,
                 ConditionStep.class);
     }
 
     @Override
     public Flux<Val> applyFilterStatement(@NonNull Val parentValue, int stepId, @NonNull FilterStatement statement) {
-        if (expression == null) {
-            return Flux
-                    .just(Val.error(NO_CONDITION_EXPRESSION_ERROR).withParentTrace(ConditionStep.class, parentValue));
-        }
         return FilterAlgorithmUtil.applyFilter(parentValue, stepId, expression::evaluate, statement,
                 ConditionStep.class);
     }

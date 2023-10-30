@@ -15,13 +15,16 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import java.util.function.BiPredicate;
+import java.util.function.Supplier;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.ArraySlicingStep;
 import io.sapl.grammar.sapl.AttributeUnionStep;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.grammar.sapl.impl.util.FilterAlgorithmUtil;
-import io.sapl.grammar.sapl.impl.util.SelectorUtil;
 import io.sapl.grammar.sapl.impl.util.StepAlgorithmUtil;
+import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
@@ -38,15 +41,15 @@ public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 
     @Override
     public Flux<Val> apply(@NonNull Val parentValue) {
-        return StepAlgorithmUtil.applyOnObject(parentValue, SelectorUtil.toObjectFieldSelector(this::hasKey),
-                parameters(), AttributeUnionStep.class);
+        return StepAlgorithmUtil.applyOnObject(parentValue, toObjectFieldSelector(this::hasKey), parameters(),
+                AttributeUnionStep.class);
     }
 
     @Override
     public Flux<Val> applyFilterStatement(@NonNull Val unfilteredValue, int stepId,
             @NonNull FilterStatement statement) {
-        return FilterAlgorithmUtil.applyFilterOnObject(unfilteredValue, stepId,
-                SelectorUtil.toObjectFieldSelector(this::hasKey), statement, ArraySlicingStep.class);
+        return FilterAlgorithmUtil.applyFilterOnObject(unfilteredValue, stepId, toObjectFieldSelector(this::hasKey),
+                statement, ArraySlicingStep.class);
     }
 
     private boolean hasKey(String key, Val value) {
@@ -57,4 +60,11 @@ public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
         return "[" + (attributes == null ? "" : String.join(",", attributes)) + "]";
     }
 
+    public static Supplier<Flux<Val>> toObjectFieldSelector(BiPredicate<String, Val> selector) {
+        return () -> Flux.deferContextual(ctx -> {
+            var relativeNode = AuthorizationContext.getRelativeNode(ctx);
+            var key          = AuthorizationContext.getKey(ctx);
+            return Flux.just(Val.of(selector.test(key, relativeNode)));
+        });
+    }
 }

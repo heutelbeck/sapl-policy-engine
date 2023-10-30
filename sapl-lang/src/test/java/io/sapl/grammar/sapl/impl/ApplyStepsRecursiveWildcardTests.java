@@ -15,8 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionEvaluatesTo;
-import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsErrors;
+import static io.sapl.testutil.TestUtil.assertExpressionEvaluatesTo;
+import static io.sapl.testutil.TestUtil.assertExpressionReturnsErrors;
 
 import java.io.IOException;
 import java.util.stream.Stream;
@@ -28,9 +28,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.impl.util.ArrayUtil;
-import io.sapl.grammar.sapl.impl.util.MockUtil;
-import io.sapl.grammar.sapl.impl.util.ParserUtil;
+import io.sapl.testutil.ArrayUtil;
+import io.sapl.testutil.MockUtil;
+import io.sapl.testutil.ParserUtil;
 import reactor.test.StepVerifier;
 
 class ApplyStepsRecursiveWildcardTests {

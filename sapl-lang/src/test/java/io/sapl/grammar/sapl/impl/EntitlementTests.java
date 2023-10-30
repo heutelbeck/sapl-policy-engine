@@ -22,7 +22,7 @@ import java.io.IOException;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.pdp.Decision;
-import io.sapl.grammar.sapl.impl.util.ParserUtil;
+import io.sapl.testutil.ParserUtil;
 
 class EntitlementTests {
 

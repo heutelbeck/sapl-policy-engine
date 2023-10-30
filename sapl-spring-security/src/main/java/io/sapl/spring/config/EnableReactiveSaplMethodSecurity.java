@@ -31,9 +31,6 @@ import org.springframework.core.Ordered;
  * Provide the @EnableReactiveSaplMethodSecurity annotation on any configuration
  * class to activate the reactive method security for methods returning a
  * Publisher.
- * 
- * @author Dominic Heutelbeck
- *
  */
 @Documented
 @Configuration

@@ -15,9 +15,9 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionEvaluatesTo;
-import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsError;
-import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsErrors;
+import static io.sapl.testutil.TestUtil.assertExpressionEvaluatesTo;
+import static io.sapl.testutil.TestUtil.assertExpressionReturnsError;
+import static io.sapl.testutil.TestUtil.assertExpressionReturnsErrors;
 
 import java.util.stream.Stream;
 

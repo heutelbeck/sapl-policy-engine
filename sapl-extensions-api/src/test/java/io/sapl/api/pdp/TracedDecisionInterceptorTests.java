@@ -16,6 +16,6 @@ class TracedDecisionInterceptorTests {
     void compareTo() {
         TracedDecisionInterceptor interceptor1 = t -> t;
         TracedDecisionInterceptor interceptor2 = t -> t;
-        assertThat(interceptor1.compareTo(interceptor2)).isZero();
+        assertThat(interceptor1).isEqualByComparingTo(interceptor2);
     }
 }

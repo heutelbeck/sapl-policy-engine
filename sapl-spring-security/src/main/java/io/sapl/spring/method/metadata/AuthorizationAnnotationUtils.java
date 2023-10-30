@@ -43,7 +43,7 @@ import lombok.experimental.UtilityClass;
  * used on the same method, then it's unclear which `@PreAuthorize` expression
  * Spring Security should use.
  *
- * @author Josh Cummings, Dominic Heutelbeck
+ * Derived from spring-scurity original by Josh Cummings
  */
 @UtilityClass
 final class AuthorizationAnnotationUtils {

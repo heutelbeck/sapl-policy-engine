@@ -15,10 +15,10 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.ParserUtil.filterComponent;
-import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionEvaluatesTo;
-import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsError;
-import static io.sapl.grammar.sapl.impl.util.TestUtil.assertExpressionReturnsErrors;
+import static io.sapl.testutil.ParserUtil.filterComponent;
+import static io.sapl.testutil.TestUtil.assertExpressionEvaluatesTo;
+import static io.sapl.testutil.TestUtil.assertExpressionReturnsError;
+import static io.sapl.testutil.TestUtil.assertExpressionReturnsErrors;
 
 import java.io.IOException;
 import java.util.stream.Stream;
@@ -29,8 +29,8 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.interpreter.context.AuthorizationContext;
+import io.sapl.testutil.MockUtil;
 import reactor.test.StepVerifier;
 
 class ApplyFilteringExtendedTests {

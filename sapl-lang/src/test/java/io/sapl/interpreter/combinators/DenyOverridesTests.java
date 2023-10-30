@@ -20,6 +20,7 @@ import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateDecisio
 import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateObligations;
 import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateResource;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,8 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
+import io.sapl.grammar.sapl.impl.DenyOverridesCombiningAlgorithmImplCustom;
+import reactor.test.StepVerifier;
 
 class DenyOverridesTests {
 
@@ -57,6 +60,13 @@ class DenyOverridesTests {
         var policySet = "set \"tests\" deny-overrides" + " policy \"testp\" deny true == false";
         var expected  = Decision.NOT_APPLICABLE;
         validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
+    }
+
+    @Test
+    void noDecisionsIsNotApplicable() {
+        var algorithm = new DenyOverridesCombiningAlgorithmImplCustom();
+        StepVerifier.create(algorithm.combinePolicies(List.of())).expectNextMatches(combinedDecision -> combinedDecision
+                .getAuthorizationDecision().getDecision() == Decision.NOT_APPLICABLE).verifyComplete();
     }
 
     @Test

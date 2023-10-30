@@ -48,7 +48,8 @@ public class DenyUnlessPermitCombiningAlgorithmImplCustom extends DenyUnlessPerm
 
     @Override
     public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
-        return CombiningAlgorithmUtil.eagerlyCombinePolicyElements(policies, this::combinator, getName());
+        return CombiningAlgorithmUtil.eagerlyCombinePolicyElements(policies, this::combinator, getName(),
+                AuthorizationDecision.DENY);
     }
 
     @Override
@@ -57,9 +58,6 @@ public class DenyUnlessPermitCombiningAlgorithmImplCustom extends DenyUnlessPerm
     }
 
     private CombinedDecision combinator(DocumentEvaluationResult[] policyDecisions) {
-        if (policyDecisions.length == 0)
-            return CombinedDecision.of(AuthorizationDecision.DENY, getName());
-
         var entitlement = DENY;
         var collector   = new ObligationAdviceCollector();
         var resource    = Optional.<JsonNode>empty();

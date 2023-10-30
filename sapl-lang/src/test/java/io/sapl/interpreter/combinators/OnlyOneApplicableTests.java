@@ -24,6 +24,7 @@ import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateDecisio
 import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateObligations;
 import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateResource;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -63,6 +64,13 @@ class OnlyOneApplicableTests {
         var given    = mockPolicyRetrievalResult(false, denyPolicy(""));
         var expected = AuthorizationDecision.DENY;
         verifyDocumentsCombinator(given, expected);
+    }
+
+    @Test
+    void noDecisionsIsNotApplicable() {
+        var algorithm = new OnlyOneApplicableCombiningAlgorithmImplCustom();
+        StepVerifier.create(algorithm.combinePolicies(List.of())).expectNextMatches(combinedDecision -> combinedDecision
+                .getAuthorizationDecision().getDecision() == Decision.NOT_APPLICABLE).verifyComplete();
     }
 
     @Test

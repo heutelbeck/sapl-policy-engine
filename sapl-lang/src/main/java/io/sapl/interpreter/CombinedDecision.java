@@ -88,7 +88,7 @@ public class CombinedDecision implements Traced {
         var trace = Val.JSON.objectNode();
         trace.set(Trace.COMBINING_ALGORITHM, Val.JSON.textNode(combiningAlgorithm));
         trace.set(Trace.AUTHORIZATION_DECISION, MAPPER.valueToTree(getAuthorizationDecision()));
-        errorMessage.ifPresent(s -> trace.set(Trace.ERROR, Val.JSON.textNode(s)));
+        errorMessage.ifPresent(s -> trace.set(Trace.ERROR_MESSAGE, Val.JSON.textNode(s)));
         trace.set(Trace.EVALUATED_POLICIES, listOfTracedToJsonArray(documentEvaluationResults));
         return trace;
     }

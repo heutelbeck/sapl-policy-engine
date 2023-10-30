@@ -20,8 +20,8 @@ import java.math.BigDecimal;
 
 import org.junit.jupiter.api.Test;
 
-import io.sapl.grammar.sapl.impl.util.MockUtil;
-import io.sapl.grammar.sapl.impl.util.ParserUtil;
+import io.sapl.testutil.MockUtil;
+import io.sapl.testutil.ParserUtil;
 import reactor.test.StepVerifier;
 
 class ArithmeticExpressionsTests {

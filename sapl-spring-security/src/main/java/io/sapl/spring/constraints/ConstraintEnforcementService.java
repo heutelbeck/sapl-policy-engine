@@ -62,9 +62,6 @@ import reactor.core.publisher.Flux;
  * constraint handlers in bundles for the PEP whenever the PDP sends a new
  * decision. The PEP in return will execute the matching handlers in the
  * protected code path.
- * 
- * @author Dominic Heutelbeck
- *
  */
 @Slf4j
 @Service

@@ -80,8 +80,8 @@
 			</exclusions>
 		</dependency>
 		<dependency>
-    		<groupId>com.google.guava</groupId>
-    		<artifactId>guava</artifactId>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
 		</dependency>
 		<!-- Logging -->
 		<dependency>
@@ -141,6 +141,11 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
+			<groupId>org.assertj</groupId>
+			<artifactId>assertj-core</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
 			<groupId>com.spotify</groupId>
 			<artifactId>hamcrest-pojo</artifactId>
 			<scope>test</scope>
@@ -176,9 +181,9 @@
 			-->
 		</dependency>
 		<dependency>
-    		<groupId>org.mockito</groupId>
-    		<artifactId>mockito-core</artifactId>
-    		<scope>test</scope>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-core</artifactId>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.reflections</groupId>
@@ -211,9 +216,11 @@
 							<goal>java</goal>
 						</goals>
 						<configuration>
-							<mainClass>org.eclipse.emf.mwe2.launch.runtime.Mwe2Launcher</mainClass>
+							<mainClass>
+								org.eclipse.emf.mwe2.launch.runtime.Mwe2Launcher</mainClass>
 							<arguments>
-								<argument>/${project.basedir}/src/main/java/io/sapl/grammar/GenerateSAPLModel.mwe2
+								<argument>
+									/${project.basedir}/src/main/java/io/sapl/grammar/GenerateSAPLModel.mwe2
 								</argument>
 								<argument>-p</argument>
 								<argument>rootPath=/${project.basedir}/..</argument>
@@ -221,14 +228,17 @@
 							<classpathScope>compile</classpathScope>
 							<includePluginDependencies>true</includePluginDependencies>
 							<cleanupDaemonThreads>false
-							</cleanupDaemonThreads> <!-- see https://bugs.eclipse.org/bugs/show_bug.cgi?id=475098#c3 -->
+							</cleanupDaemonThreads> <!-- see
+							https://bugs.eclipse.org/bugs/show_bug.cgi?id=475098#c3 -->
 							<systemProperties>
-								<!-- Use custom logger configuration to make logs look like default 
+								<!-- Use custom logger configuration to make
+								logs look like default 
 									maven logs. Attention: Setting this here spills over into the mwe2Launcher 
 									execution below. -->
 								<systemProperty>
 									<key>log4j.configuration</key>
-									<value>file:${project.basedir}/plugin-log4j.properties</value>
+									<value>
+										file:${project.basedir}/plugin-log4j.properties</value>
 								</systemProperty>
 							</systemProperties>
 						</configuration>
@@ -241,16 +251,19 @@
 							<goal>java</goal>
 						</goals>
 						<configuration>
-							<mainClass>org.eclipse.emf.mwe2.launch.runtime.Mwe2Launcher</mainClass>
+							<mainClass>
+								org.eclipse.emf.mwe2.launch.runtime.Mwe2Launcher</mainClass>
 							<arguments>
-								<argument>/${project.basedir}/src/main/java/io/sapl/grammar/GenerateSAPL.mwe2</argument>
+								<argument>
+									/${project.basedir}/src/main/java/io/sapl/grammar/GenerateSAPL.mwe2</argument>
 								<argument>-p</argument>
 								<argument>rootPath=/${project.basedir}/..</argument>
 							</arguments>
 							<classpathScope>compile</classpathScope>
 							<includePluginDependencies>true</includePluginDependencies>
 							<cleanupDaemonThreads>false
-							</cleanupDaemonThreads> <!-- see https://bugs.eclipse.org/bugs/show_bug.cgi?id=475098#c3 -->
+							</cleanupDaemonThreads> <!-- see
+							https://bugs.eclipse.org/bugs/show_bug.cgi?id=475098#c3 -->
 						</configuration>
 					</execution>
 				</executions>
@@ -265,7 +278,8 @@
 				<configuration>
 					<filesets combine.children="append">
 						<fileset>
-							<directory>${basedir}/../sapl-lang/src/main/xtext-gen/</directory>
+							<directory>
+								${basedir}/../sapl-lang/src/main/xtext-gen/</directory>
 							<includes>
 								<include>**/*</include>
 							</includes>
@@ -277,19 +291,22 @@
 							</includes>
 						</fileset>
 						<fileset>
-							<directory>${basedir}/../sapl-lang/src/test/xtext-gen/</directory>
+							<directory>
+								${basedir}/../sapl-lang/src/test/xtext-gen/</directory>
 							<includes>
 								<include>**/*</include>
 							</includes>
 						</fileset>
 						<fileset>
-							<directory>${basedir}/../sapl-ide/src/main/xtext-gen/</directory>
+							<directory>
+								${basedir}/../sapl-ide/src/main/xtext-gen/</directory>
 							<includes>
 								<include>**/*</include>
 							</includes>
 						</fileset>
 						<fileset>
-							<directory>${basedir}/../sapl-web/src/main/xtext-gen/</directory>
+							<directory>
+								${basedir}/../sapl-web/src/main/xtext-gen/</directory>
 							<includes>
 								<include>**/*</include>
 							</includes>

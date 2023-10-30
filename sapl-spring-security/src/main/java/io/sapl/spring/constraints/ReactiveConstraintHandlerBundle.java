@@ -33,9 +33,6 @@ import reactor.core.publisher.Mono;
  * This bundle aggregates all constraint handlers for a specific decision which
  * are useful in a reactive scenario.
  * <p>
- * 
- * @author Dominic Heutelbeck
- *
  * @param <T> return type
  */
 @NoArgsConstructor

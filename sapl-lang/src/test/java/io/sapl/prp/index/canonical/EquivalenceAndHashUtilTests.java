@@ -15,8 +15,8 @@
  */
 package io.sapl.prp.index.canonical;
 
-import static io.sapl.grammar.sapl.impl.util.ParserUtil.entitlement;
-import static io.sapl.grammar.sapl.impl.util.ParserUtil.expression;
+import static io.sapl.testutil.ParserUtil.entitlement;
+import static io.sapl.testutil.ParserUtil.expression;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;

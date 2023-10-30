@@ -51,7 +51,8 @@ public class OnlyOneApplicableCombiningAlgorithmImplCustom extends OnlyOneApplic
 
     @Override
     public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
-        return CombiningAlgorithmUtil.eagerlyCombinePolicyElements(policies, this::combinator, getName());
+        return CombiningAlgorithmUtil.eagerlyCombinePolicyElements(policies, this::combinator, getName(),
+                AuthorizationDecision.NOT_APPLICABLE);
     }
 
     @Override

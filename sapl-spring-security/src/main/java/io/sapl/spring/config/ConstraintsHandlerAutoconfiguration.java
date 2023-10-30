@@ -29,8 +29,6 @@ import io.sapl.spring.constraints.providers.ContentFilteringProvider;
 
 /**
  * Sets up the default constraint handler provides.
- * 
- * @author Dominic Heutelbeck
  * @since 2.0.0
  */
 @AutoConfiguration
