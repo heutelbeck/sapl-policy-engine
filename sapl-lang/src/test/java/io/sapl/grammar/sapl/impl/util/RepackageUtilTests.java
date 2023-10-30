@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import io.sapl.api.interpreter.Val;
 import reactor.util.function.Tuples;
 
-public class RepackageUtilTests {
+class RepackageUtilTests {
 
     @Test
     void testObjectCombiningOnErrors1() {
