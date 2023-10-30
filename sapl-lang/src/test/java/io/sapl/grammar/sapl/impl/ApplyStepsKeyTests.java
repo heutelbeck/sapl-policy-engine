@@ -59,9 +59,9 @@ class ApplyStepsKeyTests {
 	 			// Filter non-object or array
 	 			Arguments.of("\"Gudrun\" |- { @.key : mock.nil }", "\"Gudrun\""),
 
-	 			// Filter object
-	 			Arguments.of("{\"key\" : true, \"other\" : false} |- { @.key : mock.nil}",
-	 					     "{\"key\" : null, \"other\" : false}"),
+                // Filter object
+                Arguments.of("{\"key\" : true, \"other\" : false} |- { @.key : mock.nil}",
+                             "{\"key\" : null, \"other\" : false}"),
 	
 	 			// Filter object descend
 	 			Arguments.of("{\"key\" : { \"key2\" : true}, \"other\" : false} |- { @.key.key2 : mock.nil}",

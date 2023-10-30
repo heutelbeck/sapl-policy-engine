@@ -79,4 +79,8 @@ class ApplyStepsRecursiveIndexTests {
 		assertExpressionEvaluatesTo(expression, expected);
 	}
 		
+	@Test
+	void handleError() {
+	    assertExpressionReturnsErrors("[ 4, (1/0), (2/0), (3/0) ]..[-4]");
+	}
 }

@@ -42,6 +42,7 @@ import io.sapl.mavenplugin.test.coverage.report.sonar.SonarLineCoverageReportGen
 import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import io.sapl.test.coverage.api.model.PolicyHit;
 import io.sapl.test.coverage.api.model.PolicySetHit;
+import lombok.Setter;
 
 @Mojo(name = "report-coverage-information", defaultPhase = LifecyclePhase.VERIFY)
 public class ReportCoverageInformationMojo extends AbstractMojo {
@@ -73,12 +74,15 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
     @Parameter(defaultValue = "true")
     private boolean enableHtmlReport;
 
+    @Setter
     @Parameter(defaultValue = "true")
     private boolean failOnDisabledTests;
 
+    @Setter
     @Parameter(property = "maven.test.skip", defaultValue = "false", required = false)
     private boolean mavenTestSkip;
 
+    @Setter
     @Parameter(property = "skipTests", defaultValue = "false", required = false, readonly = false)
     private boolean skipTests;
 
@@ -131,28 +135,30 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 
         var buildConfiguredToSkipTests = mavenTestSkip || skipTests;
 
-        if (buildConfiguredToSkipTests && this.failOnDisabledTests) {
-            getLog().error("Tests were skipped, but the sapl-maven-plugin is configured to enforce tests to be run.");
-            getLog().error(
-                    "This means, that the build has been run with '-Dmaven.test.skip=true' or '-DskipTests' and the sapl-maven-plugin configuration parameter 'failOnDisabledTests' was set to true. If this is not the intended behaviour, change this parameter to 'false'.");
-            throw new MojoFailureException(
-                    "SAPL test requirements not passed. Tests must be enabled for the build to complete. For details, inspect build log.");
+        if (buildConfiguredToSkipTests) {
+            if (this.failOnDisabledTests) {
+                getLog().error(
+                        "Tests were skipped, but the sapl-maven-plugin is configured to enforce tests to be run.");
+                getLog().error(
+                        "This means, that the build has been run with '-Dmaven.test.skip=true' or '-DskipTests' and the sapl-maven-plugin configuration parameter 'failOnDisabledTests' was set to true. If this is not the intended behaviour, change this parameter to 'false'.");
+                throw new MojoFailureException(
+                        "SAPL test requirements not passed. Tests must be enabled for the build to complete. For details, inspect build log.");
+            } else {
+                getLog().info(
+                        "Tests disabled. Skipping coverage validation requirements validation. If you want the build to fail in this case, set the sapl-maven-plugin configuration parameter 'failOnDisabledTests' to true.");
+                return;
+            }
         }
 
-        if (buildConfiguredToSkipTests && !this.failOnDisabledTests) {
-            getLog().info(
-                    "Tests disabled. Skipping coverage validation requirements validation. If you want the build to fail in this case, set the sapl-maven-plugin configuration parameter 'failOnDisabledTests' to true.");
-            return;
-        }
+        var documents = readSaplDocuments();
+        var targets   = readAvailableTargets(documents);
 
-        var             documents = readSaplDocuments();
-        var             targets   = readAvailableTargets(documents);
         CoverageTargets hits;
         try {
             hits = readHits();
         } catch (IOException e) {
             getLog().error(
-                    String.format("Error test report data. %s: %s", e.getClass().getCanonicalName(), e.getMessage()));
+                    String.format("Error test report data. %s: %s", e.getClass().getSimpleName(), e.getMessage()));
             getLog().error("Probable causes for this error:");
             getLog().error(" - There are not tests of SAPL policies in this module.");
             getLog().error(" - The build has skipped tests but the sapl-maven-plugin is still executed.");
