@@ -39,7 +39,7 @@ public class SchemaValidationLibrary {
 
         if(jsonObject.isTextual()){
             node = jsonNodeFromString(jsonObject.get().asText());
-        } else if (jsonObject.isObject()){
+        } else {
             node = jsonObject.getJsonNode();
         }
 

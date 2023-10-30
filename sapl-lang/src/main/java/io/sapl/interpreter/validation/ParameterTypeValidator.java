@@ -86,9 +86,11 @@ public class ParameterTypeValidator {
         for (Annotation annotation : annotations) {
             if (nodeContentsMatchesTypeGivenByAnnotation(node, annotation))
                 return;
-            else if (Schema.class.isAssignableFrom(annotation.getClass()) && nodeCompliantWithSchema(node, annotation))
+            else if (!Schema.class.isAssignableFrom(annotation.getClass()))
+                continue;
+            else if (nodeCompliantWithSchema(node, annotation))
                 return;
-            else if (Schema.class.isAssignableFrom(annotation.getClass()) && !nodeCompliantWithSchema(node, annotation)) {
+            else if (!nodeCompliantWithSchema(node, annotation)) {
                 var schemaAnnotation = (Schema) annotation;
                 errorText = schemaAnnotation.errorText();
                 if (!"".equals(errorText))
@@ -114,7 +116,9 @@ public class ParameterTypeValidator {
 	}
 
     private static boolean nodeCompliantWithSchema(JsonNode node, Annotation annotation) {
-        String schema = ((Schema) annotation).value();
+        String schema = "";
+        if (annotation instanceof Schema schemaAnnotation)
+            schema = schemaAnnotation.value();
         if ("".equals(schema))
             return true;
         return SchemaValidationLibrary.isCompliantWithSchema(node, schema);
@@ -149,13 +153,10 @@ public class ParameterTypeValidator {
         int index = indexOfSchemaAnnotation(annotations);
         Annotation schemaAnnotation;
 
-        if (index != -1) {
+        if (annotations.length > 0 && index != -1) {
             schemaAnnotation = annotations[index];
-            if (annotations.length - 1 - index >= 0)
-                System.arraycopy(annotations, index + 1, annotations, index, annotations.length - 1 - index);
-
-            if (annotations.length > 0)
-            	annotations[annotations.length - 1] = schemaAnnotation;
+            System.arraycopy(annotations, index + 1, annotations, index, annotations.length - 1 - index);
+            annotations[annotations.length - 1] = schemaAnnotation;
         }
     }
 

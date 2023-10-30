@@ -21,7 +21,7 @@ public class SchemaProposals {
 
     public List<String> getVariableNamesAsTemplates() {
         var variables = getAllVariablesAsMap();
-        if (variables != null && variables.size() != 0)
+        if (variables != null && !variables.isEmpty())
             return new ArrayList<>(variables.keySet());
         else
             return new ArrayList<>();
