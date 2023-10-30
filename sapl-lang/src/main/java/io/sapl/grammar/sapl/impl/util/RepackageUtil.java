@@ -35,7 +35,8 @@ public class RepackageUtil {
             var key     = element.getT1();
             var value   = element.getT2();
             tracedElements[elementCount++] = new ExpressionArgument(key, value);
-            if (value.isError() && error == null) {
+            if (value.isError() 
+                    && error == null) {
                 error = value;
             } else if (value.isDefined()) { // drop undefined
                 object.set(element.getT1(), element.getT2().get());

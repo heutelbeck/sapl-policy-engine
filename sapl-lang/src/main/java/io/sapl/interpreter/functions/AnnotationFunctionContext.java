@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
@@ -303,14 +304,11 @@ public class AnnotationFunctionContext implements FunctionContext {
         for (var entry : functions.entrySet()) {
             var documentationCodeTemplate = entry.getValue().getDocumentationCodeTemplate();
             for (var library : documentation) {
-                if (!documentedCodeTemplates.containsKey(library.name)) {
-                    documentedCodeTemplates.put(library.name, library.description);
-                }
-                var documentationForCodeTemplate = library.getDocumentation().get(documentationCodeTemplate);
-                if (documentationForCodeTemplate != null) {
-                    documentedCodeTemplates.put(entry.getKey(), documentationForCodeTemplate);
-                    documentedCodeTemplates.put(entry.getValue().getCodeTemplate(), documentationForCodeTemplate);
-                }
+                documentedCodeTemplates.putIfAbsent(library.name, library.description);
+                Optional.ofNullable(library.getDocumentation().get(documentationCodeTemplate)).ifPresent(template -> {
+                    documentedCodeTemplates.put(entry.getKey(), template);
+                    documentedCodeTemplates.put(entry.getValue().getCodeTemplate(), template);
+                });
             }
         }
         return documentedCodeTemplates;

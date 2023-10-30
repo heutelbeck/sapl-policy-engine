@@ -29,7 +29,7 @@ class ArrayImplCustomTests {
 
     @Test
     void arrayPropagatesErrors() {
-        assertExpressionReturnsErrors("[true,(1/0)]");
+        assertExpressionReturnsErrors("[true,(1/0),(2/0)]");
     }
 
     private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {

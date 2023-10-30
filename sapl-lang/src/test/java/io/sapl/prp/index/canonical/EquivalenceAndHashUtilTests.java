@@ -25,6 +25,7 @@ import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -97,9 +98,19 @@ class EquivalenceAndHashUtilTests {
         assertThrows(NullPointerException.class, () -> new Literal((Bool) null));
 
     }
+    
+    @Test
+    void testAreEquivalent2() throws Exception {
+        var exp4 = expression("{\"a\":\"b\"}['a']");
+        var exp5 = expression("{\"a\":\"b\"}['a']");
+        var eList2 = mock(EList.class, RETURNS_DEEP_STUBS);
+        when(eList2.size()).thenReturn(2);
+        assertThat(EquivalenceAndHashUtil.areEquivalent(exp4, EMPTY_MAP, exp5, EMPTY_MAP), is(true));
+        assertThat(EquivalenceAndHashUtil.featuresAreEquivalent(exp4, EMPTY_MAP, eList2, EMPTY_MAP), is(false));
+    }
 
     @Test
-    void testFeaturesAreEquivalent() {
+    void testFeaturesAreEquivalent() throws IOException {
         var objectMock = mock(Object.class);
         assertThat(EquivalenceAndHashUtil.featuresAreEquivalent(objectMock, EMPTY_MAP, objectMock, EMPTY_MAP),
                 is(true));
@@ -127,6 +138,12 @@ class EquivalenceAndHashUtilTests {
         when(iter2.next()).thenReturn(objectMock, null, objectMock);
 
         assertThat(EquivalenceAndHashUtil.featuresAreEquivalent(eList1, EMPTY_MAP, eList2, EMPTY_MAP), is(false));
+
+        var expB = expression("mock()");
+        assertThat(EquivalenceAndHashUtil.featuresAreEquivalent(eList1, EMPTY_MAP, expB, EMPTY_MAP), is(false));
+
     }
+    
+    
 
 }
