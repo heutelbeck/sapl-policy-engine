@@ -155,7 +155,7 @@ class DefaultTestBuilderTest {
             final var testCases = mockTestCases(List.of(testCaseMock));
 
             when(unitTestSuiteMock.getTestCases()).thenReturn(testCases);
-            when(unitTestSuiteMock.getPolicy()).thenReturn("policyName");
+            when(unitTestSuiteMock.getId()).thenReturn("policyName");
 
             final var unitTestSuiteDynamicContainer = mock(DynamicContainer.class);
             final var dynamicTestCases = mockDynamicContainerForName("policyName", unitTestSuiteDynamicContainer);
@@ -268,7 +268,7 @@ class DefaultTestBuilderTest {
             final var integrationTestSuiteDynamicContainer = mock(DynamicContainer.class);
             final var actualIntegrationTestCases = mockDynamicContainerForName("name1,foo/name2,foo/subfoo/nested/policy3.sapl", integrationTestSuiteDynamicContainer);
 
-            when(unitTestSuiteMock.getPolicy()).thenReturn("fooPolicy");
+            when(unitTestSuiteMock.getId()).thenReturn("fooPolicy");
 
             final var unitTestSuiteDynamicContainer = mock(DynamicContainer.class);
             final var actualUnitTestCases = mockDynamicContainerForName("fooPolicy", unitTestSuiteDynamicContainer);

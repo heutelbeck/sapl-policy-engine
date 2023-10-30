@@ -45,7 +45,7 @@ public final class DefaultTestBuilder implements JUnitDynamicTestBuilder {
 
     private String getDynamicContainerName(final TestSuite testSuite) {
         if (testSuite instanceof UnitTestSuite unitTestSuite) {
-            return unitTestSuite.getPolicy();
+            return unitTestSuite.getId();
         } else if (testSuite instanceof IntegrationTestSuite integrationTestSuite) {
             final var policyResolverConfig = integrationTestSuite.getConfig();
             if (policyResolverConfig instanceof PolicyFolder policyFolderConfig) {

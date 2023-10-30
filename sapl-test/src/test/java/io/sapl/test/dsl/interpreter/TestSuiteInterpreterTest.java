@@ -79,7 +79,7 @@ class TestSuiteInterpreterTest {
         void getFixtureFromTestSuite_handlesNullEnvironmentVariables_returnsSaplUnitTestFixture() {
             final var unitTestSuiteMock = mock(UnitTestSuite.class);
 
-            when(unitTestSuiteMock.getPolicy()).thenReturn("fooPolicy");
+            when(unitTestSuiteMock.getId()).thenReturn("fooPolicy");
 
             final var saplUnitTestFixtureMock = mock(SaplUnitTestFixture.class);
             when(saplUnitTestFixtureConstructorWrapperMocK.create("fooPolicy")).thenReturn(saplUnitTestFixtureMock);
@@ -97,7 +97,7 @@ class TestSuiteInterpreterTest {
         void getFixtureFromTestSuite_handlesEmptyEnvironmentVariables_returnsSaplUnitTestFixture() {
             final var unitTestSuiteMock = mock(UnitTestSuite.class);
 
-            when(unitTestSuiteMock.getPolicy()).thenReturn("fooPolicy");
+            when(unitTestSuiteMock.getId()).thenReturn("fooPolicy");
 
             final var saplUnitTestFixtureMock = mock(SaplUnitTestFixture.class);
             when(saplUnitTestFixtureConstructorWrapperMocK.create("fooPolicy")).thenReturn(saplUnitTestFixtureMock);
@@ -116,7 +116,7 @@ class TestSuiteInterpreterTest {
         void getFixtureFromTestSuite_handlesMultipleEnvironmentVariables_returnsSaplUnitTestFixture() {
             final var unitTestSuiteMock = mock(UnitTestSuite.class);
 
-            when(unitTestSuiteMock.getPolicy()).thenReturn("fooPolicy");
+            when(unitTestSuiteMock.getId()).thenReturn("fooPolicy");
 
             final var saplUnitTestFixtureMock = mock(SaplUnitTestFixture.class);
             when(saplUnitTestFixtureConstructorWrapperMocK.create("fooPolicy")).thenReturn(saplUnitTestFixtureMock);

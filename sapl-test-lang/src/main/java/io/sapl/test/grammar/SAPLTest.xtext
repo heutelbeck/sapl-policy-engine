@@ -7,27 +7,18 @@ import "http://www.eclipse.org/emf/2002/Ecore" as ecore
 SAPLTest:
     (elements+=TestSuite)*;
 
-terminal IMPORT_NAME: ('a'..'z')+'.'('a'..'z'|'A'..'Z'|'0'..'9')+;
+terminal JSONNUMBER returns ecore::EBigDecimal: // Definition according to JSON standard  Unary operator for negation/plus prefix
+	('0' | ('1'..'9') DIGIT*) ('.' DIGIT+)? (('E' | 'e') ('+' | '-')? DIGIT+)? ;
 
-TestSuite:
-    UnitTestSuite | IntegrationTestSuite;
+terminal fragment DIGIT:
+	('0'..'9') ;
 
-UnitTestSuite:
-	policy=ID 'tests' '{'
-		(testCases+=TestCase)+
-	'}';
+terminal MultipleAmount:
+    (('2'..'9')|(('1'..'9')('0'..'9')+))'x';
 
 PolicyResolverConfig:
     {PolicyFolder} 'using folder' policyFolder=STRING |
     {PolicySet} 'using policies' policies+=STRING (',' policies+=STRING)+ ('with' 'pdp' 'config' pdpConfig=STRING)?;
-
-IntegrationTestSuite:
-    config=PolicyResolverConfig 'integration' 'tests'
-    ('using variables' pdpVariables=Object)?
-    ('using combiningAlgorithm' combiningAlgorithm=CombiningAlgorithm)?
-    '{'
-        (testCases+=TestCase)+
-    '}';
 
 CombiningAlgorithm:
 	  {DenyOverridesCombiningAlgorithm}     'deny-overrides'
@@ -35,9 +26,6 @@ CombiningAlgorithm:
 	| {OnlyOneApplicableCombiningAlgorithm} 'only-one-applicable'
 	| {DenyUnlessPermitCombiningAlgorithm}  'deny-unless-permit'
 	| {PermitUnlessDenyCombiningAlgorithm}  'permit-unless-deny' ;
-
-WhenStep:
-	 'when' authorizationSubscription=AuthorizationSubscription;
 
 JsonArrayMatcher: '[' matchers+=JsonNodeMatcher (',' matchers+=JsonNodeMatcher)* ']';
 
@@ -89,6 +77,12 @@ ExtendedObjectMatcher:
 enum AuthorizationDecisionMatcherType:
     OBLIGATION='obligation' | ADVICE='advice';
 
+enum FunctionLibrary:
+	FILTER='FilterFunctionLibrary' | LOGGING='LoggingFunctionLibrary' | STANDARD='StandardFunctionLibrary' | TEMPORAL='TemporalFunctionLibrary';
+
+enum AuthorizationDecision:
+	PERMIT='permit' | DENY='deny' | INDETERMINATE='indeterminate' | NOT_APPLICABLE='notApplicable';
+
 AuthorizationDecisionMatcher:
     {AnyDecision} 'any' |
     {IsDecision} 'is' decision=AuthorizationDecision |
@@ -98,56 +92,19 @@ AuthorizationDecisionMatcher:
 FunctionParameters:
     matchers+=ValMatcher (',' matchers+=ValMatcher)*;
 
-GivenStep:
-	{Function} 'function' importName=IMPORT_NAME ('called with' parameters=FunctionParameters)? 'returning' return=Value ('and' 'is' 'invoked' amount=NumericAmount)? |
-	{FunctionInvokedOnce} 'function' importName=IMPORT_NAME 'returns' return+=Value (',' return+=Value)* 'once' |
-	{Attribute} 'attribute' importName=IMPORT_NAME ('returns' return+=Value (',' return+=Value)* ('for' duration=Duration)?)? |
-	{AttributeWithParameters} 'attribute' importName=IMPORT_NAME 'with' 'parent' 'value' parentMatcher=ValMatcher ('and' 'parameters' parameters+=ValMatcher (',' parameters+=ValMatcher)+)? 'returns' return=Value |
-	{VirtualTime} 'virtualTime' |
-    {Variable} 'variable' 'key' key=ID 'value' value=ID;
-
 FixtureRegistration:
     {Pip} 'PIP' pip=STRING |
     {CustomFunctionLibrary} 'custom' 'library' library=STRING |
     {SaplFunctionLibrary} 'library' library=FunctionLibrary;
 
-enum FunctionLibrary:
-	FILTER='FilterFunctionLibrary' | LOGGING='LoggingFunctionLibrary' | STANDARD='StandardFunctionLibrary' | TEMPORAL='TemporalFunctionLibrary';
-
-enum AuthorizationDecision:
-	PERMIT='permit' | DENY='deny' | INDETERMINATE='indeterminate' | NOT_APPLICABLE='notApplicable';
-
 AuthorizationSubscription:
 	'subject' subject=Value 'attempts' 'action' action=Value 'on' 'resource' resource=Value ('with' 'environment' environment=Value)?;
-
-terminal MultipleAmount:
-    (('2'..'9')|(('1'..'9')('0'..'9')+))'x';
 
 NumericAmount:
     {Once} 'once' |
     {Multiple} amount=MultipleAmount;
 
 Duration: duration=STRING;
-
-ExpectOrAdjustmentStep:
-    ExpectStep | AdjustmentStep;
-
-ExpectStep returns ExpectOrAdjustmentStep:
-	{Next} 'expect' expectedDecision=AuthorizationDecision amount=NumericAmount |
-	{NextWithMatcher} 'expect' 'decision' matcher+=AuthorizationDecisionMatcher (',' matcher+=AuthorizationDecisionMatcher)* |
-	{NoEvent} 'no event for' duration=Duration;
-
-AdjustmentStep returns ExpectOrAdjustmentStep:
-    {AttributeAdjustment} 'let' attribute=IMPORT_NAME 'return' returnValue=Value |
-	{Await} 'wait' duration=Duration;
-
-ExpectChain:
-	{SingleExpect} 'expect' 'single' decision=AuthorizationDecision ('with' 'obligations' obligations+=Value (',' obligations+=Value)*)? ('with' 'resource' resource=Value)? ('with' 'advice' advice+=Value (',' advice+=Value)*)?|
-	{TestException} 'expect' 'exception' |
-	{RepeatedExpect} expectSteps+=ExpectOrAdjustmentStep ('then' expectSteps+=ExpectOrAdjustmentStep)*;
-
-TestCase:
-	'scenario' name=STRING ('with' 'environment' environment=Object)? ('register' registrations+=FixtureRegistration (',' registrations+=FixtureRegistration)*)? ('given' givenSteps+=GivenStep ('and' givenSteps+=GivenStep)*)? whenStep=WhenStep 'then' expect=ExpectChain';';
 
 Value:
 	Object | Array | NumberLiteral | StringLiteral | BooleanLiteral | NullLiteral | UndefinedLiteral;
@@ -177,8 +134,48 @@ NullLiteral returns Value:
 UndefinedLiteral returns Value:
     {UndefinedLiteral} 'undefined' ;
 
-terminal JSONNUMBER returns ecore::EBigDecimal: // Definition according to JSON standard  Unary operator for negation/plus prefix
-	('0' | ('1'..'9') DIGIT*) ('.' DIGIT+)? (('E' | 'e') ('+' | '-')? DIGIT+)? ;
+GivenStep:
+	{Function} 'function' importName=STRING ('called with' parameters=FunctionParameters)? 'returning' return=Value ('and' 'is' 'invoked' amount=NumericAmount)? |
+	{FunctionInvokedOnce} 'function' importName=STRING 'returns' return+=Value (',' return+=Value)* 'once' |
+	{Attribute} 'attribute' importName=STRING ('returns' return+=Value (',' return+=Value)* ('for' duration=Duration)?)? |
+	{AttributeWithParameters} 'attribute' importName=STRING 'with' 'parent' 'value' parentMatcher=ValMatcher ('and' 'parameters' parameters+=ValMatcher (',' parameters+=ValMatcher)+)? 'returns' return=Value |
+	{VirtualTime} 'virtual-time';
 
-terminal fragment DIGIT:
-	('0'..'9') ;
+WhenStep:
+     'when' authorizationSubscription=AuthorizationSubscription;
+
+ExpectOrAdjustmentStep:
+    ExpectStep | AdjustmentStep;
+
+ExpectStep returns ExpectOrAdjustmentStep:
+	{Next} 'expect' expectedDecision=AuthorizationDecision amount=NumericAmount |
+	{NextWithMatcher} 'expect' 'decision' matcher+=AuthorizationDecisionMatcher (',' matcher+=AuthorizationDecisionMatcher)* |
+	{NoEvent} 'expect' 'no-event' 'for' duration=Duration;
+
+AdjustmentStep returns ExpectOrAdjustmentStep:
+    {AttributeAdjustment} 'let' attribute=STRING 'return' returnValue=Value |
+	{Await} 'wait' 'for' duration=Duration;
+
+ExpectChain:
+	{SingleExpect} 'expect' 'single' decision=AuthorizationDecision ('with' 'obligations' obligations+=Value (',' obligations+=Value)*)? ('with' 'resource' resource=Value)? ('with' 'advice' advice+=Value (',' advice+=Value)*)?|
+	{TestException} 'expect' 'exception' |
+	{RepeatedExpect} ('-' expectSteps+=ExpectOrAdjustmentStep)+;
+
+TestCase:
+    'scenario' name=STRING ('with' 'environment' environment=Object)? ('register' ('-' registrations+=FixtureRegistration)+)? ('given' ('-' givenSteps+=GivenStep)+)? whenStep=WhenStep 'then' expect=ExpectChain';';
+
+TestSuite:
+    UnitTestSuite | IntegrationTestSuite;
+
+UnitTestSuite:
+	id=STRING 'tests' '{'
+		(testCases+=TestCase)+
+	'}';
+
+IntegrationTestSuite:
+    config=PolicyResolverConfig 'integration' 'tests'
+    ('using variables' pdpVariables=Object)?
+    ('using combining-algorithm' combiningAlgorithm=CombiningAlgorithm)?
+    '{'
+        (testCases+=TestCase)+
+    '}';

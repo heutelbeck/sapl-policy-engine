@@ -25,7 +25,7 @@ public class TestSuiteInterpreter {
     SaplTestFixture getFixtureFromTestSuite(final TestSuite testSuite, final Object environment) {
         SaplTestFixture saplTestFixture;
         if (testSuite instanceof UnitTestSuite unitTestSuite) {
-            saplTestFixture = saplUnitTestFixtureConstructorWrapper.create(unitTestSuite.getPolicy());
+            saplTestFixture = saplUnitTestFixtureConstructorWrapper.create(unitTestSuite.getId());
         } else if (testSuite instanceof IntegrationTestSuite integrationTestSuite) {
             final var policyResolverConfig = integrationTestSuite.getConfig();
             SaplIntegrationTestFixture integrationTestFixture;
