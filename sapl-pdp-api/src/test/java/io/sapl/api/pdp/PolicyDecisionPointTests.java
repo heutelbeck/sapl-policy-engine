@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
-class policyDecisionPointTests {
+class PolicyDecisionPointTests {
 
     @Test
     void decideOnce() {
