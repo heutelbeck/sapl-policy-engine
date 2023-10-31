@@ -858,7 +858,6 @@ class AnnotationAttributeContextTests {
 			public Flux<Val> envAttribute(Map<String, JsonNode> variable, @Schema(value=PERSON_SCHEMA) Val a1) {
 				return Flux.just(a1);
 			}
-
 		}
 
 		var pip          = new PIP();
@@ -889,6 +888,18 @@ class AnnotationAttributeContextTests {
     void when_argWithParamSchema_validatesCorrectly2()
             throws InitializationException, IOException {
 
+        final String PERSON_SCHEMA = """
+					{
+					  "$schema": "http://json-schema.org/draft-07/schema#",
+					  "$id": "https://example.com/schemas/regions",
+					  "type": "object",
+					  "properties": {
+						"name": { "type": "string" }
+					  }
+					}
+					""";
+
+
         @PolicyInformationPoint(name = "test")
         class PIP {
 
@@ -908,13 +919,21 @@ class AnnotationAttributeContextTests {
                 return Flux.just(a1);
             }
 
+            @Attribute(schema = PERSON_SCHEMA)
+            public Flux<Val> attributeWithAnnotation(Val a, Val a1) {
+                return Flux.just(a1);
+            }
+
         }
 
         var pip          = new PIP();
         var attributeCtx = new AnnotationAttributeContext(pip);
         var variable    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 
-        pip.envAttribute(variable, Val.of(1)).contextWrite(this.constructContext(attributeCtx, variable)).next().block();
+        var context          = new AnnotationAttributeContext(pip);
+        var functionSchemas = context.getFunctionSchemas();
+        assertThat(functionSchemas, hasEntry("test.attributeWithAnnotation", PERSON_SCHEMA));
+
 
         var validExpression   = ParserUtil.expression("<test.envAttribute({\"name\": \"Joe\"})>");
         var expected = new ObjectMapper().readTree("{\"name\": \"Joe\"}\")>");

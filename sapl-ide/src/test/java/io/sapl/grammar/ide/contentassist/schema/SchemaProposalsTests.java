@@ -29,6 +29,15 @@ class SchemaProposalsTests {
     }
 
     @Test
+    void variableCollectionIsNullReturnsEmptyList (){
+        var source = mock(VariablesAndCombinatorSource.class);
+        when(source.getVariables()).thenReturn(Flux.just(Optional.ofNullable(null)));
+        var proposals = new SchemaProposals(source);
+        var variables = proposals.getVariableNamesAsTemplates();
+        assertThat(variables, is(empty()));
+    }
+
+    @Test
     void variableNamesAreReturnedWhenExistent (){
         var mapper = new ObjectMapper();
         var nullNode = mapper.nullNode();

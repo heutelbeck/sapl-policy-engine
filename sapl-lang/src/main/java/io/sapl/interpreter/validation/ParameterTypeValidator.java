@@ -92,7 +92,7 @@ public class ParameterTypeValidator {
                 continue;
             else if (nodeCompliantWithSchema(node, annotation))
                 return;
-            else if (!nodeCompliantWithSchema(node, annotation)) {
+            else {
                 var schemaAnnotation = (Schema) annotation;
                 errorText = schemaAnnotation.errorText();
                 if (!"".equals(errorText))
@@ -119,8 +119,7 @@ public class ParameterTypeValidator {
 
     private static boolean nodeCompliantWithSchema(JsonNode node, Annotation annotation) {
         String schema = "";
-        if (annotation instanceof Schema schemaAnnotation)
-            schema = schemaAnnotation.value();
+        schema = ((Schema) annotation).value();
         if ("".equals(schema))
             return true;
         var nodeVal = Val.of(node);
