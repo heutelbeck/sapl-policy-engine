@@ -17,6 +17,8 @@ package io.sapl.interpreter.validation;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Parameter;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -150,18 +152,19 @@ public class ParameterTypeValidator {
 	}
 
     private static void moveSchemaAnnotationToTheEndIfItExists(Annotation[] annotations) {
-        int index = indexOfSchemaAnnotation(annotations);
-        Annotation schemaAnnotation;
-
-        if (annotations.length > 0 && index != -1) {
-            schemaAnnotation = annotations[index];
-            System.arraycopy(annotations, index + 1, annotations, index, annotations.length - 1 - index);
-            annotations[annotations.length - 1] = schemaAnnotation;
+        if (annotations.length < 2)
+            return;
+        int index = Math.max(0, indexOfSchemaAnnotation(annotations));
+        if (index < annotations.length){
+            var annotationList = new ArrayList<>(Arrays.asList(annotations));
+            var indexedAnnotation = annotationList.remove(index);
+            annotationList.add(indexedAnnotation);
+            annotationList.toArray(annotations);
         }
     }
 
     private static int indexOfSchemaAnnotation(Annotation[] annotations) {
-        int index = -1;
+        int index = annotations.length;
 
         for (int i = 0; i < annotations.length; i++) {
             if (Schema.class.isAssignableFrom(annotations[i].getClass())) {

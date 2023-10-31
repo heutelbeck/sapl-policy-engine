@@ -19,6 +19,7 @@ import static com.spotify.hamcrest.pojo.IsPojo.pojo;
 import static io.sapl.hamcrest.Matchers.valError;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -244,11 +245,33 @@ class AnnotationFunctionContextTests {
     }
 
     @Test
+    void schemaIsNotReturned() throws InitializationException {
+        final String PERSON_SCHEMA = """
+				{  "$schema": "http://json-schema.org/draft-07/schema#",
+				  "$id": "https://example.com/schemas/regions",
+				  "type": "object",
+				  "properties": {
+				  "name": { "type": "string" }
+				  }
+				}""";
+        var context          = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
+        var functionSchemas = context.getFunctionSchemas();
+        assertThat(functionSchemas, not(hasEntry(
+                "annotation.schemaFromJson", "{}")));
+    }
+    @Test
     void typeAnnotationSchemaMatchesParameter() throws InitializationException, JsonProcessingException {
         var context = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
         var mapper = new ObjectMapper();
         var parameter = mapper.readTree("{\"name\": \"Joe\"}");
         assertThat(context.evaluate("annotation.schemaInParameterAnnotation", Val.of(parameter)), is(Val.of(true)));
+    }
+
+    @Test
+    void typeAnnotationsWithoutSchema() throws InitializationException {
+        var context = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
+        var parameter = true;
+        assertThat(context.evaluate("annotation.noSchemaWithMultipleParameterAnnotations", Val.of(parameter)), is(Val.of(true)));
     }
 
     @Test
@@ -290,13 +313,13 @@ class AnnotationFunctionContextTests {
     }
 
     @Test
-    void multipleParameterAnnotationsWithNonmatchingSchemaAtTheFront() throws InitializationException, JsonProcessingException {
+    void multipleParameterAnnotationsWithNonmatchingSchemaAtTheFront() throws InitializationException {
         var context = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
         assertThat(context.evaluate("annotation.multipleParameterAnnotationsWithNonmatchingSchemaAtTheFront", Val.of(true)), is(Val.of(true)));
     }
 
     @Test
-    void multipleParameterAnnotationsWithNonmatchingSchemaAtTheEnd() throws InitializationException, JsonProcessingException {
+    void multipleParameterAnnotationsWithNonmatchingSchemaAtTheEnd() throws InitializationException {
         var context = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
         assertThat(context.evaluate("annotation.multipleParameterAnnotationsWithNonmatchingSchemaAtTheEnd", Val.of(true)), is(Val.of(true)));
     }
@@ -365,6 +388,9 @@ class AnnotationFunctionContextTests {
 
         @Function(schema = PERSON_SCHEMA, pathToSchema = "schemas/person_schema.json")
         public static Val multipleSchemaFunctionAnnotations() { return Val.of(true); }
+
+        @Function
+        public static Val noSchemaWithMultipleParameterAnnotations(@JsonObject @Text @Bool Val jsonObject) { return Val.of(true); }
 
         @Function
         public static Val schemaInParameterAnnotation(@Schema(value = PERSON_SCHEMA) Val jsonObject) { return Val.of(true); }
