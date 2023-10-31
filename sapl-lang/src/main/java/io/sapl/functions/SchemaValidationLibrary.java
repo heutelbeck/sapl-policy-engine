@@ -31,8 +31,10 @@ public class SchemaValidationLibrary {
 
     private static final SpecVersion.VersionFlag SPEC_VERSION_JSON_SCHEMA = SpecVersion.VersionFlag.V7;
 
+    private static final String BOOL_SCHEMA = "{ \"type\": \"boolean\" }";
 
-    @Function(docs = ISCOMPLIANTWITHSCHEMA_VAL_DOC)
+
+    @Function(docs = ISCOMPLIANTWITHSCHEMA_VAL_DOC, schema = BOOL_SCHEMA)
     public static Val isCompliantWithSchema(@JsonObject @Text Val jsonObject, @Text Val schema) throws JsonProcessingException {
         JsonNode node = null;
         String schemaAsString = schema.get().asText();
@@ -46,7 +48,7 @@ public class SchemaValidationLibrary {
         return Val.of(isCompliantWithSchema(node, schemaAsString));
     }
 
-    @Function(docs = ISCOMPLIANTWITHSCHEMA_DOC)
+    @Function(docs = ISCOMPLIANTWITHSCHEMA_DOC, schema = BOOL_SCHEMA)
     public static boolean isCompliantWithSchema(JsonNode node, String schema){
         return jsonSchemaFromString(schema).validate(node).isEmpty();
     }
