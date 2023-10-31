@@ -3,7 +3,9 @@ package io.sapl.functions;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.networknt.schema.JsonSchema;
+import com.networknt.schema.JsonSchemaException;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
 import io.sapl.api.functions.Function;
@@ -24,40 +26,46 @@ public class SchemaValidationLibrary {
             "If schema cannot be converted to a JSON schema, or jsonObject cannot be converted to a JSON node, returns an error." +
             "If jsonObject is compliant with schema, returns TRUE, else returns FALSE.";
 
-    private static final String ISCOMPLIANTWITHSCHEMA_DOC = "isCompliantWithSchema(node, schema):" +
-            "Assumes that schema is a String that can be converted into a valid JSON schema, and node is a valid JSON node." +
-            "If schema cannot be converted to a JSON schema, throws an IllegalArgumentException." +
-            "If node is compliant with schema, returns TRUE, else returns FALSE.";
-
     private static final SpecVersion.VersionFlag SPEC_VERSION_JSON_SCHEMA = SpecVersion.VersionFlag.V7;
 
     private static final String BOOL_SCHEMA = "{ \"type\": \"boolean\" }";
 
 
     @Function(docs = ISCOMPLIANTWITHSCHEMA_VAL_DOC, schema = BOOL_SCHEMA)
-    public static Val isCompliantWithSchema(@JsonObject @Text Val jsonObject, @Text Val schema) throws JsonProcessingException {
-        JsonNode node = null;
+    public static Val isCompliantWithSchema(@JsonObject @Text Val jsonObject, @Text Val schema) {
+        JsonNode node;
+        Val isCompliant;
         String schemaAsString = schema.get().asText();
-
         if(jsonObject.isTextual()){
-            node = jsonNodeFromString(jsonObject.get().asText());
+            var jsonAsText = jsonObject.get().asText();
+            try {
+                node = jsonNodeFromString(jsonAsText);
+            } catch (JsonProcessingException e){
+                node = JsonNodeFactory.instance.textNode(jsonAsText);
+            }
         } else {
             node = jsonObject.getJsonNode();
         }
 
-        return Val.of(isCompliantWithSchema(node, schemaAsString));
+        try {
+            isCompliant = isCompliantWithSchema(node, schemaAsString);
+        } catch (JsonSchemaException e){
+            return Val.error(e);
+        }
+        return isCompliant;
     }
 
-    @Function(docs = ISCOMPLIANTWITHSCHEMA_DOC, schema = BOOL_SCHEMA)
-    public static boolean isCompliantWithSchema(JsonNode node, String schema){
-        return jsonSchemaFromString(schema).validate(node).isEmpty();
+    //@Function(docs = ISCOMPLIANTWITHSCHEMA_DOC, schema = BOOL_SCHEMA)
+    private static Val isCompliantWithSchema(JsonNode node, String schema) throws JsonSchemaException {
+        JsonSchema jsonSchema = jsonSchemaFromString(schema);
+        return Val.of(jsonSchema.validate(node).isEmpty());
     }
 
-    private static JsonNode jsonNodeFromString(String node) throws JsonProcessingException{
+    private static JsonNode jsonNodeFromString(String node) throws JsonProcessingException {
         return new ObjectMapper().readTree(node);
     }
 
-    private static JsonSchema jsonSchemaFromString(String schema) {
+    private static JsonSchema jsonSchemaFromString(String schema) throws JsonSchemaException {
         JsonSchema jsonSchema;
         var jsonSchemaFactory = JsonSchemaFactory.getInstance(SPEC_VERSION_JSON_SCHEMA);
         jsonSchema = jsonSchemaFactory.getSchema(schema);

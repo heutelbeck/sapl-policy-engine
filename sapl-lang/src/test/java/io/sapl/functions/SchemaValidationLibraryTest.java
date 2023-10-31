@@ -15,14 +15,14 @@
  */
 package io.sapl.functions;
 
-import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.networknt.schema.JsonSchemaException;
 import io.sapl.api.interpreter.Val;
 import org.junit.jupiter.api.Test;
 
 import static io.sapl.functions.SchemaValidationLibrary.isCompliantWithSchema;
+import static io.sapl.hamcrest.Matchers.valError;
+import static org.hamcrest.Matchers.instanceOf;
 import static io.sapl.hamcrest.Matchers.val;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -61,7 +61,7 @@ class SchemaValidationLibraryTest {
     }
 
     @Test
-    void isCompliantWithSchema_valid_string_input() throws JsonProcessingException {
+    void isCompliantWithSchema_valid_string_input() {
         var result = isCompliantWithSchema(Val.of(COMPLIANT_JSON), Val.of(VALID_SCHEMA));
         assertThat(result, is(val(true)));
     }
@@ -74,7 +74,7 @@ class SchemaValidationLibraryTest {
     }
 
     @Test
-    void isCompliantWithSchema_non_compliant_string_input() throws JsonProcessingException {
+    void isCompliantWithSchema_non_compliant_string_input() {
         var result = isCompliantWithSchema(Val.of(INCOMPLIANT_VALID_JSON), Val.of(VALID_SCHEMA));
         assertThat(result, is(val(false)));
     }
@@ -90,16 +90,16 @@ class SchemaValidationLibraryTest {
     void isCompliantWithSchema_invalid_json_input(){
         var jsonAsVal = Val.of(INVALID_JSON);
         var schemaAsVal = Val.of(VALID_SCHEMA);
-        assertThrows(JsonParseException.class,
-                () -> isCompliantWithSchema(jsonAsVal, schemaAsVal));
+        var result = isCompliantWithSchema(jsonAsVal, schemaAsVal);
+        assertThat(result, is(val(false)));
     }
 
     @Test
     void isCompliantWithSchema_invalid_json_schema(){
         var jsonAsVal = Val.of(COMPLIANT_JSON);
         var schemaAsVal = Val.of(INVALID_SCHEMA);
-        assertThrows(JsonSchemaException.class,
-                () -> isCompliantWithSchema(jsonAsVal, schemaAsVal));
-    }
+        var result = isCompliantWithSchema(jsonAsVal, schemaAsVal);
+        assertThat(result, is(valError()));
 
+    }
 }

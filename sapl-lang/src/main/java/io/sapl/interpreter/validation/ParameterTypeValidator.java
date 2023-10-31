@@ -123,7 +123,9 @@ public class ParameterTypeValidator {
             schema = schemaAnnotation.value();
         if ("".equals(schema))
             return true;
-        return SchemaValidationLibrary.isCompliantWithSchema(node, schema);
+        var nodeVal = Val.of(node);
+        var schemaVal = Val.of(schema);
+        return SchemaValidationLibrary.isCompliantWithSchema(nodeVal, schemaVal).getBoolean();
     }
 
 	private static boolean hasNoValidationAnnotations(Parameter parameterType) {

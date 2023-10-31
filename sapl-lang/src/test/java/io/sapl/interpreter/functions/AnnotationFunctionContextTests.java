@@ -291,7 +291,7 @@ class AnnotationFunctionContextTests {
     }
 
     @Test
-    void typeAnnotationJsonValueSchemaMatchesParameter() throws InitializationException, JsonProcessingException {
+    void typeAnnotationJsonValueSchemaMatchesParameter() throws InitializationException {
         var context = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
         assertThat(context.evaluate("annotation.jsonValueSchemaInParameterAnnotation", Val.of("test")), is(Val.of(true)));
     }
