@@ -56,6 +56,11 @@ public class SchemaProposals {
         return flattenSchemaFromJson(source);
     }
 
+    public List<String> schemaTemplatesForFunctions (String functionSchema){
+        var paths = new SchemaParser(getAllVariablesAsMap()).generatePaths(functionSchema);
+        return paths;
+    }
+
     private List<String> flattenSchemaFromJson(String schema) {
         var paths = new SchemaParser(getAllVariablesAsMap()).generatePaths(schema);
         return paths.stream()

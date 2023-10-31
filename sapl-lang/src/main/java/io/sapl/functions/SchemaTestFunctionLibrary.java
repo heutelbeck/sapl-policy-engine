@@ -38,7 +38,7 @@ public class SchemaTestFunctionLibrary {
         return Val.of(true);
     }
 
-    @Function(name = "schemaParam")
+/*    @Function(name = "schemaParam")
     public static Val schemaParam(@Schema(value = PERSON_SCHEMA) Val person) {
         return Val.of(true);
     }
@@ -46,7 +46,7 @@ public class SchemaTestFunctionLibrary {
     @Function(name = "schemaParam2")
     public static Val schemaParam2(@Schema(value = JSON_VALUE_SCHEMA) Val person) {
         return Val.of(true);
-    }
+    }*/
 
 
 }

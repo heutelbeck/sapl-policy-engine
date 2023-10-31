@@ -15,12 +15,7 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
@@ -31,12 +26,30 @@ class TestFunctionContext implements FunctionContext {
 
 	private final Map<String, Set<String>> availableLibraries;
 
+	final String PERSON_SCHEMA = """
+					{
+					  "type": "object",
+					  "properties": {
+						"name": { "type": "string" }
+					  }
+					}
+					""";
+
+	final String DOG_SCHEMA = """
+					{
+					  "type": "object",
+					  "properties": {
+						"race": { "type": "string" }
+					  }
+					}
+					""";
+
 	public TestFunctionContext() {
 		availableLibraries = new HashMap<>();
 		availableLibraries.put("filter", Set.of("blacken", "remove", "replace"));
 		availableLibraries.put("standard", Set.of("length", "numberToString"));
 		availableLibraries.put("time", Set.of("after", "before", "between"));
-		availableLibraries.put("schemaTest", Set.of("person"));
+		availableLibraries.put("schemaTest", Set.of("person", "dog"));
 	}
 
 	@Override
@@ -80,7 +93,7 @@ class TestFunctionContext implements FunctionContext {
 	@Override
 	public Collection<String> getAllFullyQualifiedFunctions() {
 		return List.of("filter.blacken", "filter.remove", "filter.replace", "standard.length",
-				"standard.numberToString", "time.after", "time.before", "time.between", "schemaTest.person.name");
+				"standard.numberToString", "time.after", "time.before", "time.between", "schemaTest.person", "schemaTest.dog");
 	}
 
     @Override
@@ -90,15 +103,16 @@ class TestFunctionContext implements FunctionContext {
 
 	@Override
 	public Map<String, String> getFunctionSchemas() {
-		final String PERSON_SCHEMA = """
-				{
-				  "type": "object",
-				  "properties": {
-				  "name": { "type": "string" }
-				  }
-				}""";
 		var schemas = new HashMap<String, String>();
 		schemas.put("schemaTest.person", PERSON_SCHEMA);
+		schemas.put("schemaTest.dog", DOG_SCHEMA);
+		return schemas;
+	}
+
+	@Override
+	public List<String> getAllFunctionSchemas() {
+		var schemas = new LinkedList<String>();
+		schemas.add(String.join(".","person", PERSON_SCHEMA));
 		return schemas;
 	}
 

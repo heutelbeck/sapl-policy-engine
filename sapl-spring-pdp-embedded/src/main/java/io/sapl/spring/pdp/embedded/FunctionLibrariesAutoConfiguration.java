@@ -22,9 +22,10 @@ import org.springframework.context.annotation.Role;
 
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.LoggingFunctionLibrary;
+import io.sapl.functions.SchemaTestFunctionLibrary;
+import io.sapl.functions.SchemaValidationLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
-import io.sapl.functions.SchemaTestFunctionLibrary;
 
 /**
  * This configuration deploys the default function libraries for the PDP.
@@ -56,10 +57,16 @@ public class FunctionLibrariesAutoConfiguration {
         return new LoggingFunctionLibrary();
     }
 
-	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	SchemaTestFunctionLibrary schemaTestFunctionLibrary() {
-		return new SchemaTestFunctionLibrary();
-	}
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    SchemaValidationLibrary schemaValidationLibrary() {
+        return new SchemaValidationLibrary();
+    }
+
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    SchemaTestFunctionLibrary schemaTestFunctionLibrary() {
+        return new SchemaTestFunctionLibrary();
+    }
 
 }

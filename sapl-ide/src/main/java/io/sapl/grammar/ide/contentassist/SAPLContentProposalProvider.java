@@ -15,12 +15,7 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
@@ -148,10 +143,13 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
         Collection<String> proposals;
         if ("libsteps".equals(feature)) {
+            var helper = new ValueDefinitionProposalExtractionHelper(
+                    variablesAndCombinatorSource, functionContext, attributeContext, context);
             proposals = new LinkedList<>(attributeContext.getAllFullyQualifiedFunctions());
             proposals.addAll(attributeContext.getAvailableLibraries());
             proposals.addAll(functionContext.getAllFullyQualifiedFunctions());
             proposals.addAll(functionContext.getAvailableLibraries());
+            proposals.addAll(helper.getFunctionProposals());
             addDocumentationToImportProposals(proposals, context, acceptor);
             addDocumentationToTemplates(proposals, context, acceptor);
         } else {
@@ -195,7 +193,13 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             var definedSchemas = getValidSchemas(context, model);
             addSimpleProposals(definedSchemas, context, acceptor);
 
-            var templates = functionContext.getCodeTemplates();
+            var helper = new ValueDefinitionProposalExtractionHelper(
+                    variablesAndCombinatorSource, functionContext, attributeContext, context);
+            var functionProposals = helper.getFunctionProposals();
+
+            var templates = new ArrayList<String>();
+            templates.addAll(functionContext.getCodeTemplates());
+            templates.addAll(functionProposals);
             addDocumentationToTemplates(templates, context, acceptor);
             addSimpleProposals(templates, context, acceptor);
             addProposalsWithImportsForTemplates(templates, context, acceptor);

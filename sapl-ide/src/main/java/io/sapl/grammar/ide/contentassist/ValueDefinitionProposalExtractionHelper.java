@@ -24,6 +24,35 @@ public class ValueDefinitionProposalExtractionHelper {
     private final AttributeContext attributeContext;
     private final ContentAssistContext context;
 
+    public Collection<String> getProposals(EObject model, ProposalType proposalType) {
+        int currentOffset = context.getOffset();
+        var policyBody = getPolicyBody(model);
+
+        if (policyBody == null && proposalType == ProposalType.SCHEMA)
+            return getPreambleSchemaProposals();
+
+        if (policyBody == null)
+            return new HashSet<>();
+
+        return getBodyProposals(proposalType, currentOffset, policyBody, model);
+    }
+
+    public List<String> getFunctionProposals(){
+        var proposals = new LinkedList<String>();
+        var schemaProposals = new SchemaProposals(variablesAndCombinatorSource);
+        var allSchemas = functionContext.getFunctionSchemas();
+        for (var entry : allSchemas.entrySet()){
+            var paths = schemaProposals.schemaTemplatesForFunctions(entry.getValue());
+            for (var path : paths){
+                if (!"".equals(path)) {
+                    var proposal = String.join(".", entry.getKey(), path);
+                    proposals.add(proposal);
+                }
+            }
+        }
+        return proposals;
+    }
+
     private static Collection<String> constructProposals(String elementName, Iterable<String> templates) {
         Collection<String> proposals = new HashSet<>();
         if (Iterables.isEmpty(templates))
@@ -51,19 +80,6 @@ public class ValueDefinitionProposalExtractionHelper {
         } else {
             return TreeNavigationHelper.goToLastParent(model, PolicyBody.class);
         }
-    }
-
-    public Collection<String> getProposals(EObject model, ProposalType proposalType) {
-        int currentOffset = context.getOffset();
-        var policyBody = getPolicyBody(model);
-
-        if (policyBody == null && proposalType == ProposalType.SCHEMA)
-            return getPreambleSchemaProposals();
-
-        if (policyBody == null)
-            return new HashSet<>();
-
-        return getBodyProposals(proposalType, currentOffset, policyBody, model);
     }
 
     private Collection<String> getPreambleSchemaProposals() {

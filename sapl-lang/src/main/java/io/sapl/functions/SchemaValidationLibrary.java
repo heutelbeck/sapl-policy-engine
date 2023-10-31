@@ -17,7 +17,7 @@ import io.sapl.api.validation.Text;
 @FunctionLibrary(name = SchemaValidationLibrary.NAME, description = SchemaValidationLibrary.DESCRIPTION)
 public class SchemaValidationLibrary {
 
-    public static final String NAME = "schema";
+    public static final String NAME = "schemaValidation";
 
     public static final String DESCRIPTION = "This library contains the mandatory functions for testing the compliance of a JSON object with a JSON schema.";
 
