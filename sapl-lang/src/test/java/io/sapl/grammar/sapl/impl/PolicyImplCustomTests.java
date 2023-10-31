@@ -16,10 +16,12 @@
 package io.sapl.grammar.sapl.impl;
 
 import static io.sapl.testutil.TestUtil.hasDecision;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -90,7 +92,19 @@ class PolicyImplCustomTests {
 	 			Arguments.of("policy \"p\" permit where true; obligation \"wash your hands\" advice \"smile\" transform [true,false,null]",
 	 					new AuthorizationDecision(Decision.PERMIT, Optional.of(Val.ofJson("[true,false,null]").get()),
 	 							Optional.of((ArrayNode) Val.ofJson("[\"wash your hands\"]").get()),
-	 							Optional.of((ArrayNode) Val.ofJson("[\"smile\"]").get())))
+	 							Optional.of((ArrayNode) Val.ofJson("[\"smile\"]").get()))),
+	 			
+	 			// import error
+                Arguments.of("import xxxxx.* policy \"p\" permit transform (10/0)", AuthorizationDecision.INDETERMINATE),
+
+                // indeterminate does not add transform
+                Arguments.of("policy \"p\" permit where (1/10); transform \"aaa\"", AuthorizationDecision.INDETERMINATE),
+
+                // indeterminate does not add constraint
+                Arguments.of("policy \"p\" permit where (1/10); obligation \"aaa\"", AuthorizationDecision.INDETERMINATE),
+
+                // not applicable does not add constraint
+                Arguments.of("policy \"p\" permit where false; obligation \"aaa\"", AuthorizationDecision.NOT_APPLICABLE)
 			);
 		// @formater:on
 	}
@@ -101,4 +115,17 @@ class PolicyImplCustomTests {
 		var policy   = INTERPRETER.parse(policySource);
 		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected)).verifyComplete();
 	}
+	
+	@Test
+	void targetExpression() {
+	       var policy   = INTERPRETER.parse("policy \"p\" deny false where true;");
+	       assertThat(policy.getPolicyElement().targetResult(Val.FALSE).getAuthorizationDecision().getDecision()).isEqualTo(Decision.NOT_APPLICABLE);
+	}
+	
+	   
+    @Test
+    void targetimportError() {
+           var policy   = INTERPRETER.parse("policy \"p\" deny false where true;");
+           assertThat(policy.getPolicyElement().importError("someError").getAuthorizationDecision().getDecision()).isEqualTo(Decision.INDETERMINATE);
+    }
 }

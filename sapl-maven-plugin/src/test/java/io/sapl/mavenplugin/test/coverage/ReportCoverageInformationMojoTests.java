@@ -15,15 +15,18 @@
  */
 package io.sapl.mavenplugin.test.coverage;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyFloat;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -100,6 +103,113 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         mojo.setLog(this.log);
 
         assertThrows(MojoFailureException.class, () -> mojo.execute());
+    }
+
+    @Test
+    void test_DskipTestsFail() throws Exception {
+
+        when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
+        when(this.coverageTargetHelper.getCoverageTargets(any()))
+                .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+        when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
+        when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
+                .thenReturn(Paths.get("test", "index.html"));
+
+        Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+        var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+        mojo.setLog(this.log);
+        mojo.setSkipTests(true);
+        mojo.setFailOnDisabledTests(true);
+        assertThrows(MojoFailureException.class, () -> mojo.execute());
+
+        verify(log, atLeastOnce())
+                .error("Tests were skipped, but the sapl-maven-plugin is configured to enforce tests to be run.");
+    }
+
+    @Test
+    void test_DskipTestsNoFail() throws Exception {
+
+        when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
+        when(this.coverageTargetHelper.getCoverageTargets(any()))
+                .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+        when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
+        when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
+                .thenReturn(Paths.get("test", "index.html"));
+
+        Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+        var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+        mojo.setLog(this.log);
+        mojo.setSkipTests(true);
+        mojo.setFailOnDisabledTests(false);
+        assertDoesNotThrow(() -> mojo.execute());
+
+        verify(log, atLeastOnce()).info(
+                "Tests disabled. Skipping coverage validation requirements validation. If you want the build to fail in this case, set the sapl-maven-plugin configuration parameter 'failOnDisabledTests' to true.");
+    }
+
+    @Test
+    void test_DMavenTestSkipFail() throws Exception {
+
+        when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
+        when(this.coverageTargetHelper.getCoverageTargets(any()))
+                .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+        when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
+        when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
+                .thenReturn(Paths.get("test", "index.html"));
+
+        Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+        var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+        mojo.setLog(this.log);
+        mojo.setMavenTestSkip(true);
+        mojo.setFailOnDisabledTests(true);
+        assertThrows(MojoFailureException.class, () -> mojo.execute());
+
+        verify(log, atLeastOnce())
+                .error("Tests were skipped, but the sapl-maven-plugin is configured to enforce tests to be run.");
+    }
+
+    @Test
+    void test_DMavenTestSkipNoFail() throws Exception {
+
+        when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
+        when(this.coverageTargetHelper.getCoverageTargets(any()))
+                .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+        when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
+        when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
+                .thenReturn(Paths.get("test", "index.html"));
+
+        Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+        var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+        mojo.setLog(this.log);
+        mojo.setMavenTestSkip(true);
+        mojo.setFailOnDisabledTests(false);
+        assertDoesNotThrow(() -> mojo.execute());
+
+        verify(log, atLeastOnce()).info(
+                "Tests disabled. Skipping coverage validation requirements validation. If you want the build to fail in this case, set the sapl-maven-plugin configuration parameter 'failOnDisabledTests' to true.");
+    }
+
+    @Test
+    void test_readError() throws Exception {
+
+        when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
+        when(this.coverageTargetHelper.getCoverageTargets(any()))
+                .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+        when(this.coverageAPIHelper.readHits(any())).thenThrow(new IOException("TESTING"));
+        when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
+        when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
+                .thenReturn(Paths.get("test", "index.html"));
+
+        Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+        var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+        mojo.setLog(this.log);
+        assertThrows(MojoFailureException.class, () -> mojo.execute());
+
+        verify(log, atLeastOnce()).error("Error test report data. IOException: TESTING");
     }
 
     @Test
