@@ -91,4 +91,9 @@ class TestAttributeContext implements AttributeContext {
         return Map.of("clock.now", "documentation");
     }
 
+    @Override
+    public Map<String, String> getFunctionSchemas() {
+        return null;
+    }
+
 }

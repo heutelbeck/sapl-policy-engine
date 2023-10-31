@@ -271,4 +271,7 @@ public class MockingAttributeContext implements AttributeContext {
         return Map.of();
     }
 
+    @Override
+    public Map<String, String> getFunctionSchemas() { return Map.of(); }
+
 }
