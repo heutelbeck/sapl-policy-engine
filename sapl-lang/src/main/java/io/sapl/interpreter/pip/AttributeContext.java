@@ -40,4 +40,6 @@ public interface AttributeContext extends LibraryFunctionProvider {
 
     Map<String, String> getDocumentedAttributeCodeTemplates();
 
+    Map<String, String> getFunctionSchemas();
+
 }

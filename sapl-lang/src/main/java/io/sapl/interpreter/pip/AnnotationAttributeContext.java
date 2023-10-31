@@ -339,13 +339,13 @@ public class AnnotationAttributeContext implements AttributeContext {
 
     private void importAttribute(Object policyInformationPoint, String pipName,
                                  PolicyInformationPointDocumentation pipDocumentation, Method method, boolean isEnvironmentAttribute,
-                                 String attributeName, String functionSchema, String functionPathToSchema, String documentation) throws InitializationException {
+                                 String attributeName, String attributeSchema, String attributePathToSchema, String documentation) throws InitializationException {
 
         if (attributeName.isBlank())
             attributeName = method.getName();
 
-        var metadata        = metadataOf(policyInformationPoint, method, pipName, attributeName, functionSchema,
-                functionPathToSchema, isEnvironmentAttribute);
+        var metadata        = metadataOf(policyInformationPoint, method, pipName, attributeName, attributeSchema,
+                attributePathToSchema, isEnvironmentAttribute);
         var name            = metadata.fullyQualifiedName();
         var namedAttributes = attributeMetadataByAttributeName.computeIfAbsent(name, k -> new ArrayList<>());
         assertNoNameCollision(namedAttributes, metadata);
@@ -492,7 +492,6 @@ public class AnnotationAttributeContext implements AttributeContext {
                 for (var attribute : entry.getValue())
                     if (attribute.environmentAttribute){
                         templates.add(attribute.getCodeTemplate());
-                        //templates.addAll(attribute.getSchemaTemplates());
                     }
 
             Collections.sort(templates);
@@ -509,12 +508,24 @@ public class AnnotationAttributeContext implements AttributeContext {
                 for (var attribute : entry.getValue())
                     if (!attribute.environmentAttribute){
                         templates.add(attribute.getCodeTemplate());
-                        //templates.addAll(attribute.getSchemaTemplates());
                     }
             Collections.sort(templates);
             templatesCache = Collections.unmodifiableList(templates);
         }
         return templatesCache;
+    }
+
+    @Override
+    public Map<String, String> getFunctionSchemas(){
+        var schemas = new HashMap<String, String>();
+        for (var entry : attributeMetadataByAttributeName.entrySet()) {
+            for (var attribute : entry.getValue()){
+                if (!attribute.environmentAttribute){
+                    schemas.put(entry.getKey(), attribute.getFunctionSchema());
+                }
+            }
+        }
+        return schemas;
     }
 
     @Override

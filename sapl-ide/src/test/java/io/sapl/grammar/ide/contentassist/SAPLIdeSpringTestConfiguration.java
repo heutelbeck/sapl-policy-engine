@@ -41,7 +41,7 @@ class SAPLIdeSpringTestConfiguration {
 
     @Bean
     public VariablesAndCombinatorSource variablesAndCombinatorSource() throws InitializationException {
-        String configPath = "src/test/resources/empty";
+        String configPath = "src/test/resources";
         return new FileSystemVariablesAndCombinatorSource(configPath);
     }
 

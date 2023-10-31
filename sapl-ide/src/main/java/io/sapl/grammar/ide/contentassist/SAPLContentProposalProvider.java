@@ -374,7 +374,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     @Override
     protected boolean filterKeyword(final Keyword keyword, final ContentAssistContext context) {
-        String keyValue = keyword.getValue();
+        var keyValue = keyword.getValue();
 
         // remove unwanted technical terms
         if (unwantedKeywords.contains(keyValue))

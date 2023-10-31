@@ -886,6 +886,58 @@ class AnnotationAttributeContextTests {
     }
 
     @Test
+    void when_argWithParamSchema_validatesCorrectly2()
+            throws InitializationException, IOException {
+
+        @PolicyInformationPoint(name = "test")
+        class PIP {
+
+            static final String PERSON_SCHEMA = """
+					{
+					  "$schema": "http://json-schema.org/draft-07/schema#",
+					  "$id": "https://example.com/schemas/regions",
+					  "type": "object",
+					  "properties": {
+						"name": { "type": "string" }
+					  }
+					}
+					""";
+
+            @EnvironmentAttribute
+            public Flux<Val> envAttribute(Map<String, JsonNode> variable, @Schema(value=PERSON_SCHEMA) Val a1) {
+                return Flux.just(a1);
+            }
+
+        }
+
+        var pip          = new PIP();
+        var attributeCtx = new AnnotationAttributeContext(pip);
+        var variable    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
+
+        pip.envAttribute(variable, Val.of(1)).contextWrite(this.constructContext(attributeCtx, variable)).next().block();
+
+        var validExpression   = ParserUtil.expression("<test.envAttribute({\"name\": \"Joe\"})>");
+        var expected = new ObjectMapper().readTree("{\"name\": \"Joe\"}\")>");
+        StepVerifier.create(validExpression.evaluate().contextWrite(this.constructContext(attributeCtx, variable)))
+                .expectNext(Val.of(expected)).verifyComplete();
+
+        var invalidExpression   = ParserUtil.expression("<test.envAttribute({\"name\": 23})>");
+        String errorMessage = """
+				Illegal parameter type. Parameter does not comply with required schema. Got: {"name":23} Expected schema: {
+				  "$schema": "http://json-schema.org/draft-07/schema#",
+				  "$id": "https://example.com/schemas/regions",
+				  "type": "object",
+				  "properties": {
+					"name": { "type": "string" }
+				  }
+				}
+				""";
+        StepVerifier.create(invalidExpression.evaluate().contextWrite(this.constructContext(attributeCtx, variable)))
+                .expectNextMatches(valErrorText(errorMessage)).verifyComplete();
+    }
+
+
+    @Test
     void generatesCodeTemplates() throws InitializationException {
 
         @PolicyInformationPoint(name = "test")

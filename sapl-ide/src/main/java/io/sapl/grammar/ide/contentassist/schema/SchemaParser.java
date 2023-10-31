@@ -56,8 +56,8 @@ public class SchemaParser {
     }
 
     public static JsonNode getNestedSubnode(JsonNode rootNode, String path) {
-        String[] pathElements = path.split("/");
-        JsonNode currentNode = rootNode;
+        var pathElements = path.split("/");
+        var currentNode = rootNode;
 
         for (String element : pathElements) {
             currentNode = currentNode.get(element);
@@ -137,8 +137,8 @@ public class SchemaParser {
         Collection<String> paths = new HashSet<>();
 
         for (int i = 0; i < jsonNode.size(); i++) {
-            JsonNode childNode = jsonNode.get(i);
-            String currentPath = parentPath.isEmpty() ? "" : parentPath;
+            var childNode = jsonNode.get(i);
+            var currentPath = parentPath.isEmpty() ? "" : parentPath;
             paths.addAll(getJsonPaths(childNode, currentPath, originalSchema, depth));
         }
         return paths;

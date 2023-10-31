@@ -27,9 +27,7 @@ public interface LibraryEntryMetadata {
 
     String getFunctionName();
 
-	String getFunctionSchema();
-
-	String getFunctionPathToSchema();
+    String getFunctionSchema();
 
     String getCodeTemplate();
 
