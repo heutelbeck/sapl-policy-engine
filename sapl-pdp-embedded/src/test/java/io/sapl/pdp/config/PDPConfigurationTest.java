@@ -49,6 +49,10 @@ class PDPConfigurationTest {
                 new PDPConfiguration(mock(AttributeContext.class), mock(FunctionContext.class), new HashMap<>(),
                         mock(CombiningAlgorithm.class), UnaryOperator.identity(), UnaryOperator.identity()).isValid(),
                 is(true));
+        assertThat(new PDPConfiguration(mock(AttributeContext.class), mock(FunctionContext.class), new HashMap<>(),
+                mock(CombiningAlgorithm.class), UnaryOperator.identity(), null).isValid(), is(false));
+        assertThat(new PDPConfiguration(mock(AttributeContext.class), mock(FunctionContext.class), new HashMap<>(),
+                mock(CombiningAlgorithm.class), null, UnaryOperator.identity()).isValid(), is(false));
     }
 
 }
