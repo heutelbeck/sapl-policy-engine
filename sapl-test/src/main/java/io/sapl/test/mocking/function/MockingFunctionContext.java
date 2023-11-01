@@ -28,7 +28,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
-import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import org.hamcrest.number.OrderingComparison;
 
 import io.sapl.api.interpreter.ExpressionArgument;
@@ -256,10 +255,5 @@ public class MockingFunctionContext implements FunctionContext {
 	public Map<String, String> getFunctionSchemas()  {
 		return Map.of();
 	}
-
-    @Override
-    public List<String> getAllFunctionSchemas() {
-        return List.of();
-    }
 
 }
