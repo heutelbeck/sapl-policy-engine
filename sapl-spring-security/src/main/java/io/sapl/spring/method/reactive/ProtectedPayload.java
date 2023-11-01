@@ -28,7 +28,7 @@ class ProtectedPayload<P> {
      * @return a ProtectedPayload containing the payload value
      */
     public static <T> ProtectedPayload<T> withPayload(@NonNull T payload) {
-        return new ProtectedPayload<T>(payload, null);
+        return new ProtectedPayload<>(payload, null);
     }
 
     /**
@@ -39,7 +39,7 @@ class ProtectedPayload<P> {
      * @return a ProtectedPayload containing the exception
      */
     public static <T> ProtectedPayload<T> withError(@NonNull Throwable exception) {
-        return new ProtectedPayload<T>(null, exception);
+        return new ProtectedPayload<>(null, exception);
     }
 
     /**
