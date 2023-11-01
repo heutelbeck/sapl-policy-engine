@@ -63,8 +63,10 @@ public class ValueDefinitionProposalExtractionHelper {
                     var fun = entry.getKey();
                     var allTemplates = functionContext.getCodeTemplates();
                     String fullFunctionName = getFullFunctionName(fun, allTemplates);
-                    var proposal = String.join(".", fullFunctionName, path);
-                    proposals.add(proposal);
+                    if (!fullFunctionName.isBlank()){
+                        var proposal = String.join(".", fullFunctionName, path);
+                        proposals.add(proposal);
+                    }
                 }
             }
         }
