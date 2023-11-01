@@ -49,7 +49,7 @@ class TestFunctionContext implements FunctionContext {
 		availableLibraries.put("filter", Set.of("blacken", "remove", "replace"));
 		availableLibraries.put("standard", Set.of("length", "numberToString"));
 		availableLibraries.put("time", Set.of("after", "before", "between"));
-		availableLibraries.put("schemaTest", Set.of("person", "dog"));
+		availableLibraries.put("schemaTest", Set.of("person", "dog", "food"));
 	}
 
 	@Override
@@ -87,13 +87,15 @@ class TestFunctionContext implements FunctionContext {
     @Override
     public List<String> getCodeTemplates() {
         return List.of("filter.blacken", "filter.remove", "filter.replace", "standard.length",
-                "standard.numberToString", "time.after", "time.before", "time.between");
+                "standard.numberToString", "time.after", "time.before", "time.between",
+				"schemaTest.person()", "schemaTest.dog()", "schemaTest.food(String species)");
     }
 
 	@Override
 	public Collection<String> getAllFullyQualifiedFunctions() {
 		return List.of("filter.blacken", "filter.remove", "filter.replace", "standard.length",
-				"standard.numberToString", "time.after", "time.before", "time.between", "schemaTest.person", "schemaTest.dog");
+				"standard.numberToString", "time.after", "time.before", "time.between",
+				"schemaTest.person()", "schemaTest.dog(), schemaTest.food(String species)");
 	}
 
     @Override

@@ -2,7 +2,16 @@ package io.sapl.grammar.ide.contentassist;
 
 import com.google.common.collect.Iterables;
 import io.sapl.grammar.ide.contentassist.schema.SchemaProposals;
-import io.sapl.grammar.sapl.*;
+import io.sapl.grammar.sapl.BasicFunction;
+import io.sapl.grammar.sapl.BasicIdentifier;
+import io.sapl.grammar.sapl.Condition;
+import io.sapl.grammar.sapl.Expression;
+import io.sapl.grammar.sapl.KeyStep;
+import io.sapl.grammar.sapl.PolicyBody;
+import io.sapl.grammar.sapl.SAPL;
+import io.sapl.grammar.sapl.SaplFactory;
+import io.sapl.grammar.sapl.Statement;
+import io.sapl.grammar.sapl.ValueDefinition;
 import io.sapl.grammar.sapl.impl.util.FunctionUtil;
 import io.sapl.grammar.sapl.impl.util.ImportsUtil;
 import io.sapl.interpreter.functions.FunctionContext;
@@ -14,7 +23,13 @@ import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @RequiredArgsConstructor
 public class ValueDefinitionProposalExtractionHelper {
@@ -45,12 +60,26 @@ public class ValueDefinitionProposalExtractionHelper {
             var paths = schemaProposals.schemaTemplatesForFunctions(entry.getValue());
             for (var path : paths){
                 if (!"".equals(path)) {
-                    var proposal = String.join(".", entry.getKey(), path);
+                    var fun = entry.getKey();
+                    var allTemplates = functionContext.getCodeTemplates();
+                    String fullFunctionName = getFullFunctionName(fun, allTemplates);
+                    var proposal = String.join(".", fullFunctionName, path);
                     proposals.add(proposal);
                 }
             }
         }
         return proposals;
+    }
+
+    private String getFullFunctionName(String fun, List<String> allTemplates) {
+        String fullFunctionName = "";
+        for (var template : allTemplates){
+            if (template.startsWith(fun)){
+                fullFunctionName = template;
+                break;
+            }
+        }
+        return fullFunctionName;
     }
 
     private static Collection<String> constructProposals(String elementName, Iterable<String> templates) {
@@ -162,13 +191,15 @@ public class ValueDefinitionProposalExtractionHelper {
                 // add any encountered valuable to the list of proposals
                 if (aStatement instanceof ValueDefinition valueDefinition) {
                     if (valueDefinition.getEval() instanceof BasicIdentifier basicExpression) {
-                        var stepsString = combineKeySteps(basicExpression);
+                        // A function is assigned to a variable name. Proposals for the variable name.
+                        var stepsString = combineKeystepsFromBasicIdentifier(basicExpression);
                         var identifier = basicExpression.getIdentifier();
-                        var imports = ImportsUtil.fetchImports(getSapl(), attributeContext, functionContext);
-                        var name = getFunctionName(stepsString, identifier, imports);
-                        var absName = FunctionUtil.resolveAbsoluteFunctionName(name, imports);
-                        var functionSchema = functionContext.getFunctionSchemas().get(absName);
-                        functionSchemaTemplates = new SchemaProposals(variablesAndCombinatorSource).schemaTemplatesFromJson(functionSchema);
+                        functionSchemaTemplates = getFunctionSchemaTemplates(stepsString, identifier);
+                    } else if(valueDefinition.getEval() instanceof BasicFunction basicFunction){
+                        // Proposals for a function name
+                        var identifier = basicFunction.getFsteps().get(0);
+                        var stepsString = combineFstepsFromBasicFunction(basicFunction);
+                        functionSchemaTemplates = getFunctionSchemaTemplates(stepsString, identifier);
                     } else {
                         break;
                     }
@@ -185,6 +216,16 @@ public class ValueDefinitionProposalExtractionHelper {
         return proposalTemplates;
     }
 
+    private List<String> getFunctionSchemaTemplates(List<String> stepsString, String identifier) {
+        List<String> functionSchemaTemplates;
+        var imports = ImportsUtil.fetchImports(getSapl(), attributeContext, functionContext);
+        var name = getFunctionName(stepsString, identifier, imports);
+        var absName = FunctionUtil.resolveAbsoluteFunctionName(name, imports);
+        var functionSchema = functionContext.getFunctionSchemas().get(absName);
+        functionSchemaTemplates = new SchemaProposals(variablesAndCombinatorSource).schemaTemplatesFromJson(functionSchema);
+        return functionSchemaTemplates;
+    }
+
     private String getFunctionName(List<String> stepsString, String identifier, Map<String, String> imports) {
         var name = "";
         if (!stepsString.isEmpty()) {
@@ -196,15 +237,24 @@ public class ValueDefinitionProposalExtractionHelper {
         return name;
     }
 
-    private List<String> combineKeySteps(BasicIdentifier basicExpression) {
+    private List<String> combineKeystepsFromBasicIdentifier(BasicIdentifier basicIdentifier) {
         var stepsString = new LinkedList<String>();
-        var steps = basicExpression.getSteps();
+        var steps = basicIdentifier.getSteps();
         for (var step : steps) {
             KeyStep keyStep = (KeyStep) step;
             stepsString.add(keyStep.getId());
         }
         return stepsString;
     }
+
+    private List<String> combineFstepsFromBasicFunction(BasicFunction basicFunction) {
+        var stepsString = new LinkedList<String>();
+        basicFunction.getFsteps().remove(0);
+        var fsteps = basicFunction.getFsteps();
+        stepsString.add(String.join(".", fsteps));
+        return stepsString;
+    }
+
 
     private List<String> getProposalTemplates(ValueDefinition valueDefinition, Iterable<Expression> schemaVarExpression) {
         List<String> proposalTemplates = new ArrayList<>();
