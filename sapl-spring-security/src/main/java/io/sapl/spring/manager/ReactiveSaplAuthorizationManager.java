@@ -29,7 +29,6 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 
@@ -104,7 +103,7 @@ public class ReactiveSaplAuthorizationManager implements ReactiveAuthorizationMa
     }
 
     private Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(
-            Mono<Authentication> authentication, @NonNull AuthorizationContext context) {
+            Mono<Authentication> authentication, AuthorizationContext context) {
         var request = context.getExchange().getRequest();
         return authentication.defaultIfEmpty(ANONYMOUS)
                 .map(authn -> AuthorizationSubscription.of(authn, request, request, mapper));

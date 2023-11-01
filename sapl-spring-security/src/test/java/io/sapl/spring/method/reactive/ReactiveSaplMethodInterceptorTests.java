@@ -287,6 +287,26 @@ class ReactiveSaplMethodInterceptorTests {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void xxxxxxxxwhen_sonlyPostEnforce_then_postEnforcePepIsCalled() throws Throwable {
+        class TestClass {
+            @PreEnforce
+            public Flux<Integer> fluxInteger() {
+                return Flux.just(1, 2, 3);
+            }
+        }
+        var     testInstance = new TestClass();
+        var     invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
+                testInstance::fluxInteger, null, null);
+        Flux<?> expected     = Flux.just(1, 2, 3);
+        when(preEnforcePolicyEnforcementPoint.enforce(any(), any(), any())).thenReturn((Flux<Object>) expected);
+        var actual = defaultSut.invoke(invocation);
+        assertThat(actual, is(expected));
+        StepVerifier.create((Flux<Integer>) actual).expectNext(1, 2, 3).verifyComplete();
+        verify(preEnforcePolicyEnforcementPoint, times(1)).enforce(any(), any(), any());
+    }
+
+    @Test
     @SuppressWarnings({ "unchecked", "rawtypes" })
     void when_onlyEnforceTillDenied_then_enforceTillDeniedPEPIsCalled() throws Throwable {
         class TestClass {

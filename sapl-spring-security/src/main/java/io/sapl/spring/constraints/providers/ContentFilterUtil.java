@@ -427,9 +427,7 @@ public class ContentFilterUtil {
         return (original, configuration) -> {
 
             String originalString;
-            if (original instanceof String stringValue) {
-                originalString = stringValue;
-            } else if (original instanceof JsonNode json && json.isTextual()) {
+            if (original instanceof JsonNode json && json.isTextual()) {
                 originalString = json.textValue();
             } else {
                 throw new AccessConstraintViolationException(PATH_NOT_TEXTUAL);
