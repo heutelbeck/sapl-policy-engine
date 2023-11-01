@@ -33,6 +33,4 @@ public interface FunctionContext extends LibraryFunctionProvider {
     Map<String, String> getDocumentedCodeTemplates();
 
 	Map<String, String> getFunctionSchemas();
-
-	List<String> getAllFunctionSchemas();
 }

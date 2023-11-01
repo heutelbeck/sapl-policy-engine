@@ -293,16 +293,18 @@ public class AnnotationFunctionContext implements FunctionContext {
         return schemas;
     }
 
-    @Override
+/*    @Override
     public List<String> getAllFunctionSchemas(){
         var schemaList = new LinkedList<String>();
         var schemas = getFunctionSchemas();
         for (var entry : schemas.entrySet()) {
-            var concatenated = String.join(".", entry.getKey(), entry.getValue());
-            schemaList.add(concatenated);
+            if(!"".equals(entry.getValue())){
+                var concatenated = String.join(".", entry.getKey(), entry.getValue());
+                schemaList.add(concatenated);
+            }
         }
         return schemaList;
-    }
+    }*/
 
     @Override
     public Collection<String> getAllFullyQualifiedFunctions() {

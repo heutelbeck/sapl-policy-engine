@@ -63,13 +63,6 @@ public class TestFunctionCtx implements FunctionContext {
     }
 
     @Override
-    public List<String> getAllFunctionSchemas() {
-        var schemas = new LinkedList<String>();
-        schemas.add(String.join(".","person", PERSON_SCHEMA));
-        return schemas;
-    }
-
-    @Override
     public Boolean isProvidedFunction(String function) {
         if (function.equals("schemaTest"))
             return true;

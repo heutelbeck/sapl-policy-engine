@@ -225,9 +225,6 @@ class AnnotationFunctionContextTests {
 
     }
 
-    //@Test
-    //void
-
     @Test
     void schemaIsReturned() throws InitializationException {
         final String PERSON_SCHEMA = """

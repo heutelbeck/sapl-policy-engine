@@ -20,7 +20,12 @@ public class SchemaProposals {
     private final VariablesAndCombinatorSource variablesAndCombinatorSource;
 
     public List<String> getVariableNamesAsTemplates() {
-        var variables = getAllVariablesAsMap();
+        var variables = variablesAndCombinatorSource
+                .getVariables()
+                .map(v -> v.orElse(Map.of()))
+                .next()
+                .block();
+
         if (!variables.isEmpty())
             return new ArrayList<>(variables.keySet());
         else

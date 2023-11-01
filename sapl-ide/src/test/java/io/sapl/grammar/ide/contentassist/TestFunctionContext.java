@@ -108,12 +108,4 @@ class TestFunctionContext implements FunctionContext {
 		schemas.put("schemaTest.dog", DOG_SCHEMA);
 		return schemas;
 	}
-
-	@Override
-	public List<String> getAllFunctionSchemas() {
-		var schemas = new LinkedList<String>();
-		schemas.add(String.join(".","person", PERSON_SCHEMA));
-		return schemas;
-	}
-
 }
