@@ -53,16 +53,11 @@ public class SchemaProposals {
                 .map(v -> v.orElse(Map.of()));
     }
 
-    public List<String> schemaTemplatesFromJson(String source) {
-        return flattenSchemaFromJson(source);
-    }
-
     public List<String> schemaTemplatesForFunctions (String functionSchema){
-        var paths = new SchemaParser(getAllVariablesAsMap()).generatePaths(functionSchema);
-        return paths;
+        return new SchemaParser(getAllVariablesAsMap()).generatePaths(functionSchema);
     }
 
-    private List<String> flattenSchemaFromJson(String schema) {
+    public List<String> schemaTemplatesFromJson(String schema) {
         var paths = new SchemaParser(getAllVariablesAsMap()).generatePaths(schema);
         return paths.stream()
                 .map(this::removeUnwantedKeywordsFromPath)
