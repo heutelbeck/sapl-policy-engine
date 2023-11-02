@@ -89,6 +89,8 @@ public class ValueDefinitionProposalExtractionHelper {
         if (Iterables.isEmpty(templates))
             return proposals;
         for (var template : templates) {
+            if (template.isBlank())
+                continue;
             String proposal;
             if (!template.startsWith("."))
                 proposal = elementName.concat(".").concat(template);

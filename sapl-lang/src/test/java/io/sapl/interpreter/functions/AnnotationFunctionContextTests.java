@@ -288,6 +288,22 @@ class AnnotationFunctionContextTests {
     }
 
     @Test
+    void typeAnnotationBoolAsJsonSchemaDoesNotMatchParameter() throws InitializationException, JsonProcessingException {
+        var context = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
+        var mapper = new ObjectMapper();
+        var parameter = mapper.readTree("{\"name\": 23}");
+        assertThat(context.evaluate("annotation.boolAnnotatedParameter", Val.of(parameter)), valError());
+    }
+
+    @Test
+    void typeAnnotationBoolAsJsonSchemaMatchesParameter() throws InitializationException, JsonProcessingException {
+        var context = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
+        var mapper = new ObjectMapper();
+        var parameter = mapper.readTree("true");
+        assertThat(context.evaluate("annotation.boolAnnotatedParameter", Val.of(true)), is(Val.of(true)));
+    }
+
+    @Test
     void typeAnnotationJsonValueSchemaMatchesParameter() throws InitializationException {
         var context = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
         assertThat(context.evaluate("annotation.jsonValueSchemaInParameterAnnotation", Val.of("test")), is(Val.of(true)));
@@ -385,6 +401,9 @@ class AnnotationFunctionContextTests {
 
         @Function(schema = PERSON_SCHEMA, pathToSchema = "schemas/person_schema.json")
         public static Val multipleSchemaFunctionAnnotations() { return Val.of(true); }
+
+        @Function
+        public static Val boolAnnotatedParameter(@Schema("{\"type\": \"boolean\"}") Val jsonObject) { return Val.of(true); }
 
         @Function
         public static Val noSchemaWithMultipleParameterAnnotations(@JsonObject @Text @Bool Val jsonObject) { return Val.of(true); }

@@ -301,4 +301,9 @@ class MockingAttributeContextTests {
         assertThat(this.attrCtx.getDocumentedAttributeCodeTemplates()).isEmpty();
     }
 
+    @Test
+    void test_getAttributeSchemas_isEmpty() {
+        assertThat(this.attrCtx.getAttributeSchemas()).isEmpty();
+    }
+
 }

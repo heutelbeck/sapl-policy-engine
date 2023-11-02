@@ -155,7 +155,7 @@ class FunctionProposalTests extends CompletionTests {
     }
 
     @Test
-    void testCompletion_PolicyBody_function_does_not_exist2() {
+    void testCompletion_PolicyBody_function_exists() {
 
         testCompletion((TestCompletionConfiguration it) -> {
             String policy = """
@@ -163,6 +163,26 @@ class FunctionProposalTests extends CompletionTests {
                     var foo = schemaTest.dog""";
 
             String cursor = "var foo = schemaTest";
+            it.setModel(policy);
+            it.setLine(1);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("schemaTest.dog()", "schemaTest.dog().race");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_PolicyBody_function_without_assignment() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    policy "test" deny where
+                    schemaTest""";
+
+            String cursor = "schemaTest";
             it.setModel(policy);
             it.setLine(1);
             it.setColumn(cursor.length());

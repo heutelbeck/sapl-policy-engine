@@ -516,7 +516,7 @@ public class AnnotationAttributeContext implements AttributeContext {
     }
 
     @Override
-    public Map<String, String> getFunctionSchemas(){
+    public Map<String, String> getAttributeSchemas(){
         var schemas = new HashMap<String, String>();
         for (var entry : attributeMetadataByAttributeName.entrySet()) {
             for (var attribute : entry.getValue()){

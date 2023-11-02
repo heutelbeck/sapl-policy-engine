@@ -92,7 +92,7 @@ class TestAttributeContext implements AttributeContext {
     }
 
     @Override
-    public Map<String, String> getFunctionSchemas() {
+    public Map<String, String> getAttributeSchemas() {
         return null;
     }
 

@@ -613,7 +613,7 @@
                 void testCompletion_PolicyBody_function_without_import() {
                     testCompletion((TestCompletionConfiguration it) -> {
                         String policy = """
-                                policy "test" deny where var foo = schemaTest.person;
+                                policy "test" deny where var foo = schemaTest.person();
                                 foo""";
 
                         String cursor = "foo";
@@ -623,9 +623,7 @@
 
                         it.setAssertCompletionList(completionList -> {
                             var expected = List.of("foo", "foo.name");
-                            //var unwanted = List.of("foo.patternProperties", "foo.patternProperties.^S_");
                             assertProposalsSimple(expected, completionList);
-                            // assertDoesNotContainProposals(unwanted, completionList);
                         });
                     });
                 }
@@ -645,9 +643,7 @@
 
                         it.setAssertCompletionList(completionList -> {
                             var expected = List.of("foo", "foo.name");
-                            //var unwanted = List.of("foo.patternProperties", "foo.patternProperties.^S_");
                             assertProposalsSimple(expected, completionList);
-                           // assertDoesNotContainProposals(unwanted, completionList);
                         });
                     });
                 }
@@ -667,9 +663,7 @@
 
                         it.setAssertCompletionList(completionList -> {
                             var expected = List.of("foo", "foo.name");
-                            //var unwanted = List.of("foo.patternProperties", "foo.patternProperties.^S_");
                             assertProposalsSimple(expected, completionList);
-                            // assertDoesNotContainProposals(unwanted, completionList);
                         });
                     });
                 }

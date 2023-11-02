@@ -46,7 +46,6 @@ import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.testutil.ParserUtil;
 import jakarta.validation.constraints.NotNull;
-import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import reactor.util.context.Context;
@@ -931,7 +930,7 @@ class AnnotationAttributeContextTests {
         var variable    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 
         var context          = new AnnotationAttributeContext(pip);
-        var functionSchemas = context.getFunctionSchemas();
+        var functionSchemas = context.getAttributeSchemas();
         assertThat(functionSchemas, hasEntry("test.attributeWithAnnotation", PERSON_SCHEMA));
 
 

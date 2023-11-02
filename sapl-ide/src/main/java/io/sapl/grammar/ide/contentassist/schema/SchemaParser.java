@@ -20,6 +20,21 @@ public class SchemaParser {
     );
     private final Map<String, JsonNode> variables;
 
+    public List<String> generatePaths(String schema) {
+
+        JsonNode schemaNode;
+        try {
+            schemaNode = MAPPER.readTree(schema);
+        } catch (Exception e) {
+            return new LinkedList<>();
+        }
+
+        var jsonPaths = getJsonPaths(schemaNode, "", schemaNode, 0);
+        jsonPaths.removeIf(s -> s.startsWith("$defs"));
+        jsonPaths.removeIf(RESERVED_KEYWORDS::contains);
+        return jsonPaths;
+    }
+
     private static boolean propertyIsArray(JsonNode jsonNode) {
         var typeNode = jsonNode.get("type");
 
@@ -55,7 +70,7 @@ public class SchemaParser {
         return getNestedSubnode(originalSchema, ref);
     }
 
-    public static JsonNode getNestedSubnode(JsonNode rootNode, String path) {
+    private static JsonNode getNestedSubnode(JsonNode rootNode, String path) {
         var pathElements = path.split("/");
         var currentNode = rootNode;
 
@@ -80,21 +95,6 @@ public class SchemaParser {
             paths.add(parentPath + "." + enumPath);
         }
         return paths;
-    }
-
-    public List<String> generatePaths(String schema) {
-
-        JsonNode schemaNode;
-        try {
-            schemaNode = MAPPER.readTree(schema);
-        } catch (Exception e) {
-            return new LinkedList<>();
-        }
-
-        var jsonPaths = getJsonPaths(schemaNode, "", schemaNode, 0);
-        jsonPaths.removeIf(s -> s.startsWith("$defs"));
-        jsonPaths.removeIf(RESERVED_KEYWORDS::contains);
-        return jsonPaths;
     }
 
     private List<String> getJsonPaths(JsonNode jsonNode, String parentPath, final JsonNode originalSchema, int depth) {

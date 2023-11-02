@@ -166,4 +166,9 @@ class MockingFunctionContextTests {
         assertThat(this.ctx.getDocumentedCodeTemplates()).isEmpty();
     }
 
+    @Test
+    void test_getFunctionSchemas_isEmpty() {
+        assertThat(this.ctx.getFunctionSchemas()).isEmpty();
+    }
+
 }
