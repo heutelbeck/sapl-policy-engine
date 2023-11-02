@@ -30,14 +30,9 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.constraints.ReactiveConstraintHandlerBundle;
-import lombok.NonNull;
-import lombok.SneakyThrows;
 import reactor.core.CoreSubscriber;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.util.function.Tuple2;
-import reactor.util.function.Tuples;
 
 /**
  * The EnforceDropWhileDeniedPolicyEnforcementPoint implements continuous policy
@@ -54,8 +49,7 @@ import reactor.util.function.Tuples;
  *
  * @param <T> type of the Flux contents
  */
-public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
-        extends Flux<Tuple2<Optional<T>, Optional<Throwable>>> {
+public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<ProtectedPayload<T>> {
 
     private final Flux<AuthorizationDecision> decisions;
 
@@ -91,22 +85,11 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
                 constraintsService, clazz);
         return pep.doOnTerminate(pep::handleOnTerminateConstraints)
                 .doAfterTerminate(pep::handleAfterTerminateConstraints).map(pep::handleAccessDenied)
-                .doOnCancel(pep::handleCancel).onErrorStop()
-                .flatMap(EnforceRecoverableIfDeniedPolicyEnforcementPoint::extractPayloadOrError);
-    }
-
-    @SneakyThrows
-    private static <T> Mono<T> extractPayloadOrError(Tuple2<Optional<T>, Optional<Throwable>> tuple) {
-        var potentialPayload = tuple.getT1();
-        var potentialError   = tuple.getT2();
-        if (potentialError.isPresent())
-            throw potentialError.get();
-        return Mono.just(potentialPayload.orElseThrow(() -> new AccessDeniedException(
-                "Error in PEP during payload extraction. Payload was not present. Should not be possible.")));
+                .doOnCancel(pep::handleCancel).onErrorStop().flatMap(ProtectedPayload::getPayload);
     }
 
     @Override
-    public void subscribe(@NonNull CoreSubscriber<? super Tuple2<Optional<T>, Optional<Throwable>>> actual) {
+    public void subscribe(CoreSubscriber<? super ProtectedPayload<T>> actual) {
         if (sink != null)
             throw new IllegalStateException("Operator may only be subscribed once.");
         var context = actual.currentContext();
@@ -198,7 +181,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
     private void handleSubscribe(Subscription s) {
         try {
             constraintHandlerBundle.get().handleOnSubscribeConstraints(s);
-        } catch (Throwable t) {
+        } catch (Exception t) {
             // This means that we handle it as if there was no decision yet.
             // We dispose of the resourceAccessPoint and remove the lastDecision
             sink.error(t);
@@ -230,7 +213,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
             var transformedValue = constraintHandlerBundle.get().handleAllOnNextConstraints(value);
             if (transformedValue != null)
                 sink.next(transformedValue);
-        } catch (Throwable t) {
+        } catch (Exception t) {
             // Signal error but drop only the element with the failed obligation
             // doing handleNextDecision(AuthorizationDecision.DENY); would drop all
             // subsequent messages, even if the constraint handler would succeed on then.
@@ -242,7 +225,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
     private void handleRequest(Long value) {
         try {
             constraintHandlerBundle.get().handleOnRequestConstraints(value);
-        } catch (Throwable t) {
+        } catch (Exception t) {
             handleNextDecision(AuthorizationDecision.INDETERMINATE);
         }
     }
@@ -260,7 +243,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
             return;
         try {
             constraintHandlerBundle.get().handleOnCompleteConstraints();
-        } catch (Throwable t) {
+        } catch (Exception t) {
             // NOOP stream is finished nothing more to protect.
         }
         sink.complete();
@@ -270,7 +253,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
     private void handleCancel() {
         try {
             constraintHandlerBundle.get().handleOnCancelConstraints();
-        } catch (Throwable t) {
+        } catch (Exception t) {
             // NOOP stream is finished nothing more to protect.
         }
         disposeDecisionsAndResourceAccessPoint();
@@ -279,31 +262,23 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
     private void handleError(Throwable error) {
         try {
             sink.error(constraintHandlerBundle.get().handleAllOnErrorConstraints(error));
-        } catch (Throwable t) {
+        } catch (Exception t) {
             sink.error(t);
             handleNextDecision(AuthorizationDecision.INDETERMINATE);
             disposeDecisionsAndResourceAccessPoint();
         }
     }
 
-    private Tuple2<Optional<T>, Optional<Throwable>> handleAccessDenied(
-            Tuple2<Optional<T>, Optional<Throwable>> tuple) {
-
-        var potentialPayload = tuple.getT1();
-        if (potentialPayload.isPresent())
-            return tuple;
-
-        var error = tuple.getT2().orElseGet(() -> new AccessDeniedException(
-                "Error in PEP during payload extraction. Payload was not present. Should not be possible."));
-        if (!(error instanceof AccessDeniedException))
-            return tuple;
+    private ProtectedPayload<T> handleAccessDenied(ProtectedPayload<T> payload) {
+        if (payload.hasPayload())
+            return payload;
 
         try {
-            var transformedError = constraintHandlerBundle.get().handleAllOnErrorConstraints(error);
-            return Tuples.of(Optional.empty(), Optional.of(transformedError));
-        } catch (Throwable t) {
-            return Tuples.of(Optional.empty(), Optional.of(
-                    new AccessDeniedException("Error in PEP during contraint-based transformation of exceptions.", t)));
+            return ProtectedPayload
+                    .withError(constraintHandlerBundle.get().handleAllOnErrorConstraints(payload.getError()));
+        } catch (Exception e) {
+            return ProtectedPayload.withError(
+                    new AccessDeniedException("Error in PEP during contraint-based transformation of exceptions.", e));
         }
     }
 

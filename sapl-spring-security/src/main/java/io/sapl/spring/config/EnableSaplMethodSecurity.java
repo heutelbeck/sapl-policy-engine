@@ -26,6 +26,7 @@ import org.springframework.context.annotation.Import;
 
 /**
  * Enables SAPL Method Security.
+ * 
  * @since 3.0.0
  */
 @Documented
@@ -61,6 +62,5 @@ public @interface EnableSaplMethodSecurity {
      * @return the {@link AdviceMode} to use
      */
     AdviceMode mode() default AdviceMode.PROXY;
-
 
 }

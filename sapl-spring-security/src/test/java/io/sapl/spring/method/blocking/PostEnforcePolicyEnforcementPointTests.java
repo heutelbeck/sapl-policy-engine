@@ -50,7 +50,8 @@ import io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPointTests.Tes
 import io.sapl.spring.method.metadata.PostEnforce;
 import reactor.core.publisher.Flux;
 
-@SpringBootTest(classes = { Application.class, MethodSecurityConfiguration.class, TestService.class })
+@SpringBootTest(classes = { Application.class, MethodSecurityConfiguration.class, TestService.class }, properties = {
+        "spring.main.web-application-type=servlet" })
 class PostEnforcePolicyEnforcementPointTests {
 
     private static final JsonNodeFactory JSON                   = JsonNodeFactory.instance;

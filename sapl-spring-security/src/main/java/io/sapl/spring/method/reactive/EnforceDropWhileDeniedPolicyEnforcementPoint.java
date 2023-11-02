@@ -30,7 +30,6 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.constraints.ReactiveConstraintHandlerBundle;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.CoreSubscriber;
 import reactor.core.Disposable;
@@ -93,7 +92,7 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
     }
 
     @Override
-    public void subscribe(@NonNull CoreSubscriber<? super T> actual) {
+    public void subscribe(CoreSubscriber<? super T> actual) {
         if (sink != null)
             throw new IllegalStateException("Operator may only be subscribed once.");
         ContextView context = actual.currentContext();

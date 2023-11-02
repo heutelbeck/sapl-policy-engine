@@ -50,7 +50,8 @@ import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPointTests.Test
 import io.sapl.spring.method.metadata.PreEnforce;
 import reactor.core.publisher.Flux;
 
-@SpringBootTest(classes = { Application.class, MethodSecurityConfiguration.class, TestService.class })
+@SpringBootTest(classes = { Application.class, MethodSecurityConfiguration.class, TestService.class }, properties = {
+        "spring.main.web-application-type=servlet" })
 class PreEnforcePolicyEnforcementPointTests {
 
     private static final JsonNodeFactory JSON                   = JsonNodeFactory.instance;
