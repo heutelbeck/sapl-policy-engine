@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-public class AttributeProposalTests extends CompletionTests {
+class AttributeProposalTests extends CompletionTests {
 
     @Test
     void testCompletion_PolicyBody_attribute_without_import() {
