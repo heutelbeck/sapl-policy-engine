@@ -13,7 +13,9 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Text;
+import lombok.NoArgsConstructor;
 
+@NoArgsConstructor
 @FunctionLibrary(name = SchemaValidationLibrary.NAME, description = SchemaValidationLibrary.DESCRIPTION)
 public class SchemaValidationLibrary {
 

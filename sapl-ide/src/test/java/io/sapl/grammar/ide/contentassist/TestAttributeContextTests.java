@@ -32,7 +32,8 @@ class TestAttributeContextTests {
     @Test
     void isProvidedFunctionThrowsUnsupportedOperationException() {
         var context = new TestAttributeContext();
-        assertThrows(UnsupportedOperationException.class, () -> context.isProvidedFunction(""));
+        Boolean isProvided = context.isProvidedFunction("temperature.now");
+        assertEquals(true, isProvided);
     }
 
     @Test

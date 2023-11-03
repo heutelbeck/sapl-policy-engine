@@ -15,12 +15,7 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -34,14 +29,42 @@ class TestAttributeContext implements AttributeContext {
 
     private final Map<String, Set<String>> availableLibraries;
 
+    final String TEMP_NOW_SCHEMA = """
+					{
+					  "type": "object",
+					  "properties": {
+						"value": { "type": "number" },
+						"unit": { "type": "string"}
+					  }
+					}
+					""";
+
+    final String TEMP_MEAN_SCHEMA = """
+					{
+					  "type": "object",
+					  "properties": {
+						"value": { "type": "number" },
+						"period": { "type": "number"}
+					  }
+					}
+					""";
+
     public TestAttributeContext() {
         availableLibraries = new HashMap<>();
         availableLibraries.put("clock", Set.of("now", "millis", "ticker"));
+        availableLibraries.put("temperature", Set.of("now", "mean", "predicted"));
+
     }
 
-    @Override
     public Boolean isProvidedFunction(String function) {
-        throw new UnsupportedOperationException();
+        List<String> availableFunctions = new ArrayList<>();
+        for (var lib : availableLibraries.entrySet()) {
+            var key = lib.getKey();
+            for (var value : lib.getValue()) {
+                availableFunctions.add(key.concat(".").concat(value));
+            }
+        }
+        return availableFunctions.contains(function);
     }
 
     @Override
@@ -60,18 +83,21 @@ class TestAttributeContext implements AttributeContext {
     }
 
     @Override
+    public List<String> getAttributeCodeTemplates() {
+        return List.of("clock.now", "clock.millis", "clock.ticker",
+                "temperature.now()>", "temperature.mean(a1, a2)>", "temperature.predicted(a2)>");
+    }
+
+    @Override
     public List<String> getEnvironmentAttributeCodeTemplates() {
-        return List.of("clock.now", "clock.millis", "clock.ticker");
+        return List.of("clock.now", "clock.millis", "clock.ticker",
+                "temperature.now()>", "temperature.mean(a1, a2)>", "temperature.predicted(a2)>");
     }
 
     @Override
     public Collection<String> getAllFullyQualifiedFunctions() {
-        return List.of("clock.now", "clock.millis", "clock.ticker");
-    }
-
-    @Override
-    public List<String> getAttributeCodeTemplates() {
-        return List.of("clock.now", "clock.millis", "clock.ticker");
+        return List.of("clock.now", "clock.millis", "clock.ticker",
+                "temperature.now()>", "temperature.mean(a1, a2)>", "temperature.predicted(a2)>");
     }
 
     @Override
@@ -93,7 +119,10 @@ class TestAttributeContext implements AttributeContext {
 
     @Override
     public Map<String, String> getAttributeSchemas() {
-        return null;
+        var schemas = new HashMap<String, String>();
+        schemas.put("temperature.now", TEMP_NOW_SCHEMA);
+        schemas.put("temperature.mean", TEMP_MEAN_SCHEMA);
+        return schemas;
     }
 
 }

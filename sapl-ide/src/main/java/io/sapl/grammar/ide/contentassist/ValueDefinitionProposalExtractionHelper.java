@@ -2,16 +2,7 @@ package io.sapl.grammar.ide.contentassist;
 
 import com.google.common.collect.Iterables;
 import io.sapl.grammar.ide.contentassist.schema.SchemaProposals;
-import io.sapl.grammar.sapl.BasicFunction;
-import io.sapl.grammar.sapl.BasicIdentifier;
-import io.sapl.grammar.sapl.Condition;
-import io.sapl.grammar.sapl.Expression;
-import io.sapl.grammar.sapl.KeyStep;
-import io.sapl.grammar.sapl.PolicyBody;
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.grammar.sapl.SaplFactory;
-import io.sapl.grammar.sapl.Statement;
-import io.sapl.grammar.sapl.ValueDefinition;
+import io.sapl.grammar.sapl.*;
 import io.sapl.grammar.sapl.impl.util.FunctionUtil;
 import io.sapl.grammar.sapl.impl.util.ImportsUtil;
 import io.sapl.interpreter.functions.FunctionContext;
@@ -50,6 +41,26 @@ public class ValueDefinitionProposalExtractionHelper {
             return new HashSet<>();
 
         return getBodyProposals(proposalType, currentOffset, policyBody, model);
+    }
+    public List<String> getAttributeProposals() {
+        var proposals = new LinkedList<String>();
+        var schemaProposals = new SchemaProposals(variablesAndCombinatorSource);
+        var allSchemas = attributeContext.getAttributeSchemas();
+        for (var entry : allSchemas.entrySet()){
+            var paths = schemaProposals.schemaTemplatesForAttributes(entry.getValue());
+            for (var path : paths){
+                if (!"".equals(path)) {
+                    var fun = entry.getKey();
+                    var allTemplates = attributeContext.getAttributeCodeTemplates();
+                    String fullFunctionName = getFullFunctionName(fun, allTemplates);
+                    if (!fullFunctionName.isBlank()){
+                        var proposal = String.join(".", fullFunctionName, path);
+                        proposals.add(proposal);
+                    }
+                }
+            }
+        }
+        return proposals;
     }
 
     public List<String> getFunctionProposals(){
@@ -156,7 +167,7 @@ public class ValueDefinitionProposalExtractionHelper {
 
             List<String> currentProposals;
             if (proposalType == ProposalType.SCHEMA)
-                currentProposals = getSchemaFromStatement(valueDefStatement, model);
+                currentProposals = getSchemaFromStatement(currentOffset, valueDefStatement, model);
             else
                 currentProposals = getValueFromStatement(currentOffset, valueDefStatement);
 
@@ -176,9 +187,11 @@ public class ValueDefinitionProposalExtractionHelper {
         return valueList;
     }
 
-    private List<String> getSchemaFromStatement(ValueDefinition statement, EObject model) {
+    private List<String> getSchemaFromStatement(int currentOffset, ValueDefinition statement, EObject model) {
         List<String> proposalTemplates;
-        List<String> functionSchemaTemplates = new ArrayList<>();
+        List<String> functionSchemaTemplates = List.of();
+        List<String> attributeSchemaTemplates = List.of();
+        int valueDefinitionOffset = getValueDefinitionOffset(statement);
 
         var schemaVarExpression = statement.getSchemaVarExpression();
 
@@ -192,30 +205,34 @@ public class ValueDefinitionProposalExtractionHelper {
             // iterate through defined statements which are either conditions or
             // variables
             for (var aStatement : policyBody.getStatements()) {
-                // add any encountered valuable to the list of proposals
-                if (aStatement instanceof ValueDefinition valueDefinition) {
-                    if (valueDefinition.getEval() instanceof BasicIdentifier basicExpression) {
-                        // A function is assigned to a variable name. Proposals for the variable name.
-                        var stepsString = combineKeystepsFromBasicIdentifier(basicExpression);
-                        var identifier = basicExpression.getIdentifier();
-                        functionSchemaTemplates = getFunctionSchemaTemplates(stepsString, identifier);
-                    } else if(valueDefinition.getEval() instanceof BasicFunction basicFunction){
-                        // Proposals for a function name
-                        var identifier = basicFunction.getFsteps().get(0);
-                        var stepsString = combineFstepsFromBasicFunction(basicFunction);
-                        functionSchemaTemplates = getFunctionSchemaTemplates(stepsString, identifier);
-                    } else {
-                        break;
+                    // add any encountered valuable to the list of proposals
+                    if (currentOffset > valueDefinitionOffset && aStatement instanceof ValueDefinition valueDefinition) {
+                        if (valueDefinition.getEval() instanceof BasicIdentifier basicExpression) {
+                            // A function or attribute is assigned to a variable name. Proposals for the variable name.
+                            var stepsString = combineKeystepsFromBasicIdentifier(basicExpression);
+                            var identifier = basicExpression.getIdentifier();
+                            functionSchemaTemplates = getFunctionSchemaTemplates(stepsString, identifier);
+                            attributeSchemaTemplates = getAttributeSchemaTemplates(stepsString);
+                        } else if (valueDefinition.getEval() instanceof BasicFunction basicFunction) {
+                            // Proposals for a function name
+                            var identifier = basicFunction.getFsteps().get(0);
+                            var stepsString = combineFstepsFromBasicFunction(basicFunction);
+                            functionSchemaTemplates = getFunctionSchemaTemplates(stepsString, identifier);
+                        } else {
+                            break;
+                        }
                     }
-                }
             }
         }
         proposalTemplates = getProposalTemplates(statement, schemaVarExpression);
 
         var valueDefinitionName = statement.getName();
-        var functionTemplates = constructProposals(valueDefinitionName, functionSchemaTemplates);
+        var allTemplates = new LinkedList<>(functionSchemaTemplates);
+        allTemplates.addAll(attributeSchemaTemplates);
+        var functionTemplates = constructProposals(valueDefinitionName, allTemplates);
         proposalTemplates.addAll(functionTemplates);
         proposalTemplates.addAll(functionSchemaTemplates);
+        proposalTemplates.addAll(attributeSchemaTemplates);
 
         return proposalTemplates;
     }
@@ -230,11 +247,22 @@ public class ValueDefinitionProposalExtractionHelper {
         return functionSchemaTemplates;
     }
 
+    private List<String> getAttributeSchemaTemplates(List<String> stepsString) {
+        List<String> attributeSchemaTemplates;
+        var imports = ImportsUtil.fetchImports(getSapl(), attributeContext, functionContext);
+        var name = getFunctionName(stepsString, "", imports);
+        var absName = FunctionUtil.resolveAbsoluteFunctionName(name, imports);
+        var functionSchema = attributeContext.getAttributeSchemas().get(absName);
+        attributeSchemaTemplates = new SchemaProposals(variablesAndCombinatorSource).schemaTemplatesFromJson(functionSchema);
+        return attributeSchemaTemplates;
+    }
+
     private String getFunctionName(List<String> stepsString, String identifier, Map<String, String> imports) {
         var name = "";
         if (!stepsString.isEmpty()) {
             name = String.join(".", stepsString);
-            name = identifier.concat(".").concat(name);
+            if(!identifier.isEmpty())
+                name = identifier.concat(".").concat(name);
         } else {
             name = FunctionUtil.resolveAbsoluteFunctionName(identifier, imports);
         }
@@ -245,8 +273,12 @@ public class ValueDefinitionProposalExtractionHelper {
         var stepsString = new LinkedList<String>();
         var steps = basicIdentifier.getSteps();
         for (var step : steps) {
-            KeyStep keyStep = (KeyStep) step;
-            stepsString.add(keyStep.getId());
+            if (step instanceof KeyStep keyStep){
+                stepsString.add(keyStep.getId());
+            } else if (step instanceof AttributeFinderStep attributeFinderStep){
+                var idSteps = attributeFinderStep.getIdSteps();
+                stepsString.addAll(idSteps);
+            }
         }
         return stepsString;
     }
@@ -272,6 +304,8 @@ public class ValueDefinitionProposalExtractionHelper {
         }
         return proposalTemplates;
     }
+
+
 
     public enum ProposalType {VALUE, SCHEMA}
 

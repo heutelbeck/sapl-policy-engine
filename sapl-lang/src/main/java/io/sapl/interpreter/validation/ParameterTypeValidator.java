@@ -118,7 +118,7 @@ public class ParameterTypeValidator {
 	}
 
     private static boolean nodeCompliantWithSchema(JsonNode node, Annotation annotation) {
-        String schema = "";
+        String schema;
         schema = ((Schema) annotation).value();
         if ("".equals(schema))
             return true;

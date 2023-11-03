@@ -150,6 +150,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             proposals.addAll(functionContext.getAllFullyQualifiedFunctions());
             proposals.addAll(functionContext.getAvailableLibraries());
             proposals.addAll(helper.getFunctionProposals());
+            proposals.addAll(helper.getAttributeProposals());
             addDocumentationToImportProposals(proposals, context, acceptor);
             addDocumentationToTemplates(proposals, context, acceptor);
         } else {
@@ -354,7 +355,12 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     private void addProposalsForAttributeStepsIfPresent(ContentAssistContext context,
             IIdeContentProposalAcceptor acceptor) {
         var proposals = attributeContext.getAttributeCodeTemplates();
-        addSimpleProposals(proposals, context, acceptor);
+
+        var helper = new ValueDefinitionProposalExtractionHelper(
+                variablesAndCombinatorSource, functionContext, attributeContext, context);
+        var attributeProposals = helper.getAttributeProposals();
+        attributeProposals.addAll(proposals);
+        addSimpleProposals(attributeProposals, context, acceptor);
     }
 
     private void addProposalsForBasicAttributesIfPresent(ContentAssistContext context,

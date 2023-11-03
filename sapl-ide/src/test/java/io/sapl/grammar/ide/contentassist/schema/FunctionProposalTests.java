@@ -193,4 +193,25 @@ class FunctionProposalTests extends CompletionTests {
             });
         });
     }
+
+    @Test
+    void testCompletion_PolicyBody_not_suggest_out_of_scope() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    policy "test" deny where
+                    foo
+                    var foo = schemaTest.dog""";
+
+            String cursor = "foo";
+            it.setModel(policy);
+            it.setLine(1);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var unwanted = List.of("schemaTest.dog()", "schemaTest.dog().race");
+                assertDoesNotContainProposals(unwanted, completionList);
+            });
+        });
+    }
 }

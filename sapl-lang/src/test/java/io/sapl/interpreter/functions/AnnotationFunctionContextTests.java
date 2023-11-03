@@ -42,6 +42,10 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Text;
 import io.sapl.interpreter.InitializationException;
 import lombok.NoArgsConstructor;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.stream.Stream;
 
 class AnnotationFunctionContextTests {
 
@@ -256,27 +260,12 @@ class AnnotationFunctionContextTests {
         assertThat(functionSchemas, not(hasEntry(
                 "annotation.schemaFromJson", "{}")));
     }
-    @Test
-    void typeAnnotationSchemaMatchesParameter() throws InitializationException, JsonProcessingException {
-        var context = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
-        var mapper = new ObjectMapper();
-        var parameter = mapper.readTree("{\"name\": \"Joe\"}");
-        assertThat(context.evaluate("annotation.schemaInParameterAnnotation", Val.of(parameter)), is(Val.of(true)));
-    }
 
     @Test
     void typeAnnotationsWithoutSchema() throws InitializationException {
         var context = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
         var parameter = true;
         assertThat(context.evaluate("annotation.noSchemaWithMultipleParameterAnnotations", Val.of(parameter)), is(Val.of(true)));
-    }
-
-    @Test
-    void typeAnnotationSchemaIsEmpty() throws InitializationException, JsonProcessingException {
-        var context = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
-        var mapper = new ObjectMapper();
-        var parameter = mapper.readTree("{\"name\": \"Joe\"}");
-        assertThat(context.evaluate("annotation.emptySchemaInParameterAnnotation", Val.of(parameter)), is(Val.of(true)));
     }
 
     @Test
@@ -309,23 +298,27 @@ class AnnotationFunctionContextTests {
         assertThat(context.evaluate("annotation.jsonValueSchemaInParameterAnnotation", Val.of("test")), is(Val.of(true)));
     }
 
-    @Test
-    void multipleParameterAnnotationsWithSchemaAtTheFront() throws InitializationException, JsonProcessingException {
+    private static final String[] TEST_CASES = {
+            "annotation.schemaInParameterAnnotation",
+            "annotation.emptySchemaInParameterAnnotation",
+            "annotation.multipleParameterAnnotationsWithSchemaAtTheFront",
+            "annotation.multipleParameterAnnotationsWithSchemaAtTheEnd"
+    };
+
+    static Stream<String> parameterProviderForTypeAnnotationSchemaTests(){
+        return Stream.of(TEST_CASES);
+    }
+
+    @ParameterizedTest
+    @MethodSource("parameterProviderForTypeAnnotationSchemaTests")
+    void typeAnnotationSchemaTests(String function) throws InitializationException, JsonProcessingException {
         var context = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
         var mapper = new ObjectMapper();
         var parameter = mapper.readTree("{\"name\": \"Joe\"}");
-        assertThat(context.evaluate("annotation.multipleParameterAnnotationsWithSchemaAtTheFront", Val.of(parameter)), is(Val.of(true)));
+        assertThat(context.evaluate(function, Val.of(parameter)), is(Val.of(true)));
     }
 
-    @Test
-    void multipleParameterAnnotationsWithSchemaAtTheEnd() throws InitializationException, JsonProcessingException {
-        var context = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
-        var mapper = new ObjectMapper();
-        var parameter = mapper.readTree("{\"name\": \"Joe\"}");
-        assertThat(context.evaluate("annotation.multipleParameterAnnotationsWithSchemaAtTheEnd", Val.of(parameter)), is(Val.of(true)));
-    }
-
-    @Test
+     @Test
     void multipleParameterAnnotationsWithNonmatchingSchemaAtTheFront() throws InitializationException {
         var context = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
         assertThat(context.evaluate("annotation.multipleParameterAnnotationsWithNonmatchingSchemaAtTheFront", Val.of(true)), is(Val.of(true)));

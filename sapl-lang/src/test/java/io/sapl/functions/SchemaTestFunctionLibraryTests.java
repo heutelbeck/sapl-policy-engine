@@ -7,7 +7,7 @@ import static io.sapl.hamcrest.Matchers.val;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-public class SchemaTestFunctionLibraryTests {
+class SchemaTestFunctionLibraryTests {
 
     @Test
     void schemaFun_returns_true() {

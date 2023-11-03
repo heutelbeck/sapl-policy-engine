@@ -22,7 +22,7 @@ public class SchemaProposals {
     public List<String> getVariableNamesAsTemplates() {
         var variables = getAllVariablesAsMap();
 
-        if (variables != null && !variables.isEmpty())
+        if (!variables.isEmpty())
             return new ArrayList<>(variables.keySet());
         else
             return new ArrayList<>();
@@ -55,6 +55,10 @@ public class SchemaProposals {
 
     public List<String> schemaTemplatesForFunctions (String functionSchema){
         return new SchemaParser(getAllVariablesAsMap()).generatePaths(functionSchema);
+    }
+
+    public List<String> schemaTemplatesForAttributes (String attributeSchema){
+        return new SchemaParser(getAllVariablesAsMap()).generatePaths(attributeSchema);
     }
 
     public List<String> schemaTemplatesFromJson(String schema) {
