@@ -273,8 +273,9 @@ public class ValueDefinitionProposalExtractionHelper {
         for (var step : steps) {
             if (step instanceof KeyStep keyStep){
                 stepsString.add(keyStep.getId());
-            } else if (step instanceof AttributeFinderStep attributeFinderStep){
-                var idSteps = attributeFinderStep.getIdSteps();
+            } else {
+                // step is AttributeFinderStep
+                var idSteps = ((AttributeFinderStep) step).getIdSteps();
                 stepsString.addAll(idSteps);
             }
         }
