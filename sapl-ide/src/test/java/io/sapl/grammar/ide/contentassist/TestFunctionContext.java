@@ -26,7 +26,7 @@ class TestFunctionContext implements FunctionContext {
 
 	private final Map<String, Set<String>> availableLibraries;
 
-	final String PERSON_SCHEMA = """
+	final static String PERSON_SCHEMA = """
 					{
 					  "type": "object",
 					  "properties": {
@@ -35,7 +35,7 @@ class TestFunctionContext implements FunctionContext {
 					}
 					""";
 
-	final String DOG_SCHEMA = """
+	final static String DOG_SCHEMA = """
 					{
 					  "type": "object",
 					  "properties": {

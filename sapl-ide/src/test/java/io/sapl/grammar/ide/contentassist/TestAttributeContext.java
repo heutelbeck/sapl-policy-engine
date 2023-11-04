@@ -29,7 +29,7 @@ class TestAttributeContext implements AttributeContext {
 
     private final Map<String, Set<String>> availableLibraries;
 
-    final String TEMP_NOW_SCHEMA = """
+    final static String TEMP_NOW_SCHEMA = """
 					{
 					  "type": "object",
 					  "properties": {
@@ -39,7 +39,7 @@ class TestAttributeContext implements AttributeContext {
 					}
 					""";
 
-    final String TEMP_MEAN_SCHEMA = """
+    final static String TEMP_MEAN_SCHEMA = """
 					{
 					  "type": "object",
 					  "properties": {
