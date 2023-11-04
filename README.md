@@ -1,4 +1,4 @@
-[![Build](https://github.com/heutelbeck/sapl-policy-engine/actions/workflows/build.yml/badge.svg)](https://github.com/heutelbeck/sapl-policy-engine/actions/workflows/build.yml)
+[![Build](https://github.com/heutelbeck/sapl-policy-engine/actions/workflows/build_master.yml/badge.svg)](https://github.com/heutelbeck/sapl-policy-engine/actions/workflows/build_master.yml)
 
 # The Streaming Attribute Policy Language (SAPL) and the Streaming Attribute Authorization Engine (SAAE)
 

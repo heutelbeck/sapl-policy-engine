@@ -144,5 +144,4 @@ public class SAPLSyntaxErrorMessageProvider extends SyntaxErrorMessageProvider {
 
         return null;
     }
-
 }

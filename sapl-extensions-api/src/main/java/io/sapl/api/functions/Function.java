@@ -41,4 +41,14 @@ public @interface Function {
      */
     String docs() default "";
 
+	/**
+	 * @return function json schema
+	 */
+	String schema() default "";
+
+	/**
+	 * @return function path to json schema
+	 */
+	String pathToSchema() default "";
+
 }

@@ -30,9 +30,10 @@ import org.junit.jupiter.api.Test;
 class TestAttributeContextTests {
 
     @Test
-    void isProvidedFunctionThrowsUnsupportedOperationException() {
+    void isProvidedFunctionReturnsTrueForExistingFunction() {
         var context = new TestAttributeContext();
-        assertThrows(UnsupportedOperationException.class, () -> context.isProvidedFunction(""));
+        var isProvided = context.isProvidedFunction("temperature.now");
+        assertEquals(Boolean.TRUE, isProvided);
     }
 
     @Test

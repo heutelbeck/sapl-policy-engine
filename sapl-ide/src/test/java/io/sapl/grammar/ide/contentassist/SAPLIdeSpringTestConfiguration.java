@@ -15,6 +15,9 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
+import io.sapl.grammar.ide.contentassist.filesystem.FileSystemVariablesAndCombinatorSource;
+import io.sapl.interpreter.InitializationException;
+import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -34,6 +37,12 @@ class SAPLIdeSpringTestConfiguration {
     @Bean
     AttributeContext attributeContext() {
         return new TestAttributeContext();
+    }
+
+    @Bean
+    public VariablesAndCombinatorSource variablesAndCombinatorSource() throws InitializationException {
+        String configPath = "src/test/resources";
+        return new FileSystemVariablesAndCombinatorSource(configPath);
     }
 
 }

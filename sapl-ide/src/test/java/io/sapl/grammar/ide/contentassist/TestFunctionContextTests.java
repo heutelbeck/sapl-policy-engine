@@ -29,9 +29,17 @@ import org.junit.jupiter.api.Test;
 class TestFunctionContextTests {
 
     @Test
-    void isProvidedFunctionThrowsUnsupportedOperationException() {
+    void isProvidedFunctionReturnsTrueForExistingFunction() {
         var context = new TestFunctionContext();
-        assertThrows(UnsupportedOperationException.class, () -> context.isProvidedFunction(""));
+        var isProvided = context.isProvidedFunction("schemaTest.person");
+        assertEquals(Boolean.TRUE, isProvided);
+    }
+
+    @Test
+    void isProvidedFunctionReturnsFalseForNonExistingFunction() {
+        var context = new TestFunctionContext();
+        var isProvided = context.isProvidedFunction("schemaTest.car");
+        assertEquals(Boolean.FALSE, isProvided);
     }
 
     @Test

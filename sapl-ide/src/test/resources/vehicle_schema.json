@@ -1,0 +1,118 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "nc:Vehicle": {
+      "description": "A conveyance designed to carry an operator, passengers and/or cargo, over land.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/nc:VehicleType"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nc:VehicleType"
+          }
+        }
+      ]
+    },
+    "nc:VehicleIdentification": {
+      "description": "A unique identification for a specific vehicle.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/nc:IdentificationType"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nc:IdentificationType"
+          }
+        }
+      ]
+    },
+    "nc:IdentificationID": {
+      "description": "An identifier.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/niem-xs:string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/niem-xs:string"
+          }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "nc:VehicleType": {
+      "description": "A data type for a conveyance designed to carry an operator, passengers and/or cargo, over land.",
+      "allOf": [
+        {
+          "$ref": "#/$defs/nc:ConveyanceType"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "nc:VehicleIdentification": {
+              "$ref": "#/properties/nc:VehicleIdentification"
+            }
+          }
+        }
+      ]
+    },
+    "nc:ConveyanceType": {
+      "description": "A data type for a means of transport from place to place.",
+      "allOf": [
+        {
+          "$ref": "#/$defs/_base"
+        },
+        {
+          "$ref": "#/$defs/nc:ItemType"
+        },
+        {
+          "type": "object",
+          "properties": {}
+        }
+      ]
+    },
+    "nc:ItemType": {
+      "description": "A data type for an article or thing.",
+      "allOf": [
+        {
+          "$ref": "#/$defs/_base"
+        },
+        {
+          "type": "object",
+          "properties": {}
+        }
+      ]
+    },
+    "niem-xs:string": {
+      "description": "A data type for character strings in XML.",
+      "type": "string"
+    },
+    "_base": {
+      "type": "object",
+      "patternProperties": {
+        "^ism:.*": {
+          "type": "string"
+        },
+        "^ntk:.*": {
+          "type": "string"
+        }
+      },
+      "properties": {
+        "@id": {
+          "format": "uriref"
+        },
+        "@base": {
+          "format": "uriref"
+        }
+		
+      }
+    }
+  }
+}
+

@@ -15,12 +15,7 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
@@ -46,6 +41,9 @@ import io.sapl.grammar.sapl.WildcardImport;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 
+import io.sapl.pdp.config.VariablesAndCombinatorSource;
+
+
 /**
  * This class enhances the auto-completion proposals that the language server
  * offers.
@@ -62,12 +60,17 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private FunctionContext functionContext;
 
+    private VariablesAndCombinatorSource variablesAndCombinatorSource;
+
     private void lazyLoadDependencies() {
         if (attributeContext == null) {
             attributeContext = SpringContext.getBean(AttributeContext.class);
         }
         if (functionContext == null) {
             functionContext = SpringContext.getBean(FunctionContext.class);
+        }
+        if (variablesAndCombinatorSource == null) {
+            variablesAndCombinatorSource = SpringContext.getBean(VariablesAndCombinatorSource.class);
         }
     }
 
@@ -98,6 +101,10 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         switch (parserRuleName) {
         case "import" -> {
             handleImportProposals(feature, context, acceptor);
+            return;
+        }
+        case "schema" -> {
+            handleSchemaProposals(feature, context, acceptor);
             return;
         }
         case "basic" -> {
@@ -136,10 +143,14 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
         Collection<String> proposals;
         if ("libsteps".equals(feature)) {
+            var helper = new ValueDefinitionProposalExtractionHelper(
+                    variablesAndCombinatorSource, functionContext, attributeContext, context);
             proposals = new LinkedList<>(attributeContext.getAllFullyQualifiedFunctions());
             proposals.addAll(attributeContext.getAvailableLibraries());
             proposals.addAll(functionContext.getAllFullyQualifiedFunctions());
             proposals.addAll(functionContext.getAvailableLibraries());
+            proposals.addAll(helper.getFunctionProposals());
+            proposals.addAll(helper.getAttributeProposals());
             addDocumentationToImportProposals(proposals, context, acceptor);
             addDocumentationToTemplates(proposals, context, acceptor);
         } else {
@@ -153,6 +164,22 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         addSimpleProposals(proposals, context, acceptor);
     }
 
+    private void handleSchemaProposals(String feature, ContentAssistContext context,
+                                       IIdeContentProposalAcceptor acceptor) {
+
+        var model = context.getCurrentModel();
+
+        if ("subscriptionelement".equals(feature)) {
+            addSimpleProposals(authzSubProposals, context, acceptor);
+            return;
+        }
+
+        // Feature is schemaexpression
+        var validSchemas = getValidSchemas(context, model);
+        addSimpleProposals(validSchemas, context, acceptor);
+
+    }
+
     private void handleBasicProposals(String feature, ContentAssistContext context,
             IIdeContentProposalAcceptor acceptor) {
 
@@ -164,7 +191,16 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         }
 
         if ("fsteps".equals(feature)) {
-            var templates = functionContext.getCodeTemplates();
+            var definedSchemas = getValidSchemas(context, model);
+            addSimpleProposals(definedSchemas, context, acceptor);
+
+            var helper = new ValueDefinitionProposalExtractionHelper(
+                    variablesAndCombinatorSource, functionContext, attributeContext, context);
+            var functionProposals = helper.getFunctionProposals();
+
+            var templates = new ArrayList<String>();
+            templates.addAll(functionContext.getCodeTemplates());
+            templates.addAll(functionProposals);
             addDocumentationToTemplates(templates, context, acceptor);
             addSimpleProposals(templates, context, acceptor);
             addProposalsWithImportsForTemplates(templates, context, acceptor);
@@ -172,48 +208,51 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         }
 
         if ("value".equals(feature)) {
-            handleValueProposals(context, acceptor, model);
+
+            var helper = new ValueDefinitionProposalExtractionHelper(variablesAndCombinatorSource, functionContext, attributeContext, context);
+            var definedValues = helper.getProposals(model, ValueDefinitionProposalExtractionHelper.ProposalType.VALUE);
+            // add variables to list of proposals
+            addSimpleProposals(definedValues, context, acceptor);
+
+            // try to move up to the policy body
+            if (model.eContainer() instanceof Condition) {
+                model = TreeNavigationHelper.goToFirstParent(model, PolicyBody.class);
+            }
+
+            // look up all defined variables in the policy
+            if (model instanceof PolicyBody policyBody) {
+                Collection<String> definedValuesPolicyBody;
+                int currentOffset = context.getOffset();
+
+                definedValuesPolicyBody = getValuesDefinedInPolicyBodyAboveCursor(policyBody, currentOffset);
+                // add variables to list of proposals
+                addSimpleProposals(definedValuesPolicyBody, context, acceptor);
+            }
+            // add authorization subscriptions proposals
+            addSimpleProposals(authzSubProposals, context, acceptor);
         }
     }
 
-    private void handleValueProposals(ContentAssistContext context, IIdeContentProposalAcceptor acceptor,
-            EObject model) {
-        // try to resolve for available variables
+    private Collection<String> getValuesDefinedInPolicyBodyAboveCursor(PolicyBody policyBody, int currentOffset) {
+        Collection<String> definedValuesPolicyBody = new HashSet<>();
+        // iterate through defined statements which are either conditions or
+        // variables
+        for (var statement : policyBody.getStatements()) {
+            // add any encountered valuable to the list of proposals
+            if (statement instanceof ValueDefinition valueDefinition) {
 
-        // try to move up to the policy body
-        if (model.eContainer() instanceof Condition) {
-            model = TreeNavigationHelper.goToFirstParent(model, PolicyBody.class);
-        }
+                // check if variable definition is happening after cursor
+                INode valueDefinitionNode = NodeModelUtils.getNode(valueDefinition);
+                int valueDefinitionOffset = valueDefinitionNode.getOffset();
 
-        // look up all defined variables in the policy
-        if (model instanceof PolicyBody policyBody) {
-            Collection<String> definedValues = new HashSet<>();
-
-            int currentOffset = context.getOffset();
-
-            // iterate through defined statements which are either conditions or
-            // variables
-            for (var statement : policyBody.getStatements()) {
-                // add any encountered valuable to the list of proposals
-                if (statement instanceof ValueDefinition valueDefinition) {
-
-                    // check if variable definition is happening after cursor
-                    INode valueDefinitionNode   = NodeModelUtils.getNode(valueDefinition);
-                    int   valueDefinitionOffset = valueDefinitionNode.getOffset();
-
-                    if (currentOffset > valueDefinitionOffset) {
-                        definedValues.add(valueDefinition.getName());
-                    } else {
-                        break;
-                    }
+                if (currentOffset > valueDefinitionOffset) {
+                    definedValuesPolicyBody.add(valueDefinition.getName());
+                } else {
+                    break;
                 }
             }
-
-            // add variables to list of proposals
-            addSimpleProposals(definedValues, context, acceptor);
         }
-        // add authorization subscriptions proposals
-        addSimpleProposals(authzSubProposals, context, acceptor);
+        return definedValuesPolicyBody;
     }
 
     private void addDocumentationToImportProposals(Collection<String> proposals, ContentAssistContext context,
@@ -246,6 +285,12 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
                 }
             }
         }
+    }
+
+    private Collection<String> getValidSchemas(ContentAssistContext context, EObject model) {
+        var helper = new ValueDefinitionProposalExtractionHelper(
+                variablesAndCombinatorSource, functionContext, attributeContext, context);
+        return helper.getProposals(model, ValueDefinitionProposalExtractionHelper.ProposalType.SCHEMA);
     }
 
     private void addProposalsWithImportsForTemplates(Collection<String> templates, ContentAssistContext context,
@@ -310,7 +355,12 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     private void addProposalsForAttributeStepsIfPresent(ContentAssistContext context,
             IIdeContentProposalAcceptor acceptor) {
         var proposals = attributeContext.getAttributeCodeTemplates();
-        addSimpleProposals(proposals, context, acceptor);
+
+        var helper = new ValueDefinitionProposalExtractionHelper(
+                variablesAndCombinatorSource, functionContext, attributeContext, context);
+        var attributeProposals = helper.getAttributeProposals();
+        attributeProposals.addAll(proposals);
+        addSimpleProposals(attributeProposals, context, acceptor);
     }
 
     private void addProposalsForBasicAttributesIfPresent(ContentAssistContext context,
@@ -334,7 +384,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     @Override
     protected boolean filterKeyword(final Keyword keyword, final ContentAssistContext context) {
-        String keyValue = keyword.getValue();
+        var keyValue = keyword.getValue();
 
         // remove unwanted technical terms
         if (unwantedKeywords.contains(keyValue))

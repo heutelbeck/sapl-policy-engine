@@ -19,6 +19,7 @@ import static com.spotify.hamcrest.pojo.IsPojo.pojo;
 import static io.sapl.hamcrest.Matchers.valError;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -27,6 +28,11 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.validation.Bool;
+import io.sapl.api.validation.JsonObject;
+import io.sapl.api.validation.Schema;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.functions.Function;
@@ -36,6 +42,10 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Text;
 import io.sapl.interpreter.InitializationException;
 import lombok.NoArgsConstructor;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.stream.Stream;
 
 class AnnotationFunctionContextTests {
 
@@ -204,6 +214,127 @@ class AnnotationFunctionContextTests {
         assertThat(templates, hasEntry(MockLibrary.LIBRARY_NAME, MockLibrary.LIBRARY_DOC));
     }
 
+    @FunctionLibrary(name = "validate")
+    public static class ValidationLibrary {
+
+        @Function
+        public static Val fixed(@Text Val arg) {
+            return Val.UNDEFINED;
+        }
+
+        @Function
+        public static Val varArgs(@Text Val... args) {
+            return Val.UNDEFINED;
+        }
+
+    }
+
+    @Test
+    void schemaIsReturned() throws InitializationException {
+        final String PERSON_SCHEMA = """
+				{  "$schema": "http://json-schema.org/draft-07/schema#",
+				  "$id": "https://example.com/schemas/regions",
+				  "type": "object",
+				  "properties": {
+				  "name": { "type": "string" }
+				  }
+				}""";
+        var context          = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
+        var functionSchemas = context.getFunctionSchemas();
+        assertThat(functionSchemas, hasEntry(
+                "annotation.schemaFromJson", PERSON_SCHEMA));
+    }
+
+    @Test
+    void schemaIsNotReturned() throws InitializationException {
+        final String PERSON_SCHEMA = """
+				{  "$schema": "http://json-schema.org/draft-07/schema#",
+				  "$id": "https://example.com/schemas/regions",
+				  "type": "object",
+				  "properties": {
+				  "name": { "type": "string" }
+				  }
+				}""";
+        var context          = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
+        var functionSchemas = context.getFunctionSchemas();
+        assertThat(functionSchemas, not(hasEntry(
+                "annotation.schemaFromJson", "{}")));
+    }
+
+    @Test
+    void typeAnnotationsWithoutSchema() throws InitializationException {
+        var context = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
+        var parameter = true;
+        assertThat(context.evaluate("annotation.noSchemaWithMultipleParameterAnnotations", Val.of(parameter)), is(Val.of(true)));
+    }
+
+    @Test
+    void typeAnnotationSchemaDoesNotMatchParameter() throws InitializationException, JsonProcessingException {
+        var context = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
+        var mapper = new ObjectMapper();
+        var parameter = mapper.readTree("{\"name\": 23}");
+        assertThat(context.evaluate("annotation.schemaInParameterAnnotation", Val.of(parameter)), valError());
+    }
+
+    @Test
+    void typeAnnotationBoolAsJsonSchemaDoesNotMatchParameter() throws InitializationException, JsonProcessingException {
+        var context = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
+        var mapper = new ObjectMapper();
+        var parameter = mapper.readTree("{\"name\": 23}");
+        assertThat(context.evaluate("annotation.boolAnnotatedParameter", Val.of(parameter)), valError());
+    }
+
+    @Test
+    void typeAnnotationJsonValueSchemaMatchesParameter() throws InitializationException {
+        var context = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
+        assertThat(context.evaluate("annotation.jsonValueSchemaInParameterAnnotation", Val.of("test")), is(Val.of(true)));
+    }
+
+    private static final String[] TEST_CASES = {
+            "annotation.schemaInParameterAnnotation",
+            "annotation.emptySchemaInParameterAnnotation",
+            "annotation.multipleParameterAnnotationsWithSchemaAtTheFront",
+            "annotation.multipleParameterAnnotationsWithSchemaAtTheEnd"
+    };
+
+    static Stream<String> parameterProviderForTypeAnnotationSchemaTests(){
+        return Stream.of(TEST_CASES);
+    }
+
+    @ParameterizedTest
+    @MethodSource("parameterProviderForTypeAnnotationSchemaTests")
+    void typeAnnotationSchemaTests(String function) throws InitializationException, JsonProcessingException {
+        var context = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
+        var mapper = new ObjectMapper();
+        var parameter = mapper.readTree("{\"name\": \"Joe\"}");
+        assertThat(context.evaluate(function, Val.of(parameter)), is(Val.of(true)));
+    }
+
+    private static final String[] TEST_CASES_PARAM_LOCATION = {
+            "annotation.boolAnnotatedParameter",
+            "annotation.multipleParameterAnnotationsWithNonmatchingSchemaAtTheFront",
+            "annotation.multipleParameterAnnotationsWithNonmatchingSchemaAtTheEnd"
+    };
+
+    static Stream<String> parameterProviderForParamLocationTests(){
+        return Stream.of(TEST_CASES_PARAM_LOCATION);
+    }
+    @ParameterizedTest
+    @MethodSource("parameterProviderForParamLocationTests")
+    void paramLocationSchemaTests(String function) throws InitializationException, JsonProcessingException {
+        var context = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
+        assertThat(context.evaluate(function, Val.of(true)), is(Val.of(true)));
+    }
+
+    @Test
+    void customErrorForSchemaInParameterAnnotation() throws InitializationException, JsonProcessingException {
+        var context = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
+        var mapper = new ObjectMapper();
+        var parameter = mapper.readTree("{\"name\": 23}");
+        assertThat(context.evaluate("annotation.customErrorForSchemaInParameterAnnotation", Val.of(parameter)),
+                valError("Parameter jsonObject needs to comply with the given schema."));
+    }
+
     @FunctionLibrary(name = MockLibrary.LIBRARY_NAME, description = MockLibrary.LIBRARY_DOC)
     public static class MockLibrary {
 
@@ -239,18 +370,78 @@ class AnnotationFunctionContextTests {
 
     }
 
-    @FunctionLibrary(name = "validate")
-    public static class ValidationLibrary {
+    @FunctionLibrary(name = "annotation")
+    public static class AnnotationLibrary {
+
+        static final String PERSON_SCHEMA = """
+				{  "$schema": "http://json-schema.org/draft-07/schema#",
+				  "$id": "https://example.com/schemas/regions",
+				  "type": "object",
+				  "properties": {
+				  "name": { "type": "string" }
+				  }
+				}""";
+
+        @Function(pathToSchema = "schemas/person_schema.json")
+        public static Val schemaFromFile() { return Val.of(true); }
+
+        @Function(schema = PERSON_SCHEMA)
+        public static Val schemaFromJson() { return Val.of(true); }
+
+        @Function(schema = PERSON_SCHEMA, pathToSchema = "schemas/person_schema.json")
+        public static Val multipleSchemaFunctionAnnotations() { return Val.of(true); }
 
         @Function
-        public static Val fixed(@Text Val arg) {
-            return Val.UNDEFINED;
-        }
+        public static Val boolAnnotatedParameter(@Schema("{\"type\": \"boolean\"}") Val jsonObject) { return Val.of(true); }
 
         @Function
-        public static Val varArgs(@Text Val... args) {
-            return Val.UNDEFINED;
-        }
+        public static Val noSchemaWithMultipleParameterAnnotations(@JsonObject @Text @Bool Val jsonObject) { return Val.of(true); }
+
+        @Function
+        public static Val schemaInParameterAnnotation(@Schema(value = PERSON_SCHEMA) Val jsonObject) { return Val.of(true); }
+
+        @Function
+        public static Val emptySchemaInParameterAnnotation(@Schema(value = "") Val jsonObject) { return Val.of(true); }
+
+        @Function
+        public static Val multipleParameterAnnotationsWithSchemaAtTheFront(@Schema(value = PERSON_SCHEMA) @JsonObject Val jsonObject) { return Val.of(true); }
+
+        @Function
+        public static Val multipleParameterAnnotationsWithSchemaAtTheEnd(@JsonObject @Schema(value = PERSON_SCHEMA) Val jsonObject) { return Val.of(true); }
+
+        @Function
+        public static Val multipleParameterAnnotationsWithNonmatchingSchemaAtTheFront(@Schema(value = PERSON_SCHEMA) @Bool Val jsonObject) { return Val.of(true); }
+
+        @Function
+        public static Val multipleParameterAnnotationsWithNonmatchingSchemaAtTheEnd(@Bool @Schema(value = PERSON_SCHEMA) Val jsonObject) { return Val.of(true); }
+
+        @Function
+        public static Val jsonValueSchemaInParameterAnnotation(@Schema(value = "{\"type\": \"string\"}") Val jsonObject) { return Val.of(true); }
+
+        @Function
+        public static Val customErrorForSchemaInParameterAnnotation(@Schema(value = PERSON_SCHEMA,
+                errorText = "Parameter jsonObject needs to comply with the given schema.") Val jsonObject) { return Val.of(true); }
+
+    }
+
+    @FunctionLibrary(name = "schema")
+    public static class SchemaLibrary {
+
+        static final String PERSON_SCHEMA = """
+				{
+				  "$schema": "http://json-schema.org/draft-07/schema#",
+				  "$id": "https://example.com/schemas/regions",
+				  "type": "object",
+				  "properties": {
+				  "name": { "type": "string" }
+				  }
+				}""";
+
+        @Function(pathToSchema = "schemas/person_schema.json")
+        public static Val schemaFromFile() { return Val.of(true); }
+
+        @Function(schema = PERSON_SCHEMA)
+        public static Val schemaFromJson() { return Val.of(true); }
 
     }
 

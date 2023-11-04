@@ -21,8 +21,6 @@ import java.util.List;
 import org.springframework.context.annotation.AdviceMode;
 import org.springframework.context.annotation.AdviceModeImportSelector;
 
-import lombok.NonNull;
-
 /**
  * Adds ReactiveSaplMethodSecurityConfiguration to the imports
  * if @EnableReactiveSaplMethodSecurity is present.
@@ -30,7 +28,7 @@ import lombok.NonNull;
 public class ReactiveSaplMethodSecuritySelector extends AdviceModeImportSelector<EnableReactiveSaplMethodSecurity> {
 
     @Override
-    protected String[] selectImports(@NonNull AdviceMode adviceMode) {
+    protected String[] selectImports(AdviceMode adviceMode) {
         if (adviceMode == AdviceMode.PROXY) {
             return getProxyImports();
         }

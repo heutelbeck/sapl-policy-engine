@@ -40,4 +40,7 @@ public @interface Attribute {
      */
     String docs() default "";
 
+    String schema() default "";
+
+    String pathToSchema() default "";
 }

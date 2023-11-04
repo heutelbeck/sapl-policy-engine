@@ -27,11 +27,15 @@ import lombok.Data;
 @AllArgsConstructor
 public class AttributeFinderMetadata implements LibraryEntryMetadata {
 
-    Object  policyInformationPoint;
+	private static final String MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED = "Please only provide either a schema or a schemaPath annotation.";
+
+	Object  policyInformationPoint;
     Method  function;
     String  libraryName;
     String  functionName;
-    boolean environmentAttribute;
+	String  functionSchema;
+	String  functionPathToSchema;
+	boolean environmentAttribute;
     boolean attributeWithVariableParameter;
     boolean varArgsParameters;
     int     numberOfParameters;
@@ -54,6 +58,11 @@ public class AttributeFinderMetadata implements LibraryEntryMetadata {
         sb.append('>');
         return sb.toString();
     }
+
+	@Override
+	public String getFunctionSchema() {
+		return functionSchema;
+	}
 
     @Override
     public String getCodeTemplate() {

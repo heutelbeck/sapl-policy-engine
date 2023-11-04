@@ -52,4 +52,5 @@ public class CompletionTests extends AbstractSaplLanguageServerTest {
         }
     }
 
+
 }

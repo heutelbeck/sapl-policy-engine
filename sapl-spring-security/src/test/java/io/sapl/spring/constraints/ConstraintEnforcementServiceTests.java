@@ -15,6 +15,7 @@
  */
 package io.sapl.spring.constraints;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
@@ -190,6 +191,91 @@ class ConstraintEnforcementServiceTests {
                 resourceAccessPoint, Integer.class);
         StepVerifier.create(wrapped).expectNext(1, 2, 3).verifyComplete();
         verify(provider, times(1)).run();
+    }
+
+    @Test
+    void when_accessManage_and_obligation_and_onDecisionHandlerIsResponsible_andSucceeds_then_AccessIsGranted() {
+        var provider      = spy(new RunnableConstraintHandlerProvider() {
+
+                              @Override
+                              public boolean isResponsible(JsonNode constraint) {
+                                  return true;
+                              }
+
+                              @Override
+                              public Signal getSignal() {
+                                  return Signal.ON_DECISION;
+                              }
+
+                              @Override
+                              public Runnable getHandler(JsonNode constraint) {
+                                  return this::run;
+                              }
+
+                              public void run() {
+                                  // NOOP
+                              }
+                          });
+        var providerNoRun = spy(new RunnableConstraintHandlerProvider() {
+
+                              @Override
+                              public boolean isResponsible(JsonNode constraint) {
+                                  return true;
+                              }
+
+                              @Override
+                              public Signal getSignal() {
+                                  return Signal.ON_TERMINATE;
+                              }
+
+                              @Override
+                              public Runnable getHandler(JsonNode constraint) {
+                                  return this::run;
+                              }
+
+                              public void run() {
+                                  // NOOP
+                              }
+                          });
+        globalRunnableProviders.add(provider);
+        globalRunnableProviders.add(providerNoRun);
+        var service  = buildConstraintHandlerService();
+        var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        var bundle   = service.accessManagerBundleFor(decision);
+        bundle.handleOnDecisionConstraints();
+        verify(provider, times(1)).run();
+        verify(providerNoRun, times(0)).run();
+    }
+
+    @Test
+    void when_accessManage_and_obligation_and_noHandler_then_AccessDenied() {
+
+        var providerNoRun = spy(new RunnableConstraintHandlerProvider() {
+
+            @Override
+            public boolean isResponsible(JsonNode constraint) {
+                return true;
+            }
+
+            @Override
+            public Signal getSignal() {
+                return Signal.ON_TERMINATE;
+            }
+
+            @Override
+            public Runnable getHandler(JsonNode constraint) {
+                return this::run;
+            }
+
+            public void run() {
+                // NOOP
+            }
+        });
+        globalRunnableProviders.add(providerNoRun);
+        var service  = buildConstraintHandlerService();
+        var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        assertThatThrownBy(() -> service.accessManagerBundleFor(decision)).isInstanceOf(AccessDeniedException.class);
+        verify(providerNoRun, times(0)).run();
     }
 
     @Test

@@ -56,7 +56,8 @@ import io.sapl.spring.method.metadata.PostEnforce;
 import reactor.core.publisher.Flux;
 
 @SpringBootTest(classes = { Application.class, TestService.class, MethodSecurityConfiguration.class,
-        ConstraintHandlerOne.class, ConstraintHandlerTwo.class, FailingConstraintHandler.class })
+        ConstraintHandlerOne.class, ConstraintHandlerTwo.class,
+        FailingConstraintHandler.class }, properties = { "spring.main.web-application-type=servlet" })
 class PostEnforcementConstraintsTests {
     private static final String UNKNOWN_CONSTRAINT = "unknown constraint";
     private static final String FAILING_CONSTRAINT = "failing constraint";

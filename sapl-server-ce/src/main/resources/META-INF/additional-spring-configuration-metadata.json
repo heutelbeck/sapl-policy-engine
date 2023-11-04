@@ -1,0 +1,12 @@
+{"properties": [
+  {
+    "name": "io.sapl.server-ce.secret",
+    "type": "java.lang.String",
+    "description": "User/Client secret/password."
+  },
+  {
+    "name": "io.sapl.server-ce.key",
+    "type": "java.lang.String",
+    "description": "User/Client name/key."
+  }
+]}

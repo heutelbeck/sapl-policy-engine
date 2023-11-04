@@ -17,6 +17,8 @@ package io.sapl.interpreter.validation;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Parameter;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -29,7 +31,10 @@ import io.sapl.api.validation.Int;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Long;
 import io.sapl.api.validation.Number;
+import io.sapl.api.validation.Schema;
 import io.sapl.api.validation.Text;
+
+import io.sapl.functions.SchemaValidationLibrary;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 
@@ -38,8 +43,10 @@ public class ParameterTypeValidator {
 
     private static final String ILLEGAL_PARAMETER_TYPE = "Illegal parameter type. Got: %s Expected: %s";
 
+    private static final String NON_COMPLIANT_WITH_SCHEMA = "Illegal parameter type. Parameter does not comply with required schema. Got: %s Expected schema: %s";
+
     private static final Set<Class<?>> VALIDATION_ANNOTATIONS = Set.of(Number.class, Int.class, Long.class, Bool.class,
-            Text.class, Array.class, JsonObject.class);
+            Text.class, Array.class, JsonObject.class, Schema.class);
 
     public static void validateType(Val parameterValue, Parameter parameterType) throws IllegalParameterType {
         if (hasNoValidationAnnotations(parameterType))
@@ -75,12 +82,29 @@ public class ParameterTypeValidator {
 
     private static void validateJsonNodeType(JsonNode node, Parameter parameterType) throws IllegalParameterType {
         Annotation[] annotations = parameterType.getAnnotations();
-        for (Annotation annotation : annotations)
+        String errorText;
+        moveSchemaAnnotationToTheEndIfItExists(annotations);
+
+        for (Annotation annotation : annotations) {
             if (nodeContentsMatchesTypeGivenByAnnotation(node, annotation))
                 return;
+            else if (!Schema.class.isAssignableFrom(annotation.getClass()))
+                continue;
+            else if (nodeCompliantWithSchema(node, annotation))
+                return;
+            else {
+                var schemaAnnotation = (Schema) annotation;
+                errorText = schemaAnnotation.errorText();
+                if (!"".equals(errorText))
+                    throw new IllegalParameterType(errorText);
+                throw new IllegalParameterType(
+                        String.format(NON_COMPLIANT_WITH_SCHEMA, node.toString(), schemaAnnotation.value()));
+            }
+        }
 
-        throw new IllegalParameterType(
-                String.format(ILLEGAL_PARAMETER_TYPE, node.getNodeType().toString(), listAllowedTypes(annotations)));
+            throw new IllegalParameterType(
+                    String.format(ILLEGAL_PARAMETER_TYPE, node.getNodeType().toString(), listAllowedTypes(annotations)));
+
     }
 
     private static boolean nodeContentsMatchesTypeGivenByAnnotation(JsonNode node, Annotation annotation) {
@@ -91,31 +115,65 @@ public class ParameterTypeValidator {
                 || (Text.class.isAssignableFrom(annotation.getClass()) && node.isTextual())
                 || (Array.class.isAssignableFrom(annotation.getClass()) && node.isArray())
                 || (JsonObject.class.isAssignableFrom(annotation.getClass()) && node.isObject());
+	}
+
+    private static boolean nodeCompliantWithSchema(JsonNode node, Annotation annotation) {
+        String schema;
+        schema = ((Schema) annotation).value();
+        if ("".equals(schema))
+            return true;
+        var nodeVal = Val.of(node);
+        var schemaVal = Val.of(schema);
+        return SchemaValidationLibrary.isCompliantWithSchema(nodeVal, schemaVal).getBoolean();
     }
 
-    private static boolean hasNoValidationAnnotations(Parameter parameterType) {
-        for (var annotation : parameterType.getAnnotations())
-            if (isTypeValidationAnnotation(annotation))
-                return false;
+	private static boolean hasNoValidationAnnotations(Parameter parameterType) {
+		for (var annotation : parameterType.getAnnotations())
+			if (isTypeValidationAnnotation(annotation))
+				return false;
 
-        return true;
-    }
+		return true;
+	}
 
-    private static boolean isTypeValidationAnnotation(Annotation annotation) {
-        for (var validator : VALIDATION_ANNOTATIONS)
-            if (validator.isAssignableFrom(annotation.getClass()))
-                return true;
+	private static boolean isTypeValidationAnnotation(Annotation annotation) {
+		for (var validator : VALIDATION_ANNOTATIONS)
+			if (validator.isAssignableFrom(annotation.getClass()))
+				return true;
 
-        return false;
-    }
+		return false;
+	}
 
-    private static String listAllowedTypes(Annotation[] annotations) {
-        var builder = new StringBuilder();
-        for (var annotation : annotations) {
-            if (isTypeValidationAnnotation(annotation))
-                builder.append(annotation).append(' ');
+	private static String listAllowedTypes(Annotation[] annotations) {
+		var builder = new StringBuilder();
+		for (var annotation : annotations) {
+			if (isTypeValidationAnnotation(annotation))
+				builder.append(annotation).append(' ');
+		}
+		return builder.toString();
+	}
+
+    private static void moveSchemaAnnotationToTheEndIfItExists(Annotation[] annotations) {
+        if (annotations.length < 2)
+            return;
+        int index = Math.max(0, indexOfSchemaAnnotation(annotations));
+        if (index < annotations.length){
+            var annotationList = new ArrayList<>(Arrays.asList(annotations));
+            var indexedAnnotation = annotationList.remove(index);
+            annotationList.add(indexedAnnotation);
+            annotationList.toArray(annotations);
         }
-        return builder.toString();
     }
 
-}
+    private static int indexOfSchemaAnnotation(Annotation[] annotations) {
+        int index = annotations.length;
+
+        for (int i = 0; i < annotations.length; i++) {
+            if (Schema.class.isAssignableFrom(annotations[i].getClass())) {
+                index = i;
+                break;
+            }
+        }
+
+        return index;
+    }
+    }

@@ -41,8 +41,11 @@ class ApplyStepsConditionTests {
 	 			Arguments.of("undefined[?(@>0)]",
 	 					"Type mismatch. Expected an Object or Array, but got: 'undefined'."),
 
-	 			// Apply to array with error
-	 			Arguments.of("[20, 10/0, 5][?(@>10)]", "Division by zero"),
+                // Apply to array with error
+                Arguments.of("[20, 10/0, 5][?(@>10)]", "Division by zero"),
+
+                // Apply to array with error 2
+                Arguments.of("[20, 10/0, 2/0][?(@>10)]", "Division by zero"),
 
 	 			// Apply to array with error condition
 	 			Arguments.of("[20,  5][?(@>(10/0)]", "Division by zero"),

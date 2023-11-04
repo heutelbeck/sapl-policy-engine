@@ -1,0 +1,14 @@
+{
+  "$id": "https://example.com/calendar.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "A representation of an event",
+  "type": "object",
+  "properties": {
+    "dtstart": {
+      "type": "string",
+      "description": "Event starting time"
+    },
+    "geo": {
+      "$ref": "geographical_location_schema.json"
+    }}
+}

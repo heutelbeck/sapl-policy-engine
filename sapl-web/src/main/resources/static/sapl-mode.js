@@ -1,5 +1,5 @@
 define("sapl-mode", ["codemirror", "codemirror/addon/mode/simple"], function(CodeMirror, SimpleMode) {
-	var keywords = "where|var|undefined|true|transform|set|policy|permit-unless-deny|permit-overrides|permit|only-one-applicable|obligation|null|in|import|for|first-applicable|false|each|deny-unless-permit|deny-overrides|deny|as|advice";
+	var keywords = "where|var|undefined|true|transform|subject|set|schema|resource|policy|permit-unless-deny|permit-overrides|permit|only-one-applicable|obligation|null|in|import|for|first-applicable|false|environment|each|deny-unless-permit|deny-overrides|deny|as|advice|action";
 	CodeMirror.defineSimpleMode("xtext/sapl", {
 		start: [
 			{token: "comment", regex: "\\/\\/.*$"},

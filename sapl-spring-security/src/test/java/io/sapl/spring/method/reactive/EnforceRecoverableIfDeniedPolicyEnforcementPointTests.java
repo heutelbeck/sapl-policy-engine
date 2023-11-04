@@ -15,6 +15,7 @@
  */
 package io.sapl.spring.method.reactive;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -53,6 +54,7 @@ import io.sapl.spring.constraints.api.MethodInvocationConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.RequestHandlerProvider;
 import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.SubscriptionHandlerProvider;
+import reactor.core.CoreSubscriber;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Hooks;
 import reactor.test.StepVerifier;
@@ -254,6 +256,31 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
+    void when_subscribeWithNull_NullpointerExepction() {
+        Flux<AuthorizationDecision>  decisions           = Flux.empty();
+        Flux<String>                 resourceAccessPoint = Flux.empty();
+        ConstraintEnforcementService constraintsService  = mock(ConstraintEnforcementService.class);
+        Class<String>                clazz               = String.class;
+        Flux<String>                 sut                 = EnforceRecoverableIfDeniedPolicyEnforcementPoint
+                .of(decisions, resourceAccessPoint, constraintsService, clazz);
+
+        assertThatThrownBy(() -> sut.subscribe((CoreSubscriber<String>) null)).isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    void when_onlyOneNotApplicable_thenNoSignalsAndAndStaysSubscribedForPotentialFollowingNewDecisions() {
+        var constraintsService = buildConstraintHandlerService();
+        var decisions          = Flux.just(AuthorizationDecision.NOT_APPLICABLE);
+        var data               = Flux.just(1, 2, 3);
+        var sut                = EnforceRecoverableIfDeniedPolicyEnforcementPoint.of(decisions, data,
+                constraintsService, Integer.class);
+        var errorConsumer      = errorConsumer();
+        StepVerifier.withVirtualTime(() -> sut.onErrorContinue(errorConsumer)).expectSubscription()
+                .expectNoEvent(Duration.ofMillis(10L)).verifyTimeout(Duration.ofMillis(25L));
+        verify(errorConsumer, times(1)).accept(any(), any());
+    }
+
+    @Test
     void when_firstPermitThenDeny_thenSignalsPassThroughTillDeniedThenDropEvenIfOnErrorContinue() {
         var errorConsumer = errorConsumer();
         StepVerifier
@@ -444,7 +471,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
                 .expectErrorMatches(error -> error instanceof IOException && "LEGAL".equals(error.getMessage()))
                 .verify();
 
-        verify(handler, times(1)).apply(any());
+        verify(handler, times(2)).apply(any());
     }
 
     @Test
@@ -810,7 +837,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
 
         StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4).expectErrorMatches(err -> "ILLEGAL".equals(err.getMessage()))
                 .verify();
-        verify(handler, times(1)).accept(any());
+        verify(handler, times(2)).accept(any());
     }
 
     @Test

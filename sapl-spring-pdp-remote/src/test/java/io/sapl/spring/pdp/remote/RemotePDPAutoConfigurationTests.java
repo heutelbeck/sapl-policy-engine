@@ -47,5 +47,17 @@ class RemotePDPAutoConfigurationTests {
                     assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
                 });
     }
+    
+    @Test
+    void whenValidPropertiesArePresentNoTLS_thenTheRemotePdpIsPresent() {
+        contextRunner
+                .withPropertyValues("io.sapl.pdp.remote.host=http://localhost:8443", "io.sapl.pdp.remote.key=aKey",
+                        "io.sapl.pdp.remote.secret=aSecret", "io.sapl.pdp.remote.ignoreCertificates=false")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
+                });
+    }
+
 
 }

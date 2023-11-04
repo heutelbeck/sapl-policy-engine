@@ -56,18 +56,6 @@ class PolicyBodyImplCustomTests {
 	 			// valueDefinitionsDefineError
 	 			Arguments.of("policy \"p\" permit where var variable = (10/0);", INDETERMINATE),
 			
-	 			// valueDefinitionsAttemptToOverwriteDefaultSubscriptionVariableSubjectError
-	 			Arguments.of("policy \"p\" permit where var subject = {};", INDETERMINATE),
-			
-	 			// valueDefinitionsAttemptToOverwriteDefaultSubscriptionVariableActionError
-	 			Arguments.of("policy \"p\" permit where var action = {};", INDETERMINATE),
-			
-	 			// valueDefinitionsAttemptToOverwriteDefaultSubscriptionVariableResourceError
-	 			Arguments.of("policy \"p\" permit where var resource = {};", INDETERMINATE),
-			
-	 			// valueDefinitionsAttemptToOverwriteDefaultSubscriptionVariableEnvironmentError
-	 			Arguments.of("policy \"p\" permit where var environment = {};", INDETERMINATE),
-			
 	 			// lazyStatementEvaluationVarDef
 	 			Arguments.of("policy \"p\" permit true where false; var variable = (10/0);", NOT_APPLICABLE),
 			
