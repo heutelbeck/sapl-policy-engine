@@ -82,7 +82,7 @@ public class ValueDefinitionProposalExtractionHelper {
         return proposals;
     }
 
-    private String getFullFunctionName(String fun, List<String> allTemplates) {
+    private String getFullFunctionName(String fun, Iterable<String> allTemplates) {
         String fullFunctionName = "";
         for (var template : allTemplates){
             if (template.startsWith(fun)){
