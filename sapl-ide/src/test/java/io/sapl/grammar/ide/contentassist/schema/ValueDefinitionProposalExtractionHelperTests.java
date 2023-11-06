@@ -1,23 +1,24 @@
 package io.sapl.grammar.ide.contentassist.schema;
 
-import io.sapl.grammar.ide.contentassist.ValueDefinitionProposalExtractionHelper;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.pdp.config.VariablesAndCombinatorSource;
-import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
-import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Flux;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
+import org.junit.jupiter.api.Test;
+
+import io.sapl.grammar.ide.contentassist.ValueDefinitionProposalExtractionHelper;
+import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.pdp.config.VariablesAndCombinatorSource;
+import reactor.core.publisher.Flux;
 
 class ValueDefinitionProposalExtractionHelperTests {
 

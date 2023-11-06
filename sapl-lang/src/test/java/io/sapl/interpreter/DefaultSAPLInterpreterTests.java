@@ -161,23 +161,22 @@ class DefaultSAPLInterpreterTests {
         assertThat(INTERPRETER.analyze("xyz").isValid(), is(false));
     }
 
-	private static final String[] TEST_CASES = {
-			"policy \"test\" permit ,{ \"key\" : \"value\" } =~ 6432 ", // syntaxError
-			"policy \"p\" permit where var subject = {};", // variableNameEqualsSubscriptionVariableSubjectError
-			"policy \"p\" permit where var action = {};", // variableNameEqualsSubscriptionVariableActionError
-			"policy \"p\" permit where var resource = {};", // variableNameEqualsSubscriptionVariableResourceError
-			"policy \"p\" permit where var environment = {};" // variableNameEqualsSubscriptionVariableEnvironmentError
-	};
+    private static final String[] TEST_CASES = { "policy \"test\" permit ,{ \"key\" : \"value\" } =~ 6432 ", // syntaxError
+            "policy \"p\" permit where var subject = {};", // variableNameEqualsSubscriptionVariableSubjectError
+            "policy \"p\" permit where var action = {};", // variableNameEqualsSubscriptionVariableActionError
+            "policy \"p\" permit where var resource = {};", // variableNameEqualsSubscriptionVariableResourceError
+            "policy \"p\" permit where var environment = {};" // variableNameEqualsSubscriptionVariableEnvironmentError
+    };
 
-    static Stream<String> parameterProviderForPolicyEvaluationExceptionTests(){
-    	return Stream.of(TEST_CASES);
-	}
+    static Stream<String> parameterProviderForPolicyEvaluationExceptionTests() {
+        return Stream.of(TEST_CASES);
+    }
 
     @ParameterizedTest
-	@MethodSource("parameterProviderForPolicyEvaluationExceptionTests")
-	void policyEvaluationExceptions(String policyDefinition) {
-		assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyDefinition));
-	}
+    @MethodSource("parameterProviderForPolicyEvaluationExceptionTests")
+    void policyEvaluationExceptions(String policyDefinition) {
+        assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyDefinition));
+    }
 
     @Test
     void transformation() {

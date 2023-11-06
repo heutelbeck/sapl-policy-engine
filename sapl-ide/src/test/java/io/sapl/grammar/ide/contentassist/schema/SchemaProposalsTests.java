@@ -1,21 +1,23 @@
 package io.sapl.grammar.ide.contentassist.schema;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.pdp.config.VariablesAndCombinatorSource;
-import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Flux;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
-
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
+
+import org.junit.jupiter.api.Test;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.sapl.pdp.config.VariablesAndCombinatorSource;
+import reactor.core.publisher.Flux;
 
 class SchemaProposalsTests {
 

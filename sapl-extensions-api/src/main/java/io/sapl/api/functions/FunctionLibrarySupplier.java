@@ -23,6 +23,6 @@ import java.util.function.Supplier;
  * function libraries.
  */
 @FunctionalInterface
-public interface FunctionLibrarySupplier extends Supplier<Collection<Object>> {
+public interface FunctionLibrarySupplier extends Supplier<Collection<Class<?>>> {
 
 }

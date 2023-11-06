@@ -18,12 +18,12 @@
              */
             package io.sapl.grammar.ide.contentassist;
 
-            import org.eclipse.xtext.testing.TestCompletionConfiguration;
-            import org.junit.jupiter.api.Test;
-            import org.springframework.boot.test.context.SpringBootTest;
-            import org.springframework.test.context.ContextConfiguration;
-
             import java.util.List;
+
+import org.eclipse.xtext.testing.TestCompletionConfiguration;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ContextConfiguration;
 
             /**
              * Tests regarding the autocompletion of schema statements

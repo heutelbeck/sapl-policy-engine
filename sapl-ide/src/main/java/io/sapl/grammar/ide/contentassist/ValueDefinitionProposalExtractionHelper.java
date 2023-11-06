@@ -1,19 +1,5 @@
 package io.sapl.grammar.ide.contentassist;
 
-import com.google.common.collect.Iterables;
-import io.sapl.grammar.ide.contentassist.schema.SchemaProposals;
-import io.sapl.grammar.sapl.*;
-import io.sapl.grammar.sapl.impl.util.FunctionUtil;
-import io.sapl.grammar.sapl.impl.util.ImportsUtil;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.pdp.config.VariablesAndCombinatorSource;
-import lombok.RequiredArgsConstructor;
-import org.eclipse.emf.ecore.EObject;
-import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
-import org.eclipse.xtext.nodemodel.INode;
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -21,6 +7,32 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
+import org.eclipse.emf.ecore.EObject;
+import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
+import org.eclipse.xtext.nodemodel.INode;
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
+
+import com.google.common.collect.Iterables;
+
+import io.sapl.grammar.ide.contentassist.schema.SchemaProposals;
+import io.sapl.grammar.sapl.AttributeFinderStep;
+import io.sapl.grammar.sapl.BasicFunction;
+import io.sapl.grammar.sapl.BasicIdentifier;
+import io.sapl.grammar.sapl.Condition;
+import io.sapl.grammar.sapl.Expression;
+import io.sapl.grammar.sapl.KeyStep;
+import io.sapl.grammar.sapl.PolicyBody;
+import io.sapl.grammar.sapl.SAPL;
+import io.sapl.grammar.sapl.SaplFactory;
+import io.sapl.grammar.sapl.Statement;
+import io.sapl.grammar.sapl.ValueDefinition;
+import io.sapl.grammar.sapl.impl.util.FunctionUtil;
+import io.sapl.grammar.sapl.impl.util.ImportsUtil;
+import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.pdp.config.VariablesAndCombinatorSource;
+import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class ValueDefinitionProposalExtractionHelper {

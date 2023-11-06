@@ -175,7 +175,7 @@ public class AnnotationFunctionContext implements FunctionContext {
         if (funName.isEmpty())
             funName = method.getName();
 
-        String funSchema = funAnnotation.schema();
+        String funSchema       = funAnnotation.schema();
         String funPathToSchema = funAnnotation.pathToSchema();
 
         if (!Val.class.isAssignableFrom(method.getReturnType()))
@@ -191,7 +191,8 @@ public class AnnotationFunctionContext implements FunctionContext {
             }
         }
 
-        FunctionMetadata funMeta = new FunctionMetadata(libName, funName, funSchema, funPathToSchema, library, parameters, method);
+        FunctionMetadata funMeta = new FunctionMetadata(libName, funName, funSchema, funPathToSchema, library,
+                parameters, method);
         functions.put(funMeta.fullyQualifiedName(), funMeta);
         libMeta.documentation.put(funMeta.getDocumentationCodeTemplate(), funAnnotation.docs());
 
@@ -223,8 +224,6 @@ public class AnnotationFunctionContext implements FunctionContext {
     @Data
     @AllArgsConstructor
     public static class FunctionMetadata implements LibraryEntryMetadata {
-
-        private static final String MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED = "Please only provide either a schema or a schemaPath annotation.";
 
         String libraryName;
 
@@ -285,7 +284,7 @@ public class AnnotationFunctionContext implements FunctionContext {
     }
 
     @Override
-    public Map<String, String> getFunctionSchemas(){
+    public Map<String, String> getFunctionSchemas() {
         var schemas = new HashMap<String, String>();
         for (var entry : functions.entrySet()) {
             schemas.put(entry.getKey(), entry.getValue().functionSchema);

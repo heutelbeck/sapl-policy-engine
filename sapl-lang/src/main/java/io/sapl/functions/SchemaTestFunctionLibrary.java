@@ -21,7 +21,8 @@ import io.sapl.api.interpreter.Val;
 import lombok.NoArgsConstructor;
 
 /**
- * Function library implementing the blacken, replace, and remove filter functions.
+ * Function library implementing the blacken, replace, and remove filter
+ * functions.
  *
  * @author Dominic Heutelbeck
  */
@@ -29,7 +30,7 @@ import lombok.NoArgsConstructor;
 @FunctionLibrary(name = "SchemaTestLibrary")
 public class SchemaTestFunctionLibrary {
 
-	static final String PERSON_SCHEMA = "{\"name\": {\"type\": \"string\"}, \"age\": {\"type\": \"number\"}}";
+    static final String PERSON_SCHEMA = "{\"name\": {\"type\": \"string\"}, \"age\": {\"type\": \"number\"}}";
 
     @Function(name = "schemaFun", schema = PERSON_SCHEMA)
     public static Val schemaFun() {

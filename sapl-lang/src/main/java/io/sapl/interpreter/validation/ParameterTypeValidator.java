@@ -33,7 +33,6 @@ import io.sapl.api.validation.Long;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Schema;
 import io.sapl.api.validation.Text;
-
 import io.sapl.functions.SchemaValidationLibrary;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
@@ -82,7 +81,7 @@ public class ParameterTypeValidator {
 
     private static void validateJsonNodeType(JsonNode node, Parameter parameterType) throws IllegalParameterType {
         Annotation[] annotations = parameterType.getAnnotations();
-        String errorText;
+        String       errorText;
         moveSchemaAnnotationToTheEndIfItExists(annotations);
 
         for (Annotation annotation : annotations) {
@@ -102,8 +101,8 @@ public class ParameterTypeValidator {
             }
         }
 
-            throw new IllegalParameterType(
-                    String.format(ILLEGAL_PARAMETER_TYPE, node.getNodeType().toString(), listAllowedTypes(annotations)));
+        throw new IllegalParameterType(
+                String.format(ILLEGAL_PARAMETER_TYPE, node.getNodeType().toString(), listAllowedTypes(annotations)));
 
     }
 
@@ -115,49 +114,49 @@ public class ParameterTypeValidator {
                 || (Text.class.isAssignableFrom(annotation.getClass()) && node.isTextual())
                 || (Array.class.isAssignableFrom(annotation.getClass()) && node.isArray())
                 || (JsonObject.class.isAssignableFrom(annotation.getClass()) && node.isObject());
-	}
+    }
 
     private static boolean nodeCompliantWithSchema(JsonNode node, Annotation annotation) {
         String schema;
         schema = ((Schema) annotation).value();
         if ("".equals(schema))
             return true;
-        var nodeVal = Val.of(node);
+        var nodeVal   = Val.of(node);
         var schemaVal = Val.of(schema);
         return SchemaValidationLibrary.isCompliantWithSchema(nodeVal, schemaVal).getBoolean();
     }
 
-	private static boolean hasNoValidationAnnotations(Parameter parameterType) {
-		for (var annotation : parameterType.getAnnotations())
-			if (isTypeValidationAnnotation(annotation))
-				return false;
+    private static boolean hasNoValidationAnnotations(Parameter parameterType) {
+        for (var annotation : parameterType.getAnnotations())
+            if (isTypeValidationAnnotation(annotation))
+                return false;
 
-		return true;
-	}
+        return true;
+    }
 
-	private static boolean isTypeValidationAnnotation(Annotation annotation) {
-		for (var validator : VALIDATION_ANNOTATIONS)
-			if (validator.isAssignableFrom(annotation.getClass()))
-				return true;
+    private static boolean isTypeValidationAnnotation(Annotation annotation) {
+        for (var validator : VALIDATION_ANNOTATIONS)
+            if (validator.isAssignableFrom(annotation.getClass()))
+                return true;
 
-		return false;
-	}
+        return false;
+    }
 
-	private static String listAllowedTypes(Annotation[] annotations) {
-		var builder = new StringBuilder();
-		for (var annotation : annotations) {
-			if (isTypeValidationAnnotation(annotation))
-				builder.append(annotation).append(' ');
-		}
-		return builder.toString();
-	}
+    private static String listAllowedTypes(Annotation[] annotations) {
+        var builder = new StringBuilder();
+        for (var annotation : annotations) {
+            if (isTypeValidationAnnotation(annotation))
+                builder.append(annotation).append(' ');
+        }
+        return builder.toString();
+    }
 
     private static void moveSchemaAnnotationToTheEndIfItExists(Annotation[] annotations) {
         if (annotations.length < 2)
             return;
         int index = Math.max(0, indexOfSchemaAnnotation(annotations));
-        if (index < annotations.length){
-            var annotationList = new ArrayList<>(Arrays.asList(annotations));
+        if (index < annotations.length) {
+            var annotationList    = new ArrayList<>(Arrays.asList(annotations));
             var indexedAnnotation = annotationList.remove(index);
             annotationList.add(indexedAnnotation);
             annotationList.toArray(annotations);
@@ -176,4 +175,4 @@ public class ParameterTypeValidator {
 
         return index;
     }
-    }
+}

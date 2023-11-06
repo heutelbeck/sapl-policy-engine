@@ -15,15 +15,15 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import io.sapl.grammar.ide.contentassist.filesystem.FileSystemVariablesAndCombinatorSource;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
+import io.sapl.grammar.ide.contentassist.filesystem.FileSystemVariablesAndCombinatorSource;
+import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.pdp.config.VariablesAndCombinatorSource;
 
 @ComponentScan
 @Configuration

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,19 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.ide.contentassist;
+package io.sapl.api.pip;
 
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
+import java.util.Collection;
+import java.util.function.Supplier;
 
-import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties;
-import lombok.RequiredArgsConstructor;
-
-@Configuration
-@RequiredArgsConstructor
-@EnableConfigurationProperties(EmbeddedPDPProperties.class)
-public class VariablesSourceAutoConfiguration {
-
-    private final EmbeddedPDPProperties pdpProperties;
+/**
+ * Utility interface for providing an explicit service interface for retrieving
+ * policy information points.
+ */
+@FunctionalInterface
+public interface StaticPolicyInformationPointSupplier extends Supplier<Collection<Class<?>>> {
 
 }

@@ -98,11 +98,11 @@ class EquivalenceAndHashUtilTests {
         assertThrows(NullPointerException.class, () -> new Literal((Bool) null));
 
     }
-    
+
     @Test
     void testAreEquivalent2() throws Exception {
-        var exp4 = expression("{\"a\":\"b\"}['a']");
-        var exp5 = expression("{\"a\":\"b\"}['a']");
+        var exp4   = expression("{\"a\":\"b\"}['a']");
+        var exp5   = expression("{\"a\":\"b\"}['a']");
         var eList2 = mock(EList.class, RETURNS_DEEP_STUBS);
         when(eList2.size()).thenReturn(2);
         assertThat(EquivalenceAndHashUtil.areEquivalent(exp4, EMPTY_MAP, exp5, EMPTY_MAP), is(true));
@@ -143,7 +143,5 @@ class EquivalenceAndHashUtilTests {
         assertThat(EquivalenceAndHashUtil.featuresAreEquivalent(eList1, EMPTY_MAP, expB, EMPTY_MAP), is(false));
 
     }
-    
-    
 
 }
