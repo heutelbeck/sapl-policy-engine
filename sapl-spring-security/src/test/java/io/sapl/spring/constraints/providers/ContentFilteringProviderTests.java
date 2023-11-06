@@ -394,6 +394,92 @@ class ContentFilteringProviderTests {
     }
 
     @Test
+    void when_blackenWithDefinedLengthAndNegativeInteger_then_Error() throws JsonProcessingException {
+        var sut        = new ContentFilteringProvider(MAPPER);
+        var constraint = MAPPER.readTree("""
+                {
+                	"type"    : "filterJsonContent",
+                	"actions" : [
+                		{
+                			"type"          : "blacken",
+                			"path"          : "$.key1",
+                			"replacement"   : "X",
+                			"discloseRight" : 1,
+                			"discloseLeft"  : 1,
+                			"length"        : -1
+                		}
+                	]
+                }
+                """);
+        var handler    = sut.getHandler(constraint);
+        var original   = MAPPER.readTree("""
+                {
+                	"key1" : "value1",
+                	"key2" : "value2"
+                }
+                """);
+
+        assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
+    }
+
+    @Test
+    void when_blackenWithDefinedLengthAndStringValue_then_Error() throws JsonProcessingException {
+        var sut        = new ContentFilteringProvider(MAPPER);
+        var constraint = MAPPER.readTree("""
+                {
+                	"type"    : "filterJsonContent",
+                	"actions" : [
+                		{
+                			"type"          : "blacken",
+                			"path"          : "$.key1",
+                			"replacement"   : "X",
+                			"discloseRight" : 1,
+                			"discloseLeft"  : 1,
+                			"length"        : "LENGTH"
+                		}
+                	]
+                }
+                """);
+        var handler    = sut.getHandler(constraint);
+        var original   = MAPPER.readTree("""
+                {
+                	"key1" : "value1",
+                	"key2" : "value2"
+                }
+                """);
+
+        assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
+    }
+
+    @Test
+    void when_blackenWithDefinedLength_then_textIsBlackened() throws JsonProcessingException {
+        var sut        = new ContentFilteringProvider(MAPPER);
+        var constraint = MAPPER.readTree("""
+                {
+                	"type"    : "filterJsonContent",
+                	"actions" : [
+                		{
+                			"type"          : "blacken",
+                			"path"          : "$.key1",
+                			"replacement"   : "X",
+                			"discloseRight" : 1,
+                			"discloseLeft"  : 1,
+                			"length"        : 3
+                		}
+                	]
+                }
+                """);
+        var handler    = sut.getHandler(constraint);
+        var original   = MAPPER.readTree("""
+                {
+                	"key1" : "value1",
+                	"key2" : "value2"
+                }
+                """);
+        assertThat((JsonNode) handler.apply(original), is(jsonObject().where("key1", is(jsonText("vXXX1")))));
+    }
+
+    @Test
     void when_multipleActions_then_allAreExecuted() throws JsonProcessingException {
         var sut        = new ContentFilteringProvider(MAPPER);
         var constraint = MAPPER.readTree("""
