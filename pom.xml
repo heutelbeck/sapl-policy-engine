@@ -22,11 +22,11 @@
 	Utility goals supported by the POM:
 	
 	* Update the version of all modules:
-	  mvn versions:set -DnewVersion=3.0.0-RC1 -DprocessAllModules
--DgenerateBackupPoms=false
+	  mvn versions:set -DnewVersion=3.0.0-RC1 -DprocessAllModules -DgenerateBackupPoms=false
 	  
 	* Correct the license headers of all source files:
-	  mvn license:format
+	  mvn license:format -pl !sapl-bom
+	  This command excludes the sapl-bom module. Update the license there manually.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -386,6 +386,8 @@
 						<licenseSet>
 							<header>APACHE-2.txt</header>
 							<excludes>
+								<exclude>**/*.xtendbin</exclude>
+								<exclude>**/*._trace</exclude>
 								<exclude>**/README</exclude>
 								<exclude>node_modules/**</exclude>
 								<exclude>frontend/**</exclude>
@@ -398,9 +400,9 @@
 								<exclude>src/main/resources/**</exclude>
 								<exclude>.gitattributes</exclude>
 								<exclude>
-									src/main/java/io/sapl/grammar/web/SAPLWebSetup.xtend</exclude>
+									src/main/java/io/sapl/grammar/web/SAPLWebSetup.java</exclude>
 								<exclude>
-									src/main/java/io/sapl/grammar/web/SAPLWebModule.xtend</exclude>
+									src/main/java/io/sapl/grammar/web/SAPLWebModule.java</exclude>
 								<exclude>src/asciidoc/sapl-grammar.ebnf</exclude>
 							</excludes>
 
@@ -423,13 +425,13 @@
 						<config>SCRIPT_STYLE</config>
 					</mapping>
 				</configuration>
-				<!--<executions>
+				<executions>
 					<execution>
 						<goals>
 							<goal>check</goal>
 						</goals>
 					</execution>
-				</executions>-->
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.sonarsource.scanner.maven</groupId>
