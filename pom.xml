@@ -98,7 +98,6 @@
 	</properties>
 
 	<modules>
-		<module>sapl-engine-formatter</module>
 		<module>sapl-pdp-api</module>
 		<module>sapl-extensions-api</module>
 		<module>sapl-hamcrest</module>
@@ -273,21 +272,6 @@
 						<testOutputDirectory>${basedir}/src/test/xtend-gen</testOutputDirectory>
 					</configuration>
 				</plugin>
-				<!--<plugin>
-					<groupId>net.revelc.code.formatter</groupId>
-					<artifactId>formatter-maven-plugin</artifactId>
-					<version>2.23.0</version>
-					<executions>
-						<execution>
-							<goals>
-								<goal>format</goal>
-							</goals>
-							<configuration>
-								<configFile>eclipse/formatter.xml</configFile>
-							</configuration>
-						</execution>
-					</executions>
-				</plugin>-->
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-clean-plugin</artifactId>
