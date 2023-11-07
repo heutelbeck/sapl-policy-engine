@@ -36,6 +36,7 @@ import jakarta.xml.bind.annotation.XmlType;
 //
 
 import lombok.Generated;
+
 // @formatter:off
 /**
  * <p>
@@ -95,7 +96,8 @@ public class Coverage {
     @XmlAttribute(name = "version", required = true)
     @XmlSchemaType(name = "positiveInteger")
     protected BigInteger version;
-	// @formatter:off
+
+    // @formatter:off
     /**
      * Gets the value of the file property.
      *
@@ -148,7 +150,8 @@ public class Coverage {
     public void setVersion(BigInteger value) {
         this.version = value;
     }
-	// @formatter:off
+
+    // @formatter:off
     /**
      * <p>
      * Java class for anonymous complex type.
@@ -193,7 +196,8 @@ public class Coverage {
 
         @XmlAttribute(name = "path", required = true)
         protected String path;
-		// @formatter:off
+
+        // @formatter:off
         /**
          * Gets the value of the lineToCover property.
          *
@@ -245,7 +249,8 @@ public class Coverage {
         public void setPath(String value) {
             this.path = value;
         }
-		// @formatter:off
+
+        // @formatter:off
         /**
          * <p>
          * Java class for anonymous complex type.
