@@ -22,7 +22,7 @@ import reactor.core.publisher.Flux;
 class SchemaProposalsTests {
 
     @Test
-    void noEnvironmentVariablesReturnsEmptyList (){
+    void noEnvironmentVariablesReturnsEmptyList() {
         var source = mock(VariablesAndCombinatorSource.class);
         when(source.getVariables()).thenReturn(Flux.just(Optional.ofNullable(new HashMap<>())));
         var proposals = new SchemaProposals(source);
@@ -31,7 +31,7 @@ class SchemaProposalsTests {
     }
 
     @Test
-    void variableCollectionIsNullReturnsEmptyList (){
+    void variableCollectionIsNullReturnsEmptyList() {
         var source = mock(VariablesAndCombinatorSource.class);
         when(source.getVariables()).thenReturn(Flux.just(Optional.ofNullable(null)));
         var proposals = new SchemaProposals(source);
@@ -40,18 +40,18 @@ class SchemaProposalsTests {
     }
 
     @Test
-    void variableNamesAreReturnedWhenExistent (){
-        var mapper = new ObjectMapper();
+    void variableNamesAreReturnedWhenExistent() {
+        var mapper   = new ObjectMapper();
         var nullNode = mapper.nullNode();
-        var vars = new HashMap<String, JsonNode>();
+        var vars     = new HashMap<String, JsonNode>();
         vars.put("variableName", nullNode);
 
         var source = mock(VariablesAndCombinatorSource.class);
         when(source.getVariables()).thenReturn(Flux.just(Optional.ofNullable(vars)));
 
         var proposals = new SchemaProposals(source);
-        var actual = proposals.getVariableNamesAsTemplates();
-        var expected = List.of("variableName");
+        var actual    = proposals.getVariableNamesAsTemplates();
+        var expected  = List.of("variableName");
         assertThat(actual, equalTo(expected));
     }
 }

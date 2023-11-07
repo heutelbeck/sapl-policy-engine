@@ -71,7 +71,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
      * data. Calls
      * {@code addAuthorizationSubscription(String, Object, Object, Object)
      * addAuthorizationSubscription(subscriptionId, subject, action, resource, null)}.
-     * 
+     *
      * @param subscriptionId the id identifying the authorization subscription to be
      *                       added.
      * @param subject        the subject of the authorization subscription to be
@@ -94,7 +94,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
      * {@link #addAuthorizationSubscription(String, Object, Object, Object)
      * addAuthorizationSubscription(subscriptionId, subject, action, resource,
      * null)}.
-     * 
+     *
      * @param subscriptionId the id identifying the authorization subscription to be
      *                       added.
      * @param subscription   an authorization subscription.
@@ -112,7 +112,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
      * resource and environment. The given {@code subscriptionId} is associated with
      * the according decision to allow the recipient of the PDP decision to
      * correlate subscription/decision pairs.
-     * 
+     *
      * @param subscriptionId the id identifying the authorization subscription to be
      *                       added.
      * @param subject        the subject of the authorization subscription to be
@@ -165,7 +165,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
     /**
      * Returns the authorization subscription related to the given ID or
      * {@code null} if this multi-subscription contains no such ID.
-     * 
+     *
      * @param subscriptionId the ID of the authorization subscription to be
      *                       returned.
      * @return the authorization subscription related to the given ID or

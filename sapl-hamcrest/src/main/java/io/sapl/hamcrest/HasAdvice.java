@@ -35,7 +35,7 @@ public class HasAdvice extends TypeSafeDiagnosingMatcher<AuthorizationDecision> 
 
     /**
      * Checks for the presence of any advice matching a matcher.
-     * 
+     *
      * @param jsonMatcher matcher for advice objects.
      */
     public HasAdvice(Matcher<? super JsonNode> jsonMatcher) {

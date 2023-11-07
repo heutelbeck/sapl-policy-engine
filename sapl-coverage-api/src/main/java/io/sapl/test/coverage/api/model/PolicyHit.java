@@ -47,7 +47,7 @@ public class PolicyHit {
 
     /**
      * Converts a String to PolicyHit.
-     * 
+     *
      * @param policyToStringResult a condition result expressed in a String
      * @return the expressed PolicyHit
      */

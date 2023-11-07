@@ -47,7 +47,7 @@ class RemotePDPAutoConfigurationTests {
                     assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
                 });
     }
-    
+
     @Test
     void whenValidPropertiesArePresentNoTLS_thenTheRemotePdpIsPresent() {
         contextRunner
@@ -58,6 +58,5 @@ class RemotePDPAutoConfigurationTests {
                     assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
                 });
     }
-
 
 }

@@ -58,7 +58,7 @@ class EvaluateBasicExpressionsTests {
 	 		);
 		// @formater:on
 	}
-	
+
 	@ParameterizedTest
 	@MethodSource("errorExpressions")
 	void expressionReturnsError(String expression, String expected) {
@@ -109,7 +109,7 @@ class EvaluateBasicExpressionsTests {
 	@MethodSource("expressionTestCases")
 	void expressionEvaluatesToExpectedValue(String expression, String expected) {
 		assertExpressionEvaluatesTo(expression, expected);
-	}	
+	}
 
 	@Test
 	void evaluateBasicFunctionOneFluxOfArgs() {

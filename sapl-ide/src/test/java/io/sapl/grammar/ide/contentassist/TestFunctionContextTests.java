@@ -30,14 +30,14 @@ class TestFunctionContextTests {
 
     @Test
     void isProvidedFunctionReturnsTrueForExistingFunction() {
-        var context = new TestFunctionContext();
+        var context    = new TestFunctionContext();
         var isProvided = context.isProvidedFunction("schemaTest.person");
         assertEquals(Boolean.TRUE, isProvided);
     }
 
     @Test
     void isProvidedFunctionReturnsFalseForNonExistingFunction() {
-        var context = new TestFunctionContext();
+        var context    = new TestFunctionContext();
         var isProvided = context.isProvidedFunction("schemaTest.car");
         assertEquals(Boolean.FALSE, isProvided);
     }

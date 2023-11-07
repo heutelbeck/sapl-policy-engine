@@ -36,7 +36,7 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
     /**
      * Evaluates all statements of this policy body within the given evaluation
      * context and returns a {@link Flux} of {@link Decision} objects.
-     * 
+     *
      * @return A {@link Flux} of {@link AuthorizationDecision} objects.
      */
     @Override

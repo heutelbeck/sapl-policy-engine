@@ -28,7 +28,7 @@ public interface WhenStep {
 
     /**
      * Sets the {@link AuthorizationSubscription} for the test case.
-     * 
+     *
      * @param authzSubscription the {@link AuthorizationSubscription}
      * @return next available Step {@link ExpectStep}
      */
@@ -36,7 +36,7 @@ public interface WhenStep {
 
     /**
      * Sets the {@link AuthorizationSubscription} for the test case.
-     * 
+     *
      * @param jsonAuthzSub {@link String} containing JSON defining a
      *                     {@link AuthorizationSubscription}
      * @return next available Step {@link ExpectStep}
@@ -46,7 +46,7 @@ public interface WhenStep {
 
     /**
      * Sets the {@link AuthorizationSubscription} for the test case.
-     * 
+     *
      * @param jsonNode {@link com.fasterxml.jackson.databind.node.ObjectNode}
      *                 defining a {@link AuthorizationSubscription}
      * @return next available Step {@link ExpectStep}

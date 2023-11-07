@@ -76,7 +76,7 @@ class IndexStepImplCustomTests {
 	@MethodSource("expressionTestCases")
 	void expressionEvaluatesToExpectedValue(String expression, String expected) {
 		assertExpressionEvaluatesTo(expression, expected);
-	}	
+	}
 
 	private static Stream<Arguments> errorExpressions() {
 		// @formatter:off
@@ -95,7 +95,7 @@ class IndexStepImplCustomTests {
 	 		);
 		// @formater:on
 	}
-	
+
 	@ParameterizedTest
 	@MethodSource("errorExpressions")
 	void expressionReturnsError(String expression, String expected) {

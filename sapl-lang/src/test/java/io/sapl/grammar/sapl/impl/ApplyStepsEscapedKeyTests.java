@@ -45,7 +45,7 @@ class ApplyStepsEscapedKeyTests {
 		return Stream.of(
 				// Key step to object
 				Arguments.of("{\"k e y\" : true}.\"k e y\"", "true"),
-				
+
 	 			// Key step to array
 	 			Arguments.of("[{\"k e y\" : true},{\"k e y\": 123}].\"k e y\"",
 	 					     "[true,123]"),
@@ -61,15 +61,15 @@ class ApplyStepsEscapedKeyTests {
 	 			// Filter object
 	 			Arguments.of("{\"k e y\" : true, \"other\" : false} |- { @.\"k e y\" : mock.nil}",
 	 					     "{\"k e y\" : null, \"other\" : false}"),
-	
+
 	 			// Filter object descend
 	 			Arguments.of("{\"k e y\" : { \"k e y2\" : true}, \"other\" : false} |- { @.\"k e y\".\"k e y2\" : mock.nil}",
 	 					     "{\"k e y\" : {\"k e y2\" : null }, \"other\" : false}"),
-	 			
+
 	 			// Filter array
 	 			Arguments.of("[ {\"k e y\" : true, \"other\" : false} , false ] |- { @.\"k e y\" : mock.nil}",
 	 					     "[ {\"k e y\" : null, \"other\" : false} , false ]"),
-	 			
+
 	 			// Filter empty array
 	 			Arguments.of("[] |- { @.\"k e y\" : mock.nil}",
 	 					     "[]")

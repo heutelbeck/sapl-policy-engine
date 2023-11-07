@@ -100,7 +100,7 @@ public class SaplMqttClient {
     /**
      * This method returns a reactive stream of mqtt messages of one or many
      * subscribed topics.
-     * 
+     *
      * @param topic     A string or array of topic(s) for subscription.
      * @param variables The configuration specified in the PDP configuration file.
      * @return A {@link Flux} of messages of the subscribed topic(s).
@@ -112,7 +112,7 @@ public class SaplMqttClient {
     /**
      * This method returns a reactive stream of mqtt messages of one or many
      * subscribed topics.
-     * 
+     *
      * @param topic     A string or array of topic(s) for subscription.
      * @param variables The configuration specified in the PDP configuration file.
      * @param qos       A {@link Flux} of the quality of service level of the mqtt
@@ -127,7 +127,7 @@ public class SaplMqttClient {
     /**
      * This method returns a reactive stream of mqtt messages of one or many
      * subscribed topics.
-     * 
+     *
      * @param topic         A string or array of topic(s) for subscription.
      * @param variables     The configuration specified in the PDP configuration
      *                      file.

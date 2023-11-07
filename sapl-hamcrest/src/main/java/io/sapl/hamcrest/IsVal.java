@@ -35,7 +35,7 @@ public class IsVal extends TypeSafeDiagnosingMatcher<Val> {
 
     /**
      * Creates a Val matcher checking the contents with a JsonNode matcher.
-     * 
+     *
      * @param jsonMatcher a JsonNode matcher.
      */
     public IsVal(Matcher<? super JsonNode> jsonMatcher) {

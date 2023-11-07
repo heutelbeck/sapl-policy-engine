@@ -144,7 +144,7 @@ public class Val implements Traced {
 
     /**
      * Attaches a trace to the Val.
-     * 
+     *
      * @param operation traced operation
      * @return the Val with attached trace
      */
@@ -154,7 +154,7 @@ public class Val implements Traced {
 
     /**
      * Attaches a trace to the Val including arguments.
-     * 
+     *
      * @param operation traced operation
      * @param arguments the arguments
      * @return the Val with attached trace
@@ -165,7 +165,7 @@ public class Val implements Traced {
 
     /**
      * Attaches a trace to the Val including arguments.
-     * 
+     *
      * @param operation traced operation
      * @param arguments the arguments with parameter names
      * @return the Val with attached trace
@@ -176,7 +176,7 @@ public class Val implements Traced {
 
     /**
      * Attaches a trace to the Val parent value.
-     * 
+     *
      * @param operation   traced operation
      * @param parentValue the parent value
      * @return the Val with attached trace
@@ -187,7 +187,7 @@ public class Val implements Traced {
 
     /**
      * Attaches a trace to the Val including arguments.
-     * 
+     *
      * @param operation traced operation
      * @param arguments the arguments with parameter names
      * @return the Val with attached trace
@@ -198,7 +198,7 @@ public class Val implements Traced {
 
     /**
      * Attaches a trace to the Val including arguments for attribute finders.
-     * 
+     *
      * @param leftHandValue left hand value of attribute finder
      * @param operation     traced operation
      * @param arguments     the arguments with parameter names
@@ -210,7 +210,7 @@ public class Val implements Traced {
 
     /**
      * Creates a Val with a given JSON value.
-     * 
+     *
      * @param value a JSON value or null.
      * @return Val with a given JSON value or UNDEFINED if value was null.
      */
@@ -444,7 +444,7 @@ public class Val implements Traced {
      * Method that returns true for all value nodes: ones that are not containers,
      * and that do not represent "missing" nodes in the path. Such value nodes
      * represent String, Number, Boolean and null values from JSON.
-     * 
+     *
      * @return is a value node.
      */
     public boolean isValueNode() {
@@ -453,7 +453,7 @@ public class Val implements Traced {
 
     /**
      * Calls the consumer with the value, if Val is defined and not an error.
-     * 
+     *
      * @param consumer for a JSON node
      */
     public void ifDefined(Consumer<? super JsonNode> consumer) {
@@ -463,7 +463,7 @@ public class Val implements Traced {
 
     /**
      * Returns the given other if the Val is undefined or an error.
-     * 
+     *
      * @param other a JSON node
      * @return other if Val undefined or error.
      */
@@ -473,7 +473,7 @@ public class Val implements Traced {
 
     /**
      * Returns the supplied given other if the Val is undefined or an error.
-     * 
+     *
      * @param other a JSON node
      * @return the result of other if Val undefined or error.
      */
@@ -819,7 +819,7 @@ public class Val implements Traced {
 
     /**
      * Validation method to ensure a Val is a Boolean.
-     * 
+     *
      * @param value a Val
      * @return the input Val, or an error, if the input is not Boolean.
      */
@@ -845,7 +845,7 @@ public class Val implements Traced {
     /**
      * Validation method to ensure a Val is a JsonNode, i.e., not undefined or an
      * error.
-     * 
+     *
      * @param value a Val
      * @return the input Val, or an error, if the input is not a JsonNode.
      */
@@ -919,7 +919,7 @@ public class Val implements Traced {
 
     /**
      * Validation method to ensure a Val is a JSON array.
-     * 
+     *
      * @param value a Val
      * @return the input Val, or an error, if the input is not an array.
      */
@@ -935,7 +935,7 @@ public class Val implements Traced {
 
     /**
      * Converts Val to a Flux of ObjectNode.
-     * 
+     *
      * @param value a Val
      * @return a Flux only containing the ObjectNode value or an error if Val not
      *         ObjectNode.
@@ -949,7 +949,7 @@ public class Val implements Traced {
 
     /**
      * Validation method to ensure a Val is a JSON object.
-     * 
+     *
      * @param value a Val
      * @return the input Val, or an error, if the input is not an object.
      */
@@ -965,7 +965,7 @@ public class Val implements Traced {
 
     /**
      * Converts Val to a Flux of String.
-     * 
+     *
      * @param value a Val
      * @return a Flux only containing the String value an error if Val not textual.
      */
@@ -978,7 +978,7 @@ public class Val implements Traced {
 
     /**
      * Validation method to ensure a Val is a textual value.
-     * 
+     *
      * @param value a Val
      * @return the input Val, or an error, if the input is not textual.
      */
@@ -994,7 +994,7 @@ public class Val implements Traced {
 
     /**
      * Converts Val to a Flux of BigDecimal.
-     * 
+     *
      * @param value a Val
      * @return a Flux only containing the number value as BigDecimal or an error if
      *         Val not a number.
@@ -1008,7 +1008,7 @@ public class Val implements Traced {
 
     /**
      * Validation method to ensure a val is a numerical value.
-     * 
+     *
      * @param value a Val
      * @return the input Val, or an error, if the input is not a number.
      */
@@ -1024,7 +1024,7 @@ public class Val implements Traced {
 
     /**
      * Validation method to ensure a val is a numerical value.
-     * 
+     *
      * @param value a Val
      * @return the input Val, or an error, if the input is not a number.
      */

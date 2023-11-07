@@ -48,7 +48,6 @@ import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 
-
 /**
  * This class enhances the auto-completion proposals that the language server
  * offers.
@@ -148,8 +147,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
         Collection<String> proposals;
         if ("libsteps".equals(feature)) {
-            var helper = new ValueDefinitionProposalExtractionHelper(
-                    variablesAndCombinatorSource, functionContext, attributeContext, context);
+            var helper = new ValueDefinitionProposalExtractionHelper(variablesAndCombinatorSource, functionContext,
+                    attributeContext, context);
             proposals = new LinkedList<>(attributeContext.getAllFullyQualifiedFunctions());
             proposals.addAll(attributeContext.getAvailableLibraries());
             proposals.addAll(functionContext.getAllFullyQualifiedFunctions());
@@ -170,7 +169,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     }
 
     private void handleSchemaProposals(String feature, ContentAssistContext context,
-                                       IIdeContentProposalAcceptor acceptor) {
+            IIdeContentProposalAcceptor acceptor) {
 
         var model = context.getCurrentModel();
 
@@ -199,8 +198,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             var definedSchemas = getValidSchemas(context, model);
             addSimpleProposals(definedSchemas, context, acceptor);
 
-            var helper = new ValueDefinitionProposalExtractionHelper(
-                    variablesAndCombinatorSource, functionContext, attributeContext, context);
+            var helper            = new ValueDefinitionProposalExtractionHelper(variablesAndCombinatorSource,
+                    functionContext, attributeContext, context);
             var functionProposals = helper.getFunctionProposals();
 
             var templates = new ArrayList<String>();
@@ -214,7 +213,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
         if ("value".equals(feature)) {
 
-            var helper = new ValueDefinitionProposalExtractionHelper(variablesAndCombinatorSource, functionContext, attributeContext, context);
+            var helper        = new ValueDefinitionProposalExtractionHelper(variablesAndCombinatorSource,
+                    functionContext, attributeContext, context);
             var definedValues = helper.getProposals(model, ValueDefinitionProposalExtractionHelper.ProposalType.VALUE);
             // add variables to list of proposals
             addSimpleProposals(definedValues, context, acceptor);
@@ -227,7 +227,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             // look up all defined variables in the policy
             if (model instanceof PolicyBody policyBody) {
                 Collection<String> definedValuesPolicyBody;
-                int currentOffset = context.getOffset();
+                int                currentOffset = context.getOffset();
 
                 definedValuesPolicyBody = getValuesDefinedInPolicyBodyAboveCursor(policyBody, currentOffset);
                 // add variables to list of proposals
@@ -247,8 +247,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             if (statement instanceof ValueDefinition valueDefinition) {
 
                 // check if variable definition is happening after cursor
-                INode valueDefinitionNode = NodeModelUtils.getNode(valueDefinition);
-                int valueDefinitionOffset = valueDefinitionNode.getOffset();
+                INode valueDefinitionNode   = NodeModelUtils.getNode(valueDefinition);
+                int   valueDefinitionOffset = valueDefinitionNode.getOffset();
 
                 if (currentOffset > valueDefinitionOffset) {
                     definedValuesPolicyBody.add(valueDefinition.getName());
@@ -293,8 +293,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     }
 
     private Collection<String> getValidSchemas(ContentAssistContext context, EObject model) {
-        var helper = new ValueDefinitionProposalExtractionHelper(
-                variablesAndCombinatorSource, functionContext, attributeContext, context);
+        var helper = new ValueDefinitionProposalExtractionHelper(variablesAndCombinatorSource, functionContext,
+                attributeContext, context);
         return helper.getProposals(model, ValueDefinitionProposalExtractionHelper.ProposalType.SCHEMA);
     }
 
@@ -361,8 +361,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             IIdeContentProposalAcceptor acceptor) {
         var proposals = attributeContext.getAttributeCodeTemplates();
 
-        var helper = new ValueDefinitionProposalExtractionHelper(
-                variablesAndCombinatorSource, functionContext, attributeContext, context);
+        var helper             = new ValueDefinitionProposalExtractionHelper(variablesAndCombinatorSource,
+                functionContext, attributeContext, context);
         var attributeProposals = helper.getAttributeProposals();
         attributeProposals.addAll(proposals);
         addSimpleProposals(attributeProposals, context, acceptor);

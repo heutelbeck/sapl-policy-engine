@@ -27,7 +27,7 @@ public class CoverageAPIFactory {
 
     /**
      * Constructs a CoverageHitRecorder implementation.
-     * 
+     *
      * @param basedir where to find the hit files
      * @return {@link CoverageHitReader}
      */
@@ -38,7 +38,7 @@ public class CoverageAPIFactory {
     /**
      * Constructs a CoverageHitRecorder implementation and create empty
      * Coverage-Hit-Files if they don't exist
-     * 
+     *
      * @param basedir where to write the hit files
      * @return {@link CoverageHitRecorder}
      */

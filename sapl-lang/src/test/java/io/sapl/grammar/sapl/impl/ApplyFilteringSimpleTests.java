@@ -57,7 +57,7 @@ class ApplyFilteringSimpleTests {
 	 			// Remove each array
 	 			Arguments.of("[null] |- each filter.remove",
 	 					     "[]"),
-			
+
 	 			// Empty string no each
 	 			Arguments.of("[] |- mock.emptyString",
 	 					     "\"\""),

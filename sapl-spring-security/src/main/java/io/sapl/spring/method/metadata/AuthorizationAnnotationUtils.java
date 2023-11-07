@@ -50,7 +50,7 @@ final class AuthorizationAnnotationUtils {
 
     /**
      * First lookup the annotation on the method, then on the class.
-     * 
+     *
      * @param <A>            The annotation type.
      * @param method         the method to examine
      * @param annotationType The annotation type to lookup, e.g., @PreEnforce
@@ -68,7 +68,7 @@ final class AuthorizationAnnotationUtils {
      * any annotations using {@code annotationType} as a meta-annotation.
      * <p>
      * If more than one is found, then throw an error.
-     * 
+     *
      * @param method         the method declaration to search from
      * @param annotationType the annotation type to search for
      * @return the unique instance of the annotation attributed to the method,
@@ -93,7 +93,7 @@ final class AuthorizationAnnotationUtils {
      * using {@code annotationType} as a meta-annotation.
      * <p>
      * If more than one is found, then throw an error.
-     * 
+     *
      * @param type           the type to search from
      * @param annotationType the annotation type to search for
      * @return the unique instance of the annotation attributed to the method,

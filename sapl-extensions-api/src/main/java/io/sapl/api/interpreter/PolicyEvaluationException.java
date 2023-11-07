@@ -29,7 +29,7 @@ public class PolicyEvaluationException extends RuntimeException {
 
     /**
      * Create a new PolicyEvaluationException
-     * 
+     *
      * @param message a message
      */
     public PolicyEvaluationException(String message) {
@@ -38,7 +38,7 @@ public class PolicyEvaluationException extends RuntimeException {
 
     /**
      * Create a new PolicyEvaluationException
-     * 
+     *
      * @param format format string
      * @param args   arguments for format string
      */
@@ -48,7 +48,7 @@ public class PolicyEvaluationException extends RuntimeException {
 
     /**
      * Create a new PolicyEvaluationException
-     * 
+     *
      * @param format format string
      * @param cause  causing Throwable
      * @param args   arguments for format string
@@ -59,7 +59,7 @@ public class PolicyEvaluationException extends RuntimeException {
 
     /**
      * Create a new PolicyEvaluationException
-     * 
+     *
      * @param message a message
      * @param cause   causing Throwable
      */
@@ -69,7 +69,7 @@ public class PolicyEvaluationException extends RuntimeException {
 
     /**
      * Create a new PolicyEvaluationException
-     * 
+     *
      * @param cause causing Throwable
      */
     public PolicyEvaluationException(Throwable cause) {

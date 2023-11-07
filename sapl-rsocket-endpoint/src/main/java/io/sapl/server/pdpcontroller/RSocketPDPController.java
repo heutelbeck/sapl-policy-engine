@@ -35,7 +35,7 @@ public class RSocketPDPController {
 
     /**
      * Delegates to {@link PolicyDecisionPoint#decide(AuthorizationSubscription)}.
-     * 
+     *
      * @param authzSubscription the authorization subscription to be processed by
      *                          the PDP.
      * @return a flux emitting the current authorization decisions.
@@ -63,7 +63,7 @@ public class RSocketPDPController {
     /**
      * Delegates to
      * {@link PolicyDecisionPoint#decide(MultiAuthorizationSubscription)}.
-     * 
+     *
      * @param multiAuthzSubscription the authorization multi-subscription to be
      *                               processed by the PDP.
      * @return a flux emitting authorization decisions related to the individual
@@ -80,7 +80,7 @@ public class RSocketPDPController {
     /**
      * Delegates to
      * {@link PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)}.
-     * 
+     *
      * @param multiAuthzSubscription the authorization multi-subscription to be
      *                               processed by the PDP.
      * @return a flux emitting multi-decisions containing authorization decisions

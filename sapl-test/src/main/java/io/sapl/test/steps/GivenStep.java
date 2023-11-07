@@ -34,7 +34,7 @@ public interface GivenStep {
     /**
      * Mock the return value of a Function in the SAPL policy always with this
      * {@link Val}
-     * 
+     *
      * @param importName the reference in the SAPL policy to the function
      * @param returns    the mocked return value
      * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to
@@ -44,7 +44,7 @@ public interface GivenStep {
 
     /**
      * Mock the return value of a Function in the SAPL policy
-     * 
+     *
      * @param importName   the reference in the SAPL policy to the function
      * @param returns      the mocked return value
      * @param verification verification for this mocking. See
@@ -57,7 +57,7 @@ public interface GivenStep {
     /**
      * Mock the return value of a Function in the SAPL policy. Implicit
      * verification, that this mocked return value has been returned.
-     * 
+     *
      * @param importName the reference in the SAPL policy to the function
      * @param returns    the mocked return value
      * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to
@@ -67,7 +67,7 @@ public interface GivenStep {
 
     /**
      * Mock the return value of a Function in the SAPL policy
-     * 
+     *
      * @param importName the reference in the SAPL policy to the function
      * @param returns    a sequence of {@link Val} to be returned by this function
      * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to
@@ -87,7 +87,7 @@ public interface GivenStep {
      *	.givenFunction("time.dayOfWeekFrom", whenFunctionParams(val(0), anyVal()), Val.of("TUESDAY"))
      * }
      * </pre>
-     * 
+     *
      * @param importName the reference in the SAPL policy to the function
      * @param returns    the mocked return value
      * @param parameters only return the specified {@link Val} if the parameters of
@@ -110,7 +110,7 @@ public interface GivenStep {
      *	.givenFunction("time.dayOfWeekFrom", whenFunctionParams(val(0), anyVal()), Val.of("TUESDAY"), times(3))
      * }
      * </pre>
-     * 
+     *
      * @param importName   the reference in the SAPL policy to the function
      * @param returns      the mocked return value
      * @param parameters   only return the specified {@link Val} if the parameters
@@ -137,7 +137,7 @@ public interface GivenStep {
      * <pre>
      * {@code
      * .givenFunction("time.dayOfWeekFrom", (Val[] call) -> {
-     *		
+     *
      *		if(call[0].equals(Val.of("foo"))) {
      *			return Val.of("bar");
      *		} else {
@@ -146,7 +146,7 @@ public interface GivenStep {
      *	})
      * }
      * </pre>
-     * 
+     *
      * @param importName the reference in the SAPL policy to the function
      * @param returns    a {@link Val} to be returned by the function
      * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to
@@ -166,7 +166,7 @@ public interface GivenStep {
      * <pre>
      * {@code
      * .givenFunction("time.dayOfWeekFrom", (Val[] call) -> {
-     *		
+     *
      *		if(call[0].equals(Val.of("foo"))) {
      *			return Val.of("bar");
      *		} else {
@@ -175,7 +175,7 @@ public interface GivenStep {
      *	})
      * }
      * </pre>
-     * 
+     *
      * @param importName   the reference in the SAPL policy to the function
      * @param returns      a {@link Val} to be returned by the function
      * @param verification verification for this mocking. See
@@ -188,7 +188,7 @@ public interface GivenStep {
 
     /**
      * Mock the return value of a PIP in the SAPL policy
-     * 
+     *
      * @param importName the reference in the SAPL policy to the PIP
      * @param returns    the mocked return value
      * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to
@@ -207,7 +207,7 @@ public interface GivenStep {
      *	.givenAttribute("test.upper", whenParentValue(val("willi")), thenReturn(Val.of("WILLI")))
      * }
      * </pre>
-     * 
+     *
      * @param importName         the reference in the SAPL policy to the PIP
      * @param parentValueMatcher a parameter value matcher
      * @param returns            the mocked return value
@@ -229,7 +229,7 @@ public interface GivenStep {
      *	.givenAttribute("pip.attributeWithParams", whenAttributeParams(parentValue(val(true)), arguments(val(2), val(2))), thenReturn(Val.of(true)))
      * }
      * </pre>
-     * 
+     *
      * @param importName the reference in the SAPL policy to the PIP
      * @param parameters only return the specified {@link Val} if the parameters of
      *                   the call to the attribute match the expectations. Use
@@ -242,7 +242,7 @@ public interface GivenStep {
 
     /**
      * Mock the return value of a PIP in the SAPL policy
-     * 
+     *
      * @param importName the reference in the SAPL policy to the PIP
      * @param timing     the duration between emitting every return value
      * @param returns    the mocked return value
@@ -255,7 +255,7 @@ public interface GivenStep {
      * Mock the return value of a PIP in the SAPL policy. With this method you mark
      * this PIP to be mocked. Specify the mocked return value(s) at the Expect-Step
      * for example via {@link ExpectStep#thenAttribute(String, Val)}
-     * 
+     *
      * @param importName the reference in the SAPL policy to the PIP
      * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to
      *         the {@link WhenStep}
@@ -264,7 +264,7 @@ public interface GivenStep {
 
     /**
      * Allow control of virtual time for time-based streams
-     * 
+     *
      * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to
      *         the {@link WhenStep}
      */

@@ -42,7 +42,7 @@ class ApplyStepsRecursiveWildcardTests {
 		"(10/0)..*",
 		// stepOnUndefinedEmpty
 		"undefined..*"
-	}) 
+	})
 	// @formatter:on
     void expressionEvaluatesToErrors(String expression) {
         assertExpressionReturnsErrors(expression);

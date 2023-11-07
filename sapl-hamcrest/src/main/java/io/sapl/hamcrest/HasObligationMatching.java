@@ -34,7 +34,7 @@ public class HasObligationMatching extends TypeSafeDiagnosingMatcher<Authorizati
 
     /**
      * Checks for the presence of an obligation fulfilling a predicate.
-     * 
+     *
      * @param jsonPredicate a JsonNode Predicate.
      */
     public HasObligationMatching(Predicate<? super JsonNode> jsonPredicate) {

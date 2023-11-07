@@ -32,7 +32,7 @@ public class IsValError extends TypeSafeDiagnosingMatcher<Val> {
 
     /**
      * Val Matcher to check for error Val values with a given String matcher.
-     * 
+     *
      * @param stringMatcher a String matcher
      */
     public IsValError(Matcher<? super String> stringMatcher) {

@@ -32,7 +32,7 @@ public class JsonEditor extends BaseEditor {
 
     /**
      * Creates the editor component.
-     * 
+     *
      * @param config the editor configuration-
      */
     public JsonEditor(JsonEditorConfiguration config) {
@@ -50,7 +50,7 @@ public class JsonEditor extends BaseEditor {
 
     /**
      * Appends text to the end of the editor contents.
-     * 
+     *
      * @param text some text
      */
     public void appendText(String text) {
@@ -60,7 +60,7 @@ public class JsonEditor extends BaseEditor {
 
     /**
      * Toggles linting on or off.
-     * 
+     *
      * @param isLint indicate if linting is to be activates.
      */
     public void setLint(Boolean isLint) {

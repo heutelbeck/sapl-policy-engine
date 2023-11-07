@@ -47,7 +47,7 @@ class StepBuilder {
 
     /**
      * Create Builder starting at the Given-Step. Only for internal usage.
-     * 
+     *
      * @param document containing the {@link SAPL} policy to evaluate
      * @return {@link GivenStep} to start constructing the test case.
      */
@@ -58,7 +58,7 @@ class StepBuilder {
 
     /**
      * Create Builder starting at the When-Step. Only for internal usage.
-     * 
+     *
      * @param document containing the {@link SAPL} policy to evaluate
      * @return {@link WhenStep} to start constructing the test case.
      */

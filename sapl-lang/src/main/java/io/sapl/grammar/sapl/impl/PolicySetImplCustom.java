@@ -34,7 +34,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
     /**
      * Evaluates the body of the policy set within the given evaluation context and
      * returns a {@link Flux} of {@link DocumentEvaluationResult} objects.
-     * 
+     *
      * @return A {@link Flux} of {@link DocumentEvaluationResult} objects.
      */
     @Override
@@ -48,7 +48,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
 
     /**
      * Maps error or non-boolean to the matching evaluation result.
-     * 
+     *
      * @param targetValue the evaluation result of the target expression (must be
      *                    non-Boolean or error).
      * @Returns the matching evaluation result.

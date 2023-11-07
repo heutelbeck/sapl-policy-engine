@@ -36,7 +36,7 @@ class ApplyStepsWildcardTests {
 		"\"\".*",
 		// wildcardStepOnUndefinedFails
 		"undefined.*"
-	}) 
+	})
 	// @formatter:on
     void expressionEvaluatesToErrors(String expression) {
         assertExpressionReturnsErrors(expression);
@@ -46,7 +46,7 @@ class ApplyStepsWildcardTests {
         // @formatter:off
 		return Stream.of(
 	 			// wildcardStepOnArrayIsIdentity
-	 			Arguments.of("[1,2,3,4,5,6,7,8,9].*", 
+	 			Arguments.of("[1,2,3,4,5,6,7,8,9].*",
 	 					     "[1,2,3,4,5,6,7,8,9]"),
 
 	 			// applyToObject

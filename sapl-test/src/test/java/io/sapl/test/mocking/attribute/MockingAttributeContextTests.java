@@ -295,7 +295,7 @@ class MockingAttributeContextTests {
         this.attrCtx.loadAttributeMock("foo.bar", Duration.ofSeconds(10), Val.of(1), Val.of(2));
         assertThat(this.attrCtx.getAvailableLibraries()).containsOnly("foo.bar");
     }
-    
+
     @Test
     void test_getDocumentedAttributeCodeTemplates_isEmpty() {
         assertThat(this.attrCtx.getDocumentedAttributeCodeTemplates()).isEmpty();

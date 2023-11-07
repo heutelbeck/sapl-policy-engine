@@ -43,25 +43,25 @@ class PolicyBodyImplCustomTests {
 
 	 			// oneFalseReturnsNotApplicableEntitlement
 	 			Arguments.of("policy \"p\" permit true where true; false; true;",NOT_APPLICABLE),
-			
+
 	 			// oneErrorReturnsIndeterminate
 	 			Arguments.of("policy \"p\" permit true where true; (10/0); true;",INDETERMINATE),
-			
+
 	 			// valueDefinitionsEvaluateAndScope
 	 			Arguments.of("policy \"p\" permit true where variable == undefined; var variable = 1; variable == 1;", PERMIT),
-			
+
 	 			// valueDefinitionsDefineUndefined
 	 			Arguments.of("policy \"p\" permit true where variable == undefined; var variable = undefined; variable == undefined;", PERMIT),
-			
+
 	 			// valueDefinitionsDefineError
 	 			Arguments.of("policy \"p\" permit where var variable = (10/0);", INDETERMINATE),
-			
+
 	 			// lazyStatementEvaluationVarDef
 	 			Arguments.of("policy \"p\" permit true where false; var variable = (10/0);", NOT_APPLICABLE),
-			
+
 	 			// lazyStatementEvaluationVarDefOnError
 	 			Arguments.of("policy \"p\" permit true where (10/0); var variable = (10/0);", INDETERMINATE),
-			
+
 	 			// lazyStatementEvaluation
 	 			Arguments.of("policy \"p\" permit true where false; (10/0);", NOT_APPLICABLE)
 			);

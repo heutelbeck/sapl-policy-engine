@@ -66,7 +66,7 @@ public class MultiAuthorizationDecision implements Iterable<IdentifiableAuthoriz
     /**
      * Adds the given tuple of subscription ID and related authorization decision to
      * this multi-decision.
-     * 
+     *
      * @param subscriptionId the ID of the authorization subscription related to the
      *                       given authorization decision.
      * @param authzDecision  the authorization decision related to the authorization
@@ -80,7 +80,7 @@ public class MultiAuthorizationDecision implements Iterable<IdentifiableAuthoriz
     /**
      * Retrieves the authorization decision related to the subscription with the
      * given ID.
-     * 
+     *
      * @param subscriptionId the ID of the subscription for which the related
      *                       authorization decision has to be returned.
      * @return the authorization decision related to the subscription with the given
@@ -93,7 +93,7 @@ public class MultiAuthorizationDecision implements Iterable<IdentifiableAuthoriz
     /**
      * Retrieves the decision related to the authorization subscription with the
      * given ID.
-     * 
+     *
      * @param subscriptionId the ID of the authorization subscription for which the
      *                       related decision has to be returned.
      * @return the decision related to the authorization subscription with the given
@@ -108,7 +108,7 @@ public class MultiAuthorizationDecision implements Iterable<IdentifiableAuthoriz
      * Returns {@code true} if the decision related to the authorization
      * subscription with the given ID is {@link Decision#PERMIT}, {@code false}
      * otherwise.
-     * 
+     *
      * @param subscriptionId the ID of the authorization subscription for which the
      *                       related flag indicating whether the decision was PERMIT
      *                       or not has to be returned.

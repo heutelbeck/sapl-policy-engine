@@ -199,7 +199,7 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
 				() -> assertThat(subscription.getResource(),
 						is(jsonObject()
 								  .where("java", is(jsonObject()
-										.where("instanceof",												
+										.where("instanceof",
 											is(jsonArray(containsInAnyOrder(
 												jsonObject().where("simpleName",is(jsonText("TestClass"))),
 												jsonObject().where("simpleName",is(jsonText("Object"))))))))))),
@@ -252,7 +252,7 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
 						  is(jsonObject()
 								  .where("http", is(jsonMissing()))
 								  .where("java", is(jsonObject()
-										.where("instanceof",												
+										.where("instanceof",
 											is(jsonArray(containsInAnyOrder(
 												jsonObject().where("simpleName",is(jsonText("TestClass"))),
 												jsonObject().where("simpleName",is(jsonText("Object"))))))))))),
@@ -286,7 +286,7 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
 							is(jsonObject()
 									.where("http", is(jsonObject()))
 									  .where("java", is(jsonObject()
-												.where("instanceof",												
+												.where("instanceof",
 													is(jsonArray(containsInAnyOrder(
 														jsonObject().where("simpleName",is(jsonText("TestClass"))),
 														jsonObject().where("simpleName",is(jsonText("Object"))))))))))),
@@ -316,7 +316,7 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
 				() -> assertThat(subscription.getResource(),
 						is(jsonObject()
 								  .where("java", is(jsonObject()
-										.where("instanceof",												
+										.where("instanceof",
 											is(jsonArray(containsInAnyOrder(
 												jsonObject().where("simpleName",is(jsonText("TestClass"))),
 												jsonObject().where("simpleName",is(jsonText("Object"))))))))))),
@@ -347,7 +347,7 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
 				() -> assertThat(subscription.getResource(),
 						is(jsonObject()
 								  .where("java", is(jsonObject()
-										.where("instanceof",												
+										.where("instanceof",
 											is(jsonArray(containsInAnyOrder(
 												jsonObject().where("simpleName",is(jsonText("TestClass"))),
 												jsonObject().where("simpleName",is(jsonText("Object"))))))))))),

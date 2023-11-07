@@ -32,7 +32,7 @@ public interface SAPLInterpreter {
     /**
      * Method which applies the SAPL parser to a String containing a SAPL document
      * and generates the matching parse-tree.
-     * 
+     *
      * @param saplDefinition a String containing a SAPL document
      * @return A parse tree of the document @ in case an error occurs during
      *         parsing. This may be either a syntax error or an IO error.
@@ -42,7 +42,7 @@ public interface SAPLInterpreter {
     /**
      * Method which applies the SAPL parser to an InputStream containing a SAPL
      * document and generates the matching parse-tree.
-     * 
+     *
      * @param saplInputStream an InputStream containing a SAPL document
      * @return A parse tree of the document @ in case an error occurs during
      *         parsing. This may be either a syntax error or an IO error.
@@ -54,7 +54,7 @@ public interface SAPLInterpreter {
      * SAPL document (containing a policy set or policy) against an authorization
      * subscription object within a given attribute context and function context and
      * returns a {@link Flux} of {@link AuthorizationDecision} objects.
-     * 
+     *
      * @param authzSubscription    the authorization subscription object
      * @param saplDocumentSource   the String representing the SAPL document
      * @param attributeContext     the PDP's AttributeContext
@@ -68,7 +68,7 @@ public interface SAPLInterpreter {
 
     /**
      * Method which analyzes a String containing a SAPL document.
-     * 
+     *
      * @param saplDefinition the String containing the SAPL document
      * @return the document analysis result
      */

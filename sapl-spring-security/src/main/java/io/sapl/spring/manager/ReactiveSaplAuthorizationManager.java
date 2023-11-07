@@ -72,7 +72,7 @@ public class ReactiveSaplAuthorizationManager implements ReactiveAuthorizationMa
      * Consequently, only the first PDP decision is used, meaning the request is
      * only authorized according to the status of the authentication and context at
      * this moment in time.
-     * 
+     *
      * @param authentication the Authentication to check
      * @param context        the context to check
      * @return a decision

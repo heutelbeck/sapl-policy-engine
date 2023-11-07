@@ -38,7 +38,7 @@ public class HasObligationContainingKeyValue extends TypeSafeDiagnosingMatcher<A
     /**
      * Checks for the presence of an obligation containing a field with the given
      * key and a value matching a matcher.
-     * 
+     *
      * @param key   a key
      * @param value a value matcher.
      */
@@ -51,7 +51,7 @@ public class HasObligationContainingKeyValue extends TypeSafeDiagnosingMatcher<A
     /**
      * Checks for the presence of an obligation containing a field with the given
      * key.
-     * 
+     *
      * @param key a key
      */
     public HasObligationContainingKeyValue(String key) {

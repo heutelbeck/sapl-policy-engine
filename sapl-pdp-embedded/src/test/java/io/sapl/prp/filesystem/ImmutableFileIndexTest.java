@@ -530,7 +530,7 @@ class ImmutableFileIndexTest {
 				pojo(SAPL.class)
 					.withProperty("policyElement",
 						pojo(PolicyElement.class)
-							.withProperty("saplName", is(name))										
+							.withProperty("saplName", is(name))
 			    )
 		);
 		// @formatter:on

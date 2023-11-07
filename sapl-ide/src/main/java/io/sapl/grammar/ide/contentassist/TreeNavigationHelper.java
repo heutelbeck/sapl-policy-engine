@@ -29,7 +29,7 @@ public final class TreeNavigationHelper {
     /**
      * Moves up the model tree and returns the closest parent that matches the given
      * class type.
-     * 
+     *
      * @param <T>       Class type of the searched-for parent.
      * @param object    The current model from which the search starts.
      * @param classType Class type of the searched-for parent.
@@ -55,7 +55,7 @@ public final class TreeNavigationHelper {
     /**
      * Moves up the model tree and returns the highest parent that matches the given
      * class type.
-     * 
+     *
      * @param <T>       Class type of the searched-for parent.
      * @param object    The current model from which the search starts.
      * @param classType Class type of the searched-for parent.

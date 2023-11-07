@@ -39,7 +39,7 @@ public class PolicySetHit {
 
     /**
      * Loads a {@link PolicySetHit} from a String.
-     * 
+     *
      * @param policySetToStringResult input String
      * @return the PolicySetHit.
      */

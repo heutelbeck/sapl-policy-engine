@@ -50,7 +50,7 @@ public class Matchers {
 
     /**
      * Tests for a Val object.
-     * 
+     *
      * @return a matcher checking if an object is a Val.
      */
     public static Matcher<Val> val() {
@@ -195,7 +195,7 @@ public class Matchers {
 
     /**
      * Tests for a Val error with any text.
-     * 
+     *
      * @return a matcher for a Val error with any text.
      */
     public static Matcher<Val> valError() {
@@ -204,7 +204,7 @@ public class Matchers {
 
     /**
      * Tests for a Val error with a specific text.
-     * 
+     *
      * @param errorMessage expected error message
      * @return a matcher for a Val error with any text.
      */
@@ -214,7 +214,7 @@ public class Matchers {
 
     /**
      * Tests for a Val error with a text matching a String matcher.
-     * 
+     *
      * @param stringMatcher a string matcher
      * @return a matcher for a Val error a text matching a String matcher.
      */
@@ -224,7 +224,7 @@ public class Matchers {
 
     /**
      * Matcher to check if a Val is undefined
-     * 
+     *
      * @return Matcher to check if a Val is undefined
      */
     public static Matcher<Val> valUndefined() {
@@ -233,7 +233,7 @@ public class Matchers {
 
     /**
      * An AuthorizationDecision matcher, checking if the decision is PERMIT.
-     * 
+     *
      * @return An AuthorizationDecision matcher, checking if the decision is PERMIT.
      */
     public static Matcher<AuthorizationDecision> isPermit() {
@@ -242,7 +242,7 @@ public class Matchers {
 
     /**
      * An AuthorizationDecision matcher, checking if the decision is DENY.
-     * 
+     *
      * @return An AuthorizationDecision matcher, checking if the decision is DENY.
      */
     public static Matcher<AuthorizationDecision> isDeny() {
@@ -251,7 +251,7 @@ public class Matchers {
 
     /**
      * An AuthorizationDecision matcher, checking if the decision is NOT_APPLICABLE.
-     * 
+     *
      * @return An AuthorizationDecision matcher, checking if the decision is
      *         NOT_APPLICABLE.
      */
@@ -261,7 +261,7 @@ public class Matchers {
 
     /**
      * An AuthorizationDecision matcher, checking if the decision is INDETERMINATE.
-     * 
+     *
      * @return An AuthorizationDecision matcher, checking if the decision is
      *         INDETERMINATE.
      */
@@ -271,7 +271,7 @@ public class Matchers {
 
     /**
      * A matcher checking if the object is an AuthorizationDecision.
-     * 
+     *
      * @return A matcher checking if the object is an AuthorizationDecision
      */
     public static Matcher<AuthorizationDecision> anyDecision() {
@@ -281,7 +281,7 @@ public class Matchers {
     /**
      * A AuthorizationDecision matcher checking for the existence of an obligation
      * satisfying the predicate.
-     * 
+     *
      * @param predicate a Predicate<JsonNode>
      * @return A AuthorizationDecision matcher checking for the existence of an
      *         obligation satisfying the predicate.
@@ -293,7 +293,7 @@ public class Matchers {
     /**
      * A AuthorizationDecision matcher checking for the existence of an obligation
      * containing a key-value pair.
-     * 
+     *
      * @param key   a key.
      * @param value a value matcher.
      * @return A AuthorizationDecision matcher checking for the existence of an
@@ -307,7 +307,7 @@ public class Matchers {
     /**
      * A AuthorizationDecision matcher checking for the existence of an obligation
      * containing a key-value pair.
-     * 
+     *
      * @param key   a key.
      * @param value a value.
      * @return A AuthorizationDecision matcher checking for the existence of an
@@ -320,7 +320,7 @@ public class Matchers {
     /**
      * A AuthorizationDecision matcher checking for the existence of an obligation
      * containing a key.
-     * 
+     *
      * @param key a key.
      * @return A AuthorizationDecision matcher checking for the existence of an
      *         obligation containing a key pair.
@@ -332,7 +332,7 @@ public class Matchers {
     /**
      * A AuthorizationDecision matcher checking for the existence of an obligation
      * matching a specific ObjectNode.
-     * 
+     *
      * @param node an ObjectNode
      * @return A AuthorizationDecision matcher checking for the existence of an
      *         obligation a specific ObjectNode.
@@ -344,7 +344,7 @@ public class Matchers {
     /**
      * A AuthorizationDecision matcher checking for the existence of an obligation
      * matching a specific JSON text.
-     * 
+     *
      * @param value a String
      * @return A AuthorizationDecision matcher checking for the existence of an
      *         obligation a specific JSON text.
@@ -356,7 +356,7 @@ public class Matchers {
     /**
      * A AuthorizationDecision matcher checking for the existence of an obligation
      * matching a matcher.
-     * 
+     *
      * @param matcher a JsonNode matcher
      * @return A AuthorizationDecision matcher checking for the existence of an
      *         obligation matching a matcher.
@@ -368,7 +368,7 @@ public class Matchers {
     /**
      * A AuthorizationDecision matcher checking for the existence of an advice
      * satisfying the predicate.
-     * 
+     *
      * @param predicate a Predicate<JsonNode>
      * @return A AuthorizationDecision matcher checking for the existence of an
      *         advice satisfying the predicate.
@@ -380,7 +380,7 @@ public class Matchers {
     /**
      * A AuthorizationDecision matcher checking for the existence of an advice
      * containing a key-value pair.
-     * 
+     *
      * @param key   a key.
      * @param value a value matcher.
      * @return A AuthorizationDecision matcher checking for the existence of an
@@ -394,7 +394,7 @@ public class Matchers {
     /**
      * A AuthorizationDecision matcher checking for the existence of an advice
      * containing a key-value pair.
-     * 
+     *
      * @param key   a key.
      * @param value a value.
      * @return A AuthorizationDecision matcher checking for the existence of an
@@ -407,7 +407,7 @@ public class Matchers {
     /**
      * A AuthorizationDecision matcher checking for the existence of an obligation
      * advice a key.
-     * 
+     *
      * @param key a key.
      * @return A AuthorizationDecision matcher checking for the existence of an
      *         advice containing a key pair.
@@ -419,7 +419,7 @@ public class Matchers {
     /**
      * A AuthorizationDecision matcher checking for the existence of an advice
      * matching a specific ObjectNode.
-     * 
+     *
      * @param node an ObjectNode
      * @return A AuthorizationDecision matcher checking for the existence of an
      *         advice a specific ObjectNode.
@@ -431,7 +431,7 @@ public class Matchers {
     /**
      * A AuthorizationDecision matcher checking for the existence of an advice
      * matching a specific JSON text.
-     * 
+     *
      * @param value a String
      * @return A AuthorizationDecision matcher checking for the existence of an
      *         advice a specific JSON text.
@@ -443,7 +443,7 @@ public class Matchers {
     /**
      * A AuthorizationDecision matcher checking for the existence of an advice
      * matching a matcher.
-     * 
+     *
      * @param matcher a JsonNode matcher
      * @return A AuthorizationDecision matcher checking for the existence of an
      *         advice matching a matcher.
@@ -455,7 +455,7 @@ public class Matchers {
     /**
      * A AuthorizationDecision Matcher checking for the presence of a resource
      * object matching an ObjectNode.
-     * 
+     *
      * @param node an ObjectNode
      * @return A AuthorizationDecision Matcher checking for the presence of a
      *         resource object matching an ObjectNode.
@@ -467,7 +467,7 @@ public class Matchers {
     /**
      * A AuthorizationDecision Matcher checking for the presence of a resource
      * object matching a JsonNode matcher.
-     * 
+     *
      * @param matcher a matcher
      * @return A AuthorizationDecision Matcher checking for the presence of a
      *         resource object matching a JsonNode matcher.
@@ -479,7 +479,7 @@ public class Matchers {
     /**
      * A AuthorizationDecision Matcher checking for the presence of a resource
      * object.
-     * 
+     *
      * @return A AuthorizationDecision Matcher checking for the presence of a
      *         resource object.
      */
@@ -490,7 +490,7 @@ public class Matchers {
     /**
      * A AuthorizationDecision Matcher checking for the presence of a resource
      * object matching a predicate.
-     * 
+     *
      * @param predicate a JsonNode predicate
      * @return A AuthorizationDecision Matcher checking for the presence of a
      *         resource object matching a predicate.

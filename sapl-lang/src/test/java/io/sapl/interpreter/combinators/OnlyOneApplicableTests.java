@@ -157,7 +157,7 @@ class OnlyOneApplicableTests {
 		return Stream.of(
 				// collectWithError
 			    Arguments.of(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE,
-			    		     "set \"tests\" only-one-applicable" 
+			    		     "set \"tests\" only-one-applicable"
 			               + " policy \"testp1\" deny "
 			    		   + " policy \"testp2\" permit where (10/0);",
 			    		     INDETERMINATE),

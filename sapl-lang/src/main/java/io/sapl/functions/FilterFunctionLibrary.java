@@ -81,7 +81,7 @@ public class FilterFunctionLibrary {
 
     /**
      * Replaces a section of a text with a fixed character.
-     * 
+     *
      * @param parameters STRING (original textual Val), DISCLOSE_LEFT leave this
      *                   number of characters original on the left side of the
      *                   string, DISCLOSE_RIGHT leave this number of characters
@@ -164,7 +164,7 @@ public class FilterFunctionLibrary {
 
     /**
      * Replaces the original with another value.
-     * 
+     *
      * @param original    the original value, which is ignored.
      * @param replacement a replacement value.
      * @return the replacement value.
@@ -176,7 +176,7 @@ public class FilterFunctionLibrary {
 
     /**
      * Replaces any value with UNDEFINED.
-     * 
+     *
      * @param original some value
      * @return Val.UNDEFINED
      */

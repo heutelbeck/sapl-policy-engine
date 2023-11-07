@@ -66,7 +66,7 @@ public class JWTKeyProvider {
 
     /**
      * Creates a JWTKeyProvider.
-     * 
+     *
      * @param builder a WebClient builder.
      */
     public JWTKeyProvider(WebClient.Builder builder) {
@@ -77,7 +77,7 @@ public class JWTKeyProvider {
 
     /**
      * Fetches the public key of a server.
-     * 
+     *
      * @param kid              the key id
      * @param jPublicKeyServer the key server
      * @return the public key
@@ -113,7 +113,7 @@ public class JWTKeyProvider {
 
     /**
      * Put public key into cache.
-     * 
+     *
      * @param kid    key id
      * @param pubKey public key
      */
@@ -128,7 +128,7 @@ public class JWTKeyProvider {
 
     /**
      * Checks if the key is in the cache.
-     * 
+     *
      * @param kid key id
      * @return true, if the cache contains the key with the given id.
      */
@@ -139,7 +139,7 @@ public class JWTKeyProvider {
 
     /**
      * Sets the cache TTL.
-     * 
+     *
      * @param newTtlMillis time to live for cache entries.
      */
     public void setTtlMillis(long newTtlMillis) {
@@ -148,7 +148,7 @@ public class JWTKeyProvider {
 
     /**
      * Fetches public key from remote authentication server
-     * 
+     *
      * @param kid                    ID of public key to fetch
      * @param publicKeyURI           URI to request the public key
      * @param publicKeyRequestMethod HTTP request method: GET or POST

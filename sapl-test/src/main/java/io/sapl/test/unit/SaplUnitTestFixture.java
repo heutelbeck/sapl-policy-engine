@@ -41,7 +41,7 @@ public class SaplUnitTestFixture extends SaplTestFixtureTemplate {
 
     /**
      * Fixture for constructing a unit test case
-     * 
+     *
      * @param saplDocumentName path relative to your classpath to the sapl document.
      *                         If your policies are located at the root of the
      *                         classpath or in the standard path {@code "policies/"}

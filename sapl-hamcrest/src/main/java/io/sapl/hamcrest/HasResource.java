@@ -36,7 +36,7 @@ public class HasResource extends TypeSafeDiagnosingMatcher<AuthorizationDecision
 
     /**
      * Checks if the resource matches a JsonNode Matcher.
-     * 
+     *
      * @param jsonMatcher matcher for the resource.
      */
     public HasResource(Matcher<? super JsonNode> jsonMatcher) {

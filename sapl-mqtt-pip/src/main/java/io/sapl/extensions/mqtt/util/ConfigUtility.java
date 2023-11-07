@@ -59,7 +59,7 @@ public class ConfigUtility {
      * Tries to look up the value specified under the key in the clientConfig
      * object. If the clientConfig object is no json object or no entry exists under
      * the key than the default value will be returned.
-     * 
+     *
      * @param clientConfig  the object to look up the referenced value
      * @param key           the key to look up the value in the json object
      * @param defaultConfig the value returned if the referenced object does not
@@ -82,7 +82,7 @@ public class ConfigUtility {
      * Tries to look up the value specified under the key in the clientConfig
      * object. If the clientConfig object is no json object or no entry exists under
      * the key than the default value will be returned.
-     * 
+     *
      * @param clientConfig  the object to look up the referenced value
      * @param key           the key to look up the value in the json object
      * @param defaultConfig the value returned if the referenced object does not
@@ -105,7 +105,7 @@ public class ConfigUtility {
      * Tries to look up the value specified under the key in the clientConfig
      * object. If the clientConfig object is no json object or no entry exists under
      * the key than the default value will be returned.
-     * 
+     *
      * @param clientConfig  the object to look up the referenced value
      * @param key           the key to look up the value in the json object
      * @param defaultConfig the value returned if the referenced object does not
@@ -128,7 +128,7 @@ public class ConfigUtility {
      * Tries to look up the value specified under the key in the clientConfig
      * object. If the clientConfig object is no json object or no entry exists under
      * the key than the default value will be returned.
-     * 
+     *
      * @param clientConfig  the object to look up the referenced value
      * @param key           the key to look up the value in the json object
      * @param defaultConfig the value returned if the referenced object does not
@@ -151,7 +151,7 @@ public class ConfigUtility {
      * Tries to look up the value specified under the key in the clientConfig
      * object. If the clientConfig object is no json object or no entry exists under
      * the key than the default value will be returned.
-     * 
+     *
      * @param clientConfig  the object to look up the referenced value
      * @param key           the key to look up the value in the json object
      * @param defaultConfig the value returned if the referenced object does not
@@ -173,7 +173,7 @@ public class ConfigUtility {
     /**
      * Looks up the referenced value in the clientConfig object. If no value exists
      * or the clientConfig object is no json object than null will be returned.
-     * 
+     *
      * @param clientConfig the object to look up the referenced value
      * @param key          the key referencing the searched value
      * @return the referenced value or null
@@ -190,7 +190,7 @@ public class ConfigUtility {
 
     /**
      * Evaluates the provided configuration for the mqtt broker configuration.
-     * 
+     *
      * @param pipMqttClientConfig    the pdp configuration
      * @param pipMqttClientConfigVal {@link Val} of the configuration in the
      *                               attribute finder
@@ -295,7 +295,7 @@ public class ConfigUtility {
 
     /**
      * Looks up the mqtt client id.
-     * 
+     *
      * @param mqttClientReactor the reactive mqtt client
      * @return returns the mqtt client id or null
      */
@@ -306,7 +306,7 @@ public class ConfigUtility {
 
     /**
      * Convert the provided parameter to the mqtt quality of service level.
-     * 
+     *
      * @param qosVal the provided qos level as a {@link Val}
      * @return returns the mqtt quality of service level
      */
@@ -317,7 +317,7 @@ public class ConfigUtility {
 
     /**
      * Looks up the password.
-     * 
+     *
      * @param config the provided configuration containing the password
      * @return returns the looked up password
      */

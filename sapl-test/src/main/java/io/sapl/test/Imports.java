@@ -34,7 +34,7 @@ public class Imports {
 
     /**
      * specify Matchers for the arguments of a function mock
-     * 
+     *
      * @param matcher Varargs of {@link Matcher}
      * @return an {@link FunctionParameters} object required by the given step
      */
@@ -45,7 +45,7 @@ public class Imports {
 
     /**
      * specify Matchers for the parent value and all arguments of an attribute mock
-     * 
+     *
      * @param parentValueMatcher Matcher for the parent value. See
      *                           {@link #parentValue(Matcher)}
      * @param argumentMatchers   Matcher for the arguments. See
@@ -59,7 +59,7 @@ public class Imports {
 
     /**
      * specify Matchers for all arguments of an environment attribute mock
-     * 
+     *
      * @param argumentMatchers Matcher for the arguments. See
      *                         {@link #arguments(Matcher[])}
      * @return an {@link AttributeParameters} object required by the given step
@@ -70,7 +70,7 @@ public class Imports {
 
     /**
      * specify Matcher for the parent value of an attribute mock
-     * 
+     *
      * @param matcher Matcher for the parent value
      * @return an {@link AttributeParentValueMatcher} object required by the given
      *         step
@@ -82,7 +82,7 @@ public class Imports {
     /**
      * specify a matcher for the parent value used in
      * {@link #whenAttributeParams(AttributeParentValueMatcher, AttributeArgumentMatchers)}
-     * 
+     *
      * @param matcher the matcher for the parent value
      * @return an {@link AttributeParentValueMatcher} object required by the
      *         {@link #whenAttributeParams(AttributeParentValueMatcher, AttributeArgumentMatchers)}
@@ -95,7 +95,7 @@ public class Imports {
     /**
      * specify matchers for the arguments used in
      * {@link #whenAttributeParams(AttributeParentValueMatcher, AttributeArgumentMatchers)}
-     * 
+     *
      * @param argumentMatcher the matchers for the arguments
      * @return an {@link AttributeArgumentMatchers} object required by the
      *         {@link #whenAttributeParams(AttributeParentValueMatcher, AttributeArgumentMatchers)}
@@ -108,7 +108,7 @@ public class Imports {
 
     /**
      * convenience method to improve readability in complex mock definitions
-     * 
+     *
      * @param val the {@link Val} to return
      * @return the unmodified passed {@link Val}
      */
@@ -118,7 +118,7 @@ public class Imports {
 
     /**
      * see {@link TimesCalledVerification}
-     * 
+     *
      * @param wantedNumberOfInvocations the expected number of invocations
      * @return the verification
      */
@@ -128,7 +128,7 @@ public class Imports {
 
     /**
      * see {@link TimesCalledVerification}
-     * 
+     *
      * @param matcher an Integer matcher
      * @return the verification
      */
@@ -138,7 +138,7 @@ public class Imports {
 
     /**
      * see {@link TimesCalledVerification}
-     * 
+     *
      * @return the verification
      */
     public static TimesCalledVerification never() {
@@ -147,7 +147,7 @@ public class Imports {
 
     /**
      * see {@link TimesCalledVerification}
-     * 
+     *
      * @return the verification
      */
     public static TimesCalledVerification anyTimes() {

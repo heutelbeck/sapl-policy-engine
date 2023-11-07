@@ -57,11 +57,11 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
 
     public FileSystemVariablesAndCombinatorSource(String configurationPath) {
         configPath = configurationPath;
-        watchDir = resolveHomeFolderIfPresent(configurationPath);
+        watchDir   = resolveHomeFolderIfPresent(configurationPath);
         log.info("Monitor folder for config: {}", watchDir);
         Flux<FileEvent> monitoringFlux = monitorDirectory(watchDir,
                 file -> CONFIG_FILE_GLOB_PATTERN.equals(file.getName()));
-        configFlux = monitoringFlux.scan(loadConfig(), (__, fileEvent) -> processWatcherEvent(fileEvent))
+        configFlux          = monitoringFlux.scan(loadConfig(), (__, fileEvent) -> processWatcherEvent(fileEvent))
                 .distinctUntilChanged().share().cache(1);
         monitorSubscription = Flux.from(configFlux).subscribe();
     }
@@ -94,13 +94,13 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
     public Flux<Optional<Map<String, JsonNode>>> getVariables() {
 
         Map<String, JsonNode> schemaMap = new HashMap<>();
-        File[] jsonFiles = new File(configPath).listFiles((dir, name) -> name.endsWith(".json"));
+        File[]                jsonFiles = new File(configPath).listFiles((dir, name) -> name.endsWith(".json"));
 
         if ((jsonFiles != null ? jsonFiles.length : 0) > 0) {
             for (File jsonFile : jsonFiles)
                 try {
-                    String keyString = jsonFile.getName().substring(0, jsonFile.getName().lastIndexOf('.'));
-                    JsonNode node = MAPPER.readTree(jsonFile);
+                    String   keyString = jsonFile.getName().substring(0, jsonFile.getName().lastIndexOf('.'));
+                    JsonNode node      = MAPPER.readTree(jsonFile);
                     schemaMap.put(keyString, node);
                 } catch (Exception e) {
                     log.info("Error reading variables from file system: {}", e.getMessage());

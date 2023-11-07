@@ -27,7 +27,7 @@ public class TestFileHelper {
 
     /**
      * Deletes a directory.
-     * 
+     *
      * @param directoryToBeDeleted a directory
      * @return true if and only if the file or directory is successfully deleted;
      *         false otherwise

@@ -26,7 +26,7 @@ import org.springframework.context.annotation.Import;
 
 /**
  * Enables SAPL Method Security.
- * 
+ *
  * @since 3.0.0
  */
 @Documented
@@ -47,7 +47,7 @@ public @interface EnableSaplMethodSecurity {
      * {@code @Transactional} annotation will be upgraded to subclass proxying at
      * the same time. This approach has no negative impact in practice unless one is
      * explicitly expecting one type of proxy vs another, e.g. in tests.
-     * 
+     *
      * @return true if subclass-based (CGLIB) proxies are to be created
      */
     boolean proxyTargetClass() default false;
@@ -55,9 +55,9 @@ public @interface EnableSaplMethodSecurity {
     /**
      * Indicate how security advice should be applied. The default is
      * {@link AdviceMode#PROXY}.
-     * 
+     *
      * ASPECTJ is not supported.
-     * 
+     *
      * @see AdviceMode
      * @return the {@link AdviceMode} to use
      */

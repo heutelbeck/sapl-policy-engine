@@ -29,7 +29,7 @@ public class EObjectUtil {
 
     /**
      * Log the structure of an eObject for debugging of tests.
-     * 
+     *
      * @param eObject an eObject
      */
     public static void dump(EObject eObject) {

@@ -76,7 +76,7 @@ public class BaseEditor extends Component {
 
     /**
      * Sets the current document for the editor.
-     * 
+     *
      * @param document The current document.
      */
     public void setDocument(String document) {
@@ -87,7 +87,7 @@ public class BaseEditor extends Component {
 
     /**
      * Returns the current document from the editor.
-     * 
+     *
      * @return The current document from the editor.
      */
     public String getDocument() {
@@ -97,7 +97,7 @@ public class BaseEditor extends Component {
     /**
      * Registers a document changed listener. The document changed event will be
      * raised when the document was changed in the editor.
-     * 
+     *
      * @param listener The listener that will be called upon event invocation.
      */
     public void addDocumentChangedListener(DocumentChangedListener listener) {
@@ -116,7 +116,7 @@ public class BaseEditor extends Component {
 
     /**
      * Removes a registered document changed listener.
-     * 
+     *
      * @param listener The registered listener that should be removed.
      */
     public void removeDocumentChangedListener(DocumentChangedListener listener) {

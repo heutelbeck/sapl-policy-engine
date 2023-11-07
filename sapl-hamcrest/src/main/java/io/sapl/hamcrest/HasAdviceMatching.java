@@ -34,7 +34,7 @@ public class HasAdviceMatching extends TypeSafeDiagnosingMatcher<AuthorizationDe
 
     /**
      * Checks for the presence of an advice fulfilling a predicate.
-     * 
+     *
      * @param jsonPredicate a JsonNode Predicate.
      */
     public HasAdviceMatching(Predicate<? super JsonNode> jsonPredicate) {

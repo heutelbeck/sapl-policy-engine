@@ -60,7 +60,7 @@ public class PolicyConditionHit {
 
     /**
      * Converts a String to PolicyConditionHit.
-     * 
+     *
      * @param policyConditionToStringResult a condition result expressed in a String
      * @return the expressed PolicyConditionHit
      */

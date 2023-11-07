@@ -67,7 +67,7 @@ public class AuthorizationSubscription {
      * Creates an AuthorizationSubscription, containing the supplied objects
      * marshaled to JSON by a default ObjectMapper with Jdk8Module registered.
      * Environment will be omitted.
-     * 
+     *
      * @param subject  an object describing the subject.
      * @param action   an object describing the action.
      * @param resource an object describing the resource.
@@ -80,7 +80,7 @@ public class AuthorizationSubscription {
     /**
      * Creates an AuthorizationSubscription, containing the supplied objects
      * marshaled the supplied ObjectMapper. Environment will be omitted.
-     * 
+     *
      * @param subject  an object describing the subject.
      * @param action   an object describing the action.
      * @param resource an object describing the resource.
@@ -94,7 +94,7 @@ public class AuthorizationSubscription {
     /**
      * Creates an AuthorizationSubscription, containing the supplied objects
      * marshaled to JSON by a default ObjectMapper with Jdk8Module registered.
-     * 
+     *
      * @param subject     an object describing the subject.
      * @param action      an object describing the action.
      * @param resource    an object describing the resource.
@@ -108,7 +108,7 @@ public class AuthorizationSubscription {
     /**
      * Creates an AuthorizationSubscription, containing the supplied objects
      * marshaled the supplied ObjectMapper.
-     * 
+     *
      * @param subject     an object describing the subject.
      * @param action      an object describing the action.
      * @param resource    an object describing the resource.

@@ -12,7 +12,7 @@ import reactor.core.publisher.Mono;
 
 /**
  * A wrapper class to enable onErrorContinue with in protected Flux processing.
- * 
+ *
  * @param <P> Payload type
  */
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -22,7 +22,7 @@ class ProtectedPayload<P> {
 
     /**
      * Creates a ProtectedPayload
-     * 
+     *
      * @param <T>     the payload type.
      * @param payload a payload
      * @return a ProtectedPayload containing the payload value
@@ -33,7 +33,7 @@ class ProtectedPayload<P> {
 
     /**
      * Creates a ProtectedPayload
-     * 
+     *
      * @param <T>       the payload type.
      * @param exception an Exception
      * @return a ProtectedPayload containing the exception
@@ -44,10 +44,10 @@ class ProtectedPayload<P> {
 
     /**
      * Get the payload or throw Exception.
-     * 
+     *
      * Explanation: Why is this a Mono<>? Answer: Because onErrorContinue does no
      * longer work with map but only with flatMap
-     * 
+     *
      * @return a Mono of th payload
      */
     @SneakyThrows

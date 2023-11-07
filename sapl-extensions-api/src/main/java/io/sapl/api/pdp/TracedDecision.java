@@ -29,7 +29,7 @@ public interface TracedDecision extends Traced {
 
     /**
      * Add an explanation to a modified decision.
-     * 
+     *
      * @param authzDecision the modified decision
      * @param explanation   the explanation
      * @return the modified decision with explanation

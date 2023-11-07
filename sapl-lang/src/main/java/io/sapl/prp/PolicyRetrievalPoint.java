@@ -28,7 +28,7 @@ public interface PolicyRetrievalPoint {
      * policies or policy sets having a target expression that matches the given
      * authorization subscription. The given function context and variables
      * constitute the environment the target expressions are evaluated in.
-     * 
+     *
      * @return a {@link Flux} providing the policy retrieval results containing all
      *         the matching policies or policy sets. New results are only added to
      *         the stream if they are different from the preceding result.

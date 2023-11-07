@@ -35,7 +35,7 @@ public class HasObligation extends TypeSafeDiagnosingMatcher<AuthorizationDecisi
 
     /**
      * Checks for the presence of any obligation matching a matcher.
-     * 
+     *
      * @param jsonMatcher matcher for obligation objects.
      */
     public HasObligation(Matcher<? super JsonNode> jsonMatcher) {

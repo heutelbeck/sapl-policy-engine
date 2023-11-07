@@ -67,10 +67,10 @@ class DenyUnlessPermitTests {
 				// denyIndeterminate
 				Arguments.of("set \"tests\" deny-unless-permit policy \"testp1\" deny policy \"testp2\" deny where \"a\" > 5;", DENY),
 				// permitNotApplicableDeny
-				Arguments.of("set \"tests\" deny-unless-permit" 
+				Arguments.of("set \"tests\" deny-unless-permit"
 				           + " policy \"testp1\" deny \"a\" > 5"
 						   + " policy \"testp2\" permit true == false" + " policy \"testp3\" permit \"a\" > 5"
-						   + " policy \"testp4\" deny" 
+						   + " policy \"testp4\" deny"
 						   + " policy \"testp5\" permit",
 						     PERMIT),
 				// permitNotApplicableIndeterminateDeny
@@ -78,30 +78,30 @@ class DenyUnlessPermitTests {
 				           + " policy \"testp1\" deny \"a\" > 5"
 						   + " policy \"testp2\" permit true == false"
 				           + " policy \"testp3\" permit \"a\" > 5"
-						   + " policy \"testp4\" deny" 
+						   + " policy \"testp4\" deny"
 				           + " policy \"testp5\" permit",
 							 PERMIT),
 				// permitIndeterminateNotApplicable
-				Arguments.of("set \"tests\" deny-unless-permit" 
+				Arguments.of("set \"tests\" deny-unless-permit"
 				           + " policy \"testp1\" deny"
-						   + " policy \"testp2\" deny \"a\" < 5" 
+						   + " policy \"testp2\" deny \"a\" < 5"
 				           + " policy \"testp3\" deny true == false",
 							 DENY),
 				// multiplePermitTransformationDeny
-				Arguments.of("set \"tests\" deny-unless-permit" 
+				Arguments.of("set \"tests\" deny-unless-permit"
 				           + " policy \"testp1\" permit transform false"
-						   + " policy \"testp2\" permit transform true" 
+						   + " policy \"testp2\" permit transform true"
 				           + " policy \"testp3\" deny",
 				             DENY),
 				// singlePermitTransformation
-				Arguments.of("set \"tests\" deny-unless-permit" 
+				Arguments.of("set \"tests\" deny-unless-permit"
 				           + " policy \"testp1\" permit transform true"
 						   + " policy \"testp2\" deny",
 						     PERMIT),
 				// multiplePermitNoTransformation
 				Arguments.of("set \"tests\" deny-unless-permit"
 				           + " policy \"testp1\" permit"
-						   + " policy \"testp2\" permit", 
+						   + " policy \"testp2\" permit",
 						     PERMIT)
 			);
 		// @formater:on
@@ -112,14 +112,14 @@ class DenyUnlessPermitTests {
 	void validateDocumentEvaluationResult(String policyDefinition, Decision expected) {
 		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policyDefinition, expected);
 	}
-	
+
 	@Test
 	void singlePermitTransformationResource() {
 		var policySet = "set \"tests\" deny-unless-permit" + " policy \"testp\" permit transform true";
 		var expected  = Optional.<JsonNode>of(JSON.booleanNode(true));
 		validateResource(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
 	}
-	
+
     @Test
     void noDecisionsIsDeny() {
         var algorithm = new DenyUnlessPermitCombiningAlgorithmImplCustom();

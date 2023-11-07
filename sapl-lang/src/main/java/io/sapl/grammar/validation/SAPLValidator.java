@@ -44,7 +44,7 @@ public class SAPLValidator extends AbstractSAPLValidator {
 
     /**
      * No lazy And operators are allowed in the target expression.
-     * 
+     *
      * @param policy a policy
      */
     @Check
@@ -55,7 +55,7 @@ public class SAPLValidator extends AbstractSAPLValidator {
 
     /**
      * No lazy Or operators are allowed in the target expression.
-     * 
+     *
      * @param policy a policy
      */
     @Check
@@ -66,7 +66,7 @@ public class SAPLValidator extends AbstractSAPLValidator {
 
     /**
      * No lazy Or operators are allowed in the target expression.
-     * 
+     *
      * @param policy a policy
      */
     @Check
@@ -95,7 +95,7 @@ public class SAPLValidator extends AbstractSAPLValidator {
 
     /**
      * looks for given class in the target expression of given Policy
-     * 
+     *
      * @param policy  a policy
      * @param aClass  class to look up
      * @param message an error message
@@ -109,7 +109,7 @@ public class SAPLValidator extends AbstractSAPLValidator {
 
     /**
      * scan content of given EObject recursively
-     * 
+     *
      * @param eObj   object to search through
      * @param eClass class to look up
      * @return discovered object or null

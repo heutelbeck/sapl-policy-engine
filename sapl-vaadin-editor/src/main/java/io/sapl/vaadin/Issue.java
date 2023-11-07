@@ -45,7 +45,7 @@ public class Issue {
 
     /**
      * Creates an Issue object from a JSON representation.
-     * 
+     *
      * @param jsonObject a JSON issue description.
      */
     public Issue(JsonObject jsonObject) {

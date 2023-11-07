@@ -44,10 +44,12 @@ import lombok.Generated;
  * this class.
  * <p>
  * {@code
- * 
- * 
- * 
- * 
+ *
+ *
+ *
+ *
+ *
+ *
  * <pre>
 * <complexType>
 *   <complexContent>
@@ -117,21 +119,23 @@ public class Coverage {
      *
      * <p>
      * For example, to add a new item, do as follows: {@code
-     * 
-     * 
-     * 
-     * 
+     *
+     *
+     *
+     *
+     *
+     *
      * <pre>
      * getFile().add(newItem);
      * </pre>
-    
+
      *}
      *
      * <p>
      *
      * Objects of the following type(s) are allowed in the list
      * {@link Coverage.File }
-     * 
+     *
      * @return list of the coverage files
      *
      *
@@ -145,7 +149,7 @@ public class Coverage {
 
     /**
      * Gets the value of the version property.
-     * 
+     *
      * @return possible object is {@link BigInteger }
      *
      */
@@ -155,7 +159,7 @@ public class Coverage {
 
     /**
      * Sets the value of the version property.
-     * 
+     *
      * @param value allowed object is {@link BigInteger }
      *
      */
@@ -170,10 +174,12 @@ public class Coverage {
      * <p>
      * The following schema fragment specifies the expected content contained within
      * this class. {@code
-     * 
-     * 
-     * 
-     * 
+     *
+     *
+     *
+     *
+     *
+     *
      * <pre>
      * <complexType>
      *   <complexContent>
@@ -202,7 +208,7 @@ public class Coverage {
      *   </complexContent>
      * </complexType>
      * </pre>
-     * 
+     *
      * }
      *
      */
@@ -227,20 +233,22 @@ public class Coverage {
          *
          * <p>
          * For example, to add a new item, do as follows: {@code
-         * 
-         * 
-         * 
-         * 
+         *
+         *
+         *
+         *
+         *
+         *
          * <pre>
          * getLineToCover().add(newItem);
          * </pre>
-        
+
          * }
          *
          * <p>
          * Objects of the following type(s) are allowed in the list
          * {@link Coverage.File.LineToCover }
-         * 
+         *
          * @return the line to converter
          *
          *
@@ -254,7 +262,7 @@ public class Coverage {
 
         /**
          * Gets the value of the path property.
-         * 
+         *
          * @return possible object is {@link String }
          *
          */
@@ -264,7 +272,7 @@ public class Coverage {
 
         /**
          * Sets the value of the path property.
-         * 
+         *
          * @param value allowed object is {@link String }
          *
          */
@@ -279,10 +287,12 @@ public class Coverage {
          * <p>
          * The following schema fragment specifies the expected content contained within
          * this class. {@code
-         * 
-         * 
-         * 
-         * 
+         *
+         *
+         *
+         *
+         *
+         *
          * <pre>
          * <complexType>
          *   <complexContent>
@@ -299,7 +309,7 @@ public class Coverage {
          *   </complexContent>
          * </complexType>
          * </pre>
-         * 
+         *
          * }
          *
          */
@@ -325,7 +335,7 @@ public class Coverage {
 
             /**
              * Gets the value of the lineNumber property.
-             * 
+             *
              * @return possible object is {@link BigInteger }
              *
              */
@@ -335,7 +345,7 @@ public class Coverage {
 
             /**
              * Sets the value of the lineNumber property.
-             * 
+             *
              * @param value allowed object is {@link BigInteger }
              *
              */
@@ -345,7 +355,7 @@ public class Coverage {
 
             /**
              * Gets the value of the covered property.
-             * 
+             *
              * @return true if covered
              *
              */
@@ -355,7 +365,7 @@ public class Coverage {
 
             /**
              * Sets the value of the covered property.
-             * 
+             *
              * @param value indicate if covered
              *
              */
@@ -365,7 +375,7 @@ public class Coverage {
 
             /**
              * Gets the value of the branchesToCover property.
-             * 
+             *
              * @return possible object is {@link BigInteger }
              *
              */
@@ -375,7 +385,7 @@ public class Coverage {
 
             /**
              * Sets the value of the branchesToCover property.
-             * 
+             *
              * @param value allowed object is {@link BigInteger }
              *
              */
@@ -385,7 +395,7 @@ public class Coverage {
 
             /**
              * Gets the value of the coveredBranches property.
-             * 
+             *
              * @return possible object is {@link BigInteger }
              *
              */
@@ -395,7 +405,7 @@ public class Coverage {
 
             /**
              * Sets the value of the coveredBranches property.
-             * 
+             *
              * @param value allowed object is {@link BigInteger }
              *
              */

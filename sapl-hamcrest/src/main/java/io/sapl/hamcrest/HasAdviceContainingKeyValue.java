@@ -38,7 +38,7 @@ public class HasAdviceContainingKeyValue extends TypeSafeDiagnosingMatcher<Autho
     /**
      * Checks for the presence of an advice containing a field with the given key
      * and a value matching a matcher.
-     * 
+     *
      * @param key   a key
      * @param value a value matcher.
      */
@@ -50,7 +50,7 @@ public class HasAdviceContainingKeyValue extends TypeSafeDiagnosingMatcher<Autho
 
     /**
      * Checks for the presence of an advice containing a field with the given key.
-     * 
+     *
      * @param key a key
      */
     public HasAdviceContainingKeyValue(String key) {

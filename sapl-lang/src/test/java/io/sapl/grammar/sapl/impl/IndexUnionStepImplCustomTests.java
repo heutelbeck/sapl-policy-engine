@@ -37,17 +37,17 @@ class IndexUnionStepImplCustomTests {
 		return Stream.of(
 	 			// applyToArray
 	 			Arguments.of("[0,1,2,3,4,5,6,7,8,9][0,1,-2,10,-10]", "[0,1,8]"),
-			
+
 	 			// applyToArrayOutOfBounds
 	 			Arguments.of("[0,1,2,3,4,5,6,7,8,9][100,-100]", "[]"),
-			
+
 	 			// filterNegativeStepArray
 	 			Arguments.of("\"Otto\" |- { @[1,2,3] : mock.nil }", "\"Otto\""),
-			
+
 	 			// filterElementsInArray
-	 			Arguments.of("[0,1,2,3,4,5,6,7,8,9] |- { @[0,1,-2,10,-10] : mock.nil }", 
+	 			Arguments.of("[0,1,2,3,4,5,6,7,8,9] |- { @[0,1,-2,10,-10] : mock.nil }",
 	 					     "[null,null,2,3,4,5,6,7,null,9]"),
-			
+
 	 			// filterElementsInDescend
 	 			Arguments.of("[[0,1,2,3],[0,1,2,3],[0,1,2,3],[0,1,2,3]] |- { @[1,3][3] : mock.nil }",
 	 					     "[[0,1,2,3],[0,1,2,null],[0,1,2,3],[0,1,2,null]]")

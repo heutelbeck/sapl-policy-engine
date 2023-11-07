@@ -43,7 +43,7 @@ public class PayloadFormatUtility {
     /**
      * Looks up the payload format indicator from the mqtt publish message. By
      * default, it will be 0.
-     * 
+     *
      * @param publishMessage the published mqtt message
      * @return returns the payload format indicator as an ordinal number
      */
@@ -60,7 +60,7 @@ public class PayloadFormatUtility {
 
     /**
      * Looks up the content type.
-     * 
+     *
      * @param publishMessage the published mqtt message
      * @return returns the content type or null in case no content type was
      *         specified
@@ -73,7 +73,7 @@ public class PayloadFormatUtility {
 
     /**
      * Checks whether the given byte array can be converted in a UTF-8 string.
-     * 
+     *
      * @param bytes the byte array to be checked for conversion
      * @return returns true if a conversions into a UTF-8 string is possible,
      *         otherwise false
@@ -90,7 +90,7 @@ public class PayloadFormatUtility {
 
     /**
      * Converts the payload into a json object and builds a {@link Val} of it.
-     * 
+     *
      * @param publishMessage the published mqtt message
      * @return returns the build {@link Val} of the json object or a {@link Val} of
      *         error in case the mqtt message could not be converted into a json
@@ -111,7 +111,7 @@ public class PayloadFormatUtility {
     /**
      * Converts the given array of bytes to a json array node containing the bytes
      * as integers.
-     * 
+     *
      * @param bytes the given array of bytes to convert
      * @return a json array node containing the bytes as integer values
      */

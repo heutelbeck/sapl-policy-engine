@@ -30,7 +30,7 @@ public interface CoverageHitReader {
     /**
      * Internal method used by SAPL Coverage Reading to read all hits of
      * io.sapl.grammar.sapl.PolicySet's
-     * 
+     *
      * @return List of {@link PolicySetHit}
      */
     List<PolicySetHit> readPolicySetHits() throws IOException;
@@ -38,7 +38,7 @@ public interface CoverageHitReader {
     /**
      * Internal method used by SAPL Coverage Reading to read all hits of
      * io.sapl.grammar.sapl.Policy's
-     * 
+     *
      * @return List of {@link PolicySetHit}
      */
     List<PolicyHit> readPolicyHits() throws IOException;
@@ -46,9 +46,9 @@ public interface CoverageHitReader {
     /**
      * Internal method used by SAPL Coverage Reading to read all hits of
      * io.sapl.grammar.sapl.Condition's
-     * 
+     *
      * @return List of {@link PolicySetHit}
-     * @throws IOException 
+     * @throws IOException
      */
     List<PolicyConditionHit> readPolicyConditionHits() throws IOException;
 

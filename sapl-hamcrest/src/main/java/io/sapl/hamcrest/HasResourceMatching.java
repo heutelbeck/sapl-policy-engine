@@ -35,7 +35,7 @@ public class HasResourceMatching extends TypeSafeDiagnosingMatcher<Authorization
 
     /**
      * Checks if the resource fulfills a Predicate.
-     * 
+     *
      * @param jsonPredicate a predicate on the Resource
      */
     public HasResourceMatching(Predicate<? super JsonNode> jsonPredicate) {

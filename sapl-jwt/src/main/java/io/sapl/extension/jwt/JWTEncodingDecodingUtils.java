@@ -40,7 +40,7 @@ class JWTEncodingDecodingUtils {
 
     /**
      * decodes a Base64 encoded string into bytes
-     * 
+     *
      * @param base64 encoded string
      * @return bytes
      */
@@ -60,7 +60,7 @@ class JWTEncodingDecodingUtils {
 
     /**
      * generates an RSAPublicKey from an X509EncodedKeySpec
-     * 
+     *
      * @param x509Key an X509EncodedKeySpec object
      * @return the RSAPublicKey object
      */

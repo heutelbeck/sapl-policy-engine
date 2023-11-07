@@ -53,14 +53,14 @@ class PDPDecisionTests {
         var combined     = mock(CombinedDecision.class);
         var document     = new DefaultSAPLInterpreter().parse("policy \"x\" permit");
         when(combined.getAuthorizationDecision()).thenReturn(AuthorizationDecision.PERMIT);
-        TracedDecision sut = PDPDecision.of(subscription, combined, List.of(document));
-        var unmodifiedTrace = sut.getTrace();
+        TracedDecision sut             = PDPDecision.of(subscription, combined, List.of(document));
+        var            unmodifiedTrace = sut.getTrace();
         assertThatJson(unmodifiedTrace).inPath("$." + Trace.OPERATOR).isEqualTo("Policy Decision Point");
         assertThatJson(unmodifiedTrace).inPath("$." + Trace.MODIFICATIONS).isAbsent();
 
         sut = sut.modified(AuthorizationDecision.DENY, "for testing reasons");
         var modifiedTrace = sut.getTrace();
-        assertThatJson(modifiedTrace).inPath("$." + Trace.MODIFICATIONS).isArray().isNotEmpty();    
+        assertThatJson(modifiedTrace).inPath("$." + Trace.MODIFICATIONS).isArray().isNotEmpty();
     }
 
 }

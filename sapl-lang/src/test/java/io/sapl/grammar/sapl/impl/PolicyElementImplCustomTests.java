@@ -40,7 +40,7 @@ class PolicyElementImplCustomTests {
 	 			// falseTargetDosNotMatch
 	 			Arguments.of("policy \"p\" permit false", Val.FALSE),
 	 			// trueTargetDosMatch
-	 			Arguments.of("policy \"p\" permit true", Val.TRUE)			
+	 			Arguments.of("policy \"p\" permit true", Val.TRUE)
 			);
 		// @formater:on
 	}
@@ -50,11 +50,11 @@ class PolicyElementImplCustomTests {
 		var policy   = INTERPRETER.parse(policySource);
 		StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected).verifyComplete();
 	}
-	
+
 	@ParameterizedTest
 	@ValueSource(strings = {
 			// undefinedTargetErrors
-			"policy \"p\" permit undefined", 
+			"policy \"p\" permit undefined",
 			// errorTargetErrors
 			"policy \"p\" permit (10/0)",
 			// nonBooleanTargetErrors

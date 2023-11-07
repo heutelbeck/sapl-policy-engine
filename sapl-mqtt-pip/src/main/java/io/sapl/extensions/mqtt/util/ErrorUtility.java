@@ -61,7 +61,7 @@ public class ErrorUtility {
 
     /**
      * Build the {@link RetryBackoffSpec} of the provided configurations.
-     * 
+     *
      * @param pipMqttClientConfig the pdp configuration
      * @return returns the build {@link RetryBackoffSpec}
      */
@@ -82,7 +82,7 @@ public class ErrorUtility {
 
     /**
      * If enabled emit a value when retrying.
-     * 
+     *
      * @param pipMqttClientConfig the provided pdp configuration
      * @param emitterUndefined    the emitter necessary to emit downstream
      * @param retrySignal         containing specifics about the retry
@@ -101,7 +101,7 @@ public class ErrorUtility {
     /**
      * Evaluates the {@link Throwable} whether the broker config hash has to be
      * removed from the client cache or not.
-     * 
+     *
      * @param throwable the {@link Throwable} to evaluate
      * @return returns true if the broker config hash has to be removed from the
      *         client cache
@@ -115,7 +115,7 @@ public class ErrorUtility {
 
     /**
      * Evaluates whether the client caused the disconnect from the broker or not.
-     * 
+     *
      * @param throwable the {@link Throwable} to evaluate
      * @return returns true if the client caused the disconnect
      */

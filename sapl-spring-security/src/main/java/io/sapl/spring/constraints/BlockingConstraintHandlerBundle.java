@@ -31,11 +31,11 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 
+ *
  * This bundle aggregates all constraint handlers for a specific decision which
  * are useful in a blocking PostEnforce scenario.
  * <p>
- * 
+ *
  * @param <T> return type
  */
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
@@ -59,7 +59,7 @@ public class BlockingConstraintHandlerBundle<T> {
 
     /**
      * Factory method for creating a bundle for use in a @PostEnforce PEP.
-     * 
+     *
      * @param <T>                     payload type
      * @param onDecisionHandlers      Handlers to be executed after each decision.
      * @param doOnNextHandlers        Handlers to be executed when data is emitted
@@ -84,7 +84,7 @@ public class BlockingConstraintHandlerBundle<T> {
 
     /**
      * Factory method for creating a bundle for use in a @PreEnforce PEP.
-     * 
+     *
      * @param <T>                      payload type
      * @param onDecisionHandlers       Handlers to be executed after each decision.
      * @param doOnNextHandlers         Handlers to be executed when data is emitted
@@ -111,7 +111,7 @@ public class BlockingConstraintHandlerBundle<T> {
 
     /**
      * Factory method for creating a bundle for use in an AuthorizationManager PEP.
-     * 
+     *
      * @param <T>                payload type
      * @param onDecisionHandlers Handlers to be executed after each decision.
      * @return a constraint handler bundle.
@@ -126,7 +126,7 @@ public class BlockingConstraintHandlerBundle<T> {
     /**
      * o Runs all method invocation handlers. These handlers may modify the
      * methodInvocation.
-     * 
+     *
      * @param methodInvocation the method invocation to examine and potentially
      *                         modify
      */
@@ -136,7 +136,7 @@ public class BlockingConstraintHandlerBundle<T> {
 
     /**
      * Executes all onNext constraint handlers, potentially transforming the value.
-     * 
+     *
      * @param value a return value
      * @return the return value after constraint handling
      */

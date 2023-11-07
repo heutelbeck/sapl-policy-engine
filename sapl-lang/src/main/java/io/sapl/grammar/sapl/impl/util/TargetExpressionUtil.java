@@ -30,7 +30,7 @@ public class TargetExpressionUtil {
 
     /**
      * Used to check for illegal attributes or lazy operators in target expressions.
-     * 
+     *
      * @param object an EObject in the AST
      * @return true, the object is the target expression in a Policy or Policy Set.
      */

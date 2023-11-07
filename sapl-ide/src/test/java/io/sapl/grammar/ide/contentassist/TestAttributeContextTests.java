@@ -31,7 +31,7 @@ class TestAttributeContextTests {
 
     @Test
     void isProvidedFunctionReturnsTrueForExistingFunction() {
-        var context = new TestAttributeContext();
+        var context    = new TestAttributeContext();
         var isProvided = context.isProvidedFunction("temperature.now");
         assertEquals(Boolean.TRUE, isProvided);
     }

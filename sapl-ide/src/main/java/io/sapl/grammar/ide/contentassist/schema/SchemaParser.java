@@ -20,14 +20,12 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SchemaParser {
 
-    private static final int MAX_DEPTH = 20;
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final Collection<String> RESERVED_KEYWORDS = Set.of(
-            "$schema", "$id",
-            "additionalProperties", "allOf", "anyOf", "dependentRequired", "description", "enum", "format", "items",
-            "oneOf", "properties", "required", "title", "type"
-    );
-    private final Map<String, JsonNode> variables;
+    private static final int                MAX_DEPTH         = 20;
+    private static final ObjectMapper       MAPPER            = new ObjectMapper();
+    private static final Collection<String> RESERVED_KEYWORDS = Set.of("$schema", "$id", "additionalProperties",
+            "allOf", "anyOf", "dependentRequired", "description", "enum", "format", "items", "oneOf", "properties",
+            "required", "title", "type");
+    private final Map<String, JsonNode>     variables;
 
     public List<String> generatePaths(String schema) {
 
@@ -56,11 +54,11 @@ public class SchemaParser {
 
     private static JsonNode getReferencedNodeFromDifferentDocument(String ref, Map<String, JsonNode> variables) {
         JsonNode refNode;
-        String schemaName;
-        String internalRef = null;
+        String   schemaName;
+        String   internalRef = null;
         if (ref.contains("#/")) {
             var refSplit = ref.split("#/", 2);
-            schemaName = refSplit[0].replaceAll("\\.json$", "").replace("/", "");
+            schemaName  = refSplit[0].replaceAll("\\.json$", "").replace("/", "");
             internalRef = "#/".concat(refSplit[1]);
         } else {
             schemaName = ref.replaceAll("\\.json$", "");
@@ -81,7 +79,7 @@ public class SchemaParser {
 
     private static JsonNode getNestedSubnode(JsonNode rootNode, String path) {
         var pathElements = path.split("/");
-        var currentNode = rootNode;
+        var currentNode  = rootNode;
 
         for (String element : pathElements) {
             currentNode = currentNode.get(element);
@@ -91,9 +89,9 @@ public class SchemaParser {
     }
 
     private static List<String> handleEnum(JsonNode jsonNode, String parentPath) {
-        var enumValuesNode = jsonNode.get("enum");
+        var      enumValuesNode = jsonNode.get("enum");
         String[] enumValuesArray;
-        var paths = new LinkedList<String>();
+        var      paths          = new LinkedList<String>();
         try {
             enumValuesArray = MAPPER.treeToValue(enumValuesNode, String[].class);
         } catch (JsonProcessingException e) {
@@ -131,7 +129,7 @@ public class SchemaParser {
 
     private Collection<String> handleArray(JsonNode jsonNode, String parentPath, JsonNode originalSchema, int depth) {
         Collection<String> paths = new HashSet<>();
-        var items = jsonNode.get("items");
+        var                items = jsonNode.get("items");
         if (items != null) {
             if (items.isArray())
                 paths.addAll(constructPathsFromArray(items, parentPath, originalSchema, depth));
@@ -142,22 +140,24 @@ public class SchemaParser {
         return paths;
     }
 
-    private Collection<String> constructPathsFromArray(JsonNode jsonNode, String parentPath, JsonNode originalSchema, int depth) {
+    private Collection<String> constructPathsFromArray(JsonNode jsonNode, String parentPath, JsonNode originalSchema,
+            int depth) {
         Collection<String> paths = new HashSet<>();
 
         for (int i = 0; i < jsonNode.size(); i++) {
-            var childNode = jsonNode.get(i);
+            var childNode   = jsonNode.get(i);
             var currentPath = parentPath.isEmpty() ? "" : parentPath;
             paths.addAll(getJsonPaths(childNode, currentPath, originalSchema, depth));
         }
         return paths;
     }
 
-    private Collection<String> constructPathFromNonArrayProperty(JsonNode jsonNode, String parentPath, JsonNode originalSchema, int depth) {
+    private Collection<String> constructPathFromNonArrayProperty(JsonNode jsonNode, String parentPath,
+            JsonNode originalSchema, int depth) {
         Collection<String> paths = new HashSet<>();
 
-        JsonNode childNode;
-        String currentPath;
+        JsonNode     childNode;
+        String       currentPath;
         List<String> enumPaths = new LinkedList<>();
 
         Iterator<String> fieldNames = jsonNode.fieldNames();
@@ -168,13 +168,13 @@ public class SchemaParser {
             childNode = jsonNode.get(fieldName);
 
             if ("$ref".equals(fieldName)) {
-                childNode = handleReferences(originalSchema, childNode);
+                childNode   = handleReferences(originalSchema, childNode);
                 currentPath = parentPath;
             } else if ("enum".equals(fieldName)) {
-                enumPaths = handleEnum(jsonNode, parentPath);
+                enumPaths   = handleEnum(jsonNode, parentPath);
                 currentPath = parentPath;
             } else if ("patternProperties".equals(fieldName)) {
-                childNode = JsonNodeFactory.instance.nullNode();
+                childNode   = JsonNodeFactory.instance.nullNode();
                 currentPath = parentPath;
             } else if (RESERVED_KEYWORDS.contains(fieldName)) {
                 currentPath = parentPath;

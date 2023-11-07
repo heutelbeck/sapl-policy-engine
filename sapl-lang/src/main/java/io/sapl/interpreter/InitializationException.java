@@ -22,7 +22,7 @@ public class InitializationException extends Exception {
 
     /**
      * Create a new FunctionException
-     * 
+     *
      * @param message a message
      */
     public InitializationException(String message) {
@@ -31,7 +31,7 @@ public class InitializationException extends Exception {
 
     /**
      * Create a new PolicyEvaluationException
-     * 
+     *
      * @param format format string
      * @param args   arguments for format string
      */

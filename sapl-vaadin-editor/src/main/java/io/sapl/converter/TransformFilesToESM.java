@@ -36,7 +36,7 @@ public class TransformFilesToESM {
 
     /**
      * Entry point for conversion.
-     * 
+     *
      * @param args command line parameters
      * @throws IOException in case of conversion errors
      */
@@ -54,7 +54,7 @@ public class TransformFilesToESM {
         String[] terms   = content.trim().split("\\s+");
         if (!"import".equals(terms[0])) {
             String result = converter.convert(content);
-            // first remove the byte order mark, then convert to UTF-8 
+            // first remove the byte order mark, then convert to UTF-8
             Files.write(path, result.replaceFirst("^\uFEFF", "").getBytes(StandardCharsets.UTF_8));
         }
     }

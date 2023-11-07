@@ -45,55 +45,55 @@ class PolicyImplCustomTests {
 		return Stream.of(
 	 			// simplePermitAll
 	 			Arguments.of("policy \"p\" permit", AuthorizationDecision.PERMIT),
-			
+
 	 			// simpleDenyAll
 	 			Arguments.of("policy \"p\" deny", AuthorizationDecision.DENY),
-			
+
 	 			// simplePermitAllWithBodyTrue
 	 			Arguments.of("policy \"p\" permit where true;", AuthorizationDecision.PERMIT),
-			
+
 	 			// simplePermitAllWithBodyFalse
 	 			Arguments.of("policy \"p\" permit where false;", AuthorizationDecision.NOT_APPLICABLE),
-			
+
 	 			// simplePermitAllWithBodyError
 	 			Arguments.of("policy \"p\" permit where (10/0);", AuthorizationDecision.INDETERMINATE),
-			
+
 	 			// obligationEvaluatesSuccessfully
 	 			Arguments.of("policy \"p\" permit obligation true", new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
 	 					Optional.of(Val.ofJson("[true]").getArrayNode()), Optional.empty())),
-			
+
 	 			// obligationErrors
 	 			Arguments.of("policy \"p\" permit obligation (10/0)", AuthorizationDecision.INDETERMINATE),
-			
+
 	 			// obligationUndefined
 	 			Arguments.of("policy \"p\" permit obligation undefined", AuthorizationDecision.INDETERMINATE),
-			
+
 	 			// adviceEvaluatesSuccessfully
 	 			Arguments.of("policy \"p\" permit advice true", new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
 	 					Optional.of(Val.ofJson("[true]").getArrayNode()))),
-			
+
 	 			// adviceErrors
 	 			Arguments.of("policy \"p\" permit advice (10/0)", AuthorizationDecision.INDETERMINATE),
-			
+
 	 			// adviceUndefined
 	 			Arguments.of("policy \"p\" permit advice undefined", AuthorizationDecision.INDETERMINATE),
-			
+
 	 			// transformEvaluatesSuccessfully
 	 			Arguments.of("policy \"p\" permit transform true", new AuthorizationDecision(Decision.PERMIT, Optional.of(Val.JSON.booleanNode(true)),
 	 					Optional.empty(), Optional.empty())),
-			
+
 	 			// transformErrors
 	 			Arguments.of("policy \"p\" permit transform (10/0)", AuthorizationDecision.INDETERMINATE),
-			
+
 	 			// transformUndefined
 	 			Arguments.of("policy \"p\" permit transform undefined",AuthorizationDecision.INDETERMINATE),
-			
+
 	 			// allComponentsPresentSuccessfully
 	 			Arguments.of("policy \"p\" permit where true; obligation \"wash your hands\" advice \"smile\" transform [true,false,null]",
 	 					new AuthorizationDecision(Decision.PERMIT, Optional.of(Val.ofJson("[true,false,null]").get()),
 	 							Optional.of((ArrayNode) Val.ofJson("[\"wash your hands\"]").get()),
 	 							Optional.of((ArrayNode) Val.ofJson("[\"smile\"]").get()))),
-	 			
+
 	 			// import error
                 Arguments.of("import xxxxx.* policy \"p\" permit transform (10/0)", AuthorizationDecision.INDETERMINATE),
 
@@ -115,14 +115,14 @@ class PolicyImplCustomTests {
 		var policy   = INTERPRETER.parse(policySource);
 		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected)).verifyComplete();
 	}
-	
+
 	@Test
 	void targetExpression() {
 	       var policy   = INTERPRETER.parse("policy \"p\" deny false where true;");
 	       assertThat(policy.getPolicyElement().targetResult(Val.FALSE).getAuthorizationDecision().getDecision()).isEqualTo(Decision.NOT_APPLICABLE);
 	}
-	
-	   
+
+
     @Test
     void targetimportError() {
            var policy   = INTERPRETER.parse("policy \"p\" deny false where true;");

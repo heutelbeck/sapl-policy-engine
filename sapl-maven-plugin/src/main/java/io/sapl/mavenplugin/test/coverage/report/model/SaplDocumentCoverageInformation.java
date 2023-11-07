@@ -35,7 +35,7 @@ public class SaplDocumentCoverageInformation {
 
     /**
      * initialize a {@link SaplDocumentCoverageInformation} with
-     * 
+     *
      * @param pathToDocument path to the document on the filesystem
      * @param lineCount      line count
      */
@@ -49,7 +49,7 @@ public class SaplDocumentCoverageInformation {
 
     /**
      * mark the line as one of {@link LineCoveredValue}
-     * 
+     *
      * @param lineNumber      (starting with 1)
      * @param value           {@link LineCoveredValue}
      * @param coveredBranches covered branches of this line
@@ -61,7 +61,7 @@ public class SaplDocumentCoverageInformation {
 
     /**
      * Get line coverage information for a line in this document
-     * 
+     *
      * @param lineNumber (starting with 1)
      * @return the {@link SaplDocumentLineCoverageInformation} for this line
      */

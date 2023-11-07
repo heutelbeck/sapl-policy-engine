@@ -64,7 +64,7 @@ public class MockingAttributeContext implements AttributeContext {
 
     /**
      * Constructor of MockingAttributeContext
-     * 
+     *
      * @param originalAttributeContext original "normal" AttributeContext do
      *                                 delegate original attribute calls
      */
@@ -272,6 +272,8 @@ public class MockingAttributeContext implements AttributeContext {
     }
 
     @Override
-    public Map<String, String> getAttributeSchemas() { return Map.of(); }
+    public Map<String, String> getAttributeSchemas() {
+        return Map.of();
+    }
 
 }

@@ -49,10 +49,10 @@ class ApplyStepsRecursiveIndexTests {
 
 	 			// applyIndex3
 	 			Arguments.of("[ [1,2,3], [4,5,6,7] ]..[-1]", "[[4,5,6,7],3,7]"),
-	
+
 	 			// applyIndex4
 	 			Arguments.of("[ [1,2,3], [4,5,6,7] ]..[-4]", "[4]"),
-	 			
+
 	 			// filterApplyIndex
 	 			Arguments.of("[ [1,2,3], [4,5,6,7] ] |- { @..[-4] : mock.nil }", "[ [1,2,3], [null,5,6,7] ]"),
 
@@ -78,7 +78,7 @@ class ApplyStepsRecursiveIndexTests {
 	void expressionEvaluatesToExpectedValue(String expression, String expected) {
 		assertExpressionEvaluatesTo(expression, expected);
 	}
-		
+
 	@Test
 	void handleError() {
 	    assertExpressionReturnsErrors("[ 4, (1/0), (2/0), (3/0) ]..[-4]");

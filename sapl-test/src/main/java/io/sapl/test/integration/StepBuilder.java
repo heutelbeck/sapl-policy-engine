@@ -41,7 +41,7 @@ public class StepBuilder {
 
     /**
      * Create Builder starting at the Given-Step. Only for internal usage.
-     * 
+     *
      * @return {@link GivenStep} to start constructing the test case.
      */
     static GivenStep newBuilderAtGivenStep(PolicyRetrievalPoint prp, VariablesAndCombinatorSource pdpConfig,
@@ -51,7 +51,7 @@ public class StepBuilder {
 
     /**
      * Create Builder starting at the When-Step. Only for internal usage.
-     * 
+     *
      * @return {@link WhenStep} to start constructing the test case.
      */
     static WhenStep newBuilderAtWhenStep(PolicyRetrievalPoint prp, VariablesAndCombinatorSource pdpConfig,

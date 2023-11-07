@@ -26,7 +26,7 @@ public class FunctionUtil {
 
     /**
      * Creates a {@link Consumer} doing nothing.
-     * 
+     *
      * @param <T> payload type
      * @return A {@link Consumer} doing nothing.
      */
@@ -37,7 +37,7 @@ public class FunctionUtil {
 
     /**
      * Creates a {@link LongConsumer} doing nothing.
-     * 
+     *
      * @return A {@link LongConsumer} doing nothing.
      */
     public static LongConsumer longSink() {
@@ -47,7 +47,7 @@ public class FunctionUtil {
 
     /**
      * Creates a {@link Predicate} which always returns {@code true}.
-     * 
+     *
      * @param <T> the payload type
      * @return a predicate that always returns {@code true}
      */
@@ -57,7 +57,7 @@ public class FunctionUtil {
 
     /**
      * Creates a {@link Runnable} doing nothing.
-     * 
+     *
      * @return A {@link Runnable} doing nothing.
      */
     public static Runnable noop() {

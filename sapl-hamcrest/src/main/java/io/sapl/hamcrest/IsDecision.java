@@ -33,7 +33,7 @@ public class IsDecision extends TypeSafeDiagnosingMatcher<AuthorizationDecision>
 
     /**
      * Creates a matcher expecting a specific Decision in the AuthorizationDecision.
-     * 
+     *
      * @param expected expected Decision
      */
     public IsDecision(Decision expected) {

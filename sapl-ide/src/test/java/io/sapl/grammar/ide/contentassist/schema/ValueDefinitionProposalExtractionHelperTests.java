@@ -23,16 +23,16 @@ import reactor.core.publisher.Flux;
 class ValueDefinitionProposalExtractionHelperTests {
 
     @Test
-    void noEnvironmentVariablesReturnsEmptyList (){
+    void noEnvironmentVariablesReturnsEmptyList() {
 
         final String PERSON_SCHEMA = """
-					{
-					  "type": "object",
-					  "properties": {
-						"name": { "type": "string" }
-					  }
-					}
-					""";
+                {
+                  "type": "object",
+                  "properties": {
+                	"name": { "type": "string" }
+                  }
+                }
+                """;
 
         var source = mock(VariablesAndCombinatorSource.class);
         when(source.getVariables()).thenReturn(Flux.just(Optional.ofNullable(new HashMap<>())));
@@ -43,9 +43,10 @@ class ValueDefinitionProposalExtractionHelperTests {
 
         var attributeCtx = mock(AttributeContext.class);
 
-        var applicationContext      = mock(ContentAssistContext.class);
+        var applicationContext = mock(ContentAssistContext.class);
 
-        var proposals = new ValueDefinitionProposalExtractionHelper(source, functionCtx, attributeCtx, applicationContext);
+        var proposals = new ValueDefinitionProposalExtractionHelper(source, functionCtx, attributeCtx,
+                applicationContext);
         var variables = proposals.getFunctionProposals();
         assertThat(variables, is(empty()));
     }

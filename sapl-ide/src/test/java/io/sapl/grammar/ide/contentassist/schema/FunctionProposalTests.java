@@ -127,8 +127,8 @@ class FunctionProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("schemaTest.dog()", "schemaTest.dog().race",
-                        "schemaTest.food(String species)", "schemaTest.person()", "schemaTest.person().name");
+                var expected = List.of("schemaTest.dog()", "schemaTest.dog().race", "schemaTest.food(String species)",
+                        "schemaTest.person()", "schemaTest.person().name");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -148,8 +148,8 @@ class FunctionProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("schemaTest.dog()", "schemaTest.dog().race",
-                        "schemaTest.food(String species)", "schemaTest.person()", "schemaTest.person().name");
+                var expected = List.of("schemaTest.dog()", "schemaTest.dog().race", "schemaTest.food(String species)",
+                        "schemaTest.person()", "schemaTest.person().name");
                 assertProposalsSimple(expected, completionList);
             });
         });

@@ -35,7 +35,7 @@ import reactor.core.publisher.Flux;
  * Grammar:
  * {@code BasicExpression returns Expression: Basic (FILTER filter=FilterComponent |
  * SUBTEMPLATE subtemplate=BasicExpression)? ;
- * 
+ *
 <p>
  * Basic returns BasicExpression: {BasicGroup} '(' expression=Expression ')'
  * steps+=Step* | {BasicValue} value=Value steps+=Step* | {BasicFunction}

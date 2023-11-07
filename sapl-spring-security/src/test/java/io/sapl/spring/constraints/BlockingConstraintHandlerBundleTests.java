@@ -42,9 +42,9 @@ class BlockingConstraintHandlerBundleTests {
 		var sut    =  BlockingConstraintHandlerBundle.<Optional<String>>preEnforceConstraintHandlerBundle(
 							FunctionUtil.noop(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							filter,FunctionUtil.sink(),
 							UnaryOperator.identity());
 		// @formatter:on
@@ -59,9 +59,9 @@ class BlockingConstraintHandlerBundleTests {
 		var sut    =  BlockingConstraintHandlerBundle.<Optional<String>>preEnforceConstraintHandlerBundle(
 							FunctionUtil.noop(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							filter,FunctionUtil.sink(),
 							UnaryOperator.identity());
 		// @formatter:on
@@ -77,9 +77,9 @@ class BlockingConstraintHandlerBundleTests {
 		var sut    =  BlockingConstraintHandlerBundle.<List<String>>preEnforceConstraintHandlerBundle(
 							FunctionUtil.noop(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							filter,FunctionUtil.sink(),
 							UnaryOperator.identity());
 		// @formatter:on
@@ -94,9 +94,9 @@ class BlockingConstraintHandlerBundleTests {
 		var sut    =  BlockingConstraintHandlerBundle.<String[]>preEnforceConstraintHandlerBundle(
 							FunctionUtil.noop(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							filter,FunctionUtil.sink(),
 							UnaryOperator.identity());
 		// @formatter:on
@@ -112,9 +112,9 @@ class BlockingConstraintHandlerBundleTests {
 		var sut    =  BlockingConstraintHandlerBundle.<Set<String>>preEnforceConstraintHandlerBundle(
 							FunctionUtil.noop(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							filter,FunctionUtil.sink(),
 							UnaryOperator.identity());
 		// @formatter:on
@@ -129,9 +129,9 @@ class BlockingConstraintHandlerBundleTests {
 		var sut    =  BlockingConstraintHandlerBundle.<String>preEnforceConstraintHandlerBundle(
 							FunctionUtil.noop(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							filter,FunctionUtil.sink(),
 							UnaryOperator.identity());
 		// @formatter:on
@@ -146,9 +146,9 @@ class BlockingConstraintHandlerBundleTests {
 		var sut    =  BlockingConstraintHandlerBundle.<String>preEnforceConstraintHandlerBundle(
 							FunctionUtil.noop(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							filter,FunctionUtil.sink(),
 							UnaryOperator.identity());
 		// @formatter:on
