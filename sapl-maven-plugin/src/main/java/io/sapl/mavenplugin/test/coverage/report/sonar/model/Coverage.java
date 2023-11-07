@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -44,6 +46,8 @@ import lombok.Generated;
  * this class.
  * <p>
  * {@code
+ *
+ *
  *
  *
  *
@@ -133,6 +137,8 @@ public class Coverage {
      *
      *
      *
+     *
+     *
      * <pre>
      * getFile().add(newItem);
      * </pre>
@@ -182,6 +188,8 @@ public class Coverage {
      * <p>
      * The following schema fragment specifies the expected content contained within
      * this class. {@code
+     *
+     *
      *
      *
      *
@@ -255,6 +263,8 @@ public class Coverage {
          *
          *
          *
+         *
+         *
          * <pre>
          * getLineToCover().add(newItem);
          * </pre>
@@ -303,6 +313,8 @@ public class Coverage {
          * <p>
          * The following schema fragment specifies the expected content contained within
          * this class. {@code
+         *
+         *
          *
          *
          *

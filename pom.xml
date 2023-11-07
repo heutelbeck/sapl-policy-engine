@@ -3,6 +3,8 @@
 
     Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
 
+    SPDX-License-Identifier: Apache-2.0
+
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
     You may obtain a copy of the License at
@@ -25,9 +27,6 @@
 	  
 	* Correct the license headers of all source files:
 	  mvn license:format
-	  
-	* Format the code according to Spring code formatting conventions:
-	  mvn spring-javaformat:apply 
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -383,28 +382,34 @@
 				<groupId>com.mycila</groupId>
 				<artifactId>license-maven-plugin</artifactId>
 				<configuration>
-					<header>APACHE-2.txt</header>
+					<licenseSets>
+						<licenseSet>
+							<header>APACHE-2.txt</header>
+							<excludes>
+								<exclude>**/README</exclude>
+								<exclude>node_modules/**</exclude>
+								<exclude>frontend/**</exclude>
+								<exclude>src/test/resources/**</exclude>
+								<exclude>src/test/xtend-gen/**</exclude>
+								<exclude>src/test/xtext-gen/**</exclude>
+								<exclude>src/main/xtend-gen/**</exclude>
+								<exclude>src/main/xtext-gen/**</exclude>
+								<exclude>src/main/emf-gen/**</exclude>
+								<exclude>src/main/resources/**</exclude>
+								<exclude>.gitattributes</exclude>
+								<exclude>
+									src/main/java/io/sapl/grammar/web/SAPLWebSetup.xtend</exclude>
+								<exclude>
+									src/main/java/io/sapl/grammar/web/SAPLWebModule.xtend</exclude>
+								<exclude>src/asciidoc/sapl-grammar.ebnf</exclude>
+							</excludes>
+
+						</licenseSet>
+					</licenseSets>
 					<properties>
 						<owner>Dominic Heutelbeck</owner>
 						<email>dominic@heutelbeck.com</email>
 					</properties>
-					<excludes>
-						<exclude>**/README</exclude>
-						<exclude>node_modules/**</exclude>
-						<exclude>src/test/resources/**</exclude>
-						<exclude>src/test/xtend-gen/**</exclude>
-						<exclude>src/test/xtext-gen/**</exclude>
-						<exclude>src/main/xtend-gen/**</exclude>
-						<exclude>src/main/xtext-gen/**</exclude>
-						<exclude>src/main/emf-gen/**</exclude>
-						<exclude>src/main/resources/**</exclude>
-						<exclude>.gitattributes</exclude>
-						<exclude>
-							src/main/java/io/sapl/grammar/web/SAPLWebSetup.xtend</exclude>
-						<exclude>
-							src/main/java/io/sapl/grammar/web/SAPLWebModule.xtend</exclude>
-						<exclude>src/asciidoc/sapl-grammar.ebnf</exclude>
-					</excludes>
 					<mapping>
 						<md>XML_STYLE</md>
 						<java>SLASHSTAR_STYLE</java>
