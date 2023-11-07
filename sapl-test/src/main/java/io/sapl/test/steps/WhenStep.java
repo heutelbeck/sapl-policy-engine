@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -28,7 +30,7 @@ public interface WhenStep {
 
     /**
      * Sets the {@link AuthorizationSubscription} for the test case.
-     * 
+     *
      * @param authzSubscription the {@link AuthorizationSubscription}
      * @return next available Step {@link ExpectStep}
      */
@@ -36,7 +38,7 @@ public interface WhenStep {
 
     /**
      * Sets the {@link AuthorizationSubscription} for the test case.
-     * 
+     *
      * @param jsonAuthzSub {@link String} containing JSON defining a
      *                     {@link AuthorizationSubscription}
      * @return next available Step {@link ExpectStep}
@@ -46,7 +48,7 @@ public interface WhenStep {
 
     /**
      * Sets the {@link AuthorizationSubscription} for the test case.
-     * 
+     *
      * @param jsonNode {@link com.fasterxml.jackson.databind.node.ObjectNode}
      *                 defining a {@link AuthorizationSubscription}
      * @return next available Step {@link ExpectStep}

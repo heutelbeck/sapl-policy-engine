@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -30,9 +32,9 @@ class IdeStepCompletionTests extends CompletionTests {
             it.setModel(policy);
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("clock.millis", "clock.now", "clock.ticker",
-                "temperature.mean(a1, a2)>", "temperature.mean(a1, a2)>.period", "temperature.mean(a1, a2)>.value",
-                        "temperature.now()>", "temperature.now()>.unit", "temperature.now()>.value", "temperature.predicted(a2)>");
+                var expected = List.of("clock.millis", "clock.now", "clock.ticker", "temperature.mean(a1, a2)>",
+                        "temperature.mean(a1, a2)>.period", "temperature.mean(a1, a2)>.value", "temperature.now()>",
+                        "temperature.now()>.unit", "temperature.now()>.value", "temperature.predicted(a2)>");
                 assertProposalsSimple(expected, completionList);
             });
         });

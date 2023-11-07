@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -47,7 +49,7 @@ class StepBuilder {
 
     /**
      * Create Builder starting at the Given-Step. Only for internal usage.
-     * 
+     *
      * @param document containing the {@link SAPL} policy to evaluate
      * @return {@link GivenStep} to start constructing the test case.
      */
@@ -58,7 +60,7 @@ class StepBuilder {
 
     /**
      * Create Builder starting at the When-Step. Only for internal usage.
-     * 
+     *
      * @param document containing the {@link SAPL} policy to evaluate
      * @return {@link WhenStep} to start constructing the test case.
      */

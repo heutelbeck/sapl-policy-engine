@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -32,7 +34,7 @@ public class JsonEditor extends BaseEditor {
 
     /**
      * Creates the editor component.
-     * 
+     *
      * @param config the editor configuration-
      */
     public JsonEditor(JsonEditorConfiguration config) {
@@ -50,7 +52,7 @@ public class JsonEditor extends BaseEditor {
 
     /**
      * Appends text to the end of the editor contents.
-     * 
+     *
      * @param text some text
      */
     public void appendText(String text) {
@@ -60,7 +62,7 @@ public class JsonEditor extends BaseEditor {
 
     /**
      * Toggles linting on or off.
-     * 
+     *
      * @param isLint indicate if linting is to be activates.
      */
     public void setLint(Boolean isLint) {

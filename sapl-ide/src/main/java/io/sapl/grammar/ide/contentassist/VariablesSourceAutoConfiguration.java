@@ -1,5 +1,7 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,18 +17,17 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
-@Slf4j
+import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties;
+import lombok.RequiredArgsConstructor;
+
 @Configuration
 @RequiredArgsConstructor
 @EnableConfigurationProperties(EmbeddedPDPProperties.class)
 public class VariablesSourceAutoConfiguration {
 
-	private final EmbeddedPDPProperties pdpProperties;
+    private final EmbeddedPDPProperties pdpProperties;
 
 }

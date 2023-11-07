@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -44,7 +46,7 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 
     /**
      * Fixture for constructing an integration test case
-     * 
+     *
      * @param policyPath path relative to your class path (relative from
      *                   src/main/resources, ...) to the folder containing the SAPL
      *                   documents. If your policies are located at
@@ -57,7 +59,7 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 
     /**
      * set {@link PolicyDocumentCombiningAlgorithm} for this policy integration test
-     * 
+     *
      * @param alg the {@link PolicyDocumentCombiningAlgorithm} to be used
      * @return the test fixture
      */
@@ -68,7 +70,7 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 
     /**
      * set the Variables-{@link Map} normally loaded from the pdp.json file
-     * 
+     *
      * @param variables a {@link Map} of variables
      * @return the test fixture
      */

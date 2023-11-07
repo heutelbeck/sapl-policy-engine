@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -57,7 +59,7 @@ import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 /**
- * 
+ *
  * The ConstraintEnforcementService is responsible for collecting executable
  * constraint handlers in bundles for the PEP whenever the PDP sends a new
  * decision. The PEP in return will execute the matching handlers in the
@@ -81,7 +83,7 @@ public class ConstraintEnforcementService {
     /**
      * Constructor with dependency injection of all beans implementing handler
      * providers.
-     * 
+     *
      * @param globalRunnableProviders            all
      *                                           RunnableConstraintHandlerProvider
      * @param globalConsumerProviders            all
@@ -131,7 +133,7 @@ public class ConstraintEnforcementService {
      * Takes the decision and derives a wrapped resource access point Flux where the
      * decision is enforced. I.e., access is granted or denied, and all constraints
      * are handled.
-     * 
+     *
      * @param <T>                 event type
      * @param decision            a decision
      * @param resourceAccessPoint a Flux to be protected
@@ -169,7 +171,7 @@ public class ConstraintEnforcementService {
 				runnableHandlersForSignal(Signal.ON_COMPLETE, decision, unhandledObligations),
 				runnableHandlersForSignal(Signal.ON_TERMINATE, decision, unhandledObligations),
 				runnableHandlersForSignal(Signal.AFTER_TERMINATE, decision, unhandledObligations),
-				subscriptionHandlers(decision, unhandledObligations), 
+				subscriptionHandlers(decision, unhandledObligations),
 				requestHandlers(decision, unhandledObligations),
 				onNextHandlers(decision, unhandledObligations, clazz),
 				mapNextHandlers(decision, unhandledObligations, clazz),
@@ -202,7 +204,7 @@ public class ConstraintEnforcementService {
 		var bundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(
 				runnableHandlersForSignal(Signal.ON_DECISION, decision, unhandledObligations),
 				onNextHandlers(decision, unhandledObligations, clazz),
-				mapNextHandlers(decision, unhandledObligations, clazz), 
+				mapNextHandlers(decision, unhandledObligations, clazz),
 				onErrorHandlers(decision, unhandledObligations),
 				mapErrorHandlers(decision, unhandledObligations),
 				filterConstraintHandlers(decision, unhandledObligations),
@@ -250,7 +252,7 @@ public class ConstraintEnforcementService {
     /**
      * This Method provides a blocking constraint handler for use in AccessManagers
      * for servlet-based filtering. Only ON_DECISION handlers are feasible here.
-     * 
+     *
      * @param decision a decision
      * @return a BlockingPreEnforceConstraintHandlerBundle with handlers for all
      *         constraints in the decision, or throws AccessDeniedException, if
@@ -706,7 +708,7 @@ public class ConstraintEnforcementService {
     /**
      * Convenience method to replace the resource access point (RAP) with a Flux
      * only containing the resource if present.
-     * 
+     *
      * @param <T>                 event type
      * @param resourceAccessPoint the original RAP
      * @param resource            an optional resource to replace the RAP
@@ -730,7 +732,7 @@ public class ConstraintEnforcementService {
     /**
      * Convenience method to convert a JSON to a JavaObject using the global
      * ObjectMapper.
-     * 
+     *
      * @param <T>      type of the expected output
      * @param resource a JSON value
      * @param clazz    class of the expected output

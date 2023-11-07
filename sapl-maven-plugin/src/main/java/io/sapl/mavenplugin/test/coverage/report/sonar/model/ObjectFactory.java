@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -36,7 +38,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link Coverage }
-     * 
+     *
      * @return the coverage
      *
      */
@@ -46,7 +48,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link Coverage.File }
-     * 
+     *
      * @return the coverage file
      *
      */
@@ -56,7 +58,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link Coverage.File.LineToCover }
-     * 
+     *
      * @return the lineToConverter
      *
      */

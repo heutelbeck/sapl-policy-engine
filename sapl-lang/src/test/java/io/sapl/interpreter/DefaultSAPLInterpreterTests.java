@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -161,23 +163,22 @@ class DefaultSAPLInterpreterTests {
         assertThat(INTERPRETER.analyze("xyz").isValid(), is(false));
     }
 
-	private static final String[] TEST_CASES = {
-			"policy \"test\" permit ,{ \"key\" : \"value\" } =~ 6432 ", // syntaxError
-			"policy \"p\" permit where var subject = {};", // variableNameEqualsSubscriptionVariableSubjectError
-			"policy \"p\" permit where var action = {};", // variableNameEqualsSubscriptionVariableActionError
-			"policy \"p\" permit where var resource = {};", // variableNameEqualsSubscriptionVariableResourceError
-			"policy \"p\" permit where var environment = {};" // variableNameEqualsSubscriptionVariableEnvironmentError
-	};
+    private static final String[] TEST_CASES = { "policy \"test\" permit ,{ \"key\" : \"value\" } =~ 6432 ", // syntaxError
+            "policy \"p\" permit where var subject = {};", // variableNameEqualsSubscriptionVariableSubjectError
+            "policy \"p\" permit where var action = {};", // variableNameEqualsSubscriptionVariableActionError
+            "policy \"p\" permit where var resource = {};", // variableNameEqualsSubscriptionVariableResourceError
+            "policy \"p\" permit where var environment = {};" // variableNameEqualsSubscriptionVariableEnvironmentError
+    };
 
-    static Stream<String> parameterProviderForPolicyEvaluationExceptionTests(){
-    	return Stream.of(TEST_CASES);
-	}
+    static Stream<String> parameterProviderForPolicyEvaluationExceptionTests() {
+        return Stream.of(TEST_CASES);
+    }
 
     @ParameterizedTest
-	@MethodSource("parameterProviderForPolicyEvaluationExceptionTests")
-	void policyEvaluationExceptions(String policyDefinition) {
-		assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyDefinition));
-	}
+    @MethodSource("parameterProviderForPolicyEvaluationExceptionTests")
+    void policyEvaluationExceptions(String policyDefinition) {
+        assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyDefinition));
+    }
 
     @Test
     void transformation() {

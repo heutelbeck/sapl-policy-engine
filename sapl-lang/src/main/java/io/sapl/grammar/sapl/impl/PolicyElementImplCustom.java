@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -28,7 +30,7 @@ public class PolicyElementImplCustom extends PolicyElementImpl {
      * Checks whether the policy element (policy set or policy) matches an
      * authorization subscription by evaluating the element's target expression. An
      * import mapping and custom variables can be provided.
-     * 
+     *
      * @return {@code true} if the target expression evaluates to {@code true},
      *         {@code false} otherwise. @ in case there is an error while evaluating
      *         the target expression

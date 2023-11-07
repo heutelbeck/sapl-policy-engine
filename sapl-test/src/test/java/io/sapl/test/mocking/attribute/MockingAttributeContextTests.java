@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -295,7 +297,7 @@ class MockingAttributeContextTests {
         this.attrCtx.loadAttributeMock("foo.bar", Duration.ofSeconds(10), Val.of(1), Val.of(2));
         assertThat(this.attrCtx.getAvailableLibraries()).containsOnly("foo.bar");
     }
-    
+
     @Test
     void test_getDocumentedAttributeCodeTemplates_isEmpty() {
         assertThat(this.attrCtx.getDocumentedAttributeCodeTemplates()).isEmpty();

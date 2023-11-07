@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -39,19 +41,19 @@ class AttributeUnionStepImplCustomTests {
 	 			// applyToEmptyObject
 	 			Arguments.of("{}['key1','key2']",
 	 					     "[]"),
-	 			
+
 	 			// applyToObject
 	 			Arguments.of("{ \"key1\" : null, \"key2\" : true,  \"key3\" : false }['key3','key2']",
 	 					     "[ true, false ]"),
-	 			
+
 	 			// applyFilterToNonObject
 	 			Arguments.of("\"Otto\" |- { @['key1','key2'] : mock.nil }",
 	 					     "\"Otto\""),
-	 			
+
 	 			// filterElementsInObject
 	 			Arguments.of("{ \"key1\" : 1, \"key2\" : 2,  \"key3\" : 3 } |- { @['key3','key1'] : mock.nil }",
 	 					     "{ \"key1\" : null, \"key2\" : 2,  \"key3\" : null }"),
-	 			
+
 	 			// filterElementsInDescend
 	 			Arguments.of("{ \"key1\" : [1,2,3], \"key2\" : [1,2,3],  \"key3\" : [1,2,3] } |- { @['key3','key1'][2] : mock.nil }",
 	 					     "{ \"key1\" : [1,2,null], \"key2\" : [1,2,3],  \"key3\" : [1,2,null] }")
@@ -63,5 +65,5 @@ class AttributeUnionStepImplCustomTests {
 	@MethodSource("expressionTestCases")
 	void expressionEvaluatesToExpectedValue(String expression, String expected) {
 		assertExpressionEvaluatesTo(expression, expected);
-	}	
+	}
 }

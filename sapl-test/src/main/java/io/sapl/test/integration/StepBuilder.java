@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -41,7 +43,7 @@ public class StepBuilder {
 
     /**
      * Create Builder starting at the Given-Step. Only for internal usage.
-     * 
+     *
      * @return {@link GivenStep} to start constructing the test case.
      */
     static GivenStep newBuilderAtGivenStep(PolicyRetrievalPoint prp, VariablesAndCombinatorSource pdpConfig,
@@ -51,7 +53,7 @@ public class StepBuilder {
 
     /**
      * Create Builder starting at the When-Step. Only for internal usage.
-     * 
+     *
      * @return {@link WhenStep} to start constructing the test case.
      */
     static WhenStep newBuilderAtWhenStep(PolicyRetrievalPoint prp, VariablesAndCombinatorSource pdpConfig,

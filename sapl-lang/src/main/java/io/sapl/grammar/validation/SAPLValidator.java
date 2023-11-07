@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -44,7 +46,7 @@ public class SAPLValidator extends AbstractSAPLValidator {
 
     /**
      * No lazy And operators are allowed in the target expression.
-     * 
+     *
      * @param policy a policy
      */
     @Check
@@ -55,7 +57,7 @@ public class SAPLValidator extends AbstractSAPLValidator {
 
     /**
      * No lazy Or operators are allowed in the target expression.
-     * 
+     *
      * @param policy a policy
      */
     @Check
@@ -66,7 +68,7 @@ public class SAPLValidator extends AbstractSAPLValidator {
 
     /**
      * No lazy Or operators are allowed in the target expression.
-     * 
+     *
      * @param policy a policy
      */
     @Check
@@ -95,7 +97,7 @@ public class SAPLValidator extends AbstractSAPLValidator {
 
     /**
      * looks for given class in the target expression of given Policy
-     * 
+     *
      * @param policy  a policy
      * @param aClass  class to look up
      * @param message an error message
@@ -109,7 +111,7 @@ public class SAPLValidator extends AbstractSAPLValidator {
 
     /**
      * scan content of given EObject recursively
-     * 
+     *
      * @param eObj   object to search through
      * @param eClass class to look up
      * @return discovered object or null

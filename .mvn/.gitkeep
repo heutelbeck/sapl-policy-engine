@@ -1,0 +1,2 @@
+# Keep this file and folder to make sure that ${maven.multiModuleProjectDirectory} is interpolated correctly.
+# See: https://stackoverflow.com/a/49528226

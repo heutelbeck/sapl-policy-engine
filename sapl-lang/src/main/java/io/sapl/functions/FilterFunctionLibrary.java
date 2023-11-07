@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -81,7 +83,7 @@ public class FilterFunctionLibrary {
 
     /**
      * Replaces a section of a text with a fixed character.
-     * 
+     *
      * @param parameters STRING (original textual Val), DISCLOSE_LEFT leave this
      *                   number of characters original on the left side of the
      *                   string, DISCLOSE_RIGHT leave this number of characters
@@ -164,7 +166,7 @@ public class FilterFunctionLibrary {
 
     /**
      * Replaces the original with another value.
-     * 
+     *
      * @param original    the original value, which is ignored.
      * @param replacement a replacement value.
      * @return the replacement value.
@@ -176,7 +178,7 @@ public class FilterFunctionLibrary {
 
     /**
      * Replaces any value with UNDEFINED.
-     * 
+     *
      * @param original some value
      * @return Val.UNDEFINED
      */

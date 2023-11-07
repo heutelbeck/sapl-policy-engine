@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -38,7 +40,7 @@ public class HasAdviceContainingKeyValue extends TypeSafeDiagnosingMatcher<Autho
     /**
      * Checks for the presence of an advice containing a field with the given key
      * and a value matching a matcher.
-     * 
+     *
      * @param key   a key
      * @param value a value matcher.
      */
@@ -50,7 +52,7 @@ public class HasAdviceContainingKeyValue extends TypeSafeDiagnosingMatcher<Autho
 
     /**
      * Checks for the presence of an advice containing a field with the given key.
-     * 
+     *
      * @param key a key
      */
     public HasAdviceContainingKeyValue(String key) {

@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.functions;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -8,6 +25,7 @@ import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaException;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
+
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
@@ -23,26 +41,25 @@ public class SchemaValidationLibrary {
 
     public static final String DESCRIPTION = "This library contains the mandatory functions for testing the compliance of a JSON object with a JSON schema.";
 
-    private static final String ISCOMPLIANTWITHSCHEMA_VAL_DOC = "isCompliantWithSchema(jsonObject, schema):" +
-            "Assumes that schema is a String that can be converted into a valid JSON schema, and jsonObject is a valid JSON Object or a String that can be converted to a JSON node." +
-            "If schema cannot be converted to a JSON schema, or jsonObject cannot be converted to a JSON node, returns an error." +
-            "If jsonObject is compliant with schema, returns TRUE, else returns FALSE.";
+    private static final String ISCOMPLIANTWITHSCHEMA_VAL_DOC = "isCompliantWithSchema(jsonObject, schema):"
+            + "Assumes that schema is a String that can be converted into a valid JSON schema, and jsonObject is a valid JSON Object or a String that can be converted to a JSON node."
+            + "If schema cannot be converted to a JSON schema, or jsonObject cannot be converted to a JSON node, returns an error."
+            + "If jsonObject is compliant with schema, returns TRUE, else returns FALSE.";
 
     private static final SpecVersion.VersionFlag SPEC_VERSION_JSON_SCHEMA = SpecVersion.VersionFlag.V7;
 
     private static final String BOOL_SCHEMA = "{ \"type\": \"boolean\" }";
 
-
     @Function(docs = ISCOMPLIANTWITHSCHEMA_VAL_DOC, schema = BOOL_SCHEMA)
     public static Val isCompliantWithSchema(@JsonObject @Text Val jsonObject, @Text Val schema) {
         JsonNode node;
-        Val isCompliant;
-        String schemaAsString = schema.get().asText();
-        if(jsonObject.isTextual()){
+        Val      isCompliant;
+        String   schemaAsString = schema.get().asText();
+        if (jsonObject.isTextual()) {
             var jsonAsText = jsonObject.get().asText();
             try {
                 node = jsonNodeFromString(jsonAsText);
-            } catch (JsonProcessingException e){
+            } catch (JsonProcessingException e) {
                 node = JsonNodeFactory.instance.textNode(jsonAsText);
             }
         } else {
@@ -51,13 +68,13 @@ public class SchemaValidationLibrary {
 
         try {
             isCompliant = isCompliantWithSchema(node, schemaAsString);
-        } catch (JsonSchemaException e){
+        } catch (JsonSchemaException e) {
             return Val.error(e);
         }
         return isCompliant;
     }
 
-    //@Function(docs = ISCOMPLIANTWITHSCHEMA_DOC, schema = BOOL_SCHEMA)
+    // @Function(docs = ISCOMPLIANTWITHSCHEMA_DOC, schema = BOOL_SCHEMA)
     private static Val isCompliantWithSchema(JsonNode node, String schema) throws JsonSchemaException {
         JsonSchema jsonSchema = jsonSchemaFromString(schema);
         return Val.of(jsonSchema.validate(node).isEmpty());
@@ -69,7 +86,7 @@ public class SchemaValidationLibrary {
 
     private static JsonSchema jsonSchemaFromString(String schema) throws JsonSchemaException {
         JsonSchema jsonSchema;
-        var jsonSchemaFactory = JsonSchemaFactory.getInstance(SPEC_VERSION_JSON_SCHEMA);
+        var        jsonSchemaFactory = JsonSchemaFactory.getInstance(SPEC_VERSION_JSON_SCHEMA);
         jsonSchema = jsonSchemaFactory.getSchema(schema);
         return jsonSchema;
     }

@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -67,7 +69,7 @@ public class AuthorizationSubscription {
      * Creates an AuthorizationSubscription, containing the supplied objects
      * marshaled to JSON by a default ObjectMapper with Jdk8Module registered.
      * Environment will be omitted.
-     * 
+     *
      * @param subject  an object describing the subject.
      * @param action   an object describing the action.
      * @param resource an object describing the resource.
@@ -80,7 +82,7 @@ public class AuthorizationSubscription {
     /**
      * Creates an AuthorizationSubscription, containing the supplied objects
      * marshaled the supplied ObjectMapper. Environment will be omitted.
-     * 
+     *
      * @param subject  an object describing the subject.
      * @param action   an object describing the action.
      * @param resource an object describing the resource.
@@ -94,7 +96,7 @@ public class AuthorizationSubscription {
     /**
      * Creates an AuthorizationSubscription, containing the supplied objects
      * marshaled to JSON by a default ObjectMapper with Jdk8Module registered.
-     * 
+     *
      * @param subject     an object describing the subject.
      * @param action      an object describing the action.
      * @param resource    an object describing the resource.
@@ -108,7 +110,7 @@ public class AuthorizationSubscription {
     /**
      * Creates an AuthorizationSubscription, containing the supplied objects
      * marshaled the supplied ObjectMapper.
-     * 
+     *
      * @param subject     an object describing the subject.
      * @param action      an object describing the action.
      * @param resource    an object describing the resource.

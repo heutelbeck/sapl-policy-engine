@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -28,7 +30,7 @@ public interface PolicyRetrievalPoint {
      * policies or policy sets having a target expression that matches the given
      * authorization subscription. The given function context and variables
      * constitute the environment the target expressions are evaluated in.
-     * 
+     *
      * @return a {@link Flux} providing the policy retrieval results containing all
      *         the matching policies or policy sets. New results are only added to
      *         the stream if they are different from the preceding result.

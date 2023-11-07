@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -72,7 +74,7 @@ public class LoggingFunctionLibrary {
     /**
      * Returns the original message on log level INFO followed by the inspected
      * value.
-     * 
+     *
      * @param message a text massage.
      * @param value   a value
      * @return the value
@@ -86,7 +88,7 @@ public class LoggingFunctionLibrary {
     /**
      * Returns the original message on log level ERROR followed by the inspected
      * value.
-     * 
+     *
      * @param message a text massage.
      * @param value   a value
      * @return the value
@@ -100,7 +102,7 @@ public class LoggingFunctionLibrary {
     /**
      * Returns the original message on log level TRACE followed by the inspected
      * value.
-     * 
+     *
      * @param message a text massage.
      * @param value   a value
      * @return the value
@@ -114,7 +116,7 @@ public class LoggingFunctionLibrary {
     /**
      * Returns the original message on log level WARN followed by the inspected
      * value.
-     * 
+     *
      * @param message a text massage.
      * @param value   a value
      * @return the value
@@ -128,7 +130,7 @@ public class LoggingFunctionLibrary {
     /**
      * Returns the original message on log level DEBUG followed by the inspected
      * value.
-     * 
+     *
      * @param message a text massage.
      * @param value   a value
      * @return the value
@@ -142,7 +144,7 @@ public class LoggingFunctionLibrary {
     /**
      * Returns a constant TRUE and prints the message on log level INFO followed by
      * the inspected value.
-     * 
+     *
      * @param message a text massage.
      * @param value   a value
      * @return the value
@@ -156,7 +158,7 @@ public class LoggingFunctionLibrary {
     /**
      * Returns a constant TRUE and prints the message on log level ERROR followed by
      * the inspected value.
-     * 
+     *
      * @param message a text massage.
      * @param value   a value
      * @return the value
@@ -170,7 +172,7 @@ public class LoggingFunctionLibrary {
     /**
      * Returns a constant TRUE and prints the message on log level TRACE followed by
      * the inspected value.
-     * 
+     *
      * @param message a text massage.
      * @param value   a value
      * @return the value
@@ -184,7 +186,7 @@ public class LoggingFunctionLibrary {
     /**
      * Returns a constant TRUE and prints the message on log level WARN followed by
      * the inspected value.
-     * 
+     *
      * @param message a text massage.
      * @param value   a value
      * @return the value
@@ -198,7 +200,7 @@ public class LoggingFunctionLibrary {
     /**
      * Returns a constant TRUE and prints the message on log level DEBUG followed by
      * the inspected value.
-     * 
+     *
      * @param message a text massage.
      * @param value   a value
      * @return the value

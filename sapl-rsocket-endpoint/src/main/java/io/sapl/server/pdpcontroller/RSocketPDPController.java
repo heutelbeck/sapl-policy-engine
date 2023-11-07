@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -35,7 +37,7 @@ public class RSocketPDPController {
 
     /**
      * Delegates to {@link PolicyDecisionPoint#decide(AuthorizationSubscription)}.
-     * 
+     *
      * @param authzSubscription the authorization subscription to be processed by
      *                          the PDP.
      * @return a flux emitting the current authorization decisions.
@@ -63,7 +65,7 @@ public class RSocketPDPController {
     /**
      * Delegates to
      * {@link PolicyDecisionPoint#decide(MultiAuthorizationSubscription)}.
-     * 
+     *
      * @param multiAuthzSubscription the authorization multi-subscription to be
      *                               processed by the PDP.
      * @return a flux emitting authorization decisions related to the individual
@@ -80,7 +82,7 @@ public class RSocketPDPController {
     /**
      * Delegates to
      * {@link PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)}.
-     * 
+     *
      * @param multiAuthzSubscription the authorization multi-subscription to be
      *                               processed by the PDP.
      * @return a flux emitting multi-decisions containing authorization decisions

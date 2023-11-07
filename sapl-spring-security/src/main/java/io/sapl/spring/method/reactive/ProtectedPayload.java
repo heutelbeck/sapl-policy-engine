@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.spring.method.reactive;
 
 import java.util.NoSuchElementException;
@@ -12,7 +29,7 @@ import reactor.core.publisher.Mono;
 
 /**
  * A wrapper class to enable onErrorContinue with in protected Flux processing.
- * 
+ *
  * @param <P> Payload type
  */
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -22,7 +39,7 @@ class ProtectedPayload<P> {
 
     /**
      * Creates a ProtectedPayload
-     * 
+     *
      * @param <T>     the payload type.
      * @param payload a payload
      * @return a ProtectedPayload containing the payload value
@@ -33,7 +50,7 @@ class ProtectedPayload<P> {
 
     /**
      * Creates a ProtectedPayload
-     * 
+     *
      * @param <T>       the payload type.
      * @param exception an Exception
      * @return a ProtectedPayload containing the exception
@@ -44,10 +61,10 @@ class ProtectedPayload<P> {
 
     /**
      * Get the payload or throw Exception.
-     * 
+     *
      * Explanation: Why is this a Mono<>? Answer: Because onErrorContinue does no
      * longer work with map but only with flatMap
-     * 
+     *
      * @return a Mono of th payload
      */
     @SneakyThrows

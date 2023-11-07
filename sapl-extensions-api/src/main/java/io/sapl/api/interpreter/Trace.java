@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -84,7 +86,7 @@ public class Trace {
 
     /**
      * Creates a trace for an operation.
-     * 
+     *
      * @param operation class implementing the traced operation.
      */
     public Trace(Class<?> operation) {
@@ -93,7 +95,7 @@ public class Trace {
 
     /**
      * Creates a trace for an operation and its arguments.
-     * 
+     *
      * @param operation class implementing the traced operation.
      * @param arguments traced arguments.
      */
@@ -110,7 +112,7 @@ public class Trace {
 
     /**
      * Creates a trace for an operation and its arguments.
-     * 
+     *
      * @param operation class implementing the traced operation.
      * @param arguments traced arguments with parameter names.
      */
@@ -123,7 +125,7 @@ public class Trace {
 
     /**
      * Creates a trace for an operation and its arguments.
-     * 
+     *
      * @param operation class implementing the traced operation.
      * @param arguments traced arguments.
      */
@@ -134,7 +136,7 @@ public class Trace {
 
     /**
      * Creates a trace for an attribute finder operation and its arguments.
-     * 
+     *
      * @param leftHandValue the left hand input value of the attribute finder
      * @param operation     class implementing the traced operation.
      * @param arguments     traced arguments.
@@ -153,7 +155,7 @@ public class Trace {
 
     /**
      * Reads the evaluation trace as a JSON object.
-     * 
+     *
      * @return trace as a JSON object.
      */
     public JsonNode getTrace() {

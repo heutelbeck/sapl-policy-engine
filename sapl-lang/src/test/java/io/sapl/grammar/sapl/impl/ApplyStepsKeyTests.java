@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -62,15 +64,15 @@ class ApplyStepsKeyTests {
                 // Filter object
                 Arguments.of("{\"key\" : true, \"other\" : false} |- { @.key : mock.nil}",
                              "{\"key\" : null, \"other\" : false}"),
-	
+
 	 			// Filter object descend
 	 			Arguments.of("{\"key\" : { \"key2\" : true}, \"other\" : false} |- { @.key.key2 : mock.nil}",
 	 					     "{\"key\" : {\"key2\" : null }, \"other\" : false}"),
-	 			
+
 	 			// Filter array
 	 			Arguments.of("[ {\"key\" : true, \"other\" : false} , false ] |- { @.key : mock.nil}",
 	 					     "[ {\"key\" : null, \"other\" : false} , false ]"),
-	 			
+
 	 			// Filter empty array
 	 			Arguments.of("[] |- { @.key : mock.nil}",
 	 					     "[]")

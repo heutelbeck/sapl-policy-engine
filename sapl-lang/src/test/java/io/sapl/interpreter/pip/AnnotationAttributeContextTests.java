@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -34,6 +36,7 @@ import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.EnvironmentAttribute;
@@ -833,40 +836,38 @@ class AnnotationAttributeContextTests {
                 .expectNextMatches(
                         valErrorText("Illegal parameter type. Got: STRING Expected: @io.sapl.api.validation.Bool() "))
                 .verifyComplete();
-	}
+    }
 
     @Test
-    void when_argWithParamSchema_validatesCorrectly()
-            throws InitializationException, IOException {
+    void when_argWithParamSchema_validatesCorrectly() throws InitializationException, IOException {
 
         final String PERSON_SCHEMA = """
-					{
-					  "$schema": "http://json-schema.org/draft-07/schema#",
-					  "$id": "https://example.com/schemas/regions",
-					  "type": "object",
-					  "properties": {
-						"name": { "type": "string" }
-					  }
-					}
-					""";
-
+                {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "$id": "https://example.com/schemas/regions",
+                  "type": "object",
+                  "properties": {
+                	"name": { "type": "string" }
+                  }
+                }
+                """;
 
         @PolicyInformationPoint(name = "test")
         class PIP {
 
             static final String PERSON_SCHEMA = """
-					{
-					  "$schema": "http://json-schema.org/draft-07/schema#",
-					  "$id": "https://example.com/schemas/regions",
-					  "type": "object",
-					  "properties": {
-						"name": { "type": "string" }
-					  }
-					}
-					""";
+                    {
+                      "$schema": "http://json-schema.org/draft-07/schema#",
+                      "$id": "https://example.com/schemas/regions",
+                      "type": "object",
+                      "properties": {
+                    	"name": { "type": "string" }
+                      }
+                    }
+                    """;
 
             @EnvironmentAttribute
-            public Flux<Val> envAttribute(Map<String, JsonNode> variable, @Schema(value=PERSON_SCHEMA) Val a1) {
+            public Flux<Val> envAttribute(Map<String, JsonNode> variable, @Schema(value = PERSON_SCHEMA) Val a1) {
                 return Flux.just(a1);
             }
 
@@ -879,33 +880,31 @@ class AnnotationAttributeContextTests {
 
         var pip          = new PIP();
         var attributeCtx = new AnnotationAttributeContext(pip);
-        var variable    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
+        var variable     = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 
-        var context          = new AnnotationAttributeContext(pip);
+        var context         = new AnnotationAttributeContext(pip);
         var functionSchemas = context.getAttributeSchemas();
         assertThat(functionSchemas, hasEntry("test.attributeWithAnnotation", PERSON_SCHEMA));
 
-
-        var validExpression   = ParserUtil.expression("<test.envAttribute({\"name\": \"Joe\"})>");
-        var expected = new ObjectMapper().readTree("{\"name\": \"Joe\"}\")>");
+        var validExpression = ParserUtil.expression("<test.envAttribute({\"name\": \"Joe\"})>");
+        var expected        = new ObjectMapper().readTree("{\"name\": \"Joe\"}\")>");
         StepVerifier.create(validExpression.evaluate().contextWrite(this.constructContext(attributeCtx, variable)))
                 .expectNext(Val.of(expected)).verifyComplete();
 
-        var invalidExpression   = ParserUtil.expression("<test.envAttribute({\"name\": 23})>");
-        String errorMessage = """
-				Illegal parameter type. Parameter does not comply with required schema. Got: {"name":23} Expected schema: {
-				  "$schema": "http://json-schema.org/draft-07/schema#",
-				  "$id": "https://example.com/schemas/regions",
-				  "type": "object",
-				  "properties": {
-					"name": { "type": "string" }
-				  }
-				}
-				""";
+        var    invalidExpression = ParserUtil.expression("<test.envAttribute({\"name\": 23})>");
+        String errorMessage      = """
+                Illegal parameter type. Parameter does not comply with required schema. Got: {"name":23} Expected schema: {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "$id": "https://example.com/schemas/regions",
+                  "type": "object",
+                  "properties": {
+                	"name": { "type": "string" }
+                  }
+                }
+                """;
         StepVerifier.create(invalidExpression.evaluate().contextWrite(this.constructContext(attributeCtx, variable)))
                 .expectNextMatches(valErrorText(errorMessage)).verifyComplete();
     }
-
 
     @Test
     void generatesCodeTemplates() throws InitializationException {

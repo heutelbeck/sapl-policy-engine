@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -48,7 +50,7 @@ class SAPLImplCustomTests {
 			    		Map.of("blacken", "filter.blacken")),
 
 				// importsWorkCorrectlyWildcardFunction
-			    Arguments.of("import filter.* policy \"policy\" permit true", 
+			    Arguments.of("import filter.* policy \"policy\" permit true",
 			    		Map.of("blacken", "filter.blacken", "replace", "filter.replace", "remove", "filter.remove")),
 
 				// importsWorkCorrectlyLibraryFunction
@@ -77,38 +79,38 @@ class SAPLImplCustomTests {
 		StepVerifier.create(policy.evaluate()
 				.flatMap(val -> Mono.deferContextual(
 						ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
-				.contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(Boolean.FALSE).verifyComplete();	
+				.contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(Boolean.FALSE).verifyComplete();
 	}
-	
+
 	@ParameterizedTest
 	@ValueSource(strings = {
 			// detectErrorInTargetMatches
-			"policy \"policy\" permit (10/0)", 
+			"policy \"policy\" permit (10/0)",
 			// detectErrorInImportsDuringMatches
 			"import filter.blacken import filter.blacken policy \"policy\" permit true"
 		})
 	void policyElementEvaluatesToError(String policySource) {
 		var policy = INTERPRETER.parse(policySource);
 		StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(Val::isError).verifyComplete();
-	}	
-	
+	}
+
 	private static Stream<Arguments> provideTestCases() {
 		// @formatter:off
 		return Stream.of(
 				// detectErrorInImportsDuringEvaluate
 			    Arguments.of("import filter.blacken import filter.blacken policy \"policy\" permit true", INDETERMINATE),
-					
+
 				// importNonExistingFails
 			    Arguments.of("import test.nonExisting policy \"policy\" permit true", INDETERMINATE),
-					
+
 				// doubleImportWildcardFails
 			    Arguments.of("import test.* import test.* policy \"policy\" permit true", INDETERMINATE),
-					
+
 				// doubleImportLibraryFails
 			    Arguments.of("import test as t import test as t policy \"policy\" permit true",INDETERMINATE),
-					
+
 				// policyBodyEvaluationDoesNotCheckTargetAgain
-			    Arguments.of("policy \"policy\" permit (10/0)", PERMIT)	
+			    Arguments.of("policy \"policy\" permit (10/0)", PERMIT)
 		);
 		// @formater:on
 	}

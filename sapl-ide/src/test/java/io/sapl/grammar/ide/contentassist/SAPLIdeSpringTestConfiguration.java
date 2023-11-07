@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -15,15 +17,15 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import io.sapl.grammar.ide.contentassist.filesystem.FileSystemVariablesAndCombinatorSource;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
+import io.sapl.grammar.ide.contentassist.filesystem.FileSystemVariablesAndCombinatorSource;
+import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.pdp.config.VariablesAndCombinatorSource;
 
 @ComponentScan
 @Configuration

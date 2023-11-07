@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -36,7 +38,7 @@ public class TransformFilesToESM {
 
     /**
      * Entry point for conversion.
-     * 
+     *
      * @param args command line parameters
      * @throws IOException in case of conversion errors
      */
@@ -54,7 +56,7 @@ public class TransformFilesToESM {
         String[] terms   = content.trim().split("\\s+");
         if (!"import".equals(terms[0])) {
             String result = converter.convert(content);
-            // first remove the byte order mark, then convert to UTF-8 
+            // first remove the byte order mark, then convert to UTF-8
             Files.write(path, result.replaceFirst("^\uFEFF", "").getBytes(StandardCharsets.UTF_8));
         }
     }

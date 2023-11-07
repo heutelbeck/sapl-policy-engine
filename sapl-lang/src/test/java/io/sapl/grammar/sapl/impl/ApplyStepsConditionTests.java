@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -61,11 +63,11 @@ class ApplyStepsConditionTests {
 	 			Arguments.of("[1, (10/0), 3] |- { @[?(@>2)] : mock.emptyString }", "Division by zero"),
 
 	 			// Filter object error in condition
-	 			Arguments.of("{ \"name\" : \"Otto\" } |- { @[?(10/0))] : filter.remove }", 
+	 			Arguments.of("{ \"name\" : \"Otto\" } |- { @[?(10/0))] : filter.remove }",
 	 					     "Division by zero"),
 
 	 			// Filter object non-Boolean in condition
-	 			Arguments.of("{ \"name\" : \"Otto\" } |- { @[?(123)] : filter.remove }", 
+	 			Arguments.of("{ \"name\" : \"Otto\" } |- { @[?(123)] : filter.remove }",
 	 					     "Type mismatch. Expected the condition expression to return a Boolean, but was '123'."),
 
 	 			// Filter error in condition

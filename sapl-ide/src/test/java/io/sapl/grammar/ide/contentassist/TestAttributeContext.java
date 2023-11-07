@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -15,7 +17,13 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -30,24 +38,24 @@ class TestAttributeContext implements AttributeContext {
     private final Map<String, Set<String>> availableLibraries;
 
     final static String TEMP_NOW_SCHEMA = """
-					{
-					  "type": "object",
-					  "properties": {
-						"value": { "type": "number" },
-						"unit": { "type": "string"}
-					  }
-					}
-					""";
+            {
+              "type": "object",
+              "properties": {
+            	"value": { "type": "number" },
+            	"unit": { "type": "string"}
+              }
+            }
+            """;
 
     final static String TEMP_MEAN_SCHEMA = """
-					{
-					  "type": "object",
-					  "properties": {
-						"value": { "type": "number" },
-						"period": { "type": "number"}
-					  }
-					}
-					""";
+            {
+              "type": "object",
+              "properties": {
+            	"value": { "type": "number" },
+            	"period": { "type": "number"}
+              }
+            }
+            """;
 
     public TestAttributeContext() {
         availableLibraries = new HashMap<>();
@@ -84,20 +92,20 @@ class TestAttributeContext implements AttributeContext {
 
     @Override
     public List<String> getAttributeCodeTemplates() {
-        return List.of("clock.now", "clock.millis", "clock.ticker",
-                "temperature.now()>", "temperature.mean(a1, a2)>", "temperature.predicted(a2)>");
+        return List.of("clock.now", "clock.millis", "clock.ticker", "temperature.now()>", "temperature.mean(a1, a2)>",
+                "temperature.predicted(a2)>");
     }
 
     @Override
     public List<String> getEnvironmentAttributeCodeTemplates() {
-        return List.of("clock.now", "clock.millis", "clock.ticker",
-                "temperature.now()>", "temperature.mean(a1, a2)>", "temperature.predicted(a2)>");
+        return List.of("clock.now", "clock.millis", "clock.ticker", "temperature.now()>", "temperature.mean(a1, a2)>",
+                "temperature.predicted(a2)>");
     }
 
     @Override
     public Collection<String> getAllFullyQualifiedFunctions() {
-        return List.of("clock.now", "clock.millis", "clock.ticker",
-                "temperature.now()>", "temperature.mean(a1, a2)>", "temperature.predicted(a2)>");
+        return List.of("clock.now", "clock.millis", "clock.ticker", "temperature.now()>", "temperature.mean(a1, a2)>",
+                "temperature.predicted(a2)>");
     }
 
     @Override

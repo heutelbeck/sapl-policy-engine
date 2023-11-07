@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -58,7 +60,7 @@ class ApplyStepsExpressionTests {
 		"[ [4,1,2,3] ] |- { @[(\"a\")] : filter.remove }",
 		// filterTypeMismatch3
 		"{ \"a\": [4,1,2,3] } |- { @[(123)] : filter.remove }"
-	}) 
+	})
 	// @formatter:on
     void expressionEvaluatesToErrors(String expression) {
         assertExpressionReturnsErrors(expression);
@@ -74,7 +76,7 @@ class ApplyStepsExpressionTests {
 		return Stream.of(
 				// applyToArrayWithNumberExpressionResult
 				Arguments.of("[0,1,2,3,4,5,6,7,8,9][(2+3)]", "5"),
-				
+
 	 			// applyToObjectWithTextualResult
 	 			Arguments.of("{ \"key\" : true }[(\"ke\"+\"y\")]", "true"),
 

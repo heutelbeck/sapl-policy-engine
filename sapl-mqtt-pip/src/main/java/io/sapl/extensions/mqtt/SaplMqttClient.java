@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -100,7 +102,7 @@ public class SaplMqttClient {
     /**
      * This method returns a reactive stream of mqtt messages of one or many
      * subscribed topics.
-     * 
+     *
      * @param topic     A string or array of topic(s) for subscription.
      * @param variables The configuration specified in the PDP configuration file.
      * @return A {@link Flux} of messages of the subscribed topic(s).
@@ -112,7 +114,7 @@ public class SaplMqttClient {
     /**
      * This method returns a reactive stream of mqtt messages of one or many
      * subscribed topics.
-     * 
+     *
      * @param topic     A string or array of topic(s) for subscription.
      * @param variables The configuration specified in the PDP configuration file.
      * @param qos       A {@link Flux} of the quality of service level of the mqtt
@@ -127,7 +129,7 @@ public class SaplMqttClient {
     /**
      * This method returns a reactive stream of mqtt messages of one or many
      * subscribed topics.
-     * 
+     *
      * @param topic         A string or array of topic(s) for subscription.
      * @param variables     The configuration specified in the PDP configuration
      *                      file.

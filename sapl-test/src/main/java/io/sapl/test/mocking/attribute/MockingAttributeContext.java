@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -64,7 +66,7 @@ public class MockingAttributeContext implements AttributeContext {
 
     /**
      * Constructor of MockingAttributeContext
-     * 
+     *
      * @param originalAttributeContext original "normal" AttributeContext do
      *                                 delegate original attribute calls
      */
@@ -272,6 +274,8 @@ public class MockingAttributeContext implements AttributeContext {
     }
 
     @Override
-    public Map<String, String> getAttributeSchemas() { return Map.of(); }
+    public Map<String, String> getAttributeSchemas() {
+        return Map.of();
+    }
 
 }

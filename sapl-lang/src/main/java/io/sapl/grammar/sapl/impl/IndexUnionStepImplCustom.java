@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -34,7 +36,7 @@ import reactor.core.publisher.Flux;
  * e.g. {@code 'arr[4, 7, 11]'.}
  *
  * Grammar:{@code  Step: '[' Subscript ']' ;
- * 
+ *
 <p>
  * Subscript returns Step: {IndexUnionStep} indices+=JSONNUMBER ','
  * indices+=JSONNUMBER (',' indices+=JSONNUMBER)* ;}

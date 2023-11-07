@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -118,7 +120,7 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
                 () -> assertThat(subscription.getAction(),
                         is(jsonObject()
                                   .where("java", is(jsonObject()
-                                        .where("arguments",                                                
+                                        .where("arguments",
                                             is(jsonArray(containsInAnyOrder(
                                                 jsonInt(1),
                                                 jsonText("X"))
@@ -126,7 +128,7 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
                 () -> assertThat(subscription.getResource(),
                         is(jsonObject()
                                   .where("java", is(jsonObject()
-                                        .where("instanceof",                                                
+                                        .where("instanceof",
                                             is(jsonArray(containsInAnyOrder(
                                                 jsonObject().where("simpleName",is(jsonText("TestClass"))),
                                                 jsonObject().where("simpleName",is(jsonText("Object"))))))))))),
@@ -172,13 +174,13 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
                 () -> assertThat(subscription.getAction(),
                         is(jsonObject()
                                   .where("java", is(jsonObject()
-                                        .where("arguments",                                                
+                                        .where("arguments",
                                                 jsonMissing()))
                                             ))),
                 () -> assertThat(subscription.getResource(),
                         is(jsonObject()
                                   .where("java", is(jsonObject()
-                                        .where("instanceof",                                                
+                                        .where("instanceof",
                                             is(jsonArray(containsInAnyOrder(
                                                 jsonObject().where("simpleName",is(jsonText("TestClass"))),
                                                 jsonObject().where("simpleName",is(jsonText("Object"))))))))))),
@@ -221,7 +223,7 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
                 () -> assertThat(subscription.getResource(),
                         is(jsonObject()
                                   .where("java", is(jsonObject()
-                                        .where("instanceof",                                                
+                                        .where("instanceof",
                                             is(jsonArray(containsInAnyOrder(
                                                 jsonObject().where("simpleName",is(jsonText("TestClass"))),
                                                 jsonObject().where("simpleName",is(jsonText("Object"))))))))))),
@@ -249,7 +251,7 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
 						  is(jsonObject()
 								  .where("http", is(jsonMissing()))
 								  .where("java", is(jsonObject()
-										.where("instanceof",												
+										.where("instanceof",
 											is(jsonArray(containsInAnyOrder(
 												jsonObject().where("simpleName",is(jsonText("TestClass"))),
 												jsonObject().where("simpleName",is(jsonText("Object"))))))))))),

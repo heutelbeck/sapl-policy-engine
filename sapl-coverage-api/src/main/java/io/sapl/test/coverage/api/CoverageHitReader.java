@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -30,7 +32,7 @@ public interface CoverageHitReader {
     /**
      * Internal method used by SAPL Coverage Reading to read all hits of
      * io.sapl.grammar.sapl.PolicySet's
-     * 
+     *
      * @return List of {@link PolicySetHit}
      */
     List<PolicySetHit> readPolicySetHits() throws IOException;
@@ -38,7 +40,7 @@ public interface CoverageHitReader {
     /**
      * Internal method used by SAPL Coverage Reading to read all hits of
      * io.sapl.grammar.sapl.Policy's
-     * 
+     *
      * @return List of {@link PolicySetHit}
      */
     List<PolicyHit> readPolicyHits() throws IOException;
@@ -46,9 +48,9 @@ public interface CoverageHitReader {
     /**
      * Internal method used by SAPL Coverage Reading to read all hits of
      * io.sapl.grammar.sapl.Condition's
-     * 
+     *
      * @return List of {@link PolicySetHit}
-     * @throws IOException 
+     * @throws IOException
      */
     List<PolicyConditionHit> readPolicyConditionHits() throws IOException;
 

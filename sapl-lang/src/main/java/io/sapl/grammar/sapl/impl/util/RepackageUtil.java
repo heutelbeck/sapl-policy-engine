@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -35,8 +37,7 @@ public class RepackageUtil {
             var key     = element.getT1();
             var value   = element.getT2();
             tracedElements[elementCount++] = new ExpressionArgument(key, value);
-            if (value.isError() 
-                    && error == null) {
+            if (value.isError() && error == null) {
                 error = value;
             } else if (value.isDefined()) { // drop undefined
                 object.set(element.getT1(), element.getT2().get());
