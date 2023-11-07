@@ -418,8 +418,13 @@
 						<config>SCRIPT_STYLE</config>
 					</mapping>
 				</configuration>
-				<!-- To check every build:
-				<executions><execution><goals><goal>check</goal></goals></execution></executions> -->
+				<!--<executions>
+					<execution>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>-->
 			</plugin>
 			<plugin>
 				<groupId>org.sonarsource.scanner.maven</groupId>
