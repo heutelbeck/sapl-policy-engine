@@ -80,7 +80,7 @@ public class ContentFilterUtil {
     private static final String UNKNOWN_ACTION_S                = "Unknown action type: '%s'.";
     private static final String ACTION_NOT_AN_OBJECT            = "An action in 'actions' is not an object.";
     private static final String ACTIONS_NOT_AN_ARRAY            = "'actions' is not an array.";
-    private static final int BLACKEN_LENGTH_INVALID_VALUE = -1;
+    private static final int    BLACKEN_LENGTH_INVALID_VALUE    = -1;
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
@@ -445,8 +445,8 @@ public class ContentFilterUtil {
             var discloseLeft      = getIntegerValueOfActionKeyOrDefaultToZero(action, DISCLOSE_LEFT);
             var blackenLength     = determineBlackenLength(action);
 
-            return JSON.textNode(blackenUtil(originalString, replacementString, discloseRight, discloseLeft,
-                    blackenLength));
+            return JSON.textNode(
+                    blackenUtil(originalString, replacementString, discloseRight, discloseLeft, blackenLength));
         };
     }
 
@@ -462,7 +462,8 @@ public class ContentFilterUtil {
         throw new AccessConstraintViolationException(LENGTH_NOT_NUMBER);
     }
 
-    private static String blackenUtil(String originalString, String replacement, int discloseRight, int discloseLeft, int blackenLength){
+    private static String blackenUtil(String originalString, String replacement, int discloseRight, int discloseLeft,
+            int blackenLength) {
         if (discloseLeft + discloseRight >= originalString.length())
             return originalString;
 
