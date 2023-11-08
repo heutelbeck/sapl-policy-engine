@@ -30,6 +30,8 @@ import java.util.Optional;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.functions.FunctionLibrarySupplier;
+import io.sapl.api.functions.StaticFunctionLibrarySupplier;
 import io.sapl.api.interpreter.ExpressionArgument;
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.InitializationException;
@@ -60,14 +62,42 @@ public class AnnotationFunctionContext implements FunctionContext {
     private List<String> codeTemplateCache;
 
     /**
-     * Create context from a list of function libraries.
+     * Create context from a supplied libraries.
      *
-     * @param libraries list of function libraries @ if loading libraries fails
-     * @throws InitializationException if initialization fails
+     * @param librariesSupplier       supplies instantiated libraries
+     * @param staticLibrariesSupplier supplies libraries contained in utility
+     *                                classes with static methods as functions
+     * @throws InitializationException if initialization fails.
      */
-    public AnnotationFunctionContext(Object... libraries) throws InitializationException {
-        for (Object library : libraries)
+    public AnnotationFunctionContext(FunctionLibrarySupplier librariesSupplier,
+            StaticFunctionLibrarySupplier staticLibrariesSupplier) throws InitializationException {
+        loadLibraries(librariesSupplier);
+        loadLibraries(staticLibrariesSupplier);
+    }
+
+    /**
+     * Loads supplied library instances into the context.
+     *
+     * @param staticLibrariesSupplier supplies libraries contained in utility
+     *                                classes with static methods as functions
+     * @throws InitializationException if initialization fails.
+     */
+    public void loadLibraries(StaticFunctionLibrarySupplier staticLibrariesSupplier) throws InitializationException {
+        for (var library : staticLibrariesSupplier.get()) {
             loadLibrary(library);
+        }
+    }
+
+    /**
+     * Loads supplied static libraries into the context.
+     *
+     * @param librariesSupplier supplies instantiated libraries.
+     * @throws InitializationException if initialization fails.
+     */
+    public void loadLibraries(FunctionLibrarySupplier librariesSupplier) throws InitializationException {
+        for (var library : librariesSupplier.get()) {
+            loadLibrary(library);
+        }
     }
 
     @Override
@@ -137,10 +167,22 @@ public class AnnotationFunctionContext implements FunctionContext {
                 params.toString(), e.getMessage());
     }
 
+    /**
+     * Loads a library into the context.
+     *
+     * @param library a library instance
+     * @throws InitializationException if initialization fails.
+     */
     public final void loadLibrary(Object library) throws InitializationException {
-        Class<?> clazz = library.getClass();
+        loadLibrary(library, library.getClass());
+    }
 
-        FunctionLibrary libAnnotation = clazz.getAnnotation(FunctionLibrary.class);
+    public final void loadLibrary(Class<?> libraryType) throws InitializationException {
+        loadLibrary(null, libraryType);
+    }
+
+    public final void loadLibrary(Object library, Class<?> libraryType) throws InitializationException {
+        var libAnnotation = libraryType.getAnnotation(FunctionLibrary.class);
 
         if (libAnnotation == null) {
             throw new InitializationException(CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION_ERROR);
@@ -148,13 +190,13 @@ public class AnnotationFunctionContext implements FunctionContext {
 
         String libName = libAnnotation.name();
         if (libName.isEmpty()) {
-            libName = clazz.getSimpleName();
+            libName = libraryType.getSimpleName();
         }
         libraries.put(libName, new HashSet<>());
 
         LibraryDocumentation libDocs = new LibraryDocumentation(libName, libAnnotation.description());
 
-        for (Method method : clazz.getDeclaredMethods()) {
+        for (Method method : libraryType.getDeclaredMethods()) {
             if (method.isAnnotationPresent(Function.class)) {
                 importFunction(library, libName, libDocs, method);
             }
