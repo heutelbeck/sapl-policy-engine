@@ -36,9 +36,6 @@ public class PolicyInformationPointDocumentation {
     @NonNull
     String description;
 
-    @NonNull
-    Object policyInformationPoint;
-
     Map<String, String> documentation = new HashMap<>();
 
 }

@@ -54,10 +54,8 @@ public class AnnotationFunctionContext implements FunctionContext {
     private static final String ILLEGAL_RETURN_TYPE_FOR_IMPORT_ERROR           = "Function does not return a Val. Cannot be loaded. Type was: %s.";
 
     private final Collection<LibraryDocumentation> documentation = new LinkedList<>();
-
-    private final Map<String, FunctionMetadata> functions = new HashMap<>();
-
-    private final Map<String, Collection<String>> libraries = new HashMap<>();
+    private final Map<String, FunctionMetadata>    functions     = new HashMap<>();
+    private final Map<String, Collection<String>>  libraries     = new HashMap<>();
 
     private List<String> codeTemplateCache;
 
@@ -154,7 +152,7 @@ public class AnnotationFunctionContext implements FunctionContext {
         }
         libraries.put(libName, new HashSet<>());
 
-        LibraryDocumentation libDocs = new LibraryDocumentation(libName, libAnnotation.description(), library);
+        LibraryDocumentation libDocs = new LibraryDocumentation(libName, libAnnotation.description());
 
         for (Method method : clazz.getDeclaredMethods()) {
             if (method.isAnnotationPresent(Function.class)) {

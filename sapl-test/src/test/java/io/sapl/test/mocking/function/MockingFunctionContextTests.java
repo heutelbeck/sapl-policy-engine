@@ -36,7 +36,6 @@ import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.functions.LibraryDocumentation;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.unit.TestPIP;
 
 class MockingFunctionContextTests {
 
@@ -141,7 +140,7 @@ class MockingFunctionContextTests {
     @Test
     void test_documentation() {
         this.ctx.addNewLibraryDocumentation("foo.bar", new FunctionMockAlwaysSameValue("foo.bar", Val.of(1), times(1)));
-        var unmockedDoc = new LibraryDocumentation("test", "Test", new TestPIP());
+        var unmockedDoc = new LibraryDocumentation("test", "Test");
         unmockedDoc.getDocumentation().put("upper", "blabla");
         when(this.unmockedCtx.getDocumentation()).thenReturn(List.of(unmockedDoc));
 

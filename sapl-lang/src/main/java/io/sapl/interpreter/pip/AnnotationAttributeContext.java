@@ -319,7 +319,7 @@ public class AnnotationAttributeContext implements AttributeContext {
                     String.format(A_PIP_WITH_THE_NAME_S_HAS_ALREADY_BEEN_REGISTERED_ERROR, pipName));
 
         attributeNamesByPipName.put(pipName, new HashSet<>());
-        var pipDocumentation = new PolicyInformationPointDocumentation(pipName, pipAnnotation.description(), pip);
+        var pipDocumentation = new PolicyInformationPointDocumentation(pipName, pipAnnotation.description());
         pipDocumentation.setName(pipName);
         pipDocumentations.add(pipDocumentation);
 
