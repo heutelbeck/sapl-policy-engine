@@ -43,8 +43,9 @@ public class FilterFunctionLibrary {
 
     private static final int DEFAULT_NUMBER_OF_CHARACTERS_TO_SHOW_RIGHT = 0;
 
-    private static final String BLACKEN_DOC = "blacken(STRING, DISCLOSE_LEFT, DISCLOSE_RIGHT, REPLACEMENT): Assumes that DISCLOSE_LEFT and DISCLOSE_RIGHT are positive integers and STRING and REPLACEMENT are strings."
+    private static final String BLACKEN_DOC = "blacken(STRING, DISCLOSE_LEFT, DISCLOSE_RIGHT, REPLACEMENT, LENGTH): Assumes that DISCLOSE_LEFT, DISCLOSE_RIGHT and LENGTH are positive integers and STRING and REPLACEMENT are strings."
             + " Replaces each character in STRING by REPLACEMENT, leaving DISCLOSE_LEFT characters from the beginning and DISCLOSE_RIGHT characters from the end unchanged."
+            + " If LENGTH is provided, the number of characters replaced is set to LENGTH. If not provided it will just replace all characters that are not disclosed."
             + " Except for STRING, all parameters are optional."
             + " DISCLOSE_LEFT defaults to 0, DISCLOSE_RIGHT defaults to 0 and REPLACEMENT defaults to 'X'"
             + " Returns the modified STRING.";
@@ -61,6 +62,8 @@ public class FilterFunctionLibrary {
 
     private static final String ILLEGAL_PARAMETER_REPLACEMENT = "Illegal parameter for REPLACEMENT. Expecting a string.";
 
+    private static final String ILLEGAL_PARAMETER_BLACKEN_LENGTH = "Illegal parameter for BLACKEN_TYPE. Expecting a integer representing a type of blacken.";
+
     private static final String ILLEGAL_PARAMETER_STRING = "Illegal parameter for STRING. Expecting a string.";
 
     private static final int ORIGINAL_STRING_INDEX = 0;
@@ -71,15 +74,11 @@ public class FilterFunctionLibrary {
 
     private static final int REPLACEMENT_INDEX = 3;
 
-    private static final int MAXIMAL_NUMBER_OF_PARAMETERS_FOR_BLACKEN = 4;
+    private static final int BLACKEN_TYPE_INDEX = 4;
 
-    /**
-     * Even though there are only static methods in this class, the engine requires
-     * an instance for registration.
-     */
-    public FilterFunctionLibrary() {
-        // NOOP.
-    }
+    private static final int BLACKEN_LENGTH_INVALID_VALUE = -1;
+
+    private static final int MAXIMAL_NUMBER_OF_PARAMETERS_FOR_BLACKEN = 5;
 
     /**
      * Replaces a section of a text with a fixed character.
@@ -90,75 +89,109 @@ public class FilterFunctionLibrary {
      *                   original on the right side of the string, REPLACEMENT the
      *                   replacement characters, defaulting to X.
      * @return the original Text value with the indicated characters replaced with
-     *         the replacement characters.
+     * the replacement characters.
      */
     @Function(docs = BLACKEN_DOC)
     public static Val blacken(Val... parameters) {
-        validateNumberOfParametersIsAtMostFour(parameters);
+        validateNumberOfParametersIsNotLongerThanMaximalAllowedNumberOfParameters(parameters);
         var originalString = extractOriginalTextFromParameters(parameters);
-        var replacement    = extractReplacementStringFromParametersOrUseDefault(parameters);
-        var discloseRight  = extractNumberOfCharactersToDiscloseOnTheRightSideFromParametersOrUseDefault(parameters);
-        int discloseLeft   = extractNumberOfCharactersToDiscloseOnTheLeftSideFromParametersOrUseDefault(parameters);
-        return blacken(originalString, replacement, discloseRight, discloseLeft);
+        var replacement = extractReplacementStringFromParametersOrUseDefault(parameters);
+        var discloseRight = extractNumberOfCharactersToDiscloseOnTheRightSideFromParametersOrUseDefault(parameters);
+        int discloseLeft = extractNumberOfCharactersToDiscloseOnTheLeftSideFromParametersOrUseDefault(parameters);
+        int blackenLength = extractLengthOfBlackenOrUseDefault(parameters);
+        return blacken(originalString, replacement, discloseRight, discloseLeft, blackenLength);
     }
 
-    private static Val blacken(String originalString, String replacement, int discloseRight, int discloseLeft) {
+    private static Val blacken(String originalString, String replacement, int discloseRight, int discloseLeft, int blackenLength) {
+        return Val.of((blackenUtil(originalString, replacement, discloseRight, discloseLeft, blackenLength)));
+    }
+
+    public static String blackenUtil(String originalString, String replacement, int discloseRight, int discloseLeft, int blackenLength){
         if (discloseLeft + discloseRight >= originalString.length())
-            return Val.of(originalString);
+            return originalString;
 
         StringBuilder result = new StringBuilder();
         if (discloseLeft > 0) {
             result.append(originalString, 0, discloseLeft);
         }
+
         int replacedChars = originalString.length() - discloseLeft - discloseRight;
-        result.append(String.valueOf(replacement).repeat(Math.max(0, replacedChars)));
+
+        int blackenFinalLength = (blackenLength == BLACKEN_LENGTH_INVALID_VALUE) ? replacedChars : blackenLength;
+
+        result.append(String.valueOf(replacement).repeat(blackenFinalLength));
         if (discloseRight > 0) {
             result.append(originalString.substring(discloseLeft + replacedChars));
         }
-        return Val.of(result.toString());
+        return result.toString();
     }
 
     private static int extractNumberOfCharactersToDiscloseOnTheLeftSideFromParametersOrUseDefault(Val... parameters) {
-        int discloseLeft = DEFAULT_NUMBER_OF_CHARACTERS_TO_SHOW_LEFT;
-        if (parameters.length >= DISCLOSE_RIGHT_INDEX) {
-            if (!parameters[DISCLOSE_LEFT_INDEX].isNumber() || parameters[DISCLOSE_LEFT_INDEX].get().asInt() < 0) {
-                throw new IllegalArgumentException(ILLEGAL_PARAMETER_DISCLOSE_LEFT);
-            }
-            discloseLeft = parameters[DISCLOSE_LEFT_INDEX].get().asInt();
+        if (!validateParameterSanity(parameters.length, DISCLOSE_LEFT_INDEX)) {
+            return DEFAULT_NUMBER_OF_CHARACTERS_TO_SHOW_LEFT;
         }
-        return discloseLeft;
+
+        if (!parameters[DISCLOSE_LEFT_INDEX].isNumber() || parameters[DISCLOSE_LEFT_INDEX].get().asInt() < 0) {
+            throw new IllegalArgumentException(ILLEGAL_PARAMETER_DISCLOSE_LEFT);
+        }
+        return parameters[DISCLOSE_LEFT_INDEX].get().asInt();
     }
 
     private static int extractNumberOfCharactersToDiscloseOnTheRightSideFromParametersOrUseDefault(Val... parameters) {
-        int discloseRight = DEFAULT_NUMBER_OF_CHARACTERS_TO_SHOW_RIGHT;
-        if (parameters.length >= REPLACEMENT_INDEX) {
-            if (!parameters[DISCLOSE_RIGHT_INDEX].isNumber() || parameters[DISCLOSE_RIGHT_INDEX].get().asInt() < 0) {
-                throw new IllegalArgumentException(ILLEGAL_PARAMETER_DISCLOSE_RIGHT);
-            }
-            discloseRight = parameters[DISCLOSE_RIGHT_INDEX].get().asInt();
+        if (!validateParameterSanity(parameters.length, DISCLOSE_RIGHT_INDEX)) {
+            return DEFAULT_NUMBER_OF_CHARACTERS_TO_SHOW_RIGHT;
         }
-        return discloseRight;
+
+        if (!parameters[DISCLOSE_RIGHT_INDEX].isNumber() || parameters[DISCLOSE_RIGHT_INDEX].get().asInt() < 0) {
+            throw new IllegalArgumentException(ILLEGAL_PARAMETER_DISCLOSE_RIGHT);
+        }
+        return parameters[DISCLOSE_RIGHT_INDEX].get().asInt();
     }
 
     private static String extractReplacementStringFromParametersOrUseDefault(Val... parameters) {
-        String replacement = DEFAULT_REPLACEMENT;
-        if (parameters.length == MAXIMAL_NUMBER_OF_PARAMETERS_FOR_BLACKEN) {
-            if (!parameters[REPLACEMENT_INDEX].isTextual()) {
-                throw new IllegalArgumentException(ILLEGAL_PARAMETER_REPLACEMENT);
-            }
-            replacement = parameters[REPLACEMENT_INDEX].get().asText();
+        if (!validateParameterSanity(parameters.length, REPLACEMENT_INDEX)) {
+            return DEFAULT_REPLACEMENT;
         }
-        return replacement;
+
+        if (!parameters[REPLACEMENT_INDEX].isTextual()) {
+            throw new IllegalArgumentException(ILLEGAL_PARAMETER_REPLACEMENT);
+        }
+        return parameters[REPLACEMENT_INDEX].get().asText();
     }
 
     private static String extractOriginalTextFromParameters(Val... parameters) {
-        if (!parameters[0].isTextual()) {
+        if (!validateParameterSanity(parameters.length, ORIGINAL_STRING_INDEX) || !parameters[ORIGINAL_STRING_INDEX].isTextual()) {
             throw new IllegalArgumentException(ILLEGAL_PARAMETER_STRING);
         }
+
         return parameters[ORIGINAL_STRING_INDEX].get().asText();
     }
 
-    private static void validateNumberOfParametersIsAtMostFour(Val... parameters) {
+    /**
+     * Extracts the length of blacken from the parameters or returns {@link #BLACKEN_LENGTH_INVALID_VALUE}
+     * @param parameters the parameters to extract the length from (if possible)
+     * @return the length of blacken or {@link #BLACKEN_LENGTH_INVALID_VALUE} if the length is not a valid number
+     * @throws IllegalArgumentException if the length is not a valid number
+     */
+    private static int extractLengthOfBlackenOrUseDefault(Val... parameters) {
+        if (!validateParameterSanity(parameters.length, BLACKEN_TYPE_INDEX)) {
+            // Very hacky solution, as primitive types don´t allow null
+            // and anything else would require dedicated classes and logic.
+            return BLACKEN_LENGTH_INVALID_VALUE;
+        }
+
+        if (!parameters[BLACKEN_TYPE_INDEX].isNumber() || parameters[BLACKEN_TYPE_INDEX].get().asInt() < 0) {
+            throw new IllegalArgumentException(ILLEGAL_PARAMETER_BLACKEN_LENGTH);
+        }
+
+        return parameters[BLACKEN_TYPE_INDEX].get().asInt();
+    }
+
+    private static boolean validateParameterSanity(int lengthParameters, int parameterIndex) {
+        return lengthParameters >= parameterIndex + 1;
+    }
+
+    private static void validateNumberOfParametersIsNotLongerThanMaximalAllowedNumberOfParameters(Val... parameters) {
         if (parameters.length > MAXIMAL_NUMBER_OF_PARAMETERS_FOR_BLACKEN) {
             throw new IllegalArgumentException(ILLEGAL_PARAMETERS_COUNT);
         }
@@ -186,5 +219,4 @@ public class FilterFunctionLibrary {
     public static Val remove(Val original) {
         return Val.UNDEFINED;
     }
-
 }

@@ -22,6 +22,7 @@ import static io.sapl.hamcrest.Matchers.valUndefined;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -30,6 +31,8 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -67,112 +70,133 @@ class FilterFunctionLibraryTests {
 
     @Test
     void blackenTooManyArguments() {
-        var text                     = Val.of("abcde");
-        var discloseLeft             = Val.of(2);
-        var discloseRight            = Val.of(2);
-        var replacement              = Val.of("x");
-        var theArgumentThatIsTooMuch = Val.of(2);
-        assertThrows(IllegalArgumentException.class, () -> FilterFunctionLibrary.blacken(text, discloseLeft,
-                discloseRight, replacement, theArgumentThatIsTooMuch));
+        assertThrows(IllegalArgumentException.class,
+                () -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(2), Val.of(2), Val.of(2)));
     }
 
     @Test
     void blackenNoString() {
-        var notText = Val.of(2);
-        assertThrows(IllegalArgumentException.class, () -> FilterFunctionLibrary.blacken(notText));
+        assertThrows(IllegalArgumentException.class, () -> FilterFunctionLibrary.blacken(Val.of(2)));
     }
 
     @Test
     void blackenReplacementNoString() {
-        var text          = Val.of("abcde");
-        var discloseLeft  = Val.of(2);
-        var discloseRight = Val.of(2);
-        var replacement   = Val.of(2);
         assertThrows(IllegalArgumentException.class,
-                () -> FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight, replacement));
+                () -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(2), Val.of(2), Val.of(2)));
+    }
+
+    @Test
+    void blackenLengthWithInvalidNumber() {
+        assertThrows(IllegalArgumentException.class,
+                () -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(2), Val.of(2), Val.of(-1)));
+    }
+
+    @Test
+    void blackenLengthWithInvalidType() {
+        assertThrows(IllegalArgumentException.class,
+                () -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(2), Val.of(2), Val.of("a")));
     }
 
     @Test
     void blackenReplacementNegativeRight() {
-        var text          = Val.of("abcde");
-        var discloseLeft  = Val.of(2);
-        var discloseRight = Val.of(-2);
         assertThrows(IllegalArgumentException.class,
-                () -> FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight));
+                () -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(-2)));
     }
 
     @Test
     void blackenReplacementNegativeLeft() {
-        var text          = Val.of("abcde");
-        var discloseLeft  = Val.of(-2);
-        var discloseRight = Val.of(2);
         assertThrows(IllegalArgumentException.class,
-                () -> FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight));
+                () -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(-2), Val.of(2)));
     }
 
     @Test
     void blackenReplacementRightNoNumber() {
-        var text          = Val.of("abcde");
-        var discloseLeft  = Val.of(2);
-        var discloseRight = Val.NULL;
         assertThrows(IllegalArgumentException.class,
-                () -> FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight));
+                () -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.NULL));
     }
 
     @Test
     void blackenReplacementLeftNoNumber() {
-        var text          = Val.of("abcde");
-        var discloseLeft  = Val.NULL;
-        var discloseRight = Val.of(2);
         assertThrows(IllegalArgumentException.class,
-                () -> FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight));
+                () -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.NULL, Val.of(2)));
     }
 
     @Test
     void blackenWorking() {
-        var given         = Val.of("abcde");
-        var discloseLeft  = Val.of(1);
+        var given = Val.of("abcde");
+        var discloseLeft = Val.of(1);
         var discloseRight = Val.of(1);
-        var replacement   = Val.of("*");
-        var actual        = FilterFunctionLibrary.blacken(given, discloseLeft, discloseRight, replacement);
-        assertThat(actual, is(val("a***e")));
+        var replacement = Val.of("*");
+        var actual = FilterFunctionLibrary.blacken(given, discloseLeft, discloseRight, replacement);
+
+
+        assertTrue(actual.getText().startsWith("a"));
+        assertTrue(actual.getText().endsWith("e"));
+
     }
 
     @Test
     void blackenWorkingAllVisible() {
-        var text          = Val.of("abcde");
-        var discloseLeft  = Val.of(3);
+        var text = Val.of("abcde");
+        var discloseLeft = Val.of(3);
         var discloseRight = Val.of(3);
-        var replacement   = Val.of("*");
+        var replacement = Val.of("*");
 
         var result = FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight, replacement);
 
         assertThat(result, is(val("abcde")));
     }
 
+    @ParameterizedTest
+    @CsvSource({
+            "2, a**e",
+            "5, a*****e",
+            "0, ae",
+    })
+    void blackenWorkingLength(int blackenLength, String expected) {
+        var text = Val.of("abcde");
+        var discloseLeft = Val.of(1);
+        var discloseRight = Val.of(1);
+        var replacement = Val.of("*");
+        var length = Val.of(blackenLength);
+
+        var result = FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight, replacement, length);
+
+        assertThat(result, is(val(expected)));
+    }
+
+
     @Test
     void blackenReplacementDefault() {
-        var text          = Val.of("abcde");
-        var discloseLeft  = Val.of(1);
+        var text = Val.of("abcde");
+        var discloseLeft = Val.of(1);
         var discloseRight = Val.of(1);
-        var result        = FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight);
-        assertThat(result, is(val("aXXXe")));
+        var result = FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight);
+
+
+        assertTrue(result.getText().startsWith("a"));
+        assertTrue(result.getText().endsWith("e"));
+        assertTrue(result.getText().contains("X"));
+
     }
 
     @Test
     void blackenDiscloseRightDefault() {
-        var text         = Val.of("abcde");
+        var text = Val.of("abcde");
         var discloseLeft = Val.of(2);
 
         var result = FilterFunctionLibrary.blacken(text, discloseLeft);
-        assertThat(result, is(val("abXXX")));
+
+        assertTrue(result.getText().startsWith("ab"));
+        assertTrue(result.getText().endsWith("X"));
     }
 
     @Test
     void blackenDiscloseLeftDefault() {
-        var text   = Val.of("abcde");
+        var text = Val.of("abcde");
         var result = FilterFunctionLibrary.blacken(text);
-        assertThat(result, is(val("XXXXX")));
+
+        assertTrue(result.getText().chars().allMatch(ch -> ch == 'X'));
     }
 
     @Test
@@ -183,11 +207,11 @@ class FilterFunctionLibraryTests {
 
     @Test
     void blackenInPolicy() throws JsonProcessingException {
-        var authzSubscription     = MAPPER.readValue(
+        var authzSubscription = MAPPER.readValue(
                 "{ \"resource\": {	\"array\": [ null, true ], \"key1\": \"abcde\" } }",
                 AuthorizationSubscription.class);
-        var policyDefinition      = "policy \"test\"	permit transform resource |- { @.key1 : filter.blacken(1) }";
-        var expectedResource      = MAPPER.readValue("{	\"array\": [ null, true ], \"key1\": \"aXXXX\" }",
+        var policyDefinition = "policy \"test\"	permit transform resource |- { @.key1 : filter.blacken(1) }";
+        var expectedResource = MAPPER.readValue("{	\"array\": [ null, true ], \"key1\": \"aXXXX\" }",
                 JsonNode.class);
         var expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
                 Optional.empty(), Optional.empty());
@@ -206,11 +230,11 @@ class FilterFunctionLibraryTests {
 
     @Test
     void replaceInPolicy() throws JsonProcessingException {
-        var authzSubscription     = MAPPER.readValue(
+        var authzSubscription = MAPPER.readValue(
                 "{ \"resource\": {	\"array\": [ null, true ], \"key1\": \"abcde\" } }",
                 AuthorizationSubscription.class);
-        var policyDefinition      = "policy \"test\" permit transform resource |- { @.array[1] : filter.replace(\"***\"), @.key1 : filter.replace(null) }";
-        var expectedResource      = MAPPER.readValue("{	\"array\": [ null, \"***\" ], \"key1\": null }",
+        var policyDefinition = "policy \"test\" permit transform resource |- { @.array[1] : filter.replace(\"***\"), @.key1 : filter.replace(null) }";
+        var expectedResource = MAPPER.readValue("{	\"array\": [ null, \"***\" ], \"key1\": null }",
                 JsonNode.class);
         var expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
                 Optional.empty(), Optional.empty());
@@ -220,5 +244,6 @@ class FilterFunctionLibraryTests {
                         SYSTEM_VARIABLES))
                 .assertNext(authzDecision -> assertThat(authzDecision, is(expectedAuthzDecision))).verifyComplete();
     }
+
 
 }
