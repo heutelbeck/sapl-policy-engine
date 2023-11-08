@@ -89,24 +89,26 @@ public class FilterFunctionLibrary {
      *                   original on the right side of the string, REPLACEMENT the
      *                   replacement characters, defaulting to X.
      * @return the original Text value with the indicated characters replaced with
-     * the replacement characters.
+     *         the replacement characters.
      */
     @Function(docs = BLACKEN_DOC)
     public static Val blacken(Val... parameters) {
         validateNumberOfParametersIsNotLongerThanMaximalAllowedNumberOfParameters(parameters);
         var originalString = extractOriginalTextFromParameters(parameters);
-        var replacement = extractReplacementStringFromParametersOrUseDefault(parameters);
-        var discloseRight = extractNumberOfCharactersToDiscloseOnTheRightSideFromParametersOrUseDefault(parameters);
-        int discloseLeft = extractNumberOfCharactersToDiscloseOnTheLeftSideFromParametersOrUseDefault(parameters);
-        int blackenLength = extractLengthOfBlackenOrUseDefault(parameters);
+        var replacement    = extractReplacementStringFromParametersOrUseDefault(parameters);
+        var discloseRight  = extractNumberOfCharactersToDiscloseOnTheRightSideFromParametersOrUseDefault(parameters);
+        int discloseLeft   = extractNumberOfCharactersToDiscloseOnTheLeftSideFromParametersOrUseDefault(parameters);
+        int blackenLength  = extractLengthOfBlackenOrUseDefault(parameters);
         return blacken(originalString, replacement, discloseRight, discloseLeft, blackenLength);
     }
 
-    private static Val blacken(String originalString, String replacement, int discloseRight, int discloseLeft, int blackenLength) {
+    private static Val blacken(String originalString, String replacement, int discloseRight, int discloseLeft,
+            int blackenLength) {
         return Val.of((blackenUtil(originalString, replacement, discloseRight, discloseLeft, blackenLength)));
     }
 
-    public static String blackenUtil(String originalString, String replacement, int discloseRight, int discloseLeft, int blackenLength){
+    public static String blackenUtil(String originalString, String replacement, int discloseRight, int discloseLeft,
+            int blackenLength) {
         if (discloseLeft + discloseRight >= originalString.length())
             return originalString;
 
@@ -160,7 +162,8 @@ public class FilterFunctionLibrary {
     }
 
     private static String extractOriginalTextFromParameters(Val... parameters) {
-        if (!validateParameterSanity(parameters.length, ORIGINAL_STRING_INDEX) || !parameters[ORIGINAL_STRING_INDEX].isTextual()) {
+        if (!validateParameterSanity(parameters.length, ORIGINAL_STRING_INDEX)
+                || !parameters[ORIGINAL_STRING_INDEX].isTextual()) {
             throw new IllegalArgumentException(ILLEGAL_PARAMETER_STRING);
         }
 
@@ -168,9 +171,12 @@ public class FilterFunctionLibrary {
     }
 
     /**
-     * Extracts the length of blacken from the parameters or returns {@link #BLACKEN_LENGTH_INVALID_VALUE}
+     * Extracts the length of blacken from the parameters or returns
+     * {@link #BLACKEN_LENGTH_INVALID_VALUE}
+     *
      * @param parameters the parameters to extract the length from (if possible)
-     * @return the length of blacken or {@link #BLACKEN_LENGTH_INVALID_VALUE} if the length is not a valid number
+     * @return the length of blacken or {@link #BLACKEN_LENGTH_INVALID_VALUE} if the
+     *         length is not a valid number
      * @throws IllegalArgumentException if the length is not a valid number
      */
     private static int extractLengthOfBlackenOrUseDefault(Val... parameters) {

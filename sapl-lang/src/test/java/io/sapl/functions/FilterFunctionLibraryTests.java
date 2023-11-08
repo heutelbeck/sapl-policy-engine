@@ -123,12 +123,11 @@ class FilterFunctionLibraryTests {
 
     @Test
     void blackenWorking() {
-        var given = Val.of("abcde");
-        var discloseLeft = Val.of(1);
+        var given         = Val.of("abcde");
+        var discloseLeft  = Val.of(1);
         var discloseRight = Val.of(1);
-        var replacement = Val.of("*");
-        var actual = FilterFunctionLibrary.blacken(given, discloseLeft, discloseRight, replacement);
-
+        var replacement   = Val.of("*");
+        var actual        = FilterFunctionLibrary.blacken(given, discloseLeft, discloseRight, replacement);
 
         assertTrue(actual.getText().startsWith("a"));
         assertTrue(actual.getText().endsWith("e"));
@@ -137,10 +136,10 @@ class FilterFunctionLibraryTests {
 
     @Test
     void blackenWorkingAllVisible() {
-        var text = Val.of("abcde");
-        var discloseLeft = Val.of(3);
+        var text          = Val.of("abcde");
+        var discloseLeft  = Val.of(3);
         var discloseRight = Val.of(3);
-        var replacement = Val.of("*");
+        var replacement   = Val.of("*");
 
         var result = FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight, replacement);
 
@@ -148,31 +147,25 @@ class FilterFunctionLibraryTests {
     }
 
     @ParameterizedTest
-    @CsvSource({
-            "2, a**e",
-            "5, a*****e",
-            "0, ae",
-    })
+    @CsvSource({ "2, a**e", "5, a*****e", "0, ae", })
     void blackenWorkingLength(int blackenLength, String expected) {
-        var text = Val.of("abcde");
-        var discloseLeft = Val.of(1);
+        var text          = Val.of("abcde");
+        var discloseLeft  = Val.of(1);
         var discloseRight = Val.of(1);
-        var replacement = Val.of("*");
-        var length = Val.of(blackenLength);
+        var replacement   = Val.of("*");
+        var length        = Val.of(blackenLength);
 
         var result = FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight, replacement, length);
 
         assertThat(result, is(val(expected)));
     }
 
-
     @Test
     void blackenReplacementDefault() {
-        var text = Val.of("abcde");
-        var discloseLeft = Val.of(1);
+        var text          = Val.of("abcde");
+        var discloseLeft  = Val.of(1);
         var discloseRight = Val.of(1);
-        var result = FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight);
-
+        var result        = FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight);
 
         assertTrue(result.getText().startsWith("a"));
         assertTrue(result.getText().endsWith("e"));
@@ -182,7 +175,7 @@ class FilterFunctionLibraryTests {
 
     @Test
     void blackenDiscloseRightDefault() {
-        var text = Val.of("abcde");
+        var text         = Val.of("abcde");
         var discloseLeft = Val.of(2);
 
         var result = FilterFunctionLibrary.blacken(text, discloseLeft);
@@ -193,7 +186,7 @@ class FilterFunctionLibraryTests {
 
     @Test
     void blackenDiscloseLeftDefault() {
-        var text = Val.of("abcde");
+        var text   = Val.of("abcde");
         var result = FilterFunctionLibrary.blacken(text);
 
         assertTrue(result.getText().chars().allMatch(ch -> ch == 'X'));
@@ -207,11 +200,11 @@ class FilterFunctionLibraryTests {
 
     @Test
     void blackenInPolicy() throws JsonProcessingException {
-        var authzSubscription = MAPPER.readValue(
+        var authzSubscription     = MAPPER.readValue(
                 "{ \"resource\": {	\"array\": [ null, true ], \"key1\": \"abcde\" } }",
                 AuthorizationSubscription.class);
-        var policyDefinition = "policy \"test\"	permit transform resource |- { @.key1 : filter.blacken(1) }";
-        var expectedResource = MAPPER.readValue("{	\"array\": [ null, true ], \"key1\": \"aXXXX\" }",
+        var policyDefinition      = "policy \"test\"	permit transform resource |- { @.key1 : filter.blacken(1) }";
+        var expectedResource      = MAPPER.readValue("{	\"array\": [ null, true ], \"key1\": \"aXXXX\" }",
                 JsonNode.class);
         var expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
                 Optional.empty(), Optional.empty());
@@ -230,11 +223,11 @@ class FilterFunctionLibraryTests {
 
     @Test
     void replaceInPolicy() throws JsonProcessingException {
-        var authzSubscription = MAPPER.readValue(
+        var authzSubscription     = MAPPER.readValue(
                 "{ \"resource\": {	\"array\": [ null, true ], \"key1\": \"abcde\" } }",
                 AuthorizationSubscription.class);
-        var policyDefinition = "policy \"test\" permit transform resource |- { @.array[1] : filter.replace(\"***\"), @.key1 : filter.replace(null) }";
-        var expectedResource = MAPPER.readValue("{	\"array\": [ null, \"***\" ], \"key1\": null }",
+        var policyDefinition      = "policy \"test\" permit transform resource |- { @.array[1] : filter.replace(\"***\"), @.key1 : filter.replace(null) }";
+        var expectedResource      = MAPPER.readValue("{	\"array\": [ null, \"***\" ], \"key1\": null }",
                 JsonNode.class);
         var expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
                 Optional.empty(), Optional.empty());
@@ -244,6 +237,5 @@ class FilterFunctionLibraryTests {
                         SYSTEM_VARIABLES))
                 .assertNext(authzDecision -> assertThat(authzDecision, is(expectedAuthzDecision))).verifyComplete();
     }
-
 
 }
