@@ -200,7 +200,13 @@ public class AnnotationAttributeContext implements AttributeContext {
         }
         var argumentFluxes = validatedArguments(attributeMetadata, arguments);
 
-        return Flux.combineLatest(argumentFluxes, argumentValues -> {
+        return Flux.combineLatest(argumentFluxes,
+                argumentCombiner(attributeMetadata, variables, numberOfInvocationParameters));
+    }
+
+    private Function<Object[], Object[]> argumentCombiner(AttributeFinderMetadata attributeMetadata,
+            Map<String, JsonNode> variables, int numberOfInvocationParameters) {
+        return argumentValues -> {
             var invocationArguments = new Object[numberOfInvocationParameters];
             var argumentIndex       = 0;
             if (attributeMetadata.isAttributeWithVariableParameter())
@@ -213,13 +219,13 @@ public class AnnotationAttributeContext implements AttributeContext {
                 }
                 invocationArguments[argumentIndex] = varArgsParameter;
             } else {
-                for (var valueIndex = 0; argumentIndex < numberOfInvocationParameters;) {
-                    invocationArguments[argumentIndex++] = argumentValues[valueIndex++];
+                for (var valueIndex = 0; argumentIndex < numberOfInvocationParameters; valueIndex++) {
+                    invocationArguments[argumentIndex++] = argumentValues[valueIndex];
                 }
             }
 
             return invocationArguments;
-        });
+        };
     }
 
     private Flux<Object[]> attributeFinderArguments(AttributeFinderMetadata attributeMetadata, Val leftHandValue,
@@ -255,8 +261,8 @@ public class AnnotationAttributeContext implements AttributeContext {
                 }
                 invocationArguments[argumentIndex] = varArgsParameter;
             } else {
-                for (var valueIndex = 0; argumentIndex < numberOfInvocationParameters;) {
-                    invocationArguments[argumentIndex++] = argumentValues[valueIndex++];
+                for (var valueIndex = 0; argumentIndex < numberOfInvocationParameters; valueIndex++) {
+                    invocationArguments[argumentIndex++] = argumentValues[valueIndex];
                 }
             }
 

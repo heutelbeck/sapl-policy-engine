@@ -46,17 +46,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AnnotationFunctionContext implements FunctionContext {
 
-    private static final int VAR_ARGS = -1;
-
-    private static final String UNKNOWN_FUNCTION = "Unknown function %s";
-
-    private static final String ILLEGAL_NUMBER_OF_PARAMETERS = "Illegal number of parameters. Function expected %d but got %d";
-
-    private static final String CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION = "Provided class has no @FunctionLibrary annotation.";
-
-    private static final String ILLEGAL_PARAMETER_FOR_IMPORT = "Function has parameters that are not a Val. Cannot be loaded. Type was: %s.";
-
-    private static final String ILLEGAL_RETURN_TYPE_FOR_IMPORT = "Function does not return a Val. Cannot be loaded. Type was: %s.";
+    private static final int    VAR_ARGS                                       = -1;
+    private static final String UNKNOWN_FUNCTION_ERROR                         = "Unknown function %s";
+    private static final String ILLEGAL_NUMBER_OF_PARAMETERS_ERROR             = "Illegal number of parameters. Function expected %d but got %d";
+    private static final String CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION_ERROR = "Provided class has no @FunctionLibrary annotation.";
+    private static final String ILLEGAL_PARAMETER_FOR_IMPORT_ERROR             = "Function has parameters that are not a Val. Cannot be loaded. Type was: %s.";
+    private static final String ILLEGAL_RETURN_TYPE_FOR_IMPORT_ERROR           = "Function does not return a Val. Cannot be loaded. Type was: %s.";
 
     private final Collection<LibraryDocumentation> documentation = new LinkedList<>();
 
@@ -87,7 +82,7 @@ public class AnnotationFunctionContext implements FunctionContext {
         }
         var metadata = functions.get(function);
         if (metadata == null)
-            return Val.error(UNKNOWN_FUNCTION, function).withTrace(FunctionContext.class, functionTrace);
+            return Val.error(UNKNOWN_FUNCTION_ERROR, function).withTrace(FunctionContext.class, functionTrace);
 
         var funParams = metadata.getFunction().getParameters();
 
@@ -99,7 +94,7 @@ public class AnnotationFunctionContext implements FunctionContext {
             return evaluateFixedParametersFunction(metadata, funParams, parameters).withTrace(FunctionContext.class,
                     functionTrace);
         }
-        return Val.error(ILLEGAL_NUMBER_OF_PARAMETERS, metadata.getNumberOfParameters(), parameters.length)
+        return Val.error(ILLEGAL_NUMBER_OF_PARAMETERS_ERROR, metadata.getNumberOfParameters(), parameters.length)
                 .withTrace(FunctionContext.class, functionTrace);
     }
 
@@ -122,7 +117,7 @@ public class AnnotationFunctionContext implements FunctionContext {
                 return Val.error(e);
             }
         }
-        return invokeFunction(metadata, new Object[] { parameters });
+        return invokeFunction(metadata, (Object[]) new Object[] { parameters });
     }
 
     private Val invokeFunction(FunctionMetadata metadata, Object... parameters) {
@@ -150,7 +145,7 @@ public class AnnotationFunctionContext implements FunctionContext {
         FunctionLibrary libAnnotation = clazz.getAnnotation(FunctionLibrary.class);
 
         if (libAnnotation == null) {
-            throw new InitializationException(CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION);
+            throw new InitializationException(CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION_ERROR);
         }
 
         String libName = libAnnotation.name();
@@ -181,7 +176,7 @@ public class AnnotationFunctionContext implements FunctionContext {
         String funPathToSchema = funAnnotation.pathToSchema();
 
         if (!Val.class.isAssignableFrom(method.getReturnType()))
-            throw new InitializationException(ILLEGAL_RETURN_TYPE_FOR_IMPORT, method.getReturnType().getName());
+            throw new InitializationException(ILLEGAL_RETURN_TYPE_FOR_IMPORT_ERROR, method.getReturnType().getName());
 
         int parameters = method.getParameterCount();
         for (Class<?> parameterType : method.getParameterTypes()) {
@@ -189,7 +184,7 @@ public class AnnotationFunctionContext implements FunctionContext {
                     && Val.class.isAssignableFrom(parameterType.getComponentType())) {
                 parameters = VAR_ARGS;
             } else if (!Val.class.isAssignableFrom(parameterType)) {
-                throw new InitializationException(ILLEGAL_PARAMETER_FOR_IMPORT, parameterType.getName());
+                throw new InitializationException(ILLEGAL_PARAMETER_FOR_IMPORT_ERROR, parameterType.getName());
             }
         }
 
