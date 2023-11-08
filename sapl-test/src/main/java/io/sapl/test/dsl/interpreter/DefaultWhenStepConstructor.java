@@ -1,6 +1,5 @@
 package io.sapl.test.dsl.interpreter;
 
-import io.sapl.test.dsl.interfaces.WhenStepBuilder;
 import io.sapl.test.grammar.sAPLTest.Attribute;
 import io.sapl.test.grammar.sAPLTest.AttributeWithParameters;
 import io.sapl.test.grammar.sAPLTest.Function;
@@ -13,12 +12,11 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public final class DefaultWhenStepBuilder implements WhenStepBuilder {
+public final class DefaultWhenStepConstructor {
 
     private final FunctionInterpreter functionInterpreter;
     private final AttributeInterpreter attributeInterpreter;
 
-    @Override
     public WhenStep constructWhenStep(final List<GivenStep> givenSteps, final GivenOrWhenStep givenOrWhenStep) {
         if (givenSteps == null || givenSteps.isEmpty()) {
             return givenOrWhenStep;

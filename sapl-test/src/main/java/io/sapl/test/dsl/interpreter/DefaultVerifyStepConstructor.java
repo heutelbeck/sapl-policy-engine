@@ -1,7 +1,6 @@
 package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestException;
-import io.sapl.test.dsl.interfaces.VerifyStepBuilder;
 import io.sapl.test.grammar.sAPLTest.RepeatedExpect;
 import io.sapl.test.grammar.sAPLTest.SingleExpect;
 import io.sapl.test.grammar.sAPLTest.TestCase;
@@ -10,11 +9,10 @@ import io.sapl.test.steps.VerifyStep;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public final class DefaultVerifyStepBuilder implements VerifyStepBuilder {
+public final class DefaultVerifyStepConstructor {
 
     private final ExpectInterpreter expectInterpreter;
 
-    @Override
     public VerifyStep constructVerifyStep(final TestCase testCase, final ExpectOrVerifyStep expectStep) {
         final var expect = testCase.getExpect();
 

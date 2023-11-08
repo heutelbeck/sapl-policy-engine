@@ -19,13 +19,13 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class DefaultWhenStepBuilderTest {
+class DefaultWhenStepConstructorTest {
 
     private FunctionInterpreter functionInterpreterMock;
     private AttributeInterpreter attributeInterpreterMock;
 
     private GivenOrWhenStep saplUnitTestFixtureMock;
-    private DefaultWhenStepBuilder defaultWhenStepBuilder;
+    private DefaultWhenStepConstructor defaultWhenStepConstructor;
 
     @BeforeEach
     void setUp() {
@@ -33,12 +33,12 @@ class DefaultWhenStepBuilderTest {
         attributeInterpreterMock = mock(AttributeInterpreter.class);
         saplUnitTestFixtureMock = mock(GivenOrWhenStep.class);
 
-        defaultWhenStepBuilder = new DefaultWhenStepBuilder(functionInterpreterMock, attributeInterpreterMock);
+        defaultWhenStepConstructor = new DefaultWhenStepConstructor(functionInterpreterMock, attributeInterpreterMock);
     }
 
     @Test
     void constructWhenStep_handlesNullGivenSteps_returnsGivenUnitTestFixture() {
-        final var result = defaultWhenStepBuilder.constructWhenStep(null, saplUnitTestFixtureMock);
+        final var result = defaultWhenStepConstructor.constructWhenStep(null, saplUnitTestFixtureMock);
 
         assertEquals(saplUnitTestFixtureMock, result);
         verifyNoInteractions(saplUnitTestFixtureMock);
@@ -46,7 +46,7 @@ class DefaultWhenStepBuilderTest {
 
     @Test
     void constructWhenStep_handlesEmptyGivenSteps_returnsGivenUnitTestFixture() {
-        final var result = defaultWhenStepBuilder.constructWhenStep(List.of(), saplUnitTestFixtureMock);
+        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(), saplUnitTestFixtureMock);
 
         assertEquals(saplUnitTestFixtureMock, result);
         verifyNoInteractions(saplUnitTestFixtureMock);
@@ -55,7 +55,7 @@ class DefaultWhenStepBuilderTest {
     @Test
     void constructWhenStep_handlesUnknownTypeOfGivenStep_returnsGivenUnitTestFixture() {
         final var unknownGivenStepMock = mock(GivenStep.class);
-        final var result = defaultWhenStepBuilder.constructWhenStep(List.of(unknownGivenStepMock), saplUnitTestFixtureMock);
+        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(unknownGivenStepMock), saplUnitTestFixtureMock);
 
         assertEquals(saplUnitTestFixtureMock, result);
         verifyNoInteractions(saplUnitTestFixtureMock);
@@ -67,7 +67,7 @@ class DefaultWhenStepBuilderTest {
 
         when(functionInterpreterMock.interpretFunction(saplUnitTestFixtureMock, functionMock)).thenReturn(saplUnitTestFixtureMock);
 
-        final var result = defaultWhenStepBuilder.constructWhenStep(List.of(functionMock), saplUnitTestFixtureMock);
+        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(functionMock), saplUnitTestFixtureMock);
 
         assertEquals(saplUnitTestFixtureMock, result);
     }
@@ -78,7 +78,7 @@ class DefaultWhenStepBuilderTest {
 
         when(functionInterpreterMock.interpretFunctionInvokedOnce(saplUnitTestFixtureMock, functionInvokedOnceMock)).thenReturn(saplUnitTestFixtureMock);
 
-        final var result = defaultWhenStepBuilder.constructWhenStep(List.of(functionInvokedOnceMock), saplUnitTestFixtureMock);
+        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(functionInvokedOnceMock), saplUnitTestFixtureMock);
 
         assertEquals(saplUnitTestFixtureMock, result);
     }
@@ -89,7 +89,7 @@ class DefaultWhenStepBuilderTest {
 
         when(attributeInterpreterMock.interpretAttribute(saplUnitTestFixtureMock, attributeMock)).thenReturn(saplUnitTestFixtureMock);
 
-        final var result = defaultWhenStepBuilder.constructWhenStep(List.of(attributeMock), saplUnitTestFixtureMock);
+        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(attributeMock), saplUnitTestFixtureMock);
 
         assertEquals(saplUnitTestFixtureMock, result);
     }
@@ -100,7 +100,7 @@ class DefaultWhenStepBuilderTest {
 
         when(attributeInterpreterMock.interpretAttributeWithParameters(saplUnitTestFixtureMock, attributeWithParametersMock)).thenReturn(saplUnitTestFixtureMock);
 
-        final var result = defaultWhenStepBuilder.constructWhenStep(List.of(attributeWithParametersMock), saplUnitTestFixtureMock);
+        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(attributeWithParametersMock), saplUnitTestFixtureMock);
 
         assertEquals(saplUnitTestFixtureMock, result);
     }
@@ -111,7 +111,7 @@ class DefaultWhenStepBuilderTest {
 
         when(saplUnitTestFixtureMock.withVirtualTime()).thenReturn(saplUnitTestFixtureMock);
 
-        final var result = defaultWhenStepBuilder.constructWhenStep(List.of(virtualTimeMock), saplUnitTestFixtureMock);
+        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(virtualTimeMock), saplUnitTestFixtureMock);
 
         assertEquals(saplUnitTestFixtureMock, result);
     }
@@ -126,7 +126,7 @@ class DefaultWhenStepBuilderTest {
         when(attributeInterpreterMock.interpretAttribute(saplUnitTestFixtureMock, attributeMock)).thenReturn(saplUnitTestFixtureMock);
         when(saplUnitTestFixtureMock.withVirtualTime()).thenReturn(saplUnitTestFixtureMock);
 
-        final var result = defaultWhenStepBuilder.constructWhenStep(List.of(virtualTimeMock, functionMock, attributeMock), saplUnitTestFixtureMock);
+        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(virtualTimeMock, functionMock, attributeMock), saplUnitTestFixtureMock);
 
         assertEquals(saplUnitTestFixtureMock, result);
         verify(functionInterpreterMock, times(1)).interpretFunction(saplUnitTestFixtureMock, functionMock);

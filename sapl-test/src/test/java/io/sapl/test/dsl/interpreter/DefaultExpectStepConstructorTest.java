@@ -17,11 +17,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
-class DefaultExpectStepBuilderTest {
+class DefaultExpectStepConstructorTest {
 
     MockedStatic<io.sapl.api.pdp.AuthorizationSubscription> authorizationSubscriptionMockedStatic;
     private AuthorizationSubscriptionInterpreter authorizationSubscriptionInterpreterMock;
-    private DefaultExpectStepBuilder defaultExpectStepBuilder;
+    private DefaultExpectStepConstructor defaultExpectStepConstructor;
 
     @BeforeEach
     void setUp() {
@@ -29,7 +29,7 @@ class DefaultExpectStepBuilderTest {
 
         authorizationSubscriptionInterpreterMock = mock(AuthorizationSubscriptionInterpreter.class);
 
-        defaultExpectStepBuilder = new DefaultExpectStepBuilder(authorizationSubscriptionInterpreterMock);
+        defaultExpectStepConstructor = new DefaultExpectStepConstructor(authorizationSubscriptionInterpreterMock);
     }
 
     @AfterEach
@@ -75,7 +75,7 @@ class DefaultExpectStepBuilderTest {
         final var expectStepMock = mock(ExpectStep.class);
         when(whenStepMock.when(saplAuthorizationSubscriptionMock)).thenReturn(expectStepMock);
 
-        final var result = defaultExpectStepBuilder.constructExpectStep(testCaseMock, whenStepMock);
+        final var result = defaultExpectStepConstructor.constructExpectStep(testCaseMock, whenStepMock);
         assertEquals(expectStepMock, result);
     }
 }

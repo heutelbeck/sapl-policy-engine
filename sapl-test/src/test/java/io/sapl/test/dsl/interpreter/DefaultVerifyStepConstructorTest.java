@@ -16,17 +16,17 @@ import io.sapl.test.steps.VerifyStep;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class DefaultVerifyStepBuilderTest {
+class DefaultVerifyStepConstructorTest {
 
     private ExpectInterpreter expectInterpreterMock;
 
-    private DefaultVerifyStepBuilder verifyStepBuilderServiceDefault;
+    private DefaultVerifyStepConstructor verifyStepBuilderServiceDefault;
 
     @BeforeEach
     void setUp() {
         expectInterpreterMock = mock(ExpectInterpreter.class);
 
-        verifyStepBuilderServiceDefault = new DefaultVerifyStepBuilder(expectInterpreterMock);
+        verifyStepBuilderServiceDefault = new DefaultVerifyStepConstructor(expectInterpreterMock);
     }
 
     @Test

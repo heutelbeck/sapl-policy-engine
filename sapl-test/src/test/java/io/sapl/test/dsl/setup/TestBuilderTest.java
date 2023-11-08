@@ -1,4 +1,4 @@
-package io.sapl.test.dsl.interpreter;
+package io.sapl.test.dsl.setup;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import io.sapl.test.Helper;
 import io.sapl.test.SaplTestException;
+import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.grammar.sAPLTest.IntegrationTestSuite;
 import io.sapl.test.grammar.sAPLTest.PolicyFolder;
 import io.sapl.test.grammar.sAPLTest.PolicyResolverConfig;
@@ -21,12 +22,9 @@ import io.sapl.test.grammar.sAPLTest.UnitTestSuite;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Stream;
 import org.eclipse.emf.common.util.EList;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.DynamicContainer;
-import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,15 +34,16 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class DefaultTestBuilderTest {
+class TestBuilderTest {
 
     @Mock
-    private TestCaseBuilder testCaseBuilderMock;
+    private StepConstructor stepConstructorMock;
 
     @InjectMocks
-    private DefaultTestBuilder defaultTestBuilder;
+    private TestProvider testProvider;
 
-    private final MockedStatic<DynamicContainer> dynamicContainerMockedStatic = mockStatic(DynamicContainer.class);
+    private final MockedStatic<TestContainer> testContainerMockedStatic = mockStatic(TestContainer.class);
+    private final MockedStatic<io.sapl.test.dsl.setup.Test> testMockedStatic = mockStatic(io.sapl.test.dsl.setup.Test.class);
 
     @Mock
     SAPLTest saplTestTMock;
@@ -56,7 +55,8 @@ class DefaultTestBuilderTest {
 
     @AfterEach
     void tearDown() {
-        dynamicContainerMockedStatic.close();
+        testContainerMockedStatic.close();
+        testMockedStatic.close();
     }
 
     private EList<TestSuite> mockTestSuites(final List<TestSuite> testSuites) {
@@ -74,7 +74,7 @@ class DefaultTestBuilderTest {
     class EarlyReturnCasesTest {
         @Test
         void buildTests_calledWithNullSAPLTest_throwsSaplTestException() {
-            final var exception = assertThrows(SaplTestException.class, () -> defaultTestBuilder.buildTests(null));
+            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(null));
 
             assertEquals("provided SAPLTest is null", exception.getMessage());
         }
@@ -83,7 +83,7 @@ class DefaultTestBuilderTest {
         void buildTests_calledWithSAPLTestWithNullTestSuites_throwsSaplTestException() {
             when(saplTestTMock.getElements()).thenReturn(null);
 
-            final var exception = assertThrows(SaplTestException.class, () -> defaultTestBuilder.buildTests(saplTestTMock));
+            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestTMock));
 
             assertEquals("provided SAPLTest does not contain a TestSuite", exception.getMessage());
         }
@@ -92,7 +92,7 @@ class DefaultTestBuilderTest {
         void buildTests_calledWithSAPLTestWithEmptyTestSuites_throwsSaplTestException() {
             mockTestSuites(Collections.emptyList());
 
-            final var exception = assertThrows(SaplTestException.class, () -> defaultTestBuilder.buildTests(saplTestTMock));
+            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestTMock));
 
             assertEquals("provided SAPLTest does not contain a TestSuite", exception.getMessage());
         }
@@ -103,7 +103,7 @@ class DefaultTestBuilderTest {
 
             when(unitTestSuiteMock.getTestCases()).thenReturn(null);
 
-            final var exception = assertThrows(SaplTestException.class, () -> defaultTestBuilder.buildTests(saplTestTMock));
+            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestTMock));
 
             assertEquals("provided TestSuite does not contain a Test", exception.getMessage());
         }
@@ -114,7 +114,7 @@ class DefaultTestBuilderTest {
 
             mockTestCases(Collections.emptyList());
 
-            final var exception = assertThrows(SaplTestException.class, () -> defaultTestBuilder.buildTests(saplTestTMock));
+            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestTMock));
 
             assertEquals("provided TestSuite does not contain a Test", exception.getMessage());
         }
@@ -123,12 +123,12 @@ class DefaultTestBuilderTest {
     @Nested
     @DisplayName("Container name construction")
     class ContainerNameConstructionTest {
-        private List<DynamicTest> mockDynamicContainerForName(final String name, final DynamicContainer dynamicContainer) {
-            List<DynamicTest> dynamicTestCases = new ArrayList<>();
-            dynamicContainerMockedStatic.when(() -> DynamicContainer.dynamicContainer(eq(name), any(Stream.class))).thenAnswer(invocationOnMock ->
+        private List<TestNode> mockTestContainerForName(final String name, final TestContainer dynamicContainer) {
+            List<TestNode> dynamicTestCases = new ArrayList<>();
+            testContainerMockedStatic.when(() -> TestContainer.from(eq(name), any(List.class))).thenAnswer(invocationOnMock ->
             {
-                final Stream<DynamicTest> dynamicTests = invocationOnMock.getArgument(1);
-                dynamicTests.forEach(dynamicTestCases::add);
+                final List<TestNode> dynamicTests = invocationOnMock.getArgument(1);
+                dynamicTestCases.addAll(dynamicTests);
                 return dynamicContainer;
             });
             return dynamicTestCases;
@@ -144,7 +144,7 @@ class DefaultTestBuilderTest {
 
             when(unknownTestSuiteMock.getTestCases()).thenReturn(testCases);
 
-            final var exception = assertThrows(SaplTestException.class, () -> defaultTestBuilder.buildTests(saplTestTMock));
+            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestTMock));
 
             assertEquals("Unknown type of TestSuite", exception.getMessage());
         }
@@ -157,16 +157,16 @@ class DefaultTestBuilderTest {
             when(unitTestSuiteMock.getTestCases()).thenReturn(testCases);
             when(unitTestSuiteMock.getId()).thenReturn("policyName");
 
-            final var unitTestSuiteDynamicContainer = mock(DynamicContainer.class);
-            final var dynamicTestCases = mockDynamicContainerForName("policyName", unitTestSuiteDynamicContainer);
+            final var unitTestSuiteTestContainer = mock(TestContainer.class);
+            final var testNodes = mockTestContainerForName("policyName", unitTestSuiteTestContainer);
 
-            final var dynamicTestMock = mock(DynamicTest.class);
-            when(testCaseBuilderMock.constructTestCase(unitTestSuiteMock, testCaseMock)).thenReturn(dynamicTestMock);
+            final var testMock = mock(io.sapl.test.dsl.setup.Test.class);
+            testMockedStatic.when(() -> io.sapl.test.dsl.setup.Test.from(stepConstructorMock, unitTestSuiteMock, testCaseMock)).thenReturn(testMock);
 
-            final var result = defaultTestBuilder.buildTests(saplTestTMock);
+            final var result = testProvider.buildTests(saplTestTMock);
 
-            assertEquals(unitTestSuiteDynamicContainer, result.get(0));
-            assertEquals(dynamicTestMock, dynamicTestCases.get(0));
+            assertEquals(unitTestSuiteTestContainer, result.get(0));
+            assertEquals(testMock, testNodes.get(0));
         }
 
         @Test
@@ -181,7 +181,7 @@ class DefaultTestBuilderTest {
             final var unknownPolicyResolverConfigMock = mock(PolicyResolverConfig.class);
             when(integrationTestSuite.getConfig()).thenReturn(unknownPolicyResolverConfigMock);
 
-            final var exception = assertThrows(SaplTestException.class, () -> defaultTestBuilder.buildTests(saplTestTMock));
+            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestTMock));
 
             assertEquals("Unknown type of PolicyResolverConfig", exception.getMessage());
         }
@@ -200,16 +200,16 @@ class DefaultTestBuilderTest {
 
             when(policyFolderMock.getPolicyFolder()).thenReturn("policyFolder");
 
-            final var integrationTestSuiteDynamicContainer = mock(DynamicContainer.class);
-            final var dynamicTestCases = mockDynamicContainerForName("policyFolder", integrationTestSuiteDynamicContainer);
+            final var integrationTestSuiteTestContainer = mock(TestContainer.class);
+            final var testNodes = mockTestContainerForName("policyFolder", integrationTestSuiteTestContainer);
 
-            final var dynamicTestMock = mock(DynamicTest.class);
-            when(testCaseBuilderMock.constructTestCase(integrationTestSuite, testCaseMock)).thenReturn(dynamicTestMock);
+            final var testMock = mock(io.sapl.test.dsl.setup.Test.class);
+            testMockedStatic.when(() -> io.sapl.test.dsl.setup.Test.from(stepConstructorMock, integrationTestSuite, testCaseMock)).thenReturn(testMock);
 
-            final var result = defaultTestBuilder.buildTests(saplTestTMock);
+            final var result = testProvider.buildTests(saplTestTMock);
 
-            assertEquals(integrationTestSuiteDynamicContainer, result.get(0));
-            assertEquals(dynamicTestMock, dynamicTestCases.get(0));
+            assertEquals(integrationTestSuiteTestContainer, result.get(0));
+            assertEquals(testMock, testNodes.get(0));
         }
 
         @Test
@@ -227,16 +227,16 @@ class DefaultTestBuilderTest {
             final var policiesMock = Helper.mockEList(List.of("name1", "foo/name2", "foo/subfoo/nested/policy3.sapl"));
             when(policySetMock.getPolicies()).thenReturn(policiesMock);
 
-            final var integrationTestSuiteDynamicContainer = mock(DynamicContainer.class);
-            final var dynamicTestCases = mockDynamicContainerForName("name1,foo/name2,foo/subfoo/nested/policy3.sapl", integrationTestSuiteDynamicContainer);
+            final var integrationTestSuiteTestContainer = mock(TestContainer.class);
+            final var testNodes = mockTestContainerForName("name1,foo/name2,foo/subfoo/nested/policy3.sapl", integrationTestSuiteTestContainer);
 
-            final var dynamicTestMock = mock(DynamicTest.class);
-            when(testCaseBuilderMock.constructTestCase(integrationTestSuite, testCaseMock)).thenReturn(dynamicTestMock);
+            final var testMock = mock(io.sapl.test.dsl.setup.Test.class);
+            testMockedStatic.when(() -> io.sapl.test.dsl.setup.Test.from(stepConstructorMock, integrationTestSuite, testCaseMock)).thenReturn(testMock);
 
-            final var result = defaultTestBuilder.buildTests(saplTestTMock);
+            final var result = testProvider.buildTests(saplTestTMock);
 
-            assertEquals(integrationTestSuiteDynamicContainer, result.get(0));
-            assertEquals(dynamicTestMock, dynamicTestCases.get(0));
+            assertEquals(integrationTestSuiteTestContainer, result.get(0));
+            assertEquals(testMock, testNodes.get(0));
         }
 
         @Test
@@ -265,39 +265,39 @@ class DefaultTestBuilderTest {
             final var policiesMock = Helper.mockEList(List.of("name1", "foo/name2", "foo/subfoo/nested/policy3.sapl"));
             when(policySetMock.getPolicies()).thenReturn(policiesMock);
 
-            final var integrationTestSuiteDynamicContainer = mock(DynamicContainer.class);
-            final var actualIntegrationTestCases = mockDynamicContainerForName("name1,foo/name2,foo/subfoo/nested/policy3.sapl", integrationTestSuiteDynamicContainer);
+            final var integrationTestSuiteTestContainer = mock(TestContainer.class);
+            final var actualIntegrationTestCases = mockTestContainerForName("name1,foo/name2,foo/subfoo/nested/policy3.sapl", integrationTestSuiteTestContainer);
 
             when(unitTestSuiteMock.getId()).thenReturn("fooPolicy");
 
-            final var unitTestSuiteDynamicContainer = mock(DynamicContainer.class);
-            final var actualUnitTestCases = mockDynamicContainerForName("fooPolicy", unitTestSuiteDynamicContainer);
+            final var unitTestSuiteTestContainer = mock(TestContainer.class);
+            final var actualUnitTestCases = mockTestContainerForName("fooPolicy", unitTestSuiteTestContainer);
 
-            final var dynamicIntegrationTest1Mock = mock(DynamicTest.class);
-            final var dynamicIntegrationTest2Mock = mock(DynamicTest.class);
+            final var integrationTest1Mock = mock(io.sapl.test.dsl.setup.Test.class);
+            final var integrationTest2Mock = mock(io.sapl.test.dsl.setup.Test.class);
 
-            when(testCaseBuilderMock.constructTestCase(integrationTestSuite, integrationTestCase1Mock)).thenReturn(dynamicIntegrationTest1Mock);
-            when(testCaseBuilderMock.constructTestCase(integrationTestSuite, integrationTestCase2Mock)).thenReturn(dynamicIntegrationTest2Mock);
+            testMockedStatic.when(() -> io.sapl.test.dsl.setup.Test.from(stepConstructorMock, integrationTestSuite, integrationTestCase1Mock)).thenReturn(integrationTest1Mock);
+            testMockedStatic.when(() -> io.sapl.test.dsl.setup.Test.from(stepConstructorMock, integrationTestSuite, integrationTestCase2Mock)).thenReturn(integrationTest2Mock);
 
-            final var dynamicUnitTest1Mock = mock(DynamicTest.class);
-            final var dynamicUnitTest2Mock = mock(DynamicTest.class);
-            final var dynamicUnitTest3Mock = mock(DynamicTest.class);
+            final var unitTest1Mock = mock(io.sapl.test.dsl.setup.Test.class);
+            final var unitTest2Mock = mock(io.sapl.test.dsl.setup.Test.class);
+            final var unitTest3Mock = mock(io.sapl.test.dsl.setup.Test.class);
 
-            when(testCaseBuilderMock.constructTestCase(unitTestSuiteMock, unitTestCase1Mock)).thenReturn(dynamicUnitTest1Mock);
-            when(testCaseBuilderMock.constructTestCase(unitTestSuiteMock, unitTestCase2Mock)).thenReturn(dynamicUnitTest2Mock);
-            when(testCaseBuilderMock.constructTestCase(unitTestSuiteMock, unitTestCase3Mock)).thenReturn(dynamicUnitTest3Mock);
+            testMockedStatic.when(() -> io.sapl.test.dsl.setup.Test.from(stepConstructorMock, unitTestSuiteMock, unitTestCase1Mock)).thenReturn(unitTest1Mock);
+            testMockedStatic.when(() -> io.sapl.test.dsl.setup.Test.from(stepConstructorMock, unitTestSuiteMock, unitTestCase2Mock)).thenReturn(unitTest2Mock);
+            testMockedStatic.when(() -> io.sapl.test.dsl.setup.Test.from(stepConstructorMock, unitTestSuiteMock, unitTestCase3Mock)).thenReturn(unitTest3Mock);
 
-            final var result = defaultTestBuilder.buildTests(saplTestTMock);
+            final var result = testProvider.buildTests(saplTestTMock);
 
-            assertEquals(integrationTestSuiteDynamicContainer, result.get(0));
-            assertEquals(unitTestSuiteDynamicContainer, result.get(1));
+            assertEquals(integrationTestSuiteTestContainer, result.get(0));
+            assertEquals(unitTestSuiteTestContainer, result.get(1));
 
-            assertEquals(dynamicIntegrationTest1Mock, actualIntegrationTestCases.get(0));
-            assertEquals(dynamicIntegrationTest2Mock, actualIntegrationTestCases.get(1));
+            assertEquals(integrationTest1Mock, actualIntegrationTestCases.get(0));
+            assertEquals(integrationTest2Mock, actualIntegrationTestCases.get(1));
 
-            assertEquals(dynamicUnitTest1Mock, actualUnitTestCases.get(0));
-            assertEquals(dynamicUnitTest2Mock, actualUnitTestCases.get(1));
-            assertEquals(dynamicUnitTest3Mock, actualUnitTestCases.get(2));
+            assertEquals(unitTest1Mock, actualUnitTestCases.get(0));
+            assertEquals(unitTest2Mock, actualUnitTestCases.get(1));
+            assertEquals(unitTest3Mock, actualUnitTestCases.get(2));
         }
     }
 }
