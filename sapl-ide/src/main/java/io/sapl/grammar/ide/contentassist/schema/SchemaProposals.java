@@ -61,7 +61,7 @@ public class SchemaProposals {
     }
 
     private Map<String, JsonNode> getAllVariablesAsMap() {
-        return getAllVariables().next().block();
+        return getAllVariables().defaultIfEmpty(Map.of()).blockFirst();
     }
 
     private Flux<Map<String, JsonNode>> getAllVariables() {
