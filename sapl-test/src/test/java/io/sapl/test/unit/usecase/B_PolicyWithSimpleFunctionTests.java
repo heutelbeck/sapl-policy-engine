@@ -40,7 +40,7 @@ class B_PolicyWithSimpleFunctionTests {
 
     @Test
     void test_policyWithSimpleFunction() throws InitializationException {
-        fixture.registerFunctionLibrary(new TemporalFunctionLibrary()) // do not mock function in this unit test
+        fixture.registerFunctionLibrary(TemporalFunctionLibrary.class) // do not mock function in this unit test
                 .constructTestCase().when(AuthorizationSubscription.of("willi", "read", "something")).expectPermit()
                 .verify();
     }

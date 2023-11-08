@@ -51,21 +51,18 @@ import reactor.test.StepVerifier;
 
 class FilterFunctionLibraryTests {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+    private static final ObjectMapper               MAPPER           = new ObjectMapper()
+            .enable(SerializationFeature.INDENT_OUTPUT);
+    private static final DefaultSAPLInterpreter     INTERPRETER      = new DefaultSAPLInterpreter();
+    private static final AnnotationAttributeContext ATTRIBUTE_CTX    = new AnnotationAttributeContext();
+    private static final Map<String, JsonNode>      SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
 
-    private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
-
-    private static final AnnotationAttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
-
-    private static final AnnotationFunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
-
-    private static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
-
-    private static final FilterFunctionLibrary LIBRARY = new FilterFunctionLibrary();
+    private AnnotationFunctionContext functionCtx;
 
     @BeforeEach
     void setUp() throws InitializationException {
-        FUNCTION_CTX.loadLibrary(LIBRARY);
+        functionCtx = new AnnotationFunctionContext();
+        functionCtx.loadLibrary(FilterFunctionLibrary.class);
     }
 
     @Test
@@ -210,7 +207,7 @@ class FilterFunctionLibraryTests {
                 Optional.empty(), Optional.empty());
 
         StepVerifier
-                .create(INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+                .create(INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, functionCtx,
                         SYSTEM_VARIABLES))
                 .assertNext(authzDecision -> assertThat(authzDecision, is(expectedAuthzDecision))).verifyComplete();
     }
@@ -233,7 +230,7 @@ class FilterFunctionLibraryTests {
                 Optional.empty(), Optional.empty());
 
         StepVerifier
-                .create(INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+                .create(INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, functionCtx,
                         SYSTEM_VARIABLES))
                 .assertNext(authzDecision -> assertThat(authzDecision, is(expectedAuthzDecision))).verifyComplete();
     }

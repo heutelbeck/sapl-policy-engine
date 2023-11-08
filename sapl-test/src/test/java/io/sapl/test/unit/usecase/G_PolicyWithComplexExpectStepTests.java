@@ -83,7 +83,7 @@ class G_PolicyWithComplexExpectStepTests {
     @BeforeEach
     public void setUp() throws InitializationException {
         fixture = new SaplUnitTestFixture("policyWithObligationAndResource.sapl")
-                .registerFunctionLibrary(new FilterFunctionLibrary());
+                .registerFunctionLibrary(FilterFunctionLibrary.class);
         mapper  = new ObjectMapper();
     }
 

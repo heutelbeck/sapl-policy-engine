@@ -39,7 +39,7 @@ class E_PolicyStreamingTests {
 
     @BeforeEach
     void setUp() throws InitializationException {
-        fixture = new SaplUnitTestFixture("policyStreaming").registerFunctionLibrary(new TemporalFunctionLibrary());
+        fixture = new SaplUnitTestFixture("policyStreaming").registerFunctionLibrary(TemporalFunctionLibrary.class);
     }
 
     @Test

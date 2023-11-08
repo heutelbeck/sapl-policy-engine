@@ -113,9 +113,9 @@ class DefaultSAPLInterpreterTests {
         attributeCtx      = new AnnotationAttributeContext();
         attributeCtx.loadPolicyInformationPoint(new TestPIP());
         functionCtx = new AnnotationFunctionContext();
-        functionCtx.loadLibrary(new SimpleFunctionLibrary());
-        functionCtx.loadLibrary(new FilterFunctionLibrary());
-        functionCtx.loadLibrary(new StandardFunctionLibrary());
+        functionCtx.loadLibrary(SimpleFunctionLibrary.class);
+        functionCtx.loadLibrary(FilterFunctionLibrary.class);
+        functionCtx.loadLibrary(StandardFunctionLibrary.class);
         variables = new HashMap<String, JsonNode>();
 
     }

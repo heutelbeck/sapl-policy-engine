@@ -45,8 +45,6 @@ class MqttFunctionLibraryTests {
 
     private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-    MqttFunctionLibrary mqttFunctions = new MqttFunctionLibrary();
-
     // Tests for matching all topics
 
     @ParameterizedTest
@@ -57,7 +55,7 @@ class MqttFunctionLibraryTests {
         Val matchingTopic = Val.of("first/second/third");
 
         // WHEN
-        boolean isMatching = mqttFunctions.isMatchingAllTopics(wildcardTopic, matchingTopic).getBoolean();
+        boolean isMatching = MqttFunctionLibrary.isMatchingAllTopics(wildcardTopic, matchingTopic).getBoolean();
 
         // THEN
         assertTrue(isMatching);
@@ -79,7 +77,7 @@ class MqttFunctionLibraryTests {
         Val    matchingTopics     = Val.of(JSON.arrayNode().add(firstMatchingTopic).add(secondMatchingTopic));
 
         // WHEN
-        boolean isMatching = mqttFunctions.isMatchingAllTopics(wildcardTopic, matchingTopics).getBoolean();
+        boolean isMatching = MqttFunctionLibrary.isMatchingAllTopics(wildcardTopic, matchingTopics).getBoolean();
 
         // THEN
         assertTrue(isMatching);
@@ -100,7 +98,7 @@ class MqttFunctionLibraryTests {
         Val    matchingTopics     = Val.of(JSON.arrayNode().add(firstMatchingTopic).add(secondMatchingTopic));
 
         // WHEN
-        boolean isMatching = mqttFunctions.isMatchingAllTopics(wildcardTopic, matchingTopics).getBoolean();
+        boolean isMatching = MqttFunctionLibrary.isMatchingAllTopics(wildcardTopic, matchingTopics).getBoolean();
 
         // THEN
         assertFalse(isMatching);
@@ -113,7 +111,7 @@ class MqttFunctionLibraryTests {
         Val matchingTopic = Val.of("first/second/third/#");
 
         // WHEN
-        boolean isValError = mqttFunctions.isMatchingAllTopics(wildcardTopic, matchingTopic).isError();
+        boolean isValError = MqttFunctionLibrary.isMatchingAllTopics(wildcardTopic, matchingTopic).isError();
 
         // THEN
         assertTrue(isValError);
@@ -128,7 +126,7 @@ class MqttFunctionLibraryTests {
         Val    matchingTopics      = Val.of(JSON.arrayNode().add(firstMatchingTopic).add(secondMatchingTopic));
 
         // WHEN
-        boolean isValError = mqttFunctions.isMatchingAllTopics(wildcardTopic, matchingTopics).isError();
+        boolean isValError = MqttFunctionLibrary.isMatchingAllTopics(wildcardTopic, matchingTopics).isError();
 
         // THEN
         assertTrue(isValError);
@@ -144,7 +142,7 @@ class MqttFunctionLibraryTests {
         Val matchingTopic = Val.of("first/second/third");
 
         // WHEN
-        boolean isMatching = mqttFunctions.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopic).getBoolean();
+        boolean isMatching = MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopic).getBoolean();
 
         // THEN
         assertTrue(isMatching);
@@ -165,7 +163,7 @@ class MqttFunctionLibraryTests {
         Val    matchingTopics     = Val.of(JSON.arrayNode().add(firstMatchingTopic).add(secondMatchingTopic));
 
         // WHEN
-        boolean isMatching = mqttFunctions.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopics).getBoolean();
+        boolean isMatching = MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopics).getBoolean();
 
         // THEN
         assertTrue(isMatching);
@@ -186,7 +184,7 @@ class MqttFunctionLibraryTests {
         Val matchingTopics = Val.of(JSON.arrayNode().add(firstMatchingTopic).add(secondMatchingTopic));
 
         // WHEN
-        boolean isMatching = mqttFunctions.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopics).getBoolean();
+        boolean isMatching = MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopics).getBoolean();
 
         // THEN
         assertFalse(isMatching);
@@ -201,7 +199,7 @@ class MqttFunctionLibraryTests {
         Val    matchingTopics      = Val.of(JSON.arrayNode().add(firstMatchingTopic).add(secondMatchingTopic));
 
         // WHEN
-        boolean isMatching = mqttFunctions.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopics).getBoolean();
+        boolean isMatching = MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopics).getBoolean();
 
         // THEN
         assertTrue(isMatching);
@@ -214,7 +212,7 @@ class MqttFunctionLibraryTests {
         Val matchingTopic = Val.of("first/second/third/#");
 
         // WHEN
-        boolean isValError = mqttFunctions.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopic).isError();
+        boolean isValError = MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopic).isError();
 
         // THEN
         assertTrue(isValError);
@@ -229,7 +227,7 @@ class MqttFunctionLibraryTests {
         Val    matchingTopics      = Val.of(JSON.arrayNode().add(firstMatchingTopic).add(secondMatchingTopic));
 
         // WHEN
-        boolean isValError = mqttFunctions.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopics).isError();
+        boolean isValError = MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopics).isError();
 
         // THEN
         assertTrue(isValError);
@@ -240,8 +238,8 @@ class MqttFunctionLibraryTests {
             throws InitializationException {
         // GIVEN
         var pdp               = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
-                "src/test/resources/functionsPolicies", List.of(), List.of(new MqttFunctionLibrary()), List.of(),
-                List.of());
+                "src/test/resources/functionsPolicies", List.of(), () -> List.of(),
+                () -> List.of(MqttFunctionLibrary.class), List.of(), List.of());
         var authzSubscription = AuthorizationSubscription.of("firstSubject", ACTION, "first/second/#");
 
         // WHEN
@@ -258,7 +256,7 @@ class MqttFunctionLibraryTests {
             throws InitializationException {
         // GIVEN
         var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint("src/test/resources/functionsPolicies",
-                List.of(), List.of(new MqttFunctionLibrary()), List.of(), List.of());
+                List.of(), () -> List.of(), () -> List.of(MqttFunctionLibrary.class), List.of(), List.of());
 
         var authzSubscription = AuthorizationSubscription.of("secondSubject", ACTION, "first/+/third");
 

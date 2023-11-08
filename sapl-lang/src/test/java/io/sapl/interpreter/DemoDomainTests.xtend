@@ -48,8 +48,8 @@ class DemoDomainTests {
 
 	@BeforeEach
 	def void setUp() {
-		FUNCTION_CTX.loadLibrary(new SimpleFunctionLibrary());
-		FUNCTION_CTX.loadLibrary(new FilterFunctionLibrary());
+		FUNCTION_CTX.loadLibrary(SimpleFunctionLibrary);
+		FUNCTION_CTX.loadLibrary(FilterFunctionLibrary);
 		FUNCTION_CTX.loadLibrary(new SimpleFilterFunctionLibrary(
 			Clock.fixed(Instant.parse("2017-05-03T18:25:43.511Z"), ZoneId.of("Europe/Berlin"))
 		));

@@ -37,6 +37,8 @@ public interface SaplTestFixture {
 
     SaplTestFixture registerFunctionLibrary(Object function) throws InitializationException;
 
+    SaplTestFixture registerFunctionLibrary(Class<?> staticLibrary) throws InitializationException;
+
     SaplTestFixture registerVariable(String key, JsonNode value);
 
     default Path resolveCoverageBaseDir() {

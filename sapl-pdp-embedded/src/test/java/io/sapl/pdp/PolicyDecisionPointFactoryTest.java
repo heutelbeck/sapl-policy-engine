@@ -21,6 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
 
 import java.util.Collections;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
@@ -35,14 +36,14 @@ class PolicyDecisionPointFactoryTest {
         assertThat(PolicyDecisionPointFactory.filesystemPolicyDecisionPoint("src/main/resources/policies"),
                 notNullValue());
         assertThat(PolicyDecisionPointFactory.filesystemPolicyDecisionPoint("src/main/resources/policies",
-                Collections.singletonList(new TestPIP()), Collections.emptyList()), notNullValue());
+                Collections.singletonList(new TestPIP()), () -> List.of(), () -> List.of()), notNullValue());
 
-        assertThat(PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(Collections.singletonList(new TestPIP()),
-                Collections.singletonList(new FilterFunctionLibrary())), notNullValue());
+        assertThat(PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(List.of(new TestPIP()), () -> List.of(),
+                () -> List.of(FilterFunctionLibrary.class)), notNullValue());
 
         assertThat(PolicyDecisionPointFactory.resourcesPolicyDecisionPoint(), notNullValue());
-        assertThat(PolicyDecisionPointFactory.resourcesPolicyDecisionPoint(Collections.singletonList(new TestPIP()),
-                Collections.emptyList()), notNullValue());
+        assertThat(PolicyDecisionPointFactory.resourcesPolicyDecisionPoint(List.of(new TestPIP()), () -> List.of(),
+                () -> List.of()), notNullValue());
     }
 
 }

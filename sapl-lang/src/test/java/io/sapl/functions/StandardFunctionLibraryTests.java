@@ -19,7 +19,6 @@ package io.sapl.functions;
 
 import static io.sapl.hamcrest.Matchers.val;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.junit.jupiter.api.Test;
@@ -27,11 +26,6 @@ import org.junit.jupiter.api.Test;
 import io.sapl.api.interpreter.Val;
 
 class StandardFunctionLibraryTests {
-
-    @Test
-    void instantiatable() {
-        assertThat(new StandardFunctionLibrary(), notNullValue());
-    }
 
     @Test
     void lengthOfEmptyIsZero() {

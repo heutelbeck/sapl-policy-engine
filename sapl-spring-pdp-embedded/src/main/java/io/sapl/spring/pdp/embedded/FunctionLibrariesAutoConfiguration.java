@@ -17,14 +17,16 @@
  */
 package io.sapl.spring.pdp.embedded;
 
+import java.util.List;
+
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
 
+import io.sapl.api.functions.StaticFunctionLibrarySupplier;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.LoggingFunctionLibrary;
-import io.sapl.functions.SchemaTestFunctionLibrary;
 import io.sapl.functions.SchemaValidationLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
@@ -37,38 +39,9 @@ public class FunctionLibrariesAutoConfiguration {
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    FilterFunctionLibrary filterFunctionLibrary() {
-        return new FilterFunctionLibrary();
-    }
-
-    @Bean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    StandardFunctionLibrary standardFunctionLibrary() {
-        return new StandardFunctionLibrary();
-    }
-
-    @Bean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    TemporalFunctionLibrary temporalFunctionLibrary() {
-        return new TemporalFunctionLibrary();
-    }
-
-    @Bean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    LoggingFunctionLibrary loggingFunctionLibrary() {
-        return new LoggingFunctionLibrary();
-    }
-
-    @Bean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    SchemaValidationLibrary schemaValidationLibrary() {
-        return new SchemaValidationLibrary();
-    }
-
-    @Bean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    SchemaTestFunctionLibrary schemaTestFunctionLibrary() {
-        return new SchemaTestFunctionLibrary();
+    StaticFunctionLibrarySupplier baselLibraries() {
+        return () -> List.of(FilterFunctionLibrary.class, StandardFunctionLibrary.class, TemporalFunctionLibrary.class,
+                LoggingFunctionLibrary.class, SchemaValidationLibrary.class);
     }
 
 }
