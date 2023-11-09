@@ -2,6 +2,7 @@
 [![SonarCloud Status](https://sonarcloud.io/api/project_badges/measure?project=heutelbeck_sapl-policy-engine&metric=alert_status)](https://sonarcloud.io/dashboard?id=heutelbeck_sapl-policy-engine)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=heutelbeck_sapl-policy-engine&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=heutelbeck_sapl-policy-engine)
 [![Maven Central](https://img.shields.io/maven-central/v/io.sapl/sapl-lang)](https://img.shields.io/maven-central/v/io.sapl/sapl-lang)
+[![Maven metadata URL](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Fs01.oss.sonatype.org%2Fcontent%2Frepositories%2Fsnapshots%2Fio%2Fsapl%2Fsapl-policy-engine%2Fmaven-metadata.xml)](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Fs01.oss.sonatype.org%2Fcontent%2Frepositories%2Fsnapshots%2Fio%2Fsapl%2Fsapl-policy-engine%2Fmaven-metadata.xml)
 [![Discord](https://img.shields.io/discord/988472137306222654)](https://img.shields.io/discord/988472137306222654)
 
 # The Streaming Attribute Policy Language (SAPL) and the Streaming Attribute Authorization Engine (SAAE)
