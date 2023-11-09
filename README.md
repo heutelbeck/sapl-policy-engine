@@ -5,7 +5,9 @@
 [![Maven Snapshots](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Fs01.oss.sonatype.org%2Fcontent%2Frepositories%2Fsnapshots%2Fio%2Fsapl%2Fsapl-policy-engine%2Fmaven-metadata.xml)](https://s01.oss.sonatype.org/content/repositories/snapshots/io/sapl/)
 [![Discord](https://img.shields.io/discord/988472137306222654)](https://discord.gg/pRXEVWm3xM)
 
-# The Streaming Attribute Policy Language (SAPL) and the Streaming Attribute Authorization Engine (SAAE)
+# The Streaming Attribute Policy Language (SAPL) Engine
+
+The Streaming Attribute Policy Language (SAPL) is a domain specific language for expressing access control policies following the attribute-based access control (ABAC) and attribute stream-based access control (ASBAC) patterns. Together with the its engine it allows to implement complex access control models. The SAPL Engine provides an implementation of SAPL, ABAC, and ASBAC to be used in application development. 
 
 ## Maven Dependencies
 

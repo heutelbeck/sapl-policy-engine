@@ -37,12 +37,6 @@
 		</dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>sapl-spring-pdp-embedded</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>${project.groupId}</groupId>
 			<artifactId>sapl-pdp-embedded</artifactId>
 			<version>${project.version}</version>
 		</dependency>
