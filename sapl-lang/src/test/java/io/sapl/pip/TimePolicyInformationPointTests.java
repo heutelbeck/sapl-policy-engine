@@ -43,7 +43,7 @@ class TimePolicyInformationPointTests {
     @Test
     void contextIsAbleToLoadTimePolicyInformationPoint() {
         var sut = new TimePolicyInformationPoint(mock(Clock.class));
-        assertDoesNotThrow(() -> new AnnotationAttributeContext(() -> List.of(sut), () -> List.of()));
+        assertDoesNotThrow(() -> new AnnotationAttributeContext(() -> List.of(sut), List::of));
     }
 
     @Test

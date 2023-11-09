@@ -66,7 +66,7 @@ public class PolicyDecisionPointFactory {
 
     public static EmbeddedPolicyDecisionPoint filesystemPolicyDecisionPoint(String path)
             throws InitializationException {
-        return filesystemPolicyDecisionPoint(path, () -> List.of(), () -> List.of(), () -> List.of(), () -> List.of());
+        return filesystemPolicyDecisionPoint(path, List::of, List::of, List::of, List::of);
     }
 
     public static EmbeddedPolicyDecisionPoint filesystemPolicyDecisionPoint(PolicyInformationPointSupplier pips,
@@ -109,8 +109,7 @@ public class PolicyDecisionPointFactory {
     }
 
     public static EmbeddedPolicyDecisionPoint resourcesPolicyDecisionPoint(String path) throws InitializationException {
-        return resourcesPolicyDecisionPoint(path, () -> List.of(), () -> List.of(), () -> List.of(), () -> List.of(),
-                List.of(), List.of());
+        return resourcesPolicyDecisionPoint(path, List::of, List::of, List::of, List::of, List.of(), List.of());
     }
 
     public static EmbeddedPolicyDecisionPoint resourcesPolicyDecisionPoint(String path,

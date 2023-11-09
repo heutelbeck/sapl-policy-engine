@@ -89,8 +89,7 @@ class JWTPolicyInformationPointTests {
 
     @Test
     void contextIsAbleToLoadJWTPolicyInformationPoint() {
-        assertDoesNotThrow(
-                () -> new AnnotationAttributeContext(() -> List.of(jwtPolicyInformationPoint), () -> List.of()));
+        assertDoesNotThrow(() -> new AnnotationAttributeContext(() -> List.of(jwtPolicyInformationPoint), List::of));
     }
 
     /*

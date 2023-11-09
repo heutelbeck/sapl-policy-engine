@@ -34,17 +34,15 @@ class PolicyDecisionPointFactoryTest {
         assertThat(PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(), notNullValue());
         assertThat(PolicyDecisionPointFactory.filesystemPolicyDecisionPoint("src/main/resources/policies"),
                 notNullValue());
-        assertThat(
-                PolicyDecisionPointFactory.filesystemPolicyDecisionPoint("src/main/resources/policies",
-                        () -> List.of(new TestPIP()), () -> List.of(), () -> List.of(), () -> List.of()),
-                notNullValue());
+        assertThat(PolicyDecisionPointFactory.filesystemPolicyDecisionPoint("src/main/resources/policies",
+                () -> List.of(new TestPIP()), List::of, List::of, List::of), notNullValue());
 
-        assertThat(PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(() -> List.of(new TestPIP()),
-                () -> List.of(), () -> List.of(), () -> List.of(FilterFunctionLibrary.class)), notNullValue());
+        assertThat(PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(() -> List.of(new TestPIP()), List::of,
+                List::of, () -> List.of(FilterFunctionLibrary.class)), notNullValue());
 
         assertThat(PolicyDecisionPointFactory.resourcesPolicyDecisionPoint(), notNullValue());
-        assertThat(PolicyDecisionPointFactory.resourcesPolicyDecisionPoint(() -> List.of(new TestPIP()),
-                () -> List.of(), () -> List.of(), () -> List.of()), notNullValue());
+        assertThat(PolicyDecisionPointFactory.resourcesPolicyDecisionPoint(() -> List.of(new TestPIP()), List::of,
+                List::of, List::of), notNullValue());
     }
 
 }

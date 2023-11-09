@@ -238,7 +238,7 @@ class MqttFunctionLibraryTests {
             throws InitializationException {
         // GIVEN
         var pdp               = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
-                "src/test/resources/functionsPolicies", () -> List.of(), () -> List.of(), () -> List.of(),
+                "src/test/resources/functionsPolicies", List::of, List::of, List::of,
                 () -> List.of(MqttFunctionLibrary.class), List.of(), List.of());
         var authzSubscription = AuthorizationSubscription.of("firstSubject", ACTION, "first/second/#");
 
@@ -256,8 +256,7 @@ class MqttFunctionLibraryTests {
             throws InitializationException {
         // GIVEN
         var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint("src/test/resources/functionsPolicies",
-                () -> List.of(), () -> List.of(), () -> List.of(), () -> List.of(MqttFunctionLibrary.class), List.of(),
-                List.of());
+                List::of, List::of, List::of, () -> List.of(MqttFunctionLibrary.class), List.of(), List.of());
 
         var authzSubscription = AuthorizationSubscription.of("secondSubject", ACTION, "first/+/third");
 

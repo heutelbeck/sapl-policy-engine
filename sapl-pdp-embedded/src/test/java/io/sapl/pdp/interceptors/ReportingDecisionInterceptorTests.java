@@ -83,7 +83,7 @@ class ReportingDecisionInterceptorTests {
             var cAlg         = new DenyOverridesCombiningAlgorithmImplCustom();
             var dInterceptor = new ReportingDecisionInterceptor(new ObjectMapper(), false, true, true, true);
             return Flux.just(new PDPConfiguration(
-                    new AnnotationAttributeContext(() -> List.of(), () -> List.of(ReportingTestPIP.class)),
+                    new AnnotationAttributeContext(List::of, () -> List.of(ReportingTestPIP.class)),
                     new AnnotationFunctionContext(), Map.of(), cAlg, dInterceptor, x -> x));
         }
     }
