@@ -197,6 +197,30 @@ class FilterFunctionLibraryTests {
     }
 
     @Test
+    void blackenNonNumberLength() {
+        var text          = Val.of("abcde");
+        var discloseLeft  = Val.of(1);
+        var discloseRight = Val.of(1);
+        var replacement   = Val.of("*");
+        var length        = Val.of("NOT A NUMBER");
+
+        assertThrows(IllegalArgumentException.class,
+                () -> FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight, replacement, length));
+    }
+
+    @Test
+    void blackenNegativeLength() {
+        var text          = Val.of("abcde");
+        var discloseLeft  = Val.of(1);
+        var discloseRight = Val.of(1);
+        var replacement   = Val.of("*");
+        var length        = Val.of(-1);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight, replacement, length));
+    }
+
+    @Test
     void blackenReplacementDefault() {
         var text          = Val.of("abcde");
         var discloseLeft  = Val.of(1);

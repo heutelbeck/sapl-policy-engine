@@ -17,6 +17,8 @@
  */
 package io.sapl.functions;
 
+import java.util.Optional;
+
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
@@ -78,8 +80,6 @@ public class FilterFunctionLibrary {
 
     private static final int BLACKEN_TYPE_INDEX = 4;
 
-    private static final int BLACKEN_LENGTH_INVALID_VALUE = -1;
-
     private static final int MAXIMAL_NUMBER_OF_PARAMETERS_FOR_BLACKEN = 5;
 
     /**
@@ -99,18 +99,18 @@ public class FilterFunctionLibrary {
         var originalString = extractOriginalTextFromParameters(parameters);
         var replacement    = extractReplacementStringFromParametersOrUseDefault(parameters);
         var discloseRight  = extractNumberOfCharactersToDiscloseOnTheRightSideFromParametersOrUseDefault(parameters);
-        int discloseLeft   = extractNumberOfCharactersToDiscloseOnTheLeftSideFromParametersOrUseDefault(parameters);
-        int blackenLength  = extractLengthOfBlackenOrUseDefault(parameters);
+        var discloseLeft   = extractNumberOfCharactersToDiscloseOnTheLeftSideFromParametersOrUseDefault(parameters);
+        var blackenLength  = extractLengthOfBlackenOrUseDefault(parameters);
         return blacken(originalString, replacement, discloseRight, discloseLeft, blackenLength);
     }
 
     private static Val blacken(String originalString, String replacement, int discloseRight, int discloseLeft,
-            int blackenLength) {
+            Optional<Integer> blackenLength) {
         return Val.of((blackenUtil(originalString, replacement, discloseRight, discloseLeft, blackenLength)));
     }
 
     public static String blackenUtil(String originalString, String replacement, int discloseRight, int discloseLeft,
-            int blackenLength) {
+            Optional<Integer> blackenLength) {
         if (discloseLeft + discloseRight >= originalString.length())
             return originalString;
 
@@ -121,7 +121,7 @@ public class FilterFunctionLibrary {
 
         int replacedChars = originalString.length() - discloseLeft - discloseRight;
 
-        int blackenFinalLength = (blackenLength == BLACKEN_LENGTH_INVALID_VALUE) ? replacedChars : blackenLength;
+        int blackenFinalLength = blackenLength.orElse(replacedChars);
 
         result.append(String.valueOf(replacement).repeat(blackenFinalLength));
         if (discloseRight > 0) {
@@ -177,22 +177,19 @@ public class FilterFunctionLibrary {
      * {@link #BLACKEN_LENGTH_INVALID_VALUE}
      *
      * @param parameters the parameters to extract the length from (if possible)
-     * @return the length of blacken or {@link #BLACKEN_LENGTH_INVALID_VALUE} if the
-     *         length is not a valid number
+     * @return the length of blacken or empty if the length is not provided
      * @throws IllegalArgumentException if the length is not a valid number
      */
-    private static int extractLengthOfBlackenOrUseDefault(Val... parameters) {
+    private static Optional<Integer> extractLengthOfBlackenOrUseDefault(Val... parameters) {
         if (!validateParameterSanity(parameters.length, BLACKEN_TYPE_INDEX)) {
-            // Very hacky solution, as primitive types don´t allow null
-            // and anything else would require dedicated classes and logic.
-            return BLACKEN_LENGTH_INVALID_VALUE;
+            return Optional.empty();
         }
 
         if (!parameters[BLACKEN_TYPE_INDEX].isNumber() || parameters[BLACKEN_TYPE_INDEX].get().asInt() < 0) {
             throw new IllegalArgumentException(ILLEGAL_PARAMETER_BLACKEN_LENGTH);
         }
 
-        return parameters[BLACKEN_TYPE_INDEX].get().asInt();
+        return Optional.of(parameters[BLACKEN_TYPE_INDEX].get().asInt());
     }
 
     private static boolean validateParameterSanity(int lengthParameters, int parameterIndex) {
