@@ -30,7 +30,7 @@
 
     <artifactId>sapl-vaadin-editor</artifactId>
 
-    <name>SAPL Editor for Vaadin</name>
+    <name>SAPL Vaadin Code Editors</name>
 
     <description>SAPL and JSON Editor Components for Vaadin</description>
 
@@ -198,22 +198,7 @@
                         </manifestEntries>
                     </archive>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>com.vaadin</groupId>
-                <artifactId>vaadin-maven-plugin</artifactId>
-                <version>${vaadin.version}</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>prepare-frontend</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <optimizeBundle>false</optimizeBundle>
-                </configuration>
-            </plugin>         
+            </plugin>     
         </plugins>
     </build>
 </project>
