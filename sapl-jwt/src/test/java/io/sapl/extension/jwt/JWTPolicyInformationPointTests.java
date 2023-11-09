@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -88,7 +89,8 @@ class JWTPolicyInformationPointTests {
 
     @Test
     void contextIsAbleToLoadJWTPolicyInformationPoint() {
-        assertDoesNotThrow(() -> new AnnotationAttributeContext(jwtPolicyInformationPoint));
+        assertDoesNotThrow(
+                () -> new AnnotationAttributeContext(() -> List.of(jwtPolicyInformationPoint), () -> List.of()));
     }
 
     /*

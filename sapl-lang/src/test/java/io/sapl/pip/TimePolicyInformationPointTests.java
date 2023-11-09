@@ -27,6 +27,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -42,7 +43,7 @@ class TimePolicyInformationPointTests {
     @Test
     void contextIsAbleToLoadTimePolicyInformationPoint() {
         var sut = new TimePolicyInformationPoint(mock(Clock.class));
-        assertDoesNotThrow(() -> new AnnotationAttributeContext(sut));
+        assertDoesNotThrow(() -> new AnnotationAttributeContext(() -> List.of(sut), () -> List.of()));
     }
 
     @Test

@@ -133,7 +133,7 @@ public class MockingFunctionContext implements FunctionContext {
             FunctionMock newMock = new FunctionMockAlwaysSameValue(fullName, mockReturnValue, verification);
             this.registeredMocks.put(fullName, newMock);
 
-            addNewLibraryDocumentation(fullName, newMock);
+            addNewLibraryDocumentation(fullName);
         }
     }
 
@@ -156,7 +156,7 @@ public class MockingFunctionContext implements FunctionContext {
             newMock.loadMockReturnValue(mockReturnValue);
             this.registeredMocks.put(fullName, newMock);
 
-            addNewLibraryDocumentation(fullName, newMock);
+            addNewLibraryDocumentation(fullName);
         }
     }
 
@@ -183,7 +183,7 @@ public class MockingFunctionContext implements FunctionContext {
             newMock.loadParameterSpecificReturnValue(mockReturnValue, parameter, verification);
             this.registeredMocks.put(fullName, newMock);
 
-            addNewLibraryDocumentation(fullName, newMock);
+            addNewLibraryDocumentation(fullName);
         }
     }
 
@@ -202,7 +202,7 @@ public class MockingFunctionContext implements FunctionContext {
             FunctionMock newMock = new FunctionMockFunctionResult(fullName, returns, verification);
             this.registeredMocks.put(fullName, newMock);
 
-            addNewLibraryDocumentation(fullName, newMock);
+            addNewLibraryDocumentation(fullName);
         }
     }
 
@@ -217,7 +217,7 @@ public class MockingFunctionContext implements FunctionContext {
         }
     }
 
-    void addNewLibraryDocumentation(String fullName, FunctionMock mock) {
+    void addNewLibraryDocumentation(String fullName) {
         String[] split        = fullName.split(Pattern.quote(NAME_DELIMITER));
         String   libName      = split[0];
         String   functionName = split[1];
