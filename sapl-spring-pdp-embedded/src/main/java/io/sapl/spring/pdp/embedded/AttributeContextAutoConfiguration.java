@@ -23,35 +23,42 @@ import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
 
-import io.sapl.api.pip.PolicyInformationPoint;
+import io.sapl.api.pip.PolicyInformationPointSupplier;
+import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @AutoConfiguration
+@RequiredArgsConstructor
 @AutoConfigureAfter(PolicyInformationPointsAutoConfiguration.class)
 public class AttributeContextAutoConfiguration {
 
-    private final Collection<Object> policyInformationPoints;
-
-    public AttributeContextAutoConfiguration(ConfigurableApplicationContext applicationContext) {
-        policyInformationPoints = applicationContext.getBeansWithAnnotation(PolicyInformationPoint.class).values();
-    }
+    private final Collection<PolicyInformationPointSupplier>       pipSuppliers;
+    private final Collection<StaticPolicyInformationPointSupplier> staticPipSuppliers;
 
     @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     AttributeContext attributeContext() throws InitializationException {
         var ctx = new AnnotationAttributeContext();
-        for (var entry : policyInformationPoints) {
-            log.trace("loading Policy Information Point: {}", entry.getClass().getSimpleName());
-            ctx.loadPolicyInformationPoint(entry);
+        for (var supplier : pipSuppliers) {
+            for (var pip : supplier.get()) {
+                log.trace("loading Policy Information Point: {}", pip.getClass().getSimpleName());
+                ctx.loadPolicyInformationPoint(pip);
+            }
+        }
+        for (var supplier : staticPipSuppliers) {
+            for (var pip : supplier.get()) {
+                log.trace("loading static Policy Information Point: {}", pip.getSimpleName());
+                ctx.loadPolicyInformationPoint(pip);
+            }
         }
         return ctx;
     }

@@ -63,8 +63,8 @@ class EmbeddedPolicyDecisionPointTest {
     @BeforeEach
     void setUp() throws Exception {
         var reporter = new ReportingDecisionInterceptor(new ObjectMapper(), true, true, true, true);
-        pdp = PolicyDecisionPointFactory.resourcesPolicyDecisionPoint("/policies", List.of(new TestPIP()),
-                () -> List.of(), () -> List.of(), List.of(), List.of(reporter));
+        pdp = PolicyDecisionPointFactory.resourcesPolicyDecisionPoint("/policies", () -> List.of(new TestPIP()),
+                () -> List.of(), () -> List.of(), () -> List.of(), List.of(), List.of(reporter));
     }
 
     @Test

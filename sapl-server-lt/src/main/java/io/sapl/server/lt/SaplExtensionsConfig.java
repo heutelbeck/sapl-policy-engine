@@ -25,6 +25,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Role;
 
 import io.sapl.api.functions.StaticFunctionLibrarySupplier;
+import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
 import io.sapl.extensions.mqtt.MqttFunctionLibrary;
 import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
 
@@ -32,8 +33,8 @@ import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
 public class SaplExtensionsConfig {
 
     @Bean
-    MqttPolicyInformationPoint mqttPolicyInformationPoint() {
-        return new MqttPolicyInformationPoint();
+    StaticPolicyInformationPointSupplier mqttPolicyInformationPoint() {
+        return () -> List.of(MqttPolicyInformationPoint.class);
     }
 
     @Bean
