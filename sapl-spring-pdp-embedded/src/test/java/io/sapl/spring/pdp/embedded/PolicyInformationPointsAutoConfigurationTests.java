@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
-import io.sapl.pip.TimePolicyInformationPoint;
+import io.sapl.api.pip.PolicyInformationPointSupplier;
 
 class PolicyInformationPointsAutoConfigurationTests {
 
@@ -34,7 +34,7 @@ class PolicyInformationPointsAutoConfigurationTests {
     void whenContextLoaded_thenDefaultPolicyInformationPointsArePresent() {
         contextRunner.run(context -> {
             assertThat(context).hasNotFailed();
-            assertThat(context).hasSingleBean(TimePolicyInformationPoint.class);
+            assertThat(context).hasSingleBean(PolicyInformationPointSupplier.class);
         });
     }
 

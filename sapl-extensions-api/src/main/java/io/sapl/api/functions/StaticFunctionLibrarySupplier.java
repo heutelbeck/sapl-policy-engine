@@ -25,6 +25,6 @@ import java.util.function.Supplier;
  * function libraries.
  */
 @FunctionalInterface
-public interface StaticFunctionLibrarySupplier extends Supplier<Collection<Object>> {
+public interface StaticFunctionLibrarySupplier extends Supplier<Collection<Class<?>>> {
 
 }

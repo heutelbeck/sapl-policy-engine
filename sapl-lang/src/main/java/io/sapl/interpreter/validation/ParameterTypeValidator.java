@@ -42,9 +42,8 @@ import reactor.core.publisher.Flux;
 @UtilityClass
 public class ParameterTypeValidator {
 
-    private static final String ILLEGAL_PARAMETER_TYPE = "Illegal parameter type. Got: %s Expected: %s";
-
-    private static final String NON_COMPLIANT_WITH_SCHEMA = "Illegal parameter type. Parameter does not comply with required schema. Got: %s Expected schema: %s";
+    private static final String ILLEGAL_PARAMETER_TYPE_ERROR    = "Illegal parameter type. Got: %s Expected: %s";
+    private static final String NON_COMPLIANT_WITH_SCHEMA_ERROR = "Illegal parameter type. Parameter does not comply with required schema. Got: %s Expected schema: %s";
 
     private static final Set<Class<?>> VALIDATION_ANNOTATIONS = Set.of(Number.class, Int.class, Long.class, Bool.class,
             Text.class, Array.class, JsonObject.class, Schema.class);
@@ -54,11 +53,11 @@ public class ParameterTypeValidator {
             return;
 
         if (parameterValue.isError())
-            throw new IllegalParameterType(
-                    String.format(ILLEGAL_PARAMETER_TYPE, "error", listAllowedTypes(parameterType.getAnnotations())));
+            throw new IllegalParameterType(String.format(ILLEGAL_PARAMETER_TYPE_ERROR, "error",
+                    listAllowedTypes(parameterType.getAnnotations())));
 
         if (parameterValue.isUndefined())
-            throw new IllegalParameterType(String.format(ILLEGAL_PARAMETER_TYPE, "undefined",
+            throw new IllegalParameterType(String.format(ILLEGAL_PARAMETER_TYPE_ERROR, "undefined",
                     listAllowedTypes(parameterType.getAnnotations())));
 
         validateJsonNodeType(parameterValue.get(), parameterType);
@@ -89,23 +88,21 @@ public class ParameterTypeValidator {
         for (Annotation annotation : annotations) {
             if (nodeContentsMatchesTypeGivenByAnnotation(node, annotation))
                 return;
-            else if (!Schema.class.isAssignableFrom(annotation.getClass()))
-                continue;
-            else if (nodeCompliantWithSchema(node, annotation))
-                return;
-            else {
-                var schemaAnnotation = (Schema) annotation;
-                errorText = schemaAnnotation.errorText();
-                if (!"".equals(errorText))
-                    throw new IllegalParameterType(errorText);
-                throw new IllegalParameterType(
-                        String.format(NON_COMPLIANT_WITH_SCHEMA, node.toString(), schemaAnnotation.value()));
+            if (annotation instanceof Schema schemaAnnotation) {
+                if (nodeCompliantWithSchema(node, schemaAnnotation)) {
+                    return;
+                } else {
+                    errorText = schemaAnnotation.errorText();
+                    if (!"".equals(errorText))
+                        throw new IllegalParameterType(errorText);
+                    throw new IllegalParameterType(
+                            String.format(NON_COMPLIANT_WITH_SCHEMA_ERROR, node.toString(), schemaAnnotation.value()));
+                }
             }
         }
 
-        throw new IllegalParameterType(
-                String.format(ILLEGAL_PARAMETER_TYPE, node.getNodeType().toString(), listAllowedTypes(annotations)));
-
+        throw new IllegalParameterType(String.format(ILLEGAL_PARAMETER_TYPE_ERROR, node.getNodeType().toString(),
+                listAllowedTypes(annotations)));
     }
 
     private static boolean nodeContentsMatchesTypeGivenByAnnotation(JsonNode node, Annotation annotation) {
@@ -118,9 +115,8 @@ public class ParameterTypeValidator {
                 || (JsonObject.class.isAssignableFrom(annotation.getClass()) && node.isObject());
     }
 
-    private static boolean nodeCompliantWithSchema(JsonNode node, Annotation annotation) {
-        String schema;
-        schema = ((Schema) annotation).value();
+    private static boolean nodeCompliantWithSchema(JsonNode node, Schema schemaAnnotation) {
+        var schema = schemaAnnotation.value();
         if ("".equals(schema))
             return true;
         var nodeVal   = Val.of(node);

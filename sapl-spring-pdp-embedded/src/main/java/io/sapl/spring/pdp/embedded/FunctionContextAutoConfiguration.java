@@ -28,29 +28,44 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
 
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.functions.FunctionLibrarySupplier;
+import io.sapl.api.functions.StaticFunctionLibrarySupplier;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @AutoConfiguration
+@RequiredArgsConstructor
 @AutoConfigureAfter(FunctionLibrariesAutoConfiguration.class)
 public class FunctionContextAutoConfiguration {
 
-    private final Collection<Object> functionLibraries;
-
-    public FunctionContextAutoConfiguration(ConfigurableApplicationContext applicationContext) {
-        functionLibraries = applicationContext.getBeansWithAnnotation(FunctionLibrary.class).values();
-    }
+    private final Collection<FunctionLibrarySupplier>       functionLibrarySuppliers;
+    private final Collection<StaticFunctionLibrarySupplier> staticFunctionLibrarySuppliers;
+    private final ConfigurableApplicationContext            applicationContext;
 
     @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     FunctionContext functionContext() throws InitializationException {
         var functionContext = new AnnotationFunctionContext();
-        for (var library : functionLibraries) {
-            log.trace("loading FunctionLibrary: {}", library.getClass().getSimpleName());
+        for (var supplier : functionLibrarySuppliers) {
+            for (var library : supplier.get()) {
+                log.trace("loading function library: {}", library.getClass().getSimpleName());
+                functionContext.loadLibrary(library);
+            }
+        }
+        for (var supplier : staticFunctionLibrarySuppliers) {
+            for (var libraryClass : supplier.get()) {
+                log.trace("loading static function library: {}", libraryClass.getSimpleName());
+                functionContext.loadLibrary(libraryClass);
+            }
+        }
+        Collection<Object> beanLibraries = applicationContext.getBeansWithAnnotation(FunctionLibrary.class).values();
+        for (var library : beanLibraries) {
+            log.trace("loading Spring bean function library: {}", library.getClass().getSimpleName());
             functionContext.loadLibrary(library);
         }
         return functionContext;

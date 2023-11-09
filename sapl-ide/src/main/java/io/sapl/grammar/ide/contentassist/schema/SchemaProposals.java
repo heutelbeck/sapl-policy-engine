@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -41,12 +42,10 @@ public class SchemaProposals {
     private final VariablesAndCombinatorSource variablesAndCombinatorSource;
 
     public List<String> getVariableNamesAsTemplates() {
-        var variables = getAllVariablesAsMap();
-
-        if (!variables.isEmpty())
-            return new ArrayList<>(variables.keySet());
-        else
-            return new ArrayList<>();
+        var variablesMap = getAllVariablesAsMap();
+        var result       = new ArrayList<String>(variablesMap.size());
+        result.addAll(variablesMap.keySet());
+        return result;
     }
 
     public List<String> getCodeTemplates(Expression expression) {
@@ -61,7 +60,7 @@ public class SchemaProposals {
     }
 
     private Map<String, JsonNode> getAllVariablesAsMap() {
-        return getAllVariables().next().block();
+        return Optional.ofNullable(getAllVariables().blockFirst()).orElse(Map.of());
     }
 
     private Flux<Map<String, JsonNode>> getAllVariables() {

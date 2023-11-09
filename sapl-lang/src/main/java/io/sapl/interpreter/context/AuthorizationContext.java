@@ -38,6 +38,9 @@ import reactor.util.context.ContextView;
 
 @UtilityClass
 public class AuthorizationContext {
+
+    static final String CANNOT_OVERWRITE_REQUEST_VARIABLE_S_ERROR = "Cannot overwrite request variable: %s";
+
     private static final String          INDEX         = "index";
     private static final String          KEY           = "key";
     private static final String          ATTRIBUTE_CTX = "attributeCtx";
@@ -115,7 +118,7 @@ public class AuthorizationContext {
 
     private void assertVariableNameNotReserved(String name) {
         if (SUBJECT.equals(name) || RESOURCE.equals(name) || ACTION.equals(name) || ENVIRONMENT.equals(name)) {
-            throw new PolicyEvaluationException("cannot overwrite request variable: %s", name);
+            throw new PolicyEvaluationException(CANNOT_OVERWRITE_REQUEST_VARIABLE_S_ERROR, name);
         }
     }
 

@@ -57,8 +57,10 @@ class AnnotationAttributeContextTests {
 
     @Test
     void when_classHasNoAnnotation_fail() {
-        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(
-                "I am an instance of a class without a @PolicyInformationPoint annotation"));
+        assertThrows(InitializationException.class,
+                () -> new AnnotationAttributeContext(
+                        () -> List.of("I am an instance of a class without a @PolicyInformationPoint annotation"),
+                        List::of));
     }
 
     @Test
@@ -68,7 +70,9 @@ class AnnotationAttributeContextTests {
 
         }
         var pip = new PIP();
-        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(pip));
+        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(() -> List.of(pip), List::of));
+        assertThrows(InitializationException.class,
+                () -> new AnnotationAttributeContext(List::of, () -> List.of(PIP.class)));
     }
 
     @Test
@@ -84,8 +88,8 @@ class AnnotationAttributeContextTests {
         }
 
         var pip = new PIP();
-        assertThatThrownBy(() -> new AnnotationAttributeContext(pip, pip)).isInstanceOf(InitializationException.class)
-                .hasMessage(String.format(
+        assertThatThrownBy(() -> new AnnotationAttributeContext(() -> List.of(pip, pip), List::of))
+                .isInstanceOf(InitializationException.class).hasMessage(String.format(
                         AnnotationAttributeContext.A_PIP_WITH_THE_NAME_S_HAS_ALREADY_BEEN_REGISTERED_ERROR, "somePip"));
     }
 
@@ -95,14 +99,14 @@ class AnnotationAttributeContextTests {
         class PIP {
 
             @Attribute
-            public Flux<Val> x(String x) {
+            public static Flux<Val> x(String x) {
                 return null;
             }
 
         }
 
-        var pip = new PIP();
-        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(pip));
+        assertThrows(InitializationException.class,
+                () -> new AnnotationAttributeContext(List::of, () -> List.of(PIP.class)));
     }
 
     @Test
@@ -118,7 +122,7 @@ class AnnotationAttributeContextTests {
         }
 
         var pip = new PIP();
-        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(pip));
+        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(() -> List.of(pip), List::of));
     }
 
     @Test
@@ -134,7 +138,7 @@ class AnnotationAttributeContextTests {
         }
 
         var pip = new PIP();
-        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(pip));
+        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(() -> List.of(pip), List::of));
     }
 
     @Test
@@ -150,7 +154,7 @@ class AnnotationAttributeContextTests {
         }
 
         var pip = new PIP();
-        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(pip));
+        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(() -> List.of(pip), List::of));
     }
 
     @Test
@@ -196,6 +200,8 @@ class AnnotationAttributeContextTests {
         var pip = new PIP();
         var ctx = new AnnotationAttributeContext();
         assertDoesNotThrow(() -> ctx.loadPolicyInformationPoint(pip));
+        assertDoesNotThrow(() -> new AnnotationAttributeContext(List::of, () -> List.of(PIP.class)));
+
     }
 
     @Test
@@ -211,7 +217,7 @@ class AnnotationAttributeContextTests {
         }
 
         var pip = new PIP();
-        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(pip));
+        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(() -> List.of(pip), List::of));
     }
 
     @Test
@@ -227,7 +233,7 @@ class AnnotationAttributeContextTests {
         }
 
         var pip = new PIP();
-        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(pip));
+        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(() -> List.of(pip), List::of));
 
         @PolicyInformationPoint
         class PIP2 {
@@ -240,7 +246,8 @@ class AnnotationAttributeContextTests {
         }
 
         var pip2 = new PIP2();
-        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(pip2));
+        assertThrows(InitializationException.class,
+                () -> new AnnotationAttributeContext(() -> List.of(pip2), List::of));
 
         @PolicyInformationPoint
         class PIP3 {
@@ -253,7 +260,8 @@ class AnnotationAttributeContextTests {
         }
 
         var pip3 = new PIP3();
-        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(pip3));
+        assertThrows(InitializationException.class,
+                () -> new AnnotationAttributeContext(() -> List.of(pip3), List::of));
 
     }
 
@@ -288,8 +296,8 @@ class AnnotationAttributeContextTests {
 
         var pip = new PIP();
 
-        assertThatThrownBy(() -> new AnnotationAttributeContext(pip)).isInstanceOf(InitializationException.class)
-                .hasMessage(
+        assertThatThrownBy(() -> new AnnotationAttributeContext(() -> List.of(pip), List::of))
+                .isInstanceOf(InitializationException.class).hasMessage(
                         String.format(AnnotationAttributeContext.FIRST_PARAMETER_S_UNEXPECTED_S_ERROR, "x", "Object"));
     }
 
@@ -307,7 +315,8 @@ class AnnotationAttributeContextTests {
 
         var pip = new PIP();
 
-        assertThatThrownBy(() -> new AnnotationAttributeContext(pip)).isInstanceOf(InitializationException.class)
+        assertThatThrownBy(() -> new AnnotationAttributeContext(() -> List.of(pip), List::of))
+                .isInstanceOf(InitializationException.class)
                 .hasMessage(String.format(AnnotationAttributeContext.FIRST_PARAMETER_NOT_PRESENT_S_ERROR, "x"));
     }
 
@@ -324,7 +333,7 @@ class AnnotationAttributeContextTests {
         }
 
         var pip = new PIP();
-        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(pip));
+        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(() -> List.of(pip), List::of));
     }
 
     @Test
@@ -527,7 +536,7 @@ class AnnotationAttributeContextTests {
         }
 
         var pip          = new PIP();
-        var attributeCtx = new AnnotationAttributeContext(pip);
+        var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
         var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
         var expression   = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
@@ -547,7 +556,7 @@ class AnnotationAttributeContextTests {
         }
 
         var pip          = new PIP();
-        var attributeCtx = new AnnotationAttributeContext(pip);
+        var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
         var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
         var expression   = ParserUtil.expression("\"\".<test.attribute(\"param1\",\"param2\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
@@ -568,7 +577,7 @@ class AnnotationAttributeContextTests {
         }
 
         var pip          = new PIP();
-        var attributeCtx = new AnnotationAttributeContext(pip);
+        var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
         var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
         var expression   = ParserUtil.expression("\"\".<test.attribute(\"param1\",\"param2\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
@@ -588,7 +597,7 @@ class AnnotationAttributeContextTests {
         }
 
         var pip          = new PIP();
-        var attributeCtx = new AnnotationAttributeContext(pip);
+        var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
         var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
         var expression   = ParserUtil.expression("\"\".<test.attribute>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
@@ -607,7 +616,7 @@ class AnnotationAttributeContextTests {
         }
 
         var pip          = new PIP();
-        var attributeCtx = new AnnotationAttributeContext(pip);
+        var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
         var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
         var expression   = ParserUtil.expression("\"\".<test.attribute(\"A\",\"B\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
@@ -627,7 +636,7 @@ class AnnotationAttributeContextTests {
         }
 
         var pip          = new PIP();
-        var attributeCtx = new AnnotationAttributeContext(pip);
+        var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
         var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
         var expression   = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
@@ -647,7 +656,7 @@ class AnnotationAttributeContextTests {
         }
 
         var pip          = new PIP();
-        var attributeCtx = new AnnotationAttributeContext(pip);
+        var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
         var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
         var expression   = ParserUtil.expression("<test.envAttribute(\"param1\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
@@ -673,7 +682,7 @@ class AnnotationAttributeContextTests {
         }
 
         var pip          = new PIP();
-        var attributeCtx = new AnnotationAttributeContext(pip);
+        var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
         var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
         var expression   = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
@@ -694,7 +703,7 @@ class AnnotationAttributeContextTests {
         }
 
         var pip          = new PIP();
-        var attributeCtx = new AnnotationAttributeContext(pip);
+        var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
         var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
         var expression   = ParserUtil.expression("<test.envAttribute>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
@@ -714,7 +723,7 @@ class AnnotationAttributeContextTests {
         }
 
         var pip          = new PIP();
-        var attributeCtx = new AnnotationAttributeContext(pip);
+        var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
         var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
         var expression   = ParserUtil.expression("<test.envAttribute>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
@@ -734,7 +743,7 @@ class AnnotationAttributeContextTests {
         }
 
         var pip          = new PIP();
-        var attributeCtx = new AnnotationAttributeContext(pip);
+        var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
         var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
         var expression   = ParserUtil.expression("<test.envAttribute>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
@@ -754,7 +763,7 @@ class AnnotationAttributeContextTests {
         }
 
         var pip          = new PIP();
-        var attributeCtx = new AnnotationAttributeContext(pip);
+        var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
         var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
         var expression   = ParserUtil.expression("\"\".<test.attribute>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
@@ -778,7 +787,7 @@ class AnnotationAttributeContextTests {
         }
 
         var pip          = new PIP();
-        var attributeCtx = new AnnotationAttributeContext(pip);
+        var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
         var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
         var expression   = ParserUtil.expression("\"\".<test.attribute>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
@@ -808,7 +817,7 @@ class AnnotationAttributeContextTests {
         }
 
         var pip          = new PIP();
-        var attributeCtx = new AnnotationAttributeContext(pip);
+        var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
         var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
         var expression   = ParserUtil.expression("<test.envAttribute(\"param1\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
@@ -829,7 +838,7 @@ class AnnotationAttributeContextTests {
         }
 
         var pip          = new PIP();
-        var attributeCtx = new AnnotationAttributeContext(pip);
+        var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
         var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
         var expression   = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
@@ -879,10 +888,10 @@ class AnnotationAttributeContextTests {
         }
 
         var pip          = new PIP();
-        var attributeCtx = new AnnotationAttributeContext(pip);
+        var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
         var variable     = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
 
-        var context         = new AnnotationAttributeContext(pip);
+        var context         = new AnnotationAttributeContext(() -> List.of(pip), List::of);
         var functionSchemas = context.getAttributeSchemas();
         assertThat(functionSchemas, hasEntry("test.attributeWithAnnotation", PERSON_SCHEMA));
 
@@ -950,7 +959,7 @@ class AnnotationAttributeContextTests {
         }
 
         var pip = new PIP();
-        var sut = new AnnotationAttributeContext(pip);
+        var sut = new AnnotationAttributeContext(() -> List.of(pip), List::of);
 
         var expectedEnvironmentTemplates = new String[] { "test.a(a1, a2)>", "test.a(varArgsParams...)>",
                 "test.a2(a1, a2)>", "test.a2>" };
@@ -983,7 +992,7 @@ class AnnotationAttributeContextTests {
         }
 
         var pip          = new PIP();
-        var attributeCtx = new AnnotationAttributeContext(pip);
+        var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
         var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
         var expression   = ParserUtil.expression("<test.attribute(\"param1\",\"param2\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
@@ -1016,7 +1025,7 @@ class AnnotationAttributeContextTests {
         }
 
         var pip = new PIP();
-        var sut = new AnnotationAttributeContext(pip);
+        var sut = new AnnotationAttributeContext(() -> List.of(pip), List::of);
 
         var actualTemplates = sut.getDocumentedAttributeCodeTemplates();
         assertThat(actualTemplates, hasEntry(pipName, pipDescription));

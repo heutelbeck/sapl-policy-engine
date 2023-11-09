@@ -35,7 +35,7 @@ class B_StreamingVirtualTimeTests {
 
     @BeforeEach
     void setUp() throws InitializationException {
-        fixture = new SaplIntegrationTestFixture("policiesIT").registerFunctionLibrary(new TemporalFunctionLibrary());
+        fixture = new SaplIntegrationTestFixture("policiesIT").registerFunctionLibrary(TemporalFunctionLibrary.class);
     }
 
     @Test

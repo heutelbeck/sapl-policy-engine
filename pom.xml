@@ -384,7 +384,7 @@
 				<configuration>
 					<licenseSets>
 						<licenseSet>
-							<header>APACHE-2.txt</header>
+							<header>${maven.multiModuleProjectDirectory}/APACHE-2.txt</header>
 							<excludes>
 								<exclude>**/*.xtendbin</exclude>
 								<exclude>**/*._trace</exclude>
@@ -399,13 +399,13 @@
 								<exclude>src/main/emf-gen/**</exclude>
 								<exclude>src/main/resources/**</exclude>
 								<exclude>.gitattributes</exclude>
+								<exclude>.npmrc</exclude>
 								<exclude>
 									src/main/java/io/sapl/grammar/web/SAPLWebSetup.java</exclude>
 								<exclude>
 									src/main/java/io/sapl/grammar/web/SAPLWebModule.java</exclude>
 								<exclude>src/asciidoc/sapl-grammar.ebnf</exclude>
 							</excludes>
-
 						</licenseSet>
 					</licenseSets>
 					<properties>

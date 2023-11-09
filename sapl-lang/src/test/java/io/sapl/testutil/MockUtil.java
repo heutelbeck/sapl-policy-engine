@@ -43,6 +43,7 @@ import io.sapl.interpreter.SimpleFunctionLibrary;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
+import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 import reactor.util.context.Context;
 
@@ -67,9 +68,9 @@ public class MockUtil {
         var functionCtx  = new AnnotationFunctionContext();
         try {
             attributeCtx.loadPolicyInformationPoint(new TestPolicyInformationPoint());
-            functionCtx.loadLibrary(new SimpleFunctionLibrary());
-            functionCtx.loadLibrary(new FilterFunctionLibrary());
-            functionCtx.loadLibrary(new TestFunctionLibrary());
+            functionCtx.loadLibrary(SimpleFunctionLibrary.class);
+            functionCtx.loadLibrary(FilterFunctionLibrary.class);
+            functionCtx.loadLibrary(TestFunctionLibrary.class);
         } catch (InitializationException e) {
             fail("The loading of function libraries for the test environment failed: " + e.getMessage());
         }
@@ -88,6 +89,7 @@ public class MockUtil {
         return ctx;
     }
 
+    @UtilityClass
     @FunctionLibrary(name = "mock")
     public static class TestFunctionLibrary {
 

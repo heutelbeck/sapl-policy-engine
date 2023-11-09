@@ -26,7 +26,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
@@ -36,6 +35,7 @@ import org.springframework.messaging.rsocket.RSocketRequester;
 import org.springframework.messaging.rsocket.RSocketStrategies;
 import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHandler;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.util.TestSocketUtils;
 
 import io.rsocket.SocketAcceptor;
 import io.rsocket.core.RSocketServer;
@@ -59,8 +59,7 @@ import reactor.test.StepVerifier;
 @Import({ PolicyDecisionPoint.class, RSocketMessageHandler.class })
 @ContextConfiguration(classes = { RsocketPDPControllerTest.class })
 class RsocketPDPControllerTest {
-    @Value("${spring.rsocket.server.port}")
-    private int        serverPort = 7000;
+    private int        serverPort = TestSocketUtils.findAvailableTcpPort();;
     private Disposable server;
 
     @MockBean

@@ -47,6 +47,12 @@ public abstract class SaplTestFixtureTemplate implements SaplTestFixture {
     }
 
     @Override
+    public SaplTestFixture registerFunctionLibrary(Class<?> staticLibrary) throws InitializationException {
+        this.functionCtx.loadLibrary(staticLibrary);
+        return this;
+    }
+
+    @Override
     public SaplTestFixture registerVariable(String key, JsonNode value) {
         if (this.variables.containsKey(key)) {
             throw new SaplTestException("The VariableContext already contains a key \"" + key + "\"");

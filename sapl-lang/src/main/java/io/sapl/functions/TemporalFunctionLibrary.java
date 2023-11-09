@@ -40,7 +40,9 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
+import lombok.experimental.UtilityClass;
 
+@UtilityClass
 @FunctionLibrary(name = TemporalFunctionLibrary.NAME, description = TemporalFunctionLibrary.DESCRIPTION)
 public class TemporalFunctionLibrary {
 
@@ -112,14 +114,6 @@ public class TemporalFunctionLibrary {
 
     private static final DateTimeFormatter US_TIME_FORMATTER = new DateTimeFormatterBuilder().parseCaseInsensitive()
             .appendPattern("hh:mm:ss a").toFormatter(Locale.US);
-
-    /**
-     * Even though there are only static methods in this class, the engine requires
-     * an instance for registration.
-     */
-    public TemporalFunctionLibrary() {
-        // NOOP.
-    }
 
     /* ######## DURATION ######## */
 

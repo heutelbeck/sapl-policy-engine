@@ -47,8 +47,8 @@ class DefaultSAPLInterpreterTransformationTests {
 	
 	@BeforeEach
 	def void setUp() {
-		FUNCTION_CTX.loadLibrary(new SimpleFunctionLibrary());
-		FUNCTION_CTX.loadLibrary(new FilterFunctionLibrary());
+		FUNCTION_CTX.loadLibrary(SimpleFunctionLibrary);
+		FUNCTION_CTX.loadLibrary(FilterFunctionLibrary);
 		FUNCTION_CTX.loadLibrary(new SimpleFilterFunctionLibrary(Clock.systemUTC()));
 	}
 

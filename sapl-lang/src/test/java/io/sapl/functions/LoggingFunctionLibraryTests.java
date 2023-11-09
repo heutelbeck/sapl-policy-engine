@@ -18,7 +18,6 @@
 package io.sapl.functions;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.junit.jupiter.api.Test;
@@ -26,11 +25,6 @@ import org.junit.jupiter.api.Test;
 import io.sapl.api.interpreter.Val;
 
 class LoggingFunctionLibraryTests {
-
-    @Test
-    void isInstantiable() {
-        assertThat(new LoggingFunctionLibrary(), is(notNullValue()));
-    }
 
     @Test
     void debugSpyIsIdentity() {

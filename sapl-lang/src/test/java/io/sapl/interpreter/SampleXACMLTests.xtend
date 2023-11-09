@@ -54,7 +54,7 @@ class SampleXACMLTests {
 	def static void setUpClass() {
 		FUNCTION_CTX.loadLibrary(new MockXACMLStringFunctionLibrary());
 		FUNCTION_CTX.loadLibrary(new MockXACMLDateFunctionLibrary());
-		FUNCTION_CTX.loadLibrary(new FilterFunctionLibrary());
+		FUNCTION_CTX.loadLibrary(FilterFunctionLibrary);
 		ATTRIBUTE_CTX.loadPolicyInformationPoint(new MockXACMLPatientProfilePIP());
 	}
 

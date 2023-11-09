@@ -17,6 +17,8 @@
  */
 package io.sapl.spring.pdp.embedded;
 
+import java.util.List;
+
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -26,6 +28,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.sapl.api.functions.FunctionLibrarySupplier;
 import io.sapl.extension.jwt.JWTFunctionLibrary;
 import io.sapl.extension.jwt.JWTKeyProvider;
 import io.sapl.extension.jwt.JWTPolicyInformationPoint;
@@ -36,8 +39,8 @@ public class JwtExtensionAutoConfiguration {
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    JWTFunctionLibrary jwtFunctionLibrary(ObjectMapper mapper) {
-        return new JWTFunctionLibrary(mapper);
+    FunctionLibrarySupplier jwtFunctionLibrarySupplier(ObjectMapper mapper) {
+        return () -> List.of(new JWTFunctionLibrary(mapper));
     }
 
     @Bean

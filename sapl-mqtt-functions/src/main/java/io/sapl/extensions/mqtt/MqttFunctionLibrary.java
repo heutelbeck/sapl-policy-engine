@@ -27,11 +27,13 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Array;
 import io.sapl.api.validation.Text;
+import lombok.experimental.UtilityClass;
 
 /**
  * This sapl function library provides functions to check whether mqtt topics
  * are matching against mqtt topics which contain wildcards.
  */
+@UtilityClass
 @FunctionLibrary(name = MqttFunctionLibrary.NAME, description = MqttFunctionLibrary.DESCRIPTION)
 public class MqttFunctionLibrary {
 

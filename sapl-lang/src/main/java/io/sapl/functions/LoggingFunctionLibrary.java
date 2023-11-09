@@ -21,6 +21,7 @@ import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Text;
+import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -28,6 +29,7 @@ import lombok.extern.slf4j.Slf4j;
  * console for debugging and testing.
  */
 @Slf4j
+@UtilityClass
 @FunctionLibrary(name = LoggingFunctionLibrary.NAME, description = LoggingFunctionLibrary.DESCRIPTION)
 public class LoggingFunctionLibrary {
 
@@ -62,14 +64,6 @@ public class LoggingFunctionLibrary {
     private static final String TRACE_DOC = "log.trace(MESSAGE, VALUE): logs the value prepended with the message on the console at log level TRACE. Always returns a true value. This function is useful to add an additional line in a where block of a policy. As the function return true, the rest of the policy evaluation is not affected.";
 
     private static final String WARN_DOC = "log.warn(MESSAGE, VALUE): logs the value prepended with the message on the console at log level WARN. Always returns a true value. This function is useful to add an additional line in a where block of a policy. As the function return true, the rest of the policy evaluation is not affected.";
-
-    /**
-     * Even though there are only static methods in this class, the engine requires
-     * an instance for registration.
-     */
-    public LoggingFunctionLibrary() {
-        // NOOP.
-    }
 
     /**
      * Returns the original message on log level INFO followed by the inspected

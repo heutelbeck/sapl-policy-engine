@@ -41,12 +41,11 @@ class DocumentationAutoConfigurationTests {
     void whenContextLoaded_thenDocumentationBeansArePresent() {
 
         var mockAttributeContext = mock(AttributeContext.class);
-        var mockPipDoc           = new PolicyInformationPointDocumentation("PIP name", "PIP description",
-                "A MOCK PIP OBJECT");
+        var mockPipDoc           = new PolicyInformationPointDocumentation("PIP name", "PIP description");
         when(mockAttributeContext.getDocumentation()).thenReturn(List.of(mockPipDoc));
 
         var functionContext = mock(FunctionContext.class);
-        var mockFunDoc      = new LibraryDocumentation("Library name", "Library description", "A MOCK LIBRARY OBJECT");
+        var mockFunDoc      = new LibraryDocumentation("Library name", "Library description");
         when(functionContext.getDocumentation()).thenReturn(List.of(mockFunDoc));
 
         contextRunner.withBean(AttributeContext.class, () -> mockAttributeContext)

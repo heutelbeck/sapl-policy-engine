@@ -40,9 +40,6 @@ public class LibraryDocumentation {
     @NonNull
     String description;
 
-    @NonNull
-    Object library;
-
     Map<String, String> documentation = new HashMap<>();
 
 }

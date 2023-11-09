@@ -15,19 +15,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.ide.contentassist;
+package io.sapl.functions;
 
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
+import io.sapl.api.functions.Function;
+import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.interpreter.Val;
+import lombok.experimental.UtilityClass;
 
-import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties;
-import lombok.RequiredArgsConstructor;
+/**
+ * Function library implementing the blacken, replace, and remove filter
+ * functions.
+ *
+ * @author Dominic Heutelbeck
+ */
+@UtilityClass
+@FunctionLibrary(name = "SchemaTestLibrary")
+public class SchemaTestFunctionLibrary {
 
-@Configuration
-@RequiredArgsConstructor
-@EnableConfigurationProperties(EmbeddedPDPProperties.class)
-public class VariablesSourceAutoConfiguration {
+    static final String PERSON_SCHEMA = "{\"name\": {\"type\": \"string\"}, \"age\": {\"type\": \"number\"}}";
 
-    private final EmbeddedPDPProperties pdpProperties;
+    @Function(name = "schemaFun", schema = PERSON_SCHEMA)
+    public static Val schemaFun() {
+        return Val.of(true);
+    }
 
 }

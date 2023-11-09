@@ -49,7 +49,7 @@ class DefaultSAPLInterpreterPolicySetTests {
         authzSubscription = new AuthorizationSubscription(null, null, null, null);
         attributeCtx      = new AnnotationAttributeContext();
         functionCtx       = new AnnotationFunctionContext();
-        functionCtx.loadLibrary(new FilterFunctionLibrary());
+        functionCtx.loadLibrary(FilterFunctionLibrary.class);
     }
 
     @Test

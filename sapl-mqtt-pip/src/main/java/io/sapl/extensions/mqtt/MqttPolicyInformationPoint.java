@@ -28,12 +28,14 @@ import io.sapl.api.validation.Array;
 import io.sapl.api.validation.Int;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Text;
+import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 
 /**
  * This policy information point allows the user to receive mqtt messages of
  * subscribed topics from a mqtt broker.
  */
+@UtilityClass
 @PolicyInformationPoint(name = MqttPolicyInformationPoint.NAME, description = MqttPolicyInformationPoint.DESCRIPTION)
 public class MqttPolicyInformationPoint {
 

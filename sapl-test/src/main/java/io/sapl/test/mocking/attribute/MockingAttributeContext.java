@@ -152,7 +152,7 @@ public class MockingAttributeContext implements AttributeContext {
             AttributeMockPublisher mock = new AttributeMockPublisher(fullName);
             this.registeredMocks.put(fullName, mock);
 
-            addNewPIPDocumentation(fullName, mock);
+            addNewPIPDocumentation(fullName);
         }
     }
 
@@ -182,7 +182,7 @@ public class MockingAttributeContext implements AttributeContext {
             newMock.loadMockForParentValue(parentValueMatcher, returns);
             this.registeredMocks.put(fullName, newMock);
 
-            addNewPIPDocumentation(fullName, newMock);
+            addNewPIPDocumentation(fullName);
         }
     }
 
@@ -202,7 +202,7 @@ public class MockingAttributeContext implements AttributeContext {
             newMock.loadMockForParentValueAndArguments(parameters, returns);
             this.registeredMocks.put(fullName, newMock);
 
-            addNewPIPDocumentation(fullName, newMock);
+            addNewPIPDocumentation(fullName);
         }
     }
 
@@ -216,7 +216,7 @@ public class MockingAttributeContext implements AttributeContext {
             mock.loadAttributeMockWithTiming(timing, returns);
             this.registeredMocks.put(fullName, mock);
 
-            addNewPIPDocumentation(fullName, mock);
+            addNewPIPDocumentation(fullName);
         }
     }
 
@@ -231,7 +231,7 @@ public class MockingAttributeContext implements AttributeContext {
         }
     }
 
-    private void addNewPIPDocumentation(String fullName, AttributeMock mock) {
+    private void addNewPIPDocumentation(String fullName) {
         String[] split         = fullName.split(Pattern.quote(NAME_DELIMITER));
         String   pipName       = split[0];
         String   attributeName = split[1];
@@ -241,7 +241,7 @@ public class MockingAttributeContext implements AttributeContext {
             existingDoc.getDocumentation().put(attributeName, "Mocked Attribute");
         } else {
             PolicyInformationPointDocumentation pipDocs = new PolicyInformationPointDocumentation(pipName,
-                    "Mocked PIP " + pipName, mock);
+                    "Mocked PIP " + pipName);
             pipDocs.getDocumentation().put(attributeName, "Mocked Attribute");
             this.pipDocumentations.put(pipName, pipDocs);
         }

@@ -20,7 +20,6 @@ package io.sapl.functions;
 import static io.sapl.hamcrest.Matchers.val;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.math.BigDecimal;
@@ -38,11 +37,6 @@ import org.mockito.Mockito;
 import io.sapl.api.interpreter.Val;
 
 class TemporalFunctionLibraryTests {
-
-    @Test
-    void instantiate() {
-        assertDoesNotThrow(TemporalFunctionLibrary::new);
-    }
 
     @Test
     void nowPlusNanos() {

@@ -21,7 +21,6 @@ import static io.sapl.functions.SchemaValidationLibrary.isCompliantWithSchema;
 import static io.sapl.hamcrest.Matchers.val;
 import static io.sapl.hamcrest.Matchers.valError;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.junit.jupiter.api.Test;
@@ -44,11 +43,6 @@ class SchemaValidationLibraryTests {
 
     private static final String INVALID_SCHEMA = "{ " + "  \"type\": \"object\", " + "  \"properties\": { "
             + "    \"name\": { \"type\": \"string\" }, " + "    \"age\": { \"type\":  } " + "  }" + "}";
-
-    @Test
-    void instantiatable() {
-        assertThat(new SchemaValidationLibrary(), notNullValue());
-    }
 
     @Test
     void isCompliantWithSchema_valid_string_input() {

@@ -27,7 +27,9 @@ import io.sapl.api.validation.Bool;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
+import lombok.experimental.UtilityClass;
 
+@UtilityClass
 @FunctionLibrary(name = StandardFunctionLibrary.NAME, description = StandardFunctionLibrary.DESCRIPTION)
 public class StandardFunctionLibrary {
 
@@ -52,14 +54,6 @@ public class StandardFunctionLibrary {
             + "For NUMBER or BOOLEAN it returns a JSON node representing the value converted to a string. "
             + "For NULL it returns a JSON node representing the empty string. "
             + "For ARRAY or OBJECT the function will return an error.";
-
-    /**
-     * Even though there are only static methods in this class, the engine requires
-     * an instance for registration.
-     */
-    public StandardFunctionLibrary() {
-        // NOOP.
-    }
 
     @Function(docs = LENGTH_DOC)
     public static Val length(@Array @Text @JsonObject Val parameter) {

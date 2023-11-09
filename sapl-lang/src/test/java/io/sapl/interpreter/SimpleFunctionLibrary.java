@@ -23,7 +23,9 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
+import lombok.experimental.UtilityClass;
 
+@UtilityClass
 @FunctionLibrary(name = "simple", description = "some simple functions")
 public class SimpleFunctionLibrary {
 

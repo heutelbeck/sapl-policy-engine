@@ -17,9 +17,15 @@
  */
 package io.sapl.server.lt;
 
+import java.util.List;
+
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Role;
 
+import io.sapl.api.functions.StaticFunctionLibrarySupplier;
+import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
 import io.sapl.extensions.mqtt.MqttFunctionLibrary;
 import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
 
@@ -27,12 +33,14 @@ import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
 public class SaplExtensionsConfig {
 
     @Bean
-    MqttPolicyInformationPoint mqttPolicyInformationPoint() {
-        return new MqttPolicyInformationPoint();
+    StaticPolicyInformationPointSupplier mqttPolicyInformationPoint() {
+        return () -> List.of(MqttPolicyInformationPoint.class);
     }
 
     @Bean
-    MqttFunctionLibrary mqttFunctionLibrary() {
-        return new MqttFunctionLibrary();
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    StaticFunctionLibrarySupplier additionalStaticLibraries() {
+        return () -> List.of(MqttFunctionLibrary.class);
     }
+
 }
