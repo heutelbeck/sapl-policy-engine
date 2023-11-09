@@ -23,9 +23,11 @@ import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
 
+import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.functions.FunctionLibrarySupplier;
 import io.sapl.api.functions.StaticFunctionLibrarySupplier;
 import io.sapl.interpreter.InitializationException;
@@ -42,6 +44,7 @@ public class FunctionContextAutoConfiguration {
 
     private final Collection<FunctionLibrarySupplier>       functionLibrarySuppliers;
     private final Collection<StaticFunctionLibrarySupplier> staticFunctionLibrarySuppliers;
+    private final ConfigurableApplicationContext            applicationContext;
 
     @Bean
     @ConditionalOnMissingBean
@@ -59,6 +62,11 @@ public class FunctionContextAutoConfiguration {
                 log.trace("loading static function library: {}", libraryClass.getSimpleName());
                 functionContext.loadLibrary(libraryClass);
             }
+        }
+        Collection<Object> beanLibraries = applicationContext.getBeansWithAnnotation(FunctionLibrary.class).values();
+        for (var library : beanLibraries) {
+            log.trace("loading Spring bean function library: {}", library.getClass().getSimpleName());
+            functionContext.loadLibrary(library);
         }
         return functionContext;
     }

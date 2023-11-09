@@ -399,6 +399,7 @@
 								<exclude>src/main/emf-gen/**</exclude>
 								<exclude>src/main/resources/**</exclude>
 								<exclude>.gitattributes</exclude>
+								<exclude>.npmrc</exclude>
 								<exclude>
 									src/main/java/io/sapl/grammar/web/SAPLWebSetup.java</exclude>
 								<exclude>

@@ -23,9 +23,11 @@ import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
 
+import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.pip.PolicyInformationPointSupplier;
 import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
 import io.sapl.interpreter.InitializationException;
@@ -42,6 +44,7 @@ public class AttributeContextAutoConfiguration {
 
     private final Collection<PolicyInformationPointSupplier>       pipSuppliers;
     private final Collection<StaticPolicyInformationPointSupplier> staticPipSuppliers;
+    private final ConfigurableApplicationContext                   applicationContext;
 
     @Bean
     @ConditionalOnMissingBean
@@ -59,6 +62,11 @@ public class AttributeContextAutoConfiguration {
                 log.trace("loading static Policy Information Point: {}", pip.getSimpleName());
                 ctx.loadPolicyInformationPoint(pip);
             }
+        }
+        Collection<Object> beanPips = applicationContext.getBeansWithAnnotation(PolicyInformationPoint.class).values();
+        for (var pip : beanPips) {
+            log.trace("loading Spring bean Policy Information Point: {}", pip.getClass().getSimpleName());
+            ctx.loadPolicyInformationPoint(pip);
         }
         return ctx;
     }
