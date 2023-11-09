@@ -67,55 +67,94 @@ class FilterFunctionLibraryTests {
 
     @Test
     void blackenTooManyArguments() {
+        var val1 = Val.of("abcde");
+        var val2 = Val.of(2);
+        var val3 = Val.of(2);
+        var val4 = Val.of(2);
+        var val5 = Val.of(2);
+        var val6 = Val.of(2);
         assertThrows(IllegalArgumentException.class,
-                () -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(2), Val.of(2), Val.of(2)));
+                () -> FilterFunctionLibrary.blacken(val1, val2, val3, val4, val5, val6));
+    }
+
+    @Test
+    void blackenNoArguments() {
+        assertThrows(IllegalArgumentException.class, FilterFunctionLibrary::blacken);
     }
 
     @Test
     void blackenNoString() {
-        assertThrows(IllegalArgumentException.class, () -> FilterFunctionLibrary.blacken(Val.of(2)));
+        var val1 = Val.of(2);
+        assertThrows(IllegalArgumentException.class, () -> FilterFunctionLibrary.blacken(val1));
     }
 
     @Test
     void blackenReplacementNoString() {
-        assertThrows(IllegalArgumentException.class,
-                () -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(2), Val.of(2), Val.of(2)));
+        var val1 = Val.of("abcde");
+        var val2 = Val.of(2);
+        var val3 = Val.of(2);
+        var val4 = Val.of(2);
+        var val5 = Val.of(2);
+
+        assertThrows(IllegalArgumentException.class, () -> FilterFunctionLibrary.blacken(val1, val2, val3, val4, val5));
     }
 
     @Test
     void blackenLengthWithInvalidNumber() {
-        assertThrows(IllegalArgumentException.class,
-                () -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(2), Val.of(2), Val.of(-1)));
+        var val1 = Val.of("abcde");
+        var val2 = Val.of(2);
+        var val3 = Val.of(2);
+        var val4 = Val.of(2);
+        var val5 = Val.of(-1);
+
+        assertThrows(IllegalArgumentException.class, () -> FilterFunctionLibrary.blacken(val1, val2, val3, val4, val5));
     }
 
     @Test
     void blackenLengthWithInvalidType() {
-        assertThrows(IllegalArgumentException.class,
-                () -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(2), Val.of(2), Val.of("a")));
+        var val1 = Val.of("abcde");
+        var val2 = Val.of(2);
+        var val3 = Val.of(2);
+        var val4 = Val.of(2);
+        var val5 = Val.of("a");
+
+        assertThrows(IllegalArgumentException.class, () -> FilterFunctionLibrary.blacken(val1, val2, val3, val4, val5));
     }
 
     @Test
     void blackenReplacementNegativeRight() {
-        assertThrows(IllegalArgumentException.class,
-                () -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(-2)));
+        var val1 = Val.of("abcde");
+        var val2 = Val.of(2);
+        var val3 = Val.of(-2);
+
+        assertThrows(IllegalArgumentException.class, () -> FilterFunctionLibrary.blacken(val1, val2, val3));
     }
 
     @Test
     void blackenReplacementNegativeLeft() {
-        assertThrows(IllegalArgumentException.class,
-                () -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(-2), Val.of(2)));
+        var val1 = Val.of("abcde");
+        var val2 = Val.of(-2);
+        var val3 = Val.of(2);
+
+        assertThrows(IllegalArgumentException.class, () -> FilterFunctionLibrary.blacken(val1, val2, val3));
     }
 
     @Test
     void blackenReplacementRightNoNumber() {
-        assertThrows(IllegalArgumentException.class,
-                () -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.NULL));
+        var val1 = Val.of("abcde");
+        var val2 = Val.of(-2);
+        var val3 = Val.NULL;
+
+        assertThrows(IllegalArgumentException.class, () -> FilterFunctionLibrary.blacken(val1, val2, val3));
     }
 
     @Test
     void blackenReplacementLeftNoNumber() {
-        assertThrows(IllegalArgumentException.class,
-                () -> FilterFunctionLibrary.blacken(Val.of("abcde"), Val.NULL, Val.of(2)));
+        var val1 = Val.of("abcde");
+        var val2 = Val.NULL;
+        var val3 = Val.of(2);
+
+        assertThrows(IllegalArgumentException.class, () -> FilterFunctionLibrary.blacken(val1, val2, val3));
     }
 
     @Test
