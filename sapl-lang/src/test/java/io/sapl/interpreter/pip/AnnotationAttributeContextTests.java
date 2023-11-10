@@ -191,7 +191,7 @@ class AnnotationAttributeContextTests {
         class PIP {
 
             @EnvironmentAttribute
-            public Flux<Val> x(Map<String, JsonNode> variables) {
+            public static Flux<Val> x(Map<String, JsonNode> variables) {
                 return null;
             }
 
@@ -201,7 +201,22 @@ class AnnotationAttributeContextTests {
         var ctx = new AnnotationAttributeContext();
         assertDoesNotThrow(() -> ctx.loadPolicyInformationPoint(pip));
         assertDoesNotThrow(() -> new AnnotationAttributeContext(List::of, () -> List.of(PIP.class)));
+    }
 
+    @Test
+    void when_nonStaticButLoadedViaClass_thenFail() {
+        @PolicyInformationPoint
+        class PIP {
+
+            @EnvironmentAttribute
+            public Flux<Val> x(Map<String, JsonNode> variables) {
+                return null;
+            }
+
+        }
+
+        assertThatThrownBy(() -> new AnnotationAttributeContext(List::of, () -> List.of(PIP.class)))
+                .isInstanceOf(InitializationException.class);
     }
 
     @Test

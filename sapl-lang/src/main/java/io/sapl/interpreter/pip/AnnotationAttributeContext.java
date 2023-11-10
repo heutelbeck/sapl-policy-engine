@@ -19,6 +19,7 @@ package io.sapl.interpreter.pip;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
 import java.time.Instant;
@@ -396,6 +397,9 @@ public class AnnotationAttributeContext implements AttributeContext {
             String attributeName, String attributeSchema, String attributePathToSchema, String documentation)
             throws InitializationException {
 
+        if (policyInformationPoint == null)
+            assertMethodIsStatic(method);
+
         if (attributeName.isBlank())
             attributeName = method.getName();
 
@@ -407,6 +411,15 @@ public class AnnotationAttributeContext implements AttributeContext {
         namedAttributes.add(metadata);
         attributeNamesByPipName.get(pipName).add(attributeName);
         pipDocumentation.documentation.put(metadata.getDocumentationCodeTemplate(), documentation);
+    }
+
+    private void assertMethodIsStatic(Method method) throws InitializationException {
+        if (!Modifier.isStatic(method.getModifiers())) {
+            throw new InitializationException(
+                    "Cannot initialize PIPs. If no PIP instance is provided, the method of an attribute finder must be static. "
+                            + method.getName()
+                            + " is not static. In case your PIP implementation cannot have the method as static because it depends on PIP state or injected ependecies, make sure to register the PIP as an instance instead of a class.");
+        }
     }
 
     private void assertNoNameCollision(Collection<AttributeFinderMetadata> attributesWithName,
