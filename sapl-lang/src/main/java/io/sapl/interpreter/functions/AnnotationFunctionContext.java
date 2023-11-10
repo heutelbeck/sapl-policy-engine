@@ -18,6 +18,7 @@
 package io.sapl.interpreter.functions;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.util.Collection;
 import java.util.Collections;
@@ -207,13 +208,16 @@ public class AnnotationFunctionContext implements FunctionContext {
 
     private void importFunction(Object library, String libName, LibraryDocumentation libMeta, Method method)
             throws InitializationException {
-        Function funAnnotation = method.getAnnotation(Function.class);
-        String   funName       = funAnnotation.name();
+        if (library == null)
+            assertMethodIsStatic(method);
+
+        var funAnnotation = method.getAnnotation(Function.class);
+        var funName       = funAnnotation.name();
         if (funName.isEmpty())
             funName = method.getName();
 
-        String funSchema       = funAnnotation.schema();
-        String funPathToSchema = funAnnotation.pathToSchema();
+        var funSchema       = funAnnotation.schema();
+        var funPathToSchema = funAnnotation.pathToSchema();
 
         if (!Val.class.isAssignableFrom(method.getReturnType()))
             throw new InitializationException(ILLEGAL_RETURN_TYPE_FOR_IMPORT_ERROR, method.getReturnType().getName());
@@ -234,6 +238,15 @@ public class AnnotationFunctionContext implements FunctionContext {
         libMeta.documentation.put(funMeta.getDocumentationCodeTemplate(), funAnnotation.docs());
 
         libraries.get(libName).add(funName);
+    }
+
+    private void assertMethodIsStatic(Method method) throws InitializationException {
+        if (!Modifier.isStatic(method.getModifiers())) {
+            throw new InitializationException(
+                    "Cannot initialize functions. If no function library instance is provided, the method of a function must be static. "
+                            + method.getName()
+                            + " is not static. In case your function implementation cannot have the method as static because it depends on library state or injected dependecies, make sure to register the library as an instance instead of a class.");
+        }
     }
 
     @Override

@@ -19,6 +19,7 @@ package io.sapl.interpreter.functions;
 
 import static com.spotify.hamcrest.pojo.IsPojo.pojo;
 import static io.sapl.hamcrest.Matchers.valError;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -345,6 +346,19 @@ class AnnotationFunctionContextTests {
         var parameter = mapper.readTree("{\"name\": 23}");
         assertThat(context.evaluate("annotation.customErrorForSchemaInParameterAnnotation", Val.of(parameter)),
                 valError("Parameter jsonObject needs to comply with the given schema."));
+    }
+
+    @Test
+    void nonInstanceWithNonStaticMethodFailsLoading() {
+        @FunctionLibrary
+        class Lib {
+            @Function
+            public Val helloTest() {
+                return Val.of("Hello");
+            }
+        }
+        assertThatThrownBy(() -> new AnnotationFunctionContext(List::of, () -> List.of(Lib.class)))
+                .isInstanceOf(InitializationException.class);
     }
 
     @FunctionLibrary(name = MockLibrary.LIBRARY_NAME, description = MockLibrary.LIBRARY_DOC)
