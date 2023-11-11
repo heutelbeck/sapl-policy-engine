@@ -29,7 +29,6 @@ import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 
-import io.sapl.grammar.sapl.Condition;
 import io.sapl.grammar.sapl.Import;
 import io.sapl.grammar.sapl.LibraryImport;
 import io.sapl.grammar.sapl.PolicyBody;
@@ -214,20 +213,6 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             // add variables to list of proposals
             addSimpleProposals(definedValues, context, acceptor);
 
-            // try to move up to the policy body
-            if (model.eContainer() instanceof Condition) {
-                model = TreeNavigationHelper.goToFirstParent(model, PolicyBody.class);
-            }
-
-            // look up all defined variables in the policy
-            if (model instanceof PolicyBody policyBody) {
-                Collection<String> definedValuesPolicyBody;
-                int currentOffset = context.getOffset();
-
-                definedValuesPolicyBody = getValuesDefinedInPolicyBodyAboveCursor(policyBody, currentOffset);
-                // add variables to list of proposals
-                addSimpleProposals(definedValuesPolicyBody, context, acceptor);
-            }
             // add authorization subscriptions proposals
             addSimpleProposals(authzSubProposals, context, acceptor);
         }

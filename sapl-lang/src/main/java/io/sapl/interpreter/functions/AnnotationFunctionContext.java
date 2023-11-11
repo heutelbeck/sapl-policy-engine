@@ -56,6 +56,8 @@ public class AnnotationFunctionContext implements FunctionContext {
 
     private static final String ILLEGAL_RETURN_TYPE_FOR_IMPORT = "Function does not return a Val. Cannot be loaded. Type was: %s.";
 
+    private static final String MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED = "Function has both a schema and a schemaPath annotation. Multiple schema annotations are not allowed.";
+
     private final Collection<LibraryDocumentation> documentation = new LinkedList<>();
 
     private final Map<String, FunctionMetadata> functions = new HashMap<>();
@@ -178,6 +180,9 @@ public class AnnotationFunctionContext implements FunctionContext {
         String funSchema = funAnnotation.schema();
         String funPathToSchema = funAnnotation.pathToSchema();
 
+        if(!funSchema.isEmpty() && !funPathToSchema.isEmpty())
+            throw new InitializationException(MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED);
+
         if (!Val.class.isAssignableFrom(method.getReturnType()))
             throw new InitializationException(ILLEGAL_RETURN_TYPE_FOR_IMPORT, method.getReturnType().getName());
 
@@ -223,8 +228,6 @@ public class AnnotationFunctionContext implements FunctionContext {
     @Data
     @AllArgsConstructor
     public static class FunctionMetadata implements LibraryEntryMetadata {
-
-        private static final String MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED = "Please only provide either a schema or a schemaPath annotation.";
 
         String libraryName;
 

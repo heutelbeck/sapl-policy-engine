@@ -156,6 +156,12 @@ class AnnotationFunctionContextTests {
     }
 
     @Test
+    void failToInitializeWithMultipleSchemasInLibrary() {
+        assertThrows(InitializationException.class,
+                () -> new AnnotationFunctionContext(new InvalidAnnotationLibrary()));
+    }
+
+    @Test
     void loadedLibrariesShouldBeReturned() throws InitializationException {
         AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
         assertThat(context.getAvailableLibraries().contains(MockLibrary.LIBRARY_NAME), is(Boolean.TRUE));
@@ -392,9 +398,6 @@ class AnnotationFunctionContextTests {
         @Function(schema = PERSON_SCHEMA)
         public static Val schemaFromJson() { return Val.of(true); }
 
-        @Function(schema = PERSON_SCHEMA, pathToSchema = "schemas/person_schema.json")
-        public static Val multipleSchemaFunctionAnnotations() { return Val.of(true); }
-
         @Function
         public static Val boolAnnotatedParameter(@Schema("{\"type\": \"boolean\"}") Val jsonObject) { return Val.of(true); }
 
@@ -428,12 +431,11 @@ class AnnotationFunctionContextTests {
 
     }
 
-    @FunctionLibrary(name = "schema")
-    public static class SchemaLibrary {
+    @FunctionLibrary(name = "annotationInvalid")
+    public static class InvalidAnnotationLibrary {
 
         static final String PERSON_SCHEMA = """
-				{
-				  "$schema": "http://json-schema.org/draft-07/schema#",
+				{  "$schema": "http://json-schema.org/draft-07/schema#",
 				  "$id": "https://example.com/schemas/regions",
 				  "type": "object",
 				  "properties": {
@@ -441,11 +443,8 @@ class AnnotationFunctionContextTests {
 				  }
 				}""";
 
-        @Function(pathToSchema = "schemas/person_schema.json")
-        public static Val schemaFromFile() { return Val.of(true); }
-
-        @Function(schema = PERSON_SCHEMA)
-        public static Val schemaFromJson() { return Val.of(true); }
+        @Function(schema = PERSON_SCHEMA, pathToSchema = "schemas/person_schema.json")
+        public static Val multipleSchemaFunctionAnnotations() { return Val.of(true); }
 
     }
 

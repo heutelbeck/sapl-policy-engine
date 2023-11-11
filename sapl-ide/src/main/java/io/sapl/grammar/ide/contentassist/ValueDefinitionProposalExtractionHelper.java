@@ -205,10 +205,10 @@ public class ValueDefinitionProposalExtractionHelper {
             for (var aStatement : policyBody.getStatements()) {
                     // add any encountered valuable to the list of proposals
                     if (currentOffset > valueDefinitionOffset && aStatement instanceof ValueDefinition valueDefinition) {
-                        if (valueDefinition.getEval() instanceof BasicIdentifier basicExpression) {
+                        if (valueDefinition.getEval() instanceof BasicIdentifier basicIdentifier) {
                             // A function or attribute is assigned to a variable name. Proposals for the variable name.
-                            var stepsString = combineKeystepsFromBasicIdentifier(basicExpression);
-                            var identifier = basicExpression.getIdentifier();
+                            var stepsString = combineKeystepsFromBasicIdentifier(basicIdentifier);
+                            var identifier = basicIdentifier.getIdentifier();
                             functionSchemaTemplates = getFunctionSchemaTemplates(stepsString, identifier);
                             attributeSchemaTemplates = getAttributeSchemaTemplates(stepsString);
                         } else if (valueDefinition.getEval() instanceof BasicFunction basicFunction) {
