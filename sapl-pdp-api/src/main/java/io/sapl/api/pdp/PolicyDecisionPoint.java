@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -34,7 +36,7 @@ public interface PolicyDecisionPoint {
     /**
      * Takes an authorization subscription object and returns a {@link Flux}
      * emitting matching authorization decisions.
-     * 
+     *
      * @param authzSubscription the SAPL authorization subscription object
      * @return a {@link Flux} emitting the authorization decisions for the given
      *         authorization subscription. New authorization decisions are only
@@ -46,7 +48,7 @@ public interface PolicyDecisionPoint {
     /**
      * Takes an authorization subscription object and returns a {@link Mono}
      * emitting the first matching authorization decision.
-     * 
+     *
      * @param authzSubscription the SAPL authorization subscription object
      * @return an authorization decisions for the given authorization subscription.
      */
@@ -56,7 +58,7 @@ public interface PolicyDecisionPoint {
 
     /**
      * Multi-subscription variant of {@link #decide(AuthorizationSubscription)}.
-     * 
+     *
      * @param multiAuthzSubscription the multi-subscription object containing the
      *                               subjects, actions, resources, and environments
      *                               of the authorization subscriptions to be
@@ -70,7 +72,7 @@ public interface PolicyDecisionPoint {
 
     /**
      * Multi-subscription variant of {@link #decide(AuthorizationSubscription)}.
-     * 
+     *
      * @param multiAuthzSubscription the multi-subscription object containing the
      *                               subjects, actions, resources, and environments
      *                               of the authorization subscriptions to be

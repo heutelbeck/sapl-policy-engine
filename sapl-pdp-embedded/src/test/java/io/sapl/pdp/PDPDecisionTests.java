@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.pdp;
 
 import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
@@ -53,14 +70,14 @@ class PDPDecisionTests {
         var combined     = mock(CombinedDecision.class);
         var document     = new DefaultSAPLInterpreter().parse("policy \"x\" permit");
         when(combined.getAuthorizationDecision()).thenReturn(AuthorizationDecision.PERMIT);
-        TracedDecision sut = PDPDecision.of(subscription, combined, List.of(document));
-        var unmodifiedTrace = sut.getTrace();
+        TracedDecision sut             = PDPDecision.of(subscription, combined, List.of(document));
+        var            unmodifiedTrace = sut.getTrace();
         assertThatJson(unmodifiedTrace).inPath("$." + Trace.OPERATOR).isEqualTo("Policy Decision Point");
         assertThatJson(unmodifiedTrace).inPath("$." + Trace.MODIFICATIONS).isAbsent();
 
         sut = sut.modified(AuthorizationDecision.DENY, "for testing reasons");
         var modifiedTrace = sut.getTrace();
-        assertThatJson(modifiedTrace).inPath("$." + Trace.MODIFICATIONS).isArray().isNotEmpty();    
+        assertThatJson(modifiedTrace).inPath("$." + Trace.MODIFICATIONS).isArray().isNotEmpty();
     }
 
 }

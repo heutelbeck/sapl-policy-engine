@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -39,12 +41,11 @@ class DocumentationAutoConfigurationTests {
     void whenContextLoaded_thenDocumentationBeansArePresent() {
 
         var mockAttributeContext = mock(AttributeContext.class);
-        var mockPipDoc           = new PolicyInformationPointDocumentation("PIP name", "PIP description",
-                "A MOCK PIP OBJECT");
+        var mockPipDoc           = new PolicyInformationPointDocumentation("PIP name", "PIP description");
         when(mockAttributeContext.getDocumentation()).thenReturn(List.of(mockPipDoc));
 
         var functionContext = mock(FunctionContext.class);
-        var mockFunDoc      = new LibraryDocumentation("Library name", "Library description", "A MOCK LIBRARY OBJECT");
+        var mockFunDoc      = new LibraryDocumentation("Library name", "Library description");
         when(functionContext.getDocumentation()).thenReturn(List.of(mockFunDoc));
 
         contextRunner.withBean(AttributeContext.class, () -> mockAttributeContext)

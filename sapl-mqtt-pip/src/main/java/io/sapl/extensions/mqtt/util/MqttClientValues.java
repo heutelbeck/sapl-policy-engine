@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -41,7 +43,7 @@ public final class MqttClientValues {
 
     /**
      * Caches the given client specifics.
-     * 
+     *
      * @param clientId          the referenced mqtt client
      * @param mqttReactorClient the mqtt reactor client
      * @param mqttBrokerConfig  the configuration of the connection to the mqtt
@@ -59,7 +61,7 @@ public final class MqttClientValues {
 
     /**
      * Returns a deep copy of the mqtt broker configuration.
-     * 
+     *
      * @return returns the mqtt broker configuration
      */
     public ObjectNode getMqttBrokerConfig() {
@@ -69,7 +71,7 @@ public final class MqttClientValues {
     /**
      * Adds 1 to the existing count. If there was no entry for the referenced count
      * before, then a new entry will be set to the count of 1.
-     * 
+     *
      * @param topic the reference for the topic count
      */
     public void countTopicSubscriptionsCountMapUp(String topic) {
@@ -79,7 +81,7 @@ public final class MqttClientValues {
     /**
      * Reduces the count by one. If the new count would be 0 than the topic
      * reference will be deleted.
-     * 
+     *
      * @param topic the reference for the topic count
      * @return returns true in case there is a new positive count for the topic
      *         otherwise returns false
@@ -95,7 +97,7 @@ public final class MqttClientValues {
 
     /**
      * Evaluates whether the topic subscription count map contains any entries.
-     * 
+     *
      * @return returns true in case the map is empty, otherwise returns false
      */
     public boolean isTopicSubscriptionsCountMapEmpty() {

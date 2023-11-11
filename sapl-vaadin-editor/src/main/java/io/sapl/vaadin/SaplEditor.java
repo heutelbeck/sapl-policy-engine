@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -39,7 +41,7 @@ public class SaplEditor extends BaseEditor {
 
     /**
      * Creates an editor component.
-     * 
+     *
      * @param config the editor settings-
      */
     public SaplEditor(SaplEditorConfiguration config) {
@@ -67,7 +69,7 @@ public class SaplEditor extends BaseEditor {
      * Registers a validation finished listener. The validation changed event will
      * be raised after the document was changed and the validation took place. The
      * event object contains a list with all validation issues of the document.
-     * 
+     *
      * @param listener the event listener
      */
     public void addValidationFinishedListener(ValidationFinishedListener listener) {
@@ -76,7 +78,7 @@ public class SaplEditor extends BaseEditor {
 
     /**
      * Removes a registered validation finished listener.
-     * 
+     *
      * @param listener The registered listener that should be removed.
      */
     public void removeValidationFinishedListener(ValidationFinishedListener listener) {

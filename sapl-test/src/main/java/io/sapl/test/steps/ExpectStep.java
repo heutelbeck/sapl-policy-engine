@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -35,7 +37,7 @@ public interface ExpectStep {
     /**
      * Asserts that the first emitted {@link AuthorizationDecision} of the policy
      * evaluation is a {@link io.sapl.api.pdp.Decision#PERMIT}
-     * 
+     *
      * @return {@link VerifyStep} to verify your test case.
      */
     VerifyStep expectPermit();
@@ -43,7 +45,7 @@ public interface ExpectStep {
     /**
      * Asserts that the first emitted {@link AuthorizationDecision} of the policy
      * evaluation is a {@link io.sapl.api.pdp.Decision#DENY}
-     * 
+     *
      * @return {@link VerifyStep} to verify your test case.
      */
     VerifyStep expectDeny();
@@ -51,7 +53,7 @@ public interface ExpectStep {
     /**
      * Asserts that the first emitted {@link AuthorizationDecision} of the policy
      * evaluation is a {@link io.sapl.api.pdp.Decision#INDETERMINATE}
-     * 
+     *
      * @return {@link VerifyStep} to verify your test case.
      */
     VerifyStep expectIndeterminate();
@@ -59,14 +61,14 @@ public interface ExpectStep {
     /**
      * Asserts that the first emitted {@link AuthorizationDecision} of the policy
      * evaluation is a {@link io.sapl.api.pdp.Decision#NOT_APPLICABLE}
-     * 
+     *
      * @return {@link VerifyStep} to verify your test case.
      */
     VerifyStep expectNotApplicable();
 
     /**
      * Allow custom validation of {@link AuthorizationDecision}
-     * 
+     *
      * @param authDec An {@link AuthorizationDecision} object which has to be equal
      *                to the first emitted {@link AuthorizationDecision}
      * @return {@link VerifyStep} to verify your test case.
@@ -75,7 +77,7 @@ public interface ExpectStep {
 
     /**
      * Allow custom validation of {@link AuthorizationDecision}
-     * 
+     *
      * @param pred {@code Predicate<AuthorizationDecision>} to validate the first
      *             emitted {@link AuthorizationDecision}
      * @return {@link VerifyStep} to verify your test case.
@@ -84,7 +86,7 @@ public interface ExpectStep {
 
     /**
      * Allow custom validation of {@link AuthorizationDecision}
-     * 
+     *
      * @param matcher {@link Matcher} to validate the first emitted
      *                {@link AuthorizationDecision}
      * @return {@link VerifyStep} to verify your test case.
@@ -96,7 +98,7 @@ public interface ExpectStep {
     /**
      * Asserts that the current emitted {@link AuthorizationDecision} of the policy
      * evaluation is a {@link io.sapl.api.pdp.Decision#PERMIT}
-     * 
+     *
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
      *         {@link VerifyStep}
      */
@@ -105,7 +107,7 @@ public interface ExpectStep {
     /**
      * Asserts that the next @param emitted values of {@link AuthorizationDecision}
      * of the policy evaluation is a {@link io.sapl.api.pdp.Decision#PERMIT}
-     * 
+     *
      * @param count number of permits
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
      *         {@link VerifyStep}
@@ -115,7 +117,7 @@ public interface ExpectStep {
     /**
      * Asserts that the current emitted {@link AuthorizationDecision} of the policy
      * evaluation is a {@link io.sapl.api.pdp.Decision#DENY}
-     * 
+     *
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
      *         {@link VerifyStep}
      */
@@ -124,7 +126,7 @@ public interface ExpectStep {
     /**
      * Asserts that the next @param emitted values of {@link AuthorizationDecision}
      * of the policy evaluation is a {@link io.sapl.api.pdp.Decision#DENY}
-     * 
+     *
      * @param count expected number
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
      *         {@link VerifyStep}
@@ -134,7 +136,7 @@ public interface ExpectStep {
     /**
      * Asserts that the current emitted {@link AuthorizationDecision} of the policy
      * evaluation is a {@link io.sapl.api.pdp.Decision#INDETERMINATE}
-     * 
+     *
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
      *         {@link VerifyStep}
      */
@@ -143,7 +145,7 @@ public interface ExpectStep {
     /**
      * Asserts that the next @param emitted values of {@link AuthorizationDecision}
      * of the policy evaluation is a {@link io.sapl.api.pdp.Decision#INDETERMINATE}
-     * 
+     *
      * @param count expected number
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
      *         {@link VerifyStep}
@@ -153,7 +155,7 @@ public interface ExpectStep {
     /**
      * Asserts that the first emitted {@link AuthorizationDecision} of the policy
      * evaluation is a {@link io.sapl.api.pdp.Decision#NOT_APPLICABLE}
-     * 
+     *
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
      *         {@link VerifyStep}
      */
@@ -162,7 +164,7 @@ public interface ExpectStep {
     /**
      * Asserts that the next @param emitted values of {@link AuthorizationDecision}
      * of the policy evaluation is a {@link io.sapl.api.pdp.Decision#NOT_APPLICABLE}
-     * 
+     *
      * @param count expected number
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
      *         {@link VerifyStep}
@@ -171,7 +173,7 @@ public interface ExpectStep {
 
     /**
      * Allow custom validation of {@link AuthorizationDecision}
-     * 
+     *
      * @param authDec An {@link AuthorizationDecision} object which has to be equal
      *                to the current emitted {@link AuthorizationDecision}
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
@@ -181,7 +183,7 @@ public interface ExpectStep {
 
     /**
      * Allow custom validation of {@link AuthorizationDecision}
-     * 
+     *
      * @param matcher {@link Matcher} to validate the current emitted
      *                {@link AuthorizationDecision}
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
@@ -191,7 +193,7 @@ public interface ExpectStep {
 
     /**
      * Allow custom validation of {@link AuthorizationDecision}
-     * 
+     *
      * @param pred {@link Predicate} to validate the current emitted
      *             {@link AuthorizationDecision}
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
@@ -201,7 +203,7 @@ public interface ExpectStep {
 
     /**
      * Mock the return value of a PIP in the SAPL policy
-     * 
+     *
      * @param importName the reference in the SAPL policy to the PIP
      * @param returns    the mocked return value
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
@@ -213,7 +215,7 @@ public interface ExpectStep {
 
     /**
      * Pauses the evaluation of steps
-     * 
+     *
      * @param duration Pause for this {#link Duration}
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
      *         {@link VerifyStep}
@@ -223,7 +225,7 @@ public interface ExpectStep {
     /**
      * Lets the stream play out for a given {#link Duration} but fails the test if
      * any signal occurs during that time
-     * 
+     *
      * @param duration Wait for this {#link Duration}
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
      *         {@link VerifyStep}

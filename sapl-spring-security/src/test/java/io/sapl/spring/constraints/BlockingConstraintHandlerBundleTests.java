@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -42,9 +44,9 @@ class BlockingConstraintHandlerBundleTests {
 		var sut    =  BlockingConstraintHandlerBundle.<Optional<String>>preEnforceConstraintHandlerBundle(
 							FunctionUtil.noop(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							filter,FunctionUtil.sink(),
 							UnaryOperator.identity());
 		// @formatter:on
@@ -59,9 +61,9 @@ class BlockingConstraintHandlerBundleTests {
 		var sut    =  BlockingConstraintHandlerBundle.<Optional<String>>preEnforceConstraintHandlerBundle(
 							FunctionUtil.noop(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							filter,FunctionUtil.sink(),
 							UnaryOperator.identity());
 		// @formatter:on
@@ -77,9 +79,9 @@ class BlockingConstraintHandlerBundleTests {
 		var sut    =  BlockingConstraintHandlerBundle.<List<String>>preEnforceConstraintHandlerBundle(
 							FunctionUtil.noop(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							filter,FunctionUtil.sink(),
 							UnaryOperator.identity());
 		// @formatter:on
@@ -94,9 +96,9 @@ class BlockingConstraintHandlerBundleTests {
 		var sut    =  BlockingConstraintHandlerBundle.<String[]>preEnforceConstraintHandlerBundle(
 							FunctionUtil.noop(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							filter,FunctionUtil.sink(),
 							UnaryOperator.identity());
 		// @formatter:on
@@ -112,9 +114,9 @@ class BlockingConstraintHandlerBundleTests {
 		var sut    =  BlockingConstraintHandlerBundle.<Set<String>>preEnforceConstraintHandlerBundle(
 							FunctionUtil.noop(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							filter,FunctionUtil.sink(),
 							UnaryOperator.identity());
 		// @formatter:on
@@ -129,9 +131,9 @@ class BlockingConstraintHandlerBundleTests {
 		var sut    =  BlockingConstraintHandlerBundle.<String>preEnforceConstraintHandlerBundle(
 							FunctionUtil.noop(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							filter,FunctionUtil.sink(),
 							UnaryOperator.identity());
 		// @formatter:on
@@ -146,9 +148,9 @@ class BlockingConstraintHandlerBundleTests {
 		var sut    =  BlockingConstraintHandlerBundle.<String>preEnforceConstraintHandlerBundle(
 							FunctionUtil.noop(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							FunctionUtil.sink(),
-							UnaryOperator.identity(),							
+							UnaryOperator.identity(),
 							filter,FunctionUtil.sink(),
 							UnaryOperator.identity());
 		// @formatter:on

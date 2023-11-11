@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -44,7 +46,6 @@ import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.unit.TestPIP;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -256,7 +257,7 @@ class MockingAttributeContextTests {
     @Test
     void test_documentation() {
         this.attrCtx.markAttributeMock("foo.bar");
-        var unmockedDoc = new PolicyInformationPointDocumentation("test", "Test", new TestPIP());
+        var unmockedDoc = new PolicyInformationPointDocumentation("test", "Test");
         unmockedDoc.getDocumentation().put("upper", "blabla");
         when(this.unmockedCtx.getDocumentation()).thenReturn(List.of(unmockedDoc));
 
@@ -295,7 +296,7 @@ class MockingAttributeContextTests {
         this.attrCtx.loadAttributeMock("foo.bar", Duration.ofSeconds(10), Val.of(1), Val.of(2));
         assertThat(this.attrCtx.getAvailableLibraries()).containsOnly("foo.bar");
     }
-    
+
     @Test
     void test_getDocumentedAttributeCodeTemplates_isEmpty() {
         assertThat(this.attrCtx.getDocumentedAttributeCodeTemplates()).isEmpty();

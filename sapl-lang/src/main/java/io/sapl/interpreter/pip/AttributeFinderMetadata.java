@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -27,15 +29,13 @@ import lombok.Data;
 @AllArgsConstructor
 public class AttributeFinderMetadata implements LibraryEntryMetadata {
 
-	private static final String MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED = "Please only provide either a schema or a schemaPath annotation.";
-
-	Object  policyInformationPoint;
+    Object  policyInformationPoint;
     Method  function;
     String  libraryName;
     String  functionName;
-	String  functionSchema;
-	String  functionPathToSchema;
-	boolean environmentAttribute;
+    String  functionSchema;
+    String  functionPathToSchema;
+    boolean environmentAttribute;
     boolean attributeWithVariableParameter;
     boolean varArgsParameters;
     int     numberOfParameters;
@@ -59,10 +59,10 @@ public class AttributeFinderMetadata implements LibraryEntryMetadata {
         return sb.toString();
     }
 
-	@Override
-	public String getFunctionSchema() {
-		return functionSchema;
-	}
+    @Override
+    public String getFunctionSchema() {
+        return functionSchema;
+    }
 
     @Override
     public String getCodeTemplate() {

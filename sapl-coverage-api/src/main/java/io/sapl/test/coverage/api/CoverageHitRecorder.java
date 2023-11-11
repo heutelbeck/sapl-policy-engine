@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -27,7 +29,7 @@ public interface CoverageHitRecorder {
     /**
      * Internal method used by SAPL Coverage Recording to record a hit of an
      * io.sapl.grammar.sapl.PolicySet
-     * 
+     *
      * @param hit a policy hit
      */
     void recordPolicySetHit(PolicySetHit hit);
@@ -35,7 +37,7 @@ public interface CoverageHitRecorder {
     /**
      * Internal method used by SAPL Coverage Recording to record a hit of an
      * io.sapl.grammar.sapl.Policy
-     * 
+     *
      * @param hit a policy hit
      */
     void recordPolicyHit(PolicyHit hit);
@@ -43,7 +45,7 @@ public interface CoverageHitRecorder {
     /**
      * Internal method used by SAPL Coverage Recording to record a hit of an
      * io.sapl.grammar.sapl.Condition
-     * 
+     *
      * @param hit a policy condition hit
      */
     void recordPolicyConditionHit(PolicyConditionHit hit);

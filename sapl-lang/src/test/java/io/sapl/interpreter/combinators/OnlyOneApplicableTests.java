@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -157,7 +159,7 @@ class OnlyOneApplicableTests {
 		return Stream.of(
 				// collectWithError
 			    Arguments.of(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE,
-			    		     "set \"tests\" only-one-applicable" 
+			    		     "set \"tests\" only-one-applicable"
 			               + " policy \"testp1\" deny "
 			    		   + " policy \"testp2\" permit where (10/0);",
 			    		     INDETERMINATE),

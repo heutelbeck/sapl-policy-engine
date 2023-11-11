@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -25,6 +27,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.sapl.api.functions.FunctionLibrarySupplier;
 import io.sapl.extension.jwt.JWTFunctionLibrary;
 import io.sapl.extension.jwt.JWTKeyProvider;
 import io.sapl.extension.jwt.JWTPolicyInformationPoint;
@@ -40,8 +43,11 @@ class JwtExtensionAutoConfigurationTests {
                 .withBean(JWTKeyProvider.class, () -> mock(JWTKeyProvider.class))
                 .withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(JWTFunctionLibrary.class);
                     assertThat(context).hasSingleBean(JWTPolicyInformationPoint.class);
+                    assertThat(context).hasBean("jwtFunctionLibrarySupplier");
+                    assertThat(context.getBean("jwtFunctionLibrarySupplier", FunctionLibrarySupplier.class).get())
+                            .anyMatch(x -> x instanceof JWTFunctionLibrary);
+                    ;
                 });
     }
 

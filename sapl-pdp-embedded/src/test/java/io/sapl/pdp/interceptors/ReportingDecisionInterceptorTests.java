@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -15,6 +17,7 @@
  */
 package io.sapl.pdp.interceptors;
 
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
@@ -37,6 +40,7 @@ import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
 import lombok.SneakyThrows;
+import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -61,6 +65,7 @@ class ReportingDecisionInterceptorTests {
 
     }
 
+    @UtilityClass
     @PolicyInformationPoint(name = "test")
     static class ReportingTestPIP {
 
@@ -77,19 +82,14 @@ class ReportingDecisionInterceptorTests {
         public Flux<PDPConfiguration> pdpConfiguration() {
             var cAlg         = new DenyOverridesCombiningAlgorithmImplCustom();
             var dInterceptor = new ReportingDecisionInterceptor(new ObjectMapper(), false, true, true, true);
-            return Flux.just(new PDPConfiguration(new AnnotationAttributeContext(new ReportingTestPIP()),
+            return Flux.just(new PDPConfiguration(
+                    new AnnotationAttributeContext(List::of, () -> List.of(ReportingTestPIP.class)),
                     new AnnotationFunctionContext(), Map.of(), cAlg, dInterceptor, x -> x));
         }
     }
 
     @Test
     void runReportingTest() {
-        // var mapper = new ObjectMapper();
-        // var subJwt =
-        // "{\"subject\":\"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJEaWVnbyIsImlhdCI6MTY3MTUyMzY2MSwiZXhwIjoxNzAzMDU5NjYxLCJhdWQiOiJuZXZlcmdvYmFjay5jbG91ZCIsInN1YiI6IkRpZWdvIEJ1cmxhbmRvIiwiR2l2ZW5OYW1lIjoiRGllZ3VzIn0.2uURYR6TbPbkAI77lj5xEKYbrWp7eU6ocq7UdvSrJnA\",\"action\":\"what\",\"resource\":\"with
-        // what\"}";
-        // var subJwtObj = mapper.readValue(subJwt, AuthorizationSubscription.class);
-
         var pdp = new EmbeddedPolicyDecisionPoint(new TestingPDPConfigurationProvider(),
                 new TestingPolicyRetrievalPoint());
         var sub = AuthorizationSubscription.of("subject", "action", "resource");

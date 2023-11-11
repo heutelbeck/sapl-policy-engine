@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -27,7 +29,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.Ordered;
 
 /**
- * 
+ *
  * Provide the @EnableReactiveSaplMethodSecurity annotation on any configuration
  * class to activate the reactive method security for methods returning a
  * Publisher.
@@ -51,7 +53,7 @@ public @interface EnableReactiveSaplMethodSecurity {
      * {@code @Transactional} annotation will be upgraded to subclass proxying at
      * the same time. This approach has no negative impact in practice unless one is
      * explicitly expecting one type of proxy vs another, e.g. in tests.
-     * 
+     *
      * @return if to proxy target class
      */
     boolean proxyTargetClass() default false;
@@ -69,7 +71,7 @@ public @interface EnableReactiveSaplMethodSecurity {
      * Indicate the ordering of the execution of the security advisor when multiple
      * advice is applied at a specific join point. The default is
      * {@link Ordered#LOWEST_PRECEDENCE}.
-     * 
+     *
      * @return the order the security advisor should be applied
      */
     int order() default Ordered.LOWEST_PRECEDENCE;

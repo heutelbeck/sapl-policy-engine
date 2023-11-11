@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -19,6 +21,7 @@ import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Text;
+import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -26,6 +29,7 @@ import lombok.extern.slf4j.Slf4j;
  * console for debugging and testing.
  */
 @Slf4j
+@UtilityClass
 @FunctionLibrary(name = LoggingFunctionLibrary.NAME, description = LoggingFunctionLibrary.DESCRIPTION)
 public class LoggingFunctionLibrary {
 
@@ -62,17 +66,9 @@ public class LoggingFunctionLibrary {
     private static final String WARN_DOC = "log.warn(MESSAGE, VALUE): logs the value prepended with the message on the console at log level WARN. Always returns a true value. This function is useful to add an additional line in a where block of a policy. As the function return true, the rest of the policy evaluation is not affected.";
 
     /**
-     * Even though there are only static methods in this class, the engine requires
-     * an instance for registration.
-     */
-    public LoggingFunctionLibrary() {
-        // NOOP.
-    }
-
-    /**
      * Returns the original message on log level INFO followed by the inspected
      * value.
-     * 
+     *
      * @param message a text massage.
      * @param value   a value
      * @return the value
@@ -86,7 +82,7 @@ public class LoggingFunctionLibrary {
     /**
      * Returns the original message on log level ERROR followed by the inspected
      * value.
-     * 
+     *
      * @param message a text massage.
      * @param value   a value
      * @return the value
@@ -100,7 +96,7 @@ public class LoggingFunctionLibrary {
     /**
      * Returns the original message on log level TRACE followed by the inspected
      * value.
-     * 
+     *
      * @param message a text massage.
      * @param value   a value
      * @return the value
@@ -114,7 +110,7 @@ public class LoggingFunctionLibrary {
     /**
      * Returns the original message on log level WARN followed by the inspected
      * value.
-     * 
+     *
      * @param message a text massage.
      * @param value   a value
      * @return the value
@@ -128,7 +124,7 @@ public class LoggingFunctionLibrary {
     /**
      * Returns the original message on log level DEBUG followed by the inspected
      * value.
-     * 
+     *
      * @param message a text massage.
      * @param value   a value
      * @return the value
@@ -142,7 +138,7 @@ public class LoggingFunctionLibrary {
     /**
      * Returns a constant TRUE and prints the message on log level INFO followed by
      * the inspected value.
-     * 
+     *
      * @param message a text massage.
      * @param value   a value
      * @return the value
@@ -156,7 +152,7 @@ public class LoggingFunctionLibrary {
     /**
      * Returns a constant TRUE and prints the message on log level ERROR followed by
      * the inspected value.
-     * 
+     *
      * @param message a text massage.
      * @param value   a value
      * @return the value
@@ -170,7 +166,7 @@ public class LoggingFunctionLibrary {
     /**
      * Returns a constant TRUE and prints the message on log level TRACE followed by
      * the inspected value.
-     * 
+     *
      * @param message a text massage.
      * @param value   a value
      * @return the value
@@ -184,7 +180,7 @@ public class LoggingFunctionLibrary {
     /**
      * Returns a constant TRUE and prints the message on log level WARN followed by
      * the inspected value.
-     * 
+     *
      * @param message a text massage.
      * @param value   a value
      * @return the value
@@ -198,7 +194,7 @@ public class LoggingFunctionLibrary {
     /**
      * Returns a constant TRUE and prints the message on log level DEBUG followed by
      * the inspected value.
-     * 
+     *
      * @param message a text massage.
      * @param value   a value
      * @return the value

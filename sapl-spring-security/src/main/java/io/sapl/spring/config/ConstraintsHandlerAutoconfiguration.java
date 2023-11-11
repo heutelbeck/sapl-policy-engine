@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -29,7 +31,7 @@ import io.sapl.spring.constraints.providers.ContentFilteringProvider;
 
 /**
  * Sets up the default constraint handler provides.
- * 
+ *
  * @since 2.0.0
  */
 @AutoConfiguration

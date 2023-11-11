@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -33,7 +35,7 @@ class B_StreamingVirtualTimeTests {
 
     @BeforeEach
     void setUp() throws InitializationException {
-        fixture = new SaplIntegrationTestFixture("policiesIT").registerFunctionLibrary(new TemporalFunctionLibrary());
+        fixture = new SaplIntegrationTestFixture("policiesIT").registerFunctionLibrary(TemporalFunctionLibrary.class);
     }
 
     @Test

@@ -1,5 +1,7 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,17 +17,8 @@
  */
 package io.sapl.grammar.ide.contentassist.filesystem;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.grammar.sapl.CombiningAlgorithm;
-import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
-import io.sapl.pdp.config.PolicyDecisionPointConfiguration;
-import io.sapl.pdp.config.VariablesAndCombinatorSource;
-import io.sapl.util.filemonitoring.FileDeletedEvent;
-import io.sapl.util.filemonitoring.FileEvent;
-import lombok.extern.slf4j.Slf4j;
-import reactor.core.Disposable;
-import reactor.core.publisher.Flux;
+import static io.sapl.util.filemonitoring.FileMonitorUtil.monitorDirectory;
+import static io.sapl.util.filemonitoring.FileMonitorUtil.resolveHomeFolderIfPresent;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,8 +30,18 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import static io.sapl.util.filemonitoring.FileMonitorUtil.monitorDirectory;
-import static io.sapl.util.filemonitoring.FileMonitorUtil.resolveHomeFolderIfPresent;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
+import io.sapl.pdp.config.PolicyDecisionPointConfiguration;
+import io.sapl.pdp.config.VariablesAndCombinatorSource;
+import io.sapl.util.filemonitoring.FileDeletedEvent;
+import io.sapl.util.filemonitoring.FileEvent;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.Disposable;
+import reactor.core.publisher.Flux;
 
 @Slf4j
 public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombinatorSource {
@@ -57,11 +60,11 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
 
     public FileSystemVariablesAndCombinatorSource(String configurationPath) {
         configPath = configurationPath;
-        watchDir = resolveHomeFolderIfPresent(configurationPath);
+        watchDir   = resolveHomeFolderIfPresent(configurationPath);
         log.info("Monitor folder for config: {}", watchDir);
         Flux<FileEvent> monitoringFlux = monitorDirectory(watchDir,
                 file -> CONFIG_FILE_GLOB_PATTERN.equals(file.getName()));
-        configFlux = monitoringFlux.scan(loadConfig(), (__, fileEvent) -> processWatcherEvent(fileEvent))
+        configFlux          = monitoringFlux.scan(loadConfig(), (__, fileEvent) -> processWatcherEvent(fileEvent))
                 .distinctUntilChanged().share().cache(1);
         monitorSubscription = Flux.from(configFlux).subscribe();
     }
@@ -94,13 +97,13 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
     public Flux<Optional<Map<String, JsonNode>>> getVariables() {
 
         Map<String, JsonNode> schemaMap = new HashMap<>();
-        File[] jsonFiles = new File(configPath).listFiles((dir, name) -> name.endsWith(".json"));
+        File[]                jsonFiles = new File(configPath).listFiles((dir, name) -> name.endsWith(".json"));
 
         if ((jsonFiles != null ? jsonFiles.length : 0) > 0) {
             for (File jsonFile : jsonFiles)
                 try {
-                    String keyString = jsonFile.getName().substring(0, jsonFile.getName().lastIndexOf('.'));
-                    JsonNode node = MAPPER.readTree(jsonFile);
+                    String   keyString = jsonFile.getName().substring(0, jsonFile.getName().lastIndexOf('.'));
+                    JsonNode node      = MAPPER.readTree(jsonFile);
                     schemaMap.put(keyString, node);
                 } catch (Exception e) {
                     log.info("Error reading variables from file system: {}", e.getMessage());

@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -21,6 +23,7 @@ import java.io.IOException;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -86,7 +89,7 @@ class JWTPolicyInformationPointTests {
 
     @Test
     void contextIsAbleToLoadJWTPolicyInformationPoint() {
-        assertDoesNotThrow(() -> new AnnotationAttributeContext(jwtPolicyInformationPoint));
+        assertDoesNotThrow(() -> new AnnotationAttributeContext(() -> List.of(jwtPolicyInformationPoint), List::of));
     }
 
     /*

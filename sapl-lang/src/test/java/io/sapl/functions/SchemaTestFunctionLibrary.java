@@ -1,5 +1,7 @@
 /*
- * Copyright © 2017-2022 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,18 +20,19 @@ package io.sapl.functions;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
-import lombok.NoArgsConstructor;
+import lombok.experimental.UtilityClass;
 
 /**
- * Function library implementing the blacken, replace, and remove filter functions.
+ * Function library implementing the blacken, replace, and remove filter
+ * functions.
  *
  * @author Dominic Heutelbeck
  */
-@NoArgsConstructor
+@UtilityClass
 @FunctionLibrary(name = "SchemaTestLibrary")
 public class SchemaTestFunctionLibrary {
 
-	static final String PERSON_SCHEMA = "{\"name\": {\"type\": \"string\"}, \"age\": {\"type\": \"number\"}}";
+    static final String PERSON_SCHEMA = "{\"name\": {\"type\": \"string\"}, \"age\": {\"type\": \"number\"}}";
 
     @Function(name = "schemaFun", schema = PERSON_SCHEMA)
     public static Val schemaFun() {

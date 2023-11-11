@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -25,11 +27,13 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Array;
 import io.sapl.api.validation.Text;
+import lombok.experimental.UtilityClass;
 
 /**
  * This sapl function library provides functions to check whether mqtt topics
  * are matching against mqtt topics which contain wildcards.
  */
+@UtilityClass
 @FunctionLibrary(name = MqttFunctionLibrary.NAME, description = MqttFunctionLibrary.DESCRIPTION)
 public class MqttFunctionLibrary {
 

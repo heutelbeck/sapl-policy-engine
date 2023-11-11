@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -21,9 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
-import io.sapl.functions.FilterFunctionLibrary;
-import io.sapl.functions.StandardFunctionLibrary;
-import io.sapl.functions.TemporalFunctionLibrary;
+import io.sapl.api.functions.StaticFunctionLibrarySupplier;
 
 class FunctionLibrariesAutoConfigurationTests {
 
@@ -34,9 +34,7 @@ class FunctionLibrariesAutoConfigurationTests {
     void whenContextLoaded_thenDefaultLibrariesArePresent() {
         contextRunner.run(context -> {
             assertThat(context).hasNotFailed();
-            assertThat(context).hasSingleBean(FilterFunctionLibrary.class);
-            assertThat(context).hasSingleBean(StandardFunctionLibrary.class);
-            assertThat(context).hasSingleBean(TemporalFunctionLibrary.class);
+            assertThat(context).hasSingleBean(StaticFunctionLibrarySupplier.class);
         });
     }
 

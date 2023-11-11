@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -37,9 +39,6 @@ public class LibraryDocumentation {
 
     @NonNull
     String description;
-
-    @NonNull
-    Object library;
 
     Map<String, String> documentation = new HashMap<>();
 

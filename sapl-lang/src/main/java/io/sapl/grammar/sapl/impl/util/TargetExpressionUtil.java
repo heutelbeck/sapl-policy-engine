@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -30,7 +32,7 @@ public class TargetExpressionUtil {
 
     /**
      * Used to check for illegal attributes or lazy operators in target expressions.
-     * 
+     *
      * @param object an EObject in the AST
      * @return true, the object is the target expression in a Policy or Policy Set.
      */

@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -31,11 +33,11 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 
+ *
  * This bundle aggregates all constraint handlers for a specific decision which
  * are useful in a blocking PostEnforce scenario.
  * <p>
- * 
+ *
  * @param <T> return type
  */
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
@@ -59,7 +61,7 @@ public class BlockingConstraintHandlerBundle<T> {
 
     /**
      * Factory method for creating a bundle for use in a @PostEnforce PEP.
-     * 
+     *
      * @param <T>                     payload type
      * @param onDecisionHandlers      Handlers to be executed after each decision.
      * @param doOnNextHandlers        Handlers to be executed when data is emitted
@@ -84,7 +86,7 @@ public class BlockingConstraintHandlerBundle<T> {
 
     /**
      * Factory method for creating a bundle for use in a @PreEnforce PEP.
-     * 
+     *
      * @param <T>                      payload type
      * @param onDecisionHandlers       Handlers to be executed after each decision.
      * @param doOnNextHandlers         Handlers to be executed when data is emitted
@@ -111,7 +113,7 @@ public class BlockingConstraintHandlerBundle<T> {
 
     /**
      * Factory method for creating a bundle for use in an AuthorizationManager PEP.
-     * 
+     *
      * @param <T>                payload type
      * @param onDecisionHandlers Handlers to be executed after each decision.
      * @return a constraint handler bundle.
@@ -126,7 +128,7 @@ public class BlockingConstraintHandlerBundle<T> {
     /**
      * o Runs all method invocation handlers. These handlers may modify the
      * methodInvocation.
-     * 
+     *
      * @param methodInvocation the method invocation to examine and potentially
      *                         modify
      */
@@ -136,7 +138,7 @@ public class BlockingConstraintHandlerBundle<T> {
 
     /**
      * Executes all onNext constraint handlers, potentially transforming the value.
-     * 
+     *
      * @param value a return value
      * @return the return value after constraint handling
      */

@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -32,7 +34,7 @@ public class SpringContext implements ApplicationContextAware {
 
     /**
      * Resolves a spring bean dependency in the current application context.
-     * 
+     *
      * @param <T>   The type of the searched bean.
      * @param clazz The class definition of the searched bean.
      * @return Returns a bean that matches the provided class type.

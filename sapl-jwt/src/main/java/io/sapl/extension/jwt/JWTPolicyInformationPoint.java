@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -125,7 +127,7 @@ public class JWTPolicyInformationPoint {
 
     /**
      * Constructor
-     * 
+     *
      * @param jwtKeyProvider a JWTKeyProvider
      */
     public JWTPolicyInformationPoint(JWTKeyProvider jwtKeyProvider) {
@@ -135,7 +137,7 @@ public class JWTPolicyInformationPoint {
     /**
      * Checks the validity of a JWT token. Will update based on validity times of
      * the token.
-     * 
+     *
      * @param rawToken  a raw JWT Token
      * @param variables SAPL variables
      * @return a TRUE Val, iff the token is valid.
@@ -149,7 +151,7 @@ public class JWTPolicyInformationPoint {
      * A JWT's validity
      * <p>
      * The validity may change over time as it becomes mature and then expires.
-     * 
+     *
      * @param rawToken  object containing JWT
      * @param variables configuration variables
      * @return Flux representing the JWT's validity over time
@@ -246,7 +248,7 @@ public class JWTPolicyInformationPoint {
 
     /**
      * Verifies token validity based on time
-     * 
+     *
      * @param claims JWT claims
      * @return Flux containing IMMATURE, VALID, and/or EXPIRED
      */
@@ -299,7 +301,7 @@ public class JWTPolicyInformationPoint {
 
     /**
      * checks if token contains all required claims
-     * 
+     *
      * @param jwt base64 encoded header.body.signature triplet
      * @return true if the token contains all required claims
      */
@@ -314,7 +316,7 @@ public class JWTPolicyInformationPoint {
 
     /**
      * checks if claims meet requirements
-     * 
+     *
      * @param jwt JWT
      * @return true all claims meet requirements
      */

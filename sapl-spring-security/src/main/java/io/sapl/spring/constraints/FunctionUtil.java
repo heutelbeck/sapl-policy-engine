@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -26,7 +28,7 @@ public class FunctionUtil {
 
     /**
      * Creates a {@link Consumer} doing nothing.
-     * 
+     *
      * @param <T> payload type
      * @return A {@link Consumer} doing nothing.
      */
@@ -37,7 +39,7 @@ public class FunctionUtil {
 
     /**
      * Creates a {@link LongConsumer} doing nothing.
-     * 
+     *
      * @return A {@link LongConsumer} doing nothing.
      */
     public static LongConsumer longSink() {
@@ -47,7 +49,7 @@ public class FunctionUtil {
 
     /**
      * Creates a {@link Predicate} which always returns {@code true}.
-     * 
+     *
      * @param <T> the payload type
      * @return a predicate that always returns {@code true}
      */
@@ -57,7 +59,7 @@ public class FunctionUtil {
 
     /**
      * Creates a {@link Runnable} doing nothing.
-     * 
+     *
      * @return A {@link Runnable} doing nothing.
      */
     public static Runnable noop() {

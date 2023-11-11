@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -18,12 +20,15 @@ package io.sapl.spring.pdp.embedded;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
+import io.sapl.api.pip.PolicyInformationPointSupplier;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
 
@@ -61,7 +66,9 @@ class AttributeContextAutoConfigurationTests {
 
     @Test
     void whenBadLibraryIsPresent_thenContextFailsToLoad() {
-        contextRunner.withBean(BadPolicyInformationPointLibrary.class, BadPolicyInformationPointLibrary::new)
+        contextRunner
+                .withBean("badLibrary", PolicyInformationPointSupplier.class,
+                        () -> (() -> List.of(new BadPolicyInformationPointLibrary())))
                 .run(context -> assertThat(context).hasFailed());
     }
 

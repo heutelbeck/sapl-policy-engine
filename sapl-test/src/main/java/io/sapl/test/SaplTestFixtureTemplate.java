@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -41,6 +43,12 @@ public abstract class SaplTestFixtureTemplate implements SaplTestFixture {
     @Override
     public SaplTestFixture registerFunctionLibrary(Object library) throws InitializationException {
         this.functionCtx.loadLibrary(library);
+        return this;
+    }
+
+    @Override
+    public SaplTestFixture registerFunctionLibrary(Class<?> staticLibrary) throws InitializationException {
+        this.functionCtx.loadLibrary(staticLibrary);
         return this;
     }
 

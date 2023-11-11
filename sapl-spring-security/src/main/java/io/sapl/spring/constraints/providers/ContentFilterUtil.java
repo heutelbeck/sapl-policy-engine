@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -52,6 +54,7 @@ public class ContentFilterUtil {
     private static final String DISCLOSE_RIGHT                  = "discloseRight";
     private static final String REPLACEMENT                     = "replacement";
     private static final String REPLACE                         = "replace";
+    private static final String LENGTH                          = "length";
     private static final String BLACKEN                         = "blacken";
     private static final String DELETE                          = "delete";
     private static final String PATH                            = "path";
@@ -73,9 +76,11 @@ public class ContentFilterUtil {
     private static final String PATH_NOT_TEXTUAL                = "The constraint indicates a text node to be blackened. However, the node identified by the path is not a text note.";
     private static final String NO_REPLACEMENT_SPECIFIED        = "The constraint indicates a text node to be replaced. However, the action does not specify a 'replacement'.";
     private static final String REPLACEMENT_NOT_TEXTUAL         = "'replacement' of 'blacken' action is not textual.";
+    private static final String LENGTH_NOT_NUMBER               = "'length' of 'blacken' action is not numeric.";
     private static final String UNKNOWN_ACTION_S                = "Unknown action type: '%s'.";
     private static final String ACTION_NOT_AN_OBJECT            = "An action in 'actions' is not an object.";
     private static final String ACTIONS_NOT_AN_ARRAY            = "'actions' is not an array.";
+    private static final int    BLACKEN_LENGTH_INVALID_VALUE    = -1;
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
@@ -427,6 +432,7 @@ public class ContentFilterUtil {
         return (original, configuration) -> {
 
             String originalString;
+
             if (original instanceof JsonNode json && json.isTextual()) {
                 originalString = json.textValue();
             } else {
@@ -436,9 +442,44 @@ public class ContentFilterUtil {
             var replacementString = determineReplacementString(action);
             var discloseRight     = getIntegerValueOfActionKeyOrDefaultToZero(action, DISCLOSE_RIGHT);
             var discloseLeft      = getIntegerValueOfActionKeyOrDefaultToZero(action, DISCLOSE_LEFT);
+            var blackenLength     = determineBlackenLength(action);
 
-            return JSON.textNode(blacken(originalString, replacementString, discloseRight, discloseLeft));
+            return JSON.textNode(
+                    blackenUtil(originalString, replacementString, discloseRight, discloseLeft, blackenLength));
         };
+    }
+
+    private static int determineBlackenLength(JsonNode action) {
+        var replacementNode = action.get(LENGTH);
+
+        if (replacementNode == null)
+            return BLACKEN_LENGTH_INVALID_VALUE;
+
+        if (replacementNode.isNumber() && replacementNode.intValue() >= 0)
+            return replacementNode.intValue();
+
+        throw new AccessConstraintViolationException(LENGTH_NOT_NUMBER);
+    }
+
+    private static String blackenUtil(String originalString, String replacement, int discloseRight, int discloseLeft,
+            int blackenLength) {
+        if (discloseLeft + discloseRight >= originalString.length())
+            return originalString;
+
+        StringBuilder result = new StringBuilder();
+        if (discloseLeft > 0) {
+            result.append(originalString, 0, discloseLeft);
+        }
+
+        int replacedChars = originalString.length() - discloseLeft - discloseRight;
+
+        int blackenFinalLength = (blackenLength == BLACKEN_LENGTH_INVALID_VALUE) ? replacedChars : blackenLength;
+
+        result.append(String.valueOf(replacement).repeat(blackenFinalLength));
+        if (discloseRight > 0) {
+            result.append(originalString.substring(discloseLeft + replacedChars));
+        }
+        return result.toString();
     }
 
     private static String determineReplacementString(JsonNode action) {
@@ -451,23 +492,6 @@ public class ContentFilterUtil {
             return replacementNode.textValue();
 
         throw new AccessConstraintViolationException(REPLACEMENT_NOT_TEXTUAL);
-    }
-
-    private static String blacken(String originalString, String replacement, int discloseRight, int discloseLeft) {
-        if (discloseLeft + discloseRight >= originalString.length())
-            return originalString;
-
-        var result = new StringBuilder();
-        if (discloseLeft > 0)
-            result.append(originalString, 0, discloseLeft);
-
-        var numberOfReplacedChars = originalString.length() - discloseLeft - discloseRight;
-        result.append(String.valueOf(replacement).repeat(Math.max(0, numberOfReplacedChars)));
-
-        if (discloseRight > 0)
-            result.append(originalString.substring(discloseLeft + numberOfReplacedChars));
-
-        return result.toString();
     }
 
     private static String getTextualValueOfActionKey(JsonNode action, String key) {
@@ -497,5 +521,4 @@ public class ContentFilterUtil {
 
         return action.get(key);
     }
-
 }

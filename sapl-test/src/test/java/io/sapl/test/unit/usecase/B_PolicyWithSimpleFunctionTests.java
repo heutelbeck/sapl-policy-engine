@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -38,7 +40,7 @@ class B_PolicyWithSimpleFunctionTests {
 
     @Test
     void test_policyWithSimpleFunction() throws InitializationException {
-        fixture.registerFunctionLibrary(new TemporalFunctionLibrary()) // do not mock function in this unit test
+        fixture.registerFunctionLibrary(TemporalFunctionLibrary.class) // do not mock function in this unit test
                 .constructTestCase().when(AuthorizationSubscription.of("willi", "read", "something")).expectPermit()
                 .verify();
     }

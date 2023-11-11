@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -64,15 +66,15 @@ class ParameterTypeValidatorTests {
     // @formatter:off
 	private static final Map<Val, Class<?>[]> TEST_CASES = Map.of(
 	//      GIVEN VALUE                         WILL BE VALID WITH THESE ANNOTATIONS
-			Val.of(123), 						new Class<?>[] { Number.class, Int.class, Long.class }, 
+			Val.of(123), 						new Class<?>[] { Number.class, Int.class, Long.class },
 			Val.UNDEFINED, 						new Class<?>[] { },
 			Val.error(), 						new Class<?>[] { },
-			Val.of(Double.MAX_VALUE), 			new Class<?>[] { Number.class }, 
-			Val.of(java.lang.Long.MAX_VALUE),	new Class<?>[] { Number.class, Long.class }, 
-			Val.of(Integer.MAX_VALUE),			new Class<?>[] { Number.class, Long.class, Int.class }, 
-			Val.ofEmptyObject(),				new Class<?>[] { JsonObject.class }, 
-			Val.TRUE, 							new Class<?>[] { Bool.class }, 
-			Val.ofEmptyArray(),					new Class<?>[] { Array.class }, 
+			Val.of(Double.MAX_VALUE), 			new Class<?>[] { Number.class },
+			Val.of(java.lang.Long.MAX_VALUE),	new Class<?>[] { Number.class, Long.class },
+			Val.of(Integer.MAX_VALUE),			new Class<?>[] { Number.class, Long.class, Int.class },
+			Val.ofEmptyObject(),				new Class<?>[] { JsonObject.class },
+			Val.TRUE, 							new Class<?>[] { Bool.class },
+			Val.ofEmptyArray(),					new Class<?>[] { Array.class },
 			Val.of(""), 						new Class<?>[] { Text.class });
 	// @formatter:on
 

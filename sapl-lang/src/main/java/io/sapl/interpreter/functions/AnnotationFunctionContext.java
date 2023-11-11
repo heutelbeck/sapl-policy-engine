@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -16,6 +18,7 @@
 package io.sapl.interpreter.functions;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.util.Collection;
 import java.util.Collections;
@@ -28,6 +31,8 @@ import java.util.Optional;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.functions.FunctionLibrarySupplier;
+import io.sapl.api.functions.StaticFunctionLibrarySupplier;
 import io.sapl.api.interpreter.ExpressionArgument;
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.InitializationException;
@@ -44,37 +49,58 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AnnotationFunctionContext implements FunctionContext {
 
-    private static final int VAR_ARGS = -1;
-
-    private static final String UNKNOWN_FUNCTION = "Unknown function %s";
-
-    private static final String ILLEGAL_NUMBER_OF_PARAMETERS = "Illegal number of parameters. Function expected %d but got %d";
-
-    private static final String CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION = "Provided class has no @FunctionLibrary annotation.";
-
-    private static final String ILLEGAL_PARAMETER_FOR_IMPORT = "Function has parameters that are not a Val. Cannot be loaded. Type was: %s.";
-
-    private static final String ILLEGAL_RETURN_TYPE_FOR_IMPORT = "Function does not return a Val. Cannot be loaded. Type was: %s.";
+    private static final int    VAR_ARGS                                       = -1;
+    private static final String UNKNOWN_FUNCTION_ERROR                         = "Unknown function %s";
+    private static final String ILLEGAL_NUMBER_OF_PARAMETERS_ERROR             = "Illegal number of parameters. Function expected %d but got %d";
+    private static final String CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION_ERROR = "Provided class has no @FunctionLibrary annotation.";
+    private static final String ILLEGAL_PARAMETER_FOR_IMPORT_ERROR             = "Function has parameters that are not a Val. Cannot be loaded. Type was: %s.";
+    private static final String ILLEGAL_RETURN_TYPE_FOR_IMPORT_ERROR           = "Function does not return a Val. Cannot be loaded. Type was: %s.";
 
     private static final String MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED = "Function has both a schema and a schemaPath annotation. Multiple schema annotations are not allowed.";
 
     private final Collection<LibraryDocumentation> documentation = new LinkedList<>();
-
-    private final Map<String, FunctionMetadata> functions = new HashMap<>();
-
-    private final Map<String, Collection<String>> libraries = new HashMap<>();
+    private final Map<String, FunctionMetadata>    functions     = new HashMap<>();
+    private final Map<String, Collection<String>>  libraries     = new HashMap<>();
 
     private List<String> codeTemplateCache;
 
     /**
-     * Create context from a list of function libraries.
+     * Create context from a supplied libraries.
      *
-     * @param libraries list of function libraries @ if loading libraries fails
-     * @throws InitializationException if initialization fails
+     * @param librariesSupplier       supplies instantiated libraries
+     * @param staticLibrariesSupplier supplies libraries contained in utility
+     *                                classes with static methods as functions
+     * @throws InitializationException if initialization fails.
      */
-    public AnnotationFunctionContext(Object... libraries) throws InitializationException {
-        for (Object library : libraries)
+    public AnnotationFunctionContext(FunctionLibrarySupplier librariesSupplier,
+            StaticFunctionLibrarySupplier staticLibrariesSupplier) throws InitializationException {
+        loadLibraries(librariesSupplier);
+        loadLibraries(staticLibrariesSupplier);
+    }
+
+    /**
+     * Loads supplied library instances into the context.
+     *
+     * @param staticLibrariesSupplier supplies libraries contained in utility
+     *                                classes with static methods as functions
+     * @throws InitializationException if initialization fails.
+     */
+    public void loadLibraries(StaticFunctionLibrarySupplier staticLibrariesSupplier) throws InitializationException {
+        for (var library : staticLibrariesSupplier.get()) {
             loadLibrary(library);
+        }
+    }
+
+    /**
+     * Loads supplied static libraries into the context.
+     *
+     * @param librariesSupplier supplies instantiated libraries.
+     * @throws InitializationException if initialization fails.
+     */
+    public void loadLibraries(FunctionLibrarySupplier librariesSupplier) throws InitializationException {
+        for (var library : librariesSupplier.get()) {
+            loadLibrary(library);
+        }
     }
 
     @Override
@@ -87,7 +113,7 @@ public class AnnotationFunctionContext implements FunctionContext {
         }
         var metadata = functions.get(function);
         if (metadata == null)
-            return Val.error(UNKNOWN_FUNCTION, function).withTrace(FunctionContext.class, functionTrace);
+            return Val.error(UNKNOWN_FUNCTION_ERROR, function).withTrace(FunctionContext.class, functionTrace);
 
         var funParams = metadata.getFunction().getParameters();
 
@@ -99,7 +125,7 @@ public class AnnotationFunctionContext implements FunctionContext {
             return evaluateFixedParametersFunction(metadata, funParams, parameters).withTrace(FunctionContext.class,
                     functionTrace);
         }
-        return Val.error(ILLEGAL_NUMBER_OF_PARAMETERS, metadata.getNumberOfParameters(), parameters.length)
+        return Val.error(ILLEGAL_NUMBER_OF_PARAMETERS_ERROR, metadata.getNumberOfParameters(), parameters.length)
                 .withTrace(FunctionContext.class, functionTrace);
     }
 
@@ -122,7 +148,7 @@ public class AnnotationFunctionContext implements FunctionContext {
                 return Val.error(e);
             }
         }
-        return invokeFunction(metadata, new Object[] { parameters });
+        return invokeFunction(metadata, (Object[]) new Object[] { parameters });
     }
 
     private Val invokeFunction(FunctionMetadata metadata, Object... parameters) {
@@ -144,24 +170,36 @@ public class AnnotationFunctionContext implements FunctionContext {
                 params.toString(), e.getMessage());
     }
 
+    /**
+     * Loads a library into the context.
+     *
+     * @param library a library instance
+     * @throws InitializationException if initialization fails.
+     */
     public final void loadLibrary(Object library) throws InitializationException {
-        Class<?> clazz = library.getClass();
+        loadLibrary(library, library.getClass());
+    }
 
-        FunctionLibrary libAnnotation = clazz.getAnnotation(FunctionLibrary.class);
+    public final void loadLibrary(Class<?> libraryType) throws InitializationException {
+        loadLibrary(null, libraryType);
+    }
+
+    public final void loadLibrary(Object library, Class<?> libraryType) throws InitializationException {
+        var libAnnotation = libraryType.getAnnotation(FunctionLibrary.class);
 
         if (libAnnotation == null) {
-            throw new InitializationException(CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION);
+            throw new InitializationException(CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION_ERROR);
         }
 
         String libName = libAnnotation.name();
         if (libName.isEmpty()) {
-            libName = clazz.getSimpleName();
+            libName = libraryType.getSimpleName();
         }
         libraries.put(libName, new HashSet<>());
 
-        LibraryDocumentation libDocs = new LibraryDocumentation(libName, libAnnotation.description(), library);
+        LibraryDocumentation libDocs = new LibraryDocumentation(libName, libAnnotation.description());
 
-        for (Method method : clazz.getDeclaredMethods()) {
+        for (Method method : libraryType.getDeclaredMethods()) {
             if (method.isAnnotationPresent(Function.class)) {
                 importFunction(library, libName, libDocs, method);
             }
@@ -172,19 +210,22 @@ public class AnnotationFunctionContext implements FunctionContext {
 
     private void importFunction(Object library, String libName, LibraryDocumentation libMeta, Method method)
             throws InitializationException {
-        Function funAnnotation = method.getAnnotation(Function.class);
-        String   funName       = funAnnotation.name();
+        if (library == null)
+            assertMethodIsStatic(method);
+
+        var funAnnotation = method.getAnnotation(Function.class);
+        var funName       = funAnnotation.name();
         if (funName.isEmpty())
             funName = method.getName();
 
-        String funSchema = funAnnotation.schema();
-        String funPathToSchema = funAnnotation.pathToSchema();
+        var funSchema       = funAnnotation.schema();
+        var funPathToSchema = funAnnotation.pathToSchema();
 
         if(!funSchema.isEmpty() && !funPathToSchema.isEmpty())
             throw new InitializationException(MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED);
 
         if (!Val.class.isAssignableFrom(method.getReturnType()))
-            throw new InitializationException(ILLEGAL_RETURN_TYPE_FOR_IMPORT, method.getReturnType().getName());
+            throw new InitializationException(ILLEGAL_RETURN_TYPE_FOR_IMPORT_ERROR, method.getReturnType().getName());
 
         int parameters = method.getParameterCount();
         for (Class<?> parameterType : method.getParameterTypes()) {
@@ -192,15 +233,25 @@ public class AnnotationFunctionContext implements FunctionContext {
                     && Val.class.isAssignableFrom(parameterType.getComponentType())) {
                 parameters = VAR_ARGS;
             } else if (!Val.class.isAssignableFrom(parameterType)) {
-                throw new InitializationException(ILLEGAL_PARAMETER_FOR_IMPORT, parameterType.getName());
+                throw new InitializationException(ILLEGAL_PARAMETER_FOR_IMPORT_ERROR, parameterType.getName());
             }
         }
 
-        FunctionMetadata funMeta = new FunctionMetadata(libName, funName, funSchema, funPathToSchema, library, parameters, method);
+        FunctionMetadata funMeta = new FunctionMetadata(libName, funName, funSchema, funPathToSchema, library,
+                parameters, method);
         functions.put(funMeta.fullyQualifiedName(), funMeta);
         libMeta.documentation.put(funMeta.getDocumentationCodeTemplate(), funAnnotation.docs());
 
         libraries.get(libName).add(funName);
+    }
+
+    private void assertMethodIsStatic(Method method) throws InitializationException {
+        if (!Modifier.isStatic(method.getModifiers())) {
+            throw new InitializationException(
+                    "Cannot initialize functions. If no function library instance is provided, the method of a function must be static. "
+                            + method.getName()
+                            + " is not static. In case your function implementation cannot have the method as static because it depends on library state or injected dependecies, make sure to register the library as an instance instead of a class.");
+        }
     }
 
     @Override
@@ -288,7 +339,7 @@ public class AnnotationFunctionContext implements FunctionContext {
     }
 
     @Override
-    public Map<String, String> getFunctionSchemas(){
+    public Map<String, String> getFunctionSchemas() {
         var schemas = new HashMap<String, String>();
         for (var entry : functions.entrySet()) {
             schemas.put(entry.getKey(), entry.getValue().functionSchema);

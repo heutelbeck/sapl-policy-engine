@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -33,7 +35,6 @@ import io.sapl.api.validation.Long;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Schema;
 import io.sapl.api.validation.Text;
-
 import io.sapl.functions.SchemaValidationLibrary;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
@@ -41,9 +42,8 @@ import reactor.core.publisher.Flux;
 @UtilityClass
 public class ParameterTypeValidator {
 
-    private static final String ILLEGAL_PARAMETER_TYPE = "Illegal parameter type. Got: %s Expected: %s";
-
-    private static final String NON_COMPLIANT_WITH_SCHEMA = "Illegal parameter type. Parameter does not comply with required schema. Got: %s Expected schema: %s";
+    private static final String ILLEGAL_PARAMETER_TYPE_ERROR    = "Illegal parameter type. Got: %s Expected: %s";
+    private static final String NON_COMPLIANT_WITH_SCHEMA_ERROR = "Illegal parameter type. Parameter does not comply with required schema. Got: %s Expected schema: %s";
 
     private static final Set<Class<?>> VALIDATION_ANNOTATIONS = Set.of(Number.class, Int.class, Long.class, Bool.class,
             Text.class, Array.class, JsonObject.class, Schema.class);
@@ -53,11 +53,11 @@ public class ParameterTypeValidator {
             return;
 
         if (parameterValue.isError())
-            throw new IllegalParameterType(
-                    String.format(ILLEGAL_PARAMETER_TYPE, "error", listAllowedTypes(parameterType.getAnnotations())));
+            throw new IllegalParameterType(String.format(ILLEGAL_PARAMETER_TYPE_ERROR, "error",
+                    listAllowedTypes(parameterType.getAnnotations())));
 
         if (parameterValue.isUndefined())
-            throw new IllegalParameterType(String.format(ILLEGAL_PARAMETER_TYPE, "undefined",
+            throw new IllegalParameterType(String.format(ILLEGAL_PARAMETER_TYPE_ERROR, "undefined",
                     listAllowedTypes(parameterType.getAnnotations())));
 
         validateJsonNodeType(parameterValue.get(), parameterType);
@@ -82,29 +82,27 @@ public class ParameterTypeValidator {
 
     private static void validateJsonNodeType(JsonNode node, Parameter parameterType) throws IllegalParameterType {
         Annotation[] annotations = parameterType.getAnnotations();
-        String errorText;
+        String       errorText;
         moveSchemaAnnotationToTheEndIfItExists(annotations);
 
         for (Annotation annotation : annotations) {
             if (nodeContentsMatchesTypeGivenByAnnotation(node, annotation))
                 return;
-            else if (!Schema.class.isAssignableFrom(annotation.getClass()))
-                continue;
-            else if (nodeCompliantWithSchema(node, annotation))
-                return;
-            else {
-                var schemaAnnotation = (Schema) annotation;
-                errorText = schemaAnnotation.errorText();
-                if (!"".equals(errorText))
-                    throw new IllegalParameterType(errorText);
-                throw new IllegalParameterType(
-                        String.format(NON_COMPLIANT_WITH_SCHEMA, node.toString(), schemaAnnotation.value()));
+            if (annotation instanceof Schema schemaAnnotation) {
+                if (nodeCompliantWithSchema(node, schemaAnnotation)) {
+                    return;
+                } else {
+                    errorText = schemaAnnotation.errorText();
+                    if (!"".equals(errorText))
+                        throw new IllegalParameterType(errorText);
+                    throw new IllegalParameterType(
+                            String.format(NON_COMPLIANT_WITH_SCHEMA_ERROR, node.toString(), schemaAnnotation.value()));
+                }
             }
         }
 
-            throw new IllegalParameterType(
-                    String.format(ILLEGAL_PARAMETER_TYPE, node.getNodeType().toString(), listAllowedTypes(annotations)));
-
+        throw new IllegalParameterType(String.format(ILLEGAL_PARAMETER_TYPE_ERROR, node.getNodeType().toString(),
+                listAllowedTypes(annotations)));
     }
 
     private static boolean nodeContentsMatchesTypeGivenByAnnotation(JsonNode node, Annotation annotation) {
@@ -115,49 +113,48 @@ public class ParameterTypeValidator {
                 || (Text.class.isAssignableFrom(annotation.getClass()) && node.isTextual())
                 || (Array.class.isAssignableFrom(annotation.getClass()) && node.isArray())
                 || (JsonObject.class.isAssignableFrom(annotation.getClass()) && node.isObject());
-	}
+    }
 
-    private static boolean nodeCompliantWithSchema(JsonNode node, Annotation annotation) {
-        String schema;
-        schema = ((Schema) annotation).value();
+    private static boolean nodeCompliantWithSchema(JsonNode node, Schema schemaAnnotation) {
+        var schema = schemaAnnotation.value();
         if ("".equals(schema))
             return true;
-        var nodeVal = Val.of(node);
+        var nodeVal   = Val.of(node);
         var schemaVal = Val.of(schema);
         return SchemaValidationLibrary.isCompliantWithSchema(nodeVal, schemaVal).getBoolean();
     }
 
-	private static boolean hasNoValidationAnnotations(Parameter parameterType) {
-		for (var annotation : parameterType.getAnnotations())
-			if (isTypeValidationAnnotation(annotation))
-				return false;
+    private static boolean hasNoValidationAnnotations(Parameter parameterType) {
+        for (var annotation : parameterType.getAnnotations())
+            if (isTypeValidationAnnotation(annotation))
+                return false;
 
-		return true;
-	}
+        return true;
+    }
 
-	private static boolean isTypeValidationAnnotation(Annotation annotation) {
-		for (var validator : VALIDATION_ANNOTATIONS)
-			if (validator.isAssignableFrom(annotation.getClass()))
-				return true;
+    private static boolean isTypeValidationAnnotation(Annotation annotation) {
+        for (var validator : VALIDATION_ANNOTATIONS)
+            if (validator.isAssignableFrom(annotation.getClass()))
+                return true;
 
-		return false;
-	}
+        return false;
+    }
 
-	private static String listAllowedTypes(Annotation[] annotations) {
-		var builder = new StringBuilder();
-		for (var annotation : annotations) {
-			if (isTypeValidationAnnotation(annotation))
-				builder.append(annotation).append(' ');
-		}
-		return builder.toString();
-	}
+    private static String listAllowedTypes(Annotation[] annotations) {
+        var builder = new StringBuilder();
+        for (var annotation : annotations) {
+            if (isTypeValidationAnnotation(annotation))
+                builder.append(annotation).append(' ');
+        }
+        return builder.toString();
+    }
 
     private static void moveSchemaAnnotationToTheEndIfItExists(Annotation[] annotations) {
         if (annotations.length < 2)
             return;
         int index = Math.max(0, indexOfSchemaAnnotation(annotations));
-        if (index < annotations.length){
-            var annotationList = new ArrayList<>(Arrays.asList(annotations));
+        if (index < annotations.length) {
+            var annotationList    = new ArrayList<>(Arrays.asList(annotations));
             var indexedAnnotation = annotationList.remove(index);
             annotationList.add(indexedAnnotation);
             annotationList.toArray(annotations);
@@ -176,4 +173,4 @@ public class ParameterTypeValidator {
 
         return index;
     }
-    }
+}

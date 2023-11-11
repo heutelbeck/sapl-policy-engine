@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -131,7 +133,7 @@ public class MockingFunctionContext implements FunctionContext {
             FunctionMock newMock = new FunctionMockAlwaysSameValue(fullName, mockReturnValue, verification);
             this.registeredMocks.put(fullName, newMock);
 
-            addNewLibraryDocumentation(fullName, newMock);
+            addNewLibraryDocumentation(fullName);
         }
     }
 
@@ -154,7 +156,7 @@ public class MockingFunctionContext implements FunctionContext {
             newMock.loadMockReturnValue(mockReturnValue);
             this.registeredMocks.put(fullName, newMock);
 
-            addNewLibraryDocumentation(fullName, newMock);
+            addNewLibraryDocumentation(fullName);
         }
     }
 
@@ -181,7 +183,7 @@ public class MockingFunctionContext implements FunctionContext {
             newMock.loadParameterSpecificReturnValue(mockReturnValue, parameter, verification);
             this.registeredMocks.put(fullName, newMock);
 
-            addNewLibraryDocumentation(fullName, newMock);
+            addNewLibraryDocumentation(fullName);
         }
     }
 
@@ -200,7 +202,7 @@ public class MockingFunctionContext implements FunctionContext {
             FunctionMock newMock = new FunctionMockFunctionResult(fullName, returns, verification);
             this.registeredMocks.put(fullName, newMock);
 
-            addNewLibraryDocumentation(fullName, newMock);
+            addNewLibraryDocumentation(fullName);
         }
     }
 
@@ -215,7 +217,7 @@ public class MockingFunctionContext implements FunctionContext {
         }
     }
 
-    void addNewLibraryDocumentation(String fullName, FunctionMock mock) {
+    void addNewLibraryDocumentation(String fullName) {
         String[] split        = fullName.split(Pattern.quote(NAME_DELIMITER));
         String   libName      = split[0];
         String   functionName = split[1];
@@ -224,8 +226,8 @@ public class MockingFunctionContext implements FunctionContext {
         if (existingDoc != null) {
             existingDoc.getDocumentation().put(functionName, "Mocked Function");
         } else {
-            LibraryDocumentation functionDocs = new LibraryDocumentation(libName, "Mocked Function Library: " + libName,
-                    mock);
+            LibraryDocumentation functionDocs = new LibraryDocumentation(libName,
+                    "Mocked Function Library: " + libName);
             functionDocs.getDocumentation().put(functionName, "Mocked Function");
             this.functionDocumentations.put(libName, functionDocs);
         }
@@ -251,9 +253,9 @@ public class MockingFunctionContext implements FunctionContext {
         return Map.of();
     }
 
-	@Override
-	public Map<String, String> getFunctionSchemas()  {
-		return Map.of();
-	}
+    @Override
+    public Map<String, String> getFunctionSchemas() {
+        return Map.of();
+    }
 
 }

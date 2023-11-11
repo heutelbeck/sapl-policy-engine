@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -61,8 +63,8 @@ class EmbeddedPolicyDecisionPointTest {
     @BeforeEach
     void setUp() throws Exception {
         var reporter = new ReportingDecisionInterceptor(new ObjectMapper(), true, true, true, true);
-        pdp = PolicyDecisionPointFactory.resourcesPolicyDecisionPoint("/policies", List.of(new TestPIP()), List.of(),
-                List.of(), List.of(reporter));
+        pdp = PolicyDecisionPointFactory.resourcesPolicyDecisionPoint("/policies", () -> List.of(new TestPIP()),
+                List::of, List::of, List::of, List.of(), List.of(reporter));
     }
 
     @Test

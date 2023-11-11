@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -21,7 +23,9 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
+import lombok.experimental.UtilityClass;
 
+@UtilityClass
 @FunctionLibrary(name = "simple", description = "some simple functions")
 public class SimpleFunctionLibrary {
 

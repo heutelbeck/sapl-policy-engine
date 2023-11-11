@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -34,7 +36,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
     /**
      * Evaluates the body of the policy set within the given evaluation context and
      * returns a {@link Flux} of {@link DocumentEvaluationResult} objects.
-     * 
+     *
      * @return A {@link Flux} of {@link DocumentEvaluationResult} objects.
      */
     @Override
@@ -48,7 +50,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
 
     /**
      * Maps error or non-boolean to the matching evaluation result.
-     * 
+     *
      * @param targetValue the evaluation result of the target expression (must be
      *                    non-Boolean or error).
      * @Returns the matching evaluation result.

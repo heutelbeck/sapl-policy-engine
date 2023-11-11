@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -27,7 +29,7 @@ public class CoverageAPIFactory {
 
     /**
      * Constructs a CoverageHitRecorder implementation.
-     * 
+     *
      * @param basedir where to find the hit files
      * @return {@link CoverageHitReader}
      */
@@ -38,7 +40,7 @@ public class CoverageAPIFactory {
     /**
      * Constructs a CoverageHitRecorder implementation and create empty
      * Coverage-Hit-Files if they don't exist
-     * 
+     *
      * @param basedir where to write the hit files
      * @return {@link CoverageHitRecorder}
      */

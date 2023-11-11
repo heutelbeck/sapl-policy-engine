@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -34,7 +36,6 @@ import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.functions.LibraryDocumentation;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.unit.TestPIP;
 
 class MockingFunctionContextTests {
 
@@ -138,8 +139,8 @@ class MockingFunctionContextTests {
 
     @Test
     void test_documentation() {
-        this.ctx.addNewLibraryDocumentation("foo.bar", new FunctionMockAlwaysSameValue("foo.bar", Val.of(1), times(1)));
-        var unmockedDoc = new LibraryDocumentation("test", "Test", new TestPIP());
+        this.ctx.addNewLibraryDocumentation("foo.bar");
+        var unmockedDoc = new LibraryDocumentation("test", "Test");
         unmockedDoc.getDocumentation().put("upper", "blabla");
         when(this.unmockedCtx.getDocumentation()).thenReturn(List.of(unmockedDoc));
 

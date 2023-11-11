@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -21,7 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
-import io.sapl.pip.TimePolicyInformationPoint;
+import io.sapl.api.pip.PolicyInformationPointSupplier;
 
 class PolicyInformationPointsAutoConfigurationTests {
 
@@ -32,7 +34,7 @@ class PolicyInformationPointsAutoConfigurationTests {
     void whenContextLoaded_thenDefaultPolicyInformationPointsArePresent() {
         contextRunner.run(context -> {
             assertThat(context).hasNotFailed();
-            assertThat(context).hasSingleBean(TimePolicyInformationPoint.class);
+            assertThat(context).hasSingleBean(PolicyInformationPointSupplier.class);
         });
     }
 

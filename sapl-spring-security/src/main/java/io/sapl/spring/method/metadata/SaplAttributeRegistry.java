@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -54,9 +56,9 @@ public class SaplAttributeRegistry {
     /**
      * Returns an {@link Optional} {@link SaplAttribute} for the
      * {@link MethodInvocation}.
-     * 
+     *
      * @param <T>            the annotation type
-     * 
+     *
      * @param mi             the {@link MethodInvocation} to use
      * @param annotationType the annotation type.
      * @return the {@link Optional} {@link SaplAttribute} to use
@@ -113,9 +115,9 @@ public class SaplAttributeRegistry {
     /**
      * Returns an {@link Optional} {@link SaplAttribute} for the method and the
      * target class.
-     * 
+     *
      * @param <T>            the annotation type
-     * 
+     *
      * @param method         the method
      * @param targetClass    the target class
      * @param annotationType the annotation type

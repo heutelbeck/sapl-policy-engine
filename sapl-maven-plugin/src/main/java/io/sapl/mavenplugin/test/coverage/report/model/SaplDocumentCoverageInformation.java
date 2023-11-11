@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -35,7 +37,7 @@ public class SaplDocumentCoverageInformation {
 
     /**
      * initialize a {@link SaplDocumentCoverageInformation} with
-     * 
+     *
      * @param pathToDocument path to the document on the filesystem
      * @param lineCount      line count
      */
@@ -49,7 +51,7 @@ public class SaplDocumentCoverageInformation {
 
     /**
      * mark the line as one of {@link LineCoveredValue}
-     * 
+     *
      * @param lineNumber      (starting with 1)
      * @param value           {@link LineCoveredValue}
      * @param coveredBranches covered branches of this line
@@ -61,7 +63,7 @@ public class SaplDocumentCoverageInformation {
 
     /**
      * Get line coverage information for a line in this document
-     * 
+     *
      * @param lineNumber (starting with 1)
      * @return the {@link SaplDocumentLineCoverageInformation} for this line
      */

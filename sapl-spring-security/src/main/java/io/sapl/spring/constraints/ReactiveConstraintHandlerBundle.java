@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -29,11 +31,11 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * 
+ *
  * This bundle aggregates all constraint handlers for a specific decision which
  * are useful in a reactive scenario.
  * <p>
- * 
+ *
  * @param <T> return type
  */
 @NoArgsConstructor
@@ -57,7 +59,7 @@ public class ReactiveConstraintHandlerBundle<T> {
 
     /**
      * Runs all onSubscription handlers.
-     * 
+     *
      * @param s the Subscription.
      */
     public void handleOnSubscribeConstraints(Subscription s) {
@@ -66,7 +68,7 @@ public class ReactiveConstraintHandlerBundle<T> {
 
     /**
      * Executes all onNext constraint handlers, potentially transforming the value.
-     * 
+     *
      * @param value a return value
      * @return the return value after constraint handling
      */
@@ -85,7 +87,7 @@ public class ReactiveConstraintHandlerBundle<T> {
 
     /**
      * Runs all onRequest handlers.
-     * 
+     *
      * @param value number of events requested
      */
     public void handleOnRequestConstraints(Long value) {
@@ -159,7 +161,7 @@ public class ReactiveConstraintHandlerBundle<T> {
 
     /**
      * Wires the handlers into the matching reactive signals.
-     * 
+     *
      * @param resourceAccessPoint a reactive resource access point
      * @return the resource access point with the different handlers wired to their
      *         respective hooks.

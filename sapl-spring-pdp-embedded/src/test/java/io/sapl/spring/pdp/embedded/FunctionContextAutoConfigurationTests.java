@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -18,12 +20,15 @@ package io.sapl.spring.pdp.embedded;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.functions.FunctionLibrarySupplier;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 
@@ -63,7 +68,8 @@ class FunctionContextAutoConfigurationTests {
 
     @Test
     void whenBadLibraryIsPresent_thenContextFailsToLoad() {
-        contextRunner.withBean(BadFunctionLibrary.class, BadFunctionLibrary::new)
+        contextRunner
+                .withBean("badLibrary", FunctionLibrarySupplier.class, () -> (() -> List.of(new BadFunctionLibrary())))
                 .run(context -> assertThat(context).hasFailed());
     }
 

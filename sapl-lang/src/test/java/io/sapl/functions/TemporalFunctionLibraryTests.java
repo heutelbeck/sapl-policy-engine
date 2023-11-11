@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -18,7 +20,6 @@ package io.sapl.functions;
 import static io.sapl.hamcrest.Matchers.val;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.math.BigDecimal;
@@ -36,11 +37,6 @@ import org.mockito.Mockito;
 import io.sapl.api.interpreter.Val;
 
 class TemporalFunctionLibraryTests {
-
-    @Test
-    void instantiate() {
-        assertDoesNotThrow(TemporalFunctionLibrary::new);
-    }
 
     @Test
     void nowPlusNanos() {

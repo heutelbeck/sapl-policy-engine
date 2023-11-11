@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -40,7 +42,7 @@ class PolicyElementImplCustomTests {
 	 			// falseTargetDosNotMatch
 	 			Arguments.of("policy \"p\" permit false", Val.FALSE),
 	 			// trueTargetDosMatch
-	 			Arguments.of("policy \"p\" permit true", Val.TRUE)			
+	 			Arguments.of("policy \"p\" permit true", Val.TRUE)
 			);
 		// @formater:on
 	}
@@ -50,11 +52,11 @@ class PolicyElementImplCustomTests {
 		var policy   = INTERPRETER.parse(policySource);
 		StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected).verifyComplete();
 	}
-	
+
 	@ParameterizedTest
 	@ValueSource(strings = {
 			// undefinedTargetErrors
-			"policy \"p\" permit undefined", 
+			"policy \"p\" permit undefined",
 			// errorTargetErrors
 			"policy \"p\" permit (10/0)",
 			// nonBooleanTargetErrors

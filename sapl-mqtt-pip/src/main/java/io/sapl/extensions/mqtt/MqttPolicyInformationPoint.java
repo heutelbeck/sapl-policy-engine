@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -26,12 +28,14 @@ import io.sapl.api.validation.Array;
 import io.sapl.api.validation.Int;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Text;
+import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 
 /**
  * This policy information point allows the user to receive mqtt messages of
  * subscribed topics from a mqtt broker.
  */
+@UtilityClass
 @PolicyInformationPoint(name = MqttPolicyInformationPoint.NAME, description = MqttPolicyInformationPoint.DESCRIPTION)
 public class MqttPolicyInformationPoint {
 

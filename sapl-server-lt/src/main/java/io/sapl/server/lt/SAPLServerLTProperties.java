@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -21,10 +23,10 @@ import java.util.Collections;
 import java.util.List;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+
 import lombok.Data;
 
 @Data
-@SuppressWarnings("UnnecessarilyFullyQualified")
 @ConfigurationProperties(prefix = "io.sapl.server-lt")
 public class SAPLServerLTProperties {
 

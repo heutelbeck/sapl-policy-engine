@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -16,6 +18,7 @@
 package io.sapl.spring.pdp.embedded;
 
 import java.time.Clock;
+import java.util.List;
 
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -23,6 +26,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
 
+import io.sapl.api.pip.PolicyInformationPointSupplier;
 import io.sapl.pip.TimePolicyInformationPoint;
 
 @AutoConfiguration
@@ -37,8 +41,8 @@ public class PolicyInformationPointsAutoConfiguration {
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    TimePolicyInformationPoint timePolicyInformationPoint(Clock clock) {
-        return new TimePolicyInformationPoint(clock);
+    PolicyInformationPointSupplier timePolicyInformationPointSupplier(Clock clock) {
+        return () -> List.of(new TimePolicyInformationPoint(clock));
     }
 
 }
