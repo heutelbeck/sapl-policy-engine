@@ -291,14 +291,6 @@ class AnnotationFunctionContextTests {
     }
 
     @Test
-    void typeAnnotationBoolAsJsonSchemaMatchesParameter() throws InitializationException, JsonProcessingException {
-        var context = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
-        var mapper = new ObjectMapper();
-        var parameter = mapper.readTree("true");
-        assertThat(context.evaluate("annotation.boolAnnotatedParameter", Val.of(true)), is(Val.of(true)));
-    }
-
-    @Test
     void typeAnnotationJsonValueSchemaMatchesParameter() throws InitializationException {
         var context = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
         assertThat(context.evaluate("annotation.jsonValueSchemaInParameterAnnotation", Val.of("test")), is(Val.of(true)));
@@ -324,16 +316,20 @@ class AnnotationFunctionContextTests {
         assertThat(context.evaluate(function, Val.of(parameter)), is(Val.of(true)));
     }
 
-     @Test
-    void multipleParameterAnnotationsWithNonmatchingSchemaAtTheFront() throws InitializationException {
-        var context = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
-        assertThat(context.evaluate("annotation.multipleParameterAnnotationsWithNonmatchingSchemaAtTheFront", Val.of(true)), is(Val.of(true)));
-    }
+    private static final String[] TEST_CASES_PARAM_LOCATION = {
+            "annotation.boolAnnotatedParameter",
+            "annotation.multipleParameterAnnotationsWithNonmatchingSchemaAtTheFront",
+            "annotation.multipleParameterAnnotationsWithNonmatchingSchemaAtTheEnd"
+    };
 
-    @Test
-    void multipleParameterAnnotationsWithNonmatchingSchemaAtTheEnd() throws InitializationException {
+    static Stream<String> parameterProviderForParamLocationTests(){
+        return Stream.of(TEST_CASES_PARAM_LOCATION);
+    }
+    @ParameterizedTest
+    @MethodSource("parameterProviderForParamLocationTests")
+    void paramLocationSchemaTests(String function) throws InitializationException, JsonProcessingException {
         var context = new AnnotationFunctionContext(new AnnotationFunctionContextTests.AnnotationLibrary());
-        assertThat(context.evaluate("annotation.multipleParameterAnnotationsWithNonmatchingSchemaAtTheEnd", Val.of(true)), is(Val.of(true)));
+        assertThat(context.evaluate(function, Val.of(true)), is(Val.of(true)));
     }
 
     @Test
