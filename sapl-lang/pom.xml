@@ -68,11 +68,13 @@
 		<dependency>
 			<groupId>org.eclipse.emf</groupId>
 			<artifactId>org.eclipse.emf.mwe2.launch</artifactId>
+			<version>${emf-mwe2-launch.version}</version>
 			<optional>true</optional>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.xtext</groupId>
 			<artifactId>xtext-antlr-generator</artifactId>
+			<version>${xtext-antlr-generator.version}</version>
 			<optional>true</optional>
 			<exclusions>
 				<exclusion>

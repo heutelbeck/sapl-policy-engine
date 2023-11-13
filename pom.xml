@@ -97,6 +97,8 @@
 		<spotbugs.version>4.7.3.6</spotbugs.version>
 		<sbcontrib.version>7.6.0</sbcontrib.version>
 		<failsafe.version>3.1.2</failsafe.version>
+		<emf-mwe2-launch.version>2.15.0</emf-mwe2-launch.version>
+		<xtext-antlr-generator.version>2.1.1</xtext-antlr-generator.version>
 		<docker-registry-url>ghcr.io/heutelbeck</docker-registry-url>
 		<argLine />
 	</properties>
@@ -110,6 +112,7 @@
 		<module>sapl-ide</module>
 		<module>sapl-web</module>
 		<module>sapl-test</module>
+		<module>sapl-test-junit</module>
 		<module>sapl-test-lang</module>
 		<module>sapl-test-ide</module>
 		<module>sapl-test-web</module>
@@ -136,14 +139,6 @@
 	</modules>
 	<dependencyManagement>
 		<dependencies>
-			<!-- XText -->
-			<dependency>
-				<groupId>org.eclipse.xtext</groupId>
-				<artifactId>xtext-dev-bom</artifactId>
-				<version>${xtext.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
 			<dependency>
 				<groupId>com.google.guava</groupId>
 				<artifactId>guava</artifactId>
