@@ -10,23 +10,21 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.test.grammar.sAPLTest.AuthorizationSubscription;
 import io.sapl.test.grammar.sAPLTest.Value;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.MockedStatic;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class AuthorizationSubscriptionInterpreterTest {
-
+    @Mock
     private ValInterpreter valInterpreterMock;
-
-    private final MockedStatic<io.sapl.api.pdp.AuthorizationSubscription> authorizationSubscriptionMockedStatic = mockStatic(io.sapl.api.pdp.AuthorizationSubscription.class);
-
+    @InjectMocks
     private AuthorizationSubscriptionInterpreter authorizationSubscriptionInterpreter;
 
-    @BeforeEach
-    void setUp() {
-        valInterpreterMock = mock(ValInterpreter.class);
-        authorizationSubscriptionInterpreter = new AuthorizationSubscriptionInterpreter(valInterpreterMock);
-    }
+    private final MockedStatic<io.sapl.api.pdp.AuthorizationSubscription> authorizationSubscriptionMockedStatic = mockStatic(io.sapl.api.pdp.AuthorizationSubscription.class);
 
     @AfterEach
     void tearDown() {

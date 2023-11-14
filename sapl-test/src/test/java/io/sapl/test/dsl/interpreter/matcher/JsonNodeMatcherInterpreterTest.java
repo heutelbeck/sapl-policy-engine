@@ -19,34 +19,27 @@ import java.util.List;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class JsonNodeMatcherInterpreterTest {
-
+    @Mock
+    private StringMatcherInterpreter stringMatcherInterpreterMock;
+    @InjectMocks
+    private JsonNodeMatcherInterpreter jsonNodeMatcherInterpreter;
     @Mock
     private Matcher<? super JsonNode> jsonNodeMatcherMock;
 
-    @Mock
-    private StringMatcherInterpreter stringMatcherInterpreterMock;
-
     private final MockedStatic<JsonMatchers> jsonMatchersMockedStatic = mockStatic(JsonMatchers.class);
-
     private final MockedStatic<Matchers> hamcrestMatchersMockedStatic = mockStatic(Matchers.class);
 
-    private JsonNodeMatcherInterpreter jsonNodeMatcherInterpreter;
-
-    @BeforeEach
-    void setUp() {
-        jsonNodeMatcherInterpreter = new JsonNodeMatcherInterpreter(stringMatcherInterpreterMock);
-    }
 
     @AfterEach
     void tearDown() {

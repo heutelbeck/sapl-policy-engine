@@ -22,32 +22,25 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class ValInterpreterTest {
-
     @Mock
     private ObjectMapper objectMapperMock;
-
     @Mock
     private Val valMock;
-
-    MockedStatic<Val> valMockedStatic = mockStatic(Val.class);
-
+    @InjectMocks
     private ValInterpreter valInterpreter;
 
-    @BeforeEach
-    void setUp() {
-        valInterpreter = new ValInterpreter(objectMapperMock);
-    }
+    private final MockedStatic<Val> valMockedStatic = mockStatic(Val.class);
 
     @AfterEach
     void tearDown() {

@@ -16,10 +16,9 @@ import org.mockito.Answers;
 import org.mockito.MockedStatic;
 
 class DurationInterpreterTest {
-
     private DurationInterpreter durationInterpreter;
 
-    MockedStatic<Duration> durationMockedStatic = mockStatic(Duration.class, Answers.RETURNS_DEEP_STUBS);
+    private final MockedStatic<Duration> durationMockedStatic = mockStatic(Duration.class, Answers.RETURNS_DEEP_STUBS);
 
     @BeforeEach
     void setUp() {

@@ -32,8 +32,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class AttributeInterpreterTest {
-
-
     @Mock
     private ValInterpreter valInterpreterMock;
     @Mock
@@ -42,7 +40,6 @@ class AttributeInterpreterTest {
     private DurationInterpreter durationInterpreterMock;
     @InjectMocks
     private AttributeInterpreter attributeInterpreter;
-
     @Mock
     private GivenOrWhenStep givenOrWhenStepMock;
 

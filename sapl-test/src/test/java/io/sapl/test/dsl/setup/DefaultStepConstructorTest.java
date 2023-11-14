@@ -27,19 +27,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class DefaultStepConstructorTest {
-
     @Mock
     private DefaultExpectStepConstructor defaultExpectStepConstructorMock;
-
     @Mock
     private TestFixtureBuilder testFixtureBuilderMock;
-
     @Mock
     private DefaultVerifyStepConstructor verifyStepBuilderMock;
-
     @Mock
     private DefaultWhenStepConstructor whenStepBuilderMock;
-
     @InjectMocks
     private DefaultStepConstructor defaultStepConstructor;
 

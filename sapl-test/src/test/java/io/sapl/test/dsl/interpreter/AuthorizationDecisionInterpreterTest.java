@@ -14,23 +14,22 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.test.grammar.sAPLTest.Value;
 import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class AuthorizationDecisionInterpreterTest {
-
+    @Mock
     private ValInterpreter valInterpreterMock;
+    @Mock
     private ObjectMapper objectMapperMock;
+    @InjectMocks
     private AuthorizationDecisionInterpreter authorizationDecisionInterpreter;
-
-    @BeforeEach
-    void setUp() {
-        valInterpreterMock = mock(ValInterpreter.class);
-        objectMapperMock = mock(ObjectMapper.class);
-        authorizationDecisionInterpreter = new AuthorizationDecisionInterpreter(valInterpreterMock, objectMapperMock);
-    }
 
     @Nested
     @DisplayName("decision mapping tests")

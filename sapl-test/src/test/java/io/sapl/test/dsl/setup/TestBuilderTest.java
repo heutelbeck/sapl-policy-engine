@@ -35,23 +35,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class TestBuilderTest {
-
     @Mock
     private StepConstructor stepConstructorMock;
-
     @InjectMocks
     private TestProvider testProvider;
-
-    private final MockedStatic<TestContainer> testContainerMockedStatic = mockStatic(TestContainer.class);
-    private final MockedStatic<io.sapl.test.dsl.setup.Test> testMockedStatic = mockStatic(io.sapl.test.dsl.setup.Test.class);
-
     @Mock
     SAPLTest saplTestTMock;
-
     @Mock
     UnitTestSuite unitTestSuiteMock;
     @Mock
     TestCase testCaseMock;
+
+    private final MockedStatic<TestContainer> testContainerMockedStatic = mockStatic(TestContainer.class);
+    private final MockedStatic<io.sapl.test.dsl.setup.Test> testMockedStatic = mockStatic(io.sapl.test.dsl.setup.Test.class);
 
     @AfterEach
     void tearDown() {
@@ -59,10 +55,9 @@ class TestBuilderTest {
         testMockedStatic.close();
     }
 
-    private EList<TestSuite> mockTestSuites(final List<TestSuite> testSuites) {
+    private void mockTestSuites(final List<TestSuite> testSuites) {
         final var mockedTestSuites = Helper.mockEList(testSuites);
         when(saplTestTMock.getElements()).thenReturn(mockedTestSuites);
-        return mockedTestSuites;
     }
 
     private EList<TestCase> mockTestCases(final List<TestCase> testSuites) {

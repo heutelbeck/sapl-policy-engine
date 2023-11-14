@@ -13,21 +13,18 @@ import io.sapl.test.grammar.sAPLTest.SingleExpect;
 import io.sapl.test.grammar.sAPLTest.TestCase;
 import io.sapl.test.steps.ExpectOrVerifyStep;
 import io.sapl.test.steps.VerifyStep;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class DefaultVerifyStepConstructorTest {
-
+    @Mock
     private ExpectInterpreter expectInterpreterMock;
-
+    @InjectMocks
     private DefaultVerifyStepConstructor verifyStepBuilderServiceDefault;
-
-    @BeforeEach
-    void setUp() {
-        expectInterpreterMock = mock(ExpectInterpreter.class);
-
-        verifyStepBuilderServiceDefault = new DefaultVerifyStepConstructor(expectInterpreterMock);
-    }
 
     @Test
     void constructVerifyStep_doesNothingForUnknownExpect_throwsSaplTestException() {

@@ -36,7 +36,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class FunctionInterpreterTest {
-
     @Mock
     private ValInterpreter valInterpreterMock;
     @Mock
@@ -45,11 +44,10 @@ class FunctionInterpreterTest {
     private MultipleAmountInterpreter multipleAmountInterpreter;
     @InjectMocks
     private FunctionInterpreter functionInterpreter;
-
     @Mock
     private GivenOrWhenStep givenOrWhenStepMock;
-    private final MockedStatic<Imports> importsMockedStatic = mockStatic(Imports.class);
 
+    private final MockedStatic<Imports> importsMockedStatic = mockStatic(Imports.class);
 
     @AfterEach
     void tearDown() {
@@ -60,26 +58,24 @@ class FunctionInterpreterTest {
     @DisplayName("Interpret function")
     class InterpretFunctionTests {
 
+        @Mock
         private Function functionMock;
+        @Mock
         private Value valMock;
+        @Mock
         private io.sapl.api.interpreter.Val saplValMock;
 
         @BeforeEach
         void setUp() {
-            functionMock = mock(Function.class);
             when(functionMock.getImportName()).thenReturn("fooFunction");
 
-            valMock = mock(Value.class);
             when(functionMock.getReturn()).thenReturn(valMock);
 
-            saplValMock = mock(io.sapl.api.interpreter.Val.class);
             when(valInterpreterMock.getValFromValue(valMock)).thenReturn(saplValMock);
         }
 
         @Test
         void interpretFunction_withoutTimesCalledVerificationAndNullFunctionParameters_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
-
-
             when(functionMock.getParameters()).thenReturn(null);
 
             when(givenOrWhenStepMock.givenFunction("fooFunction", saplValMock)).thenReturn(givenOrWhenStepMock);

@@ -14,7 +14,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class FunctionLibraryInterpreterTest {
-
     private FunctionLibraryInterpreter functionLibraryInterpreter;
 
     @BeforeEach

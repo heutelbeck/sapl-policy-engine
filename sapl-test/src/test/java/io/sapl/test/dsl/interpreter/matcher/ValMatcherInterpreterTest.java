@@ -21,34 +21,28 @@ import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.MockedStatic;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class ValMatcherInterpreterTest {
-
+    @Mock
     private ValInterpreter valInterpreterMock;
+    @Mock
     private JsonNodeMatcherInterpreter jsonNodeMatcherInterpreterMock;
-
+    @Mock
     private StringMatcherInterpreter stringMatcherInterpreterMock;
-
+    @InjectMocks
     private ValMatcherInterpreter matcherInterpreter;
 
-    private MockedStatic<Matchers> hamcrestMatchersMockedStatic;
-    private MockedStatic<CoreMatchers> hamcrestCoreMatchersMockedStatic;
-    private MockedStatic<io.sapl.hamcrest.Matchers> saplMatchersMockedStatic;
+    private final MockedStatic<Matchers> hamcrestMatchersMockedStatic = mockStatic(Matchers.class);
+    private final MockedStatic<CoreMatchers> hamcrestCoreMatchersMockedStatic = mockStatic(CoreMatchers.class);
+    private final MockedStatic<io.sapl.hamcrest.Matchers> saplMatchersMockedStatic = mockStatic(io.sapl.hamcrest.Matchers.class);
 
-
-    @BeforeEach
-    void setUp() {
-        valInterpreterMock = mock(ValInterpreter.class);
-        jsonNodeMatcherInterpreterMock = mock(JsonNodeMatcherInterpreter.class);
-        stringMatcherInterpreterMock = mock(StringMatcherInterpreter.class);
-        hamcrestMatchersMockedStatic = mockStatic(Matchers.class);
-        hamcrestCoreMatchersMockedStatic = mockStatic(CoreMatchers.class);
-        saplMatchersMockedStatic = mockStatic(io.sapl.hamcrest.Matchers.class);
-        matcherInterpreter = new ValMatcherInterpreter(valInterpreterMock, jsonNodeMatcherInterpreterMock, stringMatcherInterpreterMock);
-    }
 
     @AfterEach
     void tearDown() {

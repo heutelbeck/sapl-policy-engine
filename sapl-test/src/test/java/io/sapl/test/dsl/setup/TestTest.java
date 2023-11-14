@@ -41,13 +41,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class TestTest {
-
     @Mock
     private StepConstructor stepConstructorMock;
-
     @Mock
     private TestSuite testSuiteMock;
-
     @Mock
     private TestCase testCaseMock;
 

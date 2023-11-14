@@ -27,34 +27,26 @@ import io.sapl.test.integration.SaplIntegrationTestFixture;
 import io.sapl.test.unit.SaplUnitTestFixture;
 import java.util.Collections;
 import java.util.Map;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class TestSuiteInterpreterTest {
-
     @Mock
     private ValInterpreter valInterpreterMock;
-
     @Mock
     private PDPCombiningAlgorithmInterpreter pdpCombiningAlgorithmInterpreterMock;
-
     @Mock
     private SaplUnitTestFixtureConstructorWrapper saplUnitTestFixtureConstructorWrapperMocK;
     @Mock
     private SaplIntegrationTestFixtureConstructorWrapper saplIntegrationTestFixtureConstructorWrapperMock;
-
+    @InjectMocks
     private TestSuiteInterpreter testSuiteInterpreter;
-
-    @BeforeEach
-    void setUp() {
-        testSuiteInterpreter = new TestSuiteInterpreter(valInterpreterMock, pdpCombiningAlgorithmInterpreterMock, saplUnitTestFixtureConstructorWrapperMocK, saplIntegrationTestFixtureConstructorWrapperMock);
-    }
 
     @Test
     void getFixtureFromTestSuite_handlesNullTestSuite_throwsSaplTestException() {

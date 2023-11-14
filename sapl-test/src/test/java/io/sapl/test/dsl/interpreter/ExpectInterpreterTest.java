@@ -31,7 +31,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class ExpectInterpreterTest {
-
     @Mock
     private ValInterpreter valInterpreterMock;
     @Mock
@@ -42,13 +41,10 @@ class ExpectInterpreterTest {
     private DurationInterpreter durationInterpreterMock;
     @Mock
     private MultipleAmountInterpreter multipleAmountInterpreter;
-
     @InjectMocks
     private ExpectInterpreter expectInterpreter;
-
     @Mock
     private ExpectOrVerifyStep expectOrVerifyStepMock;
-
 
     @Nested
     @DisplayName("Single expect")

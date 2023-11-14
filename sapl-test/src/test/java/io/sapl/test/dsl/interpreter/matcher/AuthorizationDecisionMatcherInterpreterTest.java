@@ -30,12 +30,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class AuthorizationDecisionMatcherInterpreterTest {
-
     @Mock
     private ValInterpreter valInterpreterMock;
     @Mock
     private JsonNodeMatcherInterpreter jsonNodeMatcherInterpreterMock;
-
     @InjectMocks
     private AuthorizationDecisionMatcherInterpreter authorizationDecisionMatcherInterpreter;
 

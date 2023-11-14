@@ -16,25 +16,22 @@ import io.sapl.test.grammar.sAPLTest.GivenStep;
 import io.sapl.test.grammar.sAPLTest.VirtualTime;
 import io.sapl.test.steps.GivenOrWhenStep;
 import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class DefaultWhenStepConstructorTest {
-
+    @Mock
     private FunctionInterpreter functionInterpreterMock;
+    @Mock
     private AttributeInterpreter attributeInterpreterMock;
-
+    @Mock
     private GivenOrWhenStep saplUnitTestFixtureMock;
+    @InjectMocks
     private DefaultWhenStepConstructor defaultWhenStepConstructor;
-
-    @BeforeEach
-    void setUp() {
-        functionInterpreterMock = mock(FunctionInterpreter.class);
-        attributeInterpreterMock = mock(AttributeInterpreter.class);
-        saplUnitTestFixtureMock = mock(GivenOrWhenStep.class);
-
-        defaultWhenStepConstructor = new DefaultWhenStepConstructor(functionInterpreterMock, attributeInterpreterMock);
-    }
 
     @Test
     void constructWhenStep_handlesNullGivenSteps_returnsGivenUnitTestFixture() {

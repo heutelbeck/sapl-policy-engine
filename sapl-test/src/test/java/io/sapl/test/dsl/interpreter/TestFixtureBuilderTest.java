@@ -31,25 +31,18 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class TestFixtureBuilderTest {
-
     @Mock
     private TestSuiteInterpreter testSuiteInterpreterMock;
-
     @Mock
     private FunctionLibraryInterpreter functionLibraryInterpreter;
-
     @Mock
     private ReflectionHelper reflectionHelperMock;
-
     @Mock
     private SaplTestFixture testFixtureMock;
-
     @Mock
     private TestSuite testSuiteMock;
-
     @Mock
     private Object environmentMock;
-
     @InjectMocks
     private TestFixtureBuilder testFixtureBuilder;
 

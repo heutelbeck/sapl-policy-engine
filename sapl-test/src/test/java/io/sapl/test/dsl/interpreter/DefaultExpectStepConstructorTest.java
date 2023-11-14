@@ -13,24 +13,21 @@ import io.sapl.test.grammar.sAPLTest.Value;
 import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.WhenStep;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.MockedStatic;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class DefaultExpectStepConstructorTest {
-
-    MockedStatic<io.sapl.api.pdp.AuthorizationSubscription> authorizationSubscriptionMockedStatic;
+    @Mock
     private AuthorizationSubscriptionInterpreter authorizationSubscriptionInterpreterMock;
+    @InjectMocks
     private DefaultExpectStepConstructor defaultExpectStepConstructor;
 
-    @BeforeEach
-    void setUp() {
-        authorizationSubscriptionMockedStatic = mockStatic(io.sapl.api.pdp.AuthorizationSubscription.class);
-
-        authorizationSubscriptionInterpreterMock = mock(AuthorizationSubscriptionInterpreter.class);
-
-        defaultExpectStepConstructor = new DefaultExpectStepConstructor(authorizationSubscriptionInterpreterMock);
-    }
+    private final MockedStatic<io.sapl.api.pdp.AuthorizationSubscription> authorizationSubscriptionMockedStatic = mockStatic(io.sapl.api.pdp.AuthorizationSubscription.class);
 
     @AfterEach
     void tearDown() {
