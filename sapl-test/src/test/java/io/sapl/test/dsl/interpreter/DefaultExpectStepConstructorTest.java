@@ -5,11 +5,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import io.sapl.api.interpreter.Val;
 import io.sapl.test.grammar.sAPLTest.AuthorizationSubscription;
 import io.sapl.test.grammar.sAPLTest.TestCase;
-import io.sapl.test.grammar.sAPLTest.Value;
 import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.WhenStep;
 import org.junit.jupiter.api.AfterEach;
@@ -43,27 +40,6 @@ class DefaultExpectStepConstructorTest {
 
         final var authorizationSubscriptionMock = mock(AuthorizationSubscription.class);
         when(saplTestWhenStepMock.getAuthorizationSubscription()).thenReturn(authorizationSubscriptionMock);
-
-        final var subjectMock = mock(Value.class);
-        final var actionMock = mock(Value.class);
-        final var resourceMock = mock(Value.class);
-
-        final var saplSubjectMock = mock(Val.class);
-        final var saplActionMock = mock(Val.class);
-        final var saplResourceMock = mock(Val.class);
-
-        when(authorizationSubscriptionMock.getSubject()).thenReturn(subjectMock);
-        when(authorizationSubscriptionMock.getAction()).thenReturn(actionMock);
-        when(authorizationSubscriptionMock.getResource()).thenReturn(resourceMock);
-
-
-        final var subjectJsonNodeMock = mock(JsonNode.class);
-        final var actionJsonNodeMock = mock(JsonNode.class);
-        final var resourceJsonNodeMock = mock(JsonNode.class);
-
-        when(saplSubjectMock.get()).thenReturn(subjectJsonNodeMock);
-        when(saplActionMock.get()).thenReturn(actionJsonNodeMock);
-        when(saplResourceMock.get()).thenReturn(resourceJsonNodeMock);
 
         final var saplAuthorizationSubscriptionMock = mock(io.sapl.api.pdp.AuthorizationSubscription.class);
         when(authorizationSubscriptionInterpreterMock.getAuthorizationSubscriptionFromDSL(authorizationSubscriptionMock)).thenReturn(saplAuthorizationSubscriptionMock);
