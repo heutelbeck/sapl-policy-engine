@@ -1,4 +1,4 @@
-package io.sapl.test.dsl.setup;
+package io.sapl.test.dsl.factories;
 
 import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
 import io.sapl.test.dsl.lang.DefaultSaplTestInterpreter;

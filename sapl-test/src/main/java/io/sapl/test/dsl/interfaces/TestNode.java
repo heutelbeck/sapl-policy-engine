@@ -1,4 +1,4 @@
-package io.sapl.test.dsl.setup;
+package io.sapl.test.dsl.interfaces;
 
 public interface TestNode {
     String getIdentifier();

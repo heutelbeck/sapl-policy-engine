@@ -2,8 +2,8 @@ package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
-import io.sapl.test.dsl.interpreter.constructorwrappers.SaplIntegrationTestFixtureConstructorWrapper;
-import io.sapl.test.dsl.interpreter.constructorwrappers.SaplUnitTestFixtureConstructorWrapper;
+import io.sapl.test.dsl.factories.SaplIntegrationTestFixtureFactory;
+import io.sapl.test.dsl.factories.SaplUnitTestFixtureFactory;
 import io.sapl.test.grammar.sAPLTest.IntegrationTestSuite;
 import io.sapl.test.grammar.sAPLTest.Object;
 import io.sapl.test.grammar.sAPLTest.PolicyFolder;
@@ -19,21 +19,18 @@ public class TestSuiteInterpreter {
     private final ValInterpreter valInterpreter;
     private final PDPCombiningAlgorithmInterpreter pdpCombiningAlgorithmInterpreter;
 
-    private final SaplUnitTestFixtureConstructorWrapper saplUnitTestFixtureConstructorWrapper;
-    private final SaplIntegrationTestFixtureConstructorWrapper saplIntegrationTestFixtureConstructorWrapper;
-
     SaplTestFixture getFixtureFromTestSuite(final TestSuite testSuite, final Object environment) {
         SaplTestFixture saplTestFixture;
         if (testSuite instanceof UnitTestSuite unitTestSuite) {
-            saplTestFixture = saplUnitTestFixtureConstructorWrapper.create(unitTestSuite.getId());
+            saplTestFixture = SaplUnitTestFixtureFactory.create(unitTestSuite.getId());
         } else if (testSuite instanceof IntegrationTestSuite integrationTestSuite) {
             final var policyResolverConfig = integrationTestSuite.getConfig();
             SaplIntegrationTestFixture integrationTestFixture;
 
             if (policyResolverConfig instanceof PolicyFolder policyFolderConfig) {
-                integrationTestFixture = saplIntegrationTestFixtureConstructorWrapper.create(policyFolderConfig.getPolicyFolder());
+                integrationTestFixture = SaplIntegrationTestFixtureFactory.create(policyFolderConfig.getPolicyFolder());
             } else if (policyResolverConfig instanceof PolicySet policySetConfig) {
-                integrationTestFixture = saplIntegrationTestFixtureConstructorWrapper.create(policySetConfig.getPdpConfig(), policySetConfig.getPolicies());
+                integrationTestFixture = SaplIntegrationTestFixtureFactory.create(policySetConfig.getPdpConfig(), policySetConfig.getPolicies());
             } else {
                 throw new SaplTestException("No valid Policy Resolver Config");
             }

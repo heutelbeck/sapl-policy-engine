@@ -2,9 +2,9 @@ package io.sapl.test.dsl.setup;
 
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interpreter.DefaultExpectStepConstructor;
+import io.sapl.test.dsl.interpreter.DefaultTestFixtureBuilder;
 import io.sapl.test.dsl.interpreter.DefaultVerifyStepConstructor;
 import io.sapl.test.dsl.interpreter.DefaultWhenStepConstructor;
-import io.sapl.test.dsl.interpreter.TestFixtureBuilder;
 import io.sapl.test.grammar.sAPLTest.FixtureRegistration;
 import io.sapl.test.grammar.sAPLTest.GivenStep;
 import io.sapl.test.grammar.sAPLTest.Object;
@@ -22,7 +22,7 @@ import lombok.RequiredArgsConstructor;
 public class DefaultStepConstructor implements StepConstructor {
 
     private final DefaultExpectStepConstructor expectStepBuilder;
-    private final TestFixtureBuilder testFixtureBuilder;
+    private final DefaultTestFixtureBuilder defaultTestFixtureBuilder;
     private final DefaultVerifyStepConstructor verifyStepBuilder;
     private final DefaultWhenStepConstructor whenStepBuilder;
 
@@ -33,7 +33,7 @@ public class DefaultStepConstructor implements StepConstructor {
 
     @Override
     public GivenOrWhenStep buildTestFixture(final List<FixtureRegistration> fixtureRegistrations, final TestSuite testSuite, final Object environment, final boolean needsMocks) {
-        return testFixtureBuilder.buildTestFixture(fixtureRegistrations, testSuite, environment, needsMocks);
+        return defaultTestFixtureBuilder.buildTestFixture(fixtureRegistrations, testSuite, environment, needsMocks);
     }
 
     @Override

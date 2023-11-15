@@ -5,9 +5,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.sapl.test.dsl.interpreter.DefaultExpectStepConstructor;
+import io.sapl.test.dsl.interpreter.DefaultTestFixtureBuilder;
 import io.sapl.test.dsl.interpreter.DefaultVerifyStepConstructor;
 import io.sapl.test.dsl.interpreter.DefaultWhenStepConstructor;
-import io.sapl.test.dsl.interpreter.TestFixtureBuilder;
 import io.sapl.test.grammar.sAPLTest.FixtureRegistration;
 import io.sapl.test.grammar.sAPLTest.GivenStep;
 import io.sapl.test.grammar.sAPLTest.Object;
@@ -30,7 +30,7 @@ class DefaultStepConstructorTest {
     @Mock
     private DefaultExpectStepConstructor defaultExpectStepConstructorMock;
     @Mock
-    private TestFixtureBuilder testFixtureBuilderMock;
+    private DefaultTestFixtureBuilder defaultTestFixtureBuilderMock;
     @Mock
     private DefaultVerifyStepConstructor verifyStepBuilderMock;
     @Mock
@@ -60,7 +60,7 @@ class DefaultStepConstructorTest {
 
         final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
 
-        when(testFixtureBuilderMock.buildTestFixture(fixtureRegistrations, testSuiteMock, environmentMock, false)).thenReturn(givenOrWhenStepMock);
+        when(defaultTestFixtureBuilderMock.buildTestFixture(fixtureRegistrations, testSuiteMock, environmentMock, false)).thenReturn(givenOrWhenStepMock);
 
         final var result = defaultStepConstructor.buildTestFixture(fixtureRegistrations, testSuiteMock, environmentMock, false);
 
@@ -75,7 +75,7 @@ class DefaultStepConstructorTest {
 
         final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
 
-        when(testFixtureBuilderMock.buildTestFixture(fixtureRegistrations, testSuiteMock, environmentMock, true)).thenReturn(givenOrWhenStepMock);
+        when(defaultTestFixtureBuilderMock.buildTestFixture(fixtureRegistrations, testSuiteMock, environmentMock, true)).thenReturn(givenOrWhenStepMock);
 
         final var result = defaultStepConstructor.buildTestFixture(fixtureRegistrations, testSuiteMock, environmentMock, true);
 

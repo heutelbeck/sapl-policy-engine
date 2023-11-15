@@ -35,7 +35,7 @@ public final class TestProvider {
 
             final var name = getDynamicContainerName(testSuite);
 
-            return TestContainer.from(name, testCases.stream().map(testCase -> Test.from(stepConstructor, testSuite, testCase)).toList());
+            return TestContainer.from(name, testCases.stream().map(testCase -> TestCase.from(stepConstructor, testSuite, testCase)).toList());
         }).toList();
     }
 

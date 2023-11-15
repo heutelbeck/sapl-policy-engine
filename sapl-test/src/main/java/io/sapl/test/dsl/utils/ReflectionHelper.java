@@ -1,4 +1,4 @@
-package io.sapl.test.dsl;
+package io.sapl.test.dsl.utils;
 
 import io.sapl.test.SaplTestException;
 

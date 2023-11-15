@@ -1,9 +1,11 @@
-package io.sapl.test.dsl.interpreter.constructorwrappers;
+package io.sapl.test.dsl.factories;
 
 import io.sapl.test.integration.SaplIntegrationTestFixture;
 import java.util.List;
+import lombok.experimental.UtilityClass;
 
-public class SaplIntegrationTestFixtureConstructorWrapper {
+@UtilityClass
+public class SaplIntegrationTestFixtureFactory {
     public SaplIntegrationTestFixture create(final String policyPath) {
         return new SaplIntegrationTestFixture(policyPath);
     }

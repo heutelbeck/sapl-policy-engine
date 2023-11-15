@@ -1,4 +1,4 @@
-package io.sapl.test.dsl;
+package io.sapl.test.dsl.utils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -41,7 +41,7 @@ class ReflectionHelperTest {
     void constructInstanceOfClass_withClassNameWithoutPublicNoArgsConstructor_throwsSaplTestException() {
         final var exception = assertThrows(SaplTestException.class, () -> reflectionHelper.constructInstanceOfClass(this.getClass().getName()));
 
-        assertEquals("Could not construct instance of 'io.sapl.test.dsl.ReflectionHelperTest' class", exception.getMessage());
+        assertEquals("Could not construct instance of 'io.sapl.test.dsl.utils.ReflectionHelperTest' class", exception.getMessage());
     }
 
     @Test

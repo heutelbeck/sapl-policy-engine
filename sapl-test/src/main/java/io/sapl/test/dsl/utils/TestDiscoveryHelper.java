@@ -1,4 +1,4 @@
-package io.sapl.test.dsl.setup;
+package io.sapl.test.dsl.utils;
 
 import io.sapl.test.utils.ClasspathHelper;
 import java.io.File;

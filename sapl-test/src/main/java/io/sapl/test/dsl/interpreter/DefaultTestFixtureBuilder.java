@@ -2,7 +2,7 @@ package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
-import io.sapl.test.dsl.ReflectionHelper;
+import io.sapl.test.dsl.utils.ReflectionHelper;
 import io.sapl.test.grammar.sAPLTest.CustomFunctionLibrary;
 import io.sapl.test.grammar.sAPLTest.FixtureRegistration;
 import io.sapl.test.grammar.sAPLTest.Object;
@@ -14,7 +14,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class TestFixtureBuilder {
+public class DefaultTestFixtureBuilder {
 
     private final TestSuiteInterpreter testSuiteInterpreter;
     private final FunctionLibraryInterpreter functionLibraryInterpreter;

@@ -1,5 +1,6 @@
 package io.sapl.test.dsl.setup;
 
+import io.sapl.test.dsl.interfaces.TestNode;
 import java.util.List;
 import lombok.AccessLevel;
 import lombok.Getter;

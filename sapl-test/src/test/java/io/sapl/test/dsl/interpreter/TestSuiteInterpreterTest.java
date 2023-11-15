@@ -3,6 +3,7 @@ package io.sapl.test.dsl.interpreter;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -12,8 +13,8 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.dsl.interpreter.constructorwrappers.SaplIntegrationTestFixtureConstructorWrapper;
-import io.sapl.test.dsl.interpreter.constructorwrappers.SaplUnitTestFixtureConstructorWrapper;
+import io.sapl.test.dsl.factories.SaplIntegrationTestFixtureFactory;
+import io.sapl.test.dsl.factories.SaplUnitTestFixtureFactory;
 import io.sapl.test.grammar.sAPLTest.CombiningAlgorithm;
 import io.sapl.test.grammar.sAPLTest.IntegrationTestSuite;
 import io.sapl.test.grammar.sAPLTest.Object;
@@ -27,12 +28,14 @@ import io.sapl.test.integration.SaplIntegrationTestFixture;
 import io.sapl.test.unit.SaplUnitTestFixture;
 import java.util.Collections;
 import java.util.Map;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,12 +44,18 @@ class TestSuiteInterpreterTest {
     private ValInterpreter valInterpreterMock;
     @Mock
     private PDPCombiningAlgorithmInterpreter pdpCombiningAlgorithmInterpreterMock;
-    @Mock
-    private SaplUnitTestFixtureConstructorWrapper saplUnitTestFixtureConstructorWrapperMocK;
-    @Mock
-    private SaplIntegrationTestFixtureConstructorWrapper saplIntegrationTestFixtureConstructorWrapperMock;
+
+    private final MockedStatic<SaplUnitTestFixtureFactory> saplUnitTestFixtureFactoryMockedStatic = mockStatic(SaplUnitTestFixtureFactory.class);
+    private final MockedStatic<SaplIntegrationTestFixtureFactory> saplIntegrationTestFixtureFactoryMockedStatic = mockStatic(SaplIntegrationTestFixtureFactory.class);
+
     @InjectMocks
     private TestSuiteInterpreter testSuiteInterpreter;
+
+    @AfterEach
+    void tearDown() {
+        saplUnitTestFixtureFactoryMockedStatic.close();
+        saplIntegrationTestFixtureFactoryMockedStatic.close();
+    }
 
     @Test
     void getFixtureFromTestSuite_handlesNullTestSuite_throwsSaplTestException() {
@@ -74,7 +83,7 @@ class TestSuiteInterpreterTest {
             when(unitTestSuiteMock.getId()).thenReturn("fooPolicy");
 
             final var saplUnitTestFixtureMock = mock(SaplUnitTestFixture.class);
-            when(saplUnitTestFixtureConstructorWrapperMocK.create("fooPolicy")).thenReturn(saplUnitTestFixtureMock);
+            saplUnitTestFixtureFactoryMockedStatic.when(() -> SaplUnitTestFixtureFactory.create("fooPolicy")).thenReturn(saplUnitTestFixtureMock);
 
             when(valInterpreterMock.destructureObject(null)).thenReturn(null);
 
@@ -92,7 +101,7 @@ class TestSuiteInterpreterTest {
             when(unitTestSuiteMock.getId()).thenReturn("fooPolicy");
 
             final var saplUnitTestFixtureMock = mock(SaplUnitTestFixture.class);
-            when(saplUnitTestFixtureConstructorWrapperMocK.create("fooPolicy")).thenReturn(saplUnitTestFixtureMock);
+            saplUnitTestFixtureFactoryMockedStatic.when(() -> SaplUnitTestFixtureFactory.create("fooPolicy")).thenReturn(saplUnitTestFixtureMock);
 
             final var environmentMock = mock(Object.class);
             when(valInterpreterMock.destructureObject(environmentMock)).thenReturn(Collections.emptyMap());
@@ -111,7 +120,7 @@ class TestSuiteInterpreterTest {
             when(unitTestSuiteMock.getId()).thenReturn("fooPolicy");
 
             final var saplUnitTestFixtureMock = mock(SaplUnitTestFixture.class);
-            when(saplUnitTestFixtureConstructorWrapperMocK.create("fooPolicy")).thenReturn(saplUnitTestFixtureMock);
+            saplUnitTestFixtureFactoryMockedStatic.when(() -> SaplUnitTestFixtureFactory.create("fooPolicy")).thenReturn(saplUnitTestFixtureMock);
 
 
             final var environmentMock = mock(Object.class);
@@ -153,7 +162,7 @@ class TestSuiteInterpreterTest {
             when(integrationTestSuite.getConfig()).thenReturn(policySetConfigMock);
 
             final var saplIntegrationTestFixtureMock = mock(SaplIntegrationTestFixture.class);
-            when(saplIntegrationTestFixtureConstructorWrapperMock.create("fooFolder", null)).thenReturn(saplIntegrationTestFixtureMock);
+            saplIntegrationTestFixtureFactoryMockedStatic.when(() -> SaplIntegrationTestFixtureFactory.create("fooFolder", null)).thenReturn(saplIntegrationTestFixtureMock);
 
             when(integrationTestSuite.getPdpVariables()).thenReturn(null);
 
@@ -177,7 +186,7 @@ class TestSuiteInterpreterTest {
             when(integrationTestSuite.getConfig()).thenReturn(policyFolderConfig);
 
             final var saplIntegrationTestFixtureMock = mock(SaplIntegrationTestFixture.class);
-            when(saplIntegrationTestFixtureConstructorWrapperMock.create("fooFolder")).thenReturn(saplIntegrationTestFixtureMock);
+            saplIntegrationTestFixtureFactoryMockedStatic.when(() -> SaplIntegrationTestFixtureFactory.create("fooFolder")).thenReturn(saplIntegrationTestFixtureMock);
 
             when(integrationTestSuite.getPdpVariables()).thenReturn(null);
 
@@ -201,7 +210,7 @@ class TestSuiteInterpreterTest {
             when(integrationTestSuite.getConfig()).thenReturn(policyFolderConfig);
 
             final var saplIntegrationTestFixtureMock = mock(SaplIntegrationTestFixture.class);
-            when(saplIntegrationTestFixtureConstructorWrapperMock.create("fooFolder")).thenReturn(saplIntegrationTestFixtureMock);
+            saplIntegrationTestFixtureFactoryMockedStatic.when(() -> SaplIntegrationTestFixtureFactory.create("fooFolder")).thenReturn(saplIntegrationTestFixtureMock);
 
             when(integrationTestSuite.getPdpVariables()).thenReturn(null);
 
@@ -233,7 +242,7 @@ class TestSuiteInterpreterTest {
             when(integrationTestSuite.getConfig()).thenReturn(policyFolderConfig);
 
             final var saplIntegrationTestFixtureMock = mock(SaplIntegrationTestFixture.class);
-            when(saplIntegrationTestFixtureConstructorWrapperMock.create("fooFolder")).thenReturn(saplIntegrationTestFixtureMock);
+            saplIntegrationTestFixtureFactoryMockedStatic.when(() -> SaplIntegrationTestFixtureFactory.create("fooFolder")).thenReturn(saplIntegrationTestFixtureMock);
 
             final var pdpVariablesMock = mock(Value.class);
             when(integrationTestSuite.getPdpVariables()).thenReturn(pdpVariablesMock);
@@ -259,7 +268,7 @@ class TestSuiteInterpreterTest {
             when(integrationTestSuite.getConfig()).thenReturn(policyFolderConfig);
 
             final var saplIntegrationTestFixtureMock = mock(SaplIntegrationTestFixture.class);
-            when(saplIntegrationTestFixtureConstructorWrapperMock.create("fooFolder")).thenReturn(saplIntegrationTestFixtureMock);
+            saplIntegrationTestFixtureFactoryMockedStatic.when(() -> SaplIntegrationTestFixtureFactory.create("fooFolder")).thenReturn(saplIntegrationTestFixtureMock);
 
             final var pdpVariablesMock = mock(Object.class);
             when(integrationTestSuite.getPdpVariables()).thenReturn(pdpVariablesMock);

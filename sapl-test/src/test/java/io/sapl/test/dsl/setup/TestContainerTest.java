@@ -2,6 +2,7 @@ package io.sapl.test.dsl.setup;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import io.sapl.test.dsl.interfaces.TestNode;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 

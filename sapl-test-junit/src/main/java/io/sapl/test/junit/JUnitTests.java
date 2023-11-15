@@ -2,10 +2,10 @@ package io.sapl.test.junit;
 
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.adapters.BaseTestAdapter;
-import io.sapl.test.dsl.setup.Test;
+import io.sapl.test.dsl.setup.TestCase;
 import io.sapl.test.dsl.setup.TestContainer;
-import io.sapl.test.dsl.setup.TestDiscoveryHelper;
-import io.sapl.test.dsl.setup.TestNode;
+import io.sapl.test.dsl.utils.TestDiscoveryHelper;
+import io.sapl.test.dsl.interfaces.TestNode;
 import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -32,7 +32,7 @@ public class JUnitTests extends BaseTestAdapter<DynamicContainer> {
         }
 
         return testNodes.stream().map(testNode -> {
-            if (testNode instanceof Test testCase) {
+            if (testNode instanceof TestCase testCase) {
                 return DynamicTest.dynamicTest(testCase.getIdentifier(), testCase::run);
             } else if (testNode instanceof TestContainer testContainer) {
                 return DynamicContainer.dynamicContainer(testContainer.getIdentifier(), getDynamicContainersFromTestNode(testContainer.getTestNodes()));

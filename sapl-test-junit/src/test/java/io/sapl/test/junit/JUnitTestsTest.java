@@ -9,12 +9,13 @@ import static org.mockito.Mockito.mockStatic;
 
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
-import io.sapl.test.dsl.setup.SaplTestInterpreterFactory;
+import io.sapl.test.dsl.factories.SaplTestInterpreterFactory;
+import io.sapl.test.dsl.setup.TestCase;
 import io.sapl.test.dsl.setup.TestContainer;
-import io.sapl.test.dsl.setup.TestDiscoveryHelper;
-import io.sapl.test.dsl.setup.TestNode;
+import io.sapl.test.dsl.utils.TestDiscoveryHelper;
+import io.sapl.test.dsl.interfaces.TestNode;
 import io.sapl.test.dsl.setup.TestProvider;
-import io.sapl.test.dsl.setup.TestProviderFactory;
+import io.sapl.test.dsl.factories.TestProviderFactory;
 import io.sapl.test.grammar.sAPLTest.SAPLTest;
 import io.sapl.test.utils.DocumentHelper;
 import java.util.Collections;
@@ -168,11 +169,11 @@ class JUnitTestsTest {
         testDiscoveryHelperMockedStatic.when(TestDiscoveryHelper::discoverTests).thenReturn(List.of("filename", "filename2"));
 
         final var testContainerMock = Mockito.mock(TestContainer.class);
-        final var nestedTestCase1Mock = Mockito.mock(io.sapl.test.dsl.setup.Test.class);
-        final var nestedTestCase2Mock = Mockito.mock(io.sapl.test.dsl.setup.Test.class);
-        final var testCase1Mock = Mockito.mock(io.sapl.test.dsl.setup.Test.class);
-        final var testCase2Mock = Mockito.mock(io.sapl.test.dsl.setup.Test.class);
-        final var testCase3Mock = Mockito.mock(io.sapl.test.dsl.setup.Test.class);
+        final var nestedTestCase1Mock = Mockito.mock(TestCase.class);
+        final var nestedTestCase2Mock = Mockito.mock(TestCase.class);
+        final var testCase1Mock = Mockito.mock(TestCase.class);
+        final var testCase2Mock = Mockito.mock(TestCase.class);
+        final var testCase3Mock = Mockito.mock(TestCase.class);
 
         mockTestContainerCreation("filename", List.of(testContainerMock, testCase1Mock), "container1");
         mockTestContainerCreation("filename2", List.of(testCase2Mock, testCase3Mock), "container2");
