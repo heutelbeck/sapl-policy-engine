@@ -1,6 +1,7 @@
 package io.sapl.test.dsl.setup;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -35,7 +36,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class TestBuilderTest {
+class TestProviderTest {
     @Mock
     private StepConstructor stepConstructorMock;
     @InjectMocks
@@ -295,5 +296,14 @@ class TestBuilderTest {
             assertEquals(unitTest2Mock, actualUnitTestCases.get(1));
             assertEquals(unitTest3Mock, actualUnitTestCases.get(2));
         }
+    }
+
+    @Test
+    void of_buildsInstanceOfTestProviderUsingStepConstructor_returnsTestProviderInstance() {
+        final var stepConstructorMock = mock(StepConstructor.class);
+
+        final var result = TestProvider.of(stepConstructorMock);
+
+        assertNotNull(result);
     }
 }

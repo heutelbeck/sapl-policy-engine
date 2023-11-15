@@ -9,12 +9,17 @@ import io.sapl.test.grammar.sAPLTest.SAPLTest;
 import io.sapl.test.grammar.sAPLTest.TestSuite;
 import io.sapl.test.grammar.sAPLTest.UnitTestSuite;
 import java.util.List;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
-@RequiredArgsConstructor
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class TestProvider {
 
     private final StepConstructor stepConstructor;
+
+    public static TestProvider of(final StepConstructor stepConstructor) {
+        return new TestProvider(stepConstructor);
+    }
 
     public List<TestContainer> buildTests(final SAPLTest saplTest) {
         if (saplTest == null) {

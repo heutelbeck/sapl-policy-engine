@@ -20,7 +20,7 @@ public class TestProviderFactory {
             stepConstructor = getDefaultStepConstructor();
         }
 
-        return new TestProvider(stepConstructor);
+        return TestProvider.of(stepConstructor);
     }
 
     private static DefaultTestFixtureBuilder getTestFixtureBuilder(final ValInterpreter valInterpreter) {
@@ -52,8 +52,8 @@ public class TestProviderFactory {
         final var authorizationDecisionMatcherInterpreter = new AuthorizationDecisionMatcherInterpreter(valInterpreter, jsonNodeMatcherInterpreter);
         final var expectInterpreter = new ExpectInterpreter(valInterpreter, authorizationDecisionInterpreter, authorizationDecisionMatcherInterpreter, durationInterpreter, multipleAmountInterpreter);
 
-
         final var testFixtureConstructor = getTestFixtureBuilder(valInterpreter);
+
         final var whenStepBuilder = new DefaultWhenStepConstructor(functionInterpreter, attributeInterpreter);
         final var expectStepBuilder = new DefaultExpectStepConstructor(authorizationSubscriptionInterpreter);
         final var verifyStepBuilder = new DefaultVerifyStepConstructor(expectInterpreter);

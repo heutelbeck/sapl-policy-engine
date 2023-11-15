@@ -6,11 +6,11 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class SaplIntegrationTestFixtureFactory {
-    public SaplIntegrationTestFixture create(final String policyPath) {
+    public static SaplIntegrationTestFixture create(final String policyPath) {
         return new SaplIntegrationTestFixture(policyPath);
     }
 
-    public SaplIntegrationTestFixture create(final String pdpConfigPath, final List<String> policyPaths) {
+    public static SaplIntegrationTestFixture create(final String pdpConfigPath, final List<String> policyPaths) {
         return new SaplIntegrationTestFixture(pdpConfigPath, policyPaths);
     }
 }

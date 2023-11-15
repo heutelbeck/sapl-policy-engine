@@ -1,7 +1,6 @@
 package io.sapl.test.dsl.utils;
 
 import io.sapl.test.utils.ClasspathHelper;
-import java.io.File;
 import java.util.List;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.io.FileUtils;
@@ -18,7 +17,7 @@ public class TestDiscoveryHelper {
         return FileUtils
                 .listFiles(dir, SAPLTEST_FILE_EXTENSIONS, true)
                 .stream()
-                .map(file -> file.getAbsolutePath().replace(dir.getAbsolutePath() + File.separatorChar, ""))
+                .map(file -> dir.toPath().relativize(file.toPath()).toString())
                 .toList();
     }
 }

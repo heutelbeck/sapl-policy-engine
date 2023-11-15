@@ -5,7 +5,7 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class SaplUnitTestFixtureFactory {
-    public SaplUnitTestFixture create(final String saplDocumentName) {
+    public static SaplUnitTestFixture create(final String saplDocumentName) {
         return new SaplUnitTestFixture(saplDocumentName);
     }
 }

@@ -4,12 +4,14 @@
 package io.sapl.test.grammar;
 
 
+import com.google.inject.Injector;
+
 /**
  * Initialization support for running Xtext languages without Equinox extension registry.
  */
 public class SAPLTestStandaloneSetup extends SAPLTestStandaloneSetupGenerated {
 
-	public static void doSetup() {
-		new SAPLTestStandaloneSetup().createInjectorAndDoEMFRegistration();
+	public static Injector doSetupAndGetInjector() {
+		return new SAPLTestStandaloneSetup().createInjectorAndDoEMFRegistration();
 	}
 }
