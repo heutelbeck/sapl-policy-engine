@@ -5,12 +5,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.sapl.test.dsl.interpreter.DefaultExpectStepConstructor;
-import io.sapl.test.dsl.interpreter.DefaultTestFixtureBuilder;
+import io.sapl.test.dsl.interpreter.DefaultTestFixtureConstructor;
 import io.sapl.test.dsl.interpreter.DefaultVerifyStepConstructor;
 import io.sapl.test.dsl.interpreter.DefaultWhenStepConstructor;
 import io.sapl.test.grammar.sAPLTest.FixtureRegistration;
 import io.sapl.test.grammar.sAPLTest.GivenStep;
-import io.sapl.test.grammar.sAPLTest.Object;
 import io.sapl.test.grammar.sAPLTest.TestCase;
 import io.sapl.test.grammar.sAPLTest.TestSuite;
 import io.sapl.test.steps.ExpectOrVerifyStep;
@@ -30,7 +29,7 @@ class DefaultStepConstructorTest {
     @Mock
     private DefaultExpectStepConstructor defaultExpectStepConstructorMock;
     @Mock
-    private DefaultTestFixtureBuilder defaultTestFixtureBuilderMock;
+    private DefaultTestFixtureConstructor defaultTestFixtureConstructorMock;
     @Mock
     private DefaultVerifyStepConstructor verifyStepBuilderMock;
     @Mock
@@ -56,11 +55,11 @@ class DefaultStepConstructorTest {
     void buildTestFixture_callsTestFixtureBuilderWithoutMocks_returnsGivenOrWhenStep() {
         final var fixtureRegistrations = List.<FixtureRegistration>of();
         final var testSuiteMock = mock(TestSuite.class);
-        final var environmentMock = mock(Object.class);
+        final var environmentMock = mock(io.sapl.test.grammar.sAPLTest.Object.class);
 
         final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
 
-        when(defaultTestFixtureBuilderMock.buildTestFixture(fixtureRegistrations, testSuiteMock, environmentMock, false)).thenReturn(givenOrWhenStepMock);
+        when(defaultTestFixtureConstructorMock.buildTestFixture(fixtureRegistrations, testSuiteMock, environmentMock, false)).thenReturn(givenOrWhenStepMock);
 
         final var result = defaultStepConstructor.buildTestFixture(fixtureRegistrations, testSuiteMock, environmentMock, false);
 
@@ -71,11 +70,11 @@ class DefaultStepConstructorTest {
     void buildTestFixture_callsTestFixtureBuilderWithMocks_returnsGivenOrWhenStep() {
         final var fixtureRegistrations = List.<FixtureRegistration>of();
         final var testSuiteMock = mock(TestSuite.class);
-        final var environmentMock = mock(Object.class);
+        final var environmentMock = mock(io.sapl.test.grammar.sAPLTest.Object.class);
 
         final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
 
-        when(defaultTestFixtureBuilderMock.buildTestFixture(fixtureRegistrations, testSuiteMock, environmentMock, true)).thenReturn(givenOrWhenStepMock);
+        when(defaultTestFixtureConstructorMock.buildTestFixture(fixtureRegistrations, testSuiteMock, environmentMock, true)).thenReturn(givenOrWhenStepMock);
 
         final var result = defaultStepConstructor.buildTestFixture(fixtureRegistrations, testSuiteMock, environmentMock, true);
 

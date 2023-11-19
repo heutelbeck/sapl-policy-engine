@@ -54,7 +54,7 @@ class JUnitTestsTest {
     @BeforeEach
     void setUp() {
         saplTestInterpreterFactoryMockedStatic.when(SaplTestInterpreterFactory::create).thenReturn(saplTestInterpreterMock);
-        testProviderFactoryMockedStatic.when(() -> TestProviderFactory.create(null)).thenReturn(testProviderMock);
+        testProviderFactoryMockedStatic.when(() -> TestProviderFactory.create(null, null)).thenReturn(testProviderMock);
         jUnitTests = new JUnitTests();
     }
 

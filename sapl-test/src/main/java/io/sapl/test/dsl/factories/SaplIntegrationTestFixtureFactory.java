@@ -13,4 +13,8 @@ public class SaplIntegrationTestFixtureFactory {
     public static SaplIntegrationTestFixture create(final String pdpConfigPath, final List<String> policyPaths) {
         return new SaplIntegrationTestFixture(pdpConfigPath, policyPaths);
     }
+
+    public static SaplIntegrationTestFixture createFromInputStrings(final List<String> documentInputStrings, final String pdpConfigInputString) {
+        return new SaplIntegrationTestFixture(documentInputStrings, pdpConfigInputString);
+    }
 }

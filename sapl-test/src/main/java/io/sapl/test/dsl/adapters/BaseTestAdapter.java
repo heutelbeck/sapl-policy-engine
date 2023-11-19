@@ -3,8 +3,10 @@ package io.sapl.test.dsl.adapters;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.factories.SaplTestInterpreterFactory;
 import io.sapl.test.dsl.factories.TestProviderFactory;
+import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
 import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
 import io.sapl.test.dsl.interfaces.StepConstructor;
+import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
 import io.sapl.test.dsl.setup.TestContainer;
 import io.sapl.test.dsl.setup.TestProvider;
 import io.sapl.test.utils.DocumentHelper;
@@ -19,9 +21,19 @@ public abstract class BaseTestAdapter<T> {
         this.saplTestInterpreter = saplTestInterpreter;
     }
 
-    protected BaseTestAdapter() {
-        this(null, SaplTestInterpreterFactory.create());
+    protected BaseTestAdapter(final SaplTestInterpreter saplTestInterpreter, final UnitTestPolicyResolver customUnitTestPolicyResolver, final IntegrationTestPolicyResolver customIntegrationTestPolicyResolver) {
+        this.testProvider = TestProviderFactory.create(customUnitTestPolicyResolver, customIntegrationTestPolicyResolver);
+        this.saplTestInterpreter = saplTestInterpreter;
     }
+
+    protected BaseTestAdapter(final UnitTestPolicyResolver customUnitTestPolicyResolver, final IntegrationTestPolicyResolver customIntegrationTestPolicyResolver) {
+        this(SaplTestInterpreterFactory.create(), customUnitTestPolicyResolver, customIntegrationTestPolicyResolver);
+    }
+
+    protected BaseTestAdapter() {
+        this(SaplTestInterpreterFactory.create(), null, null);
+    }
+
 
     protected T createTest(final String filename) {
         if (filename == null) {

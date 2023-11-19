@@ -1,10 +1,38 @@
 package io.sapl.test.dsl.interpreter.matcher;
 
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.blankOrNullString;
+import static org.hamcrest.Matchers.blankString;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.containsStringIgnoringCase;
+import static org.hamcrest.Matchers.emptyOrNullString;
+import static org.hamcrest.Matchers.emptyString;
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.endsWithIgnoringCase;
+import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
+import static org.hamcrest.Matchers.equalToIgnoringCase;
+import static org.hamcrest.Matchers.hasLength;
+import static org.hamcrest.Matchers.matchesRegex;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
+import static org.hamcrest.Matchers.startsWithIgnoringCase;
+import static org.hamcrest.Matchers.stringContainsInOrder;
 
 import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.sAPLTest.*;
+import io.sapl.test.grammar.sAPLTest.StringContains;
+import io.sapl.test.grammar.sAPLTest.StringContainsInOrder;
+import io.sapl.test.grammar.sAPLTest.StringEndsWith;
+import io.sapl.test.grammar.sAPLTest.StringIsBlank;
+import io.sapl.test.grammar.sAPLTest.StringIsEmpty;
+import io.sapl.test.grammar.sAPLTest.StringIsEqualIgnoringCase;
+import io.sapl.test.grammar.sAPLTest.StringIsEqualWithCompressedWhiteSpace;
+import io.sapl.test.grammar.sAPLTest.StringIsNull;
+import io.sapl.test.grammar.sAPLTest.StringIsNullOrBlank;
+import io.sapl.test.grammar.sAPLTest.StringIsNullOrEmpty;
+import io.sapl.test.grammar.sAPLTest.StringMatcher;
+import io.sapl.test.grammar.sAPLTest.StringMatchesRegex;
+import io.sapl.test.grammar.sAPLTest.StringStartsWith;
+import io.sapl.test.grammar.sAPLTest.StringWithLength;
 import org.hamcrest.Matcher;
 
 public class StringMatcherInterpreter {

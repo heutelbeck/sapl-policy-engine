@@ -18,7 +18,6 @@ import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.grammar.sAPLTest.ExpectChain;
 import io.sapl.test.grammar.sAPLTest.FixtureRegistration;
 import io.sapl.test.grammar.sAPLTest.GivenStep;
-import io.sapl.test.grammar.sAPLTest.Object;
 import io.sapl.test.grammar.sAPLTest.TestException;
 import io.sapl.test.grammar.sAPLTest.TestSuite;
 import io.sapl.test.grammar.sAPLTest.Value;
@@ -66,13 +65,13 @@ class TestCaseTest {
         return mockedFixtureRegistrations;
     }
 
-    private Object mockEnvironment() {
-        final var environment = mock(Object.class);
+    private io.sapl.test.grammar.sAPLTest.Object mockEnvironment() {
+        final var environment = mock(io.sapl.test.grammar.sAPLTest.Object.class);
         when(dslTestCase.getEnvironment()).thenReturn(environment);
         return environment;
     }
 
-    private GivenOrWhenStep mockTestFixture(final List<FixtureRegistration> fixtureRegistrations, final Object environment, final boolean needsMocks) {
+    private GivenOrWhenStep mockTestFixture(final List<FixtureRegistration> fixtureRegistrations, final io.sapl.test.grammar.sAPLTest.Object environment, final boolean needsMocks) {
         final var testFixtureMock = mock(GivenOrWhenStep.class);
         when(stepConstructorMock.buildTestFixture(eq(fixtureRegistrations), any(TestSuite.class), eq(environment), eq(needsMocks))).thenReturn(testFixtureMock);
         return testFixtureMock;

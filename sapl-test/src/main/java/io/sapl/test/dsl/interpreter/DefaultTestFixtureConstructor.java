@@ -5,7 +5,6 @@ import io.sapl.test.SaplTestFixture;
 import io.sapl.test.dsl.utils.ReflectionHelper;
 import io.sapl.test.grammar.sAPLTest.CustomFunctionLibrary;
 import io.sapl.test.grammar.sAPLTest.FixtureRegistration;
-import io.sapl.test.grammar.sAPLTest.Object;
 import io.sapl.test.grammar.sAPLTest.Pip;
 import io.sapl.test.grammar.sAPLTest.SaplFunctionLibrary;
 import io.sapl.test.grammar.sAPLTest.TestSuite;
@@ -14,13 +13,13 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class DefaultTestFixtureBuilder {
+public class DefaultTestFixtureConstructor {
 
     private final TestSuiteInterpreter testSuiteInterpreter;
     private final FunctionLibraryInterpreter functionLibraryInterpreter;
     private final ReflectionHelper reflectionHelper;
 
-    public GivenOrWhenStep buildTestFixture(final List<FixtureRegistration> fixtureRegistrations, final TestSuite testSuite, final Object environment, final boolean needsMocks) {
+    public GivenOrWhenStep buildTestFixture(final List<FixtureRegistration> fixtureRegistrations, final TestSuite testSuite, final io.sapl.test.grammar.sAPLTest.Object environment, final boolean needsMocks) {
         var saplTestFixture = testSuiteInterpreter.getFixtureFromTestSuite(testSuite, environment);
 
         if (saplTestFixture == null) {

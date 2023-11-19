@@ -14,7 +14,6 @@ import io.sapl.test.dsl.utils.ReflectionHelper;
 import io.sapl.test.grammar.sAPLTest.CustomFunctionLibrary;
 import io.sapl.test.grammar.sAPLTest.FixtureRegistration;
 import io.sapl.test.grammar.sAPLTest.FunctionLibrary;
-import io.sapl.test.grammar.sAPLTest.Object;
 import io.sapl.test.grammar.sAPLTest.Pip;
 import io.sapl.test.grammar.sAPLTest.SaplFunctionLibrary;
 import io.sapl.test.grammar.sAPLTest.TestSuite;
@@ -30,7 +29,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class DefaultTestFixtureBuilderTest {
+class DefaultTestFixtureConstructorTest {
     @Mock
     private TestSuiteInterpreter testSuiteInterpreterMock;
     @Mock
@@ -42,15 +41,15 @@ class DefaultTestFixtureBuilderTest {
     @Mock
     private TestSuite testSuiteMock;
     @Mock
-    private Object environmentMock;
+    private io.sapl.test.grammar.sAPLTest.Object environmentMock;
     @InjectMocks
-    private DefaultTestFixtureBuilder defaultTestFixtureBuilder;
+    private DefaultTestFixtureConstructor defaultTestFixtureConstructor;
 
     @Test
     void buildTestFixture_testSuiteInterpreterThrows_throwsSaplTestException() {
         when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock, environmentMock)).thenThrow(new SaplTestException("no fixture here"));
 
-        final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureBuilder.buildTestFixture(null, testSuiteMock, environmentMock, false));
+        final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor.buildTestFixture(null, testSuiteMock, environmentMock, false));
 
         assertEquals("no fixture here", exception.getMessage());
     }
@@ -59,7 +58,7 @@ class DefaultTestFixtureBuilderTest {
     void buildTestFixture_testSuiteInterpreterReturnsNull_throwsSaplTestException() {
         when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock, environmentMock)).thenReturn(null);
 
-        final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureBuilder.buildTestFixture(null, testSuiteMock, environmentMock, false));
+        final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor.buildTestFixture(null, testSuiteMock, environmentMock, false));
 
         assertEquals("could not build test fixture", exception.getMessage());
     }
@@ -71,7 +70,7 @@ class DefaultTestFixtureBuilderTest {
         final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
         when(testFixtureMock.constructTestCase()).thenReturn(givenOrWhenStepMock);
 
-        final var result = defaultTestFixtureBuilder.buildTestFixture(null, testSuiteMock, environmentMock, false);
+        final var result = defaultTestFixtureConstructor.buildTestFixture(null, testSuiteMock, environmentMock, false);
 
         assertEquals(givenOrWhenStepMock, result);
     }
@@ -83,7 +82,7 @@ class DefaultTestFixtureBuilderTest {
         final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
         when(testFixtureMock.constructTestCaseWithMocks()).thenReturn(givenOrWhenStepMock);
 
-        final var result = defaultTestFixtureBuilder.buildTestFixture(null, testSuiteMock, environmentMock, true);
+        final var result = defaultTestFixtureConstructor.buildTestFixture(null, testSuiteMock, environmentMock, true);
 
         assertEquals(givenOrWhenStepMock, result);
     }
@@ -95,7 +94,7 @@ class DefaultTestFixtureBuilderTest {
         final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
         when(testFixtureMock.constructTestCase()).thenReturn(givenOrWhenStepMock);
 
-        final var result = defaultTestFixtureBuilder.buildTestFixture(Collections.emptyList(), testSuiteMock, environmentMock, false);
+        final var result = defaultTestFixtureConstructor.buildTestFixture(Collections.emptyList(), testSuiteMock, environmentMock, false);
 
         assertEquals(givenOrWhenStepMock, result);
     }
@@ -107,7 +106,7 @@ class DefaultTestFixtureBuilderTest {
         final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
         when(testFixtureMock.constructTestCaseWithMocks()).thenReturn(givenOrWhenStepMock);
 
-        final var result = defaultTestFixtureBuilder.buildTestFixture(Collections.emptyList(), testSuiteMock, environmentMock, true);
+        final var result = defaultTestFixtureConstructor.buildTestFixture(Collections.emptyList(), testSuiteMock, environmentMock, true);
 
         assertEquals(givenOrWhenStepMock, result);
     }
@@ -120,7 +119,7 @@ class DefaultTestFixtureBuilderTest {
             when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock, environmentMock)).thenReturn(testFixtureMock);
 
             final var unknownFixtureRegistrationMock = mock(FixtureRegistration.class);
-            final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureBuilder.buildTestFixture(List.of(unknownFixtureRegistrationMock), testSuiteMock, environmentMock, false));
+            final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor.buildTestFixture(List.of(unknownFixtureRegistrationMock), testSuiteMock, environmentMock, false));
 
             assertEquals("Unknown type of FixtureRegistration", exception.getCause().getMessage());
         }
@@ -134,7 +133,7 @@ class DefaultTestFixtureBuilderTest {
 
             when(functionLibraryInterpreter.getFunctionLibrary(FunctionLibrary.TEMPORAL)).thenThrow(new RuntimeException("no library here"));
 
-            final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureBuilder.buildTestFixture(List.of(saplFunctionLibraryMock), testSuiteMock, environmentMock, false));
+            final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor.buildTestFixture(List.of(saplFunctionLibraryMock), testSuiteMock, environmentMock, false));
 
             assertEquals("no library here", exception.getCause().getMessage());
         }
@@ -151,7 +150,7 @@ class DefaultTestFixtureBuilderTest {
 
             when(testFixtureMock.registerFunctionLibrary(libraryMock)).thenThrow(new InitializationException("failed to register library"));
 
-            final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureBuilder.buildTestFixture(List.of(saplFunctionLibraryMock), testSuiteMock, environmentMock, false));
+            final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor.buildTestFixture(List.of(saplFunctionLibraryMock), testSuiteMock, environmentMock, false));
 
             assertEquals("failed to register library", exception.getCause().getMessage());
         }
@@ -169,7 +168,7 @@ class DefaultTestFixtureBuilderTest {
             final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
             when(testFixtureMock.constructTestCase()).thenReturn(givenOrWhenStepMock);
 
-            final var result = defaultTestFixtureBuilder.buildTestFixture(List.of(saplFunctionLibraryMock), testSuiteMock, environmentMock, false);
+            final var result = defaultTestFixtureConstructor.buildTestFixture(List.of(saplFunctionLibraryMock), testSuiteMock, environmentMock, false);
 
             assertEquals(givenOrWhenStepMock, result);
 
@@ -185,7 +184,7 @@ class DefaultTestFixtureBuilderTest {
 
             when(reflectionHelperMock.constructInstanceOfClass("io.my.classpath.ClassName")).thenThrow(new RuntimeException("no class here"));
 
-            final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureBuilder.buildTestFixture(List.of(customFunctionLibrary), testSuiteMock, environmentMock, true));
+            final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor.buildTestFixture(List.of(customFunctionLibrary), testSuiteMock, environmentMock, true));
 
             assertEquals("no class here", exception.getCause().getMessage());
         }
@@ -202,7 +201,7 @@ class DefaultTestFixtureBuilderTest {
 
             when(testFixtureMock.registerFunctionLibrary(libraryMock)).thenThrow(new InitializationException("failed to register library"));
 
-            final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureBuilder.buildTestFixture(List.of(customFunctionLibrary), testSuiteMock, environmentMock, true));
+            final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor.buildTestFixture(List.of(customFunctionLibrary), testSuiteMock, environmentMock, true));
 
             assertEquals("failed to register library", exception.getCause().getMessage());
         }
@@ -220,7 +219,7 @@ class DefaultTestFixtureBuilderTest {
             final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
             when(testFixtureMock.constructTestCaseWithMocks()).thenReturn(givenOrWhenStepMock);
 
-            final var result = defaultTestFixtureBuilder.buildTestFixture(List.of(customFunctionLibrary), testSuiteMock, environmentMock, true);
+            final var result = defaultTestFixtureConstructor.buildTestFixture(List.of(customFunctionLibrary), testSuiteMock, environmentMock, true);
 
             assertEquals(givenOrWhenStepMock, result);
 
@@ -236,7 +235,7 @@ class DefaultTestFixtureBuilderTest {
 
             when(reflectionHelperMock.constructInstanceOfClass("io.my.classpath.ClassName")).thenThrow(new RuntimeException("no class here"));
 
-            final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureBuilder.buildTestFixture(List.of(pip), testSuiteMock, environmentMock, true));
+            final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor.buildTestFixture(List.of(pip), testSuiteMock, environmentMock, true));
 
             assertEquals("no class here", exception.getCause().getMessage());
         }
@@ -253,7 +252,7 @@ class DefaultTestFixtureBuilderTest {
 
             when(testFixtureMock.registerPIP(pipMock)).thenThrow(new InitializationException("failed to register PIP"));
 
-            final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureBuilder.buildTestFixture(List.of(pip), testSuiteMock, environmentMock, true));
+            final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor.buildTestFixture(List.of(pip), testSuiteMock, environmentMock, true));
 
             assertEquals("failed to register PIP", exception.getCause().getMessage());
         }
@@ -271,7 +270,7 @@ class DefaultTestFixtureBuilderTest {
             final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
             when(testFixtureMock.constructTestCaseWithMocks()).thenReturn(givenOrWhenStepMock);
 
-            final var result = defaultTestFixtureBuilder.buildTestFixture(List.of(pip), testSuiteMock, environmentMock, true);
+            final var result = defaultTestFixtureConstructor.buildTestFixture(List.of(pip), testSuiteMock, environmentMock, true);
 
             assertEquals(givenOrWhenStepMock, result);
 

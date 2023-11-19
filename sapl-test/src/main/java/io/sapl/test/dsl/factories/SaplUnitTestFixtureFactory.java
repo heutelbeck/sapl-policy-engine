@@ -8,4 +8,8 @@ public class SaplUnitTestFixtureFactory {
     public static SaplUnitTestFixture create(final String saplDocumentName) {
         return new SaplUnitTestFixture(saplDocumentName);
     }
+
+    public static SaplUnitTestFixture createFromInputString(final String input) {
+        return new SaplUnitTestFixture(input, false);
+    }
 }

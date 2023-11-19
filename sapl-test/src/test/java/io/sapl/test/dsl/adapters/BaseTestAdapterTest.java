@@ -9,8 +9,10 @@ import static org.mockito.Mockito.when;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.factories.SaplTestInterpreterFactory;
 import io.sapl.test.dsl.factories.TestProviderFactory;
+import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
 import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
 import io.sapl.test.dsl.interfaces.StepConstructor;
+import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
 import io.sapl.test.dsl.setup.TestContainer;
 import io.sapl.test.dsl.setup.TestProvider;
 import io.sapl.test.grammar.sAPLTest.SAPLTest;
@@ -47,7 +49,7 @@ class BaseTestAdapterTest {
 
 
     private void buildInstanceOfBaseTestAdapterWithDefaultConstructor() {
-        testProviderFactoryMockedStatic.when(() -> TestProviderFactory.create(null)).thenReturn(testProviderMock);
+        testProviderFactoryMockedStatic.when(() -> TestProviderFactory.create(null, null)).thenReturn(testProviderMock);
         saplTestInterpreterFactoryMockedStatic.when(SaplTestInterpreterFactory::create).thenReturn(saplTestInterpreterMock);
 
         baseTestAdapter = new BaseTestAdapter<>() {
@@ -58,12 +60,28 @@ class BaseTestAdapterTest {
         };
     }
 
-    private void buildInstanceOfBaseTestAdapterWithNonDefaultConstructor() {
+    private void buildInstanceOfBaseTestAdapterWithStepConstructorAndInterpreter() {
         final var stepConstructorMock = mock(StepConstructor.class);
 
         testProviderFactoryMockedStatic.when(() -> TestProviderFactory.create(stepConstructorMock)).thenReturn(testProviderMock);
 
         baseTestAdapter = new BaseTestAdapter<>(stepConstructorMock, saplTestInterpreterMock) {
+            @Override
+            protected TestContainer convertTestContainerToTargetRepresentation(TestContainer testContainer) {
+                return testContainer;
+            }
+        };
+    }
+
+    private void buildInstanceOfBaseTestAdapterWithCustomUnitTestAndIntegrationTestPolicyResolver() {
+        saplTestInterpreterFactoryMockedStatic.when(SaplTestInterpreterFactory::create).thenReturn(saplTestInterpreterMock);
+
+        final var unitTestPolicyResolverMock = mock(UnitTestPolicyResolver.class);
+        final var integrationTestPolicyResolver = mock(IntegrationTestPolicyResolver.class);
+
+        testProviderFactoryMockedStatic.when(() -> TestProviderFactory.create(unitTestPolicyResolverMock, integrationTestPolicyResolver)).thenReturn(testProviderMock);
+
+        baseTestAdapter = new BaseTestAdapter<>(unitTestPolicyResolverMock, integrationTestPolicyResolver) {
             @Override
             protected TestContainer convertTestContainerToTargetRepresentation(TestContainer testContainer) {
                 return testContainer;
@@ -168,7 +186,7 @@ class BaseTestAdapterTest {
 
     @Test
     void createTest_withFilenameBuildsTestContainer_usingCustomStepConstructorAndSaplTestInterpreter_returnsMappedTestContainer() {
-        buildInstanceOfBaseTestAdapterWithNonDefaultConstructor();
+        buildInstanceOfBaseTestAdapterWithStepConstructorAndInterpreter();
 
         documentHelperMockedStatic.when(() -> DocumentHelper.findFileOnClasspath("foo")).thenReturn("input");
 
@@ -188,7 +206,25 @@ class BaseTestAdapterTest {
 
     @Test
     void createTest_withIdentifierAndInputBuildsTestContainer_usingCustomStepConstructorAndSaplTestInterpreter_returnsMappedTestContainer() {
-        buildInstanceOfBaseTestAdapterWithNonDefaultConstructor();
+        buildInstanceOfBaseTestAdapterWithStepConstructorAndInterpreter();
+
+        final var saplTestMock = mock(SAPLTest.class);
+        when(saplTestInterpreterMock.loadAsResource("input")).thenReturn(saplTestMock);
+
+        final var testContainers = List.<TestContainer>of();
+        when(testProviderMock.buildTests(saplTestMock)).thenReturn(testContainers);
+
+        final var testContainerMock = mock(TestContainer.class);
+        testContainerMockedStatic.when(() -> TestContainer.from("foo", testContainers)).thenReturn(testContainerMock);
+
+        final var result = baseTestAdapter.createTest("foo", "input");
+
+        assertEquals(testContainerMock, result);
+    }
+
+    @Test
+    void createTest_withIdentifierAndInputBuildsTestContainer_usingCustomUnitTestAndIntegrationTestPolicyResolver_returnsMappedTestContainer() {
+        buildInstanceOfBaseTestAdapterWithCustomUnitTestAndIntegrationTestPolicyResolver();
 
         final var saplTestMock = mock(SAPLTest.class);
         when(saplTestInterpreterMock.loadAsResource("input")).thenReturn(saplTestMock);
