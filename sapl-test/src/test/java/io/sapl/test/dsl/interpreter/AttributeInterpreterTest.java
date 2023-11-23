@@ -85,8 +85,6 @@ class AttributeInterpreterTest {
             when(valInterpreterMock.getValFromValue(valMock)).thenReturn(saplValMock);
             when(attributeMock.getDuration()).thenReturn(null);
 
-            when(durationInterpreterMock.getJavaDurationFromDuration(null)).thenReturn(null);
-
             when(givenOrWhenStepMock.givenAttribute("fooAttribute", saplValMock)).thenReturn(givenOrWhenStepMock);
 
             final var result = attributeInterpreter.interpretAttribute(givenOrWhenStepMock, attributeMock);

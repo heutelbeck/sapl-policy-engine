@@ -1,6 +1,7 @@
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -9,6 +10,7 @@ import static org.mockito.Mockito.when;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.hamcrest.Matchers;
 import io.sapl.test.Helper;
+import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interpreter.matcher.AuthorizationDecisionMatcherInterpreter;
 import io.sapl.test.dsl.interpreter.matcher.MultipleAmountInterpreter;
 import io.sapl.test.grammar.sAPLTest.AttributeAdjustment;
@@ -121,14 +123,13 @@ class ExpectInterpreterTest {
         @DisplayName("error cases")
         class ErrorCasesTest {
             @Test
-            void interpretRepeatedExpect_doesNothingForExpectStepsBeingNull_returnsInitialVerifyStep() {
+            void interpretRepeatedExpect_handlesExpectStepsBeingNull_throwsSaplTestException() {
                 final var repeatedExpectMock = mock(RepeatedExpect.class);
                 when(repeatedExpectMock.getExpectSteps()).thenReturn(null);
 
-                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
+                final var exception = assertThrows(SaplTestException.class, () -> expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock));
 
-                assertEquals(expectOrVerifyStepMock, result);
-                verifyNoInteractions(expectOrVerifyStepMock);
+                assertEquals("No ExpectOrAdjustmentStep found", exception.getMessage());
             }
 
             @Test
@@ -137,10 +138,9 @@ class ExpectInterpreterTest {
                 final var repeatedExpectMock = mock(RepeatedExpect.class);
                 when(repeatedExpectMock.getExpectSteps()).thenReturn(repeatedExpectStepsMock);
 
-                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
+                final var exception = assertThrows(SaplTestException.class, () -> expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock));
 
-                assertEquals(expectOrVerifyStepMock, result);
-                verifyNoInteractions(expectOrVerifyStepMock);
+                assertEquals("No ExpectOrAdjustmentStep found", exception.getMessage());
             }
 
             @Test
@@ -269,7 +269,7 @@ class ExpectInterpreterTest {
         @DisplayName("expect next with decision")
         class ExpectNextWithDecisionTest {
             @Test
-            void interpretRepeatedExpect_doesNothingForNextWithNullDecision_returnsVerifyStep() {
+            void interpretRepeatedExpect_handlesNextWithNullDecision_throwsSaplTestException() {
                 final var nextWithDecisionMock = mock(NextWithDecision.class);
                 final var expectOrAdjustmentStepsMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of(nextWithDecisionMock));
                 final var repeatedExpectMock = mock(RepeatedExpect.class);
@@ -278,9 +278,9 @@ class ExpectInterpreterTest {
 
                 when(nextWithDecisionMock.getExpectedDecision()).thenReturn(null);
 
-                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
+                final var exception = assertThrows(SaplTestException.class, () -> expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock));
 
-                assertEquals(expectOrVerifyStepMock, result);
+                assertEquals("No AuthorizationDecision found", exception.getMessage());
             }
 
             @Test
@@ -335,7 +335,7 @@ class ExpectInterpreterTest {
             }
 
             @Test
-            void interpretRepeatedExpect_doesNothingForNullMatchers_returnsInitialVerifyStep() {
+            void interpretRepeatedExpect_handlesNullMatchers_throwsSaplTestException() {
                 final var nextWithMatcherMock = mock(NextWithMatcher.class);
                 final var expectOrAdjustmentStepsMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of(nextWithMatcherMock));
                 final var repeatedExpectMock = mock(RepeatedExpect.class);
@@ -344,14 +344,13 @@ class ExpectInterpreterTest {
 
                 when(nextWithMatcherMock.getMatcher()).thenReturn(null);
 
-                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
+                final var exception = assertThrows(SaplTestException.class, () -> expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock));
 
-                assertEquals(expectOrVerifyStepMock, result);
-                verifyNoInteractions(expectOrVerifyStepMock);
+                assertEquals("No AuthorizationDecisionMatcher found", exception.getMessage());
             }
 
             @Test
-            void interpretRepeatedExpect_doesNothingForEmptyMatchers_returnsInitialVerifyStep() {
+            void interpretRepeatedExpect_handlesForEmptyMatchers_throwsSaplTestException() {
                 final var nextWithMatcherMock = mock(NextWithMatcher.class);
                 final var expectOrAdjustmentStepsMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of(nextWithMatcherMock));
                 final var repeatedExpectMock = mock(RepeatedExpect.class);
@@ -361,10 +360,9 @@ class ExpectInterpreterTest {
                 final var matchersMock = Helper.mockEList(List.<AuthorizationDecisionMatcher>of());
                 when(nextWithMatcherMock.getMatcher()).thenReturn(matchersMock);
 
-                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
+                final var exception = assertThrows(SaplTestException.class, () -> expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock));
 
-                assertEquals(expectOrVerifyStepMock, result);
-                verifyNoInteractions(expectOrVerifyStepMock);
+                assertEquals("No AuthorizationDecisionMatcher found", exception.getMessage());
             }
 
 

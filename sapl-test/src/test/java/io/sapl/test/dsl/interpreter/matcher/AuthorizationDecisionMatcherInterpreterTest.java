@@ -88,6 +88,16 @@ class AuthorizationDecisionMatcherInterpreterTest {
     }
 
     @Test
+    void getHamcrestAuthorizationDecisionMatcher_handlesNullDecision_throwsSaplTestException() {
+        final var isDecisionMock = mock(IsDecision.class);
+        when(isDecisionMock.getDecision()).thenReturn(null);
+
+        final var exception = assertThrows(SaplTestException.class, () -> authorizationDecisionMatcherInterpreter.getHamcrestAuthorizationDecisionMatcher(isDecisionMock));
+
+        assertEquals("Decision is null", exception.getMessage());
+    }
+
+    @Test
     void getHamcrestAuthorizationDecisionMatcher_handlesIsDecisionPermit_returnsPermitMatcher() {
         final var isDecisionMock = mock(IsDecision.class);
         when(isDecisionMock.getDecision()).thenReturn(AuthorizationDecisionType.PERMIT);

@@ -75,6 +75,7 @@ public class ValInterpreter {
         if (object == null || object.getMembers() == null) {
             return Collections.emptyMap();
         }
+
         return object
                 .getMembers()
                 .stream()

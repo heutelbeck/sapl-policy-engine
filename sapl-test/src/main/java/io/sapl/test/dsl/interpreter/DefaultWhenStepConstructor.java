@@ -1,5 +1,6 @@
 package io.sapl.test.dsl.interpreter;
 
+import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sAPLTest.Attribute;
 import io.sapl.test.grammar.sAPLTest.AttributeWithParameters;
 import io.sapl.test.grammar.sAPLTest.Function;
@@ -37,6 +38,8 @@ public final class DefaultWhenStepConstructor {
                 fixtureWithMocks = attributeInterpreter.interpretAttributeWithParameters(fixtureWithMocks, attributeWithParameters);
             } else if (givenStep instanceof VirtualTime) {
                 fixtureWithMocks = fixtureWithMocks.withVirtualTime();
+            } else {
+                throw new SaplTestException("Unknown type of GivenStep");
             }
         }
         return fixtureWithMocks;

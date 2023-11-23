@@ -2,6 +2,7 @@ package io.sapl.test.dsl.interpreter;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.Imports;
+import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interpreter.matcher.MultipleAmountInterpreter;
 import io.sapl.test.dsl.interpreter.matcher.ValMatcherInterpreter;
 import io.sapl.test.grammar.sAPLTest.Function;
@@ -49,14 +50,15 @@ public class FunctionInterpreter {
     }
 
     GivenOrWhenStep interpretFunctionInvokedOnce(final GivenOrWhenStep initial, final FunctionInvokedOnce function) {
-        final var importName = function.getImportName();
-        final var valuesToBeReturned = function.getReturn();
+        final var values = function.getReturn();
 
-        if (valuesToBeReturned == null || valuesToBeReturned.isEmpty()) {
-            return initial;
+        if (values == null || values.isEmpty()) {
+            throw new SaplTestException("No Value found");
         }
 
-        final var returnValues = valuesToBeReturned.stream().map(valInterpreter::getValFromValue).toArray(Val[]::new);
+        final var returnValues = values.stream().map(valInterpreter::getValFromValue).toArray(Val[]::new);
+
+        final var importName = function.getImportName();
 
         if (returnValues.length == 1) {
             return initial.givenFunctionOnce(importName, returnValues[0]);
@@ -72,7 +74,7 @@ public class FunctionInterpreter {
         final var functionParameterMatchers = functionParameters.getMatchers();
 
         if (functionParameterMatchers == null || functionParameterMatchers.isEmpty()) {
-            return null;
+            throw new SaplTestException("No ValMatcher found");
         }
 
         final var matchers = functionParameterMatchers.stream().map(matcherInterpreter::getHamcrestValMatcher).<Matcher<Val>>toArray(Matcher[]::new);

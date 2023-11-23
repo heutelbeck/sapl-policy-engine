@@ -54,11 +54,17 @@ public class AuthorizationDecisionMatcherInterpreter {
     }
 
     private Matcher<AuthorizationDecision> getIsDecisionMatcher(final IsDecision isDecisionMatcher) {
-        return switch (isDecisionMatcher.getDecision()) {
+        final var decision = isDecisionMatcher.getDecision();
+
+        if (decision == null) {
+            throw new SaplTestException("Decision is null");
+        }
+
+        return switch (decision) {
             case PERMIT -> isPermit();
             case DENY -> isDeny();
             case INDETERMINATE -> isIndeterminate();
-            default -> isNotApplicable();
+            case NOT_APPLICABLE -> isNotApplicable();
         };
     }
 

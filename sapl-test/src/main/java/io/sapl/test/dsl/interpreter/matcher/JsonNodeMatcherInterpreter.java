@@ -60,7 +60,7 @@ public class JsonNodeMatcherInterpreter {
         throw new SaplTestException("Unknown type of JsonNodeMatcher");
     }
 
-    private Matcher<JsonNode> interpretJsonArray(IsJsonArray isJsonArray) {
+    private Matcher<JsonNode> interpretJsonArray(final IsJsonArray isJsonArray) {
         final var arrayMatcher = isJsonArray.getMatcher();
         if (arrayMatcher == null) {
             return jsonArray();
@@ -68,14 +68,14 @@ public class JsonNodeMatcherInterpreter {
 
         final var matchers = arrayMatcher.getMatchers();
         if (matchers == null || matchers.isEmpty()) {
-            return jsonArray();
+            throw new SaplTestException("No JsonNodeMatcher found");
         }
 
         final var mappedMatchers = matchers.stream().map(this::getHamcrestJsonNodeMatcher).toList();
         return jsonArray(is(mappedMatchers));
     }
 
-    private Matcher<JsonNode> interpretJsonObject(IsJsonObject isJsonObject) {
+    private Matcher<JsonNode> interpretJsonObject(final IsJsonObject isJsonObject) {
         final var jsonObjectMatcher = isJsonObject.getMatcher();
 
         if (jsonObjectMatcher == null) {
@@ -85,7 +85,7 @@ public class JsonNodeMatcherInterpreter {
         final var matchers = jsonObjectMatcher.getMatchers();
 
         if (matchers == null || matchers.isEmpty()) {
-            return jsonObject();
+            throw new SaplTestException("No JsonObjectMatcherPair found");
         }
 
         return matchers.stream().reduce(jsonObject(), (previous, matcherPair) -> previous.where(matcherPair.getKey(), getHamcrestJsonNodeMatcher(matcherPair.getMatcher())), (oldEntry, newEntry) -> newEntry);

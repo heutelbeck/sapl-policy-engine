@@ -23,8 +23,7 @@ public final class DefaultVerifyStepConstructor {
             return expectInterpreter.interpretSingleExpectWithMatcher(expectStep, singleExpectWithMatcher);
         } else if (expect instanceof RepeatedExpect repeatedExpect) {
             return expectInterpreter.interpretRepeatedExpect(expectStep, repeatedExpect);
-        } else {
-            throw new SaplTestException("Unknown type of ExpectChain");
         }
+        throw new SaplTestException("Unknown type of ExpectChain");
     }
 }

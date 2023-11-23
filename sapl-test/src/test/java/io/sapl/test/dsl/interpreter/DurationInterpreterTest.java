@@ -1,7 +1,6 @@
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -31,10 +30,10 @@ class DurationInterpreterTest {
     }
 
     @Test
-    void getJavaDurationFromDuration_handlesNullDuration_returnsNull() {
-        final var result = durationInterpreter.getJavaDurationFromDuration(null);
+    void getJavaDurationFromDuration_forNullDuration_throwsSaplTestException() {
+        final var exception = assertThrows(SaplTestException.class, () -> durationInterpreter.getJavaDurationFromDuration(null));
 
-        assertNull(result);
+        assertEquals("The passed Duration is null", exception.getMessage());
     }
 
     @Test

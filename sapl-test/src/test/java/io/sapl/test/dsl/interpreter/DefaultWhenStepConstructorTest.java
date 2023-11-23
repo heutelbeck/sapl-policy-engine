@@ -1,6 +1,7 @@
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -8,6 +9,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sAPLTest.Attribute;
 import io.sapl.test.grammar.sAPLTest.AttributeWithParameters;
 import io.sapl.test.grammar.sAPLTest.Function;
@@ -50,12 +52,14 @@ class DefaultWhenStepConstructorTest {
     }
 
     @Test
-    void constructWhenStep_handlesUnknownTypeOfGivenStep_returnsGivenUnitTestFixture() {
+    void constructWhenStep_handlesUnknownTypeOfGivenStep_throwsSaplTestException() {
         final var unknownGivenStepMock = mock(GivenStep.class);
-        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(unknownGivenStepMock), saplUnitTestFixtureMock);
 
-        assertEquals(saplUnitTestFixtureMock, result);
-        verifyNoInteractions(saplUnitTestFixtureMock);
+        final var givenSteps = List.of(unknownGivenStepMock);
+
+        final var exception = assertThrows(SaplTestException.class, () -> defaultWhenStepConstructor.constructWhenStep(givenSteps, saplUnitTestFixtureMock));
+
+        assertEquals("Unknown type of GivenStep", exception.getMessage());
     }
 
     @Test

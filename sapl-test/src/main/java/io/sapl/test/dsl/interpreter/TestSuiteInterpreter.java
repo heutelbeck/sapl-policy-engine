@@ -76,7 +76,7 @@ public class TestSuiteInterpreter {
                 integrationTestFixture = SaplIntegrationTestFixtureFactory.createFromInputStrings(saplDocumentStrings, pdpConfig);
             }
         } else {
-            throw new SaplTestException("No valid Policy Resolver Config");
+            throw new SaplTestException("Unknown type of PolicyResolverConfig");
         }
 
         if (integrationTestSuite.getPdpVariables() instanceof io.sapl.test.grammar.sAPLTest.Object pdpVariables) {

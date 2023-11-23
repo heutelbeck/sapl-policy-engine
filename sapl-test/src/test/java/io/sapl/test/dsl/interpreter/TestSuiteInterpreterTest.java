@@ -185,10 +185,9 @@ class TestSuiteInterpreterTest {
             final var unknownResolverConfig = mock(PolicyResolverConfig.class);
             when(integrationTestSuite.getConfig()).thenReturn(unknownResolverConfig);
 
-
             final var exception = assertThrows(SaplTestException.class, () -> testSuiteInterpreter.getFixtureFromTestSuite(integrationTestSuite, null));
 
-            assertEquals("No valid Policy Resolver Config", exception.getMessage());
+            assertEquals("Unknown type of PolicyResolverConfig", exception.getMessage());
         }
 
         @Test

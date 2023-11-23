@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.test.grammar.sAPLTest.Value;
 import java.util.List;
-import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -46,7 +45,6 @@ public class AuthorizationDecisionInterpreter {
         final var valArray = objectMapper.createArrayNode();
 
         values.stream()
-                .filter(Objects::nonNull)
                 .map(valInterpreter::getValFromValue)
                 .map(io.sapl.api.interpreter.Val::get)
                 .forEach(valArray::add);

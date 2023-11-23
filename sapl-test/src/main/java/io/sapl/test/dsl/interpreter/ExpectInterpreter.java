@@ -3,6 +3,7 @@ package io.sapl.test.dsl.interpreter;
 import static org.hamcrest.Matchers.allOf;
 
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interpreter.matcher.AuthorizationDecisionMatcherInterpreter;
 import io.sapl.test.dsl.interpreter.matcher.MultipleAmountInterpreter;
 import io.sapl.test.grammar.sAPLTest.AttributeAdjustment;
@@ -59,7 +60,7 @@ public class ExpectInterpreter {
         final var expectOrAdjustmentSteps = repeatedExpect.getExpectSteps();
 
         if (expectOrAdjustmentSteps == null || expectOrAdjustmentSteps.isEmpty()) {
-            return expectOrVerifyStep;
+            throw new SaplTestException("No ExpectOrAdjustmentStep found");
         }
 
         for (var expectOrAdjustmentStep : expectOrAdjustmentSteps) {
@@ -85,13 +86,13 @@ public class ExpectInterpreter {
     }
 
     private ExpectOrVerifyStep constructNext(final ExpectOrVerifyStep expectOrVerifyStep, final Next nextExpect) {
-        final var actualAmount = nextExpect.getAmount() instanceof Multiple multiple ? multipleAmountInterpreter.getAmountFromMultipleAmountString(multiple.getAmount()) : 1;
+        final var amount = nextExpect.getAmount() instanceof Multiple multiple ? multipleAmountInterpreter.getAmountFromMultipleAmountString(multiple.getAmount()) : 1;
 
         return switch (nextExpect.getExpectedDecision()) {
-            case PERMIT -> expectOrVerifyStep.expectNextPermit(actualAmount);
-            case DENY -> expectOrVerifyStep.expectNextDeny(actualAmount);
-            case INDETERMINATE -> expectOrVerifyStep.expectNextIndeterminate(actualAmount);
-            default -> expectOrVerifyStep.expectNextNotApplicable(actualAmount);
+            case PERMIT -> expectOrVerifyStep.expectNextPermit(amount);
+            case DENY -> expectOrVerifyStep.expectNextDeny(amount);
+            case INDETERMINATE -> expectOrVerifyStep.expectNextIndeterminate(amount);
+            default -> expectOrVerifyStep.expectNextNotApplicable(amount);
         };
     }
 
@@ -99,7 +100,7 @@ public class ExpectInterpreter {
         final var matchers = nextWithMatcher.getMatcher();
 
         if (matchers == null || matchers.isEmpty()) {
-            return expectOrVerifyStep;
+            throw new SaplTestException("No AuthorizationDecisionMatcher found");
         }
 
         final var actualMatchers = matchers.stream().map(authorizationDecisionMatcherInterpreter::getHamcrestAuthorizationDecisionMatcher).<Matcher<AuthorizationDecision>>toArray(Matcher[]::new);
@@ -109,7 +110,7 @@ public class ExpectInterpreter {
 
     private ExpectOrVerifyStep constructNextWithDecision(final ExpectOrVerifyStep expectOrVerifyStep, final io.sapl.test.grammar.sAPLTest.AuthorizationDecision dslAuthorizationDecision) {
         if (dslAuthorizationDecision == null) {
-            return expectOrVerifyStep;
+            throw new SaplTestException("No AuthorizationDecision found");
         }
 
         final var authorizationDecision = getAuthorizationDecisionFromDSLAuthorizationDecision(dslAuthorizationDecision);

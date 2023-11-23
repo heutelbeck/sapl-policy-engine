@@ -1,14 +1,15 @@
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.sapl.test.Helper;
 import io.sapl.test.Imports;
+import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interpreter.matcher.MultipleAmountInterpreter;
 import io.sapl.test.dsl.interpreter.matcher.ValMatcherInterpreter;
 import io.sapl.test.grammar.sAPLTest.Function;
@@ -86,32 +87,28 @@ class FunctionInterpreterTest {
         }
 
         @Test
-        void interpretFunction_withoutTimesCalledVerificationAndNullFunctionParametersMatchers_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
+        void interpretFunction_withoutTimesCalledVerificationAndNullFunctionParametersMatchers_throwsSaplTestException() {
             final var functionParametersMock = mock(FunctionParameters.class);
             when(functionMock.getParameters()).thenReturn(functionParametersMock);
 
             when(functionParametersMock.getMatchers()).thenReturn(null);
 
-            when(givenOrWhenStepMock.givenFunction("fooFunction", saplValMock)).thenReturn(givenOrWhenStepMock);
+            final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter.interpretFunction(givenOrWhenStepMock, functionMock));
 
-            final var result = functionInterpreter.interpretFunction(givenOrWhenStepMock, functionMock);
-
-            assertEquals(givenOrWhenStepMock, result);
+            assertEquals("No ValMatcher found", exception.getMessage());
         }
 
         @Test
-        void interpretFunction_withoutTimesCalledVerificationAndEmptyFunctionParametersMatchers_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
+        void interpretFunction_withoutTimesCalledVerificationAndEmptyFunctionParametersMatchers_throwsSaplTestException() {
             final var functionParametersMock = mock(FunctionParameters.class);
             when(functionMock.getParameters()).thenReturn(functionParametersMock);
 
             final var eListMock = Helper.mockEList(List.<ValMatcher>of());
             when(functionParametersMock.getMatchers()).thenReturn(eListMock);
 
-            when(givenOrWhenStepMock.givenFunction("fooFunction", saplValMock)).thenReturn(givenOrWhenStepMock);
+            final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter.interpretFunction(givenOrWhenStepMock, functionMock));
 
-            final var result = functionInterpreter.interpretFunction(givenOrWhenStepMock, functionMock);
-
-            assertEquals(givenOrWhenStepMock, result);
+            assertEquals("No ValMatcher found", exception.getMessage());
         }
 
         @Test
@@ -155,7 +152,7 @@ class FunctionInterpreterTest {
         }
 
         @Test
-        void interpretFunction_withTimesCalledVerificationBeingMultipleAndNullFunctionParametersMatchers_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
+        void interpretFunction_withTimesCalledVerificationBeingMultipleAndNullFunctionParametersMatchers_throwsSaplTestException() {
             final var multipleMock = mock(Multiple.class);
 
             when(functionMock.getAmount()).thenReturn(multipleMock);
@@ -171,15 +168,13 @@ class FunctionInterpreterTest {
             final var timesCalledVerificationMock = mock(TimesCalledVerification.class);
             importsMockedStatic.when(() -> Imports.times(3)).thenReturn(timesCalledVerificationMock);
 
-            when(givenOrWhenStepMock.givenFunction("fooFunction", saplValMock, timesCalledVerificationMock)).thenReturn(givenOrWhenStepMock);
+            final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter.interpretFunction(givenOrWhenStepMock, functionMock));
 
-            final var result = functionInterpreter.interpretFunction(givenOrWhenStepMock, functionMock);
-
-            assertEquals(givenOrWhenStepMock, result);
+            assertEquals("No ValMatcher found", exception.getMessage());
         }
 
         @Test
-        void interpretFunction_withTimesCalledVerificationBeingOnceAndEmptyFunctionParametersMatchers_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
+        void interpretFunction_withTimesCalledVerificationBeingOnceAndEmptyFunctionParametersMatchers_throwsSaplTestException() {
             final var onceMock = mock(Once.class);
 
             when(functionMock.getAmount()).thenReturn(onceMock);
@@ -193,11 +188,9 @@ class FunctionInterpreterTest {
             final var timesCalledVerificationMock = mock(TimesCalledVerification.class);
             importsMockedStatic.when(() -> Imports.times(1)).thenReturn(timesCalledVerificationMock);
 
-            when(givenOrWhenStepMock.givenFunction("fooFunction", saplValMock, timesCalledVerificationMock)).thenReturn(givenOrWhenStepMock);
+            final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter.interpretFunction(givenOrWhenStepMock, functionMock));
 
-            final var result = functionInterpreter.interpretFunction(givenOrWhenStepMock, functionMock);
-
-            assertEquals(givenOrWhenStepMock, result);
+            assertEquals("No ValMatcher found", exception.getMessage());
         }
 
         @Test
@@ -239,29 +232,25 @@ class FunctionInterpreterTest {
     class InterpretFunctionInvokedOnceTests {
 
         @Test
-        void interpretFunctionInvokedOnce_handlesNullReturnValues_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
-            final var functionInvokecOnceMock = mock(FunctionInvokedOnce.class);
-            when(functionInvokecOnceMock.getImportName()).thenReturn("fooFunction");
-            when(functionInvokecOnceMock.getReturn()).thenReturn(null);
+        void interpretFunctionInvokedOnce_handlesNullReturnValues_throwsSaplTestException() {
+            final var functionInvokedOnceMock = mock(FunctionInvokedOnce.class);
+            when(functionInvokedOnceMock.getReturn()).thenReturn(null);
 
-            final var result = functionInterpreter.interpretFunctionInvokedOnce(givenOrWhenStepMock, functionInvokecOnceMock);
+            final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter.interpretFunctionInvokedOnce(givenOrWhenStepMock, functionInvokedOnceMock));
 
-            assertEquals(givenOrWhenStepMock, result);
-            verifyNoInteractions(givenOrWhenStepMock);
+            assertEquals("No Value found", exception.getMessage());
         }
 
         @Test
-        void interpretFunctionInvokedOnce_handlesEmptyReturnValues_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
-            final var functionInvokecOnceMock = mock(FunctionInvokedOnce.class);
-            when(functionInvokecOnceMock.getImportName()).thenReturn("fooFunction");
+        void interpretFunctionInvokedOnce_handlesEmptyReturnValues_throwsSaplTestException() {
+            final var functionInvokedOnceMock = mock(FunctionInvokedOnce.class);
 
             final var eListMock = Helper.mockEList(List.<Value>of());
-            when(functionInvokecOnceMock.getReturn()).thenReturn(eListMock);
+            when(functionInvokedOnceMock.getReturn()).thenReturn(eListMock);
 
-            final var result = functionInterpreter.interpretFunctionInvokedOnce(givenOrWhenStepMock, functionInvokecOnceMock);
+            final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter.interpretFunctionInvokedOnce(givenOrWhenStepMock, functionInvokedOnceMock));
 
-            assertEquals(givenOrWhenStepMock, result);
-            verifyNoInteractions(givenOrWhenStepMock);
+            assertEquals("No Value found", exception.getMessage());
         }
 
         @Test
