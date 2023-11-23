@@ -232,7 +232,9 @@ class ClasspathPolicyRetrievalPointTests {
 
 		@Test
 		void givenEmptyValueInDocumentNames_throwsSaplTestException() {
-			final var exception = assertThrows(SaplTestException.class, () -> new ClasspathPolicyRetrievalPoint(List.of(""), interpreter));
+			final var saplDocumentNames = List.of("");
+
+			final var exception = assertThrows(SaplTestException.class, () -> new ClasspathPolicyRetrievalPoint(saplDocumentNames, interpreter));
 
 			assertEquals("Encountered invalid policy name", exception.getMessage());
 		}
@@ -275,7 +277,9 @@ class ClasspathPolicyRetrievalPointTests {
 
 		@Test
 		void givenOnePolicyWithErrorAndOneValidMatchingPolicyAndOneInvalidPolicy_throwsPolicyEvaluationException() {
-			final var exception = assertThrows(PolicyEvaluationException.class, () -> new ClasspathPolicyRetrievalPoint(List.of("it/error/policy_with_error", "it/policies/policy_1", "it/invalid/invalid_policy"), interpreter));
+			final var saplDocumentNames = List.of("it/error/policy_with_error", "it/policies/policy_1", "it/invalid/invalid_policy");
+
+			final var exception = assertThrows(PolicyEvaluationException.class, () -> new ClasspathPolicyRetrievalPoint(saplDocumentNames, interpreter));
 
 			assertEquals("Parsing errors: [XtextSyntaxDiagnostic: null:2 Incomplete policy, expected an entitlement, e.g. deny or permit]", exception.getMessage());
 		}

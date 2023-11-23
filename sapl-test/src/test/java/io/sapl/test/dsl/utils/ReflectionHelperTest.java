@@ -39,7 +39,9 @@ class ReflectionHelperTest {
 
     @Test
     void constructInstanceOfClass_withClassNameWithoutPublicNoArgsConstructor_throwsSaplTestException() {
-        final var exception = assertThrows(SaplTestException.class, () -> reflectionHelper.constructInstanceOfClass(this.getClass().getName()));
+        final var className = this.getClass().getName();
+
+        final var exception = assertThrows(SaplTestException.class, () -> reflectionHelper.constructInstanceOfClass(className));
 
         assertEquals("Could not construct instance of 'io.sapl.test.dsl.utils.ReflectionHelperTest' class", exception.getMessage());
     }

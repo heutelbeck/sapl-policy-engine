@@ -37,6 +37,16 @@ import org.hamcrest.Matcher;
 
 public class StringMatcherInterpreter {
     Matcher<? super String> getHamcrestStringMatcher(final StringMatcher stringMatcher) {
+        final var nullEmptyBlankCasesMatcher = getMatcherForNullEmptyBlankCases(stringMatcher);
+
+        if (nullEmptyBlankCasesMatcher != null) {
+            return nullEmptyBlankCasesMatcher;
+        }
+
+        return getMatcherForNonNullEmptyBlankCases(stringMatcher);
+    }
+
+    private Matcher<? super String> getMatcherForNullEmptyBlankCases(final StringMatcher stringMatcher) {
         if (stringMatcher instanceof StringIsNull) {
             return nullValue(String.class);
         } else if (stringMatcher instanceof StringIsBlank) {
@@ -47,7 +57,12 @@ public class StringMatcherInterpreter {
             return emptyOrNullString();
         } else if (stringMatcher instanceof StringIsNullOrBlank) {
             return blankOrNullString();
-        } else if (stringMatcher instanceof StringIsEqualWithCompressedWhiteSpace other) {
+        }
+        return null;
+    }
+
+    private Matcher<? super String> getMatcherForNonNullEmptyBlankCases(final StringMatcher stringMatcher) {
+        if (stringMatcher instanceof StringIsEqualWithCompressedWhiteSpace other) {
             return equalToCompressingWhiteSpace(other.getValue());
         } else if (stringMatcher instanceof StringIsEqualIgnoringCase other) {
             return equalToIgnoringCase(other.getValue());

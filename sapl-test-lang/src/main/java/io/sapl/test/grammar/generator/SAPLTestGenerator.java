@@ -16,15 +16,5 @@ import org.eclipse.xtext.generator.IGeneratorContext;
 public class SAPLTestGenerator extends AbstractGenerator {
 
 	@Override
-	public void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-//		Iterator<Greeting> filtered = Iterators.filter(resource.getAllContents(), Greeting.class);
-//		Iterator<String> names = Iterators.transform(filtered, new Function<Greeting, String>() {
-//
-//			@Override
-//			public String apply(Greeting greeting) {
-//				return greeting.getName();
-//			}
-//		});
-//		fsa.generateFile("greetings.txt", "People to greet: " + IteratorExtensions.join(names, ", "));
-	}
+	public void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) { }
 }

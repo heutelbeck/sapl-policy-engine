@@ -56,25 +56,25 @@ import org.eclipse.xtext.xbase.lib.Exceptions;
 @Slf4j
 public class XtextServlet extends HttpServlet {
 
-	private final IResourceServiceProvider.Registry serviceProviderRegistry = IResourceServiceProvider.Registry.INSTANCE;
-
-	private final Gson gson = new Gson();
+	private static final IResourceServiceProvider.Registry serviceProviderRegistry = IResourceServiceProvider.Registry.INSTANCE;
+	private static final Gson gson = new Gson();
+	private static final String INVALID_REQUEST_STRING = "Invalid request (";
 
 	@Override
 	protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 		try {
 			super.service(req, resp);
 		} catch (InvalidRequestException.ResourceNotFoundException exception) {
-			log.trace("Invalid request (" + req.getRequestURI() + "): " + exception.getMessage());
+			log.trace(INVALID_REQUEST_STRING + req.getRequestURI() + "): " + exception.getMessage());
 			resp.sendError(HttpServletResponse.SC_NOT_FOUND, exception.getMessage());
 		} catch (InvalidRequestException.InvalidDocumentStateException exception) {
-			log.trace("Invalid request (" + req.getRequestURI() + "): " + exception.getMessage());
+			log.trace(INVALID_REQUEST_STRING + req.getRequestURI() + "): " + exception.getMessage());
 			resp.sendError(HttpServletResponse.SC_CONFLICT, exception.getMessage());
 		} catch (InvalidRequestException.PermissionDeniedException exception) {
-			log.trace("Invalid request (" + req.getRequestURI() + "): " + exception.getMessage());
+			log.trace(INVALID_REQUEST_STRING + req.getRequestURI() + "): " + exception.getMessage());
 			resp.sendError(HttpServletResponse.SC_FORBIDDEN, exception.getMessage());
 		} catch (InvalidRequestException exception) {
-			log.trace("Invalid request (" + req.getRequestURI() + "): " + exception.getMessage());
+			log.trace(INVALID_REQUEST_STRING + req.getRequestURI() + "): " + exception.getMessage());
 			resp.sendError(HttpServletResponse.SC_BAD_REQUEST, exception.getMessage());
 		}
 	}
@@ -141,7 +141,7 @@ public class XtextServlet extends HttpServlet {
 		try {
 			IServiceResult result = service.getService().apply();
 			response.setStatus(HttpServletResponse.SC_OK);
-			response.setCharacterEncoding(getEncoding(service, result));
+			response.setCharacterEncoding("UTF-8");
 			response.setHeader("Cache-Control", "no-cache");
 			if (result instanceof IUnwrappableServiceResult unwrapResult
 					&& ((IUnwrappableServiceResult) result).getContent() != null) {
@@ -161,14 +161,7 @@ public class XtextServlet extends HttpServlet {
 			throw Exceptions.sneakyThrow(e);
 		}
 	}
-
-	/**
-	 * Determine the encoding to apply to servlet responses. The default is UTF-8.
-	 */
-	protected String getEncoding(XtextServiceDispatcher.ServiceDescriptor service, IServiceResult result) {
-		return "UTF-8";
-	}
-
+	
 	/**
 	 * Resolve the Guice injector for the language associated with the given
 	 * context.

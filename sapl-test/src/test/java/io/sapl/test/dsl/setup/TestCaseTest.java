@@ -107,7 +107,7 @@ class TestCaseTest {
         return verifyStepMock;
     }
 
-    private Runnable assertDynamicTestAndGetExecutable() {
+    private Runnable assertDynamicTestAndGetRunnable() {
         when(dslTestCase.getName()).thenReturn("test1");
 
         final var result = io.sapl.test.dsl.setup.TestCase.from(stepConstructorMock, testSuiteMock, dslTestCase);
@@ -165,7 +165,7 @@ class TestCaseTest {
 
         final var verifyStepMock = mockTestBuildingChain(givenStepsMock, testFixtureMock, dslTestCase);
 
-        assertDynamicTestAndGetExecutable().run();
+        assertDynamicTestAndGetRunnable().run();
 
         verify(verifyStepMock, times(1)).verify();
     }
@@ -182,7 +182,7 @@ class TestCaseTest {
 
         final var verifyStepMock = mockTestBuildingChain(givenStepsMock, testFixtureMock, dslTestCase);
 
-        assertDynamicTestAndGetExecutable().run();
+        assertDynamicTestAndGetRunnable().run();
 
         verify(verifyStepMock, times(1)).verify();
     }
@@ -197,7 +197,7 @@ class TestCaseTest {
 
         final var verifyStepMock = mockTestBuildingChain(givenStepsMock, testFixtureMock, dslTestCase);
 
-        assertDynamicTestAndGetExecutable().run();
+        assertDynamicTestAndGetRunnable().run();
 
         verify(verifyStepMock, times(1)).verify();
     }
@@ -214,7 +214,7 @@ class TestCaseTest {
 
         final var verifyStepMock = mockTestBuildingChain(givenStepsMock, testFixtureMock, dslTestCase);
 
-        assertDynamicTestAndGetExecutable().run();
+        assertDynamicTestAndGetRunnable().run();
 
         verify(verifyStepMock, times(1)).verify();
     }
@@ -231,7 +231,7 @@ class TestCaseTest {
 
         final var verifyStepMock = mockTestBuildingChain(null, testFixtureMock, dslTestCase);
 
-        assertDynamicTestAndGetExecutable().run();
+        assertDynamicTestAndGetRunnable().run();
 
         verify(verifyStepMock, times(1)).verify();
     }
@@ -249,7 +249,7 @@ class TestCaseTest {
 
         final var verifyStepMock = mockTestBuildingChain(givenStepsMock, testFixtureMock, dslTestCase);
 
-        assertDynamicTestAndGetExecutable().run();
+        assertDynamicTestAndGetRunnable().run();
 
         verify(verifyStepMock, times(1)).verify();
     }
@@ -263,7 +263,10 @@ class TestCaseTest {
         mockGivenSteps(Collections.emptyList());
 
         when(stepConstructorMock.buildTestFixture(fixtureRegistrationsMock, testSuiteMock, environmentMock, false)).thenThrow(new SaplTestException("could not build fixture"));
-        final var exception = assertThrows(SaplTestException.class, () -> assertDynamicTestAndGetExecutable().run());
+
+        final var test = assertDynamicTestAndGetRunnable();
+
+        final var exception = assertThrows(SaplTestException.class, test::run);
 
         assertEquals("could not build fixture", exception.getMessage());
     }
@@ -280,7 +283,7 @@ class TestCaseTest {
 
         mockTestCaseWithTestException(dslTestCase);
 
-        assertDynamicTestAndGetExecutable().run();
+        assertDynamicTestAndGetRunnable().run();
 
         verify(stepConstructorMock, times(1)).constructWhenStep(givenStepsMock, testFixtureMock);
     }
@@ -297,7 +300,9 @@ class TestCaseTest {
 
         when(stepConstructorMock.constructWhenStep(givenStepsMock, testFixtureMock)).thenThrow(new SaplTestException("could not build fixture"));
 
-        final var exception = assertThrows(SaplTestException.class, () -> assertDynamicTestAndGetExecutable().run());
+        final var test = assertDynamicTestAndGetRunnable();
+
+        final var exception = assertThrows(SaplTestException.class, test::run);
 
         assertEquals("could not build fixture", exception.getMessage());
     }
@@ -316,7 +321,9 @@ class TestCaseTest {
         when(stepConstructorMock.constructWhenStep(givenStepsMock, testFixtureMock)).thenReturn(whenStepMock);
         when(stepConstructorMock.constructExpectStep(dslTestCase, whenStepMock)).thenThrow(new SaplTestException("could not build expectStep"));
 
-        final var exception = assertThrows(SaplTestException.class, () -> assertDynamicTestAndGetExecutable().run());
+        final var test = assertDynamicTestAndGetRunnable();
+
+        final var exception = assertThrows(SaplTestException.class, test::run);
 
         assertEquals("could not build expectStep", exception.getMessage());
     }
@@ -339,7 +346,9 @@ class TestCaseTest {
 
         when(stepConstructorMock.constructVerifyStep(dslTestCase, expectOrVerifyStepMock)).thenThrow(new SaplTestException("could not build verifyStep"));
 
-        final var exception = assertThrows(SaplTestException.class, () -> assertDynamicTestAndGetExecutable().run());
+        final var test = assertDynamicTestAndGetRunnable();
+
+        final var exception = assertThrows(SaplTestException.class, test::run);
 
         assertEquals("could not build verifyStep", exception.getMessage());
     }
@@ -365,7 +374,9 @@ class TestCaseTest {
 
         doThrow(new SaplTestException("could not verify")).when(verifyStepMock).verify();
 
-        final var exception = assertThrows(SaplTestException.class, () -> assertDynamicTestAndGetExecutable().run());
+        final var test = assertDynamicTestAndGetRunnable();
+
+        final var exception = assertThrows(SaplTestException.class, test::run);
 
         assertEquals("could not verify", exception.getMessage());
     }

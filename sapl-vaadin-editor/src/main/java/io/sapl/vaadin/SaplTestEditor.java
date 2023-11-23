@@ -52,7 +52,7 @@ public class SaplTestEditor extends BaseEditor {
 	@ClientCallable
 	protected void onValidation(JsonArray jsonIssues) {
 		int         length = jsonIssues.length();
-		List<Issue> issues = new ArrayList<Issue>(length);
+		List<Issue> issues = new ArrayList<>(length);
 		for (int i = 0; i < length; i++) {
 			JsonObject jsonIssue = jsonIssues.getObject(i);
 			Issue      issue     = new Issue(jsonIssue);

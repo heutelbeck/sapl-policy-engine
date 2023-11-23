@@ -18,9 +18,13 @@ import io.sapl.test.dsl.setup.TestProvider;
 import io.sapl.test.grammar.sAPLTest.SAPLTest;
 import io.sapl.test.utils.DocumentHelper;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -119,29 +123,16 @@ class BaseTestAdapterTest {
         assertEquals("file does not exist", exception.getMessage());
     }
 
-    @Test
-    void createTest_withNullIdentifier_throwsSaplTestException() {
-        buildInstanceOfBaseTestAdapterWithDefaultConstructor();
-
-        final var exception = assertThrows(SaplTestException.class, () -> baseTestAdapter.createTest(null, "foo"));
-
-        assertEquals("identifier or input is null", exception.getMessage());
+    private static Stream<Arguments> invalidInputCombinationsArgumentSource() {
+        return Stream.of(Arguments.of(null, "foo"), Arguments.of("identifier", null), Arguments.of(null, null));
     }
 
-    @Test
-    void createTest_withNullInput_throwsSaplTestException() {
+    @ParameterizedTest
+    @MethodSource("invalidInputCombinationsArgumentSource")
+    void createTest_withInvalidInputCombinations_throwsSaplTestException(String identifier, String input) {
         buildInstanceOfBaseTestAdapterWithDefaultConstructor();
 
-        final var exception = assertThrows(SaplTestException.class, () -> baseTestAdapter.createTest("identifier", null));
-
-        assertEquals("identifier or input is null", exception.getMessage());
-    }
-
-    @Test
-    void createTest_withNullIdentifierAndNullInput_throwsSaplTestException() {
-        buildInstanceOfBaseTestAdapterWithDefaultConstructor();
-
-        final var exception = assertThrows(SaplTestException.class, () -> baseTestAdapter.createTest(null, null));
+        final var exception = assertThrows(SaplTestException.class, () -> baseTestAdapter.createTest(identifier, input));
 
         assertEquals("identifier or input is null", exception.getMessage());
     }
