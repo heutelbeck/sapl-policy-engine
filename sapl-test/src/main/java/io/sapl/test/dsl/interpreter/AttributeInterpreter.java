@@ -21,12 +21,12 @@ public class AttributeInterpreter {
     private final DurationInterpreter durationInterpreter;
 
     GivenOrWhenStep interpretAttribute(final GivenOrWhenStep initial, final Attribute attribute) {
-        final var importName = attribute.getImportName();
+        final var importName = attribute.getName();
 
-        if (attribute.getReturn() == null || attribute.getReturn().isEmpty()) {
+        if (attribute.getReturnValue() == null || attribute.getReturnValue().isEmpty()) {
             return initial.givenAttribute(importName);
         } else {
-            final var values = attribute.getReturn().stream().map(valInterpreter::getValFromValue).toArray(Val[]::new);
+            final var values = attribute.getReturnValue().stream().map(valInterpreter::getValFromValue).toArray(Val[]::new);
 
             final var dslDuration = attribute.getDuration();
 
@@ -41,10 +41,10 @@ public class AttributeInterpreter {
     }
 
     GivenOrWhenStep interpretAttributeWithParameters(final GivenOrWhenStep initial, final AttributeWithParameters attributeWithParameters) {
-        final var importName = attributeWithParameters.getImportName();
+        final var importName = attributeWithParameters.getName();
 
         final var parentValueMatcher = matcherInterpreter.getHamcrestValMatcher(attributeWithParameters.getParentMatcher());
-        final var returnValue = valInterpreter.getValFromValue(attributeWithParameters.getReturn());
+        final var returnValue = valInterpreter.getValFromValue(attributeWithParameters.getReturnValue());
 
         final var arguments = attributeWithParameters.getParameters();
 

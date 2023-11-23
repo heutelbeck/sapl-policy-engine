@@ -13,7 +13,7 @@ import io.sapl.test.grammar.sAPLTest.JsonNodeMatcher;
 import io.sapl.test.grammar.sAPLTest.PlainString;
 import io.sapl.test.grammar.sAPLTest.StringMatcher;
 import io.sapl.test.grammar.sAPLTest.ValMatcher;
-import io.sapl.test.grammar.sAPLTest.ValWithErrorString;
+import io.sapl.test.grammar.sAPLTest.ValWithError;
 import io.sapl.test.grammar.sAPLTest.ValWithMatcher;
 import io.sapl.test.grammar.sAPLTest.ValWithValue;
 import io.sapl.test.grammar.sAPLTest.Value;
@@ -117,7 +117,7 @@ class ValMatcherInterpreterTest {
 
     @Test
     void getHamcrestValMatcher_forValWithErrorStringAndNullMatcher_returnsAnyValErrorMatcher() {
-        final var valWithErrorString = mock(ValWithErrorString.class);
+        final var valWithErrorString = mock(ValWithError.class);
 
         when(valWithErrorString.getError()).thenReturn(null);
 
@@ -131,7 +131,7 @@ class ValMatcherInterpreterTest {
 
     @Test
     void getHamcrestValMatcher_forValWithErrorStringAndStringMatcher_returnsValErrorWithStringMatcher() {
-        final var valWithErrorString = mock(ValWithErrorString.class);
+        final var valWithErrorString = mock(ValWithError.class);
 
         final var stringMatcher = mock(StringMatcher.class);
         when(valWithErrorString.getError()).thenReturn(stringMatcher);
@@ -150,12 +150,12 @@ class ValMatcherInterpreterTest {
 
     @Test
     void getHamcrestValMatcher_forValWithErrorStringAndPlainString_returnsValErrorMatcherWithMessage() {
-        final var valWithErrorString = mock(ValWithErrorString.class);
+        final var valWithErrorString = mock(ValWithError.class);
 
         final var stringMatcher = mock(PlainString.class);
         when(valWithErrorString.getError()).thenReturn(stringMatcher);
 
-        when(stringMatcher.getValue()).thenReturn("foo");
+        when(stringMatcher.getText()).thenReturn("foo");
 
         final var valErrorMock = mock(Matcher.class);
         saplMatchersMockedStatic.when(() -> io.sapl.hamcrest.Matchers.valError("foo")).thenReturn(valErrorMock);

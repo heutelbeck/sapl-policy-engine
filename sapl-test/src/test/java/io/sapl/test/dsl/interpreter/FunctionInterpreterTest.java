@@ -68,9 +68,9 @@ class FunctionInterpreterTest {
 
         @BeforeEach
         void setUp() {
-            when(functionMock.getImportName()).thenReturn("fooFunction");
+            when(functionMock.getName()).thenReturn("fooFunction");
 
-            when(functionMock.getReturn()).thenReturn(valMock);
+            when(functionMock.getReturnValue()).thenReturn(valMock);
 
             when(valInterpreterMock.getValFromValue(valMock)).thenReturn(saplValMock);
         }
@@ -234,7 +234,7 @@ class FunctionInterpreterTest {
         @Test
         void interpretFunctionInvokedOnce_handlesNullReturnValues_throwsSaplTestException() {
             final var functionInvokedOnceMock = mock(FunctionInvokedOnce.class);
-            when(functionInvokedOnceMock.getReturn()).thenReturn(null);
+            when(functionInvokedOnceMock.getReturnValue()).thenReturn(null);
 
             final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter.interpretFunctionInvokedOnce(givenOrWhenStepMock, functionInvokedOnceMock));
 
@@ -246,7 +246,7 @@ class FunctionInterpreterTest {
             final var functionInvokedOnceMock = mock(FunctionInvokedOnce.class);
 
             final var eListMock = Helper.mockEList(List.<Value>of());
-            when(functionInvokedOnceMock.getReturn()).thenReturn(eListMock);
+            when(functionInvokedOnceMock.getReturnValue()).thenReturn(eListMock);
 
             final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter.interpretFunctionInvokedOnce(givenOrWhenStepMock, functionInvokedOnceMock));
 
@@ -256,11 +256,11 @@ class FunctionInterpreterTest {
         @Test
         void interpretFunctionInvokedOnce_handlesSingleReturnValue_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
             final var functionInvokecOnceMock = mock(FunctionInvokedOnce.class);
-            when(functionInvokecOnceMock.getImportName()).thenReturn("fooFunction");
+            when(functionInvokecOnceMock.getName()).thenReturn("fooFunction");
 
             final var valMock = mock(Value.class);
             final var eListMock = Helper.mockEList(List.of(valMock));
-            when(functionInvokecOnceMock.getReturn()).thenReturn(eListMock);
+            when(functionInvokecOnceMock.getReturnValue()).thenReturn(eListMock);
 
             final var saplValMock = mock(io.sapl.api.interpreter.Val.class);
             when(valInterpreterMock.getValFromValue(valMock)).thenReturn(saplValMock);
@@ -275,12 +275,12 @@ class FunctionInterpreterTest {
         @Test
         void interpretFunctionInvokedOnce_handlesMultipleReturnValues_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
             final var functionInvokecOnceMock = mock(FunctionInvokedOnce.class);
-            when(functionInvokecOnceMock.getImportName()).thenReturn("fooFunction");
+            when(functionInvokecOnceMock.getName()).thenReturn("fooFunction");
 
             final var valMock = mock(Value.class);
             final var valMock2 = mock(Value.class);
             final var eListMock = Helper.mockEList(List.of(valMock, valMock2));
-            when(functionInvokecOnceMock.getReturn()).thenReturn(eListMock);
+            when(functionInvokecOnceMock.getReturnValue()).thenReturn(eListMock);
 
             final var saplValMock = mock(io.sapl.api.interpreter.Val.class);
             final var saplValMock2 = mock(io.sapl.api.interpreter.Val.class);

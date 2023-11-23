@@ -12,7 +12,7 @@ import io.sapl.test.grammar.sAPLTest.AnyVal;
 import io.sapl.test.grammar.sAPLTest.PlainString;
 import io.sapl.test.grammar.sAPLTest.StringMatcher;
 import io.sapl.test.grammar.sAPLTest.ValMatcher;
-import io.sapl.test.grammar.sAPLTest.ValWithErrorString;
+import io.sapl.test.grammar.sAPLTest.ValWithError;
 import io.sapl.test.grammar.sAPLTest.ValWithMatcher;
 import io.sapl.test.grammar.sAPLTest.ValWithValue;
 import lombok.RequiredArgsConstructor;
@@ -32,10 +32,10 @@ public class ValMatcherInterpreter {
             return anyVal();
         } else if (valMatcher instanceof ValWithMatcher valWithMatcherMatcher) {
             return val(jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(valWithMatcherMatcher.getMatcher()));
-        } else if (valMatcher instanceof ValWithErrorString valWithErrorStringMatcher) {
+        } else if (valMatcher instanceof ValWithError valWithErrorStringMatcher) {
             final var errorMatcher = valWithErrorStringMatcher.getError();
             if (errorMatcher instanceof PlainString plainString) {
-                return valError(plainString.getValue());
+                return valError(plainString.getText());
             } else if (errorMatcher instanceof StringMatcher stringMatcher) {
                 return valError(stringMatcherInterpreter.getHamcrestStringMatcher(stringMatcher));
             }

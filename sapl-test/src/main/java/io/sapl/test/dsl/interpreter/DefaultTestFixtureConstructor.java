@@ -41,10 +41,10 @@ public class DefaultTestFixtureConstructor {
                     final var library = functionLibraryInterpreter.getFunctionLibrary(saplFunctionLibrary.getLibrary());
                     fixture.registerFunctionLibrary(library);
                 } else if (fixtureRegistration instanceof CustomFunctionLibrary customFunctionLibrary) {
-                    final var functionLibrary = reflectionHelper.constructInstanceOfClass(customFunctionLibrary.getLibrary());
+                    final var functionLibrary = reflectionHelper.constructInstanceOfClass(customFunctionLibrary.getFqn());
                     fixture.registerFunctionLibrary(functionLibrary);
                 } else if (fixtureRegistration instanceof Pip pip) {
-                    final var customPip = reflectionHelper.constructInstanceOfClass(pip.getPip());
+                    final var customPip = reflectionHelper.constructInstanceOfClass(pip.getFqn());
                     fixture.registerPIP(customPip);
                 } else {
                     throw new SaplTestException("Unknown type of FixtureRegistration");

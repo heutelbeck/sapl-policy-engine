@@ -14,9 +14,9 @@ import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.TestNode;
 import io.sapl.test.grammar.sAPLTest.IntegrationTestSuite;
-import io.sapl.test.grammar.sAPLTest.PolicyFolder;
+import io.sapl.test.grammar.sAPLTest.PoliciesByIdentifier;
+import io.sapl.test.grammar.sAPLTest.PoliciesByInputString;
 import io.sapl.test.grammar.sAPLTest.PolicyResolverConfig;
-import io.sapl.test.grammar.sAPLTest.PolicySet;
 import io.sapl.test.grammar.sAPLTest.SAPLTest;
 import io.sapl.test.grammar.sAPLTest.TestCase;
 import io.sapl.test.grammar.sAPLTest.TestSuite;
@@ -192,10 +192,10 @@ class TestProviderTest {
 
             when(integrationTestSuite.getTestCases()).thenReturn(testCases);
 
-            final var policyFolderMock = mock(PolicyFolder.class);
-            when(integrationTestSuite.getConfig()).thenReturn(policyFolderMock);
+            final var policiesByIdentifierMock = mock(PoliciesByIdentifier.class);
+            when(integrationTestSuite.getConfig()).thenReturn(policiesByIdentifierMock);
 
-            when(policyFolderMock.getPolicyFolder()).thenReturn("policyFolder");
+            when(policiesByIdentifierMock.getIdentifier()).thenReturn("policyFolder");
 
             final var integrationTestSuiteTestContainer = mock(TestContainer.class);
             final var testNodes = mockTestContainerForName("policyFolder", integrationTestSuiteTestContainer);
@@ -218,11 +218,11 @@ class TestProviderTest {
 
             when(integrationTestSuite.getTestCases()).thenReturn(testCases);
 
-            final var policySetMock = mock(PolicySet.class);
-            when(integrationTestSuite.getConfig()).thenReturn(policySetMock);
+            final var policiesByInputStringMock = mock(PoliciesByInputString.class);
+            when(integrationTestSuite.getConfig()).thenReturn(policiesByInputStringMock);
 
             final var policiesMock = Helper.mockEList(List.of("name1", "foo/name2", "foo/subfoo/nested/policy3.sapl"));
-            when(policySetMock.getPolicies()).thenReturn(policiesMock);
+            when(policiesByInputStringMock.getPolicies()).thenReturn(policiesMock);
 
             final var integrationTestSuiteTestContainer = mock(TestContainer.class);
             final var testNodes = mockTestContainerForName("name1,foo/name2,foo/subfoo/nested/policy3.sapl", integrationTestSuiteTestContainer);
@@ -256,11 +256,11 @@ class TestProviderTest {
             when(integrationTestSuite.getTestCases()).thenReturn(integrationTestCases);
             when(unitTestSuiteMock.getTestCases()).thenReturn(unitTestCases);
 
-            final var policySetMock = mock(PolicySet.class);
-            when(integrationTestSuite.getConfig()).thenReturn(policySetMock);
+            final var policiesByInputStringMock = mock(PoliciesByInputString.class);
+            when(integrationTestSuite.getConfig()).thenReturn(policiesByInputStringMock);
 
             final var policiesMock = Helper.mockEList(List.of("name1", "foo/name2", "foo/subfoo/nested/policy3.sapl"));
-            when(policySetMock.getPolicies()).thenReturn(policiesMock);
+            when(policiesByInputStringMock.getPolicies()).thenReturn(policiesMock);
 
             final var integrationTestSuiteTestContainer = mock(TestContainer.class);
             final var actualIntegrationTestCases = mockTestContainerForName("name1,foo/name2,foo/subfoo/nested/policy3.sapl", integrationTestSuiteTestContainer);

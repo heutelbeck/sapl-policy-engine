@@ -7,8 +7,8 @@ import io.sapl.test.dsl.factories.SaplUnitTestFixtureFactory;
 import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
 import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
 import io.sapl.test.grammar.sAPLTest.IntegrationTestSuite;
-import io.sapl.test.grammar.sAPLTest.PolicyFolder;
-import io.sapl.test.grammar.sAPLTest.PolicySet;
+import io.sapl.test.grammar.sAPLTest.PoliciesByIdentifier;
+import io.sapl.test.grammar.sAPLTest.PoliciesByInputString;
 import io.sapl.test.grammar.sAPLTest.TestSuite;
 import io.sapl.test.grammar.sAPLTest.UnitTestSuite;
 import io.sapl.test.integration.SaplIntegrationTestFixture;
@@ -55,8 +55,8 @@ public class TestSuiteInterpreter {
         final var policyResolverConfig = integrationTestSuite.getConfig();
         SaplIntegrationTestFixture integrationTestFixture;
 
-        if (policyResolverConfig instanceof PolicyFolder policyFolderConfig) {
-            final var identifier = policyFolderConfig.getPolicyFolder();
+        if (policyResolverConfig instanceof PoliciesByIdentifier policiesByIdentifier) {
+            final var identifier = policiesByIdentifier.getIdentifier();
 
             if (customIntegrationTestPolicyResolver == null) {
                 integrationTestFixture = SaplIntegrationTestFixtureFactory.create(identifier);
@@ -64,12 +64,12 @@ public class TestSuiteInterpreter {
                 final var config = customIntegrationTestPolicyResolver.resolveConfigByIdentifier(identifier);
                 integrationTestFixture = SaplIntegrationTestFixtureFactory.createFromInputStrings(config.getDocumentInputStrings(), config.getPDPConfigInputString());
             }
-        } else if (policyResolverConfig instanceof PolicySet policySetConfig) {
+        } else if (policyResolverConfig instanceof PoliciesByInputString policiesByInputString) {
             if (customIntegrationTestPolicyResolver == null) {
-                integrationTestFixture = SaplIntegrationTestFixtureFactory.create(policySetConfig.getPdpConfig(), policySetConfig.getPolicies());
+                integrationTestFixture = SaplIntegrationTestFixtureFactory.create(policiesByInputString.getPdpConfig(), policiesByInputString.getPolicies());
             } else {
-                final var pdpConfig = customIntegrationTestPolicyResolver.resolvePDPConfigByIdentifier(policySetConfig.getPdpConfig());
-                final var policies = Objects.requireNonNullElse(policySetConfig.getPolicies(), Collections.<String>emptyList());
+                final var pdpConfig = customIntegrationTestPolicyResolver.resolvePDPConfigByIdentifier(policiesByInputString.getPdpConfig());
+                final var policies = Objects.requireNonNullElse(policiesByInputString.getPolicies(), Collections.<String>emptyList());
 
                 final var saplDocumentStrings = policies.stream().map(customIntegrationTestPolicyResolver::resolvePolicyByIdentifier).toList();
 

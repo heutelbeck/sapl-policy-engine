@@ -3,8 +3,8 @@ package io.sapl.test.dsl.setup;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.grammar.sAPLTest.IntegrationTestSuite;
-import io.sapl.test.grammar.sAPLTest.PolicyFolder;
-import io.sapl.test.grammar.sAPLTest.PolicySet;
+import io.sapl.test.grammar.sAPLTest.PoliciesByIdentifier;
+import io.sapl.test.grammar.sAPLTest.PoliciesByInputString;
 import io.sapl.test.grammar.sAPLTest.SAPLTest;
 import io.sapl.test.grammar.sAPLTest.TestSuite;
 import io.sapl.test.grammar.sAPLTest.UnitTestSuite;
@@ -49,10 +49,10 @@ public final class TestProvider {
             return unitTestSuite.getId();
         } else if (testSuite instanceof IntegrationTestSuite integrationTestSuite) {
             final var policyResolverConfig = integrationTestSuite.getConfig();
-            if (policyResolverConfig instanceof PolicyFolder policyFolderConfig) {
-                return policyFolderConfig.getPolicyFolder();
-            } else if (policyResolverConfig instanceof PolicySet policySet) {
-                return String.join(",", policySet.getPolicies());
+            if (policyResolverConfig instanceof PoliciesByIdentifier policiesByIdentifier) {
+                return policiesByIdentifier.getIdentifier();
+            } else if (policyResolverConfig instanceof PoliciesByInputString policiesByInputString) {
+                return String.join(",", policiesByInputString.getPolicies());
             } else {
                 throw new SaplTestException("Unknown type of PolicyResolverConfig");
             }

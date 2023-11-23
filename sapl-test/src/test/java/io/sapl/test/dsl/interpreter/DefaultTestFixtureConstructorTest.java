@@ -187,7 +187,7 @@ class DefaultTestFixtureConstructorTest {
             when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock, environmentMock)).thenReturn(testFixtureMock);
 
             final var customFunctionLibrary = mock(CustomFunctionLibrary.class);
-            when(customFunctionLibrary.getLibrary()).thenReturn("io.my.classpath.ClassName");
+            when(customFunctionLibrary.getFqn()).thenReturn("io.my.classpath.ClassName");
 
             when(reflectionHelperMock.constructInstanceOfClass("io.my.classpath.ClassName")).thenThrow(new RuntimeException("no class here"));
 
@@ -203,7 +203,7 @@ class DefaultTestFixtureConstructorTest {
             when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock, environmentMock)).thenReturn(testFixtureMock);
 
             final var customFunctionLibrary = mock(CustomFunctionLibrary.class);
-            when(customFunctionLibrary.getLibrary()).thenReturn("io.my.classpath.ClassName");
+            when(customFunctionLibrary.getFqn()).thenReturn("io.my.classpath.ClassName");
 
             final var libraryMock = mock(java.lang.Object.class);
             when(reflectionHelperMock.constructInstanceOfClass("io.my.classpath.ClassName")).thenReturn(libraryMock);
@@ -222,7 +222,7 @@ class DefaultTestFixtureConstructorTest {
             when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock, environmentMock)).thenReturn(testFixtureMock);
 
             final var customFunctionLibrary = mock(CustomFunctionLibrary.class);
-            when(customFunctionLibrary.getLibrary()).thenReturn("io.my.classpath.ClassName");
+            when(customFunctionLibrary.getFqn()).thenReturn("io.my.classpath.ClassName");
 
             final var libraryMock = mock(java.lang.Object.class);
             when(reflectionHelperMock.constructInstanceOfClass("io.my.classpath.ClassName")).thenReturn(libraryMock);
@@ -242,7 +242,7 @@ class DefaultTestFixtureConstructorTest {
             when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock, environmentMock)).thenReturn(testFixtureMock);
 
             final var pip = mock(Pip.class);
-            when(pip.getPip()).thenReturn("io.my.classpath.ClassName");
+            when(pip.getFqn()).thenReturn("io.my.classpath.ClassName");
 
             when(reflectionHelperMock.constructInstanceOfClass("io.my.classpath.ClassName")).thenThrow(new RuntimeException("no class here"));
 
@@ -258,7 +258,7 @@ class DefaultTestFixtureConstructorTest {
             when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock, environmentMock)).thenReturn(testFixtureMock);
 
             final var pip = mock(Pip.class);
-            when(pip.getPip()).thenReturn("io.my.classpath.ClassName");
+            when(pip.getFqn()).thenReturn("io.my.classpath.ClassName");
 
             final var pipMock = mock(java.lang.Object.class);
             when(reflectionHelperMock.constructInstanceOfClass("io.my.classpath.ClassName")).thenReturn(pipMock);
@@ -277,7 +277,7 @@ class DefaultTestFixtureConstructorTest {
             when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock, environmentMock)).thenReturn(testFixtureMock);
 
             final var pip = mock(Pip.class);
-            when(pip.getPip()).thenReturn("io.my.classpath.ClassName");
+            when(pip.getFqn()).thenReturn("io.my.classpath.ClassName");
 
             final var pipMock = mock(java.lang.Object.class);
             when(reflectionHelperMock.constructInstanceOfClass("io.my.classpath.ClassName")).thenReturn(pipMock);

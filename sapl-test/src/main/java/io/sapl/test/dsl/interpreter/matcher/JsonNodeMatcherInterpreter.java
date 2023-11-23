@@ -36,7 +36,7 @@ public class JsonNodeMatcherInterpreter {
         } else if (jsonNodeMatcher instanceof IsJsonText text) {
             final var stringOrMatcher = text.getText();
             if (stringOrMatcher instanceof PlainString plainString) {
-                return jsonText(plainString.getValue());
+                return jsonText(plainString.getText());
             } else if (stringOrMatcher instanceof StringMatcher stringMatcher) {
                 return jsonText(stringMatcherInterpreter.getHamcrestStringMatcher(stringMatcher));
             }

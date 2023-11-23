@@ -390,7 +390,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
             final var valueMatcherMock = mock(JsonNodeMatcher.class);
             when(objectWithKeyValueMatcherMock.getKey()).thenReturn("foo");
-            when(objectWithKeyValueMatcherMock.getValue()).thenReturn(valueMatcherMock);
+            when(objectWithKeyValueMatcherMock.getMatcher()).thenReturn(valueMatcherMock);
 
             when(jsonNodeMatcherInterpreterMock.getHamcrestJsonNodeMatcher(valueMatcherMock)).thenReturn(null);
 
@@ -412,7 +412,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
             final var valueMatcherMock = mock(JsonNodeMatcher.class);
             when(objectWithKeyValueMatcherMock.getKey()).thenReturn("foo");
-            when(objectWithKeyValueMatcherMock.getValue()).thenReturn(valueMatcherMock);
+            when(objectWithKeyValueMatcherMock.getMatcher()).thenReturn(valueMatcherMock);
 
             when(jsonNodeMatcherInterpreterMock.getHamcrestJsonNodeMatcher(valueMatcherMock)).thenReturn(null);
 
@@ -434,7 +434,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
             final var valueMatcherMock = mock(JsonNodeMatcher.class);
             when(objectWithKeyValueMatcherMock.getKey()).thenReturn("foo");
-            when(objectWithKeyValueMatcherMock.getValue()).thenReturn(valueMatcherMock);
+            when(objectWithKeyValueMatcherMock.getMatcher()).thenReturn(valueMatcherMock);
 
             final var jsonNodeMatcherMock = mock(Matcher.class);
             when(jsonNodeMatcherInterpreterMock.getHamcrestJsonNodeMatcher(valueMatcherMock)).thenReturn(jsonNodeMatcherMock);
@@ -457,7 +457,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
             final var valueMatcherMock = mock(JsonNodeMatcher.class);
             when(objectWithKeyValueMatcherMock.getKey()).thenReturn("foo");
-            when(objectWithKeyValueMatcherMock.getValue()).thenReturn(valueMatcherMock);
+            when(objectWithKeyValueMatcherMock.getMatcher()).thenReturn(valueMatcherMock);
 
             final var jsonNodeMatcherMock = mock(Matcher.class);
             when(jsonNodeMatcherInterpreterMock.getHamcrestJsonNodeMatcher(valueMatcherMock)).thenReturn(jsonNodeMatcherMock);

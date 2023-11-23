@@ -22,8 +22,8 @@ public class FunctionInterpreter {
     private final MultipleAmountInterpreter multipleAmountInterpreter;
 
     GivenOrWhenStep interpretFunction(final GivenOrWhenStep initial, final Function function) {
-        final var importName = function.getImportName();
-        final var returnValue = valInterpreter.getValFromValue(function.getReturn());
+        final var importName = function.getName();
+        final var returnValue = valInterpreter.getValFromValue(function.getReturnValue());
 
         var timesCalled = 0;
 
@@ -50,7 +50,7 @@ public class FunctionInterpreter {
     }
 
     GivenOrWhenStep interpretFunctionInvokedOnce(final GivenOrWhenStep initial, final FunctionInvokedOnce function) {
-        final var values = function.getReturn();
+        final var values = function.getReturnValue();
 
         if (values == null || values.isEmpty()) {
             throw new SaplTestException("No Value found");
@@ -58,7 +58,7 @@ public class FunctionInterpreter {
 
         final var returnValues = values.stream().map(valInterpreter::getValFromValue).toArray(Val[]::new);
 
-        final var importName = function.getImportName();
+        final var importName = function.getName();
 
         if (returnValues.length == 1) {
             return initial.givenFunctionOnce(importName, returnValues[0]);

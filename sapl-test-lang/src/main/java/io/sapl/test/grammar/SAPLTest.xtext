@@ -17,8 +17,8 @@ terminal MultipleAmount:
     (('2'..'9')|(('1'..'9')('0'..'9')+))'x';
 
 PolicyResolverConfig:
-    {PolicyFolder} 'using folder' policyFolder=STRING |
-    {PolicySet} 'using policies' policies+=STRING (',' policies+=STRING)+ ('with' 'pdp' 'config' pdpConfig=STRING)?;
+    {PoliciesByIdentifier} 'with' 'identifier' identifier=STRING |
+    {PoliciesByInputString} policies+=STRING (',' policies+=STRING)+ ('with' 'pdp' 'config' pdpConfig=STRING)?;
 
 CombiningAlgorithm:
 	  {DenyOverridesCombiningAlgorithm}     'deny-overrides'
@@ -38,7 +38,7 @@ JsonNodeMatcher:
     {IsJsonText} 'text' text=StringOrStringMatcher |
     {IsJsonNumber} 'number' (number=JSONNUMBER)? |
     {IsJsonBoolean} 'boolean' (value=BooleanLiteral)? |
-    {IsJsonMissing} 'json missing' |
+    {IsJsonMissing} 'missing' |
     {IsJsonArray} 'array' ('where' matcher=JsonArrayMatcher)? |
     {IsJsonObject} 'object' ('where' matcher=JsonObjectMatcher)?;
 
@@ -46,25 +46,25 @@ StringMatcher:
     {StringIsNull} 'null' |
     {StringIsBlank} 'blank' |
     {StringIsEmpty} 'empty' |
-    {StringIsNullOrEmpty} 'null or empty' |
-    {StringIsNullOrBlank} 'null or blank' |
-    {StringIsEqualWithCompressedWhiteSpace} 'equal to' value=STRING 'with' 'compressed whitespaces' |
-    {StringIsEqualIgnoringCase} 'equal to' value=STRING 'ignoring case' |
-    {StringMatchesRegex} 'matches regex' regex=STRING |
+    {StringIsNullOrEmpty} 'null-or-empty' |
+    {StringIsNullOrBlank} 'null-or-blank' |
+    {StringIsEqualWithCompressedWhiteSpace} 'equals' value=STRING 'with' 'compressed' 'whitespaces' |
+    {StringIsEqualIgnoringCase} 'equals' value=STRING 'ignoring' 'case' |
+    {StringMatchesRegex} 'matches' 'regex' regex=STRING |
     {StringStartsWith} 'starts' 'with' start=STRING caseInsensitive?='ignoring case' |
     {StringEndsWith} 'ends' 'with' end=STRING caseInsensitive?='ignoring case' |
     {StringContains} 'contains' value=STRING caseInsensitive?='ignoring case' |
-    {StringContainsInOrder} 'contains' substrings+=STRING (',' substrings+=STRING)* 'in order' |
-    {StringWithLength} 'has length of' length=JSONNUMBER;
+    {StringContainsInOrder} 'contains' substrings+=STRING (',' substrings+=STRING)* 'in' 'order' |
+    {StringWithLength} 'has' 'length' 'of' length=JSONNUMBER;
 
 StringOrStringMatcher:
-    {PlainString} value=STRING | StringMatcher;
+    {PlainString} text=STRING | StringMatcher;
 
 ValMatcher:
     {AnyVal} 'any' |
     {ValWithValue} value=Value |
     {ValWithMatcher} 'matching' matcher=JsonNodeMatcher |
-    {ValWithErrorString} 'with' 'error' (error=StringOrStringMatcher)?;
+    {ValWithError} 'with' 'error' (error=StringOrStringMatcher)?;
 
 DefaultObjectMatcher:
     {ObjectWithExactMatch} 'equals' object=Value |
@@ -72,7 +72,7 @@ DefaultObjectMatcher:
 
 ExtendedObjectMatcher:
     DefaultObjectMatcher |
-    {ObjectWithKeyValueMatcher} 'containing' 'key' key=STRING ('value' value=JsonNodeMatcher)?;
+    {ObjectWithKeyValueMatcher} 'containing' 'key' key=STRING ('value' matcher=JsonNodeMatcher)?;
 
 enum AuthorizationDecisionMatcherType:
     OBLIGATION='obligation' | ADVICE='advice';
@@ -93,8 +93,8 @@ FunctionParameters:
     matchers+=ValMatcher (',' matchers+=ValMatcher)*;
 
 FixtureRegistration:
-    {Pip} 'PIP' pip=STRING |
-    {CustomFunctionLibrary} 'custom' 'library' library=STRING |
+    {Pip} 'PIP' fqn=STRING |
+    {CustomFunctionLibrary} 'custom' 'library' fqn=STRING |
     {SaplFunctionLibrary} 'library' library=FunctionLibrary;
 
 AuthorizationSubscription:
@@ -135,10 +135,10 @@ UndefinedLiteral returns Value:
     {UndefinedLiteral} 'undefined' ;
 
 GivenStep:
-	{Function} 'function' importName=STRING ('called with' parameters=FunctionParameters)? 'returning' return=Value ('and' 'is' 'invoked' amount=NumericAmount)? |
-	{FunctionInvokedOnce} 'function' importName=STRING 'returns' return+=Value (',' return+=Value)* 'once' |
-	{Attribute} 'attribute' importName=STRING ('returns' return+=Value (',' return+=Value)* ('for' duration=Duration)?)? |
-	{AttributeWithParameters} 'attribute' importName=STRING 'with' 'parent' 'value' parentMatcher=ValMatcher ('and' 'parameters' parameters+=ValMatcher (',' parameters+=ValMatcher)+)? 'returns' return=Value |
+	{Function} 'function' name=STRING ('called with' parameters=FunctionParameters)? 'returning' returnValue=Value ('and' 'is' 'invoked' amount=NumericAmount)? |
+	{FunctionInvokedOnce} 'function' name=STRING 'returns' returnValue+=Value (',' returnValue+=Value)* 'once' |
+	{Attribute} 'attribute' name=STRING ('returns' returnValue+=Value (',' returnValue+=Value)* ('for' duration=Duration)?)? |
+	{AttributeWithParameters} 'attribute' name=STRING 'with' 'parent' 'value' parentMatcher=ValMatcher ('and' 'parameters' parameters+=ValMatcher (',' parameters+=ValMatcher)+)? 'returns' returnValue=Value |
 	{VirtualTime} 'virtual-time';
 
 WhenStep:
@@ -178,7 +178,7 @@ UnitTestSuite:
 	'}';
 
 IntegrationTestSuite:
-    config=PolicyResolverConfig 'integration' 'tests'
+    'test' 'set' 'of' 'policies' config=PolicyResolverConfig
     ('using variables' pdpVariables=Object)?
     ('using combining-algorithm' combiningAlgorithm=CombiningAlgorithm)?
     '{'

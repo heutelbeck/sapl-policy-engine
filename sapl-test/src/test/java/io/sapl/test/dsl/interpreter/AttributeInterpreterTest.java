@@ -50,8 +50,8 @@ class AttributeInterpreterTest {
         void interpretAttribute_whenReturnValueIsNull_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
             final var attributeMock = mock(Attribute.class);
 
-            when(attributeMock.getImportName()).thenReturn("fooAttribute");
-            when(attributeMock.getReturn()).thenReturn(null);
+            when(attributeMock.getName()).thenReturn("fooAttribute");
+            when(attributeMock.getReturnValue()).thenReturn(null);
             when(givenOrWhenStepMock.givenAttribute("fooAttribute")).thenReturn(givenOrWhenStepMock);
 
             final var result = attributeInterpreter.interpretAttribute(givenOrWhenStepMock, attributeMock);
@@ -63,8 +63,8 @@ class AttributeInterpreterTest {
         void interpretAttribute_whenReturnValueIsEmpty_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
             final var attributeMock = mock(Attribute.class);
             final var eListMock = Helper.mockEList(List.<Value>of());
-            when(attributeMock.getImportName()).thenReturn("fooAttribute");
-            when(attributeMock.getReturn()).thenReturn(eListMock);
+            when(attributeMock.getName()).thenReturn("fooAttribute");
+            when(attributeMock.getReturnValue()).thenReturn(eListMock);
             when(givenOrWhenStepMock.givenAttribute("fooAttribute")).thenReturn(givenOrWhenStepMock);
 
             final var result = attributeInterpreter.interpretAttribute(givenOrWhenStepMock, attributeMock);
@@ -79,8 +79,8 @@ class AttributeInterpreterTest {
             final var eListMock = Helper.mockEList(List.of(valMock));
             final var attributeMock = mock(Attribute.class);
 
-            when(attributeMock.getImportName()).thenReturn("fooAttribute");
-            when(attributeMock.getReturn()).thenReturn(eListMock);
+            when(attributeMock.getName()).thenReturn("fooAttribute");
+            when(attributeMock.getReturnValue()).thenReturn(eListMock);
 
             when(valInterpreterMock.getValFromValue(valMock)).thenReturn(saplValMock);
             when(attributeMock.getDuration()).thenReturn(null);
@@ -100,8 +100,8 @@ class AttributeInterpreterTest {
             final var attributeMock = mock(Attribute.class);
             final var durationMock = mock(io.sapl.test.grammar.sAPLTest.Duration.class);
 
-            when(attributeMock.getImportName()).thenReturn("fooAttribute");
-            when(attributeMock.getReturn()).thenReturn(eListMock);
+            when(attributeMock.getName()).thenReturn("fooAttribute");
+            when(attributeMock.getReturnValue()).thenReturn(eListMock);
             when(attributeMock.getDuration()).thenReturn(durationMock);
 
             when(valInterpreterMock.getValFromValue(valMock)).thenReturn(saplValMock);
@@ -128,7 +128,7 @@ class AttributeInterpreterTest {
         @BeforeEach
         void setUp() {
             attributeWithParametersMock = mock(AttributeWithParameters.class);
-            when(attributeWithParametersMock.getImportName()).thenReturn("fooAttribute");
+            when(attributeWithParametersMock.getName()).thenReturn("fooAttribute");
 
             parentMatcherMock = mock(ValMatcher.class);
             when(attributeWithParametersMock.getParentMatcher()).thenReturn(parentMatcherMock);
@@ -137,7 +137,7 @@ class AttributeInterpreterTest {
             when(matcherInterpreterMock.getHamcrestValMatcher(parentMatcherMock)).thenReturn(parentValueMatcherMock);
 
             returnValMock = mock(Value.class);
-            when(attributeWithParametersMock.getReturn()).thenReturn(returnValMock);
+            when(attributeWithParametersMock.getReturnValue()).thenReturn(returnValMock);
 
             returnValueMock = mock(io.sapl.api.interpreter.Val.class);
             when(valInterpreterMock.getValFromValue(returnValMock)).thenReturn(returnValueMock);

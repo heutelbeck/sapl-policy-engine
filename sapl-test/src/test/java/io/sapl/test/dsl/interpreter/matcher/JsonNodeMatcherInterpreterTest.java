@@ -123,7 +123,7 @@ class JsonNodeMatcherInterpreterTest {
         final var plainString = mock(PlainString.class);
         when(matcherMock.getText()).thenReturn(plainString);
 
-        when(plainString.getValue()).thenReturn("foo");
+        when(plainString.getText()).thenReturn("foo");
 
         jsonMatchersMockedStatic.when(() -> jsonText("foo")).thenReturn(jsonNodeMatcherMock);
 

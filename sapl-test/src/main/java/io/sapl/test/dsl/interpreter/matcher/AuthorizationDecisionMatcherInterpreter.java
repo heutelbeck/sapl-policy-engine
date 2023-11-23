@@ -100,7 +100,7 @@ public class AuthorizationDecisionMatcherInterpreter {
 
         if (extendedObjectMatcher instanceof ObjectWithKeyValueMatcher objectWithKeyValueMatcher) {
             final var key = objectWithKeyValueMatcher.getKey();
-            final var valueMatcher = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(objectWithKeyValueMatcher.getValue());
+            final var valueMatcher = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(objectWithKeyValueMatcher.getMatcher());
             if (valueMatcher == null) {
                 return switch (authorizationDecisionMatcherType) {
                     case OBLIGATION -> hasObligationContainingKeyValue(key);
