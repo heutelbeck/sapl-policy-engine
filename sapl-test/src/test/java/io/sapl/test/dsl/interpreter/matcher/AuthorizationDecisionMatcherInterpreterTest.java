@@ -15,9 +15,9 @@ import io.sapl.hamcrest.HasObligationContainingKeyValue;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interpreter.ValInterpreter;
 import io.sapl.test.grammar.sAPLTest.AnyDecision;
-import io.sapl.test.grammar.sAPLTest.AuthorizationDecision;
 import io.sapl.test.grammar.sAPLTest.AuthorizationDecisionMatcher;
 import io.sapl.test.grammar.sAPLTest.AuthorizationDecisionMatcherType;
+import io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType;
 import io.sapl.test.grammar.sAPLTest.DefaultObjectMatcher;
 import io.sapl.test.grammar.sAPLTest.ExtendedObjectMatcher;
 import io.sapl.test.grammar.sAPLTest.IsDecision;
@@ -90,7 +90,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
     @Test
     void getHamcrestAuthorizationDecisionMatcher_handlesIsDecisionPermit_returnsPermitMatcher() {
         final var isDecisionMock = mock(IsDecision.class);
-        when(isDecisionMock.getDecision()).thenReturn(AuthorizationDecision.PERMIT);
+        when(isDecisionMock.getDecision()).thenReturn(AuthorizationDecisionType.PERMIT);
 
         final var matcherMock = mock(Matcher.class);
         saplMatchersMockedStatic.when(io.sapl.hamcrest.Matchers::isPermit).thenReturn(matcherMock);
@@ -103,7 +103,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
     @Test
     void getHamcrestAuthorizationDecisionMatcher_handlesIsDecisionDeny_returnsDenyMatcher() {
         final var isDecisionMock = mock(IsDecision.class);
-        when(isDecisionMock.getDecision()).thenReturn(AuthorizationDecision.DENY);
+        when(isDecisionMock.getDecision()).thenReturn(AuthorizationDecisionType.DENY);
 
         final var matcherMock = mock(Matcher.class);
         saplMatchersMockedStatic.when(io.sapl.hamcrest.Matchers::isDeny).thenReturn(matcherMock);
@@ -116,7 +116,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
     @Test
     void getHamcrestAuthorizationDecisionMatcher_handlesIsDecisionIndeterminate_returnsIndeterminateMatcher() {
         final var isDecisionMock = mock(IsDecision.class);
-        when(isDecisionMock.getDecision()).thenReturn(AuthorizationDecision.INDETERMINATE);
+        when(isDecisionMock.getDecision()).thenReturn(AuthorizationDecisionType.INDETERMINATE);
 
         final var matcherMock = mock(Matcher.class);
         saplMatchersMockedStatic.when(io.sapl.hamcrest.Matchers::isIndeterminate).thenReturn(matcherMock);
@@ -129,7 +129,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
     @Test
     void getHamcrestAuthorizationDecisionMatcher_handlesIsDecisionNotApplicable_returnsNotApplicableMatcher() {
         final var isDecisionMock = mock(IsDecision.class);
-        when(isDecisionMock.getDecision()).thenReturn(AuthorizationDecision.NOT_APPLICABLE);
+        when(isDecisionMock.getDecision()).thenReturn(AuthorizationDecisionType.NOT_APPLICABLE);
 
         final var matcherMock = mock(Matcher.class);
         saplMatchersMockedStatic.when(io.sapl.hamcrest.Matchers::isNotApplicable).thenReturn(matcherMock);

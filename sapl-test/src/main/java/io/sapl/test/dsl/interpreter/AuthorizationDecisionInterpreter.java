@@ -15,7 +15,7 @@ public class AuthorizationDecisionInterpreter {
 
     private final ObjectMapper objectMapper;
 
-    AuthorizationDecision constructAuthorizationDecision(final io.sapl.test.grammar.sAPLTest.AuthorizationDecision decision, final Value resource, final List<Value> obligations, final List<Value> advice) {
+    AuthorizationDecision constructAuthorizationDecision(final io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType decision, final Value resource, final List<Value> obligations, final List<Value> advice) {
         var authorizationDecision = getAuthorizationDecisionFromDSL(decision);
 
         if (resource != null) {
@@ -54,7 +54,7 @@ public class AuthorizationDecisionInterpreter {
         return valArray;
     }
 
-    private AuthorizationDecision getAuthorizationDecisionFromDSL(final io.sapl.test.grammar.sAPLTest.AuthorizationDecision decision) {
+    private AuthorizationDecision getAuthorizationDecisionFromDSL(final io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType decision) {
         return switch (decision) {
             case PERMIT -> AuthorizationDecision.PERMIT;
             case DENY -> AuthorizationDecision.DENY;

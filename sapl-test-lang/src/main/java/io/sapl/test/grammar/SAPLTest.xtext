@@ -80,12 +80,12 @@ enum AuthorizationDecisionMatcherType:
 enum FunctionLibrary:
 	FILTER='FilterFunctionLibrary' | LOGGING='LoggingFunctionLibrary' | STANDARD='StandardFunctionLibrary' | TEMPORAL='TemporalFunctionLibrary';
 
-enum AuthorizationDecision:
+enum AuthorizationDecisionType:
 	PERMIT='permit' | DENY='deny' | INDETERMINATE='indeterminate' | NOT_APPLICABLE='notApplicable';
 
 AuthorizationDecisionMatcher:
     {AnyDecision} 'any' |
-    {IsDecision} 'is' decision=AuthorizationDecision |
+    {IsDecision} 'is' decision=AuthorizationDecisionType |
     {HasObligationOrAdvice} 'with' type=AuthorizationDecisionMatcherType (matcher=ExtendedObjectMatcher)? |
     {HasResource} 'with' 'resource' (matcher=DefaultObjectMatcher)?;
 
@@ -148,7 +148,8 @@ ExpectOrAdjustmentStep:
     ExpectStep | AdjustmentStep;
 
 ExpectStep returns ExpectOrAdjustmentStep:
-	{Next} 'expect' expectedDecision=AuthorizationDecision amount=NumericAmount |
+	{Next} 'expect' expectedDecision=AuthorizationDecisionType amount=NumericAmount |
+	{NextWithDecision} 'expect' 'decision' expectedDecision=AuthorizationDecision |
 	{NextWithMatcher} 'expect' 'decision' matcher+=AuthorizationDecisionMatcher (',' matcher+=AuthorizationDecisionMatcher)* |
 	{NoEvent} 'expect' 'no-event' 'for' duration=Duration;
 
@@ -156,8 +157,12 @@ AdjustmentStep returns ExpectOrAdjustmentStep:
     {AttributeAdjustment} 'let' attribute=STRING 'return' returnValue=Value |
 	{Await} 'wait' 'for' duration=Duration;
 
+AuthorizationDecision:
+    decision=AuthorizationDecisionType ('with' 'obligations' obligations+=Value (',' obligations+=Value)*)? ('with' 'resource' resource=Value)? ('with' 'advice' advice+=Value (',' advice+=Value)*)?;
+
 ExpectChain:
-	{SingleExpect} 'expect' 'single' decision=AuthorizationDecision ('with' 'obligations' obligations+=Value (',' obligations+=Value)*)? ('with' 'resource' resource=Value)? ('with' 'advice' advice+=Value (',' advice+=Value)*)?|
+	{SingleExpect} 'expect' 'single' decision=AuthorizationDecision |
+	{SingleExpectWithMatcher} 'expect' 'single' 'decision' 'matching' matcher=AuthorizationDecisionMatcher |
 	{TestException} 'expect' 'exception' |
 	{RepeatedExpect} ('-' expectSteps+=ExpectOrAdjustmentStep)+;
 

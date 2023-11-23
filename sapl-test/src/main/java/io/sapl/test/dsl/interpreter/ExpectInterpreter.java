@@ -9,13 +9,14 @@ import io.sapl.test.grammar.sAPLTest.AttributeAdjustment;
 import io.sapl.test.grammar.sAPLTest.Await;
 import io.sapl.test.grammar.sAPLTest.Multiple;
 import io.sapl.test.grammar.sAPLTest.Next;
+import io.sapl.test.grammar.sAPLTest.NextWithDecision;
 import io.sapl.test.grammar.sAPLTest.NextWithMatcher;
 import io.sapl.test.grammar.sAPLTest.NoEvent;
 import io.sapl.test.grammar.sAPLTest.RepeatedExpect;
 import io.sapl.test.grammar.sAPLTest.SingleExpect;
+import io.sapl.test.grammar.sAPLTest.SingleExpectWithMatcher;
 import io.sapl.test.steps.ExpectOrVerifyStep;
 import io.sapl.test.steps.VerifyStep;
-import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.hamcrest.Matcher;
 
@@ -29,16 +30,30 @@ public class ExpectInterpreter {
     private final MultipleAmountInterpreter multipleAmountInterpreter;
 
     VerifyStep interpretSingleExpect(final ExpectOrVerifyStep expectOrVerifyStep, final SingleExpect singleExpect) {
-        final var decision = singleExpect.getDecision();
-        final var obligations = singleExpect.getObligations();
-        final var resource = singleExpect.getResource();
-        final var advice = singleExpect.getAdvice();
+        final var dslAuthorizationDecision = singleExpect.getDecision();
 
-        final var authorizationDecision = authorizationDecisionInterpreter.constructAuthorizationDecision(decision, resource, obligations, advice);
+        final var authorizationDecision = getAuthorizationDecisionFromDSLAuthorizationDecision(dslAuthorizationDecision);
 
         return expectOrVerifyStep.expect(authorizationDecision);
     }
 
+    VerifyStep interpretSingleExpectWithMatcher(final ExpectOrVerifyStep expectOrVerifyStep, final SingleExpectWithMatcher singleExpectWithMatcher) {
+        final var dslAuthorizationDecisionMatcher = singleExpectWithMatcher.getMatcher();
+
+        final var matcher = authorizationDecisionMatcherInterpreter.getHamcrestAuthorizationDecisionMatcher(dslAuthorizationDecisionMatcher);
+
+        return expectOrVerifyStep.expect(matcher);
+    }
+
+
+    private AuthorizationDecision getAuthorizationDecisionFromDSLAuthorizationDecision(final io.sapl.test.grammar.sAPLTest.AuthorizationDecision authorizationDecision) {
+        final var decision = authorizationDecision.getDecision();
+        final var resource = authorizationDecision.getResource();
+        final var obligations = authorizationDecision.getObligations();
+        final var advice = authorizationDecision.getAdvice();
+
+        return authorizationDecisionInterpreter.constructAuthorizationDecision(decision, resource, obligations, advice);
+    }
 
     VerifyStep interpretRepeatedExpect(ExpectOrVerifyStep expectOrVerifyStep, final RepeatedExpect repeatedExpect) {
         final var expectOrAdjustmentSteps = repeatedExpect.getExpectSteps();
@@ -50,6 +65,9 @@ public class ExpectInterpreter {
         for (var expectOrAdjustmentStep : expectOrAdjustmentSteps) {
             if (expectOrAdjustmentStep instanceof Next nextExpect) {
                 expectOrVerifyStep = constructNext(expectOrVerifyStep, nextExpect);
+            } else if (expectOrAdjustmentStep instanceof NextWithDecision nextWithDecision) {
+                final var dslAuthorizationDecision = nextWithDecision.getExpectedDecision();
+                expectOrVerifyStep = constructNextWithDecision(expectOrVerifyStep, dslAuthorizationDecision);
             } else if (expectOrAdjustmentStep instanceof NextWithMatcher nextWithMatcher) {
                 expectOrVerifyStep = constructNextWithMatcher(expectOrVerifyStep, nextWithMatcher);
             } else if (expectOrAdjustmentStep instanceof AttributeAdjustment attributeAdjustment) {
@@ -84,12 +102,18 @@ public class ExpectInterpreter {
             return expectOrVerifyStep;
         }
 
-        final var actualMatchers = matchers.stream().map(authorizationDecisionMatcherInterpreter::getHamcrestAuthorizationDecisionMatcher).filter(Objects::nonNull).<Matcher<AuthorizationDecision>>toArray(Matcher[]::new);
+        final var actualMatchers = matchers.stream().map(authorizationDecisionMatcherInterpreter::getHamcrestAuthorizationDecisionMatcher).<Matcher<AuthorizationDecision>>toArray(Matcher[]::new);
 
-        return switch (actualMatchers.length) {
-            case 0 -> expectOrVerifyStep;
-            case 1 -> expectOrVerifyStep.expectNext(actualMatchers[0]);
-            default -> expectOrVerifyStep.expectNext(allOf(actualMatchers));
-        };
+        return expectOrVerifyStep.expectNext(actualMatchers.length == 1 ? actualMatchers[0] : allOf(actualMatchers));
+    }
+
+    private ExpectOrVerifyStep constructNextWithDecision(final ExpectOrVerifyStep expectOrVerifyStep, final io.sapl.test.grammar.sAPLTest.AuthorizationDecision dslAuthorizationDecision) {
+        if (dslAuthorizationDecision == null) {
+            return expectOrVerifyStep;
+        }
+
+        final var authorizationDecision = getAuthorizationDecisionFromDSLAuthorizationDecision(dslAuthorizationDecision);
+
+        return expectOrVerifyStep.expectNext(authorizationDecision);
     }
 }

@@ -10,6 +10,7 @@ import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sAPLTest.ExpectChain;
 import io.sapl.test.grammar.sAPLTest.RepeatedExpect;
 import io.sapl.test.grammar.sAPLTest.SingleExpect;
+import io.sapl.test.grammar.sAPLTest.SingleExpectWithMatcher;
 import io.sapl.test.grammar.sAPLTest.TestCase;
 import io.sapl.test.steps.ExpectOrVerifyStep;
 import io.sapl.test.steps.VerifyStep;
@@ -63,6 +64,22 @@ class DefaultVerifyStepConstructorTest {
 
         final var verifyStepMock = mock(VerifyStep.class);
         when(expectInterpreterMock.interpretSingleExpect(expectOrVerifyStepMock, singleExpectMock)).thenReturn(verifyStepMock);
+
+        final var result = verifyStepBuilderServiceDefault.constructVerifyStep(testCaseMock, expectOrVerifyStepMock);
+
+        assertEquals(verifyStepMock, result);
+    }
+
+    @Test
+    void constructVerifyStep_interpretsSingleExpectWithMatcher_returnsVerifyStep() {
+        final var testCaseMock = mock(TestCase.class);
+        final var singleExpectWithMatcher = mock(SingleExpectWithMatcher.class);
+
+        when(testCaseMock.getExpect()).thenReturn(singleExpectWithMatcher);
+        final var expectOrVerifyStepMock = mock(ExpectOrVerifyStep.class);
+
+        final var verifyStepMock = mock(VerifyStep.class);
+        when(expectInterpreterMock.interpretSingleExpectWithMatcher(expectOrVerifyStepMock, singleExpectWithMatcher)).thenReturn(verifyStepMock);
 
         final var result = verifyStepBuilderServiceDefault.constructVerifyStep(testCaseMock, expectOrVerifyStepMock);
 
