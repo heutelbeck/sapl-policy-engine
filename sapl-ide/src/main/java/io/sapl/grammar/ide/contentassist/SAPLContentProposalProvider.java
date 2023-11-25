@@ -19,7 +19,6 @@ package io.sapl.grammar.ide.contentassist;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -34,17 +33,12 @@ import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistEntry;
 import org.eclipse.xtext.ide.editor.contentassist.IIdeContentProposalAcceptor;
 import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
-import org.eclipse.xtext.nodemodel.INode;
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 
-import io.sapl.grammar.sapl.Condition;
 import io.sapl.grammar.sapl.Import;
 import io.sapl.grammar.sapl.LibraryImport;
-import io.sapl.grammar.sapl.PolicyBody;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.SaplPackage;
-import io.sapl.grammar.sapl.ValueDefinition;
 import io.sapl.grammar.sapl.WildcardImport;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;

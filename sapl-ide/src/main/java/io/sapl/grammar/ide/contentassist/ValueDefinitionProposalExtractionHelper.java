@@ -96,10 +96,6 @@ public class ValueDefinitionProposalExtractionHelper {
     }
 
     public List<String> getAttributeProposals() {
-/*        List<String> proposalsWithPrefix = new LinkedList<>();
-        String identifier = "";
-        var model = context.getCurrentModel();*/
-        //List<String> proposals = new LinkedList<>(attributeContext.getAttributeCodeTemplates());
         List<String> proposals = new LinkedList<>();
         var schemaProposals = new SchemaProposals(variablesAndCombinatorSource);
         var allSchemas      = attributeContext.getAttributeSchemas();
@@ -116,29 +112,6 @@ public class ValueDefinitionProposalExtractionHelper {
                 }
             }
         }
-
-/*        if (!(model instanceof PolicyBody)) {
-            model = TreeNavigationHelper.goToFirstParent(model, PolicyBody.class);
-        }
-
-        if (model instanceof PolicyBody policyBody) {
-            var statements = policyBody.getStatements();
-
-            for (var aStatement : statements) {
-                if (aStatement instanceof Condition condition) {
-                    var expression = condition.getExpression();
-                    if (expression instanceof BasicIdentifier basicIdentifier) {
-                        identifier = basicIdentifier.getIdentifier();
-                    }
-                } else if (aStatement instanceof ValueDefinition valueDefinition && valueDefinition.getEval() instanceof BasicIdentifier basicIdentifier) {
-                    identifier = basicIdentifier.getIdentifier();
-                }
-            }
-        }
-
-        for (var proposal : proposals){
-            proposalsWithPrefix.add(identifier.concat(".").concat(proposal));
-        }*/
         return proposals;
     }
 
