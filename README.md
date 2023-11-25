@@ -1,62 +1,169 @@
-[![Build Status](https://github.com/heutelbeck/sapl-policy-engine/actions/workflows/build_master.yml/badge.svg)](https://github.com/heutelbeck/sapl-policy-engine/actions/workflows/build_master.yml)
-[![SonarCloud Status](https://sonarcloud.io/api/project_badges/measure?project=heutelbeck_sapl-policy-engine&metric=alert_status)](https://sonarcloud.io/dashboard?id=heutelbeck_sapl-policy-engine)
-[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=heutelbeck_sapl-policy-engine&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=heutelbeck_sapl-policy-engine)
-[![Maven Central](https://img.shields.io/maven-central/v/io.sapl/sapl-lang)](https://mvnrepository.com/artifact/io.sapl)
-[![Maven Snapshots](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Fs01.oss.sonatype.org%2Fcontent%2Frepositories%2Fsnapshots%2Fio%2Fsapl%2Fsapl-policy-engine%2Fmaven-metadata.xml)](https://s01.oss.sonatype.org/content/repositories/snapshots/io/sapl/)
-[![Discord](https://img.shields.io/discord/988472137306222654)](https://discord.gg/pRXEVWm3xM)
+<!-- PROJECT LOGO -->
+<br />
+<div align="center">
+  <a href="https://github.com/heutelbeck/sapl-policy-engine">
+    <img src="https://sapl.io/assets/logo-header-45.png" alt="Logo" >
+  </a>
 
-# The Streaming Attribute Policy Language (SAPL) Engine
+<h3 align="center">SAPL</h3>
 
-The Streaming Attribute Policy Language (SAPL) is a domain specific language for expressing access control policies following the attribute-based access control (ABAC) and attribute stream-based access control (ASBAC) patterns. Together with the its engine it allows to implement complex access control models. The SAPL Engine provides an implementation of SAPL, ABAC, and ASBAC to be used in application development. 
+  <p align="center">
+    The Streaming Attribute Policy Language and Engine
+    <br />
+    <a href="https://sapl.io/"><strong>Explore our website »</strong></a>
+    <br />
+    <br />
+    <a href="https://playground.sapl.io/">Playground</a>
+    ·
+    <a href="https://github.com/heutelbeck/sapl-demos">Demos</a>
+    ·
+    <a href="https://github.com/heutelbeck/sapl-policy-engine/issues">Report an issue</a>
+    ·
+    <a href="https://github.com/heutelbeck/sapl-policy-engine/issues">Discord</a>
+  </p>
+</div>
 
-## Maven Dependencies
+<!-- PROJECT SHIELDS -->
+[![Build Status][build-status-shield]][build-status-url]
+[![SonarCloud Status][sonarcloud-status-shield]][sonarcloud-status-url]
+[![Security Rating][security-rating-shield]][security-rating-url]
+[![Maven Central][maven-central-shield]][maven-central-url]
+[![Maven Snapshots][snapshot-shield]][snapshot-url]
 
-### Add the Maven Central snapshot repository to your `pom.xml`, if you want to use SNAPSHOT versions of the engine:
+
+<!-- ABOUT THE PROJECT -->
+## About The Project
+
+The reactive open source engine for adding Attribute-Based Access Control (ABAC) to your Java applications, supporting attribute streams for efficient interactive real-time access control.
+
+SAPL is a powerful policy language and engine for implementing ABAC. It comes with development tools for testing, authorization servers and authoring tools. Framework integrations are available for Spring, Axon and Vaadin to provide flexible policy enforcement points (PEPs) in your application.
+
+For an explanation, overview and documentation about the SAPL project look up our [website][website-url].
+
+<!-- GETTING STARTED -->
+## Getting Started
+
+To get started with integrating SAPL into your Java application, add the following reference to your build tool project definition.
+
+**We recommend to use the [SNAPSHOT](#snapshots) version as the latest stable version is outdated.**
+
+**Maven**
 
 ```xml
-  <repositories>
-    <repository>
-      <id>ossrh</id>
-      <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-    </repository>
-  </repositories>
+<dependency>
+  <groupId>io.sapl</groupId>
+  <artifactId>sapl-pdp-embedded</artifactId>
+  <version>2.0.1</version>
+</dependency>
 ```
 
-### SAPL requires Java 17 or later
+**Gradle**
 
-```xml
-  <properties>
-    <java.version>17</java.version>
-    <maven.compiler.source>${java.version}</maven.compiler.source>
-    <maven.compiler.target>${java.version}</maven.compiler.target>
-  </properties>
+```gradle
+dependencies {
+  implementation 'io.sapl:sapl-pdp-embedded:2.0.1'
+}
 ```
 
-### Add a SAPL dependency to your application. When using Maven you can add the following dependencies to your project's `pom.xml`:
+This enables you to use the interface `PolicyDecisionPoint` to decide about requests.
+
+Want to integrate and understand the full scale of capabilities of SAPL? Visit our [website][website-url].
+
+Want to see examples for integration? View our dedicated [demos](#want-to-integrate-sapl).
+
+Feeling experimental? Use our [snapshots](#snapshots) for the newest development state!
+
+<!-- DEMOS -->
+## Want to integrate SAPL?
+
+SAPL supports different integration scenarios, which are partially described on our [website][website-url].
+
+If you want to see examples, view our [demo repository][demos-url] to give you a gist about how you could integrate SAPL.
+
+<!-- CONTRIBUTING -->
+## Want to contribute to SAPL?
+
+Any contributions you make are **greatly appreciated**.
+
+See our [Contribution document](CONTRIBUTING.md) for more detailed information on how to contribute.
+
+<!-- SECURITY -->
+## Found a vulnerability?
+
+The project is commited to identifying and eliminating any potential weaknesses in its security.
+
+See our [Security document](SECURITY.md) for more detailed information on how to report vulnerabilities.
+
+<!-- SNAPSHOTS REFERENCE -->
+## Snapshots
+
+This projects provides snapshots of the newest development state to enable testing and integration.
+
+**Be careful when using snapshots as they may be broken!**
+
+To add snapshot references to your project add the following references to your build tool project definition.
+
+**Maven**
 
 ```xml
+<repositories>
+  <repository>
+    <id>ossrh</id>
+    <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+    <snapshots>
+      <enabled>true</enabled>
+    </snapshots>
+  </repository>
+</repositories>
+...
+<dependencies>
   <dependency>
     <groupId>io.sapl</groupId>
-    <artifactId>sapl-pdp-embedded</artifactId>
+    <artifactId>sapl-{package}</artifactId>
     <version>3.0.0-SNAPSHOT</version>
   </dependency>
+</dependencies>
 ```
 
-### If you plan to use more SAPL dependencies, a useful bill of materials POM is offered, centralizing the dependency management for SAPL artifacts:
+**Gradle**
 
-```xml
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>io.sapl</groupId>
-        <artifactId>sapl-bom</artifactId>
-        <version>3.0.0-SNAPSHOT</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
+```gradle
+repositories {
+  maven {
+    url = uri("https://s01.oss.sonatype.org/content/repositories/snapshots")
+  }
+}
+
+dependencies {
+  implementation 'io.sapl:sapl-{package}3.0.0-SNAPSHOT'
+}
 ```
+
+**You need to replace `{package}` with the designated project!**
+
+
+<!-- CODE OF CONDUCT -->
+## Code of Conduct
+
+This project has adopted a [Code of Conduct](CODE_OF_CONDUCT.md) and it will be enforced in any communication.
+
+<!-- LICENSE -->
+## License
+
+Distributed under the Apache 2.0 License. See [LICENSE.md](./LICENSE.md) for more information.
+
+<!-- MARKDOWN LINKS & IMAGES -->
+<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+[build-status-shield]: https://github.com/heutelbeck/sapl-policy-engine/actions/workflows/build_master.yml/badge.svg
+[build-status-url]: https://github.com/heutelbeck/sapl-policy-engine/actions/workflows/build_master.yml
+[sonarcloud-status-shield]: https://sonarcloud.io/api/project_badges/measure?project=heutelbeck_sapl-policy-engine&metric=alert_status
+[sonarcloud-status-url]: https://sonarcloud.io/dashboard?id=heutelbeck_sapl-policy-engine
+[security-rating-shield]: https://sonarcloud.io/api/project_badges/measure?project=heutelbeck_sapl-policy-engine&metric=security_rating
+[security-rating-url]: https://sonarcloud.io/summary/new_code?id=heutelbeck_sapl-policy-engine
+[maven-central-shield]: https://img.shields.io/maven-central/v/io.sapl/sapl-lang
+[maven-central-url]: https://mvnrepository.com/artifact/io.sapl
+[snapshot-shield]: https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Fs01.oss.sonatype.org%2Fcontent%2Frepositories%2Fsnapshots%2Fio%2Fsapl%2Fsapl-policy-engine%2Fmaven-metadata.xml
+[snapshot-url]: https://s01.oss.sonatype.org/content/repositories/snapshots/io/sapl
+
+[website-url]: https://sapl.io
+[demos-url]: https://github.com/heutelbeck/sapl-demos
