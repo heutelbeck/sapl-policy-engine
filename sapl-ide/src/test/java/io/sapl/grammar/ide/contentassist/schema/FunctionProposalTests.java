@@ -159,15 +159,15 @@ class FunctionProposalTests extends CompletionTests {
                     policy "test" deny where
                     var foo = schemaTest.cat""";
 
-            String cursor = "var foo = schemaTest";
+            String cursor = "var foo = schemaTest.cat";
             it.setModel(policy);
             it.setLine(1);
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("schemaTest.dog()", "schemaTest.dog().race", "schemaTest.food(String species)",
+                var unwanted = List.of("schemaTest.dog()", "schemaTest.dog().race", "schemaTest.food(String species)",
                         "schemaTest.person()", "schemaTest.person().name");
-                assertProposalsSimple(expected, completionList);
+                assertDoesNotContainProposals(unwanted, completionList);
             });
         });
     }
@@ -228,6 +228,93 @@ class FunctionProposalTests extends CompletionTests {
 
             it.setAssertCompletionList(completionList -> {
                 var unwanted = List.of("schemaTest.dog()", "schemaTest.dog().race");
+                assertDoesNotContainProposals(unwanted, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_function_schema_from_path() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    policy "test" deny where
+                    var foo = schemaTest.locatio""";
+
+            String cursor = "var foo = schemaTest.locatio";
+            it.setModel(policy);
+            it.setLine(1);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("schemaTest.location()", "schemaTest.location().latitude",
+                        "schemaTest.location().latitude.maximum");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_function_schema_from_path2() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    policy "test" deny where
+                    schemaTest.locatio""";
+
+            String cursor = "schemaTest.locatio";
+            it.setModel(policy);
+            it.setLine(1);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("schemaTest.location()", "schemaTest.location().latitude",
+                        "schemaTest.location().latitude.maximum");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_function_schema_from_path3() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    policy "test" deny where
+                    var foo = schemaTest.location();
+                    foo""";
+
+            String cursor = "foo";
+            it.setModel(policy);
+            it.setLine(2);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("foo.latitude",
+                        "foo.latitude.maximum");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_function_schema_from_path4() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    policy "test" deny where
+                    foo
+                    var foo = schemaTest.location();
+                    """;
+
+            String cursor = "foo";
+            it.setModel(policy);
+            it.setLine(1);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var unwanted = List.of("foo.latitude",
+                        "foo.latitude.maximum");
                 assertDoesNotContainProposals(unwanted, completionList);
             });
         });

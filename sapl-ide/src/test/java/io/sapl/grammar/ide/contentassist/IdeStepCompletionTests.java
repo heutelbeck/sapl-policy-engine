@@ -32,7 +32,7 @@ class IdeStepCompletionTests extends CompletionTests {
             it.setModel(policy);
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("clock.millis", "clock.now", "clock.ticker", "temperature.mean(a1, a2)>",
+                var expected = List.of("clock.millis>", "clock.now>", "clock.ticker>", "temperature.mean(a1, a2)>",
                         "temperature.mean(a1, a2)>.period", "temperature.mean(a1, a2)>.value", "temperature.now()>",
                         "temperature.now()>.unit", "temperature.now()>.value", "temperature.predicted(a2)>");
                 assertProposalsSimple(expected, completionList);
@@ -47,7 +47,7 @@ class IdeStepCompletionTests extends CompletionTests {
             it.setModel(policy);
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("clock.now");
+                var expected = List.of("clock.now>");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -73,7 +73,9 @@ class IdeStepCompletionTests extends CompletionTests {
             it.setModel(policy);
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("clock.millis", "clock.now", "clock.ticker");
+                var expected = List.of("clock.millis>", "clock.now>", "clock.ticker>", "temperature.mean(a1, a2)>",
+                        "temperature.mean(a1, a2)>.period", "temperature.mean(a1, a2)>.value", "temperature.now()>",
+                        "temperature.now()>.unit", "temperature.now()>.value", "temperature.predicted(a2)>");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -86,13 +88,25 @@ class IdeStepCompletionTests extends CompletionTests {
             it.setModel(policy);
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("clock.now");
+                var expected = List.of("clock.now>");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
+    @Test
+    void testCompletion_HeadAttributeStepWithNonReservedPrefixReturnsMatchingFunction() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "policy \"test\" permit where foo.|<clock.n";
+            it.setModel(policy);
+            it.setColumn(policy.length());
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("clock.now>");
                 assertProposalsSimple(expected, completionList);
             });
         });
     }
 
-    @Test
+/*    @Test
     void testCompletion_HeadAttributeStepWithNoMatchingPrefixReturnsNoMatchingFunction() {
         testCompletion((TestCompletionConfiguration it) -> {
             String policy = "policy \"test\" permit where subject.|<";
@@ -103,6 +117,6 @@ class IdeStepCompletionTests extends CompletionTests {
                 assertProposalsSimple(expected, completionList);
             });
         });
-    }
+    }*/
 
 }

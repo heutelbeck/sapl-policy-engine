@@ -147,7 +147,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     private void handleImportProposals(String feature, ContentAssistContext context,
             IIdeContentProposalAcceptor acceptor) {
 
-        Collection<String> proposals;
+        List<String> proposals;
         if ("libsteps".equals(feature)) {
             var helper = new ValueDefinitionProposalExtractionHelper(variablesAndCombinatorSource, functionContext,
                     attributeContext, context);
@@ -160,13 +160,19 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             addDocumentationToImportProposals(proposals, context, acceptor);
             addDocumentationToTemplates(proposals, context, acceptor);
         } else {
-            proposals = Set.of();
+            proposals = List.of();
         }
 
         if (proposals.isEmpty())
             return;
 
         // add proposals to list of proposals
+        for (var i = 0; i < proposals.size(); i++){
+            var proposal = proposals.get(i);
+            proposal = proposal.replaceFirst("<", "");
+            proposal = proposal.replaceFirst(">", "");
+            proposals.set(i, proposal);
+        }
         addSimpleProposals(proposals, context, acceptor);
     }
 
@@ -220,46 +226,9 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             var definedValues = helper.getProposals(model, ValueDefinitionProposalExtractionHelper.ProposalType.VALUE);
             // add variables to list of proposals
             addSimpleProposals(definedValues, context, acceptor);
-
-            // try to move up to the policy body
-            if (model.eContainer() instanceof Condition) {
-                model = TreeNavigationHelper.goToFirstParent(model, PolicyBody.class);
-            }
-
-            // look up all defined variables in the policy
-            if (model instanceof PolicyBody policyBody) {
-                Collection<String> definedValuesPolicyBody;
-                int                currentOffset = context.getOffset();
-
-                definedValuesPolicyBody = getValuesDefinedInPolicyBodyAboveCursor(policyBody, currentOffset);
-                // add variables to list of proposals
-                addSimpleProposals(definedValuesPolicyBody, context, acceptor);
-            }
             // add authorization subscriptions proposals
             addSimpleProposals(authzSubProposals, context, acceptor);
         }
-    }
-
-    private Collection<String> getValuesDefinedInPolicyBodyAboveCursor(PolicyBody policyBody, int currentOffset) {
-        Collection<String> definedValuesPolicyBody = new HashSet<>();
-        // iterate through defined statements which are either conditions or
-        // variables
-        for (var statement : policyBody.getStatements()) {
-            // add any encountered valuable to the list of proposals
-            if (statement instanceof ValueDefinition valueDefinition) {
-
-                // check if variable definition is happening after cursor
-                INode valueDefinitionNode   = NodeModelUtils.getNode(valueDefinition);
-                int   valueDefinitionOffset = valueDefinitionNode.getOffset();
-
-                if (currentOffset > valueDefinitionOffset) {
-                    definedValuesPolicyBody.add(valueDefinition.getName());
-                } else {
-                    break;
-                }
-            }
-        }
-        return definedValuesPolicyBody;
     }
 
     private void addDocumentationToImportProposals(Collection<String> proposals, ContentAssistContext context,
@@ -361,19 +330,27 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private void addProposalsForAttributeStepsIfPresent(ContentAssistContext context,
             IIdeContentProposalAcceptor acceptor) {
+        var definedSchemas = getValidSchemas(context, context.getCurrentModel());
+        addSimpleProposals(definedSchemas, context, acceptor);
+
         var proposals = attributeContext.getAttributeCodeTemplates();
 
         var helper             = new ValueDefinitionProposalExtractionHelper(variablesAndCombinatorSource,
                 functionContext, attributeContext, context);
         var attributeProposals = helper.getAttributeProposals();
         attributeProposals.addAll(proposals);
-        addSimpleProposals(attributeProposals, context, acceptor);
+        addSimpleProposalsForAttribute(attributeProposals, context, acceptor);
+        addSimpleProposalsForAttribute(proposals, context, acceptor);
     }
 
     private void addProposalsForBasicAttributesIfPresent(ContentAssistContext context,
             IIdeContentProposalAcceptor acceptor) {
         var proposals = attributeContext.getEnvironmentAttributeCodeTemplates();
-        addSimpleProposals(proposals, context, acceptor);
+        var helper             = new ValueDefinitionProposalExtractionHelper(variablesAndCombinatorSource,
+                functionContext, attributeContext, context);
+        var attributeProposals = helper.getAttributeProposals();
+        addSimpleProposalsForAttribute(proposals, context, acceptor);
+        addSimpleProposalsForAttribute(attributeProposals, context, acceptor);
         addProposalsWithImportsForTemplates(proposals, context, acceptor);
     }
 
@@ -402,8 +379,21 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private void addSimpleProposals(final Collection<String> proposals, final ContentAssistContext context,
             final IIdeContentProposalAcceptor acceptor) {
+        var helper            = new ValueDefinitionProposalExtractionHelper(variablesAndCombinatorSource,
+                functionContext, attributeContext, context);
+        var offset = context.getOffset();
+        var fixedContext = helper.getContextWithFixedPrefix(offset);
         for (var proposal : proposals)
+            addSimpleProposal(proposal, fixedContext, acceptor);
+    }
+
+    private void addSimpleProposalsForAttribute(final Collection<String> proposals, final ContentAssistContext context,
+                                    final IIdeContentProposalAcceptor acceptor) {
+        for (var proposal : proposals){
+            proposal = proposal.replaceFirst("<", "");
             addSimpleProposal(proposal, context, acceptor);
+
+        }
     }
 
     private void addSimpleProposal(final String proposal, final ContentAssistContext context,

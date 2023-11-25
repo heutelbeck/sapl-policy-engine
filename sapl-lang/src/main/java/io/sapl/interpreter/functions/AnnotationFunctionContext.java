@@ -55,8 +55,7 @@ public class AnnotationFunctionContext implements FunctionContext {
     private static final String CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION_ERROR = "Provided class has no @FunctionLibrary annotation.";
     private static final String ILLEGAL_PARAMETER_FOR_IMPORT_ERROR             = "Function has parameters that are not a Val. Cannot be loaded. Type was: %s.";
     private static final String ILLEGAL_RETURN_TYPE_FOR_IMPORT_ERROR           = "Function does not return a Val. Cannot be loaded. Type was: %s.";
-
-    private static final String MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED = "Function has both a schema and a schemaPath annotation. Multiple schema annotations are not allowed.";
+    private static final String MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED        = "Function has both a schema and a schemaPath annotation. Multiple schema annotations are not allowed.";
 
     private final Collection<LibraryDocumentation> documentation = new LinkedList<>();
     private final Map<String, FunctionMetadata>    functions     = new HashMap<>();
@@ -345,6 +344,15 @@ public class AnnotationFunctionContext implements FunctionContext {
             schemas.put(entry.getKey(), entry.getValue().functionSchema);
         }
         return schemas;
+    }
+
+    @Override
+    public Map<String, String> getFunctionSchemaPaths() {
+        var schemaPaths = new HashMap<String, String>();
+        for (var entry : functions.entrySet()) {
+            schemaPaths.put(entry.getKey(), entry.getValue().functionPathToSchema);
+        }
+        return schemaPaths;
     }
 
     @Override
