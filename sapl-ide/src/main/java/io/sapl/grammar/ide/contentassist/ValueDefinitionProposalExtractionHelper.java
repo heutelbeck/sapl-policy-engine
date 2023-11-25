@@ -61,44 +61,45 @@ public class ValueDefinitionProposalExtractionHelper {
     public ContentAssistContext getContextWithFixedPrefix(int offset) {
 
         var modifiedContext = context.copy().toContext();
-        var model = context.getCurrentModel();
+        var model           = context.getCurrentModel();
         if (!(model instanceof PolicyBody)) {
             model = TreeNavigationHelper.goToFirstParent(model, PolicyBody.class);
         }
 
         if (model instanceof PolicyBody policyBody) {
-            var statements = policyBody.getStatements();
-            EObject currentStatement = statements.get(statements.size()-1);
+            var     statements       = policyBody.getStatements();
+            EObject currentStatement = statements.get(statements.size() - 1);
 
-            for(var aStatement : statements){
+            for (var aStatement : statements) {
                 var statementOffset = getValueDefinitionOffset(aStatement);
-                if(statementOffset <= offset){
+                if (statementOffset <= offset) {
                     currentStatement = aStatement;
                 }
             }
 
-            if (currentStatement instanceof Condition condition){
+            if (currentStatement instanceof Condition condition) {
                 var expression = condition.getExpression();
-                if (expression instanceof BasicIdentifier basicIdentifier){
-                    var identifier  = basicIdentifier.getIdentifier();
-                    var keySteps  = combineKeystepsFromBasicIdentifier(basicIdentifier);
+                if (expression instanceof BasicIdentifier basicIdentifier) {
+                    var identifier = basicIdentifier.getIdentifier();
+                    var keySteps   = combineKeystepsFromBasicIdentifier(basicIdentifier);
                     var fullPrefix = getFunctionName(keySteps, identifier);
                     modifiedContext = context.copy().setPrefix(fullPrefix).toContext();
                 }
-            } else if (currentStatement instanceof ValueDefinition valueDefinition && valueDefinition.getEval() instanceof BasicIdentifier basicIdentifier){
-                    var identifier  = basicIdentifier.getIdentifier();
-                    var keySteps  = combineKeystepsFromBasicIdentifier(basicIdentifier);
-                    var fullPrefix = getFunctionName(keySteps, identifier);
-                    modifiedContext = context.copy().setPrefix(fullPrefix).toContext();
+            } else if (currentStatement instanceof ValueDefinition valueDefinition
+                    && valueDefinition.getEval() instanceof BasicIdentifier basicIdentifier) {
+                var identifier = basicIdentifier.getIdentifier();
+                var keySteps   = combineKeystepsFromBasicIdentifier(basicIdentifier);
+                var fullPrefix = getFunctionName(keySteps, identifier);
+                modifiedContext = context.copy().setPrefix(fullPrefix).toContext();
             }
         }
         return modifiedContext;
     }
 
     public List<String> getAttributeProposals() {
-        List<String> proposals = new LinkedList<>();
-        var schemaProposals = new SchemaProposals(variablesAndCombinatorSource);
-        var allSchemas      = attributeContext.getAttributeSchemas();
+        List<String> proposals       = new LinkedList<>();
+        var          schemaProposals = new SchemaProposals(variablesAndCombinatorSource);
+        var          allSchemas      = attributeContext.getAttributeSchemas();
 
         for (var entry : allSchemas.entrySet()) {
             var paths = schemaProposals.schemaTemplatesForAttributes(entry.getValue());
@@ -120,10 +121,10 @@ public class ValueDefinitionProposalExtractionHelper {
         var proposals       = new LinkedList<String>();
         var schemaProposals = new SchemaProposals(variablesAndCombinatorSource);
         var allSchemas      = functionContext.getFunctionSchemas();
-        var allSchemaPaths = functionContext.getFunctionSchemaPaths();
+        var allSchemaPaths  = functionContext.getFunctionSchemaPaths();
         for (var path : allSchemaPaths.entrySet()) {
             String schema = fetchSchemaFromPath(path.getValue());
-            if (!schema.isEmpty()){
+            if (!schema.isEmpty()) {
                 allSchemas.put(path.getKey(), schema);
             }
         }
@@ -146,7 +147,7 @@ public class ValueDefinitionProposalExtractionHelper {
 
     private static String fetchSchemaFromPath(String path) {
         String schema;
-        Path file = Paths.get(path);
+        Path   file = Paths.get(path);
         try {
             schema = Files.readString(file);
         } catch (IOException e) {
@@ -315,15 +316,15 @@ public class ValueDefinitionProposalExtractionHelper {
         var          imports        = ImportsUtil.fetchImports(getSapl(), attributeContext, functionContext);
         var          name           = getFunctionName(stepsString, identifier, imports);
         var          absName        = FunctionUtil.resolveAbsoluteFunctionName(name, imports);
-        var          allSchemas      = functionContext.getFunctionSchemas();
+        var          allSchemas     = functionContext.getFunctionSchemas();
         var          allSchemaPaths = functionContext.getFunctionSchemaPaths();
         for (var path : allSchemaPaths.entrySet()) {
             String schema = fetchSchemaFromPath(path.getValue());
-            if (!schema.isEmpty()){
+            if (!schema.isEmpty()) {
                 allSchemas.put(path.getKey(), schema);
             }
         }
-        var          functionSchema = allSchemas.get(absName);
+        var functionSchema = allSchemas.get(absName);
         functionSchemaTemplates = new SchemaProposals(variablesAndCombinatorSource)
                 .schemaTemplatesFromJson(functionSchema);
         return functionSchemaTemplates;
@@ -356,7 +357,7 @@ public class ValueDefinitionProposalExtractionHelper {
         var name = "";
         if (!stepsString.isEmpty()) {
             name = String.join(".", stepsString);
-            if (!identifier.isEmpty()){
+            if (!identifier.isEmpty()) {
                 name = identifier.concat(".").concat(name);
             }
             return name;
@@ -373,13 +374,13 @@ public class ValueDefinitionProposalExtractionHelper {
             } else {
                 // step is HeadAttributeFinderStep
                 List<String> idSteps;
-                if(step instanceof AttributeFinderStep attributeFinderStep) {
+                if (step instanceof AttributeFinderStep attributeFinderStep) {
                     idSteps = attributeFinderStep.getIdSteps();
                 } else {
                     idSteps = ((HeadAttributeFinderStep) step).getIdSteps();
                 }
                 var firstStep = idSteps.get(0);
-                if(firstStep != null) {
+                if (firstStep != null) {
                     var firstFinderElement = firstStep;
                     if (!firstStep.startsWith("<"))
                         firstFinderElement = "<".concat(firstStep);

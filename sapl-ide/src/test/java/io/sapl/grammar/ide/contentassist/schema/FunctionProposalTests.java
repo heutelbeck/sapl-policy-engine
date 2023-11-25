@@ -290,8 +290,7 @@ class FunctionProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("foo.latitude",
-                        "foo.latitude.maximum");
+                var expected = List.of("foo.latitude", "foo.latitude.maximum");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -313,8 +312,7 @@ class FunctionProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var unwanted = List.of("foo.latitude",
-                        "foo.latitude.maximum");
+                var unwanted = List.of("foo.latitude", "foo.latitude.maximum");
                 assertDoesNotContainProposals(unwanted, completionList);
             });
         });

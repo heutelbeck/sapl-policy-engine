@@ -121,6 +121,7 @@ class TestFunctionContext implements FunctionContext {
     public Map<String, String> getFunctionSchemaPaths() {
         var schemaPaths = new HashMap<String, String>();
         schemaPaths.put("schemaTest.location", "src/test/resources/geographical_location_schema.json");
+        schemaPaths.put("schemaTest.person", "src/test/resources/person.json");
         return schemaPaths;
     }
 

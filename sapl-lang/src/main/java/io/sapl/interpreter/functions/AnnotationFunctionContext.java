@@ -220,7 +220,7 @@ public class AnnotationFunctionContext implements FunctionContext {
         var funSchema       = funAnnotation.schema();
         var funPathToSchema = funAnnotation.pathToSchema();
 
-        if(!funSchema.isEmpty() && !funPathToSchema.isEmpty())
+        if (!funSchema.isEmpty() && !funPathToSchema.isEmpty())
             throw new InitializationException(MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED);
 
         if (!Val.class.isAssignableFrom(method.getReturnType()))

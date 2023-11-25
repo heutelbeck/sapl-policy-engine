@@ -93,6 +93,7 @@ class IdeStepCompletionTests extends CompletionTests {
             });
         });
     }
+
     @Test
     void testCompletion_HeadAttributeStepWithNonReservedPrefixReturnsMatchingFunction() {
         testCompletion((TestCompletionConfiguration it) -> {
@@ -105,18 +106,4 @@ class IdeStepCompletionTests extends CompletionTests {
             });
         });
     }
-
-/*    @Test
-    void testCompletion_HeadAttributeStepWithNoMatchingPrefixReturnsNoMatchingFunction() {
-        testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "policy \"test\" permit where subject.|<";
-            it.setModel(policy);
-            it.setColumn(policy.length());
-            it.setAssertCompletionList(completionList -> {
-                var expected = new ArrayList<String>();
-                assertProposalsSimple(expected, completionList);
-            });
-        });
-    }*/
-
 }

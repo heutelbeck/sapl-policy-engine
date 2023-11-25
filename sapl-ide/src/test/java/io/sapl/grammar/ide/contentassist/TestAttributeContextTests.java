@@ -95,7 +95,7 @@ class TestAttributeContextTests {
     void getDocumentedAttributeCodeTemplatesReturnsAllKnownDocumentedCodeTemplates() {
         var                 context   = new TestAttributeContext();
         Map<String, String> functions = context.getDocumentedAttributeCodeTemplates();
-        assertThat(functions, IsMapContaining.hasEntry("clock.now", "documentation"));
+        assertThat(functions, IsMapContaining.hasEntry("<clock.now>", "documentation"));
     }
 
 }
