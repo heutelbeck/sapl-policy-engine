@@ -3,6 +3,8 @@ package io.sapl.test.dsl.interpreter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.test.SaplTestException;
+import io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType;
 import io.sapl.test.grammar.sAPLTest.Value;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -11,11 +13,14 @@ import lombok.RequiredArgsConstructor;
 public class AuthorizationDecisionInterpreter {
 
     private final ValInterpreter valInterpreter;
-
     private final ObjectMapper objectMapper;
 
-    AuthorizationDecision constructAuthorizationDecision(final io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType decision, final Value resource, final List<Value> obligations, final List<Value> advice) {
-        var authorizationDecision = getAuthorizationDecisionFromDSL(decision);
+    AuthorizationDecision constructAuthorizationDecision(final AuthorizationDecisionType decisionType, final Value resource, final List<Value> obligations, final List<Value> advice) {
+        if (decisionType == null) {
+            throw new SaplTestException("AuthorizationDecisionType is null");
+        }
+
+        var authorizationDecision = getAuthorizationDecisionFromDSL(decisionType);
 
         if (resource != null) {
             final var mappedResource = valInterpreter.getValFromValue(resource);
@@ -52,7 +57,7 @@ public class AuthorizationDecisionInterpreter {
         return valArray;
     }
 
-    private AuthorizationDecision getAuthorizationDecisionFromDSL(final io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType decision) {
+    private AuthorizationDecision getAuthorizationDecisionFromDSL(final AuthorizationDecisionType decision) {
         return switch (decision) {
             case PERMIT -> AuthorizationDecision.PERMIT;
             case DENY -> AuthorizationDecision.DENY;

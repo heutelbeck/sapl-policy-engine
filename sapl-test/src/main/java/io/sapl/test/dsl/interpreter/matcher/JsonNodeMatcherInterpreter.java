@@ -35,43 +35,52 @@ public class JsonNodeMatcherInterpreter {
             return jsonNull();
         } else if (jsonNodeMatcher instanceof IsJsonText text) {
             final var stringOrMatcher = text.getText();
+
             if (stringOrMatcher instanceof PlainString plainString) {
                 return jsonText(plainString.getText());
             } else if (stringOrMatcher instanceof StringMatcher stringMatcher) {
                 return jsonText(stringMatcherInterpreter.getHamcrestStringMatcher(stringMatcher));
             }
+
             return jsonText();
         } else if (jsonNodeMatcher instanceof IsJsonNumber isJsonNumber) {
             final var number = isJsonNumber.getNumber();
+
             return number == null ? jsonNumber() : jsonBigDecimal(number);
         } else if (jsonNodeMatcher instanceof IsJsonBoolean isJsonBoolean) {
             final var boolValue = isJsonBoolean.getValue();
+
             if (boolValue instanceof TrueLiteral) {
                 return jsonBoolean(true);
             } else if (boolValue instanceof FalseLiteral) {
                 return jsonBoolean(false);
             }
+
             return jsonBoolean();
         } else if (jsonNodeMatcher instanceof IsJsonArray isJsonArray) {
             return interpretJsonArray(isJsonArray);
         } else if (jsonNodeMatcher instanceof IsJsonObject isJsonObject) {
             return interpretJsonObject(isJsonObject);
         }
+
         throw new SaplTestException("Unknown type of JsonNodeMatcher");
     }
 
     private Matcher<JsonNode> interpretJsonArray(final IsJsonArray isJsonArray) {
         final var arrayMatcher = isJsonArray.getMatcher();
+
         if (arrayMatcher == null) {
             return jsonArray();
         }
 
         final var matchers = arrayMatcher.getMatchers();
+
         if (matchers == null || matchers.isEmpty()) {
             throw new SaplTestException("No JsonNodeMatcher found");
         }
 
         final var mappedMatchers = matchers.stream().map(this::getHamcrestJsonNodeMatcher).toList();
+
         return jsonArray(is(mappedMatchers));
     }
 

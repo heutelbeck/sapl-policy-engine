@@ -7,9 +7,9 @@ import io.sapl.test.dsl.interpreter.matcher.MultipleAmountInterpreter;
 import io.sapl.test.dsl.interpreter.matcher.ValMatcherInterpreter;
 import io.sapl.test.grammar.sAPLTest.Function;
 import io.sapl.test.grammar.sAPLTest.FunctionInvokedOnce;
-import io.sapl.test.grammar.sAPLTest.FunctionParameters;
 import io.sapl.test.grammar.sAPLTest.Multiple;
 import io.sapl.test.grammar.sAPLTest.Once;
+import io.sapl.test.mocking.function.models.FunctionParameters;
 import io.sapl.test.steps.GivenOrWhenStep;
 import lombok.RequiredArgsConstructor;
 import org.hamcrest.Matcher;
@@ -21,9 +21,10 @@ public class FunctionInterpreter {
     private final ValMatcherInterpreter matcherInterpreter;
     private final MultipleAmountInterpreter multipleAmountInterpreter;
 
-    GivenOrWhenStep interpretFunction(final GivenOrWhenStep initial, final Function function) {
-        final var importName = function.getName();
-        final var returnValue = valInterpreter.getValFromValue(function.getReturnValue());
+    GivenOrWhenStep interpretFunction(final GivenOrWhenStep givenOrWhenStep, final Function function) {
+        if (givenOrWhenStep == null || function == null) {
+            throw new SaplTestException("GivenOrWhenStep or function is null");
+        }
 
         var timesCalled = 0;
 
@@ -34,23 +35,32 @@ public class FunctionInterpreter {
         }
 
         final var parameters = interpretFunctionParameters(function.getParameters());
+        final var returnValue = valInterpreter.getValFromValue(function.getReturnValue());
+        final var name = function.getName();
 
         if (timesCalled == 0) {
             if (parameters != null) {
-                return initial.givenFunction(importName, parameters, returnValue);
+                return givenOrWhenStep.givenFunction(name, parameters, returnValue);
             }
-            return initial.givenFunction(importName, returnValue);
+
+            return givenOrWhenStep.givenFunction(name, returnValue);
         } else {
             final var verification = Imports.times(timesCalled);
+
             if (parameters != null) {
-                return initial.givenFunction(importName, parameters, returnValue, verification);
+                return givenOrWhenStep.givenFunction(name, parameters, returnValue, verification);
             }
-            return initial.givenFunction(importName, returnValue, verification);
+
+            return givenOrWhenStep.givenFunction(name, returnValue, verification);
         }
     }
 
-    GivenOrWhenStep interpretFunctionInvokedOnce(final GivenOrWhenStep initial, final FunctionInvokedOnce function) {
-        final var values = function.getReturnValue();
+    GivenOrWhenStep interpretFunctionInvokedOnce(final GivenOrWhenStep givenOrWhenStep, final FunctionInvokedOnce functionInvokedOnce) {
+        if (givenOrWhenStep == null || functionInvokedOnce == null) {
+            throw new SaplTestException("GivenOrWhenStep or functionInvokedOnce is null");
+        }
+
+        final var values = functionInvokedOnce.getReturnValue();
 
         if (values == null || values.isEmpty()) {
             throw new SaplTestException("No Value found");
@@ -58,15 +68,16 @@ public class FunctionInterpreter {
 
         final var returnValues = values.stream().map(valInterpreter::getValFromValue).toArray(Val[]::new);
 
-        final var importName = function.getName();
+        final var name = functionInvokedOnce.getName();
 
         if (returnValues.length == 1) {
-            return initial.givenFunctionOnce(importName, returnValues[0]);
+            return givenOrWhenStep.givenFunctionOnce(name, returnValues[0]);
         }
-        return initial.givenFunctionOnce(importName, returnValues);
+
+        return givenOrWhenStep.givenFunctionOnce(name, returnValues);
     }
 
-    private io.sapl.test.mocking.function.models.FunctionParameters interpretFunctionParameters(final FunctionParameters functionParameters) {
+    private FunctionParameters interpretFunctionParameters(final io.sapl.test.grammar.sAPLTest.FunctionParameters functionParameters) {
         if (functionParameters == null) {
             return null;
         }

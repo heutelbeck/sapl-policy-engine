@@ -20,27 +20,27 @@ public class AttributeInterpreter {
     private final ValMatcherInterpreter matcherInterpreter;
     private final DurationInterpreter durationInterpreter;
 
-    GivenOrWhenStep interpretAttribute(final GivenOrWhenStep initial, final Attribute attribute) {
+    GivenOrWhenStep interpretAttribute(final GivenOrWhenStep givenOrWhenStep, final Attribute attribute) {
         final var importName = attribute.getName();
 
         if (attribute.getReturnValue() == null || attribute.getReturnValue().isEmpty()) {
-            return initial.givenAttribute(importName);
+            return givenOrWhenStep.givenAttribute(importName);
         } else {
             final var values = attribute.getReturnValue().stream().map(valInterpreter::getValFromValue).toArray(Val[]::new);
 
             final var dslDuration = attribute.getDuration();
 
             if (dslDuration == null) {
-                return initial.givenAttribute(importName, values);
+                return givenOrWhenStep.givenAttribute(importName, values);
             }
 
             final var duration = durationInterpreter.getJavaDurationFromDuration(dslDuration);
 
-            return initial.givenAttribute(importName, duration, values);
+            return givenOrWhenStep.givenAttribute(importName, duration, values);
         }
     }
 
-    GivenOrWhenStep interpretAttributeWithParameters(final GivenOrWhenStep initial, final AttributeWithParameters attributeWithParameters) {
+    GivenOrWhenStep interpretAttributeWithParameters(final GivenOrWhenStep givenOrWhenStep, final AttributeWithParameters attributeWithParameters) {
         final var importName = attributeWithParameters.getName();
 
         final var parentValueMatcher = matcherInterpreter.getHamcrestValMatcher(attributeWithParameters.getParentMatcher());
@@ -49,9 +49,11 @@ public class AttributeInterpreter {
         final var arguments = attributeWithParameters.getParameters();
 
         if (arguments == null || arguments.isEmpty()) {
-            return initial.givenAttribute(importName, whenParentValue(parentValueMatcher), returnValue);
+            return givenOrWhenStep.givenAttribute(importName, whenParentValue(parentValueMatcher), returnValue);
         }
+
         final var args = arguments.stream().map(matcherInterpreter::getHamcrestValMatcher).<Matcher<Val>>toArray(Matcher[]::new);
-        return initial.givenAttribute(importName, whenAttributeParams(parentValue(parentValueMatcher), arguments(args)), returnValue);
+
+        return givenOrWhenStep.givenAttribute(importName, whenAttributeParams(parentValue(parentValueMatcher), arguments(args)), returnValue);
     }
 }

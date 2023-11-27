@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -68,6 +67,40 @@ class ExpectInterpreterTest {
     @DisplayName("Single expect")
     class SingleExpectTest {
         @Test
+        void interpretSingleExpect_handlesNullExpectOrVerifyStep_throwsSaplTestException() {
+            final var singleExpectMock = mock(SingleExpect.class);
+
+            final var exception = assertThrows(SaplTestException.class, () -> expectInterpreter.interpretSingleExpect(null, singleExpectMock));
+
+            assertEquals("ExpectOrVerifyStep or singleExpect is null", exception.getMessage());
+        }
+
+        @Test
+        void interpretSingleExpect_handlesNullSingleExpect_throwsSaplTestException() {
+            final var exception = assertThrows(SaplTestException.class, () -> expectInterpreter.interpretSingleExpect(expectOrVerifyStepMock, null));
+
+            assertEquals("ExpectOrVerifyStep or singleExpect is null", exception.getMessage());
+        }
+
+        @Test
+        void interpretSingleExpect_handlesNullExpectOrVerifyStepAndNullSingleExpect_throwsSaplTestException() {
+            final var exception = assertThrows(SaplTestException.class, () -> expectInterpreter.interpretSingleExpect(null, null));
+
+            assertEquals("ExpectOrVerifyStep or singleExpect is null", exception.getMessage());
+        }
+
+        @Test
+        void interpretSingleExpect_handlesNullDecisionInSingleExpect_throwsSaplTestException() {
+            final var singleExpectMock = mock(SingleExpect.class);
+
+            when(singleExpectMock.getDecision()).thenReturn(null);
+
+            final var exception = assertThrows(SaplTestException.class, () -> expectInterpreter.interpretSingleExpect(expectOrVerifyStepMock, singleExpectMock));
+
+            assertEquals("AuthorizationDecision is null", exception.getMessage());
+        }
+
+        @Test
         void interpretSingleExpect_callsAuthorizationDecisionInterpreter_returnsVerifyStep() {
             final var obligationValueMock = mock(Value.class);
             final var resourceValueMock = mock(Value.class);
@@ -93,6 +126,40 @@ class ExpectInterpreterTest {
             final var result = expectInterpreter.interpretSingleExpect(expectOrVerifyStepMock, singleExpectMock);
 
             assertEquals(verifyStepMock, result);
+        }
+
+        @Test
+        void interpretSingleExpectWithMatcher_handlesNullExpectOrVerifyStep_throwsSaplTestException() {
+            final var singleExpectWithMatcherMock = mock(SingleExpectWithMatcher.class);
+
+            final var exception = assertThrows(SaplTestException.class, () -> expectInterpreter.interpretSingleExpectWithMatcher(null, singleExpectWithMatcherMock));
+
+            assertEquals("ExpectOrVerifyStep or singleExpectWithMatcher is null", exception.getMessage());
+        }
+
+        @Test
+        void interpretSingleExpectWithMatcher_handlesNullSingleExpectWithMatcher_throwsSaplTestException() {
+            final var exception = assertThrows(SaplTestException.class, () -> expectInterpreter.interpretSingleExpectWithMatcher(expectOrVerifyStepMock, null));
+
+            assertEquals("ExpectOrVerifyStep or singleExpectWithMatcher is null", exception.getMessage());
+        }
+
+        @Test
+        void interpretSingleExpectWithMatcher_handlesNullExpectOrVerifyStepAndNullSingleExpectWithMatcher_throwsSaplTestException() {
+            final var exception = assertThrows(SaplTestException.class, () -> expectInterpreter.interpretSingleExpectWithMatcher(null, null));
+
+            assertEquals("ExpectOrVerifyStep or singleExpectWithMatcher is null", exception.getMessage());
+        }
+
+        @Test
+        void interpretSingleExpectWithMatcher_handlesNullMatcherInSingleExpectWithMatcher_throwsSaplTestException() {
+            final var singleExpectWithMatcherMock = mock(SingleExpectWithMatcher.class);
+
+            when(singleExpectWithMatcherMock.getMatcher()).thenReturn(null);
+
+            final var exception = assertThrows(SaplTestException.class, () -> expectInterpreter.interpretSingleExpectWithMatcher(expectOrVerifyStepMock, singleExpectWithMatcherMock));
+
+            assertEquals("SingleExpectWithMatcher does not contain a matcher", exception.getMessage());
         }
 
         @Test
@@ -123,6 +190,29 @@ class ExpectInterpreterTest {
         @DisplayName("error cases")
         class ErrorCasesTest {
             @Test
+            void interpretRepeatedExpect_handlesNullExpectOrVerifyStep_throwsSaplTestException() {
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+
+                final var exception = assertThrows(SaplTestException.class, () -> expectInterpreter.interpretRepeatedExpect(null, repeatedExpectMock));
+
+                assertEquals("ExpectOrVerifyStep or repeatedExpect is null", exception.getMessage());
+            }
+
+            @Test
+            void interpretRepeatedExpect_handlesNullRepeatedExpect_throwsSaplTestException() {
+                final var exception = assertThrows(SaplTestException.class, () -> expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, null));
+
+                assertEquals("ExpectOrVerifyStep or repeatedExpect is null", exception.getMessage());
+            }
+
+            @Test
+            void interpretRepeatedExpect_handlesNullExpectOrVerifyStepAndNullRepeatedExpect_throwsSaplTestException() {
+                final var exception = assertThrows(SaplTestException.class, () -> expectInterpreter.interpretRepeatedExpect(null, null));
+
+                assertEquals("ExpectOrVerifyStep or repeatedExpect is null", exception.getMessage());
+            }
+
+            @Test
             void interpretRepeatedExpect_handlesExpectStepsBeingNull_throwsSaplTestException() {
                 final var repeatedExpectMock = mock(RepeatedExpect.class);
                 when(repeatedExpectMock.getExpectSteps()).thenReturn(null);
@@ -133,7 +223,7 @@ class ExpectInterpreterTest {
             }
 
             @Test
-            void interpretRepeatedExpect_doesNothingForExpectStepsBeingEmpty_returnsInitialVerifyStep() {
+            void interpretRepeatedExpect_handlesExpectStepsBeingEmpty_returnsInitialVerifyStep() {
                 final var repeatedExpectStepsMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of());
                 final var repeatedExpectMock = mock(RepeatedExpect.class);
                 when(repeatedExpectMock.getExpectSteps()).thenReturn(repeatedExpectStepsMock);
@@ -144,16 +234,15 @@ class ExpectInterpreterTest {
             }
 
             @Test
-            void interpretRepeatedExpect_doesNothingForUnknownExpectStep_returnsInitialVerifyStep() {
+            void interpretRepeatedExpect_handlesUnknownExpectStep_throwsSaplTestException() {
                 final var unknownExpectOrAdjustmentStepMock = mock(ExpectOrAdjustmentStep.class);
                 final var repeatedExpectStepsMock = Helper.mockEList(List.of(unknownExpectOrAdjustmentStepMock));
                 final var repeatedExpectMock = mock(RepeatedExpect.class);
                 when(repeatedExpectMock.getExpectSteps()).thenReturn(repeatedExpectStepsMock);
 
-                final var result = expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock);
+                final var exception = assertThrows(SaplTestException.class, () -> expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock));
 
-                assertEquals(expectOrVerifyStepMock, result);
-                verifyNoInteractions(expectOrVerifyStepMock);
+                assertEquals("Unknown type of ExpectOrAdjustmentStep", exception.getMessage());
             }
         }
 
@@ -280,7 +369,7 @@ class ExpectInterpreterTest {
 
                 final var exception = assertThrows(SaplTestException.class, () -> expectInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock));
 
-                assertEquals("No AuthorizationDecision found", exception.getMessage());
+                assertEquals("AuthorizationDecision is null", exception.getMessage());
             }
 
             @Test

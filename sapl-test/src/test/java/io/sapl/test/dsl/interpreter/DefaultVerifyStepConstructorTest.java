@@ -26,14 +26,40 @@ class DefaultVerifyStepConstructorTest {
     private ExpectInterpreter expectInterpreterMock;
     @InjectMocks
     private DefaultVerifyStepConstructor verifyStepBuilderServiceDefault;
+    @Mock
+    TestCase testCaseMock;
+    @Mock
+    ExpectOrVerifyStep expectOrVerifyStepMock;
 
     @Test
-    void constructVerifyStep_doesNothingForUnknownExpect_throwsSaplTestException() {
-        final var testCaseMock = mock(TestCase.class);
+    void constructVerifyStep_handlesNullTestCase_throwsSaplTestException() {
+        final var exception = assertThrows(SaplTestException.class, () -> verifyStepBuilderServiceDefault.constructVerifyStep(null, expectOrVerifyStepMock));
+
+        assertEquals("TestCase or expectStep is null", exception.getMessage());
+        verifyNoInteractions(expectInterpreterMock);
+    }
+
+    @Test
+    void constructVerifyStep_handlesNullExpectOrVerifyStep_throwsSaplTestException() {
+        final var exception = assertThrows(SaplTestException.class, () -> verifyStepBuilderServiceDefault.constructVerifyStep(testCaseMock, null));
+
+        assertEquals("TestCase or expectStep is null", exception.getMessage());
+        verifyNoInteractions(expectInterpreterMock);
+    }
+
+    @Test
+    void constructVerifyStep_handlesNullTestCaseAndNullExpectOrVerifyStep_throwsSaplTestException() {
+        final var exception = assertThrows(SaplTestException.class, () -> verifyStepBuilderServiceDefault.constructVerifyStep(null, null));
+
+        assertEquals("TestCase or expectStep is null", exception.getMessage());
+        verifyNoInteractions(expectInterpreterMock);
+    }
+
+    @Test
+    void constructVerifyStep_handlesUnknownExpect_throwsSaplTestException() {
         final var expectChainMock = mock(ExpectChain.class);
 
         when(testCaseMock.getExpect()).thenReturn(expectChainMock);
-        final var expectOrVerifyStepMock = mock(ExpectOrVerifyStep.class);
 
         final var exception = assertThrows(SaplTestException.class, () -> verifyStepBuilderServiceDefault.constructVerifyStep(testCaseMock, expectOrVerifyStepMock));
 
@@ -42,11 +68,8 @@ class DefaultVerifyStepConstructorTest {
     }
 
     @Test
-    void constructVerifyStep_doesNothingForNullExpect_throwsSaplTestException() {
-        final var testCaseMock = mock(TestCase.class);
-
+    void constructVerifyStep_handlesNullExpect_throwsSaplTestException() {
         when(testCaseMock.getExpect()).thenReturn(null);
-        final var expectOrVerifyStepMock = mock(ExpectOrVerifyStep.class);
 
         final var exception = assertThrows(SaplTestException.class, () -> verifyStepBuilderServiceDefault.constructVerifyStep(testCaseMock, expectOrVerifyStepMock));
 
@@ -56,11 +79,9 @@ class DefaultVerifyStepConstructorTest {
 
     @Test
     void constructVerifyStep_interpretsSingleExpect_returnsVerifyStep() {
-        final var testCaseMock = mock(TestCase.class);
         final var singleExpectMock = mock(SingleExpect.class);
 
         when(testCaseMock.getExpect()).thenReturn(singleExpectMock);
-        final var expectOrVerifyStepMock = mock(ExpectOrVerifyStep.class);
 
         final var verifyStepMock = mock(VerifyStep.class);
         when(expectInterpreterMock.interpretSingleExpect(expectOrVerifyStepMock, singleExpectMock)).thenReturn(verifyStepMock);
@@ -72,11 +93,9 @@ class DefaultVerifyStepConstructorTest {
 
     @Test
     void constructVerifyStep_interpretsSingleExpectWithMatcher_returnsVerifyStep() {
-        final var testCaseMock = mock(TestCase.class);
         final var singleExpectWithMatcher = mock(SingleExpectWithMatcher.class);
 
         when(testCaseMock.getExpect()).thenReturn(singleExpectWithMatcher);
-        final var expectOrVerifyStepMock = mock(ExpectOrVerifyStep.class);
 
         final var verifyStepMock = mock(VerifyStep.class);
         when(expectInterpreterMock.interpretSingleExpectWithMatcher(expectOrVerifyStepMock, singleExpectWithMatcher)).thenReturn(verifyStepMock);
@@ -88,11 +107,9 @@ class DefaultVerifyStepConstructorTest {
 
     @Test
     void constructVerifyStep_interpretsRepeatedExpect_returnsVerifyStep() {
-        final var testCaseMock = mock(TestCase.class);
         final var repeatedExpectMock = mock(RepeatedExpect.class);
 
         when(testCaseMock.getExpect()).thenReturn(repeatedExpectMock);
-        final var expectOrVerifyStepMock = mock(ExpectOrVerifyStep.class);
 
         final var verifyStepMock = mock(VerifyStep.class);
         when(expectInterpreterMock.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock)).thenReturn(verifyStepMock);

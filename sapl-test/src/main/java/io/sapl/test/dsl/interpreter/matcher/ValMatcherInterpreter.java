@@ -27,20 +27,27 @@ public class ValMatcherInterpreter {
 
     public Matcher<Val> getHamcrestValMatcher(final ValMatcher valMatcher) {
         if (valMatcher instanceof ValWithValue valWithValueMatcher) {
-            return is(valInterpreter.getValFromValue(valWithValueMatcher.getValue()));
+            final var value = valWithValueMatcher.getValue();
+
+            return is(valInterpreter.getValFromValue(value));
         } else if (valMatcher instanceof AnyVal) {
             return anyVal();
         } else if (valMatcher instanceof ValWithMatcher valWithMatcherMatcher) {
-            return val(jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(valWithMatcherMatcher.getMatcher()));
+            final var matcher = valWithMatcherMatcher.getMatcher();
+
+            return val(jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(matcher));
         } else if (valMatcher instanceof ValWithError valWithErrorStringMatcher) {
             final var errorMatcher = valWithErrorStringMatcher.getError();
+
             if (errorMatcher instanceof PlainString plainString) {
                 return valError(plainString.getText());
             } else if (errorMatcher instanceof StringMatcher stringMatcher) {
                 return valError(stringMatcherInterpreter.getHamcrestStringMatcher(stringMatcher));
             }
+
             return valError();
         }
+
         throw new SaplTestException("Unknown type of ValMatcher");
     }
 }

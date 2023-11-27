@@ -7,12 +7,14 @@ import io.sapl.test.grammar.sAPLTest.TestException;
 import io.sapl.test.grammar.sAPLTest.TestSuite;
 import io.sapl.test.steps.ExpectOrVerifyStep;
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.assertj.core.api.Assertions;
 
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class TestCase implements TestNode, Runnable {
 
+    @Getter
     private final String identifier;
     private final StepConstructor stepConstructor;
     private final TestSuite testSuite;
@@ -54,10 +56,5 @@ public class TestCase implements TestNode, Runnable {
 
             verifyStep.verify();
         }
-    }
-
-    @Override
-    public String getIdentifier() {
-        return identifier;
     }
 }

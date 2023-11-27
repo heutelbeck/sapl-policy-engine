@@ -70,18 +70,36 @@ public class StringMatcherInterpreter {
             return matchesRegex(regex.getRegex());
         } else if (stringMatcher instanceof StringStartsWith other) {
             final var start = other.getStart();
+
             return other.isCaseInsensitive() ? startsWithIgnoringCase(start) : startsWith(start);
         } else if (stringMatcher instanceof StringEndsWith other) {
             final var end = other.getEnd();
+
             return other.isCaseInsensitive() ? endsWithIgnoringCase(end) : endsWith(end);
         } else if (stringMatcher instanceof StringContains other) {
             final var value = other.getValue();
+
             return other.isCaseInsensitive() ? containsStringIgnoringCase(value) : containsString(other.getValue());
-        } else if (stringMatcher instanceof StringContainsInOrder other) {
-            return stringContainsInOrder(other.getSubstrings());
-        } else if (stringMatcher instanceof StringWithLength other) {
-            return hasLength(other.getLength().intValue());
+        } else if (stringMatcher instanceof StringContainsInOrder stringContainsInOrder) {
+            return stringContainsInOrder(stringContainsInOrder.getSubstrings());
+        } else if (stringMatcher instanceof StringWithLength stringWithLength) {
+            return handleStringWithLength(stringWithLength);
         }
+
         throw new SaplTestException("Unknown type of StringMatcher");
+    }
+
+    private Matcher<? super String> handleStringWithLength(final StringWithLength stringWithLength) {
+        try {
+            final var length = stringWithLength.getLength().intValueExact();
+
+            if (length < 0) {
+                throw new ArithmeticException();
+            }
+
+            return hasLength(length);
+        } catch (ArithmeticException exception) {
+            throw new SaplTestException("String length needs to be an natural number");
+        }
     }
 }

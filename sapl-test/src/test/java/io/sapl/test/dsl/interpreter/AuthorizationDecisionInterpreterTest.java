@@ -1,6 +1,7 @@
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -12,6 +13,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
+import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sAPLTest.Value;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -30,6 +32,13 @@ class AuthorizationDecisionInterpreterTest {
     private ObjectMapper objectMapperMock;
     @InjectMocks
     private AuthorizationDecisionInterpreter authorizationDecisionInterpreter;
+
+    @Test
+    void constructAuthorizationDecision_handlesNullAuthorizationDecisionType_throwsSaplTestException() {
+        final var exception = assertThrows(SaplTestException.class, () -> authorizationDecisionInterpreter.constructAuthorizationDecision(null, null, null, null));
+
+        assertEquals("AuthorizationDecisionType is null", exception.getMessage());
+    }
 
     @Nested
     @DisplayName("decision mapping tests")

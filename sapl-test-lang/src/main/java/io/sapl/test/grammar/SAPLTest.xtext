@@ -20,12 +20,8 @@ PolicyResolverConfig:
     {PoliciesByIdentifier} 'with' 'identifier' identifier=STRING |
     {PoliciesByInputString} policies+=STRING (',' policies+=STRING)+ ('with' 'pdp' 'config' pdpConfig=STRING)?;
 
-CombiningAlgorithm:
-	  {DenyOverridesCombiningAlgorithm}     'deny-overrides'
-	| {PermitOverridesCombiningAlgorithm}   'permit-overrides'
-	| {OnlyOneApplicableCombiningAlgorithm} 'only-one-applicable'
-	| {DenyUnlessPermitCombiningAlgorithm}  'deny-unless-permit'
-	| {PermitUnlessDenyCombiningAlgorithm}  'permit-unless-deny' ;
+enum CombiningAlgorithmEnum:
+    DENY_OVERRIDES='deny-overrides' | PERMIT_OVERRIDES='permit-overrides' | ONLY_ONE_APPLICABLE='only-one-applicable' | DENY_UNLESS_PERMIT='deny-unless-permit' | PERMIT_UNLESS_DENY='permit-unless-deny';
 
 JsonArrayMatcher: '[' matchers+=JsonNodeMatcher (',' matchers+=JsonNodeMatcher)* ']';
 
@@ -180,7 +176,7 @@ UnitTestSuite:
 IntegrationTestSuite:
     'test' 'set' 'of' 'policies' config=PolicyResolverConfig
     ('using variables' pdpVariables=Object)?
-    ('using combining-algorithm' combiningAlgorithm=CombiningAlgorithm)?
+    (combiningAlgorithmDefined?='using combining-algorithm' combiningAlgorithm=CombiningAlgorithmEnum)?
     '{'
         (testCases+=TestCase)+
     '}';

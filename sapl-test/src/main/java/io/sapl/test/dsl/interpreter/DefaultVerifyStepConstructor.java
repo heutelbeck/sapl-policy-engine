@@ -15,6 +15,10 @@ public final class DefaultVerifyStepConstructor {
     private final ExpectInterpreter expectInterpreter;
 
     public VerifyStep constructVerifyStep(final TestCase testCase, final ExpectOrVerifyStep expectStep) {
+        if (testCase == null || expectStep == null) {
+            throw new SaplTestException("TestCase or expectStep is null");
+        }
+
         final var expect = testCase.getExpect();
 
         if (expect instanceof SingleExpect singleExpect) {
@@ -24,6 +28,7 @@ public final class DefaultVerifyStepConstructor {
         } else if (expect instanceof RepeatedExpect repeatedExpect) {
             return expectInterpreter.interpretRepeatedExpect(expectStep, repeatedExpect);
         }
+
         throw new SaplTestException("Unknown type of ExpectChain");
     }
 }

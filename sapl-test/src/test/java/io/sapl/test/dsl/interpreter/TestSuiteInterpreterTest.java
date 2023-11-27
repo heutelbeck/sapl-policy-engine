@@ -19,7 +19,7 @@ import io.sapl.test.dsl.factories.SaplUnitTestFixtureFactory;
 import io.sapl.test.dsl.interfaces.IntegrationTestConfiguration;
 import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
 import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
-import io.sapl.test.grammar.sAPLTest.CombiningAlgorithm;
+import io.sapl.test.grammar.sAPLTest.CombiningAlgorithmEnum;
 import io.sapl.test.grammar.sAPLTest.IntegrationTestSuite;
 import io.sapl.test.grammar.sAPLTest.PoliciesByIdentifier;
 import io.sapl.test.grammar.sAPLTest.PoliciesByInputString;
@@ -204,7 +204,7 @@ class TestSuiteInterpreterTest {
 
             when(integrationTestSuite.getPdpVariables()).thenReturn(null);
 
-            when(integrationTestSuite.getCombiningAlgorithm()).thenReturn(null);
+            when(integrationTestSuite.isCombiningAlgorithmDefined()).thenReturn(false);
 
             when(valInterpreterMock.destructureObject(null)).thenReturn(null);
 
@@ -237,7 +237,7 @@ class TestSuiteInterpreterTest {
 
             when(integrationTestSuite.getPdpVariables()).thenReturn(null);
 
-            when(integrationTestSuite.getCombiningAlgorithm()).thenReturn(null);
+            when(integrationTestSuite.isCombiningAlgorithmDefined()).thenReturn(false);
 
             when(valInterpreterMock.destructureObject(null)).thenReturn(null);
 
@@ -266,7 +266,7 @@ class TestSuiteInterpreterTest {
 
             when(integrationTestSuite.getPdpVariables()).thenReturn(null);
 
-            when(integrationTestSuite.getCombiningAlgorithm()).thenReturn(null);
+            when(integrationTestSuite.isCombiningAlgorithmDefined()).thenReturn(false);
 
             when(valInterpreterMock.destructureObject(null)).thenReturn(null);
 
@@ -290,7 +290,7 @@ class TestSuiteInterpreterTest {
 
             when(integrationTestSuite.getPdpVariables()).thenReturn(null);
 
-            when(integrationTestSuite.getCombiningAlgorithm()).thenReturn(null);
+            when(integrationTestSuite.isCombiningAlgorithmDefined()).thenReturn(false);
 
             when(valInterpreterMock.destructureObject(null)).thenReturn(null);
 
@@ -323,7 +323,7 @@ class TestSuiteInterpreterTest {
 
             when(integrationTestSuite.getPdpVariables()).thenReturn(null);
 
-            when(integrationTestSuite.getCombiningAlgorithm()).thenReturn(null);
+            when(integrationTestSuite.isCombiningAlgorithmDefined()).thenReturn(false);
 
             when(valInterpreterMock.destructureObject(null)).thenReturn(null);
 
@@ -347,11 +347,11 @@ class TestSuiteInterpreterTest {
 
             when(integrationTestSuite.getPdpVariables()).thenReturn(null);
 
-            final var combiningAlgorithmMock = mock(CombiningAlgorithm.class);
-            when(integrationTestSuite.getCombiningAlgorithm()).thenReturn(combiningAlgorithmMock);
+            when(integrationTestSuite.isCombiningAlgorithmDefined()).thenReturn(true);
+            when(integrationTestSuite.getCombiningAlgorithm()).thenReturn(CombiningAlgorithmEnum.ONLY_ONE_APPLICABLE);
 
             final var pdpCombiningAlgorithmMock = mock(PolicyDocumentCombiningAlgorithm.class);
-            when(pdpCombiningAlgorithmInterpreterMock.interpretPdpCombiningAlgorithm(combiningAlgorithmMock)).thenReturn(pdpCombiningAlgorithmMock);
+            when(pdpCombiningAlgorithmInterpreterMock.interpretPdpCombiningAlgorithm(CombiningAlgorithmEnum.ONLY_ONE_APPLICABLE)).thenReturn(pdpCombiningAlgorithmMock);
 
             when(saplIntegrationTestFixtureMock.withPDPPolicyCombiningAlgorithm(pdpCombiningAlgorithmMock)).thenReturn(saplIntegrationTestFixtureMock);
 
@@ -380,7 +380,7 @@ class TestSuiteInterpreterTest {
             final var pdpVariablesMock = mock(Value.class);
             when(integrationTestSuite.getPdpVariables()).thenReturn(pdpVariablesMock);
 
-            when(integrationTestSuite.getCombiningAlgorithm()).thenReturn(null);
+            when(integrationTestSuite.isCombiningAlgorithmDefined()).thenReturn(false);
 
             final var environmentMock = mock(io.sapl.test.grammar.sAPLTest.Object.class);
             when(valInterpreterMock.destructureObject(environmentMock)).thenReturn(Collections.emptyMap());
@@ -406,7 +406,7 @@ class TestSuiteInterpreterTest {
             final var pdpVariablesMock = mock(io.sapl.test.grammar.sAPLTest.Object.class);
             when(integrationTestSuite.getPdpVariables()).thenReturn(pdpVariablesMock);
 
-            when(integrationTestSuite.getCombiningAlgorithm()).thenReturn(null);
+            when(integrationTestSuite.isCombiningAlgorithmDefined()).thenReturn(false);
 
             final var pdpEnvironmentVariablesMock = Collections.<String, JsonNode>emptyMap();
             when(valInterpreterMock.destructureObject(pdpVariablesMock)).thenReturn(pdpEnvironmentVariablesMock);

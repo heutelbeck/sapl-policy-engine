@@ -1,10 +1,12 @@
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
+import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sAPLTest.AuthorizationSubscription;
 import io.sapl.test.grammar.sAPLTest.TestCase;
 import io.sapl.test.steps.ExpectStep;
@@ -23,6 +25,10 @@ class DefaultExpectStepConstructorTest {
     private AuthorizationSubscriptionInterpreter authorizationSubscriptionInterpreterMock;
     @InjectMocks
     private DefaultExpectStepConstructor defaultExpectStepConstructor;
+    @Mock
+    TestCase testCaseMock;
+    @Mock
+    WhenStep whenStepMock;
 
     private final MockedStatic<io.sapl.api.pdp.AuthorizationSubscription> authorizationSubscriptionMockedStatic = mockStatic(io.sapl.api.pdp.AuthorizationSubscription.class);
 
@@ -32,9 +38,49 @@ class DefaultExpectStepConstructorTest {
     }
 
     @Test
-    void constructExpectStep_returnsCorrectExpectStep() {
-        final var testCaseMock = mock(TestCase.class);
+    void constructExpectStep_handlesNullTestCase_throwsSaplTestException() {
+        final var exception = assertThrows(SaplTestException.class, () -> defaultExpectStepConstructor.constructExpectStep(null, whenStepMock));
 
+        assertEquals("TestCase or whenStep is null", exception.getMessage());
+    }
+
+    @Test
+    void constructExpectStep_handlesNullWhenStep_throwsSaplTestException() {
+        final var exception = assertThrows(SaplTestException.class, () -> defaultExpectStepConstructor.constructExpectStep(testCaseMock, null));
+
+        assertEquals("TestCase or whenStep is null", exception.getMessage());
+    }
+
+    @Test
+    void constructExpectStep_handlesNullTestCaseAndNullWhenStep_throwsSaplTestException() {
+        final var exception = assertThrows(SaplTestException.class, () -> defaultExpectStepConstructor.constructExpectStep(null, null));
+
+        assertEquals("TestCase or whenStep is null", exception.getMessage());
+    }
+
+    @Test
+    void constructExpectStep_handlesNullTestCaseWhenStep_throwsSaplTestException() {
+        when(testCaseMock.getWhenStep()).thenReturn(null);
+
+        final var exception = assertThrows(SaplTestException.class, () -> defaultExpectStepConstructor.constructExpectStep(testCaseMock, whenStepMock));
+
+        assertEquals("TestCase does not contain a whenStep", exception.getMessage());
+    }
+
+    @Test
+    void constructExpectStep_handlesNullAuthorizationSubscription_throwsSaplTestException() {
+        final var saplTestWhenStepMock = mock(io.sapl.test.grammar.sAPLTest.WhenStep.class);
+        when(testCaseMock.getWhenStep()).thenReturn(saplTestWhenStepMock);
+
+        when(saplTestWhenStepMock.getAuthorizationSubscription()).thenReturn(null);
+
+        final var exception = assertThrows(SaplTestException.class, () -> defaultExpectStepConstructor.constructExpectStep(testCaseMock, whenStepMock));
+
+        assertEquals("No AuthorizationSubscription found", exception.getMessage());
+    }
+
+    @Test
+    void constructExpectStep_returnsCorrectExpectStep() {
         final var saplTestWhenStepMock = mock(io.sapl.test.grammar.sAPLTest.WhenStep.class);
         when(testCaseMock.getWhenStep()).thenReturn(saplTestWhenStepMock);
 
@@ -42,7 +88,7 @@ class DefaultExpectStepConstructorTest {
         when(saplTestWhenStepMock.getAuthorizationSubscription()).thenReturn(authorizationSubscriptionMock);
 
         final var saplAuthorizationSubscriptionMock = mock(io.sapl.api.pdp.AuthorizationSubscription.class);
-        when(authorizationSubscriptionInterpreterMock.getAuthorizationSubscriptionFromDSL(authorizationSubscriptionMock)).thenReturn(saplAuthorizationSubscriptionMock);
+        when(authorizationSubscriptionInterpreterMock.constructAuthorizationSubscription(authorizationSubscriptionMock)).thenReturn(saplAuthorizationSubscriptionMock);
 
         final var whenStepMock = mock(WhenStep.class);
         final var expectStepMock = mock(ExpectStep.class);

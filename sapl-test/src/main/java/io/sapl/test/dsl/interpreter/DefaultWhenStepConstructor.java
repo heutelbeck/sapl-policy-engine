@@ -42,6 +42,7 @@ public final class DefaultWhenStepConstructor {
                 throw new SaplTestException("Unknown type of GivenStep");
             }
         }
+
         return fixtureWithMocks;
     }
 

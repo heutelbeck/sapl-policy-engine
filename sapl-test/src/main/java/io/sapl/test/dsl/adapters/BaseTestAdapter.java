@@ -49,18 +49,20 @@ public abstract class BaseTestAdapter<T> {
         return createTestContainerAndConvertToTargetRepresentation(filename, input);
     }
 
-    protected T createTest(final String identifier, final String input) {
-        if (identifier == null || input == null) {
+    protected T createTest(final String identifier, final String testDefinition) {
+        if (identifier == null || testDefinition == null) {
             throw new SaplTestException("identifier or input is null");
         }
 
-        return createTestContainerAndConvertToTargetRepresentation(identifier, input);
+        return createTestContainerAndConvertToTargetRepresentation(identifier, testDefinition);
     }
 
-    private T createTestContainerAndConvertToTargetRepresentation(final String identifier, final String input) {
-        final var saplTest = saplTestInterpreter.loadAsResource(input);
+    private T createTestContainerAndConvertToTargetRepresentation(final String identifier, final String testDefinition) {
+        final var saplTest = saplTestInterpreter.loadAsResource(testDefinition);
 
-        return convertTestContainerToTargetRepresentation(TestContainer.from(identifier, testProvider.buildTests(saplTest)));
+        final var testContainer = TestContainer.from(identifier, testProvider.buildTests(saplTest));
+
+        return convertTestContainerToTargetRepresentation(testContainer);
     }
 
     protected abstract T convertTestContainerToTargetRepresentation(final TestContainer testContainer);

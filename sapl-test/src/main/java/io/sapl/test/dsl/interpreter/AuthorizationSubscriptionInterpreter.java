@@ -1,6 +1,8 @@
 package io.sapl.test.dsl.interpreter;
 
-import io.sapl.test.grammar.sAPLTest.AuthorizationSubscription;
+
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.test.SaplTestException;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -8,7 +10,11 @@ public class AuthorizationSubscriptionInterpreter {
 
     private final ValInterpreter valInterpreter;
 
-    io.sapl.api.pdp.AuthorizationSubscription getAuthorizationSubscriptionFromDSL(final AuthorizationSubscription authorizationSubscription) {
+    AuthorizationSubscription constructAuthorizationSubscription(final io.sapl.test.grammar.sAPLTest.AuthorizationSubscription authorizationSubscription) {
+        if (authorizationSubscription == null) {
+            throw new SaplTestException("AuthorizationSubscription is null");
+        }
+
         final var subject = valInterpreter.getValFromValue(authorizationSubscription.getSubject());
         final var action = valInterpreter.getValFromValue(authorizationSubscription.getAction());
         final var resource = valInterpreter.getValFromValue(authorizationSubscription.getResource());
@@ -16,10 +22,11 @@ public class AuthorizationSubscriptionInterpreter {
         final var environmentValue = authorizationSubscription.getEnvironment();
 
         if (environmentValue == null) {
-            return io.sapl.api.pdp.AuthorizationSubscription.of(subject.get(), action.get(), resource.get());
+            return AuthorizationSubscription.of(subject.get(), action.get(), resource.get());
         }
 
         final var environment = valInterpreter.getValFromValue(environmentValue);
-        return io.sapl.api.pdp.AuthorizationSubscription.of(subject.get(), action.get(), resource.get(), environment.get());
+
+        return AuthorizationSubscription.of(subject.get(), action.get(), resource.get(), environment.get());
     }
 }

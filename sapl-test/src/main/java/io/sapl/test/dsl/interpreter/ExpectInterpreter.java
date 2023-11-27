@@ -31,6 +31,10 @@ public class ExpectInterpreter {
     private final MultipleAmountInterpreter multipleAmountInterpreter;
 
     VerifyStep interpretSingleExpect(final ExpectOrVerifyStep expectOrVerifyStep, final SingleExpect singleExpect) {
+        if (expectOrVerifyStep == null || singleExpect == null) {
+            throw new SaplTestException("ExpectOrVerifyStep or singleExpect is null");
+        }
+
         final var dslAuthorizationDecision = singleExpect.getDecision();
 
         final var authorizationDecision = getAuthorizationDecisionFromDSLAuthorizationDecision(dslAuthorizationDecision);
@@ -39,24 +43,26 @@ public class ExpectInterpreter {
     }
 
     VerifyStep interpretSingleExpectWithMatcher(final ExpectOrVerifyStep expectOrVerifyStep, final SingleExpectWithMatcher singleExpectWithMatcher) {
+        if (expectOrVerifyStep == null || singleExpectWithMatcher == null) {
+            throw new SaplTestException("ExpectOrVerifyStep or singleExpectWithMatcher is null");
+        }
+
         final var dslAuthorizationDecisionMatcher = singleExpectWithMatcher.getMatcher();
+
+        if (dslAuthorizationDecisionMatcher == null) {
+            throw new SaplTestException("SingleExpectWithMatcher does not contain a matcher");
+        }
 
         final var matcher = authorizationDecisionMatcherInterpreter.getHamcrestAuthorizationDecisionMatcher(dslAuthorizationDecisionMatcher);
 
         return expectOrVerifyStep.expect(matcher);
     }
 
-
-    private AuthorizationDecision getAuthorizationDecisionFromDSLAuthorizationDecision(final io.sapl.test.grammar.sAPLTest.AuthorizationDecision authorizationDecision) {
-        final var decision = authorizationDecision.getDecision();
-        final var resource = authorizationDecision.getResource();
-        final var obligations = authorizationDecision.getObligations();
-        final var advice = authorizationDecision.getAdvice();
-
-        return authorizationDecisionInterpreter.constructAuthorizationDecision(decision, resource, obligations, advice);
-    }
-
     VerifyStep interpretRepeatedExpect(ExpectOrVerifyStep expectOrVerifyStep, final RepeatedExpect repeatedExpect) {
+        if (expectOrVerifyStep == null || repeatedExpect == null) {
+            throw new SaplTestException("ExpectOrVerifyStep or repeatedExpect is null");
+        }
+
         final var expectOrAdjustmentSteps = repeatedExpect.getExpectSteps();
 
         if (expectOrAdjustmentSteps == null || expectOrAdjustmentSteps.isEmpty()) {
@@ -68,6 +74,7 @@ public class ExpectInterpreter {
                 expectOrVerifyStep = constructNext(expectOrVerifyStep, nextExpect);
             } else if (expectOrAdjustmentStep instanceof NextWithDecision nextWithDecision) {
                 final var dslAuthorizationDecision = nextWithDecision.getExpectedDecision();
+
                 expectOrVerifyStep = constructNextWithDecision(expectOrVerifyStep, dslAuthorizationDecision);
             } else if (expectOrAdjustmentStep instanceof NextWithMatcher nextWithMatcher) {
                 expectOrVerifyStep = constructNextWithMatcher(expectOrVerifyStep, nextWithMatcher);
@@ -80,9 +87,25 @@ public class ExpectInterpreter {
             } else if (expectOrAdjustmentStep instanceof NoEvent noEvent) {
                 final var duration = durationInterpreter.getJavaDurationFromDuration(noEvent.getDuration());
                 expectOrVerifyStep = expectOrVerifyStep.expectNoEvent(duration);
+            } else {
+                throw new SaplTestException("Unknown type of ExpectOrAdjustmentStep");
             }
         }
         return expectOrVerifyStep;
+    }
+
+
+    private AuthorizationDecision getAuthorizationDecisionFromDSLAuthorizationDecision(final io.sapl.test.grammar.sAPLTest.AuthorizationDecision authorizationDecision) {
+        if (authorizationDecision == null) {
+            throw new SaplTestException("AuthorizationDecision is null");
+        }
+
+        final var decision = authorizationDecision.getDecision();
+        final var resource = authorizationDecision.getResource();
+        final var obligations = authorizationDecision.getObligations();
+        final var advice = authorizationDecision.getAdvice();
+
+        return authorizationDecisionInterpreter.constructAuthorizationDecision(decision, resource, obligations, advice);
     }
 
     private ExpectOrVerifyStep constructNext(final ExpectOrVerifyStep expectOrVerifyStep, final Next nextExpect) {
@@ -109,10 +132,6 @@ public class ExpectInterpreter {
     }
 
     private ExpectOrVerifyStep constructNextWithDecision(final ExpectOrVerifyStep expectOrVerifyStep, final io.sapl.test.grammar.sAPLTest.AuthorizationDecision dslAuthorizationDecision) {
-        if (dslAuthorizationDecision == null) {
-            throw new SaplTestException("No AuthorizationDecision found");
-        }
-
         final var authorizationDecision = getAuthorizationDecisionFromDSLAuthorizationDecision(dslAuthorizationDecision);
 
         return expectOrVerifyStep.expectNext(authorizationDecision);

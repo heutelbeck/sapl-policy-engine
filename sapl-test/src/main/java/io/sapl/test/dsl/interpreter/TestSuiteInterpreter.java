@@ -84,10 +84,8 @@ public class TestSuiteInterpreter {
             integrationTestFixture = integrationTestFixture.withPDPVariables(pdpEnvironmentVariables);
         }
 
-        final var pdpCombiningAlgorithm = integrationTestSuite.getCombiningAlgorithm();
-
-        if (pdpCombiningAlgorithm != null) {
-            final var pdpPolicyCombiningAlgorithm = pdpCombiningAlgorithmInterpreter.interpretPdpCombiningAlgorithm(pdpCombiningAlgorithm);
+        if (integrationTestSuite.isCombiningAlgorithmDefined()) {
+            final var pdpPolicyCombiningAlgorithm = pdpCombiningAlgorithmInterpreter.interpretPdpCombiningAlgorithm(integrationTestSuite.getCombiningAlgorithm());
             integrationTestFixture.withPDPPolicyCombiningAlgorithm(pdpPolicyCombiningAlgorithm);
         }
 

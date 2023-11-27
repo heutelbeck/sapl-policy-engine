@@ -1,12 +1,14 @@
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.interpreter.Val;
+import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sAPLTest.AuthorizationSubscription;
 import io.sapl.test.grammar.sAPLTest.Value;
 import org.junit.jupiter.api.AfterEach;
@@ -32,7 +34,14 @@ class AuthorizationSubscriptionInterpreterTest {
     }
 
     @Test
-    void getAuthorizationSubscriptionFromDSL_correctlyInterpretsAuthorizationSubscriptionWithMissingEnvironment_returnsSAPLAuthorizationSubscription() {
+    void constructAuthorizationSubscription_handlesNullAuthorizationSubscription_throwsSaplTestException() {
+        final var exception = assertThrows(SaplTestException.class, () -> authorizationSubscriptionInterpreter.constructAuthorizationSubscription(null));
+
+        assertEquals("AuthorizationSubscription is null", exception.getMessage());
+    }
+
+    @Test
+    void constructAuthorizationSubscription_correctlyInterpretsAuthorizationSubscriptionWithMissingEnvironment_returnsSAPLAuthorizationSubscription() {
         final var authorizationSubscriptionMock = mock(AuthorizationSubscription.class);
 
         final var subjectMock = mock(Value.class);
@@ -63,13 +72,13 @@ class AuthorizationSubscriptionInterpreterTest {
         final var saplAuthorizationSubscriptionMock = mock(io.sapl.api.pdp.AuthorizationSubscription.class);
         authorizationSubscriptionMockedStatic.when(() -> io.sapl.api.pdp.AuthorizationSubscription.of(subjectJsonNodeMock, actionJsonNodeMock, resourceJsonNodeMock)).thenReturn(saplAuthorizationSubscriptionMock);
 
-        final var result = authorizationSubscriptionInterpreter.getAuthorizationSubscriptionFromDSL(authorizationSubscriptionMock);
+        final var result = authorizationSubscriptionInterpreter.constructAuthorizationSubscription(authorizationSubscriptionMock);
 
         assertEquals(saplAuthorizationSubscriptionMock, result);
     }
 
     @Test
-    void getAuthorizationSubscriptionFromDSL_correctlyInterpretsAuthorizationSubscription_returnsSAPLAuthorizationSubscription() {
+    void constructAuthorizationSubscription_correctlyInterpretsAuthorizationSubscription_returnsSAPLAuthorizationSubscription() {
         final var authorizationSubscriptionMock = mock(AuthorizationSubscription.class);
 
         final var subjectMock = mock(Value.class);
@@ -105,7 +114,7 @@ class AuthorizationSubscriptionInterpreterTest {
         final var saplAuthorizationSubscriptionMock = mock(io.sapl.api.pdp.AuthorizationSubscription.class);
         authorizationSubscriptionMockedStatic.when(() -> io.sapl.api.pdp.AuthorizationSubscription.of(subjectJsonNodeMock, actionJsonNodeMock, resourceJsonNodeMock, environmentJsonNodeMock)).thenReturn(saplAuthorizationSubscriptionMock);
 
-        final var result = authorizationSubscriptionInterpreter.getAuthorizationSubscriptionFromDSL(authorizationSubscriptionMock);
+        final var result = authorizationSubscriptionInterpreter.constructAuthorizationSubscription(authorizationSubscriptionMock);
 
         assertEquals(saplAuthorizationSubscriptionMock, result);
     }

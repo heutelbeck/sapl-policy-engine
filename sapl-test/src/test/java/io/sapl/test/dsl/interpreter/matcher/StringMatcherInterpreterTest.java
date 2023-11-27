@@ -30,6 +30,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -250,12 +252,24 @@ class StringMatcherInterpreterTest {
         assertEquals(matcherMock, result);
     }
 
-    @Test
-    void getHamcrestStringMatcher_handlesStringWithLength_returnsHasLengthMatcher() {
+    @ParameterizedTest
+    @ValueSource(doubles = {-1, 0.5, Integer.MAX_VALUE + 1D, -5, -0.1})
+    void getHamcrestStringMatcher_handlesStringWithLengthWithInvalidInteger_returnsHasLengthMatcher(double returnValue) {
         final var stringMatcherMock = mock(StringWithLength.class);
-        when(stringMatcherMock.getLength()).thenReturn(BigDecimal.ONE);
+        when(stringMatcherMock.getLength()).thenReturn(BigDecimal.valueOf(returnValue));
 
-        matchersMockedStatic.when(() -> Matchers.hasLength(1)).thenReturn(matcherMock);
+        final var exception = assertThrows(SaplTestException.class, () -> stringMatcherInterpreter.getHamcrestStringMatcher(stringMatcherMock));
+
+        assertEquals("String length needs to be an natural number", exception.getMessage());
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {1, 5, Integer.MAX_VALUE, 0, 555})
+    void getHamcrestStringMatcher_handlesStringWithLengthWithValidInteger_returnsHasLengthMatcher(int returnValue) {
+        final var stringMatcherMock = mock(StringWithLength.class);
+        when(stringMatcherMock.getLength()).thenReturn(BigDecimal.valueOf(returnValue));
+
+        matchersMockedStatic.when(() -> Matchers.hasLength(returnValue)).thenReturn(matcherMock);
 
         final var result = stringMatcherInterpreter.getHamcrestStringMatcher(stringMatcherMock);
 

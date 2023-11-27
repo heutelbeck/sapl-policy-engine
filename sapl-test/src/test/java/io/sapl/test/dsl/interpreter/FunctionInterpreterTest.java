@@ -24,7 +24,6 @@ import io.sapl.test.verification.TimesCalledVerification;
 import java.util.List;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -48,6 +47,13 @@ class FunctionInterpreterTest {
     @Mock
     private GivenOrWhenStep givenOrWhenStepMock;
 
+    @Mock
+    private Function functionMock;
+    @Mock
+    private Value valMock;
+    @Mock
+    private io.sapl.api.interpreter.Val saplValMock;
+
     private final MockedStatic<Imports> importsMockedStatic = mockStatic(Imports.class);
 
     @AfterEach
@@ -55,28 +61,42 @@ class FunctionInterpreterTest {
         importsMockedStatic.close();
     }
 
+    private void mockFunctionNameAndReturnValue() {
+        when(functionMock.getName()).thenReturn("fooFunction");
+
+        when(functionMock.getReturnValue()).thenReturn(valMock);
+
+        when(valInterpreterMock.getValFromValue(valMock)).thenReturn(saplValMock);
+    }
+
     @Nested
     @DisplayName("Interpret function")
     class InterpretFunctionTests {
+        @Test
+        void interpretFunction_handlesNullGivenOrWhenStep_throwsSaplTestException() {
+            final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter.interpretFunction(null, functionMock));
 
-        @Mock
-        private Function functionMock;
-        @Mock
-        private Value valMock;
-        @Mock
-        private io.sapl.api.interpreter.Val saplValMock;
+            assertEquals("GivenOrWhenStep or function is null", exception.getMessage());
+        }
 
-        @BeforeEach
-        void setUp() {
-            when(functionMock.getName()).thenReturn("fooFunction");
+        @Test
+        void interpretFunction_handlesNullFunction_throwsSaplTestException() {
+            final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter.interpretFunction(givenOrWhenStepMock, null));
 
-            when(functionMock.getReturnValue()).thenReturn(valMock);
+            assertEquals("GivenOrWhenStep or function is null", exception.getMessage());
+        }
 
-            when(valInterpreterMock.getValFromValue(valMock)).thenReturn(saplValMock);
+        @Test
+        void interpretFunction_handlesNullGivenOrWhenStepAndNullFunction_throwsSaplTestException() {
+            final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter.interpretFunction(null, null));
+
+            assertEquals("GivenOrWhenStep or function is null", exception.getMessage());
         }
 
         @Test
         void interpretFunction_withoutTimesCalledVerificationAndNullFunctionParameters_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
+            mockFunctionNameAndReturnValue();
+
             when(functionMock.getParameters()).thenReturn(null);
 
             when(givenOrWhenStepMock.givenFunction("fooFunction", saplValMock)).thenReturn(givenOrWhenStepMock);
@@ -113,6 +133,8 @@ class FunctionInterpreterTest {
 
         @Test
         void interpretFunction_withoutTimesCalledVerificationAndFunctionParametersMatchers_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
+            mockFunctionNameAndReturnValue();
+
             final var functionParametersMock = mock(FunctionParameters.class);
             when(functionMock.getParameters()).thenReturn(functionParametersMock);
 
@@ -135,6 +157,8 @@ class FunctionInterpreterTest {
 
         @Test
         void interpretFunction_withTimesCalledVerificationBeingOnceAndNullFunctionParameters_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
+            mockFunctionNameAndReturnValue();
+
             final var onceMock = mock(Once.class);
 
             when(functionMock.getAmount()).thenReturn(onceMock);
@@ -195,6 +219,8 @@ class FunctionInterpreterTest {
 
         @Test
         void interpretFunction_withTimesCalledVerificationBeingMultipleAndFunctionParametersMatchers_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
+            mockFunctionNameAndReturnValue();
+
             final var multipleMock = mock(Multiple.class);
 
             when(functionMock.getAmount()).thenReturn(multipleMock);
@@ -230,6 +256,27 @@ class FunctionInterpreterTest {
     @Nested
     @DisplayName("Interpret function invoked once")
     class InterpretFunctionInvokedOnceTests {
+        @Test
+        void interpretFunctionInvokedOnce_handlesNullGivenOrWhenStep_throwsSaplTestException() {
+            final var functionInvokedOnceMock = mock(FunctionInvokedOnce.class);
+            final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter.interpretFunctionInvokedOnce(null, functionInvokedOnceMock));
+
+            assertEquals("GivenOrWhenStep or functionInvokedOnce is null", exception.getMessage());
+        }
+
+        @Test
+        void interpretFunctionInvokedOnce_handlesNullFunctionInvokedOnce_throwsSaplTestException() {
+            final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter.interpretFunctionInvokedOnce(givenOrWhenStepMock, null));
+
+            assertEquals("GivenOrWhenStep or functionInvokedOnce is null", exception.getMessage());
+        }
+
+        @Test
+        void interpretFunctionInvokedOnce_handlesNullGivenOrWhenStepAndNullFunctionInvokedOnce_throwsSaplTestException() {
+            final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter.interpretFunctionInvokedOnce(null, null));
+
+            assertEquals("GivenOrWhenStep or functionInvokedOnce is null", exception.getMessage());
+        }
 
         @Test
         void interpretFunctionInvokedOnce_handlesNullReturnValues_throwsSaplTestException() {

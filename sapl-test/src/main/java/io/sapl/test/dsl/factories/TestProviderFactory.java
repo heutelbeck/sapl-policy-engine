@@ -36,11 +36,13 @@ public class TestProviderFactory {
         if (stepConstructor == null) {
             throw new SaplTestException("Provided stepConstructor is null");
         }
+
         return TestProvider.of(stepConstructor);
     }
 
     public static TestProvider create(final UnitTestPolicyResolver customUnitTestPolicyResolver, final IntegrationTestPolicyResolver customIntegrationTestPolicyResolver) {
         final var stepConstructor = getDefaultStepConstructor(customUnitTestPolicyResolver, customIntegrationTestPolicyResolver);
+
         return TestProvider.of(stepConstructor);
     }
 

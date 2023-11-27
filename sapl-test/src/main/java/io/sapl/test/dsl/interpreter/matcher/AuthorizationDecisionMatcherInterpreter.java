@@ -50,6 +50,7 @@ public class AuthorizationDecisionMatcherInterpreter {
 
             return getAuthorizationDecisionMatcherFromObjectMatcher(defaultObjectMatcher, null);
         }
+
         throw new SaplTestException("Unknown type of AuthorizationDecisionMatcher");
     }
 
@@ -79,6 +80,7 @@ public class AuthorizationDecisionMatcherInterpreter {
 
             return getMatcher(authorizationDecisionMatcherType, matcher);
         }
+
         return getMatcher(authorizationDecisionMatcherType, null);
     }
 
@@ -112,6 +114,7 @@ public class AuthorizationDecisionMatcherInterpreter {
                 case ADVICE -> hasAdviceContainingKeyValue(key, valueMatcher);
             };
         }
+
         throw new SaplTestException("Unknown type of ExtendedObjectMatcher");
     }
 }
