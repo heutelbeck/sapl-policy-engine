@@ -15,6 +15,7 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sAPLTest.Value;
+import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -73,13 +74,30 @@ class AuthorizationDecisionInterpreterTest {
     }
 
     @Nested
-    @DisplayName("obligations and resource mapping tests")
+    @DisplayName("obligations and resource and advice mapping tests")
     class ObligationsAndResourceAndAdviceMapping {
         @Test
         void constructAuthorizationDecision_shouldIgnoreNullObligationsAndResourceAndAdvice_returnsCorrectAuthorizationDecision() {
             final var result = authorizationDecisionInterpreter.constructAuthorizationDecision(io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType.PERMIT, null, null, null);
 
             assertEquals(AuthorizationDecision.PERMIT, result);
+        }
+
+        @Test
+        void constructAuthorizationDecision_shouldInterpretResourceOnlyForEmptyObligationsAndAdvice_returnsCorrectAuthorizationDecision() {
+            final var valueMock = mock(Value.class);
+
+            final var saplValMock = mock(Val.class);
+
+            when(valInterpreterMock.getValFromValue(valueMock)).thenReturn(saplValMock);
+
+            final var jsonNodeMock = mock(JsonNode.class);
+            when(saplValMock.get()).thenReturn(jsonNodeMock);
+
+            final var result = authorizationDecisionInterpreter.constructAuthorizationDecision(io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType.INDETERMINATE, valueMock, Collections.emptyList(), Collections.emptyList());
+
+            assertEquals(Decision.INDETERMINATE, result.getDecision());
+            assertEquals(saplValMock.get(), result.getResource().get());
         }
 
         @Test

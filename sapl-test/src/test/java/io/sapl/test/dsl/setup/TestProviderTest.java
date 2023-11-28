@@ -62,8 +62,8 @@ class TestProviderTest {
         when(saplTestTMock.getElements()).thenReturn(mockedTestSuites);
     }
 
-    private EList<TestCase> mockTestCases(final List<TestCase> testSuites) {
-        return Helper.mockEList(testSuites);
+    private EList<TestCase> mockTestCases(final List<TestCase> testCases) {
+        return Helper.mockEList(testCases);
     }
 
     @Nested
@@ -109,7 +109,9 @@ class TestProviderTest {
         void buildTests_calledWithSAPLTestWithEmptyTestCases_throwsSaplTestException() {
             mockTestSuites(List.of(unitTestSuiteMock));
 
-            mockTestCases(Collections.emptyList());
+            final var testCases = mockTestCases(Collections.emptyList());
+
+            when(unitTestSuiteMock.getTestCases()).thenReturn(testCases);
 
             final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestTMock));
 

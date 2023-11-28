@@ -15,22 +15,18 @@ import java.nio.file.Path;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
+import org.mockito.Mock;
 import org.mockito.MockedStatic;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class DocumentHelperTest {
-
-    private MockedStatic<ClasspathHelper> classpathHelperMockedStatic;
-    private MockedStatic<Files> filesMockedStatic;
-
+    private final MockedStatic<ClasspathHelper> classpathHelperMockedStatic = mockStatic(ClasspathHelper.class);
+    private final MockedStatic<Files> filesMockedStatic = mockStatic(Files.class, Answers.CALLS_REAL_METHODS);
+    @Mock
     private SAPLInterpreter saplInterpreterMock;
-
-    @BeforeEach
-    void setUp() {
-        classpathHelperMockedStatic = mockStatic(ClasspathHelper.class);
-        filesMockedStatic = mockStatic(Files.class, Answers.CALLS_REAL_METHODS);
-        saplInterpreterMock = mock(SAPLInterpreter.class);
-    }
 
     @AfterEach
     void tearDown() {
@@ -87,7 +83,6 @@ class DocumentHelperTest {
         filesMockedStatic.when(() -> Files.readString(pathMock)).thenThrow(new IOException("where is my filesystem?"));
 
         final var saplMock = mock(SAPL.class);
-        when(saplInterpreterMock.parse("fancySaplString")).thenReturn(saplMock);
 
         final var exception = assertThrows(RuntimeException.class, () -> DocumentHelper.readSaplDocument("file.sapl", saplInterpreterMock));
 
@@ -104,10 +99,33 @@ class DocumentHelperTest {
         filesMockedStatic.when(() -> Files.readString(pathMock)).thenThrow(new SecurityException("security breach"));
 
         final var saplMock = mock(SAPL.class);
-        when(saplInterpreterMock.parse("fancySaplString")).thenReturn(saplMock);
 
         final var exception = assertThrows(SecurityException.class, () -> DocumentHelper.readSaplDocument("file.sapl", saplInterpreterMock));
 
         assertEquals("security breach", exception.getMessage());
+    }
+
+    @Test
+    void readSaplDocumentFromInputString_handlesNullInput_returnsNull() {
+        final var result = DocumentHelper.readSaplDocumentFromInputString(null, saplInterpreterMock);
+
+        assertNull(result);
+    }
+
+    @Test
+    void readSaplDocumentFromInputString_handlesEmptyInput_returnsNull() {
+        final var result = DocumentHelper.readSaplDocumentFromInputString("", saplInterpreterMock);
+
+        assertNull(result);
+    }
+
+    @Test
+    void readSaplDocumentFromInputString_parsesValidInput_returnsSAPL() {
+        final var saplMock = mock(SAPL.class);
+        when(saplInterpreterMock.parse("foo")).thenReturn(saplMock);
+
+        final var result = DocumentHelper.readSaplDocumentFromInputString("foo", saplInterpreterMock);
+
+        assertEquals(saplMock, result);
     }
 }
