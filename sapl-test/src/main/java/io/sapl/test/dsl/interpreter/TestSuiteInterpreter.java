@@ -2,8 +2,6 @@ package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
-import io.sapl.test.dsl.factories.SaplIntegrationTestFixtureFactory;
-import io.sapl.test.dsl.factories.SaplUnitTestFixtureFactory;
 import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
 import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
 import io.sapl.test.grammar.sAPLTest.IntegrationTestSuite;
@@ -17,7 +15,7 @@ import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class TestSuiteInterpreter {
+class TestSuiteInterpreter {
 
     private final ValInterpreter valInterpreter;
     private final PDPCombiningAlgorithmInterpreter pdpCombiningAlgorithmInterpreter;

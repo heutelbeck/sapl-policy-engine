@@ -1,13 +1,9 @@
-package io.sapl.test.dsl.setup;
+package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.sapl.test.dsl.interpreter.DefaultExpectStepConstructor;
-import io.sapl.test.dsl.interpreter.DefaultTestFixtureConstructor;
-import io.sapl.test.dsl.interpreter.DefaultVerifyStepConstructor;
-import io.sapl.test.dsl.interpreter.DefaultWhenStepConstructor;
 import io.sapl.test.grammar.sAPLTest.FixtureRegistration;
 import io.sapl.test.grammar.sAPLTest.GivenStep;
 import io.sapl.test.grammar.sAPLTest.TestCase;

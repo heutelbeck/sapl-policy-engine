@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 @Getter
-public class TestContainer implements TestNode {
+public final class TestContainer implements TestNode {
 
     private final String identifier;
     private final List<? extends TestNode> testNodes;

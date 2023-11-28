@@ -7,7 +7,7 @@ import io.sapl.functions.TemporalFunctionLibrary;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sAPLTest.FunctionLibrary;
 
-public class FunctionLibraryInterpreter {
+class FunctionLibraryInterpreter {
     Object getFunctionLibrary(final FunctionLibrary functionLibrary) {
         if (functionLibrary == null) {
             throw new SaplTestException("FunctionLibrary is null");

@@ -1,4 +1,4 @@
-package io.sapl.test.dsl.interpreter.matcher;
+package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -13,7 +13,6 @@ import io.sapl.hamcrest.HasAdviceContainingKeyValue;
 import io.sapl.hamcrest.HasObligation;
 import io.sapl.hamcrest.HasObligationContainingKeyValue;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.dsl.interpreter.ValInterpreter;
 import io.sapl.test.grammar.sAPLTest.AnyDecision;
 import io.sapl.test.grammar.sAPLTest.AuthorizationDecisionMatcher;
 import io.sapl.test.grammar.sAPLTest.AuthorizationDecisionMatcherType;

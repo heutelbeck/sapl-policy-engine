@@ -10,7 +10,6 @@ import static org.mockito.Mockito.when;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
-import io.sapl.test.dsl.utils.ReflectionHelper;
 import io.sapl.test.grammar.sAPLTest.CustomFunctionLibrary;
 import io.sapl.test.grammar.sAPLTest.FixtureRegistration;
 import io.sapl.test.grammar.sAPLTest.FunctionLibrary;

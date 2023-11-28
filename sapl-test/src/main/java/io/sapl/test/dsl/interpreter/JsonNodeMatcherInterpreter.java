@@ -1,4 +1,4 @@
-package io.sapl.test.dsl.interpreter.matcher;
+package io.sapl.test.dsl.interpreter;
 
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonArray;
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonBigDecimal;
@@ -26,7 +26,7 @@ import lombok.RequiredArgsConstructor;
 import org.hamcrest.Matcher;
 
 @RequiredArgsConstructor
-public class JsonNodeMatcherInterpreter {
+class JsonNodeMatcherInterpreter {
 
     private final StringMatcherInterpreter stringMatcherInterpreter;
 

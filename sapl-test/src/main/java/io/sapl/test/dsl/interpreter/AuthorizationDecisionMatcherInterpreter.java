@@ -1,4 +1,4 @@
-package io.sapl.test.dsl.interpreter.matcher;
+package io.sapl.test.dsl.interpreter;
 
 import static io.sapl.hamcrest.Matchers.anyDecision;
 import static io.sapl.hamcrest.Matchers.hasAdvice;
@@ -15,7 +15,6 @@ import static org.hamcrest.Matchers.is;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.dsl.interpreter.ValInterpreter;
 import io.sapl.test.grammar.sAPLTest.AnyDecision;
 import io.sapl.test.grammar.sAPLTest.AuthorizationDecisionMatcher;
 import io.sapl.test.grammar.sAPLTest.AuthorizationDecisionMatcherType;
@@ -31,7 +30,7 @@ import lombok.RequiredArgsConstructor;
 import org.hamcrest.Matcher;
 
 @RequiredArgsConstructor
-public class AuthorizationDecisionMatcherInterpreter {
+class AuthorizationDecisionMatcherInterpreter {
 
     private final ValInterpreter valInterpreter;
     private final JsonNodeMatcherInterpreter jsonNodeMatcherInterpreter;

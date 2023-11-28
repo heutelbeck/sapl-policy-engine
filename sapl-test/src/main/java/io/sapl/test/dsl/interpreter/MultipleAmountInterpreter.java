@@ -1,9 +1,9 @@
-package io.sapl.test.dsl.interpreter.matcher;
+package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestException;
 
-public class MultipleAmountInterpreter {
-    public int getAmountFromMultipleAmountString(final String multipleAmount) {
+class MultipleAmountInterpreter {
+    int getAmountFromMultipleAmountString(final String multipleAmount) {
         try {
             var amount = multipleAmount.endsWith("x") ? multipleAmount.substring(0, multipleAmount.length() - 1) : "";
 

@@ -1,4 +1,4 @@
-package io.sapl.test.dsl.interpreter.matcher;
+package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;

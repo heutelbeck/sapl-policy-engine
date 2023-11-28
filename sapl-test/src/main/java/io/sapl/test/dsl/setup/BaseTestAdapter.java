@@ -1,14 +1,10 @@
-package io.sapl.test.dsl.adapters;
+package io.sapl.test.dsl.setup;
 
 import io.sapl.test.SaplTestException;
-import io.sapl.test.dsl.factories.SaplTestInterpreterFactory;
-import io.sapl.test.dsl.factories.TestProviderFactory;
 import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
 import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
-import io.sapl.test.dsl.setup.TestContainer;
-import io.sapl.test.dsl.setup.TestProvider;
 import io.sapl.test.utils.DocumentHelper;
 
 public abstract class BaseTestAdapter<T> {

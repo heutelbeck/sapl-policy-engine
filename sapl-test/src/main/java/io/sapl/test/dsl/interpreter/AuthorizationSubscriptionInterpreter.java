@@ -6,7 +6,7 @@ import io.sapl.test.SaplTestException;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class AuthorizationSubscriptionInterpreter {
+class AuthorizationSubscriptionInterpreter {
 
     private final ValInterpreter valInterpreter;
 

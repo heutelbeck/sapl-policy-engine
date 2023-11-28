@@ -13,12 +13,12 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public final class DefaultWhenStepConstructor {
+class DefaultWhenStepConstructor {
 
     private final FunctionInterpreter functionInterpreter;
     private final AttributeInterpreter attributeInterpreter;
 
-    public WhenStep constructWhenStep(final List<GivenStep> givenSteps, final GivenOrWhenStep givenOrWhenStep) {
+    WhenStep constructWhenStep(final List<GivenStep> givenSteps, final GivenOrWhenStep givenOrWhenStep) {
         if (givenSteps == null || givenSteps.isEmpty()) {
             return givenOrWhenStep;
         }

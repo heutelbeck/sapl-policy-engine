@@ -1,4 +1,4 @@
-package io.sapl.test.dsl.interpreter.matcher;
+package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -7,7 +7,6 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import io.sapl.test.SaplTestException;
-import io.sapl.test.dsl.interpreter.ValInterpreter;
 import io.sapl.test.grammar.sAPLTest.AnyVal;
 import io.sapl.test.grammar.sAPLTest.JsonNodeMatcher;
 import io.sapl.test.grammar.sAPLTest.PlainString;

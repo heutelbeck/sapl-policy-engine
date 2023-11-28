@@ -19,11 +19,11 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class ValInterpreter {
+class ValInterpreter {
 
     private final ObjectMapper objectMapper;
 
-    public Val getValFromValue(final Value value) {
+    Val getValFromValue(final Value value) {
         if (value instanceof NumberLiteral intVal) {
             return Val.of(intVal.getNumber());
         } else if (value instanceof StringLiteral stringVal) {

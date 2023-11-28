@@ -1,10 +1,9 @@
 package io.sapl.test.junit;
 
 import io.sapl.test.SaplTestException;
-import io.sapl.test.dsl.adapters.BaseTestAdapter;
+import io.sapl.test.dsl.setup.BaseTestAdapter;
 import io.sapl.test.dsl.setup.TestCase;
 import io.sapl.test.dsl.setup.TestContainer;
-import io.sapl.test.dsl.utils.TestDiscoveryHelper;
 import io.sapl.test.dsl.interfaces.TestNode;
 import java.util.Collections;
 import java.util.List;

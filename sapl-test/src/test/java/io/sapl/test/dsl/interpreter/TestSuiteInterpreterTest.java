@@ -14,8 +14,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.test.Helper;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.dsl.factories.SaplIntegrationTestFixtureFactory;
-import io.sapl.test.dsl.factories.SaplUnitTestFixtureFactory;
 import io.sapl.test.dsl.interfaces.IntegrationTestConfiguration;
 import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
 import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;

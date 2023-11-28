@@ -1,9 +1,9 @@
-package io.sapl.test.dsl.utils;
+package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestException;
 
-public class ReflectionHelper {
-    public Object constructInstanceOfClass(final String className) {
+class ReflectionHelper {
+    Object constructInstanceOfClass(final String className) {
         if (className == null || className.isEmpty()) {
             throw new SaplTestException("null or empty className");
         }

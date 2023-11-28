@@ -3,8 +3,6 @@ package io.sapl.test.dsl.interpreter;
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.Imports;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.dsl.interpreter.matcher.MultipleAmountInterpreter;
-import io.sapl.test.dsl.interpreter.matcher.ValMatcherInterpreter;
 import io.sapl.test.grammar.sAPLTest.Function;
 import io.sapl.test.grammar.sAPLTest.FunctionInvokedOnce;
 import io.sapl.test.grammar.sAPLTest.Multiple;
@@ -15,7 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.hamcrest.Matcher;
 
 @RequiredArgsConstructor
-public class FunctionInterpreter {
+class FunctionInterpreter {
 
     private final ValInterpreter valInterpreter;
     private final ValMatcherInterpreter matcherInterpreter;

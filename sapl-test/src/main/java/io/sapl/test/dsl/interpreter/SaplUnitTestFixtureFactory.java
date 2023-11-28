@@ -1,10 +1,10 @@
-package io.sapl.test.dsl.factories;
+package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.unit.SaplUnitTestFixture;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-public class SaplUnitTestFixtureFactory {
+class SaplUnitTestFixtureFactory {
     public static SaplUnitTestFixture create(final String saplDocumentName) {
         return new SaplUnitTestFixture(saplDocumentName);
     }

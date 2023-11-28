@@ -4,7 +4,7 @@ import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sAPLTest.CombiningAlgorithmEnum;
 
-public class PDPCombiningAlgorithmInterpreter {
+class PDPCombiningAlgorithmInterpreter {
     PolicyDocumentCombiningAlgorithm interpretPdpCombiningAlgorithm(final CombiningAlgorithmEnum combiningAlgorithm) {
         if (combiningAlgorithm == null) {
             throw new SaplTestException("CombiningAlgorithm is null");

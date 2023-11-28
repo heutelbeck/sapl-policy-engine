@@ -7,11 +7,11 @@ import io.sapl.test.steps.WhenStep;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public final class DefaultExpectStepConstructor {
+class DefaultExpectStepConstructor {
 
     private final AuthorizationSubscriptionInterpreter authorizationSubscriptionInterpreter;
 
-    public ExpectStep constructExpectStep(final TestCase testCase, final WhenStep whenStep) {
+    ExpectStep constructExpectStep(final TestCase testCase, final WhenStep whenStep) {
         if (testCase == null || whenStep == null) {
             throw new SaplTestException("TestCase or whenStep is null");
         }

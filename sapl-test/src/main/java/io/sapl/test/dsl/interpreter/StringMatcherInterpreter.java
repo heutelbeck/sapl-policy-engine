@@ -1,4 +1,4 @@
-package io.sapl.test.dsl.interpreter.matcher;
+package io.sapl.test.dsl.interpreter;
 
 
 import static org.hamcrest.Matchers.blankOrNullString;
@@ -35,7 +35,7 @@ import io.sapl.test.grammar.sAPLTest.StringStartsWith;
 import io.sapl.test.grammar.sAPLTest.StringWithLength;
 import org.hamcrest.Matcher;
 
-public class StringMatcherInterpreter {
+class StringMatcherInterpreter {
     Matcher<? super String> getHamcrestStringMatcher(final StringMatcher stringMatcher) {
         final var nullEmptyBlankCasesMatcher = getMatcherForNullEmptyBlankCases(stringMatcher);
 

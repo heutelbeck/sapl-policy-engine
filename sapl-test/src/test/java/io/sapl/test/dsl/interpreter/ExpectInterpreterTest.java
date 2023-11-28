@@ -10,8 +10,6 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.hamcrest.Matchers;
 import io.sapl.test.Helper;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.dsl.interpreter.matcher.AuthorizationDecisionMatcherInterpreter;
-import io.sapl.test.dsl.interpreter.matcher.MultipleAmountInterpreter;
 import io.sapl.test.grammar.sAPLTest.AttributeAdjustment;
 import io.sapl.test.grammar.sAPLTest.AuthorizationDecisionMatcher;
 import io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType;

@@ -1,4 +1,4 @@
-package io.sapl.test.dsl.factories;
+package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 

@@ -10,8 +10,6 @@ import static org.mockito.Mockito.when;
 import io.sapl.test.Helper;
 import io.sapl.test.Imports;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.dsl.interpreter.matcher.MultipleAmountInterpreter;
-import io.sapl.test.dsl.interpreter.matcher.ValMatcherInterpreter;
 import io.sapl.test.grammar.sAPLTest.Function;
 import io.sapl.test.grammar.sAPLTest.FunctionInvokedOnce;
 import io.sapl.test.grammar.sAPLTest.FunctionParameters;

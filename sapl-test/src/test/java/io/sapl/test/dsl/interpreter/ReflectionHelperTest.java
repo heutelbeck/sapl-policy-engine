@@ -1,9 +1,10 @@
-package io.sapl.test.dsl.utils;
+package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.test.SaplTestException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,13 +44,13 @@ class ReflectionHelperTest {
 
         final var exception = assertThrows(SaplTestException.class, () -> reflectionHelper.constructInstanceOfClass(className));
 
-        assertEquals("Could not construct instance of 'io.sapl.test.dsl.utils.ReflectionHelperTest' class", exception.getMessage());
+        assertEquals("Could not construct instance of 'io.sapl.test.dsl.interpreter.ReflectionHelperTest' class", exception.getMessage());
     }
 
     @Test
     void constructInstanceOfClass_withValidClassName_returnsInstanceOfClass() {
-        final var result = reflectionHelper.constructInstanceOfClass(ReflectionHelper.class.getName());
+        final var result = reflectionHelper.constructInstanceOfClass(FilterFunctionLibrary.class.getName());
 
-        assertInstanceOf(ReflectionHelper.class, result);
+        assertInstanceOf(FilterFunctionLibrary.class, result);
     }
 }

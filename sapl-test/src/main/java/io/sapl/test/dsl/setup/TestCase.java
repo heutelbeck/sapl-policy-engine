@@ -12,7 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.assertj.core.api.Assertions;
 
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public class TestCase implements TestNode, Runnable {
+public final class TestCase implements TestNode, Runnable {
 
     @Getter
     private final String identifier;

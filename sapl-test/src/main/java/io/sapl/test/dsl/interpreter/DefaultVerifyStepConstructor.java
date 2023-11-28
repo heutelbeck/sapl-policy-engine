@@ -10,11 +10,11 @@ import io.sapl.test.steps.VerifyStep;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public final class DefaultVerifyStepConstructor {
+class DefaultVerifyStepConstructor {
 
     private final ExpectInterpreter expectInterpreter;
 
-    public VerifyStep constructVerifyStep(final TestCase testCase, final ExpectOrVerifyStep expectStep) {
+    VerifyStep constructVerifyStep(final TestCase testCase, final ExpectOrVerifyStep expectStep) {
         if (testCase == null || expectStep == null) {
             throw new SaplTestException("TestCase or expectStep is null");
         }

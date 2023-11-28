@@ -4,8 +4,6 @@ import static org.hamcrest.Matchers.allOf;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.dsl.interpreter.matcher.AuthorizationDecisionMatcherInterpreter;
-import io.sapl.test.dsl.interpreter.matcher.MultipleAmountInterpreter;
 import io.sapl.test.grammar.sAPLTest.AttributeAdjustment;
 import io.sapl.test.grammar.sAPLTest.Await;
 import io.sapl.test.grammar.sAPLTest.Multiple;
@@ -22,7 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.hamcrest.Matcher;
 
 @RequiredArgsConstructor
-public class ExpectInterpreter {
+class ExpectInterpreter {
 
     private final ValInterpreter valInterpreter;
     private final AuthorizationDecisionInterpreter authorizationDecisionInterpreter;

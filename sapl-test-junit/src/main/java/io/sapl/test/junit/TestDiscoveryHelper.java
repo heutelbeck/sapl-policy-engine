@@ -1,13 +1,12 @@
-package io.sapl.test.dsl.utils;
+package io.sapl.test.junit;
 
 import io.sapl.test.utils.ClasspathHelper;
 import java.util.List;
-import lombok.experimental.UtilityClass;
 import org.apache.commons.io.FileUtils;
 import org.assertj.core.util.Arrays;
 
-@UtilityClass
-public class TestDiscoveryHelper {
+class TestDiscoveryHelper {
+    TestDiscoveryHelper() {}
 
     private static final String[] SAPLTEST_FILE_EXTENSIONS = Arrays.array("sapltest");
 

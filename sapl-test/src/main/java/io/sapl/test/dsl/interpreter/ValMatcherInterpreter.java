@@ -1,4 +1,4 @@
-package io.sapl.test.dsl.interpreter.matcher;
+package io.sapl.test.dsl.interpreter;
 
 import static io.sapl.hamcrest.Matchers.anyVal;
 import static io.sapl.hamcrest.Matchers.val;
@@ -7,7 +7,6 @@ import static org.hamcrest.CoreMatchers.is;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.dsl.interpreter.ValInterpreter;
 import io.sapl.test.grammar.sAPLTest.AnyVal;
 import io.sapl.test.grammar.sAPLTest.PlainString;
 import io.sapl.test.grammar.sAPLTest.StringMatcher;
@@ -19,13 +18,13 @@ import lombok.RequiredArgsConstructor;
 import org.hamcrest.Matcher;
 
 @RequiredArgsConstructor
-public class ValMatcherInterpreter {
+class ValMatcherInterpreter {
 
     private final ValInterpreter valInterpreter;
     private final JsonNodeMatcherInterpreter jsonNodeMatcherInterpreter;
     private final StringMatcherInterpreter stringMatcherInterpreter;
 
-    public Matcher<Val> getHamcrestValMatcher(final ValMatcher valMatcher) {
+    Matcher<Val> getHamcrestValMatcher(final ValMatcher valMatcher) {
         if (valMatcher instanceof ValWithValue valWithValueMatcher) {
             final var value = valWithValueMatcher.getValue();
 

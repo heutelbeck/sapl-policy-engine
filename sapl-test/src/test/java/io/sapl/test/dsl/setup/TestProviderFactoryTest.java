@@ -1,4 +1,4 @@
-package io.sapl.test.dsl.factories;
+package io.sapl.test.dsl.setup;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -10,8 +10,7 @@ import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
-import io.sapl.test.dsl.setup.DefaultStepConstructor;
-import io.sapl.test.dsl.setup.TestProvider;
+import io.sapl.test.dsl.interpreter.DefaultStepConstructor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;

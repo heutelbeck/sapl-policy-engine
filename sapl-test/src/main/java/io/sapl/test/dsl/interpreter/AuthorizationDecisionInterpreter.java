@@ -10,7 +10,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class AuthorizationDecisionInterpreter {
+class AuthorizationDecisionInterpreter {
 
     private final ValInterpreter valInterpreter;
     private final ObjectMapper objectMapper;
