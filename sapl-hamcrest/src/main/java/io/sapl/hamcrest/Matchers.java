@@ -334,7 +334,8 @@ public class Matchers {
     /**
      * A AuthorizationDecision matcher checking for the existence of any obligation
      *
-     * @return A AuthorizationDecision matcher checking for the existence of any obligation
+     * @return A AuthorizationDecision matcher checking for the existence of any
+     *         obligation
      */
     public static Matcher<AuthorizationDecision> hasObligation() {
         return new HasObligation();
@@ -379,7 +380,8 @@ public class Matchers {
     /**
      * A AuthorizationDecision matcher checking for the existence of any advice
      *
-     * @return A AuthorizationDecision matcher checking for the existence of any advice
+     * @return A AuthorizationDecision matcher checking for the existence of any
+     *         advice
      */
     public static Matcher<AuthorizationDecision> hasAdvice() {
         return new HasAdvice();

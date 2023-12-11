@@ -58,7 +58,8 @@ public class SaplUnitTestFixture extends SaplTestFixtureTemplate {
             if (input == null || input.isEmpty()) {
                 throw new SaplTestException(ERROR_MESSAGE_MISSING_SAPL_DOCUMENT_NAME);
             }
-            return isFileInput ? DocumentHelper.readSaplDocument(input, getSaplInterpreter()) : DocumentHelper.readSaplDocumentFromInputString(input, getSaplInterpreter());
+            return isFileInput ? DocumentHelper.readSaplDocument(input, getSaplInterpreter())
+                    : DocumentHelper.readSaplDocumentFromInputString(input, getSaplInterpreter());
         };
     }
 
@@ -73,7 +74,6 @@ public class SaplUnitTestFixture extends SaplTestFixtureTemplate {
         return StepBuilder.newBuilderAtWhenStep(documentRetriever.get(), this.attributeCtx, this.functionCtx,
                 this.variables);
     }
-
 
     private SAPLInterpreter getSaplInterpreter() {
         return new TestSaplInterpreter(CoverageAPIFactory.constructCoverageHitRecorder(resolveCoverageBaseDir()));

@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.test.dsl.setup;
 
 import io.sapl.test.SaplTestException;
@@ -15,12 +32,13 @@ import org.assertj.core.api.Assertions;
 public final class TestCase implements TestNode, Runnable {
 
     @Getter
-    private final String identifier;
-    private final StepConstructor stepConstructor;
-    private final TestSuite testSuite;
+    private final String                                 identifier;
+    private final StepConstructor                        stepConstructor;
+    private final TestSuite                              testSuite;
     private final io.sapl.test.grammar.sAPLTest.TestCase dslTestCase;
 
-    public static TestCase from(final StepConstructor stepConstructor, final TestSuite testSuite, io.sapl.test.grammar.sAPLTest.TestCase testCase) {
+    public static TestCase from(final StepConstructor stepConstructor, final TestSuite testSuite,
+            io.sapl.test.grammar.sAPLTest.TestCase testCase) {
         if (stepConstructor == null || testSuite == null || testCase == null) {
             throw new SaplTestException("One or more parameter(s) are null");
         }
@@ -36,21 +54,23 @@ public final class TestCase implements TestNode, Runnable {
 
     @Override
     public void run() {
-        final var environment = dslTestCase.getEnvironment();
+        final var environment          = dslTestCase.getEnvironment();
         final var fixtureRegistrations = dslTestCase.getRegistrations();
-        final var givenSteps = dslTestCase.getGivenSteps();
+        final var givenSteps           = dslTestCase.getGivenSteps();
 
-        final var environmentVariables = environment instanceof io.sapl.test.grammar.sAPLTest.Object object ? object : null;
+        final var environmentVariables = environment instanceof io.sapl.test.grammar.sAPLTest.Object object ? object
+                : null;
 
-        final var needsMocks = givenSteps != null && !givenSteps.isEmpty();
-        final var testFixture = stepConstructor.buildTestFixture(fixtureRegistrations, testSuite, environmentVariables, needsMocks);
+        final var needsMocks  = givenSteps != null && !givenSteps.isEmpty();
+        final var testFixture = stepConstructor.buildTestFixture(fixtureRegistrations, testSuite, environmentVariables,
+                needsMocks);
 
         if (dslTestCase.getExpect() instanceof TestException) {
-            Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() ->
-                    stepConstructor.constructWhenStep(givenSteps, testFixture));
+            Assertions.assertThatExceptionOfType(SaplTestException.class)
+                    .isThrownBy(() -> stepConstructor.constructWhenStep(givenSteps, testFixture));
         } else {
 
-            final var whenStep = stepConstructor.constructWhenStep(givenSteps, testFixture);
+            final var whenStep   = stepConstructor.constructWhenStep(givenSteps, testFixture);
             final var expectStep = stepConstructor.constructExpectStep(dslTestCase, whenStep);
             final var verifyStep = stepConstructor.constructVerifyStep(dslTestCase, (ExpectOrVerifyStep) expectStep);
 

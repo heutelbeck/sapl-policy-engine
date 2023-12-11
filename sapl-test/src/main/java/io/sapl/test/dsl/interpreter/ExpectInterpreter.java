@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.test.dsl.interpreter;
 
 import static org.hamcrest.Matchers.allOf;
@@ -22,11 +39,11 @@ import org.hamcrest.Matcher;
 @RequiredArgsConstructor
 class ExpectInterpreter {
 
-    private final ValInterpreter valInterpreter;
-    private final AuthorizationDecisionInterpreter authorizationDecisionInterpreter;
+    private final ValInterpreter                          valInterpreter;
+    private final AuthorizationDecisionInterpreter        authorizationDecisionInterpreter;
     private final AuthorizationDecisionMatcherInterpreter authorizationDecisionMatcherInterpreter;
-    private final DurationInterpreter durationInterpreter;
-    private final MultipleAmountInterpreter multipleAmountInterpreter;
+    private final DurationInterpreter                     durationInterpreter;
+    private final MultipleAmountInterpreter               multipleAmountInterpreter;
 
     VerifyStep interpretSingleExpect(final ExpectOrVerifyStep expectOrVerifyStep, final SingleExpect singleExpect) {
         if (expectOrVerifyStep == null || singleExpect == null) {
@@ -35,12 +52,14 @@ class ExpectInterpreter {
 
         final var dslAuthorizationDecision = singleExpect.getDecision();
 
-        final var authorizationDecision = getAuthorizationDecisionFromDSLAuthorizationDecision(dslAuthorizationDecision);
+        final var authorizationDecision = getAuthorizationDecisionFromDSLAuthorizationDecision(
+                dslAuthorizationDecision);
 
         return expectOrVerifyStep.expect(authorizationDecision);
     }
 
-    VerifyStep interpretSingleExpectWithMatcher(final ExpectOrVerifyStep expectOrVerifyStep, final SingleExpectWithMatcher singleExpectWithMatcher) {
+    VerifyStep interpretSingleExpectWithMatcher(final ExpectOrVerifyStep expectOrVerifyStep,
+            final SingleExpectWithMatcher singleExpectWithMatcher) {
         if (expectOrVerifyStep == null || singleExpectWithMatcher == null) {
             throw new SaplTestException("ExpectOrVerifyStep or singleExpectWithMatcher is null");
         }
@@ -51,7 +70,8 @@ class ExpectInterpreter {
             throw new SaplTestException("SingleExpectWithMatcher does not contain a matcher");
         }
 
-        final var matcher = authorizationDecisionMatcherInterpreter.getHamcrestAuthorizationDecisionMatcher(dslAuthorizationDecisionMatcher);
+        final var matcher = authorizationDecisionMatcherInterpreter
+                .getHamcrestAuthorizationDecisionMatcher(dslAuthorizationDecisionMatcher);
 
         return expectOrVerifyStep.expect(matcher);
     }
@@ -92,45 +112,52 @@ class ExpectInterpreter {
         return expectOrVerifyStep;
     }
 
-
-    private AuthorizationDecision getAuthorizationDecisionFromDSLAuthorizationDecision(final io.sapl.test.grammar.sAPLTest.AuthorizationDecision authorizationDecision) {
+    private AuthorizationDecision getAuthorizationDecisionFromDSLAuthorizationDecision(
+            final io.sapl.test.grammar.sAPLTest.AuthorizationDecision authorizationDecision) {
         if (authorizationDecision == null) {
             throw new SaplTestException("AuthorizationDecision is null");
         }
 
-        final var decision = authorizationDecision.getDecision();
-        final var resource = authorizationDecision.getResource();
+        final var decision    = authorizationDecision.getDecision();
+        final var resource    = authorizationDecision.getResource();
         final var obligations = authorizationDecision.getObligations();
-        final var advice = authorizationDecision.getAdvice();
+        final var advice      = authorizationDecision.getAdvice();
 
         return authorizationDecisionInterpreter.constructAuthorizationDecision(decision, resource, obligations, advice);
     }
 
     private ExpectOrVerifyStep constructNext(final ExpectOrVerifyStep expectOrVerifyStep, final Next nextExpect) {
-        final var amount = nextExpect.getAmount() instanceof Multiple multiple ? multipleAmountInterpreter.getAmountFromMultipleAmountString(multiple.getAmount()) : 1;
+        final var amount = nextExpect.getAmount() instanceof Multiple multiple
+                ? multipleAmountInterpreter.getAmountFromMultipleAmountString(multiple.getAmount())
+                : 1;
 
         return switch (nextExpect.getExpectedDecision()) {
-            case PERMIT -> expectOrVerifyStep.expectNextPermit(amount);
-            case DENY -> expectOrVerifyStep.expectNextDeny(amount);
-            case INDETERMINATE -> expectOrVerifyStep.expectNextIndeterminate(amount);
-            default -> expectOrVerifyStep.expectNextNotApplicable(amount);
+        case PERMIT -> expectOrVerifyStep.expectNextPermit(amount);
+        case DENY -> expectOrVerifyStep.expectNextDeny(amount);
+        case INDETERMINATE -> expectOrVerifyStep.expectNextIndeterminate(amount);
+        default -> expectOrVerifyStep.expectNextNotApplicable(amount);
         };
     }
 
-    private ExpectOrVerifyStep constructNextWithMatcher(final ExpectOrVerifyStep expectOrVerifyStep, final NextWithMatcher nextWithMatcher) {
+    private ExpectOrVerifyStep constructNextWithMatcher(final ExpectOrVerifyStep expectOrVerifyStep,
+            final NextWithMatcher nextWithMatcher) {
         final var matchers = nextWithMatcher.getMatcher();
 
         if (matchers == null || matchers.isEmpty()) {
             throw new SaplTestException("No AuthorizationDecisionMatcher found");
         }
 
-        final var actualMatchers = matchers.stream().map(authorizationDecisionMatcherInterpreter::getHamcrestAuthorizationDecisionMatcher).<Matcher<AuthorizationDecision>>toArray(Matcher[]::new);
+        final var actualMatchers = matchers.stream()
+                .map(authorizationDecisionMatcherInterpreter::getHamcrestAuthorizationDecisionMatcher)
+                .<Matcher<AuthorizationDecision>>toArray(Matcher[]::new);
 
         return expectOrVerifyStep.expectNext(actualMatchers.length == 1 ? actualMatchers[0] : allOf(actualMatchers));
     }
 
-    private ExpectOrVerifyStep constructNextWithDecision(final ExpectOrVerifyStep expectOrVerifyStep, final io.sapl.test.grammar.sAPLTest.AuthorizationDecision dslAuthorizationDecision) {
-        final var authorizationDecision = getAuthorizationDecisionFromDSLAuthorizationDecision(dslAuthorizationDecision);
+    private ExpectOrVerifyStep constructNextWithDecision(final ExpectOrVerifyStep expectOrVerifyStep,
+            final io.sapl.test.grammar.sAPLTest.AuthorizationDecision dslAuthorizationDecision) {
+        final var authorizationDecision = getAuthorizationDecisionFromDSLAuthorizationDecision(
+                dslAuthorizationDecision);
 
         return expectOrVerifyStep.expectNext(authorizationDecision);
     }

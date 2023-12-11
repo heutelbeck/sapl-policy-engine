@@ -1,5 +1,7 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +18,10 @@
 package io.sapl.test.grammar.web;
 
 import com.google.inject.Injector;
-import io.sapl.test.grammar.web.servlet.XtextServlet;
 import jakarta.servlet.annotation.WebServlet;
 import lombok.SneakyThrows;
 import org.eclipse.xtext.util.DisposableRegistry;
+import org.eclipse.xtext.web.servlet.XtextServlet;
 
 /**
  * Deploy this class into a servlet container to enable DSL-specific services.
@@ -27,23 +29,23 @@ import org.eclipse.xtext.util.DisposableRegistry;
 @WebServlet(name = "SaplTestXtextServices", urlPatterns = "/sapl-test/xtext-service/*")
 public class SAPLTestServlet extends XtextServlet {
 
-	private transient DisposableRegistry disposableRegistry;
+    private transient DisposableRegistry disposableRegistry;
 
-	@Override
-	@SneakyThrows
-	public void init() {
-		super.init();
-		final Injector injector = new SAPLTestWebSetup().createInjectorAndDoEMFRegistration();
-		disposableRegistry = injector.getInstance(DisposableRegistry.class);
-	}
+    @Override
+    @SneakyThrows
+    public void init() {
+        super.init();
+        final Injector injector = new SAPLTestWebSetup().createInjectorAndDoEMFRegistration();
+        disposableRegistry = injector.getInstance(DisposableRegistry.class);
+    }
 
-	@Override
-	public void destroy() {
-		if (disposableRegistry != null) {
-			disposableRegistry.dispose();
-			disposableRegistry = null;
-		}
-		super.destroy();
-	}
+    @Override
+    public void destroy() {
+        if (disposableRegistry != null) {
+            disposableRegistry.dispose();
+            disposableRegistry = null;
+        }
+        super.destroy();
+    }
 
 }

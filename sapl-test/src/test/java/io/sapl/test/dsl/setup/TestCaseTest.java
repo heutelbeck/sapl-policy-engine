@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.test.dsl.setup;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -40,13 +57,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class TestCaseTest {
     @Mock
-    private StepConstructor stepConstructorMock;
+    private StepConstructor                        stepConstructorMock;
     @Mock
-    private TestSuite testSuiteMock;
+    private TestSuite                              testSuiteMock;
     @Mock
     private io.sapl.test.grammar.sAPLTest.TestCase dslTestCase;
 
-    private final MockedStatic<org.assertj.core.api.Assertions> assertionsMockedStatic = mockStatic(org.assertj.core.api.Assertions.class, Answers.RETURNS_DEEP_STUBS);
+    private final MockedStatic<org.assertj.core.api.Assertions> assertionsMockedStatic = mockStatic(
+            org.assertj.core.api.Assertions.class, Answers.RETURNS_DEEP_STUBS);
 
     @AfterEach
     void tearDown() {
@@ -71,9 +89,11 @@ class TestCaseTest {
         return environment;
     }
 
-    private GivenOrWhenStep mockTestFixture(final List<FixtureRegistration> fixtureRegistrations, final io.sapl.test.grammar.sAPLTest.Object environment, final boolean needsMocks) {
+    private GivenOrWhenStep mockTestFixture(final List<FixtureRegistration> fixtureRegistrations,
+            final io.sapl.test.grammar.sAPLTest.Object environment, final boolean needsMocks) {
         final var testFixtureMock = mock(GivenOrWhenStep.class);
-        when(stepConstructorMock.buildTestFixture(eq(fixtureRegistrations), any(TestSuite.class), eq(environment), eq(needsMocks))).thenReturn(testFixtureMock);
+        when(stepConstructorMock.buildTestFixture(eq(fixtureRegistrations), any(TestSuite.class), eq(environment),
+                eq(needsMocks))).thenReturn(testFixtureMock);
         return testFixtureMock;
     }
 
@@ -81,17 +101,20 @@ class TestCaseTest {
         final var testExceptionMock = mock(TestException.class);
         when(testCaseWithExceptionMock.getExpect()).thenReturn(testExceptionMock);
 
-        assertionsMockedStatic.when(() -> Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(any())).thenAnswer(invocationOnMock -> {
-            if (invocationOnMock.getArgument(0) instanceof ThrowableAssert.ThrowingCallable callable) {
-                callable.call();
-            } else {
-                fail("No proper ThrowingCallable was passed as an argument!");
-            }
-            return null;
-        });
+        assertionsMockedStatic
+                .when(() -> Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(any()))
+                .thenAnswer(invocationOnMock -> {
+                    if (invocationOnMock.getArgument(0) instanceof ThrowableAssert.ThrowingCallable callable) {
+                        callable.call();
+                    } else {
+                        fail("No proper ThrowingCallable was passed as an argument!");
+                    }
+                    return null;
+                });
     }
 
-    private VerifyStep mockTestBuildingChain(final List<GivenStep> givenSteps, final GivenOrWhenStep testFixture, final io.sapl.test.grammar.sAPLTest.TestCase testCase) {
+    private VerifyStep mockTestBuildingChain(final List<GivenStep> givenSteps, final GivenOrWhenStep testFixture,
+            final io.sapl.test.grammar.sAPLTest.TestCase testCase) {
         final var expectMock = mock(ExpectChain.class);
         when(testCase.getExpect()).thenReturn(expectMock);
 
@@ -119,21 +142,24 @@ class TestCaseTest {
 
     @Test
     void from_withStepConstructorBeingNull_throwsSaplTestException() {
-        final var exception = assertThrows(SaplTestException.class, () -> TestCase.from(null, testSuiteMock, dslTestCase));
+        final var exception = assertThrows(SaplTestException.class,
+                () -> TestCase.from(null, testSuiteMock, dslTestCase));
 
         assertEquals("One or more parameter(s) are null", exception.getMessage());
     }
 
     @Test
     void from_withTestSuiteBeingNull_throwsSaplTestException() {
-        final var exception = assertThrows(SaplTestException.class, () -> TestCase.from(stepConstructorMock, null, dslTestCase));
+        final var exception = assertThrows(SaplTestException.class,
+                () -> TestCase.from(stepConstructorMock, null, dslTestCase));
 
         assertEquals("One or more parameter(s) are null", exception.getMessage());
     }
 
     @Test
     void from_withTestCaseBeingNull_throwsSaplTestException() {
-        final var exception = assertThrows(SaplTestException.class, () -> TestCase.from(stepConstructorMock, testSuiteMock, null));
+        final var exception = assertThrows(SaplTestException.class,
+                () -> TestCase.from(stepConstructorMock, testSuiteMock, null));
 
         assertEquals("One or more parameter(s) are null", exception.getMessage());
     }
@@ -176,7 +202,7 @@ class TestCaseTest {
         when(dslTestCase.getEnvironment()).thenReturn(valueMock);
 
         final var fixtureRegistrationsMock = mockFixtureRegistrations(Collections.emptyList());
-        final var givenStepsMock = mockGivenSteps(Collections.emptyList());
+        final var givenStepsMock           = mockGivenSteps(Collections.emptyList());
 
         final var testFixtureMock = mockTestFixture(fixtureRegistrationsMock, null, false);
 
@@ -189,9 +215,9 @@ class TestCaseTest {
 
     @Test
     void from_withEnvironmentBuildsFixtureWithEnvironment_returnsTestCase() throws Throwable {
-        final var environmentMock = mockEnvironment();
+        final var environmentMock          = mockEnvironment();
         final var fixtureRegistrationsMock = mockFixtureRegistrations(Collections.emptyList());
-        final var givenStepsMock = mockGivenSteps(Collections.emptyList());
+        final var givenStepsMock           = mockGivenSteps(Collections.emptyList());
 
         final var testFixtureMock = mockTestFixture(fixtureRegistrationsMock, environmentMock, false);
 
@@ -242,7 +268,7 @@ class TestCaseTest {
 
         final var fixtureRegistrationsMock = mockFixtureRegistrations(Collections.emptyList());
 
-        final var givenStepMock = mock(GivenStep.class);
+        final var givenStepMock  = mock(GivenStep.class);
         final var givenStepsMock = mockGivenSteps(List.of(givenStepMock));
 
         final var testFixtureMock = mockTestFixture(fixtureRegistrationsMock, environmentMock, true);
@@ -262,7 +288,8 @@ class TestCaseTest {
 
         mockGivenSteps(Collections.emptyList());
 
-        when(stepConstructorMock.buildTestFixture(fixtureRegistrationsMock, testSuiteMock, environmentMock, false)).thenThrow(new SaplTestException("could not build fixture"));
+        when(stepConstructorMock.buildTestFixture(fixtureRegistrationsMock, testSuiteMock, environmentMock, false))
+                .thenThrow(new SaplTestException("could not build fixture"));
 
         final var test = assertDynamicTestAndGetRunnable();
 
@@ -298,7 +325,8 @@ class TestCaseTest {
 
         final var testFixtureMock = mockTestFixture(fixtureRegistrationsMock, environmentMock, false);
 
-        when(stepConstructorMock.constructWhenStep(givenStepsMock, testFixtureMock)).thenThrow(new SaplTestException("could not build fixture"));
+        when(stepConstructorMock.constructWhenStep(givenStepsMock, testFixtureMock))
+                .thenThrow(new SaplTestException("could not build fixture"));
 
         final var test = assertDynamicTestAndGetRunnable();
 
@@ -319,7 +347,8 @@ class TestCaseTest {
 
         final var whenStepMock = mock(WhenStep.class);
         when(stepConstructorMock.constructWhenStep(givenStepsMock, testFixtureMock)).thenReturn(whenStepMock);
-        when(stepConstructorMock.constructExpectStep(dslTestCase, whenStepMock)).thenThrow(new SaplTestException("could not build expectStep"));
+        when(stepConstructorMock.constructExpectStep(dslTestCase, whenStepMock))
+                .thenThrow(new SaplTestException("could not build expectStep"));
 
         final var test = assertDynamicTestAndGetRunnable();
 
@@ -344,7 +373,8 @@ class TestCaseTest {
         final var expectOrVerifyStepMock = mock(ExpectOrVerifyStep.class);
         when(stepConstructorMock.constructExpectStep(dslTestCase, whenStepMock)).thenReturn(expectOrVerifyStepMock);
 
-        when(stepConstructorMock.constructVerifyStep(dslTestCase, expectOrVerifyStepMock)).thenThrow(new SaplTestException("could not build verifyStep"));
+        when(stepConstructorMock.constructVerifyStep(dslTestCase, expectOrVerifyStepMock))
+                .thenThrow(new SaplTestException("could not build verifyStep"));
 
         final var test = assertDynamicTestAndGetRunnable();
 

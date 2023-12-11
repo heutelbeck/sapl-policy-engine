@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -40,7 +57,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class StringMatcherInterpreterTest {
     private StringMatcherInterpreter stringMatcherInterpreter;
     @Mock
-    Matcher<? super String> matcherMock;
+    Matcher<? super String>          matcherMock;
 
     private final MockedStatic<Matchers> matchersMockedStatic = mockStatic(Matchers.class);
 
@@ -56,7 +73,8 @@ class StringMatcherInterpreterTest {
 
     @Test
     void getHamcrestStringMatcher_handlesNullStringMatcher_throwsSaplTestException() {
-        final var exception = assertThrows(SaplTestException.class, () -> stringMatcherInterpreter.getHamcrestStringMatcher(null));
+        final var exception = assertThrows(SaplTestException.class,
+                () -> stringMatcherInterpreter.getHamcrestStringMatcher(null));
 
         assertEquals("Unknown type of StringMatcher", exception.getMessage());
     }
@@ -65,7 +83,8 @@ class StringMatcherInterpreterTest {
     void getHamcrestStringMatcher_handlesUnknownStringMatcher_throwsSaplTestException() {
         final var stringMatcherMock = mock(StringMatcher.class);
 
-        final var exception = assertThrows(SaplTestException.class, () -> stringMatcherInterpreter.getHamcrestStringMatcher(stringMatcherMock));
+        final var exception = assertThrows(SaplTestException.class,
+                () -> stringMatcherInterpreter.getHamcrestStringMatcher(stringMatcherMock));
 
         assertEquals("Unknown type of StringMatcher", exception.getMessage());
     }
@@ -242,7 +261,7 @@ class StringMatcherInterpreterTest {
     @Test
     void getHamcrestStringMatcher_handlesStringContainsInOrder_returnsStringContainsInOrderMatcher() {
         final var stringMatcherMock = mock(StringContainsInOrder.class);
-        final var substrings = Helper.mockEList(List.of("a", "b"));
+        final var substrings        = Helper.mockEList(List.of("a", "b"));
         when(stringMatcherMock.getSubstrings()).thenReturn(substrings);
 
         matchersMockedStatic.when(() -> Matchers.stringContainsInOrder(substrings)).thenReturn(matcherMock);
@@ -253,18 +272,20 @@ class StringMatcherInterpreterTest {
     }
 
     @ParameterizedTest
-    @ValueSource(doubles = {-1, 0.5, Integer.MAX_VALUE + 1D, -5, -0.1})
-    void getHamcrestStringMatcher_handlesStringWithLengthWithInvalidInteger_returnsHasLengthMatcher(double returnValue) {
+    @ValueSource(doubles = { -1, 0.5, Integer.MAX_VALUE + 1D, -5, -0.1 })
+    void getHamcrestStringMatcher_handlesStringWithLengthWithInvalidInteger_returnsHasLengthMatcher(
+            double returnValue) {
         final var stringMatcherMock = mock(StringWithLength.class);
         when(stringMatcherMock.getLength()).thenReturn(BigDecimal.valueOf(returnValue));
 
-        final var exception = assertThrows(SaplTestException.class, () -> stringMatcherInterpreter.getHamcrestStringMatcher(stringMatcherMock));
+        final var exception = assertThrows(SaplTestException.class,
+                () -> stringMatcherInterpreter.getHamcrestStringMatcher(stringMatcherMock));
 
         assertEquals("String length needs to be an natural number", exception.getMessage());
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {1, 5, Integer.MAX_VALUE, 0, 555})
+    @ValueSource(ints = { 1, 5, Integer.MAX_VALUE, 0, 555 })
     void getHamcrestStringMatcher_handlesStringWithLengthWithValidInteger_returnsHasLengthMatcher(int returnValue) {
         final var stringMatcherMock = mock(StringWithLength.class);
         when(stringMatcherMock.getLength()).thenReturn(BigDecimal.valueOf(returnValue));

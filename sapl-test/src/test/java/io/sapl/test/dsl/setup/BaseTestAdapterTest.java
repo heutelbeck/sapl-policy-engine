@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.test.dsl.setup;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,16 +45,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class BaseTestAdapterTest {
     @Mock
-    private TestProvider testProviderMock;
+    private TestProvider        testProviderMock;
     @Mock
     private SaplTestInterpreter saplTestInterpreterMock;
 
     private BaseTestAdapter<TestContainer> baseTestAdapter;
 
-    private final MockedStatic<TestProviderFactory> testProviderFactoryMockedStatic = mockStatic(TestProviderFactory.class);
-    private final MockedStatic<SaplTestInterpreterFactory> saplTestInterpreterFactoryMockedStatic = mockStatic(SaplTestInterpreterFactory.class);
-    private final MockedStatic<DocumentHelper> documentHelperMockedStatic = mockStatic(DocumentHelper.class);
-    private final MockedStatic<TestContainer> testContainerMockedStatic = mockStatic(TestContainer.class);
+    private final MockedStatic<TestProviderFactory>        testProviderFactoryMockedStatic        = mockStatic(
+            TestProviderFactory.class);
+    private final MockedStatic<SaplTestInterpreterFactory> saplTestInterpreterFactoryMockedStatic = mockStatic(
+            SaplTestInterpreterFactory.class);
+    private final MockedStatic<DocumentHelper>             documentHelperMockedStatic             = mockStatic(
+            DocumentHelper.class);
+    private final MockedStatic<TestContainer>              testContainerMockedStatic              = mockStatic(
+            TestContainer.class);
 
     @AfterEach
     void tearDown() {
@@ -47,10 +68,10 @@ class BaseTestAdapterTest {
         testContainerMockedStatic.close();
     }
 
-
     private void buildInstanceOfBaseTestAdapterWithDefaultConstructor() {
         testProviderFactoryMockedStatic.when(() -> TestProviderFactory.create(null, null)).thenReturn(testProviderMock);
-        saplTestInterpreterFactoryMockedStatic.when(SaplTestInterpreterFactory::create).thenReturn(saplTestInterpreterMock);
+        saplTestInterpreterFactoryMockedStatic.when(SaplTestInterpreterFactory::create)
+                .thenReturn(saplTestInterpreterMock);
 
         baseTestAdapter = new BaseTestAdapter<>() {
             @Override
@@ -63,7 +84,8 @@ class BaseTestAdapterTest {
     private void buildInstanceOfBaseTestAdapterWithStepConstructorAndInterpreter() {
         final var stepConstructorMock = mock(StepConstructor.class);
 
-        testProviderFactoryMockedStatic.when(() -> TestProviderFactory.create(stepConstructorMock)).thenReturn(testProviderMock);
+        testProviderFactoryMockedStatic.when(() -> TestProviderFactory.create(stepConstructorMock))
+                .thenReturn(testProviderMock);
 
         baseTestAdapter = new BaseTestAdapter<>(stepConstructorMock, saplTestInterpreterMock) {
             @Override
@@ -74,12 +96,15 @@ class BaseTestAdapterTest {
     }
 
     private void buildInstanceOfBaseTestAdapterWithCustomUnitTestAndIntegrationTestPolicyResolver() {
-        saplTestInterpreterFactoryMockedStatic.when(SaplTestInterpreterFactory::create).thenReturn(saplTestInterpreterMock);
+        saplTestInterpreterFactoryMockedStatic.when(SaplTestInterpreterFactory::create)
+                .thenReturn(saplTestInterpreterMock);
 
-        final var unitTestPolicyResolverMock = mock(UnitTestPolicyResolver.class);
+        final var unitTestPolicyResolverMock    = mock(UnitTestPolicyResolver.class);
         final var integrationTestPolicyResolver = mock(IntegrationTestPolicyResolver.class);
 
-        testProviderFactoryMockedStatic.when(() -> TestProviderFactory.create(unitTestPolicyResolverMock, integrationTestPolicyResolver)).thenReturn(testProviderMock);
+        testProviderFactoryMockedStatic
+                .when(() -> TestProviderFactory.create(unitTestPolicyResolverMock, integrationTestPolicyResolver))
+                .thenReturn(testProviderMock);
 
         baseTestAdapter = new BaseTestAdapter<>(unitTestPolicyResolverMock, integrationTestPolicyResolver) {
             @Override
@@ -88,7 +113,6 @@ class BaseTestAdapterTest {
             }
         };
     }
-
 
     @Test
     void createTest_withNullFilename_throwsSaplTestException() {
@@ -103,7 +127,8 @@ class BaseTestAdapterTest {
     void createTest_withFilenameAndDocumentHelperThrows_throwsSaplTestException() {
         buildInstanceOfBaseTestAdapterWithDefaultConstructor();
 
-        documentHelperMockedStatic.when(() -> DocumentHelper.findFileOnClasspath("foo")).thenThrow(new SaplTestException("no file here"));
+        documentHelperMockedStatic.when(() -> DocumentHelper.findFileOnClasspath("foo"))
+                .thenThrow(new SaplTestException("no file here"));
         final var exception = assertThrows(SaplTestException.class, () -> baseTestAdapter.createTest("foo"));
 
         assertEquals("no file here", exception.getMessage());
@@ -128,7 +153,8 @@ class BaseTestAdapterTest {
     void createTest_withInvalidInputCombinations_throwsSaplTestException(String identifier, String input) {
         buildInstanceOfBaseTestAdapterWithDefaultConstructor();
 
-        final var exception = assertThrows(SaplTestException.class, () -> baseTestAdapter.createTest(identifier, input));
+        final var exception = assertThrows(SaplTestException.class,
+                () -> baseTestAdapter.createTest(identifier, input));
 
         assertEquals("identifier or input is null", exception.getMessage());
     }

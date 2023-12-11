@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,15 +45,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class AuthorizationDecisionInterpreterTest {
     @Mock
-    private ValInterpreter valInterpreterMock;
+    private ValInterpreter                   valInterpreterMock;
     @Mock
-    private ObjectMapper objectMapperMock;
+    private ObjectMapper                     objectMapperMock;
     @InjectMocks
     private AuthorizationDecisionInterpreter authorizationDecisionInterpreter;
 
     @Test
     void constructAuthorizationDecision_handlesNullAuthorizationDecisionType_throwsSaplTestException() {
-        final var exception = assertThrows(SaplTestException.class, () -> authorizationDecisionInterpreter.constructAuthorizationDecision(null, null, null, null));
+        final var exception = assertThrows(SaplTestException.class,
+                () -> authorizationDecisionInterpreter.constructAuthorizationDecision(null, null, null, null));
 
         assertEquals("AuthorizationDecisionType is null", exception.getMessage());
     }
@@ -46,28 +64,32 @@ class AuthorizationDecisionInterpreterTest {
     class DecisionMapping {
         @Test
         void constructAuthorizationDecision_shouldIgnoreNullObligationsAndResourceAndAdviceForPermit_returnsCorrectAuthorizationDecision() {
-            final var result = authorizationDecisionInterpreter.constructAuthorizationDecision(io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType.PERMIT, null, null, null);
+            final var result = authorizationDecisionInterpreter.constructAuthorizationDecision(
+                    io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType.PERMIT, null, null, null);
 
             assertEquals(AuthorizationDecision.PERMIT, result);
         }
 
         @Test
         void constructAuthorizationDecision_shouldIgnoreNullObligationsAndResourceAndAdviceForDeny_returnsCorrectAuthorizationDecision() {
-            final var result = authorizationDecisionInterpreter.constructAuthorizationDecision(io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType.DENY, null, null, null);
+            final var result = authorizationDecisionInterpreter.constructAuthorizationDecision(
+                    io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType.DENY, null, null, null);
 
             assertEquals(AuthorizationDecision.DENY, result);
         }
 
         @Test
         void constructAuthorizationDecision_shouldIgnoreNullObligationsAndResourceAndAdviceForIndeterminate_returnsCorrectAuthorizationDecision() {
-            final var result = authorizationDecisionInterpreter.constructAuthorizationDecision(io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType.INDETERMINATE, null, null, null);
+            final var result = authorizationDecisionInterpreter.constructAuthorizationDecision(
+                    io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType.INDETERMINATE, null, null, null);
 
             assertEquals(AuthorizationDecision.INDETERMINATE, result);
         }
 
         @Test
         void constructAuthorizationDecision_shouldIgnoreNullObligationsAndResourceAndAdviceForNotApplicable_returnsCorrectAuthorizationDecision() {
-            final var result = authorizationDecisionInterpreter.constructAuthorizationDecision(io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType.NOT_APPLICABLE, null, null, null);
+            final var result = authorizationDecisionInterpreter.constructAuthorizationDecision(
+                    io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType.NOT_APPLICABLE, null, null, null);
 
             assertEquals(AuthorizationDecision.NOT_APPLICABLE, result);
         }
@@ -78,7 +100,8 @@ class AuthorizationDecisionInterpreterTest {
     class ObligationsAndResourceAndAdviceMapping {
         @Test
         void constructAuthorizationDecision_shouldIgnoreNullObligationsAndResourceAndAdvice_returnsCorrectAuthorizationDecision() {
-            final var result = authorizationDecisionInterpreter.constructAuthorizationDecision(io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType.PERMIT, null, null, null);
+            final var result = authorizationDecisionInterpreter.constructAuthorizationDecision(
+                    io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType.PERMIT, null, null, null);
 
             assertEquals(AuthorizationDecision.PERMIT, result);
         }
@@ -94,7 +117,9 @@ class AuthorizationDecisionInterpreterTest {
             final var jsonNodeMock = mock(JsonNode.class);
             when(saplValMock.get()).thenReturn(jsonNodeMock);
 
-            final var result = authorizationDecisionInterpreter.constructAuthorizationDecision(io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType.INDETERMINATE, valueMock, Collections.emptyList(), Collections.emptyList());
+            final var result = authorizationDecisionInterpreter.constructAuthorizationDecision(
+                    io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType.INDETERMINATE, valueMock,
+                    Collections.emptyList(), Collections.emptyList());
 
             assertEquals(Decision.INDETERMINATE, result.getDecision());
             assertEquals(saplValMock.get(), result.getResource().get());
@@ -111,7 +136,8 @@ class AuthorizationDecisionInterpreterTest {
             final var jsonNodeMock = mock(JsonNode.class);
             when(saplValMock.get()).thenReturn(jsonNodeMock);
 
-            final var result = authorizationDecisionInterpreter.constructAuthorizationDecision(io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType.INDETERMINATE, valueMock, null, null);
+            final var result = authorizationDecisionInterpreter.constructAuthorizationDecision(
+                    io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType.INDETERMINATE, valueMock, null, null);
 
             assertEquals(Decision.INDETERMINATE, result.getDecision());
             assertEquals(saplValMock.get(), result.getResource().get());
@@ -131,7 +157,8 @@ class AuthorizationDecisionInterpreterTest {
             final var jsonNodeMock = mock(JsonNode.class);
             when(saplValMock.get()).thenReturn(jsonNodeMock);
 
-            final var result = authorizationDecisionInterpreter.constructAuthorizationDecision(io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType.DENY, null, List.of(valueMock), null);
+            final var result = authorizationDecisionInterpreter.constructAuthorizationDecision(
+                    io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType.DENY, null, List.of(valueMock), null);
 
             assertEquals(Decision.DENY, result.getDecision());
             assertEquals(obligationsMock, result.getObligations().get());
@@ -186,7 +213,9 @@ class AuthorizationDecisionInterpreterTest {
             when(adviceValMock1.get()).thenReturn(adviceJsonNodeMock1);
             when(adviceValMock2.get()).thenReturn(adviceJsonNodeMock2);
 
-            final var result = authorizationDecisionInterpreter.constructAuthorizationDecision(io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType.NOT_APPLICABLE, resourceValueMock, List.of(obligationValueMock1, obligationValueMock2), List.of(adviceValueMock1, adviceValueMock2));
+            final var result = authorizationDecisionInterpreter.constructAuthorizationDecision(
+                    io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType.NOT_APPLICABLE, resourceValueMock,
+                    List.of(obligationValueMock1, obligationValueMock2), List.of(adviceValueMock1, adviceValueMock2));
 
             assertEquals(Decision.NOT_APPLICABLE, result.getDecision());
             assertEquals(resourceJsonNodeMock, result.getResource().get());

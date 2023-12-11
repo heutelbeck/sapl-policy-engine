@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.test.junit;
 
 import io.sapl.test.SaplTestException;
@@ -34,7 +51,8 @@ public class JUnitTests extends BaseTestAdapter<DynamicContainer> {
             if (testNode instanceof TestCase testCase) {
                 return DynamicTest.dynamicTest(testCase.getIdentifier(), testCase::run);
             } else if (testNode instanceof TestContainer testContainer) {
-                return DynamicContainer.dynamicContainer(testContainer.getIdentifier(), getDynamicContainersFromTestNode(testContainer.getTestNodes()));
+                return DynamicContainer.dynamicContainer(testContainer.getIdentifier(),
+                        getDynamicContainersFromTestNode(testContainer.getTestNodes()));
             }
             throw new SaplTestException("Unknown type of TestNode");
         }).toList();
@@ -42,6 +60,7 @@ public class JUnitTests extends BaseTestAdapter<DynamicContainer> {
 
     @Override
     protected DynamicContainer convertTestContainerToTargetRepresentation(TestContainer testContainer) {
-        return DynamicContainer.dynamicContainer(testContainer.getIdentifier(), getDynamicContainersFromTestNode(testContainer.getTestNodes()));
+        return DynamicContainer.dynamicContainer(testContainer.getIdentifier(),
+                getDynamicContainersFromTestNode(testContainer.getTestNodes()));
     }
 }

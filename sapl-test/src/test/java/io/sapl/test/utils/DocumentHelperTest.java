@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.test.utils;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -24,9 +41,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class DocumentHelperTest {
     private final MockedStatic<ClasspathHelper> classpathHelperMockedStatic = mockStatic(ClasspathHelper.class);
-    private final MockedStatic<Files> filesMockedStatic = mockStatic(Files.class, Answers.CALLS_REAL_METHODS);
+    private final MockedStatic<Files>           filesMockedStatic           = mockStatic(Files.class,
+            Answers.CALLS_REAL_METHODS);
     @Mock
-    private SAPLInterpreter saplInterpreterMock;
+    private SAPLInterpreter                     saplInterpreterMock;
 
     @AfterEach
     void tearDown() {
@@ -51,8 +69,9 @@ class DocumentHelperTest {
     @Test
     void readSaplDocument_appendsSaplFileExtensionWhenMissing() {
         final var pathMock = mock(Path.class);
-        classpathHelperMockedStatic.when(() -> ClasspathHelper.findPathOnClasspath(any(), eq("file.sapl"))).thenReturn(pathMock);
-        filesMockedStatic.when(() ->Files.readString(pathMock)).thenReturn("fancySaplString");
+        classpathHelperMockedStatic.when(() -> ClasspathHelper.findPathOnClasspath(any(), eq("file.sapl")))
+                .thenReturn(pathMock);
+        filesMockedStatic.when(() -> Files.readString(pathMock)).thenReturn("fancySaplString");
 
         final var saplMock = mock(SAPL.class);
         when(saplInterpreterMock.parse("fancySaplString")).thenReturn(saplMock);
@@ -65,8 +84,9 @@ class DocumentHelperTest {
     @Test
     void readSaplDocument_doesNotAppendSaplFileExtensionTwice() {
         final var pathMock = mock(Path.class);
-        classpathHelperMockedStatic.when(() -> ClasspathHelper.findPathOnClasspath(any(), eq("file.sapl"))).thenReturn(pathMock);
-        filesMockedStatic.when(() ->Files.readString(pathMock)).thenReturn("fancySaplString");
+        classpathHelperMockedStatic.when(() -> ClasspathHelper.findPathOnClasspath(any(), eq("file.sapl")))
+                .thenReturn(pathMock);
+        filesMockedStatic.when(() -> Files.readString(pathMock)).thenReturn("fancySaplString");
 
         final var saplMock = mock(SAPL.class);
         when(saplInterpreterMock.parse("fancySaplString")).thenReturn(saplMock);
@@ -79,12 +99,14 @@ class DocumentHelperTest {
     @Test
     void readSaplDocument_propagatesIOExceptionWhenFileCanNotBeRead() {
         final var pathMock = mock(Path.class);
-        classpathHelperMockedStatic.when(() -> ClasspathHelper.findPathOnClasspath(any(), eq("file.sapl"))).thenReturn(pathMock);
+        classpathHelperMockedStatic.when(() -> ClasspathHelper.findPathOnClasspath(any(), eq("file.sapl")))
+                .thenReturn(pathMock);
         filesMockedStatic.when(() -> Files.readString(pathMock)).thenThrow(new IOException("where is my filesystem?"));
 
         final var saplMock = mock(SAPL.class);
 
-        final var exception = assertThrows(RuntimeException.class, () -> DocumentHelper.readSaplDocument("file.sapl", saplInterpreterMock));
+        final var exception = assertThrows(RuntimeException.class,
+                () -> DocumentHelper.readSaplDocument("file.sapl", saplInterpreterMock));
 
         final var cause = exception.getCause();
 
@@ -95,12 +117,14 @@ class DocumentHelperTest {
     @Test
     void readSaplDocument_throwsExceptionWhenFileCanNotBeRead() {
         final var pathMock = mock(Path.class);
-        classpathHelperMockedStatic.when(() -> ClasspathHelper.findPathOnClasspath(any(), eq("file.sapl"))).thenReturn(pathMock);
+        classpathHelperMockedStatic.when(() -> ClasspathHelper.findPathOnClasspath(any(), eq("file.sapl")))
+                .thenReturn(pathMock);
         filesMockedStatic.when(() -> Files.readString(pathMock)).thenThrow(new SecurityException("security breach"));
 
         final var saplMock = mock(SAPL.class);
 
-        final var exception = assertThrows(SecurityException.class, () -> DocumentHelper.readSaplDocument("file.sapl", saplInterpreterMock));
+        final var exception = assertThrows(SecurityException.class,
+                () -> DocumentHelper.readSaplDocument("file.sapl", saplInterpreterMock));
 
         assertEquals("security breach", exception.getMessage());
     }

@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -35,20 +52,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class FunctionInterpreterTest {
     @Mock
-    private ValInterpreter valInterpreterMock;
+    private ValInterpreter            valInterpreterMock;
     @Mock
-    private ValMatcherInterpreter matcherInterpreterMock;
+    private ValMatcherInterpreter     matcherInterpreterMock;
     @Mock
     private MultipleAmountInterpreter multipleAmountInterpreter;
     @InjectMocks
-    private FunctionInterpreter functionInterpreter;
+    private FunctionInterpreter       functionInterpreter;
     @Mock
-    private GivenOrWhenStep givenOrWhenStepMock;
+    private GivenOrWhenStep           givenOrWhenStepMock;
 
     @Mock
-    private Function functionMock;
+    private Function                    functionMock;
     @Mock
-    private Value valMock;
+    private Value                       valMock;
     @Mock
     private io.sapl.api.interpreter.Val saplValMock;
 
@@ -72,21 +89,24 @@ class FunctionInterpreterTest {
     class InterpretFunctionTests {
         @Test
         void interpretFunction_handlesNullGivenOrWhenStep_throwsSaplTestException() {
-            final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter.interpretFunction(null, functionMock));
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> functionInterpreter.interpretFunction(null, functionMock));
 
             assertEquals("GivenOrWhenStep or function is null", exception.getMessage());
         }
 
         @Test
         void interpretFunction_handlesNullFunction_throwsSaplTestException() {
-            final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter.interpretFunction(givenOrWhenStepMock, null));
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> functionInterpreter.interpretFunction(givenOrWhenStepMock, null));
 
             assertEquals("GivenOrWhenStep or function is null", exception.getMessage());
         }
 
         @Test
         void interpretFunction_handlesNullGivenOrWhenStepAndNullFunction_throwsSaplTestException() {
-            final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter.interpretFunction(null, null));
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> functionInterpreter.interpretFunction(null, null));
 
             assertEquals("GivenOrWhenStep or function is null", exception.getMessage());
         }
@@ -111,7 +131,8 @@ class FunctionInterpreterTest {
 
             when(functionParametersMock.getMatchers()).thenReturn(null);
 
-            final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter.interpretFunction(givenOrWhenStepMock, functionMock));
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> functionInterpreter.interpretFunction(givenOrWhenStepMock, functionMock));
 
             assertEquals("No ValMatcher found", exception.getMessage());
         }
@@ -124,7 +145,8 @@ class FunctionInterpreterTest {
             final var eListMock = Helper.mockEList(List.<ValMatcher>of());
             when(functionParametersMock.getMatchers()).thenReturn(eListMock);
 
-            final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter.interpretFunction(givenOrWhenStepMock, functionMock));
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> functionInterpreter.interpretFunction(givenOrWhenStepMock, functionMock));
 
             assertEquals("No ValMatcher found", exception.getMessage());
         }
@@ -137,14 +159,16 @@ class FunctionInterpreterTest {
             when(functionMock.getParameters()).thenReturn(functionParametersMock);
 
             final var parameterMatcher = mock(ValMatcher.class);
-            final var eListMock = Helper.mockEList(List.of(parameterMatcher));
+            final var eListMock        = Helper.mockEList(List.of(parameterMatcher));
             when(functionParametersMock.getMatchers()).thenReturn(eListMock);
 
             final var matcherMock = mock(Matcher.class);
             when(matcherInterpreterMock.getHamcrestValMatcher(parameterMatcher)).thenReturn(matcherMock);
 
-            final var functionParametersArgumentCaptor = ArgumentCaptor.forClass(io.sapl.test.mocking.function.models.FunctionParameters.class);
-            when(givenOrWhenStepMock.givenFunction(eq("fooFunction"), functionParametersArgumentCaptor.capture(), eq(saplValMock))).thenReturn(givenOrWhenStepMock);
+            final var functionParametersArgumentCaptor = ArgumentCaptor
+                    .forClass(io.sapl.test.mocking.function.models.FunctionParameters.class);
+            when(givenOrWhenStepMock.givenFunction(eq("fooFunction"), functionParametersArgumentCaptor.capture(),
+                    eq(saplValMock))).thenReturn(givenOrWhenStepMock);
 
             final var result = functionInterpreter.interpretFunction(givenOrWhenStepMock, functionMock);
 
@@ -166,7 +190,8 @@ class FunctionInterpreterTest {
 
             when(functionMock.getParameters()).thenReturn(null);
 
-            when(givenOrWhenStepMock.givenFunction("fooFunction", saplValMock, timesCalledVerificationMock)).thenReturn(givenOrWhenStepMock);
+            when(givenOrWhenStepMock.givenFunction("fooFunction", saplValMock, timesCalledVerificationMock))
+                    .thenReturn(givenOrWhenStepMock);
 
             final var result = functionInterpreter.interpretFunction(givenOrWhenStepMock, functionMock);
 
@@ -190,7 +215,8 @@ class FunctionInterpreterTest {
             final var timesCalledVerificationMock = mock(TimesCalledVerification.class);
             importsMockedStatic.when(() -> Imports.times(3)).thenReturn(timesCalledVerificationMock);
 
-            final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter.interpretFunction(givenOrWhenStepMock, functionMock));
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> functionInterpreter.interpretFunction(givenOrWhenStepMock, functionMock));
 
             assertEquals("No ValMatcher found", exception.getMessage());
         }
@@ -210,7 +236,8 @@ class FunctionInterpreterTest {
             final var timesCalledVerificationMock = mock(TimesCalledVerification.class);
             importsMockedStatic.when(() -> Imports.times(1)).thenReturn(timesCalledVerificationMock);
 
-            final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter.interpretFunction(givenOrWhenStepMock, functionMock));
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> functionInterpreter.interpretFunction(givenOrWhenStepMock, functionMock));
 
             assertEquals("No ValMatcher found", exception.getMessage());
         }
@@ -230,7 +257,7 @@ class FunctionInterpreterTest {
             when(functionMock.getParameters()).thenReturn(functionParametersMock);
 
             final var parameterMatcher = mock(ValMatcher.class);
-            final var eListMock = Helper.mockEList(List.of(parameterMatcher));
+            final var eListMock        = Helper.mockEList(List.of(parameterMatcher));
             when(functionParametersMock.getMatchers()).thenReturn(eListMock);
 
             final var matcherMock = mock(Matcher.class);
@@ -239,8 +266,10 @@ class FunctionInterpreterTest {
             final var timesCalledVerificationMock = mock(TimesCalledVerification.class);
             importsMockedStatic.when(() -> Imports.times(3)).thenReturn(timesCalledVerificationMock);
 
-            final var functionParametersArgumentCaptor = ArgumentCaptor.forClass(io.sapl.test.mocking.function.models.FunctionParameters.class);
-            when(givenOrWhenStepMock.givenFunction(eq("fooFunction"), functionParametersArgumentCaptor.capture(), eq(saplValMock), eq(timesCalledVerificationMock))).thenReturn(givenOrWhenStepMock);
+            final var functionParametersArgumentCaptor = ArgumentCaptor
+                    .forClass(io.sapl.test.mocking.function.models.FunctionParameters.class);
+            when(givenOrWhenStepMock.givenFunction(eq("fooFunction"), functionParametersArgumentCaptor.capture(),
+                    eq(saplValMock), eq(timesCalledVerificationMock))).thenReturn(givenOrWhenStepMock);
 
             final var result = functionInterpreter.interpretFunction(givenOrWhenStepMock, functionMock);
 
@@ -250,28 +279,30 @@ class FunctionInterpreterTest {
         }
     }
 
-
     @Nested
     @DisplayName("Interpret function invoked once")
     class InterpretFunctionInvokedOnceTests {
         @Test
         void interpretFunctionInvokedOnce_handlesNullGivenOrWhenStep_throwsSaplTestException() {
             final var functionInvokedOnceMock = mock(FunctionInvokedOnce.class);
-            final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter.interpretFunctionInvokedOnce(null, functionInvokedOnceMock));
+            final var exception               = assertThrows(SaplTestException.class,
+                    () -> functionInterpreter.interpretFunctionInvokedOnce(null, functionInvokedOnceMock));
 
             assertEquals("GivenOrWhenStep or functionInvokedOnce is null", exception.getMessage());
         }
 
         @Test
         void interpretFunctionInvokedOnce_handlesNullFunctionInvokedOnce_throwsSaplTestException() {
-            final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter.interpretFunctionInvokedOnce(givenOrWhenStepMock, null));
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> functionInterpreter.interpretFunctionInvokedOnce(givenOrWhenStepMock, null));
 
             assertEquals("GivenOrWhenStep or functionInvokedOnce is null", exception.getMessage());
         }
 
         @Test
         void interpretFunctionInvokedOnce_handlesNullGivenOrWhenStepAndNullFunctionInvokedOnce_throwsSaplTestException() {
-            final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter.interpretFunctionInvokedOnce(null, null));
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> functionInterpreter.interpretFunctionInvokedOnce(null, null));
 
             assertEquals("GivenOrWhenStep or functionInvokedOnce is null", exception.getMessage());
         }
@@ -281,7 +312,8 @@ class FunctionInterpreterTest {
             final var functionInvokedOnceMock = mock(FunctionInvokedOnce.class);
             when(functionInvokedOnceMock.getReturnValue()).thenReturn(null);
 
-            final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter.interpretFunctionInvokedOnce(givenOrWhenStepMock, functionInvokedOnceMock));
+            final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter
+                    .interpretFunctionInvokedOnce(givenOrWhenStepMock, functionInvokedOnceMock));
 
             assertEquals("No Value found", exception.getMessage());
         }
@@ -293,7 +325,8 @@ class FunctionInterpreterTest {
             final var eListMock = Helper.mockEList(List.<Value>of());
             when(functionInvokedOnceMock.getReturnValue()).thenReturn(eListMock);
 
-            final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter.interpretFunctionInvokedOnce(givenOrWhenStepMock, functionInvokedOnceMock));
+            final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter
+                    .interpretFunctionInvokedOnce(givenOrWhenStepMock, functionInvokedOnceMock));
 
             assertEquals("No Value found", exception.getMessage());
         }
@@ -303,7 +336,7 @@ class FunctionInterpreterTest {
             final var functionInvokecOnceMock = mock(FunctionInvokedOnce.class);
             when(functionInvokecOnceMock.getName()).thenReturn("fooFunction");
 
-            final var valMock = mock(Value.class);
+            final var valMock   = mock(Value.class);
             final var eListMock = Helper.mockEList(List.of(valMock));
             when(functionInvokecOnceMock.getReturnValue()).thenReturn(eListMock);
 
@@ -312,7 +345,8 @@ class FunctionInterpreterTest {
 
             when(givenOrWhenStepMock.givenFunctionOnce("fooFunction", saplValMock)).thenReturn(givenOrWhenStepMock);
 
-            final var result = functionInterpreter.interpretFunctionInvokedOnce(givenOrWhenStepMock, functionInvokecOnceMock);
+            final var result = functionInterpreter.interpretFunctionInvokedOnce(givenOrWhenStepMock,
+                    functionInvokecOnceMock);
 
             assertEquals(givenOrWhenStepMock, result);
         }
@@ -322,19 +356,21 @@ class FunctionInterpreterTest {
             final var functionInvokecOnceMock = mock(FunctionInvokedOnce.class);
             when(functionInvokecOnceMock.getName()).thenReturn("fooFunction");
 
-            final var valMock = mock(Value.class);
-            final var valMock2 = mock(Value.class);
+            final var valMock   = mock(Value.class);
+            final var valMock2  = mock(Value.class);
             final var eListMock = Helper.mockEList(List.of(valMock, valMock2));
             when(functionInvokecOnceMock.getReturnValue()).thenReturn(eListMock);
 
-            final var saplValMock = mock(io.sapl.api.interpreter.Val.class);
+            final var saplValMock  = mock(io.sapl.api.interpreter.Val.class);
             final var saplValMock2 = mock(io.sapl.api.interpreter.Val.class);
             when(valInterpreterMock.getValFromValue(valMock)).thenReturn(saplValMock);
             when(valInterpreterMock.getValFromValue(valMock2)).thenReturn(saplValMock2);
 
-            when(givenOrWhenStepMock.givenFunctionOnce("fooFunction", saplValMock, saplValMock2)).thenReturn(givenOrWhenStepMock);
+            when(givenOrWhenStepMock.givenFunctionOnce("fooFunction", saplValMock, saplValMock2))
+                    .thenReturn(givenOrWhenStepMock);
 
-            final var result = functionInterpreter.interpretFunctionInvokedOnce(givenOrWhenStepMock, functionInvokecOnceMock);
+            final var result = functionInterpreter.interpretFunctionInvokedOnce(givenOrWhenStepMock,
+                    functionInvokecOnceMock);
 
             assertEquals(givenOrWhenStepMock, result);
         }

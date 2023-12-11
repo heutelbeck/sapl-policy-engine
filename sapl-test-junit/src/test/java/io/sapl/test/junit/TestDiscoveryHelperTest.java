@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.test.junit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -22,7 +39,7 @@ import org.mockito.MockedStatic;
 class TestDiscoveryHelperTest {
 
     private final MockedStatic<ClasspathHelper> classpathHelperMockedStatic = mockStatic(ClasspathHelper.class);
-    private final MockedStatic<FileUtils> fileUtilsMockedStatic = mockStatic(FileUtils.class);
+    private final MockedStatic<FileUtils>       fileUtilsMockedStatic       = mockStatic(FileUtils.class);
 
     @AfterEach
     void tearDown() {
@@ -32,7 +49,8 @@ class TestDiscoveryHelperTest {
 
     @Test
     void discoverTests_ClasspathHelperThrows_ThrowsException() {
-        classpathHelperMockedStatic.when(() -> ClasspathHelper.findPathOnClasspath(any(), eq(""))).thenThrow(new RuntimeException("no path here"));
+        classpathHelperMockedStatic.when(() -> ClasspathHelper.findPathOnClasspath(any(), eq("")))
+                .thenThrow(new RuntimeException("no path here"));
 
         final var exception = assertThrows(RuntimeException.class, TestDiscoveryHelper::discoverTests);
 
@@ -48,7 +66,8 @@ class TestDiscoveryHelperTest {
         final var directoryMock = mock(File.class);
         when(pathMock.toFile()).thenReturn(directoryMock);
 
-        fileUtilsMockedStatic.when(() -> FileUtils.listFiles(directoryMock, new String[] {"sapltest"}, true)).thenReturn(Collections.emptyList());
+        fileUtilsMockedStatic.when(() -> FileUtils.listFiles(directoryMock, new String[] { "sapltest" }, true))
+                .thenReturn(Collections.emptyList());
 
         final var result = TestDiscoveryHelper.discoverTests();
 
@@ -67,7 +86,8 @@ class TestDiscoveryHelperTest {
         final var file1Mock = mock(File.class);
         final var file2Mock = mock(File.class);
 
-        fileUtilsMockedStatic.when(() -> FileUtils.listFiles(directoryMock, new String[] {"sapltest"}, true)).thenReturn(List.of(file1Mock, file2Mock));
+        fileUtilsMockedStatic.when(() -> FileUtils.listFiles(directoryMock, new String[] { "sapltest" }, true))
+                .thenReturn(List.of(file1Mock, file2Mock));
 
         final var directoryPathMock = mock(Path.class);
         when(directoryMock.toPath()).thenReturn(directoryPathMock);

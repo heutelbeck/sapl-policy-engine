@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.test.dsl.lang;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -37,9 +54,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class DefaultSaplTestInterpreterTest {
 
-    private final MockedStatic<SAPLTestStandaloneSetup> saplTestStandaloneSetupMockedStatic = mockStatic(SAPLTestStandaloneSetup.class);
-    private final MockedStatic<URI> uriMockedStatic = mockStatic(URI.class);
-    private final MockedStatic<IOUtils> ioUtilsMockedStatic = mockStatic(IOUtils.class);
+    private final MockedStatic<SAPLTestStandaloneSetup> saplTestStandaloneSetupMockedStatic = mockStatic(
+            SAPLTestStandaloneSetup.class);
+    private final MockedStatic<URI>                     uriMockedStatic                     = mockStatic(URI.class);
+    private final MockedStatic<IOUtils>                 ioUtilsMockedStatic                 = mockStatic(IOUtils.class);
 
     private DefaultSaplTestInterpreter defaultSaplTestInterpreter;
 
@@ -49,7 +67,8 @@ class DefaultSaplTestInterpreterTest {
     @BeforeEach
     void setUp() {
         defaultSaplTestInterpreter = new DefaultSaplTestInterpreter();
-        saplTestStandaloneSetupMockedStatic.when(SAPLTestStandaloneSetup::doSetupAndGetInjector).thenReturn(injectorMock);
+        saplTestStandaloneSetupMockedStatic.when(SAPLTestStandaloneSetup::doSetupAndGetInjector)
+                .thenReturn(injectorMock);
     }
 
     @AfterEach
@@ -77,14 +96,15 @@ class DefaultSaplTestInterpreterTest {
 
     @Test
     void loadAsResource_loadingThrowsIOException_throwsSaplTestException() throws IOException {
-        final var loadOptions = Collections.emptyMap();
+        final var loadOptions  = Collections.emptyMap();
         final var resourceMock = mockResourceCreation(loadOptions);
 
         final var inputStreamMock = mock(InputStream.class);
 
         doThrow(new IOException("loading failed")).when(resourceMock).load(inputStreamMock, loadOptions);
 
-        final var result = assertThrows(SaplTestException.class, () -> defaultSaplTestInterpreter.loadAsResource(inputStreamMock));
+        final var result = assertThrows(SaplTestException.class,
+                () -> defaultSaplTestInterpreter.loadAsResource(inputStreamMock));
 
         assertEquals("loading failed", result.getCause().getMessage());
     }
@@ -94,11 +114,13 @@ class DefaultSaplTestInterpreterTest {
         final var resourceMock = mockResourceCreation(Collections.emptyMap());
 
         final var inputStreamMock = mock(InputStream.class);
-        final var loadOptions = Collections.emptyMap();
+        final var loadOptions     = Collections.emptyMap();
 
-        doThrow(new WrappedException(new Exception("loading failed"))).when(resourceMock).load(inputStreamMock, loadOptions);
+        doThrow(new WrappedException(new Exception("loading failed"))).when(resourceMock).load(inputStreamMock,
+                loadOptions);
 
-        final var result = assertThrows(SaplTestException.class, () -> defaultSaplTestInterpreter.loadAsResource(inputStreamMock));
+        final var result = assertThrows(SaplTestException.class,
+                () -> defaultSaplTestInterpreter.loadAsResource(inputStreamMock));
 
         assertEquals("loading failed", result.getCause().getCause().getMessage());
     }
@@ -115,7 +137,8 @@ class DefaultSaplTestInterpreterTest {
 
         when(resourceMock.getErrors()).thenReturn(errors);
 
-        final var result = assertThrows(SaplTestException.class, () -> defaultSaplTestInterpreter.loadAsResource(inputStreamMock));
+        final var result = assertThrows(SaplTestException.class,
+                () -> defaultSaplTestInterpreter.loadAsResource(inputStreamMock));
 
         assertEquals("Input is not a valid test definition", result.getMessage());
     }
@@ -131,7 +154,7 @@ class DefaultSaplTestInterpreterTest {
         when(resourceMock.getErrors()).thenReturn(errors);
 
         final var saplTestMock = mock(SAPLTest.class);
-        final var contents = Helper.mockEList(List.<EObject>of(saplTestMock));
+        final var contents     = Helper.mockEList(List.<EObject>of(saplTestMock));
         when(resourceMock.getContents()).thenReturn(contents);
 
         final var result = defaultSaplTestInterpreter.loadAsResource(inputStreamMock);
@@ -141,7 +164,7 @@ class DefaultSaplTestInterpreterTest {
 
     @Test
     void loadAsResource_withStringInputAndValidResource_returnsSAPLTest() throws IOException {
-        final var loadOptions = Collections.emptyMap();
+        final var loadOptions  = Collections.emptyMap();
         final var resourceMock = mockResourceCreation(loadOptions);
 
         final var errors = Helper.mockEList(List.<Resource.Diagnostic>of());
@@ -149,11 +172,12 @@ class DefaultSaplTestInterpreterTest {
         when(resourceMock.getErrors()).thenReturn(errors);
 
         final var saplTestMock = mock(SAPLTest.class);
-        final var contents = Helper.mockEList(List.<EObject>of(saplTestMock));
+        final var contents     = Helper.mockEList(List.<EObject>of(saplTestMock));
         when(resourceMock.getContents()).thenReturn(contents);
 
         final var inputStreamMock = mock(InputStream.class);
-        ioUtilsMockedStatic.when(() -> IOUtils.toInputStream("foo", StandardCharsets.UTF_8)).thenReturn(inputStreamMock);
+        ioUtilsMockedStatic.when(() -> IOUtils.toInputStream("foo", StandardCharsets.UTF_8))
+                .thenReturn(inputStreamMock);
 
         final var result = defaultSaplTestInterpreter.loadAsResource("foo");
 

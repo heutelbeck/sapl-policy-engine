@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,18 +47,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ValMatcherInterpreterTest {
     @Mock
-    private ValInterpreter valInterpreterMock;
+    private ValInterpreter             valInterpreterMock;
     @Mock
     private JsonNodeMatcherInterpreter jsonNodeMatcherInterpreterMock;
     @Mock
-    private StringMatcherInterpreter stringMatcherInterpreterMock;
+    private StringMatcherInterpreter   stringMatcherInterpreterMock;
     @InjectMocks
-    private ValMatcherInterpreter matcherInterpreter;
+    private ValMatcherInterpreter      matcherInterpreter;
 
-    private final MockedStatic<Matchers> hamcrestMatchersMockedStatic = mockStatic(Matchers.class);
-    private final MockedStatic<CoreMatchers> hamcrestCoreMatchersMockedStatic = mockStatic(CoreMatchers.class);
-    private final MockedStatic<io.sapl.hamcrest.Matchers> saplMatchersMockedStatic = mockStatic(io.sapl.hamcrest.Matchers.class);
-
+    private final MockedStatic<Matchers>                  hamcrestMatchersMockedStatic     = mockStatic(Matchers.class);
+    private final MockedStatic<CoreMatchers>              hamcrestCoreMatchersMockedStatic = mockStatic(
+            CoreMatchers.class);
+    private final MockedStatic<io.sapl.hamcrest.Matchers> saplMatchersMockedStatic         = mockStatic(
+            io.sapl.hamcrest.Matchers.class);
 
     @AfterEach
     void tearDown() {
@@ -52,7 +70,8 @@ class ValMatcherInterpreterTest {
 
     @Test
     void getHamcrestValMatcher_forNullParameterMatcher_throwsSaplTestException() {
-        final var exception = assertThrows(SaplTestException.class, () -> matcherInterpreter.getHamcrestValMatcher(null));
+        final var exception = assertThrows(SaplTestException.class,
+                () -> matcherInterpreter.getHamcrestValMatcher(null));
 
         assertEquals("Unknown type of ValMatcher", exception.getMessage());
     }
@@ -61,7 +80,8 @@ class ValMatcherInterpreterTest {
     void getHamcrestValMatcher_forUnknownParameterMatcher_throwsSaplTestException() {
         final var unknownValMatcherMock = mock(ValMatcher.class);
 
-        final var exception = assertThrows(SaplTestException.class, () -> matcherInterpreter.getHamcrestValMatcher(unknownValMatcherMock));
+        final var exception = assertThrows(SaplTestException.class,
+                () -> matcherInterpreter.getHamcrestValMatcher(unknownValMatcherMock));
 
         assertEquals("Unknown type of ValMatcher", exception.getMessage());
     }
@@ -107,7 +127,8 @@ class ValMatcherInterpreterTest {
         when(jsonNodeMatcherInterpreterMock.getHamcrestJsonNodeMatcher(jsonNodeMatcherMock)).thenReturn(matcherMock);
 
         final var valWithJsonNodeMatcherMock = mock(Matcher.class);
-        saplMatchersMockedStatic.when(() -> io.sapl.hamcrest.Matchers.val(matcherMock)).thenReturn(valWithJsonNodeMatcherMock);
+        saplMatchersMockedStatic.when(() -> io.sapl.hamcrest.Matchers.val(matcherMock))
+                .thenReturn(valWithJsonNodeMatcherMock);
 
         final var result = matcherInterpreter.getHamcrestValMatcher(valWithMatcherMock);
 
@@ -140,7 +161,8 @@ class ValMatcherInterpreterTest {
 
         final var valErrorWithMatcher = mock(Matcher.class);
 
-        saplMatchersMockedStatic.when(() -> io.sapl.hamcrest.Matchers.valError(errorStringMatcher)).thenReturn(valErrorWithMatcher);
+        saplMatchersMockedStatic.when(() -> io.sapl.hamcrest.Matchers.valError(errorStringMatcher))
+                .thenReturn(valErrorWithMatcher);
 
         final var result = matcherInterpreter.getHamcrestValMatcher(valWithErrorString);
 

@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestException;
@@ -15,7 +32,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 class DefaultWhenStepConstructor {
 
-    private final FunctionInterpreter functionInterpreter;
+    private final FunctionInterpreter  functionInterpreter;
     private final AttributeInterpreter attributeInterpreter;
 
     WhenStep constructWhenStep(final List<GivenStep> givenSteps, final GivenOrWhenStep givenOrWhenStep) {
@@ -31,11 +48,13 @@ class DefaultWhenStepConstructor {
             if (givenStep instanceof Function function) {
                 fixtureWithMocks = functionInterpreter.interpretFunction(fixtureWithMocks, function);
             } else if (givenStep instanceof FunctionInvokedOnce functionInvokedOnce) {
-                fixtureWithMocks = functionInterpreter.interpretFunctionInvokedOnce(fixtureWithMocks, functionInvokedOnce);
+                fixtureWithMocks = functionInterpreter.interpretFunctionInvokedOnce(fixtureWithMocks,
+                        functionInvokedOnce);
             } else if (givenStep instanceof Attribute attribute) {
                 fixtureWithMocks = attributeInterpreter.interpretAttribute(fixtureWithMocks, attribute);
             } else if (givenStep instanceof AttributeWithParameters attributeWithParameters) {
-                fixtureWithMocks = attributeInterpreter.interpretAttributeWithParameters(fixtureWithMocks, attributeWithParameters);
+                fixtureWithMocks = attributeInterpreter.interpretAttributeWithParameters(fixtureWithMocks,
+                        attributeWithParameters);
             } else if (givenStep instanceof VirtualTime) {
                 fixtureWithMocks = fixtureWithMocks.withVirtualTime();
             } else {

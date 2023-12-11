@@ -1,5 +1,7 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,53 +37,53 @@ import java.util.List;
 @NpmPackage(value = "codemirror", version = "5.52.2")
 public class SaplTestEditor extends BaseEditor {
 
-	private final transient List<ValidationFinishedListener> validationFinishedListeners;
+    private final transient List<ValidationFinishedListener> validationFinishedListeners;
 
-	/**
-	 * Creates an editor component.
-	 *
-	 * @param config the editor settings-
-	 */
-	public SaplTestEditor(SaplTestEditorConfiguration config) {
-		this.validationFinishedListeners = new ArrayList<>();
+    /**
+     * Creates an editor component.
+     *
+     * @param config the editor settings-
+     */
+    public SaplTestEditor(SaplTestEditorConfiguration config) {
+        this.validationFinishedListeners = new ArrayList<>();
 
-		Element element = getElement();
-		applyBaseConfiguration(element, config);
-	}
+        Element element = getElement();
+        applyBaseConfiguration(element, config);
+    }
 
-	@ClientCallable
-	protected void onValidation(JsonArray jsonIssues) {
-		int         length = jsonIssues.length();
-		List<Issue> issues = new ArrayList<>(length);
-		for (int i = 0; i < length; i++) {
-			JsonObject jsonIssue = jsonIssues.getObject(i);
-			Issue      issue     = new Issue(jsonIssue);
-			issues.add(issue);
-		}
+    @ClientCallable
+    protected void onValidation(JsonArray jsonIssues) {
+        int         length = jsonIssues.length();
+        List<Issue> issues = new ArrayList<>(length);
+        for (int i = 0; i < length; i++) {
+            JsonObject jsonIssue = jsonIssues.getObject(i);
+            Issue      issue     = new Issue(jsonIssue);
+            issues.add(issue);
+        }
 
-		for (ValidationFinishedListener listener : validationFinishedListeners) {
-			Issue[] issueArray = issues.toArray(new Issue[0]);
-			listener.onValidationFinished(new ValidationFinishedEvent(issueArray));
-		}
-	}
+        for (ValidationFinishedListener listener : validationFinishedListeners) {
+            Issue[] issueArray = issues.toArray(new Issue[0]);
+            listener.onValidationFinished(new ValidationFinishedEvent(issueArray));
+        }
+    }
 
-	/**
-	 * Registers a validation finished listener. The validation changed event will
-	 * be raised after the document was changed and the validation took place. The
-	 * event object contains a list with all validation issues of the document.
-	 * 
-	 * @param listener
-	 */
-	public void addValidationFinishedListener(ValidationFinishedListener listener) {
-		this.validationFinishedListeners.add(listener);
-	}
+    /**
+     * Registers a validation finished listener. The validation changed event will
+     * be raised after the document was changed and the validation took place. The
+     * event object contains a list with all validation issues of the document.
+     *
+     * @param listener
+     */
+    public void addValidationFinishedListener(ValidationFinishedListener listener) {
+        this.validationFinishedListeners.add(listener);
+    }
 
-	/**
-	 * Removes a registered validation finished listener.
-	 * 
-	 * @param listener The registered listener that should be removed.
-	 */
-	public void removeValidationFinishedListener(ValidationFinishedListener listener) {
-		this.validationFinishedListeners.remove(listener);
-	}
+    /**
+     * Removes a registered validation finished listener.
+     *
+     * @param listener The registered listener that should be removed.
+     */
+    public void removeValidationFinishedListener(ValidationFinishedListener listener) {
+        this.validationFinishedListeners.remove(listener);
+    }
 }

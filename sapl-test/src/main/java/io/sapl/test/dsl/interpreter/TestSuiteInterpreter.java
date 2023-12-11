@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestException;
@@ -17,12 +34,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 class TestSuiteInterpreter {
 
-    private final ValInterpreter valInterpreter;
+    private final ValInterpreter                   valInterpreter;
     private final PDPCombiningAlgorithmInterpreter pdpCombiningAlgorithmInterpreter;
-    private final UnitTestPolicyResolver customUnitTestPolicyResolver;
-    private final IntegrationTestPolicyResolver customIntegrationTestPolicyResolver;
+    private final UnitTestPolicyResolver           customUnitTestPolicyResolver;
+    private final IntegrationTestPolicyResolver    customIntegrationTestPolicyResolver;
 
-    SaplTestFixture getFixtureFromTestSuite(final TestSuite testSuite, final io.sapl.test.grammar.sAPLTest.Object environment) {
+    SaplTestFixture getFixtureFromTestSuite(final TestSuite testSuite,
+            final io.sapl.test.grammar.sAPLTest.Object environment) {
         SaplTestFixture saplTestFixture;
         if (testSuite instanceof UnitTestSuite unitTestSuite) {
             saplTestFixture = getUnitTestFixtureFromUnitTestSuite(unitTestSuite);
@@ -45,12 +63,14 @@ class TestSuiteInterpreter {
         if (customUnitTestPolicyResolver == null) {
             return SaplUnitTestFixtureFactory.create(unitTestSuite.getId());
         } else {
-            return SaplUnitTestFixtureFactory.createFromInputString(customUnitTestPolicyResolver.resolvePolicyByIdentifier(unitTestSuite.getId()));
+            return SaplUnitTestFixtureFactory.createFromInputString(
+                    customUnitTestPolicyResolver.resolvePolicyByIdentifier(unitTestSuite.getId()));
         }
     }
 
-    private SaplTestFixture getIntegrationTestFixtureFromIntegrationTestSuite(final IntegrationTestSuite integrationTestSuite) {
-        final var policyResolverConfig = integrationTestSuite.getConfig();
+    private SaplTestFixture getIntegrationTestFixtureFromIntegrationTestSuite(
+            final IntegrationTestSuite integrationTestSuite) {
+        final var                  policyResolverConfig = integrationTestSuite.getConfig();
         SaplIntegrationTestFixture integrationTestFixture;
 
         if (policyResolverConfig instanceof PoliciesByIdentifier policiesByIdentifier) {
@@ -60,18 +80,24 @@ class TestSuiteInterpreter {
                 integrationTestFixture = SaplIntegrationTestFixtureFactory.create(identifier);
             } else {
                 final var config = customIntegrationTestPolicyResolver.resolveConfigByIdentifier(identifier);
-                integrationTestFixture = SaplIntegrationTestFixtureFactory.createFromInputStrings(config.getDocumentInputStrings(), config.getPDPConfigInputString());
+                integrationTestFixture = SaplIntegrationTestFixtureFactory
+                        .createFromInputStrings(config.getDocumentInputStrings(), config.getPDPConfigInputString());
             }
         } else if (policyResolverConfig instanceof PoliciesByInputString policiesByInputString) {
             if (customIntegrationTestPolicyResolver == null) {
-                integrationTestFixture = SaplIntegrationTestFixtureFactory.create(policiesByInputString.getPdpConfig(), policiesByInputString.getPolicies());
+                integrationTestFixture = SaplIntegrationTestFixtureFactory.create(policiesByInputString.getPdpConfig(),
+                        policiesByInputString.getPolicies());
             } else {
-                final var pdpConfig = customIntegrationTestPolicyResolver.resolvePDPConfigByIdentifier(policiesByInputString.getPdpConfig());
-                final var policies = Objects.requireNonNullElse(policiesByInputString.getPolicies(), Collections.<String>emptyList());
+                final var pdpConfig = customIntegrationTestPolicyResolver
+                        .resolvePDPConfigByIdentifier(policiesByInputString.getPdpConfig());
+                final var policies  = Objects.requireNonNullElse(policiesByInputString.getPolicies(),
+                        Collections.<String>emptyList());
 
-                final var saplDocumentStrings = policies.stream().map(customIntegrationTestPolicyResolver::resolvePolicyByIdentifier).toList();
+                final var saplDocumentStrings = policies.stream()
+                        .map(customIntegrationTestPolicyResolver::resolvePolicyByIdentifier).toList();
 
-                integrationTestFixture = SaplIntegrationTestFixtureFactory.createFromInputStrings(saplDocumentStrings, pdpConfig);
+                integrationTestFixture = SaplIntegrationTestFixtureFactory.createFromInputStrings(saplDocumentStrings,
+                        pdpConfig);
             }
         } else {
             throw new SaplTestException("Unknown type of PolicyResolverConfig");
@@ -83,7 +109,8 @@ class TestSuiteInterpreter {
         }
 
         if (integrationTestSuite.isCombiningAlgorithmDefined()) {
-            final var pdpPolicyCombiningAlgorithm = pdpCombiningAlgorithmInterpreter.interpretPdpCombiningAlgorithm(integrationTestSuite.getCombiningAlgorithm());
+            final var pdpPolicyCombiningAlgorithm = pdpCombiningAlgorithmInterpreter
+                    .interpretPdpCombiningAlgorithm(integrationTestSuite.getCombiningAlgorithm());
             integrationTestFixture.withPDPPolicyCombiningAlgorithm(pdpPolicyCombiningAlgorithm);
         }
 

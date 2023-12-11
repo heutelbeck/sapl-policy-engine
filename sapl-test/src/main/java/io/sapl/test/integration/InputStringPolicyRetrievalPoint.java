@@ -1,5 +1,7 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package io.sapl.test.integration;
 
 import io.sapl.grammar.sapl.SAPL;
@@ -38,10 +39,9 @@ public class InputStringPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
     private final SAPLInterpreter saplInterpreter;
 
-
     InputStringPolicyRetrievalPoint(final List<String> documentStrings, final SAPLInterpreter interpreter) {
         this.saplInterpreter = interpreter;
-        this.documents = readPoliciesFromSaplDocumentNames(documentStrings);
+        this.documents       = readPoliciesFromSaplDocumentNames(documentStrings);
     }
 
     private Map<String, SAPL> readPoliciesFromSaplDocumentNames(final List<String> documentStrings) {
@@ -53,10 +53,10 @@ public class InputStringPolicyRetrievalPoint implements PolicyRetrievalPoint {
             throw new SaplTestException("Encountered invalid policy input");
         }
 
-        return documentStrings
-                .stream()
+        return documentStrings.stream()
                 .map(documentString -> DocumentHelper.readSaplDocumentFromInputString(documentString, saplInterpreter))
-                .collect(Collectors.toMap(sapl -> sapl.getPolicyElement().getSaplName(), Function.identity(), (oldKey, newKey) -> newKey));
+                .collect(Collectors.toMap(sapl -> sapl.getPolicyElement().getSaplName(), Function.identity(),
+                        (oldKey, newKey) -> newKey));
     }
 
     @Override

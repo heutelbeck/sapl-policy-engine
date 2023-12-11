@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -24,13 +41,14 @@ class DefaultExpectStepConstructorTest {
     @Mock
     private AuthorizationSubscriptionInterpreter authorizationSubscriptionInterpreterMock;
     @InjectMocks
-    private DefaultExpectStepConstructor defaultExpectStepConstructor;
+    private DefaultExpectStepConstructor         defaultExpectStepConstructor;
     @Mock
-    TestCase testCaseMock;
+    TestCase                                     testCaseMock;
     @Mock
-    WhenStep whenStepMock;
+    WhenStep                                     whenStepMock;
 
-    private final MockedStatic<io.sapl.api.pdp.AuthorizationSubscription> authorizationSubscriptionMockedStatic = mockStatic(io.sapl.api.pdp.AuthorizationSubscription.class);
+    private final MockedStatic<io.sapl.api.pdp.AuthorizationSubscription> authorizationSubscriptionMockedStatic = mockStatic(
+            io.sapl.api.pdp.AuthorizationSubscription.class);
 
     @AfterEach
     void tearDown() {
@@ -39,21 +57,24 @@ class DefaultExpectStepConstructorTest {
 
     @Test
     void constructExpectStep_handlesNullTestCase_throwsSaplTestException() {
-        final var exception = assertThrows(SaplTestException.class, () -> defaultExpectStepConstructor.constructExpectStep(null, whenStepMock));
+        final var exception = assertThrows(SaplTestException.class,
+                () -> defaultExpectStepConstructor.constructExpectStep(null, whenStepMock));
 
         assertEquals("TestCase or whenStep is null", exception.getMessage());
     }
 
     @Test
     void constructExpectStep_handlesNullWhenStep_throwsSaplTestException() {
-        final var exception = assertThrows(SaplTestException.class, () -> defaultExpectStepConstructor.constructExpectStep(testCaseMock, null));
+        final var exception = assertThrows(SaplTestException.class,
+                () -> defaultExpectStepConstructor.constructExpectStep(testCaseMock, null));
 
         assertEquals("TestCase or whenStep is null", exception.getMessage());
     }
 
     @Test
     void constructExpectStep_handlesNullTestCaseAndNullWhenStep_throwsSaplTestException() {
-        final var exception = assertThrows(SaplTestException.class, () -> defaultExpectStepConstructor.constructExpectStep(null, null));
+        final var exception = assertThrows(SaplTestException.class,
+                () -> defaultExpectStepConstructor.constructExpectStep(null, null));
 
         assertEquals("TestCase or whenStep is null", exception.getMessage());
     }
@@ -74,7 +95,8 @@ class DefaultExpectStepConstructorTest {
 
         when(saplTestWhenStepMock.getAuthorizationSubscription()).thenReturn(null);
 
-        final var exception = assertThrows(SaplTestException.class, () -> defaultExpectStepConstructor.constructExpectStep(testCaseMock, whenStepMock));
+        final var exception = assertThrows(SaplTestException.class,
+                () -> defaultExpectStepConstructor.constructExpectStep(testCaseMock, whenStepMock));
 
         assertEquals("No AuthorizationSubscription found", exception.getMessage());
     }
@@ -88,9 +110,10 @@ class DefaultExpectStepConstructorTest {
         when(saplTestWhenStepMock.getAuthorizationSubscription()).thenReturn(authorizationSubscriptionMock);
 
         final var saplAuthorizationSubscriptionMock = mock(io.sapl.api.pdp.AuthorizationSubscription.class);
-        when(authorizationSubscriptionInterpreterMock.constructAuthorizationSubscription(authorizationSubscriptionMock)).thenReturn(saplAuthorizationSubscriptionMock);
+        when(authorizationSubscriptionInterpreterMock.constructAuthorizationSubscription(authorizationSubscriptionMock))
+                .thenReturn(saplAuthorizationSubscriptionMock);
 
-        final var whenStepMock = mock(WhenStep.class);
+        final var whenStepMock   = mock(WhenStep.class);
         final var expectStepMock = mock(ExpectStep.class);
         when(whenStepMock.when(saplAuthorizationSubscriptionMock)).thenReturn(expectStepMock);
 

@@ -39,17 +39,17 @@ import java.util.function.Supplier;
 
 public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 
-    private static final String ERROR_MESSAGE_POLICY_FOLDER_PATH_NULL = "Null is not allowed for the Path pointing to the policies folder.";
-    private static final String ERROR_MESSAGE_POLICY_PATHS_NULL_OR_SINGLE_VALUE = "List of policies paths needs to contain at least 2 values.";
+    private static final String ERROR_MESSAGE_POLICY_FOLDER_PATH_NULL              = "Null is not allowed for the Path pointing to the policies folder.";
+    private static final String ERROR_MESSAGE_POLICY_PATHS_NULL_OR_SINGLE_VALUE    = "List of policies paths needs to contain at least 2 values.";
     private static final String ERROR_MESSAGE_INPUT_DOCUMENTS_NULL_OR_SINGLE_VALUE = "List input documents needs to contain at least 2 values.";
-    private static final String ERROR_MESSAGE_PDP_CONFIG_NULL_OR_EMPTY = "Passed value for PDP config is null or empty.";
+    private static final String ERROR_MESSAGE_PDP_CONFIG_NULL_OR_EMPTY             = "Passed value for PDP config is null or empty.";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private PolicyDocumentCombiningAlgorithm pdpAlgorithm = null;
-    private Map<String, JsonNode> pdpVariables = null;
+    private Map<String, JsonNode>            pdpVariables = null;
 
-    private final Supplier<PolicyRetrievalPoint> prpSupplier;
+    private final Supplier<PolicyRetrievalPoint>         prpSupplier;
     private final Supplier<VariablesAndCombinatorSource> variablesAndCombinatorSourceSupplier;
 
     /**
@@ -62,17 +62,17 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
      *                   specify "yourSpecialDirectory".
      */
     public SaplIntegrationTestFixture(final String folderPath) {
-        prpSupplier = () -> this.constructPRP(true, folderPath, null);
+        prpSupplier                          = () -> this.constructPRP(true, folderPath, null);
         variablesAndCombinatorSourceSupplier = () -> this.constructPDPConfig(folderPath);
     }
 
     public SaplIntegrationTestFixture(final String pdpConfigPath, final List<String> policyPaths) {
-        prpSupplier = () -> this.constructPRP(false, null, policyPaths);
+        prpSupplier                          = () -> this.constructPRP(false, null, policyPaths);
         variablesAndCombinatorSourceSupplier = () -> this.constructPDPConfig(pdpConfigPath);
     }
 
     public SaplIntegrationTestFixture(final List<String> documentStrings, final String pdpConfig) {
-        prpSupplier = () -> this.constructInputStringPRP(documentStrings);
+        prpSupplier                          = () -> this.constructInputStringPRP(documentStrings);
         variablesAndCombinatorSourceSupplier = () -> this.constructInputStringPDPConfig(pdpConfig);
     }
 
@@ -100,17 +100,18 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 
     @Override
     public GivenStep constructTestCaseWithMocks() {
-        return StepBuilder.newBuilderAtGivenStep(prpSupplier.get(), variablesAndCombinatorSourceSupplier.get(), this.attributeCtx,
-                this.functionCtx, this.variables);
+        return StepBuilder.newBuilderAtGivenStep(prpSupplier.get(), variablesAndCombinatorSourceSupplier.get(),
+                this.attributeCtx, this.functionCtx, this.variables);
     }
 
     @Override
     public WhenStep constructTestCase() {
-        return StepBuilder.newBuilderAtWhenStep(prpSupplier.get(), variablesAndCombinatorSourceSupplier.get(), this.attributeCtx,
-                this.functionCtx, this.variables);
+        return StepBuilder.newBuilderAtWhenStep(prpSupplier.get(), variablesAndCombinatorSourceSupplier.get(),
+                this.attributeCtx, this.functionCtx, this.variables);
     }
 
-    private PolicyRetrievalPoint constructPRP(final boolean usePolicyFolder, final String pathToPoliciesFolder, final List<String> policyPaths) {
+    private PolicyRetrievalPoint constructPRP(final boolean usePolicyFolder, final String pathToPoliciesFolder,
+            final List<String> policyPaths) {
         final var interpreter = getSaplInterpreter();
 
         if (usePolicyFolder) {
@@ -137,15 +138,14 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
     }
 
     private SAPLInterpreter getSaplInterpreter() {
-        return new TestSaplInterpreter(
-                CoverageAPIFactory.constructCoverageHitRecorder(resolveCoverageBaseDir()));
+        return new TestSaplInterpreter(CoverageAPIFactory.constructCoverageHitRecorder(resolveCoverageBaseDir()));
     }
 
     private VariablesAndCombinatorSource constructPDPConfig(final String pdpConfigPath) {
         final var actualConfigPath = Objects.requireNonNullElse(pdpConfigPath, "");
 
-        return new ClasspathVariablesAndCombinatorSource(actualConfigPath, objectMapper,
-                this.pdpAlgorithm, this.pdpVariables);
+        return new ClasspathVariablesAndCombinatorSource(actualConfigPath, objectMapper, this.pdpAlgorithm,
+                this.pdpVariables);
     }
 
     private VariablesAndCombinatorSource constructInputStringPDPConfig(final String input) {

@@ -83,7 +83,8 @@ class SaplUnitTestFixtureTests {
     @Test
     void test_documentHelperErrorThrows1() {
         try (MockedStatic<DocumentHelper> mockedDocumentHelper = Mockito.mockStatic(DocumentHelper.class)) {
-            mockedDocumentHelper.when(() -> DocumentHelper.readSaplDocument(eq("foo.sapl"), any())).thenThrow(new RuntimeException());
+            mockedDocumentHelper.when(() -> DocumentHelper.readSaplDocument(eq("foo.sapl"), any()))
+                    .thenThrow(new RuntimeException());
             SaplTestFixture fixture = new SaplUnitTestFixture("foo.sapl");
             assertThatExceptionOfType(RuntimeException.class).isThrownBy(fixture::constructTestCase);
         }
@@ -92,7 +93,8 @@ class SaplUnitTestFixtureTests {
     @Test
     void test_documentHelperErrorThrows2() {
         try (MockedStatic<DocumentHelper> mockedDocumentHelper = Mockito.mockStatic(DocumentHelper.class)) {
-            mockedDocumentHelper.when(() -> DocumentHelper.readSaplDocument(eq("foo.sapl"), any())).thenThrow(new RuntimeException());
+            mockedDocumentHelper.when(() -> DocumentHelper.readSaplDocument(eq("foo.sapl"), any()))
+                    .thenThrow(new RuntimeException());
             SaplTestFixture fixture = new SaplUnitTestFixture("foo.sapl");
             assertThatExceptionOfType(RuntimeException.class).isThrownBy(fixture::constructTestCaseWithMocks);
         }
@@ -101,7 +103,8 @@ class SaplUnitTestFixtureTests {
     @Test
     void test_documentHelperErrorThrowsForInputString1() {
         try (MockedStatic<DocumentHelper> mockedDocumentHelper = Mockito.mockStatic(DocumentHelper.class)) {
-            mockedDocumentHelper.when(() -> DocumentHelper.readSaplDocumentFromInputString(eq("foo"), any())).thenThrow(new RuntimeException());
+            mockedDocumentHelper.when(() -> DocumentHelper.readSaplDocumentFromInputString(eq("foo"), any()))
+                    .thenThrow(new RuntimeException());
             SaplTestFixture fixture = new SaplUnitTestFixture("foo", false);
             assertThatExceptionOfType(RuntimeException.class).isThrownBy(fixture::constructTestCase);
         }
@@ -110,7 +113,8 @@ class SaplUnitTestFixtureTests {
     @Test
     void test_documentHelperErrorThrowsForInputString2() {
         try (MockedStatic<DocumentHelper> mockedDocumentHelper = Mockito.mockStatic(DocumentHelper.class)) {
-            mockedDocumentHelper.when(() -> DocumentHelper.readSaplDocumentFromInputString(eq("foo"), any())).thenThrow(new RuntimeException());
+            mockedDocumentHelper.when(() -> DocumentHelper.readSaplDocumentFromInputString(eq("foo"), any()))
+                    .thenThrow(new RuntimeException());
             SaplTestFixture fixture = new SaplUnitTestFixture("foo", false);
             assertThatExceptionOfType(RuntimeException.class).isThrownBy(fixture::constructTestCaseWithMocks);
         }

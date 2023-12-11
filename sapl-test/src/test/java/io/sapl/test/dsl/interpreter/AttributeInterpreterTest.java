@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.test.dsl.interpreter;
 
 import static io.sapl.test.Imports.whenParentValue;
@@ -32,15 +49,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class AttributeInterpreterTest {
     @Mock
-    private ValInterpreter valInterpreterMock;
+    private ValInterpreter        valInterpreterMock;
     @Mock
     private ValMatcherInterpreter matcherInterpreterMock;
     @Mock
-    private DurationInterpreter durationInterpreterMock;
+    private DurationInterpreter   durationInterpreterMock;
     @InjectMocks
-    private AttributeInterpreter attributeInterpreter;
+    private AttributeInterpreter  attributeInterpreter;
     @Mock
-    private GivenOrWhenStep givenOrWhenStepMock;
+    private GivenOrWhenStep       givenOrWhenStepMock;
 
     @Nested
     @DisplayName("Interpret attribute")
@@ -61,7 +78,7 @@ class AttributeInterpreterTest {
         @Test
         void interpretAttribute_whenReturnValueIsEmpty_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
             final var attributeMock = mock(Attribute.class);
-            final var eListMock = Helper.mockEList(List.<Value>of());
+            final var eListMock     = Helper.mockEList(List.<Value>of());
             when(attributeMock.getName()).thenReturn("fooAttribute");
             when(attributeMock.getReturnValue()).thenReturn(eListMock);
             when(givenOrWhenStepMock.givenAttribute("fooAttribute")).thenReturn(givenOrWhenStepMock);
@@ -73,9 +90,9 @@ class AttributeInterpreterTest {
 
         @Test
         void interpretAttribute_withReturnValueAndNoDuration_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
-            final var valMock = mock(Value.class);
-            final var saplValMock = mock(io.sapl.api.interpreter.Val.class);
-            final var eListMock = Helper.mockEList(List.of(valMock));
+            final var valMock       = mock(Value.class);
+            final var saplValMock   = mock(io.sapl.api.interpreter.Val.class);
+            final var eListMock     = Helper.mockEList(List.of(valMock));
             final var attributeMock = mock(Attribute.class);
 
             when(attributeMock.getName()).thenReturn("fooAttribute");
@@ -93,11 +110,11 @@ class AttributeInterpreterTest {
 
         @Test
         void interpretAttribute_withReturnValueAndDuration_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
-            final var valMock = mock(Value.class);
-            final var saplValMock = mock(io.sapl.api.interpreter.Val.class);
-            final var eListMock = Helper.mockEList(List.of(valMock));
+            final var valMock       = mock(Value.class);
+            final var saplValMock   = mock(io.sapl.api.interpreter.Val.class);
+            final var eListMock     = Helper.mockEList(List.of(valMock));
             final var attributeMock = mock(Attribute.class);
-            final var durationMock = mock(io.sapl.test.grammar.sAPLTest.Duration.class);
+            final var durationMock  = mock(io.sapl.test.grammar.sAPLTest.Duration.class);
 
             when(attributeMock.getName()).thenReturn("fooAttribute");
             when(attributeMock.getReturnValue()).thenReturn(eListMock);
@@ -107,7 +124,8 @@ class AttributeInterpreterTest {
 
             when(durationInterpreterMock.getJavaDurationFromDuration(durationMock)).thenReturn(Duration.ofSeconds(5));
 
-            when(givenOrWhenStepMock.givenAttribute("fooAttribute", Duration.ofSeconds(5), saplValMock)).thenReturn(givenOrWhenStepMock);
+            when(givenOrWhenStepMock.givenAttribute("fooAttribute", Duration.ofSeconds(5), saplValMock))
+                    .thenReturn(givenOrWhenStepMock);
 
             final var result = attributeInterpreter.interpretAttribute(givenOrWhenStepMock, attributeMock);
 
@@ -118,11 +136,11 @@ class AttributeInterpreterTest {
     @Nested
     @DisplayName("Interpret attribute with parameters")
     class InterpretAttributeWithParameters {
-        private AttributeWithParameters attributeWithParametersMock;
-        private ValMatcher parentMatcherMock;
+        private AttributeWithParameters              attributeWithParametersMock;
+        private ValMatcher                           parentMatcherMock;
         private Matcher<io.sapl.api.interpreter.Val> parentValueMatcherMock;
-        private Value returnValMock;
-        private io.sapl.api.interpreter.Val returnValueMock;
+        private Value                                returnValMock;
+        private io.sapl.api.interpreter.Val          returnValueMock;
 
         @BeforeEach
         void setUp() {
@@ -171,7 +189,8 @@ class AttributeInterpreterTest {
         void interpretAttributeWithParameters_withMultipleArguments_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
             final var valMatcher1Mock = mock(ValMatcher.class);
             final var valMatcher2Mock = mock(ValMatcher.class);
-            final var eListMock = mock(EList.class, AdditionalAnswers.delegatesTo(List.of(valMatcher1Mock, valMatcher2Mock)));
+            final var eListMock       = mock(EList.class,
+                    AdditionalAnswers.delegatesTo(List.of(valMatcher1Mock, valMatcher2Mock)));
             when(attributeWithParametersMock.getParameters()).thenReturn(eListMock);
 
             final var matcher1Mock = mock(Matcher.class);
@@ -182,18 +201,20 @@ class AttributeInterpreterTest {
 
             final var attributeParametersArgumentCaptor = ArgumentCaptor.forClass(AttributeParameters.class);
 
-            when(givenOrWhenStepMock.givenAttribute(eq("fooAttribute"), attributeParametersArgumentCaptor.capture(), eq(returnValueMock))).thenReturn(givenOrWhenStepMock);
+            when(givenOrWhenStepMock.givenAttribute(eq("fooAttribute"), attributeParametersArgumentCaptor.capture(),
+                    eq(returnValueMock))).thenReturn(givenOrWhenStepMock);
 
-            final var result = attributeInterpreter.interpretAttributeWithParameters(givenOrWhenStepMock, attributeWithParametersMock);
+            final var result = attributeInterpreter.interpretAttributeWithParameters(givenOrWhenStepMock,
+                    attributeWithParametersMock);
 
             final var attributeParameters = attributeParametersArgumentCaptor.getValue();
 
-            assertArrayEquals(List.of(matcher1Mock, matcher2Mock).toArray(), attributeParameters.getArgumentMatchers().getMatchers());
+            assertArrayEquals(List.of(matcher1Mock, matcher2Mock).toArray(),
+                    attributeParameters.getArgumentMatchers().getMatchers());
             assertEquals(parentValueMatcherMock, attributeParameters.getParentValueMatcher().getMatcher());
 
             assertEquals(givenOrWhenStepMock, result);
         }
     }
-
 
 }

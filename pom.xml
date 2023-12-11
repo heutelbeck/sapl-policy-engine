@@ -433,6 +433,12 @@
 									src/main/java/io/sapl/grammar/web/SAPLWebSetup.java</exclude>
 								<exclude>
 									src/main/java/io/sapl/grammar/web/SAPLWebModule.java</exclude>
+								<exclude>
+									src/main/java/io/sapl/test/grammar/web/SAPLTestWebSetup.java</exclude>
+								<exclude>
+									src/main/java/io/sapl/test/grammar/web/SAPLTestWebModule.java</exclude>
+								<exclude>model/generated/SAPLTest.ecore</exclude>
+								<exclude>model/generated/SAPLTest.genmodel</exclude>
 								<exclude>src/asciidoc/sapl-grammar.ebnf</exclude>
 							</excludes>
 						</licenseSet>

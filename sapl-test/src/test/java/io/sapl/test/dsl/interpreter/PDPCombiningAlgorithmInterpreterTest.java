@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -23,7 +40,8 @@ class PDPCombiningAlgorithmInterpreterTest {
 
     @Test
     void interpretPdpCombiningAlgorithm_handlesUnknownCombiningAlgorithm_throwsSaplTestException() {
-        final var exception = assertThrows(SaplTestException.class, () -> pdpCombiningAlgorithmInterpreter.interpretPdpCombiningAlgorithm(null));
+        final var exception = assertThrows(SaplTestException.class,
+                () -> pdpCombiningAlgorithmInterpreter.interpretPdpCombiningAlgorithm(null));
 
         assertEquals("CombiningAlgorithm is null", exception.getMessage());
     }
@@ -31,15 +49,21 @@ class PDPCombiningAlgorithmInterpreterTest {
     private static Stream<Arguments> provideCombiningAlgorithmToPolicyDocumentCombiningAlgorithmMapping() {
         return Stream.of(
                 Arguments.of(CombiningAlgorithmEnum.DENY_OVERRIDES, PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES),
-                Arguments.of(CombiningAlgorithmEnum.PERMIT_OVERRIDES, PolicyDocumentCombiningAlgorithm.PERMIT_OVERRIDES),
-                Arguments.of(CombiningAlgorithmEnum.ONLY_ONE_APPLICABLE, PolicyDocumentCombiningAlgorithm.ONLY_ONE_APPLICABLE),
-                Arguments.of(CombiningAlgorithmEnum.DENY_UNLESS_PERMIT, PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT),
-                Arguments.of(CombiningAlgorithmEnum.PERMIT_UNLESS_DENY, PolicyDocumentCombiningAlgorithm.PERMIT_UNLESS_DENY));
+                Arguments.of(CombiningAlgorithmEnum.PERMIT_OVERRIDES,
+                        PolicyDocumentCombiningAlgorithm.PERMIT_OVERRIDES),
+                Arguments.of(CombiningAlgorithmEnum.ONLY_ONE_APPLICABLE,
+                        PolicyDocumentCombiningAlgorithm.ONLY_ONE_APPLICABLE),
+                Arguments.of(CombiningAlgorithmEnum.DENY_UNLESS_PERMIT,
+                        PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT),
+                Arguments.of(CombiningAlgorithmEnum.PERMIT_UNLESS_DENY,
+                        PolicyDocumentCombiningAlgorithm.PERMIT_UNLESS_DENY));
     }
 
     @ParameterizedTest
     @MethodSource("provideCombiningAlgorithmToPolicyDocumentCombiningAlgorithmMapping")
-    void interpretPdpCombiningAlgorithm_handlesGivenCombiningAlgorithm_returnsPolicyDocumentCombiningAlgorithm(final CombiningAlgorithmEnum combiningAlgorithm, final PolicyDocumentCombiningAlgorithm expectedCombiningAlgorithm) {
+    void interpretPdpCombiningAlgorithm_handlesGivenCombiningAlgorithm_returnsPolicyDocumentCombiningAlgorithm(
+            final CombiningAlgorithmEnum combiningAlgorithm,
+            final PolicyDocumentCombiningAlgorithm expectedCombiningAlgorithm) {
         final var result = pdpCombiningAlgorithmInterpreter.interpretPdpCombiningAlgorithm(combiningAlgorithm);
 
         assertEquals(expectedCombiningAlgorithm, result);

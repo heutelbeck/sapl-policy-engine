@@ -73,19 +73,21 @@ public class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {
         return documentsByName;
     }
 
-    private Map<String, SAPL> readPoliciesFromSaplDocumentNames(final List<String> saplDocumentNames, final SAPLInterpreter interpreter) {
-        if(saplDocumentNames == null || saplDocumentNames.isEmpty()) {
+    private Map<String, SAPL> readPoliciesFromSaplDocumentNames(final List<String> saplDocumentNames,
+            final SAPLInterpreter interpreter) {
+        if (saplDocumentNames == null || saplDocumentNames.isEmpty()) {
             return Collections.emptyMap();
         }
 
-        if(saplDocumentNames.stream().anyMatch(saplDocumentName -> saplDocumentName == null || saplDocumentName.isEmpty())) {
+        if (saplDocumentNames.stream()
+                .anyMatch(saplDocumentName -> saplDocumentName == null || saplDocumentName.isEmpty())) {
             throw new SaplTestException("Encountered invalid policy name");
         }
 
-        return saplDocumentNames
-                .stream()
+        return saplDocumentNames.stream()
                 .map(saplDocumentName -> DocumentHelper.readSaplDocument(saplDocumentName, interpreter))
-                .collect(Collectors.toMap(sapl -> sapl.getPolicyElement().getSaplName(), Function.identity(), (oldKey, newKey) -> newKey));
+                .collect(Collectors.toMap(sapl -> sapl.getPolicyElement().getSaplName(), Function.identity(),
+                        (oldKey, newKey) -> newKey));
     }
 
     @Override

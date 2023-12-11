@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.test.dsl.setup;
 
 import io.sapl.test.SaplTestException;
@@ -10,26 +27,29 @@ import io.sapl.test.utils.DocumentHelper;
 public abstract class BaseTestAdapter<T> {
 
     private final SaplTestInterpreter saplTestInterpreter;
-    private final TestProvider testProvider;
+    private final TestProvider        testProvider;
 
     protected BaseTestAdapter(final StepConstructor stepConstructor, final SaplTestInterpreter saplTestInterpreter) {
-        this.testProvider = TestProviderFactory.create(stepConstructor);
+        this.testProvider        = TestProviderFactory.create(stepConstructor);
         this.saplTestInterpreter = saplTestInterpreter;
     }
 
-    protected BaseTestAdapter(final SaplTestInterpreter saplTestInterpreter, final UnitTestPolicyResolver customUnitTestPolicyResolver, final IntegrationTestPolicyResolver customIntegrationTestPolicyResolver) {
-        this.testProvider = TestProviderFactory.create(customUnitTestPolicyResolver, customIntegrationTestPolicyResolver);
+    protected BaseTestAdapter(final SaplTestInterpreter saplTestInterpreter,
+            final UnitTestPolicyResolver customUnitTestPolicyResolver,
+            final IntegrationTestPolicyResolver customIntegrationTestPolicyResolver) {
+        this.testProvider        = TestProviderFactory.create(customUnitTestPolicyResolver,
+                customIntegrationTestPolicyResolver);
         this.saplTestInterpreter = saplTestInterpreter;
     }
 
-    protected BaseTestAdapter(final UnitTestPolicyResolver customUnitTestPolicyResolver, final IntegrationTestPolicyResolver customIntegrationTestPolicyResolver) {
+    protected BaseTestAdapter(final UnitTestPolicyResolver customUnitTestPolicyResolver,
+            final IntegrationTestPolicyResolver customIntegrationTestPolicyResolver) {
         this(SaplTestInterpreterFactory.create(), customUnitTestPolicyResolver, customIntegrationTestPolicyResolver);
     }
 
     protected BaseTestAdapter() {
         this(SaplTestInterpreterFactory.create(), null, null);
     }
-
 
     protected T createTest(final String filename) {
         if (filename == null) {
@@ -53,7 +73,8 @@ public abstract class BaseTestAdapter<T> {
         return createTestContainerAndConvertToTargetRepresentation(identifier, testDefinition);
     }
 
-    private T createTestContainerAndConvertToTargetRepresentation(final String identifier, final String testDefinition) {
+    private T createTestContainerAndConvertToTargetRepresentation(final String identifier,
+            final String testDefinition) {
         final var saplTest = saplTestInterpreter.loadAsResource(testDefinition);
 
         final var testContainer = TestContainer.from(identifier, testProvider.buildTests(saplTest));

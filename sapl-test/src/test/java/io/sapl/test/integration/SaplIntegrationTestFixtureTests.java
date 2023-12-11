@@ -96,67 +96,82 @@ class SaplIntegrationTestFixtureTests {
     class PolicyPathsTests {
         @Test
         void test_nullPDPConfigPath_usesDefaultCombiningAlgorithm() {
-            var fixture = new SaplIntegrationTestFixture(null, List.of("policiesIT/policy_A", "policiesIT/policy_B.sapl"));
+            var fixture = new SaplIntegrationTestFixture(null,
+                    List.of("policiesIT/policy_A", "policiesIT/policy_B.sapl"));
             fixture.constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny()
                     .verify();
         }
 
         @Test
         void test_invalidPDPConfigPath_usesDefaultCombiningAlgorithm() {
-            var fixture = new SaplIntegrationTestFixture("it/empty", List.of("policiesIT/policy_A", "policiesIT/policy_B.sapl"));
+            var fixture = new SaplIntegrationTestFixture("it/empty",
+                    List.of("policiesIT/policy_A", "policiesIT/policy_B.sapl"));
             fixture.constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny()
                     .verify();
         }
 
         @Test
         void test_nullPDPConfigPath_usesGivenCombiningAlgorithm() {
-            var fixture = new SaplIntegrationTestFixture(null, List.of("policiesIT/policy_A", "policiesIT/policy_B.sapl"));
-            fixture.withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.PERMIT_OVERRIDES).constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit()
+            var fixture = new SaplIntegrationTestFixture(null,
+                    List.of("policiesIT/policy_A", "policiesIT/policy_B.sapl"));
+            fixture.withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.PERMIT_OVERRIDES)
+                    .constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit()
                     .verify();
         }
 
         @Test
         void test_invalidPDPConfigPath_usesGivenCombiningAlgorithm() {
-            var fixture = new SaplIntegrationTestFixture("it/empty", List.of("policiesIT/policy_A", "policiesIT/policy_B.sapl"));
-            fixture.withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.PERMIT_OVERRIDES).constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit()
+            var fixture = new SaplIntegrationTestFixture("it/empty",
+                    List.of("policiesIT/policy_A", "policiesIT/policy_B.sapl"));
+            fixture.withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.PERMIT_OVERRIDES)
+                    .constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit()
                     .verify();
         }
 
         @Test
         void test_invalidPDPConfigPath_givenVariablesAndCombiningAlgorithmOverridesConfig() {
-            var fixture = new SaplIntegrationTestFixture("it/empty", List.of("it/variables/policy", "policiesIT/policy_A.sapl"));
+            var       fixture   = new SaplIntegrationTestFixture("it/empty",
+                    List.of("it/variables/policy", "policiesIT/policy_A.sapl"));
             final var variables = Map.<String, JsonNode>of("test", mapper.createObjectNode().numberNode(1));
-            fixture.withPDPVariables(variables).withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES).constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny()
+            fixture.withPDPVariables(variables)
+                    .withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES)
+                    .constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny()
                     .verify();
         }
 
         @Test
         void test_validConfigPath_usesConfigDefinedCombiningAlgorithm() {
-            var fixture = new SaplIntegrationTestFixture("policiesIT", List.of("policiesIT/policy_A", "policiesIT/policy_B.sapl"));
+            var fixture = new SaplIntegrationTestFixture("policiesIT",
+                    List.of("policiesIT/policy_A", "policiesIT/policy_B.sapl"));
             fixture.constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit()
                     .verify();
         }
 
         @Test
         void test_validConfigPath_givenCombiningAlgorithmOverridesConfig() {
-            var fixture = new SaplIntegrationTestFixture("policiesIT", List.of("policiesIT/policy_A", "policiesIT/policy_B.sapl"));
-            fixture.withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES).constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny()
-                    .verify();
+            var fixture = new SaplIntegrationTestFixture("policiesIT",
+                    List.of("policiesIT/policy_A", "policiesIT/policy_B.sapl"));
+            fixture.withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES).constructTestCase()
+                    .when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny().verify();
         }
 
         @Test
         void test_validConfigPath_givenVariablesOverridesConfig() {
-            var fixture = new SaplIntegrationTestFixture("policiesIT", List.of("it/variables/policy", "policiesIT/policy_A.sapl"));
+            var       fixture   = new SaplIntegrationTestFixture("policiesIT",
+                    List.of("it/variables/policy", "policiesIT/policy_A.sapl"));
             final var variables = Map.<String, JsonNode>of("test", mapper.createObjectNode().numberNode(1));
-            fixture.withPDPVariables(variables).constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit()
-                    .verify();
+            fixture.withPDPVariables(variables).constructTestCase()
+                    .when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit().verify();
         }
 
         @Test
         void test_validConfigPath_givenVariablesAndCombiningAlgorithmOverridesConfig() {
-            var fixture = new SaplIntegrationTestFixture("policiesIT", List.of("it/variables/policy", "policiesIT/policy_A.sapl"));
+            var       fixture   = new SaplIntegrationTestFixture("policiesIT",
+                    List.of("it/variables/policy", "policiesIT/policy_A.sapl"));
             final var variables = Map.<String, JsonNode>of("test", mapper.createObjectNode().numberNode(1));
-            fixture.withPDPVariables(variables).withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES).constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny()
+            fixture.withPDPVariables(variables)
+                    .withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES)
+                    .constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny()
                     .verify();
         }
 
@@ -166,37 +181,43 @@ class SaplIntegrationTestFixtureTests {
             @Test
             void test_nullPolicyPaths1() {
                 var fixture = new SaplIntegrationTestFixture("path", null);
-                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase).withMessage("List of policies paths needs to contain at least 2 values.");
+                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase)
+                        .withMessage("List of policies paths needs to contain at least 2 values.");
             }
 
             @Test
             void test_nullPolicyPaths2() {
                 var fixture = new SaplIntegrationTestFixture("path", null);
-                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks).withMessage("List of policies paths needs to contain at least 2 values.");
+                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks)
+                        .withMessage("List of policies paths needs to contain at least 2 values.");
             }
 
             @Test
             void test_emptyPolicyPaths1() {
                 var fixture = new SaplIntegrationTestFixture("path", Collections.emptyList());
-                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase).withMessage("List of policies paths needs to contain at least 2 values.");
+                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase)
+                        .withMessage("List of policies paths needs to contain at least 2 values.");
             }
 
             @Test
             void test_emptyPolicyPaths2() {
                 var fixture = new SaplIntegrationTestFixture("path", Collections.emptyList());
-                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks).withMessage("List of policies paths needs to contain at least 2 values.");
+                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks)
+                        .withMessage("List of policies paths needs to contain at least 2 values.");
             }
 
             @Test
             void test_singleValuePolicyPaths1() {
                 var fixture = new SaplIntegrationTestFixture("path", List.of("singleValue"));
-                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase).withMessage("List of policies paths needs to contain at least 2 values.");
+                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase)
+                        .withMessage("List of policies paths needs to contain at least 2 values.");
             }
 
             @Test
             void test_singleValuePolicyPaths2() {
                 var fixture = new SaplIntegrationTestFixture("path", List.of("singleValue"));
-                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks).withMessage("List of policies paths needs to contain at least 2 values.");
+                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks)
+                        .withMessage("List of policies paths needs to contain at least 2 values.");
             }
         }
     }
@@ -239,34 +260,36 @@ class SaplIntegrationTestFixtureTests {
                     .verify();
         }
 
-
         @Test
         void test_usesGivenCombiningAlgorithm() {
             var fixture = new SaplIntegrationTestFixture(List.of(policy_A, policy_B), pdpConfig);
-            fixture.withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES).constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny()
-                    .verify();
+            fixture.withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES).constructTestCase()
+                    .when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny().verify();
         }
 
         @Test
         void test_usesGivenCombiningAlgorithmAndConfigVariables() {
             var fixture = new SaplIntegrationTestFixture(List.of(policyWithVariables, policy_A), pdpConfig);
-            fixture.withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.PERMIT_OVERRIDES).constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit()
+            fixture.withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.PERMIT_OVERRIDES)
+                    .constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit()
                     .verify();
         }
 
         @Test
         void test_usesGivenVariablesAndConfigCombiningAlgorithm() {
-            var fixture = new SaplIntegrationTestFixture(List.of(policyWithVariables, policy_A), pdpConfig);
+            var       fixture   = new SaplIntegrationTestFixture(List.of(policyWithVariables, policy_A), pdpConfig);
             final var variables = Map.<String, JsonNode>of("test", mapper.createObjectNode().numberNode(2));
-            fixture.withPDPVariables(variables).constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny()
-                    .verify();
+            fixture.withPDPVariables(variables).constructTestCase()
+                    .when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny().verify();
         }
 
         @Test
         void test_givenVariablesAndCombiningAlgorithmOverridesConfig() {
-            var fixture = new SaplIntegrationTestFixture(List.of(policyWithVariables, policy_A), pdpConfig);
+            var       fixture   = new SaplIntegrationTestFixture(List.of(policyWithVariables, policy_A), pdpConfig);
             final var variables = Map.<String, JsonNode>of("test", mapper.createObjectNode().numberNode(2));
-            fixture.withPDPVariables(variables).withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT).constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny()
+            fixture.withPDPVariables(variables)
+                    .withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT)
+                    .constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny()
                     .verify();
         }
 
@@ -282,61 +305,71 @@ class SaplIntegrationTestFixtureTests {
             @Test
             void test_nullDocumentStrings1() {
                 var fixture = new SaplIntegrationTestFixture(null, "abc");
-                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase).withMessage("List input documents needs to contain at least 2 values.");
+                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase)
+                        .withMessage("List input documents needs to contain at least 2 values.");
             }
 
             @Test
             void test_nullDocumentStrings2() {
                 var fixture = new SaplIntegrationTestFixture(null, "abc");
-                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks).withMessage("List input documents needs to contain at least 2 values.");
+                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks)
+                        .withMessage("List input documents needs to contain at least 2 values.");
             }
 
             @Test
             void test_emptyDocumentStrings1() {
                 var fixture = new SaplIntegrationTestFixture(Collections.emptyList(), "abc");
-                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase).withMessage("List input documents needs to contain at least 2 values.");
+                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase)
+                        .withMessage("List input documents needs to contain at least 2 values.");
             }
 
             @Test
             void test_emptyDocumentStrings2() {
                 var fixture = new SaplIntegrationTestFixture(Collections.emptyList(), "abc");
-                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks).withMessage("List input documents needs to contain at least 2 values.");
+                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks)
+                        .withMessage("List input documents needs to contain at least 2 values.");
             }
 
             @Test
             void test_SingleValueDocumentStrings1() {
                 var fixture = new SaplIntegrationTestFixture(List.of("a"), "abc");
-                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase).withMessage("List input documents needs to contain at least 2 values.");
+                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase)
+                        .withMessage("List input documents needs to contain at least 2 values.");
             }
 
             @Test
             void test_SingleValueDocumentStrings2() {
                 var fixture = new SaplIntegrationTestFixture(List.of("a"), "abc");
-                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks).withMessage("List input documents needs to contain at least 2 values.");
+                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks)
+                        .withMessage("List input documents needs to contain at least 2 values.");
             }
 
             @Test
             void test_nullPDPConfigValueDocumentStrings1() {
                 var fixture = new SaplIntegrationTestFixture(List.of(validPolicy, validPolicy), null);
-                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase).withMessage("Passed value for PDP config is null or empty.");
+                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase)
+                        .withMessage("Passed value for PDP config is null or empty.");
             }
 
             @Test
             void test_nullPDPConfigDocumentStrings2() {
                 var fixture = new SaplIntegrationTestFixture(List.of(validPolicy, validPolicy), null);
-                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks).withMessage("Passed value for PDP config is null or empty.");
+                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks)
+                        .withMessage("Passed value for PDP config is null or empty.");
             }
 
             @Test
             void test_emptyPDPConfigValueDocumentStrings1() {
                 var fixture = new SaplIntegrationTestFixture(List.of(validPolicy, validPolicy), "");
-                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase).withMessage("Passed value for PDP config is null or empty.");
+                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase)
+                        .withMessage("Passed value for PDP config is null or empty.");
             }
 
             @Test
             void test_emptyPDPConfigDocumentStrings2() {
                 var fixture = new SaplIntegrationTestFixture(List.of(validPolicy, validPolicy), "");
-                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks).withMessage("Passed value for PDP config is null or empty.");
+                assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks)
+                        .withMessage("Passed value for PDP config is null or empty.");
             }
         }
     }
