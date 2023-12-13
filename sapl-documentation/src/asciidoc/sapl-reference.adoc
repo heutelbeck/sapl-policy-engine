@@ -1659,9 +1659,9 @@ This algorithm is used if a `PERMIT` decision should prevail any `DENY` without 
 It works as follows:
 
 . If any policy document evaluates to `PERMIT` and there is no _transformation uncertainty_ (multiple policies evaluate to `PERMIT` and at least one of them has a transformation statement), the decision is `PERMIT`.
-. Otherwise (no policy document evaluates to `DENY`):
+. Otherwise (no policy document evaluates to `PERMIT`):
 .. If there is any `INDETERMINATE` or there is a _transformation uncertainty_ (multiple policies evaluate to `PERMIT`, and at least one of them has a transformation statement), the decision is `INDETERMINATE`. 
-.. Otherwise (no policy document evaluates to `DENY`, no policy document evaluates to `INDETERMINATE`, no transform uncertainty):
+.. Otherwise (no policy document evaluates to `PERMIT`, no policy document evaluates to `INDETERMINATE`, no transform uncertainty):
 ... If there is any `DENY`, the decision is `DENY`.
 ... Otherwise, the decision is `NOT_APPLICABLE`.
 
