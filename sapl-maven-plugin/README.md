@@ -2,7 +2,7 @@
 
 This module contains the source code of the SAPL Maven Plugin.
 
-For a detailed description of the usage and the available parameters for the SAPL Maven Plugin, consult the [SAPL Docs](https://sapl.io/docs/2.0.1/sapl-reference.html#code-coverage-reports-via-the-sapl-maven-plugin).
+For a detailed description of the usage and the available parameters for the SAPL Maven Plugin, consult the [SAPL Docs](https://sapl.io/docs/latest/sapl-reference.html#code-coverage-reports-via-the-sapl-maven-plugin).
 
 ## Top-level packages
 
