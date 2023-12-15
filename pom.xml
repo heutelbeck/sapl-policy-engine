@@ -22,7 +22,8 @@
 	Utility goals supported by the POM:
 	
 	* Update the version of all modules:
-	  mvn versions:set -DnewVersion=3.0.0-RC1 -DprocessAllModules -DgenerateBackupPoms=false
+	  mvn versions:set -DnewVersion=3.0.0-RC1 -DprocessAllModules
+          -DgenerateBackupPoms=false
 	  
 	* Correct the license headers of all source files:
 	  mvn license:format -pl !sapl-bom
@@ -87,7 +88,7 @@
 		<assertj.version>3.24.2</assertj.version>
 		<license-maven-plugin.version>4.2</license-maven-plugin.version>
 		<dockerfile-maven-plugin.version>1.4.13</dockerfile-maven-plugin.version>
-		<jacoco.version>0.8.10</jacoco.version>
+		<jacoco.version>0.8.11</jacoco.version>
 		<sonar.version>3.9.1.2184</sonar.version>
 		<snakeyaml.version>2.2</snakeyaml.version>
 		<sonar.host.url>https://sonar.ftk.de</sonar.host.url>
@@ -402,7 +403,8 @@
 				<configuration>
 					<licenseSets>
 						<licenseSet>
-							<header>${maven.multiModuleProjectDirectory}/APACHE-2.txt</header>
+							<header>
+								${maven.multiModuleProjectDirectory}/APACHE-2.txt</header>
 							<excludes>
 								<exclude>**/*.xtendbin</exclude>
 								<exclude>**/*._trace</exclude>
@@ -489,16 +491,21 @@
 						<version>${jacoco.version}</version>
 						<executions>
 							<execution>
+								<id>prepare-agent</id>
 								<goals>
 									<goal>prepare-agent</goal>
 								</goals>
 							</execution>
 							<execution>
 								<id>report</id>
-								<phase>prepare-package</phase>
 								<goals>
 									<goal>report</goal>
 								</goals>
+								<configuration>
+									<formats>
+										<format>XML</format>
+									</formats>
+								</configuration>
 							</execution>
 						</executions>
 					</plugin>
