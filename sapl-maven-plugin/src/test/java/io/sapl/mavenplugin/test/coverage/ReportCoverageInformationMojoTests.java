@@ -115,7 +115,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
                 .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
         when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
-        when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
+        when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
         Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
@@ -137,7 +137,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
                 .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
         when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
-        when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
+        when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
         Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
@@ -159,7 +159,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
                 .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
         when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
-        when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
+        when(this.htmlReporter.generateHtmlReport(any(),any(),  any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
         Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
@@ -181,7 +181,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
                 .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
         when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
-        when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
+        when(this.htmlReporter.generateHtmlReport(any(),any(),  any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
         Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
@@ -203,7 +203,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
                 .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
         when(this.coverageAPIHelper.readHits(any())).thenThrow(new IOException("TESTING"));
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
-        when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
+        when(this.htmlReporter.generateHtmlReport(any(),any(),  any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
         Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
@@ -222,7 +222,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
                 .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
         when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
-        when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
+        when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
         Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
@@ -244,7 +244,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
                 .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
         when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 50f);
-        when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
+        when(this.htmlReporter.generateHtmlReport(any(),any(),  any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
         Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
@@ -266,7 +266,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
                 .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
         when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 50f, 100f);
-        when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
+        when(this.htmlReporter.generateHtmlReport(any(),any(),  any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
         Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
@@ -288,7 +288,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
                 .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
         when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(50f, 100f, 100f);
-        when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
+        when(this.htmlReporter.generateHtmlReport(any(),any(),  any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
         Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
@@ -311,7 +311,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
                 .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
         when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(50f, 50f, 100f);
-        when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
+        when(this.htmlReporter.generateHtmlReport(any(),any(),  any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
         Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
@@ -334,7 +334,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
                 .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
         when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(50f, 100f, 50f);
-        when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
+        when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
         Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
@@ -357,7 +357,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
                 .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
         when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 50f, 50f);
-        when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
+        when(this.htmlReporter.generateHtmlReport(any(),any(),  any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
         Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
@@ -379,7 +379,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         when(this.coverageTargetHelper.getCoverageTargets(any()))
                 .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
         when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-        when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
+        when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(50f, 50f, 50f);
 
@@ -404,7 +404,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         when(this.coverageTargetHelper.getCoverageTargets(any())).thenReturn(targets);
         when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(50f, 50f, 50f);
-        when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
+        when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
         Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
@@ -424,7 +424,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
     private void verifyReporterAreCalled() throws MojoExecutionException {
 
         verify(saplDocumentReader, times(1)).retrievePolicyDocuments(any(), any(), any());
-        verify(this.htmlReporter, times(1)).generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat());
+        verify(this.htmlReporter, times(1)).generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat());
         verify(this.sonarReporter, times(1)).generateSonarLineCoverageReport(any(), any(), any(), any(), any());
     }
 
@@ -436,7 +436,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
                 .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
         when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
-        when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
+        when(this.htmlReporter.generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
         Path pom  = Paths.get("src", "test", "resources", "pom", "pom_sonarReportDisabled.xml");
@@ -446,7 +446,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         mojo.execute();
 
         verify(saplDocumentReader, times(1)).retrievePolicyDocuments(any(), any(), any());
-        verify(this.htmlReporter, times(1)).generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat());
+        verify(this.htmlReporter, times(1)).generateHtmlReport(any(),any(),  any(), anyFloat(), anyFloat(), anyFloat());
         verify(this.sonarReporter, never()).generateSonarLineCoverageReport(any(), any(), any(), any(), any());
 
         verify(log).info("All coverage criteria passed.");
@@ -468,7 +468,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         mojo.execute();
 
         verify(saplDocumentReader, times(1)).retrievePolicyDocuments(any(), any(), any());
-        verify(this.htmlReporter, never()).generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat());
+        verify(this.htmlReporter, never()).generateHtmlReport(any(), any(), any(), anyFloat(), anyFloat(), anyFloat());
         verify(this.sonarReporter, times(1)).generateSonarLineCoverageReport(any(), any(), any(), any(), any());
 
         verify(log).info("All coverage criteria passed.");
@@ -490,7 +490,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         mojo.execute();
 
         verify(saplDocumentReader, times(1)).retrievePolicyDocuments(any(), any(), any());
-        verify(this.htmlReporter, never()).generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat());
+        verify(this.htmlReporter, never()).generateHtmlReport(any(),any(),  any(), anyFloat(), anyFloat(), anyFloat());
         verify(this.sonarReporter, never()).generateSonarLineCoverageReport(any(), any(), any(), any(), any());
 
         verify(log).info("All coverage criteria passed.");

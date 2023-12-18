@@ -1,5 +1,7 @@
 /*
- * Copyright © 2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,201 +46,201 @@ import lombok.RequiredArgsConstructor;
 
 public class HtmlLineCoverageReportGenerator {
 
-	public Path generateHtmlReport(Collection<SaplDocumentCoverageInformation> documents, Log log, Path baseDir,
-			float policySetHitRatio, float policyHitRatio, float policyConditionHitRatio)
-			throws MojoExecutionException {
-		Path pathToReportsMainSite = null;
-		try {
-			pathToReportsMainSite = generateSAPLCoverageReport(policySetHitRatio, policyHitRatio,
-					policyConditionHitRatio, documents, baseDir);
-			generateSAPLPolicyReports(documents, baseDir);
-			copyAssets(baseDir, getWebDependencies());
-		} catch (IOException e) {
-			throw new MojoExecutionException("Error while using the filesystem", e);
-		}
-		return pathToReportsMainSite;
-	}
+    public Path generateHtmlReport(Collection<SaplDocumentCoverageInformation> documents, Log log, Path baseDir,
+            float policySetHitRatio, float policyHitRatio, float policyConditionHitRatio)
+            throws MojoExecutionException {
+        Path pathToReportsMainSite = null;
+        try {
+            pathToReportsMainSite = generateSAPLCoverageReport(policySetHitRatio, policyHitRatio,
+                    policyConditionHitRatio, documents, baseDir);
+            generateSAPLPolicyReports(documents, baseDir);
+            copyAssets(baseDir, getWebDependencies());
+        } catch (IOException e) {
+            throw new MojoExecutionException("Error while using the filesystem", e);
+        }
+        return pathToReportsMainSite;
+    }
 
-	private void generateSAPLPolicyReports(Collection<SaplDocumentCoverageInformation> documents, Path basedir)
-			throws IOException {
-		SpringTemplateEngine springTemplateEngine = prepareTemplateEngine();
+    private void generateSAPLPolicyReports(Collection<SaplDocumentCoverageInformation> documents, Path basedir)
+            throws IOException {
+        SpringTemplateEngine springTemplateEngine = prepareTemplateEngine();
 
-		Iterator<SaplDocumentCoverageInformation> iterator = documents.iterator();
-		while (iterator.hasNext()) {
-			SaplDocumentCoverageInformation doc = iterator.next();
-			List<String> lines = readPolicyDocument(doc.getPathToDocument());
-			List<HtmlPolicyLineModel> models = createHtmlPolicyLineModel(lines, doc);
+        Iterator<SaplDocumentCoverageInformation> iterator = documents.iterator();
+        while (iterator.hasNext()) {
+            SaplDocumentCoverageInformation doc    = iterator.next();
+            List<String>                    lines  = readPolicyDocument(doc.getPathToDocument());
+            List<HtmlPolicyLineModel>       models = createHtmlPolicyLineModel(lines, doc);
 
-			// prepare context
-			Context context = new Context();
-			context.setVariable("policyTitle", doc.getPathToDocument().getFileName());
-			context.setVariable("policyText", lines.stream().collect(Collectors.joining("\n")));
-			context.setVariable("lineModels", models);
+            // prepare context
+            Context context = new Context();
+            context.setVariable("policyTitle", doc.getPathToDocument().getFileName());
+            context.setVariable("policyText", lines.stream().collect(Collectors.joining("\n")));
+            context.setVariable("lineModels", models);
 
-			// process the template and context
-			String htmlFileAsString = springTemplateEngine.process("policy.html", context);
+            // process the template and context
+            String htmlFileAsString = springTemplateEngine.process("policy.html", context);
 
-			// write the file
-			Path outputFile = basedir.resolve("html").resolve("policies")
-					.resolve(doc.getPathToDocument().getFileName() + ".html");
-			createFile(outputFile, htmlFileAsString);
-		}
+            // write the file
+            Path outputFile = basedir.resolve("html").resolve("policies")
+                    .resolve(doc.getPathToDocument().getFileName() + ".html");
+            createFile(outputFile, htmlFileAsString);
+        }
 
-	}
+    }
 
-	private Path generateSAPLCoverageReport(float policySetHitRatio, float policyHitRatio,
-			float policyConditionHitRatio, Collection<SaplDocumentCoverageInformation> documents, Path basedir)
-			throws IOException {
-		SpringTemplateEngine springTemplateEngine = prepareTemplateEngine();
+    private Path generateSAPLCoverageReport(float policySetHitRatio, float policyHitRatio,
+            float policyConditionHitRatio, Collection<SaplDocumentCoverageInformation> documents, Path basedir)
+            throws IOException {
+        SpringTemplateEngine springTemplateEngine = prepareTemplateEngine();
 
-		// prepare context
-		Context context = new Context();
-		context.setVariable("policySetHitRatio", policySetHitRatio);
-		context.setVariable("policyHitRatio", policyHitRatio);
-		context.setVariable("policyConditionHitRatio", policyConditionHitRatio);
-		context.setVariable("documentFileNames",
-				documents.stream().map(doc -> doc.getPathToDocument().getFileName()).collect(Collectors.toList()));
+        // prepare context
+        Context context = new Context();
+        context.setVariable("policySetHitRatio", policySetHitRatio);
+        context.setVariable("policyHitRatio", policyHitRatio);
+        context.setVariable("policyConditionHitRatio", policyConditionHitRatio);
+        context.setVariable("documentFileNames",
+                documents.stream().map(doc -> doc.getPathToDocument().getFileName()).collect(Collectors.toList()));
 
-		// process the template and context
-		String htmlFileAsString = springTemplateEngine.process("report.html", context);
+        // process the template and context
+        String htmlFileAsString = springTemplateEngine.process("report.html", context);
 
-		// write the file
-		Path outputFile = basedir.resolve("html").resolve("report.html");
-		createFile(outputFile, htmlFileAsString);
+        // write the file
+        Path outputFile = basedir.resolve("html").resolve("report.html");
+        createFile(outputFile, htmlFileAsString);
 
-		return outputFile;
-	}
+        return outputFile;
+    }
 
-	private List<HtmlPolicyLineModel> createHtmlPolicyLineModel(List<String> lines,
-			SaplDocumentCoverageInformation document) {
-		List<HtmlPolicyLineModel> models = new LinkedList<>();
+    private List<HtmlPolicyLineModel> createHtmlPolicyLineModel(List<String> lines,
+            SaplDocumentCoverageInformation document) {
+        List<HtmlPolicyLineModel> models = new LinkedList<>();
 
-		for (int i = 0; i < lines.size(); i++) {
-			var model = new HtmlPolicyLineModel();
-			model.setLineContent(lines.get(i));
-			var line = document.getLine(i + 1);
-			var coveredValue = line.getCoveredValue();
-			assertValidCoveredValue(coveredValue);
-			switch (coveredValue) {
-			case FULLY -> model.setCssClass("coverage-green");
-			case NEVER -> model.setCssClass("coverage-red");
-			case PARTLY -> {
-				model.setCssClass("coverage-yellow");
-				model.setPopoverContent(String.format("%d of %d branches covered", line.getCoveredBranches(),
-						line.getBranchesToCover()));
-			}
-			default -> model.setCssClass("");
-			}
-			models.add(model);
-		}
-		return models;
-	}
+        for (int i = 0; i < lines.size(); i++) {
+            var model = new HtmlPolicyLineModel();
+            model.setLineContent(lines.get(i));
+            var line         = document.getLine(i + 1);
+            var coveredValue = line.getCoveredValue();
+            assertValidCoveredValue(coveredValue);
+            switch (coveredValue) {
+            case FULLY -> model.setCssClass("coverage-green");
+            case NEVER -> model.setCssClass("coverage-red");
+            case PARTLY -> {
+                model.setCssClass("coverage-yellow");
+                model.setPopoverContent(String.format("%d of %d branches covered", line.getCoveredBranches(),
+                        line.getBranchesToCover()));
+            }
+            default -> model.setCssClass("");
+            }
+            models.add(model);
+        }
+        return models;
+    }
 
-	private void copyAssets(Path basedir, List<WebDependency> webDependencies) throws IOException {
-		for (var webDependency : webDependencies) {
-			final String sourceRelPathStr = webDependency.sourcePath.resolve(webDependency.fileName).toString();
-			final InputStream source = getClass().getClassLoader().getResourceAsStream(sourceRelPathStr);
-			if (source == null) {
-				final String msg = String.format("Cannot find file: %s while copying assets.", sourceRelPathStr);
-				throw new IOException(msg);
-			}
-			final Path target = basedir.resolve(webDependency.targetPath.resolve(webDependency.fileName));
-			copyFile(source, target);
-		}
-	}
+    private void copyAssets(Path basedir, List<WebDependency> webDependencies) throws IOException {
+        for (var webDependency : webDependencies) {
+            final String      sourceRelPathStr = webDependency.sourcePath.resolve(webDependency.fileName).toString();
+            final InputStream source           = getClass().getClassLoader().getResourceAsStream(sourceRelPathStr);
+            if (source == null) {
+                final String msg = String.format("Cannot find file: %s while copying assets.", sourceRelPathStr);
+                throw new IOException(msg);
+            }
+            final Path target = basedir.resolve(webDependency.targetPath.resolve(webDependency.fileName));
+            copyFile(source, target);
+        }
+    }
 
-	private List<String> readPolicyDocument(Path filePath) throws IOException {
-		return Files.readAllLines(filePath);
-	}
+    private List<String> readPolicyDocument(Path filePath) throws IOException {
+        return Files.readAllLines(filePath);
+    }
 
-	private void createFile(Path filePath, String content) throws IOException {
-		PathHelper.createFile(filePath);
-		Files.writeString(filePath, content);
-	}
+    private void createFile(Path filePath, String content) throws IOException {
+        PathHelper.createFile(filePath);
+        Files.writeString(filePath, content);
+    }
 
-	private void copyFile(InputStream source, Path target) throws IOException {
-		PathHelper.createParentDirs(target);
-		Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
-	}
+    private void copyFile(InputStream source, Path target) throws IOException {
+        PathHelper.createParentDirs(target);
+        Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+    }
 
-	private void assertValidCoveredValue(LineCoveredValue coveredValue) {
-		if (coveredValue == LineCoveredValue.FULLY || coveredValue == LineCoveredValue.PARTLY
-				|| coveredValue == LineCoveredValue.NEVER || coveredValue == LineCoveredValue.IRRELEVANT)
-			return;
-		throw new SaplTestException("Unexpected enum value: " + coveredValue);
-	}
+    private void assertValidCoveredValue(LineCoveredValue coveredValue) {
+        if (coveredValue == LineCoveredValue.FULLY || coveredValue == LineCoveredValue.PARTLY
+                || coveredValue == LineCoveredValue.NEVER || coveredValue == LineCoveredValue.IRRELEVANT)
+            return;
+        throw new SaplTestException("Unexpected enum value: " + coveredValue);
+    }
 
-	private SpringTemplateEngine prepareTemplateEngine() {
-		SpringTemplateEngine springTemplateEngine = new SpringTemplateEngine();
-		ClassLoaderTemplateResolver classLoaderTemplateResolver = new ClassLoaderTemplateResolver();
-		classLoaderTemplateResolver.setPrefix("/html/templates/");
-		classLoaderTemplateResolver.setSuffix(".html");
-		classLoaderTemplateResolver.setCharacterEncoding("UTF-8");
-		springTemplateEngine.setTemplateResolver(classLoaderTemplateResolver);
-		return springTemplateEngine;
-	}
+    private SpringTemplateEngine prepareTemplateEngine() {
+        SpringTemplateEngine        springTemplateEngine        = new SpringTemplateEngine();
+        ClassLoaderTemplateResolver classLoaderTemplateResolver = new ClassLoaderTemplateResolver();
+        classLoaderTemplateResolver.setPrefix("/html/templates/");
+        classLoaderTemplateResolver.setSuffix(".html");
+        classLoaderTemplateResolver.setCharacterEncoding("UTF-8");
+        springTemplateEngine.setTemplateResolver(classLoaderTemplateResolver);
+        return springTemplateEngine;
+    }
 
-	private List<WebDependency> getWebDependencies() {
-		final List<WebDependency> dependencies = new ArrayList<HtmlLineCoverageReportGenerator.WebDependency>();
-		final String SOURCE_BASE = "dependency-resources/";
-		final String TARGET_BASE = "html/assets/";
-		dependencies.add(new WebDependency("sapl-mode", "sapl-mode.js", Paths.get(SOURCE_BASE),
-				Paths.get(TARGET_BASE + "lib/js")));
-		dependencies.add(
-				new WebDependency("main.css", "main.css", Paths.get("html/css/"), Paths.get(TARGET_BASE + "lib/css/")));
-		dependencies.add(
-				new WebDependency("favicon", "favicon.png", Paths.get("images"), Paths.get(TARGET_BASE + "images/")));
-		dependencies.add(new WebDependency("logo-header", "logo-header.png", Paths.get("images"),
-				Paths.get(TARGET_BASE + "images/")));
-		dependencies.add(new WebDependency("@popperjs", "popper.min.js",
-				Paths.get(SOURCE_BASE + "@popperjs/core/dist/umd/"), Paths.get(TARGET_BASE + "lib/js")));
-		dependencies.add(new WebDependency("bootstrap", "bootstrap.min.js",
-				Paths.get(SOURCE_BASE + "bootstrap/dist/js/"), Paths.get(TARGET_BASE + "lib/js")));
-		dependencies.add(new WebDependency("bootstrap", "bootstrap.min.css",
-				Paths.get(SOURCE_BASE + "bootstrap/dist/css/"), Paths.get(TARGET_BASE + "lib/css/")));
-		dependencies.add(new WebDependency("codemirror", "codemirror.js", Paths.get(SOURCE_BASE + "codemirror/lib/"),
-				Paths.get(TARGET_BASE + "lib/js/")));
-		dependencies.add(new WebDependency("codemirror", "codemirror.css", Paths.get(SOURCE_BASE + "codemirror/lib/"),
-				Paths.get(TARGET_BASE + "lib/css/")));
-		dependencies.add(new WebDependency("simple_mode", "simple.js",
-				Paths.get(SOURCE_BASE + "codemirror/addon/mode/"), Paths.get(TARGET_BASE + "lib/js/addon/mode/")));
-		dependencies.add(new WebDependency("requirejs", "require.js", Paths.get(SOURCE_BASE + "requirejs/"),
-				Paths.get(TARGET_BASE + "lib/js/")));
-		return dependencies;
-	}
+    private List<WebDependency> getWebDependencies() {
+        final List<WebDependency> dependencies = new ArrayList<HtmlLineCoverageReportGenerator.WebDependency>();
+        final String              SOURCE_BASE  = "dependency-resources/";
+        final String              TARGET_BASE  = "html/assets/";
+        dependencies.add(new WebDependency("sapl-mode", "sapl-mode.js", Paths.get(SOURCE_BASE),
+                Paths.get(TARGET_BASE + "lib/js")));
+        dependencies.add(
+                new WebDependency("main.css", "main.css", Paths.get("html/css/"), Paths.get(TARGET_BASE + "lib/css/")));
+        dependencies.add(
+                new WebDependency("favicon", "favicon.png", Paths.get("images"), Paths.get(TARGET_BASE + "images/")));
+        dependencies.add(new WebDependency("logo-header", "logo-header.png", Paths.get("images"),
+                Paths.get(TARGET_BASE + "images/")));
+        dependencies.add(new WebDependency("@popperjs", "popper.min.js",
+                Paths.get(SOURCE_BASE + "@popperjs/core/dist/umd/"), Paths.get(TARGET_BASE + "lib/js")));
+        dependencies.add(new WebDependency("bootstrap", "bootstrap.min.js",
+                Paths.get(SOURCE_BASE + "bootstrap/dist/js/"), Paths.get(TARGET_BASE + "lib/js")));
+        dependencies.add(new WebDependency("bootstrap", "bootstrap.min.css",
+                Paths.get(SOURCE_BASE + "bootstrap/dist/css/"), Paths.get(TARGET_BASE + "lib/css/")));
+        dependencies.add(new WebDependency("codemirror", "codemirror.js", Paths.get(SOURCE_BASE + "codemirror/lib/"),
+                Paths.get(TARGET_BASE + "lib/js/")));
+        dependencies.add(new WebDependency("codemirror", "codemirror.css", Paths.get(SOURCE_BASE + "codemirror/lib/"),
+                Paths.get(TARGET_BASE + "lib/css/")));
+        dependencies.add(new WebDependency("simple_mode", "simple.js",
+                Paths.get(SOURCE_BASE + "codemirror/addon/mode/"), Paths.get(TARGET_BASE + "lib/js/addon/mode/")));
+        dependencies.add(new WebDependency("requirejs", "require.js", Paths.get(SOURCE_BASE + "requirejs/"),
+                Paths.get(TARGET_BASE + "lib/js/")));
+        return dependencies;
+    }
 
-	@Data
-	static class HtmlPolicyLineModel {
-		String lineContent;
-		String cssClass;
-		String popoverContent;
-	}
+    @Data
+    static class HtmlPolicyLineModel {
+        String lineContent;
+        String cssClass;
+        String popoverContent;
+    }
 
-	@RequiredArgsConstructor
-	private static class WebDependency {
-		/**
-		 * name of the dependency
-		 */
-		@NonNull
-		String name;
+    @RequiredArgsConstructor
+    private static class WebDependency {
+        /**
+         * name of the dependency
+         */
+        @NonNull
+        String name;
 
-		/**
-		 * name of the actual file
-		 */
-		@NonNull
-		String fileName;
+        /**
+         * name of the actual file
+         */
+        @NonNull
+        String fileName;
 
-		/**
-		 * path to the directory where actual the file is located
-		 */
-		@NonNull
-		Path sourcePath; //
+        /**
+         * path to the directory where actual the file is located
+         */
+        @NonNull
+        Path sourcePath; //
 
-		/**
-		 * path to where the file will be located as an asset
-		 */
-		@NonNull
-		Path targetPath;
-	}
+        /**
+         * path to where the file will be located as an asset
+         */
+        @NonNull
+        Path targetPath;
+    }
 
 }
