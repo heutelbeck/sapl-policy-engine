@@ -1,0 +1,49 @@
+:root {
+	--padding-left: 20px;
+}
+
+.coverage-green span {
+	background-color: #ccffcc;
+}
+
+.coverage-yellow span {
+	background-color: #ffffcc;
+}
+
+.coverage-red span {
+	background-color: #ffaaaa;
+}
+
+.navbar {
+	background-color: #20232a;
+}
+
+.navbar-brand img {
+	display: inline-block;
+	height: 60px;
+	padding-left: var(--padding-left);
+}
+
+.card-body {
+	padding: var(--padding-left);
+	height: 80%;
+}
+
+.breadcrumb {
+	display: flex;
+	flex-wrap: wrap;
+	padding: 1rem 1rem;
+	margin-bottom: .25rem;
+	background-color: #e9ecef;
+	text-align: center;
+	line-height: 100%;
+	padding-left: var(--padding-left);
+}
+
+.breadcrumb-item a {
+	text-decoration: none;
+}
+
+.breadcrumb-item a:hover {
+	text-decoration: underline;
+}

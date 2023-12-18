@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+	<title>SAPL Coverage Report</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<link rel="stylesheet" href="assets/lib/css/bootstrap.min.css">
+	<link rel="stylesheet" href="assets/lib/css/main.css">
+</head>
+
+<body>
+	<main id="main" class="content">
+		<nav class="navbar navbar-light">
+			<a class="navbar-brand" href="#">
+				<img src="assets/images/logo-header.png">
+			</a>
+		</nav>
+		<h1 style="padding: 1.25rem;">SAPL Coverage Report</h1>
+		<div class="card">
+			<div class="card-header">SAPL Coverage Ratio</div>
+			<div class="card-body">
+				<p>PolicySet Hit Ratio: [[${policySetHitRatio}]]%</p>
+				<p>Policy Hit Ratio: [[${policyHitRatio}]]%</p>
+				<p>PolicyCondition Hit Ratio: [[${policyConditionHitRatio}]]%</p>
+			</div>
+		</div>
+		<div class="card">
+			<div class="card-header">Show coverage per SAPL document</div>
+			<div class="card-body">
+				<div class="list-group">
+					<a th:each="fileName : ${documentFileNames}" th:href="@{'policies/' + ${fileName} + '.html'}"
+						class="list-group-item list-group-item-action" th:text="${fileName}">
+					</a>
+				</div>
+			</div>
+		</div>
+		</div>
+	</main>
+</body>
+
+</html>
