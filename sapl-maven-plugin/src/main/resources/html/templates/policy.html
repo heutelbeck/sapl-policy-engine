@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+	<title>SAPL Coverage Report</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<link rel="icon" href="../assets/images/favicon.png" type="image/png">
+	<link rel="stylesheet" href="../assets/lib/css/codemirror.css">
+	<link rel="stylesheet" href="../assets/lib/css/bootstrap.min.css">
+	<link rel="stylesheet" href="../assets/lib/css/main.css">
+	<script src="../assets/lib/js/popper.min.js"></script>
+	<script src="../assets/lib/js/bootstrap.min.js"></script>
+	<script src="../assets/lib/js/require.js"></script>
+	<style>
+		.CodeMirror {
+			height: calc(100% - 50px) !important;
+		}
+	</style>
+</head>
+
+<body>
+	<main id="main">
+		<nav class="navbar navbar-light">
+			<a class="navbar-brand" href="#">
+				<img src="../assets/images/logo-header.png">
+			</a>
+		</nav>
+
+		<nav aria-label="breadcrumb">
+			<ol class="breadcrumb">
+				<li class="breadcrumb-item"><a href="../report.html">Main</a></li>
+				<li class="breadcrumb-item active" aria-current="page">[[${policyTitle}]]</li>
+			</ol>
+		</nav>
+
+		<div class="card-body">
+			<h1 style="margin-bottom: 2vw">
+				[[${policyTitle}]]
+			</h1>
+			<textarea id="policyTextArea">[[${policyText}]]</textarea>
+		</div>
+	</main>
+
+	<script th:inline="javascript" ,>
+		require.config({
+			paths: {
+				"sapl-mode": "../assets/lib/js",
+				"codemirror/lib/codemirror": "../assets/lib/js/codemirror"
+			},
+			packages: [{
+				name: "codemirror",
+				location: "../assets/lib/js",
+				main: "lib/codemirror"
+			},
+			{
+				name: "sapl-mode",
+				location: "../assets/lib/js",
+				main: "sapl-mode"
+			}]
+
+		});
+
+		require(["codemirror", "codemirror/addon/mode/simple", "sapl-mode"], function (CodeMirror, simpleMode, saplMode) {
+
+			let editor = CodeMirror.fromTextArea(document.getElementById("policyTextArea"), {
+				lineNumbers: true,
+				mode: "xtext/sapl",
+				readOnly: "nocursor"
+			});
+
+			let lineModels = /*[[${lineModels}]]*/[];
+			for (let i = 0; i < lineModels.length; i++) {
+				let line = i;
+				let lineModel = lineModels[line];
+				if (lineModel.cssClass != null) {
+					editor.addLineClass(line, "text", lineModel.cssClass);
+				}
+				if (lineModel.popoverContent != null) {
+					editor.markText(
+						{line: line, ch: 0}, // Start position
+						{line: line, ch: editor.getLine(line).length}, // End position
+						{
+							attributes: {
+								"data-bs-toggle": "popover",
+								"data-bs-trigger": "hover",
+								"data-bs-placement": "top",
+								"data-bs-content": lineModel.popoverContent
+							}
+						}
+					);
+				}
+			}
+			var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+			var popoverList = popoverTriggerList.map(function (textAreaElement) {
+				return new bootstrap.Popover(textAreaElement)
+			})
+		});
+	</script>
+</body>
+
+</html>

@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.testing.SilentLog;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -91,11 +92,11 @@ class HtmlLineCoverageReportGeneratorTests {
         generator.generateHtmlReport(documents, Paths.get("target/sapl-coverage"), POLICY_SET_HIT_RATIO,
                 POLICY_HIT_RATIO, POLICY_CONDITION_HIT_RATIO);
 
-        assertEquals(Boolean.TRUE, base.resolve("assets/favicon.png").toFile().exists());
-        assertEquals(Boolean.TRUE, base.resolve("assets/logo-header.png").toFile().exists());
-        assertEquals(Boolean.TRUE, base.resolve("assets/main.css").toFile().exists());
+        assertEquals(Boolean.TRUE, base.resolve("assets/images/favicon.png").toFile().exists());
+        assertEquals(Boolean.TRUE, base.resolve("assets/images/logo-header.png").toFile().exists());
+        assertEquals(Boolean.TRUE, base.resolve("assets/lib/css/main.css").toFile().exists());
         assertEquals(Boolean.TRUE, base.resolve("policies/policy_1.sapl.html").toFile().exists());
-        assertEquals(Boolean.TRUE, base.resolve("index.html").toFile().exists());
+        assertEquals(Boolean.TRUE, base.resolve("report.html").toFile().exists());
     }
 
     @Test
@@ -118,9 +119,9 @@ class HtmlLineCoverageReportGeneratorTests {
                 document.markLine(1, LineCoveredValue.IRRELEVANT, 0, 0);
                 documents = List.of(document);
                 generator = new HtmlLineCoverageReportGenerator();
-                var path = Paths.get("target/sapl-coverage");
-                assertThrows(SaplTestException.class, () -> generator.generateHtmlReport(documents, path,
-                        POLICY_SET_HIT_RATIO, POLICY_HIT_RATIO, POLICY_CONDITION_HIT_RATIO));
+                assertThrows(SaplTestException.class,
+                        () -> generator.generateHtmlReport(documents, Paths.get("target/sapl-coverage"),
+                                POLICY_SET_HIT_RATIO, POLICY_HIT_RATIO, POLICY_CONDITION_HIT_RATIO));
             }
         }
     }
