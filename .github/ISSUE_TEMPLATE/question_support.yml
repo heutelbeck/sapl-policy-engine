@@ -1,0 +1,20 @@
+name: "❓ Question or Support Request"
+description: "Questions and requests for support."
+labels: ["question"]
+
+body:
+
+  - type: markdown
+    attributes:
+      value: |
+        Before posting any questions or asking for support, first read the project's README.md file, the documentation, the website or other additional documentation that might be listed in the project's or module's README.md file.
+
+        To expedite issue processing, please search open and closed issues before submitting a new one.
+        Please read our Code of Conduct and Contributing Guidelines at this repository.
+
+  - type: textarea
+    attributes:
+      label: "Describe your question or ask for support."
+      description: "A clear and concise description of what your doubt is."
+    validations:
+      required: true
