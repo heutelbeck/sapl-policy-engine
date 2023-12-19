@@ -1,18 +1,45 @@
+/*
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.springdatamongoreactive.sapl.handlers;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
+
+import org.bson.types.ObjectId;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import io.sapl.springdatamongoreactive.sapl.utils.ConstraintHandlerUtils;
+
 import io.sapl.springdatamongoreactive.sapl.database.TestUser;
-import org.bson.types.ObjectId;
-import org.junit.jupiter.api.*;
-import org.mockito.MockedStatic;
+import io.sapl.springdatamongoreactive.sapl.utils.ConstraintHandlerUtils;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
-
-import static org.mockito.Mockito.*;
 
 class DataManipulationHandlerTest {
 
@@ -103,36 +130,39 @@ class DataManipulationHandlerTest {
         // GIVEN
 
         // WHEN
-        constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("mongoQueryManipulation"))).thenReturn(JsonNodeFactory.instance.nullNode());
-        constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("filterJsonContent"))).thenReturn(filterJsonContent);
-        constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("jsonContentFilterPredicate"))).thenReturn(JsonNodeFactory.instance.nullNode());
+        constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils
+                .getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("mongoQueryManipulation")))
+                .thenReturn(JsonNodeFactory.instance.nullNode());
+        constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils
+                .getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("filterJsonContent")))
+                .thenReturn(filterJsonContent);
+        constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils
+                .getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("jsonContentFilterPredicate")))
+                .thenReturn(JsonNodeFactory.instance.nullNode());
 
         var result = dataManipulationHandler.manipulate(obligations).apply(data);
 
         // THEN
-        StepVerifier.create(result)
-                .expectNextMatches(testUser -> {
-                    Assertions.assertEquals(testUser.getId(), aaron.getId());
-                    Assertions.assertEquals(testUser.getAge(), 0);
-                    Assertions.assertEquals(testUser.getFirstname(), "Aa███");
-                    return true;
-                })
-                .expectNextMatches(testUser -> {
-                    Assertions.assertEquals(testUser.getId(), brian.getId());
-                    Assertions.assertEquals(testUser.getAge(), 0);
-                    Assertions.assertEquals(testUser.getFirstname(), "Br███");
-                    return true;
-                })
-                .expectNextMatches(testUser -> {
-                    Assertions.assertEquals(testUser.getId(), cathrin.getId());
-                    Assertions.assertEquals(testUser.getAge(), 0);
-                    Assertions.assertEquals(testUser.getFirstname(), "Ca█████");
-                    return true;
-                })
-                .expectComplete()
-                .verify();
+        StepVerifier.create(result).expectNextMatches(testUser -> {
+            Assertions.assertEquals(testUser.getId(), aaron.getId());
+            Assertions.assertEquals(testUser.getAge(), 0);
+            Assertions.assertEquals(testUser.getFirstname(), "Aa███");
+            return true;
+        }).expectNextMatches(testUser -> {
+            Assertions.assertEquals(testUser.getId(), brian.getId());
+            Assertions.assertEquals(testUser.getAge(), 0);
+            Assertions.assertEquals(testUser.getFirstname(), "Br███");
+            return true;
+        }).expectNextMatches(testUser -> {
+            Assertions.assertEquals(testUser.getId(), cathrin.getId());
+            Assertions.assertEquals(testUser.getAge(), 0);
+            Assertions.assertEquals(testUser.getFirstname(), "Ca█████");
+            return true;
+        }).expectComplete().verify();
 
-        constraintHandlerUtilsMock.verify(() -> ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), anyString()), times(2));
+        constraintHandlerUtilsMock.verify(
+                () -> ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), anyString()),
+                times(2));
     }
 
     @Test
@@ -140,24 +170,29 @@ class DataManipulationHandlerTest {
         // GIVEN
 
         // WHEN
-        constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("mongoQueryManipulation"))).thenReturn(JsonNodeFactory.instance.nullNode());
-        constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("filterJsonContent"))).thenReturn(filterJsonContent);
-        constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("jsonContentFilterPredicate"))).thenReturn(jsonContentFilterPredicate);
+        constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils
+                .getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("mongoQueryManipulation")))
+                .thenReturn(JsonNodeFactory.instance.nullNode());
+        constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils
+                .getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("filterJsonContent")))
+                .thenReturn(filterJsonContent);
+        constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils
+                .getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("jsonContentFilterPredicate")))
+                .thenReturn(jsonContentFilterPredicate);
 
         var result = dataManipulationHandler.manipulate(obligations).apply(data);
 
         // THEN
-        StepVerifier.create(result)
-                .expectNextMatches(testUser -> {
-                    Assertions.assertEquals(testUser.getId(), aaron.getId());
-                    Assertions.assertEquals(testUser.getAge(), 0);
-                    Assertions.assertEquals(testUser.getFirstname(), "Aa███");
-                    return true;
-                })
-                .expectComplete()
-                .verify();
+        StepVerifier.create(result).expectNextMatches(testUser -> {
+            Assertions.assertEquals(testUser.getId(), aaron.getId());
+            Assertions.assertEquals(testUser.getAge(), 0);
+            Assertions.assertEquals(testUser.getFirstname(), "Aa███");
+            return true;
+        }).expectComplete().verify();
 
-        constraintHandlerUtilsMock.verify(() -> ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), anyString()), times(2));
+        constraintHandlerUtilsMock.verify(
+                () -> ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), anyString()),
+                times(2));
     }
 
     /**

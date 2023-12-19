@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.springdatar2dbc.sapl.handlers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -103,42 +120,45 @@ class DataManipulationHandlerTest {
         // GIVEN
 
         // WHEN
-        constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("r2dbcQueryManipulation"))).thenReturn(JsonNodeFactory.instance.nullNode());
-        constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("filterJsonContent"))).thenReturn(filterJsonContent);
-        constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("jsonContentFilterPredicate"))).thenReturn(JsonNodeFactory.instance.nullNode());
+        constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils
+                .getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("r2dbcQueryManipulation")))
+                .thenReturn(JsonNodeFactory.instance.nullNode());
+        constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils
+                .getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("filterJsonContent")))
+                .thenReturn(filterJsonContent);
+        constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils
+                .getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("jsonContentFilterPredicate")))
+                .thenReturn(JsonNodeFactory.instance.nullNode());
 
         var result = dataManipulationHandler.manipulate(obligations).apply(data);
 
         // THEN
-        StepVerifier.create(result)
-                .expectNextMatches(testUser -> {
-                    Assertions.assertEquals(testUser.getId(), malinda.getId());
-                    Assertions.assertEquals(testUser.getAge(), 0);
-                    Assertions.assertEquals(testUser.getFirstname(), "Ma█████");
-                    Assertions.assertEquals(testUser.getLastname(), malinda.getLastname());
-                    Assertions.assertEquals(testUser.getRole(), malinda.getRole());
-                    return true;
-                })
-                .expectNextMatches(testUser -> {
-                    Assertions.assertEquals(testUser.getId(), emerson.getId());
-                    Assertions.assertEquals(testUser.getAge(), 0);
-                    Assertions.assertEquals(testUser.getFirstname(), "Em█████");
-                    Assertions.assertEquals(testUser.getLastname(), emerson.getLastname());
-                    Assertions.assertEquals(testUser.getRole(), emerson.getRole());
-                    return true;
-                })
-                .expectNextMatches(testUser -> {
-                    Assertions.assertEquals(testUser.getId(), yul.getId());
-                    Assertions.assertEquals(testUser.getAge(), 0);
-                    Assertions.assertEquals(testUser.getFirstname(), "Yu█");
-                    Assertions.assertEquals(testUser.getLastname(), yul.getLastname());
-                    Assertions.assertEquals(testUser.getRole(), yul.getRole());
-                    return true;
-                })
-                .expectComplete()
-                .verify();
+        StepVerifier.create(result).expectNextMatches(testUser -> {
+            Assertions.assertEquals(testUser.getId(), malinda.getId());
+            Assertions.assertEquals(testUser.getAge(), 0);
+            Assertions.assertEquals(testUser.getFirstname(), "Ma█████");
+            Assertions.assertEquals(testUser.getLastname(), malinda.getLastname());
+            Assertions.assertEquals(testUser.getRole(), malinda.getRole());
+            return true;
+        }).expectNextMatches(testUser -> {
+            Assertions.assertEquals(testUser.getId(), emerson.getId());
+            Assertions.assertEquals(testUser.getAge(), 0);
+            Assertions.assertEquals(testUser.getFirstname(), "Em█████");
+            Assertions.assertEquals(testUser.getLastname(), emerson.getLastname());
+            Assertions.assertEquals(testUser.getRole(), emerson.getRole());
+            return true;
+        }).expectNextMatches(testUser -> {
+            Assertions.assertEquals(testUser.getId(), yul.getId());
+            Assertions.assertEquals(testUser.getAge(), 0);
+            Assertions.assertEquals(testUser.getFirstname(), "Yu█");
+            Assertions.assertEquals(testUser.getLastname(), yul.getLastname());
+            Assertions.assertEquals(testUser.getRole(), yul.getRole());
+            return true;
+        }).expectComplete().verify();
 
-        constraintHandlerUtilsMock.verify(() -> ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), anyString()), times(2));
+        constraintHandlerUtilsMock.verify(
+                () -> ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), anyString()),
+                times(2));
     }
 
     @Test
@@ -146,26 +166,31 @@ class DataManipulationHandlerTest {
         // GIVEN
 
         // WHEN
-        constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("r2dbcQueryManipulation"))).thenReturn(JsonNodeFactory.instance.nullNode());
-        constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("filterJsonContent"))).thenReturn(filterJsonContent);
-        constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("jsonContentFilterPredicate"))).thenReturn(jsonContentFilterPredicate);
+        constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils
+                .getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("r2dbcQueryManipulation")))
+                .thenReturn(JsonNodeFactory.instance.nullNode());
+        constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils
+                .getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("filterJsonContent")))
+                .thenReturn(filterJsonContent);
+        constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils
+                .getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("jsonContentFilterPredicate")))
+                .thenReturn(jsonContentFilterPredicate);
 
         var result = dataManipulationHandler.manipulate(obligations).apply(data);
 
         // THEN
-        StepVerifier.create(result)
-                .expectNextMatches(testUser -> {
-                    Assertions.assertEquals(testUser.getId(), malinda.getId());
-                    Assertions.assertEquals(testUser.getAge(), 0);
-                    Assertions.assertEquals(testUser.getFirstname(), "Ma█████");
-                    Assertions.assertEquals(testUser.getLastname(), malinda.getLastname());
-                    Assertions.assertEquals(testUser.getRole(), malinda.getRole());
-                    return true;
-                })
-                .expectComplete()
-                .verify();
+        StepVerifier.create(result).expectNextMatches(testUser -> {
+            Assertions.assertEquals(testUser.getId(), malinda.getId());
+            Assertions.assertEquals(testUser.getAge(), 0);
+            Assertions.assertEquals(testUser.getFirstname(), "Ma█████");
+            Assertions.assertEquals(testUser.getLastname(), malinda.getLastname());
+            Assertions.assertEquals(testUser.getRole(), malinda.getRole());
+            return true;
+        }).expectComplete().verify();
 
-        constraintHandlerUtilsMock.verify(() -> ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), anyString()), times(2));
+        constraintHandlerUtilsMock.verify(
+                () -> ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), anyString()),
+                times(2));
     }
 
     /**
