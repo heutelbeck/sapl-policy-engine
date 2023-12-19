@@ -46,7 +46,7 @@ import lombok.RequiredArgsConstructor;
 
 public class HtmlLineCoverageReportGenerator {
 
-    public Path generateHtmlReport(Collection<SaplDocumentCoverageInformation> documents, Log log, Path baseDir,
+    public Path generateHtmlReport(Collection<SaplDocumentCoverageInformation> documents, Path baseDir,
             float policySetHitRatio, float policyHitRatio, float policyConditionHitRatio)
             throws MojoExecutionException {
         Path pathToReportsMainSite = null;
@@ -181,7 +181,7 @@ public class HtmlLineCoverageReportGenerator {
     }
 
     private List<WebDependency> getWebDependencies() {
-        final List<WebDependency> dependencies = new ArrayList<HtmlLineCoverageReportGenerator.WebDependency>();
+        final List<WebDependency> dependencies = new ArrayList<>();
         final String              SOURCE_BASE  = "dependency-resources/";
         final String              TARGET_BASE  = "html/assets/";
         dependencies.add(new WebDependency("sapl-mode", "sapl-mode.js", Paths.get(SOURCE_BASE),

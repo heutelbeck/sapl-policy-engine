@@ -200,7 +200,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
             }
 
             if (enableHtmlReport) {
-                Path indexHtml = htmlReporter.generateHtmlReport(genericDocumentCoverage, getLog(),
+                Path indexHtml = htmlReporter.generateHtmlReport(genericDocumentCoverage,
                         PathHelper.resolveBaseDir(outputDir, project.getBuild().getDirectory(), getLog()),
                         actualPolicySetHitRatio, actualPolicyHitRatio, actualPolicyConditionHitRatio);
                 getLog().info("Open this file in a Browser to view the HTML coverage report: ");

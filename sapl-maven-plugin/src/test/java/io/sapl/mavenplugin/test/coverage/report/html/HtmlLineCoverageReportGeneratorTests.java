@@ -89,8 +89,8 @@ class HtmlLineCoverageReportGeneratorTests {
     @Test
     void test() throws MojoExecutionException {
 
-        generator.generateHtmlReport(documents, new SilentLog(), Paths.get("target/sapl-coverage"),
-                POLICY_SET_HIT_RATIO, POLICY_HIT_RATIO, POLICY_CONDITION_HIT_RATIO);
+        generator.generateHtmlReport(documents, Paths.get("target/sapl-coverage"), POLICY_SET_HIT_RATIO,
+                POLICY_HIT_RATIO, POLICY_CONDITION_HIT_RATIO);
 
         assertEquals(Boolean.TRUE, base.resolve("assets/images/favicon.png").toFile().exists());
         assertEquals(Boolean.TRUE, base.resolve("assets/images/logo-header.png").toFile().exists());
@@ -120,9 +120,8 @@ class HtmlLineCoverageReportGeneratorTests {
                 documents = List.of(document);
                 generator = new HtmlLineCoverageReportGenerator();
                 assertThrows(SaplTestException.class,
-                        () -> generator.generateHtmlReport(documents, new SilentLog(),
-                                Paths.get("target/sapl-coverage"), POLICY_SET_HIT_RATIO, POLICY_HIT_RATIO,
-                                POLICY_CONDITION_HIT_RATIO));
+                        () -> generator.generateHtmlReport(documents, Paths.get("target/sapl-coverage"),
+                                POLICY_SET_HIT_RATIO, POLICY_HIT_RATIO, POLICY_CONDITION_HIT_RATIO));
             }
         }
     }
@@ -132,7 +131,7 @@ class HtmlLineCoverageReportGeneratorTests {
         try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
             mockedFiles.when(() -> Files.writeString(Mockito.any(), Mockito.any())).thenThrow(IOException.class);
             assertThrows(MojoExecutionException.class,
-                    () -> generator.generateHtmlReport(documents, new SilentLog(), Paths.get("target/sapl-coverage"),
+                    () -> generator.generateHtmlReport(documents, Paths.get("target/sapl-coverage"),
                             POLICY_SET_HIT_RATIO, POLICY_HIT_RATIO, POLICY_CONDITION_HIT_RATIO));
         }
     }
@@ -148,9 +147,8 @@ class HtmlLineCoverageReportGeneratorTests {
             Mockito.when(mockedPath.getFileName()).thenReturn(null);
             var document = new SaplDocumentCoverageInformation(mockedPath, 1);
             documents = List.of(document);
-            assertDoesNotThrow(
-                    () -> generator.generateHtmlReport(documents, new SilentLog(), Paths.get("target/sapl-coverage"),
-                            POLICY_SET_HIT_RATIO, POLICY_HIT_RATIO, POLICY_CONDITION_HIT_RATIO));
+            assertDoesNotThrow(() -> generator.generateHtmlReport(documents, Paths.get("target/sapl-coverage"),
+                    POLICY_SET_HIT_RATIO, POLICY_HIT_RATIO, POLICY_CONDITION_HIT_RATIO));
         }
     }
 
