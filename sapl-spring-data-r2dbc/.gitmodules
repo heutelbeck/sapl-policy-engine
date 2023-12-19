@@ -1,0 +1,3 @@
+[submodule "spring-data-r2dbc"]
+	path = spring-data-r2dbc
+	url = https://github.com/RooSchoo/2023-roman-scholpp-thesis.git
