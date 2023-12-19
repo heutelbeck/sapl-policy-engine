@@ -2,7 +2,7 @@
 
 This module contains the SAPL Test Framework for defining unit and policy integration tests of your SAPL policies.
 
-For a detailed explanation of the features, consult the [SAPL Docs](https://sapl.io/docs/sapl-reference.html#testing-your-sapl-policies).
+For a detailed explanation of the features, consult the [SAPL Docs](https://sapl.io/docs/latest/sapl-reference.html#testing-sapl-policies).
 
 ## Top-level packages
 
