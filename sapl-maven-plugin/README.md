@@ -2,23 +2,38 @@
 
 This module contains the source code of the SAPL Maven Plugin.
 
+This plugin allows you to measure the code coverage when testing your SAPL policies. It analyzes the coverage using different coverage criteria and generates reports in HTML format. It also allows for integrating coverage information in your SonarQube/SonarCloud analysis.
+
 For a detailed description of the usage and the available parameters for the SAPL Maven Plugin, consult the [SAPL Docs](https://sapl.io/docs/latest/sapl-reference.html#code-coverage-reports-via-the-sapl-maven-plugin).
 
-## Top-level packages
+## Getting Started
 
-The at the top-level defined classes ending on *Mojo.java are the entry point of the plugin called by the Maven lifecycle. For further information see [here](https://maven.apache.org/guides/plugin/guide-java-plugin-development.html).
+To integrate the SAPL Maven Plugin in your SAPL Maven project, add the following configuration to your `pom.xml`:
 
-The `ReportCoverageInformationMojo.java` is typically executed by the Maven `verify` goal and collects the coverage hit information, parses the available coverage targets, calculates the coverage ratio for the coverage criteria, and generates the reports.
+````
+<plugin>
+	<groupId>io.sapl</groupId>
+	<artifactId>sapl-maven-plugin</artifactId>
+	<configuration>
+		<policyHitRatio>100</policyHitRatio>
+		<policyConditionHitRatio>50</policyConditionHitRatio>
+	</configuration>
+	<executions>
+		<execution>
+			<id>coverage</id>
+			<goals>
+				<goal>enable-coverage-collection</goal>
+				<goal>report-coverage-information</goal>
+			</goals>
+		</execution>	
+	</executions>
+</plugin>
+````
 
-**helper**:
-Contains Helper Utility classes to 
-- read coverage hit information via the [sapl-coverage-api](https://github.com/heutelbeck/sapl-policy-engine/tree/master/sapl-coverage-api)
-- parse the available SAPL policies and generate the available coverage targets
-- calculate the coverage ratios
+The SAPL Maven Plugin can be invoked by calling the `verify` phase of the Maven build lifecyle.
 
-**model**:
-Contains POJO models used in the SAPL Maven Plugin.
+````
+mvn verify
+````
 
-**report**:
-Contains all code necessary to generate the various reports. 
-In this package, the `GenericCoverageReporter.java` generates a generic coverage report format. A subpackage is defined for every supported report format, which produces the specific report from the generic coverage report format.
+For further configuration options of the SAPL Maven Plugin, consult the [SAPL documentation](https://sapl.io/docs/latest/sapl-reference.html#code-coverage-reports-via-the-sapl-maven-plugin).
