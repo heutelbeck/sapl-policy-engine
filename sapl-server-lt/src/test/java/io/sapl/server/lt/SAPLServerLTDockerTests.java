@@ -28,9 +28,9 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles(profiles = { "docker", "quiet" })
 class SAPLServerLTDockerTests {
 
-	@Test
-	void contextLoads(ApplicationContext context) {
-		assertThat(context).isNotNull();
-	}
+    @Test
+    void contextLoads(ApplicationContext context) {
+        assertThat(context).isNotNull();
+    }
 
 }
