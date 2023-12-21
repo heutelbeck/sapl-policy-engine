@@ -32,15 +32,15 @@ import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
 @Configuration
 public class SaplExtensionsConfig {
 
-    @Bean
-    StaticPolicyInformationPointSupplier mqttPolicyInformationPoint() {
-        return () -> List.of(MqttPolicyInformationPoint.class);
-    }
+	@Bean
+	StaticPolicyInformationPointSupplier mqttPolicyInformationPoint() {
+		return () -> List.of(MqttPolicyInformationPoint.class);
+	}
 
-    @Bean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    StaticFunctionLibrarySupplier additionalStaticLibraries() {
-        return () -> List.of(MqttFunctionLibrary.class);
-    }
+	@Bean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+	StaticFunctionLibrarySupplier additionalStaticLibraries() {
+		return () -> List.of(MqttFunctionLibrary.class);
+	}
 
 }

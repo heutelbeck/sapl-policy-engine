@@ -6,7 +6,6 @@ io.sapl:
     allowApiKeyAuth: False
     allowOauth2Auth: False
   pdp.embedded:
-    pdp-config-type: FILESYSTEM
     config-path: /pdp/data
     policies-path: /pdp/data
 # disable spring security. authentication and authorization delegated to k8s ingress

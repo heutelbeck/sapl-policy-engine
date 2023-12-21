@@ -1,0 +1,186 @@
+#
+# This configuration file is loaded by the SAPL Server LT, if run from source using 
+# the 'mvn spring-boot:run' command in your terminal from the sapl-server-lt folder.
+# In this situation, the server looks for configuration in the sub folder 'config'
+# relative to the folder from where it has been startet.
+#
+# This is a demo configuration. As it contains some specific credentials, it must 
+# not be reused in a production environment.
+# 
+# This configuration sets up the server to vocal logging, so that for learning SAPL, 
+# it is easy to follow what the PDP Server does.
+#
+
+#
+# The SAPL Server LT does not have a dedicated administration interface. 
+# Administration of the service is done by editing configuration files.
+#
+
+#
+# Client Authentication
+# 
+
+#
+# The server supports four different modes for authentication for clients 
+# attempting to perform authorizations via the server:
+#
+# - No authentication: In this case the server does not ask for any 
+#                      authentication to be present before answering 
+#                      requests or subscriptions.
+#   
+#   This mode has primary use-cases:
+#    * testing and development
+#    * deployments where authentication of APIs is delegated to API 
+#      gateways, k8s ingress services or simmilar situations.
+#
+#   WARNING: Do not use this option in production if access is not 
+#            mitigated by such services. In any case this option will
+#            open up the server for malicious probing and exfiltration 
+#            attepts via the authorization endpoints, potentially 
+#            (depending on your policies) leading to unaothorized 
+#            access to your organizations data.
+#  
+# This option is controlled by the property io.sapl.server-lt.allowNoAuth
+# which can be set to True or False.
+#
+io.sapl:
+  server-lt:
+    # true|false If true, allow access to the PDP API without authentication.
+    allowNoAuth: false 
+
+# - Basic Autentication (RFC 7617): This mode allows the registration of a 
+#                                   single client application.
+#
+# Use case: The developers of the clients prefer this authentication method. 
+#           For example most HTTP client libraries support basic authentication 
+#           out of the box
+#
+# This option is controlled by the property io.sapl.server-lt.allowBasicAuth
+# which can be set to true or false.
+#  
+    # true|false If true, allow access to the PDP API whenever a client authenticates using 
+    # Basic Authentication with the credentials configured in the following properties.
+    allowBasicAuth: true 
+    # the io.sapl.server-lt.key property is the 'username' to be used in Basic Authentication
+    key: YJidgyT2mfdkbmL
+    # the io.sapl.server-lt.secret property is the 'password' to be used in Basic Authentication
+    # SAPL Server expects the secret to be encoded with BCrypt
+    secret: $2a$10$PhobF71xYb0MK8KubWLB7e0Dpl2AfMiEUi9dkKTbFR4kkWABrbiyO # raw: Fa4zvYQdiwHZVXh
+    # For the above example configuration the following HTTP Header would be a valid authentication:
+    #
+    # Authorization: Basic WUppZGd5VDJtZmRrYm1MOkZhNHp2WVFkaXdIWlZYaA==
+    #
+
+# - Authentication with API keys: Recommended authentication mode. 
+#
+# Use Case: Managing multiple clients with high trafic and low latency requirements.
+#
+# Clients will gat an API key assigned and authenticate by providing the following HTTP header:
+#
+# API_KEY: <API KEY>
+#
+# Example:
+#
+# API_KEY: phsNZdvQAFX9P2jgGzq9TrzUecQhsnHc
+#
+# List of permitted API Keys that can be used for authentication when the option allowApiKeyAuth is set to ture.
+    # true|false If true, allow access to the PDP API whenever a client authenticates using 
+    # am API_KEY header.
+    allowApiKeyAuth: False
+    # list of API keys
+    allowedApiKeys:
+      - phsNZdvQAFX9P2jgGzq9TrzUecQhsnHh
+      - uQKyuL3LkBY84hJXLFPgF6cATCsTYGgy
+
+# - Authentication with OAuth2 and JWT 
+#
+# Use Case: Your organization uses an OAuth2 authorization server for managing API access already.
+    # true|false If true, allow access to the PDP API whenever a client authenticates using 
+    # am API_KEY header.
+    allowOauth2Auth: false
+# Setup Spring OAuth2 Resource Server.
+# Also refer to: https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html 
+spring.security.oauth2:
+      resourceserver:
+         jwt.issuer-uri: http://auth-server:9000
+
+#
+# Setup paths for PDP configuration and SAPL documents. I.e. policies and policy sets.
+#
+io.sapl.pdp.embedded:
+      config-path: ~/sapl    # The server expects a pdp.json file in this folder
+      policies-path: ~/sapl  # The server will monitor this folder for *.sapl files
+
+#
+# The following options enable or disable different levels of logging for decisions.
+#
+# print-trace: true|false This is the most fine-grained explanation of a decision made
+#                         by the PDP each individual calculation step is documented.
+#                         The trace is in JSON format and may become very large.
+#                         Recommended only as a last resort for troubleshooting.
+      print-trace: true
+# print-json-report: true|false This is a JSON report summarizing the applied algorithms
+#                               and results of each evaluated policy (set) in the
+#                               decision-making process. It includes lists of all errors and values
+#                               of policy information point attributes encountered
+#                               during the evaluation of each policy (set).
+      print-json-report: true
+# print-text-report: true|false This will log a human-readable textual report based on the
+#                               same data as the 'print-json-report' option generates.
+      print-text-report: true
+# pretty-print-reports: true|false This option can enable formatting of JSON data while
+#                                  printing JSON during reporting and tracing.
+      pretty-print-reports: false
+
+#
+# Side loading of SAPL extensions
+#
+# It is possible to add libraries and PIPs to the SAPL Server LT
+#
+# SAPL Server LT uses the Spring Boot Properties Launcher.
+#
+# Please refer to: 
+# https://docs.spring.io/spring-boot/docs/current/reference/html/executable-jar.html#appendix.executable-jar.launching
+#
+# A comma-separated list of directories can be set in loader.path. 
+# Here the server will pick up additional JARs and if the contained beans are in a sub package of 
+# 'io.sapl.server', or if the JARs are instrumented with the matching Spring auto configuration,
+# the libraries amd PIPs will be loaded at startup.
+#   
+# loader.path: /pdp/data/lib
+#
+
+# 
+# General server settings
+#
+# SAPL Server LT uses the Spring Boot mechanisms to set up the server name, address, TLS etc.
+# 
+# Please refer to: 
+# https://docs.spring.io/spring-boot/docs/current/reference/html/howto.html#howto.properties-and-configuration
+# https://spring.io/blog/2023/06/07/securing-spring-boot-applications-with-ssl/
+#
+# The demo configuration below uses a simple self-signed certificate for TLS on localhost.
+#
+server:
+   port: 8443
+   address: localhost
+   ssl:
+      enabled: true
+      key-store-type: PKCS12
+      key-store: file:config/keystore.p12
+      key-store-password: changeme
+      key-password: changeme
+      key-alias: netty
+
+# Rsocket configuration
+spring.rsocket.server:
+   address: localhost
+   port: 7000
+   transport: tcp
+   ssl:
+      enabled: true
+      key-store-type: PKCS12
+      key-store: file:config/keystore.p12
+      key-store-password: changeme
+      key-password: changeme
+      key-alias: netty
