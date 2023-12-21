@@ -7,3 +7,6 @@ management:
 io.sapl.pdp.embedded:
   pdp-config-type: FILESYSTEM
 loader.path: /pdp/data/lib
+logging.level:
+  io.sapl: INFO   
+  org.springframework: INFO
