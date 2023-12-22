@@ -73,6 +73,11 @@ io.sapl:
 #           For example most HTTP client libraries support basic authentication 
 #           out of the box
 #
+# Advantage:    The secret is not stored as plain text.
+#
+# Disadvantage: Authentication per request/subscription is costly and introduces 
+#               significant latency.  
+#
 # This option is controlled by the property io.sapl.server-lt.allowBasicAuth
 # which can be set to true or false.
 #  
@@ -101,7 +106,10 @@ io.sapl:
 #
 # API_KEY: phsNZdvQAFX9P2jgGzq9TrzUecQhsnHc
 #
-# List of permitted API Keys that can be used for authentication when the option allowApiKeyAuth is set to ture.
+# Advantage:    Low latency, no cryptography per request necessary.
+#
+# Disadvantage: Credentials are stored in plain text on the server.  
+#
     # true|false If true, allow access to the PDP API whenever a client authenticates using 
     # am API_KEY header.
     allowApiKeyAuth: false
@@ -113,6 +121,12 @@ io.sapl:
 # - Authentication with OAuth2 and JWT 
 #
 # Use Case: Your organization uses an OAuth2 authorization server for managing API access already.
+#
+# Advantage:    Low latency, light cryptography per request necessary.
+#
+# Disadvantage: Need for additional infrastructure, i.e., that OAuth2 authorization server. 
+#               More complex authentication process for client application.  
+#
     # true|false If true, allow access to the PDP API whenever a client authenticates using 
     # am API_KEY header.
     allowOauth2Auth: false
@@ -179,11 +193,12 @@ io.sapl.pdp.embedded:
 #
 # The demo configuration below uses a simple self-signed certificate for TLS on localhost.
 #
+# SSL is activated by default and the server will fail to start up when no certificate information is provided, 
+# or TLS is explicitly deactivated.
+#
 server:
-   port: 8443
    address: localhost
    ssl:
-      enabled: true
       key-store-type: PKCS12
       key-store: file:config/keystore.p12
       key-store-password: changeme
@@ -193,10 +208,7 @@ server:
 # Rsocket configuration
 spring.rsocket.server:
    address: localhost
-   port: 7000
-   transport: tcp
    ssl:
-      enabled: true
       key-store-type: PKCS12
       key-store: file:config/keystore.p12
       key-store-password: changeme

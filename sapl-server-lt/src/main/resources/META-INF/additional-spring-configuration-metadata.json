@@ -23,5 +23,55 @@
     "name": "io.sapl.pdp.embedded.config-path",
     "type": "java.lang.String",
     "description": "Path to folder containing pdp.json."
+  },
+  {
+    "name": "loader.path",
+    "type": "java.lang.String",
+    "description": "Comma separated list of paths to load additional JARs from."
+  },
+  {
+    "name": "io.sapl.pdp.embedded.print-text-report",
+    "type": "java.lang.Boolean",
+    "description": "This flag turns on a textual report in the logs for each decision made."
+  },
+  {
+    "name": "io.sapl.server-lt.allowOauth2Auth",
+    "type": "java.lang.Boolean",
+    "description": "Turns on OAuth2 authentication."
+  },
+  {
+    "name": "io.sapl.pdp.embedded.print-trace",
+    "type": "java.lang.Boolean",
+    "description": "This flag turns on a detailed JSON trace in the logs for each decision made."
+  },
+  {
+    "name": "io.sapl.pdp.embedded.pretty-print-reports",
+    "type": "java.lang.Boolean",
+    "description": "This flag turns on pretty printing of JSON object in report and trace logging."
+  },
+  {
+    "name": "io.sapl.pdp.embedded.print-json-report",
+    "type": "java.lang.Boolean",
+    "description": "This flag turns on a JSON report in the logs for each decision made."
+  },
+  {
+    "name": "io.sapl.server-lt.allowedApiKeys",
+    "type": "java.util.List",
+    "description": "A comma separated list of API keys for authorized clients."
+  },
+  {
+    "name": "io.sapl.server-lt.allowApiKeyAuth",
+    "type": "java.lang.Boolean",
+    "description": "Activates API key authentication."
+  },
+  {
+    "name": "io.sapl.server-lt.allowBasicAuth",
+    "type": "java.lang.Boolean",
+    "description": "Activates Basic authentication."
+  },
+  {
+    "name": "io.sapl.server-lt.allowNoAuth",
+    "type": "java.lang.Boolean",
+    "description": "If set to true, access to all API end points is permitted without authentication."
   }
 ]}

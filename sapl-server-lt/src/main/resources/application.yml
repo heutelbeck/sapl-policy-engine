@@ -1,8 +1,17 @@
 spring:
   application.name: sapl-server-lt
+
 spring.rsocket.server:
    port: 7000
    transport: tcp
+   ssl:
+      enabled: true
+   
+server:
+   port: 8443
+   ssl:
+      enabled: true
+
 management:
   endpoint:
     health:
@@ -11,5 +20,5 @@ io.sapl.pdp.embedded:
   pdp-config-type: FILESYSTEM
 loader.path: /pdp/data/lib
 logging.level:
-  io.sapl: INFO   
-  org.springframework: INFO
+  "[io.sapl]": INFO   
+  "[org.springframework]": INFO
