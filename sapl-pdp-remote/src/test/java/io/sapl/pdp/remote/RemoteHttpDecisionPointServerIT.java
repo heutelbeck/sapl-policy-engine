@@ -123,9 +123,9 @@ class RemoteHttpDecisionPointServerIT {
 
     @Test
     void whenRequestingDecisionFromHttpsPdp_withBasicAuth_thenDecisionIsProvided() throws SSLException {
-        var key           = "YJidgyT2mfdkbmL";
-        var secret        = "Fa4zvYQdiwHZVXh";
-        var encodedSecret = "$2a$10$PhobF71xYb0MK8KubWLB7e0Dpl2AfMiEUi9dkKTbFR4kkWABrbiyO";
+        var key           = "mpI3KjU7n1";
+        var secret        = "haTPcbYA8Dwkl91$)gG42S)UG98eF!*m";
+        var encodedSecret = "$argon2id$v=19$m=16384,t=2,p=1$lZK1zPNtAe3+JnT37cGDMg$PSLftgfXXjXDOTY87cCg63F+O+sd/5aeW4m1MFZgSoM";
         try (var baseContainer = new GenericContainer<>(DockerImageName.parse(SAPL_SERVER_LT));
                 var container = saplServerWithTls(baseContainer).withEnv("io_sapl_server-lt_allowNoAuth", "true")
                         .withEnv("io_sapl_server-lt_allowBasicAuth", "true").withEnv("io_sapl_server-lt_key", key)

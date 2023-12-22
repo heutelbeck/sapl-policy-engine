@@ -85,13 +85,22 @@ io.sapl:
     # Basic Authentication with the credentials configured in the following properties.
     allowBasicAuth: true 
     # the io.sapl.server-lt.key property is the 'username' to be used in Basic Authentication
-    key: YJidgyT2mfdkbmL
+    key: xwuUaRD65G
     # the io.sapl.server-lt.secret property is the 'password' to be used in Basic Authentication
-    # SAPL Server expects the secret to be encoded with BCrypt
-    secret: $2a$10$PhobF71xYb0MK8KubWLB7e0Dpl2AfMiEUi9dkKTbFR4kkWABrbiyO # raw: Fa4zvYQdiwHZVXh
+    # SAPL Server expects the secret to be encoded with Argon2
+    # secret plaintext: 3j_PK71bjy!hN3*xq.xZqveU)t5hKLR_
+    secret: $argon2id$v=19$m=16384,t=2,p=1$sNTVjma/BQZb5dzyIVCS3Q$c1Cy8OfyiEar4iv3Soxycc2jaOTJy6vV7gcMm+/jSRY
     # For the above example configuration the following HTTP Header would be a valid authentication:
     #
-    # Authorization: Basic WUppZGd5VDJtZmRrYm1MOkZhNHp2WVFkaXdIWlZYaA==
+    # Authorization: Basic eHd1VWFSRDY1Rzozal9QSzcxYmp5IWhOMyp4cS54WnF2ZVUpdDVoS0xSXw==
+    #
+    # There are various command line tools to hash a password with Argon2. 
+    # The server also comes with an utility to create credentials for Basic Authentication
+    #
+    # Run: java -jar sapl-server-lt-3.0.0-SNAPSHOT.jar -basicCredentials
+    #
+    # This will generate a resonably secure key and secret, encode the secret using Argon2 and print it to the console.
+    # Doing so will not start up an instance of the server.
     #
 
 # - Authentication with API keys: Recommended authentication mode. 

@@ -125,9 +125,9 @@ class RemoteRsocketDecisionPointServerIT {
 
     @Test
     void whenRequestingDecisionFromRsocketPdp_withBasicAuth_thenDecisionIsProvided() {
-        var key           = "YJidgyT2mfdkbmL";
-        var secret        = "Fa4zvYQdiwHZVXh";
-        var encodedSecret = "$2a$10$PhobF71xYb0MK8KubWLB7e0Dpl2AfMiEUi9dkKTbFR4kkWABrbiyO";
+        var key           = "mpI3KjU7n1";
+        var secret        = "haTPcbYA8Dwkl91$)gG42S)UG98eF!*m";
+        var encodedSecret = "$argon2id$v=19$m=16384,t=2,p=1$lZK1zPNtAe3+JnT37cGDMg$PSLftgfXXjXDOTY87cCg63F+O+sd/5aeW4m1MFZgSoM";
         try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
                 var container = saplServerWithRSocketNoTls(baseContainer)
                         .withEnv("io_sapl_server-lt_allowNoAuth", "true")

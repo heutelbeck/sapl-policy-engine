@@ -34,18 +34,18 @@
 
 	<name>SAPL Server LT</name>
 
-    <dependencyManagement>
-        <dependencies>
-           	<dependency>
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
 				<groupId>io.sapl</groupId>
 				<artifactId>sapl-bom</artifactId>
-                <version>${project.version}</version>
+				<version>${project.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
-        </dependencies>
-    </dependencyManagement>
-    
+		</dependencies>
+	</dependencyManagement>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -77,12 +77,12 @@
 		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
-    	    <artifactId>sapl-mqtt-pip</artifactId>
-		</dependency>				
+			<artifactId>sapl-mqtt-pip</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-mqtt-functions</artifactId>
-		</dependency>						
+		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
@@ -91,6 +91,17 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.passay</groupId>
+			<artifactId>passay</artifactId>
+			<version>1.6.4</version>
+		</dependency>
+		<dependency>
+			<!-- required for Argon2 -->
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcpkix-jdk15on</artifactId>
+			<version>1.70</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -137,7 +148,8 @@
 				</executions>
 				<configuration>
 					<image>
-						<name>${docker-registry-url}/${project.artifactId}:${project.version}</name>
+						<name>
+							${docker-registry-url}/${project.artifactId}:${project.version}</name>
 					</image>
 					<layout>ZIP</layout>
 					<excludes>
@@ -157,7 +169,8 @@
 				<artifactId>maven-jar-plugin</artifactId>
 				<configuration>
 					<archive>
-						<!-- write version to manifest to show up in banner when running JAR -->
+						<!-- write version to manifest to show up in banner when
+						running JAR -->
 						<manifestEntries>
 							<Implementation-Version>${project.version}</Implementation-Version>
 						</manifestEntries>
@@ -171,15 +184,15 @@
 			<id>docker</id>
 			<build>
 				<plugins>
-		            <plugin>
-        		        <groupId>org.springframework.boot</groupId>
-                		<artifactId>spring-boot-maven-plugin</artifactId>
-		                <configuration>
-        		            <image>
-                		        <publish>true</publish>
-                    		</image>
-                		</configuration>
-            		</plugin>
+					<plugin>
+						<groupId>org.springframework.boot</groupId>
+						<artifactId>spring-boot-maven-plugin</artifactId>
+						<configuration>
+							<image>
+								<publish>true</publish>
+							</image>
+						</configuration>
+					</plugin>
 					<plugin>
 						<groupId>com.spotify</groupId>
 						<artifactId>dockerfile-maven-plugin</artifactId>
@@ -193,7 +206,8 @@
 							</execution>
 						</executions>
 						<configuration>
-							<repository>${docker-registry-url}/${project.artifactId}</repository>
+							<repository>
+								${docker-registry-url}/${project.artifactId}</repository>
 							<tag>${project.version}</tag>
 							<useMavenSettingsForAuth>true</useMavenSettingsForAuth>
 							<buildArgs>
