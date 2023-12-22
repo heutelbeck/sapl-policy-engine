@@ -50,10 +50,10 @@ public class PDPConfigurationProviderAutoConfiguration {
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     PDPConfigurationProvider pdpConfigurationProvider() {
-        log.info(
+        log.debug(
                 "Deploying PDP configuration provider with AttributeContext: {} FunctionContext: {} VariablesAndCombinatorSource: {} #SubscriptionIntercptors: {} #DecisionInterceptors: {}",
-                attributeCtx, functionCtx, combinatorProvider, subscriptionInterceptors.size(),
-                decisionInterceptors.size());
+                attributeCtx.getClass().getSimpleName(), functionCtx.getClass().getSimpleName(), combinatorProvider,
+                subscriptionInterceptors.size(), decisionInterceptors.size());
         return new FixedFunctionsAndAttributesPDPConfigurationProvider(attributeCtx, functionCtx, combinatorProvider,
                 subscriptionInterceptors, decisionInterceptors);
     }

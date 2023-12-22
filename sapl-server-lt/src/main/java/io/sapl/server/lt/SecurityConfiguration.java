@@ -20,6 +20,7 @@ package io.sapl.server.lt;
 import static org.springframework.security.config.Customizer.withDefaults;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.rsocket.RSocketStrategies;
@@ -38,7 +39,6 @@ import org.springframework.security.config.web.server.ServerHttpSecurity.CsrfSpe
 import org.springframework.security.config.web.server.ServerHttpSecurity.FormLoginSpec;
 import org.springframework.security.core.userdetails.MapReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.messaging.handler.invocation.reactive.AuthenticationPrincipalArgumentResolver;
@@ -67,15 +67,20 @@ public class SecurityConfiguration {
 
     private final SAPLServerLTProperties pdpProperties;
 
-    @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
+    @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri:}")
     private String jwtIssuerURI;
 
     @Bean
     SecurityWebFilterChain securityFilterChainLocal(ServerHttpSecurity http) {
         http = http.csrf(CsrfSpec::disable);
 
+        if (noAuthenticationMechanismIsDefined()) {
+            throw new IllegalStateException(
+                    "No authentication mechanism for clients defined. Set up your local/container configuration. If the server should respond to unauthenticated resuests, this has to be explicitly activated.");
+        }
+
         if (pdpProperties.isAllowNoAuth()) {
-            log.info("configuring NoAuth authentication");
+            log.warn("Server has been configured to reply to requests without authentication.");
             http = http.authorizeExchange(exchange -> exchange.pathMatchers("/**").permitAll());
         } else {
             // any other request requires the user to be authenticated
@@ -83,7 +88,11 @@ public class SecurityConfiguration {
         }
 
         if (pdpProperties.isAllowApiKeyAuth()) {
-            log.info("configuring ApiKey authentication");
+            log.info("API key authentication activated.");
+            if (pdpProperties.getAllowedApiKeys().isEmpty()) {
+                log.warn(
+                        "No API keys for clients defined. Please set: 'io.sapl.server-lt.key.allowedApiKeys'. With a list of valid keys.");
+            }
             var customAuthenticationWebFilter = new AuthenticationWebFilter(new ApiKeyReactiveAuthenticationManager());
             customAuthenticationWebFilter
                     .setServerAuthenticationConverter(new ApiKeyAuthenticationConverter(pdpProperties));
@@ -91,22 +100,43 @@ public class SecurityConfiguration {
         }
 
         if (pdpProperties.isAllowBasicAuth()) {
-            log.info("configuring BasicAuth authentication");
+            log.info("Basic authentication activated.");
             http = http.httpBasic(withDefaults());
         }
 
         if (pdpProperties.isAllowOauth2Auth()) {
-            log.info("configuring Oauth2 authentication");
+            log.info("OAuth2 authentication activated. Accepting JWT tokens from issuer: {}", jwtIssuerURI);
+            if (jwtIssuerURI == null) {
+                throw new IllegalStateException(
+                        "If JWT authentication is active, a token issuer must be supplied. Please set: 'spring.security.oauth2.resourceserver.jwt.issuer-uri'.");
+            }
             http = http.oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
         }
 
         return http.formLogin(FormLoginSpec::disable).build();
     }
 
+    private boolean noAuthenticationMechanismIsDefined() {
+        return !pdpProperties.isAllowNoAuth() && !pdpProperties.isAllowBasicAuth() && !pdpProperties.isAllowApiKeyAuth()
+                && !pdpProperties.isAllowOauth2Auth();
+    }
+
     @Bean
     MapReactiveUserDetailsService userDetailsServiceLocal() {
-        UserDetails client = User.builder().username(pdpProperties.getKey()).password(pdpProperties.getSecret())
-                .roles("PDP_CLIENT").build();
+        if (!pdpProperties.isAllowBasicAuth()) {
+            return null;
+        }
+        var key = pdpProperties.getKey();
+        if (key == null) {
+            throw new IllegalStateException(
+                    "If Basic authentication is active, a client key must be supplied. Please set: 'io.sapl.server-lt.key'.");
+        }
+        var secret = pdpProperties.getSecret();
+        if (secret == null) {
+            throw new IllegalStateException(
+                    "If Basic authentication is active, a client secret must be supplied. Please set: 'io.sapl.server-lt.secret'. As a BCrypt encoded secret.");
+        }
+        var client = User.builder().username(key).password(secret).roles("PDP_CLIENT").build();
         return new MapReactiveUserDetailsService(client);
     }
 
@@ -134,6 +164,7 @@ public class SecurityConfiguration {
      * initialized by the OpenID Provider specified in the jwtIssuerURI.
      */
     @Bean
+    @ConditionalOnProperty(prefix = "io.sapl.server-lt", name = "allowOauth2Auth", havingValue = "true")
     ReactiveJwtDecoder jwtDecoder() {
         if (pdpProperties.isAllowOauth2Auth()) {
             return ReactiveJwtDecoders.fromIssuerLocation(jwtIssuerURI);
@@ -169,25 +200,18 @@ public class SecurityConfiguration {
             jwtManager = new JwtReactiveAuthenticationManager(ReactiveJwtDecoders.fromIssuerLocation(jwtIssuerURI));
         }
 
-        UserDetailsRepositoryReactiveAuthenticationManager finalSimpleManager = simpleManager;
-        JwtReactiveAuthenticationManager                   finalJwtManager    = jwtManager;
-        AuthenticationPayloadInterceptor                   auth               = new AuthenticationPayloadInterceptor(
-                a -> {
-                                                                                          if (finalSimpleManager != null
-                                                                                                  && a instanceof UsernamePasswordAuthenticationToken) {
-                                                                                              return finalSimpleManager
-                                                                                                      .authenticate(a);
-                                                                                          } else if (finalJwtManager != null
-                                                                                                  && a instanceof BearerTokenAuthenticationToken) {
-                                                                                              return finalJwtManager
-                                                                                                      .authenticate(a);
-                                                                                          } else {
-                                                                                              throw new IllegalArgumentException(
-                                                                                                      "Unsupported Authentication Type "
-                                                                                                              + a.getClass()
-                                                                                                                      .getSimpleName());
-                                                                                          }
-                                                                                      });
+        var finalSimpleManager = simpleManager;
+        var finalJwtManager    = jwtManager;
+        var auth               = new AuthenticationPayloadInterceptor(a -> {
+                                   if (finalSimpleManager != null && a instanceof UsernamePasswordAuthenticationToken) {
+                                       return finalSimpleManager.authenticate(a);
+                                   } else if (finalJwtManager != null && a instanceof BearerTokenAuthenticationToken) {
+                                       return finalJwtManager.authenticate(a);
+                                   } else {
+                                       throw new IllegalArgumentException(
+                                               "Unsupported Authentication Type " + a.getClass().getSimpleName());
+                                   }
+                               });
         auth.setAuthenticationConverter(new AuthenticationPayloadExchangeConverter());
         auth.setOrder(PayloadInterceptorOrder.AUTHENTICATION.getOrder());
         security.addPayloadInterceptor(auth);

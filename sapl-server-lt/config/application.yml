@@ -104,7 +104,7 @@ io.sapl:
 # List of permitted API Keys that can be used for authentication when the option allowApiKeyAuth is set to ture.
     # true|false If true, allow access to the PDP API whenever a client authenticates using 
     # am API_KEY header.
-    allowApiKeyAuth: False
+    allowApiKeyAuth: false
     # list of API keys
     allowedApiKeys:
       - phsNZdvQAFX9P2jgGzq9TrzUecQhsnHh

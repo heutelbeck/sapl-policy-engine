@@ -1,5 +1,8 @@
 spring:
   application.name: sapl-server-lt
+spring.rsocket.server:
+   port: 7000
+   transport: tcp
 management:
   endpoint:
     health:

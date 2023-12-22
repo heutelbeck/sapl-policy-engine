@@ -25,7 +25,7 @@ import org.testcontainers.utility.DockerImageName;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-public class PullPolicyUtil {
+public class PullPolicy {
     public ImagePullPolicy neverPull() {
         return new AbstractImagePullPolicy() {
             @Override
