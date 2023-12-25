@@ -60,6 +60,10 @@ public class ValueDefinitionProposalExtractionHelper {
 
     public ContentAssistContext getContextWithFullPrefix(int offset) {
 
+        var lastCompleteNodeText = context.getLastCompleteNode().getText();
+        if (";".equals(lastCompleteNodeText))
+            return context;
+
         var                  modifiedContext  = context.copy().toContext();
         ContentAssistContext tentativeContext = null;
         var                  model            = context.getCurrentModel();
@@ -93,19 +97,17 @@ public class ValueDefinitionProposalExtractionHelper {
                 modifiedContext = getModifiedContext(basicIdentifier.getIdentifier(),
                         combineKeystepsFromBasicIdentifier(basicIdentifier));
             }
-        } else if (statement instanceof ValueDefinition valueDefinition
-                && valueDefinition.getEval() instanceof BasicIdentifier basicIdentifier) {
-            modifiedContext = getModifiedContext(basicIdentifier.getIdentifier(),
-                    combineKeystepsFromBasicIdentifier(basicIdentifier));
-        } else if (statement instanceof ValueDefinition valueDefinition
-                && valueDefinition.getEval() instanceof BasicFunction basicFunction) {
-            modifiedContext = getModifiedContext(valueDefinition.getName(),
-                    combineFstepsFromBasicFunction(basicFunction));
-        } else if (statement instanceof ValueDefinition valueDefinition
-                && valueDefinition.getEval() instanceof BasicValue) {
-            modifiedContext = getModifiedContext(valueDefinition.getName(), List.of());
         } else {
-            return null;
+            ValueDefinition valueDefinition = (ValueDefinition) statement;
+            if (valueDefinition.getEval() instanceof BasicIdentifier basicIdentifier) {
+                modifiedContext = getModifiedContext(basicIdentifier.getIdentifier(),
+                        combineKeystepsFromBasicIdentifier(basicIdentifier));
+            } else if (valueDefinition.getEval() instanceof BasicFunction basicFunction) {
+                modifiedContext = getModifiedContext(valueDefinition.getName(),
+                        combineFstepsFromBasicFunction(basicFunction));
+            } else {
+                modifiedContext = getModifiedContext(valueDefinition.getName(), List.of());
+            }
         }
         return modifiedContext;
     }
@@ -298,17 +300,12 @@ public class ValueDefinitionProposalExtractionHelper {
         var schemaVarExpression = statement.getSchemaVarExpression();
 
         // try to move up to the policy body
-        model = getPolicyBodyModel(model);
+        var policyBody = (PolicyBody) getPolicyBodyModel(model);
 
-        // look up all defined variables in the policy
-        if (model instanceof PolicyBody policyBody) {
-            // iterate through defined statements which are either conditions or
-            // variables
-            for (var aStatement : policyBody.getStatements()) {
-                // add any encountered valuable to the list of proposals
-                if (currentOffset > valueDefinitionOffset && aStatement instanceof ValueDefinition valueDefinition) {
-                    allTemplates.addAll(getAllSchemaTemplates(valueDefinition));
-                }
+        for (var aStatement : policyBody.getStatements()) {
+            // add any encountered valuable to the list of proposals
+            if (currentOffset > valueDefinitionOffset && aStatement instanceof ValueDefinition valueDefinition) {
+                allTemplates.addAll(getAllSchemaTemplates(valueDefinition));
             }
         }
         proposalTemplates = getProposalTemplates(statement, schemaVarExpression);
@@ -390,13 +387,9 @@ public class ValueDefinitionProposalExtractionHelper {
     }
 
     private String getFunctionName(List<String> stepsString, String identifier) {
-        var name = "";
         if (!stepsString.isEmpty()) {
-            name = String.join(".", stepsString);
-            if (!identifier.isEmpty()) {
-                name = identifier.concat(".").concat(name);
-            }
-            return name;
+            var name = String.join(".", stepsString);
+            return identifier.concat(".").concat(name);
         }
         return identifier;
     }
@@ -417,9 +410,7 @@ public class ValueDefinitionProposalExtractionHelper {
                 }
                 var firstStep = idSteps.get(0);
                 if (firstStep != null) {
-                    var firstFinderElement = firstStep;
-                    if (!firstStep.startsWith("<"))
-                        firstFinderElement = "<".concat(firstStep);
+                    var firstFinderElement = "<".concat(firstStep);
                     idSteps.set(0, firstFinderElement);
                     stepsString.addAll(idSteps);
                 }

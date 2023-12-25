@@ -229,7 +229,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             IIdeContentProposalAcceptor acceptor) {
         var documentedAttributeCodeTemplates = attributeContext.getDocumentedAttributeCodeTemplates();
         for (var proposal : proposals) {
-            var documentationForAttributeCodeTemplate = documentedAttributeCodeTemplates.get(proposal);
+            var fullProposal                          = "<".concat(proposal);
+            var documentationForAttributeCodeTemplate = documentedAttributeCodeTemplates.get(fullProposal);
             if (documentationForAttributeCodeTemplate != null) {
                 var entry = getProposalCreator().createProposal(proposal, context);
                 if (entry != null) {
@@ -247,8 +248,9 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         for (var template : templates) {
             var documentation = documentedCodeTemplates.get(template);
             if (documentation != null) {
-                var fixedContext = getFixedContext(context);
-                var entry        = getProposalCreator().createProposal(template, fixedContext);
+                var contextWithCorrectedPrefix = getContextWithCorrectedPrefix(context);
+                var entry                      = getProposalCreator().createProposal(template,
+                        contextWithCorrectedPrefix);
                 if (entry != null) {
                     entry.setDocumentation(documentation);
                     entry.setDescription(template);
@@ -258,7 +260,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         }
     }
 
-    private ContentAssistContext getFixedContext(ContentAssistContext context) {
+    private ContentAssistContext getContextWithCorrectedPrefix(ContentAssistContext context) {
         var helper = new ValueDefinitionProposalExtractionHelper(variablesAndCombinatorSource, functionContext,
                 attributeContext, context);
         var offset = context.getOffset();
@@ -371,7 +373,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private void addSimpleProposals(final Collection<String> proposals, final ContentAssistContext context,
             final IIdeContentProposalAcceptor acceptor) {
-        var fixedContext = getFixedContext(context);
+        var fixedContext = getContextWithCorrectedPrefix(context);
         for (var proposal : proposals)
             addSimpleProposal(proposal, fixedContext, acceptor);
     }
