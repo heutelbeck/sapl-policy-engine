@@ -19,7 +19,6 @@ package io.sapl.pip;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
-import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
@@ -28,13 +27,13 @@ import reactor.core.publisher.Flux;
 @PolicyInformationPoint(name = SchemaTestPIP.NAME, description = SchemaTestPIP.DESCRIPTION)
 public class SchemaTestPIP {
 
-    final static String NAME = "TestPIP";
+    static final String NAME = "TestPIP";
 
-    final static String DESCRIPTION = "Description of SchemaTestPIP";
+    static final String DESCRIPTION = "Description of SchemaTestPIP";
 
-    final static String personSchema = "{\"name\": {\"type\": \"string\"}, \"age\": {\"type\": \"number\"}}";
+    static final String PERSON_SCHEMA = "{\"name\": {\"type\": \"string\"}, \"age\": {\"type\": \"number\"}}";
 
-    @Attribute(schema = personSchema, docs = "Documented Environment Attribute")
+    @Attribute(schema = PERSON_SCHEMA, docs = "Documented Environment Attribute")
     public Flux<Val> person(Val a1) {
         return Flux.empty();
     }
