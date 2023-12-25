@@ -22,13 +22,27 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.ComponentScan;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @SpringBootApplication
 @ComponentScan("io.sapl.server")
 @EnableConfigurationProperties(SAPLServerLTProperties.class)
 public class SAPLServerLTApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(SAPLServerLTApplication.class, args);
+        if (args.length == 0) {
+            SpringApplication.run(SAPLServerLTApplication.class, args);
+        } else {
+            if ("-basicCredentials".equals(args[0])) {
+                log.info("Generating new Argon2 encoded secret...");
+                log.info("Key             : {}", SecretGenerator.newKey());
+                var secret = SecretGenerator.newSecret();
+                log.info("Secret Plaintext: {}", secret);
+                var encodedSecret = SecretGenerator.encodeWithArgon2(secret);
+                log.info("Secret Encoded  : {}", encodedSecret);
+            }
+        }
     }
 
 }

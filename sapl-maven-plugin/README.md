@@ -2,7 +2,7 @@
 
 This module contains the source code of the SAPL Maven Plugin.
 
-For a detailed description of the usage and the available parameters for the SAPL Maven Plugin, consult the [SAPL Docs](https://sapl.io/docs/sapl-reference.html#code-coverage-reports-via-the-sapl-maven-plugin).
+For a detailed description of the usage and the available parameters for the SAPL Maven Plugin, consult the [SAPL Docs](https://sapl.io/docs/latest/sapl-reference.html#code-coverage-reports-via-the-sapl-maven-plugin).
 
 ## Top-level packages
 
@@ -17,7 +17,7 @@ Contains Helper Utility classes to
 - calculate the coverage ratios
 
 **model**:
-Contains POJO models used in the SAPL Maven Plugin
+Contains POJO models used in the SAPL Maven Plugin.
 
 **report**:
 Contains all code necessary to generate the various reports. 

@@ -46,9 +46,8 @@ import reactor.test.StepVerifier;
 @SpringBootTest
 @ActiveProfiles(profiles = "quiet")
 class RemoteHttpDecisionPointServerIT {
-    private static final int    SAPL_SERVER_HTTP_PORT  = 8080;
-    private static final int    SAPL_SERVER_HTTPS_PORT = 8443;
-    private static final String CONTAINER_IMAGE        = "ghcr.io/heutelbeck/sapl-server-lt:3.0.0-SNAPSHOT";
+    private static final int    SAPL_SERVER_PORT = 8443;
+    private static final String SAPL_SERVER_LT   = "ghcr.io/heutelbeck/sapl-server-lt:3.0.0-SNAPSHOT";
 
     AuthorizationSubscription permittedSubscription = AuthorizationSubscription.of("Willi", "eat", "apple");
 
@@ -68,17 +67,21 @@ class RemoteHttpDecisionPointServerIT {
     // HTTP Protocol
     @Test
     void whenRequestingDecisionFromHttpPdp_withNoAuth_thenDecisionIsProvided() {
-        try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
-                var container = baseContainer.withImagePullPolicy(PullPolicyUtil.neverPull())
-                        .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl",
-                                BindMode.READ_ONLY)
-                        .withExposedPorts(SAPL_SERVER_HTTP_PORT).waitingFor(Wait.forListeningPort())) {
+        try (var baseContainer = new GenericContainer<>(DockerImageName.parse(SAPL_SERVER_LT));
+        // @formatter:off
+                var container = baseContainer.withImagePullPolicy(PullPolicy.neverPull())
+                        .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl", BindMode.READ_ONLY)
+                        .withEnv("io_sapl_server-lt_allowNoAuth", "true")
+                        .withEnv("spring_rsocket_server_ssl_enabled", "false")
+                        .withEnv("server_ssl_enabled", "false")
+                        .withExposedPorts(SAPL_SERVER_PORT)
+                        .waitingFor(Wait.forListeningPort())) {
+        // @formatter:on
             container.start();
             log.info("connecting to: " + "http://" + container.getHost() + ":"
-                    + container.getMappedPort(SAPL_SERVER_HTTP_PORT));
+                    + container.getMappedPort(SAPL_SERVER_PORT));
             var pdp = RemotePolicyDecisionPoint.builder().http()
-                    .baseUrl("http://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_HTTP_PORT))
-                    .build();
+                    .baseUrl("http://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT)).build();
             requestDecision(pdp);
         }
     }
@@ -86,37 +89,51 @@ class RemoteHttpDecisionPointServerIT {
     // HTTPS Protocol
     @Test
     void whenRequestingDecisionFromHttpsPdp_withNoAuth_thenDecisionIsProvided() throws SSLException {
-        try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
-                var container = baseContainer.withImagePullPolicy(PullPolicyUtil.neverPull())
-                        .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl",
-                                BindMode.READ_ONLY)
-                        .withExposedPorts(SAPL_SERVER_HTTPS_PORT).waitingFor(Wait.forListeningPort())
-                        .withEnv("spring_profiles_active", "local")
-                        .withEnv("io_sapl_pdp_embedded_policies-path", "/pdp/data").withEnv("server_address", "0.0.0.0")
-                        .withEnv("server_ssl_enabled", "True").withEnv("io_sapl_server-lt_allowNoAuth", "True")) {
+        try (var baseContainer = new GenericContainer<>(DockerImageName.parse(SAPL_SERVER_LT));
+                var container = saplServerWithTls(baseContainer).withEnv("io_sapl_server-lt_allowNoAuth", "true")) {
             container.start();
             var pdp = RemotePolicyDecisionPoint.builder().http()
-                    .baseUrl("https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_HTTPS_PORT))
+                    .baseUrl("https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT))
                     .withUnsecureSSL().build();
             requestDecision(pdp);
             container.stop();
         }
     }
 
+    private GenericContainer<?> saplServerWithTls(GenericContainer<?> baseContainer) {
+        // @formatter:off
+        return baseContainer.withImagePullPolicy(PullPolicy.neverPull())
+                .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl", BindMode.READ_ONLY)
+                .withClasspathResourceMapping("keystore.p12", "/pdp/data/keystore.p12", BindMode.READ_ONLY)
+                .withExposedPorts(SAPL_SERVER_PORT).waitingFor(Wait.forListeningPort())
+                .withEnv("io_sapl_pdp_embedded_policies-path", "/pdp/data")
+                .withEnv("spring_rsocket_server_address", "0.0.0.0")
+                .withEnv("spring_rsocket_server_ssl_key-store-type", "PKCS12")
+                .withEnv("spring_rsocket_server_ssl_key-store", "/pdp/data/keystore.p12")
+                .withEnv("spring_rsocket_server_ssl_key-store-password", "changeme")
+                .withEnv("spring_rsocket_server_ssl_key-password", "changeme")
+                .withEnv("spring_rsocket_server_ssl_key-alias", "netty")
+                .withEnv("server_ssl_key-store-type", "PKCS12")
+                .withEnv("server_ssl_key-store", "/pdp/data/keystore.p12")
+                .withEnv("server_ssl_key-store-password", "changeme")
+                .withEnv("server_ssl_key-password", "changeme")
+                .withEnv("server_ssl_key-alias", "netty");
+        // @formatter:on
+    }
+
     @Test
     void whenRequestingDecisionFromHttpsPdp_withBasicAuth_thenDecisionIsProvided() throws SSLException {
-        try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
-                var container = baseContainer.withImagePullPolicy(PullPolicyUtil.neverPull())
-                        .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl",
-                                BindMode.READ_ONLY)
-                        .withExposedPorts(SAPL_SERVER_HTTPS_PORT).waitingFor(Wait.forListeningPort())
-                        .withEnv("spring_profiles_active", "local")
-                        .withEnv("io_sapl_pdp_embedded_policies-path", "/pdp/data").withEnv("server_address", "0.0.0.0")
-                        .withEnv("server_ssl_enabled", "True").withEnv("io_sapl_server-lt_allowNoAuth", "False")) {
+        var key           = "mpI3KjU7n1";
+        var secret        = "haTPcbYA8Dwkl91$)gG42S)UG98eF!*m";
+        var encodedSecret = "$argon2id$v=19$m=16384,t=2,p=1$lZK1zPNtAe3+JnT37cGDMg$PSLftgfXXjXDOTY87cCg63F+O+sd/5aeW4m1MFZgSoM";
+        try (var baseContainer = new GenericContainer<>(DockerImageName.parse(SAPL_SERVER_LT));
+                var container = saplServerWithTls(baseContainer).withEnv("io_sapl_server-lt_allowNoAuth", "true")
+                        .withEnv("io_sapl_server-lt_allowBasicAuth", "true").withEnv("io_sapl_server-lt_key", key)
+                        .withEnv("io_sapl_server-lt_secret", encodedSecret)) {
             container.start();
             var pdp = RemotePolicyDecisionPoint.builder().http()
-                    .baseUrl("https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_HTTPS_PORT))
-                    .basicAuth("YJidgyT2mfdkbmL", "Fa4zvYQdiwHZVXh").withUnsecureSSL().build();
+                    .baseUrl("https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT))
+                    .basicAuth(key, secret).withUnsecureSSL().build();
             requestDecision(pdp);
             container.stop();
         }
@@ -125,19 +142,12 @@ class RemoteHttpDecisionPointServerIT {
     @Test
     void whenRequestingDecisionFromHttpsPdp_withApiKeyAuth_thenDecisionIsProvided() throws SSLException {
         var SAPL_API_KEY = "abD12344cdefDuwg8721";
-        try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
-                var container = baseContainer.withImagePullPolicy(PullPolicyUtil.neverPull())
-                        .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl",
-                                BindMode.READ_ONLY)
-                        .withExposedPorts(SAPL_SERVER_HTTPS_PORT).waitingFor(Wait.forListeningPort())
-                        .withEnv("spring_profiles_active", "local")
-                        .withEnv("io_sapl_pdp_embedded_policies-path", "/pdp/data").withEnv("server_address", "0.0.0.0")
-                        .withEnv("server_ssl_enabled", "True").withEnv("io_sapl_server-lt_allowNoAuth", "False")
-                        .withEnv("io_sapl_server-lt_allowApiKeyAuth", "True")
+        try (var baseContainer = new GenericContainer<>(DockerImageName.parse(SAPL_SERVER_LT));
+                var container = saplServerWithTls(baseContainer).withEnv("io_sapl_server-lt_allowApiKeyAuth", "true")
                         .withEnv("io_sapl_server-lt_allowedApiKeys", SAPL_API_KEY)) {
             container.start();
             var pdp = RemotePolicyDecisionPoint.builder().http()
-                    .baseUrl("https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_HTTPS_PORT))
+                    .baseUrl("https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT))
                     .apiKey(SAPL_API_KEY).withUnsecureSSL().build();
             requestDecision(pdp);
             container.stop();
@@ -147,19 +157,12 @@ class RemoteHttpDecisionPointServerIT {
     @Test
     void whenRequestingDecisionFromHttpsPdp_withOauth2Auth_thenDecisionIsProvided() throws SSLException {
         try (var oauthBaseContainer = new GenericContainer<>(
-                DockerImageName.parse("ghcr.io/navikt/mock-oauth2-server:0.5.8"));
+                DockerImageName.parse("ghcr.io/navikt/mock-oauth2-server:2.1.0"));
                 var oauth2Container = oauthBaseContainer.withExposedPorts(8080).waitingFor(Wait.forListeningPort())) {
             oauth2Container.start();
 
-            try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
-                    var container = baseContainer.withImagePullPolicy(PullPolicyUtil.neverPull())
-                            .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl",
-                                    BindMode.READ_ONLY)
-                            .withExposedPorts(SAPL_SERVER_HTTPS_PORT).waitingFor(Wait.forListeningPort())
-                            .withEnv("spring_profiles_active", "local")
-                            .withEnv("io_sapl_pdp_embedded_policies-path", "/pdp/data")
-                            .withEnv("server_address", "0.0.0.0").withEnv("server_ssl_enabled", "True")
-                            .withEnv("io_sapl_server-lt_allowNoAuth", "False")
+            try (var baseContainer = new GenericContainer<>(DockerImageName.parse(SAPL_SERVER_LT));
+                    var container = saplServerWithTls(baseContainer)
                             .withEnv("io_sapl_server-lt_allowOauth2Auth", "True")
                             .withExtraHost("auth-host", "host-gateway")
                             .withEnv("spring_security_oauth2_resourceserver_jwt_issuer-uri",
@@ -184,8 +187,7 @@ class RemoteHttpDecisionPointServerIT {
                                                      }
                                                  };
                 var pdp                          = RemotePolicyDecisionPoint.builder().http()
-                        .baseUrl("https://" + container.getHost() + ":"
-                                + container.getMappedPort(SAPL_SERVER_HTTPS_PORT))
+                        .baseUrl("https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT))
                         .withUnsecureSSL().oauth2(clientRegistrationRepository, "saplPdp").build();
                 requestDecision(pdp);
                 oauth2Container.stop();

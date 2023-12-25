@@ -19,10 +19,10 @@ package io.sapl.server.lt;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
-import org.springframework.core.env.Environment;
 import org.springframework.messaging.rsocket.RSocketStrategies;
 import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHandler;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
@@ -39,8 +39,7 @@ import org.springframework.security.config.web.server.ServerHttpSecurity.CsrfSpe
 import org.springframework.security.config.web.server.ServerHttpSecurity.FormLoginSpec;
 import org.springframework.security.core.userdetails.MapReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.messaging.handler.invocation.reactive.AuthenticationPrincipalArgumentResolver;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
@@ -67,19 +66,21 @@ import lombok.extern.slf4j.Slf4j;
 public class SecurityConfiguration {
 
     private final SAPLServerLTProperties pdpProperties;
-    private final Environment            env;
 
-    String getJwtIssuerURI() {
-        return env.getProperty("spring.security.oauth2.resourceserver.jwt.issuer-uri");
-    }
+    @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri:}")
+    private String jwtIssuerURI;
 
     @Bean
-    @Profile("local")
     SecurityWebFilterChain securityFilterChainLocal(ServerHttpSecurity http) {
         http = http.csrf(CsrfSpec::disable);
 
+        if (noAuthenticationMechanismIsDefined()) {
+            throw new IllegalStateException(
+                    "No authentication mechanism for clients defined. Set up your local/container configuration. If the server should respond to unauthenticated resuests, this has to be explicitly activated.");
+        }
+
         if (pdpProperties.isAllowNoAuth()) {
-            log.info("configuring NoAuth authentication");
+            log.warn("Server has been configured to reply to requests without authentication.");
             http = http.authorizeExchange(exchange -> exchange.pathMatchers("/**").permitAll());
         } else {
             // any other request requires the user to be authenticated
@@ -87,7 +88,11 @@ public class SecurityConfiguration {
         }
 
         if (pdpProperties.isAllowApiKeyAuth()) {
-            log.info("configuring ApiKey authentication");
+            log.info("API key authentication activated.");
+            if (pdpProperties.getAllowedApiKeys().isEmpty()) {
+                log.warn(
+                        "No API keys for clients defined. Please set: 'io.sapl.server-lt.key.allowedApiKeys'. With a list of valid keys.");
+            }
             var customAuthenticationWebFilter = new AuthenticationWebFilter(new ApiKeyReactiveAuthenticationManager());
             customAuthenticationWebFilter
                     .setServerAuthenticationConverter(new ApiKeyAuthenticationConverter(pdpProperties));
@@ -95,39 +100,49 @@ public class SecurityConfiguration {
         }
 
         if (pdpProperties.isAllowBasicAuth()) {
-            log.info("configuring BasicAuth authentication");
+            log.info("Basic authentication activated.");
             http = http.httpBasic(withDefaults());
         }
 
         if (pdpProperties.isAllowOauth2Auth()) {
-            log.info("configuring Oauth2 authentication");
+            log.info("OAuth2 authentication activated. Accepting JWT tokens from issuer: {}", jwtIssuerURI);
+            if (jwtIssuerURI == null) {
+                throw new IllegalStateException(
+                        "If JWT authentication is active, a token issuer must be supplied. Please set: 'spring.security.oauth2.resourceserver.jwt.issuer-uri'.");
+            }
             http = http.oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
         }
 
         return http.formLogin(FormLoginSpec::disable).build();
     }
 
-    @Bean
-    @Profile("docker")
-    SecurityWebFilterChain securityFilterChainDocker(ServerHttpSecurity http) {
-        // @formatter:off
-		return http.csrf(CsrfSpec::disable)
-				   .authorizeExchange(exchange -> exchange.pathMatchers("/**").permitAll())
-				   .build();
-		// @formatter:on
+    private boolean noAuthenticationMechanismIsDefined() {
+        return !pdpProperties.isAllowNoAuth() && !pdpProperties.isAllowBasicAuth() && !pdpProperties.isAllowApiKeyAuth()
+                && !pdpProperties.isAllowOauth2Auth();
     }
 
     @Bean
-    @Profile("local")
     MapReactiveUserDetailsService userDetailsServiceLocal() {
-        UserDetails client = User.builder().username(pdpProperties.getKey()).password(pdpProperties.getSecret())
-                .roles("PDP_CLIENT").build();
+        if (!pdpProperties.isAllowBasicAuth()) {
+            return null;
+        }
+        var key = pdpProperties.getKey();
+        if (key == null) {
+            throw new IllegalStateException(
+                    "If Basic authentication is active, a client key must be supplied. Please set: 'io.sapl.server-lt.key'.");
+        }
+        var secret = pdpProperties.getSecret();
+        if (secret == null) {
+            throw new IllegalStateException(
+                    "If Basic authentication is active, a client secret must be supplied. Please set: 'io.sapl.server-lt.secret'. As a BCrypt encoded secret.");
+        }
+        var client = User.builder().username(key).password(secret).roles("PDP_CLIENT").build();
         return new MapReactiveUserDetailsService(client);
     }
 
     @Bean
     PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        return Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
     }
 
     /**
@@ -136,11 +151,12 @@ public class SecurityConfiguration {
      * into our handler methods (those annotated with @MessageMapping).
      */
     @Bean
-    RSocketMessageHandler rsocketMessageHandler(RSocketStrategies strategies) {
-        var mh = new RSocketMessageHandler();
-        mh.getArgumentResolverConfigurer().addCustomResolver(new AuthenticationPrincipalArgumentResolver());
-        mh.setRSocketStrategies(strategies);
-        return mh;
+    RSocketMessageHandler rsocketMessageHandler(RSocketStrategies rSocketStrategies) {
+        var rSocketMessageHandler = new RSocketMessageHandler();
+        rSocketMessageHandler.getArgumentResolverConfigurer()
+                .addCustomResolver(new AuthenticationPrincipalArgumentResolver());
+        rSocketMessageHandler.setRSocketStrategies(rSocketStrategies);
+        return rSocketMessageHandler;
     }
 
     /**
@@ -148,9 +164,10 @@ public class SecurityConfiguration {
      * initialized by the OpenID Provider specified in the jwtIssuerURI.
      */
     @Bean
+    @ConditionalOnProperty(prefix = "io.sapl.server-lt", name = "allowOauth2Auth", havingValue = "true")
     ReactiveJwtDecoder jwtDecoder() {
         if (pdpProperties.isAllowOauth2Auth()) {
-            return ReactiveJwtDecoders.fromIssuerLocation(getJwtIssuerURI());
+            return ReactiveJwtDecoders.fromIssuerLocation(jwtIssuerURI);
         } else {
             return null;
         }
@@ -158,8 +175,8 @@ public class SecurityConfiguration {
 
     /**
      * The PayloadSocketAcceptorInterceptor Bean (rsocketPayloadAuthorization)
-     * configures the Security Filter Chain for Rsocket Payloads. Supported
-     * Authentication Methods are: NoAuth, BasicAuth, Oauth2 (jwt) and ApiKey.
+     * configures the Security Filter Chain for RSocket payloads. Supported
+     * Authentication Methods are: NoAuth, BasicAuth, Oauth2 (JWT) and ApiKey.
      */
     @Bean
     PayloadSocketAcceptorInterceptor rsocketPayloadAuthorization(RSocketSecurity security) {
@@ -171,7 +188,7 @@ public class SecurityConfiguration {
             }
         });
 
-        // Configure Basic and Oauth Authentication
+        // Configure Basic and OAuth Authentication
         UserDetailsRepositoryReactiveAuthenticationManager simpleManager = null;
         if (pdpProperties.isAllowBasicAuth()) {
             simpleManager = new UserDetailsRepositoryReactiveAuthenticationManager(this.userDetailsServiceLocal());
@@ -180,29 +197,21 @@ public class SecurityConfiguration {
 
         JwtReactiveAuthenticationManager jwtManager = null;
         if (pdpProperties.isAllowOauth2Auth()) {
-            jwtManager = new JwtReactiveAuthenticationManager(
-                    ReactiveJwtDecoders.fromIssuerLocation(getJwtIssuerURI()));
+            jwtManager = new JwtReactiveAuthenticationManager(ReactiveJwtDecoders.fromIssuerLocation(jwtIssuerURI));
         }
 
-        UserDetailsRepositoryReactiveAuthenticationManager finalSimpleManager = simpleManager;
-        JwtReactiveAuthenticationManager                   finalJwtManager    = jwtManager;
-        AuthenticationPayloadInterceptor                   auth               = new AuthenticationPayloadInterceptor(
-                a -> {
-                                                                                          if (finalSimpleManager != null
-                                                                                                  && a instanceof UsernamePasswordAuthenticationToken) {
-                                                                                              return finalSimpleManager
-                                                                                                      .authenticate(a);
-                                                                                          } else if (finalJwtManager != null
-                                                                                                  && a instanceof BearerTokenAuthenticationToken) {
-                                                                                              return finalJwtManager
-                                                                                                      .authenticate(a);
-                                                                                          } else {
-                                                                                              throw new IllegalArgumentException(
-                                                                                                      "Unsupported Authentication Type "
-                                                                                                              + a.getClass()
-                                                                                                                      .getSimpleName());
-                                                                                          }
-                                                                                      });
+        var finalSimpleManager = simpleManager;
+        var finalJwtManager    = jwtManager;
+        var auth               = new AuthenticationPayloadInterceptor(a -> {
+                                   if (finalSimpleManager != null && a instanceof UsernamePasswordAuthenticationToken) {
+                                       return finalSimpleManager.authenticate(a);
+                                   } else if (finalJwtManager != null && a instanceof BearerTokenAuthenticationToken) {
+                                       return finalJwtManager.authenticate(a);
+                                   } else {
+                                       throw new IllegalArgumentException(
+                                               "Unsupported Authentication Type " + a.getClass().getSimpleName());
+                                   }
+                               });
         auth.setAuthenticationConverter(new AuthenticationPayloadExchangeConverter());
         auth.setOrder(PayloadInterceptorOrder.AUTHENTICATION.getOrder());
         security.addPayloadInterceptor(auth);

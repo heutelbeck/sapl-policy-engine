@@ -68,8 +68,9 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
         log.info("Loading PDP configuration from: {}", configurationFile.toAbsolutePath());
         if (Files.notExists(configurationFile, LinkOption.NOFOLLOW_LINKS)) {
             // If file does not exist, return default configuration
-            log.info("No PDP configuration file present. Use default configuration.");
-            return Optional.of(new PolicyDecisionPointConfiguration());
+            var defaultConfiguration = new PolicyDecisionPointConfiguration();
+            log.info("No PDP configuration file present. Use default configuration: {}", defaultConfiguration);
+            return Optional.of(defaultConfiguration);
         }
         try {
             return Optional.of(MAPPER.readValue(configurationFile.toFile(), PolicyDecisionPointConfiguration.class));
