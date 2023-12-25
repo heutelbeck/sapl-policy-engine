@@ -27,6 +27,7 @@ import org.springframework.context.annotation.Role;
 import io.sapl.api.functions.StaticFunctionLibrarySupplier;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.LoggingFunctionLibrary;
+import io.sapl.functions.SchemaTestFunctionLibrary;
 import io.sapl.functions.SchemaValidationLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
@@ -41,7 +42,7 @@ public class FunctionLibrariesAutoConfiguration {
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     StaticFunctionLibrarySupplier baselLibraries() {
         return () -> List.of(FilterFunctionLibrary.class, StandardFunctionLibrary.class, TemporalFunctionLibrary.class,
-                LoggingFunctionLibrary.class, SchemaValidationLibrary.class);
+                LoggingFunctionLibrary.class, SchemaValidationLibrary.class, SchemaTestFunctionLibrary.class);
     }
 
 }

@@ -163,6 +163,37 @@ class SchemaCompletionTests extends CompletionTests {
     }
 
     @Test
+    void testCompletion_PolicyBody_suggestSchemaPathsAfterDot() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    policy "test" deny where var foo = 1 schema {
+                      "properties": {
+                        "name": {
+                          "type": "object",
+                          "properties": {
+                            "firstname": {"type": "string"}
+                          }
+                        },
+                        "age": {"type": "number"}
+                      }
+                    };
+                    foo.""";
+
+            String cursor = "foo.";
+            it.setModel(policy);
+            it.setLine(11);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("foo.age", "foo.name", "foo.name.firstname");
+                assertProposalsSimple(expected, completionList);
+                var unwanted = List.of("filter.blacken");
+                assertDoesNotContainProposals(unwanted, completionList);
+            });
+        });
+    }
+
+    @Test
     void testCompletion_PolicyBody_getNestedSchemaFromEnvironmentVariable() {
         testCompletion((TestCompletionConfiguration it) -> {
             String policy = "policy \"test\" permit where var bar = 5; var foo = \"test\" schema schema_with_additional_keywords; foo";

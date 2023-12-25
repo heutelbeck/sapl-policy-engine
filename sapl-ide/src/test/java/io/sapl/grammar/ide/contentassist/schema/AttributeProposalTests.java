@@ -17,30 +17,29 @@
  */
 package io.sapl.grammar.ide.contentassist.schema;
 
-import java.util.List;
-
+import io.sapl.grammar.ide.contentassist.CompletionTests;
 import org.eclipse.xtext.testing.TestCompletionConfiguration;
 import org.junit.jupiter.api.Test;
 
-import io.sapl.grammar.ide.contentassist.CompletionTests;
+import java.util.List;
 
-class FunctionProposalTests extends CompletionTests {
+class AttributeProposalTests extends CompletionTests {
 
     @Test
-    void testCompletion_PolicyBody_function_without_import() {
+    void testCompletion_PolicyBody_attribute_without_import() {
 
         testCompletion((TestCompletionConfiguration it) -> {
             String policy = """
-                    policy "test" deny where var foo = schemaTest.person();
-                    schemaTe""";
+                    policy "test" deny where
+                    subject.<""";
 
-            String cursor = "foo";
+            String cursor = "subject.<";
             it.setModel(policy);
             it.setLine(1);
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("schemaTest.person().name", "schemaTest.dog().race");
+                var expected = List.of("<temperature.now()>.unit", "<temperature.mean(a1, a2)>.value");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -292,29 +291,6 @@ class FunctionProposalTests extends CompletionTests {
                 var expected = List.of("foo.latitude", "foo.latitude.maximum");
                 assertProposalsSimple(expected, completionList);
                 var unwanted = List.of("clock.millis>", "filter.blacken");
-                assertDoesNotContainProposals(unwanted, completionList);
-            });
-        });
-    }
-
-    @Test
-    void testCompletion_variable_no_import_suggestions_after_dot() {
-
-        testCompletion((TestCompletionConfiguration it) -> {
-            String policy = """
-                    import schemaTest as test
-                    policy "test" deny where var foo = test.person();
-                    foo.""";
-
-            String cursor = "foo.";
-            it.setModel(policy);
-            it.setLine(2);
-            it.setColumn(cursor.length());
-
-            it.setAssertCompletionList(completionList -> {
-                var expected = List.of("foo.name");
-                assertProposalsSimple(expected, completionList);
-                var unwanted = List.of("test.name");
                 assertDoesNotContainProposals(unwanted, completionList);
             });
         });
