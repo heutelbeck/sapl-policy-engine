@@ -20,7 +20,6 @@ package io.sapl.spring.pdp.embedded;
 import java.time.Clock;
 import java.util.List;
 
-import io.sapl.pip.SchemaTestPIP;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -43,7 +42,7 @@ public class PolicyInformationPointsAutoConfiguration {
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     PolicyInformationPointSupplier timePolicyInformationPointSupplier(Clock clock) {
-        return () -> List.of(new TimePolicyInformationPoint(clock), new SchemaTestPIP());
+        return () -> List.of(new TimePolicyInformationPoint(clock));
     }
 
 }

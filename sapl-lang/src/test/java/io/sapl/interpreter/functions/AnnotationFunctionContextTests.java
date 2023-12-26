@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
@@ -264,6 +265,14 @@ class AnnotationFunctionContextTests {
                 () -> List.of(new AnnotationFunctionContextTests.AnnotationLibrary()), List::of);
         var functionSchemas = context.getFunctionSchemas();
         assertThat(functionSchemas, hasEntry("annotation.schemaFromJson", PERSON_SCHEMA));
+    }
+
+    @Test
+    void schemaPathIsReturned() throws InitializationException {
+        var context         = new AnnotationFunctionContext(
+                () -> List.of(new AnnotationFunctionContextTests.AnnotationLibrary()), List::of);
+        var functionSchemas = context.getFunctionSchemaPaths();
+        assertThat(functionSchemas, hasEntry("annotation.schemaFromFile", "schemas/person_schema.json"));
     }
 
     @Test
