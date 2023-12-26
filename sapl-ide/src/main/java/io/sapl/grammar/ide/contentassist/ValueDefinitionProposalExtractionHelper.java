@@ -60,56 +60,62 @@ public class ValueDefinitionProposalExtractionHelper {
 
     public ContentAssistContext getContextWithFullPrefix(int offset) {
 
-        var lastCompleteNodeText = context.getLastCompleteNode().getText();
-        if (";".equals(lastCompleteNodeText))
+        var model            = context.getCurrentModel();
+        // Policy Body does not exist
+        if (getPolicyBody(model) == null)
             return context;
 
-        var                  modifiedContext  = context.copy().toContext();
-        ContentAssistContext tentativeContext = null;
-        var                  model            = context.getCurrentModel();
-        model = getPolicyBodyModel(model);
+        List<String> tokens = new LinkedList<>();
+        if (!context.getPrefix().isBlank())
+            tokens.add(context.getPrefix());
 
-        if (model instanceof PolicyBody policyBody) {
-            var statements = policyBody.getStatements();
-            var iterator   = statements.listIterator(statements.size());
+        var rootNode = context.getRootNode();
 
-            while (iterator.hasPrevious() && tentativeContext == null) {
-                var aStatement      = iterator.previous();
-                var statementOffset = getValueDefinitionOffset(aStatement);
-                if (statementOffset <= offset) {
-                    tentativeContext = getContentAssistContext(context, aStatement);
-                    if (tentativeContext == null)
-                        continue;
-                    modifiedContext = tentativeContext;
-                }
-            }
+        // Cursor is at the start of a token. Previous character is blank.
+        if (NodeModelUtils.findLeafNodeAtOffset(rootNode, offset-1).getText().isBlank() ||
+        ";".equals(NodeModelUtils.findLeafNodeAtOffset(rootNode, offset-1).getText()))
+            return context;
+
+        var currentNode = NodeModelUtils.findLeafNodeAtOffset(rootNode, offset);
+
+        int i = offset;
+        while (currentNode == null) {
+            i--;
+            currentNode = NodeModelUtils.findLeafNodeAtOffset(rootNode, i);
         }
-        return modifiedContext;
-    }
 
-    private ContentAssistContext getContentAssistContext(ContentAssistContext context, Statement statement) {
-        var modifiedContext = context.copy().toContext();
-        if (statement instanceof Condition condition) {
-            var expression = condition.getExpression();
-            if (expression == null)
-                return null;
-            if (expression instanceof BasicIdentifier basicIdentifier) {
-                modifiedContext = getModifiedContext(basicIdentifier.getIdentifier(),
-                        combineKeystepsFromBasicIdentifier(basicIdentifier));
-            }
-        } else {
-            ValueDefinition valueDefinition = (ValueDefinition) statement;
-            if (valueDefinition.getEval() instanceof BasicIdentifier basicIdentifier) {
-                modifiedContext = getModifiedContext(basicIdentifier.getIdentifier(),
-                        combineKeystepsFromBasicIdentifier(basicIdentifier));
-            } else if (valueDefinition.getEval() instanceof BasicFunction basicFunction) {
-                modifiedContext = getModifiedContext(valueDefinition.getName(),
-                        combineFstepsFromBasicFunction(basicFunction));
-            } else {
-                modifiedContext = getModifiedContext(valueDefinition.getName(), List.of());
-            }
+        // Last character before the cursor was blank
+        if (currentNode.getText().isBlank())
+            return context;
+
+        // The last node before the cursor is the first node of the policy
+        if (NodeModelUtils.findLeafNodeAtOffset(rootNode, i - currentNode.getTotalLength()).getText().isBlank()){
+            return context.copy().setPrefix(currentNode.getText()).toContext();
         }
-        return modifiedContext;
+
+
+        String tokenText;
+        int offsetOfLastSibling;
+        var leafNode = currentNode;
+        String lastChar;
+
+        do {
+            offsetOfLastSibling = leafNode.getOffset()-leafNode.getLength();
+            leafNode = NodeModelUtils.findLeafNodeAtOffset(rootNode, offsetOfLastSibling);
+            tokenText = NodeModelUtils.getTokenText(leafNode);
+            tokens.add(tokenText);
+            lastChar = NodeModelUtils.findLeafNodeAtOffset(rootNode, leafNode.getTotalOffset()-1).getText();
+
+        } while (!lastChar.isBlank());
+
+
+        var sb = new StringBuilder(tokens.size());
+        for (int i2 = tokens.size()-1; i2 >= 0; i2--) {
+            sb.append(tokens.get(i2));
+            sb.append(".");
+        }
+        sb.delete(sb.lastIndexOf("."), sb.lastIndexOf(".")+1);
+        return context.copy().setPrefix(sb.toString()).toContext();
     }
 
     private EObject getPolicyBodyModel(EObject model) {
@@ -117,13 +123,6 @@ public class ValueDefinitionProposalExtractionHelper {
             model = TreeNavigationHelper.goToFirstParent(model, PolicyBody.class);
         }
         return model;
-    }
-
-    private ContentAssistContext getModifiedContext(String identifier, List<String> keySteps) {
-        ContentAssistContext modifiedContext;
-        var                  fullPrefix = getFunctionName(keySteps, identifier);
-        modifiedContext = context.copy().setPrefix(fullPrefix).toContext();
-        return modifiedContext;
     }
 
     public List<String> getAttributeProposals() {
@@ -386,43 +385,18 @@ public class ValueDefinitionProposalExtractionHelper {
         return name;
     }
 
-    private String getFunctionName(List<String> stepsString, String identifier) {
-        if (!stepsString.isEmpty()) {
-            var name = String.join(".", stepsString);
-            return identifier.concat(".").concat(name);
-        }
-        return identifier;
-    }
-
     private List<String> combineKeystepsFromBasicIdentifier(BasicIdentifier basicIdentifier) {
         var stepsString = new LinkedList<String>();
         var steps       = basicIdentifier.getSteps();
         for (var step : steps) {
-            if (step instanceof KeyStep keyStep) {
-                stepsString.add(keyStep.getId());
-            } else {
-                // step is HeadAttributeFinderStep
-                List<String> idSteps;
-                if (step instanceof AttributeFinderStep attributeFinderStep) {
-                    idSteps = attributeFinderStep.getIdSteps();
-                } else {
-                    idSteps = ((HeadAttributeFinderStep) step).getIdSteps();
-                }
-                var firstStep = idSteps.get(0);
-                if (firstStep != null) {
-                    var firstFinderElement = "<".concat(firstStep);
-                    idSteps.set(0, firstFinderElement);
-                    stepsString.addAll(idSteps);
-                }
-            }
+            var keyStep = (KeyStep) step;
+            stepsString.add(keyStep.getId());
         }
         return stepsString;
     }
 
     private List<String> combineFstepsFromBasicFunction(BasicFunction basicFunction) {
         var stepsString = new LinkedList<String>();
-        if (basicFunction.getFsteps().isEmpty())
-            return stepsString;
         basicFunction.getFsteps().remove(0);
         var fsteps = basicFunction.getFsteps();
         stepsString.add(String.join(".", fsteps));

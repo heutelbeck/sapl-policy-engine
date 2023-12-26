@@ -337,7 +337,7 @@ class SchemaCompletionTests extends CompletionTests {
             it.setModel(policy);
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("subject.name", "subject.age");
+                var expected = List.of("subject", "subject.age", "subject.name", "subject.name.firstname");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -378,6 +378,36 @@ class SchemaCompletionTests extends CompletionTests {
             it.setAssertCompletionList(completionList -> {
                 var expected = List.of("action");
                 assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_SuggestSchemaFromPDPScopedVariable_for_AuthzElement_with_idsteps() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "subject schema general_schema policy \"test\" permit where subject.name";
+            it.setModel(policy);
+            it.setColumn(policy.length());
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("subject.name", "subject.name.firstname");
+                assertProposalsSimple(expected, completionList);
+                var unwanted = List.of("var", "filter.blacken");
+                assertDoesNotContainProposals(unwanted, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_SuggestSchemaFromPDPScopedVariable_for_AuthzElement_with_idsteps_with_trailing_dot() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "subject schema general_schema policy \"test\" permit where subject.name.";
+            it.setModel(policy);
+            it.setColumn(policy.length());
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("subject.name", "subject.name.firstname");
+                assertProposalsSimple(expected, completionList);
+                var unwanted = List.of("var", "filter.blacken");
+                assertDoesNotContainProposals(unwanted, completionList);
             });
         });
     }

@@ -179,7 +179,7 @@ class AttributeProposalTests extends CompletionTests {
                     policy "test" deny where
                     var foo = schemaTest.dog""";
 
-            String cursor = "var foo = schemaTest";
+            String cursor = "var foo = schemaTest.dog";
             it.setModel(policy);
             it.setLine(1);
             it.setColumn(cursor.length());
