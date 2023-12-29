@@ -80,6 +80,8 @@ SAPL supports different integration scenarios, which are partially described on 
 
 If you want to see examples, view our [demo repository][demos-url] to give you a gist about how you could integrate SAPL.
 
+**Need a [SBOM][sbom-definition-url]? View [here][sbom-extraction-url].
+
 <!-- CONTRIBUTING -->
 ## Want to contribute to SAPL?
 
@@ -167,3 +169,5 @@ Distributed under the Apache 2.0 License. See [LICENSE.md](./LICENSE.md) for mor
 
 [website-url]: https://sapl.io
 [demos-url]: https://github.com/heutelbeck/sapl-demos
+[sbom-definition-url]: https://www.cisa.gov/sbom
+[sbom-extraction-url]: https://github.com/heutelbeck/sapl-policy-engine/network/dependencies

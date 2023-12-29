@@ -83,7 +83,7 @@ Beyond the automatic enforcing of formatting by tools, we have style preferences
 4. Use the default scope for test classes and methods.
 5. End the names of test classes with `Tests`.
 6. Follow the pattern `whenSOMETHINGthenSOMETHING-ELSE` for naming test methods.
-7. Avoid using `@SuppressWarning`, except with explicit allowance from maintainers.
+7. Avoid using `@SuppressWarning`, except with explicit permission from maintainers.
 8. If a file happens to differ in style from the guidelines, the existing style in that file takes precedence.
 
 #### Code coverage
