@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatamongoreactive.sapl.queryTypes.methodNameEnforcement;
+package io.sapl.springdatamongoreactive.sapl.querytypes.methodnameenforcement;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -187,11 +187,10 @@ public class MongoQueryCreatorFactory {
         this.mappingContext    = converter.getMappingContext();
         this.projectionFactory = converter.getProjectionFactory();
 
-        var mongoQueryMethod            = getMongoQueryMethod(method);
-        var accessor                    = new MongoParametersParameterAccessor(mongoQueryMethod, parameters);
-        var constructor                 = createMongoQueryCreatorConstructor();
-        var convertingParameterAccessor = new ConvertingParameterAccessor(converter, accessor);
-        this.convertingParameterAccessor = convertingParameterAccessor;
+        var mongoQueryMethod = getMongoQueryMethod(method);
+        var accessor         = new MongoParametersParameterAccessor(mongoQueryMethod, parameters);
+        var constructor      = createMongoQueryCreatorConstructor();
+        this.convertingParameterAccessor = new ConvertingParameterAccessor(converter, accessor);
 
         return constructor.newInstance(partTree, convertingParameterAccessor, mappingContext, Boolean.FALSE);
     }

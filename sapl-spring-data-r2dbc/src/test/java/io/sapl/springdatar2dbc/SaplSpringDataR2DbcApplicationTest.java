@@ -17,12 +17,16 @@
  */
 package io.sapl.springdatar2dbc;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 class SaplSpringDataR2DbcApplicationTest {
 
     @Test
-    public void main() {
+    void main() {
+        String[] args = new String[] {};
         SaplSpringDataR2dbcApplication.main(new String[] {});
+
+        Assertions.assertTrue(args.length == 0);
     }
 }

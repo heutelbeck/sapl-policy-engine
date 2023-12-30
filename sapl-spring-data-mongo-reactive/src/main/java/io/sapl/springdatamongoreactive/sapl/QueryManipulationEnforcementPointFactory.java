@@ -19,26 +19,26 @@ package io.sapl.springdatamongoreactive.sapl;
 
 import org.springframework.stereotype.Service;
 
-import io.sapl.springdatamongoreactive.sapl.queryTypes.annotationEnforcement.MongoAnnotationQueryManipulationEnforcementPoint;
-import io.sapl.springdatamongoreactive.sapl.queryTypes.filterEnforcement.ProceededDataFilterEnforcementPoint;
-import io.sapl.springdatamongoreactive.sapl.queryTypes.methodNameEnforcement.MongoMethodNameQueryManipulationEnforcementPoint;
+import io.sapl.springdatamongoreactive.sapl.querytypes.filterenforcement.ProceededDataFilterEnforcementPoint;
+import io.sapl.springdatamongoreactive.sapl.querytypes.methodnameenforcement.MongoMethodNameQueryManipulationEnforcementPoint;
+import io.sapl.springdatamongoreactive.sapl.querytypes.annotationenforcement.MongoAnnotationQueryManipulationEnforcementPoint;
 
 @Service
 public class QueryManipulationEnforcementPointFactory {
 
     public <T> QueryManipulationEnforcementPoint<T> createMongoAnnotationQueryManipulationEnforcementPoint(
             QueryManipulationEnforcementData<T> enforcementData) {
-        return new MongoAnnotationQueryManipulationEnforcementPoint<>(enforcementData);
+        return new MongoAnnotationQueryManipulationEnforcementPoint<T>(enforcementData);
     }
 
     public <T> QueryManipulationEnforcementPoint<T> createMongoMethodNameQueryManipulationEnforcementPoint(
             QueryManipulationEnforcementData<T> enforcementData) {
-        return new MongoMethodNameQueryManipulationEnforcementPoint<>(enforcementData);
+        return new MongoMethodNameQueryManipulationEnforcementPoint<T>(enforcementData);
     }
 
     public <T> QueryManipulationEnforcementPoint<T> createProceededDataFilterEnforcementPoint(
             QueryManipulationEnforcementData<T> enforcementData) {
-        return new ProceededDataFilterEnforcementPoint<>(enforcementData);
+        return new ProceededDataFilterEnforcementPoint<T>(enforcementData);
     }
 
 }

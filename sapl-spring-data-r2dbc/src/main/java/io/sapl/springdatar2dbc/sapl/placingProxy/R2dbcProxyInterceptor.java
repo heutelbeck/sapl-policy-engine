@@ -15,19 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatar2dbc.sapl.placingProxy;
+package io.sapl.springdatar2dbc.sapl.placingproxy;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.Objects;
-import java.util.logging.Logger;
-
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.stereotype.Service;
-
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.springdatar2dbc.sapl.Enforce;
@@ -62,8 +60,6 @@ import reactor.core.publisher.Flux;
  */
 @Service
 public class R2dbcProxyInterceptor<T> implements MethodInterceptor {
-    private final Logger                                   logger = Logger
-            .getLogger(R2dbcProxyInterceptor.class.getName());
     private final AuthorizationSubscriptionHandlerProvider authSubHandler;
     private final QueryManipulationEnforcementData<T>      enforcementData;
     private final QueryManipulationEnforcementPointFactory factory;
@@ -72,7 +68,7 @@ public class R2dbcProxyInterceptor<T> implements MethodInterceptor {
             PolicyDecisionPoint pdp, QueryManipulationEnforcementPointFactory factory) {
         this.authSubHandler  = authSubHandler;
         this.factory         = factory;
-        this.enforcementData = new QueryManipulationEnforcementData<>(null, beanFactory, null, pdp, null);
+        this.enforcementData = new QueryManipulationEnforcementData<T>(null, beanFactory, null, pdp, null);
     }
 
     @SneakyThrows
@@ -88,14 +84,11 @@ public class R2dbcProxyInterceptor<T> implements MethodInterceptor {
             var authSub             = this.authSubHandler.getAuthSub(repository, methodInvocation);
 
             if (authSub == null) {
-                logger.warning(
+                throw new IllegalStateException(
                         "The Sapl implementation for the manipulation of the database queries was recognised, but no AuthorizationSubscription was found.");
-                return methodInvocation.proceed();
             }
 
-            @SuppressWarnings("unchecked")
-            var domainType = (Class<T>) ((ParameterizedType) repository.getGenericInterfaces()[0])
-                    .getActualTypeArguments()[0];
+            var domainType = extractDomainType(repository);
 
             enforcementData.setMethodInvocation(methodInvocation);
             enforcementData.setDomainType(domainType);
@@ -105,8 +98,6 @@ public class R2dbcProxyInterceptor<T> implements MethodInterceptor {
              * Introduce RelationalAtQueryImplementation if method has @Query-Annotation.
              */
             if (hasAnnotationQuery(repositoryMethod)) {
-                logger.info(Utilities.STRING_BASED_IMPL_MSG);
-
                 var annotationQueryEnforcementPoint = factory
                         .createR2dbcAnnotationQueryManipulationEnforcementPoint(enforcementData);
 
@@ -118,8 +109,6 @@ public class R2dbcProxyInterceptor<T> implements MethodInterceptor {
              * of the method.
              */
             if (Utilities.isMethodNameValid(repositoryMethod.getName())) {
-                logger.info(Utilities.METHOD_BASED_IMPL_MSG);
-
                 var methodNameQueryEnforcementPoint = factory
                         .createR2dbcMethodNameQueryManipulationEnforcementPoint(enforcementData);
 
@@ -132,8 +121,6 @@ public class R2dbcProxyInterceptor<T> implements MethodInterceptor {
              * the obligation are applied to the received data.
              */
             if (!Utilities.isMethodNameValid(repositoryMethod.getName()) && !hasAnnotationQuery(repositoryMethod)) {
-                logger.info(Utilities.FILTER_BASED_IMPL_MSG);
-
                 var filterEnforcementPoint = factory.createProceededDataFilterEnforcementPoint(enforcementData);
 
                 return convertReturnTypeIfNecessary(filterEnforcementPoint.enforce(), returnClassOfMethod);
@@ -176,6 +163,21 @@ public class R2dbcProxyInterceptor<T> implements MethodInterceptor {
         }
 
         throw new ClassNotFoundException("Return type of method not supported: " + returnClassOfMethod);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Class<T> extractDomainType(Class<?> repository) {
+        Type[] repositoryTypes = repository.getGenericInterfaces();
+
+        if (repositoryTypes[0] instanceof ParameterizedType type) {
+            if (type.getActualTypeArguments()[0] instanceof Class clazz) {
+                return (Class<T>) clazz;
+            }
+        }
+
+        throw new ClassCastException("If the repository [" + repository
+                + "] implements several interfaces, the first interface must correspond to the "
+                + "reactive interface of Spring Data (R2dbcRepository, ReactiveCrudRepository). ");
     }
 
     /**

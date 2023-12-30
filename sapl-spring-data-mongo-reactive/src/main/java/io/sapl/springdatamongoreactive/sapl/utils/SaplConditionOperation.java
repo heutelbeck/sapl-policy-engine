@@ -17,20 +17,18 @@
  */
 package io.sapl.springdatamongoreactive.sapl.utils;
 
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import io.sapl.springdatamongoreactive.sapl.Operator;
+import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.StringUtils;
 import org.bson.Document;
 import org.springframework.data.mongodb.core.query.BasicQuery;
 import org.springframework.data.repository.query.parser.Part;
 import org.springframework.data.repository.query.parser.PartTree;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
-import io.sapl.springdatamongoreactive.sapl.Operator;
-import lombok.experimental.UtilityClass;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * This class translates different kind of objects into {@link SaplCondition} to
@@ -52,7 +50,7 @@ public class SaplConditionOperation {
      * @return list of {@link SaplCondition} which were created from the parameters
      *         of the method.
      */
-    public ArrayList<SaplCondition> methodToSaplConditions(Object[] args, Method method, Class<?> domainType) {
+    public List<SaplCondition> methodToSaplConditions(Object[] args, Method method, Class<?> domainType) {
         var saplConditions = new ArrayList<SaplCondition>();
         var partTree       = new PartTree(method.getName(), domainType);
 
@@ -85,7 +83,7 @@ public class SaplConditionOperation {
      * @param conditions are the conditions of the {@link io.sapl.api.pdp.Decision}
      * @return list of {@link SaplCondition}
      */
-    public ArrayList<SaplCondition> jsonNodeToSaplConditions(JsonNode conditions) {
+    public List<SaplCondition> jsonNodeToSaplConditions(JsonNode conditions) {
         BasicQuery basicQuery = null;
 
         for (JsonNode condition : conditions) {
@@ -125,7 +123,6 @@ public class SaplConditionOperation {
      * @return modified method name.
      */
     public String toModifiedMethodName(String methodName, List<SaplCondition> saplConditions) {
-
         int    index = getIndexIfSourceContainsAnyKeyword(methodName);
         String modifiedMethodName;
 

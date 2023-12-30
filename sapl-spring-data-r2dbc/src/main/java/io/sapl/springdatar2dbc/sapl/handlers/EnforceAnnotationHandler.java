@@ -178,9 +178,9 @@ public class EnforceAnnotationHandler {
         try {
             return parser.parseExpression(annotationValue).getValue(context, String.class);
         } catch (EvaluationException ignore) {
+            return null;
         }
 
-        return null;
     }
 
     /**

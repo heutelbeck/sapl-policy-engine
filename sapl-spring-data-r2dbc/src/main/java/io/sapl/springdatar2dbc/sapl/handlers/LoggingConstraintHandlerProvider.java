@@ -18,16 +18,16 @@
 package io.sapl.springdatar2dbc.sapl.handlers;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.springframework.stereotype.Service;
-
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class represents the logging constraint handler provider.
  */
 public class LoggingConstraintHandlerProvider {
 
-    private final Logger logger = Logger.getLogger(LoggingConstraintHandlerProvider.class.getName());
+    private final Logger        logger  = LoggerFactory.getLogger(LoggingConstraintHandlerProvider.class);
+    private final static String MESSAGE = "message";
 
     /**
      * Checks if an obligation of a {@link io.sapl.api.pdp.Decision} is responsible
@@ -40,7 +40,7 @@ public class LoggingConstraintHandlerProvider {
         if (constraint == null) {
             return false;
         }
-        return constraint.has("message") && constraint.has("id") && "log".equals(constraint.get("id").asText());
+        return constraint.has(MESSAGE) && constraint.has("id") && "log".equals(constraint.get("id").asText());
     }
 
     /**
@@ -51,8 +51,8 @@ public class LoggingConstraintHandlerProvider {
      */
     public Runnable getHandler(JsonNode constraint) {
         return () -> {
-            if (constraint != null && constraint.has("message")) {
-                var message = constraint.findValue("message").asText();
+            if (constraint != null && constraint.has(MESSAGE)) {
+                var message = constraint.findValue(MESSAGE).asText();
                 this.logger.info(message);
             }
         };

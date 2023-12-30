@@ -19,9 +19,9 @@ package io.sapl.springdatar2dbc.sapl;
 
 import io.sapl.springdatar2dbc.database.MethodInvocationForTesting;
 import io.sapl.springdatar2dbc.database.Person;
-import io.sapl.springdatar2dbc.sapl.queryTypes.filterEnforcement.ProceededDataFilterEnforcementPoint;
-import io.sapl.springdatar2dbc.sapl.queryTypes.annotationEnforcement.R2dbcAnnotationQueryManipulationEnforcementPoint;
-import io.sapl.springdatar2dbc.sapl.queryTypes.methodNameEnforcement.R2dbcMethodNameQueryManipulationEnforcementPoint;
+import io.sapl.springdatar2dbc.sapl.querytypes.annotationenforcement.R2dbcAnnotationQueryManipulationEnforcementPoint;
+import io.sapl.springdatar2dbc.sapl.querytypes.filterenforcement.ProceededDataFilterEnforcementPoint;
+import io.sapl.springdatar2dbc.sapl.querytypes.methodnameenforcement.R2dbcMethodNameQueryManipulationEnforcementPoint;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
 import org.junit.jupiter.api.Assertions;
@@ -51,7 +51,8 @@ class QueryManipulationEnforcementPointFactoryTest {
     @Test
     void createR2dbcAnnotationQueryManipulationEnforcementPoint() {
 
-        try (MockedConstruction<R2dbcAnnotationQueryManipulationEnforcementPoint> mongoAnnotationQueryManipulationEnforcementPointMockedConstruction = Mockito
+        try (@SuppressWarnings("rawtypes")
+        MockedConstruction<R2dbcAnnotationQueryManipulationEnforcementPoint> mongoAnnotationQueryManipulationEnforcementPointMockedConstruction = Mockito
                 .mockConstruction(R2dbcAnnotationQueryManipulationEnforcementPoint.class)) {
 
             // GIVEN
@@ -75,7 +76,8 @@ class QueryManipulationEnforcementPointFactoryTest {
     @Test
     void createR2dbcMethodNameQueryManipulationEnforcementPoint() {
 
-        try (MockedConstruction<R2dbcMethodNameQueryManipulationEnforcementPoint> mongoMethodNameQueryManipulationEnforcementPointMockedConstruction = Mockito
+        try (@SuppressWarnings("rawtypes")
+        MockedConstruction<R2dbcMethodNameQueryManipulationEnforcementPoint> mongoMethodNameQueryManipulationEnforcementPointMockedConstruction = Mockito
                 .mockConstruction(R2dbcMethodNameQueryManipulationEnforcementPoint.class)) {
 
             // GIVEN
@@ -99,7 +101,8 @@ class QueryManipulationEnforcementPointFactoryTest {
     @Test
     void createProceededDataFilterEnforcementPoint() {
 
-        try (MockedConstruction<ProceededDataFilterEnforcementPoint> proceededDataFilterEnforcementPointMockedConstruction = Mockito
+        try (@SuppressWarnings("rawtypes")
+        MockedConstruction<ProceededDataFilterEnforcementPoint> proceededDataFilterEnforcementPointMockedConstruction = Mockito
                 .mockConstruction(ProceededDataFilterEnforcementPoint.class)) {
 
             // GIVEN

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatamongoreactive.sapl.queryTypes.annotationEnforcement;
+package io.sapl.springdatamongoreactive.sapl.querytypes.annotationenforcement;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -113,7 +113,8 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
     void when_thereAreConditionsInTheDecision_then_enforce() {
         try (MockedConstruction<MongoQueryManipulationObligationProvider> mongoQueryManipulationObligationProviderMockedConstruction = Mockito
                 .mockConstruction(MongoQueryManipulationObligationProvider.class)) {
-            try (MockedConstruction<DataManipulationHandler> dataManipulationHandler = Mockito
+            try (@SuppressWarnings("rawtypes")
+            MockedConstruction<DataManipulationHandler> dataManipulationHandler = Mockito
                     .mockConstruction(DataManipulationHandler.class)) {
                 // GIVEN
                 var expectedQuery             = new BasicQuery(
@@ -128,7 +129,7 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
                 // WHEN
                 when(pdpMock.decide(any(AuthorizationSubscription.class)))
                         .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT)));
-                when(beanFactoryMock.getBean(eq(ReactiveMongoTemplate.class))).thenReturn(reactiveMongoTemplateMock);
+                when(beanFactoryMock.getBean(ReactiveMongoTemplate.class)).thenReturn(reactiveMongoTemplateMock);
                 when(reactiveMongoTemplateMock.find(any(BasicQuery.class), any())).thenReturn(Flux.just(cathrin));
                 constraintHandlerUtilsMock
                         .when(() -> ConstraintHandlerUtils.getAdvices(any(AuthorizationDecision.class)))
@@ -145,13 +146,12 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
 
                 var mongoQueryManipulationObligationProviderMock = mongoQueryManipulationObligationProviderMockedConstruction
                         .constructed().get(0);
-                when(mongoQueryManipulationObligationProviderMock.isResponsible(eq(obligations)))
-                        .thenReturn(Boolean.TRUE);
-                when(mongoQueryManipulationObligationProviderMock.getObligation(eq(obligations)))
+                when(mongoQueryManipulationObligationProviderMock.isResponsible(obligations)).thenReturn(Boolean.TRUE);
+                when(mongoQueryManipulationObligationProviderMock.getObligation(obligations))
                         .thenReturn(mongoQueryManipulation);
-                when(mongoQueryManipulationObligationProviderMock.getConditions(eq(mongoQueryManipulation)))
+                when(mongoQueryManipulationObligationProviderMock.getConditions(mongoQueryManipulation))
                         .thenReturn(conditions);
-                when(dataManipulationHandler.constructed().get(0).manipulate(eq(obligations)))
+                when(dataManipulationHandler.constructed().get(0).manipulate(obligations))
                         .thenReturn(obligations -> Flux.just(cathrin));
 
                 // THEN
@@ -159,11 +159,10 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
 
                 StepVerifier.create(result).expectNext(cathrin).expectComplete().verify();
 
-                verify(reactiveMongoTemplateMock, times(1)).find(eq(expectedQuery), eq(TestUser.class));
-                verify(mongoQueryManipulationObligationProviderMock, times(1)).isResponsible(eq(obligations));
-                verify(mongoQueryManipulationObligationProviderMock, times(1)).getObligation(eq(obligations));
-                verify(mongoQueryManipulationObligationProviderMock, times(1))
-                        .getConditions(eq(mongoQueryManipulation));
+                verify(reactiveMongoTemplateMock, times(1)).find(expectedQuery, TestUser.class);
+                verify(mongoQueryManipulationObligationProviderMock, times(1)).isResponsible(obligations);
+                verify(mongoQueryManipulationObligationProviderMock, times(1)).getObligation(obligations);
+                verify(mongoQueryManipulationObligationProviderMock, times(1)).getConditions(mongoQueryManipulation);
                 constraintHandlerUtilsMock
                         .verify(() -> ConstraintHandlerUtils.getAdvices(any(AuthorizationDecision.class)), times(1));
                 constraintHandlerUtilsMock.verify(
@@ -207,7 +206,8 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
     void when_mongoQueryManipulationObligationIsResponsibleIsFalse_then_proceedWithoutQueryManipulation() {
         try (MockedConstruction<MongoQueryManipulationObligationProvider> mongoQueryManipulationObligationProviderMockedConstruction = Mockito
                 .mockConstruction(MongoQueryManipulationObligationProvider.class)) {
-            try (MockedConstruction<DataManipulationHandler> dataManipulationHandler = Mockito
+            try (@SuppressWarnings("rawtypes")
+            MockedConstruction<DataManipulationHandler> dataManipulationHandler = Mockito
                     .mockConstruction(DataManipulationHandler.class)) {
 
                 // GIVEN
@@ -223,7 +223,7 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
                 // WHEN
                 when(pdpMock.decide(any(AuthorizationSubscription.class)))
                         .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT)));
-                when(beanFactoryMock.getBean(eq(ReactiveMongoTemplate.class))).thenReturn(reactiveMongoTemplateMock);
+                when(beanFactoryMock.getBean(ReactiveMongoTemplate.class)).thenReturn(reactiveMongoTemplateMock);
                 constraintHandlerUtilsMock
                         .when(() -> ConstraintHandlerUtils.getAdvices(any(AuthorizationDecision.class)))
                         .thenReturn(JsonNodeFactory.instance.nullNode());
@@ -239,9 +239,8 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
 
                 var mongoQueryManipulationObligationProviderMock = mongoQueryManipulationObligationProviderMockedConstruction
                         .constructed().get(0);
-                when(mongoQueryManipulationObligationProviderMock.isResponsible(eq(obligations)))
-                        .thenReturn(Boolean.FALSE);
-                when(dataManipulationHandler.constructed().get(0).manipulate(eq(obligations)))
+                when(mongoQueryManipulationObligationProviderMock.isResponsible(obligations)).thenReturn(Boolean.FALSE);
+                when(dataManipulationHandler.constructed().get(0).manipulate(obligations))
                         .thenReturn(obligations -> data);
 
                 // THEN
@@ -250,11 +249,10 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
                 StepVerifier.create(result).expectNext(aaron).expectNext(brian).expectNext(cathrin).expectComplete()
                         .verify();
 
-                verify(reactiveMongoTemplateMock, times(0)).find(eq(expectedQuery), eq(TestUser.class));
-                verify(mongoQueryManipulationObligationProviderMock, times(1)).isResponsible(eq(obligations));
-                verify(mongoQueryManipulationObligationProviderMock, times(0)).getObligation(eq(obligations));
-                verify(mongoQueryManipulationObligationProviderMock, times(0))
-                        .getConditions(eq(mongoQueryManipulation));
+                verify(reactiveMongoTemplateMock, times(0)).find(expectedQuery, TestUser.class);
+                verify(mongoQueryManipulationObligationProviderMock, times(1)).isResponsible(obligations);
+                verify(mongoQueryManipulationObligationProviderMock, times(0)).getObligation(obligations);
+                verify(mongoQueryManipulationObligationProviderMock, times(0)).getConditions(mongoQueryManipulation);
                 constraintHandlerUtilsMock
                         .verify(() -> ConstraintHandlerUtils.getAdvices(any(AuthorizationDecision.class)), times(1));
                 constraintHandlerUtilsMock.verify(
@@ -270,7 +268,8 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
     void when_mongoQueryManipulationObligationIsResponsibleIsFalseAndReturnTypeIsMono_then_proceedWithoutQueryManipulation() {
         try (MockedConstruction<MongoQueryManipulationObligationProvider> mongoQueryManipulationObligationProviderMockedConstruction = Mockito
                 .mockConstruction(MongoQueryManipulationObligationProvider.class)) {
-            try (MockedConstruction<DataManipulationHandler> dataManipulationHandler = Mockito
+            try (@SuppressWarnings("rawtypes")
+            MockedConstruction<DataManipulationHandler> dataManipulationHandler = Mockito
                     .mockConstruction(DataManipulationHandler.class)) {
 
                 // GIVEN
@@ -286,7 +285,7 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
                 // WHEN
                 when(pdpMock.decide(any(AuthorizationSubscription.class)))
                         .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT)));
-                when(beanFactoryMock.getBean(eq(ReactiveMongoTemplate.class))).thenReturn(reactiveMongoTemplateMock);
+                when(beanFactoryMock.getBean(ReactiveMongoTemplate.class)).thenReturn(reactiveMongoTemplateMock);
                 constraintHandlerUtilsMock
                         .when(() -> ConstraintHandlerUtils.getAdvices(any(AuthorizationDecision.class)))
                         .thenReturn(JsonNodeFactory.instance.nullNode());
@@ -300,24 +299,22 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
                 var mongoAnnotationQueryManipulationEnforcementPoint = new MongoAnnotationQueryManipulationEnforcementPoint<>(
                         enforcementData);
 
-                when(dataManipulationHandler.constructed().get(0).manipulate(eq(obligations)))
+                when(dataManipulationHandler.constructed().get(0).manipulate(obligations))
                         .thenReturn(obligations -> Flux.just(cathrin));
 
                 var mongoQueryManipulationObligationProviderMock = mongoQueryManipulationObligationProviderMockedConstruction
                         .constructed().get(0);
-                when(mongoQueryManipulationObligationProviderMock.isResponsible(eq(obligations)))
-                        .thenReturn(Boolean.FALSE);
+                when(mongoQueryManipulationObligationProviderMock.isResponsible(obligations)).thenReturn(Boolean.FALSE);
 
                 // THEN
                 var result = mongoAnnotationQueryManipulationEnforcementPoint.enforce();
 
                 StepVerifier.create(result).expectNext(cathrin).expectComplete().verify();
 
-                verify(reactiveMongoTemplateMock, times(0)).find(eq(expectedQuery), eq(TestUser.class));
-                verify(mongoQueryManipulationObligationProviderMock, times(1)).isResponsible(eq(obligations));
-                verify(mongoQueryManipulationObligationProviderMock, times(0)).getObligation(eq(obligations));
-                verify(mongoQueryManipulationObligationProviderMock, times(0))
-                        .getConditions(eq(mongoQueryManipulation));
+                verify(reactiveMongoTemplateMock, times(0)).find(expectedQuery, TestUser.class);
+                verify(mongoQueryManipulationObligationProviderMock, times(1)).isResponsible(obligations);
+                verify(mongoQueryManipulationObligationProviderMock, times(0)).getObligation(obligations);
+                verify(mongoQueryManipulationObligationProviderMock, times(0)).getConditions(mongoQueryManipulation);
                 constraintHandlerUtilsMock
                         .verify(() -> ConstraintHandlerUtils.getAdvices(any(AuthorizationDecision.class)), times(1));
                 constraintHandlerUtilsMock.verify(
@@ -333,7 +330,8 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
     void when_mongoQueryManipulationObligationIsResponsibleIsFalseAndReturnTypeIsMono_then_throwThrowable() {
         try (MockedConstruction<MongoQueryManipulationObligationProvider> mongoQueryManipulationObligationProviderMockedConstruction = Mockito
                 .mockConstruction(MongoQueryManipulationObligationProvider.class)) {
-            try (MockedConstruction<DataManipulationHandler> dataManipulationHandler = Mockito
+            try (@SuppressWarnings("rawtypes")
+            MockedConstruction<DataManipulationHandler> dataManipulationHandler = Mockito
                     .mockConstruction(DataManipulationHandler.class)) {
 
                 // GIVEN
@@ -348,7 +346,7 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
                 // WHEN
                 when(pdpMock.decide(any(AuthorizationSubscription.class)))
                         .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT)));
-                when(beanFactoryMock.getBean(eq(ReactiveMongoTemplate.class))).thenReturn(reactiveMongoTemplateMock);
+                when(beanFactoryMock.getBean(ReactiveMongoTemplate.class)).thenReturn(reactiveMongoTemplateMock);
                 constraintHandlerUtilsMock
                         .when(() -> ConstraintHandlerUtils.getAdvices(any(AuthorizationDecision.class)))
                         .thenReturn(JsonNodeFactory.instance.nullNode());
@@ -363,19 +361,18 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
                         enforcementData);
                 var mongoQueryManipulationObligationProviderMock     = mongoQueryManipulationObligationProviderMockedConstruction
                         .constructed().get(0);
-                when(mongoQueryManipulationObligationProviderMock.isResponsible(eq(obligations)))
-                        .thenReturn(Boolean.FALSE);
+                when(mongoQueryManipulationObligationProviderMock.isResponsible(obligations)).thenReturn(Boolean.FALSE);
 
                 // THEN
                 var throwableException = mongoAnnotationQueryManipulationEnforcementPoint.enforce();
 
                 StepVerifier.create(throwableException).expectError(Throwable.class).verify();
 
-                verify(reactiveMongoTemplateMock, never()).find(eq(expectedQuery), eq(TestUser.class));
-                verify(mongoQueryManipulationObligationProviderMock, times(1)).isResponsible(eq(obligations));
-                verify(mongoQueryManipulationObligationProviderMock, never()).getObligation(eq(obligations));
-                verify(mongoQueryManipulationObligationProviderMock, never()).getConditions(eq(mongoQueryManipulation));
-                verify(dataManipulationHandler.constructed().get(0), never()).manipulate(eq(obligations));
+                verify(reactiveMongoTemplateMock, never()).find(expectedQuery, TestUser.class);
+                verify(mongoQueryManipulationObligationProviderMock, times(1)).isResponsible(obligations);
+                verify(mongoQueryManipulationObligationProviderMock, never()).getObligation(obligations);
+                verify(mongoQueryManipulationObligationProviderMock, never()).getConditions(mongoQueryManipulation);
+                verify(dataManipulationHandler.constructed().get(0), never()).manipulate(obligations);
                 constraintHandlerUtilsMock
                         .verify(() -> ConstraintHandlerUtils.getAdvices(any(AuthorizationDecision.class)), times(1));
                 constraintHandlerUtilsMock.verify(

@@ -31,14 +31,17 @@ import reactor.core.publisher.Mono;
  */
 @UtilityClass
 public class Utilities {
-    public final static String STRING_BASED_IMPL_MSG         = "Sapl was injected via query annotation. ";
-    public final static String METHOD_BASED_IMPL_MSG         = "Sapl was injected via the derivation of the method name. ";
-    public final static String FILTER_BASED_IMPL_MSG         = "Sapl was injected by filtering the returning data stream from the database. ";
-    public final static String FILTER_JSON_CONTENT           = "filterJsonContent";
-    public final static String FILTER_JSON_CONTENT_PREDICATE = "jsonContentFilterPredicate";
-    public final static String MONGO_QUERY_MANIPULATION      = "mongoQueryManipulation";
-    public final static String CONDITIONS                    = "conditions";
-    public final static String TYPE                          = "type";
+    public static String STRING_BASED_IMPL_MSG         = "Sapl was injected via query annotation. ";
+    public static String METHOD_BASED_IMPL_MSG         = "Sapl was injected via the derivation of the method name. ";
+    public static String FILTER_BASED_IMPL_MSG         = "Sapl was injected by filtering the returning data stream from the database. ";
+    public static String FILTER_JSON_CONTENT           = "filterJsonContent";
+    public static String FILTER_JSON_CONTENT_PREDICATE = "jsonContentFilterPredicate";
+    public static String MONGO_QUERY_MANIPULATION      = "mongoQueryManipulation";
+    public static String CONDITIONS                    = "conditions";
+    public static String TYPE                          = "type";
+
+    private static Pattern PREFIX_TEMPLATE = Pattern.compile( //
+            "^(find|read|get|query|search|stream)(\\p{Lu}.*?)??By");
 
     /**
      * Checks whether a method name is suitable for deriving a query.
@@ -47,8 +50,6 @@ public class Utilities {
      * @return true, if a method is suitable for deriving a query.
      */
     public static boolean isMethodNameValid(String methodName) {
-        var PREFIX_TEMPLATE = Pattern.compile("^(find|read|get|query|search|stream)(\\p{Lu}.*?)??By");
-
         var matcher = PREFIX_TEMPLATE.matcher(methodName);
 
         return matcher.find();

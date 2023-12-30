@@ -35,7 +35,7 @@ class OperatorTest {
     @Test
     void when_keywordExist_then_returnOperation() {
         Operator result = Operator.getOperatorByKeyword(">=");
-        Assertions.assertEquals(result, Operator.GREATER_THAN_EQUAL);
+        Assertions.assertEquals(Operator.GREATER_THAN_EQUAL, result);
     }
 
     @Test

@@ -19,11 +19,16 @@ package io.sapl.springdatamongoreactive;
 
 import org.junit.jupiter.api.Test;
 
+import com.mongodb.assertions.Assertions;
+
 class SaplSpringDataMongoReactiveApplicationTest {
 
     @Test
-    public void main() {
-        SaplSpringDataMongoReactiveApplication.main(new String[] {});
+    void main() {
+        String[] args = new String[] {};
+        SaplSpringDataMongoReactiveApplication.main(args);
+
+        Assertions.assertTrue(args.length == 0);
     }
 
 }

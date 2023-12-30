@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatamongoreactive.sapl.queryTypes.methodNameEnforcement;
+package io.sapl.springdatamongoreactive.sapl.querytypes.methodnameenforcement;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -92,7 +92,7 @@ public class SaplPartTreeCriteriaCreator<T> {
         // Creates an object list of all values of all SaplParameters
         saplParametersFromMethod.addAll(saplParametersFromObligation);
 
-        var allParameters = new ArrayList<>();
+        var allParameters = new ArrayList<Object>();
         for (SaplCondition parameter : saplParametersFromMethod) {
             allParameters.add(parameter.value());
         }

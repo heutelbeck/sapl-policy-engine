@@ -25,6 +25,11 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 public class OidObjectMapper extends ObjectMapper {
 
     /**
+     *
+     */
+    private static final long serialVersionUID = -1238167469457710403L;
+
+    /**
      * A modified ObjectMapper to handle {@link ObjectId}s.
      */
     public OidObjectMapper() {

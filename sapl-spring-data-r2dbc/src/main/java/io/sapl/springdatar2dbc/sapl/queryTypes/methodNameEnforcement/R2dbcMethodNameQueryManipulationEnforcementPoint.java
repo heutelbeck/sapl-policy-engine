@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatar2dbc.sapl.queryTypes.methodNameEnforcement;
+package io.sapl.springdatar2dbc.sapl.querytypes.methodnameenforcement;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.springdatar2dbc.sapl.QueryManipulationExecutor;
@@ -31,10 +31,8 @@ import lombok.SneakyThrows;
 import org.springframework.security.access.AccessDeniedException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
 import java.util.Objects;
 import java.util.function.Function;
-import java.util.logging.Logger;
 
 import static io.sapl.springdatar2dbc.sapl.utils.ConstraintHandlerUtils.*;
 
@@ -48,14 +46,15 @@ import static io.sapl.springdatar2dbc.sapl.utils.ConstraintHandlerUtils.*;
 public class R2dbcMethodNameQueryManipulationEnforcementPoint<T> implements QueryManipulationEnforcementPoint<T> {
     private final R2dbcQueryManipulationObligationProvider r2dbcQueryManipulationObligationProvider = new R2dbcQueryManipulationObligationProvider();
     private final LoggingConstraintHandlerProvider         loggingConstraintHandlerProvider         = new LoggingConstraintHandlerProvider();
-    private final Logger                                   logger                                   = Logger
-            .getLogger(R2dbcMethodNameQueryManipulationEnforcementPoint.class.getName());
     private final DataManipulationHandler<T>               dataManipulationHandler;
-    private final QueryManipulationEnforcementData<T>      enforcementData;
+    private final QueryManipulationExecutor                queryManipulationExecutor;
+
+    private final QueryManipulationEnforcementData<T> enforcementData;
 
     public R2dbcMethodNameQueryManipulationEnforcementPoint(QueryManipulationEnforcementData<T> enforcementData) {
-        this.enforcementData         = enforcementData;
-        this.dataManipulationHandler = new DataManipulationHandler<>(enforcementData.getDomainType());
+        this.enforcementData           = enforcementData;
+        this.dataManipulationHandler   = new DataManipulationHandler<T>(enforcementData.getDomainType());
+        this.queryManipulationExecutor = new QueryManipulationExecutor(enforcementData.getBeanFactory());
     }
 
     /**
@@ -79,7 +78,7 @@ public class R2dbcMethodNameQueryManipulationEnforcementPoint<T> implements Quer
      * @return database objects that may have been filtered and/or transformed.
      */
     public Function<AuthorizationDecision, Flux<T>> enforceDecision() {
-        return (decision) -> {
+        return decision -> {
             var decisionIsPermit = Decision.PERMIT == decision.getDecision();
             var advice           = getAdvices(decision);
 
@@ -129,10 +128,7 @@ public class R2dbcMethodNameQueryManipulationEnforcementPoint<T> implements Quer
     private Flux<T> enforceQueryManipulation(JsonNode obligations) {
         var manipulatedCondition = createSqlQuery(obligations);
 
-        logger.info("Manipulated condition: [" + manipulatedCondition + "]");
-
-        return QueryManipulationExecutor
-                .execute(manipulatedCondition, enforcementData.getBeanFactory(), enforcementData.getDomainType())
+        return queryManipulationExecutor.execute(manipulatedCondition, enforcementData.getDomainType())
                 .map(dataManipulationHandler.toDomainObject());
     }
 

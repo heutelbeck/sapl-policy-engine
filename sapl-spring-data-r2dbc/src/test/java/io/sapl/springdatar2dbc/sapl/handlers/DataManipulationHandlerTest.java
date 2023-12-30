@@ -134,25 +134,25 @@ class DataManipulationHandlerTest {
 
         // THEN
         StepVerifier.create(result).expectNextMatches(testUser -> {
-            Assertions.assertEquals(testUser.getId(), malinda.getId());
-            Assertions.assertEquals(testUser.getAge(), 0);
-            Assertions.assertEquals(testUser.getFirstname(), "Ma█████");
-            Assertions.assertEquals(testUser.getLastname(), malinda.getLastname());
-            Assertions.assertEquals(testUser.getRole(), malinda.getRole());
+            Assertions.assertEquals(malinda.getId(), testUser.getId());
+            Assertions.assertEquals(0, testUser.getAge());
+            Assertions.assertEquals("Ma█████", testUser.getFirstname());
+            Assertions.assertEquals(malinda.getLastname(), testUser.getLastname());
+            Assertions.assertEquals(malinda.getRole(), testUser.getRole());
             return true;
         }).expectNextMatches(testUser -> {
-            Assertions.assertEquals(testUser.getId(), emerson.getId());
-            Assertions.assertEquals(testUser.getAge(), 0);
-            Assertions.assertEquals(testUser.getFirstname(), "Em█████");
-            Assertions.assertEquals(testUser.getLastname(), emerson.getLastname());
-            Assertions.assertEquals(testUser.getRole(), emerson.getRole());
+            Assertions.assertEquals(emerson.getId(), testUser.getId());
+            Assertions.assertEquals(0, testUser.getAge());
+            Assertions.assertEquals("Em█████", testUser.getFirstname());
+            Assertions.assertEquals(emerson.getLastname(), testUser.getLastname());
+            Assertions.assertEquals(emerson.getRole(), testUser.getRole());
             return true;
         }).expectNextMatches(testUser -> {
-            Assertions.assertEquals(testUser.getId(), yul.getId());
-            Assertions.assertEquals(testUser.getAge(), 0);
-            Assertions.assertEquals(testUser.getFirstname(), "Yu█");
-            Assertions.assertEquals(testUser.getLastname(), yul.getLastname());
-            Assertions.assertEquals(testUser.getRole(), yul.getRole());
+            Assertions.assertEquals(yul.getId(), testUser.getId());
+            Assertions.assertEquals(0, testUser.getAge());
+            Assertions.assertEquals("Yu█", testUser.getFirstname());
+            Assertions.assertEquals(yul.getLastname(), testUser.getLastname());
+            Assertions.assertEquals(yul.getRole(), testUser.getRole());
             return true;
         }).expectComplete().verify();
 
@@ -180,11 +180,11 @@ class DataManipulationHandlerTest {
 
         // THEN
         StepVerifier.create(result).expectNextMatches(testUser -> {
-            Assertions.assertEquals(testUser.getId(), malinda.getId());
-            Assertions.assertEquals(testUser.getAge(), 0);
-            Assertions.assertEquals(testUser.getFirstname(), "Ma█████");
-            Assertions.assertEquals(testUser.getLastname(), malinda.getLastname());
-            Assertions.assertEquals(testUser.getRole(), malinda.getRole());
+            Assertions.assertEquals(malinda.getId(), testUser.getId());
+            Assertions.assertEquals(0, testUser.getAge());
+            Assertions.assertEquals("Ma█████", testUser.getFirstname());
+            Assertions.assertEquals(malinda.getLastname(), testUser.getLastname());
+            Assertions.assertEquals(malinda.getRole(), testUser.getRole());
             return true;
         }).expectComplete().verify();
 

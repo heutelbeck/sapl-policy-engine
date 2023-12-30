@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatar2dbc.sapl.queryTypes.filterEnforcement;
+package io.sapl.springdatar2dbc.sapl.querytypes.filterenforcement;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -44,7 +44,7 @@ import java.util.List;
 
 import static org.mockito.Mockito.*;
 
-public class ProceededDataFilterEnforcementPointTest {
+class ProceededDataFilterEnforcementPointTest {
 
     final Person malinda = new Person(1, "Malinda", "Perrot", 53, Role.ADMIN, true);
     final Person emerson = new Person(2, "Emerson", "Rowat", 82, Role.USER, false);
@@ -58,14 +58,14 @@ public class ProceededDataFilterEnforcementPointTest {
     EmbeddedPolicyDecisionPoint      pdpMock;
 
     @BeforeEach
-    public void beforeEach() {
+    void beforeEach() {
         constraintHandlerUtilsMock           = mockStatic(ConstraintHandlerUtils.class);
         loggingConstraintHandlerProviderMock = mock(LoggingConstraintHandlerProvider.class);
         pdpMock                              = mock(EmbeddedPolicyDecisionPoint.class);
     }
 
     @AfterEach
-    public void cleanUp() {
+    void cleanUp() {
         constraintHandlerUtilsMock.close();
     }
 
@@ -75,8 +75,9 @@ public class ProceededDataFilterEnforcementPointTest {
             "findAllByFirstname", new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of("Cathrin")), null);
 
     @Test
-    public void when_actionWasFoundInPolicies_then_enforce() throws JsonProcessingException {
-        try (MockedConstruction<DataManipulationHandler> dataManipulationHandlerMockedConstruction = Mockito
+    void when_actionWasFoundInPolicies_then_enforce() throws JsonProcessingException {
+        try (@SuppressWarnings("rawtypes")
+        MockedConstruction<DataManipulationHandler> dataManipulationHandlerMockedConstruction = Mockito
                 .mockConstruction(DataManipulationHandler.class)) {
             // GIVEN
             var obligations     = objectMapper.readTree(
@@ -91,7 +92,7 @@ public class ProceededDataFilterEnforcementPointTest {
             // WHEN
             when(pdpMock.decide(any(AuthorizationSubscription.class)))
                     .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT)));
-            when(dataManipulationHandler.manipulate(eq(obligations))).thenReturn((data) -> this.data);
+            when(dataManipulationHandler.manipulate(obligations)).thenReturn((data) -> this.data);
             constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getAdvices(any(AuthorizationDecision.class)))
                     .thenReturn(JsonNodeFactory.instance.nullNode());
             constraintHandlerUtilsMock
@@ -102,14 +103,15 @@ public class ProceededDataFilterEnforcementPointTest {
             // THEN
             StepVerifier.create(testUserFlux).expectNext(malinda).expectNext(emerson).expectNext(yul).verifyComplete();
 
-            verify(dataManipulationHandler, times(1)).manipulate(eq(obligations));
+            verify(dataManipulationHandler, times(1)).manipulate(obligations);
         }
     }
 
     @Test
-    public void when_actionWasFoundInPoliciesButProceededDataCantBeConverted_then_throwRuntimeException()
+    void when_actionWasFoundInPoliciesButProceededDataCantBeConverted_then_throwRuntimeException()
             throws JsonProcessingException {
-        try (MockedConstruction<DataManipulationHandler> dataManipulationHandlerMockedConstruction = Mockito
+        try (@SuppressWarnings("rawtypes")
+        MockedConstruction<DataManipulationHandler> dataManipulationHandlerMockedConstruction = Mockito
                 .mockConstruction(DataManipulationHandler.class)) {
             // GIVEN
             MethodInvocationForTesting r2dbcMethodInvocationTest           = new MethodInvocationForTesting(
@@ -125,7 +127,7 @@ public class ProceededDataFilterEnforcementPointTest {
                     enforcementData);
 
             var dataManipulationHandler = dataManipulationHandlerMockedConstruction.constructed().get(0);
-            when(dataManipulationHandler.manipulate(eq(obligations))).thenReturn((data) -> this.data);
+            when(dataManipulationHandler.manipulate(obligations)).thenReturn((data) -> this.data);
             constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getAdvices(any(AuthorizationDecision.class)))
                     .thenReturn(JsonNodeFactory.instance.nullNode());
             constraintHandlerUtilsMock
@@ -140,12 +142,12 @@ public class ProceededDataFilterEnforcementPointTest {
             // THEN
             StepVerifier.create(accessDeniedException).expectError(RuntimeException.class).verify();
 
-            verify(dataManipulationHandler, times(0)).manipulate(eq(obligations));
+            verify(dataManipulationHandler, times(0)).manipulate(obligations);
         }
     }
 
     @Test
-    public void when_actionWasFoundInPoliciesButDecisionIsDeny_then_throwAccessDeniedException() {
+    void when_actionWasFoundInPoliciesButDecisionIsDeny_then_throwAccessDeniedException() {
         // GIVEN
         var authSub                             = AuthorizationSubscription.of("", "denyTest", "");
         var enforcementData                     = new QueryManipulationEnforcementData<>(r2dbcMethodInvocationTest,
@@ -162,7 +164,7 @@ public class ProceededDataFilterEnforcementPointTest {
     }
 
     @Test
-    public void when_actionWasNotFoundInPolicies_then_throwAccessDeniedException() {
+    void when_actionWasNotFoundInPolicies_then_throwAccessDeniedException() {
         // GIVEN
         var authSub                             = AuthorizationSubscription.of("", "noCorrectAction", "");
         var enforcementData                     = new QueryManipulationEnforcementData<>(r2dbcMethodInvocationTest,
