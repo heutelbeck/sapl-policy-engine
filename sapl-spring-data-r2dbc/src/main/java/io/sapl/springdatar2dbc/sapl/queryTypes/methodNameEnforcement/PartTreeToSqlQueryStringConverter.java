@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatar2dbc.sapl.queryTypes.methodNameEnforcement;
+package io.sapl.springdatar2dbc.sapl.querytypes.methodnameenforcement;
 
 import io.sapl.springdatar2dbc.sapl.Operator;
 import io.sapl.springdatar2dbc.sapl.QueryManipulationEnforcementData;
@@ -37,16 +37,6 @@ import static io.sapl.springdatar2dbc.sapl.utils.Utilities.isString;
  */
 @UtilityClass
 public class PartTreeToSqlQueryStringConverter {
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Own solution based on Spring data solution without invoking Spring data
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////// methods
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////// to
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////// create
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////// query
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////// (String)
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////// //
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * Builds the corresponding Sql-Query with the information of a
@@ -79,7 +69,7 @@ public class PartTreeToSqlQueryStringConverter {
                 currentOrPart.add(and(partsIterator.next(), argumentIterator.next(), domainType));
             }
 
-            baseConditions = baseConditions.size() == 0 ? currentOrPart : or(baseConditions, currentOrPart);
+            baseConditions = baseConditions.isEmpty() ? currentOrPart : or(baseConditions, currentOrPart);
         }
 
         return toString(baseConditions, partTree.getSort().get());
@@ -105,7 +95,7 @@ public class PartTreeToSqlQueryStringConverter {
             }
         }
 
-        if (orders.size() > 0) {
+        if (!orders.isEmpty()) {
             stringBuilder.append(" ORDER BY");
             for (int i = 0; i < orders.size(); i++) {
                 if (i == 0) {
@@ -157,11 +147,15 @@ public class PartTreeToSqlQueryStringConverter {
      * @return the transformed list as string.
      */
     private String createSqlArgumentArray(Object arg) {
-        var arguments = (List<String>) arg;
-        var arrayList = new ArrayList<>();
+        List<?> arguments = (List<?>) arg;
 
-        for (String argument : arguments) {
-            arrayList.add(toSqlConditionString(argument));
+        var arrayList = new ArrayList<String>();
+
+        for (Object argument : arguments) {
+            if (argument instanceof String) {
+                var stringArgument = (String) argument;
+                arrayList.add(toSqlConditionString(stringArgument));
+            }
         }
 
         return replaceSquareBracketsWithRoundBrackets(arrayList);

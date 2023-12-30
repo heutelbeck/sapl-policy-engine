@@ -35,7 +35,7 @@ class OperatorTest {
     @Test
     void when_keywordExist_then_returnOperation() {
         Operator result = Operator.getOperatorByKeyword("$lte");
-        Assertions.assertEquals(result, Operator.LESS_THAN_EQUAL);
+        Assertions.assertEquals(Operator.LESS_THAN_EQUAL, result);
     }
 
     @Test

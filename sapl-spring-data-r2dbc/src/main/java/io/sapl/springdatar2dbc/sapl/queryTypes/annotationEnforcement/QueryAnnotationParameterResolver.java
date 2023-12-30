@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatar2dbc.sapl.queryTypes.annotationEnforcement;
+package io.sapl.springdatar2dbc.sapl.querytypes.annotationenforcement;
 
 import io.sapl.springdatar2dbc.sapl.utils.Utilities;
 import lombok.experimental.UtilityClass;

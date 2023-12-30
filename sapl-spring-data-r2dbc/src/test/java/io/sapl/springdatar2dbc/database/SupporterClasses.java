@@ -15,16 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatar2dbc;
+package io.sapl.springdatar2dbc.database;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import io.sapl.springdatar2dbc.sapl.handlers.DataManipulationHandler;
 
-@SpringBootApplication
-public class SaplSpringDataR2dbcApplication {
+public class SupporterClasses {
 
-    public static void main(String[] args) {
-        SpringApplication.run(SaplSpringDataR2dbcApplication.class, args);
+    public static class DataManipulationHandlerPerson extends DataManipulationHandler<Person> {
+
+        public DataManipulationHandlerPerson(Class<Person> domainType) {
+            super(domainType);
+            // TODO Auto-generated constructor stub
+        }
+
     }
 
 }

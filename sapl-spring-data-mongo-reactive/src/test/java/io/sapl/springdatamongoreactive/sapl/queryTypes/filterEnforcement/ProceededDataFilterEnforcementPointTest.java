@@ -15,10 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatamongoreactive.sapl.queryTypes.filterEnforcement;
+package io.sapl.springdatamongoreactive.sapl.querytypes.filterenforcement;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
@@ -54,7 +53,7 @@ import io.sapl.springdatamongoreactive.sapl.utils.ConstraintHandlerUtils;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
-public class ProceededDataFilterEnforcementPointTest {
+class ProceededDataFilterEnforcementPointTest {
 
     final TestUser aaron   = new TestUser(new ObjectId(), "Aaron", 20);
     final TestUser brian   = new TestUser(new ObjectId(), "Brian", 21);
@@ -66,7 +65,7 @@ public class ProceededDataFilterEnforcementPointTest {
     EmbeddedPolicyDecisionPoint      pdpMock;
 
     @BeforeEach
-    public void beforeEach() {
+    void beforeEach() {
         constraintHandlerUtilsMock           = mockStatic(ConstraintHandlerUtils.class);
         loggingConstraintHandlerProviderMock = mock(LoggingConstraintHandlerProvider.class);
         pdpMock                              = mock(EmbeddedPolicyDecisionPoint.class);
@@ -82,9 +81,10 @@ public class ProceededDataFilterEnforcementPointTest {
             "findAllByFirstname", new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of("Cathrin")), null);
 
     @Test
-    public void when_actionWasFoundInPolicies_then_enforce() throws JsonProcessingException {
+    void when_actionWasFoundInPolicies_then_enforce() throws JsonProcessingException {
         var objectMapper = new ObjectMapper();
-        try (MockedConstruction<DataManipulationHandler> dataManipulationHandlerMockedConstruction = Mockito
+        try (@SuppressWarnings("rawtypes")
+        MockedConstruction<DataManipulationHandler> dataManipulationHandlerMockedConstruction = Mockito
                 .mockConstruction(DataManipulationHandler.class)) {
             // GIVEN
             var obligations     = objectMapper.readTree(
@@ -99,7 +99,7 @@ public class ProceededDataFilterEnforcementPointTest {
             // WHEN
             when(pdpMock.decide(any(AuthorizationSubscription.class)))
                     .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT)));
-            when(dataManipulationHandler.manipulate(eq(obligations))).thenReturn((data) -> this.data);
+            when(dataManipulationHandler.manipulate(obligations)).thenReturn((data) -> this.data);
             constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getAdvices(any(AuthorizationDecision.class)))
                     .thenReturn(JsonNodeFactory.instance.nullNode());
             constraintHandlerUtilsMock
@@ -110,15 +110,16 @@ public class ProceededDataFilterEnforcementPointTest {
             // THEN
             StepVerifier.create(testUserFlux).expectNext(aaron).expectNext(brian).expectNext(cathrin).verifyComplete();
 
-            verify(dataManipulationHandler, times(1)).manipulate(eq(obligations));
+            verify(dataManipulationHandler, times(1)).manipulate(obligations);
         }
     }
 
     @Test
-    public void when_actionWasFoundInPoliciesButProceededDataCantBeConverted_then_throwRuntimeException()
+    void when_actionWasFoundInPoliciesButProceededDataCantBeConverted_then_throwRuntimeException()
             throws JsonProcessingException {
         var objectMapper = new ObjectMapper();
-        try (MockedConstruction<DataManipulationHandler> dataManipulationHandlerMockedConstruction = Mockito
+        try (@SuppressWarnings("rawtypes")
+        MockedConstruction<DataManipulationHandler> dataManipulationHandlerMockedConstruction = Mockito
                 .mockConstruction(DataManipulationHandler.class)) {
             // GIVEN
             var mongoMethodInvocationTest           = new MethodInvocationForTesting("findAllByFirstname",
@@ -131,7 +132,7 @@ public class ProceededDataFilterEnforcementPointTest {
             var proceededDataFilterEnforcementPoint = new ProceededDataFilterEnforcementPoint<>(enforcementData);
 
             var dataManipulationHandler = dataManipulationHandlerMockedConstruction.constructed().get(0);
-            when(dataManipulationHandler.manipulate(eq(obligations))).thenReturn((data) -> this.data);
+            when(dataManipulationHandler.manipulate(obligations)).thenReturn((data) -> this.data);
             constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getAdvices(any(AuthorizationDecision.class)))
                     .thenReturn(JsonNodeFactory.instance.nullNode());
             constraintHandlerUtilsMock
@@ -146,12 +147,12 @@ public class ProceededDataFilterEnforcementPointTest {
             // THEN
             StepVerifier.create(accessDeniedException).expectError(RuntimeException.class).verify();
 
-            verify(dataManipulationHandler, times(0)).manipulate(eq(obligations));
+            verify(dataManipulationHandler, times(0)).manipulate(obligations);
         }
     }
 
     @Test
-    public void when_actionWasFoundInPoliciesButDecisionIsDeny_then_throwAccessDeniedException() {
+    void when_actionWasFoundInPoliciesButDecisionIsDeny_then_throwAccessDeniedException() {
         // GIVEN
         var authSub                             = AuthorizationSubscription.of("", "denyTest", "");
         var enforcementData                     = new QueryManipulationEnforcementData<>(mongoMethodInvocationTest,
@@ -168,7 +169,7 @@ public class ProceededDataFilterEnforcementPointTest {
     }
 
     @Test
-    public void when_actionWasNotFoundInPolicies_then_throwAccessDeniedException() {
+    void when_actionWasNotFoundInPolicies_then_throwAccessDeniedException() {
         // GIVEN
         var authSub                             = AuthorizationSubscription.of("", "noCorrectAction", "");
         var enforcementData                     = new QueryManipulationEnforcementData<>(mongoMethodInvocationTest,

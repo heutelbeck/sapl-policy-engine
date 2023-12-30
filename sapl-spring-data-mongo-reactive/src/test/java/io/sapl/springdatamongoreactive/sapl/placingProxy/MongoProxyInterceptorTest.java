@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatamongoreactive.sapl.placingProxy;
+package io.sapl.springdatamongoreactive.sapl.placingproxy;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -46,6 +46,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+@SuppressWarnings("unchecked")
 class MongoProxyInterceptorTest {
 
     final TestUser aaron   = new TestUser(new ObjectId(), "Aaron", 20);
@@ -70,7 +71,7 @@ class MongoProxyInterceptorTest {
     }
 
     @Test
-    void when_authorizationSubscriptionIsNull_then_proceedMethodInvocation() {
+    void when_authorizationSubscriptionIsNull_then_throwIllegalStateException() {
         // GIVEN
         var mongoMethodInvocationTest = new MethodInvocationForTesting("findAllByAge",
                 new ArrayList<>(List.of(int.class)), new ArrayList<>(), data);
@@ -78,11 +79,15 @@ class MongoProxyInterceptorTest {
         // WHEN
         when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class))).thenReturn(null);
         var proxyMongoHandler = new MongoProxyInterceptor<>(authSubHandlerMock, beanFactoryMock, pdpMock, factoryMock);
-        var result            = (Flux<TestUser>) proxyMongoHandler.invoke(mongoMethodInvocationTest);
+
+        IllegalStateException thrown = Assertions.assertThrows(IllegalStateException.class,
+                () -> proxyMongoHandler.invoke(mongoMethodInvocationTest));
+
+        Assertions.assertEquals(
+                "The Sapl implementation for the manipulation of the database queries was recognised, but no AuthorizationSubscription was found.",
+                thrown.getMessage());
 
         // THEN
-        StepVerifier.create(result).expectNext(aaron).expectNext(brian).expectNext(cathrin).verifyComplete();
-
         verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class));
     }
 

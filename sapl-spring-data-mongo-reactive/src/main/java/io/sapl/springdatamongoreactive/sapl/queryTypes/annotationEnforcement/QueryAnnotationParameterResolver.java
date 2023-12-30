@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatamongoreactive.sapl.queryTypes.annotationEnforcement;
+package io.sapl.springdatamongoreactive.sapl.querytypes.annotationenforcement;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;

@@ -18,7 +18,7 @@
 package io.sapl.springdatar2dbc.sapl;
 
 import io.sapl.springdatar2dbc.database.Person;
-import io.sapl.springdatar2dbc.sapl.queryTypes.methodNameEnforcement.PartTreeToSqlQueryStringConverter;
+import io.sapl.springdatar2dbc.sapl.querytypes.methodnameenforcement.PartTreeToSqlQueryStringConverter;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
 import org.aopalliance.intercept.MethodInvocation;
@@ -30,7 +30,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.platform.commons.util.ReflectionUtils;
 import org.mockito.Answers;
-import org.mockito.Mock;
 import org.springframework.beans.factory.BeanFactory;
 
 import java.lang.reflect.InvocationTargetException;

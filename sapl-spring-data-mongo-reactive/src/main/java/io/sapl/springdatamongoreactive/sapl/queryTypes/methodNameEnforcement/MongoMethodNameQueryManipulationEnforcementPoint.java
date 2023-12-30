@@ -15,17 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatamongoreactive.sapl.queryTypes.methodNameEnforcement;
+package io.sapl.springdatamongoreactive.sapl.querytypes.methodnameenforcement;
 
 import java.util.Objects;
 import java.util.function.Function;
-import java.util.logging.Logger;
-
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.security.access.AccessDeniedException;
-
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
@@ -49,20 +45,18 @@ import reactor.core.publisher.Mono;
 public class MongoMethodNameQueryManipulationEnforcementPoint<T> implements QueryManipulationEnforcementPoint<T> {
     private final MongoQueryManipulationObligationProvider mongoQueryManipulationObligationProvider = new MongoQueryManipulationObligationProvider();
     private final LoggingConstraintHandlerProvider         loggingConstraintHandlerProvider         = new LoggingConstraintHandlerProvider();
-    private final Logger                                   logger                                   = Logger
-            .getLogger(MongoMethodNameQueryManipulationEnforcementPoint.class.getName());
     private final SaplPartTreeCriteriaCreator<T>           saplPartTreeCriteriaCreator;
     private final ReactiveMongoTemplate                    reactiveMongoTemplate;
     private final DataManipulationHandler<T>               dataManipulationHandler;
     private final QueryManipulationEnforcementData<T>      enforcementData;
 
     public MongoMethodNameQueryManipulationEnforcementPoint(QueryManipulationEnforcementData<T> enforcementData) {
-        this.enforcementData             = new QueryManipulationEnforcementData<>(enforcementData.getMethodInvocation(),
-                enforcementData.getBeanFactory(), enforcementData.getDomainType(), enforcementData.getPdp(),
-                enforcementData.getAuthSub());
+        this.enforcementData             = new QueryManipulationEnforcementData<T>(
+                enforcementData.getMethodInvocation(), enforcementData.getBeanFactory(),
+                enforcementData.getDomainType(), enforcementData.getPdp(), enforcementData.getAuthSub());
         this.reactiveMongoTemplate       = enforcementData.getBeanFactory().getBean(ReactiveMongoTemplate.class);
-        this.dataManipulationHandler     = new DataManipulationHandler<>(enforcementData.getDomainType());
-        this.saplPartTreeCriteriaCreator = new SaplPartTreeCriteriaCreator<>(reactiveMongoTemplate,
+        this.dataManipulationHandler     = new DataManipulationHandler<T>(enforcementData.getDomainType());
+        this.saplPartTreeCriteriaCreator = new SaplPartTreeCriteriaCreator<T>(reactiveMongoTemplate,
                 enforcementData.getMethodInvocation(), enforcementData.getDomainType());
     }
 
@@ -86,7 +80,7 @@ public class MongoMethodNameQueryManipulationEnforcementPoint<T> implements Quer
      * @return database objects that may have been filtered and/or transformed.
      */
     public Function<AuthorizationDecision, Flux<T>> enforceDecision() {
-        return (decision) -> {
+        return decision -> {
             var advice           = ConstraintHandlerUtils.getAdvices(decision);
             var decisionIsPermit = Decision.PERMIT == decision.getDecision();
 
@@ -111,8 +105,6 @@ public class MongoMethodNameQueryManipulationEnforcementPoint<T> implements Quer
      */
     private Flux<T> executeMongoQueryManipulation(JsonNode conditions) {
         var query = saplPartTreeCriteriaCreator.createManipulatedQuery(conditions);
-
-        logger.info("[" + query + "]");
 
         return reactiveMongoTemplate.find(query, enforcementData.getDomainType());
     }

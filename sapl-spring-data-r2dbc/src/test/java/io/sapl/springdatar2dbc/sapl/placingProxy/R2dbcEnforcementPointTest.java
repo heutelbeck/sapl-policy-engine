@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatar2dbc.sapl.placingProxy;
+package io.sapl.springdatar2dbc.sapl.placingproxy;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -26,7 +26,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.repository.core.RepositoryInformation;
 
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 
 @SpringBootTest
@@ -52,7 +51,7 @@ class R2dbcEnforcementPointTest {
         r2dbcEnforcementPoint.postProcess(factoryMock, repositoryInformationMock);
 
         // THEN
-        verify(factoryMock, Mockito.times(1)).addAdvice(eq(r2DbcProxyInterceptorMock));
+        verify(factoryMock, Mockito.times(1)).addAdvice(r2DbcProxyInterceptorMock);
 
     }
 }

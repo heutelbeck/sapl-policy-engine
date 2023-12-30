@@ -32,7 +32,7 @@ import reactor.core.publisher.Mono;
 
 @Repository
 public interface MongoDbRepositoryTest
-        extends ReactiveMongoRepository<TestUser, String>, MongoDbRepositoryTestCustom<TestUser, String> {
+        extends ReactiveMongoRepository<TestUser, ObjectId>, MongoDbRepositoryTestCustom<TestUser, ObjectId> {
 
     @Enforce(subject = "subject", action = "general_protection_reactive_mongo_repository", resource = "resource", environment = "environment")
     Flux<TestUser> findAllByFirstname(String firstname);
@@ -51,7 +51,7 @@ public interface MongoDbRepositoryTest
     Flux<TestUser> findAllByFirstnameOrAgeBefore(String firstname, int age);
 
     @Enforce(subject = "test", action = "test", resource = "test", environment = "{\"testNode\"!!\"testValue\"}")
-    Flux<TestUser> findById(ObjectId id);
+    Mono<TestUser> findById(ObjectId id);
 
     @Enforce(subject = "test", action = "test", resource = "#setResource('field', #firstname)", environment = "test")
     Flux<TestUser> findByIdBefore(ObjectId id);

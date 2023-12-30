@@ -28,12 +28,12 @@ import org.springframework.expression.spel.support.StandardEvaluationContext;
 public class TestConfig {
 
     @Bean
-    public BeanResolver beanFactoryResolver(BeanFactory beanFactory) {
+    BeanResolver beanFactoryResolver(BeanFactory beanFactory) {
         return new BeanFactoryResolver(beanFactory);
     }
 
     @Bean
-    public StandardEvaluationContext evaluationContext(BeanResolver beanResolver) {
+    StandardEvaluationContext evaluationContext(BeanResolver beanResolver) {
         final StandardEvaluationContext evaluationContext = new StandardEvaluationContext();
         evaluationContext.setBeanResolver(beanResolver);
         return evaluationContext;

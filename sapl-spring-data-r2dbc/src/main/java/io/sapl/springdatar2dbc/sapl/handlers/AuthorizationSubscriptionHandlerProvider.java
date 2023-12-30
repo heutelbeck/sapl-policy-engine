@@ -23,11 +23,8 @@ import lombok.SneakyThrows;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
-
-import java.util.logging.Logger;
 
 /**
  * This service takes care of obtaining the AuthorizationSubscription to execute
@@ -61,18 +58,10 @@ import java.util.logging.Logger;
  */
 @Service
 public class AuthorizationSubscriptionHandlerProvider {
-    private static final String            BEAN_FOUND_MESSAGE     = "Bean to receive specific AuthorizationSubscription Found: ";
-    private static final String            GENERAL_PROTECTION     = "generalProtection";
-    private static final String            NO_AUTH_SUB_FOUND1     = "The database method ";
-    private static final String            AUTH_SUB_IN_USE        = "Sapl is using following AuthSub: ";
-    private static final String            BEAN_NOT_FOUND_MESSAGE = "General repository protection via bean: ";
-    private static final String            NO_AUTH_SUB_FOUND2     = " received no AuthorizationSubscription. ";
+    private static final String            GENERAL_PROTECTION = "generalProtection";
     private final BeanFactory              beanFactory;
     private final EnforceAnnotationHandler enforceAnnotationHandler;
-    private final Logger                   logger                 = Logger
-            .getLogger(AuthorizationSubscriptionHandlerProvider.class.getName());
 
-    @Autowired
     public AuthorizationSubscriptionHandlerProvider(BeanFactory beanFactory,
             EnforceAnnotationHandler enforceAnnotationHandler) {
         this.beanFactory              = beanFactory;
@@ -98,7 +87,6 @@ public class AuthorizationSubscriptionHandlerProvider {
         var annotationBased = enforceAnnotationHandler.enforceAnnotation(methodInvocation);
 
         if (annotationBased != null && authSubIsComplete(annotationBased)) {
-            logger.info(AUTH_SUB_IN_USE + annotationBased);
             return annotationBased;
         }
 
@@ -108,7 +96,6 @@ public class AuthorizationSubscriptionHandlerProvider {
         if (annotationBased != null && staticBeanBased != null) {
             return mergeTwoAuthSubs(annotationBased, staticBeanBased);
         } else {
-            logger.info(AUTH_SUB_IN_USE + staticBeanBased);
             return staticBeanBased;
         }
     }
@@ -126,14 +113,12 @@ public class AuthorizationSubscriptionHandlerProvider {
         try {
             var bean = methodName + repoName;
             authorizationSubscription = (AuthorizationSubscription) beanFactory.getBean(bean);
-            logger.info(BEAN_FOUND_MESSAGE + bean);
         } catch (NoSuchBeanDefinitionException e) {
             var bean = GENERAL_PROTECTION + repoName;
             try {
                 authorizationSubscription = (AuthorizationSubscription) beanFactory.getBean(bean);
-                logger.info(BEAN_NOT_FOUND_MESSAGE + bean);
             } catch (NoSuchBeanDefinitionException er) {
-                logger.warning(NO_AUTH_SUB_FOUND1 + repoName + "." + methodName + NO_AUTH_SUB_FOUND2);
+                return authorizationSubscription;
             }
         }
         return authorizationSubscription;
@@ -176,7 +161,6 @@ public class AuthorizationSubscriptionHandlerProvider {
             environment = secondAuthSub.getEnvironment();
 
         var authSub = new AuthorizationSubscription(subject, action, resource, environment);
-        logger.info(AUTH_SUB_IN_USE + authSub);
 
         return authSub;
     }

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatamongoreactive.sapl.queryTypes.methodNameEnforcement;
+package io.sapl.springdatamongoreactive.sapl.querytypes.methodnameenforcement;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -73,6 +73,7 @@ class SaplPartTreeCriteriaCreatorTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void when_policyDecisionContainsQueryManipulationConditions_then_createManipulatedQuery() {
 
         try (MockedConstruction<MongoQueryCreatorFactory> mockedConstruction = Mockito

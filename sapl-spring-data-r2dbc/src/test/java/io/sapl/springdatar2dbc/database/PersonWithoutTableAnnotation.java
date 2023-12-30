@@ -15,16 +15,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatar2dbc;
+package io.sapl.springdatar2dbc.database;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@SpringBootApplication
-public class SaplSpringDataR2dbcApplication {
-
-    public static void main(String[] args) {
-        SpringApplication.run(SaplSpringDataR2dbcApplication.class, args);
-    }
-
+@Getter
+@Setter
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class PersonWithoutTableAnnotation {
+    int     id;
+    String  firstname;
+    String  lastname;
+    int     age;
+    Role    role;
+    boolean active;
 }

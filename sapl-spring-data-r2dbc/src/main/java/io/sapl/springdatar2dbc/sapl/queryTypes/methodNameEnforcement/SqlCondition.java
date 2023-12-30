@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatar2dbc.sapl.queryTypes.methodNameEnforcement;
+package io.sapl.springdatar2dbc.sapl.querytypes.methodnameenforcement;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

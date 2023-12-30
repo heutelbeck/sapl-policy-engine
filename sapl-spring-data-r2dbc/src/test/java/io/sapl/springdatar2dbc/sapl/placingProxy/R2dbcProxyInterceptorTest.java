@@ -15,17 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatar2dbc.sapl.placingProxy;
+package io.sapl.springdatar2dbc.sapl.placingproxy;
 
 import io.sapl.springdatar2dbc.database.MethodInvocationForTesting;
 import io.sapl.springdatar2dbc.database.Person;
 import io.sapl.springdatar2dbc.database.Role;
 import io.sapl.springdatar2dbc.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatar2dbc.sapl.QueryManipulationEnforcementPointFactory;
-import io.sapl.springdatar2dbc.sapl.queryTypes.filterEnforcement.ProceededDataFilterEnforcementPoint;
+import io.sapl.springdatar2dbc.sapl.querytypes.annotationenforcement.R2dbcAnnotationQueryManipulationEnforcementPoint;
+import io.sapl.springdatar2dbc.sapl.querytypes.filterenforcement.ProceededDataFilterEnforcementPoint;
+import io.sapl.springdatar2dbc.sapl.querytypes.methodnameenforcement.R2dbcMethodNameQueryManipulationEnforcementPoint;
 import io.sapl.springdatar2dbc.sapl.handlers.AuthorizationSubscriptionHandlerProvider;
-import io.sapl.springdatar2dbc.sapl.queryTypes.annotationEnforcement.R2dbcAnnotationQueryManipulationEnforcementPoint;
-import io.sapl.springdatar2dbc.sapl.queryTypes.methodNameEnforcement.R2dbcMethodNameQueryManipulationEnforcementPoint;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
@@ -59,10 +59,12 @@ class R2dbcProxyInterceptorTest {
     EmbeddedPolicyDecisionPoint                              pdpMock;
 
     @BeforeEach
+    @SuppressWarnings("unchecked")
     void beforeEach() {
-        authSubHandlerMock                                   = mock(AuthorizationSubscriptionHandlerProvider.class);
-        factoryMock                                          = mock(QueryManipulationEnforcementPointFactory.class);
-        beanFactoryMock                                      = mock(BeanFactory.class);
+        authSubHandlerMock = mock(AuthorizationSubscriptionHandlerProvider.class);
+        factoryMock        = mock(QueryManipulationEnforcementPointFactory.class);
+        beanFactoryMock    = mock(BeanFactory.class);
+
         r2dbcAnnotationQueryManipulationEnforcementPointMock = mock(
                 R2dbcAnnotationQueryManipulationEnforcementPoint.class);
         r2dbcMethodNameQueryManipulationEnforcementPointMock = mock(
@@ -72,7 +74,7 @@ class R2dbcProxyInterceptorTest {
     }
 
     @Test
-    void when_authorizationSubscriptionIsNull_then_proceedMethodInvocation() {
+    void when_authorizationSubscriptionIsNull_then_throwIllegalStateException() {
         // GIVEN
         var methodInvocationMock = new MethodInvocationForTesting("findAllBy", new ArrayList<>(), new ArrayList<>(),
                 data);
@@ -82,15 +84,20 @@ class R2dbcProxyInterceptorTest {
                 .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT)));
         when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class))).thenReturn(null);
         var proxyR2dbcHandler = new R2dbcProxyInterceptor<>(authSubHandlerMock, beanFactoryMock, pdpMock, factoryMock);
-        var result            = (Flux<Person>) proxyR2dbcHandler.invoke(methodInvocationMock);
+
+        IllegalStateException thrown = Assertions.assertThrows(IllegalStateException.class,
+                () -> proxyR2dbcHandler.invoke(methodInvocationMock));
+
+        Assertions.assertEquals(
+                "The Sapl implementation for the manipulation of the database queries was recognised, but no AuthorizationSubscription was found.",
+                thrown.getMessage());
 
         // THEN
-        StepVerifier.create(result).expectNext(malinda).expectNext(emerson).expectNext(yul).verifyComplete();
-
         verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void when_repositoryMethodHasAnnotationQuery_then_callAnnotationQueryEnforcementPoint() {
         // GIVEN
         var authSub              = AuthorizationSubscription.of("subject", "permitTest", "resource", "environment");
@@ -120,6 +127,7 @@ class R2dbcProxyInterceptorTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void when_repositoryMethodIsQueryMethod_then_callMongoMethodNameQueryManipulationEnforcementPoint() {
         // GIVEN
         var authSub              = AuthorizationSubscription.of("subject", "permitTest", "resource", "environment");
@@ -149,6 +157,7 @@ class R2dbcProxyInterceptorTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void when_repositoryMethodIsQueryMethod_then_callProceededDataFilterEnforcementPoint() {
         // GIVEN
         var authSub              = AuthorizationSubscription.of("subject", "permitTest", "resource", "environment");
@@ -177,6 +186,7 @@ class R2dbcProxyInterceptorTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void when_repositoryMethodIsQueryMethodAndReturnTypeIsMono_then_callMongoMethodNameQueryManipulationEnforcementPoint() {
         // GIVEN
         var authSub              = AuthorizationSubscription.of("subject", "permitTest", "resource", "environment");
@@ -206,6 +216,7 @@ class R2dbcProxyInterceptorTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void when_repositoryMethodIsQueryMethodAndReturnTypeIsList_then_callMongoMethodNameQueryManipulationEnforcementPoint() {
 
         // GIVEN
@@ -236,6 +247,7 @@ class R2dbcProxyInterceptorTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void when_repositoryMethodIsQueryMethodAndReturnTypeIsStream_then_throwNotImplementedError() {
 
         // GIVEN
@@ -269,6 +281,7 @@ class R2dbcProxyInterceptorTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void when_repositoryMethodHasNoSaplProtectedAnnotation_then_proceedMethodCall() {
         // GIVEN
         var authSub              = AuthorizationSubscription.of("subject", "permitTest", "resource", "environment");

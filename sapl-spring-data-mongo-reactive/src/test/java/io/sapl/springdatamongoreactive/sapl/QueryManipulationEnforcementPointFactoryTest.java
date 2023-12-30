@@ -33,9 +33,9 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
 import io.sapl.springdatamongoreactive.sapl.database.MethodInvocationForTesting;
 import io.sapl.springdatamongoreactive.sapl.database.TestUser;
-import io.sapl.springdatamongoreactive.sapl.queryTypes.annotationEnforcement.MongoAnnotationQueryManipulationEnforcementPoint;
-import io.sapl.springdatamongoreactive.sapl.queryTypes.filterEnforcement.ProceededDataFilterEnforcementPoint;
-import io.sapl.springdatamongoreactive.sapl.queryTypes.methodNameEnforcement.MongoMethodNameQueryManipulationEnforcementPoint;
+import io.sapl.springdatamongoreactive.sapl.querytypes.filterenforcement.ProceededDataFilterEnforcementPoint;
+import io.sapl.springdatamongoreactive.sapl.querytypes.methodnameenforcement.MongoMethodNameQueryManipulationEnforcementPoint;
+import io.sapl.springdatamongoreactive.sapl.querytypes.annotationenforcement.MongoAnnotationQueryManipulationEnforcementPoint;
 
 @SpringBootTest
 class QueryManipulationEnforcementPointFactoryTest {
@@ -55,13 +55,14 @@ class QueryManipulationEnforcementPointFactoryTest {
     @Test
     void createMongoAnnotationQueryManipulationEnforcementPoint() {
 
-        try (MockedConstruction<MongoAnnotationQueryManipulationEnforcementPoint> mongoAnnotationQueryManipulationEnforcementPointMockedConstruction = Mockito
+        try (@SuppressWarnings("rawtypes")
+        MockedConstruction<MongoAnnotationQueryManipulationEnforcementPoint> mongoAnnotationQueryManipulationEnforcementPointMockedConstruction = Mockito
                 .mockConstruction(MongoAnnotationQueryManipulationEnforcementPoint.class)) {
 
             // GIVEN
             var authSub         = AuthorizationSubscription.of("subject", "permitTest", "resource", "environment");
-            var enforcementData = new QueryManipulationEnforcementData<>(mongoMethodInvocationTest, beanFactoryMock,
-                    TestUser.class, pdpMock, authSub);
+            var enforcementData = new QueryManipulationEnforcementData<TestUser>(mongoMethodInvocationTest,
+                    beanFactoryMock, TestUser.class, pdpMock, authSub);
 
             // WHEN
             var result = queryManipulationEnforcementPointFactory
@@ -77,13 +78,14 @@ class QueryManipulationEnforcementPointFactoryTest {
     @Test
     void createMongoMethodNameQueryManipulationEnforcementPoint() {
 
-        try (MockedConstruction<MongoMethodNameQueryManipulationEnforcementPoint> mongoMethodNameQueryManipulationEnforcementPointMockedConstruction = Mockito
+        try (@SuppressWarnings("rawtypes")
+        MockedConstruction<MongoMethodNameQueryManipulationEnforcementPoint> mongoMethodNameQueryManipulationEnforcementPointMockedConstruction = Mockito
                 .mockConstruction(MongoMethodNameQueryManipulationEnforcementPoint.class)) {
 
             // GIVEN
             var authSub         = AuthorizationSubscription.of("subject", "permitTest", "resource", "environment");
-            var enforcementData = new QueryManipulationEnforcementData<>(mongoMethodInvocationTest, beanFactoryMock,
-                    TestUser.class, pdpMock, authSub);
+            var enforcementData = new QueryManipulationEnforcementData<TestUser>(mongoMethodInvocationTest,
+                    beanFactoryMock, TestUser.class, pdpMock, authSub);
 
             // WHEN
             var result = queryManipulationEnforcementPointFactory
@@ -99,13 +101,14 @@ class QueryManipulationEnforcementPointFactoryTest {
     @Test
     void createProceededDataFilterEnforcementPoint() {
 
-        try (MockedConstruction<ProceededDataFilterEnforcementPoint> proceededDataFilterEnforcementPointMockedConstruction = Mockito
+        try (@SuppressWarnings("rawtypes")
+        MockedConstruction<ProceededDataFilterEnforcementPoint> proceededDataFilterEnforcementPointMockedConstruction = Mockito
                 .mockConstruction(ProceededDataFilterEnforcementPoint.class)) {
 
             // GIVEN
             var authSub         = AuthorizationSubscription.of("subject", "permitTest", "resource", "environment");
-            var enforcementData = new QueryManipulationEnforcementData<>(mongoMethodInvocationTest, beanFactoryMock,
-                    TestUser.class, pdpMock, authSub);
+            var enforcementData = new QueryManipulationEnforcementData<TestUser>(mongoMethodInvocationTest,
+                    beanFactoryMock, TestUser.class, pdpMock, authSub);
 
             // WHEN
             var result = queryManipulationEnforcementPointFactory

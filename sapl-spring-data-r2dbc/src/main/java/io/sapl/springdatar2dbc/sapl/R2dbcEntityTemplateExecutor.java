@@ -15,16 +15,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatar2dbc;
+package io.sapl.springdatar2dbc.sapl;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import java.util.Map;
 
-@SpringBootApplication
-public class SaplSpringDataR2dbcApplication {
+import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 
-    public static void main(String[] args) {
-        SpringApplication.run(SaplSpringDataR2dbcApplication.class, args);
+import reactor.core.publisher.Flux;
+
+public class R2dbcEntityTemplateExecutor {
+
+    private R2dbcEntityTemplate r2dbcEntityTemplate;
+
+    public R2dbcEntityTemplateExecutor(R2dbcEntityTemplate r2dbcEntityTemplate) {
+        this.r2dbcEntityTemplate = r2dbcEntityTemplate;
+    }
+
+    Flux<Map<String, Object>> executeQuery(String sqlQuery) {
+        return r2dbcEntityTemplate.getDatabaseClient().sql(sqlQuery).fetch().all();
     }
 
 }

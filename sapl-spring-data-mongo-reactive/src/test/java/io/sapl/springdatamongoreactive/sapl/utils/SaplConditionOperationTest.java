@@ -81,7 +81,7 @@ class SaplConditionOperationTest {
         saplConditions.add(new SaplCondition("age", 30, Operator.GREATER_THAN, "And"));
         saplConditions
                 .add(new SaplCondition("firstname", new ArrayList<>(List.of("Cathrin", "Aaron")), Operator.IN, "And"));
-        String expectedMethodName = "findAllByIdAndAgeIsGreaterThanAndFirstnameIsIn";
+        var expectedMethodName = "findAllByIdAndAgeIsGreaterThanAndFirstnameIsIn";
 
         // WHEN
         var actualMethodName = SaplConditionOperation.toModifiedMethodName("findAllById", saplConditions);
@@ -97,7 +97,7 @@ class SaplConditionOperationTest {
         saplConditions.add(new SaplCondition("age", 30, Operator.GREATER_THAN, "And"));
         saplConditions
                 .add(new SaplCondition("firstname", new ArrayList<>(List.of("Cathrin", "Aaron")), Operator.IN, "And"));
-        String expectedMethodName = "findAllByIdAndAgeIsGreaterThanAndFirstnameIsInOrderByAge";
+        var expectedMethodName = "findAllByIdAndAgeIsGreaterThanAndFirstnameIsInOrderByAge";
 
         // WHEN
         var actualMethodName = SaplConditionOperation.toModifiedMethodName("findAllByIdOrderByAge", saplConditions);

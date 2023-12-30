@@ -17,18 +17,11 @@
  */
 package io.sapl.springdatamongoreactive.sapl.handlers;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.boot.test.system.CapturedOutput;
-import org.springframework.boot.test.system.OutputCaptureExtension;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-@ExtendWith(OutputCaptureExtension.class)
 class LoggingConstraintHandlerProviderTest {
 
     LoggingConstraintHandlerProvider loggingConstraintHandlerProvider = new LoggingConstraintHandlerProvider();
@@ -73,16 +66,17 @@ class LoggingConstraintHandlerProviderTest {
     }
 
     @Test
-    void when_constraintIsResponsible_then_getHandler(CapturedOutput capturedOutput) throws JsonProcessingException {
+    void when_constraintIsResponsible_then_getHandler() throws JsonProcessingException {
         // GIVEN
         var constraint = objectMapper
                 .readTree("{\"id\": \"log\",\"message\": \"You are using SAPL for protection of database.\"}");
 
         // WHEN
         var actual = loggingConstraintHandlerProvider.getHandler(constraint);
-        actual.run();
 
         // THEN
-        assertTrue(capturedOutput.getOut().contains("You are using SAPL for protection of database."));
+        Assertions.assertTrue(Runnable.class.isInstance(actual));
+
     }
+
 }

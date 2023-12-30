@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatar2dbc.sapl.queryTypes.filterEnforcement;
+package io.sapl.springdatar2dbc.sapl.querytypes.filterenforcement;
 
 import io.sapl.springdatar2dbc.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatar2dbc.sapl.QueryManipulationEnforcementPoint;
@@ -48,10 +48,10 @@ public class ProceededDataFilterEnforcementPoint<T> implements QueryManipulation
     private final LoggingConstraintHandlerProvider loggingConstraintHandlerProvider = new LoggingConstraintHandlerProvider();
 
     public ProceededDataFilterEnforcementPoint(QueryManipulationEnforcementData<T> enforcementData) {
-        this.enforcementData         = new QueryManipulationEnforcementData<>(enforcementData.getMethodInvocation(),
+        this.enforcementData         = new QueryManipulationEnforcementData<T>(enforcementData.getMethodInvocation(),
                 enforcementData.getBeanFactory(), enforcementData.getDomainType(), enforcementData.getPdp(),
                 enforcementData.getAuthSub());
-        this.dataManipulationHandler = new DataManipulationHandler<>(enforcementData.getDomainType());
+        this.dataManipulationHandler = new DataManipulationHandler<T>(enforcementData.getDomainType());
     }
 
     /**
@@ -75,7 +75,7 @@ public class ProceededDataFilterEnforcementPoint<T> implements QueryManipulation
      */
     @SuppressWarnings("unchecked")
     public Function<AuthorizationDecision, Flux<T>> enforceDecision() {
-        return (decision) -> {
+        return decision -> {
             var decisionIsPermit = Decision.PERMIT == decision.getDecision();
             var advice           = getAdvices(decision);
 
@@ -90,7 +90,7 @@ public class ProceededDataFilterEnforcementPoint<T> implements QueryManipulation
                 try {
                     data = (Flux<T>) enforcementData.getMethodInvocation().proceed();
                 } catch (Throwable e) {
-                    throw new RuntimeException(e);
+                    throw new ClassCastException("Return type not supported: " + e.getMessage());
                 }
 
                 return dataManipulationHandler.manipulate(obligations).apply(data);

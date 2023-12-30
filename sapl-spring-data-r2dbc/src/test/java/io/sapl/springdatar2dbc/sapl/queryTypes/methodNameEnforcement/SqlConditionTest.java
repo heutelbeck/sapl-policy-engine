@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatar2dbc.sapl.queryTypes.methodNameEnforcement;
+package io.sapl.springdatar2dbc.sapl.querytypes.methodnameenforcement;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -31,7 +31,7 @@ class SqlConditionTest {
         var result = sqlCondition.getConjunction();
 
         // THEN
-        Assertions.assertEquals(result, Conjunction.AND);
+        Assertions.assertEquals(Conjunction.AND, result);
     }
 
     @Test
@@ -43,7 +43,7 @@ class SqlConditionTest {
         var result = sqlCondition.getCondition();
 
         // THEN
-        Assertions.assertEquals(result, "Test condition");
+        Assertions.assertEquals("Test condition", result);
     }
 
     @Test

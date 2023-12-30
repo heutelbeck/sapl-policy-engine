@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatamongoreactive.sapl.placingProxy;
+package io.sapl.springdatamongoreactive.sapl.placingproxy;
 
 import static io.sapl.springdatamongoreactive.sapl.utils.Utilities.isFlux;
 import static io.sapl.springdatamongoreactive.sapl.utils.Utilities.isListOrCollection;
@@ -24,7 +24,6 @@ import static io.sapl.springdatamongoreactive.sapl.utils.Utilities.isMono;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.util.Objects;
-import java.util.logging.Logger;
 
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
@@ -42,6 +41,7 @@ import io.sapl.springdatamongoreactive.sapl.handlers.AuthorizationSubscriptionHa
 import io.sapl.springdatamongoreactive.sapl.utils.Utilities;
 import lombok.SneakyThrows;
 import reactor.core.publisher.Flux;
+import java.lang.reflect.Type;
 
 /**
  * This service is the gathering point of all SaplEnforcementPoints for the
@@ -66,8 +66,6 @@ import reactor.core.publisher.Flux;
  */
 @Service
 public class MongoProxyInterceptor<T> implements MethodInterceptor {
-    private final Logger                                   logger = Logger
-            .getLogger(MongoProxyInterceptor.class.getName());
     private final AuthorizationSubscriptionHandlerProvider authSubHandler;
     private final QueryManipulationEnforcementData<T>      enforcementData;
     private final QueryManipulationEnforcementPointFactory factory;
@@ -76,14 +74,15 @@ public class MongoProxyInterceptor<T> implements MethodInterceptor {
             PolicyDecisionPoint pdp, QueryManipulationEnforcementPointFactory factory) {
         this.authSubHandler  = authSubHandler;
         this.factory         = factory;
-        this.enforcementData = new QueryManipulationEnforcementData<>(null, beanFactory, null, pdp, null);
+        this.enforcementData = new QueryManipulationEnforcementData<T>(null, beanFactory, null, pdp, null);
     }
 
     @SneakyThrows
     public Object invoke(MethodInvocation methodInvocation) {
 
-        var repositoryMethod = methodInvocation.getMethod();
-        var repository       = methodInvocation.getMethod().getDeclaringClass();
+        var      repositoryMethod = methodInvocation.getMethod();
+        var      repository       = methodInvocation.getMethod().getDeclaringClass();
+        Class<T> domainType       = null;
 
         if (hasAnnotationSaplProtected(repository) || hasAnnotationSaplProtected(repositoryMethod)
                 || hasAnnotationEnforce(repositoryMethod)) {
@@ -92,14 +91,11 @@ public class MongoProxyInterceptor<T> implements MethodInterceptor {
             var authSub             = this.authSubHandler.getAuthSub(repository, methodInvocation);
 
             if (authSub == null) {
-                logger.warning(
+                throw new IllegalStateException(
                         "The Sapl implementation for the manipulation of the database queries was recognised, but no AuthorizationSubscription was found.");
-                return methodInvocation.proceed();
             }
 
-            @SuppressWarnings("unchecked")
-            var domainType = (Class<T>) ((ParameterizedType) repository.getGenericInterfaces()[0])
-                    .getActualTypeArguments()[0];
+            domainType = extractDomainType(repository);
 
             enforcementData.setMethodInvocation(methodInvocation);
             enforcementData.setDomainType(domainType);
@@ -112,8 +108,6 @@ public class MongoProxyInterceptor<T> implements MethodInterceptor {
              * policy's obligation.
              */
             if (hasAnnotationQuery(repositoryMethod)) {
-                logger.info(Utilities.STRING_BASED_IMPL_MSG);
-
                 var annotationQueryEnforcementPoint = factory
                         .createMongoAnnotationQueryManipulationEnforcementPoint(enforcementData);
 
@@ -133,8 +127,6 @@ public class MongoProxyInterceptor<T> implements MethodInterceptor {
              * findAllByFirstname(String firstname)
              */
             if (Utilities.isMethodNameValid(repositoryMethod.getName())) {
-                logger.info(Utilities.METHOD_BASED_IMPL_MSG);
-
                 var methodNameQueryEnforcementPoint = factory
                         .createMongoMethodNameQueryManipulationEnforcementPoint(enforcementData);
 
@@ -149,8 +141,6 @@ public class MongoProxyInterceptor<T> implements MethodInterceptor {
              * is then returned.
              */
             if (!Utilities.isMethodNameValid(repositoryMethod.getName()) && !hasAnnotationQuery(repositoryMethod)) {
-                logger.info(Utilities.FILTER_BASED_IMPL_MSG);
-
                 var filterEnforcementPoint = factory.createProceededDataFilterEnforcementPoint(enforcementData);
 
                 return convertReturnTypeIfNecessary(filterEnforcementPoint.enforce(), returnClassOfMethod);
@@ -162,6 +152,21 @@ public class MongoProxyInterceptor<T> implements MethodInterceptor {
          * forwarded.
          */
         return methodInvocation.proceed();
+    }
+
+    @SuppressWarnings("unchecked")
+    private Class<T> extractDomainType(Class<?> repository) {
+        Type[] repositoryTypes = repository.getGenericInterfaces();
+
+        if (repositoryTypes[0] instanceof ParameterizedType type) {
+            if (type.getActualTypeArguments()[0] instanceof Class clazz) {
+                return (Class<T>) clazz;
+            }
+        }
+
+        throw new ClassCastException("If the repository [" + repository
+                + "] implements several interfaces, the first interface must correspond to the "
+                + "reactive interface of Spring Data (R2dbcRepository, ReactiveCrudRepository). ");
     }
 
     /**

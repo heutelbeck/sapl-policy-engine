@@ -25,21 +25,16 @@ import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.system.CapturedOutput;
-import org.springframework.boot.test.system.OutputCaptureExtension;
-
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.mockito.Mockito.*;
 
 @SpringBootTest
-@ExtendWith(OutputCaptureExtension.class)
 class AuthorizationSubscriptionHandlerProviderTest {
 
     AuthorizationSubscriptionHandlerProvider authorizationSubscriptionHandlerProvider;
@@ -81,7 +76,7 @@ class AuthorizationSubscriptionHandlerProviderTest {
     }
 
     @Test
-    void when_annotationIsAvailableButNotCompleteAndBeanIsAvailable1_then_getAuthSub(CapturedOutput output) {
+    void when_annotationIsAvailableButNotCompleteAndBeanIsAvailable1_then_getAuthSub() {
         // GIVEN
         var methodInvocationForTesting = new MethodInvocationForTesting("findAllByFirstname",
                 new ArrayList<>(List.of(String.class)), null, null);
@@ -89,7 +84,6 @@ class AuthorizationSubscriptionHandlerProviderTest {
                 "find_all_by_firstname_reactive_r2dbc_repository", "resource", "test");
         var annotationAuthSub          = AuthorizationSubscription.of("",
                 "find_all_by_firstname_reactive_r2dbc_repository", "resource", "");
-        var expectedLoggerMessage      = "Bean to receive specific AuthorizationSubscription Found: findAllByFirstnameR2dbcPersonRepository";
 
         // WHEN
         when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class))).thenReturn(annotationAuthSub);
@@ -101,13 +95,12 @@ class AuthorizationSubscriptionHandlerProviderTest {
         // THEN
         compareTwoAuthSubs(correctAuthSub, resultAuthSub);
 
-        Assertions.assertTrue(output.getOut().contains(expectedLoggerMessage));
         verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(methodInvocationForTesting);
         verify(beanFactoryMock, times(1)).getBean("findAllByFirstnameR2dbcPersonRepository");
     }
 
     @Test
-    void when_annotationIsAvailableButNotCompleteAndBeanIsAvailable2_then_getAuthSub(CapturedOutput output) {
+    void when_annotationIsAvailableButNotCompleteAndBeanIsAvailable2_then_getAuthSub() {
         // GIVEN
         var methodInvocationForTesting = new MethodInvocationForTesting("findAllByFirstname",
                 new ArrayList<>(List.of(String.class)), null, null);
@@ -115,7 +108,6 @@ class AuthorizationSubscriptionHandlerProviderTest {
                 "find_all_by_firstname_reactive_r2dbc_repository", "resource", "environment");
         var annotationAuthSub          = AuthorizationSubscription.of("",
                 "find_all_by_firstname_reactive_r2dbc_repository", "", "environment");
-        var expectedLoggerMessage      = "Bean to receive specific AuthorizationSubscription Found: findAllByFirstnameR2dbcPersonRepository";
 
         // WHEN
         when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class))).thenReturn(annotationAuthSub);
@@ -127,7 +119,6 @@ class AuthorizationSubscriptionHandlerProviderTest {
         // THEN
         compareTwoAuthSubs(correctAuthSub, resultAuthSub);
 
-        Assertions.assertTrue(output.getOut().contains(expectedLoggerMessage));
         verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(methodInvocationForTesting);
         verify(beanFactoryMock, times(1)).getBean("findAllByFirstnameR2dbcPersonRepository");
     }
@@ -215,7 +206,7 @@ class AuthorizationSubscriptionHandlerProviderTest {
     }
 
     @Test
-    void when_noAnnotationAnNoBeanForMethodIsAvailable_then_getAuthSub() {
+    void when_noAnnotationAnNoBeanForMethodIsAvailable_then_returnNull() {
         // GIVEN
 
         // WHEN
