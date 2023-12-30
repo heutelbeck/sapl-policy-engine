@@ -1,17 +1,60 @@
 spring:
   application.name: sapl-server-lt
-
 spring.rsocket.server:
-   port: 7000
-   transport: tcp
-   ssl:
-      enabled: true
-   
+  port: 7000
+  transport: tcp
+  ssl:
+    enabled: true
+    ciphers:
+      - TLS_AES_128_GCM_SHA256
+      - TLS_AES_256_GCM_SHA384
+      - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+      - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+      - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+      - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+      - TLS_DHE_RSA_WITH_AES_256_GCM_SHA384
+      - TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
+      - TLS_DHE_DSS_WITH_AES_256_GCM_SHA384
+      - TLS_DHE_DSS_WITH_AES_128_GCM_SHA256
+      - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
+      - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+      - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+      - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+      - TLS_DHE_RSA_WITH_AES_256_CBC_SHA256
+      - TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
+      - TLS_DHE_DSS_WITH_AES_256_CBC_SHA256
+      - TLS_DHE_DSS_WITH_AES_128_CBC_SHA256
+    enabled-protocols:
+      - TLSv1.3
+      - TLSv1.2
+    protocol: TLSv1.3 
 server:
-   port: 8443
-   ssl:
-      enabled: true
-
+  port: 8443
+  ssl:
+    enabled: true
+    ciphers:
+      - TLS_AES_128_GCM_SHA256
+      - TLS_AES_256_GCM_SHA384
+      - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+      - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+      - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+      - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+      - TLS_DHE_RSA_WITH_AES_256_GCM_SHA384
+      - TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
+      - TLS_DHE_DSS_WITH_AES_256_GCM_SHA384
+      - TLS_DHE_DSS_WITH_AES_128_GCM_SHA256
+      - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
+      - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+      - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+      - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+      - TLS_DHE_RSA_WITH_AES_256_CBC_SHA256
+      - TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
+      - TLS_DHE_DSS_WITH_AES_256_CBC_SHA256
+      - TLS_DHE_DSS_WITH_AES_128_CBC_SHA256
+    enabled-protocols:
+      - TLSv1.3
+      - TLSv1.2
+    protocol: TLSv1.3
 management:
   endpoint:
     health:
