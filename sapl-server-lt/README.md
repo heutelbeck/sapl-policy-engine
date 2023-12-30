@@ -1,6 +1,10 @@
 # SAPL Server LT - Lightweight Authorization Server.
 
-This server is a lightweight headless PDP server. The server monitors two directories for the PDP settings and SAPL documents, 
+This server is a lightweight headless Policy Decision Point (PDP) using the Streaming Attribute Policy Language (SAPL).
+
+To learn more about SAPL please visit the [SAPL Homepage](https://sapl.io).
+
+The server monitors two directories for the PDP settings and SAPL documents, 
 allowing for runtime updating of policies which will be reflected in decisions made for ongoing authorization 
 subscriptions.
 
@@ -110,13 +114,12 @@ infrastructure, e.g., a matching Kubernetes Ingress.
 In order to run the server locally for testing in an environment like Docker Desktop, you can run the current image as follows:
 
 ```shell
-docker run -d --name sapl-server-lt -p 8080:8080 --mount source=sapl-server-lt,target=/pdp/data ghcr.io/heutelbeck/sapl-server-lt:2.1.0-snapshot
+docker run -d --name sapl-server-lt -p 8080:8080 --mount source=sapl-server-lt,target=/pdp/data ghcr.io/heutelbeck/sapl-server-lt:3.0.0-snapshot
 ```
 
-Alternatively the container can be run without Docker Volume which gives you easier access to the folder although Docker Desktop may warn you that this may not be as performative (Of course you can change the path):
 
 ```shell
-docker run -d --name sapl-server-lt -p 8080:8080 -v c:\sapl\policies:/pdp/data ghcr.io/heutelbeck/sapl-server-lt:2.1.0-snapshot
+docker run -d --name sapl-server-lt -p 8080:8080 -v c:\sapl\policies:/pdp/data ghcr.io/heutelbeck/sapl-server-lt:3.0.0-snapshot
 ```
 
 Afterward you can check if the service is online under: http://localhost:8080/actuator/health.
