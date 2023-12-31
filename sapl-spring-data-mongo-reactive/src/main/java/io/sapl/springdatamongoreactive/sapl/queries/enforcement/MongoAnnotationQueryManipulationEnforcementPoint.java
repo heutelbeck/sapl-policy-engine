@@ -58,10 +58,10 @@ public class MongoAnnotationQueryManipulationEnforcementPoint<T> implements Quer
     private final BasicQuery                          basicQuery;
 
     public MongoAnnotationQueryManipulationEnforcementPoint(QueryManipulationEnforcementData<T> enforcementData) {
-        this.enforcementData         = new QueryManipulationEnforcementData<T>(enforcementData.getMethodInvocation(),
+        this.enforcementData         = new QueryManipulationEnforcementData<>(enforcementData.getMethodInvocation(),
                 enforcementData.getBeanFactory(), enforcementData.getDomainType(), enforcementData.getPdp(),
                 enforcementData.getAuthSub());
-        this.dataManipulationHandler = new DataManipulationHandler<T>(this.enforcementData.getDomainType());
+        this.dataManipulationHandler = new DataManipulationHandler<>(this.enforcementData.getDomainType());
         this.reactiveMongoTemplate   = this.enforcementData.getBeanFactory().getBean(ReactiveMongoTemplate.class);
         var queryAnnotation = resolveBoundedMethodParametersAndAnnotationParameters(
                 this.enforcementData.getMethodInvocation().getMethod(),

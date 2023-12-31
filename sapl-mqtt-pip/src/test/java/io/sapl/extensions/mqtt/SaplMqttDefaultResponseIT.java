@@ -53,10 +53,9 @@ import reactor.test.StepVerifier;
 
 class SaplMqttDefaultResponseIT {
 
-    private final static long DELAY_MS = 1000L;
-
-    private final static JsonNodeFactory JSON   = JsonNodeFactory.instance;
-    private final static ObjectMapper    MAPPER = new ObjectMapper();
+    private static final long            DELAY_MS = 1000L;
+    private static final JsonNodeFactory JSON     = JsonNodeFactory.instance;
+    private static final ObjectMapper    MAPPER   = new ObjectMapper();
 
     @TempDir
     Path configDir;

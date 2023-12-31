@@ -57,9 +57,8 @@ import reactor.test.StepVerifier;
 
 class PreEnforcePolicyEnforcementPointTests {
 
-    private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
-
-    private final static ObjectMapper MAPPER = new ObjectMapper();
+    private static final JsonNodeFactory JSON   = JsonNodeFactory.instance;
+    private static final ObjectMapper    MAPPER = new ObjectMapper();
 
     List<RunnableConstraintHandlerProvider> globalRunnableProviders;
 

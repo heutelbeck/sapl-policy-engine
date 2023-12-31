@@ -55,21 +55,14 @@ import io.sapl.util.filemonitoring.FileDeletedEvent;
 
 class ImmutableFileIndexTest {
 
-    private final static SAPLInterpreter INTERPERETER = new DefaultSAPLInterpreter();
-
-    private static final String POLICY_1 = "policy \"policy1\" permit";
-
-    private static final String POLICY_1_NAME = "policy1";
-
-    private static final SAPL SAPL_1 = INTERPERETER.parse(POLICY_1);
-
-    private static final String POLICY_2 = "policy \"policy2\" permit";
-
-    private static final String POLICY_2_NAME = "policy2";
-
-    private static final SAPL SAPL_2 = INTERPERETER.parse(POLICY_2);
-
-    private final static String PATH = "/";
+    private static final SAPLInterpreter INTERPERETER  = new DefaultSAPLInterpreter();
+    private static final String          POLICY_1      = "policy \"policy1\" permit";
+    private static final String          POLICY_1_NAME = "policy1";
+    private static final SAPL            SAPL_1        = INTERPERETER.parse(POLICY_1);
+    private static final String          POLICY_2      = "policy \"policy2\" permit";
+    private static final String          POLICY_2_NAME = "policy2";
+    private static final SAPL            SAPL_2        = INTERPERETER.parse(POLICY_2);
+    private static final String          PATH          = "/";
 
     @Test
     void when_initializingWithEmptyDirectory_then_updatesAreEmpty() {

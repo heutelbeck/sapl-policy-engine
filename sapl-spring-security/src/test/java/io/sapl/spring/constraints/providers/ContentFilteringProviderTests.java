@@ -44,7 +44,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 class ContentFilteringProviderTests {
-    private final static ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Test
     void when_getSupportedType_then_isObject() {

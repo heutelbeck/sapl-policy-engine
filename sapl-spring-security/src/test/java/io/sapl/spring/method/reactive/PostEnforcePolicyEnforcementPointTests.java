@@ -73,7 +73,7 @@ import reactor.test.StepVerifier;
 
 class PostEnforcePolicyEnforcementPointTests {
 
-    private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
+    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
     private WebfluxAuthorizationSubscriptionBuilderService subscriptionBuilderService;
 

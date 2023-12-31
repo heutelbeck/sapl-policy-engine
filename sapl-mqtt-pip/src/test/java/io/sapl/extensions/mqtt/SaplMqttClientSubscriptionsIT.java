@@ -44,9 +44,8 @@ import reactor.test.StepVerifier;
 @Timeout(30)
 class SaplMqttClientSubscriptionsIT {
 
-    private final static long DELAY_MS = 800L;
-
-    private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
+    private static final long            DELAY_MS = 800L;
+    private static final JsonNodeFactory JSON     = JsonNodeFactory.instance;
 
     @TempDir
     Path configDir;

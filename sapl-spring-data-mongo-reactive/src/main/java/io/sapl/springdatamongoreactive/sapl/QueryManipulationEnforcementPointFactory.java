@@ -28,17 +28,17 @@ public class QueryManipulationEnforcementPointFactory {
 
     public <T> QueryManipulationEnforcementPoint<T> createMongoAnnotationQueryManipulationEnforcementPoint(
             QueryManipulationEnforcementData<T> enforcementData) {
-        return new MongoAnnotationQueryManipulationEnforcementPoint<T>(enforcementData);
+        return new MongoAnnotationQueryManipulationEnforcementPoint<>(enforcementData);
     }
 
     public <T> QueryManipulationEnforcementPoint<T> createMongoMethodNameQueryManipulationEnforcementPoint(
             QueryManipulationEnforcementData<T> enforcementData) {
-        return new MongoMethodNameQueryManipulationEnforcementPoint<T>(enforcementData);
+        return new MongoMethodNameQueryManipulationEnforcementPoint<>(enforcementData);
     }
 
     public <T> QueryManipulationEnforcementPoint<T> createProceededDataFilterEnforcementPoint(
             QueryManipulationEnforcementData<T> enforcementData) {
-        return new ProceededDataFilterEnforcementPoint<T>(enforcementData);
+        return new ProceededDataFilterEnforcementPoint<>(enforcementData);
     }
 
 }

@@ -52,18 +52,18 @@ class DataManipulationHandlerTest {
 
     final Flux<Person> data = Flux.just(malinda, emerson, yul);
 
-    final static ObjectMapper objectMapper = new ObjectMapper();
-    static JsonNode           obligations;
-    static JsonNode           jsonContentFilterPredicate;
-    static JsonNode           filterJsonContent;
+    static final ObjectMapper MAPPER = new ObjectMapper();
+    static JsonNode           OBLIGARTIONS;
+    static JsonNode           JSON_CONTENT_FILTER_PREDICATE;
+    static JsonNode           FILTER_JSON_CONTENT;
 
     @BeforeAll
     public static void beforeAll() throws JsonProcessingException {
-        obligations                = objectMapper.readTree(
+        OBLIGARTIONS                  = MAPPER.readTree(
                 "[{\"type\":\"r2dbcQueryManipulation\",\"conditions\":[\"{'role':  {'$in': ['USER']}}\"]},{\"type\":\"filterJsonContent\",\"actions\":[{\"type\":\"blacken\",\"path\":\"$.firstname\",\"discloseLeft\":2}]},{\"type\":\"jsonContentFilterPredicate\",\"conditions\":[{\"type\":\"==\",\"path\":\"$.id\",\"value\":\"a1\"}]}]");
-        jsonContentFilterPredicate = objectMapper.readTree(
+        JSON_CONTENT_FILTER_PREDICATE = MAPPER.readTree(
                 "{\"type\":\"jsonContentFilterPredicate\",\"conditions\":[{\"type\":\"==\",\"path\":\"$.firstname\",\"value\":\"Malinda\"}]}");
-        filterJsonContent          = objectMapper.readTree(
+        FILTER_JSON_CONTENT           = MAPPER.readTree(
                 "{\"type\":\"filterJsonContent\",\"actions\":[{\"type\":\"blacken\",\"path\":\"$.firstname\",\"discloseLeft\":2},{\"type\":\"delete\",\"path\":\"$.age\"}]}");
     }
 
@@ -87,7 +87,7 @@ class DataManipulationHandlerTest {
                 () -> ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), anyString()))
                 .thenReturn(JsonNodeFactory.instance.nullNode());
 
-        var result = dataManipulationHandler.manipulate(obligations).apply(data);
+        var result = dataManipulationHandler.manipulate(OBLIGARTIONS).apply(data);
 
         // THEN
         StepVerifier.create(result).expectNextMatches(testUser -> assertTwoPersons(testUser, malinda))
@@ -112,9 +112,9 @@ class DataManipulationHandlerTest {
                 .thenReturn(JsonNodeFactory.instance.nullNode());
         constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils
                 .getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("jsonContentFilterPredicate")))
-                .thenReturn(jsonContentFilterPredicate);
+                .thenReturn(JSON_CONTENT_FILTER_PREDICATE);
 
-        var result = dataManipulationHandler.manipulate(obligations).apply(data);
+        var result = dataManipulationHandler.manipulate(OBLIGARTIONS).apply(data);
 
         // THEN
         StepVerifier.create(result).expectNextMatches(person -> assertTwoPersons(person, malinda)).expectComplete()
@@ -135,12 +135,12 @@ class DataManipulationHandlerTest {
                 .thenReturn(JsonNodeFactory.instance.nullNode());
         constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils
                 .getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("filterJsonContent")))
-                .thenReturn(filterJsonContent);
+                .thenReturn(FILTER_JSON_CONTENT);
         constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils
                 .getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("jsonContentFilterPredicate")))
                 .thenReturn(JsonNodeFactory.instance.nullNode());
 
-        var result = dataManipulationHandler.manipulate(obligations).apply(data);
+        var result = dataManipulationHandler.manipulate(OBLIGARTIONS).apply(data);
 
         // THEN
         StepVerifier.create(result).expectNextMatches(testUser -> {
@@ -181,12 +181,12 @@ class DataManipulationHandlerTest {
                 .thenReturn(JsonNodeFactory.instance.nullNode());
         constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils
                 .getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("filterJsonContent")))
-                .thenReturn(filterJsonContent);
+                .thenReturn(FILTER_JSON_CONTENT);
         constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils
                 .getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("jsonContentFilterPredicate")))
-                .thenReturn(jsonContentFilterPredicate);
+                .thenReturn(JSON_CONTENT_FILTER_PREDICATE);
 
-        var result = dataManipulationHandler.manipulate(obligations).apply(data);
+        var result = dataManipulationHandler.manipulate(OBLIGARTIONS).apply(data);
 
         // THEN
         StepVerifier.create(result).expectNextMatches(testUser -> {

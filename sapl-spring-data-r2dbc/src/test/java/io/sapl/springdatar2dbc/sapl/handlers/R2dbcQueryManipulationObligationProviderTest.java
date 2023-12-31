@@ -28,9 +28,9 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 class R2dbcQueryManipulationObligationProviderTest {
 
-    final static ObjectMapper objectMapper = new ObjectMapper();
-    static JsonNode           obligations;
-    static JsonNode           mongoQueryManipulation;
+    static final ObjectMapper MAPPER = new ObjectMapper();
+    static JsonNode           OBLIGATIONS;
+    static JsonNode           MONGO_QUERY_MANIPULATION;
 
     final JsonNode nullNode = JsonNodeFactory.instance.nullNode();
 
@@ -38,9 +38,9 @@ class R2dbcQueryManipulationObligationProviderTest {
 
     @BeforeAll
     public static void beforeAll() throws JsonProcessingException {
-        obligations            = objectMapper.readTree(
+        OBLIGATIONS              = MAPPER.readTree(
                 "[{\"type\":\"r2dbcQueryManipulation\",\"condition\":\"role IN ('USER')\"},{\"type\":\"filterJsonContent\",\"actions\":[{\"type\":\"blacken\",\"path\":\"$.firstname\",\"discloseLeft\":2}]},{\"type\":\"jsonContentFilterPredicate\",\"conditions\":[{\"type\":\"==\",\"path\":\"$.id\",\"value\":\"a1\"}]}]");
-        mongoQueryManipulation = objectMapper
+        MONGO_QUERY_MANIPULATION = MAPPER
                 .readTree("{\"type\":\"r2dbcQueryManipulation\",\"condition\":\"role IN ('USER')\"}");
     }
 
@@ -50,7 +50,7 @@ class R2dbcQueryManipulationObligationProviderTest {
         var expectedCondition = "role IN ('USER')";
 
         // WHEN
-        var condition = provider.getCondition(mongoQueryManipulation);
+        var condition = provider.getCondition(MONGO_QUERY_MANIPULATION);
 
         // THEN
         Assertions.assertEquals(condition.asText(), expectedCondition);
@@ -59,7 +59,7 @@ class R2dbcQueryManipulationObligationProviderTest {
     @Test
     void when_obligationContainsNotCorrectStructuredConditions_then_returnNullNode() throws JsonProcessingException {
         // GIVEN
-        var wrongMongoQueryManipulation = objectMapper
+        var wrongMongoQueryManipulation = MAPPER
                 .readTree("{\"type\":\"r2dbcQueryManipulation\",\"wrongName\":\"role IN ('USER')\"}");
 
         // WHEN
@@ -74,17 +74,17 @@ class R2dbcQueryManipulationObligationProviderTest {
         // GIVEN
 
         // WHEN
-        var mongoQueryManipulationObligationResult = provider.getObligation(obligations);
+        var mongoQueryManipulationObligationResult = provider.getObligation(OBLIGATIONS);
 
         // THEN
-        Assertions.assertEquals(mongoQueryManipulationObligationResult, mongoQueryManipulation);
+        Assertions.assertEquals(mongoQueryManipulationObligationResult, MONGO_QUERY_MANIPULATION);
     }
 
     @Test
     void when_obligationsContainNoMongoQueryManipulationObligation_then_returnNullNode()
             throws JsonProcessingException {
         // GIVEN
-        var obligationsWithoutMongoQueryManipulationObligation = objectMapper.readTree(
+        var obligationsWithoutMongoQueryManipulationObligation = MAPPER.readTree(
                 "[{\"type\":\"filterJsonContent\",\"actions\":[{\"type\":\"blacken\",\"path\":\"$.firstname\",\"discloseLeft\":2}]},{\"type\":\"jsonContentFilterPredicate\",\"conditions\":[{\"type\":\"==\",\"path\":\"$.id\",\"value\":\"a1\"}]}]");
 
         // WHEN
@@ -100,7 +100,7 @@ class R2dbcQueryManipulationObligationProviderTest {
         // GIVEN
 
         // WHEN
-        var mongoQueryManipulationObligationResult = provider.isResponsible(obligations);
+        var mongoQueryManipulationObligationResult = provider.isResponsible(OBLIGATIONS);
 
         // THEN
         Assertions.assertTrue(mongoQueryManipulationObligationResult);
@@ -110,7 +110,7 @@ class R2dbcQueryManipulationObligationProviderTest {
     void when_obligationsContainMongoQueryManipulationObligation_then_isNotResponsible()
             throws JsonProcessingException {
         // GIVEN
-        var obligationsWithoutMongoQueryManipulationObligation = objectMapper.readTree(
+        var obligationsWithoutMongoQueryManipulationObligation = MAPPER.readTree(
                 "[{\"type\":\"filterJsonContent\",\"actions\":[{\"type\":\"blacken\",\"path\":\"$.firstname\",\"discloseLeft\":2}]},{\"type\":\"jsonContentFilterPredicate\",\"conditions\":[{\"type\":\"==\",\"path\":\"$.id\",\"value\":\"a1\"}]}]");
 
         // WHEN

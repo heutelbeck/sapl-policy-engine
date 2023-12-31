@@ -41,9 +41,8 @@ import reactor.test.StepVerifier;
 
 class MqttFunctionLibraryTests {
 
-    private final static String ACTION = "actionName";
-
-    private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
+    private static final String          ACTION = "actionName";
+    private static final JsonNodeFactory JSON   = JsonNodeFactory.instance;
 
     // Tests for matching all topics
 

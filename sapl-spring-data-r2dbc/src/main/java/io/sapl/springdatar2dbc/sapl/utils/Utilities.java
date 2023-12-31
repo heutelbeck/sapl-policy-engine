@@ -28,16 +28,16 @@ import reactor.core.publisher.Mono;
 
 @UtilityClass
 public class Utilities {
-    public static String STRING_BASED_IMPL_MSG         = "Sapl is implemented using the String-Based Implementation. ";
-    public static String METHOD_BASED_IMPL_MSG         = "Sapl is implemented using the Method-Name-Based Implementation. ";
-    public static String FILTER_BASED_IMPL_MSG         = "Sapl is implemented using the Filter-Based Implementation. ";
-    public static String FILTER_JSON_CONTENT           = "filterJsonContent";
-    public static String FILTER_JSON_CONTENT_PREDICATE = "jsonContentFilterPredicate";
-    public static String R2DBC_QUERY_MANIPULATION      = "r2dbcQueryManipulation";
-    public static String CONDITION                     = "condition";
-    public static String TYPE                          = "type";
+    public static final String STRING_BASED_IMPL_MSG         = "Sapl is implemented using the String-Based Implementation. ";
+    public static final String METHOD_BASED_IMPL_MSG         = "Sapl is implemented using the Method-Name-Based Implementation. ";
+    public static final String FILTER_BASED_IMPL_MSG         = "Sapl is implemented using the Filter-Based Implementation. ";
+    public static final String FILTER_JSON_CONTENT           = "filterJsonContent";
+    public static final String FILTER_JSON_CONTENT_PREDICATE = "jsonContentFilterPredicate";
+    public static final String R2DBC_QUERY_MANIPULATION      = "r2dbcQueryManipulation";
+    public static final String CONDITION                     = "condition";
+    public static final String TYPE                          = "type";
 
-    private static Pattern PREFIX_TEMPLATE = Pattern.compile( //
+    private static final Pattern PREFIX_TEMPLATE = Pattern.compile( //
             "^(find|read|get|query|search|stream)(\\p{Lu}.*?)??By");
 
     public boolean isMethodNameValid(String methodName) {

@@ -64,9 +64,8 @@ import reactor.test.StepVerifier;
 @Timeout(5)
 class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
 
-    private final static ObjectMapper MAPPER = new ObjectMapper();
-
-    private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
+    private static final ObjectMapper    MAPPER = new ObjectMapper();
+    private static final JsonNodeFactory JSON   = JsonNodeFactory.instance;
 
     List<RunnableConstraintHandlerProvider> globalRunnableProviders;
 

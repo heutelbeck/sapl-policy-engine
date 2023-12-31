@@ -42,7 +42,7 @@ import reactor.test.StepVerifier;
 //@Disabled // This one ?
 class SaplMqttClientExceptionIT {
 
-    private final static long DELAY_MS = 500L;
+    private static final long DELAY_MS = 500L;
 
     @TempDir
     Path configDir;

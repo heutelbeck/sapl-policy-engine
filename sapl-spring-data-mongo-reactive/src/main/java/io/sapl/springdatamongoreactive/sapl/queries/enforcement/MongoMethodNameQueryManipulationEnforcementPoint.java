@@ -54,12 +54,12 @@ public class MongoMethodNameQueryManipulationEnforcementPoint<T> implements Quer
     private final QueryManipulationEnforcementData<T>      enforcementData;
 
     public MongoMethodNameQueryManipulationEnforcementPoint(QueryManipulationEnforcementData<T> enforcementData) {
-        this.enforcementData             = new QueryManipulationEnforcementData<T>(
-                enforcementData.getMethodInvocation(), enforcementData.getBeanFactory(),
-                enforcementData.getDomainType(), enforcementData.getPdp(), enforcementData.getAuthSub());
+        this.enforcementData             = new QueryManipulationEnforcementData<>(enforcementData.getMethodInvocation(),
+                enforcementData.getBeanFactory(), enforcementData.getDomainType(), enforcementData.getPdp(),
+                enforcementData.getAuthSub());
         this.reactiveMongoTemplate       = enforcementData.getBeanFactory().getBean(ReactiveMongoTemplate.class);
-        this.dataManipulationHandler     = new DataManipulationHandler<T>(enforcementData.getDomainType());
-        this.saplPartTreeCriteriaCreator = new SaplPartTreeCriteriaCreator<T>(reactiveMongoTemplate,
+        this.dataManipulationHandler     = new DataManipulationHandler<>(enforcementData.getDomainType());
+        this.saplPartTreeCriteriaCreator = new SaplPartTreeCriteriaCreator<>(reactiveMongoTemplate,
                 enforcementData.getMethodInvocation(), enforcementData.getDomainType());
     }
 

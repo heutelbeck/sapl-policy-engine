@@ -29,7 +29,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 class ContentFilterUtilTests {
-    private final static ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Data
     @NoArgsConstructor

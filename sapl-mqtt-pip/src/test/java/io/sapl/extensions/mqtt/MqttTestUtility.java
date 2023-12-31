@@ -40,11 +40,10 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 class MqttTestUtility {
 
-    final static String CLIENT_ID   = "SAPL_MQTT_CLIENT";
-    final static String BROKER_HOST = "localhost";
-    final static int    BROKER_PORT = 1883;
-
-    final static ObjectMapper MAPPER = new ObjectMapper();
+    static final String       CLIENT_ID   = "SAPL_MQTT_CLIENT";
+    static final String       BROKER_HOST = "localhost";
+    static final int          BROKER_PORT = 1883;
+    static final ObjectMapper MAPPER      = new ObjectMapper();
 
     public static EmbeddedHiveMQ buildBroker(Path configDir, Path dataDir, Path extensionsDir) {
         InternalConfigurations.PAYLOAD_PERSISTENCE_TYPE.set(PersistenceType.FILE);

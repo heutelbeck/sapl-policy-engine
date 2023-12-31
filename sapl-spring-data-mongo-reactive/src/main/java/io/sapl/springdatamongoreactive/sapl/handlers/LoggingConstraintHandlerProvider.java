@@ -17,18 +17,17 @@
  */
 package io.sapl.springdatamongoreactive.sapl.handlers;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.fasterxml.jackson.databind.JsonNode;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * This class represents the logging constraint handler provider.
  */
+@Slf4j
 public class LoggingConstraintHandlerProvider {
 
-    private final Logger        logger  = LoggerFactory.getLogger(LoggingConstraintHandlerProvider.class);
-    private final static String MESSAGE = "message";
+    private static final String MESSAGE = "message";
 
     /**
      * Checks if an obligation of a {@link io.sapl.api.pdp.Decision} is responsible
@@ -54,7 +53,7 @@ public class LoggingConstraintHandlerProvider {
         return () -> {
             if (constraint != null && constraint.has(MESSAGE)) {
                 var message = constraint.findValue(MESSAGE).asText();
-                this.logger.info(message);
+                log.info(message);
             }
         };
     }

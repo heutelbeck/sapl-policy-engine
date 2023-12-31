@@ -17,6 +17,7 @@
  */
 package io.sapl.springdatamongoreactive.sapl.handlers;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -25,7 +26,6 @@ import static org.mockito.Mockito.times;
 
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -144,19 +144,19 @@ class DataManipulationHandlerTest {
 
         // THEN
         StepVerifier.create(result).expectNextMatches(testUser -> {
-            Assertions.assertEquals(testUser.getId(), aaron.getId());
-            Assertions.assertEquals(testUser.getAge(), 0);
-            Assertions.assertEquals(testUser.getFirstname(), "Aa███");
+            assertEquals(aaron.getId(), testUser.getId());
+            assertEquals(0, testUser.getAge());
+            assertEquals("Aa███", testUser.getFirstname());
             return true;
         }).expectNextMatches(testUser -> {
-            Assertions.assertEquals(testUser.getId(), brian.getId());
-            Assertions.assertEquals(testUser.getAge(), 0);
-            Assertions.assertEquals(testUser.getFirstname(), "Br███");
+            assertEquals(brian.getId(), testUser.getId());
+            assertEquals(0, testUser.getAge());
+            assertEquals("Br███", testUser.getFirstname());
             return true;
         }).expectNextMatches(testUser -> {
-            Assertions.assertEquals(testUser.getId(), cathrin.getId());
-            Assertions.assertEquals(testUser.getAge(), 0);
-            Assertions.assertEquals(testUser.getFirstname(), "Ca█████");
+            assertEquals(cathrin.getId(), testUser.getId());
+            assertEquals(0, testUser.getAge());
+            assertEquals("Ca█████", testUser.getFirstname());
             return true;
         }).expectComplete().verify();
 
@@ -184,9 +184,9 @@ class DataManipulationHandlerTest {
 
         // THEN
         StepVerifier.create(result).expectNextMatches(testUser -> {
-            Assertions.assertEquals(testUser.getId(), aaron.getId());
-            Assertions.assertEquals(testUser.getAge(), 0);
-            Assertions.assertEquals(testUser.getFirstname(), "Aa███");
+            assertEquals(aaron.getId(), testUser.getId());
+            assertEquals(0, testUser.getAge());
+            assertEquals("Aa███", testUser.getFirstname());
             return true;
         }).expectComplete().verify();
 
@@ -200,10 +200,9 @@ class DataManipulationHandlerTest {
      * ObjectMapper is needed if a DomainObject has an ObjectId as type.
      */
     private boolean assertTwoTestUsers(TestUser first, TestUser second) {
-        Assertions.assertEquals(first.getId(), second.getId());
-        Assertions.assertEquals(first.getFirstname(), second.getFirstname());
-        Assertions.assertEquals(first.getAge(), second.getAge());
-
+        assertEquals(second.getId(), first.getId());
+        assertEquals(second.getFirstname(), first.getFirstname());
+        assertEquals(second.getAge(), first.getAge());
         return true;
     }
 }

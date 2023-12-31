@@ -48,11 +48,10 @@ import reactor.test.StepVerifier;
 
 class SaplMqttClientPayloadFormatIT {
 
-    private final static String BYTE_ARRAY_TOPIC = "byteArrayTopic";
-    private final static String JSON_TOPIC       = "jsonTopic";
-    private final static long   DELAY_MS         = 1000L;
-
-    private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
+    private static final String          BYTE_ARRAY_TOPIC = "byteArrayTopic";
+    private static final String          JSON_TOPIC       = "jsonTopic";
+    private static final long            DELAY_MS         = 1000L;
+    private static final JsonNodeFactory JSON             = JsonNodeFactory.instance;
 
     @TempDir
     Path configDir;

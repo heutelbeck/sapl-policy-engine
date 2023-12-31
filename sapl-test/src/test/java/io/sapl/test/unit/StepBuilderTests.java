@@ -32,9 +32,9 @@ import reactor.core.publisher.Mono;
 
 class StepBuilderTests {
 
-    private final static AuthorizationSubscription AUTHZ_SUB = AuthorizationSubscription.of("willi", "not_matching",
+    private static final AuthorizationSubscription AUTHZ_SUB = AuthorizationSubscription.of("willi", "not_matching",
             "something");
-    private final static DefaultSAPLInterpreter    PARSER    = new DefaultSAPLInterpreter();
+    private static final DefaultSAPLInterpreter    PARSER    = new DefaultSAPLInterpreter();
 
     @Test
     void test_NotApplicableDecisionWhenNotMatchingPolicyInUnitTest() {

@@ -51,7 +51,7 @@ import reactor.test.StepVerifier;
 
 class ReactiveSaplAuthorizationManagerTest {
 
-    private final static Mono<Authentication> AUTHENTICATION = Mono
+    private static final Mono<Authentication> AUTHENTICATION = Mono
             .just(new TestingAuthenticationToken("user", "password", "ROLE_1", "ROLE_2"));
 
     private ObjectMapper                       mapper;

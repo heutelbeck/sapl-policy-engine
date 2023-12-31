@@ -74,7 +74,7 @@ public class MongoProxyInterceptor<T> implements MethodInterceptor {
             PolicyDecisionPoint pdp, QueryManipulationEnforcementPointFactory factory) {
         this.authSubHandler  = authSubHandler;
         this.factory         = factory;
-        this.enforcementData = new QueryManipulationEnforcementData<T>(null, beanFactory, null, pdp, null);
+        this.enforcementData = new QueryManipulationEnforcementData<>(null, beanFactory, null, pdp, null);
     }
 
     @SneakyThrows
@@ -158,10 +158,9 @@ public class MongoProxyInterceptor<T> implements MethodInterceptor {
     private Class<T> extractDomainType(Class<?> repository) {
         Type[] repositoryTypes = repository.getGenericInterfaces();
 
-        if (repositoryTypes[0] instanceof ParameterizedType type) {
-            if (type.getActualTypeArguments()[0] instanceof Class clazz) {
-                return (Class<T>) clazz;
-            }
+        if (repositoryTypes[0] instanceof ParameterizedType type
+                && type.getActualTypeArguments()[0] instanceof Class<?> clazz) {
+            return (Class<T>) clazz;
         }
 
         throw new ClassCastException("If the repository [" + repository

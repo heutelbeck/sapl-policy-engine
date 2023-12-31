@@ -31,7 +31,7 @@ import io.sapl.api.interpreter.Val;
  */
 public class ArrayUtil {
 
-    private final static NumericAwareComparator EQ = new NumericAwareComparator();
+    private static final NumericAwareComparator EQ = new NumericAwareComparator();
 
     public static Val numberArray(Integer... values) {
         var array = Val.JSON.arrayNode();

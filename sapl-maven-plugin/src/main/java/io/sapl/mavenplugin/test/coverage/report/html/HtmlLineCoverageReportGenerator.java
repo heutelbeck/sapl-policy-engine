@@ -98,7 +98,7 @@ public class HtmlLineCoverageReportGenerator {
         context.setVariable("policyHitRatio", policyHitRatio);
         context.setVariable("policyConditionHitRatio", policyConditionHitRatio);
         context.setVariable("documentFileNames",
-                documents.stream().map(doc -> doc.getPathToDocument().getFileName()).collect(Collectors.toList()));
+                documents.stream().map(doc -> doc.getPathToDocument().getFileName()).toList());
 
         // process the template and context
         String htmlFileAsString = springTemplateEngine.process("report.html", context);
@@ -181,30 +181,34 @@ public class HtmlLineCoverageReportGenerator {
 
     private List<WebDependency> getWebDependencies() {
         final List<WebDependency> dependencies = new ArrayList<>();
-        final String              SOURCE_BASE  = "dependency-resources/";
-        final String              TARGET_BASE  = "html/assets/";
+
+        final String SOURCE_BASE = "dependency-resources/";
+        final String TARGET_BASE = "html/assets/";
+        final String JS_BASE     = "lib/js";
+        final String CSS_BASE    = "lib/css/";
+
         dependencies.add(new WebDependency("sapl-mode", "sapl-mode.js", Paths.get(SOURCE_BASE),
-                Paths.get(TARGET_BASE + "lib/js")));
+                Paths.get(TARGET_BASE + JS_BASE)));
         dependencies.add(
-                new WebDependency("main.css", "main.css", Paths.get("html/css/"), Paths.get(TARGET_BASE + "lib/css/")));
+                new WebDependency("main.css", "main.css", Paths.get("html/css/"), Paths.get(TARGET_BASE + CSS_BASE)));
         dependencies.add(
                 new WebDependency("favicon", "favicon.png", Paths.get("images"), Paths.get(TARGET_BASE + "images/")));
         dependencies.add(new WebDependency("logo-header", "logo-header.png", Paths.get("images"),
                 Paths.get(TARGET_BASE + "images/")));
         dependencies.add(new WebDependency("@popperjs", "popper.min.js",
-                Paths.get(SOURCE_BASE + "@popperjs/core/dist/umd/"), Paths.get(TARGET_BASE + "lib/js")));
+                Paths.get(SOURCE_BASE + "@popperjs/core/dist/umd/"), Paths.get(TARGET_BASE + JS_BASE)));
         dependencies.add(new WebDependency("bootstrap", "bootstrap.min.js",
-                Paths.get(SOURCE_BASE + "bootstrap/dist/js/"), Paths.get(TARGET_BASE + "lib/js")));
+                Paths.get(SOURCE_BASE + "bootstrap/dist/js/"), Paths.get(TARGET_BASE + JS_BASE)));
         dependencies.add(new WebDependency("bootstrap", "bootstrap.min.css",
-                Paths.get(SOURCE_BASE + "bootstrap/dist/css/"), Paths.get(TARGET_BASE + "lib/css/")));
+                Paths.get(SOURCE_BASE + "bootstrap/dist/css/"), Paths.get(TARGET_BASE + CSS_BASE)));
         dependencies.add(new WebDependency("codemirror", "codemirror.js", Paths.get(SOURCE_BASE + "codemirror/lib/"),
-                Paths.get(TARGET_BASE + "lib/js/")));
+                Paths.get(TARGET_BASE + JS_BASE)));
         dependencies.add(new WebDependency("codemirror", "codemirror.css", Paths.get(SOURCE_BASE + "codemirror/lib/"),
-                Paths.get(TARGET_BASE + "lib/css/")));
+                Paths.get(TARGET_BASE + CSS_BASE)));
         dependencies.add(new WebDependency("simple_mode", "simple.js",
-                Paths.get(SOURCE_BASE + "codemirror/addon/mode/"), Paths.get(TARGET_BASE + "lib/js/addon/mode/")));
+                Paths.get(SOURCE_BASE + "codemirror/addon/mode/"), Paths.get(TARGET_BASE + JS_BASE + "/addon/mode/")));
         dependencies.add(new WebDependency("requirejs", "require.js", Paths.get(SOURCE_BASE + "requirejs/"),
-                Paths.get(TARGET_BASE + "lib/js/")));
+                Paths.get(TARGET_BASE + JS_BASE)));
         return dependencies;
     }
 

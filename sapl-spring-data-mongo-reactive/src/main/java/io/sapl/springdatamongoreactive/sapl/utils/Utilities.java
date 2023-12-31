@@ -31,16 +31,16 @@ import reactor.core.publisher.Mono;
  */
 @UtilityClass
 public class Utilities {
-    public static String STRING_BASED_IMPL_MSG         = "Sapl was injected via query annotation. ";
-    public static String METHOD_BASED_IMPL_MSG         = "Sapl was injected via the derivation of the method name. ";
-    public static String FILTER_BASED_IMPL_MSG         = "Sapl was injected by filtering the returning data stream from the database. ";
-    public static String FILTER_JSON_CONTENT           = "filterJsonContent";
-    public static String FILTER_JSON_CONTENT_PREDICATE = "jsonContentFilterPredicate";
-    public static String MONGO_QUERY_MANIPULATION      = "mongoQueryManipulation";
-    public static String CONDITIONS                    = "conditions";
-    public static String TYPE                          = "type";
+    public static final String STRING_BASED_IMPL_MSG         = "Sapl was injected via query annotation. ";
+    public static final String METHOD_BASED_IMPL_MSG         = "Sapl was injected via the derivation of the method name. ";
+    public static final String FILTER_BASED_IMPL_MSG         = "Sapl was injected by filtering the returning data stream from the database. ";
+    public static final String FILTER_JSON_CONTENT           = "filterJsonContent";
+    public static final String FILTER_JSON_CONTENT_PREDICATE = "jsonContentFilterPredicate";
+    public static final String MONGO_QUERY_MANIPULATION      = "mongoQueryManipulation";
+    public static final String CONDITIONS                    = "conditions";
+    public static final String TYPE                          = "type";
 
-    private static Pattern PREFIX_TEMPLATE = Pattern.compile( //
+    private static final Pattern PREFIX_TEMPLATE = Pattern.compile( //
             "^(find|read|get|query|search|stream)(\\p{Lu}.*?)??By");
 
     /**
