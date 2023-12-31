@@ -45,7 +45,7 @@ public class PartTreeToSqlQueryStringConverter {
      *
      * @param enforcementData which contains the necessary information.
      * @param <T>             the domain type
-     * @return sql query of a {@link PartTree}.
+     * @return SQL query of a {@link PartTree}.
      */
     public <T> String createSqlBaseQuery(QueryManipulationEnforcementData<T> enforcementData) {
         var methodName       = enforcementData.getMethodInvocation().getMethod().getName();
@@ -153,8 +153,7 @@ public class PartTreeToSqlQueryStringConverter {
         var arrayList = new ArrayList<String>();
 
         for (Object argument : arguments) {
-            if (argument instanceof String) {
-                var stringArgument = (String) argument;
+            if (argument instanceof String stringArgument) {
                 arrayList.add(toSqlConditionString(stringArgument));
             }
         }

@@ -49,10 +49,10 @@ public class ProceededDataFilterEnforcementPoint<T> implements QueryManipulation
     private final LoggingConstraintHandlerProvider loggingConstraintHandlerProvider = new LoggingConstraintHandlerProvider();
 
     public ProceededDataFilterEnforcementPoint(QueryManipulationEnforcementData<T> enforcementData) {
-        this.enforcementData         = new QueryManipulationEnforcementData<T>(enforcementData.getMethodInvocation(),
+        this.enforcementData         = new QueryManipulationEnforcementData<>(enforcementData.getMethodInvocation(),
                 enforcementData.getBeanFactory(), enforcementData.getDomainType(), enforcementData.getPdp(),
                 enforcementData.getAuthSub());
-        this.dataManipulationHandler = new DataManipulationHandler<T>(enforcementData.getDomainType());
+        this.dataManipulationHandler = new DataManipulationHandler<>(enforcementData.getDomainType());
     }
 
     /**

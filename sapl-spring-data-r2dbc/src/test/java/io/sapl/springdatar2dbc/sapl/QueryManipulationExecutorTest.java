@@ -17,7 +17,6 @@
  */
 package io.sapl.springdatar2dbc.sapl;
 
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
@@ -65,14 +64,14 @@ class QueryManipulationExecutorTest {
             var                       r2dbcEntityTemplateExecutor = r2dbcEntityTemplateExecutorMockedConstruction
                     .constructed().get(0);
 
-            when(r2dbcEntityTemplateExecutor.executeQuery(eq(query))).thenReturn(Flux.just(userHashMap));
+            when(r2dbcEntityTemplateExecutor.executeQuery(query)).thenReturn(Flux.just(userHashMap));
 
             var result = queryManipulationExecutor.execute(query, Person.class);
 
             // THEN
             StepVerifier.create(result).expectNext(userHashMap).verifyComplete();
 
-            Mockito.verify(r2dbcEntityTemplateExecutor, times(1)).executeQuery(eq(query));
+            Mockito.verify(r2dbcEntityTemplateExecutor, times(1)).executeQuery(query);
         }
     }
 
@@ -93,14 +92,14 @@ class QueryManipulationExecutorTest {
             var                       r2dbcEntityTemplateExecutor = r2dbcEntityTemplateExecutorMockedConstruction
                     .constructed().get(0);
 
-            when(r2dbcEntityTemplateExecutor.executeQuery(eq(completeQuery))).thenReturn(Flux.just(userHashMap));
+            when(r2dbcEntityTemplateExecutor.executeQuery(completeQuery)).thenReturn(Flux.just(userHashMap));
 
             var result = queryManipulationExecutor.execute(query, Person.class);
 
             // THEN
             StepVerifier.create(result).expectNext(userHashMap).verifyComplete();
 
-            Mockito.verify(r2dbcEntityTemplateExecutor, times(1)).executeQuery(eq(completeQuery));
+            Mockito.verify(r2dbcEntityTemplateExecutor, times(1)).executeQuery(completeQuery);
         }
     }
 
@@ -121,14 +120,14 @@ class QueryManipulationExecutorTest {
             var                       r2dbcEntityTemplateExecutor = r2dbcEntityTemplateExecutorMockedConstruction
                     .constructed().get(0);
 
-            when(r2dbcEntityTemplateExecutor.executeQuery(eq(completeQuery))).thenReturn(Flux.just(userHashMap));
+            when(r2dbcEntityTemplateExecutor.executeQuery(completeQuery)).thenReturn(Flux.just(userHashMap));
 
             var result = queryManipulationExecutor.execute(query, PersonWithoutTableAnnotation.class);
 
             // THEN
             StepVerifier.create(result).expectNext(userHashMap).verifyComplete();
 
-            Mockito.verify(r2dbcEntityTemplateExecutor, times(1)).executeQuery(eq(completeQuery));
+            Mockito.verify(r2dbcEntityTemplateExecutor, times(1)).executeQuery(completeQuery);
         }
     }
 }
