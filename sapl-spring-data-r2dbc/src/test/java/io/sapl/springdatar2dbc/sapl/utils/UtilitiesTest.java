@@ -17,22 +17,28 @@
  */
 package io.sapl.springdatar2dbc.sapl.utils;
 
-import io.sapl.springdatar2dbc.database.Person;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.util.ReflectionUtils;
+
+import io.sapl.springdatar2dbc.database.Person;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.*;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class UtilitiesTest {
 

@@ -17,11 +17,11 @@
  */
 package io.sapl.springdatar2dbc.sapl;
 
-import io.sapl.springdatar2dbc.sapl.querytypes.annotationenforcement.R2dbcAnnotationQueryManipulationEnforcementPoint;
-import io.sapl.springdatar2dbc.sapl.querytypes.filterenforcement.ProceededDataFilterEnforcementPoint;
-import io.sapl.springdatar2dbc.sapl.querytypes.methodnameenforcement.R2dbcMethodNameQueryManipulationEnforcementPoint;
-
 import org.springframework.stereotype.Service;
+
+import io.sapl.springdatar2dbc.sapl.queries.enforcement.ProceededDataFilterEnforcementPoint;
+import io.sapl.springdatar2dbc.sapl.queries.enforcement.R2dbcAnnotationQueryManipulationEnforcementPoint;
+import io.sapl.springdatar2dbc.sapl.queries.enforcement.R2dbcMethodNameQueryManipulationEnforcementPoint;
 
 @Service
 public class QueryManipulationEnforcementPointFactory {

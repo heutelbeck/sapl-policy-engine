@@ -17,12 +17,14 @@
  */
 package io.sapl.springdatar2dbc.sapl.handlers;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import static io.sapl.springdatar2dbc.sapl.utils.Utilities.CONDITION;
+import static io.sapl.springdatar2dbc.sapl.utils.Utilities.R2DBC_QUERY_MANIPULATION;
+import static io.sapl.springdatar2dbc.sapl.utils.Utilities.TYPE;
 
 import java.util.Objects;
 
-import static io.sapl.springdatar2dbc.sapl.utils.Utilities.*;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 /**
  * This class takes care of extracting the correct obligation for manipulating

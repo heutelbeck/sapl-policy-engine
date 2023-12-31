@@ -17,10 +17,15 @@
  */
 package io.sapl.springdatar2dbc.sapl.handlers;
 
-import io.sapl.springdatar2dbc.database.MethodInvocationForTesting;
-import io.sapl.springdatar2dbc.database.R2dbcPersonRepository;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.springdatar2dbc.database.TestClass;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,10 +34,11 @@ import org.mockito.Mock;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.boot.test.context.SpringBootTest;
-import java.util.ArrayList;
-import java.util.List;
 
-import static org.mockito.Mockito.*;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.springdatar2dbc.database.MethodInvocationForTesting;
+import io.sapl.springdatar2dbc.database.R2dbcPersonRepository;
+import io.sapl.springdatar2dbc.database.TestClass;
 
 @SpringBootTest
 class AuthorizationSubscriptionHandlerProviderTest {
@@ -222,7 +228,8 @@ class AuthorizationSubscriptionHandlerProviderTest {
 
             return null;
         });
-        var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class, methodInvocation);
+        var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
+                methodInvocation);
 
         // THEN
 

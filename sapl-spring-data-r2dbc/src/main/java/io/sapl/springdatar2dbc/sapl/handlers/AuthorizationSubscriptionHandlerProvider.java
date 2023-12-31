@@ -17,14 +17,16 @@
  */
 package io.sapl.springdatar2dbc.sapl.handlers;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import lombok.SneakyThrows;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
+
+import com.fasterxml.jackson.databind.JsonNode;
+
+import io.sapl.api.pdp.AuthorizationSubscription;
+import lombok.SneakyThrows;
 
 /**
  * This service takes care of obtaining the AuthorizationSubscription to execute

@@ -17,12 +17,13 @@
  */
 package io.sapl.springdatar2dbc.sapl;
 
-import lombok.Getter;
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.data.repository.query.parser.Part;
 
-import java.util.Collections;
-import java.util.List;
+import lombok.Getter;
 
 @Getter
 public enum Operator {

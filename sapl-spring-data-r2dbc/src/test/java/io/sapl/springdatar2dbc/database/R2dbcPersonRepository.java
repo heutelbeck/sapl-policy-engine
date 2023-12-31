@@ -17,16 +17,17 @@
  */
 package io.sapl.springdatar2dbc.database;
 
-import io.sapl.springdatar2dbc.sapl.Enforce;
-import io.sapl.springdatar2dbc.sapl.SaplProtected;
+import java.util.List;
+import java.util.stream.Stream;
+
 import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.r2dbc.repository.R2dbcRepository;
 import org.springframework.stereotype.Repository;
+
+import io.sapl.springdatar2dbc.sapl.Enforce;
+import io.sapl.springdatar2dbc.sapl.SaplProtected;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.util.List;
-import java.util.stream.Stream;
 
 @Repository
 public interface R2dbcPersonRepository

@@ -22,7 +22,9 @@ import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
+
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.pdp.AuthorizationSubscription;
 import lombok.SneakyThrows;
 

@@ -17,18 +17,20 @@
  */
 package io.sapl.springdatamongoreactive.sapl.utils;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import io.sapl.springdatamongoreactive.sapl.Operator;
-import lombok.experimental.UtilityClass;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
 import org.bson.Document;
 import org.springframework.data.mongodb.core.query.BasicQuery;
 import org.springframework.data.repository.query.parser.Part;
 import org.springframework.data.repository.query.parser.PartTree;
 
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
+import com.fasterxml.jackson.databind.JsonNode;
+
+import io.sapl.springdatamongoreactive.sapl.Operator;
+import lombok.experimental.UtilityClass;
 
 /**
  * This class translates different kind of objects into {@link SaplCondition} to

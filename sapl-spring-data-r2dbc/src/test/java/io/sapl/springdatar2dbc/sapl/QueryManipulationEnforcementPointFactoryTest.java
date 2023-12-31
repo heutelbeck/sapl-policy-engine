@@ -17,13 +17,9 @@
  */
 package io.sapl.springdatar2dbc.sapl;
 
-import io.sapl.springdatar2dbc.database.MethodInvocationForTesting;
-import io.sapl.springdatar2dbc.database.Person;
-import io.sapl.springdatar2dbc.sapl.querytypes.annotationenforcement.R2dbcAnnotationQueryManipulationEnforcementPoint;
-import io.sapl.springdatar2dbc.sapl.querytypes.filterenforcement.ProceededDataFilterEnforcementPoint;
-import io.sapl.springdatar2dbc.sapl.querytypes.methodnameenforcement.R2dbcMethodNameQueryManipulationEnforcementPoint;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -33,8 +29,13 @@ import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import java.util.ArrayList;
-import java.util.List;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
+import io.sapl.springdatar2dbc.database.MethodInvocationForTesting;
+import io.sapl.springdatar2dbc.database.Person;
+import io.sapl.springdatar2dbc.sapl.queries.enforcement.ProceededDataFilterEnforcementPoint;
+import io.sapl.springdatar2dbc.sapl.queries.enforcement.R2dbcAnnotationQueryManipulationEnforcementPoint;
+import io.sapl.springdatar2dbc.sapl.queries.enforcement.R2dbcMethodNameQueryManipulationEnforcementPoint;
 
 @SpringBootTest
 class QueryManipulationEnforcementPointFactoryTest {

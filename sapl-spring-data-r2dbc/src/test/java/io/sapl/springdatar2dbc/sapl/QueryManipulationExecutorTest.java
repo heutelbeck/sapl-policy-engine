@@ -17,6 +17,14 @@
  */
 package io.sapl.springdatar2dbc.sapl;
 
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.when;
+
+import java.util.HashMap;
+import java.util.Map;
+
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
 import org.mockito.Mock;
@@ -24,16 +32,12 @@ import org.mockito.MockedConstruction;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
+
 import io.sapl.springdatar2dbc.database.Person;
 import io.sapl.springdatar2dbc.database.PersonWithoutTableAnnotation;
 import io.sapl.springdatar2dbc.database.Role;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.mockito.Mockito.*;
 
 class QueryManipulationExecutorTest {
 

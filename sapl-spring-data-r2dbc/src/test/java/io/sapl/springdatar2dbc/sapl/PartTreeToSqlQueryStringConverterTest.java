@@ -17,10 +17,18 @@
  */
 package io.sapl.springdatar2dbc.sapl;
 
-import io.sapl.springdatar2dbc.database.Person;
-import io.sapl.springdatar2dbc.sapl.querytypes.methodnameenforcement.PartTreeToSqlQueryStringConverter;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.stream.Stream;
+
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,17 +40,10 @@ import org.junit.platform.commons.util.ReflectionUtils;
 import org.mockito.Answers;
 import org.springframework.beans.factory.BeanFactory;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Modifier;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.stream.Stream;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
+import io.sapl.springdatar2dbc.database.Person;
+import io.sapl.springdatar2dbc.sapl.queries.enforcement.PartTreeToSqlQueryStringConverter;
 
 class PartTreeToSqlQueryStringConverterTest {
 

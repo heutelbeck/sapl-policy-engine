@@ -19,9 +19,9 @@ package io.sapl.springdatamongoreactive.sapl;
 
 import org.springframework.stereotype.Service;
 
-import io.sapl.springdatamongoreactive.sapl.querytypes.filterenforcement.ProceededDataFilterEnforcementPoint;
-import io.sapl.springdatamongoreactive.sapl.querytypes.methodnameenforcement.MongoMethodNameQueryManipulationEnforcementPoint;
-import io.sapl.springdatamongoreactive.sapl.querytypes.annotationenforcement.MongoAnnotationQueryManipulationEnforcementPoint;
+import io.sapl.springdatamongoreactive.sapl.queries.enforcement.MongoAnnotationQueryManipulationEnforcementPoint;
+import io.sapl.springdatamongoreactive.sapl.queries.enforcement.MongoMethodNameQueryManipulationEnforcementPoint;
+import io.sapl.springdatamongoreactive.sapl.queries.enforcement.ProceededDataFilterEnforcementPoint;
 
 @Service
 public class QueryManipulationEnforcementPointFactory {

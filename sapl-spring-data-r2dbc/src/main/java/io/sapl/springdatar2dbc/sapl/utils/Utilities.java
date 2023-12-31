@@ -17,14 +17,14 @@
  */
 package io.sapl.springdatar2dbc.sapl.utils;
 
-import lombok.experimental.UtilityClass;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import lombok.experimental.UtilityClass;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @UtilityClass
 public class Utilities {

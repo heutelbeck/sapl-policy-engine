@@ -17,23 +17,24 @@
  */
 package io.sapl.springdatar2dbc.sapl.handlers;
 
+import static io.sapl.springdatar2dbc.sapl.utils.ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible;
+import static io.sapl.springdatar2dbc.sapl.utils.Utilities.FILTER_JSON_CONTENT;
+import static io.sapl.springdatar2dbc.sapl.utils.Utilities.FILTER_JSON_CONTENT_PREDICATE;
+
+import java.util.function.Function;
+import java.util.function.Predicate;
+
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+
 import io.sapl.spring.constraints.providers.ContentFilterPredicateProvider;
 import io.sapl.spring.constraints.providers.ContentFilteringProvider;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
-
-import java.util.function.Function;
-import java.util.function.Predicate;
-
-import static io.sapl.springdatar2dbc.sapl.utils.ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible;
-import static io.sapl.springdatar2dbc.sapl.utils.Utilities.FILTER_JSON_CONTENT;
-import static io.sapl.springdatar2dbc.sapl.utils.Utilities.FILTER_JSON_CONTENT_PREDICATE;
 
 /**
  * This class takes care of manipulating the received database objects. In

@@ -17,13 +17,13 @@
  */
 package io.sapl.springdatamongoreactive.sapl.database;
 
-import io.sapl.springdatamongoreactive.sapl.QueryManipulationEnforcementData;
-import io.sapl.springdatamongoreactive.sapl.handlers.DataManipulationHandler;
-import io.sapl.springdatamongoreactive.sapl.querytypes.methodnameenforcement.SaplPartTreeCriteriaCreator;
-import io.sapl.springdatamongoreactive.sapl.querytypes.annotationenforcement.MongoAnnotationQueryManipulationEnforcementPoint;
-
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+
+import io.sapl.springdatamongoreactive.sapl.QueryManipulationEnforcementData;
+import io.sapl.springdatamongoreactive.sapl.handlers.DataManipulationHandler;
+import io.sapl.springdatamongoreactive.sapl.queries.enforcement.MongoAnnotationQueryManipulationEnforcementPoint;
+import io.sapl.springdatamongoreactive.sapl.queries.enforcement.SaplPartTreeCriteriaCreator;
 
 public class SupporterClasses {
 

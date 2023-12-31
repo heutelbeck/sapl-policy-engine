@@ -17,9 +17,10 @@
  */
 package io.sapl.springdatar2dbc.sapl.handlers;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 /**
  * This class represents the logging constraint handler provider.

@@ -17,11 +17,11 @@
  */
 package io.sapl.springdatar2dbc.sapl;
 
+import java.util.List;
+
 import org.apache.commons.lang3.NotImplementedException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
 
 class OperatorTest {
 

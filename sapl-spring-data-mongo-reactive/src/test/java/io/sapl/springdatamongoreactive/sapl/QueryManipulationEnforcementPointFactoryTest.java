@@ -33,9 +33,9 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
 import io.sapl.springdatamongoreactive.sapl.database.MethodInvocationForTesting;
 import io.sapl.springdatamongoreactive.sapl.database.TestUser;
-import io.sapl.springdatamongoreactive.sapl.querytypes.filterenforcement.ProceededDataFilterEnforcementPoint;
-import io.sapl.springdatamongoreactive.sapl.querytypes.methodnameenforcement.MongoMethodNameQueryManipulationEnforcementPoint;
-import io.sapl.springdatamongoreactive.sapl.querytypes.annotationenforcement.MongoAnnotationQueryManipulationEnforcementPoint;
+import io.sapl.springdatamongoreactive.sapl.queries.enforcement.MongoAnnotationQueryManipulationEnforcementPoint;
+import io.sapl.springdatamongoreactive.sapl.queries.enforcement.MongoMethodNameQueryManipulationEnforcementPoint;
+import io.sapl.springdatamongoreactive.sapl.queries.enforcement.ProceededDataFilterEnforcementPoint;
 
 @SpringBootTest
 class QueryManipulationEnforcementPointFactoryTest {
