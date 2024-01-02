@@ -28,8 +28,9 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class SecretGenerator {
 
-    private static final int BASIC_KEY_LENGTH    = 10;
-    private static final int BASIC_SECRET_LENGTH = 32;
+    public static final int BASIC_KEY_LENGTH    = 10;
+    public static final int BASIC_SECRET_LENGTH = 32;
+    public static final int MIN_API_KEY_LENGTH  = 32;
 
     public String newSecret() {
         return generatePassword(BASIC_SECRET_LENGTH);
@@ -37,6 +38,10 @@ public class SecretGenerator {
 
     public String newKey() {
         return generateKey(BASIC_KEY_LENGTH);
+    }
+
+    public String newApiKey() {
+        return generateKey(MIN_API_KEY_LENGTH);
     }
 
     public String encodeWithArgon2(String secret) {

@@ -24,6 +24,7 @@ import java.util.List;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
@@ -49,6 +50,16 @@ public class SAPLServerLTProperties {
     }
 
     public void setAllowedApiKeys(Collection<String> allowedApiKeys) {
+        for (String key : allowedApiKeys) {
+            assertIsValidApiKey(key);
+        }
         this.allowedApiKeys = new ArrayList<>(allowedApiKeys);
+    }
+
+    private void assertIsValidApiKey(String key) {
+        if (key.length() < SecretGenerator.MIN_API_KEY_LENGTH) {
+            throw new IllegalStateException("Detected short API key in configuration. API key must be at least "
+                    + SecretGenerator.MIN_API_KEY_LENGTH + " characters long.");
+        }
     }
 }

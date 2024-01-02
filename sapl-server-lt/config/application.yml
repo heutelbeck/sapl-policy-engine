@@ -99,15 +99,15 @@ io.sapl:
     #
     # Run: java -jar sapl-server-lt-3.0.0-SNAPSHOT.jar -basicCredentials
     #
-    # This will generate a resonably secure key and secret, encode the secret using Argon2 and print it to the console.
+    # This will generate a reasonably secure key and secret, encode the secret using Argon2 and print it to the console.
     # Doing so will not start up an instance of the server.
     #
 
-# - Authentication with API keys: Recommended authentication mode. 
+# - Authentication with API keys:
 #
-# Use Case: Managing multiple clients with high trafic and low latency requirements.
+# Use Case: Managing multiple clients with high traffic and low latency requirements.
 #
-# Clients will gat an API key assigned and authenticate by providing the following HTTP header:
+# Clients will get an API key assigned and authenticate by providing the following HTTP header:
 #
 # API_KEY: <API KEY>
 #
