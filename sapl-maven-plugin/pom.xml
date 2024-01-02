@@ -33,6 +33,7 @@
 
 	<properties>
 		<maven.version>3.9.0</maven.version>
+		<sonar.sources>src/main/java,src/main/resources/html/templates</sonar.sources>
 	</properties>
 
 	<dependencies>
