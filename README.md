@@ -80,7 +80,7 @@ SAPL supports different integration scenarios, which are partially described on 
 
 If you want to see examples, view our [demo repository][demos-url] to give you a gist about how you could integrate SAPL.
 
-**Need a [SBOM][sbom-definition-url]? View [here][sbom-extraction-url].
+**Need a [SBOM][sbom-definition-url]? View [here][sbom-extraction-url].**
 
 <!-- CONTRIBUTING -->
 ## Want to contribute to SAPL?
