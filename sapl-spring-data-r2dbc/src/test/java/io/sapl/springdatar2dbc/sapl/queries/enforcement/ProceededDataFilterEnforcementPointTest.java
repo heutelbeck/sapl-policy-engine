@@ -48,7 +48,6 @@ import io.sapl.springdatar2dbc.database.Person;
 import io.sapl.springdatar2dbc.database.Role;
 import io.sapl.springdatar2dbc.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatar2dbc.sapl.handlers.DataManipulationHandler;
-import io.sapl.springdatar2dbc.sapl.handlers.LoggingConstraintHandlerProvider;
 import io.sapl.springdatar2dbc.sapl.utils.ConstraintHandlerUtils;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
@@ -63,14 +62,12 @@ class ProceededDataFilterEnforcementPointTest {
 
     final ObjectMapper objectMapper = new ObjectMapper();
 
-    LoggingConstraintHandlerProvider loggingConstraintHandlerProviderMock;
-    EmbeddedPolicyDecisionPoint      pdpMock;
+    EmbeddedPolicyDecisionPoint pdpMock;
 
     @BeforeEach
     void beforeEach() {
-        constraintHandlerUtilsMock           = mockStatic(ConstraintHandlerUtils.class);
-        loggingConstraintHandlerProviderMock = mock(LoggingConstraintHandlerProvider.class);
-        pdpMock                              = mock(EmbeddedPolicyDecisionPoint.class);
+        constraintHandlerUtilsMock = mockStatic(ConstraintHandlerUtils.class);
+        pdpMock                    = mock(EmbeddedPolicyDecisionPoint.class);
     }
 
     @AfterEach

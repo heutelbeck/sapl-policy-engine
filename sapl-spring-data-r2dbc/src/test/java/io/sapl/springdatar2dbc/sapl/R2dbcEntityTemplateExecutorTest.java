@@ -19,22 +19,15 @@ package io.sapl.springdatar2dbc.sapl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.util.Map;
-
 import org.junit.jupiter.api.Test;
-
-import io.sapl.springdatar2dbc.database.Person;
-import io.sapl.springdatar2dbc.database.Role;
 
 class R2dbcEntityTemplateExecutorTest {
 
-    private final static Map<String, Object> USER_HASH_MAP = Map.of("1",
-            new Person(123, "Cathrin", "Second", 32, Role.ADMIN, Boolean.TRUE));
+//    private final static Map<String, Object> USER_HASH_MAP = Map.of("1", new Person(123, "Cathrin", "Second", 32, Role.ADMIN, true));
     private final static String              QUERY         = "SELECT * FROM person WHERE firstname = 'Melinda'";
 
     @Test
     void when_executeQuery_then_callR2dbcEntityTemplateFetch() {
-
         // GIVEN
         // var r2dbcEntityTemplateMock = mock(R2dbcEntityTemplate.class,
         // Answers.RETURNS_DEEP_STUBS);

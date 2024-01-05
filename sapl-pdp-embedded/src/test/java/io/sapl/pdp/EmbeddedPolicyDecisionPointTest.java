@@ -260,8 +260,8 @@ class EmbeddedPolicyDecisionPointTest {
         when(configProvider.pdpConfiguration()).thenReturn(Flux.just(validConfig));
 
         var retrievalResult = mock(PolicyRetrievalResult.class);
-        when(retrievalResult.isPrpValidState()).thenReturn(true);
-        when(retrievalResult.isErrorsInTarget()).thenReturn(true);
+        when(retrievalResult.isPrpValidState()).thenReturn(Boolean.TRUE);
+        when(retrievalResult.isErrorsInTarget()).thenReturn(Boolean.TRUE);
         when(prp.retrievePolicies()).thenReturn(Flux.just(retrievalResult));
 
         var subscription = new AuthorizationSubscription(JSON.textNode("willi"), JSON.textNode("read"),
