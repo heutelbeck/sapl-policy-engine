@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 class R2dbcEntityTemplateExecutorTest {
 
 //    private final static Map<String, Object> USER_HASH_MAP = Map.of("1", new Person(123, "Cathrin", "Second", 32, Role.ADMIN, true));
-    private final static String              QUERY         = "SELECT * FROM person WHERE firstname = 'Melinda'";
+    private final static String QUERY = "SELECT * FROM person WHERE firstname = 'Melinda'";
 
     @Test
     void when_executeQuery_then_callR2dbcEntityTemplateFetch() {

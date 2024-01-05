@@ -112,7 +112,8 @@ public class AnnotationAttributeContext implements AttributeContext {
      * @param pipSupplier supplies instantiated libraries.
      * @throws InitializationException if initialization fails.
      */
-    public final void loadPolicyInformationPoints(PolicyInformationPointSupplier pipSupplier) throws InitializationException {
+    public final void loadPolicyInformationPoints(PolicyInformationPointSupplier pipSupplier)
+            throws InitializationException {
         for (var pip : pipSupplier.get()) {
             loadPolicyInformationPoint(pip);
         }

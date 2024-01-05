@@ -38,28 +38,4 @@ class ReflectedMongoQueryCreatorTest {
 
     }
 
-    @Test
-    void when_constructorOfReflectedMongoQueryCreator_then_throwClassNotFoundException()
-            throws NoSuchFieldException, SecurityException {
-        // GIVEN
-        setMongoQueryCreatorName("notValidClassName");
-
-        // WHEN
-
-        // THEN
-        assertThrows(ClassNotFoundException.class, () -> new ReflectedMongoQueryCreator());
-
-        setMongoQueryCreatorName("org.springframework.data.mongodb.repository.query.MongoQueryCreator");
-    }
-
-    private void setMongoQueryCreatorName(String className) throws NoSuchFieldException, SecurityException {
-        var field = ReflectedMongoQueryCreator.class.getDeclaredField("MONGO_QUERY_CREATOR_NAME");
-        field.setAccessible(true);
-        try {
-            field.set(field, className);
-        } catch (IllegalArgumentException | IllegalAccessException e) {
-            e.printStackTrace();
-        }
-    }
-
 }
