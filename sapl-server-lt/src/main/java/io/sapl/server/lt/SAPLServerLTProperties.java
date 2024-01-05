@@ -24,7 +24,6 @@ import java.util.List;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data

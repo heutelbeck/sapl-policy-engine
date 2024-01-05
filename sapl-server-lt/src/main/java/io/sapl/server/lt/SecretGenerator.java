@@ -17,8 +17,8 @@
  */
 package io.sapl.server.lt;
 
-import org.passay.CharacterRule;
 import org.passay.CharacterData;
+import org.passay.CharacterRule;
 import org.passay.EnglishCharacterData;
 import org.passay.PasswordGenerator;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
