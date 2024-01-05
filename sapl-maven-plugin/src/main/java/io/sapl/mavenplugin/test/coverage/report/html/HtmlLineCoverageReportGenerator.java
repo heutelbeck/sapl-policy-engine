@@ -220,7 +220,7 @@ public class HtmlLineCoverageReportGenerator {
     }
 
     @RequiredArgsConstructor
-    private static class WebDependency {
+    public static class WebDependency {
         /**
          * name of the dependency
          */
