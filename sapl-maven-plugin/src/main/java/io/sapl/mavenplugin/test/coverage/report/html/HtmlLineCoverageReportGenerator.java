@@ -41,7 +41,6 @@ import io.sapl.mavenplugin.test.coverage.report.model.LineCoveredValue;
 import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInformation;
 import lombok.Data;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 
 public class HtmlLineCoverageReportGenerator {
 
@@ -219,31 +218,26 @@ public class HtmlLineCoverageReportGenerator {
         String popoverContent;
     }
 
-    @RequiredArgsConstructor
-    public static class WebDependency {
-        /**
-         * name of the dependency
-         */
-        @NonNull
-        String name;
+    private record WebDependency(
+            /**
+             * name of the dependency
+             */
+            @NonNull String name,
 
-        /**
-         * name of the actual file
-         */
-        @NonNull
-        String fileName;
+            /**
+             * name of the actual file
+             */
+            @NonNull String fileName,
 
-        /**
-         * path to the directory where actual the file is located
-         */
-        @NonNull
-        Path sourcePath; //
+            /**
+             * path to the directory where actual the file is located
+             */
+            @NonNull Path sourcePath,
 
-        /**
-         * path to where the file will be located as an asset
-         */
-        @NonNull
-        Path targetPath;
+            /**
+             * path to where the file will be located as an asset
+             */
+            @NonNull Path targetPath) {
     }
 
 }

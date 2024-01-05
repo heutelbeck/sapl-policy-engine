@@ -25,7 +25,7 @@ import lombok.SneakyThrows;
 class ReflectedMongoQueryCreator {
 
     private static final String MONGO_QUERY_CREATOR_NAME = "org.springframework.data.mongodb.repository.query.MongoQueryCreator";
-    Class<?>              mongoQueryCreator;
+    Class<?>                    mongoQueryCreator;
 
     @SneakyThrows
     protected ReflectedMongoQueryCreator() {
