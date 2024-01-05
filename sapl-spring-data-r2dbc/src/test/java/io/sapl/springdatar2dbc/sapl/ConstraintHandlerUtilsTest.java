@@ -41,23 +41,23 @@ import io.sapl.springdatar2dbc.sapl.utils.ConstraintHandlerUtils;
 
 class ConstraintHandlerUtilsTest {
 
-    final static ObjectMapper objectMapper = new ObjectMapper();
-    static JsonNode           obligations;
-    static JsonNode           mongoQueryManipulation;
-    static JsonNode           wrongTypesObligations;
-    static JsonNode           advice;
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static JsonNode           OBLIGATIONS;
+    private static JsonNode           MONGO_QUERY_MANIPULATION;
+    private static JsonNode           WRONG_TYPES_OBLIGATIONS;
+    private static JsonNode           ADVICE;
 
     final JsonNode nullNode = JsonNodeFactory.instance.nullNode();
 
     @BeforeAll
     public static void initBeforeAll() throws JsonProcessingException {
-        obligations            = objectMapper.readTree(
+        OBLIGATIONS              = MAPPER.readTree(
                 "[{\"type\":\"r2dbcQueryManipulation\",\"conditions\":[\"{'role':  {'$in': ['USER']}}\"]},{\"type\":\"filterJsonContent\",\"actions\":[{\"type\":\"blacken\",\"path\":\"$.firstname\",\"discloseLeft\":2}]},{\"type\":\"jsonContentFilterPredicate\",\"conditions\":[{\"type\":\"==\",\"path\":\"$.id\",\"value\":\"a1\"}]}]");
-        mongoQueryManipulation = objectMapper
+        MONGO_QUERY_MANIPULATION = MAPPER
                 .readTree("{\"type\":\"r2dbcQueryManipulation\",\"conditions\":[\"{'role':  {'$in': ['USER']}}\"]}");
-        wrongTypesObligations  = objectMapper
+        WRONG_TYPES_OBLIGATIONS  = MAPPER
                 .readTree("[{\"type\":\"r2dbcQuery\",\"conditions\":\"'role':  {'$in': ['USER']}\"}]");
-        advice                 = objectMapper
+        ADVICE                   = MAPPER
                 .readTree("[{\"id\": \"log\",\"message\": \"You are using SAPL for protection of database.\"}]");
     }
 
@@ -66,11 +66,11 @@ class ConstraintHandlerUtilsTest {
         // GIVEN
 
         // WHEN
-        var actual = ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(obligations,
+        var actual = ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(OBLIGATIONS,
                 "r2dbcQueryManipulation");
 
         // THEN
-        assertEquals(mongoQueryManipulation, actual);
+        assertEquals(MONGO_QUERY_MANIPULATION, actual);
     }
 
     @Test
@@ -78,7 +78,7 @@ class ConstraintHandlerUtilsTest {
         // GIVEN
 
         // WHEN
-        var actual = ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(wrongTypesObligations,
+        var actual = ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(WRONG_TYPES_OBLIGATIONS,
                 "r2dbcQueryManipulation");
 
         // THEN
@@ -88,7 +88,7 @@ class ConstraintHandlerUtilsTest {
     @Test
     void when_authorizationDecisionHasObligations_then_getObligations() {
         // GIVEN
-        var obligationsAsArrayNode = (ArrayNode) obligations;
+        var obligationsAsArrayNode = (ArrayNode) OBLIGATIONS;
         var optionalObligations    = Optional.of(obligationsAsArrayNode);
         var authDec                = new AuthorizationDecision(Decision.PERMIT, null, optionalObligations, null);
 
@@ -96,13 +96,13 @@ class ConstraintHandlerUtilsTest {
         var actual = ConstraintHandlerUtils.getObligations(authDec);
 
         // THEN
-        assertEquals(obligations, actual);
+        assertEquals(OBLIGATIONS, actual);
     }
 
     @Test
     void when_authorizationDecisionHasAdvices_then_getAdvices() {
         // GIVEN
-        var adviceAsArrayNode = (ArrayNode) advice;
+        var adviceAsArrayNode = (ArrayNode) ADVICE;
 
         var optionalAdvice = Optional.of(adviceAsArrayNode);
         var authDec        = new AuthorizationDecision(Decision.PERMIT, null, null, optionalAdvice);
@@ -111,7 +111,7 @@ class ConstraintHandlerUtilsTest {
         var actual = ConstraintHandlerUtils.getAdvices(authDec);
 
         // THEN
-        assertEquals(advice, actual);
+        assertEquals(ADVICE, actual);
     }
 
     @Test

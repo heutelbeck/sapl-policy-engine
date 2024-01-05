@@ -32,7 +32,7 @@ import reactor.test.StepVerifier;
 
 class PolicyElementImplCustomTests {
 
-    private final static SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
+    private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
     private static Stream<Arguments> provideTestCases() {
         // @formatter:off

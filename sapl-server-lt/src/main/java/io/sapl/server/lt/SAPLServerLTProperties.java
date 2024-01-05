@@ -49,8 +49,8 @@ public class SAPLServerLTProperties {
     }
 
     public void setAllowedApiKeys(Collection<String> allowedApiKeys) {
-        for (String key : allowedApiKeys) {
-            assertIsValidApiKey(key);
+        for (String apiKey : allowedApiKeys) {
+            assertIsValidApiKey(apiKey);
         }
         this.allowedApiKeys = new ArrayList<>(allowedApiKeys);
     }

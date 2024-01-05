@@ -108,9 +108,7 @@ public class SaplConditionOperation {
             if (val instanceof ArrayList arrayList) {
                 for (Object object : arrayList) {
                     if (object instanceof Document doc) {
-                        doc.forEach((ke, va) -> {
-                            addNewSaplCondition(saplConditions, ke, va, "Or");
-                        });
+                        doc.forEach((ke, va) -> addNewSaplCondition(saplConditions, ke, va, "Or"));
                     }
                 }
 

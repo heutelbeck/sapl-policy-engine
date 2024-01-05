@@ -37,7 +37,7 @@ import reactor.test.StepVerifier;
 public class TestUtil {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private final static boolean DEBUG_TESTS = false;
+    private static final boolean DEBUG_TESTS = false;
 
     public static Predicate<DocumentEvaluationResult> hasDecision(AuthorizationDecision expected) {
         return saplDecision -> {

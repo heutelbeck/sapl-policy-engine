@@ -71,7 +71,7 @@ public class MongoProxyInterceptor<T> implements MethodInterceptor {
     private final QueryManipulationEnforcementData<T>      enforcementData;
     private final QueryManipulationEnforcementPointFactory factory;
 
-    private static String REACTIVE_MONGO_REPOSITORY_PATH = "org.springframework.data.mongodb.repository.ReactiveMongoRepository";
+    private static final String REACTIVE_MONGO_REPOSITORY_PATH = "org.springframework.data.mongodb.repository.ReactiveMongoRepository";
 
     public MongoProxyInterceptor(AuthorizationSubscriptionHandlerProvider authSubHandler, BeanFactory beanFactory,
             PolicyDecisionPoint pdp, QueryManipulationEnforcementPointFactory factory) {
@@ -162,12 +162,10 @@ public class MongoProxyInterceptor<T> implements MethodInterceptor {
         Type[] repositoryTypes = repository.getGenericInterfaces();
 
         for (Type repositoryType : repositoryTypes) {
-            if (repositoryType.getTypeName().contains(REACTIVE_MONGO_REPOSITORY_PATH)) {
-
-                if (repositoryType instanceof ParameterizedType type
-                        && type.getActualTypeArguments()[0] instanceof Class<?> clazz) {
-                    return (Class<T>) clazz;
-                }
+            if (repositoryType.getTypeName().contains(REACTIVE_MONGO_REPOSITORY_PATH)
+                    && repositoryType instanceof ParameterizedType type
+                    && type.getActualTypeArguments()[0] instanceof Class<?> clazz) {
+                return (Class<T>) clazz;
             }
         }
 

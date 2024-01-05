@@ -40,7 +40,7 @@ import reactor.test.StepVerifier;
 
 class SAPLImplCustomTests {
 
-    private final static SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
+    private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
     private static Stream<Arguments> provideImportTestCases() {
         // @formatter:off

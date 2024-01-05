@@ -23,7 +23,7 @@ import java.lang.reflect.InvocationTargetException;
 
 import org.junit.jupiter.api.Test;
 
-public class ReflectedMongoQueryCreatorTest {
+class ReflectedMongoQueryCreatorTest {
 
     @Test
     void when_getDeclaredConstructor_then_returnRealMongoQueryCreatorConstructor() {

@@ -35,7 +35,7 @@ import org.eclipse.emf.common.util.EList;
 import org.junit.jupiter.api.Test;
 
 class EquivalenceAndHashUtilTests {
-    private final static Map<String, String> EMPTY_MAP = Map.of();
+    private static final Map<String, String> EMPTY_MAP = Map.of();
 
     @Test
     void testSemanticHash() throws Exception {
