@@ -17,25 +17,39 @@
  */
 package io.sapl.springdatar2dbc.sapl.handlers;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.when;
+
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.springdatar2dbc.database.MethodInvocationForTesting;
+import io.sapl.springdatar2dbc.database.R2dbcTestService;
 
-@SpringBootTest
+@SpringBootTest(classes = { EnforceAnnotationHandler.class, R2dbcTestService.class })
 class EnforceAnnotationHandlerTest {
 
     @Autowired
     EnforceAnnotationHandler enforceAnnotationHandler;
+
+    @Autowired
+    R2dbcTestService r2dbcTestService;
+
+    @MockBean
+    BeanFactory beanFactoryMock;
 
     @Test
     void when_methodHasAnEnforceAnnotationWithStaticValues_then_enforceAnnotation() {
@@ -49,7 +63,7 @@ class EnforceAnnotationHandlerTest {
         var result = enforceAnnotationHandler.enforceAnnotation(methodInvocation);
 
         // THEN
-        Assertions.assertEquals(result, expectedResult);
+        assertEquals(result, expectedResult);
     }
 
     @Test
@@ -62,12 +76,14 @@ class EnforceAnnotationHandlerTest {
         var result = enforceAnnotationHandler.enforceAnnotation(methodInvocation);
 
         // THEN
-        Assertions.assertNull(result);
+        assertNull(result);
     }
 
     @Test
     void when_methodHasAnEnforceAnnotationWithStaticClassInEvaluationContext_then_enforceAnnotation() {
         // GIVEN
+    	when(beanFactoryMock.getBean(R2dbcTestService.class)).thenReturn(r2dbcTestService);
+    	MockitoAnnotations.openMocks(beanFactoryMock);
         var expectedResult   = AuthorizationSubscription.of("test value",
                 "general_protection_reactive_r2dbc_repository", "Static class set: field, test value", 56);
         var methodInvocation = new MethodInvocationForTesting("findAllByAgeAfterAndFirstname",
@@ -77,7 +93,7 @@ class EnforceAnnotationHandlerTest {
         var result = enforceAnnotationHandler.enforceAnnotation(methodInvocation);
 
         // THEN
-        Assertions.assertEquals(result, expectedResult);
+        assertEquals(result, expectedResult);
     }
 
     @Test
@@ -94,7 +110,7 @@ class EnforceAnnotationHandlerTest {
         var result = enforceAnnotationHandler.enforceAnnotation(methodInvocation);
 
         // THEN
-        Assertions.assertEquals(result, expectedResult);
+        assertEquals(result, expectedResult);
     }
 
     @Test
@@ -106,8 +122,7 @@ class EnforceAnnotationHandlerTest {
         // WHEN
 
         // THEN
-        Assertions.assertThrows(JsonParseException.class,
-                () -> enforceAnnotationHandler.enforceAnnotation(methodInvocation));
+        assertThrows(JsonParseException.class, () -> enforceAnnotationHandler.enforceAnnotation(methodInvocation));
     }
 
     @Test
@@ -119,8 +134,7 @@ class EnforceAnnotationHandlerTest {
         // WHEN
 
         // THEN
-        Assertions.assertThrows(NoSuchMethodException.class,
-                () -> enforceAnnotationHandler.enforceAnnotation(methodInvocation));
+        assertThrows(NoSuchMethodException.class, () -> enforceAnnotationHandler.enforceAnnotation(methodInvocation));
     }
 
     @Test
@@ -132,8 +146,7 @@ class EnforceAnnotationHandlerTest {
         // WHEN
 
         // THEN
-        Assertions.assertThrows(NoSuchMethodException.class,
-                () -> enforceAnnotationHandler.enforceAnnotation(methodInvocation));
+        assertThrows(NoSuchMethodException.class, () -> enforceAnnotationHandler.enforceAnnotation(methodInvocation));
     }
 
     @Test
@@ -145,7 +158,6 @@ class EnforceAnnotationHandlerTest {
         // WHEN
 
         // THEN
-        Assertions.assertThrows(NoSuchMethodException.class,
-                () -> enforceAnnotationHandler.enforceAnnotation(methodInvocation));
+        assertThrows(NoSuchMethodException.class, () -> enforceAnnotationHandler.enforceAnnotation(methodInvocation));
     }
 }

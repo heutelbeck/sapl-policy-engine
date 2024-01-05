@@ -17,11 +17,14 @@
  */
 package io.sapl.springdatamongoreactive.sapl.handlers;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import java.util.ArrayList;
 import java.util.List;
 
 import org.bson.types.ObjectId;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -31,8 +34,9 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.springdatamongoreactive.sapl.database.MethodInvocationForTesting;
+import io.sapl.springdatamongoreactive.sapl.database.MongoTestService;
 
-@SpringBootTest
+@SpringBootTest(classes = { EnforceAnnotationHandler.class, MongoTestService.class })
 class EnforceAnnotationHandlerTest {
 
     @Autowired
@@ -50,7 +54,7 @@ class EnforceAnnotationHandlerTest {
         var result = enforceAnnotationHandler.enforceAnnotation(methodInvocation);
 
         // THEN
-        Assertions.assertEquals(result, expectedResult);
+        assertEquals(result, expectedResult);
     }
 
     @Test
@@ -63,7 +67,7 @@ class EnforceAnnotationHandlerTest {
         var result = enforceAnnotationHandler.enforceAnnotation(methodInvocation);
 
         // THEN
-        Assertions.assertNull(result);
+        assertNull(result);
     }
 
     @Test
@@ -78,7 +82,7 @@ class EnforceAnnotationHandlerTest {
         var result = enforceAnnotationHandler.enforceAnnotation(methodInvocation);
 
         // THEN
-        Assertions.assertEquals(result, expectedResult);
+        assertEquals(result, expectedResult);
     }
 
     @Test
@@ -95,7 +99,7 @@ class EnforceAnnotationHandlerTest {
         var result = enforceAnnotationHandler.enforceAnnotation(methodInvocation);
 
         // THEN
-        Assertions.assertEquals(result, expectedResult);
+        assertEquals(result, expectedResult);
     }
 
     @Test
@@ -107,8 +111,7 @@ class EnforceAnnotationHandlerTest {
         // WHEN
 
         // THEN
-        Assertions.assertThrows(JsonParseException.class,
-                () -> enforceAnnotationHandler.enforceAnnotation(methodInvocation));
+        assertThrows(JsonParseException.class, () -> enforceAnnotationHandler.enforceAnnotation(methodInvocation));
     }
 
     @Test
@@ -120,8 +123,7 @@ class EnforceAnnotationHandlerTest {
         // WHEN
 
         // THEN
-        Assertions.assertThrows(NoSuchMethodException.class,
-                () -> enforceAnnotationHandler.enforceAnnotation(methodInvocation));
+        assertThrows(NoSuchMethodException.class, () -> enforceAnnotationHandler.enforceAnnotation(methodInvocation));
     }
 
     @Test
@@ -133,8 +135,7 @@ class EnforceAnnotationHandlerTest {
         // WHEN
 
         // THEN
-        Assertions.assertThrows(NoSuchMethodException.class,
-                () -> enforceAnnotationHandler.enforceAnnotation(methodInvocation));
+        assertThrows(NoSuchMethodException.class, () -> enforceAnnotationHandler.enforceAnnotation(methodInvocation));
     }
 
     @Test
@@ -146,7 +147,6 @@ class EnforceAnnotationHandlerTest {
         // WHEN
 
         // THEN
-        Assertions.assertThrows(NoSuchMethodException.class,
-                () -> enforceAnnotationHandler.enforceAnnotation(methodInvocation));
+        assertThrows(NoSuchMethodException.class, () -> enforceAnnotationHandler.enforceAnnotation(methodInvocation));
     }
 }

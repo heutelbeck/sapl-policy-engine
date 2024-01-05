@@ -28,17 +28,17 @@ public class QueryManipulationEnforcementPointFactory {
 
     public <T> QueryManipulationEnforcementPoint<T> createR2dbcAnnotationQueryManipulationEnforcementPoint(
             QueryManipulationEnforcementData<T> enforcementData) {
-        return new R2dbcAnnotationQueryManipulationEnforcementPoint<T>(enforcementData);
+        return new R2dbcAnnotationQueryManipulationEnforcementPoint<>(enforcementData);
     }
 
     public <T> QueryManipulationEnforcementPoint<T> createR2dbcMethodNameQueryManipulationEnforcementPoint(
             QueryManipulationEnforcementData<T> enforcementData) {
-        return new R2dbcMethodNameQueryManipulationEnforcementPoint<T>(enforcementData);
+        return new R2dbcMethodNameQueryManipulationEnforcementPoint<>(enforcementData);
     }
 
     public <T> QueryManipulationEnforcementPoint<T> createProceededDataFilterEnforcementPoint(
             QueryManipulationEnforcementData<T> enforcementData) {
-        return new ProceededDataFilterEnforcementPoint<T>(enforcementData);
+        return new ProceededDataFilterEnforcementPoint<>(enforcementData);
     }
 
 }

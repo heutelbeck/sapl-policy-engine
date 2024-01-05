@@ -25,19 +25,19 @@ import java.util.List;
 import org.apache.commons.lang3.NotImplementedException;
 import org.junit.jupiter.api.Test;
 
-class OperatorTest {
+class OperatorMongoDBTest {
 
-    final Operator operator = Operator.LESS_THAN_EQUAL;
+    final OperatorMongoDB operator = OperatorMongoDB.LESS_THAN_EQUAL;
 
     @Test
     void when_keywordNotExist_then_throwNotImplementedException() {
-        assertThrows(NotImplementedException.class, () -> Operator.getOperatorByKeyword("notValid"));
+        assertThrows(NotImplementedException.class, () -> OperatorMongoDB.getOperatorByKeyword("notValid"));
     }
 
     @Test
     void when_keywordExist_then_returnOperation() {
-        Operator result = Operator.getOperatorByKeyword("$lte");
-        assertEquals(Operator.LESS_THAN_EQUAL, result);
+        OperatorMongoDB result = OperatorMongoDB.getOperatorByKeyword("$lte");
+        assertEquals(OperatorMongoDB.LESS_THAN_EQUAL, result);
     }
 
     @Test

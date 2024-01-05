@@ -162,9 +162,7 @@ public class AuthorizationSubscriptionHandlerProvider {
         } else
             environment = secondAuthSub.getEnvironment();
 
-        var authSub = new AuthorizationSubscription(subject, action, resource, environment);
-
-        return authSub;
+        return new AuthorizationSubscription(subject, action, resource, environment);
     }
 
     /**

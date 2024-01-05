@@ -92,15 +92,14 @@ public class SaplPartTreeCriteriaCreator<T> {
         // Creates an object list of all values of all SaplParameters
         saplParametersFromMethod.addAll(saplParametersFromObligation);
 
-        var allParameters = new ArrayList<Object>();
+        var allParametersValueAsObjects = new ArrayList<Object>();
         for (SaplCondition parameter : saplParametersFromMethod) {
-            allParameters.add(parameter.value());
+            allParametersValueAsObjects.add(parameter.value());
         }
 
-        var criteria = buildCriteria(manipulatedPartTree, allParameters);
+        var criteria = buildCriteria(manipulatedPartTree, allParametersValueAsObjects);
 
-        return (criteria == null ? new Query()
-                : new Query(criteria).with(mongoQueryCreatorFactory.getConvertingParameterAccessor().getSort()));
+        return new Query(criteria).with(mongoQueryCreatorFactory.getConvertingParameterAccessor().getSort());
     }
 
     /**
@@ -115,16 +114,13 @@ public class SaplPartTreeCriteriaCreator<T> {
      * @return a new {@link Criteria}.
      */
     private Criteria buildCriteria(PartTree manipulatedPartTree, List<Object> parameters) {
+
         Criteria base     = null;
         var      iterator = parameters.iterator();
+
         for (PartTree.OrPart node : manipulatedPartTree) {
 
-            var parts = node.iterator();
-
-            if (!parts.hasNext()) { // Don't know if this check is necessary, hard to test.
-                throw new IllegalStateException(String.format("No part found in PartTree %s", manipulatedPartTree));
-            }
-
+            var parts    = node.iterator();
             var criteria = mongoQueryCreatorFactory.create(parts.next(), iterator);
 
             while (parts.hasNext()) {

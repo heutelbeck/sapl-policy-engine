@@ -17,6 +17,9 @@
  */
 package io.sapl.springdatar2dbc.sapl.handlers;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
@@ -27,20 +30,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.aopalliance.intercept.MethodInvocation;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.springdatar2dbc.database.MethodInvocationForTesting;
 import io.sapl.springdatar2dbc.database.R2dbcPersonRepository;
 import io.sapl.springdatar2dbc.database.TestClass;
 
-@SpringBootTest
+@SpringBootTest(classes = AuthorizationSubscriptionHandlerProvider.class)
 class AuthorizationSubscriptionHandlerProviderTest {
 
     AuthorizationSubscriptionHandlerProvider authorizationSubscriptionHandlerProvider;
@@ -59,7 +62,7 @@ class AuthorizationSubscriptionHandlerProviderTest {
     @Mock
     BeanFactory beanFactoryMock;
 
-    @Mock
+    @MockBean
     EnforceAnnotationHandler enforceAnnotationHandlerMock;
 
     @BeforeEach
@@ -73,7 +76,7 @@ class AuthorizationSubscriptionHandlerProviderTest {
         // GIVEN
 
         // WHEN
-        Assertions.assertThrows(IllegalArgumentException.class,
+        assertThrows(IllegalArgumentException.class,
                 () -> authorizationSubscriptionHandlerProvider.getAuthSub(TestClass.class, methodInvocation));
 
         // THEN
@@ -233,15 +236,15 @@ class AuthorizationSubscriptionHandlerProviderTest {
 
         // THEN
 
-        Assertions.assertNull(resultAuthSub);
+        assertNull(resultAuthSub);
         verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(any(MethodInvocation.class));
         verify(beanFactoryMock, times(2)).getBean(anyString());
     }
 
     private void compareTwoAuthSubs(AuthorizationSubscription first, AuthorizationSubscription second) {
-        Assertions.assertEquals(first.getSubject(), second.getSubject());
-        Assertions.assertEquals(first.getAction(), second.getAction());
-        Assertions.assertEquals(first.getResource(), second.getResource());
-        Assertions.assertEquals(first.getEnvironment(), second.getEnvironment());
+        assertEquals(first.getSubject(), second.getSubject());
+        assertEquals(first.getAction(), second.getAction());
+        assertEquals(first.getResource(), second.getResource());
+        assertEquals(first.getEnvironment(), second.getEnvironment());
     }
 }

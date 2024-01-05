@@ -15,39 +15,46 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatamongoreactive.sapl;
+package io.sapl.springdatar2dbc.sapl;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 
 import org.apache.commons.lang3.NotImplementedException;
 import org.junit.jupiter.api.Test;
 
-class OperatorTest {
+class OperatorR2dbcTest {
 
-    final Operator operator = Operator.LESS_THAN_EQUAL;
+    final OperatorR2dbc operator = OperatorR2dbc.LESS_THAN_EQUAL;
 
     @Test
     void when_keywordNotExist_then_throwNotImplementedException() {
-        assertThrows(NotImplementedException.class, () -> Operator.getOperatorByKeyword("notValid"));
+        assertThrows(NotImplementedException.class, () -> OperatorR2dbc.getOperatorByKeyword("notValid"));
     }
 
     @Test
     void when_keywordExist_then_returnOperation() {
-        Operator result = Operator.getOperatorByKeyword("$lte");
-        assertEquals(Operator.LESS_THAN_EQUAL, result);
+        OperatorR2dbc result = OperatorR2dbc.getOperatorByKeyword(">=");
+        assertEquals(OperatorR2dbc.GREATER_THAN_EQUAL, result);
+    }
+
+    @Test
+    void when_valuesOfOperatorIsNoArray_then_returnFalse() {
+        assertFalse(operator.isArray);
+    }
+
+    @Test
+    void when_valuesOfOperatorIsArray_then_returnTrue() {
+        assertTrue(OperatorR2dbc.BETWEEN.isArray);
     }
 
     @Test
     void when_keywordExists_then_getSqlQueryBasedKeywords() {
-        assertEquals(operator.mongoBasedKeywords, List.of("$lte", "lte"));
-    }
-
-    @Test
-    void when_keywordExists_then_getMethodNameBasedKeywords() {
-        assertEquals(operator.methodNameBasedKeywords, List.of("IsLessThanEqual", "LessThanEqual"));
+        assertEquals(operator.sqlQueryBasedKeywords, List.of("<="));
     }
 
 }

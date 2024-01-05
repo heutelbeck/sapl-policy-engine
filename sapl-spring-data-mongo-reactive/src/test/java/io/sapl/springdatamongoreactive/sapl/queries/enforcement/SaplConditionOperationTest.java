@@ -26,11 +26,10 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.commons.util.ReflectionUtils;
 
-import io.sapl.springdatamongoreactive.sapl.Operator;
+import io.sapl.springdatamongoreactive.sapl.OperatorMongoDB;
 import io.sapl.springdatamongoreactive.sapl.database.MethodInvocationForTesting;
 import io.sapl.springdatamongoreactive.sapl.database.TestUser;
 import io.sapl.springdatamongoreactive.sapl.utils.SaplCondition;
@@ -66,7 +65,7 @@ class SaplConditionOperationTest {
         // WHEN
 
         // THEN
-        Assertions.assertThrows(ArrayIndexOutOfBoundsException.class,
+        assertThrows(ArrayIndexOutOfBoundsException.class,
                 () -> SaplConditionOperation.methodToSaplConditions(args, method, TestUser.class));
     }
 
@@ -77,8 +76,8 @@ class SaplConditionOperationTest {
                 new ArrayList<>(List.of(String.class, int.class)), new ArrayList<>(List.of("Aaron", 22)), null);
         var method           = methodInvocation.getMethod();
         var args             = methodInvocation.getArguments();
-        var expectedResult   = List.of(new SaplCondition("firstname", "Aaron", Operator.SIMPLE_PROPERTY, "And"),
-                new SaplCondition("age", 22, Operator.BEFORE, "And"));
+        var expectedResult   = List.of(new SaplCondition("firstname", "Aaron", OperatorMongoDB.SIMPLE_PROPERTY, "And"),
+                new SaplCondition("age", 22, OperatorMongoDB.BEFORE, "And"));
 
         // WHEN
         var actualResult = SaplConditionOperation.methodToSaplConditions(args, method, TestUser.class);

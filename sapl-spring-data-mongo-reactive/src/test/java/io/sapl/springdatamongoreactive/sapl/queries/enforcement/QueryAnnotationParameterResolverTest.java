@@ -17,6 +17,7 @@
  */
 package io.sapl.springdatamongoreactive.sapl.queries.enforcement;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -25,7 +26,6 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.util.ReflectionUtils;
 
@@ -47,7 +47,7 @@ class QueryAnnotationParameterResolverTest {
                 args);
 
         // THEN
-        Assertions.assertEquals(expectedResult, result);
+        assertEquals(expectedResult, result);
     }
 
     @Test
@@ -64,7 +64,7 @@ class QueryAnnotationParameterResolverTest {
                 args);
 
         // THEN
-        Assertions.assertEquals(expectedResult, result);
+        assertEquals(expectedResult, result);
     }
 
     @Test

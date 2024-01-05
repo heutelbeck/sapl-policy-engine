@@ -18,8 +18,8 @@
 package io.sapl.springdatamongoreactive.sapl.queries.enforcement;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -37,7 +37,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.BasicQuery;
@@ -111,11 +110,11 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
 
     @Test
     void when_thereAreConditionsInTheDecision_then_enforce() {
-        try (MockedConstruction<MongoQueryManipulationObligationProvider> mongoQueryManipulationObligationProviderMockedConstruction = Mockito
-                .mockConstruction(MongoQueryManipulationObligationProvider.class)) {
+        try (MockedConstruction<MongoQueryManipulationObligationProvider> mongoQueryManipulationObligationProviderMockedConstruction = mockConstruction(
+                MongoQueryManipulationObligationProvider.class)) {
             try (@SuppressWarnings("rawtypes")
-            MockedConstruction<DataManipulationHandler> dataManipulationHandler = Mockito
-                    .mockConstruction(DataManipulationHandler.class)) {
+            MockedConstruction<DataManipulationHandler> dataManipulationHandler = mockConstruction(
+                    DataManipulationHandler.class)) {
                 // GIVEN
                 var expectedQuery             = new BasicQuery(
                         "{'firstname':  {'$in': [ 'Cathrin' ]}, 'age':  {'gt': 30 }}");
@@ -186,7 +185,7 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
         // WHEN
         when(pdpMock.decide(any(AuthorizationSubscription.class)))
                 .thenReturn(Flux.just(new AuthorizationDecision(Decision.DENY)));
-        when(beanFactoryMock.getBean(eq(ReactiveMongoTemplate.class))).thenReturn(reactiveMongoTemplateMock);
+        when(beanFactoryMock.getBean(ReactiveMongoTemplate.class)).thenReturn(reactiveMongoTemplateMock);
 
         var mongoAnnotationQueryManipulationEnforcementPoint = new MongoAnnotationQueryManipulationEnforcementPoint<>(
                 enforcementData);
@@ -204,11 +203,11 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
 
     @Test
     void when_mongoQueryManipulationObligationIsResponsibleIsFalse_then_proceedWithoutQueryManipulation() {
-        try (MockedConstruction<MongoQueryManipulationObligationProvider> mongoQueryManipulationObligationProviderMockedConstruction = Mockito
-                .mockConstruction(MongoQueryManipulationObligationProvider.class)) {
+        try (MockedConstruction<MongoQueryManipulationObligationProvider> mongoQueryManipulationObligationProviderMockedConstruction = mockConstruction(
+                MongoQueryManipulationObligationProvider.class)) {
             try (@SuppressWarnings("rawtypes")
-            MockedConstruction<DataManipulationHandler> dataManipulationHandler = Mockito
-                    .mockConstruction(DataManipulationHandler.class)) {
+            MockedConstruction<DataManipulationHandler> dataManipulationHandler = mockConstruction(
+                    DataManipulationHandler.class)) {
 
                 // GIVEN
                 var expectedQuery             = new BasicQuery(
@@ -266,11 +265,11 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
 
     @Test
     void when_mongoQueryManipulationObligationIsResponsibleIsFalseAndReturnTypeIsMono_then_proceedWithoutQueryManipulation() {
-        try (MockedConstruction<MongoQueryManipulationObligationProvider> mongoQueryManipulationObligationProviderMockedConstruction = Mockito
-                .mockConstruction(MongoQueryManipulationObligationProvider.class)) {
+        try (MockedConstruction<MongoQueryManipulationObligationProvider> mongoQueryManipulationObligationProviderMockedConstruction = mockConstruction(
+                MongoQueryManipulationObligationProvider.class)) {
             try (@SuppressWarnings("rawtypes")
-            MockedConstruction<DataManipulationHandler> dataManipulationHandler = Mockito
-                    .mockConstruction(DataManipulationHandler.class)) {
+            MockedConstruction<DataManipulationHandler> dataManipulationHandler = mockConstruction(
+                    DataManipulationHandler.class)) {
 
                 // GIVEN
                 var expectedQuery             = new BasicQuery("{'firstname': 'Cathrin' }");
@@ -328,11 +327,11 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
 
     @Test
     void when_mongoQueryManipulationObligationIsResponsibleIsFalseAndReturnTypeIsMono_then_throwThrowable() {
-        try (MockedConstruction<MongoQueryManipulationObligationProvider> mongoQueryManipulationObligationProviderMockedConstruction = Mockito
-                .mockConstruction(MongoQueryManipulationObligationProvider.class)) {
+        try (MockedConstruction<MongoQueryManipulationObligationProvider> mongoQueryManipulationObligationProviderMockedConstruction = mockConstruction(
+                MongoQueryManipulationObligationProvider.class)) {
             try (@SuppressWarnings("rawtypes")
-            MockedConstruction<DataManipulationHandler> dataManipulationHandler = Mockito
-                    .mockConstruction(DataManipulationHandler.class)) {
+            MockedConstruction<DataManipulationHandler> dataManipulationHandler = mockConstruction(
+                    DataManipulationHandler.class)) {
 
                 // GIVEN
                 var expectedQuery             = new BasicQuery("{'firstname': 'Cathrin' }");

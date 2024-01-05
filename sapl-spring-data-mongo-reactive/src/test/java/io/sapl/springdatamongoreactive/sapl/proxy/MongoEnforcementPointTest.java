@@ -29,7 +29,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.repository.core.RepositoryInformation;
 
-@SpringBootTest
+@SpringBootTest(classes = MongoEnforcementPoint.class)
 class MongoEnforcementPointTest {
 
     @Autowired
@@ -41,7 +41,7 @@ class MongoEnforcementPointTest {
     @Test
     void when_thereIsProxyFactory_then_postProcessAndAddMongoHandlerAsAdvice() {
         // GIVEN
-        ProxyFactory proxyFactoryMock = mock(ProxyFactory.class);
+        var proxyFactoryMock = mock(ProxyFactory.class);
 
         // WHEN
         mongoEnforcementPoint.postProcess(proxyFactoryMock, any(RepositoryInformation.class));

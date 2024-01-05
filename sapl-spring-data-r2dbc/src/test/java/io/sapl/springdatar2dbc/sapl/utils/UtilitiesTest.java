@@ -17,6 +17,7 @@
  */
 package io.sapl.springdatar2dbc.sapl.utils;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -29,7 +30,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -87,83 +87,83 @@ class UtilitiesTest {
     @ParameterizedTest
     @ValueSource(strings = { "findBy", "readBy", "queryBy", "searchBy", "streamBy" })
     void when_methodNameIsValid_then_returnTrue(String methodName) {
-        Assertions.assertTrue(Utilities.isMethodNameValid(methodName));
+        assertTrue(Utilities.isMethodNameValid(methodName));
     }
 
     @ParameterizedTest
     @ValueSource(strings = { "findB", "reedBy", "queryBY", "search", "StreamBy" })
     void when_methodNameIsNotValid_then_returnFalse(String methodName) {
-        Assertions.assertFalse(Utilities.isMethodNameValid(methodName));
+        assertFalse(Utilities.isMethodNameValid(methodName));
     }
 
     @Test
     void when_classIsFlux_then_returnTrue() {
-        Assertions.assertTrue(Utilities.isFlux(returnClassOfFluxMethod));
+        assertTrue(Utilities.isFlux(returnClassOfFluxMethod));
     }
 
     @Test
     void when_classIsNoFlux_then_returnFalse() {
-        Assertions.assertFalse(Utilities.isFlux(returnClassOfMonoMethod));
+        assertFalse(Utilities.isFlux(returnClassOfMonoMethod));
     }
 
     @Test
     void when_classIsMono_then_returnTrue() {
-        Assertions.assertTrue(Utilities.isMono(returnClassOfMonoMethod));
+        assertTrue(Utilities.isMono(returnClassOfMonoMethod));
     }
 
     @Test
     void when_classIsNoMono_then_returnFalse() {
-        Assertions.assertFalse(Utilities.isMono(returnClassOfFluxMethod));
+        assertFalse(Utilities.isMono(returnClassOfFluxMethod));
     }
 
     @Test
     void when_classIsList_then_returnTrue() {
-        Assertions.assertTrue(Utilities.isListOrCollection(returnClassOfListMethod));
+        assertTrue(Utilities.isListOrCollection(returnClassOfListMethod));
     }
 
     @Test
     void when_classIsNoList_then_returnFalse() {
-        Assertions.assertFalse(Utilities.isListOrCollection(returnClassOfMonoMethod));
+        assertFalse(Utilities.isListOrCollection(returnClassOfMonoMethod));
     }
 
     @Test
     void when_classIsCollection_then_returnTrue() {
-        Assertions.assertTrue(Utilities.isListOrCollection(returnClassOfCollectionMethod));
+        assertTrue(Utilities.isListOrCollection(returnClassOfCollectionMethod));
     }
 
     @Test
     void when_classIsNoCollection_then_returnFalse() {
-        Assertions.assertFalse(Utilities.isListOrCollection(returnClassOfMonoMethod));
+        assertFalse(Utilities.isListOrCollection(returnClassOfMonoMethod));
     }
 
     @Test
     void when_classIsInteger_then_returnTrue() {
-        Assertions.assertTrue(Utilities.isInteger(returnClassOfIntegerMethod));
+        assertTrue(Utilities.isInteger(returnClassOfIntegerMethod));
     }
 
     @Test
     void when_classIsNoInteger_then_returnFalse() {
-        Assertions.assertFalse(Utilities.isListOrCollection(returnClassOfMonoMethod));
+        assertFalse(Utilities.isListOrCollection(returnClassOfMonoMethod));
     }
 
     @Test
     void when_objectIsString_then_returnTrue() {
-        Assertions.assertTrue(Utilities.isString("Test"));
+        assertTrue(Utilities.isString("Test"));
     }
 
     @Test
     void when_objectIsNoString_then_returnFalse() {
-        Assertions.assertFalse(Utilities.isString(2));
+        assertFalse(Utilities.isString(2));
     }
 
     @Test
     void when_objectIsInteger_then_returnTrue() {
-        Assertions.assertTrue(Utilities.isInteger(123));
+        assertTrue(Utilities.isInteger(123));
     }
 
     @Test
     void when_objectIsNoInteger_then_returnFalse() {
-        Assertions.assertFalse(Utilities.isInteger("123"));
+        assertFalse(Utilities.isInteger("123"));
     }
 
     @Test

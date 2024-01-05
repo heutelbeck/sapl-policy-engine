@@ -34,7 +34,7 @@ public class TestConfig {
 
     @Bean
     StandardEvaluationContext evaluationContext(BeanResolver beanResolver) {
-        final StandardEvaluationContext evaluationContext = new StandardEvaluationContext();
+        final var evaluationContext = new StandardEvaluationContext();
         evaluationContext.setBeanResolver(beanResolver);
         return evaluationContext;
     }

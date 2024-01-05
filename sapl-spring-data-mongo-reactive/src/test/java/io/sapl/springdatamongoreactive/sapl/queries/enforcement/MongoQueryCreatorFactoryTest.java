@@ -17,9 +17,17 @@
  */
 package io.sapl.springdatamongoreactive.sapl.queries.enforcement;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.when;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -27,15 +35,11 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Answers;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
-import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -44,20 +48,19 @@ import org.springframework.data.mongodb.repository.query.ConvertingParameterAcce
 import org.springframework.data.mongodb.repository.query.MongoParametersParameterAccessor;
 import org.springframework.data.mongodb.repository.query.MongoQueryMethod;
 import org.springframework.data.repository.core.support.AbstractRepositoryMetadata;
+import org.springframework.data.repository.query.parser.Part;
 import org.springframework.data.repository.query.parser.PartTree;
 
 import io.sapl.springdatamongoreactive.sapl.database.MethodInvocationForTesting;
 import io.sapl.springdatamongoreactive.sapl.database.MongoDbRepositoryTest;
 import io.sapl.springdatamongoreactive.sapl.database.TestUser;
 
-@SpringBootTest
 class MongoQueryCreatorFactoryTest {
 
-    @Autowired
-    private MongoDbRepositoryTest repositoryTest;
+    private MongoDbRepositoryTest repositoryTest = mock(MongoDbRepositoryTest.class);
 
-    @SpyBean
-    private ReactiveMongoTemplate reactiveMongoTemplateSpy;
+    private ReactiveMongoTemplate reactiveMongoTemplateSpy = mock(ReactiveMongoTemplate.class,
+            Answers.RETURNS_DEEP_STUBS);
 
     MockedStatic<AbstractRepositoryMetadata> abstractRepositoryMetadataMockedStatic;
 
@@ -81,14 +84,16 @@ class MongoQueryCreatorFactoryTest {
         var method                    = mongoMethodInvocationTest.getMethod();
 
         // WHEN
-        try (MockedConstruction<MongoQueryMethod> mongoQueryMethodMockedConstruction = Mockito
-                .mockConstruction(MongoQueryMethod.class)) {
-            try (MockedConstruction<MongoParametersParameterAccessor> mongoParametersParameterAccessorMockedConstruction = Mockito
-                    .mockConstruction(MongoParametersParameterAccessor.class)) {
-                try (MockedConstruction<ConvertingParameterAccessor> convertingParameterAccessorMockedConstruction = Mockito
-                        .mockConstruction(ConvertingParameterAccessor.class)) {
+        try (MockedConstruction<MongoQueryMethod> mongoQueryMethodMockedConstruction = mockConstruction(
+                MongoQueryMethod.class)) {
+            try (MockedConstruction<MongoParametersParameterAccessor> mongoParametersParameterAccessorMockedConstruction = mockConstruction(
+                    MongoParametersParameterAccessor.class)) {
+                try (MockedConstruction<ConvertingParameterAccessor> convertingParameterAccessorMockedConstruction = mockConstruction(
+                        ConvertingParameterAccessor.class)) {
+
                     var mongoQueryCreatorFactory = new MongoQueryCreatorFactory(repositoryTest.getClass(),
                             reactiveMongoTemplateSpy);
+
                     mongoQueryCreatorFactory.createInstance(partTree, method, args);
 
                     var mongoQueryMethod                 = mongoQueryMethodMockedConstruction.constructed().get(0);
@@ -98,9 +103,9 @@ class MongoQueryCreatorFactoryTest {
                             .get(0);
 
                     // THEN
-                    Assertions.assertNotNull(mongoQueryMethod);
-                    Assertions.assertNotNull(mongoParametersParameterAccessor);
-                    Assertions.assertNotNull(convertingParameterAccessor);
+                    assertNotNull(mongoQueryMethod);
+                    assertNotNull(mongoParametersParameterAccessor);
+                    assertNotNull(convertingParameterAccessor);
                 }
             }
         }
@@ -118,33 +123,45 @@ class MongoQueryCreatorFactoryTest {
         var partTree                  = new PartTree("findAllByFirstname", TestUser.class);
         var args                      = mongoMethodInvocationTest.getArguments();
         var expected                  = new Query(Criteria.where("firstname").is("Aaron")).with(Sort.by(List.of()));
+        var createCriteria            = Criteria.where("firstname").is("Aaron");
 
         // WHEN
-        try (MockedConstruction<MongoQueryMethod> mongoQueryMethodMockedConstruction = Mockito
-                .mockConstruction(MongoQueryMethod.class)) {
-            try (MockedConstruction<MongoParametersParameterAccessor> mongoParametersParameterAccessorMockedConstruction = Mockito
-                    .mockConstruction(MongoParametersParameterAccessor.class)) {
-                try (MockedConstruction<ConvertingParameterAccessor> convertingParameterAccessorMockedConstruction = Mockito
-                        .mockConstruction(ConvertingParameterAccessor.class)) {
-                    var mongoQueryCreatorFactory = new MongoQueryCreatorFactory(repositoryTest.getClass(),
-                            reactiveMongoTemplateSpy);
-                    mongoQueryCreatorFactory.createInstance(partTree, method, args);
+        try (MockedConstruction<MongoQueryMethod> mongoQueryMethodMockedConstruction = mockConstruction(
+                MongoQueryMethod.class)) {
+            try (MockedConstruction<MongoParametersParameterAccessor> mongoParametersParameterAccessorMockedConstruction = mockConstruction(
+                    MongoParametersParameterAccessor.class)) {
+                try (MockedConstruction<ConvertingParameterAccessor> convertingParameterAccessorMockedConstruction = mockConstruction(
+                        ConvertingParameterAccessor.class)) {
+                    try (MockedConstruction<ReflectedMongoQueryCreatorMethods> reflectedMongoQueryCreatorMethodsMockedConstruction = mockConstruction(
+                            ReflectedMongoQueryCreatorMethods.class)) {
 
-                    var part     = partTree.getParts().toList().get(0);
-                    var iterator = Arrays.stream(args).iterator();
-                    var result   = new Query(mongoQueryCreatorFactory.create(part, iterator));
+                        var mongoQueryCreatorFactory = new MongoQueryCreatorFactory(repositoryTest.getClass(),
+                                reactiveMongoTemplateSpy);
 
-                    var mongoQueryMethod                 = mongoQueryMethodMockedConstruction.constructed().get(0);
-                    var mongoParametersParameterAccessor = mongoParametersParameterAccessorMockedConstruction
-                            .constructed().get(0);
-                    var convertingParameterAccessor      = convertingParameterAccessorMockedConstruction.constructed()
-                            .get(0);
+                        var reflectedMongoQueryCreatorMethods = reflectedMongoQueryCreatorMethodsMockedConstruction
+                                .constructed().get(0);
+                        doNothing().when(reflectedMongoQueryCreatorMethods).initializeMethods(isA(Object.class));
+                        when(reflectedMongoQueryCreatorMethods.create(isA(Part.class), any()))
+                                .thenReturn(createCriteria);
 
-                    // THEN
-                    Assertions.assertNotNull(mongoQueryMethod);
-                    Assertions.assertNotNull(mongoParametersParameterAccessor);
-                    Assertions.assertNotNull(convertingParameterAccessor);
-                    Assertions.assertEquals(result, expected);
+                        mongoQueryCreatorFactory.createInstance(partTree, method, args);
+
+                        var part     = partTree.getParts().toList().get(0);
+                        var iterator = Arrays.stream(args).iterator();
+                        var result   = new Query(mongoQueryCreatorFactory.create(part, iterator));
+
+                        var mongoQueryMethod                 = mongoQueryMethodMockedConstruction.constructed().get(0);
+                        var mongoParametersParameterAccessor = mongoParametersParameterAccessorMockedConstruction
+                                .constructed().get(0);
+                        var convertingParameterAccessor      = convertingParameterAccessorMockedConstruction
+                                .constructed().get(0);
+
+                        // THEN
+                        assertNotNull(mongoQueryMethod);
+                        assertNotNull(mongoParametersParameterAccessor);
+                        assertNotNull(convertingParameterAccessor);
+                        assertEquals(result, expected);
+                    }
                 }
             }
         }
@@ -163,34 +180,50 @@ class MongoQueryCreatorFactoryTest {
         var args                      = mongoMethodInvocationTest.getArguments();
         var expected                  = new Query(Criteria.where("firstname").is("Aaron"))
                 .addCriteria(Criteria.where("age").lt(22)).with(Sort.by(List.of()));
+        var createCriteria            = Criteria.where("firstname").is("Aaron");
+        var andCriteria               = createCriteria.and("age").lt(22);
 
         // WHEN
-        try (MockedConstruction<MongoQueryMethod> mongoQueryMethodMockedConstruction = Mockito
-                .mockConstruction(MongoQueryMethod.class)) {
-            try (MockedConstruction<MongoParametersParameterAccessor> mongoParametersParameterAccessorMockedConstruction = Mockito
-                    .mockConstruction(MongoParametersParameterAccessor.class)) {
-                try (MockedConstruction<ConvertingParameterAccessor> convertingParameterAccessorMockedConstruction = Mockito
-                        .mockConstruction(ConvertingParameterAccessor.class)) {
-                    var mongoQueryCreatorFactory = new MongoQueryCreatorFactory(repositoryTest.getClass(),
-                            reactiveMongoTemplateSpy);
-                    mongoQueryCreatorFactory.createInstance(partTree, method, args);
+        try (MockedConstruction<MongoQueryMethod> mongoQueryMethodMockedConstruction = mockConstruction(
+                MongoQueryMethod.class)) {
+            try (MockedConstruction<MongoParametersParameterAccessor> mongoParametersParameterAccessorMockedConstruction = mockConstruction(
+                    MongoParametersParameterAccessor.class)) {
+                try (MockedConstruction<ConvertingParameterAccessor> convertingParameterAccessorMockedConstruction = mockConstruction(
+                        ConvertingParameterAccessor.class)) {
+                    try (MockedConstruction<ReflectedMongoQueryCreatorMethods> reflectedMongoQueryCreatorMethodsMockedConstruction = mockConstruction(
+                            ReflectedMongoQueryCreatorMethods.class)) {
 
-                    var part          = partTree.getParts().toList();
-                    var iterator      = Arrays.stream(args).iterator();
-                    var baseCriteria  = mongoQueryCreatorFactory.create(part.get(0), iterator);
-                    var resultWithAnd = new Query(mongoQueryCreatorFactory.and(part.get(1), baseCriteria, iterator));
+                        var mongoQueryCreatorFactory = new MongoQueryCreatorFactory(repositoryTest.getClass(),
+                                reactiveMongoTemplateSpy);
 
-                    var mongoQueryMethod                 = mongoQueryMethodMockedConstruction.constructed().get(0);
-                    var mongoParametersParameterAccessor = mongoParametersParameterAccessorMockedConstruction
-                            .constructed().get(0);
-                    var convertingParameterAccessor      = convertingParameterAccessorMockedConstruction.constructed()
-                            .get(0);
+                        var reflectedMongoQueryCreatorMethods = reflectedMongoQueryCreatorMethodsMockedConstruction
+                                .constructed().get(0);
+                        doNothing().when(reflectedMongoQueryCreatorMethods).initializeMethods(isA(Object.class));
+                        when(reflectedMongoQueryCreatorMethods.create(isA(Part.class), any()))
+                                .thenReturn(createCriteria);
+                        when(reflectedMongoQueryCreatorMethods.and(isA(Part.class), isA(Criteria.class), any()))
+                                .thenReturn(andCriteria);
 
-                    // THEN
-                    Assertions.assertNotNull(mongoQueryMethod);
-                    Assertions.assertNotNull(mongoParametersParameterAccessor);
-                    Assertions.assertNotNull(convertingParameterAccessor);
-                    Assertions.assertEquals(resultWithAnd.toString(), expected.toString());
+                        mongoQueryCreatorFactory.createInstance(partTree, method, args);
+
+                        var part          = partTree.getParts().toList();
+                        var iterator      = Arrays.stream(args).iterator();
+                        var baseCriteria  = mongoQueryCreatorFactory.create(part.get(0), iterator);
+                        var resultWithAnd = new Query(
+                                mongoQueryCreatorFactory.and(part.get(1), baseCriteria, iterator));
+
+                        var mongoQueryMethod                 = mongoQueryMethodMockedConstruction.constructed().get(0);
+                        var mongoParametersParameterAccessor = mongoParametersParameterAccessorMockedConstruction
+                                .constructed().get(0);
+                        var convertingParameterAccessor      = convertingParameterAccessorMockedConstruction
+                                .constructed().get(0);
+
+                        // THEN
+                        assertNotNull(mongoQueryMethod);
+                        assertNotNull(mongoParametersParameterAccessor);
+                        assertNotNull(convertingParameterAccessor);
+                        assertEquals(resultWithAnd.toString(), expected.toString());
+                    }
                 }
             }
         }
@@ -207,37 +240,56 @@ class MongoQueryCreatorFactoryTest {
         var method                    = mongoMethodInvocationTest.getMethod();
         var partTree                  = new PartTree("findAllByFirstnameOrAgeBefore", TestUser.class);
         var args                      = mongoMethodInvocationTest.getArguments();
-        var expected                  = "Query: { \"$or\" : [{ \"firstname\" : \"Aaron\"}, { \"age\" : { \"$lt\" : 22}}]}, Fields: {}, Sort: {}";
+        var expected                  = "Query: { \"firstname\" : \"Aaron\", \"$or\" : [{ \"age\" : { \"$lt\" : 22}}]}, Fields: {}, Sort: {}";
         var part                      = partTree.getParts().toList();
         var iterator                  = Arrays.stream(args).iterator();
+        var createCriteria            = Criteria.where("firstname").is("Aaron");
+        var orCriteria                = createCriteria.orOperator(Criteria.where("age").lt(22));
 
         // WHEN
-        try (MockedConstruction<MongoQueryMethod> mongoQueryMethodMockedConstruction = Mockito
-                .mockConstruction(MongoQueryMethod.class)) {
-            try (MockedConstruction<MongoParametersParameterAccessor> mongoParametersParameterAccessorMockedConstruction = Mockito
-                    .mockConstruction(MongoParametersParameterAccessor.class)) {
-                try (MockedConstruction<ConvertingParameterAccessor> convertingParameterAccessorMockedConstruction = Mockito
-                        .mockConstruction(ConvertingParameterAccessor.class)) {
-                    var mongoQueryCreatorFactory = new MongoQueryCreatorFactory(repositoryTest.getClass(),
-                            reactiveMongoTemplateSpy);
-                    mongoQueryCreatorFactory.createInstance(partTree, method, args);
+        try (MockedConstruction<MongoQueryMethod> mongoQueryMethodMockedConstruction = mockConstruction(
+                MongoQueryMethod.class)) {
+            try (MockedConstruction<MongoParametersParameterAccessor> mongoParametersParameterAccessorMockedConstruction = mockConstruction(
+                    MongoParametersParameterAccessor.class)) {
+                try (MockedConstruction<ConvertingParameterAccessor> convertingParameterAccessorMockedConstruction = mockConstruction(
+                        ConvertingParameterAccessor.class)) {
+                    try (MockedConstruction<ReflectedMongoQueryCreatorMethods> reflectedMongoQueryCreatorMethodsMockedConstruction = mockConstruction(
+                            ReflectedMongoQueryCreatorMethods.class)) {
 
-                    var baseCriteria                        = mongoQueryCreatorFactory.create(part.get(0), iterator);
-                    var resultWithAnd                       = mongoQueryCreatorFactory.create(part.get(1), iterator);
-                    var resultWithOr                        = new Query(
-                            mongoQueryCreatorFactory.or(baseCriteria, resultWithAnd));
-                    var expectedConvertingParameterAccessor = mongoQueryCreatorFactory.getConvertingParameterAccessor();
-                    var mongoQueryMethod                    = mongoQueryMethodMockedConstruction.constructed().get(0);
-                    var mongoParametersParameterAccessor    = mongoParametersParameterAccessorMockedConstruction
-                            .constructed().get(0);
-                    var convertingParameterAccessor         = convertingParameterAccessorMockedConstruction
-                            .constructed().get(0);
+                        var mongoQueryCreatorFactory = new MongoQueryCreatorFactory(repositoryTest.getClass(),
+                                reactiveMongoTemplateSpy);
 
-                    // THEN
-                    Assertions.assertNotNull(mongoQueryMethod);
-                    Assertions.assertNotNull(mongoParametersParameterAccessor);
-                    Assertions.assertEquals(expectedConvertingParameterAccessor, convertingParameterAccessor);
-                    Assertions.assertEquals(expected, resultWithOr.toString());
+                        var reflectedMongoQueryCreatorMethods = reflectedMongoQueryCreatorMethodsMockedConstruction
+                                .constructed().get(0);
+                        doNothing().when(reflectedMongoQueryCreatorMethods).initializeMethods(isA(Object.class));
+                        when(reflectedMongoQueryCreatorMethods.create(isA(Part.class), any()))
+                                .thenReturn(createCriteria);
+                        when(reflectedMongoQueryCreatorMethods.or(isA(Criteria.class), isA(Criteria.class)))
+                                .thenReturn(orCriteria);
+
+                        mongoQueryCreatorFactory.createInstance(partTree, method, args);
+
+                        var baseCriteria                        = mongoQueryCreatorFactory.create(part.get(0),
+                                iterator);
+                        var resultWithAnd                       = mongoQueryCreatorFactory.create(part.get(1),
+                                iterator);
+                        var resultWithOr                        = new Query(
+                                mongoQueryCreatorFactory.or(baseCriteria, resultWithAnd));
+                        var expectedConvertingParameterAccessor = mongoQueryCreatorFactory
+                                .getConvertingParameterAccessor();
+                        var mongoQueryMethod                    = mongoQueryMethodMockedConstruction.constructed()
+                                .get(0);
+                        var mongoParametersParameterAccessor    = mongoParametersParameterAccessorMockedConstruction
+                                .constructed().get(0);
+                        var convertingParameterAccessor         = convertingParameterAccessorMockedConstruction
+                                .constructed().get(0);
+
+                        // THEN
+                        assertNotNull(mongoQueryMethod);
+                        assertNotNull(mongoParametersParameterAccessor);
+                        assertEquals(expectedConvertingParameterAccessor, convertingParameterAccessor);
+                        assertEquals(expected, resultWithOr.toString());
+                    }
                 }
             }
         }
@@ -251,17 +303,17 @@ class MongoQueryCreatorFactoryTest {
         // GIVEN
 
         // WHEN
-        try (MockedConstruction<MongoQueryMethod> mongoQueryMethodMockedConstruction = Mockito
-                .mockConstruction(MongoQueryMethod.class)) {
-            try (MockedConstruction<MongoParametersParameterAccessor> mongoParametersParameterAccessorMockedConstruction = Mockito
-                    .mockConstruction(MongoParametersParameterAccessor.class)) {
-                try (MockedConstruction<ConvertingParameterAccessor> convertingParameterAccessorMockedConstruction = Mockito
-                        .mockConstruction(ConvertingParameterAccessor.class)) {
+        try (MockedConstruction<MongoQueryMethod> mongoQueryMethodMockedConstruction = mockConstruction(
+                MongoQueryMethod.class)) {
+            try (MockedConstruction<MongoParametersParameterAccessor> mongoParametersParameterAccessorMockedConstruction = mockConstruction(
+                    MongoParametersParameterAccessor.class)) {
+                try (MockedConstruction<ConvertingParameterAccessor> convertingParameterAccessorMockedConstruction = mockConstruction(
+                        ConvertingParameterAccessor.class)) {
                     var mongoQueryCreatorFactory = new MongoQueryCreatorFactory(repositoryTest.getClass(),
                             reactiveMongoTemplateSpy);
 
                     // THEN
-                    Assertions.assertThrows(InvocationTargetException.class,
+                    assertThrows(InvocationTargetException.class,
                             () -> mongoQueryCreatorFactory.createInstance(null, null, null));
                 }
             }
@@ -279,18 +331,18 @@ class MongoQueryCreatorFactoryTest {
         var part                      = partTree.getParts().toList();
 
         // WHEN
-        try (MockedConstruction<MongoQueryMethod> mongoQueryMethodMockedConstruction = Mockito
-                .mockConstruction(MongoQueryMethod.class)) {
-            try (MockedConstruction<MongoParametersParameterAccessor> mongoParametersParameterAccessorMockedConstruction = Mockito
-                    .mockConstruction(MongoParametersParameterAccessor.class)) {
-                try (MockedConstruction<ConvertingParameterAccessor> convertingParameterAccessorMockedConstruction = Mockito
-                        .mockConstruction(ConvertingParameterAccessor.class)) {
+        try (MockedConstruction<MongoQueryMethod> mongoQueryMethodMockedConstruction = mockConstruction(
+                MongoQueryMethod.class)) {
+            try (MockedConstruction<MongoParametersParameterAccessor> mongoParametersParameterAccessorMockedConstruction = mockConstruction(
+                    MongoParametersParameterAccessor.class)) {
+                try (MockedConstruction<ConvertingParameterAccessor> convertingParameterAccessorMockedConstruction = mockConstruction(
+                        ConvertingParameterAccessor.class)) {
                     var mongoQueryCreatorFactory = new MongoQueryCreatorFactory(repositoryTest.getClass(),
                             reactiveMongoTemplateSpy);
                     mongoQueryCreatorFactory.createInstance(partTree, method, args);
 
                     // THEN
-                    Assertions.assertThrows(InvocationTargetException.class,
+                    assertThrows(InvocationTargetException.class,
                             () -> mongoQueryCreatorFactory.create(part.get(0), null));
                 }
             }
@@ -307,19 +359,18 @@ class MongoQueryCreatorFactoryTest {
         var args                      = mongoMethodInvocationTest.getArguments();
 
         // WHEN
-        try (MockedConstruction<MongoQueryMethod> mongoQueryMethodMockedConstruction = Mockito
-                .mockConstruction(MongoQueryMethod.class)) {
-            try (MockedConstruction<MongoParametersParameterAccessor> mongoParametersParameterAccessorMockedConstruction = Mockito
-                    .mockConstruction(MongoParametersParameterAccessor.class)) {
-                try (MockedConstruction<ConvertingParameterAccessor> convertingParameterAccessorMockedConstruction = Mockito
-                        .mockConstruction(ConvertingParameterAccessor.class)) {
+        try (MockedConstruction<MongoQueryMethod> mongoQueryMethodMockedConstruction = mockConstruction(
+                MongoQueryMethod.class)) {
+            try (MockedConstruction<MongoParametersParameterAccessor> mongoParametersParameterAccessorMockedConstruction = mockConstruction(
+                    MongoParametersParameterAccessor.class)) {
+                try (MockedConstruction<ConvertingParameterAccessor> convertingParameterAccessorMockedConstruction = mockConstruction(
+                        ConvertingParameterAccessor.class)) {
                     var mongoQueryCreatorFactory = new MongoQueryCreatorFactory(repositoryTest.getClass(),
                             reactiveMongoTemplateSpy);
                     mongoQueryCreatorFactory.createInstance(partTree, method, args);
 
                     // THEN
-                    Assertions.assertThrows(InvocationTargetException.class,
-                            () -> mongoQueryCreatorFactory.and(null, null, null));
+                    assertThrows(InvocationTargetException.class, () -> mongoQueryCreatorFactory.and(null, null, null));
                 }
             }
         }
@@ -335,21 +386,21 @@ class MongoQueryCreatorFactoryTest {
         var args                      = mongoMethodInvocationTest.getArguments();
 
         // WHEN
-        try (MockedConstruction<MongoQueryMethod> mongoQueryMethodMockedConstruction = Mockito
-                .mockConstruction(MongoQueryMethod.class)) {
-            try (MockedConstruction<MongoParametersParameterAccessor> mongoParametersParameterAccessorMockedConstruction = Mockito
-                    .mockConstruction(MongoParametersParameterAccessor.class)) {
-                try (MockedConstruction<ConvertingParameterAccessor> convertingParameterAccessorMockedConstruction = Mockito
-                        .mockConstruction(ConvertingParameterAccessor.class)) {
+        try (MockedConstruction<MongoQueryMethod> mongoQueryMethodMockedConstruction = mockConstruction(
+                MongoQueryMethod.class)) {
+            try (MockedConstruction<MongoParametersParameterAccessor> mongoParametersParameterAccessorMockedConstruction = mockConstruction(
+                    MongoParametersParameterAccessor.class)) {
+                try (MockedConstruction<ConvertingParameterAccessor> convertingParameterAccessorMockedConstruction = mockConstruction(
+                        ConvertingParameterAccessor.class)) {
                     var mongoQueryCreatorFactory = new MongoQueryCreatorFactory(repositoryTest.getClass(),
                             reactiveMongoTemplateSpy);
                     mongoQueryCreatorFactory.createInstance(partTree, method, args);
 
                     // THEN
-                    Assertions.assertThrows(InvocationTargetException.class,
-                            () -> mongoQueryCreatorFactory.or(null, null));
+                    assertThrows(InvocationTargetException.class, () -> mongoQueryCreatorFactory.or(null, null));
                 }
             }
         }
     }
+
 }

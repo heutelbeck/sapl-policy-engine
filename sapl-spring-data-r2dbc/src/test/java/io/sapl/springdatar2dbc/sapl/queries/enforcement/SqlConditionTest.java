@@ -17,7 +17,8 @@
  */
 package io.sapl.springdatar2dbc.sapl.queries.enforcement;
 
-import org.junit.jupiter.api.Assertions;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import org.junit.jupiter.api.Test;
 
 class SqlConditionTest {
@@ -31,7 +32,7 @@ class SqlConditionTest {
         var result = sqlCondition.getConjunction();
 
         // THEN
-        Assertions.assertEquals(Conjunction.AND, result);
+        assertEquals(Conjunction.AND, result);
     }
 
     @Test
@@ -43,7 +44,7 @@ class SqlConditionTest {
         var result = sqlCondition.getCondition();
 
         // THEN
-        Assertions.assertEquals("Test condition", result);
+        assertEquals("Test condition", result);
     }
 
     @Test
@@ -55,7 +56,7 @@ class SqlConditionTest {
         sqlCondition.setCondition("Test condition set");
 
         // THEN
-        Assertions.assertEquals("Test condition set", sqlCondition.getCondition());
+        assertEquals("Test condition set", sqlCondition.getCondition());
     }
 
     @Test
@@ -67,6 +68,6 @@ class SqlConditionTest {
         sqlCondition.setConjunction(Conjunction.OR);
 
         // THEN
-        Assertions.assertEquals(Conjunction.OR, sqlCondition.getConjunction());
+        assertEquals(Conjunction.OR, sqlCondition.getConjunction());
     }
 }

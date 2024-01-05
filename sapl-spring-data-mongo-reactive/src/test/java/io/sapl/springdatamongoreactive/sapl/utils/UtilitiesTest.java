@@ -17,6 +17,7 @@
  */
 package io.sapl.springdatamongoreactive.sapl.utils;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -29,7 +30,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -86,7 +86,7 @@ class UtilitiesTest {
     @ParameterizedTest
     @ValueSource(strings = { "findB", "reedBy", "queryBY", "search", "StreamBy" })
     void when_methodNameIsNotValid_then_returnFalse(String methodName) {
-        Assertions.assertFalse(Utilities.isMethodNameValid(methodName));
+        assertFalse(Utilities.isMethodNameValid(methodName));
     }
 
     @Test
@@ -96,7 +96,7 @@ class UtilitiesTest {
 
     @Test
     void when_classIsNoFlux_then_returnFalse() {
-        Assertions.assertFalse(Utilities.isFlux(returnClassOfMonoMethod));
+        assertFalse(Utilities.isFlux(returnClassOfMonoMethod));
     }
 
     @Test
@@ -106,7 +106,7 @@ class UtilitiesTest {
 
     @Test
     void when_classIsNoMono_then_returnFalse() {
-        Assertions.assertFalse(Utilities.isMono(returnClassOfFluxMethod));
+        assertFalse(Utilities.isMono(returnClassOfFluxMethod));
     }
 
     @Test
@@ -116,7 +116,7 @@ class UtilitiesTest {
 
     @Test
     void when_classIsNoList_then_returnFalse() {
-        Assertions.assertFalse(Utilities.isListOrCollection(returnClassOfMonoMethod));
+        assertFalse(Utilities.isListOrCollection(returnClassOfMonoMethod));
     }
 
     @Test
@@ -126,7 +126,7 @@ class UtilitiesTest {
 
     @Test
     void when_classIsNoCollection_then_returnFalse() {
-        Assertions.assertFalse(Utilities.isListOrCollection(returnClassOfMonoMethod));
+        assertFalse(Utilities.isListOrCollection(returnClassOfMonoMethod));
     }
 
     @Test
@@ -136,7 +136,7 @@ class UtilitiesTest {
 
     @Test
     void when_objectIsNoString_then_returnFalse() {
-        Assertions.assertFalse(Utilities.isString(2));
+        assertFalse(Utilities.isString(2));
     }
 
     @Test

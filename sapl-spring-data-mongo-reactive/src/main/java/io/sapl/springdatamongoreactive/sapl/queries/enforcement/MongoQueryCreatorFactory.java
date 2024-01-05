@@ -18,6 +18,7 @@
 package io.sapl.springdatamongoreactive.sapl.queries.enforcement;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Iterator;
 
@@ -51,13 +52,14 @@ public class MongoQueryCreatorFactory {
     private ProjectionFactory                                                           projectionFactory;
     private ConvertingParameterAccessor                                                 convertingParameterAccessor;
     private MappingContext<? extends MongoPersistentEntity<?>, MongoPersistentProperty> mappingContext;
-    private Method                                                                      createMethod;
-    private Method                                                                      andMethod;
-    private Method                                                                      orMethod;
+    private ReflectedMongoQueryCreator                                                  mongoQueryCreator;
+    private ReflectedMongoQueryCreatorMethods                                           reflectedMongoQueryCreatorMethods;
 
     public MongoQueryCreatorFactory(Class<?> repository, ReactiveMongoTemplate reactiveMongoTemplate) {
-        this.repository            = repository;
-        this.reactiveMongoTemplate = reactiveMongoTemplate;
+        this.repository                        = repository;
+        this.reactiveMongoTemplate             = reactiveMongoTemplate;
+        this.mongoQueryCreator                 = new ReflectedMongoQueryCreator();
+        this.reflectedMongoQueryCreatorMethods = new ReflectedMongoQueryCreatorMethods();
     }
 
     /**
@@ -70,65 +72,19 @@ public class MongoQueryCreatorFactory {
     @SneakyThrows
     public void createInstance(PartTree partTree, Method repositoryMethod, Object[] args) {
         this.mongoQueryCreatorInstance = createMongoQueryCreatorInstance(partTree, repositoryMethod, args);
-        this.createMethod              = this.mongoQueryCreatorInstance.getClass().getDeclaredMethod("create",
-                Part.class, Iterator.class);
-        this.andMethod                 = this.mongoQueryCreatorInstance.getClass().getDeclaredMethod("and", Part.class,
-                Criteria.class, Iterator.class);
-        this.orMethod                  = this.mongoQueryCreatorInstance.getClass().getDeclaredMethod("or",
-                Criteria.class, Criteria.class);
-        ReflectionUtils.makeAccessible(this.createMethod);
-        ReflectionUtils.makeAccessible(this.andMethod);
-        ReflectionUtils.makeAccessible(this.orMethod);
+        this.reflectedMongoQueryCreatorMethods.initializeMethods(mongoQueryCreatorInstance);
     }
 
-    /**
-     * Fetches the original method named 'create' from
-     * {@link org.springframework.data.mongodb.repository.query} of the class named
-     * MongoQueryCreator by using reflection and invokes it.
-     * <p>
-     * Creates a new atomic instance of the criteria object.
-     *
-     * @param part     is a part of a PartTree.
-     * @param iterator is an iterator built from all parameters.
-     * @return a new {@link Criteria}.
-     */
-    @SneakyThrows
     public Criteria create(Part part, Iterator<Object> iterator) {
-        return (Criteria) createMethod.invoke(this.mongoQueryCreatorInstance, part, iterator);
+        return this.reflectedMongoQueryCreatorMethods.create(part, iterator);
     }
 
-    /**
-     * Fetches the original method named 'and' from
-     * {@link org.springframework.data.mongodb.repository.query} of the class named
-     * MongoQueryCreator by using reflection and invokes it.
-     * <p>
-     * Creates a new criteria object from the given part and and-concatenates it to
-     * the given base criteria.
-     *
-     * @param part     is a part of a PartTree.
-     * @param base     is the current base criteria.
-     * @param iterator is an iterator built from all parameters.
-     * @return a new {@link Criteria}.
-     */
-    @SneakyThrows
     public Criteria and(Part part, Criteria base, Iterator<Object> iterator) {
-        return (Criteria) andMethod.invoke(this.mongoQueryCreatorInstance, part, base, iterator);
+        return this.reflectedMongoQueryCreatorMethods.and(part, base, iterator);
     }
 
-    /**
-     * Fetches the original method named 'or' from
-     * {@link org.springframework.data.mongodb.repository.query} of the class named
-     * MongoQueryCreator by using reflection and invokes it.
-     * <p>
-     * Or-concatenates the given base criteria to the given new criteria.
-     *
-     * @param base     is the current base criteria.
-     * @param criteria is an iterator built from all parameters.
-     * @return a new {@link Criteria}.
-     */
-    @SneakyThrows
     public Criteria or(Criteria base, Criteria criteria) {
-        return (Criteria) orMethod.invoke(this.mongoQueryCreatorInstance, base, criteria);
+        return this.reflectedMongoQueryCreatorMethods.or(base, criteria);
     }
 
     /**
@@ -162,11 +118,10 @@ public class MongoQueryCreatorFactory {
      * class.
      *
      * @return constructor of the MongoQueryCreator class.
+     * @throws InvocationTargetException
      */
-    @SneakyThrows
-    private Constructor<?> createMongoQueryCreatorConstructor() {
-        var mongoQueryCreator = Class.forName("org.springframework.data.mongodb.repository.query.MongoQueryCreator");
-        var constructor       = mongoQueryCreator.getDeclaredConstructor(PartTree.class,
+    private Constructor<?> createMongoQueryCreatorConstructor() throws InvocationTargetException {
+        Constructor<?> constructor = mongoQueryCreator.getDeclaredConstructor(PartTree.class,
                 ConvertingParameterAccessor.class, MappingContext.class, boolean.class);
         ReflectionUtils.makeAccessible(constructor);
         return constructor;
@@ -174,7 +129,7 @@ public class MongoQueryCreatorFactory {
 
     /**
      * Initializes variables that are necessary for further processing of the query
-     * and Creates an instance of the MongoQueryCreator class.
+     * and Creates an instance of the MongoQueryCreator class. *
      *
      * @param partTree   is the {@link PartTree} of the repository method.
      * @param method     is the original repository method.

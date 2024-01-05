@@ -28,7 +28,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.repository.core.RepositoryInformation;
 
-@SpringBootTest
+@SpringBootTest(classes = R2dbcEnforcementPoint.class)
 class R2dbcEnforcementPointTest {
 
     @Autowired

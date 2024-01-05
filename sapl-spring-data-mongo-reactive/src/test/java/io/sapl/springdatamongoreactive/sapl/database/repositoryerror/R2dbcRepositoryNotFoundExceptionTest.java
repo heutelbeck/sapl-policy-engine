@@ -15,16 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatamongoreactive.sapl.utils;
+package io.sapl.springdatamongoreactive.sapl.database.repositoryerror;
 
-import io.sapl.springdatamongoreactive.sapl.OperatorMongoDB;
-import reactor.util.annotation.Nullable;
+public interface R2dbcRepositoryNotFoundExceptionTest<T, ID> {
 
-public record SaplCondition(String field, Object value, OperatorMongoDB operator, @Nullable String conjunction) {
-    public SaplCondition(String field, Object value, OperatorMongoDB operator, @Nullable String conjunction) {
-        this.field       = field;
-        this.value       = value;
-        this.operator    = operator;
-        this.conjunction = conjunction == null || "and".equalsIgnoreCase(conjunction) ? "And" : "Or";
-    }
 }
