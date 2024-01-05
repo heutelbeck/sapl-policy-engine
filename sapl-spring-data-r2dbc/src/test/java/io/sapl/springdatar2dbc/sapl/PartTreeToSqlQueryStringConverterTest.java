@@ -17,6 +17,7 @@
  */
 package io.sapl.springdatar2dbc.sapl;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -30,7 +31,6 @@ import java.util.NoSuchElementException;
 import java.util.stream.Stream;
 
 import org.aopalliance.intercept.MethodInvocation;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -76,7 +76,7 @@ class PartTreeToSqlQueryStringConverterTest {
         var result = PartTreeToSqlQueryStringConverter.createSqlBaseQuery(enforcementData);
 
         // THEN
-        Assertions.assertEquals(sqlQueryResult, result);
+        assertEquals(sqlQueryResult, result);
     }
 
     @Test

@@ -29,7 +29,7 @@ import org.springframework.data.repository.query.parser.PartTree;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.springdatamongoreactive.sapl.Operator;
+import io.sapl.springdatamongoreactive.sapl.OperatorMongoDB;
 import lombok.experimental.UtilityClass;
 
 /**
@@ -105,11 +105,18 @@ public class SaplConditionOperation {
         }
 
         basicQuery.getQueryObject().forEach((field, val) -> {
-            var doc      = (Document) val;
-            var operator = Operator.getOperatorByKeyword(doc.keySet().toArray()[0].toString());
-            var value    = doc.values().toArray()[0];
+            if (val instanceof ArrayList arrayList) {
+                for (Object object : arrayList) {
+                    if (object instanceof Document doc) {
+                        doc.forEach((ke, va) -> {
+                            addNewSaplCondition(saplConditions, ke, va, "Or");
+                        });
+                    }
+                }
 
-            saplConditions.add(new SaplCondition(field, value, operator, null));
+            } else {
+                addNewSaplCondition(saplConditions, field, val, "And");
+            }
         });
 
         return saplConditions;
@@ -160,7 +167,6 @@ public class SaplConditionOperation {
         var creatModifyingPart = new StringBuilder();
 
         for (SaplCondition saplCondition : saplConditions) {
-            assert saplCondition.field() != null;
 
             creatModifyingPart.append(saplCondition.conjunction())
                     .append(saplCondition.field().substring(0, 1).toUpperCase())
@@ -174,20 +180,20 @@ public class SaplConditionOperation {
     /**
      * The {@link PartTree} of the method divides this method into {@link Part}s and
      * each Part contains information. One of the information can be derived for the
-     * creation of an {@link Operator}. This is extracted here from the individual
-     * parts.
+     * creation of an {@link OperatorMongoDB}. This is extracted here from the
+     * individual parts.
      *
      * @param partTree is the PartTree of the method.
      * @return the created list of Operations from the individual parts.
      */
-    private List<Operator> getOperatorOfEveryMethodParameter(PartTree partTree) {
-        var operators = new ArrayList<Operator>();
+    private List<OperatorMongoDB> getOperatorOfEveryMethodParameter(PartTree partTree) {
+        var operators = new ArrayList<OperatorMongoDB>();
         for (Part part : partTree.getParts()) {
             for (int i = 0; i < part.getNumberOfArguments(); i++) {
                 if ("SIMPLE_PROPERTY".equals(part.getType().name())) {
-                    operators.add(Operator.SIMPLE_PROPERTY);
+                    operators.add(OperatorMongoDB.SIMPLE_PROPERTY);
                 } else {
-                    operators.add(Operator.getOperatorByKeyword(part.getType().name()));
+                    operators.add(OperatorMongoDB.getOperatorByKeyword(part.getType().name()));
                 }
             }
         }
@@ -208,5 +214,16 @@ public class SaplConditionOperation {
             }
         }
         return domainTypes;
+    }
+
+    private List<SaplCondition> addNewSaplCondition(List<SaplCondition> saplConditions, String field, Object val,
+            String conjunction) {
+        var doc      = (Document) val;
+        var operator = OperatorMongoDB.getOperatorByKeyword(doc.keySet().toArray()[0].toString());
+        var value    = doc.values().toArray()[0];
+
+        saplConditions.add(new SaplCondition(field, value, operator, conjunction));
+
+        return saplConditions;
     }
 }

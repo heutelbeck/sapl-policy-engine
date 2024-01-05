@@ -17,6 +17,7 @@
  */
 package io.sapl.springdatar2dbc.sapl.queries.enforcement;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -25,7 +26,6 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.util.ReflectionUtils;
 
@@ -45,7 +45,7 @@ class QueryAnnotationParameterResolverTest {
                 r2dbcMethodInvocationTest.getMethod(), r2dbcMethodInvocationTest.getArguments());
 
         // THEN
-        Assertions.assertEquals(expected, actual);
+        assertEquals(expected, actual);
     }
 
     @Test

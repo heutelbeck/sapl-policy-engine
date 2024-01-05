@@ -15,17 +15,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatamongoreactive;
+package io.sapl.springdatamongoreactive.sapl.queries.enforcement;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration;
+import java.util.Iterator;
 
-@SpringBootApplication(exclude = MongoAutoConfiguration.class)
-public class SaplSpringDataMongoReactiveApplication {
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.repository.query.parser.Part;
 
-    public static void main(String[] args) {
-        SpringApplication.run(SaplSpringDataMongoReactiveApplication.class, args);
+import lombok.AllArgsConstructor;
+
+@AllArgsConstructor
+public class MongoQueryCreatorFactoryHelper {
+
+    public Criteria create(Part part, Iterator<Object> iterator) {
+        return Criteria.where("create").is("create test");
+    }
+
+    public Criteria and(Part part, Criteria base, Iterator<Object> iterator) {
+        return base.and("and").is("and test");
+    }
+
+    public Criteria or(Criteria base, Criteria criteria) {
+        return base.orOperator(criteria);
     }
 
 }

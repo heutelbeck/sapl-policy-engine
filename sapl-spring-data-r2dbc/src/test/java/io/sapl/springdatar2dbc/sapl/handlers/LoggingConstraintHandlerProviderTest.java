@@ -17,7 +17,9 @@
  */
 package io.sapl.springdatar2dbc.sapl.handlers;
 
-import org.junit.jupiter.api.Assertions;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -39,7 +41,7 @@ class LoggingConstraintHandlerProviderTest {
         var actual = loggingConstraintHandlerProvider.isResponsible(constraint);
 
         // THEN
-        Assertions.assertTrue(actual);
+        assertTrue(actual);
     }
 
     @Test
@@ -50,7 +52,7 @@ class LoggingConstraintHandlerProviderTest {
         var actual = loggingConstraintHandlerProvider.isResponsible(null);
 
         // THEN
-        Assertions.assertFalse(actual);
+        assertFalse(actual);
     }
 
     @Test
@@ -63,7 +65,7 @@ class LoggingConstraintHandlerProviderTest {
         var actual = loggingConstraintHandlerProvider.isResponsible(constraintNotValid);
 
         // THEN
-        Assertions.assertFalse(actual);
+        assertFalse(actual);
     }
 
     @Test
@@ -76,6 +78,6 @@ class LoggingConstraintHandlerProviderTest {
         var actual = loggingConstraintHandlerProvider.getHandler(constraint);
 
         // THEN
-        Assertions.assertTrue(Runnable.class.isInstance(actual));
+        assertTrue(Runnable.class.isInstance(actual));
     }
 }

@@ -17,9 +17,11 @@
  */
 package io.sapl.springdatar2dbc.sapl.queries.enforcement;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -32,18 +34,14 @@ import java.util.Map;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
-import org.mockito.Mock;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.BeanFactory;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.access.AccessDeniedException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -63,14 +61,12 @@ import io.sapl.springdatar2dbc.database.Role;
 import io.sapl.springdatar2dbc.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatar2dbc.sapl.QueryManipulationExecutor;
 import io.sapl.springdatar2dbc.sapl.handlers.DataManipulationHandler;
-import io.sapl.springdatar2dbc.sapl.handlers.LoggingConstraintHandlerProvider;
 import io.sapl.springdatar2dbc.sapl.handlers.R2dbcQueryManipulationObligationProvider;
 import io.sapl.springdatar2dbc.sapl.utils.ConstraintHandlerUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-@SpringBootTest
 class R2dbcMethodNameQueryManipulationEnforcementPointTest {
 
     final static ObjectMapper          objectMapper = new ObjectMapper();
@@ -87,17 +83,10 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTest {
 
     final Person malinda = new Person(1, "Malinda", "Perrot", 53, Role.ADMIN, true);
 
-    @Mock
-    EmbeddedPolicyDecisionPoint pdpMock;
-
-    @MockBean
-    LoggingConstraintHandlerProvider loggingConstraintHandlerProviderMock;
-
-    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-    BeanFactory beanFactoryMock;
-
-    @Mock
-    Flux<Map<String, Object>> fluxMap;
+    EmbeddedPolicyDecisionPoint pdpMock         = mock(EmbeddedPolicyDecisionPoint.class);
+    BeanFactory                 beanFactoryMock = mock(BeanFactory.class, Answers.RETURNS_DEEP_STUBS);
+    @SuppressWarnings("unchecked")
+    Flux<Map<String, Object>>   fluxMap         = mock(Flux.class);
 
     MockedStatic<ConstraintHandlerUtils>            constraintHandlerUtilsMock;
     MockedStatic<PartTreeToSqlQueryStringConverter> partTreeToSqlQueryStringConverterMock;
@@ -383,9 +372,8 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTest {
                     // THEN
                     StepVerifier.create(accessDeniedException).expectError(AccessDeniedException.class).verify();
 
-                    Assertions.assertNotNull(dataManipulationHandlerMockedConstruction.constructed().get(0));
-                    Assertions.assertNotNull(
-                            r2dbcQueryManipulationObligationProviderMockedConstruction.constructed().get(0));
+                    assertNotNull(dataManipulationHandlerMockedConstruction.constructed().get(0));
+                    assertNotNull(r2dbcQueryManipulationObligationProviderMockedConstruction.constructed().get(0));
                     constraintHandlerUtilsMock.verify(
                             () -> ConstraintHandlerUtils.getAdvices(any(AuthorizationDecision.class)), times(1));
                     constraintHandlerUtilsMock.verify(

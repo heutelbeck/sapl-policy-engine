@@ -17,6 +17,7 @@
  */
 package io.sapl.springdatar2dbc.sapl.handlers;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -24,7 +25,6 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -144,25 +144,25 @@ class DataManipulationHandlerTest {
 
         // THEN
         StepVerifier.create(result).expectNextMatches(testUser -> {
-            Assertions.assertEquals(malinda.getId(), testUser.getId());
-            Assertions.assertEquals(0, testUser.getAge());
-            Assertions.assertEquals("Ma█████", testUser.getFirstname());
-            Assertions.assertEquals(malinda.getLastname(), testUser.getLastname());
-            Assertions.assertEquals(malinda.getRole(), testUser.getRole());
+            assertEquals(malinda.getId(), testUser.getId());
+            assertEquals(0, testUser.getAge());
+            assertEquals("Ma█████", testUser.getFirstname());
+            assertEquals(malinda.getLastname(), testUser.getLastname());
+            assertEquals(malinda.getRole(), testUser.getRole());
             return true;
         }).expectNextMatches(testUser -> {
-            Assertions.assertEquals(emerson.getId(), testUser.getId());
-            Assertions.assertEquals(0, testUser.getAge());
-            Assertions.assertEquals("Em█████", testUser.getFirstname());
-            Assertions.assertEquals(emerson.getLastname(), testUser.getLastname());
-            Assertions.assertEquals(emerson.getRole(), testUser.getRole());
+            assertEquals(emerson.getId(), testUser.getId());
+            assertEquals(0, testUser.getAge());
+            assertEquals("Em█████", testUser.getFirstname());
+            assertEquals(emerson.getLastname(), testUser.getLastname());
+            assertEquals(emerson.getRole(), testUser.getRole());
             return true;
         }).expectNextMatches(testUser -> {
-            Assertions.assertEquals(yul.getId(), testUser.getId());
-            Assertions.assertEquals(0, testUser.getAge());
-            Assertions.assertEquals("Yu█", testUser.getFirstname());
-            Assertions.assertEquals(yul.getLastname(), testUser.getLastname());
-            Assertions.assertEquals(yul.getRole(), testUser.getRole());
+            assertEquals(yul.getId(), testUser.getId());
+            assertEquals(0, testUser.getAge());
+            assertEquals("Yu█", testUser.getFirstname());
+            assertEquals(yul.getLastname(), testUser.getLastname());
+            assertEquals(yul.getRole(), testUser.getRole());
             return true;
         }).expectComplete().verify();
 
@@ -190,11 +190,11 @@ class DataManipulationHandlerTest {
 
         // THEN
         StepVerifier.create(result).expectNextMatches(testUser -> {
-            Assertions.assertEquals(malinda.getId(), testUser.getId());
-            Assertions.assertEquals(0, testUser.getAge());
-            Assertions.assertEquals("Ma█████", testUser.getFirstname());
-            Assertions.assertEquals(malinda.getLastname(), testUser.getLastname());
-            Assertions.assertEquals(malinda.getRole(), testUser.getRole());
+            assertEquals(malinda.getId(), testUser.getId());
+            assertEquals(0, testUser.getAge());
+            assertEquals("Ma█████", testUser.getFirstname());
+            assertEquals(malinda.getLastname(), testUser.getLastname());
+            assertEquals(malinda.getRole(), testUser.getRole());
             return true;
         }).expectComplete().verify();
 
@@ -208,11 +208,11 @@ class DataManipulationHandlerTest {
      * ObjectMapper is needed if a DomainObject has an ObjectId as type.
      */
     private boolean assertTwoPersons(Person first, Person second) {
-        Assertions.assertEquals(first.getId(), second.getId());
-        Assertions.assertEquals(first.getFirstname(), second.getFirstname());
-        Assertions.assertEquals(first.getLastname(), second.getLastname());
-        Assertions.assertEquals(first.getRole(), second.getRole());
-        Assertions.assertEquals(first.getAge(), second.getAge());
+        assertEquals(first.getId(), second.getId());
+        assertEquals(first.getFirstname(), second.getFirstname());
+        assertEquals(first.getLastname(), second.getLastname());
+        assertEquals(first.getRole(), second.getRole());
+        assertEquals(first.getAge(), second.getAge());
 
         return true;
     }

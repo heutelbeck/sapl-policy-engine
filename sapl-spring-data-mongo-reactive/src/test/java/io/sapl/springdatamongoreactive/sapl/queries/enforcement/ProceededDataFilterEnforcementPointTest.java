@@ -19,6 +19,7 @@ package io.sapl.springdatamongoreactive.sapl.queries.enforcement;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -33,7 +34,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 import org.springframework.security.access.AccessDeniedException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -84,8 +84,8 @@ class ProceededDataFilterEnforcementPointTest {
     void when_actionWasFoundInPolicies_then_enforce() throws JsonProcessingException {
         var objectMapper = new ObjectMapper();
         try (@SuppressWarnings("rawtypes")
-        MockedConstruction<DataManipulationHandler> dataManipulationHandlerMockedConstruction = Mockito
-                .mockConstruction(DataManipulationHandler.class)) {
+        MockedConstruction<DataManipulationHandler> dataManipulationHandlerMockedConstruction = mockConstruction(
+                DataManipulationHandler.class)) {
             // GIVEN
             var obligations     = objectMapper.readTree(
                     "[{\"type\":\"mongoQueryManipulation\",\"conditions\":[\"{'role':  {'$in': ['USER']}}\"]},{\"type\":\"filterJsonContent\",\"actions\":[{\"type\":\"blacken\",\"path\":\"$.firstname\",\"discloseLeft\":2}]},{\"type\":\"jsonContentFilterPredicate\",\"conditions\":[{\"type\":\"==\",\"path\":\"$.id\",\"value\":\"a1\"}]}]");
@@ -119,8 +119,8 @@ class ProceededDataFilterEnforcementPointTest {
             throws JsonProcessingException {
         var objectMapper = new ObjectMapper();
         try (@SuppressWarnings("rawtypes")
-        MockedConstruction<DataManipulationHandler> dataManipulationHandlerMockedConstruction = Mockito
-                .mockConstruction(DataManipulationHandler.class)) {
+        MockedConstruction<DataManipulationHandler> dataManipulationHandlerMockedConstruction = mockConstruction(
+                DataManipulationHandler.class)) {
             // GIVEN
             var mongoMethodInvocationTest           = new MethodInvocationForTesting("findAllByFirstname",
                     new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of("Cathrin")), new Throwable());

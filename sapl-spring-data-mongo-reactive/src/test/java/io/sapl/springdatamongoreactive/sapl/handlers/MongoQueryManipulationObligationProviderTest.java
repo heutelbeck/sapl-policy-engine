@@ -17,7 +17,10 @@
  */
 package io.sapl.springdatamongoreactive.sapl.handlers;
 
-import org.junit.jupiter.api.Assertions;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -53,7 +56,7 @@ class MongoQueryManipulationObligationProviderTest {
         var conditions = provider.getConditions(mongoQueryManipulation);
 
         // THEN
-        Assertions.assertEquals(conditions, expectedConditions);
+        assertEquals(conditions, expectedConditions);
     }
 
     @Test
@@ -66,7 +69,7 @@ class MongoQueryManipulationObligationProviderTest {
         var conditionsResult = provider.getConditions(wrongMongoQueryManipulation);
 
         // THEN
-        Assertions.assertEquals(conditionsResult, nullNode);
+        assertEquals(conditionsResult, nullNode);
     }
 
     @Test
@@ -77,7 +80,7 @@ class MongoQueryManipulationObligationProviderTest {
         var mongoQueryManipulationObligationResult = provider.getObligation(obligations);
 
         // THEN
-        Assertions.assertEquals(mongoQueryManipulationObligationResult, mongoQueryManipulation);
+        assertEquals(mongoQueryManipulationObligationResult, mongoQueryManipulation);
     }
 
     @Test
@@ -92,7 +95,7 @@ class MongoQueryManipulationObligationProviderTest {
                 .getObligation(obligationsWithoutMongoQueryManipulationObligation);
 
         // THEN
-        Assertions.assertEquals(mongoQueryManipulationObligationResult, nullNode);
+        assertEquals(mongoQueryManipulationObligationResult, nullNode);
     }
 
     @Test
@@ -103,7 +106,7 @@ class MongoQueryManipulationObligationProviderTest {
         var mongoQueryManipulationObligationResult = provider.isResponsible(obligations);
 
         // THEN
-        Assertions.assertTrue(mongoQueryManipulationObligationResult);
+        assertTrue(mongoQueryManipulationObligationResult);
     }
 
     @Test
@@ -118,6 +121,6 @@ class MongoQueryManipulationObligationProviderTest {
                 .isResponsible(obligationsWithoutMongoQueryManipulationObligation);
 
         // THEN
-        Assertions.assertFalse(mongoQueryManipulationObligationResult);
+        assertFalse(mongoQueryManipulationObligationResult);
     }
 }

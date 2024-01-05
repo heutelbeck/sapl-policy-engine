@@ -15,20 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatamongoreactive;
+package io.sapl.springdatamongoreactive.sapl.database.repositoryerror;
 
-import org.junit.jupiter.api.Test;
+import org.bson.types.ObjectId;
 
-import com.mongodb.assertions.Assertions;
+import io.sapl.springdatamongoreactive.sapl.SaplProtected;
+import io.sapl.springdatamongoreactive.sapl.database.TestUser;
+import reactor.core.publisher.Flux;
 
-class SaplSpringDataMongoReactiveApplicationTest {
+public interface RepositoryNotFoundExceptionTest extends R2dbcRepositoryNotFoundExceptionTest<TestUser, ObjectId> {
 
-    @Test
-    void main() {
-        String[] args = new String[] {};
-        SaplSpringDataMongoReactiveApplication.main(args);
-
-        Assertions.assertTrue(args.length == 0);
-    }
+    @SaplProtected
+    Flux<TestUser> findAllByFirstname(String firstname);
 
 }

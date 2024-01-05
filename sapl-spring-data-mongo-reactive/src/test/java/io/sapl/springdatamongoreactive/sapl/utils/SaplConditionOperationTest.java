@@ -30,29 +30,49 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
-import io.sapl.springdatamongoreactive.sapl.Operator;
+import io.sapl.springdatamongoreactive.sapl.OperatorMongoDB;
 
 class SaplConditionOperationTest {
 
     static final ObjectMapper objectMapper = new ObjectMapper();
     static JsonNode           mongoQueryManipulation;
+    static JsonNode           mongoQueryManipulationOrPart;
     static JsonNode           conditions;
+    static JsonNode           conditionsWithOrPart;
     static JsonNode           notValidConditions;
 
     @BeforeAll
     public static void setUp() throws JsonProcessingException {
-        mongoQueryManipulation = objectMapper.readTree(
+        mongoQueryManipulation       = objectMapper.readTree(
                 "{\"type\":\"mongoQueryManipulation\",\"conditions\":[\"{'age': {'gt': 30 }}\", \"{'firstname':  {'$in': ['Cathrin', 'Aaron']}}\"]}");
-        conditions             = mongoQueryManipulation.get("conditions");
-        notValidConditions     = objectMapper.readTree("[\"{'fieldNotValid': {'gt': 30 }}\"]");
+        mongoQueryManipulationOrPart = objectMapper.readTree(
+                "{\"type\":\"mongoQueryManipulation\",\"conditions\":[\"{ 'age' : { '$lt' : 40}, '$or' : [{ 'firstname' : {'$eq': 'Aaron'}}]}\"]}");
+        conditions                   = mongoQueryManipulation.get("conditions");
+        conditionsWithOrPart         = mongoQueryManipulationOrPart.get("conditions");
+        notValidConditions           = objectMapper.readTree("[\"{'fieldNotValid': {'gt': 30 }}\"]");
     }
 
     @Test
-    void when_saplConditionsCanBeGeneratedFromJsonNode_then_jsonNodeToSaplConditions() {
+    void when_saplConditionsCanBeGeneratedFromJsonNodeWithOrPart_then_jsonNodeToSaplConditions() {
         // GIVEN
         ArrayList<SaplCondition> expected = new ArrayList<>();
-        expected.add(new SaplCondition("age", 30, Operator.GREATER_THAN, "And"));
-        expected.add(new SaplCondition("firstname", new ArrayList<>(List.of("Cathrin", "Aaron")), Operator.IN, "And"));
+        expected.add(new SaplCondition("age", 40, OperatorMongoDB.LESS_THAN, "And"));
+        expected.add(new SaplCondition("firstname", "Aaron", OperatorMongoDB.SIMPLE_PROPERTY, "or"));
+
+        // WHEN
+        var actualSaplConditions = SaplConditionOperation.jsonNodeToSaplConditions(conditionsWithOrPart);
+
+        // THEN
+        assertTwoSaplConditions(actualSaplConditions.get(0), expected.get(0));
+        assertTwoSaplConditions(actualSaplConditions.get(1), expected.get(1));
+    }
+
+    @Test
+    void when_saplConditionsCanBeGeneratedFromJsonNodeInOperator_then_jsonNodeToSaplConditions() {
+        // GIVEN
+        ArrayList<SaplCondition> expected = new ArrayList<>();
+        expected.add(new SaplCondition("age", 30, OperatorMongoDB.GREATER_THAN, "And"));
+        expected.add(new SaplCondition("firstname", List.of("Cathrin", "Aaron"), OperatorMongoDB.IN, "and"));
 
         // WHEN
         var actualSaplConditions = SaplConditionOperation.jsonNodeToSaplConditions(conditions);
@@ -78,9 +98,9 @@ class SaplConditionOperationTest {
     void when_methodNameCanBeModified_then_toModifiedMethodName() {
         // GIVEN
         ArrayList<SaplCondition> saplConditions = new ArrayList<>();
-        saplConditions.add(new SaplCondition("age", 30, Operator.GREATER_THAN, "And"));
-        saplConditions
-                .add(new SaplCondition("firstname", new ArrayList<>(List.of("Cathrin", "Aaron")), Operator.IN, "And"));
+        saplConditions.add(new SaplCondition("age", 30, OperatorMongoDB.GREATER_THAN, "And"));
+        saplConditions.add(new SaplCondition("firstname", new ArrayList<>(List.of("Cathrin", "Aaron")),
+                OperatorMongoDB.IN, "and"));
         var expectedMethodName = "findAllByIdAndAgeIsGreaterThanAndFirstnameIsIn";
 
         // WHEN
@@ -94,9 +114,9 @@ class SaplConditionOperationTest {
     void when_methodNameCanBeModifiedAndContainsKeyword_then_toModifiedMethodName() {
         // GIVEN
         ArrayList<SaplCondition> saplConditions = new ArrayList<>();
-        saplConditions.add(new SaplCondition("age", 30, Operator.GREATER_THAN, "And"));
-        saplConditions
-                .add(new SaplCondition("firstname", new ArrayList<>(List.of("Cathrin", "Aaron")), Operator.IN, "And"));
+        saplConditions.add(new SaplCondition("age", 30, OperatorMongoDB.GREATER_THAN, "And"));
+        saplConditions.add(
+                new SaplCondition("firstname", new ArrayList<>(List.of("Cathrin", "Aaron")), OperatorMongoDB.IN, null));
         var expectedMethodName = "findAllByIdAndAgeIsGreaterThanAndFirstnameIsInOrderByAge";
 
         // WHEN

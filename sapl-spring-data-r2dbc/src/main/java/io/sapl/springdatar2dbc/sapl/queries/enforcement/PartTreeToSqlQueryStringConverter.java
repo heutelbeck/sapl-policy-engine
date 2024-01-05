@@ -28,7 +28,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.repository.query.parser.Part;
 import org.springframework.data.repository.query.parser.PartTree;
 
-import io.sapl.springdatar2dbc.sapl.Operator;
+import io.sapl.springdatar2dbc.sapl.OperatorR2dbc;
 import io.sapl.springdatar2dbc.sapl.QueryManipulationEnforcementData;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
@@ -182,7 +182,7 @@ public class PartTreeToSqlQueryStringConverter {
      */
     @SneakyThrows
     private <T> SqlCondition and(Part part, Object argument, Class<T> domainType) {
-        var operator  = Operator.valueOf(part.getType().name());
+        var operator  = OperatorR2dbc.valueOf(part.getType().name());
         var fieldType = domainType.getDeclaredField(part.getProperty().toDotPath()).getType();
 
         if (isString(fieldType) && operator.isArray()) {

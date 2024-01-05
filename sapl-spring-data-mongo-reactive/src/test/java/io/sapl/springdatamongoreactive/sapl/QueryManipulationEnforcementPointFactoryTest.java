@@ -17,14 +17,16 @@
  */
 package io.sapl.springdatamongoreactive.sapl;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
+
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 import org.mockito.MockedConstruction;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -37,17 +39,14 @@ import io.sapl.springdatamongoreactive.sapl.queries.enforcement.MongoAnnotationQ
 import io.sapl.springdatamongoreactive.sapl.queries.enforcement.MongoMethodNameQueryManipulationEnforcementPoint;
 import io.sapl.springdatamongoreactive.sapl.queries.enforcement.ProceededDataFilterEnforcementPoint;
 
-@SpringBootTest
+@SpringBootTest(classes = QueryManipulationEnforcementPointFactory.class)
 class QueryManipulationEnforcementPointFactoryTest {
 
     @Autowired
     QueryManipulationEnforcementPointFactory queryManipulationEnforcementPointFactory;
 
-    @Mock
-    BeanFactory beanFactoryMock;
-
-    @Mock
-    EmbeddedPolicyDecisionPoint pdpMock;
+    BeanFactory                 beanFactoryMock = mock(BeanFactory.class);
+    EmbeddedPolicyDecisionPoint pdpMock         = mock(EmbeddedPolicyDecisionPoint.class);
 
     private static final MethodInvocationForTesting mongoMethodInvocationTest = new MethodInvocationForTesting(
             "findAllByFirstname", new ArrayList<>(List.of(String.class)), null, null);
@@ -56,8 +55,8 @@ class QueryManipulationEnforcementPointFactoryTest {
     void createMongoAnnotationQueryManipulationEnforcementPoint() {
 
         try (@SuppressWarnings("rawtypes")
-        MockedConstruction<MongoAnnotationQueryManipulationEnforcementPoint> mongoAnnotationQueryManipulationEnforcementPointMockedConstruction = Mockito
-                .mockConstruction(MongoAnnotationQueryManipulationEnforcementPoint.class)) {
+        MockedConstruction<MongoAnnotationQueryManipulationEnforcementPoint> mongoAnnotationQueryManipulationEnforcementPointMockedConstruction = mockConstruction(
+                MongoAnnotationQueryManipulationEnforcementPoint.class)) {
 
             // GIVEN
             var authSub         = AuthorizationSubscription.of("subject", "permitTest", "resource", "environment");
@@ -69,9 +68,8 @@ class QueryManipulationEnforcementPointFactoryTest {
                     .createMongoAnnotationQueryManipulationEnforcementPoint(enforcementData);
 
             // THEN
-            Assertions.assertNotNull(
-                    mongoAnnotationQueryManipulationEnforcementPointMockedConstruction.constructed().get(0));
-            Assertions.assertEquals(result.getClass(), MongoAnnotationQueryManipulationEnforcementPoint.class);
+            assertNotNull(mongoAnnotationQueryManipulationEnforcementPointMockedConstruction.constructed().get(0));
+            assertEquals(result.getClass(), MongoAnnotationQueryManipulationEnforcementPoint.class);
         }
     }
 
@@ -79,8 +77,8 @@ class QueryManipulationEnforcementPointFactoryTest {
     void createMongoMethodNameQueryManipulationEnforcementPoint() {
 
         try (@SuppressWarnings("rawtypes")
-        MockedConstruction<MongoMethodNameQueryManipulationEnforcementPoint> mongoMethodNameQueryManipulationEnforcementPointMockedConstruction = Mockito
-                .mockConstruction(MongoMethodNameQueryManipulationEnforcementPoint.class)) {
+        MockedConstruction<MongoMethodNameQueryManipulationEnforcementPoint> mongoMethodNameQueryManipulationEnforcementPointMockedConstruction = mockConstruction(
+                MongoMethodNameQueryManipulationEnforcementPoint.class)) {
 
             // GIVEN
             var authSub         = AuthorizationSubscription.of("subject", "permitTest", "resource", "environment");
@@ -92,9 +90,8 @@ class QueryManipulationEnforcementPointFactoryTest {
                     .createMongoMethodNameQueryManipulationEnforcementPoint(enforcementData);
 
             // THEN
-            Assertions.assertNotNull(
-                    mongoMethodNameQueryManipulationEnforcementPointMockedConstruction.constructed().get(0));
-            Assertions.assertEquals(result.getClass(), MongoMethodNameQueryManipulationEnforcementPoint.class);
+            assertNotNull(mongoMethodNameQueryManipulationEnforcementPointMockedConstruction.constructed().get(0));
+            assertEquals(result.getClass(), MongoMethodNameQueryManipulationEnforcementPoint.class);
         }
     }
 
@@ -102,8 +99,8 @@ class QueryManipulationEnforcementPointFactoryTest {
     void createProceededDataFilterEnforcementPoint() {
 
         try (@SuppressWarnings("rawtypes")
-        MockedConstruction<ProceededDataFilterEnforcementPoint> proceededDataFilterEnforcementPointMockedConstruction = Mockito
-                .mockConstruction(ProceededDataFilterEnforcementPoint.class)) {
+        MockedConstruction<ProceededDataFilterEnforcementPoint> proceededDataFilterEnforcementPointMockedConstruction = mockConstruction(
+                ProceededDataFilterEnforcementPoint.class)) {
 
             // GIVEN
             var authSub         = AuthorizationSubscription.of("subject", "permitTest", "resource", "environment");
@@ -115,8 +112,8 @@ class QueryManipulationEnforcementPointFactoryTest {
                     .createProceededDataFilterEnforcementPoint(enforcementData);
 
             // THEN
-            Assertions.assertNotNull(proceededDataFilterEnforcementPointMockedConstruction.constructed().get(0));
-            Assertions.assertEquals(result.getClass(), ProceededDataFilterEnforcementPoint.class);
+            assertNotNull(proceededDataFilterEnforcementPointMockedConstruction.constructed().get(0));
+            assertEquals(result.getClass(), ProceededDataFilterEnforcementPoint.class);
         }
     }
 }

@@ -17,6 +17,7 @@
  */
 package io.sapl.springdatamongoreactive.sapl.utils;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -24,7 +25,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.Optional;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.util.ReflectionUtils;
@@ -69,7 +69,7 @@ class ConstraintHandlerUtilsTest {
                 "mongoQueryManipulation");
 
         // THEN
-        Assertions.assertEquals(mongoQueryManipulation, actual);
+        assertEquals(mongoQueryManipulation, actual);
     }
 
     @Test
@@ -81,7 +81,7 @@ class ConstraintHandlerUtilsTest {
                 "mongoQueryManipulation");
 
         // THEN
-        Assertions.assertEquals(nullNode, actual);
+        assertEquals(nullNode, actual);
     }
 
     @Test
@@ -95,7 +95,7 @@ class ConstraintHandlerUtilsTest {
         var actual = ConstraintHandlerUtils.getObligations(authDec);
 
         // THEN
-        Assertions.assertEquals(obligations, actual);
+        assertEquals(obligations, actual);
     }
 
     @Test
@@ -110,7 +110,7 @@ class ConstraintHandlerUtilsTest {
         var actual = ConstraintHandlerUtils.getAdvices(authDec);
 
         // THEN
-        Assertions.assertEquals(advice, actual);
+        assertEquals(advice, actual);
     }
 
     @Test
