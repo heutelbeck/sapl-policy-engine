@@ -83,7 +83,8 @@ public class AnnotationFunctionContext implements FunctionContext {
      *                                classes with static methods as functions
      * @throws InitializationException if initialization fails.
      */
-    public void loadLibraries(StaticFunctionLibrarySupplier staticLibrariesSupplier) throws InitializationException {
+    public final void loadLibraries(StaticFunctionLibrarySupplier staticLibrariesSupplier)
+            throws InitializationException {
         for (var library : staticLibrariesSupplier.get()) {
             loadLibrary(library);
         }
@@ -95,7 +96,7 @@ public class AnnotationFunctionContext implements FunctionContext {
      * @param librariesSupplier supplies instantiated libraries.
      * @throws InitializationException if initialization fails.
      */
-    public void loadLibraries(FunctionLibrarySupplier librariesSupplier) throws InitializationException {
+    public final void loadLibraries(FunctionLibrarySupplier librariesSupplier) throws InitializationException {
         for (var library : librariesSupplier.get()) {
             loadLibrary(library);
         }

@@ -99,7 +99,7 @@ public class AnnotationAttributeContext implements AttributeContext {
      *                          static methods as functions
      * @throws InitializationException if initialization fails.
      */
-    public void loadPolicyInformationPoints(StaticPolicyInformationPointSupplier staticPipSupplier)
+    public final void loadPolicyInformationPoints(StaticPolicyInformationPointSupplier staticPipSupplier)
             throws InitializationException {
         for (var pip : staticPipSupplier.get()) {
             loadPolicyInformationPoint(pip);
@@ -112,7 +112,7 @@ public class AnnotationAttributeContext implements AttributeContext {
      * @param pipSupplier supplies instantiated libraries.
      * @throws InitializationException if initialization fails.
      */
-    public void loadPolicyInformationPoints(PolicyInformationPointSupplier pipSupplier) throws InitializationException {
+    public final void loadPolicyInformationPoints(PolicyInformationPointSupplier pipSupplier) throws InitializationException {
         for (var pip : pipSupplier.get()) {
             loadPolicyInformationPoint(pip);
         }
