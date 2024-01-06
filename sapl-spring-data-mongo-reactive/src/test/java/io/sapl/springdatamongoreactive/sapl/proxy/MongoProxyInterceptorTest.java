@@ -37,13 +37,13 @@ import org.springframework.beans.factory.BeanFactory;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
-import io.sapl.springdatamongoreactive.sapl.QueryManipulationEnforcementData;
-import io.sapl.springdatamongoreactive.sapl.QueryManipulationEnforcementPoint;
+import io.sapl.springdatacommon.handlers.AuthorizationSubscriptionHandlerProvider;
+import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementPoint;
+import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatamongoreactive.sapl.QueryManipulationEnforcementPointFactory;
 import io.sapl.springdatamongoreactive.sapl.database.MethodInvocationForTesting;
 import io.sapl.springdatamongoreactive.sapl.database.TestUser;
 import io.sapl.springdatamongoreactive.sapl.database.repositoryerror.MethodInvocationForRepositoryError;
-import io.sapl.springdatamongoreactive.sapl.handlers.AuthorizationSubscriptionHandlerProvider;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;

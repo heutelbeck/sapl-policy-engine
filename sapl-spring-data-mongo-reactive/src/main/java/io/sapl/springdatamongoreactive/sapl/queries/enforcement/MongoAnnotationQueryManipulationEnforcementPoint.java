@@ -17,8 +17,6 @@
  */
 package io.sapl.springdatamongoreactive.sapl.queries.enforcement;
 
-import static io.sapl.springdatamongoreactive.sapl.queries.enforcement.QueryAnnotationParameterResolver.resolveBoundedMethodParametersAndAnnotationParameters;
-
 import java.util.Objects;
 import java.util.function.Function;
 
@@ -31,12 +29,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.springdatamongoreactive.sapl.QueryManipulationEnforcementData;
-import io.sapl.springdatamongoreactive.sapl.QueryManipulationEnforcementPoint;
-import io.sapl.springdatamongoreactive.sapl.handlers.DataManipulationHandler;
-import io.sapl.springdatamongoreactive.sapl.handlers.LoggingConstraintHandlerProvider;
-import io.sapl.springdatamongoreactive.sapl.handlers.MongoQueryManipulationObligationProvider;
-import io.sapl.springdatamongoreactive.sapl.utils.ConstraintHandlerUtils;
+import io.sapl.springdatacommon.handlers.DataManipulationHandler;
+import io.sapl.springdatacommon.handlers.LoggingConstraintHandlerProvider;
+import io.sapl.springdatacommon.handlers.QueryManipulationObligationProvider;
+import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
+import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementPoint;
+import io.sapl.springdatacommon.sapl.queries.enforcement.QueryAnnotationParameterResolver;
+import io.sapl.springdatacommon.sapl.utils.ConstraintHandlerUtils;
 import lombok.SneakyThrows;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -49,13 +48,14 @@ import reactor.core.publisher.Mono;
  * @param <T> is the domain type.
  */
 public class MongoAnnotationQueryManipulationEnforcementPoint<T> implements QueryManipulationEnforcementPoint<T> {
-    private final LoggingConstraintHandlerProvider         loggingConstraintHandlerProvider         = new LoggingConstraintHandlerProvider();
-    private final MongoQueryManipulationObligationProvider mongoQueryManipulationObligationProvider = new MongoQueryManipulationObligationProvider();
-    private final DataManipulationHandler<T>               dataManipulationHandler;
-    private final ReactiveMongoTemplate                    reactiveMongoTemplate;
+    private final LoggingConstraintHandlerProvider    loggingConstraintHandlerProvider    = new LoggingConstraintHandlerProvider();
+    private final QueryManipulationObligationProvider queryManipulationObligationProvider = new QueryManipulationObligationProvider();
+    private final DataManipulationHandler<T>          dataManipulationHandler;
+    private final ReactiveMongoTemplate               reactiveMongoTemplate;
 
     private final QueryManipulationEnforcementData<T> enforcementData;
     private final BasicQuery                          basicQuery;
+    private final String                              mongoQueryManipulation = "mongoQueryManipulation";
 
     public MongoAnnotationQueryManipulationEnforcementPoint(QueryManipulationEnforcementData<T> enforcementData) {
         this.enforcementData         = new QueryManipulationEnforcementData<>(enforcementData.getMethodInvocation(),
@@ -63,9 +63,10 @@ public class MongoAnnotationQueryManipulationEnforcementPoint<T> implements Quer
                 enforcementData.getAuthSub());
         this.dataManipulationHandler = new DataManipulationHandler<>(this.enforcementData.getDomainType());
         this.reactiveMongoTemplate   = this.enforcementData.getBeanFactory().getBean(ReactiveMongoTemplate.class);
-        var queryAnnotation = resolveBoundedMethodParametersAndAnnotationParameters(
-                this.enforcementData.getMethodInvocation().getMethod(),
-                this.enforcementData.getMethodInvocation().getArguments());
+
+        var queryAnnotation = QueryAnnotationParameterResolver.resolveBoundedMethodParametersAndAnnotationParameters(
+                enforcementData.getMethodInvocation().getMethod(), enforcementData.getMethodInvocation().getArguments(),
+                false);
         basicQuery = new BasicQuery(queryAnnotation);
     }
 
@@ -121,9 +122,10 @@ public class MongoAnnotationQueryManipulationEnforcementPoint<T> implements Quer
     @SneakyThrows
     @SuppressWarnings("unchecked")
     private Flux<T> retrieveData(JsonNode obligations, BasicQuery annotationQuery) {
-        if (mongoQueryManipulationObligationProvider.isResponsible(obligations)) {
-            var mongoQueryManipulationObligation = mongoQueryManipulationObligationProvider.getObligation(obligations);
-            var conditions                       = mongoQueryManipulationObligationProvider
+        if (queryManipulationObligationProvider.isResponsible(obligations, mongoQueryManipulation)) {
+            var mongoQueryManipulationObligation = queryManipulationObligationProvider.getObligation(obligations,
+                    mongoQueryManipulation);
+            var conditions                       = queryManipulationObligationProvider
                     .getConditions(mongoQueryManipulationObligation);
             var query                            = enforceQueryManipulation(annotationQuery, conditions);
 

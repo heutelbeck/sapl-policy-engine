@@ -42,6 +42,7 @@ import org.springframework.beans.factory.BeanFactory;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
+import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatar2dbc.database.Person;
 import io.sapl.springdatar2dbc.sapl.queries.enforcement.PartTreeToSqlQueryStringConverter;
 

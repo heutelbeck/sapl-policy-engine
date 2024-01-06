@@ -28,12 +28,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.springdatamongoreactive.sapl.QueryManipulationEnforcementData;
-import io.sapl.springdatamongoreactive.sapl.QueryManipulationEnforcementPoint;
-import io.sapl.springdatamongoreactive.sapl.handlers.DataManipulationHandler;
-import io.sapl.springdatamongoreactive.sapl.handlers.LoggingConstraintHandlerProvider;
-import io.sapl.springdatamongoreactive.sapl.handlers.MongoQueryManipulationObligationProvider;
-import io.sapl.springdatamongoreactive.sapl.utils.ConstraintHandlerUtils;
+import io.sapl.springdatacommon.handlers.DataManipulationHandler;
+import io.sapl.springdatacommon.handlers.LoggingConstraintHandlerProvider;
+import io.sapl.springdatacommon.handlers.QueryManipulationObligationProvider;
+import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
+import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementPoint;
+import io.sapl.springdatacommon.sapl.utils.ConstraintHandlerUtils;
 import lombok.SneakyThrows;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -46,12 +46,13 @@ import reactor.core.publisher.Mono;
  * @param <T> is the domain type.
  */
 public class MongoMethodNameQueryManipulationEnforcementPoint<T> implements QueryManipulationEnforcementPoint<T> {
-    private final MongoQueryManipulationObligationProvider mongoQueryManipulationObligationProvider = new MongoQueryManipulationObligationProvider();
-    private final LoggingConstraintHandlerProvider         loggingConstraintHandlerProvider         = new LoggingConstraintHandlerProvider();
-    private final SaplPartTreeCriteriaCreator<T>           saplPartTreeCriteriaCreator;
-    private final ReactiveMongoTemplate                    reactiveMongoTemplate;
-    private final DataManipulationHandler<T>               dataManipulationHandler;
-    private final QueryManipulationEnforcementData<T>      enforcementData;
+    private final QueryManipulationObligationProvider mongoQueryManipulationObligationProvider = new QueryManipulationObligationProvider();
+    private final LoggingConstraintHandlerProvider    loggingConstraintHandlerProvider         = new LoggingConstraintHandlerProvider();
+    private final SaplPartTreeCriteriaCreator<T>      saplPartTreeCriteriaCreator;
+    private final ReactiveMongoTemplate               reactiveMongoTemplate;
+    private final DataManipulationHandler<T>          dataManipulationHandler;
+    private final QueryManipulationEnforcementData<T> enforcementData;
+    private String                                    mongoQueryManipulation                   = "mongoQueryManipulation";
 
     public MongoMethodNameQueryManipulationEnforcementPoint(QueryManipulationEnforcementData<T> enforcementData) {
         this.enforcementData             = new QueryManipulationEnforcementData<>(enforcementData.getMethodInvocation(),
@@ -123,8 +124,9 @@ public class MongoMethodNameQueryManipulationEnforcementPoint<T> implements Quer
     @SneakyThrows
     @SuppressWarnings("unchecked")
     private Flux<T> retrieveData(JsonNode obligations) {
-        if (mongoQueryManipulationObligationProvider.isResponsible(obligations)) {
-            var mongoQueryManipulationObligation = mongoQueryManipulationObligationProvider.getObligation(obligations);
+        if (mongoQueryManipulationObligationProvider.isResponsible(obligations, mongoQueryManipulation)) {
+            var mongoQueryManipulationObligation = mongoQueryManipulationObligationProvider.getObligation(obligations,
+                    mongoQueryManipulation);
             var conditions                       = mongoQueryManipulationObligationProvider
                     .getConditions(mongoQueryManipulationObligation);
 

@@ -17,7 +17,7 @@
  */
 package io.sapl.springdatar2dbc.sapl.queries.enforcement;
 
-import static io.sapl.springdatar2dbc.sapl.utils.Utilities.isString;
+import static io.sapl.springdatacommon.sapl.utils.Utilities.isString;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,8 +28,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.repository.query.parser.Part;
 import org.springframework.data.repository.query.parser.PartTree;
 
+import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatar2dbc.sapl.OperatorR2dbc;
-import io.sapl.springdatar2dbc.sapl.QueryManipulationEnforcementData;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 

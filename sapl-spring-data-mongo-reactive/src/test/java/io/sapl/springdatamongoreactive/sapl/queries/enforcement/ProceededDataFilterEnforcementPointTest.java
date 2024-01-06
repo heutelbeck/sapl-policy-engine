@@ -44,12 +44,13 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
-import io.sapl.springdatamongoreactive.sapl.QueryManipulationEnforcementData;
+import io.sapl.springdatacommon.handlers.DataManipulationHandler;
+import io.sapl.springdatacommon.handlers.LoggingConstraintHandlerProvider;
+import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
+import io.sapl.springdatacommon.sapl.queries.enforcement.ProceededDataFilterEnforcementPoint;
+import io.sapl.springdatacommon.sapl.utils.ConstraintHandlerUtils;
 import io.sapl.springdatamongoreactive.sapl.database.MethodInvocationForTesting;
 import io.sapl.springdatamongoreactive.sapl.database.TestUser;
-import io.sapl.springdatamongoreactive.sapl.handlers.DataManipulationHandler;
-import io.sapl.springdatamongoreactive.sapl.handlers.LoggingConstraintHandlerProvider;
-import io.sapl.springdatamongoreactive.sapl.utils.ConstraintHandlerUtils;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 

@@ -17,7 +17,7 @@
  */
 package io.sapl.springdatar2dbc.database;
 
-import io.sapl.springdatar2dbc.sapl.handlers.DataManipulationHandler;
+import io.sapl.springdatacommon.handlers.DataManipulationHandler;
 
 public class SupporterClasses {
 

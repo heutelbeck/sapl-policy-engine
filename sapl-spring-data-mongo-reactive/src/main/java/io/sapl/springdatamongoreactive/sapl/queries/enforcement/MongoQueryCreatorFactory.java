@@ -48,7 +48,6 @@ public class MongoQueryCreatorFactory {
     private final Class<?>              repository;
     private final ReactiveMongoTemplate reactiveMongoTemplate;
 
-    private Object                                                                      mongoQueryCreatorInstance;
     private ProjectionFactory                                                           projectionFactory;
     private ConvertingParameterAccessor                                                 convertingParameterAccessor;
     private MappingContext<? extends MongoPersistentEntity<?>, MongoPersistentProperty> mappingContext;
@@ -71,7 +70,7 @@ public class MongoQueryCreatorFactory {
      */
     @SneakyThrows
     public void createInstance(PartTree partTree, Method repositoryMethod, Object[] args) {
-        this.mongoQueryCreatorInstance = createMongoQueryCreatorInstance(partTree, repositoryMethod, args);
+        var mongoQueryCreatorInstance = createMongoQueryCreatorInstance(partTree, repositoryMethod, args);
         this.reflectedMongoQueryCreatorMethods.initializeMethods(mongoQueryCreatorInstance);
     }
 
