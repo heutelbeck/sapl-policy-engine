@@ -238,10 +238,8 @@ public class AnnotationAttributeContext implements AttributeContext {
 
     private Function<Object[], Object[]> argumentCombiner(AttributeFinderMetadata attributeMetadata,
             Map<String, JsonNode> variables, int numberOfInvocationParameters, Optional<Val> leftHandValue) {
-        return argumentValues -> {
-            return combineArguments(attributeMetadata, variables, numberOfInvocationParameters, argumentValues,
-                    leftHandValue);
-        };
+        return argumentValues -> combineArguments(attributeMetadata, variables, numberOfInvocationParameters,
+                argumentValues, leftHandValue);
     }
 
     private Object[] combineArguments(AttributeFinderMetadata attributeMetadata, Map<String, JsonNode> variables,
