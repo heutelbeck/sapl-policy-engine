@@ -47,7 +47,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @UtilityClass
-public class ContentFilterUtil {
+public class ContentFilter {
 
     private static final String NOT_A_VALID_PREDICATE_CONDITION = "Not a valid predicate condition: ";
     private static final String DISCLOSE_LEFT                   = "discloseLeft";

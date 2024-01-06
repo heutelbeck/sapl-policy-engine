@@ -17,7 +17,6 @@
  */
 package io.sapl.spring.constraints.providers;
 
-import java.util.Objects;
 import java.util.function.Predicate;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -30,25 +29,16 @@ import lombok.RequiredArgsConstructor;
 public class ContentFilterPredicateProvider implements FilterPredicateConstraintHandlerProvider {
 
     private static final String CONSTRAINT_TYPE = "jsonContentFilterPredicate";
-    private static final String TYPE            = "type";
 
     private final ObjectMapper objectMapper;
 
     @Override
     public boolean isResponsible(JsonNode constraint) {
-        if (constraint == null || !constraint.isObject())
-            return false;
-
-        var type = constraint.get(TYPE);
-
-        if (Objects.isNull(type) || !type.isTextual())
-            return false;
-
-        return CONSTRAINT_TYPE.equals(type.asText());
+        return ConstraintResposibility.isResponsible(constraint, CONSTRAINT_TYPE);
     }
 
     @Override
     public Predicate<Object> getHandler(JsonNode constraint) {
-        return ContentFilterUtil.predicateFromConditions(constraint, objectMapper);
+        return ContentFilter.predicateFromConditions(constraint, objectMapper);
     }
 }

@@ -28,7 +28,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-class ContentFilterUtilTests {
+class ContentFilterTests {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Data
@@ -52,7 +52,7 @@ class ContentFilterUtilTests {
                 	]
                 }
                 """);
-        var condition  = ContentFilterUtil.predicateFromConditions(constraint, MAPPER);
+        var condition  = ContentFilter.predicateFromConditions(constraint, MAPPER);
         var data       = new DataPoint("ABC", 100);
         assertTrue(condition.test(data));
     }
