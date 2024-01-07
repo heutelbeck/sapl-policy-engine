@@ -53,13 +53,17 @@ class JsonNodeMatcherInterpreter {
         } else if (jsonNodeMatcher instanceof IsJsonText text) {
             final var stringOrMatcher = text.getText();
 
+            if (stringOrMatcher == null) {
+                return jsonText();
+            }
+
             if (stringOrMatcher instanceof PlainString plainString) {
                 return jsonText(plainString.getText());
             } else if (stringOrMatcher instanceof StringMatcher stringMatcher) {
                 return jsonText(stringMatcherInterpreter.getHamcrestStringMatcher(stringMatcher));
             }
 
-            return jsonText();
+            throw new SaplTestException("Unknown type of StringOrStringMatcher");
         } else if (jsonNodeMatcher instanceof IsJsonNumber isJsonNumber) {
             final var number = isJsonNumber.getNumber();
 
@@ -67,13 +71,17 @@ class JsonNodeMatcherInterpreter {
         } else if (jsonNodeMatcher instanceof IsJsonBoolean isJsonBoolean) {
             final var boolValue = isJsonBoolean.getValue();
 
+            if (boolValue == null) {
+                return jsonBoolean();
+            }
+
             if (boolValue instanceof TrueLiteral) {
                 return jsonBoolean(true);
             } else if (boolValue instanceof FalseLiteral) {
                 return jsonBoolean(false);
             }
 
-            return jsonBoolean();
+            throw new SaplTestException("Unknown type of BooleanLiteral");
         } else if (jsonNodeMatcher instanceof IsJsonArray isJsonArray) {
             return interpretJsonArray(isJsonArray);
         } else if (jsonNodeMatcher instanceof IsJsonObject isJsonObject) {

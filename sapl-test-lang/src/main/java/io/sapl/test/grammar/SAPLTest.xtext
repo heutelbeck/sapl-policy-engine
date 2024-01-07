@@ -48,10 +48,9 @@ JsonObjectMatcher: '{' matchers+=JsonObjectMatcherPair (',' matchers+=JsonObject
 
 JsonNodeMatcher:
     {IsJsonNull} 'null' |
-    {IsJsonText} 'text' text=StringOrStringMatcher |
+    {IsJsonText} 'text' (text=StringOrStringMatcher)? |
     {IsJsonNumber} 'number' (number=JSONNUMBER)? |
     {IsJsonBoolean} 'boolean' (value=BooleanLiteral)? |
-    {IsJsonMissing} 'missing' |
     {IsJsonArray} 'array' ('where' matcher=JsonArrayMatcher)? |
     {IsJsonObject} 'object' ('where' matcher=JsonObjectMatcher)?;
 
@@ -62,12 +61,12 @@ StringMatcher:
     {StringIsNullOrEmpty} 'null-or-empty' |
     {StringIsNullOrBlank} 'null-or-blank' |
     {StringIsEqualWithCompressedWhiteSpace} 'equals' value=STRING 'with' 'compressed' 'whitespaces' |
-    {StringIsEqualIgnoringCase} 'equals' value=STRING 'ignoring' 'case' |
+    {StringIsEqualIgnoringCase} 'equals' value=STRING 'ignoring case' |
     {StringMatchesRegex} 'matches' 'regex' regex=STRING |
     {StringStartsWith} 'starts' 'with' start=STRING caseInsensitive?='ignoring case' |
     {StringEndsWith} 'ends' 'with' end=STRING caseInsensitive?='ignoring case' |
     {StringContains} 'contains' value=STRING caseInsensitive?='ignoring case' |
-    {StringContainsInOrder} 'contains' substrings+=STRING (',' substrings+=STRING)* 'in' 'order' |
+    {StringContainsInOrder} 'contains' 'substrings' substrings+=STRING (',' substrings+=STRING)* 'ordered' |
     {StringWithLength} 'has' 'length' 'of' length=JSONNUMBER;
 
 StringOrStringMatcher:

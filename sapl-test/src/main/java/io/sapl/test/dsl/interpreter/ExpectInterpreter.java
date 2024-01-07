@@ -28,6 +28,7 @@ import io.sapl.test.grammar.sAPLTest.Next;
 import io.sapl.test.grammar.sAPLTest.NextWithDecision;
 import io.sapl.test.grammar.sAPLTest.NextWithMatcher;
 import io.sapl.test.grammar.sAPLTest.NoEvent;
+import io.sapl.test.grammar.sAPLTest.Once;
 import io.sapl.test.grammar.sAPLTest.RepeatedExpect;
 import io.sapl.test.grammar.sAPLTest.SingleExpect;
 import io.sapl.test.grammar.sAPLTest.SingleExpectWithMatcher;
@@ -127,9 +128,15 @@ class ExpectInterpreter {
     }
 
     private ExpectOrVerifyStep constructNext(final ExpectOrVerifyStep expectOrVerifyStep, final Next nextExpect) {
-        final var amount = nextExpect.getAmount() instanceof Multiple multiple
-                ? multipleAmountInterpreter.getAmountFromMultipleAmountString(multiple.getAmount())
-                : 1;
+        int amount;
+
+        if (nextExpect.getAmount() instanceof Multiple multiple) {
+            amount = multipleAmountInterpreter.getAmountFromMultipleAmountString(multiple.getAmount());
+        } else if (nextExpect.getAmount() instanceof Once) {
+            amount = 1;
+        } else {
+            throw new SaplTestException("Unknown type of NumericAmount");
+        }
 
         return switch (nextExpect.getExpectedDecision()) {
         case PERMIT -> expectOrVerifyStep.expectNextPermit(amount);

@@ -15,10 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
@@ -31,6 +33,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.test.Helper;
 import io.sapl.test.SaplTestException;
+import io.sapl.test.dsl.ParserUtil;
 import io.sapl.test.dsl.interfaces.IntegrationTestConfiguration;
 import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
 import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
@@ -39,20 +42,26 @@ import io.sapl.test.grammar.sAPLTest.IntegrationTestSuite;
 import io.sapl.test.grammar.sAPLTest.PoliciesByIdentifier;
 import io.sapl.test.grammar.sAPLTest.PoliciesByInputString;
 import io.sapl.test.grammar.sAPLTest.PolicyResolverConfig;
+import io.sapl.test.grammar.sAPLTest.StringLiteral;
 import io.sapl.test.grammar.sAPLTest.TestSuite;
-import io.sapl.test.grammar.sAPLTest.UnitTestSuite;
 import io.sapl.test.grammar.sAPLTest.Value;
+import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import io.sapl.test.integration.SaplIntegrationTestFixture;
 import io.sapl.test.unit.SaplUnitTestFixture;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
+import org.eclipse.emf.common.util.EList;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -81,6 +90,10 @@ class TestSuiteInterpreterTest {
     void tearDown() {
         saplUnitTestFixtureFactoryMockedStatic.close();
         saplIntegrationTestFixtureFactoryMockedStatic.close();
+    }
+
+    private <T extends TestSuite> T buildTestSuite(final String input) {
+        return ParserUtil.buildExpression(input, SAPLTestGrammarAccess::getTestSuiteRule);
     }
 
     private void constructTestSuiteInterpreterWithCustomResolvers(
@@ -112,9 +125,8 @@ class TestSuiteInterpreterTest {
     class UnitTestCases {
         @Test
         void getFixtureFromTestSuite_handlesNullEnvironmentVariables_returnsSaplUnitTestFixture() {
-            final var unitTestSuiteMock = mock(UnitTestSuite.class);
-
-            when(unitTestSuiteMock.getId()).thenReturn("fooPolicy");
+            final var unitTestSuite = buildTestSuite(
+                    "\"fooPolicy\" tests { scenario \"testCase\" when subject \"subject\" attempts action \"action\" on resource \"resource\" then expect single permit}");
 
             final var saplUnitTestFixtureMock = mock(SaplUnitTestFixture.class);
             saplUnitTestFixtureFactoryMockedStatic.when(() -> SaplUnitTestFixtureFactory.create("fooPolicy"))
@@ -122,7 +134,7 @@ class TestSuiteInterpreterTest {
 
             when(valInterpreterMock.destructureObject(null)).thenReturn(null);
 
-            final var result = testSuiteInterpreter.getFixtureFromTestSuite(unitTestSuiteMock, null);
+            final var result = testSuiteInterpreter.getFixtureFromTestSuite(unitTestSuite, null);
 
             assertEquals(saplUnitTestFixtureMock, result);
 
@@ -131,9 +143,8 @@ class TestSuiteInterpreterTest {
 
         @Test
         void getFixtureFromTestSuite_handlesEmptyEnvironmentVariables_returnsSaplUnitTestFixture() {
-            final var unitTestSuiteMock = mock(UnitTestSuite.class);
-
-            when(unitTestSuiteMock.getId()).thenReturn("fooPolicy");
+            final var unitTestSuite = buildTestSuite(
+                    "\"fooPolicy\" tests { scenario \"testCase\" when subject \"subject\" attempts action \"action\" on resource \"resource\" then expect single permit}");
 
             final var saplUnitTestFixtureMock = mock(SaplUnitTestFixture.class);
             saplUnitTestFixtureFactoryMockedStatic.when(() -> SaplUnitTestFixtureFactory.create("fooPolicy"))
@@ -142,7 +153,7 @@ class TestSuiteInterpreterTest {
             final var environmentMock = mock(io.sapl.test.grammar.sAPLTest.Object.class);
             when(valInterpreterMock.destructureObject(environmentMock)).thenReturn(Collections.emptyMap());
 
-            final var result = testSuiteInterpreter.getFixtureFromTestSuite(unitTestSuiteMock, environmentMock);
+            final var result = testSuiteInterpreter.getFixtureFromTestSuite(unitTestSuite, environmentMock);
 
             assertEquals(saplUnitTestFixtureMock, result);
 
@@ -151,9 +162,8 @@ class TestSuiteInterpreterTest {
 
         @Test
         void getFixtureFromTestSuite_handlesMultipleEnvironmentVariables_returnsSaplUnitTestFixture() {
-            final var unitTestSuiteMock = mock(UnitTestSuite.class);
-
-            when(unitTestSuiteMock.getId()).thenReturn("fooPolicy");
+            final var unitTestSuite = buildTestSuite(
+                    "\"fooPolicy\" tests { scenario \"testCase\" when subject \"subject\" attempts action \"action\" on resource \"resource\" then expect single permit}");
 
             final var saplUnitTestFixtureMock = mock(SaplUnitTestFixture.class);
             saplUnitTestFixtureFactoryMockedStatic.when(() -> SaplUnitTestFixtureFactory.create("fooPolicy"))
@@ -165,7 +175,7 @@ class TestSuiteInterpreterTest {
             when(valInterpreterMock.destructureObject(environmentMock))
                     .thenReturn(Map.of("key1", jsonNodeMock1, "key2", jsonNodeMock2));
 
-            final var result = testSuiteInterpreter.getFixtureFromTestSuite(unitTestSuiteMock, environmentMock);
+            final var result = testSuiteInterpreter.getFixtureFromTestSuite(unitTestSuite, environmentMock);
 
             assertEquals(saplUnitTestFixtureMock, result);
             verify(saplUnitTestFixtureMock, times(1)).registerVariable("key1", jsonNodeMock1);
@@ -177,9 +187,8 @@ class TestSuiteInterpreterTest {
             final var customUnitTestPolicyResolver = mock(UnitTestPolicyResolver.class);
             constructTestSuiteInterpreterWithCustomResolvers(customUnitTestPolicyResolver, null);
 
-            final var unitTestSuiteMock = mock(UnitTestSuite.class);
-
-            when(unitTestSuiteMock.getId()).thenReturn("fooPolicy");
+            final var unitTestSuite = buildTestSuite(
+                    "\"fooPolicy\" tests { scenario \"testCase\" when subject \"subject\" attempts action \"action\" on resource \"resource\" then expect single permit}");
 
             when(customUnitTestPolicyResolver.resolvePolicyByIdentifier("fooPolicy")).thenReturn("resolvedPolicy");
 
@@ -194,7 +203,7 @@ class TestSuiteInterpreterTest {
             when(valInterpreterMock.destructureObject(environmentMock))
                     .thenReturn(Map.of("key1", jsonNodeMock1, "key2", jsonNodeMock2));
 
-            final var result = testSuiteInterpreter.getFixtureFromTestSuite(unitTestSuiteMock, environmentMock);
+            final var result = testSuiteInterpreter.getFixtureFromTestSuite(unitTestSuite, environmentMock);
 
             assertEquals(saplUnitTestFixtureMock, result);
             verify(saplUnitTestFixtureMock, times(1)).registerVariable("key1", jsonNodeMock1);
@@ -218,23 +227,56 @@ class TestSuiteInterpreterTest {
             assertEquals("Unknown type of PolicyResolverConfig", exception.getMessage());
         }
 
-        @Test
-        void getFixtureFromTestSuite_handlesNullEnvironmentVariablesAndNullPdpVariablesForPolicySet_returnsSaplIntegrationTestFixture() {
+        @ParameterizedTest
+        @MethodSource("earlyReturnListOfPolicies")
+        void getFixtureFromTestSuite_handlesInvalidAmountOfPoliciesForPoliciesByInputString_throwsSaplTestException(
+                final EList<String> policies) {
             final var integrationTestSuite = mock(IntegrationTestSuite.class);
 
             final var policiesByInputStringMock = mock(PoliciesByInputString.class);
             when(policiesByInputStringMock.getPdpConfig()).thenReturn("fooFolder");
-            when(policiesByInputStringMock.getPolicies()).thenReturn(null);
+            when(policiesByInputStringMock.getPolicies()).thenReturn(policies);
             when(integrationTestSuite.getConfig()).thenReturn(policiesByInputStringMock);
+
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> testSuiteInterpreter.getFixtureFromTestSuite(integrationTestSuite, null));
+
+            assertEquals("No policies to test integration for", exception.getMessage());
+        }
+
+        @ParameterizedTest
+        @MethodSource("earlyReturnListOfPolicies")
+        void getFixtureFromTestSuite_handlesInvalidAmountOfPoliciesForPoliciesByInputStringWithCustomIntegrationTestPolicyResolver_throwsSaplTestException(
+                final EList<String> policies) {
+            final var integrationTestPolicyResolver = mock(IntegrationTestPolicyResolver.class);
+            constructTestSuiteInterpreterWithCustomResolvers(null, integrationTestPolicyResolver);
+            final var integrationTestSuite = mock(IntegrationTestSuite.class);
+
+            final var policiesByInputStringMock = mock(PoliciesByInputString.class);
+            when(policiesByInputStringMock.getPdpConfig()).thenReturn("fooFolder");
+            when(policiesByInputStringMock.getPolicies()).thenReturn(policies);
+            when(integrationTestSuite.getConfig()).thenReturn(policiesByInputStringMock);
+
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> testSuiteInterpreter.getFixtureFromTestSuite(integrationTestSuite, null));
+
+            assertEquals("No policies to test integration for", exception.getMessage());
+        }
+
+        private static Stream<Arguments> earlyReturnListOfPolicies() {
+            return Stream.of(null, Arguments.of(Helper.mockEList(Collections.emptyList())),
+                    Arguments.of(Helper.mockEList(List.of("singlePolicy"))));
+        }
+
+        @Test
+        void getFixtureFromTestSuite_handlesNullEnvironmentVariablesAndNullPdpVariablesForPolicySet_returnsSaplIntegrationTestFixture() {
+            final var integrationTestSuite = buildTestSuite(
+                    "test set of policies \"policy1\", \"policy2\" with pdp config \"fooFolder\" { scenario \"testCase\" when subject \"subject\" attempts action \"action\" on resource \"resource\" then expect single permit}");
 
             final var saplIntegrationTestFixtureMock = mock(SaplIntegrationTestFixture.class);
             saplIntegrationTestFixtureFactoryMockedStatic
-                    .when(() -> SaplIntegrationTestFixtureFactory.create("fooFolder", null))
+                    .when(() -> SaplIntegrationTestFixtureFactory.create("fooFolder", List.of("policy1", "policy2")))
                     .thenReturn(saplIntegrationTestFixtureMock);
-
-            when(integrationTestSuite.getPdpVariables()).thenReturn(null);
-
-            when(integrationTestSuite.isCombiningAlgorithmDefined()).thenReturn(false);
 
             when(valInterpreterMock.destructureObject(null)).thenReturn(null);
 
@@ -249,13 +291,9 @@ class TestSuiteInterpreterTest {
         void getFixtureFromTestSuite_handlesNullEnvironmentVariablesAndNullPdpVariablesForPolicySetWithCustomIntegrationTestPolicyResolver_returnsSaplIntegrationTestFixture() {
             final var integrationTestPolicyResolver = mock(IntegrationTestPolicyResolver.class);
             constructTestSuiteInterpreterWithCustomResolvers(null, integrationTestPolicyResolver);
-            final var integrationTestSuite = mock(IntegrationTestSuite.class);
 
-            final var policiesByInputStringMock = mock(PoliciesByInputString.class);
-            when(policiesByInputStringMock.getPdpConfig()).thenReturn("fooFolder");
-            final var policiesMock = Helper.mockEList(List.of("policy1", "policy2"));
-            when(policiesByInputStringMock.getPolicies()).thenReturn(policiesMock);
-            when(integrationTestSuite.getConfig()).thenReturn(policiesByInputStringMock);
+            final var integrationTestSuite = buildTestSuite(
+                    "test set of policies \"policy1\", \"policy2\" with pdp config \"fooFolder\" { scenario \"testCase\" when subject \"subject\" attempts action \"action\" on resource \"resource\" then expect single permit}");
 
             when(integrationTestPolicyResolver.resolvePDPConfigByIdentifier("fooFolder"))
                     .thenReturn("resolvedPdpConfig");
@@ -269,42 +307,6 @@ class TestSuiteInterpreterTest {
                             .createFromInputStrings(List.of("resolvedPolicy1", "resolvedPolicy2"), "resolvedPdpConfig"))
                     .thenReturn(saplIntegrationTestFixtureMock);
 
-            when(integrationTestSuite.getPdpVariables()).thenReturn(null);
-
-            when(integrationTestSuite.isCombiningAlgorithmDefined()).thenReturn(false);
-
-            when(valInterpreterMock.destructureObject(null)).thenReturn(null);
-
-            final var result = testSuiteInterpreter.getFixtureFromTestSuite(integrationTestSuite, null);
-
-            assertEquals(saplIntegrationTestFixtureMock, result);
-
-            verifyNoInteractions(saplIntegrationTestFixtureMock);
-        }
-
-        @Test
-        void getFixtureFromTestSuite_handlesNullEnvironmentVariablesAndNullPdpVariablesForPolicySetWithNullPoliciesAndWithCustomIntegrationTestPolicyResolver_returnsSaplIntegrationTestFixture() {
-            final var integrationTestPolicyResolver = mock(IntegrationTestPolicyResolver.class);
-            constructTestSuiteInterpreterWithCustomResolvers(null, integrationTestPolicyResolver);
-            final var integrationTestSuite = mock(IntegrationTestSuite.class);
-
-            final var policiesByInputStringMock = mock(PoliciesByInputString.class);
-            when(policiesByInputStringMock.getPdpConfig()).thenReturn("fooFolder");
-            when(policiesByInputStringMock.getPolicies()).thenReturn(null);
-            when(integrationTestSuite.getConfig()).thenReturn(policiesByInputStringMock);
-
-            when(integrationTestPolicyResolver.resolvePDPConfigByIdentifier("fooFolder"))
-                    .thenReturn("resolvedPdpConfig");
-
-            final var saplIntegrationTestFixtureMock = mock(SaplIntegrationTestFixture.class);
-            saplIntegrationTestFixtureFactoryMockedStatic.when(() -> SaplIntegrationTestFixtureFactory
-                    .createFromInputStrings(Collections.emptyList(), "resolvedPdpConfig"))
-                    .thenReturn(saplIntegrationTestFixtureMock);
-
-            when(integrationTestSuite.getPdpVariables()).thenReturn(null);
-
-            when(integrationTestSuite.isCombiningAlgorithmDefined()).thenReturn(false);
-
             when(valInterpreterMock.destructureObject(null)).thenReturn(null);
 
             final var result = testSuiteInterpreter.getFixtureFromTestSuite(integrationTestSuite, null);
@@ -316,20 +318,13 @@ class TestSuiteInterpreterTest {
 
         @Test
         void getFixtureFromTestSuite_handlesNullEnvironmentVariablesAndNullPdpVariables_returnsSaplIntegrationTestFixture() {
-            final var integrationTestSuite = mock(IntegrationTestSuite.class);
-
-            final var policiesByIdentifierMock = mock(PoliciesByIdentifier.class);
-            when(policiesByIdentifierMock.getIdentifier()).thenReturn("fooFolder");
-            when(integrationTestSuite.getConfig()).thenReturn(policiesByIdentifierMock);
+            final var integrationTestSuite = buildTestSuite(
+                    "test set of policies with identifier \"fooFolder\" { scenario \"testCase\" when subject \"subject\" attempts action \"action\" on resource \"resource\" then expect single permit}");
 
             final var saplIntegrationTestFixtureMock = mock(SaplIntegrationTestFixture.class);
             saplIntegrationTestFixtureFactoryMockedStatic
                     .when(() -> SaplIntegrationTestFixtureFactory.create("fooFolder"))
                     .thenReturn(saplIntegrationTestFixtureMock);
-
-            when(integrationTestSuite.getPdpVariables()).thenReturn(null);
-
-            when(integrationTestSuite.isCombiningAlgorithmDefined()).thenReturn(false);
 
             when(valInterpreterMock.destructureObject(null)).thenReturn(null);
 
@@ -345,11 +340,8 @@ class TestSuiteInterpreterTest {
             final var integrationTestPolicyResolver = mock(IntegrationTestPolicyResolver.class);
             constructTestSuiteInterpreterWithCustomResolvers(null, integrationTestPolicyResolver);
 
-            final var integrationTestSuite = mock(IntegrationTestSuite.class);
-
-            final var policiesByIdentifierMock = mock(PoliciesByIdentifier.class);
-            when(policiesByIdentifierMock.getIdentifier()).thenReturn("fooFolder");
-            when(integrationTestSuite.getConfig()).thenReturn(policiesByIdentifierMock);
+            final var integrationTestSuite = buildTestSuite(
+                    "test set of policies with identifier \"fooFolder\" { scenario \"testCase\" when subject \"subject\" attempts action \"action\" on resource \"resource\" then expect single permit}");
 
             final var integrationTestConfigurationMock = mock(IntegrationTestConfiguration.class);
             when(integrationTestPolicyResolver.resolveConfigByIdentifier("fooFolder"))
@@ -363,10 +355,6 @@ class TestSuiteInterpreterTest {
                     .createFromInputStrings(List.of("policy1", "policy2"), "pdpConfig"))
                     .thenReturn(saplIntegrationTestFixtureMock);
 
-            when(integrationTestSuite.getPdpVariables()).thenReturn(null);
-
-            when(integrationTestSuite.isCombiningAlgorithmDefined()).thenReturn(false);
-
             when(valInterpreterMock.destructureObject(null)).thenReturn(null);
 
             final var result = testSuiteInterpreter.getFixtureFromTestSuite(integrationTestSuite, null);
@@ -378,21 +366,13 @@ class TestSuiteInterpreterTest {
 
         @Test
         void getFixtureFromTestSuite_handlesPdpCombiningAlgorithm_returnsSaplIntegrationTestFixture() {
-            final var integrationTestSuite = mock(IntegrationTestSuite.class);
-
-            final var policiesByIdentifierMock = mock(PoliciesByIdentifier.class);
-            when(policiesByIdentifierMock.getIdentifier()).thenReturn("fooFolder");
-            when(integrationTestSuite.getConfig()).thenReturn(policiesByIdentifierMock);
+            final var integrationTestSuite = buildTestSuite(
+                    "test set of policies with identifier \"fooFolder\" using combining-algorithm only-one-applicable { scenario \"testCase\" when subject \"subject\" attempts action \"action\" on resource \"resource\" then expect single permit}");
 
             final var saplIntegrationTestFixtureMock = mock(SaplIntegrationTestFixture.class);
             saplIntegrationTestFixtureFactoryMockedStatic
                     .when(() -> SaplIntegrationTestFixtureFactory.create("fooFolder"))
                     .thenReturn(saplIntegrationTestFixtureMock);
-
-            when(integrationTestSuite.getPdpVariables()).thenReturn(null);
-
-            when(integrationTestSuite.isCombiningAlgorithmDefined()).thenReturn(true);
-            when(integrationTestSuite.getCombiningAlgorithm()).thenReturn(CombiningAlgorithmEnum.ONLY_ONE_APPLICABLE);
 
             final var pdpCombiningAlgorithmMock = mock(PolicyDocumentCombiningAlgorithm.class);
             when(pdpCombiningAlgorithmInterpreterMock
@@ -443,26 +423,12 @@ class TestSuiteInterpreterTest {
 
         @Test
         void getFixtureFromTestSuite_handlesMultipleEnvironmentVariablesAndMultiplePdpVariables_returnsSaplIntegrationTestFixture() {
-            final var integrationTestSuite = mock(IntegrationTestSuite.class);
-
-            final var policiesByIdentifierMock = mock(PoliciesByIdentifier.class);
-            when(policiesByIdentifierMock.getIdentifier()).thenReturn("fooFolder");
-            when(integrationTestSuite.getConfig()).thenReturn(policiesByIdentifierMock);
+            final var integrationTestSuite = buildTestSuite(
+                    "test set of policies with identifier \"fooFolder\" using variables { \"foo\" : \"bar\" } { scenario \"testCase\" when subject \"subject\" attempts action \"action\" on resource \"resource\" then expect single permit}");
 
             final var saplIntegrationTestFixtureMock = mock(SaplIntegrationTestFixture.class);
             saplIntegrationTestFixtureFactoryMockedStatic
                     .when(() -> SaplIntegrationTestFixtureFactory.create("fooFolder"))
-                    .thenReturn(saplIntegrationTestFixtureMock);
-
-            final var pdpVariablesMock = mock(io.sapl.test.grammar.sAPLTest.Object.class);
-            when(integrationTestSuite.getPdpVariables()).thenReturn(pdpVariablesMock);
-
-            when(integrationTestSuite.isCombiningAlgorithmDefined()).thenReturn(false);
-
-            final var pdpEnvironmentVariablesMock = Collections.<String, JsonNode>emptyMap();
-            when(valInterpreterMock.destructureObject(pdpVariablesMock)).thenReturn(pdpEnvironmentVariablesMock);
-
-            when(saplIntegrationTestFixtureMock.withPDPVariables(pdpEnvironmentVariablesMock))
                     .thenReturn(saplIntegrationTestFixtureMock);
 
             final var environmentMock = mock(io.sapl.test.grammar.sAPLTest.Object.class);
@@ -470,6 +436,21 @@ class TestSuiteInterpreterTest {
             final var jsonNodeMock2   = mock(JsonNode.class);
             when(valInterpreterMock.destructureObject(environmentMock))
                     .thenReturn(Map.of("key1", jsonNodeMock1, "key2", jsonNodeMock2));
+
+            final var pdpEnvironmentVariablesMock = Collections.<String, JsonNode>emptyMap();
+            when(valInterpreterMock.destructureObject(argThat(object -> object != environmentMock)))
+                    .thenAnswer(invocationOnMock -> {
+                        final io.sapl.test.grammar.sAPLTest.Object environment = invocationOnMock.getArgument(0);
+
+                        assertEquals(1, environment.getMembers().size());
+                        final var pair = environment.getMembers().get(0);
+                        assertEquals("foo", pair.getKey());
+                        assertEquals("bar", ((StringLiteral) pair.getValue()).getString());
+                        return pdpEnvironmentVariablesMock;
+                    });
+
+            when(saplIntegrationTestFixtureMock.withPDPVariables(pdpEnvironmentVariablesMock))
+                    .thenReturn(saplIntegrationTestFixtureMock);
 
             final var result = testSuiteInterpreter.getFixtureFromTestSuite(integrationTestSuite, environmentMock);
 

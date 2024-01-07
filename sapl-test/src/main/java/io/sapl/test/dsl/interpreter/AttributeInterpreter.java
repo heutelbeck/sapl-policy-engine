@@ -65,16 +65,16 @@ class AttributeInterpreter {
                 .getHamcrestValMatcher(attributeWithParameters.getParentMatcher());
         final var returnValue        = valInterpreter.getValFromValue(attributeWithParameters.getReturnValue());
 
-        final var arguments = attributeWithParameters.getParameters();
+        final var parameters = attributeWithParameters.getParameters();
 
-        if (arguments == null || arguments.isEmpty()) {
+        if (parameters == null || parameters.isEmpty()) {
             return givenOrWhenStep.givenAttribute(importName, whenParentValue(parentValueMatcher), returnValue);
         }
 
-        final var args = arguments.stream().map(matcherInterpreter::getHamcrestValMatcher)
+        final var arguments = parameters.stream().map(matcherInterpreter::getHamcrestValMatcher)
                 .<Matcher<Val>>toArray(Matcher[]::new);
 
         return givenOrWhenStep.givenAttribute(importName,
-                whenAttributeParams(parentValue(parentValueMatcher), arguments(args)), returnValue);
+                whenAttributeParams(parentValue(parentValueMatcher), arguments(arguments)), returnValue);
     }
 }

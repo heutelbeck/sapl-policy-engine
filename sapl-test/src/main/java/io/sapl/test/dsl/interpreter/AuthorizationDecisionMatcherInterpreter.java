@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static io.sapl.hamcrest.Matchers.anyDecision;
@@ -59,10 +60,15 @@ class AuthorizationDecisionMatcherInterpreter {
         } else if (authorizationDecisionMatcher instanceof IsDecision isDecision) {
             return getIsDecisionMatcher(isDecision);
         } else if (authorizationDecisionMatcher instanceof HasObligationOrAdvice hasObligationOrAdvice) {
-            final var extendedObjectMatcher = hasObligationOrAdvice.getMatcher();
+            final var extendedObjectMatcher            = hasObligationOrAdvice.getMatcher();
+            final var authorizationDecisionMatcherType = hasObligationOrAdvice.getType();
+
+            if (extendedObjectMatcher == null) {
+                return getMatcher(authorizationDecisionMatcherType, null);
+            }
 
             return getAuthorizationDecisionMatcherFromObjectMatcher(extendedObjectMatcher,
-                    hasObligationOrAdvice.getType());
+                    authorizationDecisionMatcherType);
         } else if (authorizationDecisionMatcher instanceof HasResource hasResource) {
             final var defaultObjectMatcher = hasResource.getMatcher();
 
@@ -101,7 +107,7 @@ class AuthorizationDecisionMatcherInterpreter {
             return getMatcher(authorizationDecisionMatcherType, matcher);
         }
 
-        return getMatcher(authorizationDecisionMatcherType, null);
+        throw new SaplTestException("Unknown type of DefaultObjectMatcher");
     }
 
     private Matcher<AuthorizationDecision> getMatcher(
@@ -120,6 +126,7 @@ class AuthorizationDecisionMatcherInterpreter {
     private Matcher<AuthorizationDecision> getAuthorizationDecisionMatcherFromObjectMatcher(
             final ExtendedObjectMatcher extendedObjectMatcher,
             final AuthorizationDecisionMatcherType authorizationDecisionMatcherType) {
+
         if (extendedObjectMatcher instanceof DefaultObjectMatcher defaultObjectMatcher) {
             return getAuthorizationDecisionMatcherFromObjectMatcher(defaultObjectMatcher,
                     authorizationDecisionMatcherType);

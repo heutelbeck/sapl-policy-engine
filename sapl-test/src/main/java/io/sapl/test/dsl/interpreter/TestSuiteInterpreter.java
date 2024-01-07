@@ -84,20 +84,21 @@ class TestSuiteInterpreter {
                         .createFromInputStrings(config.getDocumentInputStrings(), config.getPDPConfigInputString());
             }
         } else if (policyResolverConfig instanceof PoliciesByInputString policiesByInputString) {
-            if (customIntegrationTestPolicyResolver == null) {
-                integrationTestFixture = SaplIntegrationTestFixtureFactory.create(policiesByInputString.getPdpConfig(),
-                        policiesByInputString.getPolicies());
-            } else {
-                final var pdpConfig = customIntegrationTestPolicyResolver
-                        .resolvePDPConfigByIdentifier(policiesByInputString.getPdpConfig());
-                final var policies  = Objects.requireNonNullElse(policiesByInputString.getPolicies(),
-                        Collections.<String>emptyList());
+            final var pdpConfig = policiesByInputString.getPdpConfig();
+            final var policies  = policiesByInputString.getPolicies();
 
+            if (policies == null || policies.size() < 2) {
+                throw new SaplTestException("No policies to test integration for");
+            }
+
+            if (customIntegrationTestPolicyResolver == null) {
+                integrationTestFixture = SaplIntegrationTestFixtureFactory.create(pdpConfig, policies);
+            } else {
                 final var saplDocumentStrings = policies.stream()
                         .map(customIntegrationTestPolicyResolver::resolvePolicyByIdentifier).toList();
 
                 integrationTestFixture = SaplIntegrationTestFixtureFactory.createFromInputStrings(saplDocumentStrings,
-                        pdpConfig);
+                        customIntegrationTestPolicyResolver.resolvePDPConfigByIdentifier(pdpConfig));
             }
         } else {
             throw new SaplTestException("Unknown type of PolicyResolverConfig");

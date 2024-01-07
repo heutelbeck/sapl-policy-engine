@@ -15,12 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonBigDecimal;
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonText;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -30,22 +32,19 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.spotify.hamcrest.jackson.JsonMatchers;
 import io.sapl.test.Helper;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.sAPLTest.FalseLiteral;
+import io.sapl.test.dsl.ParserUtil;
 import io.sapl.test.grammar.sAPLTest.IsJsonArray;
 import io.sapl.test.grammar.sAPLTest.IsJsonBoolean;
-import io.sapl.test.grammar.sAPLTest.IsJsonNull;
-import io.sapl.test.grammar.sAPLTest.IsJsonNumber;
 import io.sapl.test.grammar.sAPLTest.IsJsonObject;
 import io.sapl.test.grammar.sAPLTest.IsJsonText;
 import io.sapl.test.grammar.sAPLTest.JsonArrayMatcher;
 import io.sapl.test.grammar.sAPLTest.JsonNodeMatcher;
 import io.sapl.test.grammar.sAPLTest.JsonObjectMatcher;
 import io.sapl.test.grammar.sAPLTest.JsonObjectMatcherPair;
-import io.sapl.test.grammar.sAPLTest.PlainString;
-import io.sapl.test.grammar.sAPLTest.StringMatcher;
+import io.sapl.test.grammar.sAPLTest.StringIsNull;
 import io.sapl.test.grammar.sAPLTest.StringOrStringMatcher;
-import io.sapl.test.grammar.sAPLTest.TrueLiteral;
 import io.sapl.test.grammar.sAPLTest.Value;
+import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import java.math.BigDecimal;
 import java.util.List;
 import org.hamcrest.Matcher;
@@ -78,6 +77,10 @@ class JsonNodeMatcherInterpreterTest {
         hamcrestMatchersMockedStatic.close();
     }
 
+    private <T extends JsonNodeMatcher> T buildJsonNodeMatcher(final String input) {
+        return ParserUtil.buildExpression(input, SAPLTestGrammarAccess::getJsonNodeMatcherRule);
+    }
+
     @Test
     void getHamcrestJsonNodeMatcher_handlesNullMatcher_throwsSaplTestException() {
         final var exception = assertThrows(SaplTestException.class,
@@ -98,30 +101,28 @@ class JsonNodeMatcherInterpreterTest {
 
     @Test
     void getHamcrestJsonNodeMatcher_handlesIsJsonNull_returnsJsonNullMatcher() {
-        final var matcherMock = mock(IsJsonNull.class);
+        final var jsonNodeMatcher = buildJsonNodeMatcher("null");
 
         jsonMatchersMockedStatic.when(JsonMatchers::jsonNull).thenReturn(jsonNodeMatcherMock);
 
-        final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(matcherMock);
+        final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(jsonNodeMatcher);
 
         assertEquals(jsonNodeMatcherMock, result);
     }
 
     @Test
     void getHamcrestJsonNodeMatcher_handlesIsJsonTextWithNullMatcher_returnsAnyJsonTextMatcher() {
-        final var matcherMock = mock(IsJsonText.class);
-
-        when(matcherMock.getText()).thenReturn(null);
+        final var jsonNodeMatcher = buildJsonNodeMatcher("text");
 
         jsonMatchersMockedStatic.when(JsonMatchers::jsonText).thenReturn(jsonNodeMatcherMock);
 
-        final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(matcherMock);
+        final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(jsonNodeMatcher);
 
         assertEquals(jsonNodeMatcherMock, result);
     }
 
     @Test
-    void getHamcrestJsonNodeMatcher_handlesIsJsonTextWithUnknownMatcher_returnsAnyJsonTextMatcher() {
+    void getHamcrestJsonNodeMatcher_handlesIsJsonTextWithUnknownMatcher_throwsSaplTestException() {
         final var matcherMock = mock(IsJsonText.class);
 
         final var unknownMatcher = mock(StringOrStringMatcher.class);
@@ -129,86 +130,73 @@ class JsonNodeMatcherInterpreterTest {
 
         jsonMatchersMockedStatic.when(JsonMatchers::jsonText).thenReturn(jsonNodeMatcherMock);
 
-        final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(matcherMock);
+        final var exception = assertThrows(SaplTestException.class,
+                () -> jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(matcherMock));
 
-        assertEquals(jsonNodeMatcherMock, result);
+        assertEquals("Unknown type of StringOrStringMatcher", exception.getMessage());
     }
 
     @Test
     void getHamcrestJsonNodeMatcher_handlesIsJsonTextWithPlainString_returnsJsonTextMatcher() {
-        final var matcherMock = mock(IsJsonText.class);
-
-        final var plainString = mock(PlainString.class);
-        when(matcherMock.getText()).thenReturn(plainString);
-
-        when(plainString.getText()).thenReturn("foo");
+        final var jsonNodeMatcher = buildJsonNodeMatcher("text \"foo\"");
 
         jsonMatchersMockedStatic.when(() -> jsonText("foo")).thenReturn(jsonNodeMatcherMock);
 
-        final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(matcherMock);
+        final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(jsonNodeMatcher);
 
         assertEquals(jsonNodeMatcherMock, result);
     }
 
     @Test
     void getHamcrestJsonNodeMatcher_handlesIsJsonTextWithStringMatcher_returnsJsonTextMatcher() {
-        final var matcherMock = mock(IsJsonText.class);
-
-        final var stringMatcher = mock(StringMatcher.class);
-        when(matcherMock.getText()).thenReturn(stringMatcher);
+        final var jsonNodeMatcher = buildJsonNodeMatcher("text null");
 
         final var hamcrestStringMatcherMock = mock(Matcher.class);
-        when(stringMatcherInterpreterMock.getHamcrestStringMatcher(stringMatcher))
+        when(stringMatcherInterpreterMock.getHamcrestStringMatcher(any(StringIsNull.class)))
                 .thenReturn(hamcrestStringMatcherMock);
 
         jsonMatchersMockedStatic.when(() -> jsonText(hamcrestStringMatcherMock)).thenReturn(jsonNodeMatcherMock);
 
-        final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(matcherMock);
+        final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(jsonNodeMatcher);
 
         assertEquals(jsonNodeMatcherMock, result);
     }
 
     @Test
     void getHamcrestJsonNodeMatcher_handlesIsJsonNumberWithNullNumber_returnsAnyJsonNumberMatcher() {
-        final var matcherMock = mock(IsJsonNumber.class);
-
-        when(matcherMock.getNumber()).thenReturn(null);
+        final var jsonNodeMatcher = buildJsonNodeMatcher("number");
 
         jsonMatchersMockedStatic.when(JsonMatchers::jsonNumber).thenReturn(jsonNodeMatcherMock);
 
-        final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(matcherMock);
+        final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(jsonNodeMatcher);
 
         assertEquals(jsonNodeMatcherMock, result);
     }
 
     @Test
     void getHamcrestJsonNodeMatcher_handlesIsJsonNumber_returnsJsonBigDecimalMatcher() {
-        final var matcherMock = mock(IsJsonNumber.class);
-
-        when(matcherMock.getNumber()).thenReturn(BigDecimal.TEN);
+        final var jsonNodeMatcher = buildJsonNodeMatcher("number 10");
 
         jsonMatchersMockedStatic.when(() -> jsonBigDecimal(BigDecimal.TEN)).thenReturn(jsonNodeMatcherMock);
 
-        final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(matcherMock);
+        final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(jsonNodeMatcher);
 
         assertEquals(jsonNodeMatcherMock, result);
     }
 
     @Test
     void getHamcrestJsonNodeMatcher_handlesIsJsonBooleanWithNullValue_returnsAnyJsonBooleanMatcher() {
-        final var matcherMock = mock(IsJsonBoolean.class);
-
-        when(matcherMock.getValue()).thenReturn(null);
+        final var jsonNodeMatcher = buildJsonNodeMatcher("boolean");
 
         jsonMatchersMockedStatic.when(JsonMatchers::jsonBoolean).thenReturn(jsonNodeMatcherMock);
 
-        final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(matcherMock);
+        final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(jsonNodeMatcher);
 
         assertEquals(jsonNodeMatcherMock, result);
     }
 
     @Test
-    void getHamcrestJsonNodeMatcher_handlesIsJsonBooleanWithUnknownType_returnsAnyJsonBooleanMatcher() {
+    void getHamcrestJsonNodeMatcher_handlesIsJsonBooleanWithUnknownType_throwsSaplTestException() {
         final var matcherMock = mock(IsJsonBoolean.class);
 
         final var booleanLiteralMock = mock(Value.class);
@@ -217,37 +205,30 @@ class JsonNodeMatcherInterpreterTest {
 
         jsonMatchersMockedStatic.when(JsonMatchers::jsonBoolean).thenReturn(jsonNodeMatcherMock);
 
-        final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(matcherMock);
+        final var exception = assertThrows(SaplTestException.class,
+                () -> jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(matcherMock));
 
-        assertEquals(jsonNodeMatcherMock, result);
+        assertEquals("Unknown type of BooleanLiteral", exception.getMessage());
     }
 
     @Test
     void getHamcrestJsonNodeMatcher_handlesIsJsonBooleanWithTrueLiteral_returnsJsonBooleanMatcher() {
-        final var matcherMock = mock(IsJsonBoolean.class);
-
-        final var trueLiteralMock = mock(TrueLiteral.class);
-
-        when(matcherMock.getValue()).thenReturn(trueLiteralMock);
+        final var jsonNodeMatcher = buildJsonNodeMatcher("boolean true");
 
         jsonMatchersMockedStatic.when(() -> JsonMatchers.jsonBoolean(true)).thenReturn(jsonNodeMatcherMock);
 
-        final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(matcherMock);
+        final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(jsonNodeMatcher);
 
         assertEquals(jsonNodeMatcherMock, result);
     }
 
     @Test
     void getHamcrestJsonNodeMatcher_handlesIsJsonBooleanWithFalseLiteral_returnsJsonBooleanMatcher() {
-        final var matcherMock = mock(IsJsonBoolean.class);
-
-        final var falseLiteralMock = mock(FalseLiteral.class);
-
-        when(matcherMock.getValue()).thenReturn(falseLiteralMock);
+        final var jsonNodeMatcher = buildJsonNodeMatcher("boolean false");
 
         jsonMatchersMockedStatic.when(() -> JsonMatchers.jsonBoolean(false)).thenReturn(jsonNodeMatcherMock);
 
-        final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(matcherMock);
+        final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(jsonNodeMatcher);
 
         assertEquals(jsonNodeMatcherMock, result);
     }
@@ -257,13 +238,11 @@ class JsonNodeMatcherInterpreterTest {
     class JsonArrayTests {
         @Test
         void getHamcrestJsonNodeMatcher_handlesIsJsonArrayWithNullArrayMatcher_returnsAnyJsonArrayMatcher() {
-            final var matcherMock = mock(IsJsonArray.class);
-
-            when(matcherMock.getMatcher()).thenReturn(null);
+            final var jsonNodeMatcher = buildJsonNodeMatcher("array");
 
             jsonMatchersMockedStatic.when(JsonMatchers::jsonArray).thenReturn(jsonNodeMatcherMock);
 
-            final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(matcherMock);
+            final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(jsonNodeMatcher);
 
             assertEquals(jsonNodeMatcherMock, result);
         }
@@ -305,32 +284,22 @@ class JsonNodeMatcherInterpreterTest {
 
         @Test
         void getHamcrestJsonNodeMatcher_handlesIsJsonArrayWithMultipleDifferentMatchers_returnsJsonArrayMatcher() {
-            final var matcherMock = mock(IsJsonArray.class);
-
-            final var jsonArrayMatcher = mock(JsonArrayMatcher.class);
-            when(matcherMock.getMatcher()).thenReturn(jsonArrayMatcher);
-
-            final var isJsonNullMock   = mock(IsJsonNull.class);
-            final var isJsonNumberMock = mock(IsJsonNumber.class);
-
-            final var matchers = Helper.mockEList(List.of(isJsonNullMock, isJsonNumberMock));
-            when(jsonArrayMatcher.getMatchers()).thenReturn(matchers);
+            final var jsonNodeMatcher = buildJsonNodeMatcher("array where [ null, boolean ]");
 
             final var jsonNullMatcherMock = mock(Matcher.class);
             jsonMatchersMockedStatic.when(JsonMatchers::jsonNull).thenReturn(jsonNullMatcherMock);
 
-            when(isJsonNumberMock.getNumber()).thenReturn(null);
-            final var jsonNumberMatcherMock = mock(Matcher.class);
-            jsonMatchersMockedStatic.when(JsonMatchers::jsonNumber).thenReturn(jsonNumberMatcherMock);
+            final var jsonBooleanMatcherMock = mock(Matcher.class);
+            jsonMatchersMockedStatic.when(JsonMatchers::jsonBoolean).thenReturn(jsonBooleanMatcherMock);
 
             final var isEqualToMock = mock(Matcher.class);
             hamcrestMatchersMockedStatic
-                    .when(() -> Matchers.is(eq(List.of(jsonNullMatcherMock, jsonNumberMatcherMock))))
+                    .when(() -> Matchers.is(eq(List.of(jsonNullMatcherMock, jsonBooleanMatcherMock))))
                     .thenReturn(isEqualToMock);
 
             jsonMatchersMockedStatic.when(() -> JsonMatchers.jsonArray(isEqualToMock)).thenReturn(jsonNodeMatcherMock);
 
-            final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(matcherMock);
+            final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(jsonNodeMatcher);
 
             assertEquals(jsonNodeMatcherMock, result);
         }
@@ -345,13 +314,11 @@ class JsonNodeMatcherInterpreterTest {
 
         @Test
         void getHamcrestJsonNodeMatcher_handlesIsJsonObjectWithNullObjectMatcher_returnsAnyJsonObjectMatcher() {
-            final var matcherMock = mock(IsJsonObject.class);
-
-            when(matcherMock.getMatcher()).thenReturn(null);
+            final var jsonNodeMatcher = buildJsonNodeMatcher("object");
 
             jsonMatchersMockedStatic.when(JsonMatchers::jsonObject).thenReturn(isJsonObjectMock);
 
-            final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(matcherMock);
+            final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(jsonNodeMatcher);
 
             assertEquals(isJsonObjectMock, result);
         }
@@ -393,29 +360,11 @@ class JsonNodeMatcherInterpreterTest {
 
         @Test
         void getHamcrestJsonNodeMatcher_handlesIsJsonObjectWithMultipleDifferentMatchers_returnsJsonObjectMatcher() {
-            final var matcherMock = mock(IsJsonObject.class);
-
-            final var jsonObjectMatcherMock = mock(JsonObjectMatcher.class);
-            when(matcherMock.getMatcher()).thenReturn(jsonObjectMatcherMock);
-
-            final var isJsonNullMock   = mock(IsJsonNull.class);
-            final var isJsonNumberMock = mock(IsJsonNumber.class);
-
-            final var isJsonNullObjectMatcherPairMock   = mock(JsonObjectMatcherPair.class);
-            final var isJsonNumberObjectMatcherPairMock = mock(JsonObjectMatcherPair.class);
-
-            final var matchers = Helper
-                    .mockEList(List.of(isJsonNullObjectMatcherPairMock, isJsonNumberObjectMatcherPairMock));
-            when(jsonObjectMatcherMock.getMatchers()).thenReturn(matchers);
+            final var jsonNodeMatcher = buildJsonNodeMatcher(
+                    "object where { \"jsonNullKey\" : null, \"jsonBooleanKey\" : boolean}");
 
             final var initialJsonObjectMock = mock(com.spotify.hamcrest.jackson.IsJsonObject.class);
             jsonMatchersMockedStatic.when(JsonMatchers::jsonObject).thenReturn(initialJsonObjectMock);
-
-            when(isJsonNullObjectMatcherPairMock.getKey()).thenReturn("jsonNullKey");
-            when(isJsonNullObjectMatcherPairMock.getMatcher()).thenReturn(isJsonNullMock);
-
-            when(isJsonNumberObjectMatcherPairMock.getKey()).thenReturn("jsonNumberKey");
-            when(isJsonNumberObjectMatcherPairMock.getMatcher()).thenReturn(isJsonNumberMock);
 
             final var jsonNullMatcherMock = mock(Matcher.class);
             jsonMatchersMockedStatic.when(JsonMatchers::jsonNull).thenReturn(jsonNullMatcherMock);
@@ -424,14 +373,13 @@ class JsonNodeMatcherInterpreterTest {
             when(initialJsonObjectMock.where("jsonNullKey", jsonNullMatcherMock))
                     .thenReturn(jsonObjectWithOneWhereConditionMock);
 
-            when(isJsonNumberMock.getNumber()).thenReturn(null);
-            final var jsonNumberMatcherMock = mock(Matcher.class);
-            jsonMatchersMockedStatic.when(JsonMatchers::jsonNumber).thenReturn(jsonNumberMatcherMock);
+            final var jsonBooleanMatcherMock = mock(Matcher.class);
+            jsonMatchersMockedStatic.when(JsonMatchers::jsonBoolean).thenReturn(jsonBooleanMatcherMock);
 
-            when(jsonObjectWithOneWhereConditionMock.where("jsonNumberKey", jsonNumberMatcherMock))
+            when(jsonObjectWithOneWhereConditionMock.where("jsonBooleanKey", jsonBooleanMatcherMock))
                     .thenReturn(isJsonObjectMock);
 
-            final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(matcherMock);
+            final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(jsonNodeMatcher);
 
             assertEquals(isJsonObjectMock, result);
         }

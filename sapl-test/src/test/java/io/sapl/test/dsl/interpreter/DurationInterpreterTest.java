@@ -15,16 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.when;
 
 import io.sapl.test.SaplTestException;
+import io.sapl.test.dsl.ParserUtil;
+import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import java.time.Duration;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,6 +49,11 @@ class DurationInterpreterTest {
         durationMockedStatic.close();
     }
 
+    @SneakyThrows
+    private io.sapl.test.grammar.sAPLTest.Duration buildDuration(final String input) {
+        return ParserUtil.buildExpression(input, SAPLTestGrammarAccess::getDurationRule);
+    }
+
     @Test
     void getJavaDurationFromDuration_forNullDuration_throwsSaplTestException() {
         final var exception = assertThrows(SaplTestException.class,
@@ -56,26 +64,24 @@ class DurationInterpreterTest {
 
     @Test
     void getJavaDurationFromDuration_parseThrowsException_throwsSaplTestException() {
-        final var durationMock = mock(io.sapl.test.grammar.sAPLTest.Duration.class);
-        when(durationMock.getDuration()).thenReturn("");
+        final var duration = buildDuration("\"\"");
 
         durationMockedStatic.when(() -> Duration.parse("")).thenThrow(new RuntimeException("error"));
 
         final var exception = assertThrows(SaplTestException.class,
-                () -> durationInterpreter.getJavaDurationFromDuration(durationMock));
+                () -> durationInterpreter.getJavaDurationFromDuration(duration));
 
         assertEquals("The provided duration has an invalid format", exception.getMessage());
     }
 
     @Test
     void getJavaDurationFromDuration_handlesDuration_returnsAbsoluteDuration() {
-        final var durationMock = mock(io.sapl.test.grammar.sAPLTest.Duration.class);
-        when(durationMock.getDuration()).thenReturn("-PT5S");
+        final var duration = buildDuration("\"-PT5S\"");
 
         final var javaDurationMock = mock(Duration.class);
         durationMockedStatic.when(() -> Duration.parse("-PT5S").abs()).thenReturn(javaDurationMock);
 
-        final var result = durationInterpreter.getJavaDurationFromDuration(durationMock);
+        final var result = durationInterpreter.getJavaDurationFromDuration(duration);
 
         assertEquals(javaDurationMock, result);
     }

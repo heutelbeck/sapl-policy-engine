@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -115,7 +116,7 @@ class DefaultStepConstructorTest {
     }
 
     @Test
-    void constructWhenStep() {
+    void constructWhenStep_callsWhenStepBuilder_returnsWhenStep() {
         final var givenSteps          = List.<GivenStep>of();
         final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
 

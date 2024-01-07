@@ -15,19 +15,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
+import io.sapl.test.dsl.ParserUtil;
 import io.sapl.test.grammar.sAPLTest.AuthorizationSubscription;
-import io.sapl.test.grammar.sAPLTest.Value;
+import io.sapl.test.grammar.sAPLTest.StringLiteral;
+import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
+import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -51,6 +55,17 @@ class AuthorizationSubscriptionInterpreterTest {
         authorizationSubscriptionMockedStatic.close();
     }
 
+    private AuthorizationSubscription buildAuthorizationSubscription(final String input) {
+        return ParserUtil.buildExpression(input, SAPLTestGrammarAccess::getAuthorizationSubscriptionRule);
+    }
+
+    private void mockValInterpreter(Map<String, Val> expectedValueToReturnValue) {
+        when(valInterpreterMock.getValFromValue(any())).thenAnswer(invocationOnMock -> {
+            final StringLiteral value = invocationOnMock.getArgument(0);
+            return expectedValueToReturnValue.get(value.getString());
+        });
+    }
+
     @Test
     void constructAuthorizationSubscription_handlesNullAuthorizationSubscription_throwsSaplTestException() {
         final var exception = assertThrows(SaplTestException.class,
@@ -61,85 +76,44 @@ class AuthorizationSubscriptionInterpreterTest {
 
     @Test
     void constructAuthorizationSubscription_correctlyInterpretsAuthorizationSubscriptionWithMissingEnvironment_returnsSAPLAuthorizationSubscription() {
-        final var authorizationSubscriptionMock = mock(AuthorizationSubscription.class);
+        final var authorizationSubscription = buildAuthorizationSubscription(
+                "subject \"subject\" attempts action \"action\" on resource \"resource\"");
 
-        final var subjectMock  = mock(Value.class);
-        final var actionMock   = mock(Value.class);
-        final var resourceMock = mock(Value.class);
+        final var subject  = Val.of("subject");
+        final var action   = Val.of("action");
+        final var resource = Val.of("resource");
 
-        when(authorizationSubscriptionMock.getSubject()).thenReturn(subjectMock);
-        when(authorizationSubscriptionMock.getAction()).thenReturn(actionMock);
-        when(authorizationSubscriptionMock.getResource()).thenReturn(resourceMock);
-        when(authorizationSubscriptionMock.getEnvironment()).thenReturn(null);
-
-        final var subjectValMock  = mock(Val.class);
-        final var actionValMock   = mock(Val.class);
-        final var resourceValMock = mock(Val.class);
-
-        when(valInterpreterMock.getValFromValue(subjectMock)).thenReturn(subjectValMock);
-        when(valInterpreterMock.getValFromValue(actionMock)).thenReturn(actionValMock);
-        when(valInterpreterMock.getValFromValue(resourceMock)).thenReturn(resourceValMock);
-
-        final var subjectJsonNodeMock  = mock(JsonNode.class);
-        final var actionJsonNodeMock   = mock(JsonNode.class);
-        final var resourceJsonNodeMock = mock(JsonNode.class);
-
-        when(subjectValMock.get()).thenReturn(subjectJsonNodeMock);
-        when(actionValMock.get()).thenReturn(actionJsonNodeMock);
-        when(resourceValMock.get()).thenReturn(resourceJsonNodeMock);
+        mockValInterpreter(Map.of("subject", subject, "action", action, "resource", resource));
 
         final var saplAuthorizationSubscriptionMock = mock(io.sapl.api.pdp.AuthorizationSubscription.class);
-        authorizationSubscriptionMockedStatic.when(() -> io.sapl.api.pdp.AuthorizationSubscription
-                .of(subjectJsonNodeMock, actionJsonNodeMock, resourceJsonNodeMock))
+        authorizationSubscriptionMockedStatic
+                .when(() -> io.sapl.api.pdp.AuthorizationSubscription.of(subject.get(), action.get(), resource.get()))
                 .thenReturn(saplAuthorizationSubscriptionMock);
 
         final var result = authorizationSubscriptionInterpreter
-                .constructAuthorizationSubscription(authorizationSubscriptionMock);
+                .constructAuthorizationSubscription(authorizationSubscription);
 
         assertEquals(saplAuthorizationSubscriptionMock, result);
     }
 
     @Test
     void constructAuthorizationSubscription_correctlyInterpretsAuthorizationSubscription_returnsSAPLAuthorizationSubscription() {
-        final var authorizationSubscriptionMock = mock(AuthorizationSubscription.class);
+        final var authorizationSubscription = buildAuthorizationSubscription(
+                "subject \"foo\" attempts action \"action\" on resource \"resource\" with environment \"environment\"");
 
-        final var subjectMock     = mock(Value.class);
-        final var actionMock      = mock(Value.class);
-        final var resourceMock    = mock(Value.class);
-        final var environmentMock = mock(Value.class);
+        final var subject     = Val.of("subject");
+        final var action      = Val.of("action");
+        final var resource    = Val.of("resource");
+        final var environment = Val.of("environment");
 
-        when(authorizationSubscriptionMock.getSubject()).thenReturn(subjectMock);
-        when(authorizationSubscriptionMock.getAction()).thenReturn(actionMock);
-        when(authorizationSubscriptionMock.getResource()).thenReturn(resourceMock);
-        when(authorizationSubscriptionMock.getEnvironment()).thenReturn(environmentMock);
-
-        final var subjectValMock     = mock(Val.class);
-        final var actionValMock      = mock(Val.class);
-        final var resourceValMock    = mock(Val.class);
-        final var environmentValMock = mock(Val.class);
-
-        when(valInterpreterMock.getValFromValue(subjectMock)).thenReturn(subjectValMock);
-        when(valInterpreterMock.getValFromValue(actionMock)).thenReturn(actionValMock);
-        when(valInterpreterMock.getValFromValue(resourceMock)).thenReturn(resourceValMock);
-        when(valInterpreterMock.getValFromValue(environmentMock)).thenReturn(environmentValMock);
-
-        final var subjectJsonNodeMock     = mock(JsonNode.class);
-        final var actionJsonNodeMock      = mock(JsonNode.class);
-        final var resourceJsonNodeMock    = mock(JsonNode.class);
-        final var environmentJsonNodeMock = mock(JsonNode.class);
-
-        when(subjectValMock.get()).thenReturn(subjectJsonNodeMock);
-        when(actionValMock.get()).thenReturn(actionJsonNodeMock);
-        when(resourceValMock.get()).thenReturn(resourceJsonNodeMock);
-        when(environmentValMock.get()).thenReturn(environmentJsonNodeMock);
+        mockValInterpreter(Map.of("foo", subject, "action", action, "resource", resource, "environment", environment));
 
         final var saplAuthorizationSubscriptionMock = mock(io.sapl.api.pdp.AuthorizationSubscription.class);
-        authorizationSubscriptionMockedStatic.when(() -> io.sapl.api.pdp.AuthorizationSubscription
-                .of(subjectJsonNodeMock, actionJsonNodeMock, resourceJsonNodeMock, environmentJsonNodeMock))
-                .thenReturn(saplAuthorizationSubscriptionMock);
+        authorizationSubscriptionMockedStatic.when(() -> io.sapl.api.pdp.AuthorizationSubscription.of(subject.get(),
+                action.get(), resource.get(), environment.get())).thenReturn(saplAuthorizationSubscriptionMock);
 
         final var result = authorizationSubscriptionInterpreter
-                .constructAuthorizationSubscription(authorizationSubscriptionMock);
+                .constructAuthorizationSubscription(authorizationSubscription);
 
         assertEquals(saplAuthorizationSubscriptionMock, result);
     }
