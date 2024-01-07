@@ -35,5 +35,6 @@ public class SAPLTestGenerator extends AbstractGenerator {
 
     @Override
     public void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
+        // code generation is not required since an interpreter implementation is used
     }
 }

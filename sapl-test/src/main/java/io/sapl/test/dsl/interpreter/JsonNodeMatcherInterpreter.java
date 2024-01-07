@@ -51,37 +51,11 @@ class JsonNodeMatcherInterpreter {
         if (jsonNodeMatcher instanceof IsJsonNull) {
             return jsonNull();
         } else if (jsonNodeMatcher instanceof IsJsonText text) {
-            final var stringOrMatcher = text.getText();
-
-            if (stringOrMatcher == null) {
-                return jsonText();
-            }
-
-            if (stringOrMatcher instanceof PlainString plainString) {
-                return jsonText(plainString.getText());
-            } else if (stringOrMatcher instanceof StringMatcher stringMatcher) {
-                return jsonText(stringMatcherInterpreter.getHamcrestStringMatcher(stringMatcher));
-            }
-
-            throw new SaplTestException("Unknown type of StringOrStringMatcher");
+            return interpretJsonText(text);
         } else if (jsonNodeMatcher instanceof IsJsonNumber isJsonNumber) {
-            final var number = isJsonNumber.getNumber();
-
-            return number == null ? jsonNumber() : jsonBigDecimal(number);
+            return interpretJsonNumber(isJsonNumber);
         } else if (jsonNodeMatcher instanceof IsJsonBoolean isJsonBoolean) {
-            final var boolValue = isJsonBoolean.getValue();
-
-            if (boolValue == null) {
-                return jsonBoolean();
-            }
-
-            if (boolValue instanceof TrueLiteral) {
-                return jsonBoolean(true);
-            } else if (boolValue instanceof FalseLiteral) {
-                return jsonBoolean(false);
-            }
-
-            throw new SaplTestException("Unknown type of BooleanLiteral");
+            return interpretJsonBoolean(isJsonBoolean);
         } else if (jsonNodeMatcher instanceof IsJsonArray isJsonArray) {
             return interpretJsonArray(isJsonArray);
         } else if (jsonNodeMatcher instanceof IsJsonObject isJsonObject) {
@@ -89,6 +63,44 @@ class JsonNodeMatcherInterpreter {
         }
 
         throw new SaplTestException("Unknown type of JsonNodeMatcher");
+    }
+
+    private Matcher<JsonNode> interpretJsonNumber(IsJsonNumber isJsonNumber) {
+        final var number = isJsonNumber.getNumber();
+
+        return number == null ? jsonNumber() : jsonBigDecimal(number);
+    }
+
+    private Matcher<JsonNode> interpretJsonText(final IsJsonText text) {
+        final var stringOrMatcher = text.getText();
+
+        if (stringOrMatcher == null) {
+            return jsonText();
+        }
+
+        if (stringOrMatcher instanceof PlainString plainString) {
+            return jsonText(plainString.getText());
+        } else if (stringOrMatcher instanceof StringMatcher stringMatcher) {
+            return jsonText(stringMatcherInterpreter.getHamcrestStringMatcher(stringMatcher));
+        }
+
+        throw new SaplTestException("Unknown type of StringOrStringMatcher");
+    }
+
+    private Matcher<JsonNode> interpretJsonBoolean(final IsJsonBoolean isJsonBoolean) {
+        final var boolValue = isJsonBoolean.getValue();
+
+        if (boolValue == null) {
+            return jsonBoolean();
+        }
+
+        if (boolValue instanceof TrueLiteral) {
+            return jsonBoolean(true);
+        } else if (boolValue instanceof FalseLiteral) {
+            return jsonBoolean(false);
+        }
+
+        throw new SaplTestException("Unknown type of BooleanLiteral");
     }
 
     private Matcher<JsonNode> interpretJsonArray(final IsJsonArray isJsonArray) {

@@ -27,8 +27,6 @@ import io.sapl.test.grammar.sAPLTest.PoliciesByInputString;
 import io.sapl.test.grammar.sAPLTest.TestSuite;
 import io.sapl.test.grammar.sAPLTest.UnitTestSuite;
 import io.sapl.test.integration.SaplIntegrationTestFixture;
-import java.util.Collections;
-import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
