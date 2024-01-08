@@ -247,6 +247,8 @@
 						<compilerArgs>
 							<arg>-parameters</arg>
 						</compilerArgs>
+						<failOnError>true</failOnError>
+						<failOnWarning>true</failOnWarning>
 					</configuration>
 				</plugin>
 				<plugin>
