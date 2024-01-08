@@ -32,10 +32,10 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.springdatacommon.handlers.DataManipulationHandler;
 import io.sapl.springdatacommon.handlers.LoggingConstraintHandlerProvider;
+import io.sapl.springdatacommon.handlers.QueryManipulationObligationProvider;
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementPoint;
 import io.sapl.springdatacommon.sapl.queries.enforcement.QueryAnnotationParameterResolver;
-import io.sapl.springdatacommon.handlers.QueryManipulationObligationProvider;
 import io.sapl.springdatar2dbc.sapl.QueryManipulationExecutor;
 import lombok.SneakyThrows;
 import reactor.core.publisher.Flux;
@@ -49,7 +49,7 @@ import reactor.core.publisher.Mono;
  * @param <T> is the domain type.
  */
 public class R2dbcAnnotationQueryManipulationEnforcementPoint<T> implements QueryManipulationEnforcementPoint<T> {
-    private final static String R2DBC_QUERY_MANIPULATION_TYPE = "r2dbcQueryManipulation";
+    private static final String R2DBC_QUERY_MANIPULATION_TYPE = "r2dbcQueryManipulation";
 
     private final QueryManipulationObligationProvider queryManipulationObligationProvider = new QueryManipulationObligationProvider();
     private final LoggingConstraintHandlerProvider    loggingConstraintHandlerProvider    = new LoggingConstraintHandlerProvider();

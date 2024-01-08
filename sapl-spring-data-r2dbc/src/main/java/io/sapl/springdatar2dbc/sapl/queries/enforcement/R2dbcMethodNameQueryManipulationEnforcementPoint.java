@@ -48,7 +48,7 @@ import reactor.core.publisher.Mono;
  * @param <T> is the domain type.
  */
 public class R2dbcMethodNameQueryManipulationEnforcementPoint<T> implements QueryManipulationEnforcementPoint<T> {
-    private final static String R2DBC_QUERY_MANIPULATION_TYPE = "r2dbcQueryManipulation";
+    private static final String R2DBC_QUERY_MANIPULATION_TYPE = "r2dbcQueryManipulation";
 
     private final QueryManipulationObligationProvider queryManipulationObligationProvider = new QueryManipulationObligationProvider();
     private final LoggingConstraintHandlerProvider    loggingConstraintHandlerProvider    = new LoggingConstraintHandlerProvider();
