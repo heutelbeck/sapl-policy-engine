@@ -182,28 +182,31 @@ public class HtmlLineCoverageReportGenerator {
 
         final String SOURCE_BASE = "dependency-resources/";
         final String TARGET_BASE = "html/assets/";
-        final String JS_BASE     = "lib/js";
-        final String CSS_BASE    = "lib/css/";
-        final String IMAGES_BASE = "images/";
+        final String JS_BASE     = TARGET_BASE + "lib/js";
+        final String CSS_BASE    = TARGET_BASE + "lib/css/";
+        final String IMAGE_BASE  = TARGET_BASE + "images/";
 
-        dependencies.add(new WebDependency("sapl-mode", "sapl-mode.js", SOURCE_BASE, TARGET_BASE + JS_BASE));
-        dependencies.add(new WebDependency("main.css", "main.css", "html/css/", TARGET_BASE + CSS_BASE));
-        dependencies.add(new WebDependency("favicon", "favicon.png", IMAGES_BASE, TARGET_BASE + "images/"));
-        dependencies.add(new WebDependency("logo-header", "logo-header.png", IMAGES_BASE, TARGET_BASE + "images/"));
-        dependencies.add(new WebDependency("@popperjs", "popper.min.js", SOURCE_BASE + "@popperjs/core/dist/umd/",
-                TARGET_BASE + JS_BASE));
-        dependencies.add(new WebDependency("bootstrap", "bootstrap.min.js", SOURCE_BASE + "bootstrap/dist/js/",
-                TARGET_BASE + JS_BASE));
-        dependencies.add(new WebDependency("bootstrap", "bootstrap.min.css", SOURCE_BASE + "bootstrap/dist/css/",
-                TARGET_BASE + CSS_BASE));
-        dependencies.add(new WebDependency("codemirror", "codemirror.js", SOURCE_BASE + "codemirror/lib/",
-                TARGET_BASE + JS_BASE));
-        dependencies.add(new WebDependency("codemirror", "codemirror.css", SOURCE_BASE + "codemirror/lib/",
-                TARGET_BASE + CSS_BASE));
+        // JS
+        dependencies.add(new WebDependency("sapl-mode", "sapl-mode.js", SOURCE_BASE, JS_BASE));
+        dependencies.add(new WebDependency("codemirror", "codemirror.js", SOURCE_BASE + "codemirror/lib/", JS_BASE));
         dependencies.add(new WebDependency("simple_mode", "simple.js", SOURCE_BASE + "codemirror/addon/mode/",
-                TARGET_BASE + JS_BASE + "/addon/mode/"));
+                JS_BASE + "/addon/mode/"));
         dependencies
-                .add(new WebDependency("requirejs", "require.js", SOURCE_BASE + "requirejs/", TARGET_BASE + JS_BASE));
+                .add(new WebDependency("bootstrap", "bootstrap.min.js", SOURCE_BASE + "bootstrap/dist/js/", JS_BASE));
+        dependencies.add(
+                new WebDependency("@popperjs", "popper.min.js", SOURCE_BASE + "@popperjs/core/dist/umd/", JS_BASE));
+        dependencies.add(new WebDependency("requirejs", "require.js", SOURCE_BASE + "requirejs/", JS_BASE));
+
+        // CSS
+        dependencies.add(new WebDependency("main.css", "main.css", "html/css/", CSS_BASE));
+        dependencies.add(
+                new WebDependency("bootstrap", "bootstrap.min.css", SOURCE_BASE + "bootstrap/dist/css/", CSS_BASE));
+        dependencies.add(new WebDependency("codemirror", "codemirror.css", SOURCE_BASE + "codemirror/lib/", CSS_BASE));
+
+        // images
+        dependencies.add(new WebDependency("logo-header", "logo-header.png", "images/", IMAGE_BASE));
+        dependencies.add(new WebDependency("favicon", "favicon.png", "images/", IMAGE_BASE));
+
         return dependencies;
     }
 
