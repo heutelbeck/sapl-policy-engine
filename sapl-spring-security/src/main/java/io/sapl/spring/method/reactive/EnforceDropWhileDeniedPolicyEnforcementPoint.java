@@ -126,13 +126,13 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
         latestDecision.set(implicitDecision);
 
-        if (implicitDecision.getResource().isPresent()) {
+        implicitDecision.getResource().ifPresent(resource -> {
             try {
-                sink.next(constraintsService.unmarshallResource(implicitDecision.getResource().get(), clazz));
+                sink.next(constraintsService.unmarshallResource(resource, clazz));
             } catch (JsonProcessingException | IllegalArgumentException e) {
-                log.warn("Cannot unmarshall resource from decision: " + implicitDecision, e);
+                log.warn("Cannot unmarshall resource from decision: " + resource, e);
             }
-        }
+        });
 
         if (implicitDecision.getDecision() == Decision.PERMIT && dataSubscription.get() == null)
             dataSubscription.set(wrapResourceAccessPointAndSubscribe());
