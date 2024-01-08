@@ -44,8 +44,7 @@ import reactor.core.publisher.Flux;
  */
 @RequiredArgsConstructor
 public class DataManipulationHandler<T> {
-    private final Class<T> domainType;
-    // private final OidObjectMapper oidObjectMapper = new OidObjectMapper();
+    private final Class<T>                 domainType;
     private final ObjectMapper             oidObjectMapper = new ObjectMapper();
     private ContentFilteringProvider       contentFilteringProvider;
     private ContentFilterPredicateProvider contentFilterPredicateProvider;

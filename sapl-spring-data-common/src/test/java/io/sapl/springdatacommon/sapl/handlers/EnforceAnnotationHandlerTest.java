@@ -83,8 +83,8 @@ class EnforceAnnotationHandlerTest {
     @Test
     void when_methodHasAnEnforceAnnotationWithStaticClassInEvaluationContext_then_enforceAnnotation() {
         // GIVEN
-    	when(beanFactoryMock.getBean(R2dbcTestService.class)).thenReturn(r2dbcTestService);
-    	MockitoAnnotations.openMocks(beanFactoryMock);
+        when(beanFactoryMock.getBean(R2dbcTestService.class)).thenReturn(r2dbcTestService);
+        MockitoAnnotations.openMocks(beanFactoryMock);
         var expectedResult   = AuthorizationSubscription.of("test value",
                 "general_protection_reactive_r2dbc_repository", "Static class set: field, test value", 56);
         var methodInvocation = new MethodInvocationForTesting("findAllByAgeAfterAndFirstname",
