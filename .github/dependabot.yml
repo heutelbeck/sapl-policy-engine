@@ -1,0 +1,21 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: daily
+
+  - package-ecosystem: npm
+    directory: /sapl-maven-plugin
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /sapl-server-lt
+    schedule:
+      interval: daily
+
+  - package-ecosystem: maven
+    directory: /
+    schedule:
+      interval: daily
