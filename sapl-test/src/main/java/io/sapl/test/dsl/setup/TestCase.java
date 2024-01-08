@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.setup;
 
 import io.sapl.test.SaplTestException;
@@ -54,23 +55,22 @@ public final class TestCase implements TestNode, Runnable {
 
     @Override
     public void run() {
-        final var environment          = dslTestCase.getEnvironment();
+        final var environment          = dslTestCase
+                .getEnvironment() instanceof io.sapl.test.grammar.sAPLTest.Object object ? object : null;
         final var fixtureRegistrations = dslTestCase.getRegistrations();
         final var givenSteps           = dslTestCase.getGivenSteps();
 
-        final var environmentVariables = environment instanceof io.sapl.test.grammar.sAPLTest.Object object ? object
-                : null;
-
         final var needsMocks  = givenSteps != null && !givenSteps.isEmpty();
-        final var testFixture = stepConstructor.buildTestFixture(fixtureRegistrations, testSuite, environmentVariables,
-                needsMocks);
+        final var testFixture = stepConstructor.constructTestFixture(fixtureRegistrations, testSuite);
+
+        final var initialTestCase = stepConstructor.constructTestCase(testFixture, environment, needsMocks);
 
         if (dslTestCase.getExpect() instanceof TestException) {
             Assertions.assertThatExceptionOfType(SaplTestException.class)
-                    .isThrownBy(() -> stepConstructor.constructWhenStep(givenSteps, testFixture));
+                    .isThrownBy(() -> stepConstructor.constructWhenStep(givenSteps, initialTestCase));
         } else {
 
-            final var whenStep   = stepConstructor.constructWhenStep(givenSteps, testFixture);
+            final var whenStep   = stepConstructor.constructWhenStep(givenSteps, initialTestCase);
             final var expectStep = stepConstructor.constructExpectStep(dslTestCase, whenStep);
             final var verifyStep = stepConstructor.constructVerifyStep(dslTestCase, (ExpectOrVerifyStep) expectStep);
 

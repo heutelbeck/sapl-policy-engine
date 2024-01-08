@@ -15,9 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.test.SaplTestFixture;
 import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
@@ -38,30 +40,36 @@ import lombok.RequiredArgsConstructor;
 public final class DefaultStepConstructor implements StepConstructor {
 
     private final DefaultTestFixtureConstructor defaultTestFixtureConstructor;
-    private final DefaultWhenStepConstructor    whenStepBuilder;
-    private final DefaultExpectStepConstructor  expectStepBuilder;
-    private final DefaultVerifyStepConstructor  verifyStepBuilder;
+    private final DefaultTestCaseConstructor    defaultTestCaseConstructor;
+    private final DefaultWhenStepConstructor    defaultWhenStepConstructor;
+    private final DefaultExpectStepConstructor  defaultExpectStepConstructor;
+    private final DefaultVerifyStepConstructor  defaultVerifyStepConstructor;
 
     @Override
-    public GivenOrWhenStep buildTestFixture(final List<FixtureRegistration> fixtureRegistrations,
-            final TestSuite testSuite, final io.sapl.test.grammar.sAPLTest.Object environment,
-            final boolean needsMocks) {
-        return defaultTestFixtureConstructor.buildTestFixture(fixtureRegistrations, testSuite, environment, needsMocks);
+    public SaplTestFixture constructTestFixture(final List<FixtureRegistration> fixtureRegistrations,
+            final TestSuite testSuite) {
+        return defaultTestFixtureConstructor.constructTestFixture(fixtureRegistrations, testSuite);
+    }
+
+    @Override
+    public GivenOrWhenStep constructTestCase(final SaplTestFixture saplTestFixture,
+            final io.sapl.test.grammar.sAPLTest.Object environment, final boolean needsMocks) {
+        return defaultTestCaseConstructor.constructTestCase(saplTestFixture, environment, needsMocks);
     }
 
     @Override
     public WhenStep constructWhenStep(final List<GivenStep> givenSteps, GivenOrWhenStep givenOrWhenStep) {
-        return whenStepBuilder.constructWhenStep(givenSteps, givenOrWhenStep);
+        return defaultWhenStepConstructor.constructWhenStep(givenSteps, givenOrWhenStep);
     }
 
     @Override
     public ExpectStep constructExpectStep(final TestCase testCase, final WhenStep whenStep) {
-        return expectStepBuilder.constructExpectStep(testCase, whenStep);
+        return defaultExpectStepConstructor.constructExpectStep(testCase, whenStep);
     }
 
     @Override
     public VerifyStep constructVerifyStep(final TestCase testCase, final ExpectOrVerifyStep expectOrVerifyStep) {
-        return verifyStepBuilder.constructVerifyStep(testCase, expectOrVerifyStep);
+        return defaultVerifyStepConstructor.constructVerifyStep(testCase, expectOrVerifyStep);
     }
 
     public static StepConstructor of(final UnitTestPolicyResolver customUnitTestPolicyResolver,
@@ -92,14 +100,16 @@ public final class DefaultStepConstructor implements StepConstructor {
 
         final var defaultTestFixtureConstructor = getTestFixtureConstructor(valInterpreter,
                 customUnitTestPolicyResolver, customIntegrationTestPolicyResolver);
-        final var whenStepBuilder               = new DefaultWhenStepConstructor(functionInterpreter,
-                attributeInterpreter);
-        final var expectStepBuilder             = new DefaultExpectStepConstructor(
-                authorizationSubscriptionInterpreter);
-        final var verifyStepBuilder             = new DefaultVerifyStepConstructor(expectInterpreter);
 
-        return new DefaultStepConstructor(defaultTestFixtureConstructor, whenStepBuilder, expectStepBuilder,
-                verifyStepBuilder);
+        final var defaultTestCaseConstructor = new DefaultTestCaseConstructor(valInterpreter);
+
+        final var defaultWhenStepConstructor   = new DefaultWhenStepConstructor(functionInterpreter,
+                attributeInterpreter);
+        final var defaultExpectStepConstructor = new DefaultExpectStepConstructor(authorizationSubscriptionInterpreter);
+        final var defaultVerifyStepConstructor = new DefaultVerifyStepConstructor(expectInterpreter);
+
+        return new DefaultStepConstructor(defaultTestFixtureConstructor, defaultTestCaseConstructor,
+                defaultWhenStepConstructor, defaultExpectStepConstructor, defaultVerifyStepConstructor);
     }
 
     private static DefaultTestFixtureConstructor getTestFixtureConstructor(final ValInterpreter valInterpreter,

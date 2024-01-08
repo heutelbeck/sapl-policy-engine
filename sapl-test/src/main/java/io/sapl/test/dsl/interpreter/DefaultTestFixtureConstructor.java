@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestException;
@@ -24,7 +25,6 @@ import io.sapl.test.grammar.sAPLTest.FixtureRegistration;
 import io.sapl.test.grammar.sAPLTest.Pip;
 import io.sapl.test.grammar.sAPLTest.SaplFunctionLibrary;
 import io.sapl.test.grammar.sAPLTest.TestSuite;
-import io.sapl.test.steps.GivenOrWhenStep;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 
@@ -35,9 +35,9 @@ class DefaultTestFixtureConstructor {
     private final FunctionLibraryInterpreter functionLibraryInterpreter;
     private final ReflectionHelper           reflectionHelper;
 
-    GivenOrWhenStep buildTestFixture(final List<FixtureRegistration> fixtureRegistrations, final TestSuite testSuite,
-            final io.sapl.test.grammar.sAPLTest.Object environment, final boolean needsMocks) {
-        var saplTestFixture = testSuiteInterpreter.getFixtureFromTestSuite(testSuite, environment);
+    SaplTestFixture constructTestFixture(final List<FixtureRegistration> fixtureRegistrations,
+            final TestSuite testSuite) {
+        var saplTestFixture = testSuiteInterpreter.getFixtureFromTestSuite(testSuite);
 
         if (saplTestFixture == null) {
             throw new SaplTestException("could not build test fixture");
@@ -47,9 +47,7 @@ class DefaultTestFixtureConstructor {
             handleFixtureRegistrations(saplTestFixture, fixtureRegistrations);
         }
 
-        final var givenOrWhenStep = needsMocks ? saplTestFixture.constructTestCaseWithMocks()
-                : saplTestFixture.constructTestCase();
-        return (GivenOrWhenStep) givenOrWhenStep;
+        return saplTestFixture;
     }
 
     private void handleFixtureRegistrations(final SaplTestFixture fixture,

@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestException;
@@ -37,8 +38,7 @@ class TestSuiteInterpreter {
     private final UnitTestPolicyResolver           customUnitTestPolicyResolver;
     private final IntegrationTestPolicyResolver    customIntegrationTestPolicyResolver;
 
-    SaplTestFixture getFixtureFromTestSuite(final TestSuite testSuite,
-            final io.sapl.test.grammar.sAPLTest.Object environment) {
+    SaplTestFixture getFixtureFromTestSuite(final TestSuite testSuite) {
         SaplTestFixture saplTestFixture;
         if (testSuite instanceof UnitTestSuite unitTestSuite) {
             saplTestFixture = getUnitTestFixtureFromUnitTestSuite(unitTestSuite);
@@ -46,12 +46,6 @@ class TestSuiteInterpreter {
             saplTestFixture = getIntegrationTestFixtureFromIntegrationTestSuite(integrationTestSuite);
         } else {
             throw new SaplTestException("Unknown type of TestSuite");
-        }
-
-        final var environmentVariables = valInterpreter.destructureObject(environment);
-
-        if (environmentVariables != null) {
-            environmentVariables.forEach(saplTestFixture::registerVariable);
         }
 
         return saplTestFixture;

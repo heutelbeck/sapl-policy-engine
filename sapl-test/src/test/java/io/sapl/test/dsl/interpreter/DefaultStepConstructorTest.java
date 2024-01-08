@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.sapl.test.SaplTestFixture;
 import io.sapl.test.grammar.sAPLTest.FixtureRegistration;
 import io.sapl.test.grammar.sAPLTest.GivenStep;
 import io.sapl.test.grammar.sAPLTest.TestCase;
@@ -41,18 +42,77 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class DefaultStepConstructorTest {
     @Mock
-    private DefaultExpectStepConstructor  defaultExpectStepConstructorMock;
-    @Mock
     private DefaultTestFixtureConstructor defaultTestFixtureConstructorMock;
     @Mock
-    private DefaultVerifyStepConstructor  verifyStepBuilderMock;
+    private DefaultTestCaseConstructor    defaultTestCaseConstructor;
     @Mock
-    private DefaultWhenStepConstructor    whenStepBuilderMock;
+    private DefaultWhenStepConstructor    whenStepConstructorMock;
+    @Mock
+    private DefaultExpectStepConstructor  defaultExpectStepConstructorMock;
+    @Mock
+    private DefaultVerifyStepConstructor  verifyStepConstructorMock;
     @InjectMocks
     private DefaultStepConstructor        defaultStepConstructor;
 
     @Test
-    void constructExpectStep_callsExpectStepBuilder_returnsExpectStep() {
+    void constructTestFixture_callsTestFixtureConstructor_returnsSaplTestFixture() {
+        final var fixtureRegistrations = List.<FixtureRegistration>of();
+        final var testSuiteMock        = mock(TestSuite.class);
+
+        final var saplTestFixtureMock = mock(SaplTestFixture.class);
+
+        when(defaultTestFixtureConstructorMock.constructTestFixture(fixtureRegistrations, testSuiteMock))
+                .thenReturn(saplTestFixtureMock);
+
+        final var result = defaultStepConstructor.constructTestFixture(fixtureRegistrations, testSuiteMock);
+
+        assertEquals(saplTestFixtureMock, result);
+    }
+
+    @Test
+    void constructTestCase_callsTestCaseConstructorWithoutMocks_returnsGivenOrWhenStep() {
+        final var saplTestFixtureMock = mock(SaplTestFixture.class);
+        final var environmentMock     = mock(io.sapl.test.grammar.sAPLTest.Object.class);
+        final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
+
+        when(defaultTestCaseConstructor.constructTestCase(saplTestFixtureMock, environmentMock, false))
+                .thenReturn(givenOrWhenStepMock);
+
+        final var result = defaultStepConstructor.constructTestCase(saplTestFixtureMock, environmentMock, false);
+
+        assertEquals(givenOrWhenStepMock, result);
+    }
+
+    @Test
+    void constructTestCase_callsTestCaseConstructorWithMocks_returnsGivenOrWhenStep() {
+        final var saplTestFixtureMock = mock(SaplTestFixture.class);
+        final var environmentMock     = mock(io.sapl.test.grammar.sAPLTest.Object.class);
+        final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
+
+        when(defaultTestCaseConstructor.constructTestCase(saplTestFixtureMock, environmentMock, true))
+                .thenReturn(givenOrWhenStepMock);
+
+        final var result = defaultStepConstructor.constructTestCase(saplTestFixtureMock, environmentMock, true);
+
+        assertEquals(givenOrWhenStepMock, result);
+    }
+
+    @Test
+    void constructWhenStep_callsWhenStepConstructor_returnsWhenStep() {
+        final var givenSteps          = List.<GivenStep>of();
+        final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
+
+        final var whenStepMock = mock(WhenStep.class);
+
+        when(whenStepConstructorMock.constructWhenStep(givenSteps, givenOrWhenStepMock)).thenReturn(whenStepMock);
+
+        final var result = defaultStepConstructor.constructWhenStep(givenSteps, givenOrWhenStepMock);
+
+        assertEquals(whenStepMock, result);
+    }
+
+    @Test
+    void constructExpectStep_callsExpectStepConstructor_returnsExpectStep() {
         final var testCaseMock = mock(TestCase.class);
         final var whenStepMock = mock(WhenStep.class);
 
@@ -67,65 +127,17 @@ class DefaultStepConstructorTest {
     }
 
     @Test
-    void buildTestFixture_callsTestFixtureBuilderWithoutMocks_returnsGivenOrWhenStep() {
-        final var fixtureRegistrations = List.<FixtureRegistration>of();
-        final var testSuiteMock        = mock(TestSuite.class);
-        final var environmentMock      = mock(io.sapl.test.grammar.sAPLTest.Object.class);
-
-        final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
-
-        when(defaultTestFixtureConstructorMock.buildTestFixture(fixtureRegistrations, testSuiteMock, environmentMock,
-                false)).thenReturn(givenOrWhenStepMock);
-
-        final var result = defaultStepConstructor.buildTestFixture(fixtureRegistrations, testSuiteMock, environmentMock,
-                false);
-
-        assertEquals(givenOrWhenStepMock, result);
-    }
-
-    @Test
-    void buildTestFixture_callsTestFixtureBuilderWithMocks_returnsGivenOrWhenStep() {
-        final var fixtureRegistrations = List.<FixtureRegistration>of();
-        final var testSuiteMock        = mock(TestSuite.class);
-        final var environmentMock      = mock(io.sapl.test.grammar.sAPLTest.Object.class);
-
-        final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
-
-        when(defaultTestFixtureConstructorMock.buildTestFixture(fixtureRegistrations, testSuiteMock, environmentMock,
-                true)).thenReturn(givenOrWhenStepMock);
-
-        final var result = defaultStepConstructor.buildTestFixture(fixtureRegistrations, testSuiteMock, environmentMock,
-                true);
-
-        assertEquals(givenOrWhenStepMock, result);
-    }
-
-    @Test
-    void constructVerifyStep_callsVerifyStepBuilder_returnsVerifyStep() {
+    void constructVerifyStep_callsVerifyStepConstructor_returnsVerifyStep() {
         final var testCaseMock           = mock(TestCase.class);
         final var expectOrVerifyStepMock = mock(ExpectOrVerifyStep.class);
 
         final var verifyStepMock = mock(VerifyStep.class);
 
-        when(verifyStepBuilderMock.constructVerifyStep(testCaseMock, expectOrVerifyStepMock))
+        when(verifyStepConstructorMock.constructVerifyStep(testCaseMock, expectOrVerifyStepMock))
                 .thenReturn(verifyStepMock);
 
         final var result = defaultStepConstructor.constructVerifyStep(testCaseMock, expectOrVerifyStepMock);
 
         assertEquals(verifyStepMock, result);
-    }
-
-    @Test
-    void constructWhenStep_callsWhenStepBuilder_returnsWhenStep() {
-        final var givenSteps          = List.<GivenStep>of();
-        final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
-
-        final var whenStepMock = mock(WhenStep.class);
-
-        when(whenStepBuilderMock.constructWhenStep(givenSteps, givenOrWhenStepMock)).thenReturn(whenStepMock);
-
-        final var result = defaultStepConstructor.constructWhenStep(givenSteps, givenOrWhenStepMock);
-
-        assertEquals(whenStepMock, result);
     }
 }
