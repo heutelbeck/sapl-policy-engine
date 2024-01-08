@@ -19,7 +19,9 @@ package io.sapl.springdatar2dbc.sapl;
 
 import org.springframework.stereotype.Service;
 
-import io.sapl.springdatar2dbc.sapl.queries.enforcement.ProceededDataFilterEnforcementPoint;
+import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
+import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementPoint;
+import io.sapl.springdatacommon.sapl.queries.enforcement.ProceededDataFilterEnforcementPoint;
 import io.sapl.springdatar2dbc.sapl.queries.enforcement.R2dbcAnnotationQueryManipulationEnforcementPoint;
 import io.sapl.springdatar2dbc.sapl.queries.enforcement.R2dbcMethodNameQueryManipulationEnforcementPoint;
 
@@ -38,7 +40,7 @@ public class QueryManipulationEnforcementPointFactory {
 
     public <T> QueryManipulationEnforcementPoint<T> createProceededDataFilterEnforcementPoint(
             QueryManipulationEnforcementData<T> enforcementData) {
-        return new ProceededDataFilterEnforcementPoint<>(enforcementData);
+        return new ProceededDataFilterEnforcementPoint<>(enforcementData, true);
     }
 
 }

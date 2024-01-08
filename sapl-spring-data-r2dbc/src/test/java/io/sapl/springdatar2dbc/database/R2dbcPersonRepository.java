@@ -24,8 +24,8 @@ import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.r2dbc.repository.R2dbcRepository;
 import org.springframework.stereotype.Repository;
 
-import io.sapl.springdatar2dbc.sapl.Enforce;
-import io.sapl.springdatar2dbc.sapl.SaplProtected;
+import io.sapl.springdatacommon.sapl.Enforce;
+import io.sapl.springdatacommon.sapl.SaplProtected;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

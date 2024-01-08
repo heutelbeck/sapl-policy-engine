@@ -30,12 +30,12 @@ import org.springframework.stereotype.Service;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.springdatar2dbc.sapl.Enforce;
-import io.sapl.springdatar2dbc.sapl.QueryManipulationEnforcementData;
+import io.sapl.springdatacommon.handlers.AuthorizationSubscriptionHandlerProvider;
+import io.sapl.springdatacommon.sapl.Enforce;
+import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
+import io.sapl.springdatacommon.sapl.SaplProtected;
+import io.sapl.springdatacommon.sapl.utils.Utilities;
 import io.sapl.springdatar2dbc.sapl.QueryManipulationEnforcementPointFactory;
-import io.sapl.springdatar2dbc.sapl.SaplProtected;
-import io.sapl.springdatar2dbc.sapl.handlers.AuthorizationSubscriptionHandlerProvider;
-import io.sapl.springdatar2dbc.sapl.utils.Utilities;
 import lombok.SneakyThrows;
 import reactor.core.publisher.Flux;
 

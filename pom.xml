@@ -126,7 +126,8 @@
 		<module>sapl-vaadin-theme</module>
 		<module>sapl-vaadin-editor</module>
 		<module>sapl-spring-data-r2dbc</module>
-		<module>sapl-spring-data-mongo-reactive</module>
+		<module>sapl-spring-data-mongo-reactive</module>		
+		<module>sapl-spring-data-common</module>
 	</modules>
 	<dependencyManagement>
 		<dependencies>

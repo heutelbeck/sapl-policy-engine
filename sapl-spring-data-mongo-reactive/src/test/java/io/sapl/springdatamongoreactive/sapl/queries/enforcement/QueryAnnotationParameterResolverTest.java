@@ -29,6 +29,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.util.ReflectionUtils;
 
+import io.sapl.springdatacommon.sapl.queries.enforcement.QueryAnnotationParameterResolver;
 import io.sapl.springdatamongoreactive.sapl.database.MethodInvocationForTesting;
 
 class QueryAnnotationParameterResolverTest {
@@ -44,7 +45,7 @@ class QueryAnnotationParameterResolverTest {
 
         // WHEN
         var result = QueryAnnotationParameterResolver.resolveBoundedMethodParametersAndAnnotationParameters(method,
-                args);
+                args, false);
 
         // THEN
         assertEquals(expectedResult, result);
@@ -61,7 +62,7 @@ class QueryAnnotationParameterResolverTest {
 
         // WHEN
         var result = QueryAnnotationParameterResolver.resolveBoundedMethodParametersAndAnnotationParameters(method,
-                args);
+                args, false);
 
         // THEN
         assertEquals(expectedResult, result);

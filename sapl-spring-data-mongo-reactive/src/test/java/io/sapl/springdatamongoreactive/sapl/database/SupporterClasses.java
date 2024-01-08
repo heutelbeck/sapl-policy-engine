@@ -20,8 +20,8 @@ package io.sapl.springdatamongoreactive.sapl.database;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 
-import io.sapl.springdatamongoreactive.sapl.QueryManipulationEnforcementData;
-import io.sapl.springdatamongoreactive.sapl.handlers.DataManipulationHandler;
+import io.sapl.springdatacommon.handlers.DataManipulationHandler;
+import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatamongoreactive.sapl.queries.enforcement.MongoAnnotationQueryManipulationEnforcementPoint;
 import io.sapl.springdatamongoreactive.sapl.queries.enforcement.SaplPartTreeCriteriaCreator;
 
@@ -30,7 +30,7 @@ public class SupporterClasses {
     public static class DataManipulationHandlerTestUser extends DataManipulationHandler<TestUser> {
 
         public DataManipulationHandlerTestUser(Class<TestUser> domainType) {
-            super(domainType);
+            super(domainType, false);
             // TODO Auto-generated constructor stub
         }
 

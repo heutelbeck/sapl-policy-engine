@@ -19,7 +19,7 @@ package io.sapl.springdatamongoreactive.sapl.database.repositoryerror;
 
 import org.bson.types.ObjectId;
 
-import io.sapl.springdatamongoreactive.sapl.SaplProtected;
+import io.sapl.springdatacommon.sapl.SaplProtected;
 import io.sapl.springdatamongoreactive.sapl.database.TestUser;
 import reactor.core.publisher.Flux;
 

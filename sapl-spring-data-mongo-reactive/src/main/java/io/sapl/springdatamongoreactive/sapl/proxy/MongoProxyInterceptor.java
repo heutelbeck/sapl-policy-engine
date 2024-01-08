@@ -17,9 +17,9 @@
  */
 package io.sapl.springdatamongoreactive.sapl.proxy;
 
-import static io.sapl.springdatamongoreactive.sapl.utils.Utilities.isFlux;
-import static io.sapl.springdatamongoreactive.sapl.utils.Utilities.isListOrCollection;
-import static io.sapl.springdatamongoreactive.sapl.utils.Utilities.isMono;
+import static io.sapl.springdatacommon.sapl.utils.Utilities.isFlux;
+import static io.sapl.springdatacommon.sapl.utils.Utilities.isListOrCollection;
+import static io.sapl.springdatacommon.sapl.utils.Utilities.isMono;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -35,12 +35,12 @@ import org.springframework.stereotype.Service;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.springdatamongoreactive.sapl.Enforce;
-import io.sapl.springdatamongoreactive.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatamongoreactive.sapl.QueryManipulationEnforcementPointFactory;
-import io.sapl.springdatamongoreactive.sapl.SaplProtected;
-import io.sapl.springdatamongoreactive.sapl.handlers.AuthorizationSubscriptionHandlerProvider;
-import io.sapl.springdatamongoreactive.sapl.utils.Utilities;
+import io.sapl.springdatacommon.handlers.AuthorizationSubscriptionHandlerProvider;
+import io.sapl.springdatacommon.sapl.Enforce;
+import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
+import io.sapl.springdatacommon.sapl.SaplProtected;
+import io.sapl.springdatacommon.sapl.utils.Utilities;
 import lombok.SneakyThrows;
 import reactor.core.publisher.Flux;
 

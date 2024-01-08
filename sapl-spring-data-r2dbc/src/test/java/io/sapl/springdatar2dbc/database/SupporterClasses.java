@@ -17,14 +17,14 @@
  */
 package io.sapl.springdatar2dbc.database;
 
-import io.sapl.springdatar2dbc.sapl.handlers.DataManipulationHandler;
+import io.sapl.springdatacommon.handlers.DataManipulationHandler;
 
 public class SupporterClasses {
 
     public static class DataManipulationHandlerPerson extends DataManipulationHandler<Person> {
 
         public DataManipulationHandlerPerson(Class<Person> domainType) {
-            super(domainType);
+            super(domainType, true);
             // TODO Auto-generated constructor stub
         }
 

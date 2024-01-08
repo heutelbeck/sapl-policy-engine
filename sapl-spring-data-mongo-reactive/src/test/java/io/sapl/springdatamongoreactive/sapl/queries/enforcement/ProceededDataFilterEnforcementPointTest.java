@@ -44,12 +44,13 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
-import io.sapl.springdatamongoreactive.sapl.QueryManipulationEnforcementData;
+import io.sapl.springdatacommon.handlers.DataManipulationHandler;
+import io.sapl.springdatacommon.handlers.LoggingConstraintHandlerProvider;
+import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
+import io.sapl.springdatacommon.sapl.queries.enforcement.ProceededDataFilterEnforcementPoint;
+import io.sapl.springdatacommon.sapl.utils.ConstraintHandlerUtils;
 import io.sapl.springdatamongoreactive.sapl.database.MethodInvocationForTesting;
 import io.sapl.springdatamongoreactive.sapl.database.TestUser;
-import io.sapl.springdatamongoreactive.sapl.handlers.DataManipulationHandler;
-import io.sapl.springdatamongoreactive.sapl.handlers.LoggingConstraintHandlerProvider;
-import io.sapl.springdatamongoreactive.sapl.utils.ConstraintHandlerUtils;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -93,7 +94,7 @@ class ProceededDataFilterEnforcementPointTest {
             var enforcementData = new QueryManipulationEnforcementData<>(mongoMethodInvocationTest, null,
                     TestUser.class, pdpMock, authSub);
 
-            var proceededDataFilterEnforcementPoint = new ProceededDataFilterEnforcementPoint<>(enforcementData);
+            var proceededDataFilterEnforcementPoint = new ProceededDataFilterEnforcementPoint<>(enforcementData, false);
             var dataManipulationHandler             = dataManipulationHandlerMockedConstruction.constructed().get(0);
 
             // WHEN
@@ -129,7 +130,7 @@ class ProceededDataFilterEnforcementPointTest {
             var authSub                             = AuthorizationSubscription.of("", "permitTest", "");
             var enforcementData                     = new QueryManipulationEnforcementData<>(mongoMethodInvocationTest,
                     null, TestUser.class, pdpMock, authSub);
-            var proceededDataFilterEnforcementPoint = new ProceededDataFilterEnforcementPoint<>(enforcementData);
+            var proceededDataFilterEnforcementPoint = new ProceededDataFilterEnforcementPoint<>(enforcementData, false);
 
             var dataManipulationHandler = dataManipulationHandlerMockedConstruction.constructed().get(0);
             when(dataManipulationHandler.manipulate(obligations)).thenReturn((data) -> this.data);
@@ -157,7 +158,7 @@ class ProceededDataFilterEnforcementPointTest {
         var authSub                             = AuthorizationSubscription.of("", "denyTest", "");
         var enforcementData                     = new QueryManipulationEnforcementData<>(mongoMethodInvocationTest,
                 null, TestUser.class, pdpMock, authSub);
-        var proceededDataFilterEnforcementPoint = new ProceededDataFilterEnforcementPoint<>(enforcementData);
+        var proceededDataFilterEnforcementPoint = new ProceededDataFilterEnforcementPoint<>(enforcementData, false);
 
         // WHEN
         when(pdpMock.decide(any(AuthorizationSubscription.class)))
@@ -174,7 +175,7 @@ class ProceededDataFilterEnforcementPointTest {
         var authSub                             = AuthorizationSubscription.of("", "noCorrectAction", "");
         var enforcementData                     = new QueryManipulationEnforcementData<>(mongoMethodInvocationTest,
                 null, TestUser.class, pdpMock, authSub);
-        var proceededDataFilterEnforcementPoint = new ProceededDataFilterEnforcementPoint<>(enforcementData);
+        var proceededDataFilterEnforcementPoint = new ProceededDataFilterEnforcementPoint<>(enforcementData, false);
 
         // WHEN
         when(pdpMock.decide(any(AuthorizationSubscription.class)))
