@@ -17,7 +17,7 @@
  */
 package io.sapl.springdatacommon.sapl.queries.enforcement;
 
-import static io.sapl.springdatacommon.sapl.utils.ConstraintHandlerUtils.getAdvices;
+import static io.sapl.springdatacommon.sapl.utils.ConstraintHandlerUtils.getAdvice;
 import static io.sapl.springdatacommon.sapl.utils.ConstraintHandlerUtils.getObligations;
 
 import java.util.function.Function;
@@ -80,7 +80,7 @@ public class ProceededDataFilterEnforcementPoint<T> implements QueryManipulation
     public Function<AuthorizationDecision, Flux<T>> enforceDecision() {
         return decision -> {
             var decisionIsPermit = Decision.PERMIT == decision.getDecision();
-            var advice           = getAdvices(decision);
+            var advice           = getAdvice(decision);
 
             loggingConstraintHandlerProvider.getHandler(advice).run();
 

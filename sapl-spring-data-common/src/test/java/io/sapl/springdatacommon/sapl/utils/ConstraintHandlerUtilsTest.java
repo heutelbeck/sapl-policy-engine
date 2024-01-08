@@ -99,7 +99,7 @@ class ConstraintHandlerUtilsTest {
     }
 
     @Test
-    void when_authorizationDecisionHasAdvices_then_getAdvices() {
+    void when_authorizationDecisionHasAdvice_then_getAdvice() {
         // GIVEN
         var adviceAsArrayNode = (ArrayNode) advice;
 
@@ -107,7 +107,7 @@ class ConstraintHandlerUtilsTest {
         var authDec        = new AuthorizationDecision(Decision.PERMIT, null, null, optionalAdvice);
 
         // WHEN
-        var actual = ConstraintHandlerUtils.getAdvices(authDec);
+        var actual = ConstraintHandlerUtils.getAdvice(authDec);
 
         // THEN
         assertEquals(advice, actual);

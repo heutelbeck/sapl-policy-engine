@@ -17,7 +17,7 @@
  */
 package io.sapl.springdatar2dbc.sapl.queries.enforcement;
 
-import static io.sapl.springdatacommon.sapl.utils.ConstraintHandlerUtils.getAdvices;
+import static io.sapl.springdatacommon.sapl.utils.ConstraintHandlerUtils.getAdvice;
 import static io.sapl.springdatacommon.sapl.utils.ConstraintHandlerUtils.getObligations;
 
 import java.util.Objects;
@@ -48,13 +48,14 @@ import reactor.core.publisher.Mono;
  * @param <T> is the domain type.
  */
 public class R2dbcMethodNameQueryManipulationEnforcementPoint<T> implements QueryManipulationEnforcementPoint<T> {
-    private final QueryManipulationObligationProvider QueryManipulationObligationProvider = new QueryManipulationObligationProvider();
+    private final static String R2DBC_QUERY_MANIPULATION_TYPE = "r2dbcQueryManipulation";
+
+    private final QueryManipulationObligationProvider queryManipulationObligationProvider = new QueryManipulationObligationProvider();
     private final LoggingConstraintHandlerProvider    loggingConstraintHandlerProvider    = new LoggingConstraintHandlerProvider();
     private final DataManipulationHandler<T>          dataManipulationHandler;
     private final QueryManipulationExecutor           queryManipulationExecutor;
 
     private final QueryManipulationEnforcementData<T> enforcementData;
-    private final String                              r2dbcQueryManipulationType = "r2dbcQueryManipulation";
 
     public R2dbcMethodNameQueryManipulationEnforcementPoint(QueryManipulationEnforcementData<T> enforcementData) {
         this.enforcementData           = enforcementData;
@@ -85,7 +86,7 @@ public class R2dbcMethodNameQueryManipulationEnforcementPoint<T> implements Quer
     public Function<AuthorizationDecision, Flux<T>> enforceDecision() {
         return decision -> {
             var decisionIsPermit = Decision.PERMIT == decision.getDecision();
-            var advice           = getAdvices(decision);
+            var advice           = getAdvice(decision);
 
             loggingConstraintHandlerProvider.getHandler(advice).run();
 
@@ -111,7 +112,7 @@ public class R2dbcMethodNameQueryManipulationEnforcementPoint<T> implements Quer
     @SneakyThrows
     @SuppressWarnings("unchecked")
     private Flux<T> retrieveData(JsonNode obligations) {
-        if (QueryManipulationObligationProvider.isResponsible(obligations, r2dbcQueryManipulationType)) {
+        if (queryManipulationObligationProvider.isResponsible(obligations, R2DBC_QUERY_MANIPULATION_TYPE)) {
             return enforceQueryManipulation(obligations);
         } else {
 
@@ -146,9 +147,9 @@ public class R2dbcMethodNameQueryManipulationEnforcementPoint<T> implements Quer
      * @return created sql query.
      */
     private String createSqlQuery(JsonNode obligations) {
-        var r2dbcQueryManipulationObligation = QueryManipulationObligationProvider.getObligation(obligations,
-                r2dbcQueryManipulationType);
-        var condition                        = QueryManipulationObligationProvider
+        var r2dbcQueryManipulationObligation = queryManipulationObligationProvider.getObligation(obligations,
+                R2DBC_QUERY_MANIPULATION_TYPE);
+        var condition                        = queryManipulationObligationProvider
                 .getConditions(r2dbcQueryManipulationObligation);
         var sqlConditionFromDecision         = addMissingConjunction(condition.asText());
         var baseQuery                        = PartTreeToSqlQueryStringConverter.createSqlBaseQuery(enforcementData);

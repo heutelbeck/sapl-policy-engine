@@ -133,7 +133,7 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
                 when(beanFactoryMock.getBean(ReactiveMongoTemplate.class)).thenReturn(reactiveMongoTemplateMock);
                 when(reactiveMongoTemplateMock.find(any(BasicQuery.class), any())).thenReturn(Flux.just(cathrin));
                 constraintHandlerUtilsMock
-                        .when(() -> ConstraintHandlerUtils.getAdvices(any(AuthorizationDecision.class)))
+                        .when(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)))
                         .thenReturn(JsonNodeFactory.instance.nullNode());
                 constraintHandlerUtilsMock
                         .when(() -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)))
@@ -170,7 +170,7 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
                         mongoQueryManipulationType);
                 verify(QueryManipulationObligationProviderMock, times(1)).getConditions(mongoQueryManipulation);
                 constraintHandlerUtilsMock
-                        .verify(() -> ConstraintHandlerUtils.getAdvices(any(AuthorizationDecision.class)), times(1));
+                        .verify(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)), times(1));
                 constraintHandlerUtilsMock.verify(
                         () -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)), times(1));
                 queryAnnotationParameterResolverMockedStatic.verify(
@@ -203,7 +203,7 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
         // THEN
         StepVerifier.create(accessDeniedException).expectError(AccessDeniedException.class).verify();
 
-        constraintHandlerUtilsMock.verify(() -> ConstraintHandlerUtils.getAdvices(any(AuthorizationDecision.class)),
+        constraintHandlerUtilsMock.verify(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)),
                 times(1));
         constraintHandlerUtilsMock.verify(() -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)),
                 times(0));
@@ -232,7 +232,7 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
                         .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT)));
                 when(beanFactoryMock.getBean(ReactiveMongoTemplate.class)).thenReturn(reactiveMongoTemplateMock);
                 constraintHandlerUtilsMock
-                        .when(() -> ConstraintHandlerUtils.getAdvices(any(AuthorizationDecision.class)))
+                        .when(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)))
                         .thenReturn(JsonNodeFactory.instance.nullNode());
                 constraintHandlerUtilsMock
                         .when(() -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)))
@@ -266,7 +266,7 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
                         mongoQueryManipulationType);
                 verify(QueryManipulationObligationProviderMock, times(0)).getConditions(mongoQueryManipulation);
                 constraintHandlerUtilsMock
-                        .verify(() -> ConstraintHandlerUtils.getAdvices(any(AuthorizationDecision.class)), times(1));
+                        .verify(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)), times(1));
                 constraintHandlerUtilsMock.verify(
                         () -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)), times(1));
                 queryAnnotationParameterResolverMockedStatic.verify(
@@ -300,7 +300,7 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
                         .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT)));
                 when(beanFactoryMock.getBean(ReactiveMongoTemplate.class)).thenReturn(reactiveMongoTemplateMock);
                 constraintHandlerUtilsMock
-                        .when(() -> ConstraintHandlerUtils.getAdvices(any(AuthorizationDecision.class)))
+                        .when(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)))
                         .thenReturn(JsonNodeFactory.instance.nullNode());
                 constraintHandlerUtilsMock
                         .when(() -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)))
@@ -334,7 +334,7 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
                         mongoQueryManipulationType);
                 verify(QueryManipulationObligationProviderMock, times(0)).getConditions(mongoQueryManipulation);
                 constraintHandlerUtilsMock
-                        .verify(() -> ConstraintHandlerUtils.getAdvices(any(AuthorizationDecision.class)), times(1));
+                        .verify(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)), times(1));
                 constraintHandlerUtilsMock.verify(
                         () -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)), times(1));
                 queryAnnotationParameterResolverMockedStatic.verify(
@@ -367,7 +367,7 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
                         .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT)));
                 when(beanFactoryMock.getBean(ReactiveMongoTemplate.class)).thenReturn(reactiveMongoTemplateMock);
                 constraintHandlerUtilsMock
-                        .when(() -> ConstraintHandlerUtils.getAdvices(any(AuthorizationDecision.class)))
+                        .when(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)))
                         .thenReturn(JsonNodeFactory.instance.nullNode());
                 constraintHandlerUtilsMock
                         .when(() -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)))
@@ -398,7 +398,7 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
                 verify(QueryManipulationObligationProviderMock, never()).getConditions(mongoQueryManipulation);
                 verify(dataManipulationHandler.constructed().get(0), never()).manipulate(obligations);
                 constraintHandlerUtilsMock
-                        .verify(() -> ConstraintHandlerUtils.getAdvices(any(AuthorizationDecision.class)), times(1));
+                        .verify(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)), times(1));
                 constraintHandlerUtilsMock.verify(
                         () -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)), times(1));
                 queryAnnotationParameterResolverMockedStatic.verify(

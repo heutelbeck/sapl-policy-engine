@@ -38,14 +38,12 @@
 	 	 <dependency>
 		    <groupId>org.springframework.data</groupId>
 		    <artifactId>spring-data-mongodb</artifactId>
-		 <!--   <version>4.2.1</version> -->
 		</dependency>
 		
 		<!-- R2dbc --> 
 		<dependency>
 		    <groupId>org.springframework.data</groupId>
 		    <artifactId>spring-data-r2dbc</artifactId>
-		   <!--   <version>  <version>3.2.1</version></version> -->
 		</dependency>
 	  
 	  	<!-- Lombok -->

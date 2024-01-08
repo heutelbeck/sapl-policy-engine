@@ -59,20 +59,25 @@ public class ConstraintHandlerUtils {
      * @return all obligations of the {@link AuthorizationDecision}.
      */
     public static JsonNode getObligations(AuthorizationDecision decision) {
-        return isResponsible(decision) ? decision.getObligations().get() : JsonNodeFactory.instance.nullNode();
+        var possibleObligations = decision.getObligations();
+        if (possibleObligations.isEmpty()) {
+            return JsonNodeFactory.instance.nullNode();
+        }
+        var obligations = possibleObligations.get();
+        if (!obligations.isArray()) {
+            return JsonNodeFactory.instance.nullNode();
+        }
+        return obligations;
     }
 
     /**
-     * Fetches all advices from an {@link AuthorizationDecision}.
+     * Fetches all advice from an {@link AuthorizationDecision}.
      *
      * @param decision is the {@link AuthorizationDecision}
-     * @return all advices of the {@link AuthorizationDecision}.
+     * @return all advice of the {@link AuthorizationDecision}.
      */
-    public static JsonNode getAdvices(AuthorizationDecision decision) {
-        return decision.getAdvice().isPresent() ? decision.getAdvice().get() : JsonNodeFactory.instance.nullNode();
-    }
-
-    private static boolean isResponsible(AuthorizationDecision decision) {
-        return decision.getObligations().isPresent() && !decision.getObligations().get().isNull();
+    public static JsonNode getAdvice(AuthorizationDecision decision) {
+        var advice = decision.getAdvice();
+        return advice.isPresent() ? advice.get() : JsonNodeFactory.instance.nullNode();
     }
 }
