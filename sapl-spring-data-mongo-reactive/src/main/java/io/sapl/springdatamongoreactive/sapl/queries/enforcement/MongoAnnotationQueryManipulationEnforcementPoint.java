@@ -48,6 +48,8 @@ import reactor.core.publisher.Mono;
  * @param <T> is the domain type.
  */
 public class MongoAnnotationQueryManipulationEnforcementPoint<T> implements QueryManipulationEnforcementPoint<T> {
+    private static final String MONGO_QUERY_MANIPULATION = "mongoQueryManipulation";
+
     private final LoggingConstraintHandlerProvider    loggingConstraintHandlerProvider    = new LoggingConstraintHandlerProvider();
     private final QueryManipulationObligationProvider queryManipulationObligationProvider = new QueryManipulationObligationProvider();
     private final DataManipulationHandler<T>          dataManipulationHandler;
@@ -55,7 +57,6 @@ public class MongoAnnotationQueryManipulationEnforcementPoint<T> implements Quer
 
     private final QueryManipulationEnforcementData<T> enforcementData;
     private final BasicQuery                          basicQuery;
-    private final String                              mongoQueryManipulation = "mongoQueryManipulation";
 
     public MongoAnnotationQueryManipulationEnforcementPoint(QueryManipulationEnforcementData<T> enforcementData) {
         this.enforcementData         = new QueryManipulationEnforcementData<>(enforcementData.getMethodInvocation(),
@@ -122,9 +123,9 @@ public class MongoAnnotationQueryManipulationEnforcementPoint<T> implements Quer
     @SneakyThrows
     @SuppressWarnings("unchecked")
     private Flux<T> retrieveData(JsonNode obligations, BasicQuery annotationQuery) {
-        if (queryManipulationObligationProvider.isResponsible(obligations, mongoQueryManipulation)) {
+        if (queryManipulationObligationProvider.isResponsible(obligations, MONGO_QUERY_MANIPULATION)) {
             var mongoQueryManipulationObligation = queryManipulationObligationProvider.getObligation(obligations,
-                    mongoQueryManipulation);
+                    MONGO_QUERY_MANIPULATION);
             var conditions                       = queryManipulationObligationProvider
                     .getConditions(mongoQueryManipulationObligation);
             var query                            = enforceQueryManipulation(annotationQuery, conditions);
