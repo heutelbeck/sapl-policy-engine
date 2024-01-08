@@ -93,7 +93,7 @@ class ProceededDataFilterEnforcementPointTest {
             var enforcementData = new QueryManipulationEnforcementData<>(r2dbcMethodInvocationTest, null, Person.class,
                     pdpMock, authSub);
 
-            var proceededDataFilterEnforcementPoint = new ProceededDataFilterEnforcementPoint<>(enforcementData);
+            var proceededDataFilterEnforcementPoint = new ProceededDataFilterEnforcementPoint<>(enforcementData, true);
             var dataManipulationHandler             = dataManipulationHandlerMockedConstruction.constructed().get(0);
 
             // WHEN
@@ -131,7 +131,7 @@ class ProceededDataFilterEnforcementPointTest {
             var                        enforcementData                     = new QueryManipulationEnforcementData<>(
                     r2dbcMethodInvocationTest, null, Person.class, pdpMock, authSub);
             var                        proceededDataFilterEnforcementPoint = new ProceededDataFilterEnforcementPoint<>(
-                    enforcementData);
+                    enforcementData, true);
 
             var dataManipulationHandler = dataManipulationHandlerMockedConstruction.constructed().get(0);
             when(dataManipulationHandler.manipulate(obligations)).thenReturn((data) -> this.data);
@@ -159,7 +159,7 @@ class ProceededDataFilterEnforcementPointTest {
         var authSub                             = AuthorizationSubscription.of("", "denyTest", "");
         var enforcementData                     = new QueryManipulationEnforcementData<>(r2dbcMethodInvocationTest,
                 null, Person.class, pdpMock, authSub);
-        var proceededDataFilterEnforcementPoint = new ProceededDataFilterEnforcementPoint<>(enforcementData);
+        var proceededDataFilterEnforcementPoint = new ProceededDataFilterEnforcementPoint<>(enforcementData, true);
 
         // WHEN
         when(pdpMock.decide(any(AuthorizationSubscription.class)))
@@ -176,7 +176,7 @@ class ProceededDataFilterEnforcementPointTest {
         var authSub                             = AuthorizationSubscription.of("", "noCorrectAction", "");
         var enforcementData                     = new QueryManipulationEnforcementData<>(r2dbcMethodInvocationTest,
                 null, Person.class, pdpMock, authSub);
-        var proceededDataFilterEnforcementPoint = new ProceededDataFilterEnforcementPoint<>(enforcementData);
+        var proceededDataFilterEnforcementPoint = new ProceededDataFilterEnforcementPoint<>(enforcementData, true);
 
         // WHEN
         when(pdpMock.decide(any(AuthorizationSubscription.class)))

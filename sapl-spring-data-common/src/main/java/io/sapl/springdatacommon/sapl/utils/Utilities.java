@@ -28,9 +28,6 @@ import reactor.core.publisher.Mono;
 
 @UtilityClass
 public class Utilities {
-    public static final String STRING_BASED_IMPL_MSG         = "Sapl is implemented using the String-Based Implementation. ";
-    public static final String METHOD_BASED_IMPL_MSG         = "Sapl is implemented using the Method-Name-Based Implementation. ";
-    public static final String FILTER_BASED_IMPL_MSG         = "Sapl is implemented using the Filter-Based Implementation. ";
     public static final String FILTER_JSON_CONTENT           = "filterJsonContent";
     public static final String FILTER_JSON_CONTENT_PREDICATE = "jsonContentFilterPredicate";
     public static final String R2DBC_QUERY_MANIPULATION      = "r2dbcQueryManipulation";

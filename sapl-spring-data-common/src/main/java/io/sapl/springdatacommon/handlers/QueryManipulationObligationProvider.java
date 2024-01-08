@@ -17,6 +17,9 @@
  */
 package io.sapl.springdatacommon.handlers;
 
+import static io.sapl.springdatacommon.sapl.utils.Utilities.CONDITION;
+import static io.sapl.springdatacommon.sapl.utils.Utilities.TYPE;
+
 import java.util.Objects;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -27,9 +30,6 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
  * the query.
  */
 public class QueryManipulationObligationProvider {
-
-    static String CONDITION = "condition";
-    static String TYPE      = "type";
 
     /**
      * Extracts the query CONDITION of an obligation to apply the the corresponding

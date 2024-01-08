@@ -71,7 +71,7 @@ class DataManipulationHandlerTest {
     @BeforeEach
     public void beforeEach() {
         constraintHandlerUtilsMock = mockStatic(ConstraintHandlerUtils.class);
-        dataManipulationHandler    = new DataManipulationHandler<>(Person.class);
+        dataManipulationHandler    = new DataManipulationHandler<>(Person.class, true);
     }
 
     @AfterEach

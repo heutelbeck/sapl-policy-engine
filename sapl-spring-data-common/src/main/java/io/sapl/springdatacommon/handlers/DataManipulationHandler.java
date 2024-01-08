@@ -30,6 +30,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.spring.constraints.providers.ContentFilterPredicateProvider;
 import io.sapl.spring.constraints.providers.ContentFilteringProvider;
+import io.sapl.springdatacommon.sapl.utils.OidObjectMapper;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 
@@ -44,8 +45,11 @@ import reactor.core.publisher.Flux;
  */
 @RequiredArgsConstructor
 public class DataManipulationHandler<T> {
-    private final Class<T>                 domainType;
-    private final ObjectMapper             oidObjectMapper = new ObjectMapper();
+    private final Class<T>  domainType;
+    private final boolean  	isRelationalDatabase;
+
+    private final OidObjectMapper          oidObjectMapper = new OidObjectMapper();
+    private final ObjectMapper             objectMapper    = new ObjectMapper();
     private ContentFilteringProvider       contentFilteringProvider;
     private ContentFilterPredicateProvider contentFilterPredicateProvider;
 
@@ -59,8 +63,13 @@ public class DataManipulationHandler<T> {
      */
     public Function<Flux<T>, Flux<T>> manipulate(JsonNode obligations) {
         return data -> {
-            this.contentFilteringProvider       = new ContentFilteringProvider(oidObjectMapper);
-            this.contentFilterPredicateProvider = new ContentFilterPredicateProvider(oidObjectMapper);
+            if (this.isRelationalDatabase) {
+                this.contentFilteringProvider       = new ContentFilteringProvider(objectMapper);
+                this.contentFilterPredicateProvider = new ContentFilterPredicateProvider(objectMapper);
+            } else {
+                this.contentFilteringProvider       = new ContentFilteringProvider(oidObjectMapper);
+                this.contentFilterPredicateProvider = new ContentFilterPredicateProvider(oidObjectMapper);
+            }
 
             var filterJsonContentObligation = getConstraintHandlerByTypeIfResponsible(obligations, FILTER_JSON_CONTENT);
             var isContentFilterResponsible  = filterJsonContentObligation != JsonNodeFactory.instance.nullNode();

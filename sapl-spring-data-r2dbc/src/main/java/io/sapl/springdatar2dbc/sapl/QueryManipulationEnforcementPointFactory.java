@@ -40,7 +40,7 @@ public class QueryManipulationEnforcementPointFactory {
 
     public <T> QueryManipulationEnforcementPoint<T> createProceededDataFilterEnforcementPoint(
             QueryManipulationEnforcementData<T> enforcementData) {
-        return new ProceededDataFilterEnforcementPoint<>(enforcementData);
+        return new ProceededDataFilterEnforcementPoint<>(enforcementData, true);
     }
 
 }

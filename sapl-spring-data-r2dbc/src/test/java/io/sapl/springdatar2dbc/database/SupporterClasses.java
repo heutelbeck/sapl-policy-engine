@@ -24,7 +24,7 @@ public class SupporterClasses {
     public static class DataManipulationHandlerPerson extends DataManipulationHandler<Person> {
 
         public DataManipulationHandlerPerson(Class<Person> domainType) {
-            super(domainType);
+            super(domainType, true);
             // TODO Auto-generated constructor stub
         }
 

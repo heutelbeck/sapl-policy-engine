@@ -30,7 +30,7 @@ public class SupporterClasses {
     public static class DataManipulationHandlerTestUser extends DataManipulationHandler<TestUser> {
 
         public DataManipulationHandlerTestUser(Class<TestUser> domainType) {
-            super(domainType);
+            super(domainType, false);
             // TODO Auto-generated constructor stub
         }
 

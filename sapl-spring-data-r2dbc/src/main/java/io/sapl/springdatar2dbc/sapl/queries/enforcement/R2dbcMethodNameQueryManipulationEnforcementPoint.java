@@ -58,7 +58,7 @@ public class R2dbcMethodNameQueryManipulationEnforcementPoint<T> implements Quer
 
     public R2dbcMethodNameQueryManipulationEnforcementPoint(QueryManipulationEnforcementData<T> enforcementData) {
         this.enforcementData           = enforcementData;
-        this.dataManipulationHandler   = new DataManipulationHandler<>(enforcementData.getDomainType());
+        this.dataManipulationHandler   = new DataManipulationHandler<>(enforcementData.getDomainType(), true);
         this.queryManipulationExecutor = new QueryManipulationExecutor(enforcementData.getBeanFactory());
     }
 
