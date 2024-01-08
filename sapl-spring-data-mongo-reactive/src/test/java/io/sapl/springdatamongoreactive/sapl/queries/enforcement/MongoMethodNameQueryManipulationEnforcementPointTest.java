@@ -173,8 +173,8 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
                             mongoQueryManipulationType);
                     verify(mongoQueryManipulationObligationProviderMock, times(1))
                             .getConditions(mongoQueryManipulation);
-                    constraintHandlerUtilsMock.verify(
-                            () -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)), times(1));
+                    constraintHandlerUtilsMock
+                            .verify(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)), times(1));
                     constraintHandlerUtilsMock.verify(
                             () -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)), times(1));
                 }
@@ -216,8 +216,8 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
                     assertNotNull(saplPartTreeCriteriaCreatorMockedConstruction.constructed().get(0));
                     assertNotNull(dataManipulationHandlerMockedConstruction.constructed().get(0));
                     assertNotNull(mongoQueryManipulationObligationProviderMockedConstruction.constructed().get(0));
-                    constraintHandlerUtilsMock.verify(
-                            () -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)), times(1));
+                    constraintHandlerUtilsMock
+                            .verify(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)), times(1));
                     constraintHandlerUtilsMock.verify(
                             () -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)), times(0));
                 }
@@ -282,8 +282,8 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
                     verify(mongoQueryManipulationObligationProviderMock, never()).getObligation(obligations,
                             mongoQueryManipulationType);
                     verify(mongoQueryManipulationObligationProviderMock, never()).getConditions(mongoQueryManipulation);
-                    constraintHandlerUtilsMock.verify(
-                            () -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)), times(1));
+                    constraintHandlerUtilsMock
+                            .verify(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)), times(1));
                     constraintHandlerUtilsMock.verify(
                             () -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)), times(1));
                 }
@@ -348,8 +348,8 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
                     verify(mongoQueryManipulationObligationProviderMock, never()).getObligation(obligations,
                             mongoQueryManipulationType);
                     verify(mongoQueryManipulationObligationProviderMock, never()).getConditions(mongoQueryManipulation);
-                    constraintHandlerUtilsMock.verify(
-                            () -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)), times(1));
+                    constraintHandlerUtilsMock
+                            .verify(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)), times(1));
                     constraintHandlerUtilsMock.verify(
                             () -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)), times(1));
                 }
@@ -412,8 +412,8 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
                     verify(mongoQueryManipulationObligationProviderMock, never()).getObligation(obligations,
                             mongoQueryManipulationType);
                     verify(mongoQueryManipulationObligationProviderMock, never()).getConditions(mongoQueryManipulation);
-                    constraintHandlerUtilsMock.verify(
-                            () -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)), times(1));
+                    constraintHandlerUtilsMock
+                            .verify(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)), times(1));
                     constraintHandlerUtilsMock.verify(
                             () -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)), times(1));
                 }

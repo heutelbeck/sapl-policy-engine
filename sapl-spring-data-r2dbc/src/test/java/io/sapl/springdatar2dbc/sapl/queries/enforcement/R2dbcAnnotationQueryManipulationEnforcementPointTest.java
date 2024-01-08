@@ -177,8 +177,8 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTest {
                     verify(QueryManipulationObligationProviderMock, times(1)).getObligation(OBLIGATIONS,
                             r2dbcQueryManipulationType);
                     verify(QueryManipulationObligationProviderMock, times(1)).getConditions(R2DBC_QUERY_MANIPULATION);
-                    constraintHandlerUtilsMock.verify(
-                            () -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)), times(1));
+                    constraintHandlerUtilsMock
+                            .verify(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)), times(1));
                     constraintHandlerUtilsMock.verify(
                             () -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)), times(1));
                     queryAnnotationParameterResolverMockedStatic.verify(() -> QueryAnnotationParameterResolver
@@ -253,8 +253,8 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTest {
                             r2dbcQueryManipulationType);
                     verify(QueryManipulationObligationProviderMock, times(1))
                             .getConditions(R2DBC_QUERY_MANIPULATION_WITH_CONJUCTION);
-                    constraintHandlerUtilsMock.verify(
-                            () -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)), times(1));
+                    constraintHandlerUtilsMock
+                            .verify(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)), times(1));
                     constraintHandlerUtilsMock.verify(
                             () -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)), times(1));
                     queryAnnotationParameterResolverMockedStatic.verify(() -> QueryAnnotationParameterResolver
@@ -350,8 +350,8 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTest {
                     verify(QueryManipulationObligationProviderMock, times(0)).getObligation(OBLIGATIONS,
                             r2dbcQueryManipulationType);
                     verify(QueryManipulationObligationProviderMock, times(0)).getConditions(R2DBC_QUERY_MANIPULATION);
-                    constraintHandlerUtilsMock.verify(
-                            () -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)), times(1));
+                    constraintHandlerUtilsMock
+                            .verify(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)), times(1));
                     constraintHandlerUtilsMock.verify(
                             () -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)), times(1));
                     queryAnnotationParameterResolverMockedStatic.verify(() -> QueryAnnotationParameterResolver
@@ -419,8 +419,8 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTest {
                     verify(QueryManipulationObligationProviderMock, times(0)).getObligation(OBLIGATIONS,
                             r2dbcQueryManipulationType);
                     verify(QueryManipulationObligationProviderMock, times(0)).getConditions(R2DBC_QUERY_MANIPULATION);
-                    constraintHandlerUtilsMock.verify(
-                            () -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)), times(1));
+                    constraintHandlerUtilsMock
+                            .verify(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)), times(1));
                     constraintHandlerUtilsMock.verify(
                             () -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)), times(1));
                     queryAnnotationParameterResolverMockedStatic.verify(() -> QueryAnnotationParameterResolver
@@ -490,8 +490,8 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTest {
                     verify(QueryManipulationObligationProviderMock, times(0)).getObligation(OBLIGATIONS,
                             r2dbcQueryManipulationType);
                     verify(QueryManipulationObligationProviderMock, times(0)).getConditions(R2DBC_QUERY_MANIPULATION);
-                    constraintHandlerUtilsMock.verify(
-                            () -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)), times(1));
+                    constraintHandlerUtilsMock
+                            .verify(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)), times(1));
                     constraintHandlerUtilsMock.verify(
                             () -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)), times(1));
                     queryAnnotationParameterResolverMockedStatic.verify(() -> QueryAnnotationParameterResolver
@@ -566,8 +566,8 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTest {
                     verify(QueryManipulationObligationProviderMock, times(1)).getObligation(OBLIGATIONS,
                             r2dbcQueryManipulationType);
                     verify(QueryManipulationObligationProviderMock, times(1)).getConditions(R2DBC_QUERY_MANIPULATION);
-                    constraintHandlerUtilsMock.verify(
-                            () -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)), times(1));
+                    constraintHandlerUtilsMock
+                            .verify(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)), times(1));
                     constraintHandlerUtilsMock.verify(
                             () -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)), times(1));
                     queryAnnotationParameterResolverMockedStatic.verify(() -> QueryAnnotationParameterResolver
