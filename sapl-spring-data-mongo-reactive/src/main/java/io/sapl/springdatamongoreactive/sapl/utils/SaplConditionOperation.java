@@ -104,9 +104,9 @@ public class SaplConditionOperation {
             return saplConditions;
         }
 
-        basicQuery.getQueryObject().forEach((field, val) -> {
-            if (val instanceof ArrayList arrayList) {
-                for (Object object : arrayList) {
+        basicQuery.getQueryObject().forEach((String field, Object val) -> {
+            if (val instanceof List<?> list) {
+                for (Object object : list) {
                     if (object instanceof Document doc) {
                         doc.forEach((ke, va) -> addNewSaplCondition(saplConditions, ke, va, "Or"));
                     }
@@ -150,7 +150,7 @@ public class SaplConditionOperation {
      * @return the index at which the keyword occurs.
      */
     private int getIndexIfSourceContainsAnyKeyword(String methodName) {
-        return StringUtils.indexOfAny(methodName, new String[] { "OrderBy" });
+        return StringUtils.indexOf(methodName, "OrderBy");
     }
 
     /**

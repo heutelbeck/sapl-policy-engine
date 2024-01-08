@@ -23,6 +23,7 @@ import static io.sapl.springdatacommon.sapl.utils.Utilities.TYPE;
 import java.util.Objects;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 /**
@@ -53,7 +54,7 @@ public class QueryManipulationObligationProvider {
      * @param obligations which contains all obligations.
      * @return correct obligation.
      */
-    public JsonNode getObligation(JsonNode obligations, String queryType) {
+    public JsonNode getObligation(ArrayNode obligations, String queryType) {
         for (JsonNode obligation : obligations) {
             if (obligation != null && obligation.isObject()) {
                 JsonNode type = obligation.get(TYPE);
@@ -72,7 +73,7 @@ public class QueryManipulationObligationProvider {
      * @param obligations are the obligations of a {@link io.sapl.api.pdp.Decision}
      * @return true if an obligation can be applied.
      */
-    public boolean isResponsible(JsonNode obligations, String queryType) {
+    public boolean isResponsible(ArrayNode obligations, String queryType) {
         for (JsonNode obligation : obligations) {
             if (obligation != null && obligation.isObject()) {
                 JsonNode type = obligation.get(TYPE);

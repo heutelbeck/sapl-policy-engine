@@ -49,8 +49,7 @@ import org.springframework.security.access.AccessDeniedException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
@@ -69,7 +68,7 @@ import reactor.test.StepVerifier;
 class MongoMethodNameQueryManipulationEnforcementPointTest {
 
     static final ObjectMapper objectMapper = new ObjectMapper();
-    static JsonNode           obligations;
+    static ArrayNode          obligations;
     static JsonNode           mongoQueryManipulation;
     static JsonNode           conditions;
 
@@ -79,6 +78,7 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
 
     final Flux<TestUser> data                       = Flux.just(aaron, brian, cathrin);
     final String         mongoQueryManipulationType = "mongoQueryManipulation";
+    final ArrayNode      emptyArrayNode             = objectMapper.createArrayNode();
 
     @Autowired
     MongoDbRepositoryTest mongoDbRepositoryTest;
@@ -91,7 +91,7 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
 
     @BeforeAll
     static void setUp() throws JsonProcessingException {
-        obligations            = objectMapper.readTree(
+        obligations            = (ArrayNode) objectMapper.readTree(
                 "[{\"type\":\"mongoQueryManipulation\",\"conditions\":[\"{'role':  {'$in': ['USER']}}\"]},{\"type\":\"filterJsonContent\",\"actions\":[{\"type\":\"blacken\",\"path\":\"$.firstname\",\"discloseLeft\":2}]},{\"type\":\"jsonContentFilterPredicate\",\"conditions\":[{\"type\":\"==\",\"path\":\"$.id\",\"value\":\"a1\"}]}]");
         mongoQueryManipulation = objectMapper
                 .readTree("{\"type\":\"mongoQueryManipulation\",\"conditions\":[\"{'age':  {'gt': 30 }}\"]}");
@@ -134,7 +134,7 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
                     when(reactiveMongoTemplateMock.find(any(BasicQuery.class), any())).thenReturn(Flux.just(cathrin));
                     constraintHandlerUtilsMock
                             .when(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)))
-                            .thenReturn(JsonNodeFactory.instance.nullNode());
+                            .thenReturn(emptyArrayNode);
                     constraintHandlerUtilsMock
                             .when(() -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)))
                             .thenReturn(obligations);
@@ -249,7 +249,7 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
                     when(beanFactoryMock.getBean(ReactiveMongoTemplate.class)).thenReturn(reactiveMongoTemplateMock);
                     constraintHandlerUtilsMock
                             .when(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)))
-                            .thenReturn(JsonNodeFactory.instance.nullNode());
+                            .thenReturn(emptyArrayNode);
                     constraintHandlerUtilsMock
                             .when(() -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)))
                             .thenReturn(obligations);
@@ -315,7 +315,7 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
                     when(beanFactoryMock.getBean(ReactiveMongoTemplate.class)).thenReturn(reactiveMongoTemplateMock);
                     constraintHandlerUtilsMock
                             .when(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)))
-                            .thenReturn(JsonNodeFactory.instance.nullNode());
+                            .thenReturn(emptyArrayNode);
                     constraintHandlerUtilsMock
                             .when(() -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)))
                             .thenReturn(obligations);
@@ -381,7 +381,7 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
                     when(beanFactoryMock.getBean(ReactiveMongoTemplate.class)).thenReturn(reactiveMongoTemplateMock);
                     constraintHandlerUtilsMock
                             .when(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)))
-                            .thenReturn(JsonNodeFactory.instance.nullNode());
+                            .thenReturn(emptyArrayNode);
                     constraintHandlerUtilsMock
                             .when(() -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)))
                             .thenReturn(obligations);

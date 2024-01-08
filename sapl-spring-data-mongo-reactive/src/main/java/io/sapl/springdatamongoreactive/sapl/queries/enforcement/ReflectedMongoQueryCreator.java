@@ -32,7 +32,8 @@ class ReflectedMongoQueryCreator {
         this.mongoQueryCreator = Class.forName(MONGO_QUERY_CREATOR_NAME);
     }
 
-    protected Constructor<?> getDeclaredConstructor(Class<?> class1, Class<?> class2, Class<?> class3, Class<?> class4)
+    @SuppressWarnings("rawtypes")
+    protected Constructor getDeclaredConstructor(Class<?> class1, Class<?> class2, Class<?> class3, Class<?> class4)
             throws InvocationTargetException {
         Constructor<?> constructor = null;
         try {

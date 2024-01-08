@@ -25,6 +25,7 @@ import org.springframework.data.mongodb.core.query.BasicQuery;
 import org.springframework.security.access.AccessDeniedException;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -48,7 +49,7 @@ import reactor.core.publisher.Mono;
  * @param <T> is the domain type.
  */
 public class MongoAnnotationQueryManipulationEnforcementPoint<T> implements QueryManipulationEnforcementPoint<T> {
-    private static final String MONGO_QUERY_MANIPULATION = "mongoQueryManipulation";
+    private static final String mongoQueryManipulation = "mongoQueryManipulation";
 
     private final LoggingConstraintHandlerProvider    loggingConstraintHandlerProvider    = new LoggingConstraintHandlerProvider();
     private final QueryManipulationObligationProvider queryManipulationObligationProvider = new QueryManipulationObligationProvider();
@@ -122,10 +123,10 @@ public class MongoAnnotationQueryManipulationEnforcementPoint<T> implements Quer
      */
     @SneakyThrows
     @SuppressWarnings("unchecked")
-    private Flux<T> retrieveData(JsonNode obligations, BasicQuery annotationQuery) {
-        if (queryManipulationObligationProvider.isResponsible(obligations, MONGO_QUERY_MANIPULATION)) {
+    private Flux<T> retrieveData(ArrayNode obligations, BasicQuery annotationQuery) {
+        if (queryManipulationObligationProvider.isResponsible(obligations, mongoQueryManipulation)) {
             var mongoQueryManipulationObligation = queryManipulationObligationProvider.getObligation(obligations,
-                    MONGO_QUERY_MANIPULATION);
+                    mongoQueryManipulation);
             var conditions                       = queryManipulationObligationProvider
                     .getConditions(mongoQueryManipulationObligation);
             var query                            = enforceQueryManipulation(annotationQuery, conditions);

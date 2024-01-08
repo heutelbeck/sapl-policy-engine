@@ -38,8 +38,7 @@ import org.springframework.security.access.AccessDeniedException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
@@ -88,7 +87,7 @@ class ProceededDataFilterEnforcementPointTest {
         MockedConstruction<DataManipulationHandler> dataManipulationHandlerMockedConstruction = mockConstruction(
                 DataManipulationHandler.class)) {
             // GIVEN
-            var obligations     = objectMapper.readTree(
+            var obligations     = (ArrayNode) objectMapper.readTree(
                     "[{\"type\":\"mongoQueryManipulation\",\"conditions\":[\"{'role':  {'$in': ['USER']}}\"]},{\"type\":\"filterJsonContent\",\"actions\":[{\"type\":\"blacken\",\"path\":\"$.firstname\",\"discloseLeft\":2}]},{\"type\":\"jsonContentFilterPredicate\",\"conditions\":[{\"type\":\"==\",\"path\":\"$.id\",\"value\":\"a1\"}]}]");
             var authSub         = AuthorizationSubscription.of("", "permitTest", "");
             var enforcementData = new QueryManipulationEnforcementData<>(mongoMethodInvocationTest, null,
@@ -102,7 +101,7 @@ class ProceededDataFilterEnforcementPointTest {
                     .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT)));
             when(dataManipulationHandler.manipulate(obligations)).thenReturn((data) -> this.data);
             constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)))
-                    .thenReturn(JsonNodeFactory.instance.nullNode());
+                    .thenReturn(objectMapper.createArrayNode());
             constraintHandlerUtilsMock
                     .when(() -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)))
                     .thenReturn(obligations);
@@ -125,7 +124,7 @@ class ProceededDataFilterEnforcementPointTest {
             // GIVEN
             var mongoMethodInvocationTest           = new MethodInvocationForTesting("findAllByFirstname",
                     new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of("Cathrin")), new Throwable());
-            var obligations                         = objectMapper.readTree(
+            var obligations                         = (ArrayNode) objectMapper.readTree(
                     "[{\"type\":\"mongoQueryManipulation\",\"conditions\":[\"{'role':  {'$in': ['USER']}}\"]},{\"type\":\"filterJsonContent\",\"actions\":[{\"type\":\"blacken\",\"path\":\"$.firstname\",\"discloseLeft\":2}]},{\"type\":\"jsonContentFilterPredicate\",\"conditions\":[{\"type\":\"==\",\"path\":\"$.id\",\"value\":\"a1\"}]}]");
             var authSub                             = AuthorizationSubscription.of("", "permitTest", "");
             var enforcementData                     = new QueryManipulationEnforcementData<>(mongoMethodInvocationTest,
@@ -135,7 +134,7 @@ class ProceededDataFilterEnforcementPointTest {
             var dataManipulationHandler = dataManipulationHandlerMockedConstruction.constructed().get(0);
             when(dataManipulationHandler.manipulate(obligations)).thenReturn((data) -> this.data);
             constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)))
-                    .thenReturn(JsonNodeFactory.instance.nullNode());
+                    .thenReturn(objectMapper.createArrayNode());
             constraintHandlerUtilsMock
                     .when(() -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)))
                     .thenReturn(obligations);

@@ -24,6 +24,7 @@ import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.security.access.AccessDeniedException;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -123,7 +124,7 @@ public class MongoMethodNameQueryManipulationEnforcementPoint<T> implements Quer
      */
     @SneakyThrows
     @SuppressWarnings("unchecked")
-    private Flux<T> retrieveData(JsonNode obligations) {
+    private Flux<T> retrieveData(ArrayNode obligations) {
         if (mongoQueryManipulationObligationProvider.isResponsible(obligations, mongoQueryManipulation)) {
             var mongoQueryManipulationObligation = mongoQueryManipulationObligationProvider.getObligation(obligations,
                     mongoQueryManipulation);

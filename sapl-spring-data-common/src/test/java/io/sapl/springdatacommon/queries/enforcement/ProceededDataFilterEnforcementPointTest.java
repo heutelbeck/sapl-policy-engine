@@ -37,7 +37,7 @@ import org.springframework.security.access.AccessDeniedException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -61,7 +61,8 @@ class ProceededDataFilterEnforcementPointTest {
 
     final Flux<Person> data = Flux.just(malinda, emerson, yul);
 
-    final ObjectMapper objectMapper = new ObjectMapper();
+    final ObjectMapper objectMapper   = new ObjectMapper();
+    final ArrayNode    emptyArrayNode = objectMapper.createArrayNode();
 
     EmbeddedPolicyDecisionPoint pdpMock;
 
@@ -101,7 +102,7 @@ class ProceededDataFilterEnforcementPointTest {
                     .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT)));
             when(dataManipulationHandler.manipulate(obligations)).thenReturn((data) -> this.data);
             constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)))
-                    .thenReturn(JsonNodeFactory.instance.nullNode());
+                    .thenReturn(emptyArrayNode);
             constraintHandlerUtilsMock
                     .when(() -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)))
                     .thenReturn(obligations);
@@ -136,7 +137,7 @@ class ProceededDataFilterEnforcementPointTest {
             var dataManipulationHandler = dataManipulationHandlerMockedConstruction.constructed().get(0);
             when(dataManipulationHandler.manipulate(obligations)).thenReturn((data) -> this.data);
             constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)))
-                    .thenReturn(JsonNodeFactory.instance.nullNode());
+                    .thenReturn(emptyArrayNode);
             constraintHandlerUtilsMock
                     .when(() -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)))
                     .thenReturn(obligations);

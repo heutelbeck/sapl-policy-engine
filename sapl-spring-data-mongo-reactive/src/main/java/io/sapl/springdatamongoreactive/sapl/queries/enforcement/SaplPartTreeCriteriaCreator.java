@@ -21,6 +21,8 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -97,6 +99,7 @@ public class SaplPartTreeCriteriaCreator<T> {
             allParametersValueAsObjects.add(parameter.value());
         }
 
+        @Nullable
         var criteria = buildCriteria(manipulatedPartTree, allParametersValueAsObjects);
 
         return new Query(criteria).with(mongoQueryCreatorFactory.getConvertingParameterAccessor().getSort());

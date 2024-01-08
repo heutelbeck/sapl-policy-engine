@@ -25,7 +25,7 @@ import java.util.function.Function;
 
 import org.springframework.security.access.AccessDeniedException;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -48,7 +48,7 @@ import reactor.core.publisher.Mono;
  * @param <T> is the domain type.
  */
 public class R2dbcMethodNameQueryManipulationEnforcementPoint<T> implements QueryManipulationEnforcementPoint<T> {
-    private static final String R2DBC_QUERY_MANIPULATION_TYPE = "r2dbcQueryManipulation";
+    private static final String r2dbcQueryManipulationType = "r2dbcQueryManipulation";
 
     private final QueryManipulationObligationProvider queryManipulationObligationProvider = new QueryManipulationObligationProvider();
     private final LoggingConstraintHandlerProvider    loggingConstraintHandlerProvider    = new LoggingConstraintHandlerProvider();
@@ -111,8 +111,8 @@ public class R2dbcMethodNameQueryManipulationEnforcementPoint<T> implements Quer
      */
     @SneakyThrows
     @SuppressWarnings("unchecked")
-    private Flux<T> retrieveData(JsonNode obligations) {
-        if (queryManipulationObligationProvider.isResponsible(obligations, R2DBC_QUERY_MANIPULATION_TYPE)) {
+    private Flux<T> retrieveData(ArrayNode obligations) {
+        if (queryManipulationObligationProvider.isResponsible(obligations, r2dbcQueryManipulationType)) {
             return enforceQueryManipulation(obligations);
         } else {
 
@@ -131,7 +131,7 @@ public class R2dbcMethodNameQueryManipulationEnforcementPoint<T> implements Quer
      * @return objects from the database that were queried with the manipulated
      *         query.
      */
-    private Flux<T> enforceQueryManipulation(JsonNode obligations) {
+    private Flux<T> enforceQueryManipulation(ArrayNode obligations) {
         var manipulatedCondition = createSqlQuery(obligations);
 
         return queryManipulationExecutor.execute(manipulatedCondition, enforcementData.getDomainType())
@@ -146,9 +146,9 @@ public class R2dbcMethodNameQueryManipulationEnforcementPoint<T> implements Quer
      * @param obligations are the obligations from the {@link Decision}.
      * @return created sql query.
      */
-    private String createSqlQuery(JsonNode obligations) {
+    private String createSqlQuery(ArrayNode obligations) {
         var r2dbcQueryManipulationObligation = queryManipulationObligationProvider.getObligation(obligations,
-                R2DBC_QUERY_MANIPULATION_TYPE);
+                r2dbcQueryManipulationType);
         var condition                        = queryManipulationObligationProvider
                 .getConditions(r2dbcQueryManipulationObligation);
         var sqlConditionFromDecision         = addMissingConjunction(condition.asText());

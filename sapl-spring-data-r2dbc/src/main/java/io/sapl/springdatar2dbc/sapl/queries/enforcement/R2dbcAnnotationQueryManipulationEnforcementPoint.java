@@ -26,6 +26,7 @@ import java.util.function.Function;
 import org.springframework.security.access.AccessDeniedException;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -119,7 +120,7 @@ public class R2dbcAnnotationQueryManipulationEnforcementPoint<T> implements Quer
      */
     @SneakyThrows
     @SuppressWarnings("unchecked")
-    private Flux<T> retrieveData(JsonNode obligations, String query) {
+    private Flux<T> retrieveData(ArrayNode obligations, String query) {
 
         if (queryManipulationObligationProvider.isResponsible(obligations, R2DBC_QUERY_MANIPULATION_TYPE)) {
             var r2dbcQueryManipulationObligation = queryManipulationObligationProvider.getObligation(obligations,

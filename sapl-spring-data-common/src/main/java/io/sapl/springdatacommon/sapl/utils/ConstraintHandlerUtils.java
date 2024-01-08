@@ -20,6 +20,8 @@ package io.sapl.springdatacommon.sapl.utils;
 import java.util.Objects;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -31,6 +33,9 @@ import lombok.experimental.UtilityClass;
  */
 @UtilityClass
 public class ConstraintHandlerUtils {
+
+    private ObjectMapper objectMapper   = new ObjectMapper();
+    private ArrayNode    emptyArrayNode = objectMapper.createArrayNode();
 
     /**
      * Retrieves a specific ConstraintHandler from the Obligations using the type.
@@ -58,14 +63,14 @@ public class ConstraintHandlerUtils {
      * @param decision is the {@link AuthorizationDecision}
      * @return all obligations of the {@link AuthorizationDecision}.
      */
-    public static JsonNode getObligations(AuthorizationDecision decision) {
+    public static ArrayNode getObligations(AuthorizationDecision decision) {
         var possibleObligations = decision.getObligations();
         if (possibleObligations.isEmpty()) {
-            return JsonNodeFactory.instance.nullNode();
+            return emptyArrayNode;
         }
         var obligations = possibleObligations.get();
         if (!obligations.isArray()) {
-            return JsonNodeFactory.instance.nullNode();
+            return emptyArrayNode;
         }
         return obligations;
     }
@@ -76,8 +81,8 @@ public class ConstraintHandlerUtils {
      * @param decision is the {@link AuthorizationDecision}
      * @return all advice of the {@link AuthorizationDecision}.
      */
-    public static JsonNode getAdvice(AuthorizationDecision decision) {
+    public static ArrayNode getAdvice(AuthorizationDecision decision) {
         var advice = decision.getAdvice();
-        return advice.isPresent() ? advice.get() : JsonNodeFactory.instance.nullNode();
+        return advice.isPresent() ? advice.get() : emptyArrayNode;
     }
 }
