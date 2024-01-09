@@ -349,6 +349,7 @@
 						</goals>
 						<configuration>
 							<sources>
+								<source>src/test/xtend-gen</source>
 								<source>src/test/xtext-gen</source>
 							</sources>
 							<resources>
