@@ -85,7 +85,7 @@ public class MongoMethodNameQueryManipulationEnforcementPoint<T> implements Quer
      */
     public Function<AuthorizationDecision, Flux<T>> enforceDecision() {
         return decision -> {
-            var advice           = ConstraintHandlerUtils.getAdvices(decision);
+            var advice           = ConstraintHandlerUtils.getAdvice(decision);
             var decisionIsPermit = Decision.PERMIT == decision.getDecision();
 
             loggingConstraintHandlerProvider.getHandler(advice).run();

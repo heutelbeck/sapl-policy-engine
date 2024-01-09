@@ -17,7 +17,7 @@
  */
 package io.sapl.springdatar2dbc.sapl.queries.enforcement;
 
-import static io.sapl.springdatacommon.sapl.utils.ConstraintHandlerUtils.getAdvices;
+import static io.sapl.springdatacommon.sapl.utils.ConstraintHandlerUtils.getAdvice;
 import static io.sapl.springdatacommon.sapl.utils.ConstraintHandlerUtils.getObligations;
 
 import java.util.Objects;
@@ -32,10 +32,10 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.springdatacommon.handlers.DataManipulationHandler;
 import io.sapl.springdatacommon.handlers.LoggingConstraintHandlerProvider;
+import io.sapl.springdatacommon.handlers.QueryManipulationObligationProvider;
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementPoint;
 import io.sapl.springdatacommon.sapl.queries.enforcement.QueryAnnotationParameterResolver;
-import io.sapl.springdatacommon.handlers.QueryManipulationObligationProvider;
 import io.sapl.springdatar2dbc.sapl.QueryManipulationExecutor;
 import lombok.SneakyThrows;
 import reactor.core.publisher.Flux;
@@ -49,13 +49,14 @@ import reactor.core.publisher.Mono;
  * @param <T> is the domain type.
  */
 public class R2dbcAnnotationQueryManipulationEnforcementPoint<T> implements QueryManipulationEnforcementPoint<T> {
-    private final QueryManipulationObligationProvider QueryManipulationObligationProvider = new QueryManipulationObligationProvider();
+    private static final String R2DBC_QUERY_MANIPULATION_TYPE = "r2dbcQueryManipulation";
+
+    private final QueryManipulationObligationProvider queryManipulationObligationProvider = new QueryManipulationObligationProvider();
     private final LoggingConstraintHandlerProvider    loggingConstraintHandlerProvider    = new LoggingConstraintHandlerProvider();
     private final DataManipulationHandler<T>          dataManipulationHandler;
     private final QueryManipulationExecutor           queryManipulationExecutor;
     private final QueryManipulationEnforcementData<T> enforcementData;
     private final String                              query;
-    private final String                              r2dbcQueryManipulationType          = "r2dbcQueryManipulation";
 
     public R2dbcAnnotationQueryManipulationEnforcementPoint(QueryManipulationEnforcementData<T> enforcementData) {
         this.enforcementData           = enforcementData;
@@ -90,7 +91,7 @@ public class R2dbcAnnotationQueryManipulationEnforcementPoint<T> implements Quer
     public Function<AuthorizationDecision, Flux<T>> enforceDecision() {
         return decision -> {
             var decisionIsPermit = Decision.PERMIT == decision.getDecision();
-            var advice           = getAdvices(decision);
+            var advice           = getAdvice(decision);
 
             loggingConstraintHandlerProvider.getHandler(advice).run();
 
@@ -120,10 +121,10 @@ public class R2dbcAnnotationQueryManipulationEnforcementPoint<T> implements Quer
     @SuppressWarnings("unchecked")
     private Flux<T> retrieveData(JsonNode obligations, String query) {
 
-        if (QueryManipulationObligationProvider.isResponsible(obligations, r2dbcQueryManipulationType)) {
-            var r2dbcQueryManipulationObligation = QueryManipulationObligationProvider.getObligation(obligations,
-                    r2dbcQueryManipulationType);
-            var condition                        = QueryManipulationObligationProvider
+        if (queryManipulationObligationProvider.isResponsible(obligations, R2DBC_QUERY_MANIPULATION_TYPE)) {
+            var r2dbcQueryManipulationObligation = queryManipulationObligationProvider.getObligation(obligations,
+                    R2DBC_QUERY_MANIPULATION_TYPE);
+            var condition                        = queryManipulationObligationProvider
                     .getConditions(r2dbcQueryManipulationObligation);
             var manipulatedCondition             = enforceQueryManipulation(query, condition);
 

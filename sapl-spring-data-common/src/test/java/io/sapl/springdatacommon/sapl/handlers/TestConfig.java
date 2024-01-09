@@ -21,6 +21,7 @@ import org.springframework.beans.factory.BeanFactory;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.expression.BeanFactoryResolver;
+import org.springframework.expression.BeanResolver;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 @TestConfiguration
@@ -32,7 +33,7 @@ public class TestConfig {
     }
 
     @Bean
-    StandardEvaluationContext evaluationContext(BeanFactoryResolver beanFactoryResolver) {
+    StandardEvaluationContext evaluationContext(BeanResolver beanFactoryResolver) {
         final StandardEvaluationContext evaluationContext = new StandardEvaluationContext();
         evaluationContext.setBeanResolver(beanFactoryResolver);
         return evaluationContext;

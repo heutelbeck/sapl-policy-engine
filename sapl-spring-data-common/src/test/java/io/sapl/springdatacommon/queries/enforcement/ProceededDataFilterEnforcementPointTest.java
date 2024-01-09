@@ -100,7 +100,7 @@ class ProceededDataFilterEnforcementPointTest {
             when(pdpMock.decide(any(AuthorizationSubscription.class)))
                     .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT)));
             when(dataManipulationHandler.manipulate(obligations)).thenReturn((data) -> this.data);
-            constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getAdvices(any(AuthorizationDecision.class)))
+            constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)))
                     .thenReturn(JsonNodeFactory.instance.nullNode());
             constraintHandlerUtilsMock
                     .when(() -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)))
@@ -135,7 +135,7 @@ class ProceededDataFilterEnforcementPointTest {
 
             var dataManipulationHandler = dataManipulationHandlerMockedConstruction.constructed().get(0);
             when(dataManipulationHandler.manipulate(obligations)).thenReturn((data) -> this.data);
-            constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getAdvices(any(AuthorizationDecision.class)))
+            constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)))
                     .thenReturn(JsonNodeFactory.instance.nullNode());
             constraintHandlerUtilsMock
                     .when(() -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)))

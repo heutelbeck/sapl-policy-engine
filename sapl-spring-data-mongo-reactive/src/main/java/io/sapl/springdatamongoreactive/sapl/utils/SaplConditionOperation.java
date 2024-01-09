@@ -161,7 +161,7 @@ public class SaplConditionOperation {
      *                       {@link io.sapl.api.pdp.Decision}.
      * @return the modifying method name part.
      */
-    private String creatModifyingMethodNamePart(List<SaplCondition> saplConditions) {
+    private String creatModifyingMethodNamePart(Iterable<SaplCondition> saplConditions) {
         var creatModifyingPart = new StringBuilder();
 
         for (SaplCondition saplCondition : saplConditions) {
