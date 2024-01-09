@@ -39,7 +39,7 @@ Workflow {
        				name = "sapl-ide"
    				} 
 				runtimeTest = {
-					enabled = true
+					enabled = false
 				}
 				web = {
 					name = "sapl-web"			
