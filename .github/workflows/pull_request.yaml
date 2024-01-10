@@ -54,15 +54,17 @@ jobs:
         java-version: ${{ matrix.java }}
         cache: 'maven'
  
-    - name: Build with Maven (JUnit, JaCoCo, SonarCloud)
+    - name: Build with Maven (JUnit, JaCoCo, Spotbugs, SonarCloud)
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: >
-        mvn -U -B --fail-at-end verify sonar:sonar
-        -Pcoverage
+        mvn -U -B --fail-at-end verify spotbugs:spotbugs sonar:sonar
+        -pl '!sapl-bom'
+        -Pcoverage,spotbugs
         -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
         -Dsonar.host.url=https://sonarcloud.io
         -Dsonar.projectKey=heutelbeck_sapl-policy-engine
+        -Dsonar.java.spotbugs.reportPaths=target/spotbugsXml.xml
 
     - name: Publish Test Report
       # do not publish test results if PR is from dependabot -> PRs from dependabot are originated in the same repo but the GITHUB_TOKEN is read-only (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544)

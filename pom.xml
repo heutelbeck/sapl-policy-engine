@@ -95,6 +95,8 @@
 		<sonar.host.url>https://sonar.ftk.de</sonar.host.url>
 		<sonar.exclusions>**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/*</sonar.exclusions>
 		<sonar.organization>heutelbeck</sonar.organization>
+		<spotbugs.version>4.7.3.6</spotbugs.version>
+		<sbcontrib.version>7.6.0</sbcontrib.version>
 		<failsafe.version>3.1.2</failsafe.version>
 		<docker-registry-url>ghcr.io/heutelbeck</docker-registry-url>
 		<argLine />
@@ -613,6 +615,29 @@
 						</plugin>
 					</plugins>
 				</pluginManagement>
+			</build>
+		</profile>
+		<profile>
+			<id>spotbugs</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>com.github.spotbugs</groupId>
+						<artifactId>spotbugs-maven-plugin</artifactId>
+						<version>${spotbugs.version}</version>
+						<configuration>
+							<excludeFilterFile>spotbugsExcludeFilter.xml</excludeFilterFile>
+							<includeTests>true</includeTests>
+							<plugins>
+								 <plugin>
+									<groupId>com.mebigfatguy.sb-contrib</groupId>
+									<artifactId>sb-contrib</artifactId>
+									<version>${sbcontrib.version}</version>
+								</plugin>
+							</plugins>
+						</configuration>
+					</plugin>
+				</plugins>
 			</build>
 		</profile>
 	</profiles>
