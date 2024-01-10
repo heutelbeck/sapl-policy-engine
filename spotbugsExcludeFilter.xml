@@ -274,7 +274,6 @@
 			<Class name="~io.sapl.grammar.sapl.util.SaplSwitch*.*" />
 		</Or>
 	</Match>
-
 	<!-- The following rules are excluded from spotbugs analysis. -->
 	<Match>
 		<Or>
