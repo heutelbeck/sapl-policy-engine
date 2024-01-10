@@ -2,7 +2,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/heutelbeck/sapl-policy-engine">
-    <img src="https://sapl.io/assets/logo-header-45.png" alt="Logo" >
+    <img src="https://sapl.io/assets/favicon.png" alt="Logo" width="100em" >
   </a>
 
 <h3 align="center">SAPL</h3>
