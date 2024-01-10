@@ -24,8 +24,10 @@ VOLUME /tmp
 VOLUME /pdp/data
 WORKDIR /pdp
 ENV spring_profiles_active=docker
-COPY target/sapl-server-lt-3.0.0-SNAPSHOT.jar /pdp/pdp.jar
-ADD config /pdp/config
+ARG JAR_FILE
+ADD ${JAR_FILE} /pdp/pdp.jar
+ARG CONFIG_FOLDER
+ADD ${CONFIG_FOLDER} /pdp/config
 EXPOSE 8080
 EXPOSE 8443
 EXPOSE 7000
