@@ -261,10 +261,6 @@
 					</execution>
 				</executions>
 			</plugin>
-<!--			<plugin>
-				<groupId>org.eclipse.xtend</groupId>
-				<artifactId>xtend-maven-plugin</artifactId>
-			</plugin>-->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-clean-plugin</artifactId>
@@ -326,7 +322,6 @@
 							<sources>
 								<source>src/main/xtext-gen</source>
 								<source>src/main/emf-gen</source>
-								<source>src/main/xtend-gen</source>
 							</sources>
 							<resources>
 								<resource>
