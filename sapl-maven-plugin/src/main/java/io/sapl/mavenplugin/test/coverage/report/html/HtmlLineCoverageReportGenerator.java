@@ -184,7 +184,8 @@ public class HtmlLineCoverageReportGenerator {
         final String TARGET_BASE = "html/assets/";
         final String JS_BASE     = TARGET_BASE + "lib/js";
         final String CSS_BASE    = TARGET_BASE + "lib/css/";
-        final String IMAGE_BASE  = TARGET_BASE + "images/";
+        final String IMAGES      = "images/";
+        final String IMAGE_BASE  = TARGET_BASE + IMAGES;
 
         // JS
         dependencies.add(new WebDependency("sapl-mode", "sapl-mode.js", SOURCE_BASE, JS_BASE));
@@ -204,8 +205,8 @@ public class HtmlLineCoverageReportGenerator {
         dependencies.add(new WebDependency("codemirror", "codemirror.css", SOURCE_BASE + "codemirror/lib/", CSS_BASE));
 
         // images
-        dependencies.add(new WebDependency("logo-header", "logo-header.png", "images/", IMAGE_BASE));
-        dependencies.add(new WebDependency("favicon", "favicon.png", "images/", IMAGE_BASE));
+        dependencies.add(new WebDependency("logo-header", "logo-header.png", IMAGES, IMAGE_BASE));
+        dependencies.add(new WebDependency("favicon", "favicon.png", IMAGES, IMAGE_BASE));
 
         return dependencies;
     }
