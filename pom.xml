@@ -90,12 +90,13 @@
 		<license-maven-plugin.version>4.2</license-maven-plugin.version>
 		<dockerfile-maven-plugin.version>1.4.13</dockerfile-maven-plugin.version>
 		<jacoco.version>0.8.11</jacoco.version>
-		<sonar.version>3.9.1.2184</sonar.version>
 		<snakeyaml.version>2.2</snakeyaml.version>
+		<sonar.version>3.9.1.2184</sonar.version>
 		<sonar.host.url>https://sonar.ftk.de</sonar.host.url>
+		<sonar.exclusions>**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/*</sonar.exclusions>
+		<sonar.organization>heutelbeck</sonar.organization>
 		<failsafe.version>3.1.2</failsafe.version>
 		<docker-registry-url>ghcr.io/heutelbeck</docker-registry-url>
-		<sonar.exclusions>**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/*</sonar.exclusions>
 		<argLine />
 	</properties>
 
