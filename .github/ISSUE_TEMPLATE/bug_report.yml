@@ -24,7 +24,7 @@ body:
     id: reproducer
     attributes:
       label: "How to reproduce?"
-      description: "Provide reproducer, code examples or description for a minimal scenario to replicate the bug."
+      description: "Provide reproducer, code examples, or description for a minimal scenario to replicate the bug."
     validations:
       required: false
 
