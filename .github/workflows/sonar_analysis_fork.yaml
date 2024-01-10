@@ -89,7 +89,7 @@ jobs:
         mvn -U -B --fail-at-end sonar:sonar
         -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
         -Dsonar.organization=ancouli
-        -Dsonar.projectKey=ancouli_spring-test
+        -Dsonar.projectKey=ancouli_sapl-policy-engine
         -Dsonar.java.spotbugs.reportPaths=target/spotbugsXml.xml
         -Dsonar.pullrequest.key=${PR}
         -Dsonar.pullrequest.branch=${BRANCH}

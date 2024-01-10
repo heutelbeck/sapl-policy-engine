@@ -81,6 +81,7 @@ jobs:
           */target/classes
           */target/site/jacoco/jacoco.xml
           */pom.xml
+          pom.xml
           pr_data.csv
         retention-days: 1
 
