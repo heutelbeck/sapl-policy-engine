@@ -40,24 +40,72 @@ import io.sapl.api.pdp.Decision;
 
 class ConstraintHandlerUtilsTest {
 
-    static final ObjectMapper objectMapper = new ObjectMapper();
-    static JsonNode           obligations;
-    static JsonNode           mongoQueryManipulation;
-    static JsonNode           wrongTypesObligations;
-    static JsonNode           advice;
+    static final ObjectMapper MAPPER = new ObjectMapper();
+    static ArrayNode          OBLIGATIONS;
+    static JsonNode           MONGO_QUERY_MANIPULATION;
+    static ArrayNode          WRONG_TYPES_OBLIGATIONS;
+    static ArrayNode          ADVICE;
 
     final JsonNode nullNode = JsonNodeFactory.instance.nullNode();
 
     @BeforeAll
     public static void initBeforeAll() throws JsonProcessingException {
-        obligations            = objectMapper.readTree(
-                "[{\"type\":\"mongoQueryManipulation\",\"conditions\":[\"{'role':  {'$in': ['USER']}}\"]},{\"type\":\"filterJsonContent\",\"actions\":[{\"type\":\"blacken\",\"path\":\"$.firstname\",\"discloseLeft\":2}]},{\"type\":\"jsonContentFilterPredicate\",\"conditions\":[{\"type\":\"==\",\"path\":\"$.id\",\"value\":\"a1\"}]}]");
-        mongoQueryManipulation = objectMapper
-                .readTree("{\"type\":\"mongoQueryManipulation\",\"conditions\":[\"{'role':  {'$in': ['USER']}}\"]}");
-        wrongTypesObligations  = objectMapper
-                .readTree("[{\"type\":\"mongoQuery\",\"conditions\":[\"{'role':  {'$in': ['USER']}}\"]}]");
-        advice                 = objectMapper
-                .readTree("[{\"id\": \"log\",\"message\": \"You are using SAPL for protection of database.\"}]");
+        OBLIGATIONS              = MAPPER.readValue("""
+                    		[
+                  {
+                    "type": "mongoQueryManipulation",
+                    "conditions": [
+                      "{'role':  {'$in': ['USER']}}"
+                    ]
+                  },
+                  {
+                    "type": "filterJsonContent",
+                    "actions": [
+                      {
+                        "type": "blacken",
+                        "path": "$.firstname",
+                        "discloseLeft": 2
+                      }
+                    ]
+                  },
+                  {
+                    "type": "jsonContentFilterPredicate",
+                    "conditions": [
+                      {
+                        "type": "==",
+                        "path": "$.id",
+                        "value": "a1"
+                      }
+                    ]
+                  }
+                ]
+                    		""", ArrayNode.class);
+        MONGO_QUERY_MANIPULATION = MAPPER.readTree("""
+                          		{
+                  "type": "mongoQueryManipulation",
+                  "conditions": [
+                    "{'role':  {'$in': ['USER']}}"
+                  ]
+                }
+                          		""");
+        WRONG_TYPES_OBLIGATIONS  = MAPPER.readValue("""
+                          		[
+                  {
+                    "type": "mongoQuery",
+                    "conditions": [
+                      "{'role':  {'$in': ['USER']}}"
+                    ]
+                  }
+                ]
+                          		""", ArrayNode.class);
+        ADVICE                   = MAPPER.readValue("""
+                          		[
+                  {
+                    "id": "log",
+                    "message": "You are using SAPL for protection of database."
+                  }
+                ]
+                          		""", ArrayNode.class);
     }
 
     @Test
@@ -65,11 +113,11 @@ class ConstraintHandlerUtilsTest {
         // GIVEN
 
         // WHEN
-        var actual = ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(obligations,
+        var actual = ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(OBLIGATIONS,
                 "mongoQueryManipulation");
 
         // THEN
-        assertEquals(mongoQueryManipulation, actual);
+        assertEquals(MONGO_QUERY_MANIPULATION, actual);
     }
 
     @Test
@@ -77,7 +125,7 @@ class ConstraintHandlerUtilsTest {
         // GIVEN
 
         // WHEN
-        var actual = ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(wrongTypesObligations,
+        var actual = ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(WRONG_TYPES_OBLIGATIONS,
                 "mongoQueryManipulation");
 
         // THEN
@@ -87,7 +135,7 @@ class ConstraintHandlerUtilsTest {
     @Test
     void when_authorizationDecisionHasObligations_then_getObligations() {
         // GIVEN
-        var obligationsAsArrayNode = (ArrayNode) obligations;
+        var obligationsAsArrayNode = (ArrayNode) OBLIGATIONS;
         var optionalObligations    = Optional.of(obligationsAsArrayNode);
         var authDec                = new AuthorizationDecision(Decision.PERMIT, null, optionalObligations, null);
 
@@ -95,13 +143,13 @@ class ConstraintHandlerUtilsTest {
         var actual = ConstraintHandlerUtils.getObligations(authDec);
 
         // THEN
-        assertEquals(obligations, actual);
+        assertEquals(OBLIGATIONS, actual);
     }
 
     @Test
     void when_authorizationDecisionHasAdvice_then_getAdvice() {
         // GIVEN
-        var adviceAsArrayNode = (ArrayNode) advice;
+        var adviceAsArrayNode = (ArrayNode) ADVICE;
 
         var optionalAdvice = Optional.of(adviceAsArrayNode);
         var authDec        = new AuthorizationDecision(Decision.PERMIT, null, null, optionalAdvice);
@@ -110,7 +158,7 @@ class ConstraintHandlerUtilsTest {
         var actual = ConstraintHandlerUtils.getAdvice(authDec);
 
         // THEN
-        assertEquals(advice, actual);
+        assertEquals(ADVICE, actual);
     }
 
     @Test

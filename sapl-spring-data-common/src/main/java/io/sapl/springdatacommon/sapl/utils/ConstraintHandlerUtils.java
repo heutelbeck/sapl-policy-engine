@@ -34,8 +34,8 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class ConstraintHandlerUtils {
 
-    private ObjectMapper objectMapper   = new ObjectMapper();
-    private ArrayNode    emptyArrayNode = objectMapper.createArrayNode();
+    private static final ObjectMapper MAPPER           = new ObjectMapper();
+    private static final ArrayNode    EMPTY_ARRAY_NODE = MAPPER.createArrayNode();
 
     /**
      * Retrieves a specific ConstraintHandler from the Obligations using the type.
@@ -66,13 +66,9 @@ public class ConstraintHandlerUtils {
     public static ArrayNode getObligations(AuthorizationDecision decision) {
         var possibleObligations = decision.getObligations();
         if (possibleObligations.isEmpty()) {
-            return emptyArrayNode;
+            return EMPTY_ARRAY_NODE;
         }
-        var obligations = possibleObligations.get();
-        if (!obligations.isArray()) {
-            return emptyArrayNode;
-        }
-        return obligations;
+        return possibleObligations.get();
     }
 
     /**
@@ -83,6 +79,6 @@ public class ConstraintHandlerUtils {
      */
     public static ArrayNode getAdvice(AuthorizationDecision decision) {
         var advice = decision.getAdvice();
-        return advice.isPresent() ? advice.get() : emptyArrayNode;
+        return advice.isPresent() ? advice.get() : EMPTY_ARRAY_NODE;
     }
 }

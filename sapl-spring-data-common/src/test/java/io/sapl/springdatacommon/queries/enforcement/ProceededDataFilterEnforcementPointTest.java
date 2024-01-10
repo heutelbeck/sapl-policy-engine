@@ -36,6 +36,7 @@ import org.mockito.Mockito;
 import org.springframework.security.access.AccessDeniedException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
@@ -61,15 +62,46 @@ class ProceededDataFilterEnforcementPointTest {
 
     final Flux<Person> data = Flux.just(malinda, emerson, yul);
 
-    final ObjectMapper objectMapper   = new ObjectMapper();
-    final ArrayNode    emptyArrayNode = objectMapper.createArrayNode();
+    static final ObjectMapper MAPPER           = new ObjectMapper();
+    static final ArrayNode    EMPTY_ARRAY_NODE = MAPPER.createArrayNode();
+    static ArrayNode          OBLIGATIONS;
 
     EmbeddedPolicyDecisionPoint pdpMock;
 
     @BeforeEach
-    void beforeEach() {
+    void beforeEach() throws JsonMappingException, JsonProcessingException {
         constraintHandlerUtilsMock = mockStatic(ConstraintHandlerUtils.class);
         pdpMock                    = mock(EmbeddedPolicyDecisionPoint.class);
+        OBLIGATIONS                = MAPPER.readValue("""
+                    		[
+                  {
+                    "type": "r2dbcQueryManipulation",
+                    "conditions": [
+                      "{'role':  {'$in': ['USER']}}"
+                    ]
+                  },
+                  {
+                    "type": "filterJsonContent",
+                    "actions": [
+                      {
+                        "type": "blacken",
+                        "path": "$.firstname",
+                        "discloseLeft": 2
+                      }
+                    ]
+                  },
+                  {
+                    "type": "jsonContentFilterPredicate",
+                    "conditions": [
+                      {
+                        "type": "==",
+                        "path": "$.id",
+                        "value": "a1"
+                      }
+                    ]
+                  }
+                ]
+                    		""", ArrayNode.class);
     }
 
     @AfterEach
@@ -88,8 +120,6 @@ class ProceededDataFilterEnforcementPointTest {
         try (MockedConstruction<DataManipulationHandler> dataManipulationHandlerMockedConstruction = Mockito
                 .mockConstruction(DataManipulationHandler.class)) {
             // GIVEN
-            var obligations     = objectMapper.readTree(
-                    "[{\"type\":\"r2dbcQueryManipulation\",\"conditions\":[\"{'role':  {'$in': ['USER']}}\"]},{\"type\":\"filterJsonContent\",\"actions\":[{\"type\":\"blacken\",\"path\":\"$.firstname\",\"discloseLeft\":2}]},{\"type\":\"jsonContentFilterPredicate\",\"conditions\":[{\"type\":\"==\",\"path\":\"$.id\",\"value\":\"a1\"}]}]");
             var authSub         = AuthorizationSubscription.of("", "permitTest", "");
             var enforcementData = new QueryManipulationEnforcementData<>(r2dbcMethodInvocationTest, null, Person.class,
                     pdpMock, authSub);
@@ -100,18 +130,18 @@ class ProceededDataFilterEnforcementPointTest {
             // WHEN
             when(pdpMock.decide(any(AuthorizationSubscription.class)))
                     .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT)));
-            when(dataManipulationHandler.manipulate(obligations)).thenReturn((data) -> this.data);
+            when(dataManipulationHandler.manipulate(OBLIGATIONS)).thenReturn((data) -> this.data);
             constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)))
-                    .thenReturn(emptyArrayNode);
+                    .thenReturn(EMPTY_ARRAY_NODE);
             constraintHandlerUtilsMock
                     .when(() -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)))
-                    .thenReturn(obligations);
+                    .thenReturn(OBLIGATIONS);
             var testUserFlux = proceededDataFilterEnforcementPoint.enforce();
 
             // THEN
             StepVerifier.create(testUserFlux).expectNext(malinda).expectNext(emerson).expectNext(yul).verifyComplete();
 
-            verify(dataManipulationHandler, times(1)).manipulate(obligations);
+            verify(dataManipulationHandler, times(1)).manipulate(OBLIGATIONS);
         }
     }
 
@@ -125,8 +155,6 @@ class ProceededDataFilterEnforcementPointTest {
             MethodInvocationForTesting r2dbcMethodInvocationTest           = new MethodInvocationForTesting(
                     "findAllByFirstname", new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of("Cathrin")),
                     new Throwable());
-            var                        obligations                         = objectMapper.readTree(
-                    "[{\"type\":\"r2dbcQueryManipulation\",\"conditions\":[\"{'role':  {'$in': ['USER']}}\"]},{\"type\":\"filterJsonContent\",\"actions\":[{\"type\":\"blacken\",\"path\":\"$.firstname\",\"discloseLeft\":2}]},{\"type\":\"jsonContentFilterPredicate\",\"conditions\":[{\"type\":\"==\",\"path\":\"$.id\",\"value\":\"a1\"}]}]");
             var                        authSub                             = AuthorizationSubscription.of("",
                     "permitTest", "");
             var                        enforcementData                     = new QueryManipulationEnforcementData<>(
@@ -135,12 +163,12 @@ class ProceededDataFilterEnforcementPointTest {
                     enforcementData, true);
 
             var dataManipulationHandler = dataManipulationHandlerMockedConstruction.constructed().get(0);
-            when(dataManipulationHandler.manipulate(obligations)).thenReturn((data) -> this.data);
+            when(dataManipulationHandler.manipulate(OBLIGATIONS)).thenReturn((data) -> this.data);
             constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)))
-                    .thenReturn(emptyArrayNode);
+                    .thenReturn(EMPTY_ARRAY_NODE);
             constraintHandlerUtilsMock
                     .when(() -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)))
-                    .thenReturn(obligations);
+                    .thenReturn(OBLIGATIONS);
             when(pdpMock.decide(any(AuthorizationSubscription.class)))
                     .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT)));
 
@@ -150,7 +178,7 @@ class ProceededDataFilterEnforcementPointTest {
             // THEN
             StepVerifier.create(accessDeniedException).expectError(RuntimeException.class).verify();
 
-            verify(dataManipulationHandler, times(0)).manipulate(obligations);
+            verify(dataManipulationHandler, times(0)).manipulate(OBLIGATIONS);
         }
     }
 

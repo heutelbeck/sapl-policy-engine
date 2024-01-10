@@ -31,7 +31,7 @@ import reactor.core.publisher.Mono;
 
 @Repository
 public interface R2dbcPersonRepository
-        extends R2dbcRepository<Person, String>, R2dbcPersonRepositoryCustom<Person, String> {
+        extends R2dbcRepository<Person, Integer>, R2dbcPersonRepositoryCustom<Person, Integer> {
 
     @Enforce(subject = "subject", action = "general_protection_reactive_r2dbc_repository", resource = "resource", environment = "environment")
     Flux<Person> findAllByFirstname(String firstname);

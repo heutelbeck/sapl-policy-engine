@@ -108,12 +108,17 @@ public class SaplConditionOperation {
             if (val instanceof List<?> list) {
                 for (Object object : list) {
                     if (object instanceof Document doc) {
-                        doc.forEach((ke, va) -> addNewSaplCondition(saplConditions, ke, va, "Or"));
+                        doc.forEach((String field2, Object val2) -> {
+                            if (val2 instanceof Document docu) {
+                                addNewSaplCondition(saplConditions, field2, docu, "Or");
+                            }
+                        });
                     }
                 }
-
             } else {
-                addNewSaplCondition(saplConditions, field, val, "And");
+                if (val instanceof Document d) {
+                    addNewSaplCondition(saplConditions, field, d, "And");
+                }
             }
         });
 
@@ -214,9 +219,8 @@ public class SaplConditionOperation {
         return domainTypes;
     }
 
-    private List<SaplCondition> addNewSaplCondition(List<SaplCondition> saplConditions, String field, Object val,
+    private List<SaplCondition> addNewSaplCondition(List<SaplCondition> saplConditions, String field, Document doc,
             String conjunction) {
-        var doc      = (Document) val;
         var operator = OperatorMongoDB.getOperatorByKeyword(doc.keySet().toArray()[0].toString());
         var value    = doc.values().toArray()[0];
 

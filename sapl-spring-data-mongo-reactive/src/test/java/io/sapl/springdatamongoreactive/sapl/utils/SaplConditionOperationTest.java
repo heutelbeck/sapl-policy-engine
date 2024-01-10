@@ -34,22 +34,39 @@ import io.sapl.springdatamongoreactive.sapl.OperatorMongoDB;
 
 class SaplConditionOperationTest {
 
-    static final ObjectMapper objectMapper = new ObjectMapper();
-    static JsonNode           mongoQueryManipulation;
-    static JsonNode           mongoQueryManipulationOrPart;
-    static JsonNode           conditions;
-    static JsonNode           conditionsWithOrPart;
-    static JsonNode           notValidConditions;
+    static final ObjectMapper MAPPER = new ObjectMapper();
+    static JsonNode           MONGO_QUERY_MANIPULATION;
+    static JsonNode           MONGO_QUERY_MANIPULATION_OR_PART;
+    static JsonNode           CONDITIONS;
+    static JsonNode           CONDITIONS_WITH_OR_PART;
+    static JsonNode           NOT_VALID_CONDITIONS;
 
     @BeforeAll
     public static void setUp() throws JsonProcessingException {
-        mongoQueryManipulation       = objectMapper.readTree(
-                "{\"type\":\"mongoQueryManipulation\",\"conditions\":[\"{'age': {'gt': 30 }}\", \"{'firstname':  {'$in': ['Cathrin', 'Aaron']}}\"]}");
-        mongoQueryManipulationOrPart = objectMapper.readTree(
-                "{\"type\":\"mongoQueryManipulation\",\"conditions\":[\"{ 'age' : { '$lt' : 40}, '$or' : [{ 'firstname' : {'$eq': 'Aaron'}}]}\"]}");
-        conditions                   = mongoQueryManipulation.get("conditions");
-        conditionsWithOrPart         = mongoQueryManipulationOrPart.get("conditions");
-        notValidConditions           = objectMapper.readTree("[\"{'fieldNotValid': {'gt': 30 }}\"]");
+        MONGO_QUERY_MANIPULATION         = MAPPER.readTree("""
+                    		{
+                  "type": "mongoQueryManipulation",
+                  "conditions": [
+                    "{'age': {'gt': 30 }}",
+                    "{'firstname':  {'$in': ['Cathrin', 'Aaron']}}"
+                  ]
+                }
+                    		""");
+        MONGO_QUERY_MANIPULATION_OR_PART = MAPPER.readTree("""
+                    		{
+                  "type": "mongoQueryManipulation",
+                  "conditions": [
+                    "{ 'age' : { '$lt' : 40}, '$or' : [{ 'firstname' : {'$eq': 'Aaron'}}]}"
+                  ]
+                }
+                    		""");
+        CONDITIONS                       = MONGO_QUERY_MANIPULATION.get("conditions");
+        CONDITIONS_WITH_OR_PART          = MONGO_QUERY_MANIPULATION_OR_PART.get("conditions");
+        NOT_VALID_CONDITIONS             = MAPPER.readTree("""
+                    		[
+                  "{'fieldNotValid': {'gt': 30 }}"
+                ]
+                    		""");
     }
 
     @Test
@@ -60,7 +77,7 @@ class SaplConditionOperationTest {
         expected.add(new SaplCondition("firstname", "Aaron", OperatorMongoDB.SIMPLE_PROPERTY, "or"));
 
         // WHEN
-        var actualSaplConditions = SaplConditionOperation.jsonNodeToSaplConditions(conditionsWithOrPart);
+        var actualSaplConditions = SaplConditionOperation.jsonNodeToSaplConditions(CONDITIONS_WITH_OR_PART);
 
         // THEN
         assertTwoSaplConditions(actualSaplConditions.get(0), expected.get(0));
@@ -75,7 +92,7 @@ class SaplConditionOperationTest {
         expected.add(new SaplCondition("firstname", List.of("Cathrin", "Aaron"), OperatorMongoDB.IN, "and"));
 
         // WHEN
-        var actualSaplConditions = SaplConditionOperation.jsonNodeToSaplConditions(conditions);
+        var actualSaplConditions = SaplConditionOperation.jsonNodeToSaplConditions(CONDITIONS);
 
         // THEN
         assertTwoSaplConditions(actualSaplConditions.get(0), expected.get(0));

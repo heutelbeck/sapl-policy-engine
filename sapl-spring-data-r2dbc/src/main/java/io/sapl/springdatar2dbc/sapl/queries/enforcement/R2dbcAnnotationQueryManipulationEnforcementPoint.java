@@ -37,6 +37,7 @@ import io.sapl.springdatacommon.handlers.QueryManipulationObligationProvider;
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementPoint;
 import io.sapl.springdatacommon.sapl.queries.enforcement.QueryAnnotationParameterResolver;
+import io.sapl.springdatacommon.sapl.utils.Utilities;
 import io.sapl.springdatar2dbc.sapl.QueryManipulationExecutor;
 import lombok.SneakyThrows;
 import reactor.core.publisher.Flux;
@@ -133,11 +134,14 @@ public class R2dbcAnnotationQueryManipulationEnforcementPoint<T> implements Quer
                     .map(dataManipulationHandler.toDomainObject());
         } else {
 
-            if (enforcementData.getMethodInvocation().getMethod().getReturnType().equals(Mono.class)) {
-                return Flux.from((Mono<T>) Objects.requireNonNull(enforcementData.getMethodInvocation().proceed()));
+            var returnClass  = enforcementData.getMethodInvocation().getMethod().getReturnType();
+            var returnValues = enforcementData.getMethodInvocation().proceed();
+
+            if (Utilities.isMono(returnClass)) {
+                return Flux.from((Mono<T>) Objects.requireNonNull(returnValues));
             }
 
-            return (Flux<T>) enforcementData.getMethodInvocation().proceed();
+            return (Flux<T>) returnValues;
         }
     }
 

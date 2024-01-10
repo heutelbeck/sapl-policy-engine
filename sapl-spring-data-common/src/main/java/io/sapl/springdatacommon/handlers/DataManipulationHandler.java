@@ -48,8 +48,8 @@ public class DataManipulationHandler<T> {
     private final Class<T> domainType;
     private final boolean  isRelationalDatabase;
 
-    private final OidObjectMapper          oidObjectMapper = new OidObjectMapper();
-    private final ObjectMapper             objectMapper    = new ObjectMapper();
+    private static final OidObjectMapper   OID_MAPPER = new OidObjectMapper();
+    private static final ObjectMapper      MAPPER     = new ObjectMapper();
     private ContentFilteringProvider       contentFilteringProvider;
     private ContentFilterPredicateProvider contentFilterPredicateProvider;
 
@@ -64,11 +64,11 @@ public class DataManipulationHandler<T> {
     public Function<Flux<T>, Flux<T>> manipulate(JsonNode obligations) {
         return data -> {
             if (this.isRelationalDatabase) {
-                this.contentFilteringProvider       = new ContentFilteringProvider(objectMapper);
-                this.contentFilterPredicateProvider = new ContentFilterPredicateProvider(objectMapper);
+                this.contentFilteringProvider       = new ContentFilteringProvider(MAPPER);
+                this.contentFilterPredicateProvider = new ContentFilterPredicateProvider(MAPPER);
             } else {
-                this.contentFilteringProvider       = new ContentFilteringProvider(oidObjectMapper);
-                this.contentFilterPredicateProvider = new ContentFilterPredicateProvider(oidObjectMapper);
+                this.contentFilteringProvider       = new ContentFilteringProvider(OID_MAPPER);
+                this.contentFilterPredicateProvider = new ContentFilterPredicateProvider(OID_MAPPER);
             }
 
             var filterJsonContentObligation = getConstraintHandlerByTypeIfResponsible(obligations, FILTER_JSON_CONTENT);
@@ -102,7 +102,7 @@ public class DataManipulationHandler<T> {
      * @return the converted object.
      */
     public Function<Object, T> toDomainObject() {
-        return databaseObject -> oidObjectMapper.convertValue(databaseObject, domainType);
+        return databaseObject -> OID_MAPPER.convertValue(databaseObject, domainType);
     }
 
     /**

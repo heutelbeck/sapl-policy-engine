@@ -33,6 +33,7 @@ import org.mockito.MockedStatic;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.springdatacommon.handlers.DataManipulationHandler;
@@ -54,18 +55,70 @@ class DataManipulationHandlerTest {
     final Flux<Person> data = Flux.just(malinda, emerson, yul);
 
     static final ObjectMapper MAPPER = new ObjectMapper();
-    static JsonNode           OBLIGARTIONS;
+    static ArrayNode          OBLIGATIONS;
     static JsonNode           JSON_CONTENT_FILTER_PREDICATE;
     static JsonNode           FILTER_JSON_CONTENT;
 
     @BeforeAll
     public static void beforeAll() throws JsonProcessingException {
-        OBLIGARTIONS                  = MAPPER.readTree(
-                "[{\"type\":\"r2dbcQueryManipulation\",\"conditions\":[\"{'role':  {'$in': ['USER']}}\"]},{\"type\":\"filterJsonContent\",\"actions\":[{\"type\":\"blacken\",\"path\":\"$.firstname\",\"discloseLeft\":2}]},{\"type\":\"jsonContentFilterPredicate\",\"conditions\":[{\"type\":\"==\",\"path\":\"$.id\",\"value\":\"a1\"}]}]");
-        JSON_CONTENT_FILTER_PREDICATE = MAPPER.readTree(
-                "{\"type\":\"jsonContentFilterPredicate\",\"conditions\":[{\"type\":\"==\",\"path\":\"$.firstname\",\"value\":\"Malinda\"}]}");
-        FILTER_JSON_CONTENT           = MAPPER.readTree(
-                "{\"type\":\"filterJsonContent\",\"actions\":[{\"type\":\"blacken\",\"path\":\"$.firstname\",\"discloseLeft\":2},{\"type\":\"delete\",\"path\":\"$.age\"}]}");
+        OBLIGATIONS                   = MAPPER.readValue("""
+                    		[
+                  {
+                    "type": "r2dbcQueryManipulation",
+                    "conditions": [
+                      "{'role':  {'$in': ['USER']}}"
+                    ]
+                  },
+                  {
+                    "type": "filterJsonContent",
+                    "actions": [
+                      {
+                        "type": "blacken",
+                        "path": "$.firstname",
+                        "discloseLeft": 2
+                      }
+                    ]
+                  },
+                  {
+                    "type": "jsonContentFilterPredicate",
+                    "conditions": [
+                      {
+                        "type": "==",
+                        "path": "$.id",
+                        "value": "a1"
+                      }
+                    ]
+                  }
+                ]
+                    		""", ArrayNode.class);
+        JSON_CONTENT_FILTER_PREDICATE = MAPPER.readTree("""
+                    		{
+                  "type": "jsonContentFilterPredicate",
+                  "conditions": [
+                    {
+                      "type": "==",
+                      "path": "$.firstname",
+                      "value": "Malinda"
+                    }
+                  ]
+                }
+                    		""");
+        FILTER_JSON_CONTENT           = MAPPER.readTree("""
+                    		{
+                  "type": "filterJsonContent",
+                  "actions": [
+                    {
+                      "type": "blacken",
+                      "path": "$.firstname",
+                      "discloseLeft": 2
+                    },
+                    {
+                      "type": "delete",
+                      "path": "$.age"
+                    }
+                  ]
+                }
+                    		""");
     }
 
     @BeforeEach
@@ -88,7 +141,7 @@ class DataManipulationHandlerTest {
                 () -> ConstraintHandlerUtils.getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), anyString()))
                 .thenReturn(JsonNodeFactory.instance.nullNode());
 
-        var result = dataManipulationHandler.manipulate(OBLIGARTIONS).apply(data);
+        var result = dataManipulationHandler.manipulate(OBLIGATIONS).apply(data);
 
         // THEN
         StepVerifier.create(result).expectNextMatches(testUser -> assertTwoPersons(testUser, malinda))
@@ -115,7 +168,7 @@ class DataManipulationHandlerTest {
                 .getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("jsonContentFilterPredicate")))
                 .thenReturn(JSON_CONTENT_FILTER_PREDICATE);
 
-        var result = dataManipulationHandler.manipulate(OBLIGARTIONS).apply(data);
+        var result = dataManipulationHandler.manipulate(OBLIGATIONS).apply(data);
 
         // THEN
         StepVerifier.create(result).expectNextMatches(person -> assertTwoPersons(person, malinda)).expectComplete()
@@ -141,7 +194,7 @@ class DataManipulationHandlerTest {
                 .getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("jsonContentFilterPredicate")))
                 .thenReturn(JsonNodeFactory.instance.nullNode());
 
-        var result = dataManipulationHandler.manipulate(OBLIGARTIONS).apply(data);
+        var result = dataManipulationHandler.manipulate(OBLIGATIONS).apply(data);
 
         // THEN
         StepVerifier.create(result).expectNextMatches(testUser -> {
@@ -187,7 +240,7 @@ class DataManipulationHandlerTest {
                 .getConstraintHandlerByTypeIfResponsible(any(JsonNode.class), eq("jsonContentFilterPredicate")))
                 .thenReturn(JSON_CONTENT_FILTER_PREDICATE);
 
-        var result = dataManipulationHandler.manipulate(OBLIGARTIONS).apply(data);
+        var result = dataManipulationHandler.manipulate(OBLIGATIONS).apply(data);
 
         // THEN
         StepVerifier.create(result).expectNextMatches(testUser -> {
