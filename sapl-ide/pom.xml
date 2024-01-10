@@ -75,6 +75,13 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- OSGi -->
+		<dependency>
+			<groupId>org.osgi</groupId>
+			<artifactId>org.osgi.annotation.bundle</artifactId>
+			<scope>provided</scope>
+		</dependency>
+
 		<!-- Utility -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
@@ -120,6 +127,28 @@
 						</configuration>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>biz.aQute.bnd</groupId>
+				<artifactId>bnd-maven-plugin</artifactId>
+				<version>6.4.0</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>bnd-process</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<configuration>
+					<archive>
+						<manifestFile>
+							${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+					</archive>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
