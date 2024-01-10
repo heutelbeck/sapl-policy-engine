@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Before posting any questions or asking for support, first read the project's README.md file, the documentation, the website or other additional documentation that might be listed in the project's or module's README.md file.
+        Before posting any questions or asking for support, first read the project's README.md file, the documentation, the website, or other additional documentation that might be listed in the project's or module's README.md file.
 
         To expedite issue processing, please search open and closed issues before submitting a new one.
         Please read our Code of Conduct and Contributing Guidelines at this repository.

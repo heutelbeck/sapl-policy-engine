@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-name: Test Pull Request from Repo
+name: Test Pull Request from Fork
 on:
   pull_request:
 
@@ -33,13 +33,20 @@ jobs:
     name: Unit Tests (JDK ${{ matrix.java }} on ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 35
-    if: ${{ !github.event.pull_request.head.repo.fork }}
+    if: ${{ github.event.pull_request.head.repo.fork }}
 
     steps:
     - name: Harden Runner
       uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895 # v2.6.1
       with:
         egress-policy: audit
+        
+    - name: Check Branch Name
+      run: |
+         if [[ "${{ github.head_ref }}" =~ [\]\'\"] ]]; then
+           echo "Build process stopped. Branch name contains suspicious character."
+           exit 1
+         fi
 
     - name: Check out
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -53,23 +60,31 @@ jobs:
         distribution: temurin
         java-version: ${{ matrix.java }}
         cache: 'maven'
- 
-    - name: Build with Maven (JUnit, JaCoCo, Spotbugs, SonarCloud)
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        
+    - name: Build and Test (JUnit, JaCoCo, Spotbugs)
       run: >
-        mvn -U -B --fail-at-end verify spotbugs:spotbugs sonar:sonar
+        mvn -U -B --fail-at-end verify spotbugs:spotbugs
         -pl '!sapl-bom'
         -Pcoverage,spotbugs
         -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
-        -Dsonar.host.url=https://sonarcloud.io
-        -Dsonar.projectKey=heutelbeck_sapl-policy-engine
-        -Dsonar.java.spotbugs.reportPaths=target/spotbugsXml.xml
-
-    - name: Publish Test Report
-      # do not publish test results if PR is from dependabot -> PRs from dependabot are originated in the same repo but the GITHUB_TOKEN is read-only (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544)
-      if: ${{ github.actor != 'dependabot[bot]'}}
-      uses: scacap/action-surefire-report@6efd3d10b5c1996a0724dd4c4915a073f685fefa # v1.7.2
+        
+    - name: Save PR Details
+      run: echo "${{ github.event.number }},${{ github.head_ref }},${{ github.base_ref }}" > pr_data.csv
+ 
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: pr_build
+        path: |
+          */src
+          */target/spotbugsXml.xml
+          */target/classes
+          */target/site/jacoco/jacoco.xml
+          */pom.xml
+          pom.xml
+          pr_data.csv
+          .git
+        retention-days: 1
 
     - name: Clean up local repository before caching
       run: rm -rf /.m2/repository/io/sapl
