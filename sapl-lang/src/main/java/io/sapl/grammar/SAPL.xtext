@@ -31,7 +31,7 @@ Import:
 		     | libSteps+=SaplID ('.' libSteps+=SaplID)* '.' functionName=SaplID	) ;
 
 Schema:
-    subscriptionElement=ReservedID 'schema' schemaExpression=Expression;
+    subscriptionElement=ReservedID (enforced='enforced')? 'schema' schemaExpression=Expression;
 
 PolicyElement:
 	PolicySet | Policy;

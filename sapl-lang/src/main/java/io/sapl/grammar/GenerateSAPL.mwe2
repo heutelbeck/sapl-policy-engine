@@ -79,6 +79,7 @@ Workflow {
 				//debugGrammar = true
 			//}
 			junitSupport = {
+				generateStub = false
 				junitVersion = "5"
 			}
 			webSupport = SAPLWebIntegrationFragment {
