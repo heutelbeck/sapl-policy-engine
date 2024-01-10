@@ -285,6 +285,7 @@
 							<followSymlinks>false</followSymlinks>
 							<includes>
 								<include>node_modules/**</include>
+								<include>package-lock.json</include>
 							</includes>
 						</fileset>
 					</filesets>
