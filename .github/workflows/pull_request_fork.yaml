@@ -86,10 +86,5 @@ jobs:
           .git
         retention-days: 1
 
-    - name: Publish Test Report
-      # do not publish test results if PR is from dependabot -> PRs from dependabot are originated in the same repo but the GITHUB_TOKEN is read-only (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544)
-      if: ${{ github.actor != 'dependabot[bot]'}}
-      uses: scacap/action-surefire-report@6efd3d10b5c1996a0724dd4c4915a073f685fefa # v1.7.2
-
     - name: Clean up local repository before caching
       run: rm -rf /.m2/repository/io/sapl
