@@ -2,7 +2,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/heutelbeck/sapl-policy-engine">
-    <img src="https://sapl.io/assets/logo-header-45.png" alt="Logo" >
+    <img src="https://sapl.io/assets/favicon.png" alt="Logo" width="100em" >
   </a>
 
 <h3 align="center">SAPL</h3>
@@ -34,18 +34,18 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-The reactive open source engine for adding Attribute-Based Access Control (ABAC) to your Java applications, supporting attribute streams for efficient interactive real-time access control.
+The reactive open-source engine for adding Attribute-Based Access Control (ABAC) to your Java applications, supporting attribute streams for efficient interactive real-time access control.
 
-SAPL is a powerful policy language and engine for implementing ABAC. It comes with development tools for testing, authorization servers and authoring tools. Framework integrations are available for Spring, Axon and Vaadin to provide flexible policy enforcement points (PEPs) in your application.
+SAPL is a powerful policy language and engine for implementing ABAC. It comes with development tools for testing, authorization servers, and authoring tools. Framework integrations are available for Spring, Axon, and Vaadin to provide flexible policy enforcement points (PEPs) in your application.
 
-For an explanation, overview and documentation about the SAPL project look up our [website][website-url].
+For an explanation, overview, and documentation about the SAPL project look up our [website][website-url].
 
 <!-- GETTING STARTED -->
 ## Getting Started
 
 To get started with integrating SAPL into your Java application, add the following reference to your build tool project definition.
 
-**We recommend to use the [SNAPSHOT](#snapshots) version as the latest stable version is outdated.**
+**We recommend using the [SNAPSHOT](#snapshots) version as the latest stable version is outdated.**
 
 **Maven**
 
@@ -69,7 +69,7 @@ This enables you to use the interface `PolicyDecisionPoint` to decide about requ
 
 Want to integrate and understand the full scale of capabilities of SAPL? Visit our [website][website-url].
 
-Want to see examples for integration? View our dedicated [demos](#want-to-integrate-sapl).
+Want to see integration examples? View our dedicated [demos](#want-to-integrate-sapl).
 
 Feeling experimental? Use our [snapshots](#snapshots) for the newest development state!
 
@@ -92,14 +92,14 @@ See our [Contribution document](CONTRIBUTING.md) for more detailed information o
 <!-- SECURITY -->
 ## Found a vulnerability?
 
-The project is commited to identifying and eliminating any potential weaknesses in its security.
+The project is committed to identifying and eliminating any potential weaknesses in its security.
 
 See our [Security document](SECURITY.md) for more detailed information on how to report vulnerabilities.
 
 <!-- SNAPSHOTS REFERENCE -->
 ## Snapshots
 
-This projects provides snapshots of the newest development state to enable testing and integration.
+This project provides snapshots of the newest development state to enable testing and integration.
 
 **Be careful when using snapshots as they may be broken!**
 

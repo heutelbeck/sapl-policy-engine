@@ -21,10 +21,9 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-import org.checkerframework.checker.regex.qual.Regex;
-
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.Regex;
 import reactor.core.publisher.Flux;
 
 /**

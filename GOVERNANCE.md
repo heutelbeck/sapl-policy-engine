@@ -8,7 +8,7 @@ This document outlines the governance model for SAPL.
 
 **Anything that supports SAPL is a valuable contribution!**
 
-All types of contribution are meaningful. This can include code changes, type fixes, Discord activity, and even posting about SAPL to your personal blog. No contribution is too small!
+All types of contributions are meaningful. This can include code changes, type fixes, Discord activity, and even posting about SAPL to your blog. No contribution is too small!
 
 Look up the [contribution file](CONTRIBUTING.md) for further information.
 
@@ -23,7 +23,7 @@ You qualify as a Contributor by making or attempting to make contributions, larg
 
 #### Responsibilities
 
-This role does not require any extra responsibilities nor time commitment. We hope you stick around and keep participating in our community!
+This role does not require any extra responsibilities or time commitment. We hope you stick around and keep participating in our community!
 
 If you're interested in contributing even more and becoming a **Maintainer**, you can explore some of those responsibilities in the [next section](#2---maintainer).
 
@@ -42,12 +42,12 @@ A maintainer is responsible for evaluating contributions and providing in-depth 
 - Triage new issues.
 - Review pull requests.
 - Merge pull requests.
-- Merge your own pull requests (once reviewed and approved).
+- Merge your pull requests (once reviewed and approved).
 
 ### 3 - BDFL
 
 The project has a BDFL (Benevolent Dictator for Life), currently [@heutelbeck](https://github.com/heutelbeck).
-As Dictator, the BDFL has the authority to make all final decisions for the project and overrule anyone else.
+As a Dictator, the BDFL has the authority to make all final decisions for the project and overrule anyone else.
 
 His primary responsibility is to set the strategic direction of the project.
 He also participates in the community and has the same responsibilities as the maintainers.
