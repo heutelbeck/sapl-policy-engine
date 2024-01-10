@@ -17,6 +17,7 @@
  */
 package io.sapl.interpreter;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -25,15 +26,16 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -41,12 +43,12 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
+import lombok.SneakyThrows;
 
 class DefaultSAPLInterpreterTransformationTests {
 
     private static final ObjectMapper               MAPPER           = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT);
-    private static final JsonNodeFactory            JSON             = JsonNodeFactory.instance;
     private static final DefaultSAPLInterpreter     INTERPRETER      = new DefaultSAPLInterpreter();
     private static final AnnotationAttributeContext ATTRIBUTE_CTX    = new AnnotationAttributeContext();
     private static final AnnotationFunctionContext  FUNCTION_CTX     = new AnnotationFunctionContext();
@@ -62,479 +64,422 @@ class DefaultSAPLInterpreterTransformationTests {
         FUNCTION_CTX.loadLibrary(simpleFilterFunctionLibrary);
     }
 
-    @Test
-    public void simpleTransformationWithComment() throws JsonProcessingException {
-        var authorizationSubscription = new AuthorizationSubscription(null, null, null, null);
-        var policy                    = """
-                policy "test"
-                permit
-                transform
-                    "teststring"        // This is a dummy comment
-                    /* another comment */
-                """;
-        var expectedDecision          = new AuthorizationDecision(Decision.PERMIT,
-                Optional.of(MAPPER.<JsonNode>readValue("\"teststring\"\n", JsonNode.class)), Optional.empty(),
+    @SneakyThrows
+    @ParameterizedTest
+    @MethodSource("transformationTestCases")
+    void validSaplDocumentsParseWithoutError(String testCase, String authorizationSubscription, String saplDocument,
+            String expectedResource) {
+        assertThat(testCase).isNotNull();
+        var expectedDecision = new AuthorizationDecision(Decision.PERMIT,
+                Optional.of(MAPPER.<JsonNode>readValue(expectedResource, JsonNode.class)), Optional.empty(),
                 Optional.empty());
-
-        assertThatPolicyEvaluationReturnsExpectedDecisionFirstForSubscription(authorizationSubscription, policy,
+        var subscription     = MAPPER.readValue(authorizationSubscription, AuthorizationSubscription.class);
+        assertThatPolicyEvaluationReturnsExpectedDecisionFirstForSubscription(subscription, saplDocument,
                 expectedDecision);
     }
 
-    @Test
-    void simpleFiltering() throws JsonProcessingException {
-        var authorizationSubscription = AuthorizationSubscription.of(null, null, "teststring");
-        var policy                    = """
-                 policy "test"
-                 permit
-                 transform
-                     resource |- filter.blacken
-                """;
-        var expectedDecision          = AuthorizationDecision.PERMIT.withResource(JSON.textNode("XXXXXXXXXX"));
-
-        assertThatPolicyEvaluationReturnsExpectedDecisionFirstForSubscription(authorizationSubscription, policy,
-                expectedDecision);
-    }
-
-    @Test
-    void simpleArrayCondition() throws JsonProcessingException {
-        var authorizationSubscription = AuthorizationSubscription.of(null, null, new int[] { 1, 2, 3, 4, 5 });
-        var policy                    = """
-                   policy "test"
-                   permit
-                   transform
-                       resource[?(@>2 || @<2)]
-                """;
-        var expectedResource          = MAPPER.<JsonNode>readValue("[1,3,4,5]", JsonNode.class);
-        var expectedDecision          = AuthorizationDecision.PERMIT.withResource(expectedResource);
-
-        assertThatPolicyEvaluationReturnsExpectedDecisionFirstForSubscription(authorizationSubscription, policy,
-                expectedDecision);
-    }
-
-    @Test
-    void conditionTransformation() throws JsonProcessingException {
-        var authorizationSubscription = MAPPER.readValue("""
-                    {
-                        "resource":{
-                            "array":[
-                                {
-                                    "key1":1,
-                                    "key2":2
-                                },
-                                {
-                                    "key1":3,
-                                    "key2":4
-                                },
-                                {
-                                    "key1":5,
-                                    "key2":6
-                                }
-                            ]
+    @SneakyThrows
+    private static Stream<Arguments> transformationTestCases() {
+        // @formatter:off
+        return Stream.of(new Arguments[] { 
+                Arguments.of(
+                        "simpleTransformationWithComment",
+                        "{}", 
+                        """
+                        policy "test"
+                        permit
+                        transform
+                            "teststring"        // This is a dummy comment
+                            /* another comment */
+                        """, 
+                        "\"teststring\""), 
+                    
+                Arguments.of(
+                        "simpleFiltering",
+                        """
+                        { "resource" : "teststring" }
+                        """,
+                        """
+                        policy "test"
+                        permit
+                        transform
+                            resource |- filter.blacken
+                        """, 
+                        "\"XXXXXXXXXX\""), 
+                    
+                Arguments.of(
+                        "simpleArrayCondition",
+                        """
+                        { "resource" : [1, 2, 3, 4, 5] }                         
+                        """,
+                        """
+                        policy "test"
+                        permit
+                        transform
+                            resource[?(@>2 || @<2)]
+                        """, 
+                        "[1,3,4,5]"), 
+                    
+                Arguments.of(
+                        "conditionTransformation",
+                        """
+                        {
+                            "resource":{
+                                "array":[
+                                    {
+                                        "key1":1,
+                                        "key2":2
+                                    },
+                                    {
+                                        "key1":3,
+                                        "key2":4
+                                    },
+                                    {
+                                        "key1":5,
+                                        "key2":6
+                                    }
+                                ]
+                            }
                         }
-                    }
-                """, AuthorizationSubscription.class);
-        var policy                    = """
-                   policy "test"
-                   permit
-                   transform
-                       {
-                           "array": resource.array[?(@.key1 > 2)]
-                       }
-                """;
-        var expectedResource          = MAPPER.readValue("""
-                     {
-                         "array":[
-                             {
-                                 "key1":3,
-                                 "key2":4
-                             },
-                             {
-                                 "key1":5,
-                                 "key2":6
-                             }
-                         ]
-                     }
-                """, JsonNode.class);
-        var expectedDecision          = AuthorizationDecision.PERMIT.withResource(expectedResource);
-
-        assertThatPolicyEvaluationReturnsExpectedDecisionFirstForSubscription(authorizationSubscription, policy,
-                expectedDecision);
-    }
-
-    @Test
-    void conditionSubTemplateFiltering() throws JsonProcessingException {
-        var authorizationSubscription = MAPPER.readValue("""
-                    {
-                        "resource":{
-                            "array":[
-                                {
-                                    "key1":1,
-                                    "key2":2
-                                },
-                                {
-                                    "key1":3,
-                                    "key2":4
-                                },
-                                {
-                                    "key1":5,
-                                    "key2":6
-                                }
-                            ]
-                        }
-                    }
-                """, AuthorizationSubscription.class);
-        var policy                    = """
-                     policy "test"
-                     permit
-                     transform
-                         {
-                             "array": resource.array[?(@.key1 > 2)] :: {
-                                 "key20": @.key2
-                             }
-                         }
-                """;
-        var expectedResource          = MAPPER.readValue("""
-                   {
-                       "array":[
-                           {
-                               "key20":4
-                           },
-                           {
-                               "key20":6
-                           }
-                       ]
-                   }
-                """, JsonNode.class);
-        var expectedDecision          = AuthorizationDecision.PERMIT.withResource(expectedResource);
-
-        assertThatPolicyEvaluationReturnsExpectedDecisionFirstForSubscription(authorizationSubscription, policy,
-                expectedDecision);
-    }
-
-    @Test
-    void conditionFilteringRules() throws JsonProcessingException {
-        var authorizationSubscription = MAPPER.readValue("""
-                     {
-                         "resource":{
-                             "array":[
-                                 {
-                                     "key1":1,
-                                     "key2":"2"
-                                 },
-                                 {
-                                     "key1":3,
-                                     "key2":"4"
-                                 },
-                                 {
-                                     "key1":5,
-                                     "key2":"6"
-                                 }
-                             ]
-                         }
-                     }
-                """, AuthorizationSubscription.class);
-        var policy                    = """
-                     policy "test"
-                     permit
-                     transform
-                         {
-                             "array": resource.array[?(@.key1 > 2)] |- {
-                                 @.key2 : filter.blacken
-                             }
-                         }
-                """;
-        var expectedResource          = MAPPER.readValue("""
-                      {
-                          "array":[
-                              {
-                                  "key1":3,
-                                  "key2":"X"
-                              },
-                              {
-                                  "key1":5,
-                                  "key2":"X"
-                              }
-                          ]
-                      }
-                """, JsonNode.class);
-        var expectedDecision          = AuthorizationDecision.PERMIT.withResource(expectedResource);
-
-        assertThatPolicyEvaluationReturnsExpectedDecisionFirstForSubscription(authorizationSubscription, policy,
-                expectedDecision);
-    }
-
-    @Test
-    void arrayLast() throws JsonProcessingException {
-        var authorizationSubscription = MAPPER.readValue("""
-                 {
-                     "resource":{
-                         "array":["1","2","3","4","5"]
-                     }
-                 }
-                """, AuthorizationSubscription.class);
-        var policy                    = """
+                        """,
+                        """
                         policy "test"
                         permit
                         transform
                             {
-                                "last": resource.array[-1]
+                                "array": resource.array[?(@.key1 > 2)]
                             }
-                """;
-        var expectedResource          = MAPPER.readValue("""
-                   {
-                       "last":"5"
-                   }
-                """, JsonNode.class);
-        var expectedDecision          = AuthorizationDecision.PERMIT.withResource(expectedResource);
-
-        assertThatPolicyEvaluationReturnsExpectedDecisionFirstForSubscription(authorizationSubscription, policy,
-                expectedDecision);
-    }
-
-    @Test
-    void arraySlicing1() throws JsonProcessingException {
-        var authorizationSubscription = MAPPER.readValue("""
-                 {
-                     "resource":{
-                         "array":["1","2","3","4","5"]
-                     }
-                 }
-                """, AuthorizationSubscription.class);
-        var policy                    = """
-                        policy "test"
-                        permit
-                        transform
-                            {
-                                 "array": resource.array[2:]
-                            }
-                """;
-        var expectedResource          = MAPPER.readValue("""
-                       {
-                           "array":["3","4","5"]
-                       }
-                """, JsonNode.class);
-        var expectedDecision          = AuthorizationDecision.PERMIT.withResource(expectedResource);
-
-        assertThatPolicyEvaluationReturnsExpectedDecisionFirstForSubscription(authorizationSubscription, policy,
-                expectedDecision);
-    }
-
-    @Test
-    void arraySlicing2() throws JsonProcessingException {
-        var authorizationSubscription = MAPPER.readValue("""
-                 {
-                     "resource":{
-                         "array":["1","2","3","4","5"]
-                     }
-                 }
-                """, AuthorizationSubscription.class);
-        var policy                    = """
-                        policy "test"
-                        permit
-                        transform
-                            {
-                                 "array": resource.array[1:-1:2]
-                            }
-                """;
-        var expectedResource          = MAPPER.readValue("""
-                       {
-                           "array":["2","4"]
-                       }
-                """, JsonNode.class);
-        var expectedDecision          = AuthorizationDecision.PERMIT.withResource(expectedResource);
-
-        assertThatPolicyEvaluationReturnsExpectedDecisionFirstForSubscription(authorizationSubscription, policy,
-                expectedDecision);
-    }
-
-    @Test
-    void arrayExpressionMultipleIndices() throws JsonProcessingException {
-        var authorizationSubscription = MAPPER.readValue("""
-                 {
-                     "resource":{
-                         "array":["1","2","3","4","5"],
-                         "a_number":1
-                     }
-                 }
-                """, AuthorizationSubscription.class);
-        var policy                    = """
-                        policy "test"
-                        permit
-                        transform
-                            {
-                                 "array": resource.array[2,4]
-                            }
-                """;
-        var expectedResource          = MAPPER.readValue("""
-                       {
-                           "array":["3","5"]
-                       }
-                """, JsonNode.class);
-        var expectedDecision          = AuthorizationDecision.PERMIT.withResource(expectedResource);
-
-        assertThatPolicyEvaluationReturnsExpectedDecisionFirstForSubscription(authorizationSubscription, policy,
-                expectedDecision);
-    }
-
-    @Test
-    void arrayExplicitEach() throws JsonProcessingException {
-        var authorizationSubscription = MAPPER.readValue("""
-                 {
-                     "resource":{
-                         "array":["1","2","3","4","5"]
-                     }
-                 }
-                """, AuthorizationSubscription.class);
-        var policy                    = """
-                        policy "test"
-                        permit
-                        transform
-                            resource |- {
-                                each @.array : filter.blacken
-                            }
-                """;
-        var expectedResource          = MAPPER.readValue("""
-                       {
-                           "array":["X","X","X","X","X"]
-                       }
-                """, JsonNode.class);
-        var expectedDecision          = AuthorizationDecision.PERMIT.withResource(expectedResource);
-
-        assertThatPolicyEvaluationReturnsExpectedDecisionFirstForSubscription(authorizationSubscription, policy,
-                expectedDecision);
-    }
-
-    @Test
-    void arrayMultidimensional() throws JsonProcessingException {
-        var authorizationSubscription = MAPPER.readValue("""
-                     {
-                         "resource":{
-                             "array":[
-                                 {"value":"1"},
-                                 {"value":"2"},
-                                 {"value":"3"}
-                             ]
-                         }
-                     }
-                """, AuthorizationSubscription.class);
-        var policy                    = """
-                        policy "test"
-                        permit
-                        transform
-                            resource |- {
-                                @.array[1:].value : filter.blacken
-                            }
-                """;
-        var expectedResource          = MAPPER.readValue("""
+                        """, 
+                        """
                         {
                             "array":[
-                                {"value":"1"},
-                                {"value":"X"},
-                                {"value":"X"}
+                                {
+                                    "key1":3,
+                                    "key2":4
+                                },
+                                {
+                                    "key1":5,
+                                    "key2":6
+                                }
                             ]
                         }
-                """, JsonNode.class);
-        var expectedDecision          = AuthorizationDecision.PERMIT.withResource(expectedResource);
-
-        assertThatPolicyEvaluationReturnsExpectedDecisionFirstForSubscription(authorizationSubscription, policy,
-                expectedDecision);
-    }
-
-    @Test
-    void recursiveDescent() throws JsonProcessingException {
-        var authorizationSubscription = MAPPER.readValue("""
-                     {
-                         "resource":{
-                             "array":[
-                                 {"value":"1"},
-                                 {"value":"2"},
-                                 {"value":"3"}
-                             ]
-                         }
-                     }
-                """, AuthorizationSubscription.class);
-        var policy                    = """
+                        """), 
+                    
+                Arguments.of(
+                        "conditionSubTemplateFiltering",
+                        """
+                        {
+                            "resource":{
+                                "array":[
+                                    {
+                                        "key1":1,
+                                        "key2":2
+                                    },
+                                    {
+                                        "key1":3,
+                                        "key2":4
+                                    },
+                                    {
+                                        "key1":5,
+                                        "key2":6
+                                    }
+                                ]
+                            }
+                        }
+                        """,  
+                        """
                         policy "test"
                         permit
                         transform
-                                resource..value
-                """;
-        var expectedResource          = MAPPER.readValue("[\"1\",\"2\",\"3\"]", JsonNode.class);
-        var expectedDecision          = AuthorizationDecision.PERMIT.withResource(expectedResource);
-
-        assertThatPolicyEvaluationReturnsExpectedDecisionFirstForSubscription(authorizationSubscription, policy,
-                expectedDecision);
-    }
-
-    @Test
-    void recursiveDescentInFilterRemove() throws JsonProcessingException {
-        var authorizationSubscription = MAPPER.readValue("""
-                   {
-                       "resource":{
-                           "array":[
-                               {"value":"1"},
-                               {"value":"2"},
-                               {"value":"3"}
-                           ],
-                           "value":"4"
-                       }
-                   }
-                """, AuthorizationSubscription.class);
-        var policy                    = """
+                          {
+                            "array": resource.array[?(@.key1 > 2)] :: {
+                                 "key20": @.key2
+                            }
+                          }
+                        """, 
+                        """
+                        {
+                            "array":[
+                                {
+                                    "key20":4
+                                },
+                                {
+                                    "key20":6
+                                }
+                            ]
+                        }
+                        """), 
+                    
+                Arguments.of(
+                        "conditionFilteringRules",
+                        """
+                        {
+                            "resource":{
+                                "array":[
+                                    {
+                                        "key1":1,
+                                        "key2":"2"
+                                    },
+                                    {
+                                        "key1":3,
+                                        "key2":"4"
+                                    },
+                                    {
+                                        "key1":5,
+                                        "key2":"6"
+                                    }
+                                ]
+                            }
+                        }
+                        """,
+                        """
+                        policy "test"
+                        permit
+                        transform
+                            {
+                                "array": resource.array[?(@.key1 > 2)] |- {
+                                    @.key2 : filter.blacken
+                                }
+                            }
+                        """, 
+                        """
+                        {
+                            "array":[
+                                {
+                                    "key1":3,
+                                    "key2":"X"
+                                },
+                                {
+                                    "key1":5,
+                                    "key2":"X"
+                                }
+                            ]
+                        }
+                        """), 
+                
+            Arguments.of(
+                    "arrayLast",
+                    """
+                    {
+                        "resource":{
+                            "array":["1","2","3","4","5"]
+                        }
+                    }
+                    """,
+                    """
                     policy "test"
                     permit
                     transform
-                        resource |- {
-                            @..value : filter.remove
+                        {
+                            "last": resource.array[-1]
                         }
-                """;
-        var expectedResource          = MAPPER.readValue("""
-                         {
-                             "array":[{},{},{}]
-                         }
-                """, JsonNode.class);
-        var expectedDecision          = AuthorizationDecision.PERMIT.withResource(expectedResource);
-
-        assertThatPolicyEvaluationReturnsExpectedDecisionFirstForSubscription(authorizationSubscription, policy,
-                expectedDecision);
-    }
-
-    @Test
-    void filterReplace() throws JsonProcessingException {
-        var authorizationSubscription = MAPPER.readValue("""
-                         {
-                             "resource":{
-                                 "array":[
-                                     {"name":"John Doe"},
-                                     {"name":"Jane Doe"}
-                                 ],
-                                 "value":"4",
-                                 "name":"Tom Doe"
-                             }
-                         }
-                """, AuthorizationSubscription.class);
-        var policy                    = """
-                         policy "test"
-                         permit
-                         transform
-                             resource |- {
-                                 @..name : filter.replace("***")
-                             }
-                """;
-        var expectedResource          = MAPPER.readValue("""
-                           {
-                               "array":[
-                                   {"name":"***"},
-                                   {"name":"***"}
-                               ],
-                               "value":"4",
-                               "name":"***"
-                           }
-                """, JsonNode.class);
-        var expectedDecision          = AuthorizationDecision.PERMIT.withResource(expectedResource);
-
-        assertThatPolicyEvaluationReturnsExpectedDecisionFirstForSubscription(authorizationSubscription, policy,
-                expectedDecision);
+                    """, 
+                    """
+                    { "last":"5" }
+                    """),         
+            
+        Arguments.of(
+                "arraySlicing1",
+                """
+                {
+                    "resource":{
+                        "array":["1","2","3","4","5"]
+                    }
+                }
+                """,
+                """
+                policy "test"
+                permit
+                transform
+                    {
+                         "array": resource.array[2:]
+                    }
+                """, 
+                """
+                { "array":["3","4","5"] }
+                """),         
+        
+        Arguments.of(
+            "arraySlicing2",
+            """
+            {
+                "resource":{
+                    "array":["1","2","3","4","5"]
+                }
+            }
+            """,
+            """
+            policy "test"
+            permit
+            transform
+                {
+                     "array": resource.array[1:-1:2]
+                }
+            """, 
+            """
+            { "array":["2","4"] }
+            """),         
+        
+        Arguments.of(
+            "arrayExpressionMultipleIndices",
+            """
+            {
+                "resource":{
+                    "array":["1","2","3","4","5"],
+                    "a_number":1
+                }
+            }
+            """,
+            """
+            policy "test"
+            permit
+            transform
+                {
+                     "array": resource.array[2,4]
+                }
+            """, 
+            """
+            { "array":["3","5"] }
+            """),
+        
+        Arguments.of(
+            "arrayExplicitEach",
+            """
+            {
+                "resource":{
+                    "array":["1","2","3","4","5"]
+                }
+            }
+            """,
+            """
+            policy "test"
+            permit
+            transform
+                resource |- {
+                    each @.array : filter.blacken
+                }
+            """, 
+            """
+            { "array":["X","X","X","X","X"] }
+            """),    
+        
+        Arguments.of(
+            "arrayMultidimensional",
+            """
+            {
+                "resource":{
+                    "array":[
+                        {"value":"1"},
+                        {"value":"2"},
+                        {"value":"3"}
+                    ]
+                }
+            }
+            """,
+            """
+            policy "test"
+            permit
+            transform
+                resource |- {
+                    @.array[1:].value : filter.blacken
+                }
+            """, 
+            """
+            {
+                "array":[
+                    {"value":"1"},
+                    {"value":"X"},
+                    {"value":"X"}
+                ]
+            }
+            """),    
+        
+        Arguments.of(
+                "recursiveDescent",
+                """
+                {
+                    "resource":{
+                        "array":[
+                            {"value":"1"},
+                            {"value":"2"},
+                            {"value":"3"}
+                        ]
+                    }
+                }
+                """,
+                """
+                policy "test"
+                permit
+                transform
+                        resource..value
+                """, 
+                """
+                ["1","2","3"]
+                """),    
+        
+        Arguments.of(
+                "recursiveDescentInFilterRemove",
+                """
+                {
+                    "resource":{
+                        "array":[
+                            {"value":"1"},
+                            {"value":"2"},
+                            {"value":"3"}
+                        ],
+                        "value":"4"
+                    }
+                }
+                """,
+                """
+                policy "test"
+                permit
+                transform
+                    resource |- {
+                        @..value : filter.remove
+                    }
+                """, 
+                """
+                {
+                    "array":[{},{},{}]
+                }
+                """),    
+        
+        Arguments.of(
+                "filterReplace",
+                """
+                {
+                    "resource":{
+                        "array":[
+                            {"name":"John Doe"},
+                            {"name":"Jane Doe"}
+                        ],
+                        "value":"4",
+                        "name":"Tom Doe"
+                    }
+                }
+                """,
+                """
+                policy "test"
+                permit
+                transform
+                    resource |- {
+                        @..name : filter.replace("***")
+                    }
+                """, 
+                """
+                {
+                    "array":[
+                        {"name":"***"},
+                        {"name":"***"}
+                    ],
+                    "value":"4",
+                    "name":"***"
+                }
+                """),    
+                
+        });
+        // @formatter:on
     }
 
     private void assertThatPolicyEvaluationReturnsExpectedDecisionFirstForSubscription(
