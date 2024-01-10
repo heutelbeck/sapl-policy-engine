@@ -14,9 +14,12 @@
 # limitations under the License.
 #
 
-name: Test Pull Request from Repo
+name: Analyse Pull Request from Fork
 on:
-  pull_request:
+  workflow_run:
+    workflows: [Test Pull Request from Fork]
+    types:
+      - completed
 
 permissions:  # added using https://github.com/step-security/secure-repo
   contents: read
@@ -30,22 +33,41 @@ jobs:
        matrix:
          java: [ '17' ]
          os: [ubuntu-latest]
-    name: Unit Tests (JDK ${{ matrix.java }} on ${{ matrix.os }})
+    name: SonarCloud Analysis
     runs-on: ${{ matrix.os }}
     timeout-minutes: 35
-    if: ${{ !github.event.pull_request.head.repo.fork }}
+    if: github.event.workflow_run.conclusion == 'success'
 
     steps:
     - name: Harden Runner
       uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895 # v2.6.1
       with:
         egress-policy: audit
-
-    - name: Check out
-      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        
+    
+    - name: 'Download Artifact'
+      uses: actions/github-script@v6
       with:
-        lfs: true
-        fetch-depth: 0
+        script: |
+          let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
+             owner: context.repo.owner,
+             repo: context.repo.repo,
+             run_id: context.payload.workflow_run.id,
+          });
+          let matchArtifact = allArtifacts.data.artifacts.filter((artifact) => {
+            return artifact.name == "pr_build"
+          })[0];
+          let download = await github.rest.actions.downloadArtifact({
+             owner: context.repo.owner,
+             repo: context.repo.repo,
+             artifact_id: matchArtifact.id,
+             archive_format: 'zip',
+          });
+          let fs = require('fs');
+          fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/pr_build.zip`, Buffer.from(download.data));
+
+    - name: 'Unzip artifact'
+      run: unzip pr_build.zip
 
     - name: Set up JDK ${{ matrix.java }}
       uses: actions/setup-java@0ab4596768b603586c0de567f2430c30f5b0d2b0 # v3.13.0
@@ -53,23 +75,25 @@ jobs:
         distribution: temurin
         java-version: ${{ matrix.java }}
         cache: 'maven'
- 
-    - name: Build with Maven (JUnit, JaCoCo, Spotbugs, SonarCloud)
+
+    - name: Get PR Details
+      run: |
+        echo "PR=$(cut -d ',' -f 1 pr_data.csv)" >> $GITHUB_ENV
+        echo "BRANCH=$(cut -d ',' -f 2 pr_data.csv)" >> $GITHUB_ENV
+        echo "BASE=$(cut -d ',' -f 3 pr_data.csv)" >> $GITHUB_ENV
+        
+    - name: Analyse with SonarCloud
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: >
-        mvn -U -B --fail-at-end verify spotbugs:spotbugs sonar:sonar
-        -pl '!sapl-bom'
-        -Pcoverage,spotbugs
+        mvn -U -B --fail-at-end sonar:sonar
         -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
         -Dsonar.host.url=https://sonarcloud.io
         -Dsonar.projectKey=heutelbeck_sapl-policy-engine
         -Dsonar.java.spotbugs.reportPaths=target/spotbugsXml.xml
-
-    - name: Publish Test Report
-      # do not publish test results if PR is from dependabot -> PRs from dependabot are originated in the same repo but the GITHUB_TOKEN is read-only (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544)
-      if: ${{ github.actor != 'dependabot[bot]'}}
-      uses: scacap/action-surefire-report@6efd3d10b5c1996a0724dd4c4915a073f685fefa # v1.7.2
+        -Dsonar.pullrequest.key=${PR}
+        -Dsonar.pullrequest.branch=${BRANCH}
+        -Dsonar.pullrequest.base=${BASE}
 
     - name: Clean up local repository before caching
       run: rm -rf /.m2/repository/io/sapl
