@@ -1,0 +1,99 @@
+#
+# Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+name: Analyse Pull Request from Fork
+on:
+  workflow_run:
+    workflows: [Test Pull Request from Fork]
+    types:
+      - completed
+
+permissions:  # added using https://github.com/step-security/secure-repo
+  contents: read
+
+jobs:
+  build:
+    permissions:
+      checks: write  # for scacap/action-surefire-report to publish result as PR check
+      contents: read  # for actions/checkout to fetch code
+    strategy:
+       matrix:
+         java: [ '17' ]
+         os: [ubuntu-latest]
+    name: SonarCloud Analysis
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    if: github.event.workflow_run.conclusion == 'success'
+
+    steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895 # v2.6.1
+      with:
+        egress-policy: audit
+        
+    
+    - name: 'Download Artifact'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
+             owner: context.repo.owner,
+             repo: context.repo.repo,
+             run_id: context.payload.workflow_run.id,
+          });
+          let matchArtifact = allArtifacts.data.artifacts.filter((artifact) => {
+            return artifact.name == "pr_build"
+          })[0];
+          let download = await github.rest.actions.downloadArtifact({
+             owner: context.repo.owner,
+             repo: context.repo.repo,
+             artifact_id: matchArtifact.id,
+             archive_format: 'zip',
+          });
+          let fs = require('fs');
+          fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/pr_build.zip`, Buffer.from(download.data));
+
+    - name: 'Unzip artifact'
+      run: unzip pr_build.zip
+
+    - name: Set up JDK ${{ matrix.java }}
+      uses: actions/setup-java@0ab4596768b603586c0de567f2430c30f5b0d2b0 # v3.13.0
+      with:
+        distribution: temurin
+        java-version: ${{ matrix.java }}
+        cache: 'maven'
+
+    - name: Get PR Details
+      run: |
+        echo "PR=$(cut -d ',' -f 1 pr_data.csv)" >> $GITHUB_ENV
+        echo "BRANCH=$(cut -d ',' -f 2 pr_data.csv)" >> $GITHUB_ENV
+        echo "BASE=$(cut -d ',' -f 3 pr_data.csv)" >> $GITHUB_ENV
+        
+    - name: Analyse with SonarCloud
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      run: >
+        mvn -U -B --fail-at-end sonar:sonar
+        -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+        -Dsonar.organization=ancouli
+        -Dsonar.projectKey=ancouli_spring-test
+        -Dsonar.java.spotbugs.reportPaths=target/spotbugsXml.xml
+        -Dsonar.pullrequest.key=${PR}
+        -Dsonar.pullrequest.branch=${BRANCH}
+        -Dsonar.pullrequest.base=${BASE}
+
+    - name: Clean up local repository before caching
+      run: rm -rf /.m2/repository/io/sapl

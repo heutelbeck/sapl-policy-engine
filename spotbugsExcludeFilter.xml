@@ -1,0 +1,2341 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!--
+
+    Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
+
+    SPDX-License-Identifier: Apache-2.0
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<FindBugsFilter
+	xmlns="https://github.com/spotbugs/filter/3.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="https://github.com/spotbugs/filter/3.0.0 https://raw.githubusercontent.com/spotbugs/spotbugs/3.1.0/spotbugs/etc/findbugsfilter.xsd">
+
+	<Match>
+		<Or>
+			<Class
+				name="~io.sapl.generator.web.SAPLWebIntegrationFragment*.*" />
+			<Class name="~io.sapl.grammar.tests.SAPLParsingTest*.*" />
+			<Class
+				name="~io.sapl.interpreter.DefaultSAPLInterpreterTransformationTest*.*" />
+			<Class name="~io.sapl.interpreter.DemoDomainTest*.*" />
+			<Class name="~io.sapl.interpreter.SampleOurPuppetTest*.*" />
+			<Class name="~io.sapl.interpreter.SampleXACMLTest*.*" />
+			<Class name="~io.sapl.grammar.tests.SAPLParsingTest*.*" />
+			<Class
+				name="~io.sapl.interpreter.DefaultSAPLInterpreterTransformationTests*.*" />
+			<Class name="~io.sapl.interpreter.DemoDomainTests*.*" />
+			<Class name="~io.sapl.interpreter.SampleOurPuppetTests*.*" />
+			<Class name="~io.sapl.interpreter.SampleXACMLTests*.*" />
+			<Class name="~io.sapl.grammar.ide.AbstractSAPLIdeModule*.*" />
+			<Class
+				name="~io.sapl.grammar.ide.contentassist.antlr.PartialSAPLContentAssistParser*.*" />
+			<Class
+				name="~io.sapl.grammar.ide.contentassist.antlr.SAPLParser*.*" />
+			<Class
+				name="~io.sapl.grammar.ide.contentassist.antlr.internal.InternalSAPLLexer*.*" />
+			<Class
+				name="~io.sapl.grammar.ide.contentassist.antlr.internal.InternalSAPLParser*.*" />
+			<Class name="~io.sapl.grammar.AbstractSAPLRuntimeModule*.*" />
+			<Class name="~io.sapl.grammar.SAPLStandaloneSetupGenerated*.*" />
+			<Class
+				name="~io.sapl.grammar.parser.antlr.SAPLAntlrTokenFileProvider*.*" />
+			<Class name="~io.sapl.grammar.parser.antlr.SAPLParser*.*" />
+			<Class
+				name="~io.sapl.grammar.parser.antlr.internal.InternalSAPLLexer*.*" />
+			<Class
+				name="~io.sapl.grammar.parser.antlr.internal.InternalSAPLParser*.*" />
+			<Class
+				name="~io.sapl.grammar.scoping.AbstractSAPLScopeProvider*.*" />
+			<Class
+				name="~io.sapl.grammar.serializer.SAPLSemanticSequencer*.*" />
+			<Class
+				name="~io.sapl.grammar.serializer.SAPLSyntacticSequencer*.*" />
+			<Class name="~io.sapl.grammar.services.SAPLGrammarAccess*.*" />
+			<Class
+				name="~io.sapl.grammar.validation.AbstractSAPLValidator*.*" />
+			<Class name="~io.sapl.grammar.tests.SAPLInjectorProvider*.*" />
+			<Class name="~io.sapl.grammar.web.AbstractSAPLWebModule*.*" />
+			<Class name="~io.sapl.grammar.sapl.And*.*" />
+			<Class name="~io.sapl.grammar.sapl.Arguments*.*" />
+			<Class name="~io.sapl.grammar.sapl.Array*.*" />
+			<Class name="~io.sapl.grammar.sapl.ArraySlicingStep*.*" />
+			<Class name="~io.sapl.grammar.sapl.AttributeFinderStep*.*" />
+			<Class name="~io.sapl.grammar.sapl.AttributeUnionStep*.*" />
+			<Class
+				name="~io.sapl.grammar.sapl.BasicEnvironmentAttribute*.*" />
+			<Class
+				name="~io.sapl.grammar.sapl.BasicEnvironmentHeadAttribute*.*" />
+			<Class name="~io.sapl.grammar.sapl.BasicExpression*.*" />
+			<Class name="~io.sapl.grammar.sapl.BasicFunction*.*" />
+			<Class name="~io.sapl.grammar.sapl.BasicGroup*.*" />
+			<Class name="~io.sapl.grammar.sapl.BasicIdentifier*.*" />
+			<Class name="~io.sapl.grammar.sapl.BasicRelative*.*" />
+			<Class name="~io.sapl.grammar.sapl.BasicValue*.*" />
+			<Class name="~io.sapl.grammar.sapl.BinaryOperator*.*" />
+			<Class name="~io.sapl.grammar.sapl.CombiningAlgorithm*.*" />
+			<Class name="~io.sapl.grammar.sapl.Condition*.*" />
+			<Class name="~io.sapl.grammar.sapl.ConditionStep*.*" />
+			<Class name="~io.sapl.grammar.sapl.Deny*.*" />
+			<Class
+				name="~io.sapl.grammar.sapl.DenyOverridesCombiningAlgorithm*.*" />
+			<Class
+				name="~io.sapl.grammar.sapl.DenyUnlessPermitCombiningAlgorithm*.*" />
+			<Class name="~io.sapl.grammar.sapl.Div*.*" />
+			<Class name="~io.sapl.grammar.sapl.EagerAnd*.*" />
+			<Class name="~io.sapl.grammar.sapl.EagerOr*.*" />
+			<Class name="~io.sapl.grammar.sapl.ElementOf*.*" />
+			<Class name="~io.sapl.grammar.sapl.Entitlement*.*" />
+			<Class name="~io.sapl.grammar.sapl.Equals*.*" />
+			<Class name="~io.sapl.grammar.sapl.EscapedKeyStep*.*" />
+			<Class name="~io.sapl.grammar.sapl.Evaluable*.*" />
+			<Class name="~io.sapl.grammar.sapl.EvaluableDocument*.*" />
+			<Class name="~io.sapl.grammar.sapl.Expression*.*" />
+			<Class name="~io.sapl.grammar.sapl.ExpressionStep*.*" />
+			<Class name="~io.sapl.grammar.sapl.FalseLiteral*.*" />
+			<Class name="~io.sapl.grammar.sapl.FilterComponent*.*" />
+			<Class name="~io.sapl.grammar.sapl.FilterExtended*.*" />
+			<Class name="~io.sapl.grammar.sapl.FilterSimple*.*" />
+			<Class name="~io.sapl.grammar.sapl.FilterStatement*.*" />
+			<Class
+				name="~io.sapl.grammar.sapl.FirstApplicableCombiningAlgorithm*.*" />
+			<Class name="~io.sapl.grammar.sapl.HeadAttributeFinderStep*.*" />
+			<Class name="~io.sapl.grammar.sapl.Import*.*" />
+			<Class name="~io.sapl.grammar.sapl.IndexStep*.*" />
+			<Class name="~io.sapl.grammar.sapl.IndexUnionStep*.*" />
+			<Class name="~io.sapl.grammar.sapl.KeyStep*.*" />
+			<Class name="~io.sapl.grammar.sapl.Less*.*" />
+			<Class name="~io.sapl.grammar.sapl.LessEquals*.*" />
+			<Class name="~io.sapl.grammar.sapl.LibraryImport*.*" />
+			<Class name="~io.sapl.grammar.sapl.Matchable*.*" />
+			<Class name="~io.sapl.grammar.sapl.Minus*.*" />
+			<Class name="~io.sapl.grammar.sapl.Modulo*.*" />
+			<Class name="~io.sapl.grammar.sapl.More*.*" />
+			<Class name="~io.sapl.grammar.sapl.MoreEquals*.*" />
+			<Class name="~io.sapl.grammar.sapl.Multi*.*" />
+			<Class name="~io.sapl.grammar.sapl.Not*.*" />
+			<Class name="~io.sapl.grammar.sapl.NotEquals*.*" />
+			<Class name="~io.sapl.grammar.sapl.NullLiteral*.*" />
+			<Class name="~io.sapl.grammar.sapl.NumberLiteral*.*" />
+			<Class name="~io.sapl.grammar.sapl.Object*.*" />
+			<Class
+				name="~io.sapl.grammar.sapl.OnlyOneApplicableCombiningAlgorithm*.*" />
+			<Class name="~io.sapl.grammar.sapl.Or*.*" />
+			<Class name="~io.sapl.grammar.sapl.Pair*.*" />
+			<Class name="~io.sapl.grammar.sapl.Permit*.*" />
+			<Class
+				name="~io.sapl.grammar.sapl.PermitOverridesCombiningAlgorithm*.*" />
+			<Class
+				name="~io.sapl.grammar.sapl.PermitUnlessDenyCombiningAlgorithm*.*" />
+			<Class name="~io.sapl.grammar.sapl.Plus*.*" />
+			<Class name="~io.sapl.grammar.sapl.Policy*.*" />
+			<Class name="~io.sapl.grammar.sapl.PolicyBody*.*" />
+			<Class name="~io.sapl.grammar.sapl.PolicyElement*.*" />
+			<Class name="~io.sapl.grammar.sapl.PolicySet*.*" />
+			<Class name="~io.sapl.grammar.sapl.RecursiveIndexStep*.*" />
+			<Class name="~io.sapl.grammar.sapl.RecursiveKeyStep*.*" />
+			<Class name="~io.sapl.grammar.sapl.RecursiveWildcardStep*.*" />
+			<Class name="~io.sapl.grammar.sapl.Regex*.*" />
+			<Class name="~io.sapl.grammar.sapl.SAPL*.*" />
+			<Class name="~io.sapl.grammar.sapl.SaplFactory*.*" />
+			<Class name="~io.sapl.grammar.sapl.SaplPackage*.*" />
+			<Class name="~io.sapl.grammar.sapl.Schema*.*" />
+			<Class name="~io.sapl.grammar.sapl.Statement*.*" />
+			<Class name="~io.sapl.grammar.sapl.Step*.*" />
+			<Class name="~io.sapl.grammar.sapl.StringLiteral*.*" />
+			<Class name="~io.sapl.grammar.sapl.TrueLiteral*.*" />
+			<Class name="~io.sapl.grammar.sapl.UnaryMinus*.*" />
+			<Class name="~io.sapl.grammar.sapl.UnaryOperator*.*" />
+			<Class name="~io.sapl.grammar.sapl.UnaryPlus*.*" />
+			<Class name="~io.sapl.grammar.sapl.UndefinedLiteral*.*" />
+			<Class name="~io.sapl.grammar.sapl.UnionStep*.*" />
+			<Class name="~io.sapl.grammar.sapl.Value*.*" />
+			<Class name="~io.sapl.grammar.sapl.ValueDefinition*.*" />
+			<Class name="~io.sapl.grammar.sapl.WildcardImport*.*" />
+			<Class name="~io.sapl.grammar.sapl.WildcardStep*.*" />
+			<Class name="~io.sapl.grammar.sapl.XOr*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.AndImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.ArgumentsImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.ArrayImpl*.*" />
+			<Class
+				name="~io.sapl.grammar.sapl.impl.ArraySlicingStepImpl*.*" />
+			<Class
+				name="~io.sapl.grammar.sapl.impl.AttributeFinderStepImpl*.*" />
+			<Class
+				name="~io.sapl.grammar.sapl.impl.AttributeUnionStepImpl*.*" />
+			<Class
+				name="~io.sapl.grammar.sapl.impl.BasicEnvironmentAttributeImpl*.*" />
+			<Class
+				name="~io.sapl.grammar.sapl.impl.BasicEnvironmentHeadAttributeImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.BasicExpressionImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.BasicFunctionImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.BasicGroupImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.BasicIdentifierImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.BasicRelativeImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.BasicValueImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.BinaryOperatorImpl*.*" />
+			<Class
+				name="~io.sapl.grammar.sapl.impl.CombiningAlgorithmImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.ConditionImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.ConditionStepImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.DenyImpl*.*" />
+			<Class
+				name="~io.sapl.grammar.sapl.impl.DenyOverridesCombiningAlgorithmImpl*.*" />
+			<Class
+				name="~io.sapl.grammar.sapl.impl.DenyUnlessPermitCombiningAlgorithmImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.DivImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.EagerAndImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.EagerOrImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.ElementOfImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.EqualsImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.EscapedKeyStepImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.ExpressionImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.ExpressionStepImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.FalseLiteralImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.FilterComponentImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.FilterExtendedImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.FilterSimpleImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.FilterStatementImpl*.*" />
+			<Class
+				name="~io.sapl.grammar.sapl.impl.FirstApplicableCombiningAlgorithmImpl*.*" />
+			<Class
+				name="~io.sapl.grammar.sapl.impl.HeadAttributeFinderStepImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.ImportImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.IndexStepImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.IndexUnionStepImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.KeyStepImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.LessEqualsImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.LessImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.LibraryImportImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.MinusImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.ModuloImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.MoreEqualsImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.MoreImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.MultiImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.NotEqualsImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.NotImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.NullLiteralImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.NumberLiteralImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.ObjectImpl*.*" />
+			<Class
+				name="~io.sapl.grammar.sapl.impl.OnlyOneApplicableCombiningAlgorithmImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.OrImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.PairImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.PermitImpl*.*" />
+			<Class
+				name="~io.sapl.grammar.sapl.impl.PermitOverridesCombiningAlgorithmImpl*.*" />
+			<Class
+				name="~io.sapl.grammar.sapl.impl.PermitUnlessDenyCombiningAlgorithmImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.PlusImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.PolicyBodyImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.PolicyElementImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.PolicyImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.PolicySetImpl*.*" />
+			<Class
+				name="~io.sapl.grammar.sapl.impl.RecursiveIndexStepImpl*.*" />
+			<Class
+				name="~io.sapl.grammar.sapl.impl.RecursiveKeyStepImpl*.*" />
+			<Class
+				name="~io.sapl.grammar.sapl.impl.RecursiveWildcardStepImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.RegexImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.SaplFactoryImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.SAPLImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.SaplPackageImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.SchemaImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.StatementImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.StepImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.StringLiteralImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.TrueLiteralImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.UnaryMinusImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.UnaryOperatorImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.UnaryPlusImpl*.*" />
+			<Class
+				name="~io.sapl.grammar.sapl.impl.UndefinedLiteralImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.UnionStepImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.ValueDefinitionImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.ValueImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.WildcardImportImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.WildcardStepImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.impl.XOrImpl*.*" />
+			<Class name="~io.sapl.grammar.sapl.util.SaplAdapterFactory*.*" />
+			<Class name="~io.sapl.grammar.sapl.util.SaplSwitch*.*" />
+		</Or>
+	</Match>
+	<Match>
+		<Or>
+			<Bug pattern="FII_USE_METHOD_REFERENCE" />
+			<Bug pattern="IMC_IMMATURE_CLASS_VAR_NAME" />
+			<Bug pattern="SPP_PASSING_THIS_AS_PARM" />
+			<Bug pattern="WI_WIRING_OF_STATIC_FIELD" />
+			<Bug pattern="AKI_SUPERFLUOUS_ROUTE_SPECIFICATION" />
+			<Bug pattern="AFBR_ABNORMAL_FINALLY_BLOCK_RETURN" />
+			<Bug pattern="ENMI_EQUALS_ON_ENUM" />
+			<Bug pattern="IMC_IMMATURE_CLASS_BAD_SERIALVERSIONUID" />
+			<Bug pattern="PRMC_POSSIBLY_REDUNDANT_METHOD_CALLS" />
+			<Bug pattern="SPP_USELESS_TERNARY" />
+			<Bug pattern="SPP_TOSTRING_ON_STRING" />
+			<Bug pattern="USBR_UNNECESSARY_STORE_BEFORE_RETURN" />
+			<Bug pattern="AIOB_ARRAY_STORE_TO_NULL_REFERENCE" />
+			<Bug pattern="PMB_LOCAL_BASED_JAXB_CONTEXT" />
+			<Bug pattern="OI_OPTIONAL_ISSUES_ISPRESENT_PREFERRED" />
+			<Bug pattern="IOI_UNENDED_ZLIB_OBJECT" />
+			<Bug pattern="ENMI_ONE_ENUM_VALUE" />
+			<Bug pattern="ENMI_NULL_ENUM_VALUE" />
+			<Bug pattern="SPP_USE_BIGDECIMAL_STRING_CTOR" />
+			<Bug pattern="SAT_SUSPICIOUS_ARGUMENT_TYPES" />
+			<Bug pattern="MOM_MISLEADING_OVERLOAD_MODEL" />
+			<Bug pattern="EI_EXPOSE_BUF" />
+			<Bug
+				pattern="REFLF_REFLECTION_MAY_INCREASE_ACCESSIBILITY_OF_FIELD" />
+			<Bug pattern="FL_FLOATS_AS_LOOP_COUNTERS" />
+			<Bug pattern="TLW_TWO_LOCK_NOTIFY" />
+			<Bug pattern="RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE" />
+			<Bug pattern="THROWS_METHOD_THROWS_CLAUSE_THROWABLE" />
+			<Bug pattern="EI_EXPOSE_BUF2" />
+			<Bug pattern="OVERRIDING_METHODS_MUST_INVOKE_SUPER" />
+			<Bug pattern="BC_NULL_INSTANCEOF" />
+			<Bug pattern="SKIPPED_CLASS_TOO_BIG" />
+			<Bug pattern="RCN_REDUNDANT_CHECKED_NULL_COMPARISON" />
+			<Bug pattern="SSD_DO_NOT_USE_INSTANCE_LOCK_ON_SHARED_STATIC_DATA" />
+			<Bug pattern="EI_EXPOSE_STATIC_BUF2" />
+			<Bug pattern="LG_LOST_LOGGER_DUE_TO_WEAK_REFERENCE" />
+			<Bug pattern="THROWS_METHOD_THROWS_RUNTIMEEXCEPTION" />
+			<Bug pattern="LI_LAZY_INIT_INSTANCE" />
+			<Bug pattern="SE_NO_SERIALVERSIONID" />
+			<Bug
+				pattern="USC_POTENTIAL_SECURITY_CHECK_BASED_ON_UNTRUSTED_SOURCE" />
+			<Bug pattern="OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE" />
+			<Bug pattern="EI_EXPOSE_REP" />
+			<Bug pattern="PERM_SUPER_NOT_CALLED_IN_GETPERMISSIONS" />
+			<Bug pattern="DCN_NULLPOINTER_EXCEPTION" />
+			<Bug pattern="MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR" />
+			<Bug pattern="MC_OVERRIDABLE_METHOD_CALL_IN_CLONE" />
+			<Bug
+				pattern="REFLC_REFLECTION_MAY_INCREASE_ACCESSIBILITY_OF_CLASS" />
+			<Bug pattern="BRSA_BAD_RESULTSET_ACCESS" />
+			<Bug pattern="THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION" />
+			<Bug pattern="DP_DO_INSIDE_DO_PRIVILEDGED" />
+			<Bug pattern="EOS_BAD_END_OF_STREAM_CHECK" />
+			<Bug pattern="MS_EXPOSE_BUF" />
+			<Bug pattern="JUA_DONT_ASSERT_INSTANCEOF_IN_TESTS" />
+			<Bug pattern="EI_EXPOSE_REP2" />
+			<Bug pattern="OBL_UNSATISFIED_OBLIGATION" />
+		</Or>
+	</Match>
+	<Match>
+		<Class name="io.sapl.api.interpreter.Trace" />
+		<Method name="equals" />
+		<Bug pattern="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.api.interpreter.Trace" />
+		<Method name="hashCode" />
+		<Bug pattern="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.api.interpreter.Val" />
+		<Method name="hashCodeOfArrayNode" />
+		<Bug pattern="OCP_OVERLY_CONCRETE_PARAMETER" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.api.interpreter.ValTests" />
+		<Method name="createError" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.api.interpreter.ValTests" />
+		<Method name="equalsTest" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.api.interpreter.ValTests" />
+		<Method name="hashTest" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.api.interpreter.ValTests" />
+		<Method name="notEqualComparisonTest" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.api.pdp.AuthorizationDecision" />
+		<Method name="equals" />
+		<Bug pattern="OI_OPTIONAL_ISSUES_CHECKING_REFERENCE" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.api.pdp.AuthorizationDecision" />
+		<Method name="hashCode" />
+		<Bug pattern="OI_OPTIONAL_ISSUES_CHECKING_REFERENCE" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.api.pdp.AuthorizationDecisionTests" />
+		<Method name="lambda$withAdviceNull$1" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_INFERRED" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.api.pdp.AuthorizationDecisionTests" />
+		<Method name="lambda$withDecisionNull$2" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_INFERRED" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.api.pdp.AuthorizationDecisionTests" />
+		<Method name="lambda$withObligationsNull$3" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_INFERRED" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.api.pdp.AuthorizationDecisionTests" />
+		<Method name="lambda$withResourceNull$4" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_INFERRED" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.api.pdp.AuthorizationDecisionTests" />
+		<Method name="lambda$decisionConstructorNull$0" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.api.pdp.AuthorizationSubscriptionInterceptorTests" />
+		<Method name="compareTo" />
+		<Bug pattern="FII_USE_FUNCTION_IDENTITY" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.api.pdp.AuthorizationSubscriptionInterceptorTests" />
+		<Method name="compareTo" />
+		<Bug pattern="FII_USE_FUNCTION_IDENTITY" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.api.pdp.AuthorizationSubscriptionInterceptorTests" />
+		<Method name="defaultPriorityIsZero" />
+		<Bug pattern="FII_USE_FUNCTION_IDENTITY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.api.pdp.TracedDecisionInterceptorTests" />
+		<Method name="compareTo" />
+		<Bug pattern="FII_USE_FUNCTION_IDENTITY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.api.pdp.TracedDecisionInterceptorTests" />
+		<Method name="compareTo" />
+		<Bug pattern="FII_USE_FUNCTION_IDENTITY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.api.pdp.TracedDecisionInterceptorTests" />
+		<Method name="defaultPriorityIsZero" />
+		<Bug pattern="FII_USE_FUNCTION_IDENTITY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.grammar.ide.contentassist.SpringContext" />
+		<Method name="setApplicationContext" />
+		<Bug pattern="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.grammar.ide.contentassist.SpringContextTests" />
+		<Method
+			name="getBeanThrowsIllegalStateExceptionWhenApplicationContextIsNotSet" />
+		<Bug pattern="NP_NONNULL_PARAM_VIOLATION" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.grammar.ide.contentassist.ValueDefinitionProposalExtractionHelper" />
+		<Method name="getSchemaFromStatement" />
+		<Bug pattern="ITC_INHERITANCE_TYPE_CHECKING" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.extension.jwt.JWTKeyProvider" />
+		<Method name="pruneCache" />
+		<Bug pattern="UAC_UNNECESSARY_API_CONVERSION_DATE_TO_INSTANT" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.extension.jwt.JWTKeyProvider$CacheEntry" />
+		<Method name="&lt;init&gt;" />
+		<Bug pattern="UAC_UNNECESSARY_API_CONVERSION_DATE_TO_INSTANT" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.functions.FilterFunctionLibrary" />
+		<Method name="extractLengthOfBlackenOrUseDefault" />
+		<Bug pattern="CLI_CONSTANT_LIST_INDEX" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.functions.FilterFunctionLibrary" />
+		<Method name="extractLengthOfBlackenOrUseDefault" />
+		<Bug pattern="CLI_CONSTANT_LIST_INDEX" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.functions.FilterFunctionLibrary" />
+		<Method
+			name="extractNumberOfCharactersToDiscloseOnTheLeftSideFromParametersOrUseDefault" />
+		<Bug pattern="CLI_CONSTANT_LIST_INDEX" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.functions.FilterFunctionLibrary" />
+		<Method
+			name="extractNumberOfCharactersToDiscloseOnTheLeftSideFromParametersOrUseDefault" />
+		<Bug pattern="CLI_CONSTANT_LIST_INDEX" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.functions.FilterFunctionLibrary" />
+		<Method
+			name="extractNumberOfCharactersToDiscloseOnTheRightSideFromParametersOrUseDefault" />
+		<Bug pattern="CLI_CONSTANT_LIST_INDEX" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.functions.FilterFunctionLibrary" />
+		<Method
+			name="extractNumberOfCharactersToDiscloseOnTheRightSideFromParametersOrUseDefault" />
+		<Bug pattern="CLI_CONSTANT_LIST_INDEX" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.functions.FilterFunctionLibrary" />
+		<Method
+			name="extractReplacementStringFromParametersOrUseDefault" />
+		<Bug pattern="CLI_CONSTANT_LIST_INDEX" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.functions.FilterFunctionLibrary" />
+		<Method
+			name="extractReplacementStringFromParametersOrUseDefault" />
+		<Bug pattern="CLI_CONSTANT_LIST_INDEX" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.functions.FilterFunctionLibrary" />
+		<Method name="remove" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.functions.FilterFunctionLibrary" />
+		<Method name="replace" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.functions.StandardFunctionLibraryTests" />
+		<Method name="lengthOfObjectWithElements" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.functions.TemporalFunctionLibraryTests" />
+		<Method
+			name="whenGivenInvalidTimeArgumentsThenFunctionsShouldReturnError" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.grammar.sapl.impl.AttributeUnionStepImplCustom" />
+		<Method name="hasKey" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.grammar.sapl.impl.BasicEnvironmentAttributeImplTests" />
+		<Method name="evaluateBasicAttributeFlux" />
+		<Bug pattern="SACM_STATIC_ARRAY_CREATED_IN_METHOD" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.grammar.sapl.impl.EvaluateBasicExpressionsTests" />
+		<Method name="evaluateBasicFunctionOneFluxOfArgs" />
+		<Bug pattern="SACM_STATIC_ARRAY_CREATED_IN_METHOD" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.grammar.sapl.impl.ExpressionStepImplCustom" />
+		<Method name="extractKey" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.grammar.sapl.impl.ExpressionStepImplCustom" />
+		<Method name="extractValueAt" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.grammar.sapl.impl.KeyStepImplCustom" />
+		<Method name="applyToValue" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.grammar.sapl.impl.PolicyBodyImplCustomTests" />
+		<Method name="provideTestCases" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.grammar.sapl.impl.PolicyImplCustomTests" />
+		<Method name="provideTestCases" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.grammar.sapl.impl.PolicySetImplCustomTests" />
+		<Method name="provideTestCases" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.grammar.sapl.impl.util.CombiningAlgorithmUtil" />
+		<Method name="eagerlyCombinePolicyElements" />
+		<Bug pattern="OCP_OVERLY_CONCRETE_PARAMETER" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.grammar.sapl.impl.util.FilterAlgorithmUtil" />
+		<Method name="applyFilterFunction" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.grammar.sapl.impl.util.StepAlgorithmUtil" />
+		<Method name="lambda$applySelectionToElement$2" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.grammar.validation.SAPLSyntaxErrorMessageProvider" />
+		<Method name="handleMismatchedTokenException" />
+		<Bug pattern="ITC_INHERITANCE_TYPE_CHECKING" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.grammar.validation.SAPLSyntaxErrorMessageProvider" />
+		<Method name="handleNoViableAltException" />
+		<Bug pattern="ITC_INHERITANCE_TYPE_CHECKING" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.interpreter.DefaultSAPLInterpreterTests" />
+		<Method name="documentTestCases" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.interpreter.PolicyDecisionTests" />
+		<Method name="withAdditionalData" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.interpreter.PolicySetDecision" />
+		<Method name="equals" />
+		<Bug pattern="OI_OPTIONAL_ISSUES_CHECKING_REFERENCE" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.interpreter.PolicySetDecision" />
+		<Method name="hashCode" />
+		<Bug pattern="OI_OPTIONAL_ISSUES_CHECKING_REFERENCE" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.combinators.CombiningAlgorithmFactory" />
+		<Method name="getCombiningAlgorithm" />
+		<Bug pattern="MS_EXPOSE_REP" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.combinators.CombiningAlgorithmFactory" />
+		<Method name="getCombiningAlgorithm" />
+		<Bug pattern="MS_EXPOSE_REP" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.combinators.CombiningAlgorithmFactory" />
+		<Method name="getCombiningAlgorithm" />
+		<Bug pattern="MS_EXPOSE_REP" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.combinators.CombiningAlgorithmFactory" />
+		<Method name="getCombiningAlgorithm" />
+		<Bug pattern="MS_EXPOSE_REP" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.combinators.CombiningAlgorithmFactory" />
+		<Method name="getCombiningAlgorithm" />
+		<Bug pattern="MS_EXPOSE_REP" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.interpreter.context.AuthorizationContext" />
+		<Method name="setSubscriptionVariables" />
+		<Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.interpreter.context.AuthorizationContext" />
+		<Method name="setVariable" />
+		<Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.interpreter.context.AuthorizationContext" />
+		<Method name="setVariables" />
+		<Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContext" />
+		<Method name="evaluateVarArgsFunction" />
+		<Bug pattern="CLI_CONSTANT_LIST_INDEX" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests" />
+		<Method
+			name="lambda$failToInitializeNonFunctionLibraryAnnotatedClass$1" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests" />
+		<Method
+			name="lambda$failToInitializeWithBadParametersInLibrary$17" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests" />
+		<Method
+			name="lambda$failToInitializeWithBadParametersInLibraryVarArgs$19" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests" />
+		<Method
+			name="lambda$failToInitializeWithBadReturnTypeInLibrary$21" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests" />
+		<Method
+			name="lambda$nonInstanceWithNonStaticMethodFailsLoading$35" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests$1Lib" />
+		<Method name="helloTest" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests$1TestLib" />
+		<Method name="hello" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests$1TestLib" />
+		<Method name="helloThreeArgs" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests$1TestLib" />
+		<Method name="helloTwoArgs" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests$1TestLib" />
+		<Method name="helloVarArgs" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests$AnnotationLibrary" />
+		<Method name="boolAnnotatedParameter" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests$AnnotationLibrary" />
+		<Method name="customErrorForSchemaInParameterAnnotation" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests$AnnotationLibrary" />
+		<Method name="emptySchemaInParameterAnnotation" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests$AnnotationLibrary" />
+		<Method name="jsonValueSchemaInParameterAnnotation" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests$AnnotationLibrary" />
+		<Method
+			name="multipleParameterAnnotationsWithNonmatchingSchemaAtTheEnd" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests$AnnotationLibrary" />
+		<Method
+			name="multipleParameterAnnotationsWithNonmatchingSchemaAtTheFront" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests$AnnotationLibrary" />
+		<Method name="multipleParameterAnnotationsWithSchemaAtTheEnd" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests$AnnotationLibrary" />
+		<Method name="multipleParameterAnnotationsWithSchemaAtTheFront" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests$AnnotationLibrary" />
+		<Method name="noSchemaWithMultipleParameterAnnotations" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests$AnnotationLibrary" />
+		<Method name="schemaInParameterAnnotation" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests$MockLibrary" />
+		<Method name="helloFailure" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests$MockLibrary" />
+		<Method name="helloFailure" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests$MockLibrary" />
+		<Method name="helloFailure" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests$MockLibrary" />
+		<Method name="helloTwoArgs" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests$MockLibrary" />
+		<Method name="helloTwoArgs" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests$MockLibrary" />
+		<Method name="helloVarArgs" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests$ValidationLibrary" />
+		<Method name="fixed" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.functions.AnnotationFunctionContextTests$ValidationLibrary" />
+		<Method name="varArgs" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.interpreter.pip.AnnotationAttributeContext" />
+		<Method name="parameterTypeIsVariableMap" />
+		<Bug pattern="CLI_CONSTANT_LIST_INDEX" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests" />
+		<Method name="generatesCodeTemplates" />
+		<Bug pattern="SACM_STATIC_ARRAY_CREATED_IN_METHOD" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests" />
+		<Method name="generatesCodeTemplates" />
+		<Bug pattern="SACM_STATIC_ARRAY_CREATED_IN_METHOD" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests" />
+		<Method name="lambda$when_classHasNoAnnotation_fail$1" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests" />
+		<Method name="lambda$when_classHasNoAttributesDeclared_fail$3" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests" />
+		<Method name="lambda$when_classHasNoAttributesDeclared_fail$5" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests" />
+		<Method
+			name="lambda$when_firstAndOnlyParameterMapWithBadKeyType_fail$23" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests" />
+		<Method
+			name="lambda$when_firstAndOnlyParameterMapWithBadValueType_fail$25" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests" />
+		<Method
+			name="lambda$when_firstAndOnlyParameterMapWithBadValueType_fail$27" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests" />
+		<Method
+			name="lambda$when_firstAndOnlyParameterMapWithBadValueType_fail$29" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests" />
+		<Method name="lambda$when_firstAndOnlyParameterNotAVal_fail$32" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests" />
+		<Method
+			name="lambda$when_firstParameterOfAttributeIllegal_fail$9" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests" />
+		<Method name="lambda$when_noParameter_fail$34" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests" />
+		<Method
+			name="lambda$when_nonStaticButLoadedViaClass_thenFail$21" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests" />
+		<Method name="lambda$when_pipWithSameNameExists_fail$7" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests" />
+		<Method name="lambda$when_returnTypeIllegalFluxType_fail$13" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests" />
+		<Method name="lambda$when_returnTypeIllegalGenericVal_fail$15" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests" />
+		<Method name="lambda$when_returnTypeIllegal_fail$11" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests" />
+		<Method name="lambda$when_someParamBAdType_fail$36" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$25PIP" />
+		<Method name="envAttribute" />
+		<Bug pattern="CLI_CONSTANT_LIST_INDEX" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$25PIP" />
+		<Method name="envAttribute" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$26PIP" />
+		<Method name="attribute" />
+		<Bug pattern="CLI_CONSTANT_LIST_INDEX" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$26PIP" />
+		<Method name="attribute" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$27PIP" />
+		<Method name="attribute" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$28PIP" />
+		<Method name="attribute" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$29PIP" />
+		<Method name="attribute" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$30PIP" />
+		<Method name="envAttribute" />
+		<Bug pattern="CLI_CONSTANT_LIST_INDEX" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$30PIP" />
+		<Method name="envAttribute" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$31PIP" />
+		<Method name="envAttribute" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$32PIP" />
+		<Method name="envAttribute" />
+		<Bug pattern="CLI_CONSTANT_LIST_INDEX" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$32PIP" />
+		<Method name="envAttribute" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$32PIP" />
+		<Method name="envAttribute" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$33PIP" />
+		<Method name="envAttribute" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$34PIP" />
+		<Method name="envAttribute" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$35PIP" />
+		<Method name="envAttribute" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$36PIP" />
+		<Method name="attribute" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$37PIP" />
+		<Method name="attribute" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$38PIP" />
+		<Method name="envAttribute" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$39PIP" />
+		<Method name="envAttribute" />
+		<Bug pattern="CLI_CONSTANT_LIST_INDEX" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$39PIP" />
+		<Method name="envAttribute" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$3PIP" />
+		<Method name="x" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$40PIP" />
+		<Method name="attributeWithAnnotation" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$40PIP" />
+		<Method name="envAttribute" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$41PIP" />
+		<Method name="a" />
+		<Bug pattern="CLI_CONSTANT_LIST_INDEX" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$41PIP" />
+		<Method name="x" />
+		<Bug pattern="CLI_CONSTANT_LIST_INDEX" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$41PIP" />
+		<Method name="a2" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$41PIP" />
+		<Method name="a2" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$41PIP" />
+		<Method name="x2" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$42PIP" />
+		<Method name="attribute" />
+		<Bug pattern="CLI_CONSTANT_LIST_INDEX" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$42PIP" />
+		<Method name="attribute" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$43PIP" />
+		<Method name="empty" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.pip.AnnotationAttributeContextTests$8PIP" />
+		<Method name="x" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.interpreter.validation.ParameterTypeValidator" />
+		<Method name="moveSchemaAnnotationToTheEndIfItExists" />
+		<Bug pattern="UC_USELESS_VOID_METHOD" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.pip.TimePolicyInformationPointTests" />
+		<Method name="localTimeBetweenStartingAfterIntervalTest" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.pip.TimePolicyInformationPointTests" />
+		<Method
+			name="localTimeBetweenStartingBeforeIntervalReversedTest" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.pip.TimePolicyInformationPointTests" />
+		<Method name="localTimeBetweenStartingBeforeIntervalTest" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.pip.TimePolicyInformationPointTests" />
+		<Method name="localTimeBetweenStartingInsideOfIntervalTest" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.pip.TimePolicyInformationPointTests" />
+		<Method name="startingTimeIBeforeStartingBeforeTest" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.pip.TimePolicyInformationPointTests" />
+		<Method name="startingTimeIsAfterStartingAfterTest" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.pip.TimePolicyInformationPointTests" />
+		<Method name="startingTimeIsBeforeStartingAfterTest" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.PolicyRetrievalResult" />
+		<Method name="equals" />
+		<Bug pattern="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.PolicyRetrievalResult" />
+		<Method name="hashCode" />
+		<Bug pattern="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.index.canonical.BoolTests" />
+		<Method name="equalsTest" />
+		<Bug pattern="EC_NULL_ARG" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.index.canonical.BoolTests" />
+		<Method name="equalsTest" />
+		<Bug pattern="EC_UNRELATED_TYPES" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.index.canonical.BoolTests" />
+		<Method
+			name="evaluating_bool_with_false_expression_should_return_false" />
+		<Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.index.canonical.BoolTests" />
+		<Method
+			name="evaluating_bool_with_long_expression_should_return_error" />
+		<Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.prp.index.canonical.CanonicalImmutableParsedDocumentIndexTests" />
+		<Method name="exception_while_retaining_Target" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_INFERRED" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.prp.index.canonical.CanonicalImmutableParsedDocumentIndexTests" />
+		<Method name="null_while_retaining_Target" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_INFERRED" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.prp.index.canonical.CanonicalImmutableParsedDocumentIndexTests" />
+		<Method name="test_apply_update_events" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_INFERRED" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.prp.index.canonical.CanonicalIndexDataContainerTests" />
+		<Method name="lambda$testGetNumberOfFormulasWithConjunction$0" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.prp.index.canonical.CanonicalIndexDataContainerTests" />
+		<Method name="lambda$testGetNumberOfFormulasWithConjunction$1" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.prp.index.canonical.CanonicalIndexDataCreationStrategy" />
+		<Method name="createPredicateInfo" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.index.canonical.ConjunctiveClauseTests" />
+		<Method name="testEquals" />
+		<Bug pattern="EC_NULL_ARG" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.index.canonical.ConjunctiveClauseTests" />
+		<Method name="testEquals" />
+		<Bug pattern="EC_UNRELATED_TYPES" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.index.canonical.ConjunctiveClauseTests" />
+		<Method name="lambda$testConstruction$0" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.index.canonical.ConjunctiveClauseTests" />
+		<Method name="lambda$testConstruction$1" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.prp.index.canonical.DisjunctiveFormulaTests" />
+		<Method name="testEquals" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.prp.index.canonical.DisjunctiveFormulaTests" />
+		<Method name="testEquals" />
+		<Bug pattern="EC_NULL_ARG" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.prp.index.canonical.DisjunctiveFormulaTests" />
+		<Method name="testEquals" />
+		<Bug pattern="EC_UNRELATED_TYPES" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.prp.index.canonical.DisjunctiveFormulaTests" />
+		<Method
+			name="lambda$should_throw_illegal_argument_exception_when_initialized_with_empty_collection$0" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.prp.index.canonical.DisjunctiveFormulaTests" />
+		<Method
+			name="lambda$should_throw_illegal_argument_exception_when_initialized_with_empty_collection$1" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.prp.index.canonical.EquivalenceAndHashUtilTests" />
+		<Method name="lambda$testAreEquivalent$4" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.index.canonical.LiteralTests" />
+		<Method name="equalsTest" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.index.canonical.LiteralTests" />
+		<Method name="equalsTest" />
+		<Bug pattern="EC_NULL_ARG" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.index.canonical.LiteralTests" />
+		<Method name="equalsTest" />
+		<Bug pattern="EC_UNRELATED_TYPES" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.index.canonical.LiteralTests" />
+		<Method name="lambda$testGuardClauses$0" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.index.canonical.PredicateInfoTests" />
+		<Method name="testCompareTo" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.index.canonical.PredicateInfoTests" />
+		<Method name="testEquals" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.index.canonical.PredicateInfoTests" />
+		<Method name="testUtilityMethods" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.index.canonical.PredicateInfoTests" />
+		<Method name="testEquals" />
+		<Bug pattern="EC_NULL_ARG" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.index.canonical.PredicateInfoTests" />
+		<Method name="testEquals" />
+		<Bug pattern="EC_UNRELATED_TYPES" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.index.canonical.PredicateTests" />
+		<Method name="testEvaluate" />
+		<Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.prp.index.naive.NaiveImmutableParsedDocumentIndexTests" />
+		<Method
+			name="should_return_empty_result_when_no_documents_are_published" />
+		<Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.prp.index.naive.NaiveImmutableParsedDocumentIndexTests" />
+		<Method
+			name="should_return_invalid_result_when_inconsistent_event_was_published" />
+		<Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.prp.index.naive.NaiveImmutableParsedDocumentIndexTests" />
+		<Method name="testApply" />
+		<Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.testutil.MockUtil$TestFunctionLibrary" />
+		<Method name="emptyString" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.testutil.MockUtil$TestFunctionLibrary" />
+		<Method name="error" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.testutil.MockUtil$TestFunctionLibrary" />
+		<Method name="exception" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.testutil.MockUtil$TestFunctionLibrary" />
+		<Method name="nil" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.testutil.TestUtil" />
+		<Method name="logResult" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.mavenplugin.test.coverage.stubs.SaplMavenPluginTestMavenProjectStub" />
+		<Method name="&lt;init&gt;" />
+		<Bug pattern="PCOA_PARTIALLY_CONSTRUCTED_OBJECT_ACCESS" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.pdp.PDPDecisionTests" />
+		<Method name="constructor" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSourceTest" />
+		<Method name="loadExistingConfigTest" />
+		<Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSourceTest" />
+		<Method
+			name="return_default_config_for_missing_configuration_file" />
+		<Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSourceTest" />
+		<Method
+			name="return_empty_optional_for_exception_during_config_load" />
+		<Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSourceTest" />
+		<Method name="test_process_watcher_event" />
+		<Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.pdp.config.fixed.FixedFunctionsAndAttributesPDPConfigurationProviderTest" />
+		<Method name="do_test" />
+		<Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSourceTests" />
+		<Method
+			name="ifExecutedDuringUnitTestsAndNoConfigFilePresent_thenLoadDefaultConfiguration" />
+		<Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSourceTests" />
+		<Method
+			name="ifExecutedDuringUnitTests_thenLoadConfigurationFileFromFileSystem" />
+		<Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSourceTests" />
+		<Method
+			name="ifExecutedInJarAndNoConfigFilePresent_thenLoadDefaultConfiguration" />
+		<Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSourceTests" />
+		<Method name="ifExecutedInJar_thenLoadConfigurationFileFromJar" />
+		<Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSourceTests" />
+		<Method
+			name="lambda$ifExecutedDuringUnitTestsAndConfigFileBroken_thenPropagateException$8" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSourceTests" />
+		<Method
+			name="lambda$ifExecutedInJarAndConfigFileBroken_thenPropagateException$11" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSourceTests" />
+		<Method name="lambda$test_guard_clauses$0" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSourceTests" />
+		<Method name="lambda$test_guard_clauses$1" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSourceTests" />
+		<Method name="lambda$test_guard_clauses$2" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSourceTests" />
+		<Method name="lambda$test_guard_clauses$3" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSourceTests" />
+		<Method name="lambda$test_guard_clauses$4" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSourceTests" />
+		<Method name="lambda$test_guard_clauses$5" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSourceTests" />
+		<Method name="lambda$test_guard_clauses$6" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSourceTests" />
+		<Method name="lambda$test_guard_clauses$7" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.pdp.interceptors.ReportingDecisionInterceptorTests$ReportingTestPIP" />
+		<Method name="test" />
+		<Bug pattern="UP_UNUSED_PARAMETER" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.FilesystemPRPTest" />
+		<Method
+			name="call_index_apply_method_for_each_prp_update_event" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.ImmutableFileIndex" />
+		<Method name="afterFileEvent" />
+		<Bug pattern="ITC_INHERITANCE_TYPE_CHECKING" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.ImmutableFileIndexTest" />
+		<Method
+			name="when_initializingWithDirectoryThatCannotBeOpened_then_updatesContainOnlyInconsistent" />
+		<Bug pattern="DMI_HARDCODED_ABSOLUTE_FILENAME" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.ImmutableFileIndexTest" />
+		<Method
+			name="when_initializingWithDirectoryThatContainsUnreadableFile_then_updatesContainOnlyInconsistent" />
+		<Bug pattern="DMI_HARDCODED_ABSOLUTE_FILENAME" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.ImmutableFileIndexTest" />
+		<Method
+			name="when_initializingWithDirectoryThatContainsValidSaplFile_then_updatesContainDocument" />
+		<Bug pattern="DMI_HARDCODED_ABSOLUTE_FILENAME" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.ImmutableFileIndexTest" />
+		<Method
+			name="when_initializingWithEmptyDirectory_and_addInvalidAndRemoveInvalid_then_FirstInconsistentThenConsistent" />
+		<Bug pattern="DMI_HARDCODED_ABSOLUTE_FILENAME" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.ImmutableFileIndexTest" />
+		<Method
+			name="when_initializingWithEmptyDirectory_and_tryUnloadingNonExisting_then_nothing" />
+		<Bug pattern="DMI_HARDCODED_ABSOLUTE_FILENAME" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.ImmutableFileIndexTest" />
+		<Method
+			name="when_initializingWithEmptyDirectory_and_updateAddAndAddNameCollisionAddAnotherUnrelatedPolicy_then_PublishNewOne" />
+		<Bug pattern="DMI_HARDCODED_ABSOLUTE_FILENAME" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.ImmutableFileIndexTest" />
+		<Method
+			name="when_initializingWithEmptyDirectory_and_updateAddAndAddNameCollisionAndRemoveInitial_then_Consistent" />
+		<Bug pattern="DMI_HARDCODED_ABSOLUTE_FILENAME" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.ImmutableFileIndexTest" />
+		<Method
+			name="when_initializingWithEmptyDirectory_and_updateAddAndAddNameCollisionAndRemoveNewColliding_then_Consistent" />
+		<Bug pattern="DMI_HARDCODED_ABSOLUTE_FILENAME" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.ImmutableFileIndexTest" />
+		<Method
+			name="when_initializingWithEmptyDirectory_and_updateAddAndAddNameCollision_then_Inconsistent" />
+		<Bug pattern="DMI_HARDCODED_ABSOLUTE_FILENAME" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.ImmutableFileIndexTest" />
+		<Method
+			name="when_initializingWithEmptyDirectory_and_updateAddAndChange_then_update" />
+		<Bug pattern="DMI_HARDCODED_ABSOLUTE_FILENAME" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.ImmutableFileIndexTest" />
+		<Method
+			name="when_initializingWithEmptyDirectory_and_updateAddAndRemove_then_updateWithdraw" />
+		<Bug pattern="DMI_HARDCODED_ABSOLUTE_FILENAME" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.ImmutableFileIndexTest" />
+		<Method
+			name="when_initializingWithEmptyDirectory_and_update_then_updatePublish" />
+		<Bug pattern="DMI_HARDCODED_ABSOLUTE_FILENAME" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.ImmutableFileIndexTest" />
+		<Method
+			name="when_initializingWithEmptyDirectory_then_updatesAreEmpty" />
+		<Bug pattern="DMI_HARDCODED_ABSOLUTE_FILENAME" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.ImmutableFileIndexTest" />
+		<Method
+			name="lambda$when_initializingWithDirectoryThatCannotBeOpened_then_updatesContainOnlyInconsistent$1" />
+		<Bug pattern="OS_OPEN_STREAM" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.ImmutableFileIndexTest" />
+		<Method
+			name="lambda$when_initializingWithDirectoryThatContainsUnreadableFile_then_updatesContainOnlyInconsistent$2" />
+		<Bug pattern="OS_OPEN_STREAM" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.ImmutableFileIndexTest" />
+		<Method
+			name="lambda$when_initializingWithDirectoryThatContainsValidSaplFile_then_updatesContainDocument$4" />
+		<Bug pattern="OS_OPEN_STREAM" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.ImmutableFileIndexTest" />
+		<Method
+			name="lambda$when_initializingWithEmptyDirectory_and_addInvalidAndRemoveInvalid_then_FirstInconsistentThenConsistent$13" />
+		<Bug pattern="OS_OPEN_STREAM" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.ImmutableFileIndexTest" />
+		<Method
+			name="lambda$when_initializingWithEmptyDirectory_and_tryUnloadingNonExisting_then_nothing$14" />
+		<Bug pattern="OS_OPEN_STREAM" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.ImmutableFileIndexTest" />
+		<Method
+			name="lambda$when_initializingWithEmptyDirectory_and_updateAddAndAddNameCollisionAddAnotherUnrelatedPolicy_then_PublishNewOne$10" />
+		<Bug pattern="OS_OPEN_STREAM" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.ImmutableFileIndexTest" />
+		<Method
+			name="lambda$when_initializingWithEmptyDirectory_and_updateAddAndAddNameCollisionAndRemoveInitial_then_Consistent$11" />
+		<Bug pattern="OS_OPEN_STREAM" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.ImmutableFileIndexTest" />
+		<Method
+			name="lambda$when_initializingWithEmptyDirectory_and_updateAddAndAddNameCollisionAndRemoveNewColliding_then_Consistent$12" />
+		<Bug pattern="OS_OPEN_STREAM" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.ImmutableFileIndexTest" />
+		<Method
+			name="lambda$when_initializingWithEmptyDirectory_and_updateAddAndAddNameCollision_then_Inconsistent$9" />
+		<Bug pattern="OS_OPEN_STREAM" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.ImmutableFileIndexTest" />
+		<Method
+			name="lambda$when_initializingWithEmptyDirectory_and_updateAddAndChange_then_update$8" />
+		<Bug pattern="OS_OPEN_STREAM" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.ImmutableFileIndexTest" />
+		<Method
+			name="lambda$when_initializingWithEmptyDirectory_and_updateAddAndRemove_then_updateWithdraw$7" />
+		<Bug pattern="OS_OPEN_STREAM" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.ImmutableFileIndexTest" />
+		<Method
+			name="lambda$when_initializingWithEmptyDirectory_and_update_then_updatePublish$6" />
+		<Bug pattern="OS_OPEN_STREAM" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.filesystem.ImmutableFileIndexTest" />
+		<Method
+			name="lambda$when_initializingWithEmptyDirectory_then_updatesAreEmpty$0" />
+		<Bug pattern="OS_OPEN_STREAM" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.prp.resources.ResourcesPRPTest" />
+		<Method
+			name="call_index_apply_method_for_each_prp_update_event" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.prp.resources.ResourcesPrpUpdateEventSourceTest" />
+		<Method name="lambda$ifFileIOError_exceptionPropagates$12" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.prp.resources.ResourcesPrpUpdateEventSourceTest" />
+		<Method name="lambda$readPoliciesFromDirectory$10" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.prp.resources.ResourcesPrpUpdateEventSourceTest" />
+		<Method name="lambda$readPoliciesFromDirectory$9" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.prp.resources.ResourcesPrpUpdateEventSourceTest" />
+		<Method name="lambda$test_guard_clauses$0" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.prp.resources.ResourcesPrpUpdateEventSourceTest" />
+		<Method name="lambda$test_guard_clauses$1" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.prp.resources.ResourcesPrpUpdateEventSourceTest" />
+		<Method name="lambda$test_guard_clauses$2" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.prp.resources.ResourcesPrpUpdateEventSourceTest" />
+		<Method name="lambda$test_guard_clauses$3" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.prp.resources.ResourcesPrpUpdateEventSourceTest" />
+		<Method name="lambda$test_guard_clauses$4" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.prp.resources.ResourcesPrpUpdateEventSourceTest" />
+		<Method name="lambda$test_guard_clauses$5" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.prp.resources.ResourcesPrpUpdateEventSourceTest" />
+		<Method name="lambda$test_guard_clauses$6" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.prp.resources.ResourcesPrpUpdateEventSourceTest" />
+		<Method name="lambda$test_guard_clauses$7" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.prp.resources.ResourcesPrpUpdateEventSourceTest" />
+		<Method name="lambda$test_guard_clauses$8" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.util.JarUtilTest" />
+		<Method name="inferUrlOfResourcesPathTest" />
+		<Bug pattern="ITU_INAPPROPRIATE_TOSTRING_USE" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.util.JarUtilTest" />
+		<Method name="inferUrlOfResourcesPathTest" />
+		<Bug pattern="ITU_INAPPROPRIATE_TOSTRING_USE" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.pdp.remote.RemoteRsocketPolicyDecisionPointTests$ServerConfig" />
+		<Method name="serverController" />
+		<Bug pattern="WI_MANUALLY_ALLOCATING_AN_AUTOWIRED_BEAN" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.server.lt.SAPLServerLTProperties" />
+		<Method name="equals" />
+		<Bug pattern="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.server.lt.SAPLServerLTProperties" />
+		<Method name="hashCode" />
+		<Bug pattern="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.server.lt.apikey.ApiKeyReactiveAuthenticationManager" />
+		<Method name="lambda$authenticate$0" />
+		<Bug pattern="CFS_CONFUSING_FUNCTION_SEMANTICS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.constraints.ConstraintEnforcementService" />
+		<Method name="unmarshallResource" />
+		<Bug pattern="DRE_DECLARED_RUNTIME_EXCEPTION" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.constraints.ConstraintEnforcementServiceTests" />
+		<Method name="when_filterObligation_then_ElementsFiltered" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.constraints.ConstraintEnforcementServiceTests" />
+		<Method name="buildConstraintHandlerService" />
+		<Bug pattern="WI_MANUALLY_ALLOCATING_AN_AUTOWIRED_BEAN" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.constraints.ConstraintEnforcementServiceTests$28" />
+		<Method name="accept" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.constraints.it.PostEnforcementConstraintsTests" />
+		<Method
+			name="when_testServiceCalledOptionalEmptyReturnValueAndPermit_then_returnsNormally" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.spring.constraints.providers.ContentFilter" />
+		<Method name="mapPublisherContents" />
+		<Bug pattern="URV_CHANGE_RETURN_TYPE" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.manager.ReactiveSaplAuthorizationManagerTest" />
+		<Method name="setUpMocks" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.blocking.PolicyEnforcementPointAroundMethodInterceptor" />
+		<Method name="reactive" />
+		<Bug pattern="OCP_OVERLY_CONCRETE_PARAMETER" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPoint" />
+		<Method name="enforceDecision" />
+		<Bug pattern="EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPointTests" />
+		<Method
+			name="lambda$when_AfterAndDecideIsDeny_then_ThrowAccessDeniedException$2" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPointTests" />
+		<Method
+			name="lambda$when_AfterAndDecideIsEmpty_then_ThrowAccessDeniedException$5" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPointTests" />
+		<Method
+			name="lambda$when_AfterAndDecideIsIndeterminate_then_ThrowAccessDeniedException$4" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPointTests" />
+		<Method
+			name="lambda$when_AfterBeforeAndDecideNotApplicable_then_ThrowAccessDeniedException$3" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPointTests" />
+		<Method name="lambda$when_bundleIsNull_then_AccessDenied$1" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPointTests" />
+		<Method
+			name="lambda$when_errorDuringBundleConstruction_then_AccessDenied$0" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPointTests" />
+		<Method name="lambda$whenBeforeAndDecideDeny_thenReturnFalse$0" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPointTests" />
+		<Method
+			name="lambda$whenBeforeAndDecideEmpty_thenReturnFalse$7" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPointTests" />
+		<Method
+			name="lambda$whenBeforeAndDecideIndeterminate_thenReturnFalse$6" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPointTests" />
+		<Method
+			name="lambda$whenBeforeAndDecideNotApplicable_thenReturnFalse$5" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPointTests" />
+		<Method name="lambda$whenBeforeAndDecideNull_thenReturnFalse$1" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPointTests" />
+		<Method
+			name="lambda$whenBeforeAndDecidePermitButBundleNull_thenReturnFalse$2" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPointTests" />
+		<Method
+			name="lambda$when_BeforeAndDecidePermit_and_obligationsFail_then_ReturnFalse$4" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.metadata.SaplAttributeRegistry" />
+		<Method name="resolveAttribute" />
+		<Bug pattern="ITC_INHERITANCE_TYPE_CHECKING" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.metadata.SaplAttributeRegistryTests$10TestClass" />
+		<Method name="doSomething" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.metadata.SaplAttributeRegistryTests$11TestClass" />
+		<Method name="doSomething" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.metadata.SaplAttributeRegistryTests$1NoAnnotations" />
+		<Method name="doSomething" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.metadata.SaplAttributeRegistryTests$1TestClass" />
+		<Method name="doSomething" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.metadata.SaplAttributeRegistryTests$2TestClass" />
+		<Method name="doSomething" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.metadata.SaplAttributeRegistryTests$3TestClass" />
+		<Method name="doSomething" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.metadata.SaplAttributeRegistryTests$8TestClass" />
+		<Method name="doSomething" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.metadata.SaplAttributeRegistryTests$9TestClass" />
+		<Method name="doSomething" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.reactive.EnforceDropWhileDeniedPolicyEnforcementPointTests" />
+		<Method name="when_error_thenErrorMappedAndPropagated" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.reactive.EnforceDropWhileDeniedPolicyEnforcementPointTests" />
+		<Method name="buildConstraintHandlerService" />
+		<Bug pattern="WI_MANUALLY_ALLOCATING_AN_AUTOWIRED_BEAN" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.reactive.EnforceDropWhileDeniedPolicyEnforcementPointTests$1" />
+		<Method name="run" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.reactive.EnforceDropWhileDeniedPolicyEnforcementPointTests$17" />
+		<Method name="run" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.reactive.EnforceRecoverableIfDeniedPolicyEnforcementPointTests" />
+		<Method
+			name="when_onSubscribeObligationFails_thenAccessDeniedMessageMapped" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.reactive.EnforceRecoverableIfDeniedPolicyEnforcementPointTests" />
+		<Method name="buildConstraintHandlerService" />
+		<Bug pattern="WI_MANUALLY_ALLOCATING_AN_AUTOWIRED_BEAN" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.reactive.EnforceRecoverableIfDeniedPolicyEnforcementPointTests$1" />
+		<Method name="run" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.reactive.EnforceRecoverableIfDeniedPolicyEnforcementPointTests$19" />
+		<Method name="run" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.reactive.EnforceTillDeniedPolicyEnforcementPointTests" />
+		<Method name="when_error_thenErrorMappedAndPropagated" />
+		<Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.reactive.EnforceTillDeniedPolicyEnforcementPointTests" />
+		<Method name="buildConstraintHandlerService" />
+		<Bug pattern="WI_MANUALLY_ALLOCATING_AN_AUTOWIRED_BEAN" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.reactive.EnforceTillDeniedPolicyEnforcementPointTests$14" />
+		<Method name="run" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.reactive.PostEnforcePolicyEnforcementPointTests" />
+		<Method name="buildConstraintHandlerService" />
+		<Bug pattern="WI_MANUALLY_ALLOCATING_AN_AUTOWIRED_BEAN" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.reactive.PreEnforcePolicyEnforcementPointTests" />
+		<Method name="buildConstraintHandlerService" />
+		<Bug pattern="WI_MANUALLY_ALLOCATING_AN_AUTOWIRED_BEAN" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptor" />
+		<Method name="invoke" />
+		<Bug pattern="URV_INHERITED_METHOD_WITH_RELATED_TYPES" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptorTests$10TestClass" />
+		<Method name="fluxInteger" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptorTests$11TestClass" />
+		<Method name="fluxInteger" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptorTests$12TestClass" />
+		<Method name="fluxInteger" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptorTests$13TestClass" />
+		<Method name="fluxInteger" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptorTests$1TestClass" />
+		<Method name="monoInteger" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptorTests$2TestClass" />
+		<Method name="monoInteger" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptorTests$3TestClass" />
+		<Method name="integer" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptorTests$4TestClass" />
+		<Method name="fluxInteger" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptorTests$5TestClass" />
+		<Method name="fluxInteger" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptorTests$6TestClass" />
+		<Method name="fluxInteger" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptorTests$7TestClass" />
+		<Method name="fluxInteger" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptorTests$8TestClass" />
+		<Method name="fluxInteger" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptorTests$9TestClass" />
+		<Method name="monoInteger" />
+		<Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.test.integration.ClasspathPolicyRetrievalPointTests" />
+		<Method name="lambda$return_fail_fast_for_invalid_document$3" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.test.integration.ClasspathPolicyRetrievalPointTests" />
+		<Method name="lambda$test_invalidPath$2" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.test.integration.ClasspathVariablesAndCombinatorSource" />
+		<Method name="&lt;init&gt;" />
+		<Bug pattern="EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.test.integration.ClasspathVariablesAndCombinatorSourceTests" />
+		<Method name="lambda$test_IOException$2" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.test.integration.ClasspathVariablesAndCombinatorSourceTests" />
+		<Method name="lambda$test_nullObjectMapper$1" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.test.integration.ClasspathVariablesAndCombinatorSourceTests" />
+		<Method name="lambda$test_nullPath$0" />
+		<Bug pattern="SEC_SIDE_EFFECT_CONSTRUCTOR" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.test.lang.PolicyImplCustomCoverageTests" />
+		<Method name="test_Match" />
+		<Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.test.lang.PolicyImplCustomCoverageTests" />
+		<Method name="test_NotMatching" />
+		<Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.test.lang.PolicyImplCustomCoverageTests" />
+		<Method name="test_matchesThrowsError" />
+		<Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.test.lang.PolicySetImplCustomCoverageTests" />
+		<Method name="test_NotMatching" />
+		<Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.test.lang.PolicySetImplCustomCoverageTests" />
+		<Method name="test_match" />
+		<Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.test.lang.PolicySetImplCustomCoverageTests" />
+		<Method name="test_matchesThrowsError" />
+		<Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.test.mocking.function.FunctionMockFunctionResultTests" />
+		<Method name="lambda$new$0" />
+		<Bug pattern="CLI_CONSTANT_LIST_INDEX" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.test.mocking.function.FunctionMockSequenceTests" />
+		<Method name="test" />
+		<Bug pattern="CLI_CONSTANT_LIST_INDEX" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.test.mocking.function.FunctionMockSequenceTests" />
+		<Method name="test" />
+		<Bug pattern="CLI_CONSTANT_LIST_INDEX" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.test.mocking.function.FunctionMockSequenceTests" />
+		<Method name="test_tooFewCalls" />
+		<Bug pattern="CLI_CONSTANT_LIST_INDEX" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.test.mocking.function.FunctionMockSequenceTests" />
+		<Method name="test_tooManyCalls" />
+		<Bug pattern="CLI_CONSTANT_LIST_INDEX" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.test.mocking.function.FunctionMockSequenceTests" />
+		<Method name="test_tooManyCalls" />
+		<Bug pattern="CLI_CONSTANT_LIST_INDEX" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.test.steps.StepsDefaultImplTestsImpl" />
+		<Method name="createStepVerifier" />
+		<Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.test.unit.SaplUnitTestFixture" />
+		<Method name="findFileOnClasspath" />
+		<Bug pattern="EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS" />
+	</Match>
+	<Match>
+		<Class
+			name="io.sapl.test.unit.usecase.F_PolicyWithComplexFunctionTests" />
+		<Method
+			name="lambda$test_streamingPolicyWithMockedFunction_ReturnValueDependingOnComplexParameters_AndDynamicMockedAttribute$0" />
+		<Bug pattern="CLI_CONSTANT_LIST_INDEX" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.test.utils.ClasspathHelper" />
+		<Method name="getResourcePath" />
+		<Bug pattern="EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS" />
+	</Match>
+	<Match>
+		<Class name="io.sapl.vaadin.BaseEditor" />
+		<Method name="applyBaseConfiguration" />
+		<Bug pattern="CE_CLASS_ENVY" />
+	</Match>
+</FindBugsFilter>
