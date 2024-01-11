@@ -1,0 +1,26 @@
+import filter.*
+import simple.*
+
+policy "policy read"
+permit
+  action == "read"
+where
+  subject == "willi" & resource =~ "some.+";
+  1 in [0, [{"text": 1, "arr": [3, 4, 5]}, 1, 2 / 2]]..[2];
+  [0, [{"text": 1, "arr": [3, 4, 5]}, 1, 2], 6]..* == [0, [{"text": 1, "arr": [3, 4, 5]}, 1, 2], {"text": 1, "arr": [3, 4, 5]}, 1, [3, 4, 5], 3, 4, 5, 1, 2, 6];
+
+  var a = {"name": "Felix", "origin": "Zurich"};
+  var b = {"name": "Hans", "origin": "Hagen"};
+  [a, b] |- { each @..name : append(" from ", @.origin), each @..origin : remove } == [{"name": "Felix from Zurich"}, {"name": "Hans from Hagen"}];
+
+  var input = "SAPL rocks";
+  input.<echo.echo> == "SAPL rocks";
+
+obligation
+    {
+        "type" : "logAccess",
+		"message" : subject + " has read " + resource
+    }
+
+transform
+	{"name": "Homer"} |- { @.name : blacken(2,0,"\u2588") }

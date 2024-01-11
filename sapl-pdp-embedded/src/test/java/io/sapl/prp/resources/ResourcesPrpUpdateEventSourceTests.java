@@ -30,8 +30,6 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 
@@ -42,6 +40,7 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.SAPLInterpreter;
+import io.sapl.util.JarCreator;
 import io.sapl.util.JarUtil;
 
 class ResourcesPrpUpdateEventSourceTests {
@@ -92,8 +91,8 @@ class ResourcesPrpUpdateEventSourceTests {
     }
 
     @Test
-    void ifExecutedInJar_thenLoadDocumentsFromJar() throws InitializationException, MalformedURLException {
-        var url = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/policies");
+    void ifExecutedInJar_thenLoadDocumentsFromJar() throws InitializationException, IOException {
+        var url = JarCreator.createPoliciesInJar("!/policies");
         try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
             mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);
 

@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.file.Paths;
 import java.util.zip.ZipFile;
 
 import org.apache.commons.io.IOUtils;
@@ -58,7 +59,7 @@ class JarUtilTests {
 
     @Test
     void readStringFromZipEntryTest() throws IOException {
-        var url       = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/policies");
+        var url       = JarCreator.createPoliciesInJar("!/policies");
         var pathOfJar = JarUtil.getJarFilePath(url);
         try (var jarFile = new ZipFile(pathOfJar)) {
             var entry    = jarFile.getEntry("policies/pdp.json");
@@ -69,7 +70,7 @@ class JarUtilTests {
 
     @Test
     void readStringFromZipEntryTestWithErrorPropagation() throws IOException {
-        var url       = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/policies");
+        var url       = JarCreator.createPoliciesInJar("!/policies");
         var pathOfJar = JarUtil.getJarFilePath(url);
         try (MockedStatic<IOUtils> mock = mockStatic(IOUtils.class)) {
             mock.when(() -> IOUtils.toString(any(InputStream.class), any(Charset.class))).thenThrow(new IOException());
