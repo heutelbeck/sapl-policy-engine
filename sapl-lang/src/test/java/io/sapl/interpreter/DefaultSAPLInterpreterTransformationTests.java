@@ -81,19 +81,19 @@ class DefaultSAPLInterpreterTransformationTests {
     @SneakyThrows
     private static Stream<Arguments> transformationTestCases() {
         // @formatter:off
-        return Stream.of(new Arguments[] { 
+        return Stream.of(new Arguments[] {
                 Arguments.of(
                         "simpleTransformationWithComment",
-                        "{}", 
+                        "{}",
                         """
                         policy "test"
                         permit
                         transform
                             "teststring"        // This is a dummy comment
                             /* another comment */
-                        """, 
-                        "\"teststring\""), 
-                    
+                        """,
+                        "\"teststring\""),
+
                 Arguments.of(
                         "simpleFiltering",
                         """
@@ -104,22 +104,22 @@ class DefaultSAPLInterpreterTransformationTests {
                         permit
                         transform
                             resource |- filter.blacken
-                        """, 
-                        "\"XXXXXXXXXX\""), 
-                    
+                        """,
+                        "\"XXXXXXXXXX\""),
+
                 Arguments.of(
                         "simpleArrayCondition",
                         """
-                        { "resource" : [1, 2, 3, 4, 5] }                         
+                        { "resource" : [1, 2, 3, 4, 5] }
                         """,
                         """
                         policy "test"
                         permit
                         transform
                             resource[?(@>2 || @<2)]
-                        """, 
-                        "[1,3,4,5]"), 
-                    
+                        """,
+                        "[1,3,4,5]"),
+
                 Arguments.of(
                         "conditionTransformation",
                         """
@@ -149,7 +149,7 @@ class DefaultSAPLInterpreterTransformationTests {
                             {
                                 "array": resource.array[?(@.key1 > 2)]
                             }
-                        """, 
+                        """,
                         """
                         {
                             "array":[
@@ -163,8 +163,8 @@ class DefaultSAPLInterpreterTransformationTests {
                                 }
                             ]
                         }
-                        """), 
-                    
+                        """),
+
                 Arguments.of(
                         "conditionSubTemplateFiltering",
                         """
@@ -186,7 +186,7 @@ class DefaultSAPLInterpreterTransformationTests {
                                 ]
                             }
                         }
-                        """,  
+                        """,
                         """
                         policy "test"
                         permit
@@ -196,7 +196,7 @@ class DefaultSAPLInterpreterTransformationTests {
                                  "key20": @.key2
                             }
                           }
-                        """, 
+                        """,
                         """
                         {
                             "array":[
@@ -208,8 +208,8 @@ class DefaultSAPLInterpreterTransformationTests {
                                 }
                             ]
                         }
-                        """), 
-                    
+                        """),
+
                 Arguments.of(
                         "conditionFilteringRules",
                         """
@@ -241,7 +241,7 @@ class DefaultSAPLInterpreterTransformationTests {
                                     @.key2 : filter.blacken
                                 }
                             }
-                        """, 
+                        """,
                         """
                         {
                             "array":[
@@ -255,8 +255,8 @@ class DefaultSAPLInterpreterTransformationTests {
                                 }
                             ]
                         }
-                        """), 
-                
+                        """),
+
             Arguments.of(
                     "arrayLast",
                     """
@@ -273,11 +273,11 @@ class DefaultSAPLInterpreterTransformationTests {
                         {
                             "last": resource.array[-1]
                         }
-                    """, 
+                    """,
                     """
                     { "last":"5" }
-                    """),         
-            
+                    """),
+
         Arguments.of(
                 "arraySlicing1",
                 """
@@ -294,11 +294,11 @@ class DefaultSAPLInterpreterTransformationTests {
                     {
                          "array": resource.array[2:]
                     }
-                """, 
+                """,
                 """
                 { "array":["3","4","5"] }
-                """),         
-        
+                """),
+
         Arguments.of(
             "arraySlicing2",
             """
@@ -315,11 +315,11 @@ class DefaultSAPLInterpreterTransformationTests {
                 {
                      "array": resource.array[1:-1:2]
                 }
-            """, 
+            """,
             """
             { "array":["2","4"] }
-            """),         
-        
+            """),
+
         Arguments.of(
             "arrayExpressionMultipleIndices",
             """
@@ -337,11 +337,11 @@ class DefaultSAPLInterpreterTransformationTests {
                 {
                      "array": resource.array[2,4]
                 }
-            """, 
+            """,
             """
             { "array":["3","5"] }
             """),
-        
+
         Arguments.of(
             "arrayExplicitEach",
             """
@@ -358,11 +358,11 @@ class DefaultSAPLInterpreterTransformationTests {
                 resource |- {
                     each @.array : filter.blacken
                 }
-            """, 
+            """,
             """
             { "array":["X","X","X","X","X"] }
-            """),    
-        
+            """),
+
         Arguments.of(
             "arrayMultidimensional",
             """
@@ -383,7 +383,7 @@ class DefaultSAPLInterpreterTransformationTests {
                 resource |- {
                     @.array[1:].value : filter.blacken
                 }
-            """, 
+            """,
             """
             {
                 "array":[
@@ -392,8 +392,8 @@ class DefaultSAPLInterpreterTransformationTests {
                     {"value":"X"}
                 ]
             }
-            """),    
-        
+            """),
+
         Arguments.of(
                 "recursiveDescent",
                 """
@@ -412,11 +412,11 @@ class DefaultSAPLInterpreterTransformationTests {
                 permit
                 transform
                         resource..value
-                """, 
+                """,
                 """
                 ["1","2","3"]
-                """),    
-        
+                """),
+
         Arguments.of(
                 "recursiveDescentInFilterRemove",
                 """
@@ -438,13 +438,13 @@ class DefaultSAPLInterpreterTransformationTests {
                     resource |- {
                         @..value : filter.remove
                     }
-                """, 
+                """,
                 """
                 {
                     "array":[{},{},{}]
                 }
-                """),    
-        
+                """),
+
         Arguments.of(
                 "filterReplace",
                 """
@@ -466,7 +466,7 @@ class DefaultSAPLInterpreterTransformationTests {
                     resource |- {
                         @..name : filter.replace("***")
                     }
-                """, 
+                """,
                 """
                 {
                     "array":[
@@ -476,8 +476,8 @@ class DefaultSAPLInterpreterTransformationTests {
                     "value":"4",
                     "name":"***"
                 }
-                """),    
-                
+                """),
+
         });
         // @formatter:on
     }

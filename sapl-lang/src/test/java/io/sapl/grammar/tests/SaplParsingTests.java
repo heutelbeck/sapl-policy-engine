@@ -60,133 +60,133 @@ class SaplParsingTests {
         permit
         where { "a" : ^subject.id, "b" : [ resource, action, environment.id ] };
         """,
-        
+
         "targetExperiment",
         """
         policy "test policy"
         permit { "a" : subject.id, "b" : [ resource, action, environment.id ] }
         """,
-        
+
         "targetEmptyPermit",
         """
         policy "test policy"
         permit
         """,
-        
+
         "targetEmptyDeny",
         """
         policy "test policy"
         deny
         """,
-        
+
         "targetOneSimpleMatchA",
         """
         policy "test policy"
         permit subject == "some:subject"
         """,
-        
+
         "targetCompareJSONObjects1",
         """
         policy "test policy"
         permit { "key" : "value" } == { "key": "value", "id" : 1234, "active" : false }
         """,
-        
+
         "targetCompareJSONObjects2",
         """
         policy "test policy"
         permit subject.index[4].rules == { "key": "value", "id" : 1234, "active" : false }
         """,
-        
+
         "targetOneSimpleMatchB",
         """
         policy "test policy"
         deny action =~ "some regex"
         """,
-        
+
         "header01",
         """
         policy "test policy"
         permit test
         """,
-        
+
         "header02",
         """
         policy "test policy"
         permit false
         """,
-        
+
         "header03",
         """
         policy "test policy"
         permit { "test" : 0.12 }
         """,
-        
+
         "headerWithSubjectAttributeMatcher",
         """
         policy "test policy"
         permit subject.id =~ "^(?U)[\\\\p{Alpha}\\\\-'. [^=\\\\[\\\\]$()<>;]]*$"
         """,
-        
+
         "headerWithComplexSubjectAttributeMatcher",
         """
         policy "test policy"
         permit subject.patterns[7].foo.bar == "something"
         """,
-        
+
         "headerWithMatcherConjuctionA",
         """
         policy "test policy"
         permit subject == "aSubject" & target == "aTarget"
         """,
-        
+
         "headerWithMatcherConjuctionB",
         """
         policy "test policy"
         permit (subject == "aSubject" & target == "aTarget")
         """,
-        
+
         "headerWithMatcherConjuctionC",
         """
         policy "test policy"
         permit ((subject == "aSubject") & (target == "aTarget"))
         """,
-        
+
         "headerWithMatcherDisjuctionA",
         """
         policy "test policy"
         permit subject == "aSubject" | target == "aTarget"
         """,
-        
+
         "headerWithMatcherDisjuctionB",
         """
         policy "test policy"
         permit (subject == "aSubject" | target == "aTarget")
         """,
-        
+
         "headerWithMatcherDisjuctionC",
         """
         policy "test policy"
         permit ((subject == "aSubject") | (target == "aTarget"))
         """,
-        
+
         "headersWithNegationsA",
         """
         policy "test policy"
         permit !subject == "aSubject" | target == "aTarget"
         """,
-        
+
         "headersWithNegationsB",
         """
         policy "test policy"
         permit !(subject == "aSubject" | target == "aTarget")
         """,
-        
+
         "headersWithNegationsC",
         """
         policy "test policy"
         permit ((subject == { "id" : "x27", "name": "willi" }) | !target == "aTarget")
         """,
-        
+
         "headersComplexNestedExpression",
         """
         policy "test policy"
@@ -206,7 +206,7 @@ class SaplParsingTests {
                   action.volume == "some" | action.name == "bar"
                )
         """,
-        
+
         "rulesAssignment1",
         """
         policy "test policy"
@@ -214,7 +214,7 @@ class SaplParsingTests {
         where
           var something = { "key" : "value"}.key.<external.attribute> ;
         """,
-        
+
         "rulesAssignment2",
         """
         policy "test policy"
@@ -222,7 +222,7 @@ class SaplParsingTests {
         where
           var something = { "key" : "value"}.key.<external.attribute>[7].other_key ;
         """,
-        
+
         "rulesAssignment3",
         """
         policy "test policy"
@@ -234,7 +234,7 @@ class SaplParsingTests {
           var something3 = ressource.path.elements[4].<extern.other>;
           var something3 = !( environment.time.current == "2010-01-01T12:00:00+01:00" );
         """,
-        
+
         "rulesAssignmentAndExpression",
         """
         policy "test policy"
@@ -244,7 +244,7 @@ class SaplParsingTests {
           !("a" == "b");
           action =~ "HTTP.GET";
         """,
-        
+
         "rulesExpression",
         """
         policy "test policy"
@@ -254,7 +254,7 @@ class SaplParsingTests {
           !("a" == "b");
           action =~ "HTTP.GET";
         """,
-        
+
         "rulesExpressionAndImport",
         """
         policy "test policy"
@@ -264,7 +264,7 @@ class SaplParsingTests {
           !("a" == "b");
           action =~ "HTTP.GET";
         """,
-        
+
         "namedPolicy",
         """
         policy "test policy"
@@ -274,7 +274,7 @@ class SaplParsingTests {
           !("a" == "b");
           action =~ "HTTP.GET";
         """,
-        
+
         "commentedPolicy",
         """
         policy "test policy"
@@ -287,7 +287,7 @@ class SaplParsingTests {
           !("a" == "b");
           action =~ "HTTP.GET";
         """,
-        
+
         "namedAndCommentedPolicy",
         """
         /*
@@ -300,7 +300,7 @@ class SaplParsingTests {
           !("a" == "b");
           action =~ "HTTP.GET";
         """,
-        
+
         "simpleTransformPolicy",
         """
         policy "policy"
@@ -308,7 +308,7 @@ class SaplParsingTests {
             transform
                 true
         """,
-        
+
         "ourPuppetDoctorTransformPolicy",
         """
         policy "doctors_hide_icd10"
@@ -322,7 +322,7 @@ class SaplParsingTests {
                 }
 
         """,
-        
+
         "ourPuppetFamilymemberTransformPolicy",
         """
         policy "familymembers_truncate_contexthistory"
@@ -339,7 +339,7 @@ class SaplParsingTests {
                     }
                 }
         """,
-        
+
         "ourPuppetIntroducerTransformPolicy",
         """
         policy "puppetintroducers_truncate_contexthistory"
