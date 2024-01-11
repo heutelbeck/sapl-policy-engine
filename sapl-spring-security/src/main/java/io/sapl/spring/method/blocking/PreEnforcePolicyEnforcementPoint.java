@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authorization.AuthorizationManager;
@@ -55,15 +56,16 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
     private final Supplier<Authentication> authenticationSupplier = getAuthentication(
             SecurityContextHolder.getContextHolderStrategy());
 
-    private final PolicyDecisionPoint                        policyDecisionPoint;
-    private final SaplAttributeRegistry                      attributeRegistry;
-    private final ConstraintEnforcementService               constraintEnforcementService;
-    private final WebAuthorizationSubscriptionBuilderService subscriptionBuilder;
+    private final ObjectProvider<PolicyDecisionPoint>                        policyDecisionPointProvider;
+    private final ObjectProvider<SaplAttributeRegistry>                      attributeRegistryProvider;
+    private final ObjectProvider<ConstraintEnforcementService>               constraintEnforcementServiceProvider;
+    private final ObjectProvider<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderProvider;
 
     @Override
     public Object invoke(@NonNull MethodInvocation methodInvocation) throws Throwable {
 
-        var attribute = attributeRegistry.getSaplAttributeForAnnotationType(methodInvocation, PreEnforce.class);
+        var attribute = attributeRegistryProvider.getObject().getSaplAttributeForAnnotationType(methodInvocation,
+                PreEnforce.class);
         if (attribute.isEmpty()) {
             return methodInvocation.proceed();
         }
@@ -79,8 +81,8 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
             bundleReturnType = saplAttribute.genericsType();
         }
 
-        var blockingPreEnforceBundle = constraintEnforcementService.blockingPreEnforceBundleFor(authzDecision,
-                bundleReturnType);
+        var blockingPreEnforceBundle = constraintEnforcementServiceProvider.getObject()
+                .blockingPreEnforceBundleFor(authzDecision, bundleReturnType);
         if (blockingPreEnforceBundle == null) {
             throw new AccessDeniedException(
                     "Access Denied by @PreEnforce PEP. Failed to construct constraint handlers for decision. The ConstraintEnforcementService unexpectedly returned null");
@@ -117,10 +119,10 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
 
     private AuthorizationDecision getAuthorizationFromPolicyDecisionPoint(MethodInvocation methodInvocation,
             SaplAttribute attribute) {
-        var authzSubscription = subscriptionBuilder.constructAuthorizationSubscription(authenticationSupplier.get(),
-                methodInvocation, attribute);
+        var authzSubscription = subscriptionBuilderProvider.getObject()
+                .constructAuthorizationSubscription(authenticationSupplier.get(), methodInvocation, attribute);
 
-        var authzDecisions = policyDecisionPoint.decide(authzSubscription);
+        var authzDecisions = policyDecisionPointProvider.getObject().decide(authzSubscription);
         if (authzDecisions == null) {
             throw new AccessDeniedException(
                     String.format("Access Denied by @PreEnforce PEP. PDP returned null. %s", attribute));

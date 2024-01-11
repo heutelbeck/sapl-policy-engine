@@ -1,5 +1,42 @@
-{"properties": [{
-  "name": "io.sapl.policyEnforcementFilter",
-  "type": "java.lang.Boolean",
-  "description": "Setting this property to TRUE will activate the SaplFilterPolicyEnforcementPoint FilterBean in the application context."
-}]}
+{"properties": [
+  {
+    "name": "io.sapl.policyEnforcementFilter",
+    "type": "java.lang.Boolean",
+    "description": "Setting this property to TRUE will activate the SaplFilterPolicyEnforcementPoint FilterBean in the application context."
+  },
+  {
+    "name": "io.sapl.pdp.embedded.pdp-config-type",
+    "type": "java.lang.String",
+    "description": "pdp-config-type may be RESOURCES (loading policies and configuration from bundles resources) or FILESYSTEM (loading policies and configuration from a folder on the filesystem"
+  },
+  {
+    "name": "io.sapl.pdp.embedded.config-path",
+    "type": "java.lang.String",
+    "description": "defines the path (in resources or file system respectively) for the pdp.json file with combining algorithm and variables"
+  },
+  {
+    "name": "io.sapl.pdp.embedded.policies-path",
+    "type": "java.lang.String",
+    "description": "defines the path (in resources or file system respectively) containing .sapl files with policies and policy sets"
+  },
+  {
+    "name": "io.sapl.pdp.embedded.print-trace",
+    "type": "java.lang.Boolean",
+    "description": "This is the most fine-grained explanation of a decision made by the PDP each individual calculation step is documented. The trace is in JSON format and may become very large. Recommended only as a last resort for troubleshooting."
+  }
+]}{
+    "name": "io.sapl.pdp.embedded.print-text-report",
+    "type": "java.lang.Boolean",
+    "description": "This will log a human-readable textual report based on the same data as the 'print-json-report' option generates."
+  }
+]}{
+    "name": "io.sapl.pdp.embedded.print-json-report",
+    "type": "java.lang.Boolean",
+    "description": "A description for 'This is a JSON report summarizing the applied algorithms and results of each evaluated policy (set) in the decision-making process. It includes lists of all errors and values of policy information point attributes encountered during the evaluation of each policy (set)."
+  }
+]}{
+    "name": "io.sapl.pdp.embedded.pretty-print-reports",
+    "type": "java.lang.Boolean",
+    "description": "This option can enable formatting of JSON data while printing JSON during reporting and tracing. If it is intended to copy&paste JSON from the console-log it is recommended to keep this turned off."
+  }
+]}

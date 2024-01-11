@@ -11,6 +11,6 @@ spring:
   config.location: file:/pdp/data
 loader.path: /pdp/data/lib
 logging.level:
-  org.springframework: INFO
-  io.sapl: INFO
+  "[org.springframework]": INFO
+  "[io.sapl]": INFO
   
