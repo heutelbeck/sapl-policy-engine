@@ -46,11 +46,8 @@ public class JarCreator {
                 tempDir);
     }
 
-    private static void createJar(String jarFilePath, String[] sourcePaths) throws IOException {
-        try (var fos = new FileOutputStream(jarFilePath);
-                var bos = new BufferedOutputStream(fos);
-                var jos = new JarOutputStream(bos)) {
-
+    private static void createJar(Path jarFilePath, String[] sourcePaths) throws IOException {
+        try (var jos = new JarOutputStream(Files.newOutputStream(jarFilePath))) {
             for (String sourcePath : sourcePaths) {
                 var source = Path.of(sourcePath);
                 addFileToJar(source, source, jos);
@@ -60,18 +57,15 @@ public class JarCreator {
 
     private static URL createJarFromResource(String jarName, String resourcePath, String jarFolderReference,
             Path tempDir) throws IOException {
-        var path = tempDir + "/" + jarName;
+        var path = tempDir.resolve(jarName);
         JarCreator.createJar(path, new String[] { JarCreator.class.getResource(resourcePath).getPath() });
-        return new URL("jar:" + Paths.get(path).toUri().toURL() + jarFolderReference);
+        return new URL("jar:" + path.toUri().toURL() + jarFolderReference);
     }
 
     private static void addFileToJar(Path root, Path source, JarOutputStream jos) throws IOException {
         var relativePath = root.toUri().relativize(source.toUri()).getPath();
 
         if (Files.isDirectory(source)) {
-            if (!relativePath.isEmpty() && !relativePath.endsWith("/")) {
-                relativePath += "/";
-            }
             var jarEntry = new JarEntry(relativePath);
             jos.putNextEntry(jarEntry);
             jos.closeEntry();
