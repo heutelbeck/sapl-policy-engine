@@ -53,7 +53,7 @@ public class SampleXACMLTests {
             .unmodifiableMap(new HashMap<String, JsonNode>());
 
     @BeforeAll
-    public static void setUpClass() throws InitializationException, JsonProcessingException {
+    public static void setUpClass() throws InitializationException {
         FUNCTION_CTX.loadLibrary(new MockXACMLStringFunctionLibrary());
         FUNCTION_CTX.loadLibrary(new MockXACMLDateFunctionLibrary());
         FUNCTION_CTX.loadLibrary(FilterFunctionLibrary.class);
