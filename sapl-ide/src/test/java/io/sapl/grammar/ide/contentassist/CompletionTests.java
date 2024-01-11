@@ -25,14 +25,14 @@ import org.eclipse.lsp4j.CompletionList;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 
-import io.sapl.grammar.ide.AbstractSaplLanguageServerTest;
+import io.sapl.grammar.ide.AbstractSaplLanguageServerTests;
 
 /**
  * This class uses the xtext test classes to test auto-completion results.
  */
 @SpringBootTest
 @ContextConfiguration(classes = SAPLIdeSpringTestConfiguration.class)
-public class CompletionTests extends AbstractSaplLanguageServerTest {
+public class CompletionTests extends AbstractSaplLanguageServerTests {
 
     protected void assertProposalsSimple(final Collection<String> expectedProposals,
             final CompletionList completionList) {
