@@ -1,5 +1,12 @@
-{"properties": [{
-  "name": "io.sapl.policyEnforcementFilter",
-  "type": "java.lang.Boolean",
-  "description": "Setting this property to TRUE will activate the SaplFilterPolicyEnforcementPoint FilterBean in the application context."
-}]}
+{"properties": [
+  {
+    "name": "io.sapl.policyEnforcementFilter",
+    "type": "java.lang.Boolean",
+    "description": "Setting this property to TRUE will activate the SaplFilterPolicyEnforcementPoint FilterBean in the application context."
+  },
+  {
+    "name": "io.sapl.pdp.embedded.pdp-config-type",
+    "type": "java.lang.String",
+    "description": "pdp-config-type may be RESOURCES (loading policies and configuration from bundles resources) or FILESYSTEM (loading policies and configuration from a folder on the filesystem"
+  }
+]}

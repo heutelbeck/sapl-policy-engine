@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.Authentication;
@@ -48,16 +49,17 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
     private Supplier<Authentication> authentication = getAuthentication(
             SecurityContextHolder.getContextHolderStrategy());
 
-    private final PolicyDecisionPoint                        pdp;
-    private final SaplAttributeRegistry                      attributeRegistry;
-    private final ConstraintEnforcementService               constraintEnforcementService;
-    private final WebAuthorizationSubscriptionBuilderService subscriptionBuilder;
+    private final ObjectProvider<PolicyDecisionPoint>                        policyDecisionPointProvider;
+    private final ObjectProvider<SaplAttributeRegistry>                      attributeRegistryProvider;
+    private final ObjectProvider<ConstraintEnforcementService>               constraintEnforcementServiceProvider;
+    private final ObjectProvider<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderProvider;
 
     @Override
     @SuppressWarnings("unchecked")
     public Object invoke(MethodInvocation methodInvocation) throws Throwable {
         var returnedObject = methodInvocation.proceed();
-        var attribute      = attributeRegistry.getSaplAttributeForAnnotationType(methodInvocation, PostEnforce.class);
+        var attribute      = attributeRegistryProvider.getObject().getSaplAttributeForAnnotationType(methodInvocation,
+                PostEnforce.class);
         if (attribute.isEmpty()) {
             return returnedObject;
         }
@@ -78,10 +80,11 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
             }
         }
 
-        var authzSubscription = subscriptionBuilder.constructAuthorizationSubscriptionWithReturnObject(
-                authentication.get(), methodInvocation, postEnforceAttribute, returnedObjectForAuthzSubscription);
+        var authzSubscription = subscriptionBuilderProvider.getObject()
+                .constructAuthorizationSubscriptionWithReturnObject(authentication.get(), methodInvocation,
+                        postEnforceAttribute, returnedObjectForAuthzSubscription);
 
-        var authzDecisions = pdp.decide(authzSubscription);
+        var authzDecisions = policyDecisionPointProvider.getObject().decide(authzSubscription);
         if (authzDecisions == null) {
             throw new AccessDeniedException(
                     String.format("Access Denied by @PostEnforce PEP. PDP returned null. %s", attribute));
@@ -101,8 +104,8 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
             Class<T> returnType, AuthorizationDecision authzDecision) throws Throwable {
         BlockingConstraintHandlerBundle<T> blockingPostEnforceBundle;
         try {
-            blockingPostEnforceBundle = constraintEnforcementService.blockingPostEnforceBundleFor(authzDecision,
-                    returnType);
+            blockingPostEnforceBundle = constraintEnforcementServiceProvider.getObject()
+                    .blockingPostEnforceBundleFor(authzDecision, returnType);
         } catch (Throwable e) {
             Exceptions.throwIfFatal(e);
             throw new AccessDeniedException(
