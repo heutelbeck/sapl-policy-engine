@@ -29,17 +29,23 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.stream.Stream;
 
+import org.junit.jupiter.api.io.TempDir;
+
+import lombok.experimental.UtilityClass;
+
 /**
  * Utility class for creating plain JAR archives.
  */
-public final class JarCreator {
+@UtilityClass
+public class JarCreator {
 
-    public static URL createPoliciesInJar(String jarFolderReference) throws IOException {
-        return createJarFromResource("policies_in_jar.jar", "/setups/policies_in_jar", jarFolderReference);
+    public static URL createPoliciesInJar(String jarFolderReference, Path tempDir) throws IOException {
+        return createJarFromResource("policies_in_jar.jar", "/setups/policies_in_jar", jarFolderReference, tempDir);
     }
 
-    public static URL createBrokenPoliciesInJar(String jarFolderReference) throws IOException {
-        return createJarFromResource("broken_policies_in_jar.jar", "/setups/broken_config", jarFolderReference);
+    public static URL createBrokenPoliciesInJar(String jarFolderReference, Path tempDir) throws IOException {
+        return createJarFromResource("broken_policies_in_jar.jar", "/setups/broken_config", jarFolderReference,
+                tempDir);
     }
 
     private static void createJar(String jarFilePath, String[] sourcePaths) throws IOException {
@@ -54,9 +60,9 @@ public final class JarCreator {
         }
     }
 
-    private static URL createJarFromResource(String jarName, String resourcePath, String jarFolderReference)
-            throws IOException {
-        var path = System.getProperty("java.io.tmpdir") + "/" + jarName;
+    private static URL createJarFromResource(String jarName, String resourcePath, String jarFolderReference,
+            Path tempDir) throws IOException {
+        var path = tempDir + "/" + jarName;
         JarCreator.createJar(path, new String[] { JarCreator.class.getResource(resourcePath).getPath() });
         return new URL("jar:" + Paths.get(path).toUri().toURL() + jarFolderReference);
     }

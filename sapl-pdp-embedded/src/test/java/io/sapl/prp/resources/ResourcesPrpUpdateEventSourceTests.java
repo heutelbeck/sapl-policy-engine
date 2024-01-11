@@ -32,8 +32,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
+import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.CleanupMode;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
@@ -91,8 +94,9 @@ class ResourcesPrpUpdateEventSourceTests {
     }
 
     @Test
-    void ifExecutedInJar_thenLoadDocumentsFromJar() throws InitializationException, IOException {
-        var url = JarCreator.createPoliciesInJar("!/policies");
+    void ifExecutedInJar_thenLoadDocumentsFromJar(@TempDir(cleanup = CleanupMode.ALWAYS) Path tempDir)
+            throws InitializationException, IOException {
+        var url = JarCreator.createPoliciesInJar("!/policies", tempDir);
         try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
             mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);
 

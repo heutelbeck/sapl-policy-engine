@@ -26,8 +26,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 
 import java.io.IOException;
+import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.CleanupMode;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -86,8 +89,9 @@ class ResourcesVariablesAndCombinatorSourceTests {
     }
 
     @Test
-    void ifExecutedInJar_thenLoadConfigurationFileFromJar() throws Exception {
-        var url = JarCreator.createPoliciesInJar("!/policies");
+    void ifExecutedInJar_thenLoadConfigurationFileFromJar(@TempDir(cleanup = CleanupMode.ALWAYS) Path tempDir)
+            throws Exception {
+        var url = JarCreator.createPoliciesInJar("!/policies", tempDir);
         try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
             mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);
 
@@ -102,8 +106,9 @@ class ResourcesVariablesAndCombinatorSourceTests {
     }
 
     @Test
-    void ifExecutedInJarAndConfigFileBroken_thenPropagateException() throws IOException {
-        var url = JarCreator.createBrokenPoliciesInJar("!/policies");
+    void ifExecutedInJarAndConfigFileBroken_thenPropagateException(@TempDir(cleanup = CleanupMode.ALWAYS) Path tempDir)
+            throws IOException {
+        var url = JarCreator.createBrokenPoliciesInJar("!/policies", tempDir);
         try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
             mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);
             assertThrows(InitializationException.class, () -> new ResourcesVariablesAndCombinatorSource("/policies"));
@@ -111,8 +116,9 @@ class ResourcesVariablesAndCombinatorSourceTests {
     }
 
     @Test
-    void ifExecutedInJarAndNoConfigFilePresent_thenLoadDefaultConfiguration() throws Exception {
-        var url = JarCreator.createPoliciesInJar("!/not_existing");
+    void ifExecutedInJarAndNoConfigFilePresent_thenLoadDefaultConfiguration(
+            @TempDir(cleanup = CleanupMode.ALWAYS) Path tempDir) throws Exception {
+        var url = JarCreator.createPoliciesInJar("!/not_existing", tempDir);
         try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
             mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);
 
