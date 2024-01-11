@@ -26,12 +26,14 @@ import static org.mockito.Mockito.mockStatic;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.zip.ZipFile;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.CleanupMode;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 
 class JarUtilTests {
@@ -57,8 +59,8 @@ class JarUtilTests {
     }
 
     @Test
-    void readStringFromZipEntryTest() throws IOException {
-        var url       = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/policies");
+    void readStringFromZipEntryTest(@TempDir(cleanup = CleanupMode.ALWAYS) Path tempDir) throws IOException {
+        var url       = JarCreator.createPoliciesInJar("!/policies", tempDir);
         var pathOfJar = JarUtil.getJarFilePath(url);
         try (var jarFile = new ZipFile(pathOfJar)) {
             var entry    = jarFile.getEntry("policies/pdp.json");
@@ -68,8 +70,9 @@ class JarUtilTests {
     }
 
     @Test
-    void readStringFromZipEntryTestWithErrorPropagation() throws IOException {
-        var url       = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/policies");
+    void readStringFromZipEntryTestWithErrorPropagation(@TempDir(cleanup = CleanupMode.ALWAYS) Path tempDir)
+            throws IOException {
+        var url       = JarCreator.createPoliciesInJar("!/policies", tempDir);
         var pathOfJar = JarUtil.getJarFilePath(url);
         try (MockedStatic<IOUtils> mock = mockStatic(IOUtils.class)) {
             mock.when(() -> IOUtils.toString(any(InputStream.class), any(Charset.class))).thenThrow(new IOException());
