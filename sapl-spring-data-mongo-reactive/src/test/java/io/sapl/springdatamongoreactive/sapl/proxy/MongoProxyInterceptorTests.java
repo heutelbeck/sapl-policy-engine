@@ -323,7 +323,7 @@ class MongoProxyInterceptorTests {
 
         assertEquals(
                 "The interface org.springframework.data.mongodb.repository.ReactiveMongoRepository could not be found as an extension of the "
-                        + "interface io.sapl.springdatamongoreactive.sapl.database.repositoryerror.RepositoryNotFoundExceptionTest",
+                        + "interface io.sapl.springdatamongoreactive.sapl.database.repositoryerror.RepositoryNotFoundExceptionTests",
                 thrown.getMessage());
     }
 
