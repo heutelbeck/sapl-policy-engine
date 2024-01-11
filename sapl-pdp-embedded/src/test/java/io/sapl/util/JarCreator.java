@@ -17,14 +17,13 @@
  */
 package io.sapl.util;
 
-import java.io.BufferedOutputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.stream.Stream;
@@ -37,21 +36,20 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class JarCreator {
 
-    public static URL createPoliciesInJar(String jarFolderReference, Path tempDir) throws IOException {
+    public static URL createPoliciesInJar(String jarFolderReference, Path tempDir)
+            throws IOException, URISyntaxException {
         return createJarFromResource("policies_in_jar.jar", "/setups/policies_in_jar", jarFolderReference, tempDir);
     }
 
-    public static URL createBrokenPoliciesInJar(String jarFolderReference, Path tempDir) throws IOException {
+    public static URL createBrokenPoliciesInJar(String jarFolderReference, Path tempDir)
+            throws IOException, URISyntaxException {
         return createJarFromResource("broken_policies_in_jar.jar", "/setups/broken_config", jarFolderReference,
                 tempDir);
     }
 
-    private static void createJar(String jarFilePath, String[] sourcePaths) throws IOException {
-        try (var fos = new FileOutputStream(jarFilePath);
-                var bos = new BufferedOutputStream(fos);
-                var jos = new JarOutputStream(bos)) {
-
-            for (String sourcePath : sourcePaths) {
+    private static void createJar(Path jarFilePath, URI[] sourcePaths) throws IOException {
+        try (var jos = new JarOutputStream(Files.newOutputStream(jarFilePath))) {
+            for (var sourcePath : sourcePaths) {
                 var source = Path.of(sourcePath);
                 addFileToJar(source, source, jos);
             }
@@ -59,19 +57,16 @@ public class JarCreator {
     }
 
     private static URL createJarFromResource(String jarName, String resourcePath, String jarFolderReference,
-            Path tempDir) throws IOException {
-        var path = tempDir + "/" + jarName;
-        JarCreator.createJar(path, new String[] { JarCreator.class.getResource(resourcePath).getPath() });
-        return new URL("jar:" + Paths.get(path).toUri().toURL() + jarFolderReference);
+            Path tempDir) throws IOException, URISyntaxException {
+        var path = tempDir.resolve(jarName);
+        JarCreator.createJar(path, new URI[] { JarCreator.class.getResource(resourcePath).toURI() });
+        return new URL("jar:" + path.toUri().toURL() + jarFolderReference);
     }
 
     private static void addFileToJar(Path root, Path source, JarOutputStream jos) throws IOException {
         var relativePath = root.toUri().relativize(source.toUri()).getPath();
 
         if (Files.isDirectory(source)) {
-            if (!relativePath.isEmpty() && !relativePath.endsWith("/")) {
-                relativePath += "/";
-            }
             var jarEntry = new JarEntry(relativePath);
             jos.putNextEntry(jarEntry);
             jos.closeEntry();
