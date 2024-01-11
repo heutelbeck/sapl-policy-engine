@@ -40,13 +40,6 @@ jobs:
       uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895 # v2.6.1
       with:
         egress-policy: audit
-        
-    - name: Check Branch Name
-      run: |
-         if [[ "${{ github.head_ref }}" =~ [\]\'\"] ]]; then
-           echo "Build process stopped. Branch name contains suspicious character."
-           exit 1
-         fi
 
     - name: Check out
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -69,7 +62,7 @@ jobs:
         -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
         
     - name: Save PR Details
-      run: echo "${{ github.event.number }},${{ github.head_ref }},${{ github.base_ref }}" > pr_data.csv
+      run: echo "${{ github.event.number }},${{ github.base_ref }}" > pr_data.csv
  
     - name: Upload Artifact
       uses: actions/upload-artifact@v3
@@ -79,6 +72,7 @@ jobs:
           */src
           */target/spotbugsXml.xml
           */target/classes
+          */target/test-classes
           */target/site/jacoco/jacoco.xml
           */pom.xml
           pom.xml
