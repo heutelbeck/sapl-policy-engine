@@ -17,8 +17,6 @@
  */
 package io.sapl.util;
 
-import java.io.BufferedOutputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
@@ -26,7 +24,6 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.stream.Stream;
@@ -39,11 +36,13 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class JarCreator {
 
-    public static URL createPoliciesInJar(String jarFolderReference, Path tempDir) throws IOException {
+    public static URL createPoliciesInJar(String jarFolderReference, Path tempDir)
+            throws IOException, URISyntaxException {
         return createJarFromResource("policies_in_jar.jar", "/setups/policies_in_jar", jarFolderReference, tempDir);
     }
 
-    public static URL createBrokenPoliciesInJar(String jarFolderReference, Path tempDir) throws IOException {
+    public static URL createBrokenPoliciesInJar(String jarFolderReference, Path tempDir)
+            throws IOException, URISyntaxException {
         return createJarFromResource("broken_policies_in_jar.jar", "/setups/broken_config", jarFolderReference,
                 tempDir);
     }
@@ -58,17 +57,9 @@ public class JarCreator {
     }
 
     private static URL createJarFromResource(String jarName, String resourcePath, String jarFolderReference,
-            Path tempDir) throws IOException {
+            Path tempDir) throws IOException, URISyntaxException {
         var path = tempDir.resolve(jarName);
-        try {
-            JarCreator.createJar(path, new URI[] { JarCreator.class.getResource(resourcePath).toURI() });
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (URISyntaxException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        JarCreator.createJar(path, new URI[] { JarCreator.class.getResource(resourcePath).toURI() });
         return new URL("jar:" + path.toUri().toURL() + jarFolderReference);
     }
 

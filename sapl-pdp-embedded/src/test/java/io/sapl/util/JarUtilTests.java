@@ -26,6 +26,7 @@ import static org.mockito.Mockito.mockStatic;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.zip.ZipFile;
@@ -59,7 +60,8 @@ class JarUtilTests {
     }
 
     @Test
-    void readStringFromZipEntryTest(@TempDir(cleanup = CleanupMode.ALWAYS) Path tempDir) throws IOException {
+    void readStringFromZipEntryTest(@TempDir(cleanup = CleanupMode.ALWAYS) Path tempDir)
+            throws IOException, URISyntaxException {
         var url       = JarCreator.createPoliciesInJar("!/policies", tempDir);
         var pathOfJar = JarUtil.getJarFilePath(url);
         try (var jarFile = new ZipFile(pathOfJar)) {
@@ -71,7 +73,7 @@ class JarUtilTests {
 
     @Test
     void readStringFromZipEntryTestWithErrorPropagation(@TempDir(cleanup = CleanupMode.ALWAYS) Path tempDir)
-            throws IOException {
+            throws IOException, URISyntaxException {
         var url       = JarCreator.createPoliciesInJar("!/policies", tempDir);
         var pathOfJar = JarUtil.getJarFilePath(url);
         try (MockedStatic<IOUtils> mock = mockStatic(IOUtils.class)) {

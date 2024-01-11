@@ -26,6 +26,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
@@ -107,7 +108,7 @@ class ResourcesVariablesAndCombinatorSourceTests {
 
     @Test
     void ifExecutedInJarAndConfigFileBroken_thenPropagateException(@TempDir(cleanup = CleanupMode.ALWAYS) Path tempDir)
-            throws IOException {
+            throws IOException, URISyntaxException {
         var url = JarCreator.createBrokenPoliciesInJar("!/policies", tempDir);
         try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
             mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);
