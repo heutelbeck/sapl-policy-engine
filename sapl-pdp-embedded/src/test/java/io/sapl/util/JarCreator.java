@@ -35,18 +35,14 @@ import java.util.stream.Stream;
 public final class JarCreator {
 
     public static URL createPoliciesInJar(String jarFolderReference) throws IOException {
-        var path = System.getProperty("java.io.tmpdir") + "/policies_in_jar.jar";
-        JarCreator.createJar(path, new String[] { JarCreator.class.getResource("/setups/policies_in_jar").getPath() });
-        return new URL("jar:" + Paths.get(path).toUri().toURL() + jarFolderReference);
+        return createJarFromResource("policies_in_jar.jar", "/setups/policies_in_jar", jarFolderReference);
     }
 
     public static URL createBrokenPoliciesInJar(String jarFolderReference) throws IOException {
-        var path = System.getProperty("java.io.tmpdir") + "/broken_policies_in_jar.jar";
-        JarCreator.createJar(path, new String[] { JarCreator.class.getResource("/setups/broken_config").getPath() });
-        return new URL("jar:" + Paths.get(path).toUri().toURL() + jarFolderReference);
+        return createJarFromResource("broken_policies_in_jar.jar", "/setups/broken_config", jarFolderReference);
     }
 
-    public static void createJar(String jarFilePath, String[] sourcePaths) throws IOException {
+    private static void createJar(String jarFilePath, String[] sourcePaths) throws IOException {
         try (var fos = new FileOutputStream(jarFilePath);
                 var bos = new BufferedOutputStream(fos);
                 var jos = new JarOutputStream(bos)) {
@@ -56,6 +52,13 @@ public final class JarCreator {
                 addFileToJar(source, source, jos);
             }
         }
+    }
+
+    private static URL createJarFromResource(String jarName, String resourcePath, String jarFolderReference)
+            throws IOException {
+        var path = System.getProperty("java.io.tmpdir") + "/" + jarName;
+        JarCreator.createJar(path, new String[] { JarCreator.class.getResource(resourcePath).getPath() });
+        return new URL("jar:" + Paths.get(path).toUri().toURL() + jarFolderReference);
     }
 
     private static void addFileToJar(Path root, Path source, JarOutputStream jos) throws IOException {
