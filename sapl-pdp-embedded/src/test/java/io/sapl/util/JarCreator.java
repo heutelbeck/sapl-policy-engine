@@ -17,17 +17,17 @@
  */
 package io.sapl.util;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Objects;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
+import java.util.stream.Stream;
 
 /**
  * Utility class for creating plain JAR archives.
@@ -47,43 +47,42 @@ public final class JarCreator {
     }
 
     public static void createJar(String jarFilePath, String[] sourcePaths) throws IOException {
-        try (FileOutputStream fos = new FileOutputStream(jarFilePath);
-                BufferedOutputStream bos = new BufferedOutputStream(fos);
-                JarOutputStream jos = new JarOutputStream(bos)) {
+        try (var fos = new FileOutputStream(jarFilePath);
+                var bos = new BufferedOutputStream(fos);
+                var jos = new JarOutputStream(bos)) {
 
             for (String sourcePath : sourcePaths) {
-                File source = new File(sourcePath);
+                var source = Path.of(sourcePath);
                 addFileToJar(source, source, jos);
             }
         }
     }
 
-    private static void addFileToJar(File root, File source, JarOutputStream jos) throws IOException {
-        String relativePath = root.toURI().relativize(source.toURI()).getPath();
+    private static void addFileToJar(Path root, Path source, JarOutputStream jos) throws IOException {
+        var relativePath = root.toUri().relativize(source.toUri()).getPath();
 
-        if (source.isDirectory()) {
+        if (Files.isDirectory(source)) {
             if (!relativePath.isEmpty() && !relativePath.endsWith("/")) {
                 relativePath += "/";
             }
-            JarEntry jarEntry = new JarEntry(relativePath);
+            var jarEntry = new JarEntry(relativePath);
             jos.putNextEntry(jarEntry);
             jos.closeEntry();
 
-            for (File file : Objects.requireNonNull(source.listFiles())) {
-                addFileToJar(root, file, jos);
+            try (Stream<Path> paths = Files.list(source)) {
+                paths.forEach(path -> {
+                    try {
+                        addFileToJar(root, path, jos);
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
+                });
             }
         } else {
-            JarEntry jarEntry = new JarEntry(relativePath);
+            var jarEntry = new JarEntry(relativePath);
             jos.putNextEntry(jarEntry);
 
-            try (FileInputStream fis = new FileInputStream(source);
-                    BufferedInputStream bis = new BufferedInputStream(fis)) {
-                byte[] buffer = new byte[1024];
-                int    bytesRead;
-                while ((bytesRead = bis.read(buffer)) != -1) {
-                    jos.write(buffer, 0, bytesRead);
-                }
-            }
+            Files.copy(source, jos);
 
             jos.closeEntry();
         }
