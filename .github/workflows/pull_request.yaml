@@ -56,12 +56,13 @@ jobs:
  
     - name: Build with Maven (JUnit, JaCoCo, Spotbugs, SonarCloud)
       env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
       run: >
         mvn -U -B --fail-at-end verify spotbugs:spotbugs sonar:sonar
         -pl '!sapl-bom'
         -Pcoverage,spotbugs
         -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+        -Dsonar.organization=heutelbeck
         -Dsonar.host.url=https://sonarcloud.io
         -Dsonar.projectKey=heutelbeck_sapl-policy-engine
         -Dsonar.java.spotbugs.reportPaths=target/spotbugsXml.xml
