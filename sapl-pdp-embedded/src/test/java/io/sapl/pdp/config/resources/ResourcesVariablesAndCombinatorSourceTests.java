@@ -20,27 +20,15 @@ package io.sapl.pdp.config.resources;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.CleanupMode;
-import org.junit.jupiter.api.io.TempDir;
-import org.mockito.MockedStatic;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.grammar.sapl.DenyOverridesCombiningAlgorithm;
 import io.sapl.grammar.sapl.PermitUnlessDenyCombiningAlgorithm;
 import io.sapl.interpreter.InitializationException;
-import io.sapl.util.JarCreator;
-import io.sapl.util.JarUtil;
 
 class ResourcesVariablesAndCombinatorSourceTests {
 
@@ -50,16 +38,6 @@ class ResourcesVariablesAndCombinatorSourceTests {
         assertThrows(NullPointerException.class, () -> new ResourcesVariablesAndCombinatorSource("", null));
         assertThrows(NullPointerException.class,
                 () -> new ResourcesVariablesAndCombinatorSource(null, mock(ObjectMapper.class)));
-
-        assertThrows(NullPointerException.class, () -> new ResourcesVariablesAndCombinatorSource(null, null, null));
-        assertThrows(NullPointerException.class, () -> new ResourcesVariablesAndCombinatorSource(null, "", null));
-        assertThrows(NullPointerException.class,
-                () -> new ResourcesVariablesAndCombinatorSource(null, null, mock(ObjectMapper.class)));
-        var thisClass = this.getClass();
-        assertThrows(NullPointerException.class,
-                () -> new ResourcesVariablesAndCombinatorSource(thisClass, null, null));
-        assertThrows(NullPointerException.class, () -> new ResourcesVariablesAndCombinatorSource(thisClass, "", null));
-
     }
 
     @Test
@@ -87,50 +65,6 @@ class ResourcesVariablesAndCombinatorSourceTests {
     @Test
     void ifExecutedDuringUnitTestsAndConfigFileBroken_thenPropagateException() {
         assertThrows(InitializationException.class, () -> new ResourcesVariablesAndCombinatorSource("/broken_config"));
-    }
-
-    @Test
-    void ifExecutedInJar_thenLoadConfigurationFileFromJar(@TempDir(cleanup = CleanupMode.ALWAYS) Path tempDir)
-            throws Exception {
-        var url = JarCreator.createPoliciesInJar("!/policies", tempDir);
-        try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
-            mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);
-
-            var configProvider = new ResourcesVariablesAndCombinatorSource();
-            var algo           = configProvider.getCombiningAlgorithm().blockFirst();
-            var variables      = configProvider.getVariables().blockFirst();
-            configProvider.destroy();
-
-            assertThat(algo.get() instanceof PermitUnlessDenyCombiningAlgorithm, is(true));
-            assertThat(variables.get().size(), is(2));
-        }
-    }
-
-    @Test
-    void ifExecutedInJarAndConfigFileBroken_thenPropagateException(@TempDir(cleanup = CleanupMode.ALWAYS) Path tempDir)
-            throws IOException, URISyntaxException {
-        var url = JarCreator.createBrokenPoliciesInJar("!/policies", tempDir);
-        try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
-            mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);
-            assertThrows(InitializationException.class, () -> new ResourcesVariablesAndCombinatorSource("/policies"));
-        }
-    }
-
-    @Test
-    void ifExecutedInJarAndNoConfigFilePresent_thenLoadDefaultConfiguration(
-            @TempDir(cleanup = CleanupMode.ALWAYS) Path tempDir) throws Exception {
-        var url = JarCreator.createPoliciesInJar("!/not_existing", tempDir);
-        try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
-            mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);
-
-            var configProvider = new ResourcesVariablesAndCombinatorSource("/not_existing");
-            var algo           = configProvider.getCombiningAlgorithm().blockFirst();
-            var variables      = configProvider.getVariables().blockFirst();
-            configProvider.destroy();
-
-            assertThat(algo.get() instanceof DenyOverridesCombiningAlgorithm, is(true));
-            assertThat(variables.get().size(), is(0));
-        }
     }
 
 }

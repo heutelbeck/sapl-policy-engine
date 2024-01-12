@@ -118,9 +118,7 @@ public class PolicyDecisionPointFactory {
             Collection<AuthorizationSubscriptionInterceptor> subscriptionInterceptors,
             Collection<TracedDecisionInterceptor> authorizationSubscriptionInterceptors)
             throws InitializationException {
-        ResourcesVariablesAndCombinatorSource resourcesSource;
-        resourcesSource = new ResourcesVariablesAndCombinatorSource(EmbeddedPolicyDecisionPoint.class, path,
-                new ObjectMapper());
+        var resourcesSource       = new ResourcesVariablesAndCombinatorSource(path, new ObjectMapper());
         var configurationProvider = constructConfigurationProvider(resourcesSource, pips, staticPips, functionLibraries,
                 staticFunctionLibraries, subscriptionInterceptors, authorizationSubscriptionInterceptors);
         var policyRetrievalPoint  = constructResourcesPolicyRetrievalPoint(path);
