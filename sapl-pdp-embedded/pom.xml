@@ -132,6 +132,7 @@
 					</execution>
 				</executions>
 				<configuration>
+<!--					TODO: Kommentar -->
 					<bnd>
 						Import-Package: !lombok,*
 					</bnd>
