@@ -47,7 +47,7 @@ public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
         final List<Update> updates = new ArrayList<>();
         try (ScanResult scanResult = new ClassGraph().acceptPaths(policyPath).scan()) {
             var saplDocuments = scanResult.getResourcesWithExtension(SAPL_EXTENSION);
-            if (saplDocuments.size() == 0) {
+            if (saplDocuments.isEmpty()) {
                 log.warn("No SAPL policies/policy sets found in resources under path {}", policyPath);
             }
             saplDocuments.forEachByteArrayThrowingIOException((Resource res, byte[] rawDocument) -> {

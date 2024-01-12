@@ -158,8 +158,7 @@ public class PolicyDecisionPointFactory {
         return attributeCtx;
     }
 
-    private static PolicyRetrievalPoint constructResourcesPolicyRetrievalPoint(String resourcePath)
-            throws InitializationException {
+    private static PolicyRetrievalPoint constructResourcesPolicyRetrievalPoint(String resourcePath) {
         var seedIndex = constructDocumentIndex();
         var source    = new ResourcesPrpUpdateEventSource(resourcePath, new DefaultSAPLInterpreter());
 
