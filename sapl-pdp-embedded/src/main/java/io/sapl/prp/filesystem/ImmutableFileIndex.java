@@ -18,7 +18,6 @@
 package io.sapl.prp.filesystem;
 
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -26,11 +25,10 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import com.google.common.collect.Maps;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEvent.Type;
@@ -38,16 +36,13 @@ import io.sapl.prp.PrpUpdateEvent.Update;
 import io.sapl.util.filemonitoring.FileCreatedEvent;
 import io.sapl.util.filemonitoring.FileDeletedEvent;
 import io.sapl.util.filemonitoring.FileEvent;
-import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 class ImmutableFileIndex {
 
-    private static final String SAPL_SUFFIX = ".sapl";
-
-    private static final String SAPL_GLOB_PATTERN = "*" + SAPL_SUFFIX;
+    private static final String SAPL_FILE_EXTENSION = "sapl";
 
     private final SAPLInterpreter interpreter;
 
@@ -71,11 +66,11 @@ class ImmutableFileIndex {
         this.documentsByPath  = new HashMap<>();
         this.namesToDocuments = new HashMap<>();
 
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(watchDir), SAPL_GLOB_PATTERN)) {
-            for (var filePath : stream) {
-                log.debug("loading SAPL document: {}", filePath);
-                load(filePath);
-            }
+        try {
+            findSaplDocuments(watchDir).forEach(file -> {
+                log.debug("loading SAPL document: {}", file);
+                load(file);
+            });
         } catch (IOException e) {
             log.error("Unable to open the directory containing policies: {}", watchDir);
             updates.add(new Update(Type.INCONSISTENT, null, null));
@@ -89,6 +84,20 @@ class ImmutableFileIndex {
         }
 
         updateEvent = new PrpUpdateEvent(updates);
+    }
+
+    public static List<Path> findSaplDocuments(String rawPath) throws IOException {
+
+        var path = Paths.get(rawPath);
+
+        if (!Files.isDirectory(path)) {
+            throw new IOException("Provided path for policies not a path: " + path);
+        }
+
+        try (Stream<Path> walk = Files.walk(path)) {
+            return walk.filter(p -> !Files.isDirectory(p) && p.toString().toLowerCase().endsWith(SAPL_FILE_EXTENSION))
+                    .toList();
+        }
     }
 
     private ImmutableFileIndex(ImmutableFileIndex oldIndex) {
@@ -240,57 +249,6 @@ class ImmutableFileIndex {
                         onlyRemainingDocumentWithName.getRawDocument()));
                 onlyRemainingDocumentWithName.setPublished(true);
             }
-        }
-
-    }
-
-    @Data
-    @Slf4j
-    static class Document {
-
-        Path path;
-
-        String rawDocument;
-
-        SAPL parsedDocument;
-
-        String documentName;
-
-        boolean published;
-
-        public Document(Path path, SAPLInterpreter interpreter) {
-            this.path = path;
-            try {
-                rawDocument = Files.readString(path);
-            } catch (IOException e) {
-                log.debug("Error reading file '{}': {}. Will lead to inconsistent index.", path.toAbsolutePath(),
-                        e.getMessage());
-            }
-            try {
-                if (rawDocument != null) {
-                    parsedDocument = interpreter.parse(rawDocument);
-                    documentName   = parsedDocument.getPolicyElement().getSaplName();
-                }
-            } catch (PolicyEvaluationException e) {
-                log.debug("Error in document '{}': {}. Will lead to inconsistent index.", path.toAbsolutePath(),
-                        e.getMessage());
-            }
-        }
-
-        public Document(Document document) {
-            this.path           = document.path;
-            this.published      = document.published;
-            this.rawDocument    = document.rawDocument;
-            this.parsedDocument = document.parsedDocument;
-            this.documentName   = document.documentName;
-        }
-
-        public String getAbsolutePath() {
-            return path.toAbsolutePath().toString();
-        }
-
-        public boolean isInvalid() {
-            return parsedDocument == null;
         }
 
     }
