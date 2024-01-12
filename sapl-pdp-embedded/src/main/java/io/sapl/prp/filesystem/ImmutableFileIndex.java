@@ -18,14 +18,11 @@
 package io.sapl.prp.filesystem;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import com.google.common.collect.Maps;
 
@@ -36,13 +33,12 @@ import io.sapl.prp.PrpUpdateEvent.Update;
 import io.sapl.util.filemonitoring.FileCreatedEvent;
 import io.sapl.util.filemonitoring.FileDeletedEvent;
 import io.sapl.util.filemonitoring.FileEvent;
+import io.sapl.util.filemonitoring.FileMonitorUtil;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 class ImmutableFileIndex {
-
-    private static final String SAPL_FILE_EXTENSION = "sapl";
 
     private final SAPLInterpreter interpreter;
 
@@ -67,7 +63,7 @@ class ImmutableFileIndex {
         this.namesToDocuments = new HashMap<>();
 
         try {
-            findSaplDocuments(watchDir).forEach(file -> {
+            FileMonitorUtil.findSaplDocuments(watchDir).forEach(file -> {
                 log.debug("loading SAPL document: {}", file);
                 load(file);
             });
@@ -84,20 +80,6 @@ class ImmutableFileIndex {
         }
 
         updateEvent = new PrpUpdateEvent(updates);
-    }
-
-    public static List<Path> findSaplDocuments(String rawPath) throws IOException {
-
-        var path = Paths.get(rawPath);
-
-        if (!Files.isDirectory(path)) {
-            throw new IOException("Provided path for policies not a path: " + path);
-        }
-
-        try (Stream<Path> walk = Files.walk(path)) {
-            return walk.filter(p -> !Files.isDirectory(p) && p.toString().toLowerCase().endsWith(SAPL_FILE_EXTENSION))
-                    .toList();
-        }
     }
 
     private ImmutableFileIndex(ImmutableFileIndex oldIndex) {

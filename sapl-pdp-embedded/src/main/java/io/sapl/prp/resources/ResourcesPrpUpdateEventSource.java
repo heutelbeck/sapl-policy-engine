@@ -23,7 +23,6 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.stream.StreamSupport;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -34,6 +33,7 @@ import io.sapl.prp.PrpUpdateEvent.Type;
 import io.sapl.prp.PrpUpdateEvent.Update;
 import io.sapl.prp.PrpUpdateEventSource;
 import io.sapl.util.JarUtil;
+import io.sapl.util.filemonitoring.FileMonitorUtil;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -43,8 +43,6 @@ import reactor.core.publisher.Flux;
 public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
 
     private static final String POLICY_FILE_SUFFIX = ".sapl";
-
-    private static final String POLICY_FILE_GLOB_PATTERN = "*" + POLICY_FILE_SUFFIX;
 
     private final SAPLInterpreter interpreter;
 
@@ -94,14 +92,11 @@ public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
 
     private PrpUpdateEvent readPoliciesFromDirectory(URL policiesFolderUrl) throws IOException, URISyntaxException {
         log.debug("reading policies from directory {}", policiesFolderUrl);
-        try (var directoryStream = Files.newDirectoryStream(Paths.get(policiesFolderUrl.toURI()),
-                POLICY_FILE_GLOB_PATTERN)) {
-            var updates = StreamSupport.stream(directoryStream.spliterator(), false).map(path -> {
-                log.info("load SAPL document: {}", path);
-                return readFileAsString(path);
-            }).map(this::parseAndCreatePublicationUpdate).toList();
-            return new PrpUpdateEvent(updates);
-        }
+        var updates = FileMonitorUtil.findSaplDocuments(Paths.get(policiesFolderUrl.toURI())).stream().map(path -> {
+            log.info("load SAPL document: {}", path);
+            return readFileAsString(path);
+        }).map(this::parseAndCreatePublicationUpdate).toList();
+        return new PrpUpdateEvent(updates);
     }
 
     @SneakyThrows
