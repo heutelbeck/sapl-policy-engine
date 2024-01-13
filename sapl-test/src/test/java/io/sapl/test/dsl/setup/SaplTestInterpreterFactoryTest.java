@@ -15,19 +15,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.setup;
 
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
-import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
+import io.sapl.test.dsl.lang.DefaultSaplTestInterpreter;
 import org.junit.jupiter.api.Test;
 
 class SaplTestInterpreterFactoryTest {
 
     @Test
-    void create_constructsInstanceOfSaplTestInterpreter_returnsSaplTestInterpreterInstance() {
+    void create_constructsInstanceOfSaplTestInterpreter_returnsDefaultSaplTestInterpreterInstance() {
         final var result = SaplTestInterpreterFactory.create();
 
-        assertInstanceOf(SaplTestInterpreter.class, result);
+        assertInstanceOf(DefaultSaplTestInterpreter.class, result);
     }
 }

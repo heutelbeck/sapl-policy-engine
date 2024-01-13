@@ -23,7 +23,8 @@ import org.apache.commons.io.FileUtils;
 import org.assertj.core.util.Arrays;
 
 class TestDiscoveryHelper {
-    TestDiscoveryHelper() {
+
+    private TestDiscoveryHelper() {
     }
 
     private static final String[] SAPLTEST_FILE_EXTENSIONS = Arrays.array("sapltest");

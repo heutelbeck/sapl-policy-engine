@@ -22,7 +22,7 @@ generate sAPLTest "http://www.sapl.io/test/grammar/SAPLTest"
 import "http://www.eclipse.org/emf/2002/Ecore" as ecore
 
 SAPLTest:
-    (elements+=TestSuite)*;
+    (testSuites+=TestSuite)+;
 
 terminal JSONNUMBER returns ecore::EBigDecimal: // Definition according to JSON standard  Unary operator for negation/plus prefix
 	('0' | ('1'..'9') DIGIT*) ('.' DIGIT+)? (('E' | 'e') ('+' | '-')? DIGIT+)? ;
@@ -44,13 +44,13 @@ JsonArrayMatcher: '[' matchers+=JsonNodeMatcher (',' matchers+=JsonNodeMatcher)*
 
 JsonObjectMatcherPair: key=STRING ':' matcher=JsonNodeMatcher;
 
-JsonObjectMatcher: '{' matchers+=JsonObjectMatcherPair (',' matchers+=JsonObjectMatcherPair)* '}';
+JsonObjectMatcher: '{' members+=JsonObjectMatcherPair (',' members+=JsonObjectMatcherPair)* '}';
 
 JsonNodeMatcher:
     {IsJsonNull} 'null' |
-    {IsJsonText} 'text' (text=StringOrStringMatcher)? |
+    {IsJsonText} 'text' (matcher=StringOrStringMatcher)? |
     {IsJsonNumber} 'number' (number=JSONNUMBER)? |
-    {IsJsonBoolean} 'boolean' (value=BooleanLiteral)? |
+    {IsJsonBoolean} 'boolean' (literal=BooleanLiteral)? |
     {IsJsonArray} 'array' ('where' matcher=JsonArrayMatcher)? |
     {IsJsonObject} 'object' ('where' matcher=JsonObjectMatcher)?;
 
@@ -63,9 +63,9 @@ StringMatcher:
     {StringIsEqualWithCompressedWhiteSpace} 'equals' value=STRING 'with' 'compressed' 'whitespaces' |
     {StringIsEqualIgnoringCase} 'equals' value=STRING 'ignoring case' |
     {StringMatchesRegex} 'matches' 'regex' regex=STRING |
-    {StringStartsWith} 'starts' 'with' start=STRING caseInsensitive?='ignoring case' |
-    {StringEndsWith} 'ends' 'with' end=STRING caseInsensitive?='ignoring case' |
-    {StringContains} 'contains' value=STRING caseInsensitive?='ignoring case' |
+    {StringStartsWith} 'starts' 'with' prefix=STRING caseInsensitive?='ignoring case' |
+    {StringEndsWith} 'ends' 'with' postfix=STRING caseInsensitive?='ignoring case' |
+    {StringContains} 'contains' text=STRING caseInsensitive?='ignoring case' |
     {StringContainsInOrder} 'contains' 'substrings' substrings+=STRING (',' substrings+=STRING)* 'ordered' |
     {StringWithLength} 'has' 'length' 'of' length=JSONNUMBER;
 
@@ -79,7 +79,7 @@ ValMatcher:
     {ValWithError} 'with' 'error' (error=StringOrStringMatcher)?;
 
 DefaultObjectMatcher:
-    {ObjectWithExactMatch} 'equals' object=Value |
+    {ObjectWithExactMatch} 'equals' equalTo=Value |
     {ObjectWithMatcher} 'matching' matcher=JsonNodeMatcher;
 
 ExtendedObjectMatcher:
@@ -147,7 +147,7 @@ UndefinedLiteral returns Value:
     {UndefinedLiteral} 'undefined' ;
 
 GivenStep:
-	{Function} 'function' name=STRING ('called with' parameters=FunctionParameters)? 'returning' returnValue=Value ('and' 'is' 'invoked' amount=NumericAmount)? |
+	{Function} 'function' name=STRING ('parameters' 'matching' parameters=FunctionParameters)? 'returning' returnValue=Value ('called' timesCalled=NumericAmount)? |
 	{FunctionInvokedOnce} 'function' name=STRING 'returns' returnValue+=Value (',' returnValue+=Value)* 'once' |
 	{Attribute} 'attribute' name=STRING ('returns' returnValue+=Value (',' returnValue+=Value)* ('for' duration=Duration)?)? |
 	{AttributeWithParameters} 'attribute' name=STRING 'with' 'parent' 'value' parentMatcher=ValMatcher ('and' 'parameters' parameters+=ValMatcher (',' parameters+=ValMatcher)+)? 'returns' returnValue=Value |
@@ -172,14 +172,14 @@ AdjustmentStep returns ExpectOrAdjustmentStep:
 AuthorizationDecision:
     decision=AuthorizationDecisionType ('with' 'obligations' obligations+=Value (',' obligations+=Value)*)? ('with' 'resource' resource=Value)? ('with' 'advice' advice+=Value (',' advice+=Value)*)?;
 
-ExpectChain:
+Expectation:
 	{SingleExpect} 'expect' 'single' decision=AuthorizationDecision |
 	{SingleExpectWithMatcher} 'expect' 'single' 'decision' 'matching' matcher=AuthorizationDecisionMatcher |
 	{TestException} 'expect' 'exception' |
 	{RepeatedExpect} ('-' expectSteps+=ExpectOrAdjustmentStep)+;
 
 TestCase:
-    'scenario' name=STRING ('with' 'environment' environment=Object)? ('register' ('-' registrations+=FixtureRegistration)+)? ('given' ('-' givenSteps+=GivenStep)+)? whenStep=WhenStep 'then' expect=ExpectChain';';
+    'scenario' name=STRING ('with' 'environment' environment=Object)? ('register' ('-' registrations+=FixtureRegistration)+)? ('given' ('-' givenSteps+=GivenStep)+)? whenStep=WhenStep 'then' expectation=Expectation';';
 
 TestSuite:
     UnitTestSuite | IntegrationTestSuite;

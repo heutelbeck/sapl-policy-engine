@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static org.hamcrest.Matchers.blankOrNullString;
@@ -78,24 +79,24 @@ class StringMatcherInterpreter {
     }
 
     private Matcher<? super String> getMatcherForNonNullEmptyBlankCases(final StringMatcher stringMatcher) {
-        if (stringMatcher instanceof StringIsEqualWithCompressedWhiteSpace other) {
-            return equalToCompressingWhiteSpace(other.getValue());
-        } else if (stringMatcher instanceof StringIsEqualIgnoringCase other) {
-            return equalToIgnoringCase(other.getValue());
-        } else if (stringMatcher instanceof StringMatchesRegex regex) {
-            return matchesRegex(regex.getRegex());
-        } else if (stringMatcher instanceof StringStartsWith other) {
-            final var start = other.getStart();
+        if (stringMatcher instanceof StringIsEqualWithCompressedWhiteSpace stringIsEqualWithCompressedWhiteSpace) {
+            return equalToCompressingWhiteSpace(stringIsEqualWithCompressedWhiteSpace.getValue());
+        } else if (stringMatcher instanceof StringIsEqualIgnoringCase stringIsEqualIgnoringCase) {
+            return equalToIgnoringCase(stringIsEqualIgnoringCase.getValue());
+        } else if (stringMatcher instanceof StringMatchesRegex stringMatchesRegex) {
+            return matchesRegex(stringMatchesRegex.getRegex());
+        } else if (stringMatcher instanceof StringStartsWith stringStartsWith) {
+            final var prefix = stringStartsWith.getPrefix();
 
-            return other.isCaseInsensitive() ? startsWithIgnoringCase(start) : startsWith(start);
-        } else if (stringMatcher instanceof StringEndsWith other) {
-            final var end = other.getEnd();
+            return stringStartsWith.isCaseInsensitive() ? startsWithIgnoringCase(prefix) : startsWith(prefix);
+        } else if (stringMatcher instanceof StringEndsWith stringEndsWith) {
+            final var postfix = stringEndsWith.getPostfix();
 
-            return other.isCaseInsensitive() ? endsWithIgnoringCase(end) : endsWith(end);
-        } else if (stringMatcher instanceof StringContains other) {
-            final var value = other.getValue();
+            return stringEndsWith.isCaseInsensitive() ? endsWithIgnoringCase(postfix) : endsWith(postfix);
+        } else if (stringMatcher instanceof StringContains stringContains) {
+            final var text = stringContains.getText();
 
-            return other.isCaseInsensitive() ? containsStringIgnoringCase(value) : containsString(other.getValue());
+            return stringContains.isCaseInsensitive() ? containsStringIgnoringCase(text) : containsString(text);
         } else if (stringMatcher instanceof StringContainsInOrder stringContainsInOrder) {
             return stringContainsInOrder(stringContainsInOrder.getSubstrings());
         } else if (stringMatcher instanceof StringWithLength stringWithLength) {

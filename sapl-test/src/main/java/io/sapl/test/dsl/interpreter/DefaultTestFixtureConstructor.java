@@ -15,8 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
+import io.sapl.interpreter.InitializationException;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.grammar.sAPLTest.CustomFunctionLibrary;
@@ -39,7 +41,7 @@ class DefaultTestFixtureConstructor {
         var saplTestFixture = testSuiteInterpreter.getFixtureFromTestSuite(testSuite);
 
         if (saplTestFixture == null) {
-            throw new SaplTestException("could not build test fixture");
+            throw new SaplTestException("TestFixture is null");
         }
 
         if (fixtureRegistrations != null) {
@@ -67,7 +69,7 @@ class DefaultTestFixtureConstructor {
                     throw new SaplTestException("Unknown type of FixtureRegistration");
                 }
             }
-        } catch (Exception e) {
+        } catch (InitializationException e) {
             throw new SaplTestException(e);
         }
     }

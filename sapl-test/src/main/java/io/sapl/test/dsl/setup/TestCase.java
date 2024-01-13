@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.setup;
 
 import io.sapl.test.SaplTestException;
@@ -22,7 +23,6 @@ import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.TestNode;
 import io.sapl.test.grammar.sAPLTest.TestException;
 import io.sapl.test.grammar.sAPLTest.TestSuite;
-import io.sapl.test.steps.ExpectOrVerifyStep;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +40,7 @@ public final class TestCase implements TestNode, Runnable {
     public static TestCase from(final StepConstructor stepConstructor, final TestSuite testSuite,
             io.sapl.test.grammar.sAPLTest.TestCase testCase) {
         if (stepConstructor == null || testSuite == null || testCase == null) {
-            throw new SaplTestException("One or more parameter(s) are null");
+            throw new SaplTestException("StepConstructor or testSuite or testCase is null");
         }
 
         final var name = testCase.getName();
@@ -64,14 +64,14 @@ public final class TestCase implements TestNode, Runnable {
 
         final var initialTestCase = stepConstructor.constructTestCase(testFixture, environment, needsMocks);
 
-        if (dslTestCase.getExpect() instanceof TestException) {
+        if (dslTestCase.getExpectation() instanceof TestException) {
             Assertions.assertThatExceptionOfType(SaplTestException.class)
                     .isThrownBy(() -> stepConstructor.constructWhenStep(givenSteps, initialTestCase));
         } else {
 
             final var whenStep   = stepConstructor.constructWhenStep(givenSteps, initialTestCase);
             final var expectStep = stepConstructor.constructExpectStep(dslTestCase, whenStep);
-            final var verifyStep = stepConstructor.constructVerifyStep(dslTestCase, (ExpectOrVerifyStep) expectStep);
+            final var verifyStep = stepConstructor.constructVerifyStep(dslTestCase, expectStep);
 
             verifyStep.verify();
         }

@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestException;
@@ -31,7 +32,7 @@ class ReflectionHelper {
             return constructor.newInstance();
 
         } catch (Exception e) {
-            throw new SaplTestException("Could not construct instance of '%s' class".formatted(className));
+            throw new SaplTestException("Could not construct instance of '%s'".formatted(className));
         }
     }
 }

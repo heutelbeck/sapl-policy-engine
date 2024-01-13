@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -98,7 +99,7 @@ class DefaultExpectStepConstructorTest {
         final var exception = assertThrows(SaplTestException.class,
                 () -> defaultExpectStepConstructor.constructExpectStep(testCaseMock, whenStepMock));
 
-        assertEquals("No AuthorizationSubscription found", exception.getMessage());
+        assertEquals("AuthorizationSubscription is null", exception.getMessage());
     }
 
     @Test

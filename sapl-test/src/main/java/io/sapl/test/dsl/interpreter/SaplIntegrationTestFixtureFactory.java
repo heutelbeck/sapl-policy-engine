@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.integration.SaplIntegrationTestFixture;
@@ -23,8 +24,8 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 class SaplIntegrationTestFixtureFactory {
-    public static SaplIntegrationTestFixture create(final String policyPath) {
-        return new SaplIntegrationTestFixture(policyPath);
+    public static SaplIntegrationTestFixture create(final String folderPath) {
+        return new SaplIntegrationTestFixture(folderPath);
     }
 
     public static SaplIntegrationTestFixture create(final String pdpConfigPath, final List<String> policyPaths) {

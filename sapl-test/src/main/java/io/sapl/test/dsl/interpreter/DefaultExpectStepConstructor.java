@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestException;
@@ -42,7 +43,7 @@ class DefaultExpectStepConstructor {
         final var authorizationSubscription = dslWhenStep.getAuthorizationSubscription();
 
         if (authorizationSubscription == null) {
-            throw new SaplTestException("No AuthorizationSubscription found");
+            throw new SaplTestException("AuthorizationSubscription is null");
         }
 
         final var mappedAuthorizationSubscription = authorizationSubscriptionInterpreter

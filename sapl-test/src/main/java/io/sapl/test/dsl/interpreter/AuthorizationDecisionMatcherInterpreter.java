@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static io.sapl.hamcrest.Matchers.anyDecision;
@@ -49,7 +50,7 @@ import org.hamcrest.Matcher;
 @RequiredArgsConstructor
 class AuthorizationDecisionMatcherInterpreter {
 
-    private final ValInterpreter             valInterpreter;
+    private final ValueInterpreter           valueInterpreter;
     private final JsonNodeMatcherInterpreter jsonNodeMatcherInterpreter;
 
     public Matcher<AuthorizationDecision> getHamcrestAuthorizationDecisionMatcher(
@@ -63,7 +64,10 @@ class AuthorizationDecisionMatcherInterpreter {
             final var authorizationDecisionMatcherType = hasObligationOrAdvice.getType();
 
             if (extendedObjectMatcher == null) {
-                return getMatcher(authorizationDecisionMatcherType, null);
+                return switch (authorizationDecisionMatcherType) {
+                case OBLIGATION -> hasObligation();
+                case ADVICE -> hasAdvice();
+                };
             }
 
             return getAuthorizationDecisionMatcherFromObjectMatcher(extendedObjectMatcher,
@@ -77,8 +81,8 @@ class AuthorizationDecisionMatcherInterpreter {
         throw new SaplTestException("Unknown type of AuthorizationDecisionMatcher");
     }
 
-    private Matcher<AuthorizationDecision> getIsDecisionMatcher(final IsDecision isDecisionMatcher) {
-        final var decision = isDecisionMatcher.getDecision();
+    private Matcher<AuthorizationDecision> getIsDecisionMatcher(final IsDecision isDecision) {
+        final var decision = isDecision.getDecision();
 
         if (decision == null) {
             throw new SaplTestException("Decision is null");
@@ -96,12 +100,22 @@ class AuthorizationDecisionMatcherInterpreter {
             final DefaultObjectMatcher defaultObjectMatcher,
             final AuthorizationDecisionMatcherType authorizationDecisionMatcherType) {
         if (defaultObjectMatcher instanceof ObjectWithExactMatch objectWithExactMatch) {
-            final var matcher = is(valInterpreter.getValFromValue(objectWithExactMatch.getObject()).get());
+            final var valToMatch = valueInterpreter.getValFromValue(objectWithExactMatch.getEqualTo());
+
+            if (valToMatch == null) {
+                throw new SaplTestException("Val to match is null");
+            }
+
+            final var matcher = is(valToMatch.get());
 
             return getMatcher(authorizationDecisionMatcherType, matcher);
         } else if (defaultObjectMatcher instanceof ObjectWithMatcher objectWithMatcher) {
             final var jsonNodeMatcher = objectWithMatcher.getMatcher();
             final var matcher         = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(jsonNodeMatcher);
+
+            if (matcher == null) {
+                throw new SaplTestException("Matcher for JsonNode is null");
+            }
 
             return getMatcher(authorizationDecisionMatcherType, matcher);
         }
@@ -113,12 +127,12 @@ class AuthorizationDecisionMatcherInterpreter {
             final AuthorizationDecisionMatcherType authorizationDecisionMatcherType,
             final Matcher<? super JsonNode> matcher) {
         if (authorizationDecisionMatcherType == null) {
-            return matcher == null ? hasResource() : hasResource(matcher);
+            return hasResource(matcher);
         }
 
         return switch (authorizationDecisionMatcherType) {
-        case OBLIGATION -> matcher == null ? hasObligation() : hasObligation(matcher);
-        case ADVICE -> matcher == null ? hasAdvice() : hasAdvice(matcher);
+        case OBLIGATION -> hasObligation(matcher);
+        case ADVICE -> hasAdvice(matcher);
         };
     }
 
@@ -132,15 +146,23 @@ class AuthorizationDecisionMatcherInterpreter {
         }
 
         if (extendedObjectMatcher instanceof ObjectWithKeyValueMatcher objectWithKeyValueMatcher) {
-            final var key          = objectWithKeyValueMatcher.getKey();
-            final var valueMatcher = jsonNodeMatcherInterpreter
-                    .getHamcrestJsonNodeMatcher(objectWithKeyValueMatcher.getMatcher());
-            if (valueMatcher == null) {
+            final var key     = objectWithKeyValueMatcher.getKey();
+            final var matcher = objectWithKeyValueMatcher.getMatcher();
+
+            if (matcher == null) {
                 return switch (authorizationDecisionMatcherType) {
                 case OBLIGATION -> hasObligationContainingKeyValue(key);
                 case ADVICE -> hasAdviceContainingKeyValue(key);
                 };
             }
+
+            final var valueMatcher = jsonNodeMatcherInterpreter
+                    .getHamcrestJsonNodeMatcher(objectWithKeyValueMatcher.getMatcher());
+
+            if (valueMatcher == null) {
+                throw new SaplTestException("Matcher for JsonNode is null");
+            }
+
             return switch (authorizationDecisionMatcherType) {
             case OBLIGATION -> hasObligationContainingKeyValue(key, valueMatcher);
             case ADVICE -> hasAdviceContainingKeyValue(key, valueMatcher);

@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static io.sapl.test.dsl.ParserUtil.compareArgumentToStringLiteral;
@@ -30,7 +31,9 @@ import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.ParserUtil;
 import io.sapl.test.grammar.sAPLTest.IsJsonNull;
 import io.sapl.test.grammar.sAPLTest.StringIsNull;
+import io.sapl.test.grammar.sAPLTest.StringOrStringMatcher;
 import io.sapl.test.grammar.sAPLTest.ValMatcher;
+import io.sapl.test.grammar.sAPLTest.ValWithError;
 import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
@@ -46,7 +49,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ValMatcherInterpreterTest {
     @Mock
-    private ValInterpreter             valInterpreterMock;
+    private ValueInterpreter           valueInterpreterMock;
     @Mock
     private JsonNodeMatcherInterpreter jsonNodeMatcherInterpreterMock;
     @Mock
@@ -68,11 +71,11 @@ class ValMatcherInterpreterTest {
     }
 
     private <T extends ValMatcher> T buildValMatcher(final String input) {
-        return ParserUtil.buildExpression(input, SAPLTestGrammarAccess::getValMatcherRule);
+        return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getValMatcherRule);
     }
 
     @Test
-    void getHamcrestValMatcher_forNullParameterMatcher_throwsSaplTestException() {
+    void getHamcrestValMatcher_forNullValMatcher_throwsSaplTestException() {
         final var exception = assertThrows(SaplTestException.class,
                 () -> matcherInterpreter.getHamcrestValMatcher(null));
 
@@ -80,13 +83,41 @@ class ValMatcherInterpreterTest {
     }
 
     @Test
-    void getHamcrestValMatcher_forUnknownParameterMatcher_throwsSaplTestException() {
+    void getHamcrestValMatcher_forUnknownValMatcher_throwsSaplTestException() {
         final var unknownValMatcherMock = mock(ValMatcher.class);
 
         final var exception = assertThrows(SaplTestException.class,
                 () -> matcherInterpreter.getHamcrestValMatcher(unknownValMatcherMock));
 
         assertEquals("Unknown type of ValMatcher", exception.getMessage());
+    }
+
+    @Test
+    void getHamcrestValMatcher_forValWithValueAndNullMappedVal_throwsSaplTestException() {
+        final var valMatcher = buildValMatcher("\"5\"");
+
+        when(valueInterpreterMock.getValFromValue(compareArgumentToStringLiteral("5"))).thenReturn(null);
+
+        final var exception = assertThrows(SaplTestException.class,
+                () -> matcherInterpreter.getHamcrestValMatcher(valMatcher));
+
+        assertEquals("Val is null", exception.getMessage());
+    }
+
+    @Test
+    void getHamcrestValMatcher_forValWithValue_returnsIsMatcher() {
+        final var valMatcher = buildValMatcher("\"5\"");
+
+        final var expectedVal = Val.of(5);
+
+        when(valueInterpreterMock.getValFromValue(compareArgumentToStringLiteral("5"))).thenReturn(expectedVal);
+
+        final var isMatcherMock = mock(Matcher.class);
+        hamcrestCoreMatchersMockedStatic.when(() -> CoreMatchers.is(expectedVal)).thenReturn(isMatcherMock);
+
+        final var result = matcherInterpreter.getHamcrestValMatcher(valMatcher);
+
+        assertEquals(isMatcherMock, result);
     }
 
     @Test
@@ -102,19 +133,15 @@ class ValMatcherInterpreterTest {
     }
 
     @Test
-    void getHamcrestValMatcher_forValWithValue_returnsIsMatcher() {
-        final var valMatcher = buildValMatcher("\"5\"");
+    void getHamcrestValMatcher_forValWithMatcherAndNullMappedMatcher_throwsSaplTestException() {
+        final var valMatcher = buildValMatcher("matching null");
 
-        final var expectedVal = Val.of(5);
+        when(jsonNodeMatcherInterpreterMock.getHamcrestJsonNodeMatcher(any(IsJsonNull.class))).thenReturn(null);
 
-        when(valInterpreterMock.getValFromValue(compareArgumentToStringLiteral("5"))).thenReturn(expectedVal);
+        final var exception = assertThrows(SaplTestException.class,
+                () -> matcherInterpreter.getHamcrestValMatcher(valMatcher));
 
-        final var isMatcherMock = mock(Matcher.class);
-        hamcrestCoreMatchersMockedStatic.when(() -> CoreMatchers.is(expectedVal)).thenReturn(isMatcherMock);
-
-        final var result = matcherInterpreter.getHamcrestValMatcher(valMatcher);
-
-        assertEquals(isMatcherMock, result);
+        assertEquals("JsonNodeMatcher is null", exception.getMessage());
     }
 
     @Test
@@ -134,7 +161,7 @@ class ValMatcherInterpreterTest {
     }
 
     @Test
-    void getHamcrestValMatcher_forValWithErrorStringAndNullMatcher_returnsAnyValErrorMatcher() {
+    void getHamcrestValMatcher_forValWithErrorWithNullMatcher_returnsAnyValErrorMatcher() {
         final var valMatcher = buildValMatcher("with error");
 
         final var valErrorMock = mock(Matcher.class);
@@ -146,7 +173,19 @@ class ValMatcherInterpreterTest {
     }
 
     @Test
-    void getHamcrestValMatcher_forValWithErrorStringAndStringMatcher_returnsValErrorWithStringMatcher() {
+    void getHamcrestValMatcher_forValWithErrorWithStringMatcherAndNullMappedMatcher_throwsSaplTestException() {
+        final var valMatcher = buildValMatcher("with error null");
+
+        when(stringMatcherInterpreterMock.getHamcrestStringMatcher(any(StringIsNull.class))).thenReturn(null);
+
+        final var exception = assertThrows(SaplTestException.class,
+                () -> matcherInterpreter.getHamcrestValMatcher(valMatcher));
+
+        assertEquals("StringMatcher is null", exception.getMessage());
+    }
+
+    @Test
+    void getHamcrestValMatcher_forValWithErrorWithStringMatcher_returnsValErrorWithStringMatcher() {
         final var valMatcher = buildValMatcher("with error null");
 
         final var errorStringMatcher = mock(Matcher.class);
@@ -164,7 +203,7 @@ class ValMatcherInterpreterTest {
     }
 
     @Test
-    void getHamcrestValMatcher_forValWithErrorStringAndPlainString_returnsValErrorMatcherWithMessage() {
+    void getHamcrestValMatcher_forValWithErrorWithPlainString_returnsValErrorMatcherWithMessage() {
         final var valMatcher = buildValMatcher("with error \"foo\"");
 
         final var valErrorMock = mock(Matcher.class);
@@ -173,5 +212,18 @@ class ValMatcherInterpreterTest {
         final var result = matcherInterpreter.getHamcrestValMatcher(valMatcher);
 
         assertEquals(valErrorMock, result);
+    }
+
+    @Test
+    void getHamcrestValMatcher_forValWithErrorWithUnknownStringOrStringMatcher_throwsSaplTestException() {
+        final var valMatcherMock                   = mock(ValWithError.class);
+        final var unknownStringOrStringMatcherMock = mock(StringOrStringMatcher.class);
+
+        when(valMatcherMock.getError()).thenReturn(unknownStringOrStringMatcherMock);
+
+        final var exception = assertThrows(SaplTestException.class,
+                () -> matcherInterpreter.getHamcrestValMatcher(valMatcherMock));
+
+        assertEquals("Unknown type of StringOrStringMatcher", exception.getMessage());
     }
 }

@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl;
 
 import com.google.inject.Injector;
@@ -36,7 +37,7 @@ public class ParserUtil {
     private static final Injector INJECTOR = new SAPLTestStandaloneSetup().createInjectorAndDoEMFRegistration();
 
     @SneakyThrows
-    public static <T extends ParserRule, R> R buildExpression(final String saplTest,
+    public static <T extends ParserRule, R> R parseInputByRule(final String saplTest,
             Function<SAPLTestGrammarAccess, T> resolver) {
         var       resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
         var       resource    = (XtextResource) resourceSet.createResource(URI.createFileURI("test:/default.sapltest"));
@@ -47,7 +48,7 @@ public class ParserUtil {
     }
 
     public static <T extends Value> T buildValue(final String input) {
-        return buildExpression(input, SAPLTestGrammarAccess::getValueRule);
+        return parseInputByRule(input, SAPLTestGrammarAccess::getValueRule);
     }
 
     public static Value compareArgumentToStringLiteral(final String other) {

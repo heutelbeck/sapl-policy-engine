@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,10 +31,15 @@ import io.sapl.test.dsl.ParserUtil;
 import io.sapl.test.grammar.sAPLTest.AuthorizationSubscription;
 import io.sapl.test.grammar.sAPLTest.StringLiteral;
 import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
+import java.util.Collections;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
@@ -42,7 +48,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class AuthorizationSubscriptionInterpreterTest {
     @Mock
-    private ValInterpreter                       valInterpreterMock;
+    private ValueInterpreter                     valueInterpreterMock;
     @InjectMocks
     private AuthorizationSubscriptionInterpreter authorizationSubscriptionInterpreter;
 
@@ -55,11 +61,11 @@ class AuthorizationSubscriptionInterpreterTest {
     }
 
     private AuthorizationSubscription buildAuthorizationSubscription(final String input) {
-        return ParserUtil.buildExpression(input, SAPLTestGrammarAccess::getAuthorizationSubscriptionRule);
+        return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getAuthorizationSubscriptionRule);
     }
 
     private void mockValInterpreter(Map<String, Val> expectedValueToReturnValue) {
-        when(valInterpreterMock.getValFromValue(any())).thenAnswer(invocationOnMock -> {
+        when(valueInterpreterMock.getValFromValue(any())).thenAnswer(invocationOnMock -> {
             final StringLiteral value = invocationOnMock.getArgument(0);
             return expectedValueToReturnValue.get(value.getString());
         });
@@ -71,6 +77,28 @@ class AuthorizationSubscriptionInterpreterTest {
                 () -> authorizationSubscriptionInterpreter.constructAuthorizationSubscription(null));
 
         assertEquals("AuthorizationSubscription is null", exception.getMessage());
+    }
+
+    @ParameterizedTest
+    @MethodSource("SubjectOrActionOrResourceNull")
+    void constructAuthorizationSubscription_handlesNullSubject_throwsSaplTestException(final Map<String, Val> mapping) {
+        final var authorizationSubscription = buildAuthorizationSubscription(
+                "subject \"subject\" attempts action \"action\" on resource \"resource\"");
+
+        mockValInterpreter(mapping);
+
+        final var exception = assertThrows(SaplTestException.class, () -> authorizationSubscriptionInterpreter
+                .constructAuthorizationSubscription(authorizationSubscription));
+
+        assertEquals("subject or action or resource is null", exception.getMessage());
+    }
+
+    private static Stream<Arguments> SubjectOrActionOrResourceNull() {
+        return Stream.of(Arguments.of(Collections.emptyMap()), Arguments.of(Map.of("subject", Val.of("subject"))),
+                Arguments.of(Map.of("action", Val.of("action"))), Arguments.of(Map.of("resource", Val.of("resource"))),
+                Arguments.of(Map.of("subject", Val.of("subject"), "action", Val.of("action"))),
+                Arguments.of(Map.of("subject", Val.of("subject"), "resource", Val.of("resource"))),
+                Arguments.of(Map.of("action", Val.of("action"), "resource", Val.of("resource"))));
     }
 
     @Test
@@ -93,6 +121,23 @@ class AuthorizationSubscriptionInterpreterTest {
                 .constructAuthorizationSubscription(authorizationSubscription);
 
         assertEquals(saplAuthorizationSubscriptionMock, result);
+    }
+
+    @Test
+    void constructAuthorizationSubscription_correctlyInterpretsAuthorizationSubscriptionWithNullMappedEnvironment_throwsSaplTestException() {
+        final var authorizationSubscription = buildAuthorizationSubscription(
+                "subject \"subject\" attempts action \"action\" on resource \"resource\" with environment \"environment\"");
+
+        final var subject  = Val.of("subject");
+        final var action   = Val.of("action");
+        final var resource = Val.of("resource");
+
+        mockValInterpreter(Map.of("subject", subject, "action", action, "resource", resource));
+
+        final var exception = assertThrows(SaplTestException.class, () -> authorizationSubscriptionInterpreter
+                .constructAuthorizationSubscription(authorizationSubscription));
+
+        assertEquals("Environment is null", exception.getMessage());
     }
 
     @Test

@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.lang;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -54,15 +55,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class DefaultSaplTestInterpreterTest {
 
+    @Mock
+    private Injector injectorMock;
+
+    private DefaultSaplTestInterpreter defaultSaplTestInterpreter;
+
     private final MockedStatic<SAPLTestStandaloneSetup> saplTestStandaloneSetupMockedStatic = mockStatic(
             SAPLTestStandaloneSetup.class);
     private final MockedStatic<URI>                     uriMockedStatic                     = mockStatic(URI.class);
     private final MockedStatic<IOUtils>                 ioUtilsMockedStatic                 = mockStatic(IOUtils.class);
-
-    private DefaultSaplTestInterpreter defaultSaplTestInterpreter;
-
-    @Mock
-    private Injector injectorMock;
 
     @BeforeEach
     void setUp() {
@@ -103,10 +104,10 @@ class DefaultSaplTestInterpreterTest {
 
         doThrow(new IOException("loading failed")).when(resourceMock).load(inputStreamMock, loadOptions);
 
-        final var result = assertThrows(SaplTestException.class,
+        final var exception = assertThrows(SaplTestException.class,
                 () -> defaultSaplTestInterpreter.loadAsResource(inputStreamMock));
 
-        assertEquals("loading failed", result.getCause().getMessage());
+        assertEquals("loading failed", exception.getCause().getMessage());
     }
 
     @Test
@@ -119,10 +120,10 @@ class DefaultSaplTestInterpreterTest {
         doThrow(new WrappedException(new Exception("loading failed"))).when(resourceMock).load(inputStreamMock,
                 loadOptions);
 
-        final var result = assertThrows(SaplTestException.class,
+        final var exception = assertThrows(SaplTestException.class,
                 () -> defaultSaplTestInterpreter.loadAsResource(inputStreamMock));
 
-        assertEquals("loading failed", result.getCause().getCause().getMessage());
+        assertEquals("loading failed", exception.getCause().getCause().getMessage());
     }
 
     @Test
@@ -137,10 +138,10 @@ class DefaultSaplTestInterpreterTest {
 
         when(resourceMock.getErrors()).thenReturn(errors);
 
-        final var result = assertThrows(SaplTestException.class,
+        final var exception = assertThrows(SaplTestException.class,
                 () -> defaultSaplTestInterpreter.loadAsResource(inputStreamMock));
 
-        assertEquals("Input is not a valid test definition", result.getMessage());
+        assertEquals("Input is not a valid test definition", exception.getMessage());
     }
 
     @Test
@@ -149,7 +150,7 @@ class DefaultSaplTestInterpreterTest {
 
         final var inputStreamMock = mock(InputStream.class);
 
-        final var errors = Helper.mockEList(List.<Resource.Diagnostic>of());
+        final var errors = Helper.mockEList(Collections.<Resource.Diagnostic>emptyList());
 
         when(resourceMock.getErrors()).thenReturn(errors);
 
@@ -167,7 +168,7 @@ class DefaultSaplTestInterpreterTest {
         final var loadOptions  = Collections.emptyMap();
         final var resourceMock = mockResourceCreation(loadOptions);
 
-        final var errors = Helper.mockEList(List.<Resource.Diagnostic>of());
+        final var errors = Helper.mockEList(Collections.<Resource.Diagnostic>emptyList());
 
         when(resourceMock.getErrors()).thenReturn(errors);
 

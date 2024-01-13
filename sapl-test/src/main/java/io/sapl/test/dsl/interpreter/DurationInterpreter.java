@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestException;
@@ -28,7 +29,7 @@ class DurationInterpreter {
         try {
             return java.time.Duration.parse(duration.getDuration()).abs();
         } catch (Exception e) {
-            throw new SaplTestException("The provided duration has an invalid format");
+            throw new SaplTestException("The provided Duration has an invalid format");
         }
     }
 }

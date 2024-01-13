@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestException;
@@ -32,10 +33,10 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 class TestSuiteInterpreter {
 
-    private final ValInterpreter                   valInterpreter;
-    private final PDPCombiningAlgorithmInterpreter pdpCombiningAlgorithmInterpreter;
-    private final UnitTestPolicyResolver           customUnitTestPolicyResolver;
-    private final IntegrationTestPolicyResolver    customIntegrationTestPolicyResolver;
+    private final ValueInterpreter              valueInterpreter;
+    private final CombiningAlgorithmInterpreter combiningAlgorithmInterpreter;
+    private final UnitTestPolicyResolver        customUnitTestPolicyResolver;
+    private final IntegrationTestPolicyResolver customIntegrationTestPolicyResolver;
 
     SaplTestFixture getFixtureFromTestSuite(final TestSuite testSuite) {
         SaplTestFixture saplTestFixture;
@@ -65,47 +66,59 @@ class TestSuiteInterpreter {
         SaplIntegrationTestFixture integrationTestFixture;
 
         if (policyResolverConfig instanceof PoliciesByIdentifier policiesByIdentifier) {
-            final var identifier = policiesByIdentifier.getIdentifier();
-
-            if (customIntegrationTestPolicyResolver == null) {
-                integrationTestFixture = SaplIntegrationTestFixtureFactory.create(identifier);
-            } else {
-                final var config = customIntegrationTestPolicyResolver.resolveConfigByIdentifier(identifier);
-                integrationTestFixture = SaplIntegrationTestFixtureFactory
-                        .createFromInputStrings(config.getDocumentInputStrings(), config.getPDPConfigInputString());
-            }
+            integrationTestFixture = handlePoliciesByIdentifier(policiesByIdentifier);
         } else if (policyResolverConfig instanceof PoliciesByInputString policiesByInputString) {
-            final var pdpConfig = policiesByInputString.getPdpConfig();
-            final var policies  = policiesByInputString.getPolicies();
-
-            if (policies == null || policies.size() < 2) {
-                throw new SaplTestException("No policies to test integration for");
-            }
-
-            if (customIntegrationTestPolicyResolver == null) {
-                integrationTestFixture = SaplIntegrationTestFixtureFactory.create(pdpConfig, policies);
-            } else {
-                final var saplDocumentStrings = policies.stream()
-                        .map(customIntegrationTestPolicyResolver::resolvePolicyByIdentifier).toList();
-
-                integrationTestFixture = SaplIntegrationTestFixtureFactory.createFromInputStrings(saplDocumentStrings,
-                        customIntegrationTestPolicyResolver.resolvePDPConfigByIdentifier(pdpConfig));
-            }
+            integrationTestFixture = handlePoliciesByInputString(policiesByInputString);
         } else {
             throw new SaplTestException("Unknown type of PolicyResolverConfig");
         }
 
         if (integrationTestSuite.getPdpVariables() instanceof io.sapl.test.grammar.sAPLTest.Object pdpVariables) {
-            final var pdpEnvironmentVariables = valInterpreter.destructureObject(pdpVariables);
+            final var pdpEnvironmentVariables = valueInterpreter.destructureObject(pdpVariables);
             integrationTestFixture = integrationTestFixture.withPDPVariables(pdpEnvironmentVariables);
         }
 
         if (integrationTestSuite.isCombiningAlgorithmDefined()) {
-            final var pdpPolicyCombiningAlgorithm = pdpCombiningAlgorithmInterpreter
+            final var pdpPolicyCombiningAlgorithm = combiningAlgorithmInterpreter
                     .interpretPdpCombiningAlgorithm(integrationTestSuite.getCombiningAlgorithm());
             integrationTestFixture.withPDPPolicyCombiningAlgorithm(pdpPolicyCombiningAlgorithm);
         }
 
+        return integrationTestFixture;
+    }
+
+    private SaplIntegrationTestFixture handlePoliciesByIdentifier(final PoliciesByIdentifier policiesByIdentifier) {
+        SaplIntegrationTestFixture integrationTestFixture;
+        final var                  identifier = policiesByIdentifier.getIdentifier();
+
+        if (customIntegrationTestPolicyResolver == null) {
+            integrationTestFixture = SaplIntegrationTestFixtureFactory.create(identifier);
+        } else {
+            final var config = customIntegrationTestPolicyResolver.resolveConfigByIdentifier(identifier);
+            integrationTestFixture = SaplIntegrationTestFixtureFactory
+                    .createFromInputStrings(config.getDocumentInputStrings(), config.getPDPConfigInputString());
+        }
+        return integrationTestFixture;
+    }
+
+    private SaplIntegrationTestFixture handlePoliciesByInputString(final PoliciesByInputString policiesByInputString) {
+        SaplIntegrationTestFixture integrationTestFixture;
+        final var                  pdpConfig = policiesByInputString.getPdpConfig();
+        final var                  policies  = policiesByInputString.getPolicies();
+
+        if (policies == null || policies.size() < 2) {
+            throw new SaplTestException("No policies to test integration for");
+        }
+
+        if (customIntegrationTestPolicyResolver == null) {
+            integrationTestFixture = SaplIntegrationTestFixtureFactory.create(pdpConfig, policies);
+        } else {
+            final var saplDocumentStrings = policies.stream()
+                    .map(customIntegrationTestPolicyResolver::resolvePolicyByIdentifier).toList();
+
+            integrationTestFixture = SaplIntegrationTestFixtureFactory.createFromInputStrings(saplDocumentStrings,
+                    customIntegrationTestPolicyResolver.resolvePDPConfigByIdentifier(pdpConfig));
+        }
         return integrationTestFixture;
     }
 }

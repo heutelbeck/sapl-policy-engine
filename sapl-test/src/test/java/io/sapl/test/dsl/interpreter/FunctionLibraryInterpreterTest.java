@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -50,7 +51,7 @@ class FunctionLibraryInterpreterTest {
     }
 
     @ParameterizedTest
-    @MethodSource("functionLibraryArgumentProvider")
+    @MethodSource("functionLibraryEnumToLibraryClass")
     void getFunctionLibrary_mapsFunctionLibraryToExpectedLibraryInstance_returnsLibraryInstance(
             final FunctionLibrary functionLibrary, final Class<?> libraryClass) {
         final var result = functionLibraryInterpreter.getFunctionLibrary(functionLibrary);
@@ -58,7 +59,7 @@ class FunctionLibraryInterpreterTest {
         assertEquals(libraryClass, result);
     }
 
-    private static Stream<Arguments> functionLibraryArgumentProvider() {
+    private static Stream<Arguments> functionLibraryEnumToLibraryClass() {
         return Stream.of(Arguments.of(FunctionLibrary.FILTER, FilterFunctionLibrary.class),
                 Arguments.of(FunctionLibrary.LOGGING, LoggingFunctionLibrary.class),
                 Arguments.of(FunctionLibrary.STANDARD, StandardFunctionLibrary.class),

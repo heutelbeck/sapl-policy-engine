@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,7 +27,6 @@ import io.sapl.test.grammar.sAPLTest.FixtureRegistration;
 import io.sapl.test.grammar.sAPLTest.GivenStep;
 import io.sapl.test.grammar.sAPLTest.TestCase;
 import io.sapl.test.grammar.sAPLTest.TestSuite;
-import io.sapl.test.steps.ExpectOrVerifyStep;
 import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.steps.VerifyStep;
@@ -57,8 +57,8 @@ public final class DefaultStepConstructor implements StepConstructor {
     }
 
     @Override
-    public WhenStep constructWhenStep(final List<GivenStep> givenSteps, GivenOrWhenStep givenOrWhenStep) {
-        return defaultWhenStepConstructor.constructWhenStep(givenSteps, givenOrWhenStep);
+    public WhenStep constructWhenStep(final List<GivenStep> givenSteps, GivenOrWhenStep initialTestCase) {
+        return defaultWhenStepConstructor.constructWhenStep(givenSteps, initialTestCase);
     }
 
     @Override
@@ -67,14 +67,14 @@ public final class DefaultStepConstructor implements StepConstructor {
     }
 
     @Override
-    public VerifyStep constructVerifyStep(final TestCase testCase, final ExpectOrVerifyStep expectOrVerifyStep) {
-        return defaultVerifyStepConstructor.constructVerifyStep(testCase, expectOrVerifyStep);
+    public VerifyStep constructVerifyStep(final TestCase testCase, final ExpectStep expectStep) {
+        return defaultVerifyStepConstructor.constructVerifyStep(testCase, expectStep);
     }
 
     public static StepConstructor of(final UnitTestPolicyResolver customUnitTestPolicyResolver,
             final IntegrationTestPolicyResolver customIntegrationTestPolicyResolver) {
         final var objectMapper   = new ObjectMapper();
-        final var valInterpreter = new ValInterpreter(objectMapper);
+        final var valInterpreter = new ValueInterpreter(objectMapper);
 
         final var stringMatcherInterpreter   = new StringMatcherInterpreter();
         final var jsonNodeMatcherInterpreter = new JsonNodeMatcherInterpreter(stringMatcherInterpreter);
@@ -93,7 +93,7 @@ public final class DefaultStepConstructor implements StepConstructor {
         final var authorizationSubscriptionInterpreter    = new AuthorizationSubscriptionInterpreter(valInterpreter);
         final var authorizationDecisionMatcherInterpreter = new AuthorizationDecisionMatcherInterpreter(valInterpreter,
                 jsonNodeMatcherInterpreter);
-        final var expectInterpreter                       = new ExpectInterpreter(valInterpreter,
+        final var expectInterpreter                       = new ExpectationInterpreter(valInterpreter,
                 authorizationDecisionInterpreter, authorizationDecisionMatcherInterpreter, durationInterpreter,
                 multipleAmountInterpreter);
 
@@ -111,12 +111,12 @@ public final class DefaultStepConstructor implements StepConstructor {
                 defaultWhenStepConstructor, defaultExpectStepConstructor, defaultVerifyStepConstructor);
     }
 
-    private static DefaultTestFixtureConstructor getTestFixtureConstructor(final ValInterpreter valInterpreter,
+    private static DefaultTestFixtureConstructor getTestFixtureConstructor(final ValueInterpreter valueInterpreter,
             final UnitTestPolicyResolver customUnitTestPolicyResolver,
             final IntegrationTestPolicyResolver customIntegrationTestPolicyResolver) {
-        final var pdpCombiningAlgorithmInterpreter = new PDPCombiningAlgorithmInterpreter();
+        final var pdpCombiningAlgorithmInterpreter = new CombiningAlgorithmInterpreter();
 
-        final var testSuiteInterpreter = new TestSuiteInterpreter(valInterpreter, pdpCombiningAlgorithmInterpreter,
+        final var testSuiteInterpreter = new TestSuiteInterpreter(valueInterpreter, pdpCombiningAlgorithmInterpreter,
                 customUnitTestPolicyResolver, customIntegrationTestPolicyResolver);
 
         final var functionLibraryInterpreter = new FunctionLibraryInterpreter();

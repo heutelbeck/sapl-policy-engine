@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static io.sapl.test.dsl.ParserUtil.buildValue;
@@ -34,7 +35,9 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.test.Helper;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sAPLTest.Array;
+import io.sapl.test.grammar.sAPLTest.NumberLiteral;
 import io.sapl.test.grammar.sAPLTest.Pair;
+import io.sapl.test.grammar.sAPLTest.StringLiteral;
 import io.sapl.test.grammar.sAPLTest.Value;
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -51,13 +54,13 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class ValInterpreterTest {
+class ValueInterpreterTest {
     @Mock
-    private ObjectMapper   objectMapperMock;
+    private ObjectMapper     objectMapperMock;
     @Mock
-    private Val            valMock;
+    private Val              valMock;
     @InjectMocks
-    private ValInterpreter valInterpreter;
+    private ValueInterpreter valueInterpreter;
 
     private final MockedStatic<Val> valMockedStatic = mockStatic(Val.class);
 
@@ -72,7 +75,7 @@ class ValInterpreterTest {
 
         @Test
         void getValFromValue_handlesNull_throwsSaplTestException() {
-            final var exception = assertThrows(SaplTestException.class, () -> valInterpreter.getValFromValue(null));
+            final var exception = assertThrows(SaplTestException.class, () -> valueInterpreter.getValFromValue(null));
 
             assertEquals("Unknown type of Value", exception.getMessage());
         }
@@ -82,9 +85,21 @@ class ValInterpreterTest {
             final var valueMock = mock(Value.class);
 
             final var exception = assertThrows(SaplTestException.class,
-                    () -> valInterpreter.getValFromValue(valueMock));
+                    () -> valueInterpreter.getValFromValue(valueMock));
 
             assertEquals("Unknown type of Value", exception.getMessage());
+        }
+
+        @Test
+        void getValFromValue_handlesNumberLiteralWithNullNumber_throwsSaplTestException() {
+            final var numberLiteralMock = mock(NumberLiteral.class);
+
+            when(numberLiteralMock.getNumber()).thenReturn(null);
+
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> valueInterpreter.getValFromValue(numberLiteralMock));
+
+            assertEquals("Number is null", exception.getMessage());
         }
 
         @Test
@@ -93,9 +108,21 @@ class ValInterpreterTest {
 
             valMockedStatic.when(() -> Val.of(BigDecimal.valueOf(5))).thenReturn(valMock);
 
-            final var result = valInterpreter.getValFromValue(value);
+            final var result = valueInterpreter.getValFromValue(value);
 
             assertEquals(valMock, result);
+        }
+
+        @Test
+        void getValFromValue_handlesStringLiteralWithNullString_throwsSaplTestException() {
+            final var stringLiteralMock = mock(StringLiteral.class);
+
+            when(stringLiteralMock.getString()).thenReturn(null);
+
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> valueInterpreter.getValFromValue(stringLiteralMock));
+
+            assertEquals("String is null", exception.getMessage());
         }
 
         @Test
@@ -104,29 +131,29 @@ class ValInterpreterTest {
 
             valMockedStatic.when(() -> Val.of("foo")).thenReturn(valMock);
 
-            final var result = valInterpreter.getValFromValue(value);
+            final var result = valueInterpreter.getValFromValue(value);
 
             assertEquals(valMock, result);
         }
 
         @Test
-        void getValFromValue_handlesFalseLiteral_returnsBooleanVal() {
+        void getValFromValue_handlesFalseLiteral_returnsFalseVal() {
             final var value = buildValue("false");
 
             valMockedStatic.when(() -> Val.of(false)).thenReturn(valMock);
 
-            final var result = valInterpreter.getValFromValue(value);
+            final var result = valueInterpreter.getValFromValue(value);
 
             assertEquals(io.sapl.api.interpreter.Val.of(false), result);
         }
 
         @Test
-        void getValFromValue_handlesTrueLiteral_returnsBooleanVal() {
+        void getValFromValue_handlesTrueLiteral_returnsTrueVal() {
             final var value = buildValue("true");
 
             valMockedStatic.when(() -> Val.of(true)).thenReturn(valMock);
 
-            final var result = valInterpreter.getValFromValue(value);
+            final var result = valueInterpreter.getValFromValue(value);
 
             assertEquals(io.sapl.api.interpreter.Val.of(true), result);
         }
@@ -135,7 +162,7 @@ class ValInterpreterTest {
         void getValFromValue_handlesNullLiteral_returnsNullVal() {
             final var value = buildValue("null");
 
-            final var result = valInterpreter.getValFromValue(value);
+            final var result = valueInterpreter.getValFromValue(value);
 
             assertEquals(Val.NULL, result);
         }
@@ -144,7 +171,7 @@ class ValInterpreterTest {
         void getValFromValue_handlesUndefinedLiteral_returnsUndefinedVal() {
             final var value = buildValue("undefined");
 
-            final var result = valInterpreter.getValFromValue(value);
+            final var result = valueInterpreter.getValFromValue(value);
 
             assertEquals(Val.UNDEFINED, result);
         }
@@ -160,7 +187,7 @@ class ValInterpreterTest {
 
                 valMockedStatic.when(Val::ofEmptyArray).thenReturn(valMock);
 
-                final var result = valInterpreter.getValFromValue(valueMock);
+                final var result = valueInterpreter.getValFromValue(valueMock);
 
                 assertEquals(valMock, result);
             }
@@ -169,12 +196,12 @@ class ValInterpreterTest {
             void getValFromValue_handlesArrayWithEmptyItems_returnsEmptyArrayVal() {
                 final var valueMock = mock(Array.class);
 
-                final var itemsMock = Helper.mockEList(List.<Value>of());
+                final var itemsMock = Helper.mockEList(Collections.<Value>emptyList());
                 when(valueMock.getItems()).thenReturn(itemsMock);
 
                 valMockedStatic.when(Val::ofEmptyArray).thenReturn(valMock);
 
-                final var result = valInterpreter.getValFromValue(valueMock);
+                final var result = valueInterpreter.getValFromValue(valueMock);
 
                 assertEquals(valMock, result);
             }
@@ -200,7 +227,7 @@ class ValInterpreterTest {
 
                 valMockedStatic.when(() -> Val.of(arrayNodeMock)).thenReturn(valMock);
 
-                final var result = valInterpreter.getValFromValue(value);
+                final var result = valueInterpreter.getValFromValue(value);
 
                 assertEquals(valMock, result);
 
@@ -219,7 +246,7 @@ class ValInterpreterTest {
 
                 valMockedStatic.when(Val::ofEmptyObject).thenReturn(valMock);
 
-                final var result = valInterpreter.getValFromValue(valueMock);
+                final var result = valueInterpreter.getValFromValue(valueMock);
 
                 assertEquals(valMock, result);
             }
@@ -228,12 +255,12 @@ class ValInterpreterTest {
             void getValFromValue_handlesObjectWithEmptyMembers_returnsEmptyObjectVal() {
                 final var valueMock = mock(io.sapl.test.grammar.sAPLTest.Object.class);
 
-                final var itemsMock = Helper.mockEList(List.<Pair>of());
+                final var itemsMock = Helper.mockEList(Collections.<Pair>emptyList());
                 when(valueMock.getMembers()).thenReturn(itemsMock);
 
                 valMockedStatic.when(Val::ofEmptyObject).thenReturn(valMock);
 
-                final var result = valInterpreter.getValFromValue(valueMock);
+                final var result = valueInterpreter.getValFromValue(valueMock);
 
                 assertEquals(valMock, result);
             }
@@ -259,7 +286,7 @@ class ValInterpreterTest {
 
                 valMockedStatic.when(() -> Val.of(objectNodeMock)).thenReturn(valMock);
 
-                final var result = valInterpreter.getValFromValue(value);
+                final var result = valueInterpreter.getValFromValue(value);
 
                 assertEquals(valMock, result);
 
@@ -274,7 +301,7 @@ class ValInterpreterTest {
     class DestructureObjectTest {
         @Test
         void destructureObject_handlesNullObject_returnsEmptyMap() {
-            final var result = valInterpreter.destructureObject(null);
+            final var result = valueInterpreter.destructureObject(null);
 
             assertEquals(Collections.emptyMap(), result);
         }
@@ -285,7 +312,7 @@ class ValInterpreterTest {
 
             when(objectMock.getMembers()).thenReturn(null);
 
-            final var result = valInterpreter.destructureObject(objectMock);
+            final var result = valueInterpreter.destructureObject(objectMock);
 
             assertEquals(Collections.emptyMap(), result);
         }
@@ -294,10 +321,10 @@ class ValInterpreterTest {
         void destructureObject_handlesObjectWithEmptyMembers_returnsEmptyMap() {
             final var objectMock = mock(io.sapl.test.grammar.sAPLTest.Object.class);
 
-            final var itemsMock = Helper.mockEList(List.<Pair>of());
+            final var itemsMock = Helper.mockEList(Collections.<Pair>emptyList());
             when(objectMock.getMembers()).thenReturn(itemsMock);
 
-            final var result = valInterpreter.destructureObject(objectMock);
+            final var result = valueInterpreter.destructureObject(objectMock);
 
             assertEquals(Collections.emptyMap(), result);
         }
@@ -319,7 +346,7 @@ class ValInterpreterTest {
             final var jsonNodeWithBooleanMock = mock(JsonNode.class);
             when(valWithBooleanMock.get()).thenReturn(jsonNodeWithBooleanMock);
 
-            final var result = valInterpreter.destructureObject(object);
+            final var result = valueInterpreter.destructureObject(object);
 
             assertEquals(Map.of("numberLiteralKey", jsonNodeWithNumberMock, "trueLiteralKey", jsonNodeWithBooleanMock),
                     result);

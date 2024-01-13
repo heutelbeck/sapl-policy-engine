@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.setup;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -45,7 +46,7 @@ class TestProviderFactoryTest {
     void create_withNullStepConstructor_throwsSaplTestException() {
         final var exception = assertThrows(SaplTestException.class, () -> TestProviderFactory.create(null));
 
-        assertEquals("Provided stepConstructor is null", exception.getMessage());
+        assertEquals("StepConstructor is null", exception.getMessage());
     }
 
     @Test

@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.setup;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -59,11 +60,11 @@ class TestProviderTest {
     @InjectMocks
     private TestProvider    testProvider;
     @Mock
-    SAPLTest                saplTestTMock;
+    private SAPLTest        saplTestMock;
     @Mock
-    UnitTestSuite           unitTestSuiteMock;
+    private UnitTestSuite   unitTestSuiteMock;
     @Mock
-    TestCase                testCaseMock;
+    private TestCase        testCaseMock;
 
     private final MockedStatic<TestContainer>                   testContainerMockedStatic = mockStatic(
             TestContainer.class);
@@ -78,7 +79,7 @@ class TestProviderTest {
 
     private void mockTestSuites(final List<TestSuite> testSuites) {
         final var mockedTestSuites = Helper.mockEList(testSuites);
-        when(saplTestTMock.getElements()).thenReturn(mockedTestSuites);
+        when(saplTestMock.getTestSuites()).thenReturn(mockedTestSuites);
     }
 
     private EList<TestCase> mockTestCases(final List<TestCase> testCases) {
@@ -97,9 +98,9 @@ class TestProviderTest {
 
         @Test
         void buildTests_calledWithSAPLTestWithNullTestSuites_throwsSaplTestException() {
-            when(saplTestTMock.getElements()).thenReturn(null);
+            when(saplTestMock.getTestSuites()).thenReturn(null);
 
-            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestTMock));
+            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestMock));
 
             assertEquals("provided SAPLTest does not contain a TestSuite", exception.getMessage());
         }
@@ -108,7 +109,7 @@ class TestProviderTest {
         void buildTests_calledWithSAPLTestWithEmptyTestSuites_throwsSaplTestException() {
             mockTestSuites(Collections.emptyList());
 
-            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestTMock));
+            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestMock));
 
             assertEquals("provided SAPLTest does not contain a TestSuite", exception.getMessage());
         }
@@ -119,7 +120,7 @@ class TestProviderTest {
 
             when(unitTestSuiteMock.getTestCases()).thenReturn(null);
 
-            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestTMock));
+            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestMock));
 
             assertEquals("provided TestSuite does not contain a Test", exception.getMessage());
         }
@@ -132,7 +133,7 @@ class TestProviderTest {
 
             when(unitTestSuiteMock.getTestCases()).thenReturn(testCases);
 
-            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestTMock));
+            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestMock));
 
             assertEquals("provided TestSuite does not contain a Test", exception.getMessage());
         }
@@ -153,7 +154,7 @@ class TestProviderTest {
         }
 
         @Test
-        void buildTests_UnknownTestSuite_throwsSaplTestException() {
+        void buildTests_handlesUnknownTestSuite_throwsSaplTestException() {
             final var unknownTestSuiteMock = mock(TestSuite.class);
 
             mockTestSuites(List.of(unknownTestSuiteMock));
@@ -162,7 +163,7 @@ class TestProviderTest {
 
             when(unknownTestSuiteMock.getTestCases()).thenReturn(testCases);
 
-            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestTMock));
+            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestMock));
 
             assertEquals("Unknown type of TestSuite", exception.getMessage());
         }
@@ -183,7 +184,7 @@ class TestProviderTest {
                     () -> io.sapl.test.dsl.setup.TestCase.from(stepConstructorMock, unitTestSuiteMock, testCaseMock))
                     .thenReturn(testMock);
 
-            final var result = testProvider.buildTests(saplTestTMock);
+            final var result = testProvider.buildTests(saplTestMock);
 
             assertEquals(unitTestSuiteTestContainer, result.get(0));
             assertEquals(testMock, testNodes.get(0));
@@ -201,7 +202,7 @@ class TestProviderTest {
             final var unknownPolicyResolverConfigMock = mock(PolicyResolverConfig.class);
             when(integrationTestSuite.getConfig()).thenReturn(unknownPolicyResolverConfigMock);
 
-            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestTMock));
+            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestMock));
 
             assertEquals("Unknown type of PolicyResolverConfig", exception.getMessage());
         }
@@ -229,7 +230,7 @@ class TestProviderTest {
                     () -> io.sapl.test.dsl.setup.TestCase.from(stepConstructorMock, integrationTestSuite, testCaseMock))
                     .thenReturn(testMock);
 
-            final var result = testProvider.buildTests(saplTestTMock);
+            final var result = testProvider.buildTests(saplTestMock);
 
             assertEquals(integrationTestSuiteTestContainer, result.get(0));
             assertEquals(testMock, testNodes.get(0));
@@ -259,7 +260,7 @@ class TestProviderTest {
                     () -> io.sapl.test.dsl.setup.TestCase.from(stepConstructorMock, integrationTestSuite, testCaseMock))
                     .thenReturn(testMock);
 
-            final var result = testProvider.buildTests(saplTestTMock);
+            final var result = testProvider.buildTests(saplTestMock);
 
             assertEquals(integrationTestSuiteTestContainer, result.get(0));
             assertEquals(testMock, testNodes.get(0));
@@ -320,7 +321,7 @@ class TestProviderTest {
             testMockedStatic.when(() -> io.sapl.test.dsl.setup.TestCase.from(stepConstructorMock, unitTestSuiteMock,
                     unitTestCase3Mock)).thenReturn(unitTest3Mock);
 
-            final var result = testProvider.buildTests(saplTestTMock);
+            final var result = testProvider.buildTests(saplTestMock);
 
             assertEquals(integrationTestSuiteTestContainer, result.get(0));
             assertEquals(unitTestSuiteTestContainer, result.get(1));

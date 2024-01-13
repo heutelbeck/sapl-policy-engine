@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -24,12 +25,12 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.sAPLTest.ExpectChain;
+import io.sapl.test.grammar.sAPLTest.Expectation;
 import io.sapl.test.grammar.sAPLTest.RepeatedExpect;
 import io.sapl.test.grammar.sAPLTest.SingleExpect;
 import io.sapl.test.grammar.sAPLTest.SingleExpectWithMatcher;
 import io.sapl.test.grammar.sAPLTest.TestCase;
-import io.sapl.test.steps.ExpectOrVerifyStep;
+import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.VerifyStep;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,18 +41,18 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class DefaultVerifyStepConstructorTest {
     @Mock
-    private ExpectInterpreter            expectInterpreterMock;
+    private ExpectationInterpreter       expectInterpreterMock;
     @InjectMocks
-    private DefaultVerifyStepConstructor verifyStepBuilderServiceDefault;
+    private DefaultVerifyStepConstructor defaultVerifyStepConstructor;
     @Mock
     TestCase                             testCaseMock;
     @Mock
-    ExpectOrVerifyStep                   expectOrVerifyStepMock;
+    ExpectStep                           expectStepMock;
 
     @Test
     void constructVerifyStep_handlesNullTestCase_throwsSaplTestException() {
         final var exception = assertThrows(SaplTestException.class,
-                () -> verifyStepBuilderServiceDefault.constructVerifyStep(null, expectOrVerifyStepMock));
+                () -> defaultVerifyStepConstructor.constructVerifyStep(null, expectStepMock));
 
         assertEquals("TestCase or expectStep is null", exception.getMessage());
         verifyNoInteractions(expectInterpreterMock);
@@ -60,7 +61,7 @@ class DefaultVerifyStepConstructorTest {
     @Test
     void constructVerifyStep_handlesNullExpectOrVerifyStep_throwsSaplTestException() {
         final var exception = assertThrows(SaplTestException.class,
-                () -> verifyStepBuilderServiceDefault.constructVerifyStep(testCaseMock, null));
+                () -> defaultVerifyStepConstructor.constructVerifyStep(testCaseMock, null));
 
         assertEquals("TestCase or expectStep is null", exception.getMessage());
         verifyNoInteractions(expectInterpreterMock);
@@ -69,32 +70,32 @@ class DefaultVerifyStepConstructorTest {
     @Test
     void constructVerifyStep_handlesNullTestCaseAndNullExpectOrVerifyStep_throwsSaplTestException() {
         final var exception = assertThrows(SaplTestException.class,
-                () -> verifyStepBuilderServiceDefault.constructVerifyStep(null, null));
+                () -> defaultVerifyStepConstructor.constructVerifyStep(null, null));
 
         assertEquals("TestCase or expectStep is null", exception.getMessage());
         verifyNoInteractions(expectInterpreterMock);
     }
 
     @Test
-    void constructVerifyStep_handlesUnknownExpect_throwsSaplTestException() {
-        final var expectChainMock = mock(ExpectChain.class);
+    void constructVerifyStep_handlesUnknownExpectation_throwsSaplTestException() {
+        final var expectationMock = mock(Expectation.class);
 
-        when(testCaseMock.getExpect()).thenReturn(expectChainMock);
+        when(testCaseMock.getExpectation()).thenReturn(expectationMock);
 
         final var exception = assertThrows(SaplTestException.class,
-                () -> verifyStepBuilderServiceDefault.constructVerifyStep(testCaseMock, expectOrVerifyStepMock));
+                () -> defaultVerifyStepConstructor.constructVerifyStep(testCaseMock, expectStepMock));
 
-        assertEquals("Unknown type of ExpectChain", exception.getMessage());
+        assertEquals("Unknown type of Expectation", exception.getMessage());
         verifyNoInteractions(expectInterpreterMock);
     }
 
     @Test
-    void constructVerifyStep_handlesNullExpect_throwsSaplTestException() {
-        when(testCaseMock.getExpect()).thenReturn(null);
+    void constructVerifyStep_handlesNullExpectation_throwsSaplTestException() {
+        when(testCaseMock.getExpectation()).thenReturn(null);
 
-        final var exception = assertThrows(SaplTestException.class, () -> verifyStepBuilderServiceDefault.constructVerifyStep(testCaseMock, expectOrVerifyStepMock));
+        final var exception = assertThrows(SaplTestException.class, () -> defaultVerifyStepConstructor.constructVerifyStep(testCaseMock, expectStepMock));
 
-        assertEquals("Unknown type of ExpectChain", exception.getMessage());
+        assertEquals("Unknown type of Expectation", exception.getMessage());
         verifyNoInteractions(expectInterpreterMock);
     }
 
@@ -102,13 +103,12 @@ class DefaultVerifyStepConstructorTest {
     void constructVerifyStep_interpretsSingleExpect_returnsVerifyStep() {
         final var singleExpectMock = mock(SingleExpect.class);
 
-        when(testCaseMock.getExpect()).thenReturn(singleExpectMock);
+        when(testCaseMock.getExpectation()).thenReturn(singleExpectMock);
 
         final var verifyStepMock = mock(VerifyStep.class);
-        when(expectInterpreterMock.interpretSingleExpect(expectOrVerifyStepMock, singleExpectMock))
-                .thenReturn(verifyStepMock);
+        when(expectInterpreterMock.interpretSingleExpect(expectStepMock, singleExpectMock)).thenReturn(verifyStepMock);
 
-        final var result = verifyStepBuilderServiceDefault.constructVerifyStep(testCaseMock, expectOrVerifyStepMock);
+        final var result = defaultVerifyStepConstructor.constructVerifyStep(testCaseMock, expectStepMock);
 
         assertEquals(verifyStepMock, result);
     }
@@ -117,13 +117,13 @@ class DefaultVerifyStepConstructorTest {
     void constructVerifyStep_interpretsSingleExpectWithMatcher_returnsVerifyStep() {
         final var singleExpectWithMatcher = mock(SingleExpectWithMatcher.class);
 
-        when(testCaseMock.getExpect()).thenReturn(singleExpectWithMatcher);
+        when(testCaseMock.getExpectation()).thenReturn(singleExpectWithMatcher);
 
         final var verifyStepMock = mock(VerifyStep.class);
-        when(expectInterpreterMock.interpretSingleExpectWithMatcher(expectOrVerifyStepMock, singleExpectWithMatcher))
+        when(expectInterpreterMock.interpretSingleExpectWithMatcher(expectStepMock, singleExpectWithMatcher))
                 .thenReturn(verifyStepMock);
 
-        final var result = verifyStepBuilderServiceDefault.constructVerifyStep(testCaseMock, expectOrVerifyStepMock);
+        final var result = defaultVerifyStepConstructor.constructVerifyStep(testCaseMock, expectStepMock);
 
         assertEquals(verifyStepMock, result);
     }
@@ -132,13 +132,13 @@ class DefaultVerifyStepConstructorTest {
     void constructVerifyStep_interpretsRepeatedExpect_returnsVerifyStep() {
         final var repeatedExpectMock = mock(RepeatedExpect.class);
 
-        when(testCaseMock.getExpect()).thenReturn(repeatedExpectMock);
+        when(testCaseMock.getExpectation()).thenReturn(repeatedExpectMock);
 
         final var verifyStepMock = mock(VerifyStep.class);
-        when(expectInterpreterMock.interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock))
+        when(expectInterpreterMock.interpretRepeatedExpect(expectStepMock, repeatedExpectMock))
                 .thenReturn(verifyStepMock);
 
-        final var result = verifyStepBuilderServiceDefault.constructVerifyStep(testCaseMock, expectOrVerifyStepMock);
+        final var result = defaultVerifyStepConstructor.constructVerifyStep(testCaseMock, expectStepMock);
 
         assertEquals(verifyStepMock, result);
     }

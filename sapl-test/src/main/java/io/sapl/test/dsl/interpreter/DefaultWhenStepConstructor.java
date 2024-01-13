@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestException;
@@ -35,34 +36,31 @@ class DefaultWhenStepConstructor {
     private final FunctionInterpreter  functionInterpreter;
     private final AttributeInterpreter attributeInterpreter;
 
-    WhenStep constructWhenStep(final List<GivenStep> givenSteps, final GivenOrWhenStep givenOrWhenStep) {
-        if (givenSteps == null || givenSteps.isEmpty()) {
-            return givenOrWhenStep;
+    WhenStep constructWhenStep(final List<GivenStep> givenSteps, final GivenOrWhenStep initialTestCase) {
+        if (givenSteps != null) {
+            applyGivenSteps(givenSteps, initialTestCase);
         }
 
-        return applyGivenSteps(givenSteps, givenOrWhenStep);
+        return initialTestCase;
     }
 
-    private WhenStep applyGivenSteps(final List<GivenStep> givenSteps, GivenOrWhenStep fixtureWithMocks) {
+    private void applyGivenSteps(final List<GivenStep> givenSteps, GivenOrWhenStep initialTestCase) {
         for (GivenStep givenStep : givenSteps) {
             if (givenStep instanceof Function function) {
-                fixtureWithMocks = functionInterpreter.interpretFunction(fixtureWithMocks, function);
+                initialTestCase = functionInterpreter.interpretFunction(initialTestCase, function);
             } else if (givenStep instanceof FunctionInvokedOnce functionInvokedOnce) {
-                fixtureWithMocks = functionInterpreter.interpretFunctionInvokedOnce(fixtureWithMocks,
+                initialTestCase = functionInterpreter.interpretFunctionInvokedOnce(initialTestCase,
                         functionInvokedOnce);
             } else if (givenStep instanceof Attribute attribute) {
-                fixtureWithMocks = attributeInterpreter.interpretAttribute(fixtureWithMocks, attribute);
+                initialTestCase = attributeInterpreter.interpretAttribute(initialTestCase, attribute);
             } else if (givenStep instanceof AttributeWithParameters attributeWithParameters) {
-                fixtureWithMocks = attributeInterpreter.interpretAttributeWithParameters(fixtureWithMocks,
+                initialTestCase = attributeInterpreter.interpretAttributeWithParameters(initialTestCase,
                         attributeWithParameters);
             } else if (givenStep instanceof VirtualTime) {
-                fixtureWithMocks = fixtureWithMocks.withVirtualTime();
+                initialTestCase = initialTestCase.withVirtualTime();
             } else {
                 throw new SaplTestException("Unknown type of GivenStep");
             }
         }
-
-        return fixtureWithMocks;
     }
-
 }

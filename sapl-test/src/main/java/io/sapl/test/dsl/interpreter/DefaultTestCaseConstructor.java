@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestFixture;
@@ -24,14 +25,17 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 class DefaultTestCaseConstructor {
 
-    private final ValInterpreter valInterpreter;
+    private final ValueInterpreter valueInterpreter;
 
     GivenOrWhenStep constructTestCase(final SaplTestFixture saplTestFixture,
             final io.sapl.test.grammar.sAPLTest.Object environment, final boolean needsMocks) {
-        final var environmentVariables = valInterpreter.destructureObject(environment);
 
-        if (environmentVariables != null) {
-            environmentVariables.forEach(saplTestFixture::registerVariable);
+        if (environment != null) {
+            final var environmentVariables = valueInterpreter.destructureObject(environment);
+
+            if (environmentVariables != null) {
+                environmentVariables.forEach(saplTestFixture::registerVariable);
+            }
         }
 
         return (GivenOrWhenStep) (needsMocks ? saplTestFixture.constructTestCaseWithMocks()

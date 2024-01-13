@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,23 +31,23 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-class PDPCombiningAlgorithmInterpreterTest {
-    private PDPCombiningAlgorithmInterpreter pdpCombiningAlgorithmInterpreter;
+class CombiningAlgorithmInterpreterTest {
+    private CombiningAlgorithmInterpreter combiningAlgorithmInterpreter;
 
     @BeforeEach
     void setUp() {
-        pdpCombiningAlgorithmInterpreter = new PDPCombiningAlgorithmInterpreter();
+        combiningAlgorithmInterpreter = new CombiningAlgorithmInterpreter();
     }
 
     @Test
-    void interpretPdpCombiningAlgorithm_handlesUnknownCombiningAlgorithm_throwsSaplTestException() {
+    void interpretPdpCombiningAlgorithm_handlesNullCombiningAlgorithm_throwsSaplTestException() {
         final var exception = assertThrows(SaplTestException.class,
-                () -> pdpCombiningAlgorithmInterpreter.interpretPdpCombiningAlgorithm(null));
+                () -> combiningAlgorithmInterpreter.interpretPdpCombiningAlgorithm(null));
 
         assertEquals("CombiningAlgorithm is null", exception.getMessage());
     }
 
-    private static Stream<Arguments> provideCombiningAlgorithmToPolicyDocumentCombiningAlgorithmMapping() {
+    private static Stream<Arguments> combiningAlgorithmEnumToPolicyDocumentCombiningAlgorithm() {
         return Stream.of(
                 Arguments.of(CombiningAlgorithmEnum.DENY_OVERRIDES, PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES),
                 Arguments.of(CombiningAlgorithmEnum.PERMIT_OVERRIDES,
@@ -60,11 +61,11 @@ class PDPCombiningAlgorithmInterpreterTest {
     }
 
     @ParameterizedTest
-    @MethodSource("provideCombiningAlgorithmToPolicyDocumentCombiningAlgorithmMapping")
+    @MethodSource("combiningAlgorithmEnumToPolicyDocumentCombiningAlgorithm")
     void interpretPdpCombiningAlgorithm_handlesGivenCombiningAlgorithm_returnsPolicyDocumentCombiningAlgorithm(
             final CombiningAlgorithmEnum combiningAlgorithm,
             final PolicyDocumentCombiningAlgorithm expectedCombiningAlgorithm) {
-        final var result = pdpCombiningAlgorithmInterpreter.interpretPdpCombiningAlgorithm(combiningAlgorithm);
+        final var result = combiningAlgorithmInterpreter.interpretPdpCombiningAlgorithm(combiningAlgorithm);
 
         assertEquals(expectedCombiningAlgorithm, result);
     }

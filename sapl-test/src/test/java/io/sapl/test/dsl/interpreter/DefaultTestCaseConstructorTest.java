@@ -15,17 +15,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestFixture;
+import io.sapl.test.dsl.ParserUtil;
+import io.sapl.test.grammar.sAPLTest.StringLiteral;
+import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import io.sapl.test.steps.GivenOrWhenStep;
 import java.util.Collections;
 import java.util.Map;
@@ -39,7 +43,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class DefaultTestCaseConstructorTest {
 
     @Mock
-    ValInterpreter valInterpreterMock;
+    ValueInterpreter valueInterpreterMock;
 
     @InjectMocks
     DefaultTestCaseConstructor defaultTestCaseConstructor;
@@ -47,11 +51,15 @@ class DefaultTestCaseConstructorTest {
     @Mock
     SaplTestFixture saplTestFixtureMock;
 
+    @Mock
+    GivenOrWhenStep givenOrWhenStepMock;
+
+    private io.sapl.test.grammar.sAPLTest.Object buildObject(final String input) {
+        return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getObjectRule);
+    }
+
     @Test
     void constructTestCase_handlesNullEnvironmentWithoutMocks_returnsGivenOrWhenStep() {
-        when(valInterpreterMock.destructureObject(null)).thenReturn(null);
-
-        final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
         when(saplTestFixtureMock.constructTestCase()).thenReturn(givenOrWhenStepMock);
 
         final var result = defaultTestCaseConstructor.constructTestCase(saplTestFixtureMock, null, false);
@@ -63,9 +71,6 @@ class DefaultTestCaseConstructorTest {
 
     @Test
     void constructTestCase_handlesNullEnvironmentWithMocks_returnsGivenOrWhenStep() {
-        when(valInterpreterMock.destructureObject(null)).thenReturn(null);
-
-        final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
         when(saplTestFixtureMock.constructTestCaseWithMocks()).thenReturn(givenOrWhenStepMock);
 
         final var result = defaultTestCaseConstructor.constructTestCase(saplTestFixtureMock, null, true);
@@ -77,12 +82,18 @@ class DefaultTestCaseConstructorTest {
 
     @Test
     void constructTestCase_handlesEmptyEnvironmentVariables_returnsGivenOrWhenStep() {
-        when(valInterpreterMock.destructureObject(null)).thenReturn(Collections.emptyMap());
+        final var environment = buildObject("{}");
 
-        final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
+        when(valueInterpreterMock.destructureObject(any())).thenAnswer(invocationOnMock -> {
+            final io.sapl.test.grammar.sAPLTest.Object object = invocationOnMock.getArgument(0);
+
+            assertEquals(0, object.getMembers().size());
+            return Collections.emptyMap();
+        });
+
         when(saplTestFixtureMock.constructTestCaseWithMocks()).thenReturn(givenOrWhenStepMock);
 
-        final var result = defaultTestCaseConstructor.constructTestCase(saplTestFixtureMock, null, true);
+        final var result = defaultTestCaseConstructor.constructTestCase(saplTestFixtureMock, environment, true);
 
         assertEquals(givenOrWhenStepMock, result);
 
@@ -91,36 +102,70 @@ class DefaultTestCaseConstructorTest {
 
     @Test
     void constructTestCase_handlesSingleEnvironmentVariable_returnsGivenOrWhenStep() {
-        final var valueMock = mock(JsonNode.class);
-        when(valInterpreterMock.destructureObject(null)).thenReturn(Map.of("key", valueMock));
+        final var environment = buildObject("{ \"key\": \"value\" }");
 
-        final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
+        final var expectedJsonNode = Val.of("value").get();
+        when(valueInterpreterMock.destructureObject(any())).thenAnswer(invocationOnMock -> {
+            final io.sapl.test.grammar.sAPLTest.Object object = invocationOnMock.getArgument(0);
+
+            assertEquals(1, object.getMembers().size());
+
+            final var pair = object.getMembers().get(0);
+            assertEquals("key", pair.getKey());
+            assertEquals("value", ((StringLiteral) pair.getValue()).getString());
+
+            return Map.of("key", expectedJsonNode);
+        });
+
         when(saplTestFixtureMock.constructTestCaseWithMocks()).thenReturn(givenOrWhenStepMock);
 
-        final var result = defaultTestCaseConstructor.constructTestCase(saplTestFixtureMock, null, true);
+        final var result = defaultTestCaseConstructor.constructTestCase(saplTestFixtureMock, environment, true);
 
         assertEquals(givenOrWhenStepMock, result);
 
-        verify(saplTestFixtureMock, times(1)).registerVariable("key", valueMock);
+        verify(saplTestFixtureMock, times(1)).registerVariable("key", expectedJsonNode);
 
         verifyNoMoreInteractions(saplTestFixtureMock);
     }
 
     @Test
-    void constructTestCase_handlesMultipleEnvironmentVariables_returnsGivenOrWhenStep() {
-        final var valueMock  = mock(JsonNode.class);
-        final var value2Mock = mock(JsonNode.class);
-        when(valInterpreterMock.destructureObject(null)).thenReturn(Map.of("key", valueMock, "key2", value2Mock));
+    void constructTestCase_handlesNestedEnvironmentVariables_returnsGivenOrWhenStep() {
+        final var environment = buildObject("{ \"key\": \"value\", \"foo\": { \"key2\": \"value2\" } }");
 
-        final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
+        final var expectedJsonNode  = Val.of("value").get();
+        final var expectedJsonNode2 = Val.of("value2").get();
+        when(valueInterpreterMock.destructureObject(any())).thenAnswer(invocationOnMock -> {
+            final io.sapl.test.grammar.sAPLTest.Object object = invocationOnMock.getArgument(0);
+
+            assertEquals(2, object.getMembers().size());
+
+            final var flatPair = object.getMembers().get(0);
+            assertEquals("key", flatPair.getKey());
+            assertEquals("value", ((StringLiteral) flatPair.getValue()).getString());
+
+            final var objectPair = object.getMembers().get(1);
+            assertEquals("foo", objectPair.getKey());
+
+            final var nestedMembers = ((io.sapl.test.grammar.sAPLTest.Object) objectPair.getValue()).getMembers();
+
+            assertEquals(1, nestedMembers.size());
+
+            final var nestedPair = nestedMembers.get(0);
+
+            assertEquals("key2", nestedPair.getKey());
+            assertEquals("value2", ((StringLiteral) nestedPair.getValue()).getString());
+
+            return Map.of("key", expectedJsonNode, "key2", expectedJsonNode2);
+        });
+
         when(saplTestFixtureMock.constructTestCase()).thenReturn(givenOrWhenStepMock);
 
-        final var result = defaultTestCaseConstructor.constructTestCase(saplTestFixtureMock, null, false);
+        final var result = defaultTestCaseConstructor.constructTestCase(saplTestFixtureMock, environment, false);
 
         assertEquals(givenOrWhenStepMock, result);
 
-        verify(saplTestFixtureMock, times(1)).registerVariable("key", valueMock);
-        verify(saplTestFixtureMock, times(1)).registerVariable("key2", value2Mock);
+        verify(saplTestFixtureMock, times(1)).registerVariable("key", expectedJsonNode);
+        verify(saplTestFixtureMock, times(1)).registerVariable("key2", expectedJsonNode2);
 
         verifyNoMoreInteractions(saplTestFixtureMock);
     }

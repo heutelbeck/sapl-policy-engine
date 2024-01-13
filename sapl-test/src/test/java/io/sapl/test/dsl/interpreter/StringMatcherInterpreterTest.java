@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -61,7 +62,7 @@ class StringMatcherInterpreterTest {
     }
 
     private <T extends StringMatcher> T buildStringMatcher(final String input) {
-        return ParserUtil.buildExpression(input, SAPLTestGrammarAccess::getStringMatcherRule);
+        return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getStringMatcherRule);
     }
 
     @Test
@@ -249,7 +250,7 @@ class StringMatcherInterpreterTest {
 
     @ParameterizedTest
     @ValueSource(doubles = { -1, 0.5, Integer.MAX_VALUE + 1D, -5, -0.1 })
-    void getHamcrestStringMatcher_handlesStringWithLengthWithInvalidInteger_returnsHasLengthMatcher(
+    void getHamcrestStringMatcher_handlesStringWithLengthWithInvalidInteger_throwsSaplTestException(
             double returnValue) {
         final var stringMatcherMock = mock(StringWithLength.class);
         when(stringMatcherMock.getLength()).thenReturn(BigDecimal.valueOf(returnValue));

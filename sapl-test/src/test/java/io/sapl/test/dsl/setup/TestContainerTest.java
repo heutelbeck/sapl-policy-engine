@@ -15,19 +15,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.setup;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.sapl.test.dsl.interfaces.TestNode;
-import java.util.List;
+import java.util.Collections;
 import org.junit.jupiter.api.Test;
 
 class TestContainerTest {
 
     @Test
     void from_buildsTestContainerWithGivenIdentifierAndTestNodes_returnsTestContainer() {
-        final var testNodes = List.<TestNode>of();
+        final var testNodes = Collections.<TestNode>emptyList();
 
         final var container = TestContainer.from("identifier", testNodes);
 

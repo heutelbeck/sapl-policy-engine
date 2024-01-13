@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestException;
@@ -26,7 +27,7 @@ class MultipleAmountInterpreter {
 
             return Math.absExact(Integer.parseInt(amount));
         } catch (Exception e) {
-            throw new SaplTestException("Given amount has invalid format");
+            throw new SaplTestException("MultipleAmount has invalid format");
         }
     }
 }

@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static io.sapl.test.Imports.arguments;
@@ -32,18 +33,18 @@ import org.hamcrest.Matcher;
 @RequiredArgsConstructor
 class AttributeInterpreter {
 
-    private final ValInterpreter        valInterpreter;
+    private final ValueInterpreter      valueInterpreter;
     private final ValMatcherInterpreter matcherInterpreter;
     private final DurationInterpreter   durationInterpreter;
 
     GivenOrWhenStep interpretAttribute(final GivenOrWhenStep givenOrWhenStep, final Attribute attribute) {
-        final var importName = attribute.getName();
+        final var importName  = attribute.getName();
+        final var returnValue = attribute.getReturnValue();
 
-        if (attribute.getReturnValue() == null || attribute.getReturnValue().isEmpty()) {
+        if (returnValue == null || returnValue.isEmpty()) {
             return givenOrWhenStep.givenAttribute(importName);
         } else {
-            final var values = attribute.getReturnValue().stream().map(valInterpreter::getValFromValue)
-                    .toArray(Val[]::new);
+            final var values = returnValue.stream().map(valueInterpreter::getValFromValue).toArray(Val[]::new);
 
             final var dslDuration = attribute.getDuration();
 
@@ -63,7 +64,7 @@ class AttributeInterpreter {
 
         final var parentValueMatcher = matcherInterpreter
                 .getHamcrestValMatcher(attributeWithParameters.getParentMatcher());
-        final var returnValue        = valInterpreter.getValFromValue(attributeWithParameters.getReturnValue());
+        final var returnValue        = valueInterpreter.getValFromValue(attributeWithParameters.getReturnValue());
 
         final var parameters = attributeWithParameters.getParameters();
 

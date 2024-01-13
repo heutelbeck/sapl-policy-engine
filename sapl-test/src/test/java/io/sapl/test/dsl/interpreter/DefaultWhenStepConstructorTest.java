@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -27,13 +28,16 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.sapl.test.SaplTestException;
+import io.sapl.test.dsl.ParserUtil;
 import io.sapl.test.grammar.sAPLTest.Attribute;
 import io.sapl.test.grammar.sAPLTest.AttributeWithParameters;
 import io.sapl.test.grammar.sAPLTest.Function;
 import io.sapl.test.grammar.sAPLTest.FunctionInvokedOnce;
 import io.sapl.test.grammar.sAPLTest.GivenStep;
 import io.sapl.test.grammar.sAPLTest.VirtualTime;
+import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import io.sapl.test.steps.GivenOrWhenStep;
+import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,6 +56,10 @@ class DefaultWhenStepConstructorTest {
     @InjectMocks
     private DefaultWhenStepConstructor defaultWhenStepConstructor;
 
+    private <T extends GivenStep> T buildGivenStep(final String input) {
+        return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getGivenStepRule);
+    }
+
     @Test
     void constructWhenStep_handlesNullGivenSteps_returnsGivenUnitTestFixture() {
         final var result = defaultWhenStepConstructor.constructWhenStep(null, saplUnitTestFixtureMock);
@@ -62,7 +70,8 @@ class DefaultWhenStepConstructorTest {
 
     @Test
     void constructWhenStep_handlesEmptyGivenSteps_returnsGivenUnitTestFixture() {
-        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(), saplUnitTestFixtureMock);
+        final var result = defaultWhenStepConstructor.constructWhenStep(Collections.emptyList(),
+                saplUnitTestFixtureMock);
 
         assertEquals(saplUnitTestFixtureMock, result);
         verifyNoInteractions(saplUnitTestFixtureMock);
@@ -82,24 +91,24 @@ class DefaultWhenStepConstructorTest {
 
     @Test
     void constructWhenStep_handlesFunctionGivenStep_returnsAdjustedUnitTestFixture() {
-        final var functionMock = mock(Function.class);
+        final Function function = buildGivenStep("function \"foo\" returning \"bar\"");
 
-        when(functionInterpreterMock.interpretFunction(saplUnitTestFixtureMock, functionMock))
+        when(functionInterpreterMock.interpretFunction(saplUnitTestFixtureMock, function))
                 .thenReturn(saplUnitTestFixtureMock);
 
-        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(functionMock), saplUnitTestFixtureMock);
+        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(function), saplUnitTestFixtureMock);
 
         assertEquals(saplUnitTestFixtureMock, result);
     }
 
     @Test
     void constructWhenStep_handlesFunctionInvokedOnceGivenStep_returnsAdjustedUnitTestFixture() {
-        final var functionInvokedOnceMock = mock(FunctionInvokedOnce.class);
+        final FunctionInvokedOnce functionInvokedOnce = buildGivenStep("function \"foo\" returns \"bar\" once");
 
-        when(functionInterpreterMock.interpretFunctionInvokedOnce(saplUnitTestFixtureMock, functionInvokedOnceMock))
+        when(functionInterpreterMock.interpretFunctionInvokedOnce(saplUnitTestFixtureMock, functionInvokedOnce))
                 .thenReturn(saplUnitTestFixtureMock);
 
-        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(functionInvokedOnceMock),
+        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(functionInvokedOnce),
                 saplUnitTestFixtureMock);
 
         assertEquals(saplUnitTestFixtureMock, result);
@@ -107,25 +116,25 @@ class DefaultWhenStepConstructorTest {
 
     @Test
     void constructWhenStep_handlesAttributeGivenStep_returnsAdjustedUnitTestFixture() {
-        final var attributeMock = mock(Attribute.class);
+        final Attribute attribute = buildGivenStep("attribute \"foo\"");
 
-        when(attributeInterpreterMock.interpretAttribute(saplUnitTestFixtureMock, attributeMock))
+        when(attributeInterpreterMock.interpretAttribute(saplUnitTestFixtureMock, attribute))
                 .thenReturn(saplUnitTestFixtureMock);
 
-        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(attributeMock),
-                saplUnitTestFixtureMock);
+        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(attribute), saplUnitTestFixtureMock);
 
         assertEquals(saplUnitTestFixtureMock, result);
     }
 
     @Test
     void constructWhenStep_handlesAttributeWithParametersGivenStep_returnsAdjustedUnitTestFixture() {
-        final var attributeWithParametersMock = mock(AttributeWithParameters.class);
+        final AttributeWithParameters attributeWithParameters = buildGivenStep(
+                "attribute \"foo\" with parent value any returns \"bar\"");
 
         when(attributeInterpreterMock.interpretAttributeWithParameters(saplUnitTestFixtureMock,
-                attributeWithParametersMock)).thenReturn(saplUnitTestFixtureMock);
+                attributeWithParameters)).thenReturn(saplUnitTestFixtureMock);
 
-        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(attributeWithParametersMock),
+        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(attributeWithParameters),
                 saplUnitTestFixtureMock);
 
         assertEquals(saplUnitTestFixtureMock, result);
@@ -133,34 +142,33 @@ class DefaultWhenStepConstructorTest {
 
     @Test
     void constructWhenStep_handlesVirtualTimeGivenStep_returnsAdjustedUnitTestFixture() {
-        final var virtualTimeMock = mock(VirtualTime.class);
+        final VirtualTime virtualTime = buildGivenStep("virtual-time");
 
         when(saplUnitTestFixtureMock.withVirtualTime()).thenReturn(saplUnitTestFixtureMock);
 
-        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(virtualTimeMock),
-                saplUnitTestFixtureMock);
+        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(virtualTime), saplUnitTestFixtureMock);
 
         assertEquals(saplUnitTestFixtureMock, result);
     }
 
     @Test
     void constructWhenStep_handlesMultipleGivenSteps_returnsAdjustedUnitTestFixture() {
-        final var functionMock    = mock(Function.class);
-        final var attributeMock   = mock(Attribute.class);
-        final var virtualTimeMock = mock(VirtualTime.class);
+        final Function    function    = buildGivenStep("function \"foo\" returning \"bar\"");
+        final Attribute   attribute   = buildGivenStep("attribute \"foo\"");
+        final VirtualTime virtualTime = buildGivenStep("virtual-time");
 
-        when(functionInterpreterMock.interpretFunction(saplUnitTestFixtureMock, functionMock))
+        when(functionInterpreterMock.interpretFunction(saplUnitTestFixtureMock, function))
                 .thenReturn(saplUnitTestFixtureMock);
-        when(attributeInterpreterMock.interpretAttribute(saplUnitTestFixtureMock, attributeMock))
+        when(attributeInterpreterMock.interpretAttribute(saplUnitTestFixtureMock, attribute))
                 .thenReturn(saplUnitTestFixtureMock);
         when(saplUnitTestFixtureMock.withVirtualTime()).thenReturn(saplUnitTestFixtureMock);
 
-        final var result = defaultWhenStepConstructor
-                .constructWhenStep(List.of(virtualTimeMock, functionMock, attributeMock), saplUnitTestFixtureMock);
+        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(virtualTime, function, attribute),
+                saplUnitTestFixtureMock);
 
         assertEquals(saplUnitTestFixtureMock, result);
-        verify(functionInterpreterMock, times(1)).interpretFunction(saplUnitTestFixtureMock, functionMock);
-        verify(attributeInterpreterMock, times(1)).interpretAttribute(saplUnitTestFixtureMock, attributeMock);
+        verify(functionInterpreterMock, times(1)).interpretFunction(saplUnitTestFixtureMock, function);
+        verify(attributeInterpreterMock, times(1)).interpretAttribute(saplUnitTestFixtureMock, attribute);
         verify(saplUnitTestFixtureMock, times(1)).withVirtualTime();
         verifyNoMoreInteractions(saplUnitTestFixtureMock, functionInterpreterMock, attributeInterpreterMock);
     }

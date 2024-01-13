@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.setup;
 
 import io.sapl.test.SaplTestException;
@@ -43,7 +44,7 @@ public final class TestProvider {
             throw new SaplTestException("provided SAPLTest is null");
         }
 
-        final var testSuites = saplTest.getElements();
+        final var testSuites = saplTest.getTestSuites();
 
         if (testSuites == null || testSuites.isEmpty()) {
             throw new SaplTestException("provided SAPLTest does not contain a TestSuite");
@@ -71,11 +72,11 @@ public final class TestProvider {
                 return policiesByIdentifier.getIdentifier();
             } else if (policyResolverConfig instanceof PoliciesByInputString policiesByInputString) {
                 return String.join(",", policiesByInputString.getPolicies());
-            } else {
-                throw new SaplTestException("Unknown type of PolicyResolverConfig");
             }
-        } else {
-            throw new SaplTestException("Unknown type of TestSuite");
+
+            throw new SaplTestException("Unknown type of PolicyResolverConfig");
         }
+
+        throw new SaplTestException("Unknown type of TestSuite");
     }
 }

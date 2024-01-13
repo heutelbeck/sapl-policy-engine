@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static io.sapl.hamcrest.Matchers.anyVal;
@@ -37,33 +38,67 @@ import org.hamcrest.Matcher;
 @RequiredArgsConstructor
 class ValMatcherInterpreter {
 
-    private final ValInterpreter             valInterpreter;
+    private final ValueInterpreter           valueInterpreter;
     private final JsonNodeMatcherInterpreter jsonNodeMatcherInterpreter;
     private final StringMatcherInterpreter   stringMatcherInterpreter;
 
     Matcher<Val> getHamcrestValMatcher(final ValMatcher valMatcher) {
-        if (valMatcher instanceof ValWithValue valWithValueMatcher) {
-            final var value = valWithValueMatcher.getValue();
-
-            return is(valInterpreter.getValFromValue(value));
+        if (valMatcher instanceof ValWithValue valWithValue) {
+            return handleValWithValue(valWithValue);
         } else if (valMatcher instanceof AnyVal) {
             return anyVal();
-        } else if (valMatcher instanceof ValWithMatcher valWithMatcherMatcher) {
-            final var matcher = valWithMatcherMatcher.getMatcher();
-
-            return val(jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(matcher));
-        } else if (valMatcher instanceof ValWithError valWithErrorStringMatcher) {
-            final var errorMatcher = valWithErrorStringMatcher.getError();
-
-            if (errorMatcher instanceof PlainString plainString) {
-                return valError(plainString.getText());
-            } else if (errorMatcher instanceof StringMatcher stringMatcher) {
-                return valError(stringMatcherInterpreter.getHamcrestStringMatcher(stringMatcher));
-            }
-
-            return valError();
+        } else if (valMatcher instanceof ValWithMatcher valWithMatcher) {
+            return handleValWithMatcher(valWithMatcher);
+        } else if (valMatcher instanceof ValWithError valWithError) {
+            return handleValWithError(valWithError);
         }
 
         throw new SaplTestException("Unknown type of ValMatcher");
+    }
+
+    private Matcher<Val> handleValWithValue(ValWithValue valWithValue) {
+        final var value = valWithValue.getValue();
+
+        final var val = valueInterpreter.getValFromValue(value);
+
+        if (val == null) {
+            throw new SaplTestException("Val is null");
+        }
+
+        return is(val);
+    }
+
+    private Matcher<Val> handleValWithMatcher(ValWithMatcher valWithMatcher) {
+        final var matcher = valWithMatcher.getMatcher();
+
+        final var jsonNodeMatcher = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(matcher);
+
+        if (jsonNodeMatcher == null) {
+            throw new SaplTestException("JsonNodeMatcher is null");
+        }
+
+        return val(jsonNodeMatcher);
+    }
+
+    private Matcher<Val> handleValWithError(final ValWithError valWithError) {
+        final var stringOrStringMatcher = valWithError.getError();
+
+        if (stringOrStringMatcher == null) {
+            return valError();
+        }
+
+        if (stringOrStringMatcher instanceof PlainString plainString) {
+            return valError(plainString.getText());
+        } else if (stringOrStringMatcher instanceof StringMatcher stringMatcher) {
+            final var hamcrestStringMatcher = stringMatcherInterpreter.getHamcrestStringMatcher(stringMatcher);
+
+            if (hamcrestStringMatcher == null) {
+                throw new SaplTestException("StringMatcher is null");
+            }
+
+            return valError(hamcrestStringMatcher);
+        }
+
+        throw new SaplTestException("Unknown type of StringOrStringMatcher");
     }
 }

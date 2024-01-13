@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.setup;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,7 +31,7 @@ import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
 import io.sapl.test.grammar.sAPLTest.SAPLTest;
 import io.sapl.test.utils.DocumentHelper;
-import java.util.List;
+import java.util.Collections;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -89,7 +90,7 @@ class BaseTestAdapterTest {
 
         baseTestAdapter = new BaseTestAdapter<>(stepConstructorMock, saplTestInterpreterMock) {
             @Override
-            protected TestContainer convertTestContainerToTargetRepresentation(TestContainer testContainer) {
+            protected TestContainer convertTestContainerToTargetRepresentation(final TestContainer testContainer) {
                 return testContainer;
             }
         };
@@ -108,7 +109,7 @@ class BaseTestAdapterTest {
 
         baseTestAdapter = new BaseTestAdapter<>(unitTestPolicyResolverMock, integrationTestPolicyResolver) {
             @Override
-            protected TestContainer convertTestContainerToTargetRepresentation(TestContainer testContainer) {
+            protected TestContainer convertTestContainerToTargetRepresentation(final TestContainer testContainer) {
                 return testContainer;
             }
         };
@@ -150,7 +151,7 @@ class BaseTestAdapterTest {
 
     @ParameterizedTest
     @MethodSource("invalidInputCombinationsArgumentSource")
-    void createTest_withInvalidInputCombinations_throwsSaplTestException(String identifier, String input) {
+    void createTest_withInvalidInputCombinations_throwsSaplTestException(final String identifier, final String input) {
         buildInstanceOfBaseTestAdapterWithDefaultConstructor();
 
         final var exception = assertThrows(SaplTestException.class,
@@ -168,7 +169,7 @@ class BaseTestAdapterTest {
         final var saplTestMock = mock(SAPLTest.class);
         when(saplTestInterpreterMock.loadAsResource("input")).thenReturn(saplTestMock);
 
-        final var testContainers = List.<TestContainer>of();
+        final var testContainers = Collections.<TestContainer>emptyList();
         when(testProviderMock.buildTests(saplTestMock)).thenReturn(testContainers);
 
         final var testContainerMock = mock(TestContainer.class);
@@ -186,7 +187,7 @@ class BaseTestAdapterTest {
         final var saplTestMock = mock(SAPLTest.class);
         when(saplTestInterpreterMock.loadAsResource("input")).thenReturn(saplTestMock);
 
-        final var testContainers = List.<TestContainer>of();
+        final var testContainers = Collections.<TestContainer>emptyList();
         when(testProviderMock.buildTests(saplTestMock)).thenReturn(testContainers);
 
         final var testContainerMock = mock(TestContainer.class);
@@ -198,7 +199,7 @@ class BaseTestAdapterTest {
     }
 
     @Test
-    void createTest_withFilenameBuildsTestContainer_usingCustomStepConstructorAndSaplTestInterpreter_returnsMappedTestContainer() {
+    void createTest_withFilenameBuildsTestContainerUsingCustomStepConstructorAndSaplTestInterpreter_returnsMappedTestContainer() {
         buildInstanceOfBaseTestAdapterWithStepConstructorAndInterpreter();
 
         documentHelperMockedStatic.when(() -> DocumentHelper.findFileOnClasspath("foo")).thenReturn("input");
@@ -206,7 +207,7 @@ class BaseTestAdapterTest {
         final var saplTestMock = mock(SAPLTest.class);
         when(saplTestInterpreterMock.loadAsResource("input")).thenReturn(saplTestMock);
 
-        final var testContainers = List.<TestContainer>of();
+        final var testContainers = Collections.<TestContainer>emptyList();
         when(testProviderMock.buildTests(saplTestMock)).thenReturn(testContainers);
 
         final var testContainerMock = mock(TestContainer.class);
@@ -218,13 +219,13 @@ class BaseTestAdapterTest {
     }
 
     @Test
-    void createTest_withIdentifierAndInputBuildsTestContainer_usingCustomStepConstructorAndSaplTestInterpreter_returnsMappedTestContainer() {
+    void createTest_withIdentifierAndInputBuildsTestContainerUsingCustomStepConstructorAndSaplTestInterpreter_returnsMappedTestContainer() {
         buildInstanceOfBaseTestAdapterWithStepConstructorAndInterpreter();
 
         final var saplTestMock = mock(SAPLTest.class);
         when(saplTestInterpreterMock.loadAsResource("input")).thenReturn(saplTestMock);
 
-        final var testContainers = List.<TestContainer>of();
+        final var testContainers = Collections.<TestContainer>emptyList();
         when(testProviderMock.buildTests(saplTestMock)).thenReturn(testContainers);
 
         final var testContainerMock = mock(TestContainer.class);
@@ -236,13 +237,13 @@ class BaseTestAdapterTest {
     }
 
     @Test
-    void createTest_withIdentifierAndInputBuildsTestContainer_usingCustomUnitTestAndIntegrationTestPolicyResolver_returnsMappedTestContainer() {
+    void createTest_withIdentifierAndInputBuildsTestContainerUsingCustomUnitTestAndIntegrationTestPolicyResolver_returnsMappedTestContainer() {
         buildInstanceOfBaseTestAdapterWithCustomUnitTestAndIntegrationTestPolicyResolver();
 
         final var saplTestMock = mock(SAPLTest.class);
         when(saplTestInterpreterMock.loadAsResource("input")).thenReturn(saplTestMock);
 
-        final var testContainers = List.<TestContainer>of();
+        final var testContainers = Collections.<TestContainer>emptyList();
         when(testProviderMock.buildTests(saplTestMock)).thenReturn(testContainers);
 
         final var testContainerMock = mock(TestContainer.class);

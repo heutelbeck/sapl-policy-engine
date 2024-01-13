@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static io.sapl.test.Imports.whenParentValue;
@@ -56,7 +57,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class AttributeInterpreterTest {
     @Mock
-    private ValInterpreter        valInterpreterMock;
+    private ValueInterpreter      valueInterpreterMock;
     @Mock
     private ValMatcherInterpreter matcherInterpreterMock;
     @Mock
@@ -66,17 +67,13 @@ class AttributeInterpreterTest {
     @Mock
     private GivenOrWhenStep       givenOrWhenStepMock;
 
-    private Attribute buildAttribute(final String input) {
-        return ParserUtil.buildExpression(input, SAPLTestGrammarAccess::getGivenStepRule);
-    }
-
-    private AttributeWithParameters buildAttributeWithParameters(final String input) {
-        return ParserUtil.buildExpression(input, SAPLTestGrammarAccess::getGivenStepRule);
-    }
-
     @Nested
     @DisplayName("Interpret attribute")
-    class InterpretAttributeTests {
+    class InterpretAttributeTest {
+
+        private Attribute buildAttribute(final String input) {
+            return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getGivenStepRule);
+        }
 
         @Test
         void interpretAttribute_whenReturnValueIsNull_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
@@ -108,7 +105,7 @@ class AttributeInterpreterTest {
 
             final var expectedReturnValue = Val.of("Foo");
 
-            when(valInterpreterMock.getValFromValue(compareArgumentToStringLiteral("Foo")))
+            when(valueInterpreterMock.getValFromValue(compareArgumentToStringLiteral("Foo")))
                     .thenReturn(expectedReturnValue);
 
             when(givenOrWhenStepMock.givenAttribute("fooAttribute", expectedReturnValue))
@@ -125,7 +122,7 @@ class AttributeInterpreterTest {
 
             final var attribute = buildAttribute("attribute \"fooAttribute\" returns \"Foo\" for \"PT5S\"");
 
-            when(valInterpreterMock.getValFromValue(compareArgumentToStringLiteral("Foo")))
+            when(valueInterpreterMock.getValFromValue(compareArgumentToStringLiteral("Foo")))
                     .thenReturn(expectedReturnValue);
             when(durationInterpreterMock.getJavaDurationFromDuration(attribute.getDuration()))
                     .thenReturn(Duration.ofSeconds(5));
@@ -141,7 +138,12 @@ class AttributeInterpreterTest {
 
     @Nested
     @DisplayName("Interpret attribute with parameters")
-    class InterpretAttributeWithParameters {
+    class InterpretAttributeWithParametersTest {
+
+        private AttributeWithParameters buildAttributeWithParameters(final String input) {
+            return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getGivenStepRule);
+        }
+
         @Mock
         private Matcher<io.sapl.api.interpreter.Val> parentValueMatcherMock;
 
@@ -160,7 +162,7 @@ class AttributeInterpreterTest {
             when(attributeWithParametersMock.getReturnValue()).thenReturn(returnValueMock);
 
             final var returnValMock = mock(Val.class);
-            when(valInterpreterMock.getValFromValue(returnValueMock)).thenReturn(returnValMock);
+            when(valueInterpreterMock.getValFromValue(returnValueMock)).thenReturn(returnValMock);
 
             when(attributeWithParametersMock.getParameters()).thenReturn(null);
 
@@ -179,7 +181,7 @@ class AttributeInterpreterTest {
                     "attribute \"fooAttribute\" with parent value \"Foo\" returns \"BAR\"");
 
             final var expectedReturnValue = Val.of("BAR");
-            when(valInterpreterMock.getValFromValue(compareArgumentToStringLiteral("BAR")))
+            when(valueInterpreterMock.getValFromValue(compareArgumentToStringLiteral("BAR")))
                     .thenReturn(expectedReturnValue);
             when(matcherInterpreterMock.getHamcrestValMatcher(attributeWithParameters.getParentMatcher()))
                     .thenReturn(parentValueMatcherMock);
@@ -203,7 +205,7 @@ class AttributeInterpreterTest {
                     "attribute \"fooAttribute\" with parent value any and parameters \"FOO1\", matching null returns \"BAR\"");
 
             final var expectedReturnValue = Val.of("BAR");
-            when(valInterpreterMock.getValFromValue(compareArgumentToStringLiteral("BAR")))
+            when(valueInterpreterMock.getValFromValue(compareArgumentToStringLiteral("BAR")))
                     .thenReturn(expectedReturnValue);
             when(matcherInterpreterMock.getHamcrestValMatcher(any(AnyVal.class))).thenReturn(parentValueMatcherMock);
             when(matcherInterpreterMock.getHamcrestValMatcher(any(ValWithValue.class))).thenAnswer(invocationOnMock -> {

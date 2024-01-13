@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -54,7 +55,7 @@ class ReflectionHelperTest {
         final var exception = assertThrows(SaplTestException.class,
                 () -> reflectionHelper.constructInstanceOfClass("io.foo.bar.shizzle.Class"));
 
-        assertEquals("Could not construct instance of 'io.foo.bar.shizzle.Class' class", exception.getMessage());
+        assertEquals("Could not construct instance of 'io.foo.bar.shizzle.Class'", exception.getMessage());
     }
 
     @Test
@@ -64,7 +65,7 @@ class ReflectionHelperTest {
         final var exception = assertThrows(SaplTestException.class,
                 () -> reflectionHelper.constructInstanceOfClass(className));
 
-        assertEquals("Could not construct instance of 'io.sapl.test.dsl.interpreter.ReflectionHelperTest' class",
+        assertEquals("Could not construct instance of 'io.sapl.test.dsl.interpreter.ReflectionHelperTest'",
                 exception.getMessage());
     }
 

@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.setup;
 
 import io.sapl.test.SaplTestException;
@@ -29,7 +30,7 @@ public final class TestProviderFactory {
 
     public static TestProvider create(final StepConstructor stepConstructor) {
         if (stepConstructor == null) {
-            throw new SaplTestException("Provided stepConstructor is null");
+            throw new SaplTestException("StepConstructor is null");
         }
 
         return TestProvider.of(stepConstructor);
@@ -37,6 +38,7 @@ public final class TestProviderFactory {
 
     public static TestProvider create(final UnitTestPolicyResolver customUnitTestPolicyResolver,
             final IntegrationTestPolicyResolver customIntegrationTestPolicyResolver) {
+
         final var stepConstructor = DefaultStepConstructor.of(customUnitTestPolicyResolver,
                 customIntegrationTestPolicyResolver);
 

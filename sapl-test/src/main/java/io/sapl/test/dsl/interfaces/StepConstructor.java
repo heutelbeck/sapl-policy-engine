@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interfaces;
 
 import io.sapl.test.SaplTestFixture;
@@ -22,7 +23,6 @@ import io.sapl.test.grammar.sAPLTest.FixtureRegistration;
 import io.sapl.test.grammar.sAPLTest.GivenStep;
 import io.sapl.test.grammar.sAPLTest.TestCase;
 import io.sapl.test.grammar.sAPLTest.TestSuite;
-import io.sapl.test.steps.ExpectOrVerifyStep;
 import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.steps.VerifyStep;
@@ -39,5 +39,5 @@ public interface StepConstructor {
 
     ExpectStep constructExpectStep(TestCase testCase, WhenStep whenStep);
 
-    VerifyStep constructVerifyStep(TestCase testCase, ExpectOrVerifyStep expectOrVerifyStep);
+    VerifyStep constructVerifyStep(TestCase testCase, ExpectStep expectStep);
 }

@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static org.hamcrest.Matchers.allOf;
@@ -32,22 +33,22 @@ import io.sapl.test.grammar.sAPLTest.Once;
 import io.sapl.test.grammar.sAPLTest.RepeatedExpect;
 import io.sapl.test.grammar.sAPLTest.SingleExpect;
 import io.sapl.test.grammar.sAPLTest.SingleExpectWithMatcher;
-import io.sapl.test.steps.ExpectOrVerifyStep;
+import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.VerifyStep;
 import lombok.RequiredArgsConstructor;
 import org.hamcrest.Matcher;
 
 @RequiredArgsConstructor
-class ExpectInterpreter {
+class ExpectationInterpreter {
 
-    private final ValInterpreter                          valInterpreter;
+    private final ValueInterpreter                        valueInterpreter;
     private final AuthorizationDecisionInterpreter        authorizationDecisionInterpreter;
     private final AuthorizationDecisionMatcherInterpreter authorizationDecisionMatcherInterpreter;
     private final DurationInterpreter                     durationInterpreter;
     private final MultipleAmountInterpreter               multipleAmountInterpreter;
 
-    VerifyStep interpretSingleExpect(final ExpectOrVerifyStep expectOrVerifyStep, final SingleExpect singleExpect) {
-        if (expectOrVerifyStep == null || singleExpect == null) {
+    VerifyStep interpretSingleExpect(final ExpectStep expectStep, final SingleExpect singleExpect) {
+        if (expectStep == null || singleExpect == null) {
             throw new SaplTestException("ExpectOrVerifyStep or singleExpect is null");
         }
 
@@ -56,12 +57,12 @@ class ExpectInterpreter {
         final var authorizationDecision = getAuthorizationDecisionFromDSLAuthorizationDecision(
                 dslAuthorizationDecision);
 
-        return expectOrVerifyStep.expect(authorizationDecision);
+        return expectStep.expect(authorizationDecision);
     }
 
-    VerifyStep interpretSingleExpectWithMatcher(final ExpectOrVerifyStep expectOrVerifyStep,
+    VerifyStep interpretSingleExpectWithMatcher(final ExpectStep expectStep,
             final SingleExpectWithMatcher singleExpectWithMatcher) {
-        if (expectOrVerifyStep == null || singleExpectWithMatcher == null) {
+        if (expectStep == null || singleExpectWithMatcher == null) {
             throw new SaplTestException("ExpectOrVerifyStep or singleExpectWithMatcher is null");
         }
 
@@ -74,11 +75,11 @@ class ExpectInterpreter {
         final var matcher = authorizationDecisionMatcherInterpreter
                 .getHamcrestAuthorizationDecisionMatcher(dslAuthorizationDecisionMatcher);
 
-        return expectOrVerifyStep.expect(matcher);
+        return expectStep.expect(matcher);
     }
 
-    VerifyStep interpretRepeatedExpect(ExpectOrVerifyStep expectOrVerifyStep, final RepeatedExpect repeatedExpect) {
-        if (expectOrVerifyStep == null || repeatedExpect == null) {
+    VerifyStep interpretRepeatedExpect(ExpectStep expectStep, final RepeatedExpect repeatedExpect) {
+        if (expectStep == null || repeatedExpect == null) {
             throw new SaplTestException("ExpectOrVerifyStep or repeatedExpect is null");
         }
 
@@ -90,27 +91,27 @@ class ExpectInterpreter {
 
         for (var expectOrAdjustmentStep : expectOrAdjustmentSteps) {
             if (expectOrAdjustmentStep instanceof Next nextExpect) {
-                expectOrVerifyStep = constructNext(expectOrVerifyStep, nextExpect);
+                expectStep = constructNext(expectStep, nextExpect);
             } else if (expectOrAdjustmentStep instanceof NextWithDecision nextWithDecision) {
-                final var dslAuthorizationDecision = nextWithDecision.getExpectedDecision();
+                final var authorizationDecision = nextWithDecision.getExpectedDecision();
 
-                expectOrVerifyStep = constructNextWithDecision(expectOrVerifyStep, dslAuthorizationDecision);
+                expectStep = constructNextWithDecision(expectStep, authorizationDecision);
             } else if (expectOrAdjustmentStep instanceof NextWithMatcher nextWithMatcher) {
-                expectOrVerifyStep = constructNextWithMatcher(expectOrVerifyStep, nextWithMatcher);
+                expectStep = constructNextWithMatcher(expectStep, nextWithMatcher);
             } else if (expectOrAdjustmentStep instanceof AttributeAdjustment attributeAdjustment) {
-                final var returnValue = valInterpreter.getValFromValue(attributeAdjustment.getReturnValue());
-                expectOrVerifyStep = expectOrVerifyStep.thenAttribute(attributeAdjustment.getAttribute(), returnValue);
+                final var returnValue = valueInterpreter.getValFromValue(attributeAdjustment.getReturnValue());
+                expectStep = expectStep.thenAttribute(attributeAdjustment.getAttribute(), returnValue);
             } else if (expectOrAdjustmentStep instanceof Await await) {
                 final var duration = durationInterpreter.getJavaDurationFromDuration(await.getDuration());
-                expectOrVerifyStep = expectOrVerifyStep.thenAwait(duration);
+                expectStep = expectStep.thenAwait(duration);
             } else if (expectOrAdjustmentStep instanceof NoEvent noEvent) {
                 final var duration = durationInterpreter.getJavaDurationFromDuration(noEvent.getDuration());
-                expectOrVerifyStep = expectOrVerifyStep.expectNoEvent(duration);
+                expectStep = expectStep.expectNoEvent(duration);
             } else {
                 throw new SaplTestException("Unknown type of ExpectOrAdjustmentStep");
             }
         }
-        return expectOrVerifyStep;
+        return (VerifyStep) expectStep;
     }
 
     private AuthorizationDecision getAuthorizationDecisionFromDSLAuthorizationDecision(
@@ -127,7 +128,7 @@ class ExpectInterpreter {
         return authorizationDecisionInterpreter.constructAuthorizationDecision(decision, resource, obligations, advice);
     }
 
-    private ExpectOrVerifyStep constructNext(final ExpectOrVerifyStep expectOrVerifyStep, final Next nextExpect) {
+    private ExpectStep constructNext(final ExpectStep expectStep, final Next nextExpect) {
         int amount;
 
         if (nextExpect.getAmount() instanceof Multiple multiple) {
@@ -139,15 +140,14 @@ class ExpectInterpreter {
         }
 
         return switch (nextExpect.getExpectedDecision()) {
-        case PERMIT -> expectOrVerifyStep.expectNextPermit(amount);
-        case DENY -> expectOrVerifyStep.expectNextDeny(amount);
-        case INDETERMINATE -> expectOrVerifyStep.expectNextIndeterminate(amount);
-        default -> expectOrVerifyStep.expectNextNotApplicable(amount);
+        case PERMIT -> expectStep.expectNextPermit(amount);
+        case DENY -> expectStep.expectNextDeny(amount);
+        case INDETERMINATE -> expectStep.expectNextIndeterminate(amount);
+        default -> expectStep.expectNextNotApplicable(amount);
         };
     }
 
-    private ExpectOrVerifyStep constructNextWithMatcher(final ExpectOrVerifyStep expectOrVerifyStep,
-            final NextWithMatcher nextWithMatcher) {
+    private ExpectStep constructNextWithMatcher(final ExpectStep expectStep, final NextWithMatcher nextWithMatcher) {
         final var matchers = nextWithMatcher.getMatcher();
 
         if (matchers == null || matchers.isEmpty()) {
@@ -158,14 +158,14 @@ class ExpectInterpreter {
                 .map(authorizationDecisionMatcherInterpreter::getHamcrestAuthorizationDecisionMatcher)
                 .<Matcher<AuthorizationDecision>>toArray(Matcher[]::new);
 
-        return expectOrVerifyStep.expectNext(actualMatchers.length == 1 ? actualMatchers[0] : allOf(actualMatchers));
+        return expectStep.expectNext(actualMatchers.length == 1 ? actualMatchers[0] : allOf(actualMatchers));
     }
 
-    private ExpectOrVerifyStep constructNextWithDecision(final ExpectOrVerifyStep expectOrVerifyStep,
+    private ExpectStep constructNextWithDecision(final ExpectStep expectStep,
             final io.sapl.test.grammar.sAPLTest.AuthorizationDecision dslAuthorizationDecision) {
         final var authorizationDecision = getAuthorizationDecisionFromDSLAuthorizationDecision(
                 dslAuthorizationDecision);
 
-        return expectOrVerifyStep.expectNext(authorizationDecision);
+        return expectStep.expectNext(authorizationDecision);
     }
 }

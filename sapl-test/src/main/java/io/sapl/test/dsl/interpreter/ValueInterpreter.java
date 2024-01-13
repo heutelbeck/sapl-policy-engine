@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -36,15 +37,27 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-class ValInterpreter {
+class ValueInterpreter {
 
     private final ObjectMapper objectMapper;
 
     Val getValFromValue(final Value value) {
-        if (value instanceof NumberLiteral intVal) {
-            return Val.of(intVal.getNumber());
-        } else if (value instanceof StringLiteral stringVal) {
-            return Val.of(stringVal.getString());
+        if (value instanceof NumberLiteral numberLiteral) {
+            final var number = numberLiteral.getNumber();
+
+            if (number == null) {
+                throw new SaplTestException("Number is null");
+            }
+
+            return Val.of(number);
+        } else if (value instanceof StringLiteral stringLiteral) {
+            final var string = stringLiteral.getString();
+
+            if (string == null) {
+                throw new SaplTestException("String is null");
+            }
+
+            return Val.of(string);
         } else if (value instanceof FalseLiteral) {
             return Val.of(false);
         } else if (value instanceof TrueLiteral) {

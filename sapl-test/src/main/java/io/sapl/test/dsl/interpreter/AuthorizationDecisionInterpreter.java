@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,8 +30,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 class AuthorizationDecisionInterpreter {
 
-    private final ValInterpreter valInterpreter;
-    private final ObjectMapper   objectMapper;
+    private final ValueInterpreter valueInterpreter;
+    private final ObjectMapper     objectMapper;
 
     AuthorizationDecision constructAuthorizationDecision(final AuthorizationDecisionType decisionType,
             final Value resource, final List<Value> obligations, final List<Value> advice) {
@@ -41,7 +42,7 @@ class AuthorizationDecisionInterpreter {
         var authorizationDecision = getAuthorizationDecisionFromDSL(decisionType);
 
         if (resource != null) {
-            final var mappedResource = valInterpreter.getValFromValue(resource);
+            final var mappedResource = valueInterpreter.getValFromValue(resource);
             authorizationDecision = authorizationDecision.withResource(mappedResource.get());
         }
 
@@ -67,7 +68,7 @@ class AuthorizationDecisionInterpreter {
 
         final var valArray = objectMapper.createArrayNode();
 
-        values.stream().map(valInterpreter::getValFromValue).map(io.sapl.api.interpreter.Val::get)
+        values.stream().map(valueInterpreter::getValFromValue).map(io.sapl.api.interpreter.Val::get)
                 .forEach(valArray::add);
 
         return valArray;

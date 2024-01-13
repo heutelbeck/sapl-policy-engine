@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -47,7 +48,7 @@ class MultipleAmountInterpreterTest {
         final var exception = assertThrows(SaplTestException.class,
                 () -> multipleAmountInterpreter.getAmountFromMultipleAmountString(amount));
 
-        assertEquals("Given amount has invalid format", exception.getMessage());
+        assertEquals("MultipleAmount has invalid format", exception.getMessage());
     }
 
     @ParameterizedTest

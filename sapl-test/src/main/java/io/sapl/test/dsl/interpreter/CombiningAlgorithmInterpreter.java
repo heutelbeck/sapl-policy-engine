@@ -15,13 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sAPLTest.CombiningAlgorithmEnum;
 
-class PDPCombiningAlgorithmInterpreter {
+class CombiningAlgorithmInterpreter {
     PolicyDocumentCombiningAlgorithm interpretPdpCombiningAlgorithm(final CombiningAlgorithmEnum combiningAlgorithm) {
         if (combiningAlgorithm == null) {
             throw new SaplTestException("CombiningAlgorithm is null");

@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -67,9 +68,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class TestSuiteInterpreterTest {
     @Mock
-    private ValInterpreter                   valInterpreterMock;
+    private ValueInterpreter              valueInterpreterMock;
     @Mock
-    private PDPCombiningAlgorithmInterpreter pdpCombiningAlgorithmInterpreterMock;
+    private CombiningAlgorithmInterpreter combiningAlgorithmInterpreterMock;
 
     private final MockedStatic<SaplUnitTestFixtureFactory>        saplUnitTestFixtureFactoryMockedStatic        = mockStatic(
             SaplUnitTestFixtureFactory.class);
@@ -80,7 +81,7 @@ class TestSuiteInterpreterTest {
 
     @BeforeEach
     void setUp() {
-        testSuiteInterpreter = new TestSuiteInterpreter(valInterpreterMock, pdpCombiningAlgorithmInterpreterMock, null,
+        testSuiteInterpreter = new TestSuiteInterpreter(valueInterpreterMock, combiningAlgorithmInterpreterMock, null,
                 null);
     }
 
@@ -91,13 +92,13 @@ class TestSuiteInterpreterTest {
     }
 
     private <T extends TestSuite> T buildTestSuite(final String input) {
-        return ParserUtil.buildExpression(input, SAPLTestGrammarAccess::getTestSuiteRule);
+        return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getTestSuiteRule);
     }
 
     private void constructTestSuiteInterpreterWithCustomResolvers(
             final UnitTestPolicyResolver customUnitTestPolicyResolver,
             final IntegrationTestPolicyResolver customIntegrationTestPolicyResolver) {
-        testSuiteInterpreter = new TestSuiteInterpreter(valInterpreterMock, pdpCombiningAlgorithmInterpreterMock,
+        testSuiteInterpreter = new TestSuiteInterpreter(valueInterpreterMock, combiningAlgorithmInterpreterMock,
                 customUnitTestPolicyResolver, customIntegrationTestPolicyResolver);
     }
 
@@ -173,7 +174,7 @@ class TestSuiteInterpreterTest {
         }
 
         @ParameterizedTest
-        @MethodSource("earlyReturnListOfPolicies")
+        @MethodSource("invalidListOfPolicies")
         void getFixtureFromTestSuite_handlesInvalidAmountOfPoliciesForPoliciesByInputString_throwsSaplTestException(
                 final EList<String> policies) {
             final var integrationTestSuite = mock(IntegrationTestSuite.class);
@@ -190,7 +191,7 @@ class TestSuiteInterpreterTest {
         }
 
         @ParameterizedTest
-        @MethodSource("earlyReturnListOfPolicies")
+        @MethodSource("invalidListOfPolicies")
         void getFixtureFromTestSuite_handlesInvalidAmountOfPoliciesForPoliciesByInputStringWithCustomIntegrationTestPolicyResolver_throwsSaplTestException(
                 final EList<String> policies) {
             final var integrationTestPolicyResolver = mock(IntegrationTestPolicyResolver.class);
@@ -208,7 +209,7 @@ class TestSuiteInterpreterTest {
             assertEquals("No policies to test integration for", exception.getMessage());
         }
 
-        private static Stream<Arguments> earlyReturnListOfPolicies() {
+        private static Stream<Arguments> invalidListOfPolicies() {
             return Stream.of(null, Arguments.of(Helper.mockEList(Collections.emptyList())),
                     Arguments.of(Helper.mockEList(List.of("singlePolicy"))));
         }
@@ -302,7 +303,7 @@ class TestSuiteInterpreterTest {
         }
 
         @Test
-        void getFixtureFromTestSuite_handlesPdpCombiningAlgorithm_returnsSaplIntegrationTestFixture() {
+        void getFixtureFromTestSuite_handlesCombiningAlgorithm_returnsSaplIntegrationTestFixture() {
             final var integrationTestSuite = buildTestSuite(
                     "test set of policies with identifier \"fooFolder\" using combining-algorithm only-one-applicable { scenario \"testCase\" when subject \"subject\" attempts action \"action\" on resource \"resource\" then expect single permit}");
 
@@ -312,7 +313,7 @@ class TestSuiteInterpreterTest {
                     .thenReturn(saplIntegrationTestFixtureMock);
 
             final var pdpCombiningAlgorithmMock = mock(PolicyDocumentCombiningAlgorithm.class);
-            when(pdpCombiningAlgorithmInterpreterMock
+            when(combiningAlgorithmInterpreterMock
                     .interpretPdpCombiningAlgorithm(CombiningAlgorithmEnum.ONLY_ONE_APPLICABLE))
                     .thenReturn(pdpCombiningAlgorithmMock);
 
@@ -364,7 +365,7 @@ class TestSuiteInterpreterTest {
                     .thenReturn(saplIntegrationTestFixtureMock);
 
             final var pdpEnvironmentVariablesMock = Collections.<String, JsonNode>emptyMap();
-            when(valInterpreterMock.destructureObject(any())).thenAnswer(invocationOnMock -> {
+            when(valueInterpreterMock.destructureObject(any())).thenAnswer(invocationOnMock -> {
                 final io.sapl.test.grammar.sAPLTest.Object environment = invocationOnMock.getArgument(0);
 
                 assertEquals(1, environment.getMembers().size());

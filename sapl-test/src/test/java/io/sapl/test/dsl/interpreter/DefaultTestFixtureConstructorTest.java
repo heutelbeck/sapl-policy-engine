@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -51,7 +52,7 @@ class DefaultTestFixtureConstructorTest {
     @Mock
     private TestSuiteInterpreter          testSuiteInterpreterMock;
     @Mock
-    private FunctionLibraryInterpreter    functionLibraryInterpreter;
+    private FunctionLibraryInterpreter    functionLibraryInterpreterMock;
     @Mock
     private ReflectionHelper              reflectionHelperMock;
     @Mock
@@ -62,21 +63,12 @@ class DefaultTestFixtureConstructorTest {
     private DefaultTestFixtureConstructor defaultTestFixtureConstructor;
 
     @Test
-    void constructTestFixture_testSuiteInterpreterThrows_throwsSaplTestException() {
-        when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenThrow(new SaplTestException("no fixture here"));
-
-        final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor.constructTestFixture(null, testSuiteMock));
-
-        assertEquals("no fixture here", exception.getMessage());
-    }
-
-    @Test
     void constructTestFixture_testSuiteInterpreterReturnsNull_throwsSaplTestException() {
         when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(null);
 
         final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor.constructTestFixture(null, testSuiteMock));
 
-        assertEquals("could not build test fixture", exception.getMessage());
+        assertEquals("TestFixture is null", exception.getMessage());
     }
 
     @Test
@@ -114,23 +106,7 @@ class DefaultTestFixtureConstructorTest {
 
             final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor.constructTestFixture(fixtureRegistration, testSuiteMock));
 
-            assertEquals("Unknown type of FixtureRegistration", exception.getCause().getMessage());
-        }
-
-        @Test
-        void constructTestFixture_whenFunctionLibraryInterpreterThrows_throwsSaplTestException() {
-            when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(testFixtureMock);
-
-            final var saplFunctionLibraryMock = mock(SaplFunctionLibrary.class);
-            when(saplFunctionLibraryMock.getLibrary()).thenReturn(FunctionLibrary.TEMPORAL);
-
-            when(functionLibraryInterpreter.getFunctionLibrary(FunctionLibrary.TEMPORAL)).thenThrow(new RuntimeException("no library here"));
-
-            final var fixtureRegistrations = List.<FixtureRegistration>of(saplFunctionLibraryMock);
-
-            final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor.constructTestFixture(fixtureRegistrations, testSuiteMock));
-
-            assertEquals("no library here", exception.getCause().getMessage());
+            assertEquals("Unknown type of FixtureRegistration", exception.getMessage());
         }
 
         @Test
@@ -140,7 +116,7 @@ class DefaultTestFixtureConstructorTest {
             final var saplFunctionLibraryMock = mock(SaplFunctionLibrary.class);
             when(saplFunctionLibraryMock.getLibrary()).thenReturn(FunctionLibrary.TEMPORAL);
 
-            doReturn(TemporalFunctionLibrary.class).when(functionLibraryInterpreter).getFunctionLibrary(FunctionLibrary.TEMPORAL);
+            doReturn(TemporalFunctionLibrary.class).when(functionLibraryInterpreterMock).getFunctionLibrary(FunctionLibrary.TEMPORAL);
 
             when(testFixtureMock.registerFunctionLibrary(TemporalFunctionLibrary.class)).thenThrow(new InitializationException("failed to register library"));
 
@@ -152,35 +128,19 @@ class DefaultTestFixtureConstructorTest {
         }
 
         @Test
-        void constructTestFixture_handlesSaplFunctionLibrary_returnsFixtureWithoutMocks() throws InitializationException {
+        void constructTestFixture_handlesSaplFunctionLibrary_returnsFixture() throws InitializationException {
             when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(testFixtureMock);
 
             final var saplFunctionLibraryMock = mock(SaplFunctionLibrary.class);
             when(saplFunctionLibraryMock.getLibrary()).thenReturn(FunctionLibrary.TEMPORAL);
 
-            doReturn(TemporalFunctionLibrary.class).when(functionLibraryInterpreter).getFunctionLibrary(FunctionLibrary.TEMPORAL);
+            doReturn(TemporalFunctionLibrary.class).when(functionLibraryInterpreterMock).getFunctionLibrary(FunctionLibrary.TEMPORAL);
 
             final var result = defaultTestFixtureConstructor.constructTestFixture(List.of(saplFunctionLibraryMock), testSuiteMock);
 
             assertEquals(testFixtureMock, result);
 
             verify(testFixtureMock, times(1)).registerFunctionLibrary(TemporalFunctionLibrary.class);
-        }
-
-        @Test
-        void constructTestFixture_whenReflectionHelperThrowsForCustomFunctionLibrary_throwsSaplTestException() {
-            when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(testFixtureMock);
-
-            final var customFunctionLibrary = mock(CustomFunctionLibrary.class);
-            when(customFunctionLibrary.getFqn()).thenReturn("io.my.classpath.ClassName");
-
-            when(reflectionHelperMock.constructInstanceOfClass("io.my.classpath.ClassName")).thenThrow(new RuntimeException("no class here"));
-
-            final var fixtureRegistrations = List.<FixtureRegistration>of(customFunctionLibrary);
-
-            final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor.constructTestFixture(fixtureRegistrations, testSuiteMock));
-
-            assertEquals("no class here", exception.getCause().getMessage());
         }
 
         @Test
@@ -217,22 +177,6 @@ class DefaultTestFixtureConstructorTest {
             assertEquals(testFixtureMock, result);
 
             verify(testFixtureMock, times(1)).registerFunctionLibrary(libraryMock);
-        }
-
-        @Test
-        void constructTestFixture_whenReflectionHelperThrowsForPIP_throwsSaplTestException() {
-            when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(testFixtureMock);
-
-            final var pip = mock(Pip.class);
-            when(pip.getFqn()).thenReturn("io.my.classpath.ClassName");
-
-            when(reflectionHelperMock.constructInstanceOfClass("io.my.classpath.ClassName")).thenThrow(new RuntimeException("no class here"));
-
-            final var fixtureRegistrations = List.<FixtureRegistration>of(pip);
-
-            final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor.constructTestFixture(fixtureRegistrations, testSuiteMock));
-
-            assertEquals("no class here", exception.getCause().getMessage());
         }
 
         @Test

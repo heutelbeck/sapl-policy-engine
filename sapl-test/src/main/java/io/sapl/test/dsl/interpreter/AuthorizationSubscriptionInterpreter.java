@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -24,7 +25,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 class AuthorizationSubscriptionInterpreter {
 
-    private final ValInterpreter valInterpreter;
+    private final ValueInterpreter valueInterpreter;
 
     AuthorizationSubscription constructAuthorizationSubscription(
             final io.sapl.test.grammar.sAPLTest.AuthorizationSubscription authorizationSubscription) {
@@ -32,9 +33,13 @@ class AuthorizationSubscriptionInterpreter {
             throw new SaplTestException("AuthorizationSubscription is null");
         }
 
-        final var subject  = valInterpreter.getValFromValue(authorizationSubscription.getSubject());
-        final var action   = valInterpreter.getValFromValue(authorizationSubscription.getAction());
-        final var resource = valInterpreter.getValFromValue(authorizationSubscription.getResource());
+        final var subject  = valueInterpreter.getValFromValue(authorizationSubscription.getSubject());
+        final var action   = valueInterpreter.getValFromValue(authorizationSubscription.getAction());
+        final var resource = valueInterpreter.getValFromValue(authorizationSubscription.getResource());
+
+        if (subject == null || action == null || resource == null) {
+            throw new SaplTestException("subject or action or resource is null");
+        }
 
         final var environmentValue = authorizationSubscription.getEnvironment();
 
@@ -42,7 +47,11 @@ class AuthorizationSubscriptionInterpreter {
             return AuthorizationSubscription.of(subject.get(), action.get(), resource.get());
         }
 
-        final var environment = valInterpreter.getValFromValue(environmentValue);
+        final var environment = valueInterpreter.getValFromValue(environmentValue);
+
+        if (environment == null) {
+            throw new SaplTestException("Environment is null");
+        }
 
         return AuthorizationSubscription.of(subject.get(), action.get(), resource.get(), environment.get());
     }

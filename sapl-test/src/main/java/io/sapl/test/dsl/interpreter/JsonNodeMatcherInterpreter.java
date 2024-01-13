@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonArray;
@@ -71,8 +72,8 @@ class JsonNodeMatcherInterpreter {
         return number == null ? jsonNumber() : jsonBigDecimal(number);
     }
 
-    private Matcher<JsonNode> interpretJsonText(final IsJsonText text) {
-        final var stringOrMatcher = text.getText();
+    private Matcher<JsonNode> interpretJsonText(final IsJsonText isJsonText) {
+        final var stringOrMatcher = isJsonText.getMatcher();
 
         if (stringOrMatcher == null) {
             return jsonText();
@@ -81,22 +82,23 @@ class JsonNodeMatcherInterpreter {
         if (stringOrMatcher instanceof PlainString plainString) {
             return jsonText(plainString.getText());
         } else if (stringOrMatcher instanceof StringMatcher stringMatcher) {
-            return jsonText(stringMatcherInterpreter.getHamcrestStringMatcher(stringMatcher));
+            final var matcher = stringMatcherInterpreter.getHamcrestStringMatcher(stringMatcher);
+            return jsonText(matcher);
         }
 
         throw new SaplTestException("Unknown type of StringOrStringMatcher");
     }
 
     private Matcher<JsonNode> interpretJsonBoolean(final IsJsonBoolean isJsonBoolean) {
-        final var boolValue = isJsonBoolean.getValue();
+        final var literal = isJsonBoolean.getLiteral();
 
-        if (boolValue == null) {
+        if (literal == null) {
             return jsonBoolean();
         }
 
-        if (boolValue instanceof TrueLiteral) {
+        if (literal instanceof TrueLiteral) {
             return jsonBoolean(true);
-        } else if (boolValue instanceof FalseLiteral) {
+        } else if (literal instanceof FalseLiteral) {
             return jsonBoolean(false);
         }
 
@@ -128,13 +130,13 @@ class JsonNodeMatcherInterpreter {
             return jsonObject();
         }
 
-        final var matchers = jsonObjectMatcher.getMatchers();
+        final var members = jsonObjectMatcher.getMembers();
 
-        if (matchers == null || matchers.isEmpty()) {
+        if (members == null || members.isEmpty()) {
             throw new SaplTestException("No JsonObjectMatcherPair found");
         }
 
-        return matchers.stream()
+        return members.stream()
                 .reduce(jsonObject(),
                         (previous, matcherPair) -> previous.where(matcherPair.getKey(),
                                 getHamcrestJsonNodeMatcher(matcherPair.getMatcher())),

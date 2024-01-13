@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import static io.sapl.test.dsl.ParserUtil.compareArgumentToStringLiteral;
@@ -47,6 +48,7 @@ import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.verification.TimesCalledVerification;
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.AfterEach;
@@ -63,11 +65,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class FunctionInterpreterTest {
     @Mock
-    private ValInterpreter            valInterpreterMock;
+    private ValueInterpreter          valueInterpreterMock;
     @Mock
     private ValMatcherInterpreter     matcherInterpreterMock;
     @Mock
-    private MultipleAmountInterpreter multipleAmountInterpreter;
+    private MultipleAmountInterpreter multipleAmountInterpreterMock;
     @InjectMocks
     private FunctionInterpreter       functionInterpreter;
     @Mock
@@ -81,7 +83,7 @@ class FunctionInterpreterTest {
     }
 
     private <T extends GivenStep> T buildFunction(final String input) {
-        return ParserUtil.buildExpression(input, SAPLTestGrammarAccess::getGivenStepRule);
+        return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getGivenStepRule);
     }
 
     @Nested
@@ -119,7 +121,7 @@ class FunctionInterpreterTest {
 
             final var expectedVal = Val.of("bar");
 
-            when(valInterpreterMock.getValFromValue(compareArgumentToStringLiteral("bar"))).thenReturn(expectedVal);
+            when(valueInterpreterMock.getValFromValue(compareArgumentToStringLiteral("bar"))).thenReturn(expectedVal);
 
             when(givenOrWhenStepMock.givenFunction("fooFunction", expectedVal)).thenReturn(givenOrWhenStepMock);
 
@@ -140,7 +142,7 @@ class FunctionInterpreterTest {
             final var exception = assertThrows(SaplTestException.class,
                     () -> functionInterpreter.interpretFunction(givenOrWhenStepMock, functionMock));
 
-            assertEquals("No ValMatcher found", exception.getMessage());
+            assertEquals("No FunctionParameterMatcher found", exception.getMessage());
         }
 
         @Test
@@ -150,25 +152,26 @@ class FunctionInterpreterTest {
             final var functionParametersMock = mock(FunctionParameters.class);
             when(functionMock.getParameters()).thenReturn(functionParametersMock);
 
-            final var eListMock = Helper.mockEList(List.<ValMatcher>of());
+            final var eListMock = Helper.mockEList(Collections.<ValMatcher>emptyList());
             when(functionParametersMock.getMatchers()).thenReturn(eListMock);
 
             final var exception = assertThrows(SaplTestException.class,
                     () -> functionInterpreter.interpretFunction(givenOrWhenStepMock, functionMock));
 
-            assertEquals("No ValMatcher found", exception.getMessage());
+            assertEquals("No FunctionParameterMatcher found", exception.getMessage());
         }
 
         @Test
         void interpretFunction_withoutTimesCalledVerificationAndFunctionParametersMatchers_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
-            final Function function = buildFunction("function \"fooFunction\" called with any returning \"bar\"");
+            final Function function = buildFunction(
+                    "function \"fooFunction\" parameters matching any returning \"bar\"");
 
             final var matcherMock = mock(Matcher.class);
             when(matcherInterpreterMock.getHamcrestValMatcher(any(AnyVal.class))).thenReturn(matcherMock);
 
             final var expectedVal = Val.of("bar");
 
-            when(valInterpreterMock.getValFromValue(compareArgumentToStringLiteral("bar"))).thenReturn(expectedVal);
+            when(valueInterpreterMock.getValFromValue(compareArgumentToStringLiteral("bar"))).thenReturn(expectedVal);
 
             final var functionParametersArgumentCaptor = ArgumentCaptor
                     .forClass(io.sapl.test.mocking.function.models.FunctionParameters.class);
@@ -184,11 +187,11 @@ class FunctionInterpreterTest {
 
         @Test
         void interpretFunction_withTimesCalledVerificationBeingOnceAndNullFunctionParameters_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
-            final Function function = buildFunction("function \"fooFunction\" returning \"bar\" and is invoked once");
+            final Function function = buildFunction("function \"fooFunction\" returning \"bar\" called once");
 
             final var expectedVal = Val.of("bar");
 
-            when(valInterpreterMock.getValFromValue(compareArgumentToStringLiteral("bar"))).thenReturn(expectedVal);
+            when(valueInterpreterMock.getValFromValue(compareArgumentToStringLiteral("bar"))).thenReturn(expectedVal);
 
             final var timesCalledVerificationMock = mock(TimesCalledVerification.class);
             importsMockedStatic.when(() -> Imports.times(1)).thenReturn(timesCalledVerificationMock);
@@ -206,10 +209,10 @@ class FunctionInterpreterTest {
             final var functionMock = mock(Function.class);
             final var multipleMock = mock(Multiple.class);
 
-            when(functionMock.getAmount()).thenReturn(multipleMock);
+            when(functionMock.getTimesCalled()).thenReturn(multipleMock);
             when(multipleMock.getAmount()).thenReturn("3x");
 
-            when(multipleAmountInterpreter.getAmountFromMultipleAmountString("3x")).thenReturn(3);
+            when(multipleAmountInterpreterMock.getAmountFromMultipleAmountString("3x")).thenReturn(3);
 
             final var functionParametersMock = mock(FunctionParameters.class);
             when(functionMock.getParameters()).thenReturn(functionParametersMock);
@@ -222,7 +225,7 @@ class FunctionInterpreterTest {
             final var exception = assertThrows(SaplTestException.class,
                     () -> functionInterpreter.interpretFunction(givenOrWhenStepMock, functionMock));
 
-            assertEquals("No ValMatcher found", exception.getMessage());
+            assertEquals("No FunctionParameterMatcher found", exception.getMessage());
         }
 
         @Test
@@ -230,12 +233,12 @@ class FunctionInterpreterTest {
             final var functionMock = mock(Function.class);
             final var onceMock     = mock(Once.class);
 
-            when(functionMock.getAmount()).thenReturn(onceMock);
+            when(functionMock.getTimesCalled()).thenReturn(onceMock);
 
             final var functionParametersMock = mock(FunctionParameters.class);
             when(functionMock.getParameters()).thenReturn(functionParametersMock);
 
-            final var eListMock = Helper.mockEList(List.<ValMatcher>of());
+            final var eListMock = Helper.mockEList(Collections.<ValMatcher>emptyList());
             when(functionParametersMock.getMatchers()).thenReturn(eListMock);
 
             final var timesCalledVerificationMock = mock(TimesCalledVerification.class);
@@ -244,19 +247,19 @@ class FunctionInterpreterTest {
             final var exception = assertThrows(SaplTestException.class,
                     () -> functionInterpreter.interpretFunction(givenOrWhenStepMock, functionMock));
 
-            assertEquals("No ValMatcher found", exception.getMessage());
+            assertEquals("No FunctionParameterMatcher found", exception.getMessage());
         }
 
         @Test
         void interpretFunction_withTimesCalledVerificationBeingMultipleAndFunctionParametersMatchers_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
             final Function function = buildFunction(
-                    "function \"fooFunction\" called with \"parameter\" returning \"bar\" and is invoked 3x");
+                    "function \"fooFunction\" parameters matching \"parameter\" returning \"bar\" called 3x");
 
             final var expectedVal = Val.of("bar");
 
-            when(valInterpreterMock.getValFromValue(compareArgumentToStringLiteral("bar"))).thenReturn(expectedVal);
+            when(valueInterpreterMock.getValFromValue(compareArgumentToStringLiteral("bar"))).thenReturn(expectedVal);
 
-            when(multipleAmountInterpreter.getAmountFromMultipleAmountString("3x")).thenReturn(3);
+            when(multipleAmountInterpreterMock.getAmountFromMultipleAmountString("3x")).thenReturn(3);
 
             final var matcherMock = mock(Matcher.class);
             when(matcherInterpreterMock.getHamcrestValMatcher(any(ValWithValue.class))).thenAnswer(invocationOnMock -> {
@@ -321,20 +324,20 @@ class FunctionInterpreterTest {
             final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter
                     .interpretFunctionInvokedOnce(givenOrWhenStepMock, functionInvokedOnceMock));
 
-            assertEquals("No Value found", exception.getMessage());
+            assertEquals("No ReturnValue found", exception.getMessage());
         }
 
         @Test
         void interpretFunctionInvokedOnce_handlesEmptyReturnValues_throwsSaplTestException() {
             final var functionInvokedOnceMock = mock(FunctionInvokedOnce.class);
 
-            final var eListMock = Helper.mockEList(List.<Value>of());
+            final var eListMock = Helper.mockEList(Collections.<Value>emptyList());
             when(functionInvokedOnceMock.getReturnValue()).thenReturn(eListMock);
 
             final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter
                     .interpretFunctionInvokedOnce(givenOrWhenStepMock, functionInvokedOnceMock));
 
-            assertEquals("No Value found", exception.getMessage());
+            assertEquals("No ReturnValue found", exception.getMessage());
         }
 
         @Test
@@ -344,7 +347,7 @@ class FunctionInterpreterTest {
 
             final var expectedVal = Val.of("bar");
 
-            when(valInterpreterMock.getValFromValue(compareArgumentToStringLiteral("bar"))).thenReturn(expectedVal);
+            when(valueInterpreterMock.getValFromValue(compareArgumentToStringLiteral("bar"))).thenReturn(expectedVal);
 
             when(givenOrWhenStepMock.givenFunctionOnce("fooFunction", expectedVal)).thenReturn(givenOrWhenStepMock);
 
@@ -362,14 +365,14 @@ class FunctionInterpreterTest {
             final var expectedVal1 = Val.of("bar");
             final var expectedVal2 = Val.of(5);
 
-            when(valInterpreterMock.getValFromValue(any(StringLiteral.class))).thenAnswer(invocationOnMock -> {
+            when(valueInterpreterMock.getValFromValue(any(StringLiteral.class))).thenAnswer(invocationOnMock -> {
                 final StringLiteral stringLiteral = invocationOnMock.getArgument(0);
 
                 assertEquals("bar", stringLiteral.getString());
                 return expectedVal1;
             });
 
-            when(valInterpreterMock.getValFromValue(any(NumberLiteral.class))).thenAnswer(invocationOnMock -> {
+            when(valueInterpreterMock.getValFromValue(any(NumberLiteral.class))).thenAnswer(invocationOnMock -> {
                 final NumberLiteral numberLiteral = invocationOnMock.getArgument(0);
 
                 assertEquals(BigDecimal.ONE, numberLiteral.getNumber());

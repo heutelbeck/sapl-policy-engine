@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestException;
@@ -22,30 +23,30 @@ import io.sapl.test.grammar.sAPLTest.RepeatedExpect;
 import io.sapl.test.grammar.sAPLTest.SingleExpect;
 import io.sapl.test.grammar.sAPLTest.SingleExpectWithMatcher;
 import io.sapl.test.grammar.sAPLTest.TestCase;
-import io.sapl.test.steps.ExpectOrVerifyStep;
+import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.VerifyStep;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 class DefaultVerifyStepConstructor {
 
-    private final ExpectInterpreter expectInterpreter;
+    private final ExpectationInterpreter expectationInterpreter;
 
-    VerifyStep constructVerifyStep(final TestCase testCase, final ExpectOrVerifyStep expectStep) {
+    VerifyStep constructVerifyStep(final TestCase testCase, final ExpectStep expectStep) {
         if (testCase == null || expectStep == null) {
             throw new SaplTestException("TestCase or expectStep is null");
         }
 
-        final var expect = testCase.getExpect();
+        final var expectation = testCase.getExpectation();
 
-        if (expect instanceof SingleExpect singleExpect) {
-            return expectInterpreter.interpretSingleExpect(expectStep, singleExpect);
-        } else if (expect instanceof SingleExpectWithMatcher singleExpectWithMatcher) {
-            return expectInterpreter.interpretSingleExpectWithMatcher(expectStep, singleExpectWithMatcher);
-        } else if (expect instanceof RepeatedExpect repeatedExpect) {
-            return expectInterpreter.interpretRepeatedExpect(expectStep, repeatedExpect);
+        if (expectation instanceof SingleExpect singleExpect) {
+            return expectationInterpreter.interpretSingleExpect(expectStep, singleExpect);
+        } else if (expectation instanceof SingleExpectWithMatcher singleExpectWithMatcher) {
+            return expectationInterpreter.interpretSingleExpectWithMatcher(expectStep, singleExpectWithMatcher);
+        } else if (expectation instanceof RepeatedExpect repeatedExpect) {
+            return expectationInterpreter.interpretRepeatedExpect(expectStep, repeatedExpect);
         }
 
-        throw new SaplTestException("Unknown type of ExpectChain");
+        throw new SaplTestException("Unknown type of Expectation");
     }
 }
