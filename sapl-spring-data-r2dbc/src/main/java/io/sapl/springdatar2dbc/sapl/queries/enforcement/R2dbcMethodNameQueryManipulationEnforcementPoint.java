@@ -151,7 +151,7 @@ public class R2dbcMethodNameQueryManipulationEnforcementPoint<T> implements Quer
                 R2DBC_QUERY_MANIPULATION_TYPE);
         var condition                        = queryManipulationObligationProvider
                 .getConditions(r2dbcQueryManipulationObligation);
-        var sqlConditionFromDecision         = addMissingConjunction(condition.asText());
+        var sqlConditionFromDecision         = addMissingConjunction(condition.get(0).asText());
         var baseQuery                        = PartTreeToSqlQueryStringConverter.createSqlBaseQuery(enforcementData);
 
         return baseQuery + sqlConditionFromDecision;

@@ -39,6 +39,8 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class PartTreeToSqlQueryStringConverter {
 
+    private final static String LIKE = "LIKE";
+
     /**
      * Builds the corresponding Sql-Query with the information of a
      * {@link QueryManipulationEnforcementData} object.
@@ -58,10 +60,6 @@ public class PartTreeToSqlQueryStringConverter {
         for (PartTree.OrPart node : partTree) {
 
             var partsIterator = node.iterator();
-
-            if (!partsIterator.hasNext()) { // Don't know if this check is necessary, hard to test or to test at all.
-                throw new IllegalStateException(String.format("No part found in PartTree %s", partTree));
-            }
 
             var currentOrPart = new ArrayList<SqlCondition>();
             currentOrPart.add(and(partsIterator.next(), argumentIterator.next(), domainType));

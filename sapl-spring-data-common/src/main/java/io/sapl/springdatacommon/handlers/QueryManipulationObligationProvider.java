@@ -17,12 +17,14 @@
  */
 package io.sapl.springdatacommon.handlers;
 
-import static io.sapl.springdatacommon.sapl.utils.Utilities.CONDITION;
+import static io.sapl.springdatacommon.sapl.utils.Utilities.CONDITIONS;
 import static io.sapl.springdatacommon.sapl.utils.Utilities.TYPE;
 
 import java.util.Objects;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
@@ -32,19 +34,25 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
  */
 public class QueryManipulationObligationProvider {
 
+    private final static ObjectMapper MAPPER = new ObjectMapper();
+
     /**
      * Extracts the query CONDITION of an obligation to apply the the corresponding
      * QueryManipulation.
      *
-     * @param obligation which contains query CONDITION.
-     * @return all query CONDITION.
+     * @param obligation which contains query CONDITIONS.
+     * @return all query CONDITIONS.
      */
-    public JsonNode getConditions(JsonNode obligation) {
-        if (obligation.has(CONDITION) && obligation.get(CONDITION).isArray() && !obligation.get(CONDITION).isNull()
-                && !obligation.get(CONDITION).isEmpty()) {
-            return obligation.get(CONDITION);
+    public ArrayNode getConditions(JsonNode obligation) {
+        if (obligation.has(CONDITIONS) && obligation.get(CONDITIONS).isArray() && !obligation.get(CONDITIONS).isNull()
+                && !obligation.get(CONDITIONS).isEmpty()) {
+            try {
+                return MAPPER.readValue(obligation.get(CONDITIONS).toString(), ArrayNode.class);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
         }
-        return JsonNodeFactory.instance.nullNode();
+        return MAPPER.createArrayNode();
     }
 
     /**

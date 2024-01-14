@@ -70,7 +70,7 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
     static final ObjectMapper MAPPER                        = new ObjectMapper();
     static ArrayNode          OBLIGATIONS;
     static JsonNode           MONGO_QUERY_MANIPULATION;
-    static JsonNode           CONDITIONS;
+    static ArrayNode          CONDITIONS;
     final static String       MONGO_QUERY_MANIPULATION_TYPE = "mongoQueryManipulation";
 
     final TestUser aaron   = new TestUser(new ObjectId(), "Aaron", 20);
@@ -79,9 +79,6 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
 
     final Flux<TestUser> data           = Flux.just(aaron, brian, cathrin);
     final ArrayNode      emptyArrayNode = MAPPER.createArrayNode();
-
-    @Autowired
-    MongoDbRepositoryTest mongoDbRepositoryTest;
 
     ReactiveMongoTemplate       reactiveMongoTemplateMock = mock(ReactiveMongoTemplate.class);
     EmbeddedPolicyDecisionPoint pdpMock                   = mock(EmbeddedPolicyDecisionPoint.class);
@@ -129,7 +126,8 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
                   ]
                 }
                           		""");
-        CONDITIONS               = MONGO_QUERY_MANIPULATION.get("conditions");
+        CONDITIONS               = MAPPER.readValue(MONGO_QUERY_MANIPULATION.get("conditions").toString(),
+                ArrayNode.class);
     }
 
     @BeforeEach

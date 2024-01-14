@@ -72,8 +72,8 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTest {
     private static final ObjectMapper MAPPER                        = new ObjectMapper();
     private static ArrayNode          OBLIGATIONS;
     private static JsonNode           R2DBC_QUERY_MANIPULATION;
-    private static JsonNode           CONDITION;
-    private static JsonNode           CONDITION_WITH_CONJUNCTION;
+    private static ArrayNode          CONDITIONS;
+    private static ArrayNode          CONDITION_WITH_CONJUNCTION;
     private static JsonNode           R2DBC_QUERY_MANIPULATION_WITH_CONJUNCTION;
     private static final String       R2DBC_QUERY_MANIPULATION_TYPE = "r2dbcQueryManipulation";
 
@@ -97,7 +97,7 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTest {
                     		[
                   {
                     "type": "r2dbcQueryManipulation",
-                    "condition": "firstname IN('Aaron', 'Cathrin')"
+                    "conditions": [ "firstname IN('Aaron', 'Cathrin')" ]
                   },
                   {
                     "type": "filterJsonContent",
@@ -124,17 +124,20 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTest {
         R2DBC_QUERY_MANIPULATION                  = MAPPER.readTree("""
                           		{
                   "type": "r2dbcQueryManipulation",
-                  "condition": "firstname IN('Aaron', 'Cathrin')"
+                  "conditions": [ "firstname IN('Aaron', 'Cathrin')" ]
                 }
                           		""");
-        CONDITION                                 = R2DBC_QUERY_MANIPULATION.get("condition");
+        CONDITIONS                                = MAPPER
+                .readValue(R2DBC_QUERY_MANIPULATION.get("conditions").toString(), ArrayNode.class);
         R2DBC_QUERY_MANIPULATION_WITH_CONJUNCTION = MAPPER.readTree("""
                     		{
                   "type": "r2dbcQueryManipulation",
-                  "condition": "AND firstname IN('Aaron', 'Cathrin')"
+                  "conditions": [ "AND firstname IN('Aaron', 'Cathrin')" ]
                 }
                     		""");
-        CONDITION_WITH_CONJUNCTION                = R2DBC_QUERY_MANIPULATION_WITH_CONJUNCTION.get("condition");
+        CONDITION_WITH_CONJUNCTION                = MAPPER
+                .readValue(R2DBC_QUERY_MANIPULATION_WITH_CONJUNCTION.get("conditions").toString(), ArrayNode.class);
+        ;
     }
 
     @BeforeEach
@@ -197,7 +200,7 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTest {
                     when(QueryManipulationObligationProviderMock.getObligation(any(ArrayNode.class), anyString()))
                             .thenReturn(R2DBC_QUERY_MANIPULATION);
                     when(QueryManipulationObligationProviderMock.getConditions(any(JsonNode.class)))
-                            .thenReturn(CONDITION);
+                            .thenReturn(CONDITIONS);
 
                     var queryManipulationExecutor = queryManipulationExecutorMockedConstruction.constructed().get(0);
                     when(queryManipulationExecutor.execute(anyString(), eq(Person.class))).thenReturn(fluxMap);
@@ -586,7 +589,7 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTest {
                     when(QueryManipulationObligationProviderMock.getObligation(any(ArrayNode.class), anyString()))
                             .thenReturn(R2DBC_QUERY_MANIPULATION);
                     when(QueryManipulationObligationProviderMock.getConditions(any(JsonNode.class)))
-                            .thenReturn(CONDITION);
+                            .thenReturn(CONDITIONS);
 
                     var queryManipulationExecutor = queryManipulationExecutorMockedConstruction.constructed().get(0);
                     when(queryManipulationExecutor.execute(anyString(), eq(Person.class))).thenReturn(fluxMap);

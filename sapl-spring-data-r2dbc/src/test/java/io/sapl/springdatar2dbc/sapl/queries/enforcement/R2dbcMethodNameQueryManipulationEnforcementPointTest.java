@@ -76,11 +76,11 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTest {
     private static JsonNode                    R2DBC_QUERY_MANIPULATION;
     private static JsonNode                    R2DBC_QUERY_MANIPULATION_AND;
     private static JsonNode                    R2DBC_QUERY_MANIPULATION_OR;
-    private static JsonNode                    CONDITIONS;
-    private static JsonNode                    CONDITIONS_WITH_CONJUNCTION_AND;
-    private static JsonNode                    CONDITIONS_WITH_CONJUNCTION_OR;
+    private static ArrayNode                   CONDITIONS;
+    private static ArrayNode                   CONDITIONS_WITH_CONJUNCTION_AND;
+    private static ArrayNode                   CONDITIONS_WITH_CONJUNCTION_OR;
     private static EmbeddedPolicyDecisionPoint PDP;
-    private static String                      R2DBC_QUERY_MANIPULATION_TYPE = "r2dbcQueryManipulation";
+    private static final String                R2DBC_QUERY_MANIPULATION_TYPE = "r2dbcQueryManipulation";
 
     final Person    malinda        = new Person(1, "Malinda", "Perrot", 53, Role.ADMIN, true);
     final ArrayNode emptyArrayNode = MAPPER.createArrayNode();
@@ -101,7 +101,7 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTest {
                     		[
                   {
                     "type": "r2dbcQueryManipulation",
-                    "conditions": "role IN('USER')"
+                    "conditions": [ "role IN('USER')" ]
                   },
                   {
                     "type": "filterJsonContent",
@@ -129,7 +129,7 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTest {
                     		[
                   {
                     "type": "r2dbcQueryManipulation",
-                    "conditions": "AND role IN('USER')"
+                    "conditions": [ "AND role IN('USER')" ]
                   },
                   {
                     "type": "filterJsonContent",
@@ -157,7 +157,7 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTest {
                     		[
                   {
                     "type": "r2dbcQueryManipulation",
-                    "conditions": "OR role IN('USER')"
+                    "conditions": [ "OR role IN('USER')" ]
                   },
                   {
                     "type": "filterJsonContent",
@@ -184,24 +184,27 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTest {
         R2DBC_QUERY_MANIPULATION        = MAPPER.readTree("""
                     		{
                   "type": "r2dbcQueryManipulation",
-                  "conditions": "role IN('USER')"
+                  "conditions": [ "role IN('USER')" ]
                 }
                     		""");
-        CONDITIONS                      = R2DBC_QUERY_MANIPULATION.get("conditions");
+        CONDITIONS                      = MAPPER.readValue(R2DBC_QUERY_MANIPULATION.get("conditions").toString(),
+                ArrayNode.class);
         R2DBC_QUERY_MANIPULATION_AND    = MAPPER.readTree("""
                     		{
                   "type": "r2dbcQueryManipulation",
-                  "conditions": "AND role IN('USER')"
+                  "conditions": [ "AND role IN('USER')" ]
                 }
                     		""");
-        CONDITIONS_WITH_CONJUNCTION_AND = R2DBC_QUERY_MANIPULATION_AND.get("conditions");
+        CONDITIONS_WITH_CONJUNCTION_AND = MAPPER.readValue(R2DBC_QUERY_MANIPULATION_AND.get("conditions").toString(),
+                ArrayNode.class);
         R2DBC_QUERY_MANIPULATION_OR     = MAPPER.readTree("""
                     		{
                   "type": "r2dbcQueryManipulation",
-                  "conditions": "OR role IN('USER')"
+                  "conditions": [ "OR role IN('USER')" ]
                 }
                     		""");
-        CONDITIONS_WITH_CONJUNCTION_OR  = R2DBC_QUERY_MANIPULATION_OR.get("conditions");
+        CONDITIONS_WITH_CONJUNCTION_OR  = MAPPER.readValue(R2DBC_QUERY_MANIPULATION_OR.get("conditions").toString(),
+                ArrayNode.class);
     }
 
     @BeforeEach

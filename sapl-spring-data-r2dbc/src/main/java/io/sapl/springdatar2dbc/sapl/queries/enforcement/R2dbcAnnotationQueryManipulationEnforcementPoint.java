@@ -155,7 +155,7 @@ public class R2dbcAnnotationQueryManipulationEnforcementPoint<T> implements Quer
      * @param condition are the query conditions from the {@link Decision}.
      * @return the manipulated query.
      */
-    private String enforceQueryManipulation(String query, JsonNode condition) {
+    private String enforceQueryManipulation(String query, ArrayNode condition) {
         return manipulateQuery(query, condition);
     }
 
@@ -170,8 +170,8 @@ public class R2dbcAnnotationQueryManipulationEnforcementPoint<T> implements Quer
      * @param condition are the query conditions from the {@link Decision}.
      * @return the manipulated query.
      */
-    private String manipulateQuery(String query, JsonNode condition) {
-        var conditionObligationAsString = condition.asText();
+    private String manipulateQuery(String query, ArrayNode condition) {
+        var conditionObligationAsString = condition.get(0).asText();
 
         if (query.toLowerCase().contains(" where ")) {
             var indexWithoutWhere = query.toLowerCase().indexOf(" where ");

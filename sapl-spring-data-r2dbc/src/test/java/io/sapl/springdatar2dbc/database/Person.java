@@ -28,7 +28,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Data
-@Table(name = "person")
+@Table("person")
 @AllArgsConstructor
 @NoArgsConstructor
 public class Person {

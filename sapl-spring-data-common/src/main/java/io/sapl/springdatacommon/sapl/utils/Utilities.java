@@ -32,7 +32,7 @@ public class Utilities {
     public static final String FILTER_JSON_CONTENT_PREDICATE = "jsonContentFilterPredicate";
     public static final String R2DBC_QUERY_MANIPULATION      = "r2dbcQueryManipulation";
     public static final String MONGO_QUERY_MANIPULATION      = "mongoQueryManipulation";
-    public static final String CONDITION                     = "condition";
+    public static final String CONDITIONS                    = "conditions";
     public static final String TYPE                          = "type";
 
     private static final Pattern PREFIX_TEMPLATE = Pattern.compile( //

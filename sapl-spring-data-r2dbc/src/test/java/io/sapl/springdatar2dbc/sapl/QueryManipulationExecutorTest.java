@@ -50,9 +50,6 @@ class QueryManipulationExecutorTest {
         // GIVEN
         var beanFactoryMock = mock(BeanFactory.class);
         var query           = "SELECT * FROM person WHERE firstname = 'Melinda'";
-        var cathrin         = new Person(123, "Cathrin", "Second", 32, Role.ADMIN, true);
-        var userHashMap     = new HashMap<String, Object>();
-        userHashMap.put("1", cathrin);
 
         try (MockedConstruction<R2dbcEntityTemplateExecutor> r2dbcEntityTemplateExecutorMockedConstruction = Mockito
                 .mockConstruction(R2dbcEntityTemplateExecutor.class)) {
@@ -88,9 +85,8 @@ class QueryManipulationExecutorTest {
             // WHEN
             when(beanFactoryMock.getBean(R2dbcEntityTemplate.class)).thenReturn(r2dbcEntityTemplateMock);
 
-            QueryManipulationExecutor queryManipulationExecutor   = new QueryManipulationExecutor(beanFactoryMock);
-            var                       r2dbcEntityTemplateExecutor = r2dbcEntityTemplateExecutorMockedConstruction
-                    .constructed().get(0);
+            var queryManipulationExecutor   = new QueryManipulationExecutor(beanFactoryMock);
+            var r2dbcEntityTemplateExecutor = r2dbcEntityTemplateExecutorMockedConstruction.constructed().get(0);
 
             when(r2dbcEntityTemplateExecutor.executeQuery(completeQuery)).thenReturn(Flux.just(userHashMap));
 

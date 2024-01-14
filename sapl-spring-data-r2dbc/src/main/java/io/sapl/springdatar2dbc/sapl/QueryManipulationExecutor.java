@@ -40,9 +40,8 @@ public class QueryManipulationExecutor {
         if (query.toLowerCase().contains("where")) {
             return r2dbcEntityTemplateExecutor.executeQuery(query);
         } else {
-            String tableName = getTableName(domainType);
-
-            var queryWithSelectPart = "SELECT * FROM %s WHERE %s".formatted(tableName, query);
+            String tableName           = getTableName(domainType);
+            var    queryWithSelectPart = "SELECT * FROM %s WHERE %s".formatted(tableName, query);
 
             return r2dbcEntityTemplateExecutor.executeQuery(queryWithSelectPart);
         }
@@ -52,7 +51,7 @@ public class QueryManipulationExecutor {
         boolean hasTableAnnotation = domainType.isAnnotationPresent(Table.class);
 
         if (hasTableAnnotation) {
-            return domainType.getAnnotation(Table.class).name();
+            return domainType.getAnnotation(Table.class).value();
         } else {
             return StringUtils.capitalize(domainType.getSimpleName());
         }
