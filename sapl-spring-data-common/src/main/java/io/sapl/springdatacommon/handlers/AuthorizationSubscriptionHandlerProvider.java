@@ -17,6 +17,7 @@
  */
 package io.sapl.springdatacommon.handlers;
 
+import io.sapl.springdatacommon.sapl.Enforce;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
@@ -82,11 +83,12 @@ public class AuthorizationSubscriptionHandlerProvider {
      * @return the found AuthorizationSubscription
      */
     @SneakyThrows
-    public AuthorizationSubscription getAuthSub(Class<?> repoClass, MethodInvocation methodInvocation) {
+    public AuthorizationSubscription getAuthSub(Class<?> repoClass, MethodInvocation methodInvocation,
+            Enforce enforceAnnotation) {
 
         Assert.isTrue(repoClass.isInterface(), "Repository is no interface.");
 
-        var annotationBased = enforceAnnotationHandler.enforceAnnotation(methodInvocation);
+        var annotationBased = enforceAnnotationHandler.enforceAnnotation(methodInvocation, enforceAnnotation);
 
         if (annotationBased != null && authSubIsComplete(annotationBased)) {
             return annotationBased;
@@ -111,7 +113,7 @@ public class AuthorizationSubscriptionHandlerProvider {
      * @return the found AuthorizationSubscription.
      */
     private AuthorizationSubscription getAuthorizationSubscriptionByBean(String methodName, String repoName) {
-        AuthorizationSubscription authorizationSubscription = null;
+        AuthorizationSubscription authorizationSubscription;
         try {
             var bean = methodName + repoName;
             authorizationSubscription = (AuthorizationSubscription) beanFactory.getBean(bean);
@@ -120,7 +122,7 @@ public class AuthorizationSubscriptionHandlerProvider {
             try {
                 authorizationSubscription = (AuthorizationSubscription) beanFactory.getBean(bean);
             } catch (NoSuchBeanDefinitionException er) {
-                return authorizationSubscription;
+                return null;
             }
         }
         return authorizationSubscription;

@@ -47,13 +47,14 @@ import reactor.core.publisher.Mono;
  * @param <T> is the domain type.
  */
 public class MongoMethodNameQueryManipulationEnforcementPoint<T> implements QueryManipulationEnforcementPoint<T> {
+    private final static String MONGO_QUERY_MANIPULATION = "mongoQueryManipulation";
+
     private final QueryManipulationObligationProvider mongoQueryManipulationObligationProvider = new QueryManipulationObligationProvider();
     private final LoggingConstraintHandlerProvider    loggingConstraintHandlerProvider         = new LoggingConstraintHandlerProvider();
     private final SaplPartTreeCriteriaCreator<T>      saplPartTreeCriteriaCreator;
     private final ReactiveMongoTemplate               reactiveMongoTemplate;
     private final DataManipulationHandler<T>          dataManipulationHandler;
     private final QueryManipulationEnforcementData<T> enforcementData;
-    private String                                    mongoQueryManipulation                   = "mongoQueryManipulation";
 
     public MongoMethodNameQueryManipulationEnforcementPoint(QueryManipulationEnforcementData<T> enforcementData) {
         this.enforcementData             = new QueryManipulationEnforcementData<>(enforcementData.getMethodInvocation(),
@@ -125,9 +126,9 @@ public class MongoMethodNameQueryManipulationEnforcementPoint<T> implements Quer
     @SneakyThrows
     @SuppressWarnings("unchecked")
     private Flux<T> retrieveData(ArrayNode obligations) {
-        if (mongoQueryManipulationObligationProvider.isResponsible(obligations, mongoQueryManipulation)) {
+        if (mongoQueryManipulationObligationProvider.isResponsible(obligations, MONGO_QUERY_MANIPULATION)) {
             var mongoQueryManipulationObligation = mongoQueryManipulationObligationProvider.getObligation(obligations,
-                    mongoQueryManipulation);
+                    MONGO_QUERY_MANIPULATION);
             var conditions                       = mongoQueryManipulationObligationProvider
                     .getConditions(mongoQueryManipulationObligation);
 

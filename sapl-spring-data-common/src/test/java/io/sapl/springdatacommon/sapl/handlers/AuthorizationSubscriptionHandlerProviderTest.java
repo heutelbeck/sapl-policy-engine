@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.sapl.springdatacommon.sapl.Enforce;
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -64,6 +65,9 @@ class AuthorizationSubscriptionHandlerProviderTest {
     @Mock
     BeanFactory beanFactoryMock;
 
+    @Mock
+    Enforce enforceAnnotationMock;
+
     @MockBean
     EnforceAnnotationHandler enforceAnnotationHandlerMock;
 
@@ -78,11 +82,12 @@ class AuthorizationSubscriptionHandlerProviderTest {
         // GIVEN
 
         // WHEN
-        assertThrows(IllegalArgumentException.class,
-                () -> authorizationSubscriptionHandlerProvider.getAuthSub(TestClass.class, methodInvocation));
+        assertThrows(IllegalArgumentException.class, () -> authorizationSubscriptionHandlerProvider
+                .getAuthSub(TestClass.class, methodInvocation, enforceAnnotationMock));
 
         // THEN
-        verify(enforceAnnotationHandlerMock, times(0)).enforceAnnotation(any(MethodInvocation.class));
+        verify(enforceAnnotationHandlerMock, times(0)).enforceAnnotation(any(MethodInvocation.class),
+                any(Enforce.class));
         verify(beanFactoryMock, times(0)).getBean(anyString());
     }
 
@@ -97,16 +102,18 @@ class AuthorizationSubscriptionHandlerProviderTest {
                 "find_all_by_firstname_reactive_r2dbc_repository", "resource", "");
 
         // WHEN
-        when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class))).thenReturn(annotationAuthSub);
+        when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class), any(Enforce.class)))
+                .thenReturn(annotationAuthSub);
         when(beanFactoryMock.getBean("findAllByFirstnameR2dbcPersonRepository")).thenReturn(subjectAndEnvAuthSub);
 
         var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
-                methodInvocationForTesting);
+                methodInvocationForTesting, enforceAnnotationMock);
 
         // THEN
         compareTwoAuthSubs(correctAuthSub, resultAuthSub);
 
-        verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(methodInvocationForTesting);
+        verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(methodInvocationForTesting,
+                enforceAnnotationMock);
         verify(beanFactoryMock, times(1)).getBean("findAllByFirstnameR2dbcPersonRepository");
     }
 
@@ -121,16 +128,18 @@ class AuthorizationSubscriptionHandlerProviderTest {
                 "find_all_by_firstname_reactive_r2dbc_repository", "", "environment");
 
         // WHEN
-        when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class))).thenReturn(annotationAuthSub);
+        when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class), any(Enforce.class)))
+                .thenReturn(annotationAuthSub);
         when(beanFactoryMock.getBean("findAllByFirstnameR2dbcPersonRepository")).thenReturn(actionAndResourceAuthSub);
 
         var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
-                methodInvocationForTesting);
+                methodInvocationForTesting, enforceAnnotationMock);
 
         // THEN
         compareTwoAuthSubs(correctAuthSub, resultAuthSub);
 
-        verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(methodInvocationForTesting);
+        verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(methodInvocationForTesting,
+                enforceAnnotationMock);
         verify(beanFactoryMock, times(1)).getBean("findAllByFirstnameR2dbcPersonRepository");
     }
 
@@ -142,14 +151,16 @@ class AuthorizationSubscriptionHandlerProviderTest {
         var annotationAuthSub = AuthorizationSubscription.of("method", "", "", "test");
 
         // WHEN
-        when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class))).thenReturn(annotationAuthSub);
+        when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class), any(Enforce.class)))
+                .thenReturn(annotationAuthSub);
         when(beanFactoryMock.getBean("findAllByFirstnameR2dbcPersonRepository")).thenReturn(actionAndResourceAuthSub);
         var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
-                methodInvocation);
+                methodInvocation, enforceAnnotationMock);
 
         // THEN
         compareTwoAuthSubs(correctAuthSub, resultAuthSub);
-        verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(any(MethodInvocation.class));
+        verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(any(MethodInvocation.class),
+                any(Enforce.class));
         verify(beanFactoryMock, times(1)).getBean(anyString());
     }
 
@@ -160,13 +171,15 @@ class AuthorizationSubscriptionHandlerProviderTest {
                 "resource", "test");
 
         // WHEN
-        when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class))).thenReturn(correctAuthSub);
+        when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class), any(Enforce.class)))
+                .thenReturn(correctAuthSub);
         var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
-                methodInvocation);
+                methodInvocation, enforceAnnotationMock);
 
         // THEN
         compareTwoAuthSubs(correctAuthSub, resultAuthSub);
-        verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(any(MethodInvocation.class));
+        verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(any(MethodInvocation.class),
+                any(Enforce.class));
         verify(beanFactoryMock, times(0)).getBean(anyString());
     }
 
@@ -176,15 +189,17 @@ class AuthorizationSubscriptionHandlerProviderTest {
         var correctAuthSub = AuthorizationSubscription.of("method", "", "", "test");
 
         // WHEN
-        when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class))).thenReturn(null);
+        when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class), any(Enforce.class)))
+                .thenReturn(null);
         when(beanFactoryMock.getBean("findAllByAgeR2dbcPersonRepository")).thenReturn(subjectAndEnvAuthSub);
 
         var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
-                methodInvocationWithoutEnforceAnnotation);
+                methodInvocationWithoutEnforceAnnotation, enforceAnnotationMock);
 
         // THEN
         compareTwoAuthSubs(correctAuthSub, resultAuthSub);
-        verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(any(MethodInvocation.class));
+        verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(any(MethodInvocation.class),
+                any(Enforce.class));
         verify(beanFactoryMock, times(1)).getBean(anyString());
     }
 
@@ -195,7 +210,8 @@ class AuthorizationSubscriptionHandlerProviderTest {
                 "resource", "test");
 
         // WHEN
-        when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class))).thenReturn(null);
+        when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class), any(Enforce.class)))
+                .thenReturn(null);
         when(beanFactoryMock.getBean(anyString())).thenAnswer(ans -> {
             if (ans.getArgument(0).equals("findAllByFirstnameR2dbcPersonRepository")) {
                 throw new NoSuchBeanDefinitionException("No such bean.");
@@ -208,11 +224,12 @@ class AuthorizationSubscriptionHandlerProviderTest {
             return null;
         });
         var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
-                methodInvocation);
+                methodInvocation, enforceAnnotationMock);
 
         // THEN
         compareTwoAuthSubs(correctAuthSub, resultAuthSub);
-        verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(any(MethodInvocation.class));
+        verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(any(MethodInvocation.class),
+                any(Enforce.class));
         verify(beanFactoryMock, times(2)).getBean(anyString());
     }
 
@@ -221,7 +238,7 @@ class AuthorizationSubscriptionHandlerProviderTest {
         // GIVEN
 
         // WHEN
-        when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class))).thenReturn(null);
+        when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class), any(Enforce.class))).thenReturn(null);
         when(beanFactoryMock.getBean(anyString())).thenAnswer(ans -> {
             if (ans.getArgument(0).equals("findAllByFirstnameR2dbcPersonRepository")) {
                 throw new NoSuchBeanDefinitionException("No such bean.");
@@ -234,12 +251,12 @@ class AuthorizationSubscriptionHandlerProviderTest {
             return null;
         });
         var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
-                methodInvocation);
+                methodInvocation, enforceAnnotationMock);
 
         // THEN
 
         assertNull(resultAuthSub);
-        verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(any(MethodInvocation.class));
+        verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(any(MethodInvocation.class), any(Enforce.class));
         verify(beanFactoryMock, times(2)).getBean(anyString());
     }
 

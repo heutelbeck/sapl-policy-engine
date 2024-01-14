@@ -219,13 +219,11 @@ public class SaplConditionOperation {
         return domainTypes;
     }
 
-    private List<SaplCondition> addNewSaplCondition(List<SaplCondition> saplConditions, String field, Document doc,
+    private void addNewSaplCondition(List<SaplCondition> saplConditions, String field, Document doc,
             String conjunction) {
         var operator = OperatorMongoDB.getOperatorByKeyword(doc.keySet().toArray()[0].toString());
         var value    = doc.values().toArray()[0];
 
         saplConditions.add(new SaplCondition(field, value, operator, conjunction));
-
-        return saplConditions;
     }
 }

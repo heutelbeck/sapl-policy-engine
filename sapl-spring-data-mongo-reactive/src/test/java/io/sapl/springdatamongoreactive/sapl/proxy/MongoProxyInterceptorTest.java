@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.sapl.springdatacommon.sapl.Enforce;
 import org.aopalliance.intercept.MethodInvocation;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.BeforeEach;
@@ -79,7 +80,7 @@ class MongoProxyInterceptorTest {
                 new ArrayList<>(List.of(int.class)), new ArrayList<>(), data);
 
         // WHEN
-        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class))).thenReturn(null);
+        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class), any())).thenReturn(null);
         var proxyMongoHandler = new MongoProxyInterceptor<>(authSubHandlerMock, beanFactoryMock, pdpMock, factoryMock);
 
         IllegalStateException thrown = assertThrows(IllegalStateException.class,
@@ -90,7 +91,7 @@ class MongoProxyInterceptorTest {
                 thrown.getMessage());
 
         // THEN
-        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class));
+        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class), any());
     }
 
     @Test
@@ -103,7 +104,7 @@ class MongoProxyInterceptorTest {
                 new ArrayList<>(List.of(String.class)), null, null);
 
         // WHEN
-        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class))).thenReturn(authSub);
+        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class), any())).thenReturn(authSub);
         when(factoryMock
                 .createMongoAnnotationQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class)))
                 .thenReturn(queryManipulationEnforcementPointMock);
@@ -115,7 +116,7 @@ class MongoProxyInterceptorTest {
         // THEN
         StepVerifier.create(result).expectNext(aaron).expectNext(brian).expectNext(cathrin).verifyComplete();
 
-        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class));
+        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class), any());
         verify(factoryMock, times(1))
                 .createMongoAnnotationQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class));
         verify(factoryMock, never())
@@ -134,7 +135,8 @@ class MongoProxyInterceptorTest {
                 new ArrayList<>(List.of(String.class)), null, null);
 
         // WHEN
-        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class))).thenReturn(authSub);
+        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class), any(Enforce.class)))
+                .thenReturn(authSub);
         when(factoryMock
                 .createMongoMethodNameQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class)))
                 .thenReturn(queryManipulationEnforcementPointMock);
@@ -146,7 +148,8 @@ class MongoProxyInterceptorTest {
         // THEN
         StepVerifier.create(result).expectNext(aaron).expectNext(brian).expectNext(cathrin).verifyComplete();
 
-        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class));
+        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class),
+                any(Enforce.class));
         verify(factoryMock, never())
                 .createMongoAnnotationQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class));
         verify(factoryMock, times(1))
@@ -169,7 +172,8 @@ class MongoProxyInterceptorTest {
         // THEN
         StepVerifier.create(result).expectNext(aaron).expectNext(brian).expectNext(cathrin).verifyComplete();
 
-        verify(authSubHandlerMock, never()).getAuthSub(any(Class.class), any(MethodInvocation.class));
+        verify(authSubHandlerMock, never()).getAuthSub(any(Class.class), any(MethodInvocation.class),
+                any(Enforce.class));
         verify(factoryMock, never())
                 .createMongoAnnotationQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class));
         verify(factoryMock, never())
@@ -188,7 +192,7 @@ class MongoProxyInterceptorTest {
                 new ArrayList<>(List.of(int.class)), null, data);
 
         // WHEN
-        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class))).thenReturn(authSub);
+        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class), any())).thenReturn(authSub);
         when(factoryMock.createProceededDataFilterEnforcementPoint(any(QueryManipulationEnforcementData.class)))
                 .thenReturn(queryManipulationEnforcementPointMock);
         when(queryManipulationEnforcementPointMock.enforce()).thenReturn(data);
@@ -199,7 +203,7 @@ class MongoProxyInterceptorTest {
         // THEN
         StepVerifier.create(result).expectNext(aaron).expectNext(brian).expectNext(cathrin).verifyComplete();
 
-        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class));
+        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class), any());
         verify(factoryMock, never())
                 .createMongoAnnotationQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class));
         verify(factoryMock, never())
@@ -218,7 +222,7 @@ class MongoProxyInterceptorTest {
                 null, null);
 
         // WHEN
-        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class))).thenReturn(authSub);
+        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class), any())).thenReturn(authSub);
         when(factoryMock
                 .createMongoMethodNameQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class)))
                 .thenReturn(queryManipulationEnforcementPointMock);
@@ -230,7 +234,7 @@ class MongoProxyInterceptorTest {
         // THEN
         StepVerifier.create(result).expectNext(aaron).verifyComplete();
 
-        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class));
+        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class), any());
         verify(factoryMock, never())
                 .createMongoAnnotationQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class));
         verify(factoryMock, times(1))
@@ -249,7 +253,7 @@ class MongoProxyInterceptorTest {
                 new ArrayList<>(List.of(int.class)), null, null);
 
         // WHEN
-        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class))).thenReturn(authSub);
+        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class), any())).thenReturn(authSub);
         when(factoryMock
                 .createMongoMethodNameQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class)))
                 .thenReturn(queryManipulationEnforcementPointMock);
@@ -261,7 +265,7 @@ class MongoProxyInterceptorTest {
         // THEN
         assertEquals(result.get(0), aaron);
 
-        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class));
+        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class), any());
         verify(factoryMock, never())
                 .createMongoAnnotationQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class));
         verify(factoryMock, times(1))
@@ -280,7 +284,7 @@ class MongoProxyInterceptorTest {
                 new ArrayList<>(List.of(int.class)), null, null);
 
         // WHEN
-        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class))).thenReturn(authSub);
+        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class), any())).thenReturn(authSub);
         when(factoryMock
                 .createMongoMethodNameQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class)))
                 .thenReturn(queryManipulationEnforcementPointMock);
@@ -294,7 +298,7 @@ class MongoProxyInterceptorTest {
 
         assertEquals("Return type of method not supported: interface java.util.stream.Stream", thrown.getMessage());
 
-        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class));
+        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class), any());
         verify(factoryMock, never())
                 .createMongoAnnotationQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class));
         verify(factoryMock, times(1))
@@ -313,7 +317,7 @@ class MongoProxyInterceptorTest {
                 new ArrayList<>(List.of(String.class)), null, null);
 
         // WHEN
-        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class))).thenReturn(authSub);
+        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class), any())).thenReturn(authSub);
 
         var proxyMongoHandler = new MongoProxyInterceptor<>(authSubHandlerMock, beanFactoryMock, pdpMock, factoryMock);
 
@@ -321,9 +325,9 @@ class MongoProxyInterceptorTest {
         ClassNotFoundException thrown = assertThrows(ClassNotFoundException.class,
                 () -> proxyMongoHandler.invoke(methodInvocationForRepositoryError));
 
-        assertEquals(
-                "The interface org.springframework.data.mongodb.repository.ReactiveMongoRepository could not be found as an extension of the "
-                        + "interface io.sapl.springdatamongoreactive.sapl.database.repositoryerror.RepositoryNotFoundExceptionTest",
+        assertEquals("The interface org.springframework.data.mongodb.repository.ReactiveMongoRepository or "
+                + "interface org.springframework.data.repository.reactive.ReactiveCrudRepository could not be found as "
+                + "an extension of the interface io.sapl.springdatamongoreactive.sapl.database.repositoryerror.RepositoryNotFoundExceptionTest",
                 thrown.getMessage());
     }
 

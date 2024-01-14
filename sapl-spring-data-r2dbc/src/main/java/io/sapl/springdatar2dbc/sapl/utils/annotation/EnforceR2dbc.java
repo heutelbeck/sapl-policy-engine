@@ -15,21 +15,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatacommon.sapl;
+package io.sapl.springdatar2dbc.sapl.utils.annotation;
 
-import java.lang.annotation.Documented;
+import org.springframework.stereotype.Component;
+
 import java.lang.annotation.ElementType;
-import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import org.springframework.stereotype.Component;
-
 @Component
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.METHOD, ElementType.TYPE })
-@Inherited
-@Documented
-public @interface SaplProtected {
+public @interface EnforceR2dbc {
+
+    String subject() default "";
+
+    String action() default "";
+
+    String resource() default "";
+
+    String environment() default "";
+
+    Class<?>[] staticClasses() default Class.class;
+
 }

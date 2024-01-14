@@ -51,8 +51,8 @@ public class MongoQueryCreatorFactory {
     private ProjectionFactory                                                           projectionFactory;
     private ConvertingParameterAccessor                                                 convertingParameterAccessor;
     private MappingContext<? extends MongoPersistentEntity<?>, MongoPersistentProperty> mappingContext;
-    private ReflectedMongoQueryCreator                                                  mongoQueryCreator;
-    private ReflectedMongoQueryCreatorMethods                                           reflectedMongoQueryCreatorMethods;
+    private final ReflectedMongoQueryCreator                                            mongoQueryCreator;
+    private final ReflectedMongoQueryCreatorMethods                                     reflectedMongoQueryCreatorMethods;
 
     public MongoQueryCreatorFactory(Class<?> repository, ReactiveMongoTemplate reactiveMongoTemplate) {
         this.repository                        = repository;
@@ -117,7 +117,6 @@ public class MongoQueryCreatorFactory {
      * class.
      *
      * @return constructor of the MongoQueryCreator class.
-     * @throws InvocationTargetException
      */
     private Constructor<?> createMongoQueryCreatorConstructor() throws InvocationTargetException {
         Constructor<?> constructor = mongoQueryCreator.getDeclaredConstructor(PartTree.class,

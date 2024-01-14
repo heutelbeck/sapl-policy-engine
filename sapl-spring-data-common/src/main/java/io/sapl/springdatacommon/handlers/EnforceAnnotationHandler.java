@@ -63,16 +63,14 @@ public class EnforceAnnotationHandler {
      *                         {@link org.aopalliance.intercept.MethodInterceptor}
      * @return the found AuthorizationSubscription.
      */
-    public AuthorizationSubscription enforceAnnotation(MethodInvocation methodInvocation) {
-        if (Arrays.stream(methodInvocation.getMethod().getAnnotations())
-                .noneMatch(annotation -> annotation.annotationType().equals(Enforce.class))) {
+    public AuthorizationSubscription enforceAnnotation(MethodInvocation methodInvocation, Enforce enforceAnnotation) {
+        if (enforceAnnotation == null) {
             return null;
         }
 
         this.methodInvocation = methodInvocation;
-        var enforceAnnotationValue = methodInvocation.getMethod().getAnnotation(Enforce.class);
 
-        return enforceAnnotationValueToAuthorizationSubscription(enforceAnnotationValue);
+        return enforceAnnotationValueToAuthorizationSubscription(enforceAnnotation);
     }
 
     /**

@@ -49,7 +49,7 @@ import reactor.core.publisher.Mono;
  * @param <T> is the domain type.
  */
 public class MongoAnnotationQueryManipulationEnforcementPoint<T> implements QueryManipulationEnforcementPoint<T> {
-    private static final String mongoQueryManipulation = "mongoQueryManipulation";
+    private static final String MONGO_QUERY_MANIPULATION = "mongoQueryManipulation";
 
     private final LoggingConstraintHandlerProvider    loggingConstraintHandlerProvider    = new LoggingConstraintHandlerProvider();
     private final QueryManipulationObligationProvider queryManipulationObligationProvider = new QueryManipulationObligationProvider();
@@ -124,9 +124,9 @@ public class MongoAnnotationQueryManipulationEnforcementPoint<T> implements Quer
     @SneakyThrows
     @SuppressWarnings("unchecked")
     private Flux<T> retrieveData(ArrayNode obligations, BasicQuery annotationQuery) {
-        if (queryManipulationObligationProvider.isResponsible(obligations, mongoQueryManipulation)) {
+        if (queryManipulationObligationProvider.isResponsible(obligations, MONGO_QUERY_MANIPULATION)) {
             var mongoQueryManipulationObligation = queryManipulationObligationProvider.getObligation(obligations,
-                    mongoQueryManipulation);
+                    MONGO_QUERY_MANIPULATION);
             var conditions                       = queryManipulationObligationProvider
                     .getConditions(mongoQueryManipulationObligation);
             var query                            = enforceQueryManipulation(annotationQuery, conditions);

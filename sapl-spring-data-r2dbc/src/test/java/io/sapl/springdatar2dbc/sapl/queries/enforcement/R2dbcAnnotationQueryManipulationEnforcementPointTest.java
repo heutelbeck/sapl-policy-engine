@@ -75,7 +75,7 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTest {
     private static JsonNode           CONDITION;
     private static JsonNode           CONDITION_WITH_CONJUNCTION;
     private static JsonNode           R2DBC_QUERY_MANIPULATION_WITH_CONJUNCTION;
-    private static String             R2DBC_QUERY_MANIPULATION_TYPE = "r2dbcQueryManipulation";
+    private static final String       R2DBC_QUERY_MANIPULATION_TYPE = "r2dbcQueryManipulation";
 
     final Person       malinda        = new Person(1, "Malinda", "Perrot", 53, Role.ADMIN, true);
     final Flux<Person> malindaAsFlux  = Flux.just(malinda);

@@ -28,7 +28,7 @@ import reactor.core.publisher.Flux;
 
 public class QueryManipulationExecutor {
 
-    private R2dbcEntityTemplateExecutor r2dbcEntityTemplateExecutor;
+    private final R2dbcEntityTemplateExecutor r2dbcEntityTemplateExecutor;
 
     public QueryManipulationExecutor(BeanFactory beanFactory) {
         var r2dbcEntityTemplate = beanFactory.getBean(R2dbcEntityTemplate.class);

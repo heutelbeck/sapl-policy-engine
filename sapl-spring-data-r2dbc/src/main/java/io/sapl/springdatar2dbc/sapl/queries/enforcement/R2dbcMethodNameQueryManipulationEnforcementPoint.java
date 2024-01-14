@@ -48,7 +48,7 @@ import reactor.core.publisher.Mono;
  * @param <T> is the domain type.
  */
 public class R2dbcMethodNameQueryManipulationEnforcementPoint<T> implements QueryManipulationEnforcementPoint<T> {
-    private static final String r2dbcQueryManipulationType = "r2dbcQueryManipulation";
+    private static final String R2DBC_QUERY_MANIPULATION_TYPE = "r2dbcQueryManipulation";
 
     private final QueryManipulationObligationProvider queryManipulationObligationProvider = new QueryManipulationObligationProvider();
     private final LoggingConstraintHandlerProvider    loggingConstraintHandlerProvider    = new LoggingConstraintHandlerProvider();
@@ -112,7 +112,7 @@ public class R2dbcMethodNameQueryManipulationEnforcementPoint<T> implements Quer
     @SneakyThrows
     @SuppressWarnings("unchecked")
     private Flux<T> retrieveData(ArrayNode obligations) {
-        if (queryManipulationObligationProvider.isResponsible(obligations, r2dbcQueryManipulationType)) {
+        if (queryManipulationObligationProvider.isResponsible(obligations, R2DBC_QUERY_MANIPULATION_TYPE)) {
             return enforceQueryManipulation(obligations);
         } else {
 
@@ -148,7 +148,7 @@ public class R2dbcMethodNameQueryManipulationEnforcementPoint<T> implements Quer
      */
     private String createSqlQuery(ArrayNode obligations) {
         var r2dbcQueryManipulationObligation = queryManipulationObligationProvider.getObligation(obligations,
-                r2dbcQueryManipulationType);
+                R2DBC_QUERY_MANIPULATION_TYPE);
         var condition                        = queryManipulationObligationProvider
                 .getConditions(r2dbcQueryManipulationObligation);
         var sqlConditionFromDecision         = addMissingConjunction(condition.asText());

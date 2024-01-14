@@ -20,26 +20,27 @@ package io.sapl.springdatamongoreactive.sapl.proxy;
 import static io.sapl.springdatacommon.sapl.utils.Utilities.isFlux;
 import static io.sapl.springdatacommon.sapl.utils.Utilities.isListOrCollection;
 import static io.sapl.springdatacommon.sapl.utils.Utilities.isMono;
+import static io.sapl.springdatamongoreactive.sapl.utils.annotation.AnnotationUtilities.*;
 
-import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Objects;
 
+import io.sapl.springdatamongoreactive.sapl.utils.annotation.EnforceMongoReactive;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.BeanFactory;
+import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
+import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.stereotype.Service;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.springdatamongoreactive.sapl.QueryManipulationEnforcementPointFactory;
 import io.sapl.springdatacommon.handlers.AuthorizationSubscriptionHandlerProvider;
-import io.sapl.springdatacommon.sapl.Enforce;
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
-import io.sapl.springdatacommon.sapl.SaplProtected;
 import io.sapl.springdatacommon.sapl.utils.Utilities;
 import lombok.SneakyThrows;
 import reactor.core.publisher.Flux;
@@ -71,7 +72,8 @@ public class MongoProxyInterceptor<T> implements MethodInterceptor {
     private final QueryManipulationEnforcementData<T>      enforcementData;
     private final QueryManipulationEnforcementPointFactory factory;
 
-    private static final String REACTIVE_MONGO_REPOSITORY_PATH = "org.springframework.data.mongodb.repository.ReactiveMongoRepository";
+    private static final String REACTIVE_MONGO_REPOSITORY_PATH = "org.springframework.data.repository.reactive.ReactiveCrudRepository";
+    private static final String REACTIVE_CRUD_REPOSITORY_PATH  = "org.springframework.data.mongodb.repository.ReactiveMongoRepository";
 
     public MongoProxyInterceptor(AuthorizationSubscriptionHandlerProvider authSubHandler, BeanFactory beanFactory,
             PolicyDecisionPoint pdp, QueryManipulationEnforcementPointFactory factory) {
@@ -89,8 +91,10 @@ public class MongoProxyInterceptor<T> implements MethodInterceptor {
         if (hasAnnotationSaplProtected(repository) || hasAnnotationSaplProtected(repositoryMethod)
                 || hasAnnotationEnforce(repositoryMethod)) {
 
-            var returnClassOfMethod = Objects.requireNonNull(repositoryMethod).getReturnType();
-            var authSub             = this.authSubHandler.getAuthSub(repository, methodInvocation);
+            var returnClassOfMethod  = Objects.requireNonNull(repositoryMethod).getReturnType();
+            var enforceMongoReactive = AnnotationUtils.findAnnotation(repositoryMethod, EnforceMongoReactive.class);
+            var enforceAnnotation    = convertToEnforce(enforceMongoReactive);
+            var authSub              = this.authSubHandler.getAuthSub(repository, methodInvocation, enforceAnnotation);
 
             if (authSub == null) {
                 throw new IllegalStateException(
@@ -158,19 +162,19 @@ public class MongoProxyInterceptor<T> implements MethodInterceptor {
 
     @SuppressWarnings("unchecked")
     private Class<T> extractDomainType(Class<?> repository) throws ClassNotFoundException {
-
         Type[] repositoryTypes = repository.getGenericInterfaces();
 
-        for (Type repositoryType : repositoryTypes) {
-            if (repositoryType.getTypeName().contains(REACTIVE_MONGO_REPOSITORY_PATH)
-                    && repositoryType instanceof ParameterizedType type
-                    && type.getActualTypeArguments()[0] instanceof Class<?> clazz) {
+        for (Type interfaceType : repositoryTypes) {
+            if (interfaceType instanceof ParameterizedType type
+                    && type.getActualTypeArguments()[0] instanceof Class<?> clazz
+                    && (interfaceType.getTypeName().contains(REACTIVE_MONGO_REPOSITORY_PATH)
+                            || interfaceType.getTypeName().contains(REACTIVE_CRUD_REPOSITORY_PATH))) {
                 return (Class<T>) clazz;
             }
         }
 
-        throw new ClassNotFoundException(
-                "The " + ReactiveMongoRepository.class + " could not be found as an extension of the " + repository);
+        throw new ClassNotFoundException("The " + ReactiveMongoRepository.class + " or " + ReactiveCrudRepository.class
+                + " could not be found as an extension of the " + repository);
     }
 
     /**
@@ -201,45 +205,5 @@ public class MongoProxyInterceptor<T> implements MethodInterceptor {
         }
 
         throw new ClassNotFoundException("Return type of method not supported: " + returnClassOfMethod);
-    }
-
-    /**
-     * Checks whether a method has a {@link Query} annotation.
-     *
-     * @param method is the method to be checked.
-     * @return true, if method has a {@link Query} annotation.
-     */
-    private boolean hasAnnotationQuery(Method method) {
-        return method.isAnnotationPresent(Query.class);
-    }
-
-    /**
-     * Checks whether a method has a {@link SaplProtected} annotation.
-     *
-     * @param method is the method to be checked.
-     * @return true, if method has a {@link SaplProtected} annotation.
-     */
-    private boolean hasAnnotationSaplProtected(Method method) {
-        return method.isAnnotationPresent(SaplProtected.class);
-    }
-
-    /**
-     * Checks whether a method has a {@link SaplProtected} annotation.
-     *
-     * @param clazz is the class to be checked.
-     * @return true, if method has a {@link SaplProtected} annotation.
-     */
-    private boolean hasAnnotationSaplProtected(Class<?> clazz) {
-        return clazz.isAnnotationPresent(SaplProtected.class);
-    }
-
-    /**
-     * Checks whether a method has a {@link Enforce} annotation.
-     *
-     * @param method is the method to be checked.
-     * @return true, if method has a {@link Enforce} annotation.
-     */
-    private boolean hasAnnotationEnforce(Method method) {
-        return method.isAnnotationPresent(Enforce.class);
     }
 }

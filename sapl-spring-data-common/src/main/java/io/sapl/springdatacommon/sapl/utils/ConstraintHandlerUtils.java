@@ -65,10 +65,7 @@ public class ConstraintHandlerUtils {
      */
     public static ArrayNode getObligations(AuthorizationDecision decision) {
         var possibleObligations = decision.getObligations();
-        if (possibleObligations.isEmpty()) {
-            return EMPTY_ARRAY_NODE;
-        }
-        return possibleObligations.get();
+        return possibleObligations.orElse(EMPTY_ARRAY_NODE);
     }
 
     /**
@@ -79,6 +76,6 @@ public class ConstraintHandlerUtils {
      */
     public static ArrayNode getAdvice(AuthorizationDecision decision) {
         var advice = decision.getAdvice();
-        return advice.isPresent() ? advice.get() : EMPTY_ARRAY_NODE;
+        return advice.orElse(EMPTY_ARRAY_NODE);
     }
 }
