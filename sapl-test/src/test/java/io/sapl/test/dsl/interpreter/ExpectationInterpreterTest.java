@@ -42,6 +42,7 @@ import io.sapl.test.grammar.sAPLTest.ExpectOrAdjustmentStep;
 import io.sapl.test.grammar.sAPLTest.Expectation;
 import io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice;
 import io.sapl.test.grammar.sAPLTest.IsDecision;
+import io.sapl.test.grammar.sAPLTest.Multiple;
 import io.sapl.test.grammar.sAPLTest.Next;
 import io.sapl.test.grammar.sAPLTest.NextWithDecision;
 import io.sapl.test.grammar.sAPLTest.NextWithMatcher;
@@ -53,6 +54,7 @@ import io.sapl.test.grammar.sAPLTest.StringLiteral;
 import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import io.sapl.test.steps.ExpectOrVerifyStep;
 import io.sapl.test.steps.VerifyStep;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
@@ -79,7 +81,7 @@ class ExpectationInterpreterTest {
     @Mock
     private DurationInterpreter                     durationInterpreterMock;
     @Mock
-    private MultipleAmountInterpreter               multipleAmountInterpreterMock;
+    private MultipleInterpreter                     multipleInterpreterMock;
     @InjectMocks
     private ExpectationInterpreter                  expectationInterpreter;
     @Mock
@@ -377,9 +379,14 @@ class ExpectationInterpreterTest {
 
             @Test
             void interpretRepeatedExpect_constructsNextDenyWithNumericAmountBeingMultiple_returnsVerifyStepWithNextDeny() {
-                final RepeatedExpect repeatedExpect = buildExpectChain("- deny 3x");
+                final RepeatedExpect repeatedExpect = buildExpectChain("- deny 3 times");
 
-                when(multipleAmountInterpreterMock.getAmountFromMultipleAmountString("3x")).thenReturn(3);
+                when(multipleInterpreterMock.getAmountFromMultiple(any())).thenAnswer(invocationOnMock -> {
+                    final Multiple multiple = invocationOnMock.getArgument(0);
+
+                    assertEquals(3, multiple.getAmount().intValueExact());
+                    return 3;
+                });
 
                 when(expectOrVerifyStepMock.expectNextDeny(3)).thenReturn(expectOrVerifyStepMock);
 
@@ -415,9 +422,14 @@ class ExpectationInterpreterTest {
 
             @Test
             void interpretRepeatedExpect_constructsNextNotApplicableWithNumericAmountBeingMultiple_returnsVerifyStepWithNextNotApplicable() {
-                final RepeatedExpect repeatedExpect = buildExpectChain("- notApplicable 5x");
+                final RepeatedExpect repeatedExpect = buildExpectChain("- notApplicable 5 times");
 
-                when(multipleAmountInterpreterMock.getAmountFromMultipleAmountString("5x")).thenReturn(5);
+                when(multipleInterpreterMock.getAmountFromMultiple(any())).thenAnswer(invocationOnMock -> {
+                    final Multiple multiple = invocationOnMock.getArgument(0);
+
+                    assertEquals(5, multiple.getAmount().intValueExact());
+                    return 5;
+                });
 
                 when(expectOrVerifyStepMock.expectNextNotApplicable(5)).thenReturn(expectOrVerifyStepMock);
 

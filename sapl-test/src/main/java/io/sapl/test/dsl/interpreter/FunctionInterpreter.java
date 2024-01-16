@@ -33,9 +33,9 @@ import org.hamcrest.Matcher;
 @RequiredArgsConstructor
 class FunctionInterpreter {
 
-    private final ValueInterpreter          valueInterpreter;
-    private final ValMatcherInterpreter     matcherInterpreter;
-    private final MultipleAmountInterpreter multipleAmountInterpreter;
+    private final ValueInterpreter      valueInterpreter;
+    private final ValMatcherInterpreter matcherInterpreter;
+    private final MultipleInterpreter   multipleInterpreter;
 
     GivenOrWhenStep interpretFunction(final GivenOrWhenStep givenOrWhenStep, final Function function) {
         if (givenOrWhenStep == null || function == null) {
@@ -47,7 +47,7 @@ class FunctionInterpreter {
         final var dslTimesCalled = function.getTimesCalled();
 
         if (dslTimesCalled instanceof Multiple multiple) {
-            timesCalled = multipleAmountInterpreter.getAmountFromMultipleAmountString(multiple.getAmount());
+            timesCalled = multipleInterpreter.getAmountFromMultiple(multiple);
         } else if (dslTimesCalled instanceof Once) {
             timesCalled = 1;
         }

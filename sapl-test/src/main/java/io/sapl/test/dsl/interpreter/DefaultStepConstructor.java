@@ -85,7 +85,7 @@ public final class DefaultStepConstructor implements StepConstructor {
         final var durationInterpreter                     = new DurationInterpreter();
         final var attributeInterpreter                    = new AttributeInterpreter(valInterpreter, matcherInterpreter,
                 durationInterpreter);
-        final var multipleAmountInterpreter               = new MultipleAmountInterpreter();
+        final var multipleAmountInterpreter               = new MultipleInterpreter();
         final var functionInterpreter                     = new FunctionInterpreter(valInterpreter, matcherInterpreter,
                 multipleAmountInterpreter);
         final var authorizationDecisionInterpreter        = new AuthorizationDecisionInterpreter(valInterpreter,

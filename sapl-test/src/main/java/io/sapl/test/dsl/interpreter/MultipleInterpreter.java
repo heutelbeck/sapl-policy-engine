@@ -19,15 +19,22 @@
 package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestException;
+import io.sapl.test.grammar.sAPLTest.Multiple;
 
-class MultipleAmountInterpreter {
-    int getAmountFromMultipleAmountString(final String multipleAmount) {
+class MultipleInterpreter {
+    int getAmountFromMultiple(final Multiple multiple) {
+        int intValue;
+
         try {
-            var amount = multipleAmount.endsWith("x") ? multipleAmount.substring(0, multipleAmount.length() - 1) : "";
-
-            return Math.absExact(Integer.parseInt(amount));
+            intValue = multiple.getAmount().intValueExact();
         } catch (Exception e) {
-            throw new SaplTestException("MultipleAmount has invalid format");
+            throw new SaplTestException("Amount has invalid format");
         }
+
+        if (intValue < 2) {
+            throw new SaplTestException("Amount needs to be larger than 1");
+        }
+
+        return intValue;
     }
 }

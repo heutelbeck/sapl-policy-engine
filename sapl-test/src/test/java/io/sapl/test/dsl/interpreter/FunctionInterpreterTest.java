@@ -65,15 +65,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class FunctionInterpreterTest {
     @Mock
-    private ValueInterpreter          valueInterpreterMock;
+    private ValueInterpreter      valueInterpreterMock;
     @Mock
-    private ValMatcherInterpreter     matcherInterpreterMock;
+    private ValMatcherInterpreter matcherInterpreterMock;
     @Mock
-    private MultipleAmountInterpreter multipleAmountInterpreterMock;
+    private MultipleInterpreter   multipleInterpreterMock;
     @InjectMocks
-    private FunctionInterpreter       functionInterpreter;
+    private FunctionInterpreter   functionInterpreter;
     @Mock
-    private GivenOrWhenStep           givenOrWhenStepMock;
+    private GivenOrWhenStep       givenOrWhenStepMock;
 
     private final MockedStatic<Imports> importsMockedStatic = mockStatic(Imports.class);
 
@@ -209,9 +209,14 @@ class FunctionInterpreterTest {
             final var multipleMock = mock(Multiple.class);
 
             when(functionMock.getTimesCalled()).thenReturn(multipleMock);
-            when(multipleMock.getAmount()).thenReturn("3x");
+            when(multipleMock.getAmount()).thenReturn(BigDecimal.ONE);
 
-            when(multipleAmountInterpreterMock.getAmountFromMultipleAmountString("3x")).thenReturn(3);
+            when(multipleInterpreterMock.getAmountFromMultiple(any())).thenAnswer(invocationOnMock -> {
+                final Multiple multiple = invocationOnMock.getArgument(0);
+
+                assertEquals(1, multiple.getAmount().intValueExact());
+                return 1;
+            });
 
             final var functionParametersMock = mock(FunctionParameters.class);
             when(functionMock.getParameters()).thenReturn(functionParametersMock);
@@ -252,13 +257,18 @@ class FunctionInterpreterTest {
         @Test
         void interpretFunction_withTimesCalledVerificationBeingMultipleAndFunctionParametersMatchers_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
             final Function function = buildFunction(
-                    "function \"fooFunction\" parameters matching \"parameter\" returns \"bar\" called 3x");
+                    "function \"fooFunction\" parameters matching \"parameter\" returns \"bar\" called 3 times");
 
             final var expectedVal = Val.of("bar");
 
             when(valueInterpreterMock.getValFromValue(compareArgumentToStringLiteral("bar"))).thenReturn(expectedVal);
 
-            when(multipleAmountInterpreterMock.getAmountFromMultipleAmountString("3x")).thenReturn(3);
+            when(multipleInterpreterMock.getAmountFromMultiple(any())).thenAnswer(invocationOnMock -> {
+                final Multiple multiple = invocationOnMock.getArgument(0);
+
+                assertEquals(3, multiple.getAmount().intValueExact());
+                return 3;
+            });
 
             final var matcherMock = mock(Matcher.class);
             when(matcherInterpreterMock.getHamcrestValMatcher(any(ValWithValue.class))).thenAnswer(invocationOnMock -> {

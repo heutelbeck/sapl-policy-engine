@@ -47,7 +47,7 @@ class ExpectationInterpreter {
     private final AuthorizationDecisionInterpreter        authorizationDecisionInterpreter;
     private final AuthorizationDecisionMatcherInterpreter authorizationDecisionMatcherInterpreter;
     private final DurationInterpreter                     durationInterpreter;
-    private final MultipleAmountInterpreter               multipleAmountInterpreter;
+    private final MultipleInterpreter                     multipleInterpreter;
 
     VerifyStep interpretSingleExpect(final ExpectStep expectStep, final SingleExpect singleExpect) {
         if (expectStep == null || singleExpect == null) {
@@ -144,7 +144,7 @@ class ExpectationInterpreter {
         int amount;
 
         if (nextExpect.getAmount() instanceof Multiple multiple) {
-            amount = multipleAmountInterpreter.getAmountFromMultipleAmountString(multiple.getAmount());
+            amount = multipleInterpreter.getAmountFromMultiple(multiple);
         } else if (nextExpect.getAmount() instanceof Once) {
             amount = 1;
         } else {
