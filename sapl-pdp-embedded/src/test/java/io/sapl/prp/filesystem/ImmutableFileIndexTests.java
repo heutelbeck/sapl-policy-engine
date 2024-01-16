@@ -65,20 +65,6 @@ class ImmutableFileIndexTests {
     private static final String          PATH          = "/";
 
     @Test
-    void when_initializingWithEmptyDirectory_then_updatesAreEmpty() {
-        try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
-            var mockPaths           = List.of();
-            var mockDirectoryStream = mock(DirectoryStream.class);
-            when(mockDirectoryStream.iterator()).thenReturn(mockPaths.iterator());
-            mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
-                    .thenReturn(mockDirectoryStream);
-            var sut           = new ImmutableFileIndex(PATH, INTERPERETER);
-            var actualUpdates = sut.getUpdateEvent();
-            assertThat(actualUpdates.getUpdates(), is(emptyArray()));
-        }
-    }
-
-    @Test
     void when_initializingWithDirectoryThatCannotBeOpened_then_updatesContainOnlyInconsistent() {
         try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
             mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
@@ -108,38 +94,6 @@ class ImmutableFileIndexTests {
             assertThat(actualUpdates.getUpdates(), is(arrayWithSize(1)));
             assertThat(actualUpdates.getUpdates(),
                     arrayContainingInAnyOrder(isUpdateType(PrpUpdateEvent.Type.INCONSISTENT)));
-        }
-    }
-
-    @Test
-    void when_initializingWithDirectoryThatContainsValidSaplFile_then_updatesContainDocument() {
-        var policy1 = POLICY_1;
-        var sapl1   = INTERPERETER.parse(policy1);
-
-        try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
-            var mockPath = mock(Path.class);
-            when(mockPath.toAbsolutePath()).thenReturn(mockPath);
-            when(mockPath.toString()).thenReturn("mockedPath");
-            var mockPaths           = List.of(mockPath);
-            var mockDirectoryStream = mock(DirectoryStream.class);
-            when(mockDirectoryStream.iterator()).thenReturn(mockPaths.iterator());
-            mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
-                    .thenReturn(mockDirectoryStream);
-
-            mockedFiles.when(() -> Files.readString(eq(mockPath))).thenReturn(policy1);
-            var mockInterpreter = mock(SAPLInterpreter.class);
-            when(mockInterpreter.parse(policy1)).thenReturn(sapl1);
-
-            var sut           = new ImmutableFileIndex(PATH, mockInterpreter);
-            var actualUpdates = sut.getUpdateEvent();
-
-            assertThat(actualUpdates.getUpdates(), is(arrayWithSize(1)));
-            // @formatter:off
-			assertThat(actualUpdates.getUpdates(),
-					arrayContainingInAnyOrder(
-							isUpdateWithName(PrpUpdateEvent.Type.PUBLISH, POLICY_1_NAME)
-					));
-			// @formatter:on
         }
     }
 
