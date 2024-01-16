@@ -140,7 +140,7 @@ class StringMatcherInterpreterTest {
 
     @Test
     void getHamcrestStringMatcher_handlesStringIsEqualWithCompressedWhiteSpace_returnsEqualToCompressingWhiteSpaceMatcher() {
-        final var stringMatcher = buildStringMatcher("equals \"foo\" with compressed whitespaces");
+        final var stringMatcher = buildStringMatcher("equal to \"foo\" with compressed whitespaces");
 
         matchersMockedStatic.when(() -> Matchers.equalToCompressingWhiteSpace("foo")).thenReturn(matcherMock);
 
@@ -151,7 +151,7 @@ class StringMatcherInterpreterTest {
 
     @Test
     void getHamcrestStringMatcher_handlesStringIsEqualIgnoringCase_returnsEqualToIgnoringCaseMatcher() {
-        final var stringMatcher = buildStringMatcher("equals \"foo\" ignoring case");
+        final var stringMatcher = buildStringMatcher("equal to \"foo\" ignoring case");
 
         matchersMockedStatic.when(() -> Matchers.equalToIgnoringCase("foo")).thenReturn(matcherMock);
 
@@ -162,7 +162,7 @@ class StringMatcherInterpreterTest {
 
     @Test
     void getHamcrestStringMatcher_handlesStringMatchesRegex_returnsMatchesRegexMatcher() {
-        final var stringMatcher = buildStringMatcher("matches regex \"fooRegex\"");
+        final var stringMatcher = buildStringMatcher("with regex \"fooRegex\"");
 
         matchersMockedStatic.when(() -> Matchers.matchesRegex("fooRegex")).thenReturn(matcherMock);
 
@@ -173,7 +173,7 @@ class StringMatcherInterpreterTest {
 
     @Test
     void getHamcrestStringMatcher_handlesStringStartsWith_returnsStartsWithMatcher() {
-        final var stringMatcher = buildStringMatcher("starts with \"foo\"");
+        final var stringMatcher = buildStringMatcher("starting with \"foo\"");
 
         matchersMockedStatic.when(() -> Matchers.startsWith("foo")).thenReturn(matcherMock);
 
@@ -184,7 +184,7 @@ class StringMatcherInterpreterTest {
 
     @Test
     void getHamcrestStringMatcher_handlesStringStartsWithIgnoringCase_returnsStartsWithIgnoringCaseMatcher() {
-        final var stringMatcher = buildStringMatcher("starts with \"foo\" ignoring case");
+        final var stringMatcher = buildStringMatcher("starting with \"foo\" ignoring case");
 
         matchersMockedStatic.when(() -> Matchers.startsWithIgnoringCase("foo")).thenReturn(matcherMock);
 
@@ -195,7 +195,7 @@ class StringMatcherInterpreterTest {
 
     @Test
     void getHamcrestStringMatcher_handlesStringEndsWith_returnsEndsWithMatcher() {
-        final var stringMatcher = buildStringMatcher("ends with \"foo\"");
+        final var stringMatcher = buildStringMatcher("ending with \"foo\"");
 
         matchersMockedStatic.when(() -> Matchers.endsWith("foo")).thenReturn(matcherMock);
 
@@ -206,7 +206,7 @@ class StringMatcherInterpreterTest {
 
     @Test
     void getHamcrestStringMatcher_handlesStringEndsWithIgnoringCase_returnsEndsWithIgnoringCaseMatcher() {
-        final var stringMatcher = buildStringMatcher("ends with \"foo\" ignoring case");
+        final var stringMatcher = buildStringMatcher("ending with \"foo\" ignoring case");
 
         matchersMockedStatic.when(() -> Matchers.endsWithIgnoringCase("foo")).thenReturn(matcherMock);
 
@@ -217,7 +217,7 @@ class StringMatcherInterpreterTest {
 
     @Test
     void getHamcrestStringMatcher_handlesStringContains_returnsContainsStringMatcher() {
-        final var stringMatcher = buildStringMatcher("contains \"foo\"");
+        final var stringMatcher = buildStringMatcher("containing \"foo\"");
 
         matchersMockedStatic.when(() -> Matchers.containsString("foo")).thenReturn(matcherMock);
 
@@ -228,7 +228,7 @@ class StringMatcherInterpreterTest {
 
     @Test
     void getHamcrestStringMatcher_handlesStringContainsIgnoringCase_returnsContainsStringIgnoringCaseMatcher() {
-        final var stringMatcher = buildStringMatcher("contains \"foo\" ignoring case");
+        final var stringMatcher = buildStringMatcher("containing \"foo\" ignoring case");
 
         matchersMockedStatic.when(() -> Matchers.containsStringIgnoringCase("foo")).thenReturn(matcherMock);
 
@@ -239,7 +239,7 @@ class StringMatcherInterpreterTest {
 
     @Test
     void getHamcrestStringMatcher_handlesStringContainsInOrder_returnsStringContainsInOrderMatcher() {
-        final var stringMatcher = buildStringMatcher("contains substrings \"foo\", \"foo2\" ordered");
+        final var stringMatcher = buildStringMatcher("containing stream \"foo\", \"foo2\" in order");
 
         matchersMockedStatic.when(() -> Matchers.stringContainsInOrder(List.of("foo", "foo2"))).thenReturn(matcherMock);
 

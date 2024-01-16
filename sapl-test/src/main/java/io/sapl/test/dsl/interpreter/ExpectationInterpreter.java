@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.allOf;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sAPLTest.AttributeAdjustment;
+import io.sapl.test.grammar.sAPLTest.AuthorizationDecisionMatcher;
 import io.sapl.test.grammar.sAPLTest.Await;
 import io.sapl.test.grammar.sAPLTest.Multiple;
 import io.sapl.test.grammar.sAPLTest.Next;
@@ -35,6 +36,7 @@ import io.sapl.test.grammar.sAPLTest.SingleExpect;
 import io.sapl.test.grammar.sAPLTest.SingleExpectWithMatcher;
 import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.VerifyStep;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.hamcrest.Matcher;
 
@@ -62,20 +64,30 @@ class ExpectationInterpreter {
 
     VerifyStep interpretSingleExpectWithMatcher(final ExpectStep expectStep,
             final SingleExpectWithMatcher singleExpectWithMatcher) {
+
         if (expectStep == null || singleExpectWithMatcher == null) {
             throw new SaplTestException("ExpectOrVerifyStep or singleExpectWithMatcher is null");
         }
 
-        final var dslAuthorizationDecisionMatcher = singleExpectWithMatcher.getMatcher();
+        final var matchers = singleExpectWithMatcher.getMatchers();
 
-        if (dslAuthorizationDecisionMatcher == null) {
-            throw new SaplTestException("SingleExpectWithMatcher does not contain a matcher");
+        final var actualMatcher = getCombinedMatcher(matchers);
+
+        return expectStep.expect(actualMatcher);
+    }
+
+    private Matcher<AuthorizationDecision> getCombinedMatcher(
+            final List<AuthorizationDecisionMatcher> authorizationDecisionMatchers) {
+
+        if (authorizationDecisionMatchers == null || authorizationDecisionMatchers.isEmpty()) {
+            throw new SaplTestException("No AuthorizationDecisionMatcher found");
         }
 
-        final var matcher = authorizationDecisionMatcherInterpreter
-                .getHamcrestAuthorizationDecisionMatcher(dslAuthorizationDecisionMatcher);
+        final var actualMatchers = authorizationDecisionMatchers.stream()
+                .map(authorizationDecisionMatcherInterpreter::getHamcrestAuthorizationDecisionMatcher)
+                .<Matcher<AuthorizationDecision>>toArray(Matcher[]::new);
 
-        return expectStep.expect(matcher);
+        return actualMatchers.length == 1 ? actualMatchers[0] : allOf(actualMatchers);
     }
 
     VerifyStep interpretRepeatedExpect(ExpectStep expectStep, final RepeatedExpect repeatedExpect) {
@@ -150,15 +162,9 @@ class ExpectationInterpreter {
     private ExpectStep constructNextWithMatcher(final ExpectStep expectStep, final NextWithMatcher nextWithMatcher) {
         final var matchers = nextWithMatcher.getMatcher();
 
-        if (matchers == null || matchers.isEmpty()) {
-            throw new SaplTestException("No AuthorizationDecisionMatcher found");
-        }
+        final var actualMatcher = getCombinedMatcher(matchers);
 
-        final var actualMatchers = matchers.stream()
-                .map(authorizationDecisionMatcherInterpreter::getHamcrestAuthorizationDecisionMatcher)
-                .<Matcher<AuthorizationDecision>>toArray(Matcher[]::new);
-
-        return expectStep.expectNext(actualMatchers.length == 1 ? actualMatchers[0] : allOf(actualMatchers));
+        return expectStep.expectNext(actualMatcher);
     }
 
     private ExpectStep constructNextWithDecision(final ExpectStep expectStep,

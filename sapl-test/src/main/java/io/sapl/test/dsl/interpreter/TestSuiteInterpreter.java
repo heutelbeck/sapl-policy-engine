@@ -53,10 +53,10 @@ class TestSuiteInterpreter {
 
     private SaplTestFixture getUnitTestFixtureFromUnitTestSuite(final UnitTestSuite unitTestSuite) {
         if (customUnitTestPolicyResolver == null) {
-            return SaplUnitTestFixtureFactory.create(unitTestSuite.getId());
+            return SaplUnitTestFixtureFactory.create(unitTestSuite.getPolicyName());
         } else {
             return SaplUnitTestFixtureFactory.createFromInputString(
-                    customUnitTestPolicyResolver.resolvePolicyByIdentifier(unitTestSuite.getId()));
+                    customUnitTestPolicyResolver.resolvePolicyByIdentifier(unitTestSuite.getPolicyName()));
         }
     }
 

@@ -362,7 +362,7 @@ class JsonNodeMatcherInterpreterTest {
         @Test
         void getHamcrestJsonNodeMatcher_handlesIsJsonObjectWithMultipleDifferentMatchers_returnsJsonObjectMatcher() {
             final var jsonNodeMatcher = buildJsonNodeMatcher(
-                    "object where { \"jsonNullKey\" : null, \"jsonBooleanKey\" : boolean}");
+                    "object where { \"jsonNullKey\" is null and \"jsonBooleanKey\" is boolean}");
 
             final var initialJsonObjectMock = mock(com.spotify.hamcrest.jackson.IsJsonObject.class);
             jsonMatchersMockedStatic.when(JsonMatchers::jsonObject).thenReturn(initialJsonObjectMock);

@@ -174,7 +174,7 @@ class TestProviderTest {
             final var testCases = mockTestCases(List.of(testCaseMock));
 
             when(unitTestSuiteMock.getTestCases()).thenReturn(testCases);
-            when(unitTestSuiteMock.getId()).thenReturn("policyName");
+            when(unitTestSuiteMock.getPolicyName()).thenReturn("policyName");
 
             final var unitTestSuiteTestContainer = mock(TestContainer.class);
             final var testNodes                  = mockTestContainerForName("policyName", unitTestSuiteTestContainer);
@@ -297,7 +297,7 @@ class TestProviderTest {
             final var actualIntegrationTestCases        = mockTestContainerForName(
                     "name1,foo/name2,foo/subfoo/nested/policy3.sapl", integrationTestSuiteTestContainer);
 
-            when(unitTestSuiteMock.getId()).thenReturn("fooPolicy");
+            when(unitTestSuiteMock.getPolicyName()).thenReturn("fooPolicy");
 
             final var unitTestSuiteTestContainer = mock(TestContainer.class);
             final var actualUnitTestCases        = mockTestContainerForName("fooPolicy", unitTestSuiteTestContainer);

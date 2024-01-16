@@ -46,15 +46,15 @@ class AttributeInterpreter {
         } else {
             final var values = returnValue.stream().map(valueInterpreter::getValFromValue).toArray(Val[]::new);
 
-            final var dslDuration = attribute.getDuration();
+            final var dslTiming = attribute.getTiming();
 
-            if (dslDuration == null) {
+            if (dslTiming == null) {
                 return givenOrWhenStep.givenAttribute(importName, values);
             }
 
-            final var duration = durationInterpreter.getJavaDurationFromDuration(dslDuration);
+            final var timing = durationInterpreter.getJavaDurationFromDuration(dslTiming);
 
-            return givenOrWhenStep.givenAttribute(importName, duration, values);
+            return givenOrWhenStep.givenAttribute(importName, timing, values);
         }
     }
 

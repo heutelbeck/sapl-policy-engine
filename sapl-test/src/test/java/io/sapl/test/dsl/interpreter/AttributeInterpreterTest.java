@@ -100,7 +100,7 @@ class AttributeInterpreterTest {
         }
 
         @Test
-        void interpretAttribute_withReturnValueAndNoDuration_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
+        void interpretAttribute_withReturnValueAndNoTiming_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
             final var attribute = buildAttribute("attribute \"fooAttribute\" returns \"Foo\"");
 
             final var expectedReturnValue = Val.of("Foo");
@@ -117,14 +117,14 @@ class AttributeInterpreterTest {
         }
 
         @Test
-        void interpretAttribute_withReturnValueAndDuration_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
+        void interpretAttribute_withReturnValueAndTiming_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
             final var expectedReturnValue = Val.of("Foo");
 
-            final var attribute = buildAttribute("attribute \"fooAttribute\" returns \"Foo\" for \"PT5S\"");
+            final var attribute = buildAttribute("attribute \"fooAttribute\" returns \"Foo\" with timing \"PT5S\"");
 
             when(valueInterpreterMock.getValFromValue(compareArgumentToStringLiteral("Foo")))
                     .thenReturn(expectedReturnValue);
-            when(durationInterpreterMock.getJavaDurationFromDuration(attribute.getDuration()))
+            when(durationInterpreterMock.getJavaDurationFromDuration(attribute.getTiming()))
                     .thenReturn(Duration.ofSeconds(5));
 
             when(givenOrWhenStepMock.givenAttribute("fooAttribute", Duration.ofSeconds(5), expectedReturnValue))

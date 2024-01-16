@@ -91,7 +91,7 @@ class FunctionInterpreterTest {
     class InterpretFunctionTest {
         @Test
         void interpretFunction_handlesNullGivenOrWhenStep_throwsSaplTestException() {
-            final Function function = buildFunction("function \"foo\" returning \"bar\"");
+            final Function function = buildFunction("function \"foo\" returns \"bar\"");
 
             final var exception = assertThrows(SaplTestException.class,
                     () -> functionInterpreter.interpretFunction(null, function));
@@ -117,7 +117,7 @@ class FunctionInterpreterTest {
 
         @Test
         void interpretFunction_withoutTimesCalledVerificationAndNullFunctionParameters_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
-            final Function function = buildFunction("function \"fooFunction\" returning \"bar\"");
+            final Function function = buildFunction("function \"fooFunction\" returns \"bar\"");
 
             final var expectedVal = Val.of("bar");
 
@@ -163,8 +163,7 @@ class FunctionInterpreterTest {
 
         @Test
         void interpretFunction_withoutTimesCalledVerificationAndFunctionParametersMatchers_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
-            final Function function = buildFunction(
-                    "function \"fooFunction\" parameters matching any returning \"bar\"");
+            final Function function = buildFunction("function \"fooFunction\" parameters matching any returns \"bar\"");
 
             final var matcherMock = mock(Matcher.class);
             when(matcherInterpreterMock.getHamcrestValMatcher(any(AnyVal.class))).thenReturn(matcherMock);
@@ -187,7 +186,7 @@ class FunctionInterpreterTest {
 
         @Test
         void interpretFunction_withTimesCalledVerificationBeingOnceAndNullFunctionParameters_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
-            final Function function = buildFunction("function \"fooFunction\" returning \"bar\" called once");
+            final Function function = buildFunction("function \"fooFunction\" returns \"bar\" called once");
 
             final var expectedVal = Val.of("bar");
 
@@ -253,7 +252,7 @@ class FunctionInterpreterTest {
         @Test
         void interpretFunction_withTimesCalledVerificationBeingMultipleAndFunctionParametersMatchers_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
             final Function function = buildFunction(
-                    "function \"fooFunction\" parameters matching \"parameter\" returning \"bar\" called 3x");
+                    "function \"fooFunction\" parameters matching \"parameter\" returns \"bar\" called 3x");
 
             final var expectedVal = Val.of("bar");
 
@@ -292,7 +291,7 @@ class FunctionInterpreterTest {
         @Test
         void interpretFunctionInvokedOnce_handlesNullGivenOrWhenStep_throwsSaplTestException() {
             final FunctionInvokedOnce functionInvokedOnce = buildFunction(
-                    "function \"fooFunction\" returns \"bar\" once");
+                    "function \"fooFunction\" returns stream \"bar\"");
 
             final var exception = assertThrows(SaplTestException.class,
                     () -> functionInterpreter.interpretFunctionInvokedOnce(null, functionInvokedOnce));
@@ -343,7 +342,7 @@ class FunctionInterpreterTest {
         @Test
         void interpretFunctionInvokedOnce_handlesSingleReturnValue_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
             final FunctionInvokedOnce functionInvokedOnce = buildFunction(
-                    "function \"fooFunction\" returns \"bar\" once");
+                    "function \"fooFunction\" returns stream \"bar\"");
 
             final var expectedVal = Val.of("bar");
 
@@ -360,7 +359,7 @@ class FunctionInterpreterTest {
         @Test
         void interpretFunctionInvokedOnce_handlesMultipleReturnValues_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
             final FunctionInvokedOnce functionInvokedOnce = buildFunction(
-                    "function \"fooFunction\" returns \"bar\", 1 once");
+                    "function \"fooFunction\" returns stream \"bar\", 1");
 
             final var expectedVal1 = Val.of("bar");
             final var expectedVal2 = Val.of(5);

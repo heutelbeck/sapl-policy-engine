@@ -65,7 +65,7 @@ public final class TestProvider {
 
     private String getDynamicContainerName(final TestSuite testSuite) {
         if (testSuite instanceof UnitTestSuite unitTestSuite) {
-            return unitTestSuite.getId();
+            return unitTestSuite.getPolicyName();
         } else if (testSuite instanceof IntegrationTestSuite integrationTestSuite) {
             final var policyResolverConfig = integrationTestSuite.getConfig();
             if (policyResolverConfig instanceof PoliciesByIdentifier policiesByIdentifier) {

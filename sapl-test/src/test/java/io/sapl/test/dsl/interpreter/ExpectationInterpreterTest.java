@@ -85,6 +85,14 @@ class ExpectationInterpreterTest {
     @Mock
     private ExpectOrVerifyStep                      expectOrVerifyStepMock;
 
+    private final MockedStatic<org.hamcrest.Matchers> hamcrestMatchersMockedStatic = mockStatic(
+            org.hamcrest.Matchers.class, Answers.RETURNS_SMART_NULLS);
+
+    @AfterEach
+    void tearDown() {
+        hamcrestMatchersMockedStatic.close();
+    }
+
     private <T extends Expectation> T buildExpectChain(final String input) {
         return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getExpectationRule);
     }
@@ -94,7 +102,7 @@ class ExpectationInterpreterTest {
     class SingleExpectTest {
         @Test
         void interpretSingleExpect_handlesNullExpectStep_throwsSaplTestException() {
-            final SingleExpect singleExpect = buildExpectChain("expect single permit");
+            final SingleExpect singleExpect = buildExpectChain("permit");
 
             final var exception = assertThrows(SaplTestException.class,
                     () -> expectationInterpreter.interpretSingleExpect(null, singleExpect));
@@ -133,7 +141,7 @@ class ExpectationInterpreterTest {
         @Test
         void interpretSingleExpect_callsAuthorizationDecisionInterpreter_returnsVerifyStep() {
             final SingleExpect singleExpect = buildExpectChain(
-                    "expect single permit with obligations \"obligation\" with resource \"resource\" with advice \"advice1\",\"advice2\"");
+                    "permit with obligations \"obligation\" with resource \"resource\" with advice \"advice1\", \"advice2\"");
 
             final var authorizationDecisionMock = mock(AuthorizationDecision.class);
 
@@ -166,8 +174,7 @@ class ExpectationInterpreterTest {
 
         @Test
         void interpretSingleExpectWithMatcher_handlesNullExpectStep_throwsSaplTestException() {
-            final SingleExpectWithMatcher singleExpectWithMatcher = buildExpectChain(
-                    "expect single decision matching any");
+            final SingleExpectWithMatcher singleExpectWithMatcher = buildExpectChain("decision matching any");
 
             final var exception = assertThrows(SaplTestException.class,
                     () -> expectationInterpreter.interpretSingleExpectWithMatcher(null, singleExpectWithMatcher));
@@ -192,21 +199,33 @@ class ExpectationInterpreterTest {
         }
 
         @Test
-        void interpretSingleExpectWithMatcher_handlesNullMatcherInSingleExpectWithMatcher_throwsSaplTestException() {
+        void interpretSingleExpectWithMatcher_handlesNullMatchersInSingleExpectWithMatcher_throwsSaplTestException() {
             final var singleExpectWithMatcherMock = mock(SingleExpectWithMatcher.class);
 
-            when(singleExpectWithMatcherMock.getMatcher()).thenReturn(null);
+            when(singleExpectWithMatcherMock.getMatchers()).thenReturn(null);
 
             final var exception = assertThrows(SaplTestException.class, () -> expectationInterpreter
                     .interpretSingleExpectWithMatcher(expectOrVerifyStepMock, singleExpectWithMatcherMock));
 
-            assertEquals("SingleExpectWithMatcher does not contain a matcher", exception.getMessage());
+            assertEquals("No AuthorizationDecisionMatcher found", exception.getMessage());
+        }
+
+        @Test
+        void interpretSingleExpectWithMatcher_handlesEmptyMatchersInSingleExpectWithMatcher_throwsSaplTestException() {
+            final var singleExpectWithMatcherMock = mock(SingleExpectWithMatcher.class);
+
+            final var matchersMock = Helper.mockEList(Collections.<AuthorizationDecisionMatcher>emptyList());
+            when(singleExpectWithMatcherMock.getMatchers()).thenReturn(matchersMock);
+
+            final var exception = assertThrows(SaplTestException.class, () -> expectationInterpreter
+                    .interpretSingleExpectWithMatcher(expectOrVerifyStepMock, singleExpectWithMatcherMock));
+
+            assertEquals("No AuthorizationDecisionMatcher found", exception.getMessage());
         }
 
         @Test
         void interpretSingleExpectWithMatcher_callsAuthorizationDecisionMatcherInterpreter_returnsVerifyStep() {
-            final SingleExpectWithMatcher singleExpectWithMatcher = buildExpectChain(
-                    "expect single decision matching any");
+            final SingleExpectWithMatcher singleExpectWithMatcher = buildExpectChain("decision any");
 
             final Matcher<AuthorizationDecision> authorizationDecisionMatcherMock = mock(Matcher.class);
 
@@ -221,6 +240,46 @@ class ExpectationInterpreterTest {
                     singleExpectWithMatcher);
 
             assertEquals(verifyStepMock, result);
+        }
+
+        @Test
+        void interpretSingleExpectWithMatcher_correctlyMapsMultipleMixedMatchers_returnsVerifyStep() {
+            final SingleExpectWithMatcher singleExpectWithMatcher = buildExpectChain(
+                    "decision with obligation, is deny");
+
+            final var hasObligationOrAdviceMappedMock = mock(Matcher.class);
+            final var isDecisionMappedMock            = mock(Matcher.class);
+
+            when(authorizationDecisionMatcherInterpreterMock
+                    .getHamcrestAuthorizationDecisionMatcher(any(HasObligationOrAdvice.class)))
+                    .thenAnswer(invocationOnMock -> {
+                        final HasObligationOrAdvice hasObligationOrAdvice = invocationOnMock.getArgument(0);
+
+                        assertEquals(AuthorizationDecisionMatcherType.OBLIGATION, hasObligationOrAdvice.getType());
+                        assertNull(hasObligationOrAdvice.getMatcher());
+                        return hasObligationOrAdviceMappedMock;
+                    });
+
+            when(authorizationDecisionMatcherInterpreterMock
+                    .getHamcrestAuthorizationDecisionMatcher(any(IsDecision.class))).thenAnswer(invocationOnMock -> {
+                        final IsDecision isDecision = invocationOnMock.getArgument(0);
+
+                        assertEquals(AuthorizationDecisionType.DENY, isDecision.getDecision());
+                        return isDecisionMappedMock;
+                    });
+
+            final var allOfMock = mock(Matcher.class);
+            hamcrestMatchersMockedStatic
+                    .when(() -> org.hamcrest.Matchers
+                            .allOf(new Matcher[] { hasObligationOrAdviceMappedMock, isDecisionMappedMock }))
+                    .thenReturn(allOfMock);
+
+            when(expectOrVerifyStepMock.expect(allOfMock)).thenReturn(expectOrVerifyStepMock);
+
+            final var result = expectationInterpreter.interpretSingleExpectWithMatcher(expectOrVerifyStepMock,
+                    singleExpectWithMatcher);
+
+            assertEquals(expectOrVerifyStepMock, result);
         }
     }
 
@@ -318,7 +377,7 @@ class ExpectationInterpreterTest {
 
             @Test
             void interpretRepeatedExpect_constructsNextDenyWithNumericAmountBeingMultiple_returnsVerifyStepWithNextDeny() {
-                final RepeatedExpect repeatedExpect = buildExpectChain("- expect deny 3x");
+                final RepeatedExpect repeatedExpect = buildExpectChain("- deny 3x");
 
                 when(multipleAmountInterpreterMock.getAmountFromMultipleAmountString("3x")).thenReturn(3);
 
@@ -332,7 +391,7 @@ class ExpectationInterpreterTest {
 
             @Test
             void interpretRepeatedExpect_constructsNextIndeterminateWithNumericAmountBeingOnce_returnsVerifyStepWithNextIndeterminateOnce() {
-                final RepeatedExpect repeatedExpect = buildExpectChain("- expect indeterminate once");
+                final RepeatedExpect repeatedExpect = buildExpectChain("- indeterminate once");
 
                 when(expectOrVerifyStepMock.expectNextIndeterminate(1)).thenReturn(expectOrVerifyStepMock);
 
@@ -344,7 +403,7 @@ class ExpectationInterpreterTest {
 
             @Test
             void interpretRepeatedExpect_constructsNextNotApplicableWithNumericAmountBeingOnce_returnsVerifyStepWithNextPermitOnce() {
-                final RepeatedExpect repeatedExpect = buildExpectChain("- expect permit once");
+                final RepeatedExpect repeatedExpect = buildExpectChain("- permit once");
 
                 when(expectOrVerifyStepMock.expectNextPermit(1)).thenReturn(expectOrVerifyStepMock);
 
@@ -356,7 +415,7 @@ class ExpectationInterpreterTest {
 
             @Test
             void interpretRepeatedExpect_constructsNextNotApplicableWithNumericAmountBeingMultiple_returnsVerifyStepWithNextNotApplicable() {
-                final RepeatedExpect repeatedExpect = buildExpectChain("- expect notApplicable 5x");
+                final RepeatedExpect repeatedExpect = buildExpectChain("- notApplicable 5x");
 
                 when(multipleAmountInterpreterMock.getAmountFromMultipleAmountString("5x")).thenReturn(5);
 
@@ -392,7 +451,7 @@ class ExpectationInterpreterTest {
             @Test
             void interpretRepeatedExpect_handlesNextWithAuthorizationDecision_returnsVerifyStepWithNextAuthorizationDecision() {
                 final RepeatedExpect repeatedExpect = buildExpectChain(
-                        "- expect decision permit with obligations \"obligation\" with resource \"resource\" with advice \"advice\"");
+                        "- permit with obligations \"obligation\" with resource \"resource\" with advice \"advice\"");
 
                 final var authorizationDecisionMock = mock(AuthorizationDecision.class);
 
@@ -422,15 +481,12 @@ class ExpectationInterpreterTest {
         @Nested
         @DisplayName("Expect next with matcher")
         class ExpectNextWithMatcherTest {
-            private final MockedStatic<Matchers>              saplMatchersMockedStatic     = mockStatic(Matchers.class,
+            private final MockedStatic<Matchers> saplMatchersMockedStatic = mockStatic(Matchers.class,
                     Answers.RETURNS_SMART_NULLS);
-            private final MockedStatic<org.hamcrest.Matchers> hamcrestMatchersMockedStatic = mockStatic(
-                    org.hamcrest.Matchers.class, Answers.RETURNS_SMART_NULLS);
 
             @AfterEach
             void tearDown() {
                 saplMatchersMockedStatic.close();
-                hamcrestMatchersMockedStatic.close();
             }
 
             @Test
@@ -470,7 +526,7 @@ class ExpectationInterpreterTest {
 
             @Test
             void interpretRepeatedExpect_correctlyMapsSingleMatcher_returnsAdjustedVerifyStep() {
-                final RepeatedExpect repeatedExpect = buildExpectChain("- expect decision is permit");
+                final RepeatedExpect repeatedExpect = buildExpectChain("- decision is permit");
 
                 final var mappedAuthorizationDecisionMatcherMock = mock(Matcher.class);
 
@@ -494,7 +550,7 @@ class ExpectationInterpreterTest {
 
             @Test
             void interpretRepeatedExpect_correctlyMapsMultipleMixedMatchers_returnsAdjustedVerifyStep() {
-                final RepeatedExpect repeatedExpect = buildExpectChain("- expect decision with obligation, is deny");
+                final RepeatedExpect repeatedExpect = buildExpectChain("- decision with obligation, is deny");
 
                 final var hasObligationOrAdviceMappedMock = mock(Matcher.class);
                 final var isDecisionMappedMock            = mock(Matcher.class);
@@ -538,7 +594,7 @@ class ExpectationInterpreterTest {
         class NoEventTest {
             @Test
             void interpretRepeatedExpect_interpretsAwait_returnsAdjustedVerifyStep() {
-                final RepeatedExpect repeatedExpect = buildExpectChain("- expect no-event for \"PT3S\"");
+                final RepeatedExpect repeatedExpect = buildExpectChain("- no-event for \"PT3S\"");
 
                 when(durationInterpreterMock.getJavaDurationFromDuration(any())).thenAnswer(invocationOnMock -> {
                     final io.sapl.test.grammar.sAPLTest.Duration duration = invocationOnMock.getArgument(0);

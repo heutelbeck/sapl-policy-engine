@@ -91,7 +91,7 @@ class DefaultWhenStepConstructorTest {
 
     @Test
     void constructWhenStep_handlesFunctionGivenStep_returnsAdjustedUnitTestFixture() {
-        final Function function = buildGivenStep("function \"foo\" returning \"bar\"");
+        final Function function = buildGivenStep("function \"foo\" returns \"bar\"");
 
         when(functionInterpreterMock.interpretFunction(saplUnitTestFixtureMock, function))
                 .thenReturn(saplUnitTestFixtureMock);
@@ -103,7 +103,7 @@ class DefaultWhenStepConstructorTest {
 
     @Test
     void constructWhenStep_handlesFunctionInvokedOnceGivenStep_returnsAdjustedUnitTestFixture() {
-        final FunctionInvokedOnce functionInvokedOnce = buildGivenStep("function \"foo\" returns \"bar\" once");
+        final FunctionInvokedOnce functionInvokedOnce = buildGivenStep("function \"foo\" returns stream \"bar\"");
 
         when(functionInterpreterMock.interpretFunctionInvokedOnce(saplUnitTestFixtureMock, functionInvokedOnce))
                 .thenReturn(saplUnitTestFixtureMock);
@@ -153,7 +153,7 @@ class DefaultWhenStepConstructorTest {
 
     @Test
     void constructWhenStep_handlesMultipleGivenSteps_returnsAdjustedUnitTestFixture() {
-        final Function    function    = buildGivenStep("function \"foo\" returning \"bar\"");
+        final Function    function    = buildGivenStep("function \"foo\" returns \"bar\"");
         final Attribute   attribute   = buildGivenStep("attribute \"foo\"");
         final VirtualTime virtualTime = buildGivenStep("virtual-time");
 
