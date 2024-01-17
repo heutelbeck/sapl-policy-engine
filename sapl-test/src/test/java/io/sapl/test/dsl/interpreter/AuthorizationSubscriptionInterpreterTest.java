@@ -61,7 +61,8 @@ class AuthorizationSubscriptionInterpreterTest {
     }
 
     private AuthorizationSubscription buildAuthorizationSubscription(final String input) {
-        return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getAuthorizationSubscriptionRule);
+        return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getAuthorizationSubscriptionRule,
+                AuthorizationSubscription.class);
     }
 
     private void mockValInterpreter(Map<String, Val> expectedValueToReturnValue) {

@@ -28,9 +28,9 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.test.TestHelper;
 import io.sapl.test.Imports;
 import io.sapl.test.SaplTestException;
+import io.sapl.test.TestHelper;
 import io.sapl.test.dsl.ParserUtil;
 import io.sapl.test.grammar.sAPLTest.AnyVal;
 import io.sapl.test.grammar.sAPLTest.Function;
@@ -80,8 +80,16 @@ class FunctionInterpreterTest {
         importsMockedStatic.close();
     }
 
-    private <T extends GivenStep> T buildFunction(final String input) {
-        return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getGivenStepRule);
+    private <T extends GivenStep> T buildGivenStep(final String input, final Class<T> clazz) {
+        return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getGivenStepRule, clazz);
+    }
+
+    private Function buildFunction(final String input) {
+        return buildGivenStep(input, Function.class);
+    }
+
+    private FunctionInvokedOnce buildFunctionInvokedOnce(final String input) {
+        return buildGivenStep(input, FunctionInvokedOnce.class);
     }
 
     @Nested
@@ -93,7 +101,7 @@ class FunctionInterpreterTest {
 
         @Test
         void interpretFunction_handlesNullGivenOrWhenStep_throwsSaplTestException() {
-            final Function function = buildFunction("function \"foo\" returns \"bar\"");
+            final var function = buildFunction("function \"foo\" returns \"bar\"");
 
             final var exception = assertThrows(SaplTestException.class,
                     () -> functionInterpreter.interpretFunction(null, function));
@@ -119,7 +127,7 @@ class FunctionInterpreterTest {
 
         @Test
         void interpretFunction_withoutTimesCalledVerificationAndNullFunctionParameters_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
-            final Function function = buildFunction("function \"fooFunction\" returns \"bar\"");
+            final var function = buildFunction("function \"fooFunction\" returns \"bar\"");
 
             final var expectedVal = Val.of("bar");
 
@@ -164,7 +172,7 @@ class FunctionInterpreterTest {
 
         @Test
         void interpretFunction_withoutTimesCalledVerificationAndFunctionParametersMatchers_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
-            final Function function = buildFunction("function \"fooFunction\" parameters matching any returns \"bar\"");
+            final var function = buildFunction("function \"fooFunction\" parameters matching any returns \"bar\"");
 
             when(matcherInterpreterMock.getHamcrestValMatcher(any(AnyVal.class))).thenReturn(valMatcherMock);
 
@@ -186,7 +194,7 @@ class FunctionInterpreterTest {
 
         @Test
         void interpretFunction_withTimesCalledVerificationBeingOnceAndNullFunctionParameters_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
-            final Function function = buildFunction("function \"fooFunction\" returns \"bar\" called once");
+            final var function = buildFunction("function \"fooFunction\" returns \"bar\" called once");
 
             final var expectedVal = Val.of("bar");
 
@@ -255,7 +263,7 @@ class FunctionInterpreterTest {
 
         @Test
         void interpretFunction_withTimesCalledVerificationBeingMultipleAndFunctionParametersMatchers_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
-            final Function function = buildFunction(
+            final var function = buildFunction(
                     "function \"fooFunction\" parameters matching \"parameter\" returns \"bar\" called 3 times");
 
             final var expectedVal = Val.of("bar");
@@ -299,8 +307,7 @@ class FunctionInterpreterTest {
     class InterpretFunctionInvokedOnceTest {
         @Test
         void interpretFunctionInvokedOnce_handlesNullGivenOrWhenStep_throwsSaplTestException() {
-            final FunctionInvokedOnce functionInvokedOnce = buildFunction(
-                    "function \"fooFunction\" returns stream \"bar\"");
+            final var functionInvokedOnce = buildFunctionInvokedOnce("function \"fooFunction\" returns stream \"bar\"");
 
             final var exception = assertThrows(SaplTestException.class,
                     () -> functionInterpreter.interpretFunctionInvokedOnce(null, functionInvokedOnce));
@@ -349,8 +356,7 @@ class FunctionInterpreterTest {
 
         @Test
         void interpretFunctionInvokedOnce_handlesSingleReturnValue_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
-            final FunctionInvokedOnce functionInvokedOnce = buildFunction(
-                    "function \"fooFunction\" returns stream \"bar\"");
+            final var functionInvokedOnce = buildFunctionInvokedOnce("function \"fooFunction\" returns stream \"bar\"");
 
             final var expectedVal = Val.of("bar");
 
@@ -366,7 +372,7 @@ class FunctionInterpreterTest {
 
         @Test
         void interpretFunctionInvokedOnce_handlesMultipleReturnValues_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
-            final FunctionInvokedOnce functionInvokedOnce = buildFunction(
+            final var functionInvokedOnce = buildFunctionInvokedOnce(
                     "function \"fooFunction\" returns stream \"bar\", 1");
 
             final var expectedVal1 = Val.of("bar");

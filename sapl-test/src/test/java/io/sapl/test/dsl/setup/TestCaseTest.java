@@ -29,9 +29,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.sapl.test.TestHelper;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
+import io.sapl.test.TestHelper;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.grammar.sAPLTest.Expectation;
 import io.sapl.test.grammar.sAPLTest.FixtureRegistration;

@@ -28,8 +28,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.inject.Injector;
-import io.sapl.test.TestHelper;
 import io.sapl.test.SaplTestException;
+import io.sapl.test.TestHelper;
 import io.sapl.test.grammar.SAPLTestStandaloneSetup;
 import io.sapl.test.grammar.sAPLTest.SAPLTest;
 import java.io.IOException;

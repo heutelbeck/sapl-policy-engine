@@ -26,7 +26,19 @@ import static org.mockito.Mockito.when;
 
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.ParserUtil;
+import io.sapl.test.grammar.sAPLTest.StringContains;
+import io.sapl.test.grammar.sAPLTest.StringContainsInOrder;
+import io.sapl.test.grammar.sAPLTest.StringEndsWith;
+import io.sapl.test.grammar.sAPLTest.StringIsBlank;
+import io.sapl.test.grammar.sAPLTest.StringIsEmpty;
+import io.sapl.test.grammar.sAPLTest.StringIsEqualIgnoringCase;
+import io.sapl.test.grammar.sAPLTest.StringIsEqualWithCompressedWhiteSpace;
+import io.sapl.test.grammar.sAPLTest.StringIsNull;
+import io.sapl.test.grammar.sAPLTest.StringIsNullOrBlank;
+import io.sapl.test.grammar.sAPLTest.StringIsNullOrEmpty;
 import io.sapl.test.grammar.sAPLTest.StringMatcher;
+import io.sapl.test.grammar.sAPLTest.StringMatchesRegex;
+import io.sapl.test.grammar.sAPLTest.StringStartsWith;
 import io.sapl.test.grammar.sAPLTest.StringWithLength;
 import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import java.math.BigDecimal;
@@ -61,8 +73,8 @@ class StringMatcherInterpreterTest {
         matchersMockedStatic.close();
     }
 
-    private <T extends StringMatcher> T buildStringMatcher(final String input) {
-        return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getStringMatcherRule);
+    private <T extends StringMatcher> T buildStringMatcher(final String input, final Class<T> clazz) {
+        return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getStringMatcherRule, clazz);
     }
 
     @Test
@@ -85,7 +97,7 @@ class StringMatcherInterpreterTest {
 
     @Test
     void getHamcrestStringMatcher_handlesStringIsNull_returnsNullValueMatcher() {
-        final var stringMatcher = buildStringMatcher("null");
+        final var stringMatcher = buildStringMatcher("null", StringIsNull.class);
 
         matchersMockedStatic.when(() -> Matchers.nullValue(String.class)).thenReturn(matcherMock);
 
@@ -96,7 +108,7 @@ class StringMatcherInterpreterTest {
 
     @Test
     void getHamcrestStringMatcher_handlesStringIsBlank_returnsBlankStringMatcher() {
-        final var stringMatcher = buildStringMatcher("blank");
+        final var stringMatcher = buildStringMatcher("blank", StringIsBlank.class);
 
         matchersMockedStatic.when(Matchers::blankString).thenReturn(matcherMock);
 
@@ -107,7 +119,7 @@ class StringMatcherInterpreterTest {
 
     @Test
     void getHamcrestStringMatcher_handlesStringIsEmpty_returnsEmptyStringMatcher() {
-        final var stringMatcher = buildStringMatcher("empty");
+        final var stringMatcher = buildStringMatcher("empty", StringIsEmpty.class);
 
         matchersMockedStatic.when(Matchers::emptyString).thenReturn(matcherMock);
 
@@ -118,7 +130,7 @@ class StringMatcherInterpreterTest {
 
     @Test
     void getHamcrestStringMatcher_handlesStringIsNullOrEmpty_returnsEmptyOrNullStringMatcher() {
-        final var stringMatcher = buildStringMatcher("null-or-empty");
+        final var stringMatcher = buildStringMatcher("null-or-empty", StringIsNullOrEmpty.class);
 
         matchersMockedStatic.when(Matchers::emptyOrNullString).thenReturn(matcherMock);
 
@@ -129,7 +141,7 @@ class StringMatcherInterpreterTest {
 
     @Test
     void getHamcrestStringMatcher_handlesStringIsNullOrBlank_returnsBlankOrNullStringMatcher() {
-        final var stringMatcher = buildStringMatcher("null-or-blank");
+        final var stringMatcher = buildStringMatcher("null-or-blank", StringIsNullOrBlank.class);
 
         matchersMockedStatic.when(Matchers::blankOrNullString).thenReturn(matcherMock);
 
@@ -140,7 +152,8 @@ class StringMatcherInterpreterTest {
 
     @Test
     void getHamcrestStringMatcher_handlesStringIsEqualWithCompressedWhiteSpace_returnsEqualToCompressingWhiteSpaceMatcher() {
-        final var stringMatcher = buildStringMatcher("equal to \"foo\" with compressed whitespaces");
+        final var stringMatcher = buildStringMatcher("equal to \"foo\" with compressed whitespaces",
+                StringIsEqualWithCompressedWhiteSpace.class);
 
         matchersMockedStatic.when(() -> Matchers.equalToCompressingWhiteSpace("foo")).thenReturn(matcherMock);
 
@@ -151,7 +164,7 @@ class StringMatcherInterpreterTest {
 
     @Test
     void getHamcrestStringMatcher_handlesStringIsEqualIgnoringCase_returnsEqualToIgnoringCaseMatcher() {
-        final var stringMatcher = buildStringMatcher("equal to \"foo\" ignoring case");
+        final var stringMatcher = buildStringMatcher("equal to \"foo\" ignoring case", StringIsEqualIgnoringCase.class);
 
         matchersMockedStatic.when(() -> Matchers.equalToIgnoringCase("foo")).thenReturn(matcherMock);
 
@@ -162,7 +175,7 @@ class StringMatcherInterpreterTest {
 
     @Test
     void getHamcrestStringMatcher_handlesStringMatchesRegex_returnsMatchesRegexMatcher() {
-        final var stringMatcher = buildStringMatcher("with regex \"fooRegex\"");
+        final var stringMatcher = buildStringMatcher("with regex \"fooRegex\"", StringMatchesRegex.class);
 
         matchersMockedStatic.when(() -> Matchers.matchesRegex("fooRegex")).thenReturn(matcherMock);
 
@@ -173,7 +186,7 @@ class StringMatcherInterpreterTest {
 
     @Test
     void getHamcrestStringMatcher_handlesStringStartsWith_returnsStartsWithMatcher() {
-        final var stringMatcher = buildStringMatcher("starting with \"foo\"");
+        final var stringMatcher = buildStringMatcher("starting with \"foo\"", StringStartsWith.class);
 
         matchersMockedStatic.when(() -> Matchers.startsWith("foo")).thenReturn(matcherMock);
 
@@ -184,7 +197,7 @@ class StringMatcherInterpreterTest {
 
     @Test
     void getHamcrestStringMatcher_handlesStringStartsWithIgnoringCase_returnsStartsWithIgnoringCaseMatcher() {
-        final var stringMatcher = buildStringMatcher("starting with \"foo\" ignoring case");
+        final var stringMatcher = buildStringMatcher("starting with \"foo\" ignoring case", StringStartsWith.class);
 
         matchersMockedStatic.when(() -> Matchers.startsWithIgnoringCase("foo")).thenReturn(matcherMock);
 
@@ -195,7 +208,7 @@ class StringMatcherInterpreterTest {
 
     @Test
     void getHamcrestStringMatcher_handlesStringEndsWith_returnsEndsWithMatcher() {
-        final var stringMatcher = buildStringMatcher("ending with \"foo\"");
+        final var stringMatcher = buildStringMatcher("ending with \"foo\"", StringEndsWith.class);
 
         matchersMockedStatic.when(() -> Matchers.endsWith("foo")).thenReturn(matcherMock);
 
@@ -206,7 +219,7 @@ class StringMatcherInterpreterTest {
 
     @Test
     void getHamcrestStringMatcher_handlesStringEndsWithIgnoringCase_returnsEndsWithIgnoringCaseMatcher() {
-        final var stringMatcher = buildStringMatcher("ending with \"foo\" ignoring case");
+        final var stringMatcher = buildStringMatcher("ending with \"foo\" ignoring case", StringEndsWith.class);
 
         matchersMockedStatic.when(() -> Matchers.endsWithIgnoringCase("foo")).thenReturn(matcherMock);
 
@@ -217,7 +230,7 @@ class StringMatcherInterpreterTest {
 
     @Test
     void getHamcrestStringMatcher_handlesStringContains_returnsContainsStringMatcher() {
-        final var stringMatcher = buildStringMatcher("containing \"foo\"");
+        final var stringMatcher = buildStringMatcher("containing \"foo\"", StringContains.class);
 
         matchersMockedStatic.when(() -> Matchers.containsString("foo")).thenReturn(matcherMock);
 
@@ -228,7 +241,7 @@ class StringMatcherInterpreterTest {
 
     @Test
     void getHamcrestStringMatcher_handlesStringContainsIgnoringCase_returnsContainsStringIgnoringCaseMatcher() {
-        final var stringMatcher = buildStringMatcher("containing \"foo\" ignoring case");
+        final var stringMatcher = buildStringMatcher("containing \"foo\" ignoring case", StringContains.class);
 
         matchersMockedStatic.when(() -> Matchers.containsStringIgnoringCase("foo")).thenReturn(matcherMock);
 
@@ -239,7 +252,8 @@ class StringMatcherInterpreterTest {
 
     @Test
     void getHamcrestStringMatcher_handlesStringContainsInOrder_returnsStringContainsInOrderMatcher() {
-        final var stringMatcher = buildStringMatcher("containing stream \"foo\", \"foo2\" in order");
+        final var stringMatcher = buildStringMatcher("containing stream \"foo\", \"foo2\" in order",
+                StringContainsInOrder.class);
 
         matchersMockedStatic.when(() -> Matchers.stringContainsInOrder(List.of("foo", "foo2"))).thenReturn(matcherMock);
 

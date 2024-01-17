@@ -55,7 +55,8 @@ class DefaultTestCaseConstructorTest {
     GivenOrWhenStep givenOrWhenStepMock;
 
     private io.sapl.test.grammar.sAPLTest.Object buildObject(final String input) {
-        return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getObjectRule);
+        return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getObjectRule,
+                io.sapl.test.grammar.sAPLTest.Object.class);
     }
 
     @Test

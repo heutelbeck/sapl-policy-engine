@@ -27,8 +27,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
-import io.sapl.test.TestHelper;
 import io.sapl.test.SaplTestException;
+import io.sapl.test.TestHelper;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.TestNode;
 import io.sapl.test.grammar.sAPLTest.IntegrationTestSuite;

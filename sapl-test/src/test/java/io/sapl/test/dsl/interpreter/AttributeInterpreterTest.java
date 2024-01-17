@@ -72,7 +72,7 @@ class AttributeInterpreterTest {
     class InterpretAttributeTest {
 
         private Attribute buildAttribute(final String input) {
-            return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getGivenStepRule);
+            return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getGivenStepRule, Attribute.class);
         }
 
         @Test
@@ -141,7 +141,8 @@ class AttributeInterpreterTest {
     class InterpretAttributeWithParametersTest {
 
         private AttributeWithParameters buildAttributeWithParameters(final String input) {
-            return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getGivenStepRule);
+            return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getGivenStepRule,
+                    AttributeWithParameters.class);
         }
 
         @Mock

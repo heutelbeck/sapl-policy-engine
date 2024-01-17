@@ -33,6 +33,7 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.ParserUtil;
 import io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType;
+import io.sapl.test.grammar.sAPLTest.NumberLiteral;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
@@ -55,6 +56,10 @@ class AuthorizationDecisionInterpreterTest {
     private ObjectMapper                     objectMapperMock;
     @InjectMocks
     private AuthorizationDecisionInterpreter authorizationDecisionInterpreter;
+
+    private NumberLiteral buildNumberLiteral(final String input) {
+        return ParserUtil.buildValue(input, NumberLiteral.class);
+    }
 
     @Test
     void constructAuthorizationDecision_handlesNullAuthorizationDecisionType_throwsSaplTestException() {
@@ -87,7 +92,7 @@ class AuthorizationDecisionInterpreterTest {
     class ObligationsAndResourceAndAdviceMappingTest {
         @Test
         void constructAuthorizationDecision_shouldInterpretResourceOnlyForEmptyObligationsAndAdvice_returnsCorrectAuthorizationDecision() {
-            final var value = ParserUtil.buildValue("5");
+            final var value = buildNumberLiteral("5");
 
             final var expectedVal = Val.of(5);
             when(valueInterpreterMock.getValFromValue(value)).thenReturn(expectedVal);
@@ -101,7 +106,7 @@ class AuthorizationDecisionInterpreterTest {
 
         @Test
         void constructAuthorizationDecision_shouldInterpretResourceOnlyForNullObligationsAndAdvice_returnsCorrectAuthorizationDecision() {
-            final var value = ParserUtil.buildValue("5");
+            final var value = buildNumberLiteral("5");
 
             final var expectedVal = Val.of(5);
 
@@ -116,7 +121,7 @@ class AuthorizationDecisionInterpreterTest {
 
         @Test
         void constructAuthorizationDecision_shouldInterpretObligationsOnlyForNullResourceAndAdvice_returnsCorrectAuthorizationDecision() {
-            final var value = ParserUtil.buildValue("5");
+            final var value = buildNumberLiteral("5");
 
             final var expectedVal = Val.of(5);
 
@@ -139,14 +144,14 @@ class AuthorizationDecisionInterpreterTest {
         void constructAuthorizationDecision_shouldInterpretResourceAndObligationsAndAdvice_returnsCorrectAuthorizationDecision() {
             final var resourceVal = Val.of(1);
 
-            final var resourceValue = ParserUtil.buildValue("1");
+            final var resourceValue = buildNumberLiteral("1");
             when(valueInterpreterMock.getValFromValue(resourceValue)).thenReturn(resourceVal);
 
-            final var obligationValue1 = ParserUtil.buildValue("2");
-            final var obligationValue2 = ParserUtil.buildValue("3");
+            final var obligationValue1 = buildNumberLiteral("2");
+            final var obligationValue2 = buildNumberLiteral("3");
 
-            final var adviceValue1 = ParserUtil.buildValue("4");
-            final var adviceValue2 = ParserUtil.buildValue("5");
+            final var adviceValue1 = buildNumberLiteral("4");
+            final var adviceValue2 = buildNumberLiteral("5");
 
             final var expectedObligation1Val = Val.of(2);
             final var expectedObligation2Val = Val.of(3);

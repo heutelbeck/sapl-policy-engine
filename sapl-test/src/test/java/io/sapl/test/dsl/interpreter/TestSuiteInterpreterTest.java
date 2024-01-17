@@ -31,8 +31,8 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
-import io.sapl.test.TestHelper;
 import io.sapl.test.SaplTestException;
+import io.sapl.test.TestHelper;
 import io.sapl.test.dsl.ParserUtil;
 import io.sapl.test.dsl.interfaces.IntegrationTestConfiguration;
 import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
@@ -44,6 +44,7 @@ import io.sapl.test.grammar.sAPLTest.PoliciesByInputString;
 import io.sapl.test.grammar.sAPLTest.PolicyResolverConfig;
 import io.sapl.test.grammar.sAPLTest.StringLiteral;
 import io.sapl.test.grammar.sAPLTest.TestSuite;
+import io.sapl.test.grammar.sAPLTest.UnitTestSuite;
 import io.sapl.test.grammar.sAPLTest.Value;
 import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import io.sapl.test.integration.SaplIntegrationTestFixture;
@@ -90,8 +91,12 @@ class TestSuiteInterpreterTest {
         saplIntegrationTestFixtureFactoryMockedStatic.close();
     }
 
-    private <T extends TestSuite> T buildTestSuite(final String input) {
-        return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getTestSuiteRule);
+    private <T extends TestSuite> T buildTestSuite(final String input, final Class<T> clazz) {
+        return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getTestSuiteRule, clazz);
+    }
+
+    private IntegrationTestSuite buildIntegrationTestSuite(final String input) {
+        return buildTestSuite(input, IntegrationTestSuite.class);
     }
 
     private void constructTestSuiteInterpreterWithCustomResolvers(
@@ -124,7 +129,8 @@ class TestSuiteInterpreterTest {
         @Test
         void getFixtureFromTestSuite_handlesDefaultUnitTestPolicyResolver_returnsSaplUnitTestFixture() {
             final var unitTestSuite = buildTestSuite(
-                    "test \"fooPolicy\" { scenario \"testCase\" when subject \"subject\" attempts action \"action\" on resource \"resource\" then expect single permit}");
+                    "test \"fooPolicy\" { scenario \"testCase\" when subject \"subject\" attempts action \"action\" on resource \"resource\" then expect single permit}",
+                    UnitTestSuite.class);
 
             final var saplUnitTestFixtureMock = mock(SaplUnitTestFixture.class);
             saplUnitTestFixtureFactoryMockedStatic.when(() -> SaplUnitTestFixtureFactory.create("fooPolicy"))
@@ -141,7 +147,8 @@ class TestSuiteInterpreterTest {
             constructTestSuiteInterpreterWithCustomResolvers(customUnitTestPolicyResolver, null);
 
             final var unitTestSuite = buildTestSuite(
-                    "test \"fooPolicy\" { scenario \"testCase\" when subject \"subject\" attempts action \"action\" on resource \"resource\" then expect single permit}");
+                    "test \"fooPolicy\" { scenario \"testCase\" when subject \"subject\" attempts action \"action\" on resource \"resource\" then expect single permit}",
+                    UnitTestSuite.class);
 
             when(customUnitTestPolicyResolver.resolvePolicyByIdentifier("fooPolicy")).thenReturn("resolvedPolicy");
 
@@ -252,7 +259,7 @@ class TestSuiteInterpreterTest {
 
         @Test
         void getFixtureFromTestSuite_handlesNullPdpVariablesForPolicySet_returnsSaplIntegrationTestFixture() {
-            final var integrationTestSuite = buildTestSuite(
+            final var integrationTestSuite = buildIntegrationTestSuite(
                     "test policies - \"policy1\" - \"policy2\" with pdp config \"fooFolder\" { scenario \"testCase\" when subject \"subject\" attempts action \"action\" on resource \"resource\" then expect single permit}");
 
             final var saplIntegrationTestFixtureMock = mock(SaplIntegrationTestFixture.class);
@@ -272,7 +279,7 @@ class TestSuiteInterpreterTest {
             final var integrationTestPolicyResolver = mock(IntegrationTestPolicyResolver.class);
             constructTestSuiteInterpreterWithCustomResolvers(null, integrationTestPolicyResolver);
 
-            final var integrationTestSuite = buildTestSuite(
+            final var integrationTestSuite = buildIntegrationTestSuite(
                     "test policies - \"policy1\" - \"policy2\" with pdp config \"fooFolder\" { scenario \"testCase\" when subject \"subject\" attempts action \"action\" on resource \"resource\" then expect single permit}");
 
             when(integrationTestPolicyResolver.resolvePDPConfigByIdentifier("fooFolder"))
@@ -296,7 +303,7 @@ class TestSuiteInterpreterTest {
 
         @Test
         void getFixtureFromTestSuite_handlesNullPdpVariables_returnsSaplIntegrationTestFixture() {
-            final var integrationTestSuite = buildTestSuite(
+            final var integrationTestSuite = buildIntegrationTestSuite(
                     "test policies with identifier \"fooFolder\" { scenario \"testCase\" when subject \"subject\" attempts action \"action\" on resource \"resource\" then expect single permit}");
 
             final var saplIntegrationTestFixtureMock = mock(SaplIntegrationTestFixture.class);
@@ -316,7 +323,7 @@ class TestSuiteInterpreterTest {
             final var integrationTestPolicyResolver = mock(IntegrationTestPolicyResolver.class);
             constructTestSuiteInterpreterWithCustomResolvers(null, integrationTestPolicyResolver);
 
-            final var integrationTestSuite = buildTestSuite(
+            final var integrationTestSuite = buildIntegrationTestSuite(
                     "test policies with identifier \"fooFolder\" { scenario \"testCase\" when subject \"subject\" attempts action \"action\" on resource \"resource\" then expect single permit}");
 
             final var integrationTestConfigurationMock = mock(IntegrationTestConfiguration.class);
@@ -340,7 +347,7 @@ class TestSuiteInterpreterTest {
 
         @Test
         void getFixtureFromTestSuite_handlesCombiningAlgorithm_returnsSaplIntegrationTestFixture() {
-            final var integrationTestSuite = buildTestSuite(
+            final var integrationTestSuite = buildIntegrationTestSuite(
                     "test policies with identifier \"fooFolder\" using combining-algorithm only-one-applicable { scenario \"testCase\" when subject \"subject\" attempts action \"action\" on resource \"resource\" then expect single permit}");
 
             final var saplIntegrationTestFixtureMock = mock(SaplIntegrationTestFixture.class);
@@ -392,7 +399,7 @@ class TestSuiteInterpreterTest {
 
         @Test
         void getFixtureFromTestSuite_handlesMultiplePdpVariables_returnsSaplIntegrationTestFixture() {
-            final var integrationTestSuite = buildTestSuite(
+            final var integrationTestSuite = buildIntegrationTestSuite(
                     "test policies with identifier \"fooFolder\" using variables { \"foo\" : \"bar\" } { scenario \"testCase\" when subject \"subject\" attempts action \"action\" on resource \"resource\" then expect single permit}");
 
             final var saplIntegrationTestFixtureMock = mock(SaplIntegrationTestFixture.class);

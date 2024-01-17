@@ -34,10 +34,13 @@ import io.sapl.hamcrest.HasObligation;
 import io.sapl.hamcrest.HasObligationContainingKeyValue;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.ParserUtil;
+import io.sapl.test.grammar.sAPLTest.AnyDecision;
 import io.sapl.test.grammar.sAPLTest.AuthorizationDecisionMatcher;
 import io.sapl.test.grammar.sAPLTest.AuthorizationDecisionMatcherType;
 import io.sapl.test.grammar.sAPLTest.DefaultObjectMatcher;
 import io.sapl.test.grammar.sAPLTest.ExtendedObjectMatcher;
+import io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice;
+import io.sapl.test.grammar.sAPLTest.HasResource;
 import io.sapl.test.grammar.sAPLTest.IsDecision;
 import io.sapl.test.grammar.sAPLTest.IsJsonNull;
 import io.sapl.test.grammar.sAPLTest.NullLiteral;
@@ -80,8 +83,21 @@ class AuthorizationDecisionMatcherInterpreterTest {
         saplMatchersMockedStatic.close();
     }
 
-    private <T extends AuthorizationDecisionMatcher> T buildAuthorizationDecisionMatcher(final String input) {
-        return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getAuthorizationDecisionMatcherRule);
+    private <T extends AuthorizationDecisionMatcher> T buildAuthorizationDecisionMatcher(final String input,
+            Class<T> clazz) {
+        return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getAuthorizationDecisionMatcherRule, clazz);
+    }
+
+    private IsDecision buildIsDecisionMatcher(final String input) {
+        return buildAuthorizationDecisionMatcher(input, IsDecision.class);
+    }
+
+    private HasObligationOrAdvice buildHasObligationOrAdviceMatcher(final String input) {
+        return buildAuthorizationDecisionMatcher(input, HasObligationOrAdvice.class);
+    }
+
+    private HasResource buildHasResourceMatcher(final String input) {
+        return buildAuthorizationDecisionMatcher(input, HasResource.class);
     }
 
     @Test
@@ -104,7 +120,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
     @Test
     void getHamcrestAuthorizationDecisionMatcher_handlesAnyDecision_returnsAnyDecisionMatcher() {
-        final var anyDecision = buildAuthorizationDecisionMatcher("any");
+        final var anyDecision = buildAuthorizationDecisionMatcher("any", AnyDecision.class);
 
         final var matcherMock = mock(Matcher.class);
         saplMatchersMockedStatic.when(io.sapl.hamcrest.Matchers::anyDecision).thenReturn(matcherMock);
@@ -127,7 +143,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
     @Test
     void getHamcrestAuthorizationDecisionMatcher_handlesIsDecisionPermit_returnsPermitMatcher() {
-        final var isDecision = buildAuthorizationDecisionMatcher("is permit");
+        final var isDecision = buildIsDecisionMatcher("is permit");
 
         final var matcherMock = mock(Matcher.class);
         saplMatchersMockedStatic.when(io.sapl.hamcrest.Matchers::isPermit).thenReturn(matcherMock);
@@ -139,7 +155,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
     @Test
     void getHamcrestAuthorizationDecisionMatcher_handlesIsDecisionDeny_returnsDenyMatcher() {
-        final var isDecision = buildAuthorizationDecisionMatcher("is deny");
+        final var isDecision = buildIsDecisionMatcher("is deny");
 
         final var matcherMock = mock(Matcher.class);
         saplMatchersMockedStatic.when(io.sapl.hamcrest.Matchers::isDeny).thenReturn(matcherMock);
@@ -151,7 +167,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
     @Test
     void getHamcrestAuthorizationDecisionMatcher_handlesIsDecisionIndeterminate_returnsIndeterminateMatcher() {
-        final var isDecision = buildAuthorizationDecisionMatcher("is indeterminate");
+        final var isDecision = buildIsDecisionMatcher("is indeterminate");
 
         final var matcherMock = mock(Matcher.class);
         saplMatchersMockedStatic.when(io.sapl.hamcrest.Matchers::isIndeterminate).thenReturn(matcherMock);
@@ -163,7 +179,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
     @Test
     void getHamcrestAuthorizationDecisionMatcher_handlesIsDecisionNotApplicable_returnsNotApplicableMatcher() {
-        final var isDecision = buildAuthorizationDecisionMatcher("is notApplicable");
+        final var isDecision = buildIsDecisionMatcher("is notApplicable");
 
         final var matcherMock = mock(Matcher.class);
         saplMatchersMockedStatic.when(io.sapl.hamcrest.Matchers::isNotApplicable).thenReturn(matcherMock);
@@ -207,8 +223,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
         @Test
         void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceNullMatcherForObligation_returnsHasAnyObligation() {
-            final io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice hasObligationOrAdvice = buildAuthorizationDecisionMatcher(
-                    "with obligation");
+            final var hasObligationOrAdvice = buildHasObligationOrAdviceMatcher("with obligation");
 
             final var hasObligationMatcherMock = mock(HasObligation.class);
             saplMatchersMockedStatic.when(io.sapl.hamcrest.Matchers::hasObligation)
@@ -222,8 +237,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
         @Test
         void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithNullMatcherForAdvice_returnsHasAnyAdvice() {
-            final io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice hasObligationOrAdvice = buildAuthorizationDecisionMatcher(
-                    "with advice");
+            final var hasObligationOrAdvice = buildHasObligationOrAdviceMatcher("with advice");
 
             final var hasAdviceMatcherMock = mock(HasAdvice.class);
             saplMatchersMockedStatic.when(io.sapl.hamcrest.Matchers::hasAdvice).thenReturn(hasAdviceMatcherMock);
@@ -267,8 +281,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
         class ObjectWithExactMatchTest {
             @Test
             void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithObjectWithExactMatchWithNullValForObligation_throwsSaplTestException() {
-                final io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice hasObligationOrAdvice = buildAuthorizationDecisionMatcher(
-                        "with obligation equals null");
+                final var hasObligationOrAdvice = buildHasObligationOrAdviceMatcher("with obligation equals null");
 
                 when(valueInterpreterMock.getValFromValue(any(NullLiteral.class))).thenReturn(null);
 
@@ -281,8 +294,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
             @Test
             void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithObjectWithExactMatchWithNullValForAdvice_throwsSaplTestException() {
-                final io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice hasObligationOrAdvice = buildAuthorizationDecisionMatcher(
-                        "with advice equals null");
+                final var hasObligationOrAdvice = buildHasObligationOrAdviceMatcher("with advice equals null");
 
                 when(valueInterpreterMock.getValFromValue(any(NullLiteral.class))).thenReturn(null);
 
@@ -295,8 +307,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
             @Test
             void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithObjectWithExactMatchForObligation_returnsHasObligationWithMatcher() {
-                final io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice hasObligationOrAdvice = buildAuthorizationDecisionMatcher(
-                        "with obligation equals \"5\"");
+                final var hasObligationOrAdvice = buildHasObligationOrAdviceMatcher("with obligation equals \"5\"");
 
                 final var expectedVal = Val.of("5");
                 when(valueInterpreterMock.getValFromValue(compareArgumentToStringLiteral("5"))).thenReturn(expectedVal);
@@ -315,8 +326,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
             @Test
             void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithObjectWithExactMatchForAdvice_returnsHasAdviceWithMatcher() {
-                final io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice hasObligationOrAdvice = buildAuthorizationDecisionMatcher(
-                        "with advice equals \"5\"");
+                final var hasObligationOrAdvice = buildHasObligationOrAdviceMatcher("with advice equals \"5\"");
 
                 final var expectedVal = Val.of("5");
                 when(valueInterpreterMock.getValFromValue(compareArgumentToStringLiteral("5"))).thenReturn(expectedVal);
@@ -339,8 +349,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
         class ObjectWithMatcherTest {
             @Test
             void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithObjectWithMatcherForObligationWithNullMappedMatcher_throwsSaplTestException() {
-                final io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice hasObligationOrAdvice = buildAuthorizationDecisionMatcher(
-                        "with obligation matching null");
+                final var hasObligationOrAdvice = buildHasObligationOrAdviceMatcher("with obligation matching null");
 
                 when(jsonNodeMatcherInterpreterMock.getHamcrestJsonNodeMatcher(any(IsJsonNull.class))).thenReturn(null);
 
@@ -353,8 +362,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
             @Test
             void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithObjectWithMatcherForAdviceWithNullMappedMatcher_throwsSaplTestException() {
-                final io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice hasObligationOrAdvice = buildAuthorizationDecisionMatcher(
-                        "with advice matching null");
+                final var hasObligationOrAdvice = buildHasObligationOrAdviceMatcher("with advice matching null");
 
                 when(jsonNodeMatcherInterpreterMock.getHamcrestJsonNodeMatcher(any(IsJsonNull.class))).thenReturn(null);
 
@@ -367,8 +375,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
             @Test
             void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithObjectWithMatcherForObligation_returnsHasObligationWithMatcher() {
-                final io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice hasObligationOrAdvice = buildAuthorizationDecisionMatcher(
-                        "with obligation matching null");
+                final var hasObligationOrAdvice = buildHasObligationOrAdviceMatcher("with obligation matching null");
 
                 when(jsonNodeMatcherInterpreterMock.getHamcrestJsonNodeMatcher(any(IsJsonNull.class)))
                         .thenReturn(jsonNodeMatcherMock);
@@ -385,8 +392,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
             @Test
             void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithObjectWithMatcherForAdvice_returnsHasAdviceWithMatcher() {
-                final io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice hasObligationOrAdvice = buildAuthorizationDecisionMatcher(
-                        "with advice matching null");
+                final var hasObligationOrAdvice = buildHasObligationOrAdviceMatcher("with advice matching null");
 
                 when(jsonNodeMatcherInterpreterMock.getHamcrestJsonNodeMatcher(any(IsJsonNull.class)))
                         .thenReturn(jsonNodeMatcherMock);
@@ -407,7 +413,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
         class ObjectWithKeyValueMatcherTest {
             @Test
             void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithObjectWithKeyValueMatcherForObligationWithoutValueMatcher_returnsHasObligationWithKey() {
-                final io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice hasObligationOrAdvice = buildAuthorizationDecisionMatcher(
+                final var hasObligationOrAdvice = buildHasObligationOrAdviceMatcher(
                         "with obligation containing key \"foo\"");
 
                 final var hasObligationMatcherMock = mock(HasObligationContainingKeyValue.class);
@@ -422,7 +428,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
             @Test
             void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithObjectWithKeyValueMatcherForAdviceWithoutValueMatcher_returnsHasAdviceWithKey() {
-                final io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice hasObligationOrAdvice = buildAuthorizationDecisionMatcher(
+                final var hasObligationOrAdvice = buildHasObligationOrAdviceMatcher(
                         "with advice containing key \"foo\"");
 
                 final var hasAdviceContainingKeyValue = mock(HasAdviceContainingKeyValue.class);
@@ -437,7 +443,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
             @Test
             void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithObjectWithKeyValueMatcherWithNullMappedValueMatcherForObligation_throwsSaplTestException() {
-                final io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice hasObligationOrAdvice = buildAuthorizationDecisionMatcher(
+                final var hasObligationOrAdvice = buildHasObligationOrAdviceMatcher(
                         "with obligation containing key \"foo\" with value matching null");
 
                 when(jsonNodeMatcherInterpreterMock.getHamcrestJsonNodeMatcher(any(IsJsonNull.class))).thenReturn(null);
@@ -451,7 +457,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
             @Test
             void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithObjectWithKeyValueMatcherWithNullMappedValueMatcherForAdvice_throwsSaplTestException() {
-                final io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice hasObligationOrAdvice = buildAuthorizationDecisionMatcher(
+                final var hasObligationOrAdvice = buildHasObligationOrAdviceMatcher(
                         "with advice containing key \"foo\" with value matching null");
 
                 when(jsonNodeMatcherInterpreterMock.getHamcrestJsonNodeMatcher(any(IsJsonNull.class))).thenReturn(null);
@@ -465,7 +471,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
             @Test
             void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithObjectWithKeyValueMatcherForObligation_returnsHasObligationWithKeyValue() {
-                final io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice hasObligationOrAdvice = buildAuthorizationDecisionMatcher(
+                final var hasObligationOrAdvice = buildHasObligationOrAdviceMatcher(
                         "with obligation containing key \"foo\" with value matching null");
 
                 when(jsonNodeMatcherInterpreterMock.getHamcrestJsonNodeMatcher(any(IsJsonNull.class)))
@@ -484,7 +490,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
             @Test
             void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithObjectWithKeyValueMatcherForAdvice_returnsHasAdviceWithKeyValue() {
-                final io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice hasObligationOrAdvice = buildAuthorizationDecisionMatcher(
+                final var hasObligationOrAdvice = buildHasObligationOrAdviceMatcher(
                         "with advice containing key \"foo\" with value matching null");
 
                 when(jsonNodeMatcherInterpreterMock.getHamcrestJsonNodeMatcher(any(IsJsonNull.class)))
@@ -508,8 +514,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
     class HasResourceTest {
         @Test
         void getHamcrestAuthorizationDecisionMatcher_handlesHasResourceWithObjectWithExactMatchWithNullMatcher_throwsSaplTestException() {
-            final io.sapl.test.grammar.sAPLTest.HasResource hasResource = buildAuthorizationDecisionMatcher(
-                    "with resource equals null");
+            final var hasResource = buildHasResourceMatcher("with resource equals null");
 
             when(valueInterpreterMock.getValFromValue(any(NullLiteral.class))).thenReturn(null);
 
@@ -521,8 +526,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
         @Test
         void getHamcrestAuthorizationDecisionMatcher_handlesHasResourceWithObjectWithMatcherWithNullMatcher_throwsSaplTestException() {
-            final io.sapl.test.grammar.sAPLTest.HasResource hasResource = buildAuthorizationDecisionMatcher(
-                    "with resource matching null");
+            final var hasResource = buildHasResourceMatcher("with resource matching null");
 
             when(jsonNodeMatcherInterpreterMock.getHamcrestJsonNodeMatcher(any(IsJsonNull.class))).thenReturn(null);
 
@@ -534,8 +538,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
         @Test
         void getHamcrestAuthorizationDecisionMatcher_handlesHasResourceWithObjectWithExactMatch_returnsHasResourceWithMatcher() {
-            final io.sapl.test.grammar.sAPLTest.HasResource hasResource = buildAuthorizationDecisionMatcher(
-                    "with resource equals null");
+            final var hasResource = buildHasResourceMatcher("with resource equals null");
 
             final var expectedVal = Val.NULL;
             when(valueInterpreterMock.getValFromValue(any(NullLiteral.class))).thenReturn(expectedVal);
@@ -554,8 +557,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
         @Test
         void getHamcrestAuthorizationDecisionMatcher_handlesHasResourceWithObjectWithMatcher_returnsHasResourceWithMatcher() {
-            final io.sapl.test.grammar.sAPLTest.HasResource hasResource = buildAuthorizationDecisionMatcher(
-                    "with resource matching null");
+            final var hasResource = buildHasResourceMatcher("with resource matching null");
 
             when(jsonNodeMatcherInterpreterMock.getHamcrestJsonNodeMatcher(any(IsJsonNull.class)))
                     .thenReturn(jsonNodeMatcherMock);

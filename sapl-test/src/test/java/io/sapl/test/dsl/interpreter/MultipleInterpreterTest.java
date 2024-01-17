@@ -48,7 +48,7 @@ class MultipleInterpreterTest {
     }
 
     private Multiple buildMultiple(final String input) {
-        return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getNumericAmountRule);
+        return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getNumericAmountRule, Multiple.class);
     }
 
     @Test

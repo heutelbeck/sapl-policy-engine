@@ -18,6 +18,7 @@
 
 package io.sapl.test.dsl.interpreter;
 
+import static io.sapl.test.dsl.ParserUtil.buildStringLiteral;
 import static io.sapl.test.dsl.ParserUtil.buildValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -32,11 +33,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.interpreter.Val;
-import io.sapl.test.TestHelper;
 import io.sapl.test.SaplTestException;
+import io.sapl.test.TestHelper;
 import io.sapl.test.grammar.sAPLTest.Array;
+import io.sapl.test.grammar.sAPLTest.FalseLiteral;
+import io.sapl.test.grammar.sAPLTest.NullLiteral;
 import io.sapl.test.grammar.sAPLTest.NumberLiteral;
+import io.sapl.test.grammar.sAPLTest.Object;
 import io.sapl.test.grammar.sAPLTest.StringLiteral;
+import io.sapl.test.grammar.sAPLTest.TrueLiteral;
+import io.sapl.test.grammar.sAPLTest.UndefinedLiteral;
 import io.sapl.test.grammar.sAPLTest.Value;
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -103,7 +109,7 @@ class ValueInterpreterTest {
 
         @Test
         void getValFromValue_handlesNumberLiteral_returnsBigDecimalVal() {
-            final var value = buildValue("5");
+            final var value = buildValue("5", NumberLiteral.class);
 
             valMockedStatic.when(() -> Val.of(BigDecimal.valueOf(5))).thenReturn(valMock);
 
@@ -126,7 +132,7 @@ class ValueInterpreterTest {
 
         @Test
         void getValFromValue_handlesStringLiteral_returnsTextVal() {
-            final var value = buildValue("\"foo\"");
+            final var value = buildStringLiteral("\"foo\"");
 
             valMockedStatic.when(() -> Val.of("foo")).thenReturn(valMock);
 
@@ -137,7 +143,7 @@ class ValueInterpreterTest {
 
         @Test
         void getValFromValue_handlesFalseLiteral_returnsFalseVal() {
-            final var value = buildValue("false");
+            final var value = buildValue("false", FalseLiteral.class);
 
             valMockedStatic.when(() -> Val.of(false)).thenReturn(valMock);
 
@@ -148,7 +154,7 @@ class ValueInterpreterTest {
 
         @Test
         void getValFromValue_handlesTrueLiteral_returnsTrueVal() {
-            final var value = buildValue("true");
+            final var value = buildValue("true", TrueLiteral.class);
 
             valMockedStatic.when(() -> Val.of(true)).thenReturn(valMock);
 
@@ -159,7 +165,7 @@ class ValueInterpreterTest {
 
         @Test
         void getValFromValue_handlesNullLiteral_returnsNullVal() {
-            final var value = buildValue("null");
+            final var value = buildValue("null", NullLiteral.class);
 
             final var result = valueInterpreter.getValFromValue(value);
 
@@ -168,7 +174,7 @@ class ValueInterpreterTest {
 
         @Test
         void getValFromValue_handlesUndefinedLiteral_returnsUndefinedVal() {
-            final var value = buildValue("undefined");
+            final var value = buildValue("undefined", UndefinedLiteral.class);
 
             final var result = valueInterpreter.getValFromValue(value);
 
@@ -206,7 +212,7 @@ class ValueInterpreterTest {
 
             @Test
             void getValFromValue_handlesArrayWithMultipleValues_returnsArrayVal() {
-                final var value = buildValue("[10, true]");
+                final var value = buildValue("[10, true]", Array.class);
 
                 final var valWithNumberMock = mock(Val.class);
                 valMockedStatic.when(() -> Val.of(BigDecimal.TEN)).thenReturn(valWithNumberMock);
@@ -264,7 +270,8 @@ class ValueInterpreterTest {
 
             @Test
             void getValFromValue_handlesObjectWithMultipleValues_returnsObjectVal() {
-                final var value = buildValue("{ \"numberLiteralKey\": 10, \"trueLiteralKey\": true}");
+                final var value = buildValue("{ \"numberLiteralKey\": 10, \"trueLiteralKey\": true}",
+                        io.sapl.test.grammar.sAPLTest.Object.class);
 
                 final var valWithNumberMock = mock(Val.class);
                 valMockedStatic.when(() -> Val.of(BigDecimal.TEN)).thenReturn(valWithNumberMock);
@@ -327,8 +334,8 @@ class ValueInterpreterTest {
 
         @Test
         void destructureObject_handlesObjectWithMultipleValues_returnsMap() {
-            final io.sapl.test.grammar.sAPLTest.Object object = buildValue(
-                    "{ \"numberLiteralKey\": 10, \"trueLiteralKey\": true}");
+            final var object = buildValue("{ \"numberLiteralKey\": 10, \"trueLiteralKey\": true}",
+                    io.sapl.test.grammar.sAPLTest.Object.class);
 
             final var valWithNumberMock = mock(Val.class);
             valMockedStatic.when(() -> Val.of(BigDecimal.TEN)).thenReturn(valWithNumberMock);

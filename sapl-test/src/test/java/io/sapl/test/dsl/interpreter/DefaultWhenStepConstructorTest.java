@@ -56,8 +56,8 @@ class DefaultWhenStepConstructorTest {
     @InjectMocks
     private DefaultWhenStepConstructor defaultWhenStepConstructor;
 
-    private <T extends GivenStep> T buildGivenStep(final String input) {
-        return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getGivenStepRule);
+    private <T extends GivenStep> T buildGivenStep(final String input, final Class<T> clazz) {
+        return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getGivenStepRule, clazz);
     }
 
     @Test
@@ -91,7 +91,7 @@ class DefaultWhenStepConstructorTest {
 
     @Test
     void constructWhenStep_handlesFunctionGivenStep_returnsAdjustedUnitTestFixture() {
-        final Function function = buildGivenStep("function \"foo\" returns \"bar\"");
+        final var function = buildGivenStep("function \"foo\" returns \"bar\"", Function.class);
 
         when(functionInterpreterMock.interpretFunction(saplUnitTestFixtureMock, function))
                 .thenReturn(saplUnitTestFixtureMock);
@@ -103,7 +103,8 @@ class DefaultWhenStepConstructorTest {
 
     @Test
     void constructWhenStep_handlesFunctionInvokedOnceGivenStep_returnsAdjustedUnitTestFixture() {
-        final FunctionInvokedOnce functionInvokedOnce = buildGivenStep("function \"foo\" returns stream \"bar\"");
+        final var functionInvokedOnce = buildGivenStep("function \"foo\" returns stream \"bar\"",
+                FunctionInvokedOnce.class);
 
         when(functionInterpreterMock.interpretFunctionInvokedOnce(saplUnitTestFixtureMock, functionInvokedOnce))
                 .thenReturn(saplUnitTestFixtureMock);
@@ -116,7 +117,7 @@ class DefaultWhenStepConstructorTest {
 
     @Test
     void constructWhenStep_handlesAttributeGivenStep_returnsAdjustedUnitTestFixture() {
-        final Attribute attribute = buildGivenStep("attribute \"foo\"");
+        final var attribute = buildGivenStep("attribute \"foo\"", Attribute.class);
 
         when(attributeInterpreterMock.interpretAttribute(saplUnitTestFixtureMock, attribute))
                 .thenReturn(saplUnitTestFixtureMock);
@@ -128,8 +129,8 @@ class DefaultWhenStepConstructorTest {
 
     @Test
     void constructWhenStep_handlesAttributeWithParametersGivenStep_returnsAdjustedUnitTestFixture() {
-        final AttributeWithParameters attributeWithParameters = buildGivenStep(
-                "attribute \"foo\" with parent value any returns \"bar\"");
+        final var attributeWithParameters = buildGivenStep("attribute \"foo\" with parent value any returns \"bar\"",
+                AttributeWithParameters.class);
 
         when(attributeInterpreterMock.interpretAttributeWithParameters(saplUnitTestFixtureMock,
                 attributeWithParameters)).thenReturn(saplUnitTestFixtureMock);
@@ -142,7 +143,7 @@ class DefaultWhenStepConstructorTest {
 
     @Test
     void constructWhenStep_handlesVirtualTimeGivenStep_returnsAdjustedUnitTestFixture() {
-        final VirtualTime virtualTime = buildGivenStep("virtual-time");
+        final var virtualTime = buildGivenStep("virtual-time", VirtualTime.class);
 
         when(saplUnitTestFixtureMock.withVirtualTime()).thenReturn(saplUnitTestFixtureMock);
 
@@ -153,9 +154,9 @@ class DefaultWhenStepConstructorTest {
 
     @Test
     void constructWhenStep_handlesMultipleGivenSteps_returnsAdjustedUnitTestFixture() {
-        final Function    function    = buildGivenStep("function \"foo\" returns \"bar\"");
-        final Attribute   attribute   = buildGivenStep("attribute \"foo\"");
-        final VirtualTime virtualTime = buildGivenStep("virtual-time");
+        final var function    = buildGivenStep("function \"foo\" returns \"bar\"", Function.class);
+        final var attribute   = buildGivenStep("attribute \"foo\"", Attribute.class);
+        final var virtualTime = buildGivenStep("virtual-time", VirtualTime.class);
 
         when(functionInterpreterMock.interpretFunction(saplUnitTestFixtureMock, function))
                 .thenReturn(saplUnitTestFixtureMock);

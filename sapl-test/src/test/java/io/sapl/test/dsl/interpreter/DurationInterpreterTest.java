@@ -49,7 +49,8 @@ class DurationInterpreterTest {
     }
 
     private io.sapl.test.grammar.sAPLTest.Duration buildDuration(final String input) {
-        return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getDurationRule);
+        return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getDurationRule,
+                io.sapl.test.grammar.sAPLTest.Duration.class);
     }
 
     @Test

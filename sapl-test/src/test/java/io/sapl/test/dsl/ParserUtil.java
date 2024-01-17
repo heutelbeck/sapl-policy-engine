@@ -19,6 +19,7 @@
 package io.sapl.test.dsl;
 
 import com.google.inject.Injector;
+import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.SAPLTestStandaloneSetup;
 import io.sapl.test.grammar.sAPLTest.StringLiteral;
 import io.sapl.test.grammar.sAPLTest.Value;
@@ -38,21 +39,33 @@ public class ParserUtil {
 
     @SneakyThrows
     public static <T extends ParserRule, R> R parseInputByRule(final String saplTest,
-            Function<SAPLTestGrammarAccess, T> resolver) {
+            Function<SAPLTestGrammarAccess, T> resolver, Class<R> clazz) {
         var       resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
         var       resource    = (XtextResource) resourceSet.createResource(URI.createFileURI("test:/default.sapltest"));
         final var parserRule  = resolver.apply(INJECTOR.getInstance(SAPLTestGrammarAccess.class));
         resource.setEntryPoint(parserRule);
         resource.load(IOUtils.toInputStream(saplTest, StandardCharsets.UTF_8), resourceSet.getLoadOptions());
-        return (R) resource.getContents().get(0);
+
+        final var eObject = resource.getContents().get(0);
+
+        try {
+            return clazz.cast(eObject);
+        } catch (ClassCastException e) {
+            throw new SaplTestException("input '%s' does not represent a valid definition for class '%s'"
+                    .formatted(saplTest, clazz.getName()));
+        }
     }
 
-    public static <T extends Value> T buildValue(final String input) {
-        return parseInputByRule(input, SAPLTestGrammarAccess::getValueRule);
+    public static StringLiteral buildStringLiteral(final String input) {
+        return parseInputByRule(input, SAPLTestGrammarAccess::getValueRule, StringLiteral.class);
+    }
+
+    public static <T extends Value> T buildValue(final String input, Class<T> clazz) {
+        return parseInputByRule(input, SAPLTestGrammarAccess::getValueRule, clazz);
     }
 
     public static Value compareArgumentToStringLiteral(final String other) {
         return ArgumentMatchers.argThat(value -> value instanceof StringLiteral stringLiteral && stringLiteral
-                .getString().equals(ParserUtil.<StringLiteral>buildValue("\"%s\"".formatted(other)).getString()));
+                .getString().equals(ParserUtil.buildStringLiteral("\"%s\"".formatted(other)).getString()));
     }
 }
