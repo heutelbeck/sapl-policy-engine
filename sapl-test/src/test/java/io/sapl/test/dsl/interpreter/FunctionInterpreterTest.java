@@ -28,7 +28,7 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.test.Helper;
+import io.sapl.test.TestHelper;
 import io.sapl.test.Imports;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.ParserUtil;
@@ -41,9 +41,7 @@ import io.sapl.test.grammar.sAPLTest.Multiple;
 import io.sapl.test.grammar.sAPLTest.NumberLiteral;
 import io.sapl.test.grammar.sAPLTest.Once;
 import io.sapl.test.grammar.sAPLTest.StringLiteral;
-import io.sapl.test.grammar.sAPLTest.ValMatcher;
 import io.sapl.test.grammar.sAPLTest.ValWithValue;
-import io.sapl.test.grammar.sAPLTest.Value;
 import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.verification.TimesCalledVerification;
@@ -89,6 +87,10 @@ class FunctionInterpreterTest {
     @Nested
     @DisplayName("Interpret function")
     class InterpretFunctionTest {
+
+        @Mock
+        Matcher<Val> valMatcherMock;
+
         @Test
         void interpretFunction_handlesNullGivenOrWhenStep_throwsSaplTestException() {
             final Function function = buildFunction("function \"foo\" returns \"bar\"");
@@ -152,8 +154,7 @@ class FunctionInterpreterTest {
             final var functionParametersMock = mock(FunctionParameters.class);
             when(functionMock.getParameters()).thenReturn(functionParametersMock);
 
-            final var eListMock = Helper.mockEList(Collections.<ValMatcher>emptyList());
-            when(functionParametersMock.getMatchers()).thenReturn(eListMock);
+            TestHelper.mockEListResult(functionParametersMock::getMatchers, Collections.emptyList());
 
             final var exception = assertThrows(SaplTestException.class,
                     () -> functionInterpreter.interpretFunction(givenOrWhenStepMock, functionMock));
@@ -165,8 +166,7 @@ class FunctionInterpreterTest {
         void interpretFunction_withoutTimesCalledVerificationAndFunctionParametersMatchers_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
             final Function function = buildFunction("function \"fooFunction\" parameters matching any returns \"bar\"");
 
-            final var matcherMock = mock(Matcher.class);
-            when(matcherInterpreterMock.getHamcrestValMatcher(any(AnyVal.class))).thenReturn(matcherMock);
+            when(matcherInterpreterMock.getHamcrestValMatcher(any(AnyVal.class))).thenReturn(valMatcherMock);
 
             final var expectedVal = Val.of("bar");
 
@@ -180,7 +180,7 @@ class FunctionInterpreterTest {
             final var result = functionInterpreter.interpretFunction(givenOrWhenStepMock, function);
 
             final var usedFunctionParameters = functionParametersArgumentCaptor.getValue();
-            assertEquals(List.of(matcherMock), usedFunctionParameters.getParameterMatchers());
+            assertEquals(List.of(valMatcherMock), usedFunctionParameters.getParameterMatchers());
             assertEquals(givenOrWhenStepMock, result);
         }
 
@@ -242,8 +242,7 @@ class FunctionInterpreterTest {
             final var functionParametersMock = mock(FunctionParameters.class);
             when(functionMock.getParameters()).thenReturn(functionParametersMock);
 
-            final var eListMock = Helper.mockEList(Collections.<ValMatcher>emptyList());
-            when(functionParametersMock.getMatchers()).thenReturn(eListMock);
+            TestHelper.mockEListResult(functionParametersMock::getMatchers, Collections.emptyList());
 
             final var timesCalledVerificationMock = mock(TimesCalledVerification.class);
             importsMockedStatic.when(() -> Imports.times(1)).thenReturn(timesCalledVerificationMock);
@@ -340,8 +339,7 @@ class FunctionInterpreterTest {
         void interpretFunctionInvokedOnce_handlesEmptyReturnValues_throwsSaplTestException() {
             final var functionInvokedOnceMock = mock(FunctionInvokedOnce.class);
 
-            final var eListMock = Helper.mockEList(Collections.<Value>emptyList());
-            when(functionInvokedOnceMock.getReturnValue()).thenReturn(eListMock);
+            TestHelper.mockEListResult(functionInvokedOnceMock::getReturnValue, Collections.emptyList());
 
             final var exception = assertThrows(SaplTestException.class, () -> functionInterpreter
                     .interpretFunctionInvokedOnce(givenOrWhenStepMock, functionInvokedOnceMock));

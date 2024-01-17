@@ -29,7 +29,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.sapl.test.Helper;
+import io.sapl.test.TestHelper;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.dsl.interfaces.StepConstructor;
@@ -73,15 +73,12 @@ class TestCaseTest {
     }
 
     private List<GivenStep> mockGivenSteps(final List<GivenStep> givenSteps) {
-        final var mockedGivenSteps = Helper.mockEList(givenSteps);
-        when(dslTestCaseMock.getGivenSteps()).thenReturn(mockedGivenSteps);
-        return mockedGivenSteps;
+        return TestHelper.mockEListResult(dslTestCaseMock::getGivenSteps, givenSteps);
+
     }
 
     private List<FixtureRegistration> mockFixtureRegistrations(final List<FixtureRegistration> fixtureRegistrations) {
-        final var mockedFixtureRegistrations = Helper.mockEList(fixtureRegistrations);
-        when(dslTestCaseMock.getRegistrations()).thenReturn(mockedFixtureRegistrations);
-        return mockedFixtureRegistrations;
+        return TestHelper.mockEListResult(dslTestCaseMock::getRegistrations, fixtureRegistrations);
     }
 
     private io.sapl.test.grammar.sAPLTest.Object mockEnvironment() {

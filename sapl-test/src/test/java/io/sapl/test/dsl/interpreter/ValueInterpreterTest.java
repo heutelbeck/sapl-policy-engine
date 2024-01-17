@@ -32,11 +32,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.interpreter.Val;
-import io.sapl.test.Helper;
+import io.sapl.test.TestHelper;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sAPLTest.Array;
 import io.sapl.test.grammar.sAPLTest.NumberLiteral;
-import io.sapl.test.grammar.sAPLTest.Pair;
 import io.sapl.test.grammar.sAPLTest.StringLiteral;
 import io.sapl.test.grammar.sAPLTest.Value;
 import java.math.BigDecimal;
@@ -196,8 +195,7 @@ class ValueInterpreterTest {
             void getValFromValue_handlesArrayWithEmptyItems_returnsEmptyArrayVal() {
                 final var valueMock = mock(Array.class);
 
-                final var itemsMock = Helper.mockEList(Collections.<Value>emptyList());
-                when(valueMock.getItems()).thenReturn(itemsMock);
+                TestHelper.mockEListResult(valueMock::getItems, Collections.emptyList());
 
                 valMockedStatic.when(Val::ofEmptyArray).thenReturn(valMock);
 
@@ -255,8 +253,7 @@ class ValueInterpreterTest {
             void getValFromValue_handlesObjectWithEmptyMembers_returnsEmptyObjectVal() {
                 final var valueMock = mock(io.sapl.test.grammar.sAPLTest.Object.class);
 
-                final var itemsMock = Helper.mockEList(Collections.<Pair>emptyList());
-                when(valueMock.getMembers()).thenReturn(itemsMock);
+                TestHelper.mockEListResult(valueMock::getMembers, Collections.emptyList());
 
                 valMockedStatic.when(Val::ofEmptyObject).thenReturn(valMock);
 
@@ -321,8 +318,7 @@ class ValueInterpreterTest {
         void destructureObject_handlesObjectWithEmptyMembers_returnsEmptyMap() {
             final var objectMock = mock(io.sapl.test.grammar.sAPLTest.Object.class);
 
-            final var itemsMock = Helper.mockEList(Collections.<Pair>emptyList());
-            when(objectMock.getMembers()).thenReturn(itemsMock);
+            TestHelper.mockEListResult(objectMock::getMembers, Collections.emptyList());
 
             final var result = valueInterpreter.destructureObject(objectMock);
 

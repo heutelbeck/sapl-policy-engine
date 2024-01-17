@@ -19,6 +19,7 @@ package io.sapl.test.grammar.web;
 
 import com.google.inject.Injector;
 import jakarta.servlet.annotation.WebServlet;
+import java.io.Serial;
 import lombok.SneakyThrows;
 import org.eclipse.xtext.util.DisposableRegistry;
 import org.eclipse.xtext.web.servlet.XtextServlet;
@@ -28,6 +29,8 @@ import org.eclipse.xtext.web.servlet.XtextServlet;
  */
 @WebServlet(name = "SaplTestXtextServices", urlPatterns = "/sapl-test/xtext-service/*")
 public class SAPLTestServlet extends XtextServlet {
+    @Serial
+    private static final long serialVersionUID = 6987561491643911622L;
 
     private transient DisposableRegistry disposableRegistry;
 

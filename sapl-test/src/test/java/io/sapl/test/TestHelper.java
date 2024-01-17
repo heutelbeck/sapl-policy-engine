@@ -17,14 +17,18 @@
  */
 package io.sapl.test;
 
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.function.Supplier;
+import org.eclipse.emf.common.util.BasicEList;
 import org.eclipse.emf.common.util.EList;
-import org.mockito.AdditionalAnswers;
 
-public class Helper {
-    public static <T> EList<T> mockEList(List<T> delegate) {
-        return mock(EList.class, AdditionalAnswers.delegatesTo(delegate));
+public class TestHelper {
+
+    public static <T> EList<T> mockEListResult(final Supplier<EList<T>> arg, final List<T> valueToReturn) {
+        final var eList = new BasicEList<>(valueToReturn);
+        when(arg.get()).thenReturn(eList);
+        return eList;
     }
 }

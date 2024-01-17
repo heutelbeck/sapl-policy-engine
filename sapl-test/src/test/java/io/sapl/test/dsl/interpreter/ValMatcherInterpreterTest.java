@@ -22,10 +22,12 @@ import static io.sapl.test.dsl.ParserUtil.compareArgumentToStringLiteral;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.ParserUtil;
@@ -56,6 +58,11 @@ class ValMatcherInterpreterTest {
     private StringMatcherInterpreter   stringMatcherInterpreterMock;
     @InjectMocks
     private ValMatcherInterpreter      matcherInterpreter;
+
+    @Mock
+    Matcher<JsonNode> jsonNodeMatcherMock;
+    @Mock
+    Matcher<String>   stringMatcherMock;
 
     private final MockedStatic<Matchers>                  hamcrestMatchersMockedStatic     = mockStatic(Matchers.class);
     private final MockedStatic<CoreMatchers>              hamcrestCoreMatchersMockedStatic = mockStatic(
@@ -148,11 +155,11 @@ class ValMatcherInterpreterTest {
     void getHamcrestValMatcher_forValWithMatcher_returnsValMatcher() {
         final var valMatcher = buildValMatcher("matching null");
 
-        final var matcherMock = mock(Matcher.class);
-        when(jsonNodeMatcherInterpreterMock.getHamcrestJsonNodeMatcher(any(IsJsonNull.class))).thenReturn(matcherMock);
+        when(jsonNodeMatcherInterpreterMock.getHamcrestJsonNodeMatcher(any(IsJsonNull.class)))
+                .thenReturn(jsonNodeMatcherMock);
 
         final var valWithJsonNodeMatcherMock = mock(Matcher.class);
-        saplMatchersMockedStatic.when(() -> io.sapl.hamcrest.Matchers.val(matcherMock))
+        saplMatchersMockedStatic.when(() -> io.sapl.hamcrest.Matchers.val(jsonNodeMatcherMock))
                 .thenReturn(valWithJsonNodeMatcherMock);
 
         final var result = matcherInterpreter.getHamcrestValMatcher(valMatcher);
@@ -188,13 +195,12 @@ class ValMatcherInterpreterTest {
     void getHamcrestValMatcher_forValWithErrorWithStringMatcher_returnsValErrorWithStringMatcher() {
         final var valMatcher = buildValMatcher("with error null");
 
-        final var errorStringMatcher = mock(Matcher.class);
-        when(stringMatcherInterpreterMock.getHamcrestStringMatcher(any(StringIsNull.class)))
-                .thenReturn(errorStringMatcher);
+        doReturn(stringMatcherMock).when(stringMatcherInterpreterMock)
+                .getHamcrestStringMatcher(any(StringIsNull.class));
 
         final var valErrorWithMatcher = mock(Matcher.class);
 
-        saplMatchersMockedStatic.when(() -> io.sapl.hamcrest.Matchers.valError(errorStringMatcher))
+        saplMatchersMockedStatic.when(() -> io.sapl.hamcrest.Matchers.valError(stringMatcherMock))
                 .thenReturn(valErrorWithMatcher);
 
         final var result = matcherInterpreter.getHamcrestValMatcher(valMatcher);

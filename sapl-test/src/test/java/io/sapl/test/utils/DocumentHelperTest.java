@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
@@ -103,8 +102,6 @@ class DocumentHelperTest {
                 .thenReturn(pathMock);
         filesMockedStatic.when(() -> Files.readString(pathMock)).thenThrow(new IOException("where is my filesystem?"));
 
-        final var saplMock = mock(SAPL.class);
-
         final var exception = assertThrows(RuntimeException.class,
                 () -> DocumentHelper.readSaplDocument("file.sapl", saplInterpreterMock));
 
@@ -120,8 +117,6 @@ class DocumentHelperTest {
         classpathHelperMockedStatic.when(() -> ClasspathHelper.findPathOnClasspath(any(), eq("file.sapl")))
                 .thenReturn(pathMock);
         filesMockedStatic.when(() -> Files.readString(pathMock)).thenThrow(new SecurityException("security breach"));
-
-        final var saplMock = mock(SAPL.class);
 
         final var exception = assertThrows(SecurityException.class,
                 () -> DocumentHelper.readSaplDocument("file.sapl", saplInterpreterMock));

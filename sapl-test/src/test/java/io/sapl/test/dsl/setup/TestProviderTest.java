@@ -21,13 +21,13 @@ package io.sapl.test.dsl.setup;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
-import io.sapl.test.Helper;
+import io.sapl.test.TestHelper;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.TestNode;
@@ -42,7 +42,6 @@ import io.sapl.test.grammar.sAPLTest.UnitTestSuite;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.eclipse.emf.common.util.EList;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -77,15 +76,6 @@ class TestProviderTest {
         testMockedStatic.close();
     }
 
-    private void mockTestSuites(final List<TestSuite> testSuites) {
-        final var mockedTestSuites = Helper.mockEList(testSuites);
-        when(saplTestMock.getTestSuites()).thenReturn(mockedTestSuites);
-    }
-
-    private EList<TestCase> mockTestCases(final List<TestCase> testCases) {
-        return Helper.mockEList(testCases);
-    }
-
     @Nested
     @DisplayName("Early return cases")
     class EarlyReturnCasesTest {
@@ -107,7 +97,7 @@ class TestProviderTest {
 
         @Test
         void buildTests_calledWithSAPLTestWithEmptyTestSuites_throwsSaplTestException() {
-            mockTestSuites(Collections.emptyList());
+            TestHelper.mockEListResult(saplTestMock::getTestSuites, Collections.emptyList());
 
             final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestMock));
 
@@ -116,7 +106,7 @@ class TestProviderTest {
 
         @Test
         void buildTests_calledWithSAPLTestWithNullTestCases_throwsSaplTestException() {
-            mockTestSuites(List.of(unitTestSuiteMock));
+            TestHelper.mockEListResult(saplTestMock::getTestSuites, List.of(unitTestSuiteMock));
 
             when(unitTestSuiteMock.getTestCases()).thenReturn(null);
 
@@ -127,11 +117,8 @@ class TestProviderTest {
 
         @Test
         void buildTests_calledWithSAPLTestWithEmptyTestCases_throwsSaplTestException() {
-            mockTestSuites(List.of(unitTestSuiteMock));
-
-            final var testCases = mockTestCases(Collections.emptyList());
-
-            when(unitTestSuiteMock.getTestCases()).thenReturn(testCases);
+            TestHelper.mockEListResult(saplTestMock::getTestSuites, List.of(unitTestSuiteMock));
+            TestHelper.mockEListResult(unitTestSuiteMock::getTestCases, Collections.emptyList());
 
             final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestMock));
 
@@ -144,7 +131,7 @@ class TestProviderTest {
     class ContainerNameConstructionTest {
         private List<TestNode> mockTestContainerForName(final String name, final TestContainer dynamicContainer) {
             List<TestNode> dynamicTestCases = new ArrayList<>();
-            testContainerMockedStatic.when(() -> TestContainer.from(eq(name), any(List.class)))
+            testContainerMockedStatic.when(() -> TestContainer.from(eq(name), anyList()))
                     .thenAnswer(invocationOnMock -> {
                         final List<TestNode> dynamicTests = invocationOnMock.getArgument(1);
                         dynamicTestCases.addAll(dynamicTests);
@@ -157,11 +144,8 @@ class TestProviderTest {
         void buildTests_handlesUnknownTestSuite_throwsSaplTestException() {
             final var unknownTestSuiteMock = mock(TestSuite.class);
 
-            mockTestSuites(List.of(unknownTestSuiteMock));
-
-            final var testCases = mockTestCases(List.of(testCaseMock));
-
-            when(unknownTestSuiteMock.getTestCases()).thenReturn(testCases);
+            TestHelper.mockEListResult(saplTestMock::getTestSuites, List.of(unknownTestSuiteMock));
+            TestHelper.mockEListResult(unknownTestSuiteMock::getTestCases, List.of(testCaseMock));
 
             final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestMock));
 
@@ -170,10 +154,9 @@ class TestProviderTest {
 
         @Test
         void buildTests_usingUnitTestSuite_returnsDynamicContainerWithPolicyName() {
-            mockTestSuites(List.of(unitTestSuiteMock));
-            final var testCases = mockTestCases(List.of(testCaseMock));
+            TestHelper.mockEListResult(saplTestMock::getTestSuites, List.of(unitTestSuiteMock));
+            TestHelper.mockEListResult(unitTestSuiteMock::getTestCases, List.of(testCaseMock));
 
-            when(unitTestSuiteMock.getTestCases()).thenReturn(testCases);
             when(unitTestSuiteMock.getPolicyName()).thenReturn("policyName");
 
             final var unitTestSuiteTestContainer = mock(TestContainer.class);
@@ -193,11 +176,9 @@ class TestProviderTest {
         @Test
         void buildTests_usingIntegrationTestSuiteWithUnknownTypeOfPolicyResolverConfig_throwsSaplTestException() {
             final var integrationTestSuite = mock(IntegrationTestSuite.class);
-            mockTestSuites(List.of(integrationTestSuite));
 
-            final var testCases = mockTestCases(List.of(testCaseMock));
-
-            when(integrationTestSuite.getTestCases()).thenReturn(testCases);
+            TestHelper.mockEListResult(saplTestMock::getTestSuites, List.of(integrationTestSuite));
+            TestHelper.mockEListResult(integrationTestSuite::getTestCases, List.of(testCaseMock));
 
             final var unknownPolicyResolverConfigMock = mock(PolicyResolverConfig.class);
             when(integrationTestSuite.getConfig()).thenReturn(unknownPolicyResolverConfigMock);
@@ -210,11 +191,9 @@ class TestProviderTest {
         @Test
         void buildTests_usingIntegrationTestSuiteWithPolicyFolder_returnsDynamicContainerWithPolicyFolderName() {
             final var integrationTestSuite = mock(IntegrationTestSuite.class);
-            mockTestSuites(List.of(integrationTestSuite));
 
-            final var testCases = mockTestCases(List.of(testCaseMock));
-
-            when(integrationTestSuite.getTestCases()).thenReturn(testCases);
+            TestHelper.mockEListResult(saplTestMock::getTestSuites, List.of(integrationTestSuite));
+            TestHelper.mockEListResult(integrationTestSuite::getTestCases, List.of(testCaseMock));
 
             final var policiesByIdentifierMock = mock(PoliciesByIdentifier.class);
             when(integrationTestSuite.getConfig()).thenReturn(policiesByIdentifierMock);
@@ -239,17 +218,15 @@ class TestProviderTest {
         @Test
         void buildTests_usingIntegrationTestSuiteWithPolicySet_returnsDynamicContainerWithJoinedPolicyNames() {
             final var integrationTestSuite = mock(IntegrationTestSuite.class);
-            mockTestSuites(List.of(integrationTestSuite));
 
-            final var testCases = mockTestCases(List.of(testCaseMock));
-
-            when(integrationTestSuite.getTestCases()).thenReturn(testCases);
+            TestHelper.mockEListResult(saplTestMock::getTestSuites, List.of(integrationTestSuite));
+            TestHelper.mockEListResult(integrationTestSuite::getTestCases, List.of(testCaseMock));
 
             final var policiesByInputStringMock = mock(PoliciesByInputString.class);
             when(integrationTestSuite.getConfig()).thenReturn(policiesByInputStringMock);
 
-            final var policiesMock = Helper.mockEList(List.of("name1", "foo/name2", "foo/subfoo/nested/policy3.sapl"));
-            when(policiesByInputStringMock.getPolicies()).thenReturn(policiesMock);
+            TestHelper.mockEListResult(policiesByInputStringMock::getPolicies,
+                    List.of("name1", "foo/name2", "foo/subfoo/nested/policy3.sapl"));
 
             final var integrationTestSuiteTestContainer = mock(TestContainer.class);
             final var testNodes                         = mockTestContainerForName(
@@ -271,27 +248,26 @@ class TestProviderTest {
             final var integrationTestSuite = mock(IntegrationTestSuite.class);
             final var unitTestSuiteMock    = mock(UnitTestSuite.class);
 
-            mockTestSuites(List.of(integrationTestSuite, unitTestSuiteMock));
+            TestHelper.mockEListResult(saplTestMock::getTestSuites, List.of(integrationTestSuite, unitTestSuiteMock));
 
             final var integrationTestCase1Mock = mock(TestCase.class);
             final var integrationTestCase2Mock = mock(TestCase.class);
+
+            TestHelper.mockEListResult(integrationTestSuite::getTestCases,
+                    List.of(integrationTestCase1Mock, integrationTestCase2Mock));
 
             final var unitTestCase1Mock = mock(TestCase.class);
             final var unitTestCase2Mock = mock(TestCase.class);
             final var unitTestCase3Mock = mock(TestCase.class);
 
-            final var integrationTestCases = mockTestCases(List.of(integrationTestCase1Mock, integrationTestCase2Mock));
-            final var unitTestCases        = mockTestCases(
+            TestHelper.mockEListResult(unitTestSuiteMock::getTestCases,
                     List.of(unitTestCase1Mock, unitTestCase2Mock, unitTestCase3Mock));
-
-            when(integrationTestSuite.getTestCases()).thenReturn(integrationTestCases);
-            when(unitTestSuiteMock.getTestCases()).thenReturn(unitTestCases);
 
             final var policiesByInputStringMock = mock(PoliciesByInputString.class);
             when(integrationTestSuite.getConfig()).thenReturn(policiesByInputStringMock);
 
-            final var policiesMock = Helper.mockEList(List.of("name1", "foo/name2", "foo/subfoo/nested/policy3.sapl"));
-            when(policiesByInputStringMock.getPolicies()).thenReturn(policiesMock);
+            TestHelper.mockEListResult(policiesByInputStringMock::getPolicies,
+                    List.of("name1", "foo/name2", "foo/subfoo/nested/policy3.sapl"));
 
             final var integrationTestSuiteTestContainer = mock(TestContainer.class);
             final var actualIntegrationTestCases        = mockTestContainerForName(

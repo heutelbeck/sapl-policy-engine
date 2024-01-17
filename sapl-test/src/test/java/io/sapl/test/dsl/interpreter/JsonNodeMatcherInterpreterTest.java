@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
@@ -31,7 +32,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.spotify.hamcrest.jackson.IsJsonObject;
 import com.spotify.hamcrest.jackson.JsonMatchers;
-import io.sapl.test.Helper;
+import io.sapl.test.TestHelper;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.ParserUtil;
 import io.sapl.test.grammar.sAPLTest.IsJsonArray;
@@ -40,12 +41,12 @@ import io.sapl.test.grammar.sAPLTest.IsJsonText;
 import io.sapl.test.grammar.sAPLTest.JsonArrayMatcher;
 import io.sapl.test.grammar.sAPLTest.JsonNodeMatcher;
 import io.sapl.test.grammar.sAPLTest.JsonObjectMatcher;
-import io.sapl.test.grammar.sAPLTest.JsonObjectMatcherPair;
 import io.sapl.test.grammar.sAPLTest.StringIsNull;
 import io.sapl.test.grammar.sAPLTest.StringOrStringMatcher;
 import io.sapl.test.grammar.sAPLTest.Value;
 import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import org.hamcrest.Matcher;
@@ -68,6 +69,9 @@ class JsonNodeMatcherInterpreterTest {
     private JsonNodeMatcherInterpreter jsonNodeMatcherInterpreter;
     @Mock
     private Matcher<? super JsonNode>  jsonNodeMatcherMock;
+
+    @Mock
+    private Matcher<String> stringMatcherMock;
 
     private final MockedStatic<JsonMatchers> jsonMatchersMockedStatic     = mockStatic(JsonMatchers.class);
     private final MockedStatic<Matchers>     hamcrestMatchersMockedStatic = mockStatic(Matchers.class);
@@ -152,11 +156,10 @@ class JsonNodeMatcherInterpreterTest {
     void getHamcrestJsonNodeMatcher_handlesIsJsonTextWithStringMatcher_returnsJsonTextMatcher() {
         final var jsonNodeMatcher = buildJsonNodeMatcher("text null");
 
-        final var hamcrestStringMatcherMock = mock(Matcher.class);
-        when(stringMatcherInterpreterMock.getHamcrestStringMatcher(any(StringIsNull.class)))
-                .thenReturn(hamcrestStringMatcherMock);
+        doReturn(stringMatcherMock).when(stringMatcherInterpreterMock)
+                .getHamcrestStringMatcher(any(StringIsNull.class));
 
-        jsonMatchersMockedStatic.when(() -> jsonText(hamcrestStringMatcherMock)).thenReturn(jsonNodeMatcherMock);
+        jsonMatchersMockedStatic.when(() -> jsonText(stringMatcherMock)).thenReturn(jsonNodeMatcherMock);
 
         final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(jsonNodeMatcher);
 
@@ -237,6 +240,10 @@ class JsonNodeMatcherInterpreterTest {
     @Nested
     @DisplayName("JsonArray tests")
     class JsonArrayTest {
+
+        @Mock
+        Matcher<? super Collection<? extends JsonNode>> jsonNodesMatcher;
+
         @Test
         void getHamcrestJsonNodeMatcher_handlesIsJsonArrayWithNullArrayMatcher_returnsAnyJsonArrayMatcher() {
             final var jsonNodeMatcher = buildJsonNodeMatcher("array");
@@ -272,8 +279,7 @@ class JsonNodeMatcherInterpreterTest {
             final var jsonArrayMatcher = mock(JsonArrayMatcher.class);
             when(matcherMock.getMatcher()).thenReturn(jsonArrayMatcher);
 
-            final var matchers = Helper.mockEList(Collections.<JsonNodeMatcher>emptyList());
-            when(jsonArrayMatcher.getMatchers()).thenReturn(matchers);
+            TestHelper.mockEListResult(jsonArrayMatcher::getMatchers, Collections.emptyList());
 
             jsonMatchersMockedStatic.when(JsonMatchers::jsonArray).thenReturn(jsonNodeMatcherMock);
 
@@ -293,12 +299,12 @@ class JsonNodeMatcherInterpreterTest {
             final var jsonBooleanMatcherMock = mock(Matcher.class);
             jsonMatchersMockedStatic.when(JsonMatchers::jsonBoolean).thenReturn(jsonBooleanMatcherMock);
 
-            final var isEqualToMock = mock(Matcher.class);
             hamcrestMatchersMockedStatic
                     .when(() -> Matchers.is(eq(List.of(jsonNullMatcherMock, jsonBooleanMatcherMock))))
-                    .thenReturn(isEqualToMock);
+                    .thenReturn(jsonNodesMatcher);
 
-            jsonMatchersMockedStatic.when(() -> JsonMatchers.jsonArray(isEqualToMock)).thenReturn(jsonNodeMatcherMock);
+            jsonMatchersMockedStatic.when(() -> JsonMatchers.jsonArray(jsonNodesMatcher))
+                    .thenReturn(jsonNodeMatcherMock);
 
             final var result = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(jsonNodeMatcher);
 
@@ -312,6 +318,11 @@ class JsonNodeMatcherInterpreterTest {
 
         @Mock
         IsJsonObject isJsonObjectMock;
+
+        @Mock
+        Matcher<JsonNode> jsonNullMatcherMock;
+        @Mock
+        Matcher<JsonNode> jsonBooleanMatcherMock;
 
         @Test
         void getHamcrestJsonNodeMatcher_handlesIsJsonObjectWithNullObjectMatcher_returnsAnyJsonObjectMatcher() {
@@ -348,8 +359,7 @@ class JsonNodeMatcherInterpreterTest {
             final var jsonObjectMatcherMock = mock(JsonObjectMatcher.class);
             when(matcherMock.getMatcher()).thenReturn(jsonObjectMatcherMock);
 
-            final var matchers = Helper.mockEList(Collections.<JsonObjectMatcherPair>emptyList());
-            when(jsonObjectMatcherMock.getMembers()).thenReturn(matchers);
+            TestHelper.mockEListResult(jsonObjectMatcherMock::getMembers, Collections.emptyList());
 
             jsonMatchersMockedStatic.when(JsonMatchers::jsonObject).thenReturn(isJsonObjectMock);
 
@@ -367,14 +377,12 @@ class JsonNodeMatcherInterpreterTest {
             final var initialJsonObjectMock = mock(com.spotify.hamcrest.jackson.IsJsonObject.class);
             jsonMatchersMockedStatic.when(JsonMatchers::jsonObject).thenReturn(initialJsonObjectMock);
 
-            final var jsonNullMatcherMock = mock(Matcher.class);
             jsonMatchersMockedStatic.when(JsonMatchers::jsonNull).thenReturn(jsonNullMatcherMock);
 
             final var jsonObjectWithOneWhereConditionMock = mock(com.spotify.hamcrest.jackson.IsJsonObject.class);
             when(initialJsonObjectMock.where("jsonNullKey", jsonNullMatcherMock))
                     .thenReturn(jsonObjectWithOneWhereConditionMock);
 
-            final var jsonBooleanMatcherMock = mock(Matcher.class);
             jsonMatchersMockedStatic.when(JsonMatchers::jsonBoolean).thenReturn(jsonBooleanMatcherMock);
 
             when(jsonObjectWithOneWhereConditionMock.where("jsonBooleanKey", jsonBooleanMatcherMock))

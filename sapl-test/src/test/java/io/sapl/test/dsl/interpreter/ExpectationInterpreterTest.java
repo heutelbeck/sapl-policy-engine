@@ -31,11 +31,10 @@ import static org.mockito.Mockito.when;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.hamcrest.Matchers;
-import io.sapl.test.Helper;
+import io.sapl.test.TestHelper;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.ParserUtil;
 import io.sapl.test.grammar.sAPLTest.AnyDecision;
-import io.sapl.test.grammar.sAPLTest.AuthorizationDecisionMatcher;
 import io.sapl.test.grammar.sAPLTest.AuthorizationDecisionMatcherType;
 import io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType;
 import io.sapl.test.grammar.sAPLTest.ExpectOrAdjustmentStep;
@@ -54,7 +53,6 @@ import io.sapl.test.grammar.sAPLTest.StringLiteral;
 import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import io.sapl.test.steps.ExpectOrVerifyStep;
 import io.sapl.test.steps.VerifyStep;
-import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
@@ -86,6 +84,9 @@ class ExpectationInterpreterTest {
     private ExpectationInterpreter                  expectationInterpreter;
     @Mock
     private ExpectOrVerifyStep                      expectOrVerifyStepMock;
+
+    @Mock
+    private Matcher<AuthorizationDecision> authorizationDecisionMatcherMock;
 
     private final MockedStatic<org.hamcrest.Matchers> hamcrestMatchersMockedStatic = mockStatic(
             org.hamcrest.Matchers.class, Answers.RETURNS_SMART_NULLS);
@@ -216,8 +217,10 @@ class ExpectationInterpreterTest {
         void interpretSingleExpectWithMatcher_handlesEmptyMatchersInSingleExpectWithMatcher_throwsSaplTestException() {
             final var singleExpectWithMatcherMock = mock(SingleExpectWithMatcher.class);
 
-            final var matchersMock = Helper.mockEList(Collections.<AuthorizationDecisionMatcher>emptyList());
-            when(singleExpectWithMatcherMock.getMatchers()).thenReturn(matchersMock);
+//            final var matchersMock = Helper.mockEList(Collections.<AuthorizationDecisionMatcher>emptyList());
+//            when(singleExpectWithMatcherMock.getMatchers()).thenReturn(matchersMock);
+
+            TestHelper.mockEListResult(singleExpectWithMatcherMock::getMatchers, Collections.emptyList());
 
             final var exception = assertThrows(SaplTestException.class, () -> expectationInterpreter
                     .interpretSingleExpectWithMatcher(expectOrVerifyStepMock, singleExpectWithMatcherMock));
@@ -228,8 +231,6 @@ class ExpectationInterpreterTest {
         @Test
         void interpretSingleExpectWithMatcher_callsAuthorizationDecisionMatcherInterpreter_returnsVerifyStep() {
             final SingleExpectWithMatcher singleExpectWithMatcher = buildExpectChain("decision any");
-
-            final Matcher<AuthorizationDecision> authorizationDecisionMatcherMock = mock(Matcher.class);
 
             when(authorizationDecisionMatcherInterpreterMock
                     .getHamcrestAuthorizationDecisionMatcher(any(AnyDecision.class)))
@@ -270,13 +271,13 @@ class ExpectationInterpreterTest {
                         return isDecisionMappedMock;
                     });
 
-            final var allOfMock = mock(Matcher.class);
             hamcrestMatchersMockedStatic
                     .when(() -> org.hamcrest.Matchers
-                            .allOf(new Matcher[] { hasObligationOrAdviceMappedMock, isDecisionMappedMock }))
-                    .thenReturn(allOfMock);
+                            .allOf(List.of(hasObligationOrAdviceMappedMock, isDecisionMappedMock)
+                                    .<Matcher<AuthorizationDecision>>toArray(Matcher[]::new)))
+                    .thenReturn(authorizationDecisionMatcherMock);
 
-            when(expectOrVerifyStepMock.expect(allOfMock)).thenReturn(expectOrVerifyStepMock);
+            when(expectOrVerifyStepMock.expect(authorizationDecisionMatcherMock)).thenReturn(expectOrVerifyStepMock);
 
             final var result = expectationInterpreter.interpretSingleExpectWithMatcher(expectOrVerifyStepMock,
                     singleExpectWithMatcher);
@@ -331,9 +332,9 @@ class ExpectationInterpreterTest {
 
             @Test
             void interpretRepeatedExpect_handlesExpectStepsBeingEmpty_returnsInitialVerifyStep() {
-                final var repeatedExpectStepsMock = Helper.mockEList(Collections.<ExpectOrAdjustmentStep>emptyList());
-                final var repeatedExpectMock      = mock(RepeatedExpect.class);
-                when(repeatedExpectMock.getExpectSteps()).thenReturn(repeatedExpectStepsMock);
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+
+                TestHelper.mockEListResult(repeatedExpectMock::getExpectSteps, Collections.emptyList());
 
                 final var exception = assertThrows(SaplTestException.class, () -> expectationInterpreter
                         .interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock));
@@ -344,10 +345,10 @@ class ExpectationInterpreterTest {
             @Test
             void interpretRepeatedExpect_handlesUnknownExpectStep_throwsSaplTestException() {
                 final var unknownExpectOrAdjustmentStepMock = mock(ExpectOrAdjustmentStep.class);
-                final var repeatedExpectStepsMock           = Helper
-                        .mockEList(List.of(unknownExpectOrAdjustmentStepMock));
                 final var repeatedExpectMock                = mock(RepeatedExpect.class);
-                when(repeatedExpectMock.getExpectSteps()).thenReturn(repeatedExpectStepsMock);
+
+                TestHelper.mockEListResult(repeatedExpectMock::getExpectSteps,
+                        List.of(unknownExpectOrAdjustmentStepMock));
 
                 final var exception = assertThrows(SaplTestException.class, () -> expectationInterpreter
                         .interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock));
@@ -362,11 +363,10 @@ class ExpectationInterpreterTest {
 
             @Test
             void interpretRepeatedExpect_constructsNextPermitWithUnknownAmount_throwsSaplTestException() {
-                final var nextMock                    = mock(Next.class);
-                final var expectOrAdjustmentStepsMock = Helper.mockEList(List.<ExpectOrAdjustmentStep>of(nextMock));
-                final var repeatedExpectMock          = mock(RepeatedExpect.class);
+                final var nextMock           = mock(Next.class);
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
 
-                when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
+                TestHelper.mockEListResult(repeatedExpectMock::getExpectSteps, List.of(nextMock));
 
                 final var numericAmountMock = mock(NumericAmount.class);
                 when(nextMock.getAmount()).thenReturn(numericAmountMock);
@@ -445,12 +445,11 @@ class ExpectationInterpreterTest {
         class ExpectNextWithDecisionTest {
             @Test
             void interpretRepeatedExpect_handlesNextWithNullDecision_throwsSaplTestException() {
-                final var nextWithDecisionMock        = mock(NextWithDecision.class);
-                final var expectOrAdjustmentStepsMock = Helper
-                        .mockEList(List.<ExpectOrAdjustmentStep>of(nextWithDecisionMock));
-                final var repeatedExpectMock          = mock(RepeatedExpect.class);
+                final var nextWithDecisionMock = mock(NextWithDecision.class);
 
-                when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+
+                TestHelper.mockEListResult(repeatedExpectMock::getExpectSteps, List.of(nextWithDecisionMock));
 
                 when(nextWithDecisionMock.getExpectedDecision()).thenReturn(null);
 
@@ -503,12 +502,11 @@ class ExpectationInterpreterTest {
 
             @Test
             void interpretRepeatedExpect_handlesNullMatchers_throwsSaplTestException() {
-                final var nextWithMatcherMock         = mock(NextWithMatcher.class);
-                final var expectOrAdjustmentStepsMock = Helper
-                        .mockEList(List.<ExpectOrAdjustmentStep>of(nextWithMatcherMock));
-                final var repeatedExpectMock          = mock(RepeatedExpect.class);
+                final var nextWithMatcherMock = mock(NextWithMatcher.class);
 
-                when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+
+                TestHelper.mockEListResult(repeatedExpectMock::getExpectSteps, List.of(nextWithMatcherMock));
 
                 when(nextWithMatcherMock.getMatcher()).thenReturn(null);
 
@@ -520,15 +518,11 @@ class ExpectationInterpreterTest {
 
             @Test
             void interpretRepeatedExpect_handlesEmptyMatchers_throwsSaplTestException() {
-                final var nextWithMatcherMock         = mock(NextWithMatcher.class);
-                final var expectOrAdjustmentStepsMock = Helper
-                        .mockEList(List.<ExpectOrAdjustmentStep>of(nextWithMatcherMock));
-                final var repeatedExpectMock          = mock(RepeatedExpect.class);
+                final var nextWithMatcherMock = mock(NextWithMatcher.class);
+                final var repeatedExpectMock  = mock(RepeatedExpect.class);
 
-                when(repeatedExpectMock.getExpectSteps()).thenReturn(expectOrAdjustmentStepsMock);
-
-                final var matchersMock = Helper.mockEList(Collections.<AuthorizationDecisionMatcher>emptyList());
-                when(nextWithMatcherMock.getMatcher()).thenReturn(matchersMock);
+                TestHelper.mockEListResult(repeatedExpectMock::getExpectSteps, List.of(nextWithMatcherMock));
+                TestHelper.mockEListResult(nextWithMatcherMock::getMatcher, Collections.emptyList());
 
                 final var exception = assertThrows(SaplTestException.class, () -> expectationInterpreter
                         .interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock));
@@ -540,18 +534,16 @@ class ExpectationInterpreterTest {
             void interpretRepeatedExpect_correctlyMapsSingleMatcher_returnsAdjustedVerifyStep() {
                 final RepeatedExpect repeatedExpect = buildExpectChain("- decision is permit");
 
-                final var mappedAuthorizationDecisionMatcherMock = mock(Matcher.class);
-
                 when(authorizationDecisionMatcherInterpreterMock
                         .getHamcrestAuthorizationDecisionMatcher(any(IsDecision.class)))
                         .thenAnswer(invocationOnMock -> {
                             final IsDecision isDecision = invocationOnMock.getArgument(0);
 
                             assertEquals(AuthorizationDecisionType.PERMIT, isDecision.getDecision());
-                            return mappedAuthorizationDecisionMatcherMock;
+                            return authorizationDecisionMatcherMock;
                         });
 
-                when(expectOrVerifyStepMock.expectNext(mappedAuthorizationDecisionMatcherMock))
+                when(expectOrVerifyStepMock.expectNext(authorizationDecisionMatcherMock))
                         .thenReturn(expectOrVerifyStepMock);
 
                 final var result = expectationInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock,
@@ -586,13 +578,14 @@ class ExpectationInterpreterTest {
                             return isDecisionMappedMock;
                         });
 
-                final var allOfMock = mock(Matcher.class);
                 hamcrestMatchersMockedStatic
                         .when(() -> org.hamcrest.Matchers
-                                .allOf(new Matcher[] { hasObligationOrAdviceMappedMock, isDecisionMappedMock }))
-                        .thenReturn(allOfMock);
+                                .allOf(List.of(hasObligationOrAdviceMappedMock, isDecisionMappedMock)
+                                        .<Matcher<AuthorizationDecision>>toArray(Matcher[]::new)))
+                        .thenReturn(authorizationDecisionMatcherMock);
 
-                when(expectOrVerifyStepMock.expectNext(allOfMock)).thenReturn(expectOrVerifyStepMock);
+                when(expectOrVerifyStepMock.expectNext(authorizationDecisionMatcherMock))
+                        .thenReturn(expectOrVerifyStepMock);
 
                 final var result = expectationInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock,
                         repeatedExpect);

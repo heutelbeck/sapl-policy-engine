@@ -28,7 +28,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.inject.Injector;
-import io.sapl.test.Helper;
+import io.sapl.test.TestHelper;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.SAPLTestStandaloneSetup;
 import io.sapl.test.grammar.sAPLTest.SAPLTest;
@@ -41,7 +41,6 @@ import java.util.Map;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.common.util.WrappedException;
-import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.resource.XtextResourceSet;
 import org.junit.jupiter.api.AfterEach;
@@ -134,9 +133,7 @@ class DefaultSaplTestInterpreterTest {
 
         final var resourceErrorMock = mock(Resource.Diagnostic.class);
 
-        final var errors = Helper.mockEList(List.of(resourceErrorMock));
-
-        when(resourceMock.getErrors()).thenReturn(errors);
+        TestHelper.mockEListResult(resourceMock::getErrors, List.of(resourceErrorMock));
 
         final var exception = assertThrows(SaplTestException.class,
                 () -> defaultSaplTestInterpreter.loadAsResource(inputStreamMock));
@@ -150,13 +147,10 @@ class DefaultSaplTestInterpreterTest {
 
         final var inputStreamMock = mock(InputStream.class);
 
-        final var errors = Helper.mockEList(Collections.<Resource.Diagnostic>emptyList());
-
-        when(resourceMock.getErrors()).thenReturn(errors);
+        TestHelper.mockEListResult(resourceMock::getErrors, Collections.emptyList());
 
         final var saplTestMock = mock(SAPLTest.class);
-        final var contents     = Helper.mockEList(List.<EObject>of(saplTestMock));
-        when(resourceMock.getContents()).thenReturn(contents);
+        TestHelper.mockEListResult(resourceMock::getContents, List.of(saplTestMock));
 
         final var result = defaultSaplTestInterpreter.loadAsResource(inputStreamMock);
 
@@ -168,13 +162,10 @@ class DefaultSaplTestInterpreterTest {
         final var loadOptions  = Collections.emptyMap();
         final var resourceMock = mockResourceCreation(loadOptions);
 
-        final var errors = Helper.mockEList(Collections.<Resource.Diagnostic>emptyList());
-
-        when(resourceMock.getErrors()).thenReturn(errors);
+        TestHelper.mockEListResult(resourceMock::getErrors, Collections.emptyList());
 
         final var saplTestMock = mock(SAPLTest.class);
-        final var contents     = Helper.mockEList(List.<EObject>of(saplTestMock));
-        when(resourceMock.getContents()).thenReturn(contents);
+        TestHelper.mockEListResult(resourceMock::getContents, List.of(saplTestMock));
 
         final var inputStreamMock = mock(InputStream.class);
         ioUtilsMockedStatic.when(() -> IOUtils.toInputStream("foo", StandardCharsets.UTF_8))

@@ -31,7 +31,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
-import io.sapl.test.Helper;
+import io.sapl.test.TestHelper;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.ParserUtil;
 import io.sapl.test.dsl.interfaces.IntegrationTestConfiguration;
@@ -51,7 +51,6 @@ import io.sapl.test.unit.SaplUnitTestFixture;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
-import org.eclipse.emf.common.util.EList;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -173,15 +172,51 @@ class TestSuiteInterpreterTest {
             assertEquals("Unknown type of PolicyResolverConfig", exception.getMessage());
         }
 
-        @ParameterizedTest
-        @MethodSource("invalidListOfPolicies")
-        void getFixtureFromTestSuite_handlesInvalidAmountOfPoliciesForPoliciesByInputString_throwsSaplTestException(
-                final EList<String> policies) {
+        @Test
+        void getFixtureFromTestSuite_handlesNullPoliciesForPoliciesByInputString_throwsSaplTestException() {
             final var integrationTestSuite = mock(IntegrationTestSuite.class);
 
             final var policiesByInputStringMock = mock(PoliciesByInputString.class);
             when(policiesByInputStringMock.getPdpConfig()).thenReturn("fooFolder");
-            when(policiesByInputStringMock.getPolicies()).thenReturn(policies);
+            when(policiesByInputStringMock.getPolicies()).thenReturn(null);
+
+            when(integrationTestSuite.getConfig()).thenReturn(policiesByInputStringMock);
+
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> testSuiteInterpreter.getFixtureFromTestSuite(integrationTestSuite));
+
+            assertEquals("No policies to test integration for", exception.getMessage());
+        }
+
+        @ParameterizedTest
+        @MethodSource("invalidListOfPolicies")
+        void getFixtureFromTestSuite_handlesInvalidAmountOfPoliciesForPoliciesByInputString_throwsSaplTestException(
+                final List<String> policies) {
+            final var integrationTestSuite = mock(IntegrationTestSuite.class);
+
+            final var policiesByInputStringMock = mock(PoliciesByInputString.class);
+            when(policiesByInputStringMock.getPdpConfig()).thenReturn("fooFolder");
+
+            TestHelper.mockEListResult(policiesByInputStringMock::getPolicies, policies);
+
+            when(integrationTestSuite.getConfig()).thenReturn(policiesByInputStringMock);
+
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> testSuiteInterpreter.getFixtureFromTestSuite(integrationTestSuite));
+
+            assertEquals("No policies to test integration for", exception.getMessage());
+        }
+
+        @Test
+        void getFixtureFromTestSuite_handlesNullPoliciesForPoliciesByInputStringWithCustomIntegrationTestPolicyResolver_throwsSaplTestException() {
+            final var integrationTestPolicyResolver = mock(IntegrationTestPolicyResolver.class);
+            constructTestSuiteInterpreterWithCustomResolvers(null, integrationTestPolicyResolver);
+            final var integrationTestSuite = mock(IntegrationTestSuite.class);
+
+            final var policiesByInputStringMock = mock(PoliciesByInputString.class);
+            when(policiesByInputStringMock.getPdpConfig()).thenReturn("fooFolder");
+            when(policiesByInputStringMock.getPolicies()).thenReturn(null);
+
             when(integrationTestSuite.getConfig()).thenReturn(policiesByInputStringMock);
 
             final var exception = assertThrows(SaplTestException.class,
@@ -193,14 +228,16 @@ class TestSuiteInterpreterTest {
         @ParameterizedTest
         @MethodSource("invalidListOfPolicies")
         void getFixtureFromTestSuite_handlesInvalidAmountOfPoliciesForPoliciesByInputStringWithCustomIntegrationTestPolicyResolver_throwsSaplTestException(
-                final EList<String> policies) {
+                final List<String> policies) {
             final var integrationTestPolicyResolver = mock(IntegrationTestPolicyResolver.class);
             constructTestSuiteInterpreterWithCustomResolvers(null, integrationTestPolicyResolver);
             final var integrationTestSuite = mock(IntegrationTestSuite.class);
 
             final var policiesByInputStringMock = mock(PoliciesByInputString.class);
             when(policiesByInputStringMock.getPdpConfig()).thenReturn("fooFolder");
-            when(policiesByInputStringMock.getPolicies()).thenReturn(policies);
+
+            TestHelper.mockEListResult(policiesByInputStringMock::getPolicies, policies);
+
             when(integrationTestSuite.getConfig()).thenReturn(policiesByInputStringMock);
 
             final var exception = assertThrows(SaplTestException.class,
@@ -210,8 +247,7 @@ class TestSuiteInterpreterTest {
         }
 
         private static Stream<Arguments> invalidListOfPolicies() {
-            return Stream.of(null, Arguments.of(Helper.mockEList(Collections.emptyList())),
-                    Arguments.of(Helper.mockEList(List.of("singlePolicy"))));
+            return Stream.of(Arguments.of(Collections.emptyList()), Arguments.of(List.of("singlePolicy")));
         }
 
         @Test
