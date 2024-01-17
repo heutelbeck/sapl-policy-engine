@@ -46,7 +46,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class AuthorizationSubscriptionInterpreterTest {
+class AuthorizationSubscriptionInterpreterTests {
     @Mock
     private ValueInterpreter                     valueInterpreterMock;
     @InjectMocks

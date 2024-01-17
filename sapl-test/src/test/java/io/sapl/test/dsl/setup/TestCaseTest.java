@@ -56,7 +56,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class TestCaseTest {
+class TestCaseTests {
     @Mock
     private StepConstructor                        stepConstructorMock;
     @Mock

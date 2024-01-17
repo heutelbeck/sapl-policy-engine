@@ -49,7 +49,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class AuthorizationDecisionInterpreterTest {
+class AuthorizationDecisionInterpreterTests {
     @Mock
     private ValueInterpreter                 valueInterpreterMock;
     @Mock
@@ -89,7 +89,7 @@ class AuthorizationDecisionInterpreterTest {
 
     @Nested
     @DisplayName("obligations and resource and advice mapping tests")
-    class ObligationsAndResourceAndAdviceMappingTest {
+    class ObligationsAndResourceAndAdviceMappingTests {
         @Test
         void constructAuthorizationDecision_shouldInterpretResourceOnlyForEmptyObligationsAndAdvice_returnsCorrectAuthorizationDecision() {
             final var value = buildNumberLiteral("5");

@@ -24,7 +24,7 @@ import io.sapl.test.dsl.interfaces.TestNode;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
 
-class TestContainerTest {
+class TestContainerTests {
 
     @Test
     void from_buildsTestContainerWithGivenIdentifierAndTestNodes_returnsTestContainer() {

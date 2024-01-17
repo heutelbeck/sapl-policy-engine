@@ -61,7 +61,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class FunctionInterpreterTest {
+class FunctionInterpreterTests {
     @Mock
     private ValueInterpreter      valueInterpreterMock;
     @Mock
@@ -94,7 +94,7 @@ class FunctionInterpreterTest {
 
     @Nested
     @DisplayName("Interpret function")
-    class InterpretFunctionTest {
+    class InterpretFunctionTests {
 
         @Mock
         Matcher<Val> valMatcherMock;
@@ -304,7 +304,7 @@ class FunctionInterpreterTest {
 
     @Nested
     @DisplayName("Interpret function invoked once")
-    class InterpretFunctionInvokedOnceTest {
+    class InterpretFunctionInvokedOnceTests {
         @Test
         void interpretFunctionInvokedOnce_handlesNullGivenOrWhenStep_throwsSaplTestException() {
             final var functionInvokedOnce = buildFunctionInvokedOnce("function \"fooFunction\" returns stream \"bar\"");

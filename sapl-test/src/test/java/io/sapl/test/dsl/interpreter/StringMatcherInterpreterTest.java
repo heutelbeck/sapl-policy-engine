@@ -56,7 +56,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class StringMatcherInterpreterTest {
+class StringMatcherInterpreterTests {
     private StringMatcherInterpreter stringMatcherInterpreter;
     @Mock
     Matcher<? super String>          matcherMock;

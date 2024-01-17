@@ -59,7 +59,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class AuthorizationDecisionMatcherInterpreterTest {
+class AuthorizationDecisionMatcherInterpreterTests {
     @Mock
     private ValueInterpreter                        valueInterpreterMock;
     @Mock
@@ -191,7 +191,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
     @Nested
     @DisplayName("HasObligationOrAdvice tests")
-    class HasObligationOrAdviceTest {
+    class HasObligationOrAdviceTests {
 
         @Test
         void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithDefaultObjectMatcherWithUnknownTypeForObligation_throwsSaplTestException() {
@@ -278,7 +278,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
         @Nested
         @DisplayName("ObjectWithExactMatch cases")
-        class ObjectWithExactMatchTest {
+        class ObjectWithExactMatchTests {
             @Test
             void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithObjectWithExactMatchWithNullValForObligation_throwsSaplTestException() {
                 final var hasObligationOrAdvice = buildHasObligationOrAdviceMatcher("with obligation equals null");
@@ -346,7 +346,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
         @Nested
         @DisplayName("ObjectWithMatcher cases")
-        class ObjectWithMatcherTest {
+        class ObjectWithMatcherTests {
             @Test
             void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithObjectWithMatcherForObligationWithNullMappedMatcher_throwsSaplTestException() {
                 final var hasObligationOrAdvice = buildHasObligationOrAdviceMatcher("with obligation matching null");
@@ -410,7 +410,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
         @Nested
         @DisplayName("ObjectWithKeyValueMatcher cases")
-        class ObjectWithKeyValueMatcherTest {
+        class ObjectWithKeyValueMatcherTests {
             @Test
             void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithObjectWithKeyValueMatcherForObligationWithoutValueMatcher_returnsHasObligationWithKey() {
                 final var hasObligationOrAdvice = buildHasObligationOrAdviceMatcher(
@@ -511,7 +511,7 @@ class AuthorizationDecisionMatcherInterpreterTest {
 
     @Nested
     @DisplayName("HasResource tests")
-    class HasResourceTest {
+    class HasResourceTests {
         @Test
         void getHamcrestAuthorizationDecisionMatcher_handlesHasResourceWithObjectWithExactMatchWithNullMatcher_throwsSaplTestException() {
             final var hasResource = buildHasResourceMatcher("with resource equals null");

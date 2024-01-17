@@ -69,7 +69,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class ExpectationInterpreterTest {
+class ExpectationInterpreterTests {
     @Mock
     private ValueInterpreter                        valueInterpreterMock;
     @Mock
@@ -114,7 +114,7 @@ class ExpectationInterpreterTest {
 
     @Nested
     @DisplayName("Single expect")
-    class SingleExpectTest {
+    class SingleExpectTests {
         @Test
         void interpretSingleExpect_handlesNullExpectStep_throwsSaplTestException() {
             final var singleExpect = buildSingleExpect("permit");
@@ -185,7 +185,7 @@ class ExpectationInterpreterTest {
 
     @Nested
     @DisplayName("Single expect with matcher")
-    class SingleExpectWithMatcherTest {
+    class SingleExpectWithMatcherTests {
 
         @Test
         void interpretSingleExpectWithMatcher_handlesNullExpectStep_throwsSaplTestException() {
@@ -296,11 +296,11 @@ class ExpectationInterpreterTest {
 
     @Nested
     @DisplayName("Repeated expect")
-    class RepeatedExpectTest {
+    class RepeatedExpectTests {
 
         @Nested
         @DisplayName("Error cases")
-        class ErrorCasesTest {
+        class ErrorCasesTests {
             @Test
             void interpretRepeatedExpect_handlesNullExpectStep_throwsSaplTestException() {
                 final var repeatedExpect = buildRepeatedExpect("- expect permit once");
@@ -367,7 +367,7 @@ class ExpectationInterpreterTest {
 
         @Nested
         @DisplayName("Expect next")
-        class ExpectNextTest {
+        class ExpectNextTests {
 
             @Test
             void interpretRepeatedExpect_constructsNextPermitWithUnknownAmount_throwsSaplTestException() {
@@ -450,7 +450,7 @@ class ExpectationInterpreterTest {
 
         @Nested
         @DisplayName("Expect next with decision")
-        class ExpectNextWithDecisionTest {
+        class ExpectNextWithDecisionTests {
             @Test
             void interpretRepeatedExpect_handlesNextWithNullDecision_throwsSaplTestException() {
                 final var nextWithDecisionMock = mock(NextWithDecision.class);
@@ -499,7 +499,7 @@ class ExpectationInterpreterTest {
 
         @Nested
         @DisplayName("Expect next with matcher")
-        class ExpectNextWithMatcherTest {
+        class ExpectNextWithMatcherTests {
             private final MockedStatic<Matchers> saplMatchersMockedStatic = mockStatic(Matchers.class,
                     Answers.RETURNS_SMART_NULLS);
 
@@ -604,7 +604,7 @@ class ExpectationInterpreterTest {
 
         @Nested
         @DisplayName("No event")
-        class NoEventTest {
+        class NoEventTests {
             @Test
             void interpretRepeatedExpect_interpretsAwait_returnsAdjustedVerifyStep() {
                 final var repeatedExpect = buildRepeatedExpect("- no-event for \"PT3S\"");
@@ -627,7 +627,7 @@ class ExpectationInterpreterTest {
 
         @Nested
         @DisplayName("Attribute adjustment")
-        class AttributeAdjustmentTest {
+        class AttributeAdjustmentTests {
             @Test
             void interpretRepeatedExpect_interpretsAttributeAdjustment_returnsAdjustedVerifyStep() {
                 final var repeatedExpect = buildRepeatedExpect("- let attribute \"foo\" return \"bar\"");
@@ -648,7 +648,7 @@ class ExpectationInterpreterTest {
 
         @Nested
         @DisplayName("Await")
-        class AwaitTest {
+        class AwaitTests {
             @Test
             void interpretRepeatedExpect_interpretsAwait_returnsAdjustedVerifyStep() {
                 final var repeatedExpect = buildRepeatedExpect("- wait for \"PT5S\"");

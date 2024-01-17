@@ -33,7 +33,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
-class TestProviderFactoryTest {
+class TestProviderFactoryTests {
 
     private final MockedStatic<TestProvider> testProviderMockedStatic = mockStatic(TestProvider.class);
 

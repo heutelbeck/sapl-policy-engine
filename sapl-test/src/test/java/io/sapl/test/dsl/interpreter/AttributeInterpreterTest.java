@@ -55,7 +55,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class AttributeInterpreterTest {
+class AttributeInterpreterTests {
     @Mock
     private ValueInterpreter      valueInterpreterMock;
     @Mock
@@ -69,7 +69,7 @@ class AttributeInterpreterTest {
 
     @Nested
     @DisplayName("Interpret attribute")
-    class InterpretAttributeTest {
+    class InterpretAttributeTests {
 
         private Attribute buildAttribute(final String input) {
             return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getGivenStepRule, Attribute.class);
@@ -138,7 +138,7 @@ class AttributeInterpreterTest {
 
     @Nested
     @DisplayName("Interpret attribute with parameters")
-    class InterpretAttributeWithParametersTest {
+    class InterpretAttributeWithParametersTests {
 
         private AttributeWithParameters buildAttributeWithParameters(final String input) {
             return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getGivenStepRule,

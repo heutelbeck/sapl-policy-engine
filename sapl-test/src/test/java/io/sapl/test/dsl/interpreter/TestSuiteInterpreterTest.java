@@ -66,7 +66,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class TestSuiteInterpreterTest {
+class TestSuiteInterpreterTests {
     @Mock
     private ValueInterpreter              valueInterpreterMock;
     @Mock

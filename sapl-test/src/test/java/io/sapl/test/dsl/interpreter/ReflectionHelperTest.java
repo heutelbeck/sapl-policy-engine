@@ -26,7 +26,7 @@ import io.sapl.test.SaplTestException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class ReflectionHelperTest {
+class ReflectionHelperTests {
     private ReflectionHelper reflectionHelper;
 
     @BeforeEach

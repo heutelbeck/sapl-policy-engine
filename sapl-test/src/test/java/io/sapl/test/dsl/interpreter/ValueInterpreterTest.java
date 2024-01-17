@@ -59,7 +59,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class ValueInterpreterTest {
+class ValueInterpreterTests {
     @Mock
     private ObjectMapper     objectMapperMock;
     @Mock
@@ -76,7 +76,7 @@ class ValueInterpreterTest {
 
     @Nested
     @DisplayName("Get val from value")
-    class getValFromValueTest {
+    class getValFromValueTests {
 
         @Test
         void getValFromValue_handlesNull_throwsSaplTestException() {
@@ -183,7 +183,7 @@ class ValueInterpreterTest {
 
         @Nested
         @DisplayName("Array tests")
-        class ArrayTest {
+        class ArrayTests {
             @Test
             void getValFromValue_handlesArrayWithNullItems_returnsEmptyArrayVal() {
                 final var valueMock = mock(Array.class);
@@ -241,7 +241,7 @@ class ValueInterpreterTest {
 
         @Nested
         @DisplayName("Object tests")
-        class ObjectTest {
+        class ObjectTests {
             @Test
             void getValFromValue_handlesObjectWithNullMembers_returnsEmptyObjectVal() {
                 final var valueMock = mock(io.sapl.test.grammar.sAPLTest.Object.class);
@@ -302,7 +302,7 @@ class ValueInterpreterTest {
 
     @Nested
     @DisplayName("Destructure object tests")
-    class DestructureObjectTest {
+    class DestructureObjectTests {
         @Test
         void destructureObject_handlesNullObject_returnsEmptyMap() {
             final var result = valueInterpreter.destructureObject(null);

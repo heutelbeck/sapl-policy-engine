@@ -48,7 +48,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class DefaultTestFixtureConstructorTest {
+class DefaultTestFixtureConstructorTests {
     @Mock
     private TestSuiteInterpreter          testSuiteInterpreterMock;
     @Mock
@@ -95,7 +95,7 @@ class DefaultTestFixtureConstructorTest {
 
     @Nested
     @DisplayName("fixture registration handling")
-    class FixtureRegistrationHandlingTest {
+    class FixtureRegistrationHandlingTests {
         @Test
         void constructTestFixture_handlesUnknownFixtureRegistration_throwsSaplTestException() {
             when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(testFixtureMock);

@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import io.sapl.test.dsl.lang.DefaultSaplTestInterpreter;
 import org.junit.jupiter.api.Test;
 
-class SaplTestInterpreterFactoryTest {
+class SaplTestInterpreterFactoryTests {
 
     @Test
     void create_constructsInstanceOfSaplTestInterpreter_returnsDefaultSaplTestInterpreterInstance() {

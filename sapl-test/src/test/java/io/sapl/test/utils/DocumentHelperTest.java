@@ -38,7 +38,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class DocumentHelperTest {
+class DocumentHelperTests {
     private final MockedStatic<ClasspathHelper> classpathHelperMockedStatic = mockStatic(ClasspathHelper.class);
     private final MockedStatic<Files>           filesMockedStatic           = mockStatic(Files.class,
             Answers.CALLS_REAL_METHODS);

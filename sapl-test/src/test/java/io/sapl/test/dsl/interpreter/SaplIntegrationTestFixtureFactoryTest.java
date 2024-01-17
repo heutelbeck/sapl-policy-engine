@@ -24,7 +24,7 @@ import io.sapl.test.integration.SaplIntegrationTestFixture;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
 
-class SaplIntegrationTestFixtureFactoryTest {
+class SaplIntegrationTestFixtureFactoryTests {
 
     @Test
     void create_constructsInstanceOfSaplIntegrationTestFixtureWithFolderPath_returnsSaplIntegrationTestFixture() {

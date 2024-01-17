@@ -33,7 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
 import org.mockito.MockedStatic;
 
-class DurationInterpreterTest {
+class DurationInterpreterTests {
     private DurationInterpreter durationInterpreter;
 
     private final MockedStatic<Duration> durationMockedStatic = mockStatic(Duration.class, Answers.RETURNS_DEEP_STUBS);

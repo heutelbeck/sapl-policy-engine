@@ -39,7 +39,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class MultipleInterpreterTest {
+class MultipleInterpreterTests {
     private MultipleInterpreter multipleInterpreter;
 
     @BeforeEach

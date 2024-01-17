@@ -64,7 +64,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class JsonNodeMatcherInterpreterTest {
+class JsonNodeMatcherInterpreterTests {
     @Mock
     private StringMatcherInterpreter   stringMatcherInterpreterMock;
     @InjectMocks
@@ -241,7 +241,7 @@ class JsonNodeMatcherInterpreterTest {
 
     @Nested
     @DisplayName("JsonArray tests")
-    class JsonArrayTest {
+    class JsonArrayTests {
 
         @Mock
         Matcher<? super Collection<? extends JsonNode>> jsonNodesMatcher;
@@ -316,7 +316,7 @@ class JsonNodeMatcherInterpreterTest {
 
     @Nested
     @DisplayName("JsonObject tests")
-    class JsonObjectTest {
+    class JsonObjectTests {
 
         @Mock
         IsJsonObject isJsonObjectMock;

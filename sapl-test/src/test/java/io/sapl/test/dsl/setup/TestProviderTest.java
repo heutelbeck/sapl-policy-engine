@@ -53,7 +53,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class TestProviderTest {
+class TestProviderTests {
     @Mock
     private StepConstructor stepConstructorMock;
     @InjectMocks
@@ -78,7 +78,7 @@ class TestProviderTest {
 
     @Nested
     @DisplayName("Early return cases")
-    class EarlyReturnCasesTest {
+    class EarlyReturnCasesTests {
         @Test
         void buildTests_calledWithNullSAPLTest_throwsSaplTestException() {
             final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(null));
@@ -128,7 +128,7 @@ class TestProviderTest {
 
     @Nested
     @DisplayName("Container name construction")
-    class ContainerNameConstructionTest {
+    class ContainerNameConstructionTests {
         private List<TestNode> mockTestContainerForName(final String name, final TestContainer dynamicContainer) {
             List<TestNode> dynamicTestCases = new ArrayList<>();
             testContainerMockedStatic.when(() -> TestContainer.from(eq(name), anyList()))
