@@ -637,6 +637,7 @@
 						<configuration>
 							<excludeFilterFile>spotbugsExcludeFilter.xml</excludeFilterFile>
 							<includeTests>true</includeTests>
+							<addSourceDirs>true</addSourceDirs>
 							<plugins>
 								 <plugin>
 									<groupId>com.mebigfatguy.sb-contrib</groupId>
