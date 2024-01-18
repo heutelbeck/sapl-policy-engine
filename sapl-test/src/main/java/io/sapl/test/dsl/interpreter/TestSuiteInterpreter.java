@@ -62,7 +62,7 @@ class TestSuiteInterpreter {
 
     private SaplTestFixture getIntegrationTestFixtureFromIntegrationTestSuite(
             final IntegrationTestSuite integrationTestSuite) {
-        final var                  policyResolverConfig = integrationTestSuite.getConfig();
+        final var                  policyResolverConfig = integrationTestSuite.getConfiguration();
         SaplIntegrationTestFixture integrationTestFixture;
 
         if (policyResolverConfig instanceof PoliciesByIdentifier policiesByIdentifier) {
@@ -103,7 +103,7 @@ class TestSuiteInterpreter {
 
     private SaplIntegrationTestFixture handlePoliciesByInputString(final PoliciesByInputString policiesByInputString) {
         SaplIntegrationTestFixture integrationTestFixture;
-        final var                  pdpConfig = policiesByInputString.getPdpConfig();
+        final var                  pdpConfig = policiesByInputString.getPdpConfiguration();
         final var                  policies  = policiesByInputString.getPolicies();
 
         if (policies == null || policies.size() < 2) {

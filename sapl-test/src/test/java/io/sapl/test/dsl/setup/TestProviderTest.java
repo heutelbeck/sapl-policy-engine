@@ -181,7 +181,7 @@ class TestProviderTests {
             TestHelper.mockEListResult(integrationTestSuite::getTestCases, List.of(testCaseMock));
 
             final var unknownPolicyResolverConfigMock = mock(PolicyResolverConfig.class);
-            when(integrationTestSuite.getConfig()).thenReturn(unknownPolicyResolverConfigMock);
+            when(integrationTestSuite.getConfiguration()).thenReturn(unknownPolicyResolverConfigMock);
 
             final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestMock));
 
@@ -196,7 +196,7 @@ class TestProviderTests {
             TestHelper.mockEListResult(integrationTestSuite::getTestCases, List.of(testCaseMock));
 
             final var policiesByIdentifierMock = mock(PoliciesByIdentifier.class);
-            when(integrationTestSuite.getConfig()).thenReturn(policiesByIdentifierMock);
+            when(integrationTestSuite.getConfiguration()).thenReturn(policiesByIdentifierMock);
 
             when(policiesByIdentifierMock.getIdentifier()).thenReturn("policyFolder");
 
@@ -223,7 +223,7 @@ class TestProviderTests {
             TestHelper.mockEListResult(integrationTestSuite::getTestCases, List.of(testCaseMock));
 
             final var policiesByInputStringMock = mock(PoliciesByInputString.class);
-            when(integrationTestSuite.getConfig()).thenReturn(policiesByInputStringMock);
+            when(integrationTestSuite.getConfiguration()).thenReturn(policiesByInputStringMock);
 
             TestHelper.mockEListResult(policiesByInputStringMock::getPolicies,
                     List.of("name1", "foo/name2", "foo/subfoo/nested/policy3.sapl"));
@@ -264,7 +264,7 @@ class TestProviderTests {
                     List.of(unitTestCase1Mock, unitTestCase2Mock, unitTestCase3Mock));
 
             final var policiesByInputStringMock = mock(PoliciesByInputString.class);
-            when(integrationTestSuite.getConfig()).thenReturn(policiesByInputStringMock);
+            when(integrationTestSuite.getConfiguration()).thenReturn(policiesByInputStringMock);
 
             TestHelper.mockEListResult(policiesByInputStringMock::getPolicies,
                     List.of("name1", "foo/name2", "foo/subfoo/nested/policy3.sapl"));

@@ -164,7 +164,8 @@ class StringMatcherInterpreterTests {
 
     @Test
     void getHamcrestStringMatcher_handlesStringIsEqualIgnoringCase_returnsEqualToIgnoringCaseMatcher() {
-        final var stringMatcher = buildStringMatcher("equal to \"foo\" ignoring case", StringIsEqualIgnoringCase.class);
+        final var stringMatcher = buildStringMatcher("equal to \"foo\" case-insensitive",
+                StringIsEqualIgnoringCase.class);
 
         matchersMockedStatic.when(() -> Matchers.equalToIgnoringCase("foo")).thenReturn(matcherMock);
 
@@ -197,7 +198,7 @@ class StringMatcherInterpreterTests {
 
     @Test
     void getHamcrestStringMatcher_handlesStringStartsWithIgnoringCase_returnsStartsWithIgnoringCaseMatcher() {
-        final var stringMatcher = buildStringMatcher("starting with \"foo\" ignoring case", StringStartsWith.class);
+        final var stringMatcher = buildStringMatcher("starting with \"foo\" case-insensitive", StringStartsWith.class);
 
         matchersMockedStatic.when(() -> Matchers.startsWithIgnoringCase("foo")).thenReturn(matcherMock);
 
@@ -219,7 +220,7 @@ class StringMatcherInterpreterTests {
 
     @Test
     void getHamcrestStringMatcher_handlesStringEndsWithIgnoringCase_returnsEndsWithIgnoringCaseMatcher() {
-        final var stringMatcher = buildStringMatcher("ending with \"foo\" ignoring case", StringEndsWith.class);
+        final var stringMatcher = buildStringMatcher("ending with \"foo\" case-insensitive", StringEndsWith.class);
 
         matchersMockedStatic.when(() -> Matchers.endsWithIgnoringCase("foo")).thenReturn(matcherMock);
 
@@ -241,7 +242,7 @@ class StringMatcherInterpreterTests {
 
     @Test
     void getHamcrestStringMatcher_handlesStringContainsIgnoringCase_returnsContainsStringIgnoringCaseMatcher() {
-        final var stringMatcher = buildStringMatcher("containing \"foo\" ignoring case", StringContains.class);
+        final var stringMatcher = buildStringMatcher("containing \"foo\" case-insensitive", StringContains.class);
 
         matchersMockedStatic.when(() -> Matchers.containsStringIgnoringCase("foo")).thenReturn(matcherMock);
 

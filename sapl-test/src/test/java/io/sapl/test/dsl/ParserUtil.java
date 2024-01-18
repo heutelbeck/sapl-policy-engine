@@ -46,11 +46,10 @@ public class ParserUtil {
         resource.setEntryPoint(parserRule);
         resource.load(IOUtils.toInputStream(saplTest, StandardCharsets.UTF_8), resourceSet.getLoadOptions());
 
-        final var eObject = resource.getContents().get(0);
-
         try {
+            final var eObject = resource.getContents().get(0);
             return clazz.cast(eObject);
-        } catch (ClassCastException e) {
+        } catch (Exception e) {
             throw new SaplTestException("input '%s' does not represent a valid definition for class '%s'"
                     .formatted(saplTest, clazz.getName()));
         }

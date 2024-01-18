@@ -39,7 +39,6 @@ import io.sapl.test.grammar.sAPLTest.Array;
 import io.sapl.test.grammar.sAPLTest.FalseLiteral;
 import io.sapl.test.grammar.sAPLTest.NullLiteral;
 import io.sapl.test.grammar.sAPLTest.NumberLiteral;
-import io.sapl.test.grammar.sAPLTest.Object;
 import io.sapl.test.grammar.sAPLTest.StringLiteral;
 import io.sapl.test.grammar.sAPLTest.TrueLiteral;
 import io.sapl.test.grammar.sAPLTest.UndefinedLiteral;

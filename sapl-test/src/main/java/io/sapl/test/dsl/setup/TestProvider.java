@@ -67,7 +67,7 @@ public final class TestProvider {
         if (testSuite instanceof UnitTestSuite unitTestSuite) {
             return unitTestSuite.getPolicyName();
         } else if (testSuite instanceof IntegrationTestSuite integrationTestSuite) {
-            final var policyResolverConfig = integrationTestSuite.getConfig();
+            final var policyResolverConfig = integrationTestSuite.getConfiguration();
             if (policyResolverConfig instanceof PoliciesByIdentifier policiesByIdentifier) {
                 return policiesByIdentifier.getIdentifier();
             } else if (policyResolverConfig instanceof PoliciesByInputString policiesByInputString) {

@@ -65,7 +65,7 @@ class ReflectionHelperTests {
         final var exception = assertThrows(SaplTestException.class,
                 () -> reflectionHelper.constructInstanceOfClass(className));
 
-        assertEquals("Could not construct instance of 'io.sapl.test.dsl.interpreter.ReflectionHelperTest'",
+        assertEquals("Could not construct instance of 'io.sapl.test.dsl.interpreter.ReflectionHelperTests'",
                 exception.getMessage());
     }
 

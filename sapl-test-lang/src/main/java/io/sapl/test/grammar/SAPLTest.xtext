@@ -90,12 +90,12 @@ StringMatcher:
     {StringIsEmpty} 'empty' |
     {StringIsNullOrEmpty} 'null-or-empty' |
     {StringIsNullOrBlank} 'null-or-blank' |
-    {StringIsEqualWithCompressedWhiteSpace} 'equal' 'to' value=STRING 'with' 'compressed' 'whitespaces' |
-    {StringIsEqualIgnoringCase} 'equal' 'to' value=STRING 'ignoring case' |
+    {StringIsEqualWithCompressedWhiteSpace} 'equal' 'to' value=STRING 'with' 'compressed' 'whitespace' |
+    {StringIsEqualIgnoringCase} 'equal' 'to' value=STRING 'case-insensitive' |
     {StringMatchesRegex} 'with' 'regex' regex=STRING |
-    {StringStartsWith} 'starting' 'with' prefix=STRING (caseInsensitive?='ignoring case')? |
-    {StringEndsWith} 'ending' 'with' postfix=STRING (caseInsensitive?='ignoring case')? |
-    {StringContains} 'containing' text=STRING (caseInsensitive?='ignoring case')? |
+    {StringStartsWith} 'starting' 'with' prefix=STRING (caseInsensitive?='case-insensitive')? |
+    {StringEndsWith} 'ending' 'with' postfix=STRING (caseInsensitive?='case-insensitive')? |
+    {StringContains} 'containing' text=STRING (caseInsensitive?='case-insensitive')? |
     {StringContainsInOrder} 'containing' 'stream' substrings+=STRING (',' substrings+=STRING)* 'in' 'order' |
     {StringWithLength} 'with' 'length' length=JSONNUMBER;
 
@@ -186,16 +186,16 @@ UnitTestSuite:
 	'}';
 
 IntegrationTestSuite:
-    'test' 'policies' config=PolicyResolverConfig
-    ('using variables' pdpVariables=Object)?
-    (combiningAlgorithmDefined?='using combining-algorithm' combiningAlgorithm=CombiningAlgorithmEnum)?
+    'test' 'policies' configuration=PolicyResolverConfig
+    ('using' 'variables' pdpVariables=Object)?
+    ('with' combiningAlgorithmDefined?='combining-algorithm' combiningAlgorithm=CombiningAlgorithmEnum)?
     '{'
         (testCases+=TestCase)+
     '}';
 
 PolicyResolverConfig:
     {PoliciesByIdentifier} 'with' 'identifier' identifier=STRING |
-    {PoliciesByInputString} ('-' policies+=STRING)+ ('with' 'pdp' 'config' pdpConfig=STRING)?;
+    {PoliciesByInputString} ('-' policies+=STRING)+ ('with' 'pdp' 'configuration' pdpConfiguration=STRING)?;
 
 TestCase:
     'scenario' name=STRING ('with' 'environment' environment=Object)? ('register' ('-' registrations+=FixtureRegistration)+)? ('given' ('-' givenSteps+=GivenStep)+)? whenStep=WhenStep 'then' 'expect' expectation=Expectation';';
