@@ -33,7 +33,7 @@
 		</fileSet>
 		<fileSet>
 			<outputDirectory>model</outputDirectory>
-			<directory>model</directory>
+			<directory>src/main/model</directory>
 		</fileSet>
 	</fileSets>
 </assembly>

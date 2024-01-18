@@ -59,8 +59,11 @@
                             !groovy
                         </Import-Package>
                         <_exportcontents>
+                            org.springframework.beans;version="6.1.2",
                             org.springframework.beans.*;version="6.1.2",
+                            org.springframework.context;version="6.1.2",
                             org.springframework.context.*;version="6.1.2",
+                            org.springframework.stereotype;version="6.1.2"
                             org.springframework.stereotype.*;version="6.1.2"
                         </_exportcontents>
                         <Bundle-ClassPath>{maven-dependencies}</Bundle-ClassPath>

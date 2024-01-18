@@ -20,6 +20,15 @@
 -->
 <?eclipse version="3.0"?>
 <plugin>
+
+	<extension point="org.eclipse.emf.ecore.generated_package">
+		<!-- @generated SAPL -->
+		<package
+				uri="https://sapl.io/sapl/SAPL"
+				class="io.sapl.grammar.sapl.SaplPackage"
+				genModel="src/main/model/custom/SAPL.genmodel"/>
+	</extension>
+
 	<extension
 		point="org.eclipse.ui.editors">
 		<editor
