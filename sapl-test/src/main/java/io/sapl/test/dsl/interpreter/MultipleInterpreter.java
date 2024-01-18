@@ -19,7 +19,7 @@
 package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.sAPLTest.Multiple;
+import io.sapl.test.grammar.sapltest.Multiple;
 
 class MultipleInterpreter {
     int getAmountFromMultiple(final Multiple multiple) {

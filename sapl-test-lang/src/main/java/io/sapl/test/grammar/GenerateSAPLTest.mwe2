@@ -24,12 +24,6 @@ import io.sapl.generator.web.*
 var rootPath = ".."
 
 Workflow {
-
-    bean = org.eclipse.emf.mwe.utils.StandaloneSetup {
-        scanClassPath = true
-        platformUri = rootPath
-    }
-
 	component = XtextGenerator {
 		configuration = {
 			project = StandardProjectConfig {
@@ -63,10 +57,6 @@ Workflow {
 		language = StandardLanguage {
 			name = "io.sapl.test.grammar.SAPLTest"
 			fileExtensions = "sapltest"
-
-			referencedResource = "platform:/resource/sapl-test-lang/src/main/model/custom/SAPLTest.genmodel"
-
-            fragment = ecore2xtext.Ecore2XtextValueConverterServiceFragment2 auto-inject {}
 
 			serializer = {
 				generateStub = false

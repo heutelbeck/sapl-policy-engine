@@ -28,7 +28,7 @@ import static org.mockito.Mockito.when;
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.dsl.ParserUtil;
-import io.sapl.test.grammar.sAPLTest.StringLiteral;
+import io.sapl.test.grammar.sapltest.StringLiteral;
 import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import io.sapl.test.steps.GivenOrWhenStep;
 import java.util.Collections;
@@ -54,9 +54,9 @@ class DefaultTestCaseConstructorTests {
     @Mock
     GivenOrWhenStep givenOrWhenStepMock;
 
-    private io.sapl.test.grammar.sAPLTest.Object buildObject(final String input) {
+    private io.sapl.test.grammar.sapltest.Object buildObject(final String input) {
         return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getObjectRule,
-                io.sapl.test.grammar.sAPLTest.Object.class);
+                io.sapl.test.grammar.sapltest.Object.class);
     }
 
     @Test
@@ -86,7 +86,7 @@ class DefaultTestCaseConstructorTests {
         final var environment = buildObject("{}");
 
         when(valueInterpreterMock.destructureObject(any())).thenAnswer(invocationOnMock -> {
-            final io.sapl.test.grammar.sAPLTest.Object object = invocationOnMock.getArgument(0);
+            final io.sapl.test.grammar.sapltest.Object object = invocationOnMock.getArgument(0);
 
             assertEquals(0, object.getMembers().size());
             return Collections.emptyMap();
@@ -107,7 +107,7 @@ class DefaultTestCaseConstructorTests {
 
         final var expectedJsonNode = Val.of("value").get();
         when(valueInterpreterMock.destructureObject(any())).thenAnswer(invocationOnMock -> {
-            final io.sapl.test.grammar.sAPLTest.Object object = invocationOnMock.getArgument(0);
+            final io.sapl.test.grammar.sapltest.Object object = invocationOnMock.getArgument(0);
 
             assertEquals(1, object.getMembers().size());
 
@@ -136,7 +136,7 @@ class DefaultTestCaseConstructorTests {
         final var expectedJsonNode  = Val.of("value").get();
         final var expectedJsonNode2 = Val.of("value2").get();
         when(valueInterpreterMock.destructureObject(any())).thenAnswer(invocationOnMock -> {
-            final io.sapl.test.grammar.sAPLTest.Object object = invocationOnMock.getArgument(0);
+            final io.sapl.test.grammar.sapltest.Object object = invocationOnMock.getArgument(0);
 
             assertEquals(2, object.getMembers().size());
 
@@ -147,7 +147,7 @@ class DefaultTestCaseConstructorTests {
             final var objectPair = object.getMembers().get(1);
             assertEquals("foo", objectPair.getKey());
 
-            final var nestedMembers = ((io.sapl.test.grammar.sAPLTest.Object) objectPair.getValue()).getMembers();
+            final var nestedMembers = ((io.sapl.test.grammar.sapltest.Object) objectPair.getValue()).getMembers();
 
             assertEquals(1, nestedMembers.size());
 

@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.sAPLTest.CombiningAlgorithmEnum;
+import io.sapl.test.grammar.sapltest.CombiningAlgorithmEnum;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

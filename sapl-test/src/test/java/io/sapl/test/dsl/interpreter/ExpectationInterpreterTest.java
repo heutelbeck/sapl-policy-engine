@@ -34,22 +34,22 @@ import io.sapl.hamcrest.Matchers;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.TestHelper;
 import io.sapl.test.dsl.ParserUtil;
-import io.sapl.test.grammar.sAPLTest.AnyDecision;
-import io.sapl.test.grammar.sAPLTest.AuthorizationDecisionMatcherType;
-import io.sapl.test.grammar.sAPLTest.AuthorizationDecisionType;
-import io.sapl.test.grammar.sAPLTest.ExpectOrAdjustmentStep;
-import io.sapl.test.grammar.sAPLTest.Expectation;
-import io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice;
-import io.sapl.test.grammar.sAPLTest.IsDecision;
-import io.sapl.test.grammar.sAPLTest.Multiple;
-import io.sapl.test.grammar.sAPLTest.Next;
-import io.sapl.test.grammar.sAPLTest.NextWithDecision;
-import io.sapl.test.grammar.sAPLTest.NextWithMatcher;
-import io.sapl.test.grammar.sAPLTest.NumericAmount;
-import io.sapl.test.grammar.sAPLTest.RepeatedExpect;
-import io.sapl.test.grammar.sAPLTest.SingleExpect;
-import io.sapl.test.grammar.sAPLTest.SingleExpectWithMatcher;
-import io.sapl.test.grammar.sAPLTest.StringLiteral;
+import io.sapl.test.grammar.sapltest.AnyDecision;
+import io.sapl.test.grammar.sapltest.AuthorizationDecisionMatcherType;
+import io.sapl.test.grammar.sapltest.AuthorizationDecisionType;
+import io.sapl.test.grammar.sapltest.ExpectOrAdjustmentStep;
+import io.sapl.test.grammar.sapltest.Expectation;
+import io.sapl.test.grammar.sapltest.HasObligationOrAdvice;
+import io.sapl.test.grammar.sapltest.IsDecision;
+import io.sapl.test.grammar.sapltest.Multiple;
+import io.sapl.test.grammar.sapltest.Next;
+import io.sapl.test.grammar.sapltest.NextWithDecision;
+import io.sapl.test.grammar.sapltest.NextWithMatcher;
+import io.sapl.test.grammar.sapltest.NumericAmount;
+import io.sapl.test.grammar.sapltest.RepeatedExpect;
+import io.sapl.test.grammar.sapltest.SingleExpect;
+import io.sapl.test.grammar.sapltest.SingleExpectWithMatcher;
+import io.sapl.test.grammar.sapltest.StringLiteral;
 import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import io.sapl.test.steps.ExpectOrVerifyStep;
 import io.sapl.test.steps.VerifyStep;
@@ -610,7 +610,7 @@ class ExpectationInterpreterTests {
                 final var repeatedExpect = buildRepeatedExpect("- no-event for \"PT3S\"");
 
                 when(durationInterpreterMock.getJavaDurationFromDuration(any())).thenAnswer(invocationOnMock -> {
-                    final io.sapl.test.grammar.sAPLTest.Duration duration = invocationOnMock.getArgument(0);
+                    final io.sapl.test.grammar.sapltest.Duration duration = invocationOnMock.getArgument(0);
 
                     assertEquals("PT3S", duration.getDuration());
                     return Duration.ofSeconds(3);
@@ -654,7 +654,7 @@ class ExpectationInterpreterTests {
                 final var repeatedExpect = buildRepeatedExpect("- wait for \"PT5S\"");
 
                 when(durationInterpreterMock.getJavaDurationFromDuration(any())).thenAnswer(invocationOnMock -> {
-                    final io.sapl.test.grammar.sAPLTest.Duration duration = invocationOnMock.getArgument(0);
+                    final io.sapl.test.grammar.sapltest.Duration duration = invocationOnMock.getArgument(0);
 
                     assertEquals("PT5S", duration.getDuration());
                     return Duration.ofSeconds(5);

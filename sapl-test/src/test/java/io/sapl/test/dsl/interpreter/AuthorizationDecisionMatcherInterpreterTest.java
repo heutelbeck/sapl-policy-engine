@@ -34,16 +34,16 @@ import io.sapl.hamcrest.HasObligation;
 import io.sapl.hamcrest.HasObligationContainingKeyValue;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.ParserUtil;
-import io.sapl.test.grammar.sAPLTest.AnyDecision;
-import io.sapl.test.grammar.sAPLTest.AuthorizationDecisionMatcher;
-import io.sapl.test.grammar.sAPLTest.AuthorizationDecisionMatcherType;
-import io.sapl.test.grammar.sAPLTest.DefaultObjectMatcher;
-import io.sapl.test.grammar.sAPLTest.ExtendedObjectMatcher;
-import io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice;
-import io.sapl.test.grammar.sAPLTest.HasResource;
-import io.sapl.test.grammar.sAPLTest.IsDecision;
-import io.sapl.test.grammar.sAPLTest.IsJsonNull;
-import io.sapl.test.grammar.sAPLTest.NullLiteral;
+import io.sapl.test.grammar.sapltest.AnyDecision;
+import io.sapl.test.grammar.sapltest.AuthorizationDecisionMatcher;
+import io.sapl.test.grammar.sapltest.AuthorizationDecisionMatcherType;
+import io.sapl.test.grammar.sapltest.DefaultObjectMatcher;
+import io.sapl.test.grammar.sapltest.ExtendedObjectMatcher;
+import io.sapl.test.grammar.sapltest.HasObligationOrAdvice;
+import io.sapl.test.grammar.sapltest.HasResource;
+import io.sapl.test.grammar.sapltest.IsDecision;
+import io.sapl.test.grammar.sapltest.IsJsonNull;
+import io.sapl.test.grammar.sapltest.NullLiteral;
 import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
@@ -195,7 +195,7 @@ class AuthorizationDecisionMatcherInterpreterTests {
 
         @Test
         void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithDefaultObjectMatcherWithUnknownTypeForObligation_throwsSaplTestException() {
-            final var hasObligationOrAdviceMock = mock(io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice.class);
+            final var hasObligationOrAdviceMock = mock(io.sapl.test.grammar.sapltest.HasObligationOrAdvice.class);
 
             final var defaultObjectMatcher = mock(DefaultObjectMatcher.class);
             when(hasObligationOrAdviceMock.getMatcher()).thenReturn(defaultObjectMatcher);
@@ -209,7 +209,7 @@ class AuthorizationDecisionMatcherInterpreterTests {
 
         @Test
         void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithDefaultObjectMatcherWithUnknownTypeForAdvice_throwsSaplTestException() {
-            final var hasObligationOrAdviceMock = mock(io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice.class);
+            final var hasObligationOrAdviceMock = mock(io.sapl.test.grammar.sapltest.HasObligationOrAdvice.class);
 
             final var defaultObjectMatcher = mock(DefaultObjectMatcher.class);
             when(hasObligationOrAdviceMock.getMatcher()).thenReturn(defaultObjectMatcher);
@@ -250,7 +250,7 @@ class AuthorizationDecisionMatcherInterpreterTests {
 
         @Test
         void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithUnknownObjectMatcherForObligation_throwsSaplTestException() {
-            final var hasObligationOrAdviceMock = mock(io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice.class);
+            final var hasObligationOrAdviceMock = mock(io.sapl.test.grammar.sapltest.HasObligationOrAdvice.class);
 
             final var unknownObjectMatcher = mock(ExtendedObjectMatcher.class);
             when(hasObligationOrAdviceMock.getMatcher()).thenReturn(unknownObjectMatcher);
@@ -264,7 +264,7 @@ class AuthorizationDecisionMatcherInterpreterTests {
 
         @Test
         void getHamcrestAuthorizationDecisionMatcher_handlesHasObligationOrAdviceWithUnknownObjectMatcherForAdvice_throwsSaplTestException() {
-            final var hasObligationOrAdviceMock = mock(io.sapl.test.grammar.sAPLTest.HasObligationOrAdvice.class);
+            final var hasObligationOrAdviceMock = mock(io.sapl.test.grammar.sapltest.HasObligationOrAdvice.class);
 
             final var unknownObjectMatcher = mock(ExtendedObjectMatcher.class);
             when(hasObligationOrAdviceMock.getMatcher()).thenReturn(unknownObjectMatcher);
@@ -574,7 +574,7 @@ class AuthorizationDecisionMatcherInterpreterTests {
 
         @Test
         void getHamcrestAuthorizationDecisionMatcher_handlesHasResourceWithDefaultObjectMatcherWithUnknownType_throwsSaplTestException() {
-            final var hasResource = mock(io.sapl.test.grammar.sAPLTest.HasResource.class);
+            final var hasResource = mock(io.sapl.test.grammar.sapltest.HasResource.class);
 
             final var defaultObjectMatcher = mock(DefaultObjectMatcher.class);
             when(hasResource.getMatcher()).thenReturn(defaultObjectMatcher);

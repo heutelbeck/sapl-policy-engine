@@ -21,11 +21,11 @@ package io.sapl.test.dsl.interpreter;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
-import io.sapl.test.grammar.sAPLTest.CustomFunctionLibrary;
-import io.sapl.test.grammar.sAPLTest.FixtureRegistration;
-import io.sapl.test.grammar.sAPLTest.Pip;
-import io.sapl.test.grammar.sAPLTest.SaplFunctionLibrary;
-import io.sapl.test.grammar.sAPLTest.TestSuite;
+import io.sapl.test.grammar.sapltest.CustomFunctionLibrary;
+import io.sapl.test.grammar.sapltest.FixtureRegistration;
+import io.sapl.test.grammar.sapltest.Pip;
+import io.sapl.test.grammar.sapltest.SaplFunctionLibrary;
+import io.sapl.test.grammar.sapltest.TestSuite;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 

@@ -30,8 +30,8 @@
       <!-- @generated SAPLTest -->
       <package
             uri="http://www.sapl.io/test/grammar/SAPLTest"
-            class="io.sapl.test.grammar.sAPLTest.SAPLTestPackage"
-            genModel="src/main/model/custom/SAPLTest.genmodel"/>
+            class="io.sapl.test.grammar.sapltest.SAPLTestPackage"
+            genModel="model/generated/SAPLTest.genmodel"/>
    </extension>
 
 </plugin>

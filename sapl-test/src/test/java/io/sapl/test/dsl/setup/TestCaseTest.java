@@ -33,12 +33,12 @@ import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.TestHelper;
 import io.sapl.test.dsl.interfaces.StepConstructor;
-import io.sapl.test.grammar.sAPLTest.Expectation;
-import io.sapl.test.grammar.sAPLTest.FixtureRegistration;
-import io.sapl.test.grammar.sAPLTest.GivenStep;
-import io.sapl.test.grammar.sAPLTest.TestException;
-import io.sapl.test.grammar.sAPLTest.TestSuite;
-import io.sapl.test.grammar.sAPLTest.Value;
+import io.sapl.test.grammar.sapltest.Expectation;
+import io.sapl.test.grammar.sapltest.FixtureRegistration;
+import io.sapl.test.grammar.sapltest.GivenStep;
+import io.sapl.test.grammar.sapltest.TestException;
+import io.sapl.test.grammar.sapltest.TestSuite;
+import io.sapl.test.grammar.sapltest.Value;
 import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.steps.VerifyStep;
@@ -62,7 +62,7 @@ class TestCaseTests {
     @Mock
     private TestSuite                              testSuiteMock;
     @Mock
-    private io.sapl.test.grammar.sAPLTest.TestCase dslTestCaseMock;
+    private io.sapl.test.grammar.sapltest.TestCase dslTestCaseMock;
 
     private final MockedStatic<org.assertj.core.api.Assertions> assertionsMockedStatic = mockStatic(
             org.assertj.core.api.Assertions.class, Answers.RETURNS_DEEP_STUBS);
@@ -81,8 +81,8 @@ class TestCaseTests {
         return TestHelper.mockEListResult(dslTestCaseMock::getRegistrations, fixtureRegistrations);
     }
 
-    private io.sapl.test.grammar.sAPLTest.Object mockEnvironment() {
-        final var environment = mock(io.sapl.test.grammar.sAPLTest.Object.class);
+    private io.sapl.test.grammar.sapltest.Object mockEnvironment() {
+        final var environment = mock(io.sapl.test.grammar.sapltest.Object.class);
         when(dslTestCaseMock.getEnvironment()).thenReturn(environment);
         return environment;
     }
@@ -94,7 +94,7 @@ class TestCaseTests {
         return saplTestFixtureMock;
     }
 
-    private void mockTestCaseWithTestException(io.sapl.test.grammar.sAPLTest.TestCase testCaseWithExceptionMock) {
+    private void mockTestCaseWithTestException(io.sapl.test.grammar.sapltest.TestCase testCaseWithExceptionMock) {
         final var testExceptionMock = mock(TestException.class);
         when(testCaseWithExceptionMock.getExpectation()).thenReturn(testExceptionMock);
 
@@ -111,8 +111,8 @@ class TestCaseTests {
     }
 
     private VerifyStep mockTestBuildingChain(final List<GivenStep> givenSteps, final SaplTestFixture testFixture,
-            final io.sapl.test.grammar.sAPLTest.TestCase testCase,
-            final io.sapl.test.grammar.sAPLTest.Object environment, final boolean needsMocks) {
+            final io.sapl.test.grammar.sapltest.TestCase testCase,
+            final io.sapl.test.grammar.sapltest.Object environment, final boolean needsMocks) {
         final var expectationMock = mock(Expectation.class);
         when(testCase.getExpectation()).thenReturn(expectationMock);
 

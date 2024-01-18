@@ -22,15 +22,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.sAPLTest.Array;
-import io.sapl.test.grammar.sAPLTest.FalseLiteral;
-import io.sapl.test.grammar.sAPLTest.NullLiteral;
-import io.sapl.test.grammar.sAPLTest.NumberLiteral;
-import io.sapl.test.grammar.sAPLTest.Pair;
-import io.sapl.test.grammar.sAPLTest.StringLiteral;
-import io.sapl.test.grammar.sAPLTest.TrueLiteral;
-import io.sapl.test.grammar.sAPLTest.UndefinedLiteral;
-import io.sapl.test.grammar.sAPLTest.Value;
+import io.sapl.test.grammar.sapltest.Array;
+import io.sapl.test.grammar.sapltest.FalseLiteral;
+import io.sapl.test.grammar.sapltest.NullLiteral;
+import io.sapl.test.grammar.sapltest.NumberLiteral;
+import io.sapl.test.grammar.sapltest.Pair;
+import io.sapl.test.grammar.sapltest.StringLiteral;
+import io.sapl.test.grammar.sapltest.TrueLiteral;
+import io.sapl.test.grammar.sapltest.UndefinedLiteral;
+import io.sapl.test.grammar.sapltest.Value;
 import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -68,7 +68,7 @@ class ValueInterpreter {
             return Val.UNDEFINED;
         } else if (value instanceof Array array) {
             return interpretArray(array);
-        } else if (value instanceof io.sapl.test.grammar.sAPLTest.Object object) {
+        } else if (value instanceof io.sapl.test.grammar.sapltest.Object object) {
             return interpretObject(object);
         }
         throw new SaplTestException("Unknown type of Value");
@@ -89,7 +89,7 @@ class ValueInterpreter {
         return Val.of(arrayNode);
     }
 
-    private Val interpretObject(final io.sapl.test.grammar.sAPLTest.Object object) {
+    private Val interpretObject(final io.sapl.test.grammar.sapltest.Object object) {
         final var objectProperties = destructureObject(object);
 
         if (objectProperties.isEmpty()) {
@@ -101,7 +101,7 @@ class ValueInterpreter {
         return Val.of(objectNode);
     }
 
-    Map<String, JsonNode> destructureObject(final io.sapl.test.grammar.sAPLTest.Object object) {
+    Map<String, JsonNode> destructureObject(final io.sapl.test.grammar.sapltest.Object object) {
         if (object == null || object.getMembers() == null) {
             return Collections.emptyMap();
         }

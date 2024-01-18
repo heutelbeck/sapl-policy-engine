@@ -28,7 +28,7 @@ class AuthorizationSubscriptionInterpreter {
     private final ValueInterpreter valueInterpreter;
 
     AuthorizationSubscription constructAuthorizationSubscription(
-            final io.sapl.test.grammar.sAPLTest.AuthorizationSubscription authorizationSubscription) {
+            final io.sapl.test.grammar.sapltest.AuthorizationSubscription authorizationSubscription) {
         if (authorizationSubscription == null) {
             throw new SaplTestException("AuthorizationSubscription is null");
         }

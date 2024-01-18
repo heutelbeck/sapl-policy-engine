@@ -21,8 +21,8 @@ package io.sapl.test.dsl.setup;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.TestNode;
-import io.sapl.test.grammar.sAPLTest.TestException;
-import io.sapl.test.grammar.sAPLTest.TestSuite;
+import io.sapl.test.grammar.sapltest.TestException;
+import io.sapl.test.grammar.sapltest.TestSuite;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -35,10 +35,10 @@ public final class TestCase implements TestNode, Runnable {
     private final String                                 identifier;
     private final StepConstructor                        stepConstructor;
     private final TestSuite                              testSuite;
-    private final io.sapl.test.grammar.sAPLTest.TestCase dslTestCase;
+    private final io.sapl.test.grammar.sapltest.TestCase dslTestCase;
 
     public static TestCase from(final StepConstructor stepConstructor, final TestSuite testSuite,
-            io.sapl.test.grammar.sAPLTest.TestCase testCase) {
+            io.sapl.test.grammar.sapltest.TestCase testCase) {
         if (stepConstructor == null || testSuite == null || testCase == null) {
             throw new SaplTestException("StepConstructor or testSuite or testCase is null");
         }
@@ -55,7 +55,7 @@ public final class TestCase implements TestNode, Runnable {
     @Override
     public void run() {
         final var environment          = dslTestCase
-                .getEnvironment() instanceof io.sapl.test.grammar.sAPLTest.Object object ? object : null;
+                .getEnvironment() instanceof io.sapl.test.grammar.sapltest.Object object ? object : null;
         final var fixtureRegistrations = dslTestCase.getRegistrations();
         final var givenSteps           = dslTestCase.getGivenSteps();
 

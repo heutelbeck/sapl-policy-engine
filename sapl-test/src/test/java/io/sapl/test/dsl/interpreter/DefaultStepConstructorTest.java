@@ -23,10 +23,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.sapl.test.SaplTestFixture;
-import io.sapl.test.grammar.sAPLTest.FixtureRegistration;
-import io.sapl.test.grammar.sAPLTest.GivenStep;
-import io.sapl.test.grammar.sAPLTest.TestCase;
-import io.sapl.test.grammar.sAPLTest.TestSuite;
+import io.sapl.test.grammar.sapltest.FixtureRegistration;
+import io.sapl.test.grammar.sapltest.GivenStep;
+import io.sapl.test.grammar.sapltest.TestCase;
+import io.sapl.test.grammar.sapltest.TestSuite;
 import io.sapl.test.steps.ExpectOrVerifyStep;
 import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.GivenOrWhenStep;
@@ -72,7 +72,7 @@ class DefaultStepConstructorTests {
     @Test
     void constructTestCase_callsTestCaseConstructorWithoutMocks_returnsGivenOrWhenStep() {
         final var saplTestFixtureMock = mock(SaplTestFixture.class);
-        final var environmentMock     = mock(io.sapl.test.grammar.sAPLTest.Object.class);
+        final var environmentMock     = mock(io.sapl.test.grammar.sapltest.Object.class);
         final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
 
         when(defaultTestCaseConstructorMock.constructTestCase(saplTestFixtureMock, environmentMock, false))
@@ -86,7 +86,7 @@ class DefaultStepConstructorTests {
     @Test
     void constructTestCase_callsTestCaseConstructorWithMocks_returnsGivenOrWhenStep() {
         final var saplTestFixtureMock = mock(SaplTestFixture.class);
-        final var environmentMock     = mock(io.sapl.test.grammar.sAPLTest.Object.class);
+        final var environmentMock     = mock(io.sapl.test.grammar.sapltest.Object.class);
         final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
 
         when(defaultTestCaseConstructorMock.constructTestCase(saplTestFixtureMock, environmentMock, true))

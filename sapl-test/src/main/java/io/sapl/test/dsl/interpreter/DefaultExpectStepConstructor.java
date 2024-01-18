@@ -19,7 +19,7 @@
 package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.sAPLTest.TestCase;
+import io.sapl.test.grammar.sapltest.TestCase;
 import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.WhenStep;
 import lombok.RequiredArgsConstructor;

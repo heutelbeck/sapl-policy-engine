@@ -25,13 +25,13 @@ import static org.hamcrest.CoreMatchers.is;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.sAPLTest.AnyVal;
-import io.sapl.test.grammar.sAPLTest.PlainString;
-import io.sapl.test.grammar.sAPLTest.StringMatcher;
-import io.sapl.test.grammar.sAPLTest.ValMatcher;
-import io.sapl.test.grammar.sAPLTest.ValWithError;
-import io.sapl.test.grammar.sAPLTest.ValWithMatcher;
-import io.sapl.test.grammar.sAPLTest.ValWithValue;
+import io.sapl.test.grammar.sapltest.AnyVal;
+import io.sapl.test.grammar.sapltest.PlainString;
+import io.sapl.test.grammar.sapltest.StringMatcher;
+import io.sapl.test.grammar.sapltest.ValMatcher;
+import io.sapl.test.grammar.sapltest.ValWithError;
+import io.sapl.test.grammar.sapltest.ValWithMatcher;
+import io.sapl.test.grammar.sapltest.ValWithValue;
 import lombok.RequiredArgsConstructor;
 import org.hamcrest.Matcher;
 

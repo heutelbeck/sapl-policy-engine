@@ -25,7 +25,7 @@ import static org.mockito.Mockito.when;
 
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.ParserUtil;
-import io.sapl.test.grammar.sAPLTest.Multiple;
+import io.sapl.test.grammar.sapltest.Multiple;
 import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import java.math.BigDecimal;
 import java.util.stream.Stream;

@@ -7,9 +7,9 @@ Bundle-Version: 1.0.0.qualifier
 Bundle-ClassPath: .
 Bundle-Vendor: %providerName
 Bundle-Localization: plugin
-Export-Package: io.sapl.test.grammar.sAPLTest,
- io.sapl.test.grammar.sAPLTest.impl,
- io.sapl.test.grammar.sAPLTest.util
+Export-Package: io.sapl.test.grammar.SAPLTest,
+ io.sapl.test.grammar.sapltest.impl,
+ io.sapl.test.grammar.sapltest.util
 Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.emf.ecore;visibility:=reexport
 Bundle-ActivationPolicy: lazy

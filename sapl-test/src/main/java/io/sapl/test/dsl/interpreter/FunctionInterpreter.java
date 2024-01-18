@@ -21,10 +21,10 @@ package io.sapl.test.dsl.interpreter;
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.Imports;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.sAPLTest.Function;
-import io.sapl.test.grammar.sAPLTest.FunctionInvokedOnce;
-import io.sapl.test.grammar.sAPLTest.Multiple;
-import io.sapl.test.grammar.sAPLTest.Once;
+import io.sapl.test.grammar.sapltest.Function;
+import io.sapl.test.grammar.sapltest.FunctionInvokedOnce;
+import io.sapl.test.grammar.sapltest.Multiple;
+import io.sapl.test.grammar.sapltest.Once;
 import io.sapl.test.mocking.function.models.FunctionParameters;
 import io.sapl.test.steps.GivenOrWhenStep;
 import lombok.RequiredArgsConstructor;
@@ -97,7 +97,7 @@ class FunctionInterpreter {
     }
 
     private FunctionParameters interpretFunctionParameters(
-            final io.sapl.test.grammar.sAPLTest.FunctionParameters functionParameters) {
+            final io.sapl.test.grammar.sapltest.FunctionParameters functionParameters) {
         if (functionParameters == null) {
             return null;
         }

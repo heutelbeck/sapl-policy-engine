@@ -24,8 +24,8 @@ import static io.sapl.test.Imports.whenAttributeParams;
 import static io.sapl.test.Imports.whenParentValue;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.test.grammar.sAPLTest.Attribute;
-import io.sapl.test.grammar.sAPLTest.AttributeWithParameters;
+import io.sapl.test.grammar.sapltest.Attribute;
+import io.sapl.test.grammar.sapltest.AttributeWithParameters;
 import io.sapl.test.steps.GivenOrWhenStep;
 import lombok.RequiredArgsConstructor;
 import org.hamcrest.Matcher;

@@ -48,9 +48,9 @@ class DurationInterpreterTests {
         durationMockedStatic.close();
     }
 
-    private io.sapl.test.grammar.sAPLTest.Duration buildDuration(final String input) {
+    private io.sapl.test.grammar.sapltest.Duration buildDuration(final String input) {
         return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getDurationRule,
-                io.sapl.test.grammar.sAPLTest.Duration.class);
+                io.sapl.test.grammar.sapltest.Duration.class);
     }
 
     @Test

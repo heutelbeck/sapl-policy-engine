@@ -22,7 +22,7 @@ import io.sapl.test.SaplTestException;
 import java.time.Duration;
 
 class DurationInterpreter {
-    Duration getJavaDurationFromDuration(final io.sapl.test.grammar.sAPLTest.Duration duration) {
+    Duration getJavaDurationFromDuration(final io.sapl.test.grammar.sapltest.Duration duration) {
         if (duration == null) {
             throw new SaplTestException("The passed Duration is null");
         }

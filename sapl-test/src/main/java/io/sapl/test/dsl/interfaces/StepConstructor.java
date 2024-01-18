@@ -19,10 +19,10 @@
 package io.sapl.test.dsl.interfaces;
 
 import io.sapl.test.SaplTestFixture;
-import io.sapl.test.grammar.sAPLTest.FixtureRegistration;
-import io.sapl.test.grammar.sAPLTest.GivenStep;
-import io.sapl.test.grammar.sAPLTest.TestCase;
-import io.sapl.test.grammar.sAPLTest.TestSuite;
+import io.sapl.test.grammar.sapltest.FixtureRegistration;
+import io.sapl.test.grammar.sapltest.GivenStep;
+import io.sapl.test.grammar.sapltest.TestCase;
+import io.sapl.test.grammar.sapltest.TestSuite;
 import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.steps.VerifyStep;
@@ -32,7 +32,7 @@ import java.util.List;
 public interface StepConstructor {
     SaplTestFixture constructTestFixture(List<FixtureRegistration> fixtureRegistrations, TestSuite testSuite);
 
-    GivenOrWhenStep constructTestCase(SaplTestFixture saplTestFixture, io.sapl.test.grammar.sAPLTest.Object environment,
+    GivenOrWhenStep constructTestCase(SaplTestFixture saplTestFixture, io.sapl.test.grammar.sapltest.Object environment,
             boolean needsMocks);
 
     WhenStep constructWhenStep(List<GivenStep> givenSteps, GivenOrWhenStep fixture);

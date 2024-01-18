@@ -28,7 +28,7 @@ class DefaultTestCaseConstructor {
     private final ValueInterpreter valueInterpreter;
 
     GivenOrWhenStep constructTestCase(final SaplTestFixture saplTestFixture,
-            final io.sapl.test.grammar.sAPLTest.Object environment, final boolean needsMocks) {
+            final io.sapl.test.grammar.sapltest.Object environment, final boolean needsMocks) {
 
         if (environment != null) {
             final var environmentVariables = valueInterpreter.destructureObject(environment);

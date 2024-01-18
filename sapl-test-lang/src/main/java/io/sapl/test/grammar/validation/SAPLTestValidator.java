@@ -20,8 +20,8 @@
  */
 package io.sapl.test.grammar.validation;
 
-import io.sapl.test.grammar.sAPLTest.Duration;
-import io.sapl.test.grammar.sAPLTest.Multiple;
+import io.sapl.test.grammar.sapltest.Duration;
+import io.sapl.test.grammar.sapltest.Multiple;
 import java.time.format.DateTimeParseException;
 import org.eclipse.xtext.validation.Check;
 

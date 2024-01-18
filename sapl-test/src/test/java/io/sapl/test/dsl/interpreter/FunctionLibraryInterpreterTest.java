@@ -26,7 +26,7 @@ import io.sapl.functions.LoggingFunctionLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.sAPLTest.FunctionLibrary;
+import io.sapl.test.grammar.sapltest.FunctionLibrary;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

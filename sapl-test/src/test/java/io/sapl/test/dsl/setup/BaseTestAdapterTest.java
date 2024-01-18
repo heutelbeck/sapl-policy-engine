@@ -29,7 +29,7 @@ import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
 import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
-import io.sapl.test.grammar.sAPLTest.SAPLTest;
+import io.sapl.test.grammar.sapltest.SAPLTest;
 import io.sapl.test.utils.DocumentHelper;
 import java.util.Collections;
 import java.util.stream.Stream;

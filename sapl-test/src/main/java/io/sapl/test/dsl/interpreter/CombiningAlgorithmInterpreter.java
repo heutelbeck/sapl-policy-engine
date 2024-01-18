@@ -20,7 +20,7 @@ package io.sapl.test.dsl.interpreter;
 
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.sAPLTest.CombiningAlgorithmEnum;
+import io.sapl.test.grammar.sapltest.CombiningAlgorithmEnum;
 
 class CombiningAlgorithmInterpreter {
     PolicyDocumentCombiningAlgorithm interpretPdpCombiningAlgorithm(final CombiningAlgorithmEnum combiningAlgorithm) {

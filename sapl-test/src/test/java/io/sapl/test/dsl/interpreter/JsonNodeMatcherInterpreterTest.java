@@ -35,17 +35,17 @@ import com.spotify.hamcrest.jackson.JsonMatchers;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.TestHelper;
 import io.sapl.test.dsl.ParserUtil;
-import io.sapl.test.grammar.sAPLTest.IsJsonArray;
-import io.sapl.test.grammar.sAPLTest.IsJsonBoolean;
-import io.sapl.test.grammar.sAPLTest.IsJsonNull;
-import io.sapl.test.grammar.sAPLTest.IsJsonNumber;
-import io.sapl.test.grammar.sAPLTest.IsJsonText;
-import io.sapl.test.grammar.sAPLTest.JsonArrayMatcher;
-import io.sapl.test.grammar.sAPLTest.JsonNodeMatcher;
-import io.sapl.test.grammar.sAPLTest.JsonObjectMatcher;
-import io.sapl.test.grammar.sAPLTest.StringIsNull;
-import io.sapl.test.grammar.sAPLTest.StringOrStringMatcher;
-import io.sapl.test.grammar.sAPLTest.Value;
+import io.sapl.test.grammar.sapltest.IsJsonArray;
+import io.sapl.test.grammar.sapltest.IsJsonBoolean;
+import io.sapl.test.grammar.sapltest.IsJsonNull;
+import io.sapl.test.grammar.sapltest.IsJsonNumber;
+import io.sapl.test.grammar.sapltest.IsJsonText;
+import io.sapl.test.grammar.sapltest.JsonArrayMatcher;
+import io.sapl.test.grammar.sapltest.JsonNodeMatcher;
+import io.sapl.test.grammar.sapltest.JsonObjectMatcher;
+import io.sapl.test.grammar.sapltest.StringIsNull;
+import io.sapl.test.grammar.sapltest.StringOrStringMatcher;
+import io.sapl.test.grammar.sapltest.Value;
 import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import java.math.BigDecimal;
 import java.util.Collection;
@@ -329,7 +329,7 @@ class JsonNodeMatcherInterpreterTests {
         @Test
         void getHamcrestJsonNodeMatcher_handlesIsJsonObjectWithNullObjectMatcher_returnsAnyJsonObjectMatcher() {
             final var jsonNodeMatcher = buildJsonNodeMatcher("object",
-                    io.sapl.test.grammar.sAPLTest.IsJsonObject.class);
+                    io.sapl.test.grammar.sapltest.IsJsonObject.class);
 
             jsonMatchersMockedStatic.when(JsonMatchers::jsonObject).thenReturn(isJsonObjectMock);
 
@@ -340,7 +340,7 @@ class JsonNodeMatcherInterpreterTests {
 
         @Test
         void getHamcrestJsonNodeMatcher_handlesIsJsonObjectWithNullMatchers_throwsSaplTestException() {
-            final var matcherMock = mock(io.sapl.test.grammar.sAPLTest.IsJsonObject.class);
+            final var matcherMock = mock(io.sapl.test.grammar.sapltest.IsJsonObject.class);
 
             final var jsonObjectMatcherMock = mock(JsonObjectMatcher.class);
             when(matcherMock.getMatcher()).thenReturn(jsonObjectMatcherMock);
@@ -357,7 +357,7 @@ class JsonNodeMatcherInterpreterTests {
 
         @Test
         void getHamcrestJsonNodeMatcher_handlesIsJsonObjectWithEmptyMatchers_returnsAnyJsonObjectMatcher() {
-            final var matcherMock = mock(io.sapl.test.grammar.sAPLTest.IsJsonObject.class);
+            final var matcherMock = mock(io.sapl.test.grammar.sapltest.IsJsonObject.class);
 
             final var jsonObjectMatcherMock = mock(JsonObjectMatcher.class);
             when(matcherMock.getMatcher()).thenReturn(jsonObjectMatcherMock);
@@ -376,7 +376,7 @@ class JsonNodeMatcherInterpreterTests {
         void getHamcrestJsonNodeMatcher_handlesIsJsonObjectWithMultipleDifferentMatchers_returnsJsonObjectMatcher() {
             final var jsonNodeMatcher = buildJsonNodeMatcher(
                     "object where { \"jsonNullKey\" is null and \"jsonBooleanKey\" is boolean}",
-                    io.sapl.test.grammar.sAPLTest.IsJsonObject.class);
+                    io.sapl.test.grammar.sapltest.IsJsonObject.class);
 
             final var initialJsonObjectMock = mock(com.spotify.hamcrest.jackson.IsJsonObject.class);
             jsonMatchersMockedStatic.when(JsonMatchers::jsonObject).thenReturn(initialJsonObjectMock);

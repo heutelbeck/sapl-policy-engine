@@ -21,7 +21,7 @@ package io.sapl.test.dsl.lang;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
 import io.sapl.test.grammar.SAPLTestStandaloneSetup;
-import io.sapl.test.grammar.sAPLTest.SAPLTest;
+import io.sapl.test.grammar.sapltest.SAPLTest;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;

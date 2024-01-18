@@ -37,15 +37,15 @@ import io.sapl.test.dsl.ParserUtil;
 import io.sapl.test.dsl.interfaces.IntegrationTestConfiguration;
 import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
 import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
-import io.sapl.test.grammar.sAPLTest.CombiningAlgorithmEnum;
-import io.sapl.test.grammar.sAPLTest.IntegrationTestSuite;
-import io.sapl.test.grammar.sAPLTest.PoliciesByIdentifier;
-import io.sapl.test.grammar.sAPLTest.PoliciesByInputString;
-import io.sapl.test.grammar.sAPLTest.PolicyResolverConfig;
-import io.sapl.test.grammar.sAPLTest.StringLiteral;
-import io.sapl.test.grammar.sAPLTest.TestSuite;
-import io.sapl.test.grammar.sAPLTest.UnitTestSuite;
-import io.sapl.test.grammar.sAPLTest.Value;
+import io.sapl.test.grammar.sapltest.CombiningAlgorithmEnum;
+import io.sapl.test.grammar.sapltest.IntegrationTestSuite;
+import io.sapl.test.grammar.sapltest.PoliciesByIdentifier;
+import io.sapl.test.grammar.sapltest.PoliciesByInputString;
+import io.sapl.test.grammar.sapltest.PolicyResolverConfig;
+import io.sapl.test.grammar.sapltest.StringLiteral;
+import io.sapl.test.grammar.sapltest.TestSuite;
+import io.sapl.test.grammar.sapltest.UnitTestSuite;
+import io.sapl.test.grammar.sapltest.Value;
 import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import io.sapl.test.integration.SaplIntegrationTestFixture;
 import io.sapl.test.unit.SaplUnitTestFixture;
@@ -409,7 +409,7 @@ class TestSuiteInterpreterTests {
 
             final var pdpEnvironmentVariablesMock = Collections.<String, JsonNode>emptyMap();
             when(valueInterpreterMock.destructureObject(any())).thenAnswer(invocationOnMock -> {
-                final io.sapl.test.grammar.sAPLTest.Object environment = invocationOnMock.getArgument(0);
+                final io.sapl.test.grammar.sapltest.Object environment = invocationOnMock.getArgument(0);
 
                 assertEquals(1, environment.getMembers().size());
                 final var pair = environment.getMembers().get(0);

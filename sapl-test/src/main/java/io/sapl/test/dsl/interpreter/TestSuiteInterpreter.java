@@ -22,11 +22,11 @@ import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
 import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
-import io.sapl.test.grammar.sAPLTest.IntegrationTestSuite;
-import io.sapl.test.grammar.sAPLTest.PoliciesByIdentifier;
-import io.sapl.test.grammar.sAPLTest.PoliciesByInputString;
-import io.sapl.test.grammar.sAPLTest.TestSuite;
-import io.sapl.test.grammar.sAPLTest.UnitTestSuite;
+import io.sapl.test.grammar.sapltest.IntegrationTestSuite;
+import io.sapl.test.grammar.sapltest.PoliciesByIdentifier;
+import io.sapl.test.grammar.sapltest.PoliciesByInputString;
+import io.sapl.test.grammar.sapltest.TestSuite;
+import io.sapl.test.grammar.sapltest.UnitTestSuite;
 import io.sapl.test.integration.SaplIntegrationTestFixture;
 import lombok.RequiredArgsConstructor;
 
@@ -73,7 +73,7 @@ class TestSuiteInterpreter {
             throw new SaplTestException("Unknown type of PolicyResolverConfig");
         }
 
-        if (integrationTestSuite.getPdpVariables() instanceof io.sapl.test.grammar.sAPLTest.Object pdpVariables) {
+        if (integrationTestSuite.getPdpVariables() instanceof io.sapl.test.grammar.sapltest.Object pdpVariables) {
             final var pdpEnvironmentVariables = valueInterpreter.destructureObject(pdpVariables);
             integrationTestFixture = integrationTestFixture.withPDPVariables(pdpEnvironmentVariables);
         }

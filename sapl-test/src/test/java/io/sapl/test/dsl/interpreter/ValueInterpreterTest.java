@@ -35,14 +35,14 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.TestHelper;
-import io.sapl.test.grammar.sAPLTest.Array;
-import io.sapl.test.grammar.sAPLTest.FalseLiteral;
-import io.sapl.test.grammar.sAPLTest.NullLiteral;
-import io.sapl.test.grammar.sAPLTest.NumberLiteral;
-import io.sapl.test.grammar.sAPLTest.StringLiteral;
-import io.sapl.test.grammar.sAPLTest.TrueLiteral;
-import io.sapl.test.grammar.sAPLTest.UndefinedLiteral;
-import io.sapl.test.grammar.sAPLTest.Value;
+import io.sapl.test.grammar.sapltest.Array;
+import io.sapl.test.grammar.sapltest.FalseLiteral;
+import io.sapl.test.grammar.sapltest.NullLiteral;
+import io.sapl.test.grammar.sapltest.NumberLiteral;
+import io.sapl.test.grammar.sapltest.StringLiteral;
+import io.sapl.test.grammar.sapltest.TrueLiteral;
+import io.sapl.test.grammar.sapltest.UndefinedLiteral;
+import io.sapl.test.grammar.sapltest.Value;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
@@ -243,7 +243,7 @@ class ValueInterpreterTests {
         class ObjectTests {
             @Test
             void getValFromValue_handlesObjectWithNullMembers_returnsEmptyObjectVal() {
-                final var valueMock = mock(io.sapl.test.grammar.sAPLTest.Object.class);
+                final var valueMock = mock(io.sapl.test.grammar.sapltest.Object.class);
 
                 when(valueMock.getMembers()).thenReturn(null);
 
@@ -256,7 +256,7 @@ class ValueInterpreterTests {
 
             @Test
             void getValFromValue_handlesObjectWithEmptyMembers_returnsEmptyObjectVal() {
-                final var valueMock = mock(io.sapl.test.grammar.sAPLTest.Object.class);
+                final var valueMock = mock(io.sapl.test.grammar.sapltest.Object.class);
 
                 TestHelper.mockEListResult(valueMock::getMembers, Collections.emptyList());
 
@@ -270,7 +270,7 @@ class ValueInterpreterTests {
             @Test
             void getValFromValue_handlesObjectWithMultipleValues_returnsObjectVal() {
                 final var value = buildValue("{ \"numberLiteralKey\": 10, \"trueLiteralKey\": true}",
-                        io.sapl.test.grammar.sAPLTest.Object.class);
+                        io.sapl.test.grammar.sapltest.Object.class);
 
                 final var valWithNumberMock = mock(Val.class);
                 valMockedStatic.when(() -> Val.of(BigDecimal.TEN)).thenReturn(valWithNumberMock);
@@ -311,7 +311,7 @@ class ValueInterpreterTests {
 
         @Test
         void destructureObject_handlesObjectWithNullMembers_returnsEmptyMap() {
-            final var objectMock = mock(io.sapl.test.grammar.sAPLTest.Object.class);
+            final var objectMock = mock(io.sapl.test.grammar.sapltest.Object.class);
 
             when(objectMock.getMembers()).thenReturn(null);
 
@@ -322,7 +322,7 @@ class ValueInterpreterTests {
 
         @Test
         void destructureObject_handlesObjectWithEmptyMembers_returnsEmptyMap() {
-            final var objectMock = mock(io.sapl.test.grammar.sAPLTest.Object.class);
+            final var objectMock = mock(io.sapl.test.grammar.sapltest.Object.class);
 
             TestHelper.mockEListResult(objectMock::getMembers, Collections.emptyList());
 
@@ -334,7 +334,7 @@ class ValueInterpreterTests {
         @Test
         void destructureObject_handlesObjectWithMultipleValues_returnsMap() {
             final var object = buildValue("{ \"numberLiteralKey\": 10, \"trueLiteralKey\": true}",
-                    io.sapl.test.grammar.sAPLTest.Object.class);
+                    io.sapl.test.grammar.sapltest.Object.class);
 
             final var valWithNumberMock = mock(Val.class);
             valMockedStatic.when(() -> Val.of(BigDecimal.TEN)).thenReturn(valWithNumberMock);

@@ -23,7 +23,7 @@ import io.sapl.functions.LoggingFunctionLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.sAPLTest.FunctionLibrary;
+import io.sapl.test.grammar.sapltest.FunctionLibrary;
 
 class FunctionLibraryInterpreter {
     Class<?> getFunctionLibrary(final FunctionLibrary functionLibrary) {

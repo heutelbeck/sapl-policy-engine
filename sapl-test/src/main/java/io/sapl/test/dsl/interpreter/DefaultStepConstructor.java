@@ -23,10 +23,10 @@ import io.sapl.test.SaplTestFixture;
 import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
-import io.sapl.test.grammar.sAPLTest.FixtureRegistration;
-import io.sapl.test.grammar.sAPLTest.GivenStep;
-import io.sapl.test.grammar.sAPLTest.TestCase;
-import io.sapl.test.grammar.sAPLTest.TestSuite;
+import io.sapl.test.grammar.sapltest.FixtureRegistration;
+import io.sapl.test.grammar.sapltest.GivenStep;
+import io.sapl.test.grammar.sapltest.TestCase;
+import io.sapl.test.grammar.sapltest.TestSuite;
 import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.steps.VerifyStep;
@@ -52,7 +52,7 @@ public final class DefaultStepConstructor implements StepConstructor {
 
     @Override
     public GivenOrWhenStep constructTestCase(final SaplTestFixture saplTestFixture,
-            final io.sapl.test.grammar.sAPLTest.Object environment, final boolean needsMocks) {
+            final io.sapl.test.grammar.sapltest.Object environment, final boolean needsMocks) {
         return defaultTestCaseConstructor.constructTestCase(saplTestFixture, environment, needsMocks);
     }
 

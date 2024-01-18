@@ -25,8 +25,8 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.sAPLTest.AuthorizationSubscription;
-import io.sapl.test.grammar.sAPLTest.TestCase;
+import io.sapl.test.grammar.sapltest.AuthorizationSubscription;
+import io.sapl.test.grammar.sapltest.TestCase;
 import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.WhenStep;
 import org.junit.jupiter.api.AfterEach;
@@ -91,7 +91,7 @@ class DefaultExpectStepConstructorTests {
 
     @Test
     void constructExpectStep_handlesNullAuthorizationSubscription_throwsSaplTestException() {
-        final var saplTestWhenStepMock = mock(io.sapl.test.grammar.sAPLTest.WhenStep.class);
+        final var saplTestWhenStepMock = mock(io.sapl.test.grammar.sapltest.WhenStep.class);
         when(testCaseMock.getWhenStep()).thenReturn(saplTestWhenStepMock);
 
         when(saplTestWhenStepMock.getAuthorizationSubscription()).thenReturn(null);
@@ -104,7 +104,7 @@ class DefaultExpectStepConstructorTests {
 
     @Test
     void constructExpectStep_returnsCorrectExpectStep() {
-        final var saplTestWhenStepMock = mock(io.sapl.test.grammar.sAPLTest.WhenStep.class);
+        final var saplTestWhenStepMock = mock(io.sapl.test.grammar.sapltest.WhenStep.class);
         when(testCaseMock.getWhenStep()).thenReturn(saplTestWhenStepMock);
 
         final var authorizationSubscriptionMock = mock(AuthorizationSubscription.class);

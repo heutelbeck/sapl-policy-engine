@@ -31,7 +31,7 @@ import com.google.inject.Injector;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.TestHelper;
 import io.sapl.test.grammar.SAPLTestStandaloneSetup;
-import io.sapl.test.grammar.sAPLTest.SAPLTest;
+import io.sapl.test.grammar.sapltest.SAPLTest;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;

@@ -22,18 +22,18 @@ import static org.hamcrest.Matchers.allOf;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.sAPLTest.AttributeAdjustment;
-import io.sapl.test.grammar.sAPLTest.AuthorizationDecisionMatcher;
-import io.sapl.test.grammar.sAPLTest.Await;
-import io.sapl.test.grammar.sAPLTest.Multiple;
-import io.sapl.test.grammar.sAPLTest.Next;
-import io.sapl.test.grammar.sAPLTest.NextWithDecision;
-import io.sapl.test.grammar.sAPLTest.NextWithMatcher;
-import io.sapl.test.grammar.sAPLTest.NoEvent;
-import io.sapl.test.grammar.sAPLTest.Once;
-import io.sapl.test.grammar.sAPLTest.RepeatedExpect;
-import io.sapl.test.grammar.sAPLTest.SingleExpect;
-import io.sapl.test.grammar.sAPLTest.SingleExpectWithMatcher;
+import io.sapl.test.grammar.sapltest.AttributeAdjustment;
+import io.sapl.test.grammar.sapltest.AuthorizationDecisionMatcher;
+import io.sapl.test.grammar.sapltest.Await;
+import io.sapl.test.grammar.sapltest.Multiple;
+import io.sapl.test.grammar.sapltest.Next;
+import io.sapl.test.grammar.sapltest.NextWithDecision;
+import io.sapl.test.grammar.sapltest.NextWithMatcher;
+import io.sapl.test.grammar.sapltest.NoEvent;
+import io.sapl.test.grammar.sapltest.Once;
+import io.sapl.test.grammar.sapltest.RepeatedExpect;
+import io.sapl.test.grammar.sapltest.SingleExpect;
+import io.sapl.test.grammar.sapltest.SingleExpectWithMatcher;
 import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.VerifyStep;
 import java.util.List;
@@ -127,7 +127,7 @@ class ExpectationInterpreter {
     }
 
     private AuthorizationDecision getAuthorizationDecisionFromDSLAuthorizationDecision(
-            final io.sapl.test.grammar.sAPLTest.AuthorizationDecision authorizationDecision) {
+            final io.sapl.test.grammar.sapltest.AuthorizationDecision authorizationDecision) {
         if (authorizationDecision == null) {
             throw new SaplTestException("AuthorizationDecision is null");
         }
@@ -168,7 +168,7 @@ class ExpectationInterpreter {
     }
 
     private ExpectStep constructNextWithDecision(final ExpectStep expectStep,
-            final io.sapl.test.grammar.sAPLTest.AuthorizationDecision dslAuthorizationDecision) {
+            final io.sapl.test.grammar.sapltest.AuthorizationDecision dslAuthorizationDecision) {
         final var authorizationDecision = getAuthorizationDecisionFromDSLAuthorizationDecision(
                 dslAuthorizationDecision);
 

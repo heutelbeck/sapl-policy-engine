@@ -29,12 +29,12 @@ import static org.mockito.Mockito.when;
 
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.ParserUtil;
-import io.sapl.test.grammar.sAPLTest.Attribute;
-import io.sapl.test.grammar.sAPLTest.AttributeWithParameters;
-import io.sapl.test.grammar.sAPLTest.Function;
-import io.sapl.test.grammar.sAPLTest.FunctionInvokedOnce;
-import io.sapl.test.grammar.sAPLTest.GivenStep;
-import io.sapl.test.grammar.sAPLTest.VirtualTime;
+import io.sapl.test.grammar.sapltest.Attribute;
+import io.sapl.test.grammar.sapltest.AttributeWithParameters;
+import io.sapl.test.grammar.sapltest.Function;
+import io.sapl.test.grammar.sapltest.FunctionInvokedOnce;
+import io.sapl.test.grammar.sapltest.GivenStep;
+import io.sapl.test.grammar.sapltest.VirtualTime;
 import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import io.sapl.test.steps.GivenOrWhenStep;
 import java.util.Collections;

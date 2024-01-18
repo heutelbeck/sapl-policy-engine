@@ -29,17 +29,17 @@ import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.sAPLTest.FalseLiteral;
-import io.sapl.test.grammar.sAPLTest.IsJsonArray;
-import io.sapl.test.grammar.sAPLTest.IsJsonBoolean;
-import io.sapl.test.grammar.sAPLTest.IsJsonNull;
-import io.sapl.test.grammar.sAPLTest.IsJsonNumber;
-import io.sapl.test.grammar.sAPLTest.IsJsonObject;
-import io.sapl.test.grammar.sAPLTest.IsJsonText;
-import io.sapl.test.grammar.sAPLTest.JsonNodeMatcher;
-import io.sapl.test.grammar.sAPLTest.PlainString;
-import io.sapl.test.grammar.sAPLTest.StringMatcher;
-import io.sapl.test.grammar.sAPLTest.TrueLiteral;
+import io.sapl.test.grammar.sapltest.FalseLiteral;
+import io.sapl.test.grammar.sapltest.IsJsonArray;
+import io.sapl.test.grammar.sapltest.IsJsonBoolean;
+import io.sapl.test.grammar.sapltest.IsJsonNull;
+import io.sapl.test.grammar.sapltest.IsJsonNumber;
+import io.sapl.test.grammar.sapltest.IsJsonObject;
+import io.sapl.test.grammar.sapltest.IsJsonText;
+import io.sapl.test.grammar.sapltest.JsonNodeMatcher;
+import io.sapl.test.grammar.sapltest.PlainString;
+import io.sapl.test.grammar.sapltest.StringMatcher;
+import io.sapl.test.grammar.sapltest.TrueLiteral;
 import lombok.RequiredArgsConstructor;
 import org.hamcrest.Matcher;
 
