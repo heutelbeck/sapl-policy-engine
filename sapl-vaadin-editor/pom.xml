@@ -25,7 +25,7 @@
     <parent>
         <groupId>io.sapl</groupId>
         <artifactId>sapl-policy-engine</artifactId>
-        <version>3.0.1-SNAPSHOT</version>
+        <version>3.0.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>sapl-vaadin-editor</artifactId>
@@ -55,13 +55,11 @@
             <artifactId>sapl-web</artifactId>
             <version>${project.version}</version>
         </dependency>
-
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>sapl-test-web</artifactId>
             <version>${project.version}</version>
         </dependency>
-
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
@@ -111,7 +109,7 @@
                                 <artifactItem>
                                     <groupId>io.sapl</groupId>
                                     <artifactId>sapl-web</artifactId>
-                                    <version>${project.version}</version>
+                                    <version>3.0.0-SNAPSHOT</version>
                                     <overWrite>true</overWrite>
                                     <outputDirectory>${project.build.directory}/sapl</outputDirectory>
                                     <includes>static/**/*</includes>
@@ -119,7 +117,7 @@
                                 <artifactItem>
                                     <groupId>io.sapl</groupId>
                                     <artifactId>sapl-test-web</artifactId>
-                                    <version>${project.version}</version>
+                                    <version>3.0.0-SNAPSHOT</version>
                                     <overWrite>true</overWrite>
                                     <outputDirectory>${project.build.directory}/sapl-test</outputDirectory>
                                     <includes>static/**/*</includes>

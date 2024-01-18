@@ -1,6 +1,2 @@
 /.idea/
-/.settings/
-/target/
-/io.sapl.test.lang.ide/target/
-/io.sapl.test.lang/target/
-/model/
+!.project
