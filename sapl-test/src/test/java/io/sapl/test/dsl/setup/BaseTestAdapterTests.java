@@ -48,19 +48,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class BaseTestAdapterTests {
     @Mock
-    private TestProvider        testProviderMock;
+    protected TestProvider        testProviderMock;
     @Mock
-    private SaplTestInterpreter saplTestInterpreterMock;
+    protected SaplTestInterpreter saplTestInterpreterMock;
 
-    private BaseTestAdapter<TestContainer> baseTestAdapter;
+    protected BaseTestAdapter<TestContainer> baseTestAdapter;
 
-    private final MockedStatic<TestProviderFactory>        testProviderFactoryMockedStatic        = mockStatic(
+    protected final MockedStatic<TestProviderFactory>        testProviderFactoryMockedStatic        = mockStatic(
             TestProviderFactory.class);
-    private final MockedStatic<SaplTestInterpreterFactory> saplTestInterpreterFactoryMockedStatic = mockStatic(
+    protected final MockedStatic<SaplTestInterpreterFactory> saplTestInterpreterFactoryMockedStatic = mockStatic(
             SaplTestInterpreterFactory.class);
-    private final MockedStatic<DocumentHelper>             documentHelperMockedStatic             = mockStatic(
+    protected final MockedStatic<DocumentHelper>             documentHelperMockedStatic             = mockStatic(
             DocumentHelper.class);
-    private final MockedStatic<TestContainer>              testContainerMockedStatic              = mockStatic(
+    protected final MockedStatic<TestContainer>              testContainerMockedStatic              = mockStatic(
             TestContainer.class);
 
     @AfterEach

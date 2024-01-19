@@ -36,10 +36,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
-class TestDiscoveryHelperTest {
+class TestDiscoveryHelperTests {
 
-    private final MockedStatic<ClasspathHelper> classpathHelperMockedStatic = mockStatic(ClasspathHelper.class);
-    private final MockedStatic<FileUtils>       fileUtilsMockedStatic       = mockStatic(FileUtils.class);
+    protected final MockedStatic<ClasspathHelper> classpathHelperMockedStatic = mockStatic(ClasspathHelper.class);
+    protected final MockedStatic<FileUtils>       fileUtilsMockedStatic       = mockStatic(FileUtils.class);
 
     @AfterEach
     void tearDown() {

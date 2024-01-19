@@ -57,15 +57,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class AttributeInterpreterTests {
     @Mock
-    private ValueInterpreter      valueInterpreterMock;
+    protected ValueInterpreter      valueInterpreterMock;
     @Mock
-    private ValMatcherInterpreter matcherInterpreterMock;
+    protected ValMatcherInterpreter matcherInterpreterMock;
     @Mock
-    private DurationInterpreter   durationInterpreterMock;
+    protected DurationInterpreter   durationInterpreterMock;
     @InjectMocks
-    private AttributeInterpreter  attributeInterpreter;
+    protected AttributeInterpreter  attributeInterpreter;
     @Mock
-    private GivenOrWhenStep       givenOrWhenStepMock;
+    protected GivenOrWhenStep       givenOrWhenStepMock;
 
     @Nested
     @DisplayName("Interpret attribute")

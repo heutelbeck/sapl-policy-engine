@@ -68,16 +68,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class TestSuiteInterpreterTests {
     @Mock
-    private ValueInterpreter              valueInterpreterMock;
+    protected ValueInterpreter              valueInterpreterMock;
     @Mock
-    private CombiningAlgorithmInterpreter combiningAlgorithmInterpreterMock;
+    protected CombiningAlgorithmInterpreter combiningAlgorithmInterpreterMock;
 
-    private final MockedStatic<SaplUnitTestFixtureFactory>        saplUnitTestFixtureFactoryMockedStatic        = mockStatic(
+    protected final MockedStatic<SaplUnitTestFixtureFactory>        saplUnitTestFixtureFactoryMockedStatic        = mockStatic(
             SaplUnitTestFixtureFactory.class);
-    private final MockedStatic<SaplIntegrationTestFixtureFactory> saplIntegrationTestFixtureFactoryMockedStatic = mockStatic(
+    protected final MockedStatic<SaplIntegrationTestFixtureFactory> saplIntegrationTestFixtureFactoryMockedStatic = mockStatic(
             SaplIntegrationTestFixtureFactory.class);
 
-    private TestSuiteInterpreter testSuiteInterpreter;
+    protected TestSuiteInterpreter testSuiteInterpreter;
 
     @BeforeEach
     void setUp() {
@@ -388,7 +388,7 @@ class TestSuiteInterpreterTests {
             final var pdpVariablesMock = mock(Value.class);
             when(integrationTestSuite.getPdpVariables()).thenReturn(pdpVariablesMock);
 
-            when(integrationTestSuite.isCombiningAlgorithmDefined()).thenReturn(false);
+            when(integrationTestSuite.isCombiningAlgorithmDefined()).thenReturn(Boolean.FALSE);
 
             final var result = testSuiteInterpreter.getFixtureFromTestSuite(integrationTestSuite);
 

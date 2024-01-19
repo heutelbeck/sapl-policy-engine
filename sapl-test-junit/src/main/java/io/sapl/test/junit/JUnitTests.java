@@ -22,6 +22,7 @@ import io.sapl.test.dsl.setup.BaseTestAdapter;
 import io.sapl.test.dsl.setup.TestCase;
 import io.sapl.test.dsl.setup.TestContainer;
 import io.sapl.test.dsl.interfaces.TestNode;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -42,7 +43,7 @@ public class JUnitTests extends BaseTestAdapter<DynamicContainer> {
         return paths.stream().map(this::createTest).toList();
     }
 
-    private List<DynamicNode> getDynamicContainersFromTestNode(List<? extends TestNode> testNodes) {
+    private List<DynamicNode> getDynamicContainersFromTestNode(Collection<? extends TestNode> testNodes) {
         if (testNodes == null) {
             return Collections.emptyList();
         }

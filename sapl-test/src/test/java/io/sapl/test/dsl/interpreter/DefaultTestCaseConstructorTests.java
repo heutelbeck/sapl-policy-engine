@@ -43,18 +43,18 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class DefaultTestCaseConstructorTests {
 
     @Mock
-    ValueInterpreter valueInterpreterMock;
+    protected ValueInterpreter valueInterpreterMock;
 
     @InjectMocks
-    DefaultTestCaseConstructor defaultTestCaseConstructor;
+    protected DefaultTestCaseConstructor defaultTestCaseConstructor;
 
     @Mock
-    SaplTestFixture saplTestFixtureMock;
+    protected SaplTestFixture saplTestFixtureMock;
 
     @Mock
-    GivenOrWhenStep givenOrWhenStepMock;
+    protected GivenOrWhenStep givenOrWhenStepMock;
 
-    private io.sapl.test.grammar.sapltest.Object buildObject(final String input) {
+    protected io.sapl.test.grammar.sapltest.Object buildObject(final String input) {
         return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getObjectRule,
                 io.sapl.test.grammar.sapltest.Object.class);
     }

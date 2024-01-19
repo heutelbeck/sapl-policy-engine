@@ -48,15 +48,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class DefaultWhenStepConstructorTests {
     @Mock
-    private FunctionInterpreter        functionInterpreterMock;
+    protected FunctionInterpreter        functionInterpreterMock;
     @Mock
-    private AttributeInterpreter       attributeInterpreterMock;
+    protected AttributeInterpreter       attributeInterpreterMock;
     @Mock
-    private GivenOrWhenStep            saplUnitTestFixtureMock;
+    protected GivenOrWhenStep            saplUnitTestFixtureMock;
     @InjectMocks
-    private DefaultWhenStepConstructor defaultWhenStepConstructor;
+    protected DefaultWhenStepConstructor defaultWhenStepConstructor;
 
-    private <T extends GivenStep> T buildGivenStep(final String input, final Class<T> clazz) {
+    protected <T extends GivenStep> T buildGivenStep(final String input, final Class<T> clazz) {
         return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getGivenStepRule, clazz);
     }
 

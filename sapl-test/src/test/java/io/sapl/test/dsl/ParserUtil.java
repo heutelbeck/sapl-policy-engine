@@ -24,9 +24,9 @@ import io.sapl.test.grammar.SAPLTestStandaloneSetup;
 import io.sapl.test.grammar.sapltest.StringLiteral;
 import io.sapl.test.grammar.sapltest.Value;
 import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Function;
-import lombok.SneakyThrows;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.xtext.ParserRule;
@@ -37,21 +37,25 @@ import org.mockito.ArgumentMatchers;
 public class ParserUtil {
     private static final Injector INJECTOR = new SAPLTestStandaloneSetup().createInjectorAndDoEMFRegistration();
 
-    @SneakyThrows
     public static <T extends ParserRule, R> R parseInputByRule(final String saplTest,
             Function<SAPLTestGrammarAccess, T> resolver, Class<R> clazz) {
         var       resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
         var       resource    = (XtextResource) resourceSet.createResource(URI.createFileURI("test:/default.sapltest"));
         final var parserRule  = resolver.apply(INJECTOR.getInstance(SAPLTestGrammarAccess.class));
         resource.setEntryPoint(parserRule);
-        resource.load(IOUtils.toInputStream(saplTest, StandardCharsets.UTF_8), resourceSet.getLoadOptions());
+
+        try {
+            resource.load(IOUtils.toInputStream(saplTest, StandardCharsets.UTF_8), resourceSet.getLoadOptions());
+        } catch (IOException e) {
+            return null;
+        }
 
         try {
             final var eObject = resource.getContents().get(0);
             return clazz.cast(eObject);
-        } catch (Exception e) {
+        } catch (IndexOutOfBoundsException | ClassCastException e) {
             throw new SaplTestException("input '%s' does not represent a valid definition for class '%s'"
-                    .formatted(saplTest, clazz.getName()));
+                    .formatted(saplTest, clazz.getName()), e);
         }
     }
 

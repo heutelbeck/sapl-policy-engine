@@ -41,13 +41,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class DefaultVerifyStepConstructorTests {
     @Mock
-    private ExpectationInterpreter       expectInterpreterMock;
+    protected ExpectationInterpreter       expectInterpreterMock;
     @InjectMocks
-    private DefaultVerifyStepConstructor defaultVerifyStepConstructor;
+    protected DefaultVerifyStepConstructor defaultVerifyStepConstructor;
     @Mock
-    TestCase                             testCaseMock;
+    protected TestCase                     testCaseMock;
     @Mock
-    ExpectStep                           expectStepMock;
+    protected ExpectStep                   expectStepMock;
 
     @Test
     void constructVerifyStep_handlesNullTestCase_throwsSaplTestException() {

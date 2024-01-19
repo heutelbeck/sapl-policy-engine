@@ -51,11 +51,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class AuthorizationDecisionInterpreterTests {
     @Mock
-    private ValueInterpreter                 valueInterpreterMock;
+    protected ValueInterpreter valueInterpreterMock;
     @Mock
-    private ObjectMapper                     objectMapperMock;
+    protected ObjectMapper     objectMapperMock;
+
     @InjectMocks
-    private AuthorizationDecisionInterpreter authorizationDecisionInterpreter;
+    protected AuthorizationDecisionInterpreter authorizationDecisionInterpreter;
 
     private NumberLiteral buildNumberLiteral(final String input) {
         return ParserUtil.buildValue(input, NumberLiteral.class);

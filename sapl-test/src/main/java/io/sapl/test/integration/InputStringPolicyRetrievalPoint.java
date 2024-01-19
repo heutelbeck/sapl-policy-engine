@@ -23,6 +23,7 @@ import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.utils.DocumentHelper;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -39,12 +40,12 @@ public class InputStringPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
     private final SAPLInterpreter saplInterpreter;
 
-    InputStringPolicyRetrievalPoint(final List<String> documentStrings, final SAPLInterpreter interpreter) {
+    InputStringPolicyRetrievalPoint(final Collection<String> documentStrings, final SAPLInterpreter interpreter) {
         this.saplInterpreter = interpreter;
         this.documents       = readPoliciesFromSaplDocumentNames(documentStrings);
     }
 
-    private Map<String, SAPL> readPoliciesFromSaplDocumentNames(final List<String> documentStrings) {
+    private Map<String, SAPL> readPoliciesFromSaplDocumentNames(final Collection<String> documentStrings) {
         if (documentStrings == null || documentStrings.isEmpty()) {
             return Collections.emptyMap();
         }

@@ -50,17 +50,18 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class DefaultTestFixtureConstructorTests {
     @Mock
-    private TestSuiteInterpreter          testSuiteInterpreterMock;
+    protected TestSuiteInterpreter          testSuiteInterpreterMock;
     @Mock
-    private FunctionLibraryInterpreter    functionLibraryInterpreterMock;
+    protected SaplTestFixture               testFixtureMock;
     @Mock
-    private ReflectionHelper              reflectionHelperMock;
-    @Mock
-    private SaplTestFixture               testFixtureMock;
-    @Mock
-    private TestSuite                     testSuiteMock;
+    protected TestSuite                     testSuiteMock;
     @InjectMocks
-    private DefaultTestFixtureConstructor defaultTestFixtureConstructor;
+    protected DefaultTestFixtureConstructor defaultTestFixtureConstructor;
+
+    @Mock
+    protected FunctionLibraryInterpreter functionLibraryInterpreterMock;
+    @Mock
+    protected ReflectionHelper           reflectionHelperMock;
 
     @Test
     void constructTestFixture_testSuiteInterpreterReturnsNull_throwsSaplTestException() {

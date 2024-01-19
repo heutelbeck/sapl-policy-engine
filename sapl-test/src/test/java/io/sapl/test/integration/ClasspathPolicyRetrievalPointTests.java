@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
+import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -82,7 +83,7 @@ class ClasspathPolicyRetrievalPointTests {
     }
 
     @Test
-    void test_dispose() throws Exception {
+    void test_dispose() {
         var prp = new ClasspathPolicyRetrievalPoint(Paths.get("policiesIT"), this.interpreter);
         prp.destroy();
         assertThatNoException();
@@ -122,8 +123,7 @@ class ClasspathPolicyRetrievalPointTests {
 			ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
 			ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
 			ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
-			ctx = AuthorizationContext.setSubscriptionVariables(ctx, EMPTY_SUBSCRIPTION);
-			return ctx;
+			return AuthorizationContext.setSubscriptionVariables(ctx, EMPTY_SUBSCRIPTION);
 		}).blockFirst();
 
 		assertThat(result, notNullValue());
@@ -180,8 +180,7 @@ class ClasspathPolicyRetrievalPointTests {
 			ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
 			ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
 			ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
-			ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription);
-			return ctx;
+			return AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription);
 		}).blockFirst();
 
 		Assertions.assertThat(result.isErrorsInTarget()).isTrue();
@@ -190,13 +189,12 @@ class ClasspathPolicyRetrievalPointTests {
 	@Nested
 	@DisplayName("Read policies from document names tests")
 	class ReadPoliciesFromDocumentNamesTests {
-		private PolicyRetrievalResult getResultFromPRP(final ClasspathPolicyRetrievalPoint policyRetrievalPoint, final AuthorizationSubscription authorizationSubscription) {
+		private PolicyRetrievalResult getResultFromPRP(final PolicyRetrievalPoint policyRetrievalPoint, final AuthorizationSubscription authorizationSubscription) {
 			return policyRetrievalPoint.retrievePolicies().contextWrite(ctx -> {
 				ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
 				ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
 				ctx = AuthorizationContext.setVariables(ctx, Collections.emptyMap());
-				ctx = AuthorizationContext.setSubscriptionVariables(ctx ,authorizationSubscription);
-				return ctx;
+				return AuthorizationContext.setSubscriptionVariables(ctx ,authorizationSubscription);
 			}).blockFirst();
 		}
 
@@ -224,7 +222,7 @@ class ClasspathPolicyRetrievalPointTests {
 
 		@Test
 		void givenNullValueInDocumentNames_throwsSaplTestException() {
-			final var documentNames = Arrays.asList((String) null);
+			final var documentNames = Collections.<String>singletonList(null);
 			final var exception = assertThrows(SaplTestException.class, () -> new ClasspathPolicyRetrievalPoint(documentNames, interpreter));
 
 			assertEquals("Encountered invalid policy name", exception.getMessage());

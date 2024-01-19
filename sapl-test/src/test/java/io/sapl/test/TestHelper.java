@@ -19,6 +19,7 @@ package io.sapl.test;
 
 import static org.mockito.Mockito.when;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Supplier;
 import org.eclipse.emf.common.util.BasicEList;
@@ -26,7 +27,7 @@ import org.eclipse.emf.common.util.EList;
 
 public class TestHelper {
 
-    public static <T> EList<T> mockEListResult(final Supplier<EList<T>> arg, final List<T> valueToReturn) {
+    public static <T> EList<T> mockEListResult(final Supplier<EList<T>> arg, final Collection<T> valueToReturn) {
         final var eList = new BasicEList<>(valueToReturn);
         when(arg.get()).thenReturn(eList);
         return eList;

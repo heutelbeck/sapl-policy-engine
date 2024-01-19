@@ -32,7 +32,7 @@ class ReflectionHelper {
             return constructor.newInstance();
 
         } catch (Exception e) {
-            throw new SaplTestException("Could not construct instance of '%s'".formatted(className));
+            throw new SaplTestException("Could not construct instance of '%s'".formatted(className), e);
         }
     }
 }

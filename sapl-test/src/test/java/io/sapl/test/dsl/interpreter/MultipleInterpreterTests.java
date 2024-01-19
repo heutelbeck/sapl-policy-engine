@@ -40,7 +40,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class MultipleInterpreterTests {
-    private MultipleInterpreter multipleInterpreter;
+    protected MultipleInterpreter multipleInterpreter;
 
     @BeforeEach
     void setUp() {

@@ -40,15 +40,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class DefaultExpectStepConstructorTests {
     @Mock
-    private AuthorizationSubscriptionInterpreter authorizationSubscriptionInterpreterMock;
+    protected AuthorizationSubscriptionInterpreter authorizationSubscriptionInterpreterMock;
     @InjectMocks
-    private DefaultExpectStepConstructor         defaultExpectStepConstructor;
+    protected DefaultExpectStepConstructor         defaultExpectStepConstructor;
     @Mock
-    TestCase                                     testCaseMock;
+    protected TestCase                             testCaseMock;
     @Mock
-    WhenStep                                     whenStepMock;
+    protected WhenStep                             whenStepMock;
 
-    private final MockedStatic<io.sapl.api.pdp.AuthorizationSubscription> authorizationSubscriptionMockedStatic = mockStatic(
+    protected final MockedStatic<io.sapl.api.pdp.AuthorizationSubscription> authorizationSubscriptionMockedStatic = mockStatic(
             io.sapl.api.pdp.AuthorizationSubscription.class);
 
     @AfterEach

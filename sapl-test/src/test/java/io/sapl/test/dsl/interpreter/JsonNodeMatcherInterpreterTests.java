@@ -66,17 +66,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class JsonNodeMatcherInterpreterTests {
     @Mock
-    private StringMatcherInterpreter   stringMatcherInterpreterMock;
+    protected StringMatcherInterpreter   stringMatcherInterpreterMock;
     @InjectMocks
-    private JsonNodeMatcherInterpreter jsonNodeMatcherInterpreter;
+    protected JsonNodeMatcherInterpreter jsonNodeMatcherInterpreter;
     @Mock
-    private Matcher<? super JsonNode>  jsonNodeMatcherMock;
+    protected Matcher<? super JsonNode>  jsonNodeMatcherMock;
 
     @Mock
-    private Matcher<String> stringMatcherMock;
+    protected Matcher<String> stringMatcherMock;
 
-    private final MockedStatic<JsonMatchers> jsonMatchersMockedStatic     = mockStatic(JsonMatchers.class);
-    private final MockedStatic<Matchers>     hamcrestMatchersMockedStatic = mockStatic(Matchers.class);
+    protected final MockedStatic<JsonMatchers> jsonMatchersMockedStatic     = mockStatic(JsonMatchers.class);
+    protected final MockedStatic<Matchers>     hamcrestMatchersMockedStatic = mockStatic(Matchers.class);
 
     @AfterEach
     void tearDown() {

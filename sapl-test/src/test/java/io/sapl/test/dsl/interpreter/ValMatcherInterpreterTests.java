@@ -54,23 +54,24 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ValMatcherInterpreterTests {
     @Mock
-    private ValueInterpreter           valueInterpreterMock;
+    protected ValueInterpreter           valueInterpreterMock;
     @Mock
-    private JsonNodeMatcherInterpreter jsonNodeMatcherInterpreterMock;
+    protected JsonNodeMatcherInterpreter jsonNodeMatcherInterpreterMock;
     @Mock
-    private StringMatcherInterpreter   stringMatcherInterpreterMock;
+    protected StringMatcherInterpreter   stringMatcherInterpreterMock;
     @InjectMocks
-    private ValMatcherInterpreter      matcherInterpreter;
+    protected ValMatcherInterpreter      matcherInterpreter;
 
     @Mock
-    Matcher<JsonNode> jsonNodeMatcherMock;
+    protected Matcher<JsonNode> jsonNodeMatcherMock;
     @Mock
-    Matcher<String>   stringMatcherMock;
+    protected Matcher<String>   stringMatcherMock;
 
-    private final MockedStatic<Matchers>                  hamcrestMatchersMockedStatic     = mockStatic(Matchers.class);
-    private final MockedStatic<CoreMatchers>              hamcrestCoreMatchersMockedStatic = mockStatic(
+    protected final MockedStatic<Matchers>                  hamcrestMatchersMockedStatic     = mockStatic(
+            Matchers.class);
+    protected final MockedStatic<CoreMatchers>              hamcrestCoreMatchersMockedStatic = mockStatic(
             CoreMatchers.class);
-    private final MockedStatic<io.sapl.hamcrest.Matchers> saplMatchersMockedStatic         = mockStatic(
+    protected final MockedStatic<io.sapl.hamcrest.Matchers> saplMatchersMockedStatic         = mockStatic(
             io.sapl.hamcrest.Matchers.class);
 
     @AfterEach

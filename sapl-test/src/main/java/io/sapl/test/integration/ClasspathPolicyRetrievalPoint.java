@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -52,7 +53,7 @@ public class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {
         this.documents = readPoliciesFromDirectory(path.toString(), interpreter);
     }
 
-    ClasspathPolicyRetrievalPoint(final List<String> saplDocumentNames, final SAPLInterpreter interpreter) {
+    ClasspathPolicyRetrievalPoint(final Collection<String> saplDocumentNames, final SAPLInterpreter interpreter) {
         this.documents = readPoliciesFromSaplDocumentNames(saplDocumentNames, interpreter);
     }
 
@@ -73,7 +74,7 @@ public class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {
         return documentsByName;
     }
 
-    private Map<String, SAPL> readPoliciesFromSaplDocumentNames(final List<String> saplDocumentNames,
+    private Map<String, SAPL> readPoliciesFromSaplDocumentNames(final Collection<String> saplDocumentNames,
             final SAPLInterpreter interpreter) {
         if (saplDocumentNames == null || saplDocumentNames.isEmpty()) {
             return Collections.emptyMap();

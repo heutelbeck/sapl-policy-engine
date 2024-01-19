@@ -56,19 +56,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class TestProviderTests {
     @Mock
-    private StepConstructor stepConstructorMock;
+    protected StepConstructor stepConstructorMock;
     @InjectMocks
-    private TestProvider    testProvider;
+    protected TestProvider    testProvider;
     @Mock
-    private SAPLTest        saplTestMock;
+    protected SAPLTest        saplTestMock;
     @Mock
-    private UnitTestSuite   unitTestSuiteMock;
+    protected UnitTestSuite   unitTestSuiteMock;
     @Mock
-    private TestCase        testCaseMock;
+    protected TestCase        testCaseMock;
 
-    private final MockedStatic<TestContainer>                   testContainerMockedStatic = mockStatic(
+    protected final MockedStatic<TestContainer>                   testContainerMockedStatic = mockStatic(
             TestContainer.class);
-    private final MockedStatic<io.sapl.test.dsl.setup.TestCase> testMockedStatic          = mockStatic(
+    protected final MockedStatic<io.sapl.test.dsl.setup.TestCase> testMockedStatic          = mockStatic(
             io.sapl.test.dsl.setup.TestCase.class);
 
     @AfterEach

@@ -71,22 +71,22 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ExpectationInterpreterTests {
     @Mock
-    private ValueInterpreter                        valueInterpreterMock;
+    protected ValueInterpreter                        valueInterpreterMock;
     @Mock
-    private AuthorizationDecisionInterpreter        authorizationDecisionInterpreterMock;
+    protected AuthorizationDecisionInterpreter        authorizationDecisionInterpreterMock;
     @Mock
-    private AuthorizationDecisionMatcherInterpreter authorizationDecisionMatcherInterpreterMock;
+    protected AuthorizationDecisionMatcherInterpreter authorizationDecisionMatcherInterpreterMock;
     @Mock
-    private DurationInterpreter                     durationInterpreterMock;
+    protected DurationInterpreter                     durationInterpreterMock;
     @Mock
-    private MultipleInterpreter                     multipleInterpreterMock;
+    protected MultipleInterpreter                     multipleInterpreterMock;
     @InjectMocks
-    private ExpectationInterpreter                  expectationInterpreter;
+    protected ExpectationInterpreter                  expectationInterpreter;
     @Mock
-    private ExpectOrVerifyStep                      expectOrVerifyStepMock;
+    protected ExpectOrVerifyStep                      expectOrVerifyStepMock;
 
     @Mock
-    private Matcher<AuthorizationDecision> authorizationDecisionMatcherMock;
+    protected Matcher<AuthorizationDecision> authorizationDecisionMatcherMock;
 
     private final MockedStatic<org.hamcrest.Matchers> hamcrestMatchersMockedStatic = mockStatic(
             org.hamcrest.Matchers.class, Answers.RETURNS_SMART_NULLS);

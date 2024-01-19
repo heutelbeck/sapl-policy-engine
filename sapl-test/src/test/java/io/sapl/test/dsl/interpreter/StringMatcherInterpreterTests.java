@@ -57,11 +57,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class StringMatcherInterpreterTests {
-    private StringMatcherInterpreter stringMatcherInterpreter;
+    protected StringMatcherInterpreter stringMatcherInterpreter;
     @Mock
-    Matcher<? super String>          matcherMock;
+    protected Matcher<? super String>  matcherMock;
 
-    private final MockedStatic<Matchers> matchersMockedStatic = mockStatic(Matchers.class);
+    protected final MockedStatic<Matchers> matchersMockedStatic = mockStatic(Matchers.class);
 
     @BeforeEach
     void setUp() {

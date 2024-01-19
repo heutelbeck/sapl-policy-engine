@@ -60,13 +60,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ValueInterpreterTests {
     @Mock
-    private ObjectMapper     objectMapperMock;
+    protected ObjectMapper     objectMapperMock;
     @Mock
-    private Val              valMock;
+    protected Val              valMock;
     @InjectMocks
-    private ValueInterpreter valueInterpreter;
+    protected ValueInterpreter valueInterpreter;
 
-    private final MockedStatic<Val> valMockedStatic = mockStatic(Val.class);
+    protected final MockedStatic<Val> valMockedStatic = mockStatic(Val.class);
 
     @AfterEach
     void tearDown() {

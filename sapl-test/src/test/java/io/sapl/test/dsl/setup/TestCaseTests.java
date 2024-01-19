@@ -58,13 +58,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class TestCaseTests {
     @Mock
-    private StepConstructor                        stepConstructorMock;
+    protected StepConstructor                        stepConstructorMock;
     @Mock
-    private TestSuite                              testSuiteMock;
+    protected TestSuite                              testSuiteMock;
     @Mock
-    private io.sapl.test.grammar.sapltest.TestCase dslTestCaseMock;
+    protected io.sapl.test.grammar.sapltest.TestCase dslTestCaseMock;
 
-    private final MockedStatic<org.assertj.core.api.Assertions> assertionsMockedStatic = mockStatic(
+    protected final MockedStatic<org.assertj.core.api.Assertions> assertionsMockedStatic = mockStatic(
             org.assertj.core.api.Assertions.class, Answers.RETURNS_DEEP_STUBS);
 
     @AfterEach

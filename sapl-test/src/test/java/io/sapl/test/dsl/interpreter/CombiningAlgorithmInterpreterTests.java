@@ -32,7 +32,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class CombiningAlgorithmInterpreterTests {
-    private CombiningAlgorithmInterpreter combiningAlgorithmInterpreter;
+    protected CombiningAlgorithmInterpreter combiningAlgorithmInterpreter;
 
     @BeforeEach
     void setUp() {

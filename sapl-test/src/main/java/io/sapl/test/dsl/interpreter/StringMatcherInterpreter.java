@@ -115,8 +115,8 @@ class StringMatcherInterpreter {
             }
 
             return hasLength(length);
-        } catch (ArithmeticException exception) {
-            throw new SaplTestException("String length needs to be an natural number");
+        } catch (ArithmeticException e) {
+            throw new SaplTestException("String length needs to be an natural number", e);
         }
     }
 }

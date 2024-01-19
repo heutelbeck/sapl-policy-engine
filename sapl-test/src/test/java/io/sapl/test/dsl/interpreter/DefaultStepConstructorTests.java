@@ -42,17 +42,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class DefaultStepConstructorTests {
     @Mock
-    private DefaultTestFixtureConstructor defaultTestFixtureConstructorMock;
+    protected DefaultTestFixtureConstructor defaultTestFixtureConstructorMock;
     @Mock
-    private DefaultTestCaseConstructor    defaultTestCaseConstructorMock;
+    protected DefaultTestCaseConstructor    defaultTestCaseConstructorMock;
     @Mock
-    private DefaultWhenStepConstructor    defaultWhenStepConstructorMock;
+    protected DefaultWhenStepConstructor    defaultWhenStepConstructorMock;
     @Mock
-    private DefaultExpectStepConstructor  defaultExpectStepConstructorMock;
+    protected DefaultExpectStepConstructor  defaultExpectStepConstructorMock;
     @Mock
-    private DefaultVerifyStepConstructor  defaultVerifyStepConstructorMock;
+    protected DefaultVerifyStepConstructor  defaultVerifyStepConstructorMock;
     @InjectMocks
-    private DefaultStepConstructor        defaultStepConstructor;
+    protected DefaultStepConstructor        defaultStepConstructor;
 
     @Test
     void constructTestFixture_callsTestFixtureConstructor_returnsSaplTestFixture() {

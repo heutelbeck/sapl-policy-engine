@@ -17,6 +17,7 @@
  */
 package io.sapl.test.junit;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -53,27 +54,27 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class JUnitTestsTest {
+class JUnitTestsTests {
     @Mock
-    private TestProvider        testProviderMock;
+    protected TestProvider        testProviderMock;
     @Mock
-    private SaplTestInterpreter saplTestInterpreterMock;
+    protected SaplTestInterpreter saplTestInterpreterMock;
 
-    private JUnitTests jUnitTests;
+    protected JUnitTests jUnitTests;
 
-    private final MockedStatic<TestProviderFactory>        testProviderFactoryMockedStatic        = mockStatic(
+    protected final MockedStatic<TestProviderFactory>        testProviderFactoryMockedStatic        = mockStatic(
             TestProviderFactory.class);
-    private final MockedStatic<SaplTestInterpreterFactory> saplTestInterpreterFactoryMockedStatic = mockStatic(
+    protected final MockedStatic<SaplTestInterpreterFactory> saplTestInterpreterFactoryMockedStatic = mockStatic(
             SaplTestInterpreterFactory.class);
-    private final MockedStatic<DocumentHelper>             documentHelperMockedStatic             = mockStatic(
+    protected final MockedStatic<DocumentHelper>             documentHelperMockedStatic             = mockStatic(
             DocumentHelper.class);
-    private final MockedStatic<TestContainer>              testContainerMockedStatic              = mockStatic(
+    protected final MockedStatic<TestContainer>              testContainerMockedStatic              = mockStatic(
             TestContainer.class);
-    private final MockedStatic<TestDiscoveryHelper>        testDiscoveryHelperMockedStatic        = mockStatic(
+    protected final MockedStatic<TestDiscoveryHelper>        testDiscoveryHelperMockedStatic        = mockStatic(
             TestDiscoveryHelper.class);
-    private final MockedStatic<DynamicContainer>           dynamicContainerMockedStatic           = mockStatic(
+    protected final MockedStatic<DynamicContainer>           dynamicContainerMockedStatic           = mockStatic(
             DynamicContainer.class);
-    private final MockedStatic<DynamicTest>                dynamicTestMockedStatic                = mockStatic(
+    protected final MockedStatic<DynamicTest>                dynamicTestMockedStatic                = mockStatic(
             DynamicTest.class);
 
     @BeforeEach
@@ -204,8 +205,7 @@ class JUnitTestsTest {
     }
 
     @Test
-    void getTests_withMultipleMixedTestNodesInMultipleTestContainers_returnsMultipleDynamicContainers()
-            throws Throwable {
+    void getTests_withMultipleMixedTestNodesInMultipleTestContainers_returnsMultipleDynamicContainers() {
         testDiscoveryHelperMockedStatic.when(TestDiscoveryHelper::discoverTests)
                 .thenReturn(List.of("filename", "filename2"));
 
@@ -270,11 +270,13 @@ class JUnitTestsTest {
         assertEquals(mappedDynamicContainer1Mock, result.get(0));
         assertEquals(mappedDynamicContainer2Mock, result.get(1));
 
-        nestedTestCase1ArgumentCaptor.getValue().execute();
-        nestedTestCase2ArgumentCaptor.getValue().execute();
-        testCase1ArgumentCaptor.getValue().execute();
-        testCase2ArgumentCaptor.getValue().execute();
-        testCase3ArgumentCaptor.getValue().execute();
+        assertDoesNotThrow(() -> {
+            nestedTestCase1ArgumentCaptor.getValue().execute();
+            nestedTestCase2ArgumentCaptor.getValue().execute();
+            testCase1ArgumentCaptor.getValue().execute();
+            testCase2ArgumentCaptor.getValue().execute();
+            testCase3ArgumentCaptor.getValue().execute();
+        });
 
         Mockito.verify(nestedTestCase1Mock, Mockito.times(1)).run();
         Mockito.verify(nestedTestCase2Mock, Mockito.times(1)).run();

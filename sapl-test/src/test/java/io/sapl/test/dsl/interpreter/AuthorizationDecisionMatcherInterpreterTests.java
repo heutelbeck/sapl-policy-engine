@@ -61,14 +61,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class AuthorizationDecisionMatcherInterpreterTests {
     @Mock
-    private ValueInterpreter                        valueInterpreterMock;
+    protected ValueInterpreter                        valueInterpreterMock;
     @Mock
-    private JsonNodeMatcherInterpreter              jsonNodeMatcherInterpreterMock;
+    protected JsonNodeMatcherInterpreter              jsonNodeMatcherInterpreterMock;
     @InjectMocks
-    private AuthorizationDecisionMatcherInterpreter authorizationDecisionMatcherInterpreter;
+    protected AuthorizationDecisionMatcherInterpreter authorizationDecisionMatcherInterpreter;
 
     @Mock
-    Matcher<JsonNode> jsonNodeMatcherMock;
+    protected Matcher<JsonNode> jsonNodeMatcherMock;
 
     private final MockedStatic<Matchers>                  hamcrestMatchersMockedStatic     = mockStatic(Matchers.class);
     private final MockedStatic<CoreMatchers>              hamcrestCoreMatchersMockedStatic = mockStatic(

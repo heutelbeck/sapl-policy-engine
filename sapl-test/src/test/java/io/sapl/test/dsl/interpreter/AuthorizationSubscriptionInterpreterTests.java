@@ -48,11 +48,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class AuthorizationSubscriptionInterpreterTests {
     @Mock
-    private ValueInterpreter                     valueInterpreterMock;
+    private ValueInterpreter                       valueInterpreterMock;
     @InjectMocks
-    private AuthorizationSubscriptionInterpreter authorizationSubscriptionInterpreter;
+    protected AuthorizationSubscriptionInterpreter authorizationSubscriptionInterpreter;
 
-    private final MockedStatic<io.sapl.api.pdp.AuthorizationSubscription> authorizationSubscriptionMockedStatic = mockStatic(
+    protected final MockedStatic<io.sapl.api.pdp.AuthorizationSubscription> authorizationSubscriptionMockedStatic = mockStatic(
             io.sapl.api.pdp.AuthorizationSubscription.class);
 
     @AfterEach

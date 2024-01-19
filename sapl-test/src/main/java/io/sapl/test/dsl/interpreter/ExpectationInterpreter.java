@@ -36,7 +36,7 @@ import io.sapl.test.grammar.sapltest.SingleExpect;
 import io.sapl.test.grammar.sapltest.SingleExpectWithMatcher;
 import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.VerifyStep;
-import java.util.List;
+import java.util.Collection;
 import lombok.RequiredArgsConstructor;
 import org.hamcrest.Matcher;
 
@@ -77,7 +77,7 @@ class ExpectationInterpreter {
     }
 
     private Matcher<AuthorizationDecision> getCombinedMatcher(
-            final List<AuthorizationDecisionMatcher> authorizationDecisionMatchers) {
+            final Collection<AuthorizationDecisionMatcher> authorizationDecisionMatchers) {
 
         if (authorizationDecisionMatchers == null || authorizationDecisionMatchers.isEmpty()) {
             throw new SaplTestException("No AuthorizationDecisionMatcher found");

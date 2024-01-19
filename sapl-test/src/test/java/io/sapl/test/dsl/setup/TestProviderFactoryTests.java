@@ -29,7 +29,6 @@ import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
 import io.sapl.test.dsl.interpreter.DefaultStepConstructor;
-import java.util.List;
 import java.util.concurrent.Callable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -37,7 +36,7 @@ import org.mockito.MockedStatic;
 
 class TestProviderFactoryTests {
 
-    private final MockedStatic<TestProvider> testProviderMockedStatic = mockStatic(TestProvider.class);
+    protected final MockedStatic<TestProvider> testProviderMockedStatic = mockStatic(TestProvider.class);
 
     @AfterEach
     void tearDown() {

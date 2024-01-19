@@ -63,17 +63,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class FunctionInterpreterTests {
     @Mock
-    private ValueInterpreter      valueInterpreterMock;
+    protected ValueInterpreter      valueInterpreterMock;
     @Mock
-    private ValMatcherInterpreter matcherInterpreterMock;
+    protected ValMatcherInterpreter matcherInterpreterMock;
     @Mock
-    private MultipleInterpreter   multipleInterpreterMock;
+    protected MultipleInterpreter   multipleInterpreterMock;
     @InjectMocks
-    private FunctionInterpreter   functionInterpreter;
+    protected FunctionInterpreter   functionInterpreter;
     @Mock
-    private GivenOrWhenStep       givenOrWhenStepMock;
+    protected GivenOrWhenStep       givenOrWhenStepMock;
 
-    private final MockedStatic<Imports> importsMockedStatic = mockStatic(Imports.class);
+    protected final MockedStatic<Imports> importsMockedStatic = mockStatic(Imports.class);
 
     @AfterEach
     void tearDown() {

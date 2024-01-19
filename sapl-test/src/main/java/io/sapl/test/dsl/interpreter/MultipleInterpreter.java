@@ -28,7 +28,7 @@ class MultipleInterpreter {
         try {
             intValue = multiple.getAmount().intValueExact();
         } catch (Exception e) {
-            throw new SaplTestException("Amount has invalid format");
+            throw new SaplTestException("Amount has invalid format", e);
         }
 
         if (intValue < 2) {
