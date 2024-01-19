@@ -24,6 +24,7 @@ import com.vaadin.flow.component.dependency.NpmPackage;
 import com.vaadin.flow.dom.Element;
 import elemental.json.JsonArray;
 import elemental.json.JsonObject;
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,7 +38,9 @@ import java.util.List;
 @NpmPackage(value = "codemirror", version = "5.52.2")
 public class SaplTestEditor extends BaseEditor {
 
-    private final transient List<ValidationFinishedListener> validationFinishedListeners;
+    @Serial
+    private static final long                      serialVersionUID = 9000952473571011987L;
+    private final List<ValidationFinishedListener> validationFinishedListeners;
 
     /**
      * Creates an editor component.

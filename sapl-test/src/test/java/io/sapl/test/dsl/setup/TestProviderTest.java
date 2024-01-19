@@ -42,6 +42,7 @@ import io.sapl.test.grammar.sapltest.UnitTestSuite;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Callable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -131,12 +132,14 @@ class TestProviderTests {
     class ContainerNameConstructionTests {
         private List<TestNode> mockTestContainerForName(final String name, final TestContainer dynamicContainer) {
             List<TestNode> dynamicTestCases = new ArrayList<>();
-            testContainerMockedStatic.when(() -> TestContainer.from(eq(name), anyList()))
-                    .thenAnswer(invocationOnMock -> {
-                        final List<TestNode> dynamicTests = invocationOnMock.getArgument(1);
-                        dynamicTestCases.addAll(dynamicTests);
-                        return dynamicContainer;
-                    });
+            // Required since Spotbugs complains about unused return value from method call
+            // with no side effects here
+            final Callable<TestContainer> testContainerCallable = () -> TestContainer.from(eq(name), anyList());
+            testContainerMockedStatic.when(testContainerCallable::call).thenAnswer(invocationOnMock -> {
+                final List<TestNode> dynamicTests = invocationOnMock.getArgument(1);
+                dynamicTestCases.addAll(dynamicTests);
+                return dynamicContainer;
+            });
             return dynamicTestCases;
         }
 

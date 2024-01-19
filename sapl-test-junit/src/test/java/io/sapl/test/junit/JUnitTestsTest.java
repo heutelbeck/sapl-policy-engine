@@ -22,7 +22,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
@@ -36,6 +38,7 @@ import io.sapl.test.grammar.sapltest.SAPLTest;
 import io.sapl.test.utils.DocumentHelper;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Callable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DynamicContainer;
@@ -92,6 +95,15 @@ class JUnitTestsTest {
         dynamicTestMockedStatic.close();
     }
 
+    private TestContainer mockTestContainerCreation(final String identifier, final List<TestContainer> testContainers) {
+        final var testContainerMock = mock(TestContainer.class);
+        // Required since Spotbugs complains about unused return value from method call
+        // with no side effects here
+        final Callable<TestContainer> expectedCall = () -> TestContainer.from(identifier, testContainers);
+        testContainerMockedStatic.when(expectedCall::call).thenReturn(testContainerMock);
+        return testContainerMock;
+    }
+
     @Test
     void getTests_withNullTestDiscoveryResult_returnsEmptyList() {
         testDiscoveryHelperMockedStatic.when(TestDiscoveryHelper::discoverTests).thenReturn(null);
@@ -121,8 +133,7 @@ class JUnitTestsTest {
 
         Mockito.when(testProviderMock.buildTests(saplTestMock)).thenReturn(null);
 
-        final var testContainerMock = Mockito.mock(TestContainer.class);
-        testContainerMockedStatic.when(() -> TestContainer.from("filename", null)).thenReturn(testContainerMock);
+        final var testContainerMock = mockTestContainerCreation("filename", null);
 
         Mockito.when(testContainerMock.getTestNodes()).thenReturn(null);
         Mockito.when(testContainerMock.getIdentifier()).thenReturn("container");
@@ -151,12 +162,12 @@ class JUnitTestsTest {
         final var testContainers           = List.of(baseAdapterTestContainer);
         Mockito.when(testProviderMock.buildTests(saplTestMock)).thenReturn(testContainers);
 
-        final var testContainerMock = Mockito.mock(TestContainer.class);
-        testContainerMockedStatic.when(() -> TestContainer.from("filename", testContainers))
-                .thenReturn(testContainerMock);
+        final var testContainerMock = mockTestContainerCreation("filename", testContainers);
 
         final var testNodeWithUnknownTypeMock = Mockito.mock(TestNode.class);
-        Mockito.doReturn(List.of(testNodeWithUnknownTypeMock)).when(testContainerMock).getTestNodes();
+
+        when(testContainerMock.getTestNodes()).thenAnswer(invocationOnMock -> List.of(testNodeWithUnknownTypeMock));
+
         Mockito.when(testContainerMock.getIdentifier()).thenReturn("container");
 
         final var exception = assertThrows(SaplTestException.class, jUnitTests::getTests);
@@ -176,11 +187,10 @@ class JUnitTestsTest {
 
         Mockito.when(testProviderMock.buildTests(saplTestMock)).thenReturn(testContainers);
 
-        final var testContainerMock = Mockito.mock(TestContainer.class);
-        testContainerMockedStatic.when(() -> TestContainer.from(filename, testContainers))
-                .thenReturn(testContainerMock);
+        final var testContainerMock = mockTestContainerCreation(filename, testContainers);
 
-        Mockito.doReturn(testNodes).when(testContainerMock).getTestNodes();
+        when(testContainerMock.getTestNodes()).thenAnswer(invocationOnMock -> testNodes);
+
         Mockito.when(testContainerMock.getIdentifier()).thenReturn(containerName);
     }
 
@@ -216,7 +226,8 @@ class JUnitTestsTest {
         Mockito.when(testCase2Mock.getIdentifier()).thenReturn("testCase2");
         Mockito.when(testCase3Mock.getIdentifier()).thenReturn("testCase3");
 
-        Mockito.doReturn(List.of(nestedTestCase1Mock, nestedTestCase2Mock)).when(testContainerMock).getTestNodes();
+        when(testContainerMock.getTestNodes())
+                .thenAnswer(invocationOnMock -> List.of(nestedTestCase1Mock, nestedTestCase2Mock));
 
         final var nestedTestCase1DynamicTestMock = Mockito.mock(DynamicTest.class);
         final var nestedTestCase2DynamicTestMock = Mockito.mock(DynamicTest.class);

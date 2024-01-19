@@ -226,28 +226,28 @@ class SaplIntegrationTestFixtureTests {
     @DisplayName("DocumentStrings cases")
     class DocumentStringsTests {
 
-        private final String policy_A = """
+        private static final String policy_A = """
                 policy "policy_A"
                 deny
                     resource == "foo"
                 where
                     "WILLI" == subject;""";
 
-        private final String policy_B = """
+        private static final String policy_B = """
                 policy "policy_B"
                 permit
                     resource == "foo"
                 where
                     "WILLI" == subject;""";
 
-        private final String policyWithVariables = """
+        private static final String policyWithVariables = """
                 policy "policy read"
                 permit
                 	action == "read"
                 where
                 	test == 1;""";
 
-        private final String pdpConfig = """
+        private static final String pdpConfig = """
                 {
                 	"algorithm": "PERMIT_OVERRIDES",
                 	"variables": { "test": 1 }
@@ -297,7 +297,7 @@ class SaplIntegrationTestFixtureTests {
         @DisplayName("Error cases")
         class ErrorCases {
 
-            private final String validPolicy = """
+            private static final String validPolicy = """
                     policy "policy read"
                     permit
                         action == "read\"""";

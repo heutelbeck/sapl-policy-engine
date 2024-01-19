@@ -29,6 +29,8 @@ import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
 import io.sapl.test.dsl.interpreter.DefaultStepConstructor;
+import java.util.List;
+import java.util.concurrent.Callable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -42,6 +44,14 @@ class TestProviderFactoryTests {
         testProviderMockedStatic.close();
     }
 
+    private TestProvider mockTestProviderCreation(Callable<TestProvider> expectedCall) {
+        final var testProviderMock = mock(TestProvider.class);
+        // Required since Spotbugs complains about unused return value from method call
+        // with no side effects here
+        testProviderMockedStatic.when(expectedCall::call).thenReturn(testProviderMock);
+        return testProviderMock;
+    }
+
     @Test
     void create_withNullStepConstructor_throwsSaplTestException() {
         final var exception = assertThrows(SaplTestException.class, () -> TestProviderFactory.create(null));
@@ -53,8 +63,7 @@ class TestProviderFactoryTests {
     void create_usesGivenStepConstructor_returnsTestProvider() {
         final var stepConstructorMock = mock(StepConstructor.class);
 
-        final var testProviderMock = mock(TestProvider.class);
-        testProviderMockedStatic.when(() -> TestProvider.of(stepConstructorMock)).thenReturn(testProviderMock);
+        final var testProviderMock = mockTestProviderCreation(() -> TestProvider.of(stepConstructorMock));
 
         final var result = TestProviderFactory.create(stepConstructorMock);
 
@@ -63,9 +72,7 @@ class TestProviderFactoryTests {
 
     @Test
     void create_withUnitTestPolicyResolverAndIntegrationTestPolicyResolver_returnsTestProvider() {
-        final var testProviderMock = mock(TestProvider.class);
-        testProviderMockedStatic.when(() -> TestProvider.of(any(DefaultStepConstructor.class)))
-                .thenReturn(testProviderMock);
+        final var testProviderMock = mockTestProviderCreation(() -> TestProvider.of(any(DefaultStepConstructor.class)));
 
         final var unitTestPolicyResolver        = mock(UnitTestPolicyResolver.class);
         final var integrationTestPolicyResolver = mock(IntegrationTestPolicyResolver.class);

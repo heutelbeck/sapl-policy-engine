@@ -32,6 +32,8 @@ import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
 import io.sapl.test.grammar.sapltest.SAPLTest;
 import io.sapl.test.utils.DocumentHelper;
 import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -115,6 +117,15 @@ class BaseTestAdapterTests {
         };
     }
 
+    private TestContainer mockTestContainerCreation(final String identifier, final List<TestContainer> testContainers) {
+        final var testContainerMock = mock(TestContainer.class);
+        // Required since Spotbugs complains about unused return value from method call
+        // with no side effects here
+        final Callable<TestContainer> expectedCall = () -> TestContainer.from(identifier, testContainers);
+        testContainerMockedStatic.when(expectedCall::call).thenReturn(testContainerMock);
+        return testContainerMock;
+    }
+
     @Test
     void createTest_withNullFilename_throwsSaplTestException() {
         buildInstanceOfBaseTestAdapterWithDefaultConstructor();
@@ -172,8 +183,7 @@ class BaseTestAdapterTests {
         final var testContainers = Collections.<TestContainer>emptyList();
         when(testProviderMock.buildTests(saplTestMock)).thenReturn(testContainers);
 
-        final var testContainerMock = mock(TestContainer.class);
-        testContainerMockedStatic.when(() -> TestContainer.from("foo", testContainers)).thenReturn(testContainerMock);
+        final var testContainerMock = mockTestContainerCreation("foo", testContainers);
 
         final var result = baseTestAdapter.createTest("foo");
 
@@ -190,8 +200,7 @@ class BaseTestAdapterTests {
         final var testContainers = Collections.<TestContainer>emptyList();
         when(testProviderMock.buildTests(saplTestMock)).thenReturn(testContainers);
 
-        final var testContainerMock = mock(TestContainer.class);
-        testContainerMockedStatic.when(() -> TestContainer.from("foo", testContainers)).thenReturn(testContainerMock);
+        final var testContainerMock = mockTestContainerCreation("foo", testContainers);
 
         final var result = baseTestAdapter.createTest("foo", "input");
 
@@ -210,8 +219,7 @@ class BaseTestAdapterTests {
         final var testContainers = Collections.<TestContainer>emptyList();
         when(testProviderMock.buildTests(saplTestMock)).thenReturn(testContainers);
 
-        final var testContainerMock = mock(TestContainer.class);
-        testContainerMockedStatic.when(() -> TestContainer.from("foo", testContainers)).thenReturn(testContainerMock);
+        final var testContainerMock = mockTestContainerCreation("foo", testContainers);
 
         final var result = baseTestAdapter.createTest("foo");
 
@@ -228,8 +236,7 @@ class BaseTestAdapterTests {
         final var testContainers = Collections.<TestContainer>emptyList();
         when(testProviderMock.buildTests(saplTestMock)).thenReturn(testContainers);
 
-        final var testContainerMock = mock(TestContainer.class);
-        testContainerMockedStatic.when(() -> TestContainer.from("foo", testContainers)).thenReturn(testContainerMock);
+        final var testContainerMock = mockTestContainerCreation("foo", testContainers);
 
         final var result = baseTestAdapter.createTest("foo", "input");
 
@@ -246,8 +253,7 @@ class BaseTestAdapterTests {
         final var testContainers = Collections.<TestContainer>emptyList();
         when(testProviderMock.buildTests(saplTestMock)).thenReturn(testContainers);
 
-        final var testContainerMock = mock(TestContainer.class);
-        testContainerMockedStatic.when(() -> TestContainer.from("foo", testContainers)).thenReturn(testContainerMock);
+        final var testContainerMock = mockTestContainerCreation("foo", testContainers);
 
         final var result = baseTestAdapter.createTest("foo", "input");
 
