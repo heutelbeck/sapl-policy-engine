@@ -26,8 +26,14 @@ class MultipleInterpreter {
         int intValue;
 
         try {
-            intValue = multiple.getAmount().intValueExact();
-        } catch (Exception e) {
+            final var amount = multiple.getAmount();
+
+            if (amount == null) {
+                throw new SaplTestException("Amount is null");
+            }
+
+            intValue = amount.intValueExact();
+        } catch (ArithmeticException e) {
             throw new SaplTestException("Amount has invalid format", e);
         }
 

@@ -111,7 +111,7 @@ class DefaultTestFixtureConstructorTests {
         }
 
         @Test
-        void constructTestFixture_whenRegisterFunctionLibraryThrowsForSaplFunctionLibrary_throwsSaplTestException() throws InitializationException {
+        void constructTestFixture_whenRegisterFunctionLibraryThrowsForSaplFunctionLibrary_throwsInitializationException() throws InitializationException {
             when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(testFixtureMock);
 
             final var saplFunctionLibraryMock = mock(SaplFunctionLibrary.class);
@@ -123,9 +123,9 @@ class DefaultTestFixtureConstructorTests {
 
             final var fixtureRegistrations = List.<FixtureRegistration>of(saplFunctionLibraryMock);
 
-            final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor.constructTestFixture(fixtureRegistrations, testSuiteMock));
+            final var exception = assertThrows(InitializationException.class, () -> defaultTestFixtureConstructor.constructTestFixture(fixtureRegistrations, testSuiteMock));
 
-            assertEquals("failed to register library", exception.getCause().getMessage());
+            assertEquals("failed to register library", exception.getMessage());
         }
 
         @Test
@@ -145,7 +145,7 @@ class DefaultTestFixtureConstructorTests {
         }
 
         @Test
-        void constructTestFixture_whenRegisterFunctionLibraryThrowsForCustomFunctionLibrary_throwsSaplTestException() throws InitializationException {
+        void constructTestFixture_whenRegisterFunctionLibraryThrowsForCustomFunctionLibrary_throwsInitializationException() throws InitializationException {
             when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(testFixtureMock);
 
             final var customFunctionLibrary = mock(CustomFunctionLibrary.class);
@@ -158,9 +158,9 @@ class DefaultTestFixtureConstructorTests {
 
             final var fixtureRegistrations = List.<FixtureRegistration>of(customFunctionLibrary);
 
-            final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor.constructTestFixture(fixtureRegistrations, testSuiteMock));
+            final var exception = assertThrows(InitializationException.class, () -> defaultTestFixtureConstructor.constructTestFixture(fixtureRegistrations, testSuiteMock));
 
-            assertEquals("failed to register library", exception.getCause().getMessage());
+            assertEquals("failed to register library", exception.getMessage());
         }
 
         @Test
@@ -181,7 +181,7 @@ class DefaultTestFixtureConstructorTests {
         }
 
         @Test
-        void constructTestFixture_whenRegisterPIPThrows_throwsSaplTestException() throws InitializationException {
+        void constructTestFixture_whenRegisterPIPThrows_throwsInitializationException() throws InitializationException {
             when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(testFixtureMock);
 
             final var pip = mock(Pip.class);
@@ -194,9 +194,9 @@ class DefaultTestFixtureConstructorTests {
 
             final var fixtureRegistrations = List.<FixtureRegistration>of(pip);
 
-            final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor.constructTestFixture(fixtureRegistrations, testSuiteMock));
+            final var exception = assertThrows(InitializationException.class, () -> defaultTestFixtureConstructor.constructTestFixture(fixtureRegistrations, testSuiteMock));
 
-            assertEquals("failed to register PIP", exception.getCause().getMessage());
+            assertEquals("failed to register PIP", exception.getMessage());
         }
 
         @Test

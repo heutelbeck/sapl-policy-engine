@@ -18,7 +18,6 @@
 
 package io.sapl.test.dsl.interpreter;
 
-import io.sapl.interpreter.InitializationException;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.grammar.sapltest.CustomFunctionLibrary;
@@ -28,6 +27,7 @@ import io.sapl.test.grammar.sapltest.SaplFunctionLibrary;
 import io.sapl.test.grammar.sapltest.TestSuite;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 
 @RequiredArgsConstructor
 class DefaultTestFixtureConstructor {
@@ -51,26 +51,22 @@ class DefaultTestFixtureConstructor {
         return saplTestFixture;
     }
 
+    @SneakyThrows
     private void handleFixtureRegistrations(final SaplTestFixture fixture,
             final List<FixtureRegistration> fixtureRegistrations) {
-        try {
-            for (var fixtureRegistration : fixtureRegistrations) {
-                if (fixtureRegistration instanceof SaplFunctionLibrary saplFunctionLibrary) {
-                    final var library = functionLibraryInterpreter.getFunctionLibrary(saplFunctionLibrary.getLibrary());
-                    fixture.registerFunctionLibrary(library);
-                } else if (fixtureRegistration instanceof CustomFunctionLibrary customFunctionLibrary) {
-                    final var functionLibrary = reflectionHelper
-                            .constructInstanceOfClass(customFunctionLibrary.getFqn());
-                    fixture.registerFunctionLibrary(functionLibrary);
-                } else if (fixtureRegistration instanceof Pip pip) {
-                    final var customPip = reflectionHelper.constructInstanceOfClass(pip.getFqn());
-                    fixture.registerPIP(customPip);
-                } else {
-                    throw new SaplTestException("Unknown type of FixtureRegistration");
-                }
+        for (var fixtureRegistration : fixtureRegistrations) {
+            if (fixtureRegistration instanceof SaplFunctionLibrary saplFunctionLibrary) {
+                final var library = functionLibraryInterpreter.getFunctionLibrary(saplFunctionLibrary.getLibrary());
+                fixture.registerFunctionLibrary(library);
+            } else if (fixtureRegistration instanceof CustomFunctionLibrary customFunctionLibrary) {
+                final var functionLibrary = reflectionHelper.constructInstanceOfClass(customFunctionLibrary.getFqn());
+                fixture.registerFunctionLibrary(functionLibrary);
+            } else if (fixtureRegistration instanceof Pip pip) {
+                final var customPip = reflectionHelper.constructInstanceOfClass(pip.getFqn());
+                fixture.registerPIP(customPip);
+            } else {
+                throw new SaplTestException("Unknown type of FixtureRegistration");
             }
-        } catch (InitializationException e) {
-            throw new SaplTestException(e);
         }
     }
 }

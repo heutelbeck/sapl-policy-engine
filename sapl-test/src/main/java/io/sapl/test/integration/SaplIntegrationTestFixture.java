@@ -18,6 +18,7 @@
 package io.sapl.test.integration;
 
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -66,12 +67,12 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
         variablesAndCombinatorSourceSupplier = () -> this.constructPDPConfig(folderPath);
     }
 
-    public SaplIntegrationTestFixture(final String pdpConfigPath, final List<String> policyPaths) {
+    public SaplIntegrationTestFixture(final String pdpConfigPath, final Collection<String> policyPaths) {
         prpSupplier                          = () -> this.constructPRP(false, null, policyPaths);
         variablesAndCombinatorSourceSupplier = () -> this.constructPDPConfig(pdpConfigPath);
     }
 
-    public SaplIntegrationTestFixture(final List<String> documentStrings, final String pdpConfig) {
+    public SaplIntegrationTestFixture(final Collection<String> documentStrings, final String pdpConfig) {
         prpSupplier                          = () -> this.constructInputStringPRP(documentStrings);
         variablesAndCombinatorSourceSupplier = () -> this.constructInputStringPDPConfig(pdpConfig);
     }
@@ -111,7 +112,7 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
     }
 
     private PolicyRetrievalPoint constructPRP(final boolean usePolicyFolder, final String pathToPoliciesFolder,
-            final List<String> policyPaths) {
+            final Collection<String> policyPaths) {
         final var interpreter = getSaplInterpreter();
 
         if (usePolicyFolder) {
@@ -127,7 +128,7 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
         }
     }
 
-    private PolicyRetrievalPoint constructInputStringPRP(final List<String> documentStrings) {
+    private PolicyRetrievalPoint constructInputStringPRP(final Collection<String> documentStrings) {
         final var interpreter = getSaplInterpreter();
 
         if (documentStrings == null || documentStrings.size() < 2) {

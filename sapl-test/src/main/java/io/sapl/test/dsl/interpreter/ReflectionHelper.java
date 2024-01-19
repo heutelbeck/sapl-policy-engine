@@ -19,8 +19,10 @@
 package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestException;
+import lombok.SneakyThrows;
 
 class ReflectionHelper {
+    @SneakyThrows
     Object constructInstanceOfClass(final String className) {
         if (className == null || className.isEmpty()) {
             throw new SaplTestException("null or empty className");
@@ -30,9 +32,8 @@ class ReflectionHelper {
 
             final var constructor = clazz.getConstructor();
             return constructor.newInstance();
-
         } catch (Exception e) {
-            throw new SaplTestException("Could not construct instance of '%s'".formatted(className), e);
+            throw new ReflectiveOperationException("Could not construct instance of '%s'".formatted(className), e);
         }
     }
 }

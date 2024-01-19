@@ -51,18 +51,18 @@ class ReflectionHelperTests {
     }
 
     @Test
-    void constructInstanceOfClass_withFaultyClassName_throwsSaplTestException() {
-        final var exception = assertThrows(SaplTestException.class,
+    void constructInstanceOfClass_withFaultyClassName_throwsReflectiveOperationException() {
+        final var exception = assertThrows(ReflectiveOperationException.class,
                 () -> reflectionHelper.constructInstanceOfClass("io.foo.bar.shizzle.Class"));
 
         assertEquals("Could not construct instance of 'io.foo.bar.shizzle.Class'", exception.getMessage());
     }
 
     @Test
-    void constructInstanceOfClass_withClassNameWithoutPublicNoArgsConstructor_throwsSaplTestException() {
+    void constructInstanceOfClass_withClassNameWithoutPublicNoArgsConstructor_ReflectiveOperationException() {
         final var className = this.getClass().getName();
 
-        final var exception = assertThrows(SaplTestException.class,
+        final var exception = assertThrows(ReflectiveOperationException.class,
                 () -> reflectionHelper.constructInstanceOfClass(className));
 
         assertEquals("Could not construct instance of 'io.sapl.test.dsl.interpreter.ReflectionHelperTests'",

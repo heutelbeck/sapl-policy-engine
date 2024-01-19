@@ -66,7 +66,7 @@ class DurationInterpreterTests {
     void getJavaDurationFromDuration_parseThrowsException_throwsSaplTestException() {
         final var duration = buildDuration("\"\"");
 
-        durationMockedStatic.when(() -> Duration.parse("")).thenThrow(new RuntimeException("error"));
+        durationMockedStatic.when(() -> Duration.parse("")).thenThrow(new ArithmeticException("error"));
 
         final var exception = assertThrows(SaplTestException.class,
                 () -> durationInterpreter.getJavaDurationFromDuration(duration));

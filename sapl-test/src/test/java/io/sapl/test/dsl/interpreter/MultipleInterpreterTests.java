@@ -60,7 +60,7 @@ class MultipleInterpreterTests {
         final var exception = assertThrows(SaplTestException.class,
                 () -> multipleInterpreter.getAmountFromMultiple(multiple));
 
-        assertEquals("Amount has invalid format", exception.getMessage());
+        assertEquals("Amount is null", exception.getMessage());
     }
 
     @ParameterizedTest

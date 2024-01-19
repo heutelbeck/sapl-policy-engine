@@ -19,6 +19,7 @@
 package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestException;
+import java.time.DateTimeException;
 import java.time.Duration;
 
 class DurationInterpreter {
@@ -28,7 +29,7 @@ class DurationInterpreter {
         }
         try {
             return java.time.Duration.parse(duration.getDuration()).abs();
-        } catch (Exception e) {
+        } catch (DateTimeException | ArithmeticException e) {
             throw new SaplTestException("The provided Duration has an invalid format", e);
         }
     }
