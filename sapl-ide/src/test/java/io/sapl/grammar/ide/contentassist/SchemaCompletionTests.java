@@ -756,4 +756,26 @@ class SchemaCompletionTests extends CompletionTests {
         });
     }
 
+    @Test
+    void testCompletion_proposal_contains_space() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    subject schema {
+                    "properties":
+                        {
+                         "first name": {"type": "string"}}
+                        }
+                    policy "test" deny where subject
+                    """;
+            String cursor = "policy \"test\" deny where subject";
+            it.setModel(policy);
+            it.setLine(5);
+            it.setColumn(cursor.length());
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("subject.'first name'");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
+
 }

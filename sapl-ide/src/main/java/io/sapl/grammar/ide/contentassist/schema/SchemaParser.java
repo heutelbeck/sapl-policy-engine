@@ -57,6 +57,7 @@ public class SchemaParser {
         jsonPaths.removeIf(s -> s.startsWith("$defs"));
         jsonPaths.removeIf(String::isBlank);
         jsonPaths.removeIf(RESERVED_KEYWORDS::contains);
+        jsonPaths.replaceAll(this::encloseWithQuotationMarksIfContainsSpace);
         return jsonPaths;
     }
 
@@ -214,6 +215,13 @@ public class SchemaParser {
             refNode = getReferencedNodeFromDifferentDocument(childNode.textValue(), variables);
         }
         return refNode;
+    }
+
+    private String encloseWithQuotationMarksIfContainsSpace(String s) {
+        if (s.contains(" ")) {
+            return "'" + s + "'";
+        }
+        return s;
     }
 
 }

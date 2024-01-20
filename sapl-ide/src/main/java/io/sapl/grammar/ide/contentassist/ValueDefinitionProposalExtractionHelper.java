@@ -190,7 +190,7 @@ public class ValueDefinitionProposalExtractionHelper {
                 }
             }
         }
-        if (tokens.size() == 0 || !"<".equals(tokens.get(0))) {
+        if (tokens.isEmpty() || !"<".equals(tokens.get(0))) {
             addTokensUntilDelimiter(rootNode, tokens, currentNode);
         }
         return getNewPrefix(tokens);
@@ -225,10 +225,9 @@ public class ValueDefinitionProposalExtractionHelper {
         var   currentNode    = NodeModelUtils.findLeafNodeAtOffset(rootNode, offset);
         var   lastNode       = NodeModelUtils.findLeafNodeAtOffset(rootNode, offset - 1);
         var   lengthLastNode = lastNode.getLength();
-        // Fall: Endet nicht auf "." oder "<"
         if (!".".equals(lastNode.getText()) && !"<".equals(lastNode.getText())) {
             offsetOfPrevNode = offset - 1;
-        } else if (currentNode != null && currentNode.getText().isBlank() && lastNode.getText() != ".") {
+        } else if (currentNode != null && !".".equals(lastNode.getText())) {
             offsetOfPrevNode = offset - lengthLastNode - 1;
         } else
             offsetOfPrevNode = offset - 1;
