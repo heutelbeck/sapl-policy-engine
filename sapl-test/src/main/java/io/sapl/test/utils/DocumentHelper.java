@@ -21,6 +21,7 @@ import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.SAPLInterpreter;
 import java.io.IOException;
 import java.nio.file.Files;
+import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 import reactor.core.Exceptions;
 
@@ -52,12 +53,10 @@ public class DocumentHelper {
         }
     }
 
+    @SneakyThrows
     public static String findFileOnClasspath(final String filename) {
         final var path = ClasspathHelper.findPathOnClasspath(DocumentHelper.class.getClassLoader(), filename);
-        try {
-            return Files.readString(path);
-        } catch (IOException e) {
-            throw Exceptions.propagate(e);
-        }
+
+        return Files.readString(path);
     }
 }

@@ -19,7 +19,7 @@
 package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.integration.SaplIntegrationTestFixture;
-import java.util.List;
+import java.util.Collection;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -28,11 +28,11 @@ class SaplIntegrationTestFixtureFactory {
         return new SaplIntegrationTestFixture(folderPath);
     }
 
-    public static SaplIntegrationTestFixture create(final String pdpConfigPath, final List<String> policyPaths) {
+    public static SaplIntegrationTestFixture create(final String pdpConfigPath, final Collection<String> policyPaths) {
         return new SaplIntegrationTestFixture(pdpConfigPath, policyPaths);
     }
 
-    public static SaplIntegrationTestFixture createFromInputStrings(final List<String> documentInputStrings,
+    public static SaplIntegrationTestFixture createFromInputStrings(final Collection<String> documentInputStrings,
             final String pdpConfigInputString) {
         return new SaplIntegrationTestFixture(documentInputStrings, pdpConfigInputString);
     }

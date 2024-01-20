@@ -102,13 +102,11 @@ class DocumentHelperTests {
                 .thenReturn(pathMock);
         filesMockedStatic.when(() -> Files.readString(pathMock)).thenThrow(new IOException("where is my filesystem?"));
 
-        final var exception = assertThrows(RuntimeException.class,
+        final var exception = assertThrows(IOException.class,
                 () -> DocumentHelper.readSaplDocument("file.sapl", saplInterpreterMock));
 
-        final var cause = exception.getCause();
-
-        assertInstanceOf(IOException.class, cause);
-        assertEquals("where is my filesystem?", cause.getMessage());
+        assertInstanceOf(IOException.class, exception);
+        assertEquals("where is my filesystem?", exception.getMessage());
     }
 
     @Test
