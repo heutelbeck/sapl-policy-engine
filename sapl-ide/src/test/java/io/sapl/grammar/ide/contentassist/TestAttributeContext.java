@@ -92,20 +92,20 @@ class TestAttributeContext implements AttributeContext {
 
     @Override
     public List<String> getAttributeCodeTemplates() {
-        return List.of("clock.now>", "clock.millis>", "clock.ticker>", "temperature.now()>",
-                "temperature.mean(a1, a2)>", "temperature.predicted(a2)>");
+        return List.of("clock.now>", "clock.millis>", "clock.ticker>", "temperature.now>", "temperature.mean(a1, a2)>",
+                "temperature.predicted(a2)>");
     }
 
     @Override
     public List<String> getEnvironmentAttributeCodeTemplates() {
-        return List.of("clock.now>", "clock.millis>", "clock.ticker>", "temperature.now()>",
-                "temperature.mean(a1, a2)>", "temperature.predicted(a2)>");
+        return List.of("clock.now>", "clock.millis>", "clock.ticker>", "temperature.now>", "temperature.mean(a1, a2)>",
+                "temperature.predicted(a2)>");
     }
 
     @Override
     public Collection<String> getAllFullyQualifiedFunctions() {
-        return List.of("clock.now>", "clock.millis>", "clock.ticker>", "temperature.now()>",
-                "temperature.mean(a1, a2)>", "temperature.predicted(a2)>");
+        return List.of("clock.now>", "clock.millis>", "clock.ticker>", "temperature.now>", "temperature.mean(a1, a2)>",
+                "temperature.predicted(a2)>");
     }
 
     @Override

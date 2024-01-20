@@ -33,8 +33,8 @@ class IdeStepCompletionTests extends CompletionTests {
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
                 var expected = List.of("<clock.millis>", "<clock.now>", "<clock.ticker>", "<temperature.mean(a1, a2)>",
-                        "<temperature.mean(a1, a2)>.period", "<temperature.mean(a1, a2)>.value", "<temperature.now()>",
-                        "<temperature.now()>.unit", "<temperature.now()>.value", "<temperature.predicted(a2)>");
+                        "<temperature.mean(a1, a2)>.period", "<temperature.mean(a1, a2)>.value", "<temperature.now>",
+                        "<temperature.now>.unit", "<temperature.now>.value", "<temperature.predicted(a2)>");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -74,8 +74,8 @@ class IdeStepCompletionTests extends CompletionTests {
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
                 var expected = List.of("<clock.millis>", "<clock.now>", "<clock.ticker>", "<temperature.mean(a1, a2)>",
-                        "<temperature.mean(a1, a2)>.period", "<temperature.mean(a1, a2)>.value", "<temperature.now()>",
-                        "<temperature.now()>.unit", "<temperature.now()>.value", "<temperature.predicted(a2)>");
+                        "<temperature.mean(a1, a2)>.period", "<temperature.mean(a1, a2)>.value", "<temperature.now>",
+                        "<temperature.now>.unit", "<temperature.now>.value", "<temperature.predicted(a2)>");
                 assertProposalsSimple(expected, completionList);
             });
         });

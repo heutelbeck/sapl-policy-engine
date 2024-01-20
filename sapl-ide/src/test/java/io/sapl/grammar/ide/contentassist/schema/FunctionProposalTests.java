@@ -111,6 +111,53 @@ class FunctionProposalTests extends CompletionTests {
     }
 
     @Test
+    void testCompletion_PolicyBody_two_variables_assigned_function_with_alias_import() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    import schemaTest as test
+                    policy "test" deny where var foo = test.dog();
+                    var bar = test.dog();
+                    ba""";
+
+            String cursor = "ba";
+            it.setModel(policy);
+            it.setLine(3);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("bar.race");
+                assertProposalsSimple(expected, completionList);
+                var unwanted = List.of("bar.name");
+                assertDoesNotContainProposals(unwanted, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_PolicyBody_two_variables_assigned_function_with_alias_import_and_trailing_dot() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    import schemaTest as test
+                    policy "test" deny where var foo = test.dog();
+                    foo.""";
+
+            String cursor = "foo.";
+            it.setModel(policy);
+            it.setLine(2);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("foo.race");
+                assertProposalsSimple(expected, completionList);
+                var unwanted = List.of("foo.name", "filter.blacken");
+                assertDoesNotContainProposals(unwanted, completionList);
+            });
+        });
+    }
+
+    @Test
     void testCompletion_PolicyBody_function() {
 
         testCompletion((TestCompletionConfiguration it) -> {

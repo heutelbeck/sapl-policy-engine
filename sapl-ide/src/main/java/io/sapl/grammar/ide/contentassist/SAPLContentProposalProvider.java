@@ -192,6 +192,14 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         EObject model = context.getCurrentModel();
 
         if ("idsteps".equals(feature)) {
+            var helper             = new ValueDefinitionProposalExtractionHelper(variablesAndCombinatorSource,
+                    functionContext, attributeContext, context);
+            var attributeProposals = helper.getAttributeProposals();
+
+            var templates = new ArrayList<String>();
+            templates.addAll(attributeContext.getAttributeCodeTemplates());
+            templates.addAll(attributeProposals);
+            addProposalsWithImportsForTemplates(templates, context, acceptor);
             addProposalsForAttributeStepsIfPresent(context, acceptor);
             return;
         }
@@ -214,7 +222,6 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         }
 
         if ("value".equals(feature)) {
-
             var helper        = new ValueDefinitionProposalExtractionHelper(variablesAndCombinatorSource,
                     functionContext, attributeContext, context);
             var definedValues = helper.getProposals(model, ValueDefinitionProposalExtractionHelper.ProposalType.VALUE);
@@ -223,6 +230,20 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             // add authorization subscriptions proposals
             addSimpleProposals(authzSubProposals, context, acceptor);
         }
+
+        if ("steps".equals(feature)) {
+            var helper             = new ValueDefinitionProposalExtractionHelper(variablesAndCombinatorSource,
+                    functionContext, attributeContext, context);
+            var attributeProposals = helper.getAttributeProposals();
+
+            var templates = new ArrayList<String>();
+            templates.addAll(attributeContext.getAttributeCodeTemplates());
+            templates.addAll(attributeProposals);
+
+            addProposalsWithImportsForTemplates(templates, context, acceptor);
+            addProposalsForAttributeStepsIfPresent(context, acceptor);
+        }
+
     }
 
     private void addDocumentationToImportProposals(Collection<String> proposals, ContentAssistContext context,
@@ -264,7 +285,14 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         var helper = new ValueDefinitionProposalExtractionHelper(variablesAndCombinatorSource, functionContext,
                 attributeContext, context);
         var offset = context.getOffset();
-        return helper.getContextWithFullPrefix(offset);
+        return helper.getContextWithFullPrefix(offset, false);
+    }
+
+    private ContentAssistContext getContextWithCorrectedPrefixForAttribute(ContentAssistContext context) {
+        var helper = new ValueDefinitionProposalExtractionHelper(variablesAndCombinatorSource, functionContext,
+                attributeContext, context);
+        var offset = context.getOffset();
+        return helper.getContextWithFullPrefix(offset, true);
     }
 
     private Collection<String> getValidSchemas(ContentAssistContext context, EObject model) {
@@ -323,9 +351,6 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             if (template.startsWith(prefix))
                 addSimpleProposals(List.of(libImport.getLibAlias() + '.' + template.substring(prefix.length())),
                         context, acceptor);
-            else if (template.startsWith(shortPrefix)) // renaming of function
-                addSimpleProposals(List.of(libImport.getLibAlias() + template.substring(shortPrefix.length())), context,
-                        acceptor);
     }
 
     private String importPrefixFromSteps(EList<String> steps) {
@@ -335,7 +360,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     private void addProposalsForAttributeStepsIfPresent(ContentAssistContext context,
             IIdeContentProposalAcceptor acceptor) {
         var definedSchemas = getValidSchemas(context, context.getCurrentModel());
-        addSimpleProposals(definedSchemas, context, acceptor);
+        addSimpleProposalsForAttribute(definedSchemas, context, acceptor);
 
         var proposals = new LinkedList<>(attributeContext.getAttributeCodeTemplates());
         proposals.addAll(attributeContext.getEnvironmentAttributeCodeTemplates());
@@ -345,7 +370,6 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         var attributeProposals = helper.getAttributeProposals();
         attributeProposals.addAll(proposals);
         addSimpleProposalsForAttribute(attributeProposals, context, acceptor);
-        addSimpleProposalsForAttribute(proposals, context, acceptor);
     }
 
     private void handlePolicyProposals(String feature, ContentAssistContext context,
@@ -373,16 +397,20 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private void addSimpleProposals(final Collection<String> proposals, final ContentAssistContext context,
             final IIdeContentProposalAcceptor acceptor) {
-        var fixedContext = getContextWithCorrectedPrefix(context);
-        for (var proposal : proposals)
-            addSimpleProposal(proposal, fixedContext, acceptor);
+        var contextWithCorrectedPrefix = getContextWithCorrectedPrefix(context);
+        for (var proposal : proposals) {
+            if (proposal.contains(">"))
+                addSimpleProposalsForAttribute(List.of(proposal), context, acceptor);
+            else
+                addSimpleProposal(proposal, contextWithCorrectedPrefix, acceptor);
+        }
     }
 
     private void addSimpleProposalsForAttribute(final Collection<String> proposals, final ContentAssistContext context,
             final IIdeContentProposalAcceptor acceptor) {
+        var contextWithCorrectedPrefix = getContextWithCorrectedPrefixForAttribute(context);
         for (var proposal : proposals) {
-            proposal = "<".concat(proposal);
-            addSimpleProposal(proposal, context, acceptor);
+            addSimpleProposal("<".concat(proposal), contextWithCorrectedPrefix, acceptor);
         }
     }
 

@@ -55,6 +55,7 @@ public class SchemaParser {
 
         var jsonPaths = getJsonPaths(schemaNode, "", schemaNode, 0);
         jsonPaths.removeIf(s -> s.startsWith("$defs"));
+        jsonPaths.removeIf(s -> s.isBlank());
         jsonPaths.removeIf(RESERVED_KEYWORDS::contains);
         return jsonPaths;
     }

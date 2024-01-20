@@ -207,6 +207,26 @@ class SchemaCompletionTests extends CompletionTests {
     }
 
     @Test
+    void testCompletion_PolicyBody_getNestedSchemaFromEnvironmentVariable2() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    policy "test" permit where
+                    var foo = "test" schema schema_with_additional_keywords;
+                    foo
+                    var foobar = 1;""";
+            String cursor = "foo";
+            it.setModel(policy);
+            it.setLine(2);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("foo.subject.age", "foo.subject.name", "foo.subject.name.firstname");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
+
+    @Test
     void testCompletion_PolicyBody_SchemaNotInEnvironmentVariable() {
         testCompletion((TestCompletionConfiguration it) -> {
             String policy = "policy \"test\" permit where var foo = \"test\" schema non_existent_schema; foo";
@@ -405,6 +425,21 @@ class SchemaCompletionTests extends CompletionTests {
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
                 var expected = List.of("subject.name", "subject.name.firstname");
+                assertProposalsSimple(expected, completionList);
+                var unwanted = List.of("var", "filter.blacken");
+                assertDoesNotContainProposals(unwanted, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_SuggestSchemaFromPDPScopedVariable_for_AuthzElement_with_incomplete_id_step() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "subject schema general_schema policy \"test\" permit where subject.a";
+            it.setModel(policy);
+            it.setColumn(policy.length());
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("subject.age");
                 assertProposalsSimple(expected, completionList);
                 var unwanted = List.of("var", "filter.blacken");
                 assertDoesNotContainProposals(unwanted, completionList);

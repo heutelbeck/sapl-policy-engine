@@ -28,6 +28,8 @@ import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import lombok.RequiredArgsConstructor;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
+import org.eclipse.xtext.nodemodel.ICompositeNode;
+import org.eclipse.xtext.nodemodel.ILeafNode;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 
@@ -58,93 +60,42 @@ public class ValueDefinitionProposalExtractionHelper {
         return getBodyProposals(proposalType, currentOffset, policyBody, model);
     }
 
-    public ContentAssistContext getContextWithFullPrefix(int offset) {
+    public ContentAssistContext getContextWithFullPrefix(int offset, boolean forAttribute) {
 
-        var model            = context.getCurrentModel();
-        // Policy Body does not exist
+        var model = context.getCurrentModel();
         if (getPolicyBody(model) == null)
             return context;
 
         List<String> tokens = new LinkedList<>();
-        if (!context.getPrefix().isBlank())
-            tokens.add(context.getPrefix());
+        addOldPrefixToTokens(context.getPrefix(), tokens);
 
         var rootNode = context.getRootNode();
-
-        // Cursor is at the start of a token. Previous character is blank.
-        if (NodeModelUtils.findLeafNodeAtOffset(rootNode, offset-1).getText().isBlank() ||
-        ";".equals(NodeModelUtils.findLeafNodeAtOffset(rootNode, offset-1).getText()))
+        if (shouldReturnOriginalContext(offset))
             return context;
 
-        var currentNode = NodeModelUtils.findLeafNodeAtOffset(rootNode, offset);
+        int indexOfCurrentNode = findIndexOfCurrentNode(rootNode, offset);
+        var currentNode        = NodeModelUtils.findLeafNodeAtOffset(rootNode, indexOfCurrentNode);
+        var previousNode       = NodeModelUtils.findLeafNodeAtOffset(rootNode, indexOfCurrentNode - 1);
 
-        int i = offset;
-        while (currentNode == null) {
-            i--;
-            currentNode = NodeModelUtils.findLeafNodeAtOffset(rootNode, i);
-        }
-
-        // Last character before the cursor was blank
-        if (currentNode.getText().isBlank())
+        if (lastCharacterBeforeCursorIsBlank(previousNode))
             return context;
 
-        // The last node before the cursor is the first node of the policy
-        if (NodeModelUtils.findLeafNodeAtOffset(rootNode, i - currentNode.getTotalLength()).getText().isBlank()){
-            return context.copy().setPrefix(currentNode.getText()).toContext();
+        if (isNodeBeforeCursorFirstNode(rootNode, indexOfCurrentNode, currentNode)) {
+            String newPrefix = getNewPrefix(currentNode.getText());
+            return context.copy().setPrefix(newPrefix).toContext();
         }
 
+        String newPrefix;
 
-        String tokenText;
-        int offsetOfLastSibling;
-        var leafNode = currentNode;
-        String lastChar;
-
-        do {
-            offsetOfLastSibling = leafNode.getOffset()-leafNode.getLength();
-            leafNode = NodeModelUtils.findLeafNodeAtOffset(rootNode, offsetOfLastSibling);
-            tokenText = NodeModelUtils.getTokenText(leafNode);
-            tokens.add(tokenText);
-            lastChar = NodeModelUtils.findLeafNodeAtOffset(rootNode, leafNode.getTotalOffset()-1).getText();
-
-        } while (!lastChar.isBlank());
-
-
-        var sb = new StringBuilder(tokens.size());
-        for (int i2 = tokens.size()-1; i2 >= 0; i2--) {
-            sb.append(tokens.get(i2));
-            sb.append(".");
+        if (forAttribute) {
+            newPrefix = computeNewPrefix(rootNode, currentNode, tokens);
+        } else {
+            addTokensUntilDelimiter(rootNode, tokens, currentNode);
+            newPrefix = getNewPrefix(tokens);
         }
-        sb.delete(sb.lastIndexOf("."), sb.lastIndexOf(".")+1);
-        return context.copy().setPrefix(sb.toString()).toContext();
-    }
+        newPrefix = newPrefix.trim();
 
-    private EObject getPolicyBodyModel(EObject model) {
-        if (!(model instanceof PolicyBody)) {
-            model = TreeNavigationHelper.goToFirstParent(model, PolicyBody.class);
-        }
-        return model;
-    }
-
-    public List<String> getAttributeProposals() {
-        List<String> proposals       = new LinkedList<>();
-        List<String> allTemplates    = new LinkedList<>();
-        var          schemaProposals = new SchemaProposals(variablesAndCombinatorSource);
-        var          allSchemas      = attributeContext.getAttributeSchemas();
-
-        for (var entry : allSchemas.entrySet()) {
-            var paths = schemaProposals.schemaTemplatesForAttributes(entry.getValue());
-            for (var path : paths) {
-                if (!"".equals(path)) {
-                    var fun = entry.getKey();
-                    allTemplates.addAll(attributeContext.getAttributeCodeTemplates());
-                    allTemplates.addAll(attributeContext.getEnvironmentAttributeCodeTemplates());
-                    String fullFunctionName = getFullFunctionName(fun, allTemplates);
-                    var    proposal         = String.join(".", fullFunctionName, path);
-                    proposals.add(proposal);
-                }
-            }
-        }
-        return proposals;
+        return context.copy().setPrefix(newPrefix).toContext();
     }
 
     public List<String> getFunctionProposals() {
@@ -162,40 +113,37 @@ public class ValueDefinitionProposalExtractionHelper {
         for (var entry : allSchemas.entrySet()) {
             var paths = schemaProposals.schemaTemplatesForFunctions(entry.getValue());
             for (var path : paths) {
-                if (!"".equals(path)) {
-                    var    fun              = entry.getKey();
-                    var    allTemplates     = functionContext.getCodeTemplates();
-                    String fullFunctionName = getFullFunctionName(fun, allTemplates);
-                    if (!fullFunctionName.isBlank()) {
-                        var proposal = String.join(".", fullFunctionName, path);
-                        proposals.add(proposal);
-                    }
+                var    fun              = entry.getKey();
+                var    allTemplates     = functionContext.getCodeTemplates();
+                String fullFunctionName = getFullFunctionName(fun, allTemplates);
+                if (!fullFunctionName.isBlank()) {
+                    var proposal = String.join(".", fullFunctionName, path);
+                    proposals.add(proposal);
                 }
             }
         }
         return proposals;
     }
 
-    private static String fetchSchemaFromPath(String path) {
-        String schema;
-        Path   file = Paths.get(path);
-        try {
-            schema = Files.readString(file);
-        } catch (IOException e) {
-            return "";
-        }
-        return schema;
-    }
+    public List<String> getAttributeProposals() {
+        List<String> proposals       = new LinkedList<>();
+        List<String> allTemplates    = new LinkedList<>();
+        var          schemaProposals = new SchemaProposals(variablesAndCombinatorSource);
+        var          allSchemas      = attributeContext.getAttributeSchemas();
 
-    private String getFullFunctionName(String fun, Iterable<String> allTemplates) {
-        String fullFunctionName = "";
-        for (var template : allTemplates) {
-            if (template.startsWith(fun)) {
-                fullFunctionName = template;
-                break;
+        allTemplates.addAll(attributeContext.getAttributeCodeTemplates());
+        allTemplates.addAll(attributeContext.getEnvironmentAttributeCodeTemplates());
+
+        for (var entry : allSchemas.entrySet()) {
+            var paths = schemaProposals.schemaTemplatesForAttributes(entry.getValue());
+            for (var path : paths) {
+                var fun              = entry.getKey();
+                var fullFunctionName = getFullFunctionName(fun, allTemplates);
+                var proposal         = String.join(".", fullFunctionName, path);
+                proposals.add(proposal);
             }
         }
-        return fullFunctionName;
+        return proposals;
     }
 
     private static Collection<String> constructProposals(String elementName, Iterable<String> templates) {
@@ -203,8 +151,6 @@ public class ValueDefinitionProposalExtractionHelper {
         if (Iterables.isEmpty(templates))
             return proposals;
         for (var template : templates) {
-            if (template.isBlank())
-                continue;
             String proposal;
             if (!template.startsWith("."))
                 proposal = elementName.concat(".").concat(template);
@@ -227,6 +173,133 @@ public class ValueDefinitionProposalExtractionHelper {
         } else {
             return TreeNavigationHelper.goToLastParent(model, PolicyBody.class);
         }
+    }
+
+    private String computeNewPrefix(INode rootNode, INode currentNode, List<String> tokens) {
+        String currentNodeText = currentNode.getText();
+        if (!context.getPrefix().equals(currentNodeText)) {
+            if ("|<".equals(currentNodeText)) {
+                tokens.add("<");
+            } else {
+                var req2 = (">").equals(currentNodeText);
+                if (!currentNodeText.isBlank() && !req2) {
+                    tokens.add(currentNodeText);
+                } else {
+                    var prevNodeOffset = currentNode.getEndOffset() - currentNode.getTotalLength();
+                    currentNode = NodeModelUtils.findLeafNodeAtOffset(rootNode, prevNodeOffset - 1);
+                }
+            }
+        }
+        if (tokens.size() == 0 || !"<".equals(tokens.get(0))) {
+            addTokensUntilDelimiter(rootNode, tokens, currentNode);
+        }
+        return getNewPrefix(tokens);
+    }
+
+    private void addOldPrefixToTokens(String oldPrefix, List<String> tokens) {
+        if (!oldPrefix.isBlank()) {
+            tokens.add(context.getPrefix());
+        }
+    }
+
+    private String getNewPrefix(String text) {
+        var newPrefix = text;
+        if (newPrefix.startsWith("|<")) {
+            newPrefix = newPrefix.replaceFirst("\\|<", "<");
+        }
+        return newPrefix;
+    }
+
+    private String getNewPrefix(List<String> tokens) {
+        var sb = new StringBuilder(tokens.size());
+        for (int j = tokens.size() - 1; j >= 0; j--) {
+            sb.append(tokens.get(j));
+        }
+        return getNewPrefix(sb.toString());
+    }
+
+    private boolean shouldReturnOriginalContext(int offset) {
+        INode prevNode;
+        int   offsetOfPrevNode;
+        var   rootNode       = context.getRootNode();
+        var   currentNode    = NodeModelUtils.findLeafNodeAtOffset(rootNode, offset);
+        var   lastNode       = NodeModelUtils.findLeafNodeAtOffset(rootNode, offset - 1);
+        var   lengthLastNode = lastNode.getLength();
+        // Fall: Endet nicht auf "." oder "<"
+        if (!".".equals(lastNode.getText()) && !"<".equals(lastNode.getText())) {
+            offsetOfPrevNode = offset - 1;
+        } else if (currentNode != null && currentNode.getText().isBlank() && lastNode.getText() != ".") {
+            offsetOfPrevNode = offset - lengthLastNode - 1;
+        } else
+            offsetOfPrevNode = offset - 1;
+        prevNode = NodeModelUtils.findLeafNodeAtOffset(context.getRootNode(), offsetOfPrevNode);
+        return prevNode.getText().isBlank() || ";".equals(prevNode.getText());
+    }
+
+    private boolean lastCharacterBeforeCursorIsBlank(INode currentNode) {
+        return currentNode.getText().isBlank();
+    }
+
+    private int findIndexOfCurrentNode(INode rootNode, int offset) {
+        int   i           = offset;
+        INode currentNode = NodeModelUtils.findLeafNodeAtOffset(rootNode, offset);
+
+        while (currentNode == null) {
+            i--;
+            currentNode = NodeModelUtils.findLeafNodeAtOffset(rootNode, i);
+        }
+
+        return i;
+    }
+
+    private void addTokensUntilDelimiter(INode rootNode, List<String> tokens, INode leafNode) {
+        String tokenText;
+        String lastChar;
+        var    currentNode = leafNode;
+        currentNode = NodeModelUtils.findLeafNodeAtOffset(rootNode, currentNode.getEndOffset() - 1);
+        tokenText   = NodeModelUtils.getTokenText(currentNode);
+        var req1 = currentNode.getEndOffset() == context.getOffset();
+        var req2 = context.getPrefix().equals(tokenText);
+        if (!tokenText.isBlank() && !(req1 && req2))
+            tokens.add(tokenText);
+        do {
+            currentNode = NodeModelUtils.findLeafNodeAtOffset(rootNode,
+                    currentNode.getEndOffset() - currentNode.getLength() - 1);
+            tokenText   = NodeModelUtils.getTokenText(currentNode);
+            if (!tokenText.isBlank() && currentNode.getEndOffset() != this.context.getOffset())
+                tokens.add(tokenText);
+            else
+                break;
+            lastChar = NodeModelUtils.findLeafNodeAtOffset(rootNode, currentNode.getTotalOffset() - 1).getText();
+        } while (!lastChar.isBlank() && !"<".equals(tokenText) && !"|<".equals(tokenText));
+    }
+
+    private boolean isNodeBeforeCursorFirstNode(ICompositeNode rootNode, int indexOfCurrentNode,
+            ILeafNode currentNode) {
+        return NodeModelUtils.findLeafNodeAtOffset(rootNode, indexOfCurrentNode - currentNode.getTotalLength())
+                .getText().isBlank();
+    }
+
+    private String getFullFunctionName(String fun, Iterable<String> allTemplates) {
+        String fullFunctionName = "";
+        for (var template : allTemplates) {
+            if (template.startsWith(fun)) {
+                fullFunctionName = template;
+                break;
+            }
+        }
+        return fullFunctionName;
+    }
+
+    private static String fetchSchemaFromPath(String path) {
+        String schema;
+        Path   file = Paths.get(path);
+        try {
+            schema = Files.readString(file);
+        } catch (IOException e) {
+            return "";
+        }
+        return schema;
     }
 
     private Collection<String> getPreambleSchemaProposals() {
@@ -271,18 +344,24 @@ public class ValueDefinitionProposalExtractionHelper {
 
             List<String> currentProposals;
             if (proposalType == ProposalType.SCHEMA)
-                currentProposals = getSchemaFromStatement(currentOffset, valueDefStatement, model);
+                currentProposals = getSchemaFromValueDefinitionStatement(currentOffset, valueDefStatement, model);
             else
                 currentProposals = getValueFromStatement(currentOffset, valueDefStatement);
 
             proposals.addAll(currentProposals);
+        } else {
+            List<String> currentProposals;
+            if (proposalType == ProposalType.SCHEMA) {
+                currentProposals = getSchemaFromConditionStatement(currentOffset, model);
+                proposals.addAll(currentProposals);
+            }
         }
         return proposals;
     }
 
     private List<String> getValueFromStatement(int currentOffset, ValueDefinition statement) {
         List<String> valueList             = new ArrayList<>();
-        int          valueDefinitionOffset = getValueDefinitionOffset(statement);
+        var          valueDefinitionOffset = getValueDefinitionOffset(statement);
 
         if (currentOffset > valueDefinitionOffset) {
             String valueDefinitionName = statement.getName();
@@ -291,30 +370,64 @@ public class ValueDefinitionProposalExtractionHelper {
         return valueList;
     }
 
-    private List<String> getSchemaFromStatement(int currentOffset, ValueDefinition statement, EObject model) {
+    private List<String> getSchemaFromValueDefinitionStatement(int currentOffset, ValueDefinition statement,
+            EObject model) {
+        var valueDefinitionOffset = getValueDefinitionOffset(statement);
+        if (currentOffset <= valueDefinitionOffset)
+            return new LinkedList<>();
+
         List<String> proposalTemplates;
-        List<String> allTemplates          = new LinkedList<>();
-        int          valueDefinitionOffset = getValueDefinitionOffset(statement);
-
-        var schemaVarExpression = statement.getSchemaVarExpression();
-
-        // try to move up to the policy body
-        var policyBody = (PolicyBody) getPolicyBodyModel(model);
+        List<String> allTemplates        = new LinkedList<>();
+        var          schemaVarExpression = statement.getSchemaVarExpression();
+        var          policyBody          = getPolicyBody(model);
 
         for (var aStatement : policyBody.getStatements()) {
-            // add any encountered valuable to the list of proposals
-            if (currentOffset > valueDefinitionOffset && aStatement instanceof ValueDefinition valueDefinition) {
-                allTemplates.addAll(getAllSchemaTemplates(valueDefinition));
+            var statementOffset = getValueDefinitionOffset(aStatement);
+            if (currentOffset > statementOffset && aStatement instanceof ValueDefinition valueDefinition) {
+                var aStatementName     = valueDefinition.getName();
+                var allSchemaTemplates = getAllSchemaTemplates(valueDefinition);
+                var proposals          = constructProposals(aStatementName, allSchemaTemplates);
+                allTemplates.addAll(proposals);
             }
         }
         proposalTemplates = getProposalTemplates(statement, schemaVarExpression);
-
-        var valueDefinitionName = statement.getName();
-        var functionTemplates   = constructProposals(valueDefinitionName, allTemplates);
-        proposalTemplates.addAll(functionTemplates);
         proposalTemplates.addAll(allTemplates);
 
         return proposalTemplates;
+    }
+
+    private List<String> getSchemaFromConditionStatement(int currentOffset, EObject model) {
+
+        List<String> allTemplates = new LinkedList<>();
+        var          policyBody   = getPolicyBody(model);
+
+        for (var aStatement : policyBody.getStatements()) {
+            var statementOffset = getValueDefinitionOffset(aStatement);
+            if (currentOffset > statementOffset && aStatement instanceof ValueDefinition valueDefinition) {
+                var aStatementName     = valueDefinition.getName();
+                var allSchemaTemplates = getAllSchemaTemplates(valueDefinition);
+                var proposals          = constructProposals(aStatementName, allSchemaTemplates);
+                allTemplates.addAll(proposals);
+            } else if (currentOffset > statementOffset && ((Condition) aStatement)
+                    .getExpression() instanceof BasicEnvironmentAttribute basicEnvironmentAttribute) {
+                var stepsString        = combineKeystepsFromBasicEnvironmentAttribute(basicEnvironmentAttribute);
+                var allSchemaTemplates = getAttributeSchemaTemplates(stepsString);
+                var sb                 = new StringBuilder();
+                sb.append("<");
+                for (int i = 0; i < stepsString.size(); i++) {
+                    String step = stepsString.get(i);
+                    sb.append(step);
+                    if (i < stepsString.size() - 1)
+                        sb.append(".");
+                    else
+                        sb.append(">");
+                }
+                var elementName = sb.toString();
+                var proposals   = constructProposals(elementName, allSchemaTemplates);
+                allTemplates.addAll(proposals);
+            }
+        }
+        return allTemplates;
     }
 
     private List<String> getAllSchemaTemplates(ValueDefinition valueDefinition) {
@@ -332,11 +445,14 @@ public class ValueDefinitionProposalExtractionHelper {
             // Proposals for a function name
             String       identifier;
             List<String> stepsString;
-            if (!basicFunction.getFsteps().isEmpty()) {
-                identifier              = basicFunction.getFsteps().get(0);
-                stepsString             = combineFstepsFromBasicFunction(basicFunction);
-                functionSchemaTemplates = getFunctionSchemaTemplates(stepsString, identifier);
-            }
+            identifier              = basicFunction.getFsteps().get(0);
+            stepsString             = combineFstepsFromBasicFunction(basicFunction);
+            functionSchemaTemplates = getFunctionSchemaTemplates(stepsString, identifier);
+
+        } else if (valueDefinition.getEval() instanceof BasicEnvironmentAttribute basicEnvironmentAttribute) {
+            var stepsString = combineKeystepsFromBasicEnvironmentAttribute(basicEnvironmentAttribute);
+            attributeSchemaTemplates = getAttributeSchemaTemplates(stepsString);
+
         }
         allTemplates.addAll(functionSchemaTemplates);
         allTemplates.addAll(attributeSchemaTemplates);
@@ -395,11 +511,17 @@ public class ValueDefinitionProposalExtractionHelper {
         return stepsString;
     }
 
+    private List<String> combineKeystepsFromBasicEnvironmentAttribute(
+            BasicEnvironmentAttribute basicEnvironmentAttribute) {
+        var steps = basicEnvironmentAttribute.getIdSteps();
+        return new LinkedList<>(steps);
+    }
+
     private List<String> combineFstepsFromBasicFunction(BasicFunction basicFunction) {
         var stepsString = new LinkedList<String>();
-        basicFunction.getFsteps().remove(0);
-        var fsteps = basicFunction.getFsteps();
-        stepsString.add(String.join(".", fsteps));
+        var fSteps      = new LinkedList<>(basicFunction.getFsteps());
+        fSteps.remove(0);
+        stepsString.add(String.join(".", fSteps));
         return stepsString;
     }
 
