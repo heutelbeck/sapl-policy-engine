@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+    Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
 
     SPDX-License-Identifier: Apache-2.0
 
@@ -262,10 +262,6 @@
 				</executions>
 			</plugin>
 			<plugin>
-				<groupId>org.eclipse.xtend</groupId>
-				<artifactId>xtend-maven-plugin</artifactId>
-			</plugin>
-			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-clean-plugin</artifactId>
 				<configuration>
@@ -326,7 +322,6 @@
 							<sources>
 								<source>src/main/xtext-gen</source>
 								<source>src/main/emf-gen</source>
-								<source>src/main/xtend-gen</source>
 							</sources>
 							<resources>
 								<resource>

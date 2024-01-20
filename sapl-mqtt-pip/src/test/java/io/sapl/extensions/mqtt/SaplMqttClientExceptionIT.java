@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -42,7 +42,7 @@ import reactor.test.StepVerifier;
 //@Disabled // This one ?
 class SaplMqttClientExceptionIT {
 
-    private final static long DELAY_MS = 500L;
+    private static final long DELAY_MS = 500L;
 
     @TempDir
     Path configDir;

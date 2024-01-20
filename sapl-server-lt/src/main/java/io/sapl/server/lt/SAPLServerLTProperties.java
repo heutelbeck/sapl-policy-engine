@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -49,6 +49,16 @@ public class SAPLServerLTProperties {
     }
 
     public void setAllowedApiKeys(Collection<String> allowedApiKeys) {
+        for (String apiKey : allowedApiKeys) {
+            assertIsValidApiKey(apiKey);
+        }
         this.allowedApiKeys = new ArrayList<>(allowedApiKeys);
+    }
+
+    private void assertIsValidApiKey(String key) {
+        if (key.length() < SecretGenerator.MIN_API_KEY_LENGTH) {
+            throw new IllegalStateException("Detected short API key in configuration. API key must be at least "
+                    + SecretGenerator.MIN_API_KEY_LENGTH + " characters long.");
+        }
     }
 }

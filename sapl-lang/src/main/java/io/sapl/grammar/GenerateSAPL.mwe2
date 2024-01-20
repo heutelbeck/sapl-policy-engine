@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -79,15 +79,16 @@ Workflow {
 				//debugGrammar = true
 			//}
 			junitSupport = {
+				generateStub = false
 				junitVersion = "5"
 			}
 			webSupport = SAPLWebIntegrationFragment {
 				generateHtmlExample = false
-				codeMirrorVersion = "5.39.2"
+				codeMirrorVersion = "5.65.16"
 //				aceVersion = "1.2.6"
 				requireJsVersion = "2.2.0"
 				requireJsTextVersion = "2.0.15"
-				jQueryVersion = "2.2.3"
+				jQueryVersion = "3.7.1"
 				framework = "CodeMirror" // Orion, CodeMirror, Ace
 				generateJettyLauncher = false
 				generateJsHighlighting = true // overwrites file on every run

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+    Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
 
     SPDX-License-Identifier: Apache-2.0
 
@@ -87,18 +87,10 @@
 			<scope>provided</scope>
 		</dependency>
 
-		<!-- A library for JSON schema validation -->
 		<dependency>
 			<groupId>com.networknt</groupId>
 			<artifactId>json-schema-validator</artifactId>
-			<version>1.0.84</version>
-		</dependency>
-
-		<!-- A library for JSON flattening -->
-		<dependency>
-			<groupId>com.github.wnameless.json</groupId>
-			<artifactId>json-flattener</artifactId>
-			<version>0.16.4</version>
+			<version>1.1.0</version>
 		</dependency>
 
 	</dependencies>

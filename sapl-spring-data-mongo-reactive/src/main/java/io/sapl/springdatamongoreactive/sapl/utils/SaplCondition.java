@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,11 +17,11 @@
  */
 package io.sapl.springdatamongoreactive.sapl.utils;
 
-import io.sapl.springdatamongoreactive.sapl.Operator;
+import io.sapl.springdatamongoreactive.sapl.OperatorMongoDB;
 import reactor.util.annotation.Nullable;
 
-public record SaplCondition(String field, Object value, Operator operator, @Nullable String conjunction) {
-    public SaplCondition(String field, Object value, Operator operator, @Nullable String conjunction) {
+public record SaplCondition(String field, Object value, OperatorMongoDB operator, @Nullable String conjunction) {
+    public SaplCondition(String field, Object value, OperatorMongoDB operator, @Nullable String conjunction) {
         this.field       = field;
         this.value       = value;
         this.operator    = operator;

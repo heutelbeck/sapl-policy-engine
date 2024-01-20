@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -41,6 +41,10 @@ public class SAPLServerLTApplication {
                 log.info("Secret Plaintext: {}", secret);
                 var encodedSecret = SecretGenerator.encodeWithArgon2(secret);
                 log.info("Secret Encoded  : {}", encodedSecret);
+            } else if ("-key".equals(args[0])) {
+                log.info("Generating new API Key...");
+                var apiKey = SecretGenerator.newApiKey();
+                log.info("API key: {}", apiKey);
             }
         }
     }

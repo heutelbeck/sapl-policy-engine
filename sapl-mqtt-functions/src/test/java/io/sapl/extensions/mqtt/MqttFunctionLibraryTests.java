@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -41,9 +41,8 @@ import reactor.test.StepVerifier;
 
 class MqttFunctionLibraryTests {
 
-    private final static String ACTION = "actionName";
-
-    private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
+    private static final String          ACTION = "actionName";
+    private static final JsonNodeFactory JSON   = JsonNodeFactory.instance;
 
     // Tests for matching all topics
 

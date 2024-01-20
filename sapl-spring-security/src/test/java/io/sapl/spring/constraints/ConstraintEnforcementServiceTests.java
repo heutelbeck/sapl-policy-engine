@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -64,13 +64,10 @@ import reactor.test.StepVerifier;
 
 class ConstraintEnforcementServiceTests {
 
-    private final static ObjectMapper MAPPER = new ObjectMapper();
-
-    private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
-
-    private final static JsonNode CONSTRAINT;
-
-    private final static ArrayNode ONE_CONSTRAINT;
+    private static final ObjectMapper    MAPPER = new ObjectMapper();
+    private static final JsonNodeFactory JSON   = JsonNodeFactory.instance;
+    private static final JsonNode        CONSTRAINT;
+    private static final ArrayNode       ONE_CONSTRAINT;
 
     static {
         CONSTRAINT     = JSON.textNode("a constraint");

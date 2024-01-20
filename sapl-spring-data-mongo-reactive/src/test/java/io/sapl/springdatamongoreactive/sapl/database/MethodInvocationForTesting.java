@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -36,7 +36,7 @@ public class MethodInvocationForTesting implements MethodInvocation {
     @Override
     public Method getMethod() {
         try {
-            return MongoDbRepositoryTest.class.getMethod(methodName,
+            return MongoDbRepositoryTests.class.getMethod(methodName,
                     argumentClasses.toArray(new Class[argumentClasses.size()]));
         } catch (NoSuchMethodException e) {
             throw new RuntimeException(e);

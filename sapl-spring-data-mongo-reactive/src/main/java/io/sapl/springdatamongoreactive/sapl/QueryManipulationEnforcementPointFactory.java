@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -19,9 +19,11 @@ package io.sapl.springdatamongoreactive.sapl;
 
 import org.springframework.stereotype.Service;
 
-import io.sapl.springdatamongoreactive.sapl.queryTypes.annotationEnforcement.MongoAnnotationQueryManipulationEnforcementPoint;
-import io.sapl.springdatamongoreactive.sapl.queryTypes.filterEnforcement.ProceededDataFilterEnforcementPoint;
-import io.sapl.springdatamongoreactive.sapl.queryTypes.methodNameEnforcement.MongoMethodNameQueryManipulationEnforcementPoint;
+import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
+import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementPoint;
+import io.sapl.springdatacommon.sapl.queries.enforcement.ProceededDataFilterEnforcementPoint;
+import io.sapl.springdatamongoreactive.sapl.queries.enforcement.MongoAnnotationQueryManipulationEnforcementPoint;
+import io.sapl.springdatamongoreactive.sapl.queries.enforcement.MongoMethodNameQueryManipulationEnforcementPoint;
 
 @Service
 public class QueryManipulationEnforcementPointFactory {
@@ -38,7 +40,7 @@ public class QueryManipulationEnforcementPointFactory {
 
     public <T> QueryManipulationEnforcementPoint<T> createProceededDataFilterEnforcementPoint(
             QueryManipulationEnforcementData<T> enforcementData) {
-        return new ProceededDataFilterEnforcementPoint<>(enforcementData);
+        return new ProceededDataFilterEnforcementPoint<>(enforcementData, false);
     }
 
 }

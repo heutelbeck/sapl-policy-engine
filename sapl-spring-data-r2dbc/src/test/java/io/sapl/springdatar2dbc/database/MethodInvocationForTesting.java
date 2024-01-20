@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,12 +17,13 @@
  */
 package io.sapl.springdatar2dbc.database;
 
-import lombok.AllArgsConstructor;
-import org.aopalliance.intercept.MethodInvocation;
-
 import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+
+import org.aopalliance.intercept.MethodInvocation;
+
+import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
 public class MethodInvocationForTesting implements MethodInvocation {

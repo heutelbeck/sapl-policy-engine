@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -19,6 +19,12 @@ package io.sapl.util.filemonitoring;
 
 import java.io.File;
 import java.io.FileFilter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.stream.Stream;
 
 import org.apache.commons.io.monitor.FileAlterationMonitor;
 import org.apache.commons.io.monitor.FileAlterationObserver;
@@ -29,7 +35,8 @@ import reactor.core.publisher.Flux;
 @UtilityClass
 public class FileMonitorUtil {
 
-    private static final long POLL_INTERVAL_IN_MS = 500;
+    private static final long   POLL_INTERVAL_IN_MS = 500;
+    private static final String SAPL_FILE_EXTENSION = "sapl";
 
     public static String resolveHomeFolderIfPresent(String policyPath) {
         policyPath = policyPath.replace("/", File.separator);
@@ -67,4 +74,20 @@ public class FileMonitorUtil {
         });
     }
 
+    public static List<Path> findSaplDocuments(String rawPath) throws IOException {
+        var path = Paths.get(rawPath);
+        return findSaplDocuments(path);
+    }
+
+    public static List<Path> findSaplDocuments(Path path) throws IOException {
+
+        if (!Files.isDirectory(path)) {
+            throw new IOException("Provided path for policies not a path: " + path);
+        }
+
+        try (Stream<Path> walk = Files.walk(path)) {
+            return walk.filter(p -> !Files.isDirectory(p) && p.toString().toLowerCase().endsWith(SAPL_FILE_EXTENSION))
+                    .toList();
+        }
+    }
 }

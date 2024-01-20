@@ -1,0 +1,96 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!--
+
+    Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
+
+    SPDX-License-Identifier: Apache-2.0
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<FindBugsFilter
+	xmlns="https://github.com/spotbugs/filter/3.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="https://github.com/spotbugs/filter/3.0.0 https://raw.githubusercontent.com/spotbugs/spotbugs/3.1.0/spotbugs/etc/findbugsfilter.xsd">
+
+	<!-- The following generated classes are excluded from the spotbugs analysis. -->
+	<Match>
+		<Or>
+			<Source name="~.*xtend-gen.*"/>
+			<Source name="~.*emf-gen.*"/>
+			<Source name="~.*xtext-gen.*"/>
+		</Or>
+	</Match>
+	<!-- The following rules are excluded from the spotbugs analysis. -->
+	<Match>
+		<Or>
+			<Bug pattern="FII_USE_METHOD_REFERENCE" />
+			<Bug pattern="IMC_IMMATURE_CLASS_VAR_NAME" />
+			<Bug pattern="SPP_PASSING_THIS_AS_PARM" />
+			<Bug pattern="WI_WIRING_OF_STATIC_FIELD" />
+			<Bug pattern="AKI_SUPERFLUOUS_ROUTE_SPECIFICATION" />
+			<Bug pattern="AFBR_ABNORMAL_FINALLY_BLOCK_RETURN" />
+			<Bug pattern="ENMI_EQUALS_ON_ENUM" />
+			<Bug pattern="IMC_IMMATURE_CLASS_BAD_SERIALVERSIONUID" />
+			<Bug pattern="PRMC_POSSIBLY_REDUNDANT_METHOD_CALLS" />
+			<Bug pattern="SPP_USELESS_TERNARY" />
+			<Bug pattern="SPP_TOSTRING_ON_STRING" />
+			<Bug pattern="USBR_UNNECESSARY_STORE_BEFORE_RETURN" />
+			<Bug pattern="AIOB_ARRAY_STORE_TO_NULL_REFERENCE" />
+			<Bug pattern="PMB_LOCAL_BASED_JAXB_CONTEXT" />
+			<Bug pattern="OI_OPTIONAL_ISSUES_ISPRESENT_PREFERRED" />
+			<Bug pattern="IOI_UNENDED_ZLIB_OBJECT" />
+			<Bug pattern="ENMI_ONE_ENUM_VALUE" />
+			<Bug pattern="ENMI_NULL_ENUM_VALUE" />
+			<Bug pattern="SPP_USE_BIGDECIMAL_STRING_CTOR" />
+			<Bug pattern="SAT_SUSPICIOUS_ARGUMENT_TYPES" />
+			<Bug pattern="MOM_MISLEADING_OVERLOAD_MODEL" />
+			<Bug pattern="EI_EXPOSE_BUF" />
+			<Bug
+				pattern="REFLF_REFLECTION_MAY_INCREASE_ACCESSIBILITY_OF_FIELD" />
+			<Bug pattern="FL_FLOATS_AS_LOOP_COUNTERS" />
+			<Bug pattern="TLW_TWO_LOCK_NOTIFY" />
+			<Bug pattern="RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE" />
+			<Bug pattern="THROWS_METHOD_THROWS_CLAUSE_THROWABLE" />
+			<Bug pattern="EI_EXPOSE_BUF2" />
+			<Bug pattern="OVERRIDING_METHODS_MUST_INVOKE_SUPER" />
+			<Bug pattern="BC_NULL_INSTANCEOF" />
+			<Bug pattern="SKIPPED_CLASS_TOO_BIG" />
+			<Bug pattern="RCN_REDUNDANT_CHECKED_NULL_COMPARISON" />
+			<Bug pattern="SSD_DO_NOT_USE_INSTANCE_LOCK_ON_SHARED_STATIC_DATA" />
+			<Bug pattern="EI_EXPOSE_STATIC_BUF2" />
+			<Bug pattern="LG_LOST_LOGGER_DUE_TO_WEAK_REFERENCE" />
+			<Bug pattern="THROWS_METHOD_THROWS_RUNTIMEEXCEPTION" />
+			<Bug pattern="LI_LAZY_INIT_INSTANCE" />
+			<Bug pattern="SE_NO_SERIALVERSIONID" />
+			<Bug
+				pattern="USC_POTENTIAL_SECURITY_CHECK_BASED_ON_UNTRUSTED_SOURCE" />
+			<Bug pattern="OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE" />
+			<Bug pattern="EI_EXPOSE_REP" />
+			<Bug pattern="PERM_SUPER_NOT_CALLED_IN_GETPERMISSIONS" />
+			<Bug pattern="DCN_NULLPOINTER_EXCEPTION" />
+			<Bug pattern="MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR" />
+			<Bug pattern="MC_OVERRIDABLE_METHOD_CALL_IN_CLONE" />
+			<Bug
+				pattern="REFLC_REFLECTION_MAY_INCREASE_ACCESSIBILITY_OF_CLASS" />
+			<Bug pattern="BRSA_BAD_RESULTSET_ACCESS" />
+			<Bug pattern="THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION" />
+			<Bug pattern="DP_DO_INSIDE_DO_PRIVILEDGED" />
+			<Bug pattern="EOS_BAD_END_OF_STREAM_CHECK" />
+			<Bug pattern="MS_EXPOSE_BUF" />
+			<Bug pattern="JUA_DONT_ASSERT_INSTANCEOF_IN_TESTS" />
+			<Bug pattern="EI_EXPOSE_REP2" />
+			<Bug pattern="OBL_UNSATISFIED_OBLIGATION" />
+		</Or>
+	</Match>
+</FindBugsFilter>

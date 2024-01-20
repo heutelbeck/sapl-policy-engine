@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="en" xml:lang="en">
 
 <head>
 	<title>SAPL Coverage Report</title>
@@ -20,9 +20,9 @@
 
 <body>
 	<main id="main">
-		<nav class="navbar navbar-light">
+		<nav class="navbar navbar-light" aria-label="SAPL Branding">
 			<a class="navbar-brand" href="#">
-				<img src="../assets/images/logo-header.png">
+				<img src="../assets/images/logo-header.png" alt="SAPL Logo">
 			</a>
 		</nav>
 
@@ -91,7 +91,7 @@
 				}
 			}
 			var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
-			var popoverList = popoverTriggerList.map(function (textAreaElement) {
+			popoverTriggerList.map(function (textAreaElement) {
 				return new bootstrap.Popover(textAreaElement)
 			})
 		});

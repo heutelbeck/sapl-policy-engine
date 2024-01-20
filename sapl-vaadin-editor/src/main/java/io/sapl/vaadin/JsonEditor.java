@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -28,8 +28,8 @@ import com.vaadin.flow.dom.Element;
 @Tag("json-editor")
 @JsModule("./json-editor.js")
 @NpmPackage(value = "jsonlint-webpack", version = "1.1.0")
-@NpmPackage(value = "jquery", version = "3.4.1")
-@NpmPackage(value = "codemirror", version = "5.52.2")
+@NpmPackage(value = "jquery", version = "3.7.1")
+@NpmPackage(value = "codemirror", version = "5.65.16")
 public class JsonEditor extends BaseEditor {
 
     /**

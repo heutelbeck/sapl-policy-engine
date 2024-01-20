@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -99,7 +99,7 @@ public class AnnotationAttributeContext implements AttributeContext {
      *                          static methods as functions
      * @throws InitializationException if initialization fails.
      */
-    public void loadPolicyInformationPoints(StaticPolicyInformationPointSupplier staticPipSupplier)
+    public final void loadPolicyInformationPoints(StaticPolicyInformationPointSupplier staticPipSupplier)
             throws InitializationException {
         for (var pip : staticPipSupplier.get()) {
             loadPolicyInformationPoint(pip);
@@ -112,7 +112,8 @@ public class AnnotationAttributeContext implements AttributeContext {
      * @param pipSupplier supplies instantiated libraries.
      * @throws InitializationException if initialization fails.
      */
-    public void loadPolicyInformationPoints(PolicyInformationPointSupplier pipSupplier) throws InitializationException {
+    public final void loadPolicyInformationPoints(PolicyInformationPointSupplier pipSupplier)
+            throws InitializationException {
         for (var pip : pipSupplier.get()) {
             loadPolicyInformationPoint(pip);
         }
@@ -232,31 +233,40 @@ public class AnnotationAttributeContext implements AttributeContext {
         var argumentFluxes = validatedArguments(attributeMetadata, arguments);
 
         return Flux.combineLatest(argumentFluxes,
-                argumentCombiner(attributeMetadata, variables, numberOfInvocationParameters));
+                argumentCombiner(attributeMetadata, variables, numberOfInvocationParameters, Optional.empty()));
     }
 
     private Function<Object[], Object[]> argumentCombiner(AttributeFinderMetadata attributeMetadata,
-            Map<String, JsonNode> variables, int numberOfInvocationParameters) {
-        return argumentValues -> {
-            var invocationArguments = new Object[numberOfInvocationParameters];
-            var argumentIndex       = 0;
-            if (attributeMetadata.isAttributeWithVariableParameter())
-                invocationArguments[argumentIndex++] = variables;
+            Map<String, JsonNode> variables, int numberOfInvocationParameters, Optional<Val> leftHandValue) {
+        return argumentValues -> combineArguments(attributeMetadata, variables, numberOfInvocationParameters,
+                argumentValues, leftHandValue);
+    }
 
-            if (attributeMetadata.varArgsParameters) {
-                var varArgsParameter = new Val[argumentValues.length];
-                for (var i = 0; i < argumentValues.length; i++) {
-                    varArgsParameter[i] = (Val) argumentValues[i];
-                }
-                invocationArguments[argumentIndex] = varArgsParameter;
-            } else {
-                for (var valueIndex = 0; argumentIndex < numberOfInvocationParameters; valueIndex++) {
-                    invocationArguments[argumentIndex++] = argumentValues[valueIndex];
-                }
+    private Object[] combineArguments(AttributeFinderMetadata attributeMetadata, Map<String, JsonNode> variables,
+            int numberOfInvocationParameters, Object[] argumentValues, Optional<Val> leftHandValue) {
+        var invocationArguments = new Object[numberOfInvocationParameters];
+        var argumentIndex       = 0;
+
+        if (leftHandValue.isPresent()) {
+            invocationArguments[argumentIndex++] = leftHandValue.get();
+        }
+
+        if (attributeMetadata.isAttributeWithVariableParameter())
+            invocationArguments[argumentIndex++] = variables;
+
+        if (attributeMetadata.varArgsParameters) {
+            var varArgsParameter = new Val[argumentValues.length];
+            for (var i = 0; i < argumentValues.length; i++) {
+                varArgsParameter[i] = (Val) argumentValues[i];
             }
+            invocationArguments[argumentIndex] = varArgsParameter;
+        } else {
+            for (var valueIndex = 0; argumentIndex < numberOfInvocationParameters; valueIndex++) {
+                invocationArguments[argumentIndex++] = argumentValues[valueIndex];
+            }
+        }
 
-            return invocationArguments;
-        };
+        return invocationArguments;
     }
 
     private Flux<Object[]> attributeFinderArguments(AttributeFinderMetadata attributeMetadata, Val leftHandValue,
@@ -277,28 +287,9 @@ public class AnnotationAttributeContext implements AttributeContext {
 
         var argumentFluxes = validatedArguments(attributeMetadata, arguments);
 
-        return Flux.combineLatest(argumentFluxes, argumentValues -> {
-            var invocationArguments = new Object[numberOfInvocationParameters];
-            var argumentIndex       = 0;
-            invocationArguments[argumentIndex++] = leftHandValue;
+        return Flux.combineLatest(argumentFluxes, argumentCombiner(attributeMetadata, variables,
+                numberOfInvocationParameters, Optional.of(leftHandValue)));
 
-            if (attributeMetadata.isAttributeWithVariableParameter())
-                invocationArguments[argumentIndex++] = variables;
-
-            if (attributeMetadata.varArgsParameters) {
-                var varArgsParameter = new Val[argumentValues.length];
-                for (var i = 0; i < argumentValues.length; i++) {
-                    varArgsParameter[i] = (Val) argumentValues[i];
-                }
-                invocationArguments[argumentIndex] = varArgsParameter;
-            } else {
-                for (var valueIndex = 0; argumentIndex < numberOfInvocationParameters; valueIndex++) {
-                    invocationArguments[argumentIndex++] = argumentValues[valueIndex];
-                }
-            }
-
-            return invocationArguments;
-        });
     }
 
     private int numberOfInvocationParametersForAttribute(AttributeFinderMetadata attributeMetadata,

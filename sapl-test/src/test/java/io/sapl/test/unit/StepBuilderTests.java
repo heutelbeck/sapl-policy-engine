@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -32,9 +32,9 @@ import reactor.core.publisher.Mono;
 
 class StepBuilderTests {
 
-    private final static AuthorizationSubscription AUTHZ_SUB = AuthorizationSubscription.of("willi", "not_matching",
+    private static final AuthorizationSubscription AUTHZ_SUB = AuthorizationSubscription.of("willi", "not_matching",
             "something");
-    private final static DefaultSAPLInterpreter    PARSER    = new DefaultSAPLInterpreter();
+    private static final DefaultSAPLInterpreter    PARSER    = new DefaultSAPLInterpreter();
 
     @Test
     void test_NotApplicableDecisionWhenNotMatchingPolicyInUnitTest() {

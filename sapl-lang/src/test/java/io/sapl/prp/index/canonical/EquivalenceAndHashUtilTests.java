@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -35,7 +35,7 @@ import org.eclipse.emf.common.util.EList;
 import org.junit.jupiter.api.Test;
 
 class EquivalenceAndHashUtilTests {
-    private final static Map<String, String> EMPTY_MAP = Map.of();
+    private static final Map<String, String> EMPTY_MAP = Map.of();
 
     @Test
     void testSemanticHash() throws Exception {

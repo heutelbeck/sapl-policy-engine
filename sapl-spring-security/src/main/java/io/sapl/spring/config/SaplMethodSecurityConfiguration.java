@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -27,11 +27,9 @@ import org.springframework.context.annotation.Role;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 import org.springframework.security.config.core.GrantedAuthorityDefaults;
-import org.springframework.security.core.context.SecurityContextHolderStrategy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.micrometer.observation.ObservationRegistry;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.method.blocking.PolicyEnforcementPointAroundMethodInterceptor;
@@ -58,33 +56,27 @@ class SaplMethodSecurityConfiguration {
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    Advisor preEnforcePolicyEnforcementPoint(ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
-            ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider,
-            ObjectProvider<SecurityContextHolderStrategy> strategyProvider,
-            ObjectProvider<ObservationRegistry> registryProvider, ApplicationContext context,
-            PolicyDecisionPoint policyDecisionPoint, SaplAttributeRegistry attributeRegistry,
-            ConstraintEnforcementService constraintEnforcementService,
-            WebAuthorizationSubscriptionBuilderService subscriptionBuilder) {
+    Advisor preEnforcePolicyEnforcementPoint(ObjectProvider<PolicyDecisionPoint> policyDecisionPointProvider,
+            ObjectProvider<SaplAttributeRegistry> attributeRegistryProvider,
+            ObjectProvider<ConstraintEnforcementService> constraintEnforcementServiceProvider,
+            ObjectProvider<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderProvider) {
 
         log.debug("Deploy @PreEnforce Policy Enforcement Point");
-        var policyEnforcementPoint = new PreEnforcePolicyEnforcementPoint(policyDecisionPoint, attributeRegistry,
-                constraintEnforcementService, subscriptionBuilder);
+        var policyEnforcementPoint = new PreEnforcePolicyEnforcementPoint(policyDecisionPointProvider,
+                attributeRegistryProvider, constraintEnforcementServiceProvider, subscriptionBuilderProvider);
         return PolicyEnforcementPointAroundMethodInterceptor.preEnforce(policyEnforcementPoint);
     }
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    Advisor postEnforcePolicyEnforcementPoint(ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
-            ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider,
-            ObjectProvider<SecurityContextHolderStrategy> strategyProvider,
-            ObjectProvider<ObservationRegistry> registryProvider, ApplicationContext context,
-            PolicyDecisionPoint policyDecisionPoint, SaplAttributeRegistry attributeRegistry,
-            ConstraintEnforcementService constraintEnforcementService,
-            WebAuthorizationSubscriptionBuilderService subscriptionBuilder) {
+    Advisor postEnforcePolicyEnforcementPoint(ObjectProvider<PolicyDecisionPoint> policyDecisionPointProvider,
+            ObjectProvider<SaplAttributeRegistry> attributeRegistryProvider,
+            ObjectProvider<ConstraintEnforcementService> constraintEnforcementServiceProvider,
+            ObjectProvider<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderProvider) {
 
         log.debug("Deploy @PostEnforce Policy Enforcement Point");
-        var policyEnforcementPoint = new PostEnforcePolicyEnforcementPoint(policyDecisionPoint, attributeRegistry,
-                constraintEnforcementService, subscriptionBuilder);
+        var policyEnforcementPoint = new PostEnforcePolicyEnforcementPoint(policyDecisionPointProvider,
+                attributeRegistryProvider, constraintEnforcementServiceProvider, subscriptionBuilderProvider);
         return PolicyEnforcementPointAroundMethodInterceptor.postEnforce(policyEnforcementPoint);
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -21,10 +21,9 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-import org.checkerframework.checker.regex.qual.Regex;
-
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.Regex;
 import reactor.core.publisher.Flux;
 
 /**

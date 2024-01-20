@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,27 +17,44 @@
  */
 package io.sapl.springdatar2dbc.sapl;
 
-import lombok.experimental.UtilityClass;
-import org.springframework.beans.factory.BeanFactory;
-import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
-import reactor.core.publisher.Flux;
-
 import java.util.Map;
 
-@UtilityClass
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
+import org.springframework.data.relational.core.mapping.Table;
+
+import reactor.core.publisher.Flux;
+
 public class QueryManipulationExecutor {
 
-    public <T> Flux<Map<String, Object>> execute(String query, BeanFactory beanFactory, Class<T> domainType) {
+    private R2dbcEntityTemplateExecutor r2dbcEntityTemplateExecutor;
+
+    public QueryManipulationExecutor(BeanFactory beanFactory) {
         var r2dbcEntityTemplate = beanFactory.getBean(R2dbcEntityTemplate.class);
+        r2dbcEntityTemplateExecutor = new R2dbcEntityTemplateExecutor(r2dbcEntityTemplate);
+    }
+
+    public <T> Flux<Map<String, Object>> execute(String query, Class<T> domainType) {
 
         if (query.toLowerCase().contains("where")) {
-            return r2dbcEntityTemplate.getDatabaseClient().sql(query).fetch().all();
+            return r2dbcEntityTemplateExecutor.executeQuery(query);
         } else {
-            var tableName           = r2dbcEntityTemplate.getDataAccessStrategy().getTableName(domainType)
-                    .getReference();
+            String tableName = getTableName(domainType);
+
             var queryWithSelectPart = "SELECT * FROM %s WHERE %s".formatted(tableName, query);
 
-            return r2dbcEntityTemplate.getDatabaseClient().sql(queryWithSelectPart).fetch().all();
+            return r2dbcEntityTemplateExecutor.executeQuery(queryWithSelectPart);
+        }
+    }
+
+    private <T> String getTableName(Class<T> domainType) {
+        boolean hasTableAnnotation = domainType.isAnnotationPresent(Table.class);
+
+        if (hasTableAnnotation) {
+            return domainType.getAnnotation(Table.class).name();
+        } else {
+            return StringUtils.capitalize(domainType.getSimpleName());
         }
     }
 }

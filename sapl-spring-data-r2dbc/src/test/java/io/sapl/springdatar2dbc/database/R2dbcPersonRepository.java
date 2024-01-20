@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,18 +17,17 @@
  */
 package io.sapl.springdatar2dbc.database;
 
-import io.sapl.springdatar2dbc.sapl.Enforce;
-import io.sapl.springdatar2dbc.sapl.SaplProtected;
+import java.util.List;
+import java.util.stream.Stream;
+
 import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.r2dbc.repository.R2dbcRepository;
 import org.springframework.stereotype.Repository;
+
+import io.sapl.springdatacommon.sapl.Enforce;
+import io.sapl.springdatacommon.sapl.SaplProtected;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Stream;
 
 @Repository
 public interface R2dbcPersonRepository

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -84,7 +84,8 @@ public class AnnotationFunctionContext implements FunctionContext {
      *                                classes with static methods as functions
      * @throws InitializationException if initialization fails.
      */
-    public void loadLibraries(StaticFunctionLibrarySupplier staticLibrariesSupplier) throws InitializationException {
+    public final void loadLibraries(StaticFunctionLibrarySupplier staticLibrariesSupplier)
+            throws InitializationException {
         for (var library : staticLibrariesSupplier.get()) {
             loadLibrary(library);
         }
@@ -96,7 +97,7 @@ public class AnnotationFunctionContext implements FunctionContext {
      * @param librariesSupplier supplies instantiated libraries.
      * @throws InitializationException if initialization fails.
      */
-    public void loadLibraries(FunctionLibrarySupplier librariesSupplier) throws InitializationException {
+    public final void loadLibraries(FunctionLibrarySupplier librariesSupplier) throws InitializationException {
         for (var library : librariesSupplier.get()) {
             loadLibrary(library);
         }

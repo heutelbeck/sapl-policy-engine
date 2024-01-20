@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,7 +40,6 @@ import io.sapl.mavenplugin.test.coverage.report.model.LineCoveredValue;
 import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInformation;
 import lombok.Data;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 
 public class HtmlLineCoverageReportGenerator {
 
@@ -98,7 +96,7 @@ public class HtmlLineCoverageReportGenerator {
         context.setVariable("policyHitRatio", policyHitRatio);
         context.setVariable("policyConditionHitRatio", policyConditionHitRatio);
         context.setVariable("documentFileNames",
-                documents.stream().map(doc -> doc.getPathToDocument().getFileName()).collect(Collectors.toList()));
+                documents.stream().map(doc -> doc.getPathToDocument().getFileName()).toList());
 
         // process the template and context
         String htmlFileAsString = springTemplateEngine.process("report.html", context);
@@ -137,13 +135,13 @@ public class HtmlLineCoverageReportGenerator {
 
     private void copyAssets(Path basedir, List<WebDependency> webDependencies) throws IOException {
         for (var webDependency : webDependencies) {
-            final String      sourceRelPathStr = webDependency.sourcePath.resolve(webDependency.fileName).toString();
+            String            sourceRelPathStr = webDependency.sourcePath + webDependency.fileName;
             final InputStream source           = getClass().getClassLoader().getResourceAsStream(sourceRelPathStr);
             if (source == null) {
                 final String msg = String.format("Cannot find file: %s while copying assets.", sourceRelPathStr);
                 throw new IOException(msg);
             }
-            final Path target = basedir.resolve(webDependency.targetPath.resolve(webDependency.fileName));
+            final Path target = basedir.resolve(webDependency.targetPath).resolve(webDependency.fileName);
             copyFile(source, target);
         }
     }
@@ -181,30 +179,35 @@ public class HtmlLineCoverageReportGenerator {
 
     private List<WebDependency> getWebDependencies() {
         final List<WebDependency> dependencies = new ArrayList<>();
-        final String              SOURCE_BASE  = "dependency-resources/";
-        final String              TARGET_BASE  = "html/assets/";
-        dependencies.add(new WebDependency("sapl-mode", "sapl-mode.js", Paths.get(SOURCE_BASE),
-                Paths.get(TARGET_BASE + "lib/js")));
+
+        final String SOURCE_BASE = "dependency-resources/";
+        final String TARGET_BASE = "html/assets/";
+        final String JS_BASE     = TARGET_BASE + "lib/js";
+        final String CSS_BASE    = TARGET_BASE + "lib/css/";
+        final String IMAGES      = "images/";
+        final String IMAGE_BASE  = TARGET_BASE + IMAGES;
+
+        // JS
+        dependencies.add(new WebDependency("sapl-mode", "sapl-mode.js", SOURCE_BASE, JS_BASE));
+        dependencies.add(new WebDependency("codemirror", "codemirror.js", SOURCE_BASE + "codemirror/lib/", JS_BASE));
+        dependencies.add(new WebDependency("simple_mode", "simple.js", SOURCE_BASE + "codemirror/addon/mode/",
+                JS_BASE + "/addon/mode/"));
+        dependencies
+                .add(new WebDependency("bootstrap", "bootstrap.min.js", SOURCE_BASE + "bootstrap/dist/js/", JS_BASE));
         dependencies.add(
-                new WebDependency("main.css", "main.css", Paths.get("html/css/"), Paths.get(TARGET_BASE + "lib/css/")));
+                new WebDependency("@popperjs", "popper.min.js", SOURCE_BASE + "@popperjs/core/dist/umd/", JS_BASE));
+        dependencies.add(new WebDependency("requirejs", "require.js", SOURCE_BASE + "requirejs/", JS_BASE));
+
+        // CSS
+        dependencies.add(new WebDependency("main.css", "main.css", "html/css/", CSS_BASE));
         dependencies.add(
-                new WebDependency("favicon", "favicon.png", Paths.get("images"), Paths.get(TARGET_BASE + "images/")));
-        dependencies.add(new WebDependency("logo-header", "logo-header.png", Paths.get("images"),
-                Paths.get(TARGET_BASE + "images/")));
-        dependencies.add(new WebDependency("@popperjs", "popper.min.js",
-                Paths.get(SOURCE_BASE + "@popperjs/core/dist/umd/"), Paths.get(TARGET_BASE + "lib/js")));
-        dependencies.add(new WebDependency("bootstrap", "bootstrap.min.js",
-                Paths.get(SOURCE_BASE + "bootstrap/dist/js/"), Paths.get(TARGET_BASE + "lib/js")));
-        dependencies.add(new WebDependency("bootstrap", "bootstrap.min.css",
-                Paths.get(SOURCE_BASE + "bootstrap/dist/css/"), Paths.get(TARGET_BASE + "lib/css/")));
-        dependencies.add(new WebDependency("codemirror", "codemirror.js", Paths.get(SOURCE_BASE + "codemirror/lib/"),
-                Paths.get(TARGET_BASE + "lib/js/")));
-        dependencies.add(new WebDependency("codemirror", "codemirror.css", Paths.get(SOURCE_BASE + "codemirror/lib/"),
-                Paths.get(TARGET_BASE + "lib/css/")));
-        dependencies.add(new WebDependency("simple_mode", "simple.js",
-                Paths.get(SOURCE_BASE + "codemirror/addon/mode/"), Paths.get(TARGET_BASE + "lib/js/addon/mode/")));
-        dependencies.add(new WebDependency("requirejs", "require.js", Paths.get(SOURCE_BASE + "requirejs/"),
-                Paths.get(TARGET_BASE + "lib/js/")));
+                new WebDependency("bootstrap", "bootstrap.min.css", SOURCE_BASE + "bootstrap/dist/css/", CSS_BASE));
+        dependencies.add(new WebDependency("codemirror", "codemirror.css", SOURCE_BASE + "codemirror/lib/", CSS_BASE));
+
+        // images
+        dependencies.add(new WebDependency("logo-header", "logo-header.png", IMAGES, IMAGE_BASE));
+        dependencies.add(new WebDependency("favicon", "favicon.png", IMAGES, IMAGE_BASE));
+
         return dependencies;
     }
 
@@ -215,31 +218,25 @@ public class HtmlLineCoverageReportGenerator {
         String popoverContent;
     }
 
-    @RequiredArgsConstructor
-    private static class WebDependency {
-        /**
-         * name of the dependency
-         */
-        @NonNull
-        String name;
+    private record WebDependency(
+            /**
+             * name of the dependency
+             */
+            @NonNull String name,
 
-        /**
-         * name of the actual file
-         */
-        @NonNull
-        String fileName;
+            /**
+             * name of the actual file
+             */
+            @NonNull String fileName,
 
-        /**
-         * path to the directory where actual the file is located
-         */
-        @NonNull
-        Path sourcePath; //
+            /**
+             * path to the directory where actual the file is located
+             */
+            @NonNull String sourcePath,
 
-        /**
-         * path to where the file will be located as an asset
-         */
-        @NonNull
-        Path targetPath;
+            /**
+             * path to where the file will be located as an asset
+             */
+            @NonNull String targetPath) {
     }
-
 }

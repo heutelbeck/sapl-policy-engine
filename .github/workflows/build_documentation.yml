@@ -1,5 +1,5 @@
 #
-# Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+# Copyright © 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,20 +29,25 @@ jobs:
     runs-on: ubuntu-latest
  
     steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895 # v2.6.1
+      with:
+        egress-policy: audit
+
     - name: Check out
-      uses: actions/checkout@v3
+      uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
       with:
         lfs: true
         fetch-depth: 0
       
     - name: Set up JDK 11
-      uses: actions/setup-java@v3.6.0
+      uses: actions/setup-java@de1bb2b0c5634f0fc4438d7aa9944e68f9bf86cc # v3.6.0
       with:
         java-version: 11
         distribution: adopt
   
     - name: Cache Maven dependencies
-      uses: actions/cache@v3.0.11  
+      uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11  
       with:
         path: ~/.m2/repository
         key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
@@ -59,7 +64,7 @@ jobs:
         echo "::set-output name=version::$VERSION"     
                       
     - name: Push Documentation to Website
-      uses: hpcodecraft/action-deploy-workspace-to-repo@v2.2
+      uses: hpcodecraft/action-deploy-workspace-to-repo@1aa539ca78d3063db25aeb60124c034f6ba9a611 # v2.2
       env:
         GITHUB_ACCESS_TOKEN: ${{ secrets.GHUB_ACCESS_TOKEN }}
         SRC_FOLDER: sapl-documentation/target/generated-docs

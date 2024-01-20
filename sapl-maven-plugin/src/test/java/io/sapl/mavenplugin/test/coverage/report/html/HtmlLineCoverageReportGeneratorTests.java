@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -118,9 +118,9 @@ class HtmlLineCoverageReportGeneratorTests {
                 document.markLine(1, LineCoveredValue.IRRELEVANT, 0, 0);
                 documents = List.of(document);
                 generator = new HtmlLineCoverageReportGenerator();
-                assertThrows(SaplTestException.class,
-                        () -> generator.generateHtmlReport(documents, Paths.get("target/sapl-coverage"),
-                                POLICY_SET_HIT_RATIO, POLICY_HIT_RATIO, POLICY_CONDITION_HIT_RATIO));
+                var path = Paths.get("target/sapl-coverage");
+                assertThrows(SaplTestException.class, () -> generator.generateHtmlReport(documents, path,
+                        POLICY_SET_HIT_RATIO, POLICY_HIT_RATIO, POLICY_CONDITION_HIT_RATIO));
             }
         }
     }

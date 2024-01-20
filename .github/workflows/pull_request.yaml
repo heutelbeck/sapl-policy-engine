@@ -1,5 +1,5 @@
 #
-# Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+# Copyright © 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,42 +14,95 @@
 # limitations under the License.
 #
 
-name: Test Pull Request
+name: Test Pull Request from Repo
 on:
   pull_request:
 
+permissions:  # added using https://github.com/step-security/secure-repo
+  contents: read
+
 jobs:
-  build:
+  tests:
+    permissions:
+      checks: write  # for scacap/action-surefire-report to publish result as PR check
+      contents: read  # for actions/checkout to fetch code
     strategy:
        matrix:
-         java: [ '17' ]
-         os: [ubuntu-latest]
+         java: [ '17', '21' ]
+         os: [ubuntu-latest, windows-latest, macos-latest]
     name: Unit Tests (JDK ${{ matrix.java }} on ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 35
+    if: ${{ !github.event.pull_request.head.repo.fork }}
 
     steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895 # v2.6.1
+      with:
+        egress-policy: audit
+
     - name: Check out
-      uses: actions/checkout@v4
+      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       with:
         lfs: true
         fetch-depth: 0
 
     - name: Set up JDK ${{ matrix.java }}
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@0ab4596768b603586c0de567f2430c30f5b0d2b0 # v3.13.0
       with:
         distribution: temurin
         java-version: ${{ matrix.java }}
         cache: 'maven'
  
-    - name: Build with Maven (JUnit, JaCoCo)
-      run: mvn -U -B --fail-at-end -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn org.jacoco:jacoco-maven-plugin:prepare-agent verify org.jacoco:jacoco-maven-plugin:report
+    - name: Run tests
+      run: mvn -U -B --fail-at-end verify -"Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"
+      
+  analyze:
+    needs: [tests]
+    permissions:
+      checks: write  # for scacap/action-surefire-report to publish result as PR check
+      contents: read  # for actions/checkout to fetch code
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: ${{ !github.event.pull_request.head.repo.fork }}
+
+    steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895 # v2.6.1
+      with:
+        egress-policy: audit
+
+    - name: Check out
+      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      with:
+        lfs: true
+        fetch-depth: 0
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@0ab4596768b603586c0de567f2430c30f5b0d2b0 # v3.13.0
+      with:
+        distribution: temurin
+        java-version: 17
+        cache: 'maven'
+ 
+    - name: Build with Maven (JUnit, JaCoCo, Spotbugs, SonarCloud)
+      env:
+        SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
+      run: >
+        mvn -U -B --fail-at-end verify spotbugs:spotbugs sonar:sonar
+        -pl '!sapl-bom'
+        -Pcoverage,spotbugs
+        -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+        -Dsonar.organization=heutelbeck
+        -Dsonar.host.url=https://sonarcloud.io
+        -Dsonar.projectKey=heutelbeck_sapl-policy-engine
+        -Dsonar.java.spotbugs.reportPaths=target/spotbugsXml.xml
 
     - name: Publish Test Report
-      # do not publish test results if PR is from a fork -> PRs from forks don't have access to the GitHub token to access the checks api
       # do not publish test results if PR is from dependabot -> PRs from dependabot are originated in the same repo but the GITHUB_TOKEN is read-only (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544)
-      if: ${{ github.event.pull_request.base.repo.url == github.event.pull_request.head.repo.url && github.actor != 'dependabot[bot]'}}
-      uses: scacap/action-surefire-report@v1
+      if: ${{ github.actor != 'dependabot[bot]'}}
+      uses: scacap/action-surefire-report@6efd3d10b5c1996a0724dd4c4915a073f685fefa # v1.7.2
 
     - name: Clean up local repository before caching
       run: rm -rf /.m2/repository/io/sapl

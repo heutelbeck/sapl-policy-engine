@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -33,8 +33,8 @@ import elemental.json.JsonArray;
  */
 @Tag("sapl-editor")
 @JsModule("./sapl-editor.js")
-@NpmPackage(value = "jquery", version = "3.4.1")
-@NpmPackage(value = "codemirror", version = "5.52.2")
+@NpmPackage(value = "jquery", version = "3.7.1")
+@NpmPackage(value = "codemirror", version = "5.65.16")
 public class SaplEditor extends BaseEditor {
 
     private List<ValidationFinishedListener> validationFinishedListeners = new ArrayList<>();

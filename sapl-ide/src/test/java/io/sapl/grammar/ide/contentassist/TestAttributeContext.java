@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -37,7 +37,7 @@ class TestAttributeContext implements AttributeContext {
 
     private final Map<String, Set<String>> availableLibraries;
 
-    final static String TEMP_NOW_SCHEMA = """
+    static final String TEMP_NOW_SCHEMA = """
             {
               "type": "object",
               "properties": {
@@ -47,7 +47,7 @@ class TestAttributeContext implements AttributeContext {
             }
             """;
 
-    final static String TEMP_MEAN_SCHEMA = """
+    static final String TEMP_MEAN_SCHEMA = """
             {
               "type": "object",
               "properties": {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -31,7 +31,7 @@ import io.sapl.api.interpreter.Val;
  */
 public class ArrayUtil {
 
-    private final static NumericAwareComparator EQ = new NumericAwareComparator();
+    private static final NumericAwareComparator EQ = new NumericAwareComparator();
 
     public static Val numberArray(Integer... values) {
         var array = Val.JSON.arrayNode();

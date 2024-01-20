@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -141,7 +141,7 @@ class RemoteHttpDecisionPointServerIT {
 
     @Test
     void whenRequestingDecisionFromHttpsPdp_withApiKeyAuth_thenDecisionIsProvided() throws SSLException {
-        var SAPL_API_KEY = "abD12344cdefDuwg8721";
+        var SAPL_API_KEY = "abD12344cdefDuwg8721abD12344cdefDuwg8721";
         try (var baseContainer = new GenericContainer<>(DockerImageName.parse(SAPL_SERVER_LT));
                 var container = saplServerWithTls(baseContainer).withEnv("io_sapl_server-lt_allowApiKeyAuth", "true")
                         .withEnv("io_sapl_server-lt_allowedApiKeys", SAPL_API_KEY)) {

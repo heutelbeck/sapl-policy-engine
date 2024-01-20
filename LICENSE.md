@@ -181,7 +181,7 @@ recommend that a file or class name and description of purpose be included on
 the same "printed page" as the copyright notice for easier identification within
 third-party archives.
 
-    Copyright 2017-2021 Dominic Heutelbeck
+    Copyright 2017-2024 Dominic Heutelbeck
 
     Licensed under the Apache License, Version 2.0 (the "License"); you may not
     use this file except in compliance with the License. You may obtain a copy

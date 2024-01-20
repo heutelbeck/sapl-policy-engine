@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -143,7 +143,7 @@ class RemoteRsocketDecisionPointServerIT {
 
     @Test
     void whenRequestingDecisionFromRsocketPdp_withApiKeyAuth_thenDecisionIsProvided() {
-        var SAPL_API_KEY = "abD12344cdefDuwg8721";
+        var SAPL_API_KEY = "abD12344cdefDuwg8721abD12344cdefDuwg8721";
         try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
                 var container = saplServerWithRSocketNoTls(baseContainer)
                         .withEnv("io_sapl_server-lt_allowApiKeyAuth", "true")

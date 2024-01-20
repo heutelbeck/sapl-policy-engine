@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+    Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
 
     SPDX-License-Identifier: Apache-2.0
 
@@ -63,6 +63,11 @@
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-spring-pdp-embedded</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.sapl</groupId>
+			<artifactId>sapl-spring-data-common</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -18,10 +18,7 @@
 package io.sapl.prp.filesystem;
 
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -29,8 +26,6 @@ import java.util.Map;
 
 import com.google.common.collect.Maps;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEvent.Type;
@@ -38,16 +33,12 @@ import io.sapl.prp.PrpUpdateEvent.Update;
 import io.sapl.util.filemonitoring.FileCreatedEvent;
 import io.sapl.util.filemonitoring.FileDeletedEvent;
 import io.sapl.util.filemonitoring.FileEvent;
-import lombok.Data;
+import io.sapl.util.filemonitoring.FileMonitorUtil;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 class ImmutableFileIndex {
-
-    private static final String SAPL_SUFFIX = ".sapl";
-
-    private static final String SAPL_GLOB_PATTERN = "*" + SAPL_SUFFIX;
 
     private final SAPLInterpreter interpreter;
 
@@ -71,11 +62,11 @@ class ImmutableFileIndex {
         this.documentsByPath  = new HashMap<>();
         this.namesToDocuments = new HashMap<>();
 
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(watchDir), SAPL_GLOB_PATTERN)) {
-            for (var filePath : stream) {
-                log.debug("loading SAPL document: {}", filePath);
-                load(filePath);
-            }
+        try {
+            FileMonitorUtil.findSaplDocuments(watchDir).forEach(file -> {
+                log.debug("loading SAPL document: {}", file);
+                load(file);
+            });
         } catch (IOException e) {
             log.error("Unable to open the directory containing policies: {}", watchDir);
             updates.add(new Update(Type.INCONSISTENT, null, null));
@@ -240,57 +231,6 @@ class ImmutableFileIndex {
                         onlyRemainingDocumentWithName.getRawDocument()));
                 onlyRemainingDocumentWithName.setPublished(true);
             }
-        }
-
-    }
-
-    @Data
-    @Slf4j
-    static class Document {
-
-        Path path;
-
-        String rawDocument;
-
-        SAPL parsedDocument;
-
-        String documentName;
-
-        boolean published;
-
-        public Document(Path path, SAPLInterpreter interpreter) {
-            this.path = path;
-            try {
-                rawDocument = Files.readString(path);
-            } catch (IOException e) {
-                log.debug("Error reading file '{}': {}. Will lead to inconsistent index.", path.toAbsolutePath(),
-                        e.getMessage());
-            }
-            try {
-                if (rawDocument != null) {
-                    parsedDocument = interpreter.parse(rawDocument);
-                    documentName   = parsedDocument.getPolicyElement().getSaplName();
-                }
-            } catch (PolicyEvaluationException e) {
-                log.debug("Error in document '{}': {}. Will lead to inconsistent index.", path.toAbsolutePath(),
-                        e.getMessage());
-            }
-        }
-
-        public Document(Document document) {
-            this.path           = document.path;
-            this.published      = document.published;
-            this.rawDocument    = document.rawDocument;
-            this.parsedDocument = document.parsedDocument;
-            this.documentName   = document.documentName;
-        }
-
-        public String getAbsolutePath() {
-            return path.toAbsolutePath().toString();
-        }
-
-        public boolean isInvalid() {
-            return parsedDocument == null;
         }
 
     }

@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+# Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
 #
 # SPDX-License-Identifier: Apache-2.0
 #
@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-FROM eclipse-temurin:17-jdk-alpine
+FROM eclipse-temurin:17-jdk-alpine@sha256:24643c2dd329ef482ecd042b59cbfb7fe13716342e22674a0abd763559c8a1dd
 LABEL org.opencontainers.image.source=https://github.com/heutelbeck/sapl-policy-engine/sapl-server-lt
 RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring

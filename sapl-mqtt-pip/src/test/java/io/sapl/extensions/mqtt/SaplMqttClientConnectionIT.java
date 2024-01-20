@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -52,10 +52,10 @@ import reactor.test.publisher.TestPublisher;
 @Slf4j
 class SaplMqttClientConnectionIT {
 
-    private final static ObjectMapper MAPPER   = new ObjectMapper();
-    private final static long         DELAY_MS = 1000L;
-    private final static Mqtt5Publish MESSAGE  = buildMqttPublishMessage("topic", "message", false);
-    private final static Val          TOPIC    = Val.of("topic");
+    private static final ObjectMapper MAPPER   = new ObjectMapper();
+    private static final long         DELAY_MS = 1000L;
+    private static final Mqtt5Publish MESSAGE  = buildMqttPublishMessage("topic", "message", false);
+    private static final Val          TOPIC    = Val.of("topic");
 
     @TempDir
     Path configDir;

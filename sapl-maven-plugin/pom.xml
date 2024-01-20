@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
 
-    Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+    Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
 
     SPDX-License-Identifier: Apache-2.0
 
@@ -33,6 +33,7 @@
 
 	<properties>
 		<maven.version>3.9.0</maven.version>
+		<sonar.sources>src/main/java,src/main/resources/html/templates</sonar.sources>
 	</properties>
 
 	<dependencies>
@@ -284,6 +285,7 @@
 							<followSymlinks>false</followSymlinks>
 							<includes>
 								<include>node_modules/**</include>
+								<include>package-lock.json</include>
 							</includes>
 						</fileset>
 					</filesets>
