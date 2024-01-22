@@ -17,15 +17,9 @@
  */
 package io.sapl.springdatamongoreactive.sapl.proxy;
 
-import static io.sapl.springdatacommon.sapl.utils.Utilities.isFlux;
-import static io.sapl.springdatacommon.sapl.utils.Utilities.isListOrCollection;
-import static io.sapl.springdatacommon.sapl.utils.Utilities.isMono;
-import static io.sapl.springdatamongoreactive.sapl.utils.annotation.AnnotationUtilities.*;
-
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Objects;
-
 import io.sapl.springdatamongoreactive.sapl.utils.annotation.EnforceMongoReactive;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
@@ -43,7 +37,9 @@ import io.sapl.springdatacommon.handlers.AuthorizationSubscriptionHandlerProvide
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatacommon.sapl.utils.Utilities;
 import lombok.SneakyThrows;
-import reactor.core.publisher.Flux;
+
+import static io.sapl.springdatacommon.sapl.utils.Utilities.convertReturnTypeIfNecessary;
+import static io.sapl.springdatamongoreactive.sapl.utils.annotation.AnnotationUtilities.*;
 
 /**
  * This service is the gathering point of all SaplEnforcementPoints for the
@@ -82,7 +78,7 @@ public class MongoProxyInterceptor<T> implements MethodInterceptor {
         this.enforcementData = new QueryManipulationEnforcementData<>(null, beanFactory, null, pdp, null);
     }
 
-    @SneakyThrows
+    @SneakyThrows // // Throwable by proceed() method, ClassNotFoundException
     public Object invoke(MethodInvocation methodInvocation) {
 
         var repositoryMethod = methodInvocation.getMethod();
@@ -160,7 +156,7 @@ public class MongoProxyInterceptor<T> implements MethodInterceptor {
         return methodInvocation.proceed();
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked") // casting domain type from Class<?> to Class<T>
     private Class<T> extractDomainType(Class<?> repository) throws ClassNotFoundException {
         Type[] repositoryTypes = repository.getGenericInterfaces();
 
@@ -177,33 +173,4 @@ public class MongoProxyInterceptor<T> implements MethodInterceptor {
                 + " could not be found as an extension of the " + repository);
     }
 
-    /**
-     * To avoid duplicate code and for simplicity, fluxes were used in all
-     * EnforcementPoints, even if the database method expects a mono. Therefore, at
-     * this point it must be checked here what the return type is and transformed
-     * accordingly. In addition, the case that a non-reactive type, such as a list
-     * or collection, is expected is also covered.
-     *
-     * @param databaseObjects     are the already manipulated objects, which are
-     *                            queried with the manipulated query.
-     * @param returnClassOfMethod is the type which the database method expects as
-     *                            return type.
-     * @return the manipulated objects transformed to the correct type accordingly.
-     */
-    @SneakyThrows
-    private Object convertReturnTypeIfNecessary(Flux<T> databaseObjects, Class<?> returnClassOfMethod) {
-        if (isFlux(returnClassOfMethod)) {
-            return databaseObjects;
-        }
-
-        if (isMono(returnClassOfMethod)) {
-            return databaseObjects.next();
-        }
-
-        if (isListOrCollection(returnClassOfMethod)) {
-            return databaseObjects.collectList().toFuture().get();
-        }
-
-        throw new ClassNotFoundException("Return type of method not supported: " + returnClassOfMethod);
-    }
 }

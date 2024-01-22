@@ -40,7 +40,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.springdatacommon.database.MethodInvocationForTesting;
+import io.sapl.springdatacommon.database.R2dbcMethodInvocationForTesting;
 import io.sapl.springdatacommon.database.R2dbcPersonRepository;
 import io.sapl.springdatacommon.database.TestClass;
 import io.sapl.springdatacommon.handlers.AuthorizationSubscriptionHandlerProvider;
@@ -57,9 +57,9 @@ class AuthorizationSubscriptionHandlerProviderTest {
             .of("method", "", "", "test");
     private final AuthorizationSubscription actionAndResourceAuthSub                 = AuthorizationSubscription.of("",
             "find_all_by_firstname_reactive_r2dbc_repository", "resource", "");
-    private final MethodInvocation          methodInvocation                         = new MethodInvocationForTesting(
+    private final MethodInvocation          methodInvocation                         = new R2dbcMethodInvocationForTesting(
             "findAllByFirstname", new ArrayList<>(List.of(String.class)), null, null);
-    private final MethodInvocation          methodInvocationWithoutEnforceAnnotation = new MethodInvocationForTesting(
+    private final MethodInvocation          methodInvocationWithoutEnforceAnnotation = new R2dbcMethodInvocationForTesting(
             "findAllByAge", new ArrayList<>(List.of(int.class)), null, null);
 
     @Mock
@@ -94,7 +94,7 @@ class AuthorizationSubscriptionHandlerProviderTest {
     @Test
     void when_annotationIsAvailableButNotCompleteAndBeanIsAvailable1_then_getAuthSub() {
         // GIVEN
-        var methodInvocationForTesting = new MethodInvocationForTesting("findAllByFirstname",
+        var methodInvocationForTesting = new R2dbcMethodInvocationForTesting("findAllByFirstname",
                 new ArrayList<>(List.of(String.class)), null, null);
         var correctAuthSub             = AuthorizationSubscription.of("method",
                 "find_all_by_firstname_reactive_r2dbc_repository", "resource", "test");
@@ -120,7 +120,7 @@ class AuthorizationSubscriptionHandlerProviderTest {
     @Test
     void when_annotationIsAvailableButNotCompleteAndBeanIsAvailable2_then_getAuthSub() {
         // GIVEN
-        var methodInvocationForTesting = new MethodInvocationForTesting("findAllByFirstname",
+        var methodInvocationForTesting = new R2dbcMethodInvocationForTesting("findAllByFirstname",
                 new ArrayList<>(List.of(String.class)), null, null);
         var correctAuthSub             = AuthorizationSubscription.of("",
                 "find_all_by_firstname_reactive_r2dbc_repository", "resource", "environment");

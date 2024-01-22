@@ -81,15 +81,18 @@ public class DataManipulationHandler<T> {
 
             if (isContentFilterResponsible && isJsonContentFilterPredicateResponsible) {
                 return data.filter(handleFilter(jsonContentFilterPredicateObligation))
-                        .map(handleTransformation(filterJsonContentObligation)).map(toDomainObject());
+                        .map(handleTransformation(filterJsonContentObligation))
+                        .map(toDomainObject(isRelationalDatabase));
             }
 
             if (!isContentFilterResponsible && isJsonContentFilterPredicateResponsible) {
-                return data.filter(handleFilter(jsonContentFilterPredicateObligation)).map(toDomainObject());
+                return data.filter(handleFilter(jsonContentFilterPredicateObligation))
+                        .map(toDomainObject(isRelationalDatabase));
             }
 
             if (isContentFilterResponsible) {
-                return data.map(handleTransformation(filterJsonContentObligation)).map(toDomainObject());
+                return data.map(handleTransformation(filterJsonContentObligation))
+                        .map(toDomainObject(isRelationalDatabase));
             }
 
             return data;
@@ -101,8 +104,12 @@ public class DataManipulationHandler<T> {
      *
      * @return the converted object.
      */
-    public Function<Object, T> toDomainObject() {
-        return databaseObject -> OID_MAPPER.convertValue(databaseObject, domainType);
+    public Function<Object, T> toDomainObject(boolean isRelationalDatabase) {
+        if (isRelationalDatabase) {
+            return databaseObject -> MAPPER.convertValue(databaseObject, domainType);
+        } else {
+            return databaseObject -> OID_MAPPER.convertValue(databaseObject, domainType);
+        }
     }
 
     /**

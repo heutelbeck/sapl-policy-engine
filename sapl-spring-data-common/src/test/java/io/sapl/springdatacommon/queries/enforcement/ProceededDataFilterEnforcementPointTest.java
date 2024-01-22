@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.bson.types.ObjectId;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,9 +45,11 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
-import io.sapl.springdatacommon.database.MethodInvocationForTesting;
+import io.sapl.springdatacommon.database.R2dbcMethodInvocationForTesting;
+import io.sapl.springdatacommon.database.MongoReactiveMethodInvocationForTesting;
 import io.sapl.springdatacommon.database.Person;
 import io.sapl.springdatacommon.database.Role;
+import io.sapl.springdatacommon.database.User;
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatacommon.sapl.queries.enforcement.ProceededDataFilterEnforcementPoint;
 import io.sapl.springdatacommon.handlers.DataManipulationHandler;
@@ -60,11 +63,21 @@ class ProceededDataFilterEnforcementPointTest {
     final Person emerson = new Person(2, "Emerson", "Rowat", 82, Role.USER, false);
     final Person yul     = new Person(3, "Yul", "Barukh", 79, Role.USER, true);
 
-    final Flux<Person> data = Flux.just(malinda, emerson, yul);
+    final ObjectId malindaUserId = new ObjectId("5399aba6e4b0ae375bfdca88");
+    final ObjectId emersonUserId = new ObjectId("5399aba6e4b0ae375bfdca88");
+    final ObjectId yulUserId     = new ObjectId("5399aba6e4b0ae375bfdca88");
+
+    final User malindaUser = new User(malindaUserId, "Malinda", 53, Role.ADMIN);
+    final User emersonUser = new User(emersonUserId, "Emerson", 82, Role.USER);
+    final User yulUser     = new User(yulUserId, "Yul", 79, Role.USER);
+
+    final Flux<Person> data     = Flux.just(malinda, emerson, yul);
+    final Flux<User>   dataUser = Flux.just(malindaUser, emersonUser, yulUser);
 
     static final ObjectMapper MAPPER           = new ObjectMapper();
     static final ArrayNode    EMPTY_ARRAY_NODE = MAPPER.createArrayNode();
-    static ArrayNode          OBLIGATIONS;
+    static ArrayNode          OBLIGATIONS_R2DBC;
+    static ArrayNode          OBLIGATIONS_MONGO_REACTIVE;
 
     EmbeddedPolicyDecisionPoint pdpMock;
 
@@ -72,12 +85,12 @@ class ProceededDataFilterEnforcementPointTest {
     void beforeEach() throws JsonMappingException, JsonProcessingException {
         constraintHandlerUtilsMock = mockStatic(ConstraintHandlerUtils.class);
         pdpMock                    = mock(EmbeddedPolicyDecisionPoint.class);
-        OBLIGATIONS                = MAPPER.readValue("""
+        OBLIGATIONS_R2DBC          = MAPPER.readValue("""
                     		[
                   {
                     "type": "r2dbcQueryManipulation",
                     "conditions": [
-                      "{'role':  {'$in': ['USER']}}"
+                      "role IN('USER')"
                     ]
                   },
                   {
@@ -102,6 +115,37 @@ class ProceededDataFilterEnforcementPointTest {
                   }
                 ]
                     		""", ArrayNode.class);
+
+        OBLIGATIONS_MONGO_REACTIVE = MAPPER.readValue("""
+                   [
+                    {
+                      "type": "r2dbcQueryManipulation",
+                      "conditions": [
+                        "{'role':  {'$in': ['USER']}}"
+                      ]
+                    },
+                    {
+                      "type": "filterJsonContent",
+                      "actions": [
+                        {
+                          "type": "blacken",
+                          "path": "$.firstname",
+                          "discloseLeft": 2
+                        }
+                      ]
+                    },
+                    {
+                      "type": "jsonContentFilterPredicate",
+                      "conditions": [
+                        {
+                          "type": "==",
+                          "path": "$.id",
+                          "value": "a1"
+                        }
+                      ]
+                    }
+                  ]
+                """, ArrayNode.class);
     }
 
     @AfterEach
@@ -111,12 +155,15 @@ class ProceededDataFilterEnforcementPointTest {
 
     MockedStatic<ConstraintHandlerUtils> constraintHandlerUtilsMock;
 
-    private final MethodInvocationForTesting r2dbcMethodInvocationTest = new MethodInvocationForTesting(
+    private final R2dbcMethodInvocationForTesting r2dbcMethodInvocationTest = new R2dbcMethodInvocationForTesting(
+            "findAllByFirstname", new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of("Cathrin")), null);
+
+    private final MongoReactiveMethodInvocationForTesting mongoReactiveMethodInvocationTest = new MongoReactiveMethodInvocationForTesting(
             "findAllByFirstname", new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of("Cathrin")), null);
 
     @Test
-    @SuppressWarnings("rawtypes")
-    void when_actionWasFoundInPolicies_then_enforce() throws JsonProcessingException {
+    @SuppressWarnings("rawtypes") // mocking of generic types
+    void when_actionWasFoundInPolicies_then_enforceR2dbc() throws JsonProcessingException {
         try (MockedConstruction<DataManipulationHandler> dataManipulationHandlerMockedConstruction = Mockito
                 .mockConstruction(DataManipulationHandler.class)) {
             // GIVEN
@@ -130,45 +177,77 @@ class ProceededDataFilterEnforcementPointTest {
             // WHEN
             when(pdpMock.decide(any(AuthorizationSubscription.class)))
                     .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT)));
-            when(dataManipulationHandler.manipulate(OBLIGATIONS)).thenReturn((data) -> this.data);
+            when(dataManipulationHandler.manipulate(OBLIGATIONS_R2DBC)).thenReturn((data) -> this.data);
             constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)))
                     .thenReturn(EMPTY_ARRAY_NODE);
             constraintHandlerUtilsMock
                     .when(() -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)))
-                    .thenReturn(OBLIGATIONS);
+                    .thenReturn(OBLIGATIONS_R2DBC);
             var testUserFlux = proceededDataFilterEnforcementPoint.enforce();
 
             // THEN
             StepVerifier.create(testUserFlux).expectNext(malinda).expectNext(emerson).expectNext(yul).verifyComplete();
 
-            verify(dataManipulationHandler, times(1)).manipulate(OBLIGATIONS);
+            verify(dataManipulationHandler, times(1)).manipulate(OBLIGATIONS_R2DBC);
         }
     }
 
     @Test
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings("rawtypes") // mocking of generic types
+    void when_actionWasFoundInPolicies_then_enforceMongoReactive() throws JsonProcessingException {
+        try (MockedConstruction<DataManipulationHandler> dataManipulationHandlerMockedConstruction = Mockito
+                .mockConstruction(DataManipulationHandler.class)) {
+            // GIVEN
+            var authSub         = AuthorizationSubscription.of("", "permitTest", "");
+            var enforcementData = new QueryManipulationEnforcementData<>(mongoReactiveMethodInvocationTest, null,
+                    User.class, pdpMock, authSub);
+
+            var proceededDataFilterEnforcementPoint = new ProceededDataFilterEnforcementPoint<>(enforcementData, false);
+            var dataManipulationHandler             = dataManipulationHandlerMockedConstruction.constructed().get(0);
+
+            // WHEN
+            when(pdpMock.decide(any(AuthorizationSubscription.class)))
+                    .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT)));
+            when(dataManipulationHandler.manipulate(OBLIGATIONS_MONGO_REACTIVE)).thenReturn((data) -> this.dataUser);
+            constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)))
+                    .thenReturn(EMPTY_ARRAY_NODE);
+            constraintHandlerUtilsMock
+                    .when(() -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)))
+                    .thenReturn(OBLIGATIONS_MONGO_REACTIVE);
+            var testUserFlux = proceededDataFilterEnforcementPoint.enforce();
+
+            // THEN
+            StepVerifier.create(testUserFlux).expectNext(malindaUser).expectNext(emersonUser).expectNext(yulUser)
+                    .verifyComplete();
+
+            verify(dataManipulationHandler, times(1)).manipulate(OBLIGATIONS_MONGO_REACTIVE);
+        }
+    }
+
+    @Test
+    @SuppressWarnings("rawtypes") // mocking of generic types
     void when_actionWasFoundInPoliciesButProceededDataCantBeConverted_then_throwRuntimeException()
             throws JsonProcessingException {
         try (MockedConstruction<DataManipulationHandler> dataManipulationHandlerMockedConstruction = Mockito
                 .mockConstruction(DataManipulationHandler.class)) {
             // GIVEN
-            MethodInvocationForTesting r2dbcMethodInvocationTest           = new MethodInvocationForTesting(
+            R2dbcMethodInvocationForTesting r2dbcMethodInvocationTest           = new R2dbcMethodInvocationForTesting(
                     "findAllByFirstname", new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of("Cathrin")),
                     new Throwable());
-            var                        authSub                             = AuthorizationSubscription.of("",
+            var                             authSub                             = AuthorizationSubscription.of("",
                     "permitTest", "");
-            var                        enforcementData                     = new QueryManipulationEnforcementData<>(
+            var                             enforcementData                     = new QueryManipulationEnforcementData<>(
                     r2dbcMethodInvocationTest, null, Person.class, pdpMock, authSub);
-            var                        proceededDataFilterEnforcementPoint = new ProceededDataFilterEnforcementPoint<>(
+            var                             proceededDataFilterEnforcementPoint = new ProceededDataFilterEnforcementPoint<>(
                     enforcementData, true);
 
             var dataManipulationHandler = dataManipulationHandlerMockedConstruction.constructed().get(0);
-            when(dataManipulationHandler.manipulate(OBLIGATIONS)).thenReturn((data) -> this.data);
+            when(dataManipulationHandler.manipulate(OBLIGATIONS_R2DBC)).thenReturn((data) -> this.data);
             constraintHandlerUtilsMock.when(() -> ConstraintHandlerUtils.getAdvice(any(AuthorizationDecision.class)))
                     .thenReturn(EMPTY_ARRAY_NODE);
             constraintHandlerUtilsMock
                     .when(() -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)))
-                    .thenReturn(OBLIGATIONS);
+                    .thenReturn(OBLIGATIONS_R2DBC);
             when(pdpMock.decide(any(AuthorizationSubscription.class)))
                     .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT)));
 
@@ -178,7 +257,7 @@ class ProceededDataFilterEnforcementPointTest {
             // THEN
             StepVerifier.create(accessDeniedException).expectError(RuntimeException.class).verify();
 
-            verify(dataManipulationHandler, times(0)).manipulate(OBLIGATIONS);
+            verify(dataManipulationHandler, times(0)).manipulate(OBLIGATIONS_R2DBC);
         }
     }
 

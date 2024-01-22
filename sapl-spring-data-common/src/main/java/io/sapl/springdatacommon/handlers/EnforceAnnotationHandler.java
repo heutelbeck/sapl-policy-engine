@@ -31,7 +31,9 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -158,8 +160,10 @@ public class EnforceAnnotationHandler {
      *
      * @param jsonString is the json string.
      * @return the converted JsonNode.
+     * @throws JsonProcessingException
+     * @throws JsonMappingException
      */
-    @SneakyThrows
+    @SneakyThrows // throws JsonMappingException, JsonProcessingException
     private JsonNode buildJsonNodeByString(Object jsonString) {
         var objectMapper = new ObjectMapper().enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
         return objectMapper.readTree(jsonString.toString());
@@ -193,7 +197,6 @@ public class EnforceAnnotationHandler {
      *      parameter 'staticClasses' contains the corresponding static class. The
      *      value from the {@link EvaluationContext} is extracted.
      */
-    @SneakyThrows
     private Object getObjectByStaticClassWhenValueStartsWithHash(String annotationValue, Class<?>[] staticClasses) {
         var methodName = StringUtils.substringBetween(annotationValue, "#", "(");
 
@@ -209,7 +212,7 @@ public class EnforceAnnotationHandler {
      *      parameter 'staticClasses' contains the corresponding static class. The
      *      value from the {@link EvaluationContext} is extracted.
      */
-    @SneakyThrows
+    @SneakyThrows // NoSuchMethodException
     private Object findMethodAndParseExpression(String methodName, Class<?>[] staticClasses, String annotationValue) {
         for (Class<?> clazz : staticClasses) {
             var methods = clazz.getDeclaredMethods();

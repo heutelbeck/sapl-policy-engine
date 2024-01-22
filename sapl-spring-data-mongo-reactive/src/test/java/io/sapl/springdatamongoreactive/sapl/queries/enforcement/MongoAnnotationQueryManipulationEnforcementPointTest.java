@@ -52,7 +52,6 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
 import io.sapl.springdatacommon.handlers.DataManipulationHandler;
-import io.sapl.springdatacommon.handlers.LoggingConstraintHandlerProvider;
 import io.sapl.springdatacommon.handlers.QueryManipulationObligationProvider;
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatacommon.sapl.queries.enforcement.QueryAnnotationParameterResolver;
@@ -63,6 +62,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+@SuppressWarnings("rawtypes") // mocking of generic types
 class MongoAnnotationQueryManipulationEnforcementPointTest {
 
     static final ObjectMapper MAPPER                        = new ObjectMapper();
@@ -148,8 +148,7 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
     void when_thereAreConditionsInTheDecision_then_enforce() {
         try (MockedConstruction<QueryManipulationObligationProvider> QueryManipulationObligationProviderMockedConstruction = mockConstruction(
                 QueryManipulationObligationProvider.class)) {
-            try (@SuppressWarnings("rawtypes")
-            MockedConstruction<DataManipulationHandler> dataManipulationHandler = mockConstruction(
+            try (MockedConstruction<DataManipulationHandler> dataManipulationHandler = mockConstruction(
                     DataManipulationHandler.class)) {
                 // GIVEN
                 var expectedQuery             = new BasicQuery(
@@ -247,8 +246,7 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
     void when_mongoQueryManipulationObligationIsResponsibleIsFalse_then_proceedWithoutQueryManipulation() {
         try (MockedConstruction<QueryManipulationObligationProvider> QueryManipulationObligationProviderMockedConstruction = mockConstruction(
                 QueryManipulationObligationProvider.class)) {
-            try (@SuppressWarnings("rawtypes")
-            MockedConstruction<DataManipulationHandler> dataManipulationHandler = mockConstruction(
+            try (MockedConstruction<DataManipulationHandler> dataManipulationHandler = mockConstruction(
                     DataManipulationHandler.class)) {
 
                 // GIVEN
@@ -315,8 +313,7 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
     void when_mongoQueryManipulationObligationIsResponsibleIsFalseAndReturnTypeIsMono_then_proceedWithoutQueryManipulation() {
         try (MockedConstruction<QueryManipulationObligationProvider> QueryManipulationObligationProviderMockedConstruction = mockConstruction(
                 QueryManipulationObligationProvider.class)) {
-            try (@SuppressWarnings("rawtypes")
-            MockedConstruction<DataManipulationHandler> dataManipulationHandler = mockConstruction(
+            try (MockedConstruction<DataManipulationHandler> dataManipulationHandler = mockConstruction(
                     DataManipulationHandler.class)) {
 
                 // GIVEN
@@ -383,8 +380,7 @@ class MongoAnnotationQueryManipulationEnforcementPointTest {
     void when_mongoQueryManipulationObligationIsResponsibleIsFalseAndReturnTypeIsMono_then_throwThrowable() {
         try (MockedConstruction<QueryManipulationObligationProvider> QueryManipulationObligationProviderMockedConstruction = mockConstruction(
                 QueryManipulationObligationProvider.class)) {
-            try (@SuppressWarnings("rawtypes")
-            MockedConstruction<DataManipulationHandler> dataManipulationHandler = mockConstruction(
+            try (MockedConstruction<DataManipulationHandler> dataManipulationHandler = mockConstruction(
                     DataManipulationHandler.class)) {
 
                 // GIVEN

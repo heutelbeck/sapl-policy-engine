@@ -39,8 +39,6 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class PartTreeToSqlQueryStringConverter {
 
-    private final static String LIKE = "LIKE";
-
     /**
      * Builds the corresponding Sql-Query with the information of a
      * {@link QueryManipulationEnforcementData} object.
@@ -178,7 +176,7 @@ public class PartTreeToSqlQueryStringConverter {
      * @param domainType is the domain type.
      * @return created {@link SqlCondition}.
      */
-    @SneakyThrows
+    @SneakyThrows // NoSuchFieldException
     private <T> SqlCondition and(Part part, Object argument, Class<T> domainType) {
         var operator  = OperatorR2dbc.valueOf(part.getType().name());
         var fieldType = domainType.getDeclaredField(part.getProperty().toDotPath()).getType();

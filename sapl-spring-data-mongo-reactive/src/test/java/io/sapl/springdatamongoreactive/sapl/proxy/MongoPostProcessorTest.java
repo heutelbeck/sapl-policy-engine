@@ -15,41 +15,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatar2dbc.sapl.proxy;
+package io.sapl.springdatamongoreactive.sapl.proxy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.data.r2dbc.repository.support.R2dbcRepositoryFactoryBean;
+import org.springframework.data.mongodb.repository.support.ReactiveMongoRepositoryFactoryBean;
 
-@SpringBootTest(classes = R2dbcPostProcessor.class)
-class R2dbcPostProcessorTest {
+@SpringBootTest(classes = MongoPostProcessor.class)
+class MongoPostProcessorTest {
 
     @Autowired
-    R2dbcPostProcessor r2dbcPostProcessor;
+    MongoPostProcessor mongoPostProcessor;
 
     @MockBean
-    R2dbcCustomizer r2dbcCustomizerMock;
+    MongoCustomizer mongoCustomizerMock;
 
     @Mock
-    R2dbcRepositoryFactoryBean<?, ?, ?> r2dbcRepositoryFactoryBeanMock;
+    ReactiveMongoRepositoryFactoryBean<?, ?, ?> reactiveMongoRepositoryFactoryBeanMock;
 
     @Test
     void when_R2dbcRepositoryFactoryBeanExists_then_addRepositoryFactoryCustomizer() {
         // GIVEN
 
         // WHEN
-        var result = r2dbcPostProcessor.postProcessBeforeInitialization(r2dbcRepositoryFactoryBeanMock,
-                "r2dbcRepositoryFactoryBean");
+        var result = mongoPostProcessor.postProcessBeforeInitialization(reactiveMongoRepositoryFactoryBeanMock,
+                "reactiveMongoRepositoryFactoryBean");
 
         // THEN
-        assertEquals(result, r2dbcRepositoryFactoryBeanMock);
-        verify(r2dbcRepositoryFactoryBeanMock, Mockito.times(1)).addRepositoryFactoryCustomizer(r2dbcCustomizerMock);
+        assertEquals(result, reactiveMongoRepositoryFactoryBeanMock);
+        verify(reactiveMongoRepositoryFactoryBeanMock, times(1)).addRepositoryFactoryCustomizer(mongoCustomizerMock);
     }
 }

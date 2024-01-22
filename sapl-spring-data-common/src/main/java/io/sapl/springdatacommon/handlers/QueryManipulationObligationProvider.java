@@ -22,7 +22,6 @@ import static io.sapl.springdatacommon.sapl.utils.Utilities.TYPE;
 
 import java.util.Objects;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -46,11 +45,7 @@ public class QueryManipulationObligationProvider {
     public ArrayNode getConditions(JsonNode obligation) {
         if (obligation.has(CONDITIONS) && obligation.get(CONDITIONS).isArray() && !obligation.get(CONDITIONS).isNull()
                 && !obligation.get(CONDITIONS).isEmpty()) {
-            try {
-                return MAPPER.readValue(obligation.get(CONDITIONS).toString(), ArrayNode.class);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
+            return (ArrayNode) obligation.get(CONDITIONS);
         }
         return MAPPER.createArrayNode();
     }

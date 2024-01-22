@@ -27,7 +27,6 @@ import org.springframework.util.Assert;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
-import lombok.SneakyThrows;
 
 /**
  * This service takes care of obtaining the AuthorizationSubscription to execute
@@ -82,7 +81,6 @@ public class AuthorizationSubscriptionHandlerProvider {
      *                         {@link org.aopalliance.intercept.MethodInterceptor}
      * @return the found AuthorizationSubscription
      */
-    @SneakyThrows
     public AuthorizationSubscription getAuthSub(Class<?> repoClass, MethodInvocation methodInvocation,
             Enforce enforceAnnotation) {
 

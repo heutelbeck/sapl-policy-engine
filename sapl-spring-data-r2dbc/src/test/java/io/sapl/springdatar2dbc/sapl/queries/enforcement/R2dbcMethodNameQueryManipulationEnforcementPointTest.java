@@ -67,6 +67,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+@SuppressWarnings({ "unchecked", "rawtypes" }) // mocking of generic types
 class R2dbcMethodNameQueryManipulationEnforcementPointTest {
 
     private static final ObjectMapper          MAPPER                        = new ObjectMapper();
@@ -87,7 +88,6 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTest {
 
     EmbeddedPolicyDecisionPoint pdpMock         = mock(EmbeddedPolicyDecisionPoint.class);
     BeanFactory                 beanFactoryMock = mock(BeanFactory.class, Answers.RETURNS_DEEP_STUBS);
-    @SuppressWarnings("unchecked")
     Flux<Map<String, Object>>   fluxMap         = mock(Flux.class);
 
     MockedStatic<ConstraintHandlerUtils>            constraintHandlerUtilsMock;
@@ -227,7 +227,6 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTest {
     }
 
     @Test
-    @SuppressWarnings("rawtypes")
     void when_thereAreConditionsInTheDecision_then_enforce() {
         try (MockedConstruction<QueryManipulationObligationProvider> QueryManipulationObligationProviderMockedConstruction = Mockito
                 .mockConstruction(QueryManipulationObligationProvider.class)) {
@@ -271,7 +270,7 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTest {
 
                     var dataManipulationHandler = dataManipulationHandlerMockedConstruction.constructed().get(0);
                     when(dataManipulationHandler.manipulate(OBLIGATIONS)).thenReturn(obligations -> Flux.just(malinda));
-                    when(dataManipulationHandler.toDomainObject()).thenReturn(obligations -> Flux.just(malinda));
+                    when(dataManipulationHandler.toDomainObject(true)).thenReturn(obligations -> Flux.just(malinda));
 
                     var queryManipulationExecutor = queryManipulationExecutorMockedConstruction.constructed().get(0);
                     when(queryManipulationExecutor.execute(anyString(), eq(Person.class))).thenReturn(fluxMap);
@@ -297,7 +296,6 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTest {
     }
 
     @Test
-    @SuppressWarnings("rawtypes")
     void when_thereAreConditionsInTheDecisionWithConjunctionAnd_then_enforce() {
         try (MockedConstruction<QueryManipulationObligationProvider> QueryManipulationObligationProviderMockedConstruction = Mockito
                 .mockConstruction(QueryManipulationObligationProvider.class)) {
@@ -342,7 +340,7 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTest {
                     var dataManipulationHandler = dataManipulationHandlerMockedConstruction.constructed().get(0);
                     when(dataManipulationHandler.manipulate(OBLIGATION_WITH_CONJUNCTION_AND))
                             .thenReturn(obligations -> Flux.just(malinda));
-                    when(dataManipulationHandler.toDomainObject()).thenReturn(obligations -> Flux.just(malinda));
+                    when(dataManipulationHandler.toDomainObject(true)).thenReturn(obligations -> Flux.just(malinda));
 
                     var queryManipulationExecutor = queryManipulationExecutorMockedConstruction.constructed().get(0);
                     when(queryManipulationExecutor.execute(anyString(), eq(Person.class))).thenReturn(fluxMap);
@@ -368,7 +366,6 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTest {
     }
 
     @Test
-    @SuppressWarnings("rawtypes")
     void when_thereAreConditionsInTheDecisionWithConjunctionOr_then_enforce() {
         try (MockedConstruction<QueryManipulationObligationProvider> QueryManipulationObligationProviderMockedConstruction = Mockito
                 .mockConstruction(QueryManipulationObligationProvider.class)) {
@@ -413,7 +410,7 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTest {
                     var dataManipulationHandler = dataManipulationHandlerMockedConstruction.constructed().get(0);
                     when(dataManipulationHandler.manipulate(OBLIGATION_WITH_CONJUNCTION_OR))
                             .thenReturn(obligations -> Flux.just(malinda));
-                    when(dataManipulationHandler.toDomainObject()).thenReturn(obligations -> Flux.just(malinda));
+                    when(dataManipulationHandler.toDomainObject(true)).thenReturn(obligations -> Flux.just(malinda));
 
                     var queryManipulationExecutor = queryManipulationExecutorMockedConstruction.constructed().get(0);
                     when(queryManipulationExecutor.execute(anyString(), eq(Person.class))).thenReturn(fluxMap);
@@ -439,7 +436,6 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTest {
     }
 
     @Test
-    @SuppressWarnings("rawtypes")
     void when_decisionIsNotPermit_then_throwAccessDeniedException() {
         try (MockedConstruction<QueryManipulationObligationProvider> QueryManipulationObligationProviderMockedConstruction = Mockito
                 .mockConstruction(QueryManipulationObligationProvider.class)) {
@@ -479,7 +475,6 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTest {
     }
 
     @Test
-    @SuppressWarnings({ "unchecked", "rawtypes" })
     void when_r2dbcQueryManipulationObligationIsResponsibleIsFalse_then_proceedWithoutQueryManipulation() {
         try (MockedConstruction<QueryManipulationObligationProvider> QueryManipulationObligationProviderMockedConstruction = Mockito
                 .mockConstruction(QueryManipulationObligationProvider.class)) {
@@ -517,7 +512,7 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTest {
 
                     var dataManipulationHandler = dataManipulationHandlerMockedConstruction.constructed().get(0);
                     when(dataManipulationHandler.manipulate(OBLIGATIONS)).thenReturn(obligations -> Flux.just(malinda));
-                    when(dataManipulationHandler.toDomainObject()).thenReturn(obligations -> Flux.just(malinda));
+                    when(dataManipulationHandler.toDomainObject(true)).thenReturn(obligations -> Flux.just(malinda));
 
                     // THEN
                     var result = r2dbcMethodNameQueryManipulationEnforcementPoint.enforce();
@@ -541,7 +536,6 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTest {
     }
 
     @Test
-    @SuppressWarnings({ "unchecked", "rawtypes" })
     void when_r2dbcQueryManipulationObligationIsResponsibleIsFalseAndReturnTypeIsMono_then_proceedWithoutQueryManipulation() {
         try (MockedConstruction<QueryManipulationObligationProvider> QueryManipulationObligationProviderMockedConstruction = Mockito
                 .mockConstruction(QueryManipulationObligationProvider.class)) {
@@ -579,7 +573,7 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTest {
 
                     var dataManipulationHandler = dataManipulationHandlerMockedConstruction.constructed().get(0);
                     when(dataManipulationHandler.manipulate(OBLIGATIONS)).thenReturn(obligations -> Flux.just(malinda));
-                    when(dataManipulationHandler.toDomainObject()).thenReturn(obligations -> Flux.just(malinda));
+                    when(dataManipulationHandler.toDomainObject(true)).thenReturn(obligations -> Flux.just(malinda));
 
                     // THEN
                     var result = r2dbcMethodNameQueryManipulationEnforcementPoint.enforce();
@@ -603,7 +597,6 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTest {
     }
 
     @Test
-    @SuppressWarnings({ "unchecked", "rawtypes" })
     void when_r2dbcQueryManipulationObligationIsResponsibleIsFalseAndReturnTypeIsMono_then_throwThrowable() {
         try (MockedConstruction<QueryManipulationObligationProvider> QueryManipulationObligationProviders = Mockito
                 .mockConstruction(QueryManipulationObligationProvider.class)) {
@@ -640,7 +633,7 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTest {
 
                     var dataManipulationHandler = dataManipulationHandlerMockedConstruction.constructed().get(0);
                     when(dataManipulationHandler.manipulate(OBLIGATIONS)).thenReturn(obligations -> Flux.just(malinda));
-                    when(dataManipulationHandler.toDomainObject()).thenReturn(obligations -> Flux.just(malinda));
+                    when(dataManipulationHandler.toDomainObject(true)).thenReturn(obligations -> Flux.just(malinda));
 
                     var throwableException = r2dbcMethodNameQueryManipulationEnforcementPoint.enforce();
 

@@ -15,27 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatamongoreactive.sapl.queries.enforcement;
+package io.sapl.springdatar2dbc.sapl.database.repositoryerror;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import java.lang.reflect.InvocationTargetException;
-
-import org.junit.jupiter.api.Test;
-
-class ReflectedMongoQueryCreatorTest {
-
-    @Test
-    void when_getDeclaredConstructor_then_returnRealMongoQueryCreatorConstructor() {
-        // GIVEN
-        var reflectedMongoQueryCreator = new ReflectedMongoQueryCreator();
-
-        // WHEN
-
-        // THEN
-        assertThrows(InvocationTargetException.class, () -> reflectedMongoQueryCreator
-                .getDeclaredConstructor(String.class, String.class, String.class, String.class));
-
-    }
+public interface R2dbcRepositoryNotFoundExceptionTest<T, ID> {
 
 }

@@ -46,12 +46,14 @@ import io.sapl.springdatar2dbc.database.MethodInvocationForTesting;
 import io.sapl.springdatar2dbc.database.Person;
 import io.sapl.springdatar2dbc.database.Role;
 import io.sapl.springdatar2dbc.sapl.QueryManipulationEnforcementPointFactory;
+import io.sapl.springdatar2dbc.sapl.database.repositoryerror.MethodInvocationForRepositoryError;
 import io.sapl.springdatar2dbc.sapl.queries.enforcement.R2dbcAnnotationQueryManipulationEnforcementPoint;
 import io.sapl.springdatar2dbc.sapl.queries.enforcement.R2dbcMethodNameQueryManipulationEnforcementPoint;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+@SuppressWarnings("unchecked") // mocking of generic types
 class R2dbcProxyInterceptorTest {
 
     final Person malinda = new Person(1, "Malinda", "Perrot", 53, Role.ADMIN, true);
@@ -69,7 +71,6 @@ class R2dbcProxyInterceptorTest {
     EmbeddedPolicyDecisionPoint                              pdpMock;
 
     @BeforeEach
-    @SuppressWarnings("unchecked")
     void beforeEach() {
         authSubHandlerMock = mock(AuthorizationSubscriptionHandlerProvider.class);
         factoryMock        = mock(QueryManipulationEnforcementPointFactory.class);
@@ -108,7 +109,6 @@ class R2dbcProxyInterceptorTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void when_repositoryMethodHasAnnotationQuery_then_callAnnotationQueryEnforcementPoint() {
         // GIVEN
         var authSub              = AuthorizationSubscription.of("subject", "permitTest", "resource", "environment");
@@ -138,7 +138,6 @@ class R2dbcProxyInterceptorTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void when_repositoryMethodIsQueryMethod_then_callMongoMethodNameQueryManipulationEnforcementPoint() {
         // GIVEN
         var authSub              = AuthorizationSubscription.of("subject", "permitTest", "resource", "environment");
@@ -170,7 +169,6 @@ class R2dbcProxyInterceptorTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void when_repositoryMethodIsQueryMethod_then_callProceededDataFilterEnforcementPoint() {
         // GIVEN
         var authSub              = AuthorizationSubscription.of("subject", "permitTest", "resource", "environment");
@@ -199,7 +197,6 @@ class R2dbcProxyInterceptorTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void when_repositoryMethodIsQueryMethodAndReturnTypeIsMono_then_callMongoMethodNameQueryManipulationEnforcementPoint() {
         // GIVEN
         var authSub              = AuthorizationSubscription.of("subject", "permitTest", "resource", "environment");
@@ -229,7 +226,6 @@ class R2dbcProxyInterceptorTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void when_repositoryMethodIsQueryMethodAndReturnTypeIsList_then_callMongoMethodNameQueryManipulationEnforcementPoint() {
 
         // GIVEN
@@ -260,7 +256,6 @@ class R2dbcProxyInterceptorTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void when_repositoryMethodIsQueryMethodAndReturnTypeIsStream_then_throwNotImplementedError() {
 
         // GIVEN
@@ -293,7 +288,6 @@ class R2dbcProxyInterceptorTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void when_repositoryMethodHasNoSaplProtectedAnnotation_then_proceedMethodCall() {
         // GIVEN
         var authSub              = AuthorizationSubscription.of("subject", "permitTest", "resource", "environment");
@@ -321,5 +315,28 @@ class R2dbcProxyInterceptorTest {
                 .createR2dbcMethodNameQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class));
         verify(factoryMock, never())
                 .createProceededDataFilterEnforcementPoint(any(QueryManipulationEnforcementData.class));
+    }
+
+    @Test
+    void when_customRepositoryDoesNotExtendSpringDataRepository_then_throwClassCastException() {
+
+        // GIVEN
+        var authSub                            = AuthorizationSubscription.of("subject", "permitTest", "resource",
+                "environment");
+        var methodInvocationForRepositoryError = new MethodInvocationForRepositoryError("findAllByFirstname",
+                new ArrayList<>(List.of(String.class)), null, null);
+
+        // WHEN
+        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class), any())).thenReturn(authSub);
+
+        var proxyMongoHandler = new R2dbcProxyInterceptor<>(authSubHandlerMock, beanFactoryMock, pdpMock, factoryMock);
+
+        // THEN
+        ClassNotFoundException thrown = assertThrows(ClassNotFoundException.class,
+                () -> proxyMongoHandler.invoke(methodInvocationForRepositoryError));
+
+        assertEquals(
+                "The interface org.springframework.data.r2dbc.repository.R2dbcRepository or interface org.springframework.data.repository.reactive.ReactiveCrudRepository could not be found as an extension of the interface io.sapl.springdatar2dbc.sapl.database.repositoryerror.RepositoryNotFoundExceptionTest",
+                thrown.getMessage());
     }
 }

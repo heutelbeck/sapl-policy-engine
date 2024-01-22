@@ -74,7 +74,7 @@ class SaplPartTreeCriteriaCreatorTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked") // generic types in arguments of methods that are mocked
     void when_policyDecisionContainsQueryManipulationConditions_then_createManipulatedQuery() {
 
         try (MockedConstruction<MongoQueryCreatorFactory> mockedConstruction = mockConstruction(
@@ -144,7 +144,7 @@ class SaplPartTreeCriteriaCreatorTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked") // generic types in arguments of methods that are mocked
     void when_policyDecisionContainsQueryManipulationWithOrCondition_then_createManipulatedQuery() {
 
         try (MockedConstruction<MongoQueryCreatorFactory> mockedConstruction = mockConstruction(

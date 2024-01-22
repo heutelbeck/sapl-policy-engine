@@ -66,7 +66,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-@SuppressWarnings("rawtypes")
+@SuppressWarnings("rawtypes") // mocking of generic types
 class R2dbcAnnotationQueryManipulationEnforcementPointTest {
 
     private static final ObjectMapper MAPPER                        = new ObjectMapper();
@@ -85,7 +85,7 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTest {
 
     R2dbcEntityTemplate       r2dbcEntityTemplateMock = mock(R2dbcEntityTemplate.class, Answers.RETURNS_DEEP_STUBS);
     BeanFactory               beanFactoryMock         = mock(BeanFactory.class);
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked") // mocking of generic type
     Flux<Map<String, Object>> fluxMap                 = mock(Flux.class);;
 
     MockedStatic<ConstraintHandlerUtils>           constraintHandlerUtilsMock;
@@ -191,7 +191,7 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTest {
                     var dataManipulationHandler = dataManipulationHandlerMockedConstruction.constructed().get(0);
                     when(dataManipulationHandler.manipulate(any(JsonNode.class)))
                             .thenReturn(obligations -> malindaAsFlux);
-                    when(dataManipulationHandler.toDomainObject()).thenReturn(obligations -> malinda);
+                    when(dataManipulationHandler.toDomainObject(true)).thenReturn(obligations -> malinda);
 
                     var QueryManipulationObligationProviderMock = QueryManipulationObligationProviderMockedConstruction
                             .constructed().get(0);
@@ -265,7 +265,7 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTest {
 
                     var dataManipulationHandler = dataManipulationHandlerMockedConstruction.constructed().get(0);
                     when(dataManipulationHandler.manipulate(OBLIGATIONS)).thenReturn(obligations -> Flux.just(malinda));
-                    when(dataManipulationHandler.toDomainObject()).thenCallRealMethod();
+                    when(dataManipulationHandler.toDomainObject(true)).thenCallRealMethod();
 
                     var QueryManipulationObligationProviderMock = QueryManipulationObligationProviderMockedConstruction
                             .constructed().get(0);
@@ -369,7 +369,7 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTest {
 
                     when(dataManipulationHandler.constructed().get(0).manipulate(OBLIGATIONS))
                             .thenReturn(obligations -> malindaAsFlux);
-                    when(dataManipulationHandler.constructed().get(0).toDomainObject())
+                    when(dataManipulationHandler.constructed().get(0).toDomainObject(true))
                             .thenReturn(obligations -> malinda);
 
                     var QueryManipulationObligationProviderMock = QueryManipulationObligationProviderMockedConstruction
@@ -439,7 +439,7 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTest {
 
                     when(dataManipulationHandler.constructed().get(0).manipulate(OBLIGATIONS))
                             .thenReturn(obligations -> malindaAsFlux);
-                    when(dataManipulationHandler.constructed().get(0).toDomainObject())
+                    when(dataManipulationHandler.constructed().get(0).toDomainObject(true))
                             .thenReturn(obligations -> malinda);
 
                     var QueryManipulationObligationProviderMock = QueryManipulationObligationProviderMockedConstruction
@@ -510,7 +510,7 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTest {
 
                     when(dataManipulationHandler.constructed().get(0).manipulate(OBLIGATIONS))
                             .thenReturn(obligations -> malindaAsFlux);
-                    when(dataManipulationHandler.constructed().get(0).toDomainObject())
+                    when(dataManipulationHandler.constructed().get(0).toDomainObject(true))
                             .thenReturn(obligations -> malinda);
 
                     var QueryManipulationObligationProviderMock = QueryManipulationObligationProviderMockedConstruction
@@ -580,7 +580,7 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTest {
                     var dataManipulationHandler = dataManipulationHandlerMockedConstruction.constructed().get(0);
                     when(dataManipulationHandler.manipulate(any(JsonNode.class)))
                             .thenReturn(obligations -> malindaAsFlux);
-                    when(dataManipulationHandler.toDomainObject()).thenReturn(obligations -> malinda);
+                    when(dataManipulationHandler.toDomainObject(true)).thenReturn(obligations -> malinda);
 
                     var QueryManipulationObligationProviderMock = QueryManipulationObligationProviderMockedConstruction
                             .constructed().get(0);

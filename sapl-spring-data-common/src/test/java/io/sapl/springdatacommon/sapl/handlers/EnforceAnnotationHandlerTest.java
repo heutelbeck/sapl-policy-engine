@@ -39,7 +39,7 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.springdatacommon.database.MethodInvocationForTesting;
+import io.sapl.springdatacommon.database.R2dbcMethodInvocationForTesting;
 import io.sapl.springdatacommon.database.R2dbcTestService;
 import io.sapl.springdatacommon.handlers.EnforceAnnotationHandler;
 
@@ -60,7 +60,7 @@ class EnforceAnnotationHandlerTest {
         // GIVEN
         var expectedResult    = AuthorizationSubscription.of("subject", "general_protection_reactive_r2dbc_repository",
                 "resource", "environment");
-        var methodInvocation  = new MethodInvocationForTesting("findAllByFirstname",
+        var methodInvocation  = new R2dbcMethodInvocationForTesting("findAllByFirstname",
                 new ArrayList<>(List.of(String.class)), null, null);
         var enforceAnnotation = getEnforceAnnotation(methodInvocation.getMethod());
 
@@ -74,7 +74,7 @@ class EnforceAnnotationHandlerTest {
     @Test
     void when_methodHasNoEnforceAnnotationWithStaticValues_then_returnNull() {
         // GIVEN
-        var methodInvocation  = new MethodInvocationForTesting("findAllByAge", new ArrayList<>(List.of(int.class)),
+        var methodInvocation  = new R2dbcMethodInvocationForTesting("findAllByAge", new ArrayList<>(List.of(int.class)),
                 null, null);
         var enforceAnnotation = getEnforceAnnotation(methodInvocation.getMethod());
 
@@ -92,7 +92,7 @@ class EnforceAnnotationHandlerTest {
         MockitoAnnotations.openMocks(beanFactoryMock);
         var expectedResult   = AuthorizationSubscription.of("test value",
                 "general_protection_reactive_r2dbc_repository", "Static class set: field, test value", 56);
-        var methodInvocation = new MethodInvocationForTesting("findAllByAgeAfterAndFirstname",
+        var methodInvocation = new R2dbcMethodInvocationForTesting("findAllByAgeAfterAndFirstname",
                 new ArrayList<>(List.of(int.class, String.class)), new ArrayList<>(List.of(18, "test value")), null);
         var enforceAnnotation = getEnforceAnnotation(methodInvocation.getMethod());
 
@@ -110,7 +110,7 @@ class EnforceAnnotationHandlerTest {
 
         var expectedResult    = AuthorizationSubscription.of("firstname",
                 "general_protection_reactive_r2dbc_repository", "Static class set: firstname, test value", environment);
-        var methodInvocation  = new MethodInvocationForTesting("findAllByFirstnameAndAgeBefore",
+        var methodInvocation  = new R2dbcMethodInvocationForTesting("findAllByFirstnameAndAgeBefore",
                 new ArrayList<>(List.of(String.class, int.class)), new ArrayList<>(List.of("firstname", 4)), null);
         var enforceAnnotation = getEnforceAnnotation(methodInvocation.getMethod());
 
@@ -124,7 +124,7 @@ class EnforceAnnotationHandlerTest {
     @Test
     void when_methodHasAnEnforceAnnotationAndJsonStringIsNotValid_then_throwParseException() {
         // GIVEN
-        var methodInvocation  = new MethodInvocationForTesting("findById", new ArrayList<>(List.of(String.class)),
+        var methodInvocation  = new R2dbcMethodInvocationForTesting("findById", new ArrayList<>(List.of(String.class)),
                 new ArrayList<>(List.of()), null);
         var enforceAnnotation = getEnforceAnnotation(methodInvocation.getMethod());
 
@@ -138,8 +138,8 @@ class EnforceAnnotationHandlerTest {
     @Test
     void when_methodHasAnEnforceAnnotationAndMethodOfStaticClassIsAboutToUseButNoStaticClassInAnnotationAttached_then_throwNoSuchMethodException() {
         // GIVEN
-        var methodInvocation  = new MethodInvocationForTesting("findByIdBefore", new ArrayList<>(List.of(String.class)),
-                new ArrayList<>(List.of()), null);
+        var methodInvocation  = new R2dbcMethodInvocationForTesting("findByIdBefore",
+                new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of()), null);
         var enforceAnnotation = getEnforceAnnotation(methodInvocation.getMethod());
 
         // WHEN
@@ -152,8 +152,8 @@ class EnforceAnnotationHandlerTest {
     @Test
     void when_methodHasAnEnforceAnnotationAndMethodOfStaticClassIsNotTheRightClass_then_throwNoSuchMethodException() {
         // GIVEN
-        var methodInvocation  = new MethodInvocationForTesting("findByIdAfter", new ArrayList<>(List.of(String.class)),
-                new ArrayList<>(List.of()), null);
+        var methodInvocation  = new R2dbcMethodInvocationForTesting("findByIdAfter",
+                new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of()), null);
         var enforceAnnotation = getEnforceAnnotation(methodInvocation.getMethod());
 
         // WHEN
@@ -166,7 +166,7 @@ class EnforceAnnotationHandlerTest {
     @Test
     void when_methodHasAnEnforceAnnotationAndMethodOfStaticClassIsAboutToUseButMethodNotExist_then_throwNoSuchMethodException() {
         // GIVEN
-        var methodInvocation  = new MethodInvocationForTesting("findByIdAndAge",
+        var methodInvocation  = new R2dbcMethodInvocationForTesting("findByIdAndAge",
                 new ArrayList<>(List.of(String.class, int.class)), new ArrayList<>(List.of()), null);
         var enforceAnnotation = getEnforceAnnotation(methodInvocation.getMethod());
 

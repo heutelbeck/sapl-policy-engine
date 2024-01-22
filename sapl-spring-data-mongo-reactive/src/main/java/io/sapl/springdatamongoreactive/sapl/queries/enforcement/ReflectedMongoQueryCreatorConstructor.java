@@ -22,18 +22,16 @@ import java.lang.reflect.InvocationTargetException;
 
 import lombok.SneakyThrows;
 
-class ReflectedMongoQueryCreator {
+class ReflectedMongoQueryCreatorConstructor {
 
-    private static final String MONGO_QUERY_CREATOR_NAME = "org.springframework.data.mongodb.repository.query.MongoQueryCreator";
-    Class<?>                    mongoQueryCreator;
+    Class<?> mongoQueryCreator;
 
-    @SneakyThrows
-    protected ReflectedMongoQueryCreator() {
-        this.mongoQueryCreator = Class.forName(MONGO_QUERY_CREATOR_NAME);
+    @SneakyThrows // ClassNotFoundException by Class.forName
+    protected ReflectedMongoQueryCreatorConstructor(String mongoQueryCreatorName) {
+        this.mongoQueryCreator = Class.forName(mongoQueryCreatorName);
     }
 
-    @SuppressWarnings("rawtypes")
-    protected Constructor getDeclaredConstructor(Class<?> class1, Class<?> class2, Class<?> class3, Class<?> class4)
+    protected Constructor<?> getDeclaredConstructor(Class<?> class1, Class<?> class2, Class<?> class3, Class<?> class4)
             throws InvocationTargetException {
         Constructor<?> constructor = null;
         try {

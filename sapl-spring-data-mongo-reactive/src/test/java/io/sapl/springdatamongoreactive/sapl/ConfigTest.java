@@ -15,8 +15,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatamongoreactive.sapl.database.repositoryerror;
+package io.sapl.springdatamongoreactive.sapl;
 
-public interface R2dbcRepositoryNotFoundExceptionTest<T, ID> {
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+@SpringBootTest(classes = Config.class)
+public class ConfigTest {
+
+    @Autowired
+    Config config;
+
+    @Test
+    void when_applicationStarted_then_configBeanShouldHaveBeenCreated() {
+        // GIVEN
+
+        // WHEN
+
+        // THEN
+        assertNotNull(config);
+    }
 
 }

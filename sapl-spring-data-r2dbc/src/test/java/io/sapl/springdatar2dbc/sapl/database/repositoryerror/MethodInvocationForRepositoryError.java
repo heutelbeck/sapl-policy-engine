@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatacommon.database;
+package io.sapl.springdatar2dbc.sapl.database.repositoryerror;
 
 import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Method;
@@ -26,7 +26,7 @@ import org.aopalliance.intercept.MethodInvocation;
 import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
-public class MethodInvocationForTesting implements MethodInvocation {
+public class MethodInvocationForRepositoryError implements MethodInvocation {
 
     String              methodName;
     ArrayList<Class<?>> argumentClasses;
@@ -36,7 +36,7 @@ public class MethodInvocationForTesting implements MethodInvocation {
     @Override
     public Method getMethod() {
         try {
-            return R2dbcPersonRepository.class.getMethod(methodName,
+            return RepositoryNotFoundExceptionTest.class.getMethod(methodName,
                     argumentClasses.toArray(new Class[argumentClasses.size()]));
         } catch (NoSuchMethodException e) {
             throw new RuntimeException(e);

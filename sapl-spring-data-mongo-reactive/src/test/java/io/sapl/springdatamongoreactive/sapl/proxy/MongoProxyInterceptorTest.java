@@ -49,7 +49,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-@SuppressWarnings("unchecked")
+@SuppressWarnings("unchecked") // mocking of generic types
 class MongoProxyInterceptorTest {
 
     final TestUser aaron   = new TestUser(new ObjectId(), "Aaron", 20);
@@ -308,7 +308,7 @@ class MongoProxyInterceptorTest {
     }
 
     @Test
-    void when_extendedInterfacesOfRepositoryHaveWrongOrder_then_throwClassCastException() {
+    void when_customRepositoryDoesNotExtendSpringDataRepository_then_throwClassCastException() {
 
         // GIVEN
         var authSub                            = AuthorizationSubscription.of("subject", "permitTest", "resource",

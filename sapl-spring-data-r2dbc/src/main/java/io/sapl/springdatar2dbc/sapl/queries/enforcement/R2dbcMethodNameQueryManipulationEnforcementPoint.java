@@ -20,7 +20,6 @@ package io.sapl.springdatar2dbc.sapl.queries.enforcement;
 import static io.sapl.springdatacommon.sapl.utils.ConstraintHandlerUtils.getAdvice;
 import static io.sapl.springdatacommon.sapl.utils.ConstraintHandlerUtils.getObligations;
 
-import java.util.Objects;
 import java.util.function.Function;
 
 import org.springframework.security.access.AccessDeniedException;
@@ -35,8 +34,8 @@ import io.sapl.springdatacommon.handlers.LoggingConstraintHandlerProvider;
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatacommon.handlers.QueryManipulationObligationProvider;
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementPoint;
+import io.sapl.springdatacommon.sapl.utils.HandleProceedingData;
 import io.sapl.springdatar2dbc.sapl.QueryManipulationExecutor;
-import lombok.SneakyThrows;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -109,18 +108,11 @@ public class R2dbcMethodNameQueryManipulationEnforcementPoint<T> implements Quer
      * @return objects from the database that were queried with the manipulated
      *         query.
      */
-    @SneakyThrows
-    @SuppressWarnings("unchecked")
     private Flux<T> retrieveData(ArrayNode obligations) {
         if (queryManipulationObligationProvider.isResponsible(obligations, R2DBC_QUERY_MANIPULATION_TYPE)) {
             return enforceQueryManipulation(obligations);
         } else {
-
-            if (enforcementData.getMethodInvocation().getMethod().getReturnType().equals(Mono.class)) {
-                return Flux.from((Mono<T>) Objects.requireNonNull(enforcementData.getMethodInvocation().proceed()));
-            }
-
-            return (Flux<T>) enforcementData.getMethodInvocation().proceed();
+            return HandleProceedingData.proceed(enforcementData);
         }
     }
 
@@ -135,7 +127,7 @@ public class R2dbcMethodNameQueryManipulationEnforcementPoint<T> implements Quer
         var manipulatedCondition = createSqlQuery(obligations);
 
         return queryManipulationExecutor.execute(manipulatedCondition, enforcementData.getDomainType())
-                .map(dataManipulationHandler.toDomainObject());
+                .map(dataManipulationHandler.toDomainObject(true));
     }
 
     /**

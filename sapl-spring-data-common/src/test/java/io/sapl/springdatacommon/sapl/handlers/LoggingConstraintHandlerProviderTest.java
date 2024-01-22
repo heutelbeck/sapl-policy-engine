@@ -21,7 +21,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -37,17 +36,51 @@ class LoggingConstraintHandlerProviderTest {
     void when_constraintIsResponsible_then_returnTrue() throws JsonProcessingException {
         // GIVEN
         var constraint = MAPPER.readTree("""
-                          		{
+                      		{
                   "id": "log",
                   "message": "You are using SAPL for protection of database."
                 }
-                          		""");
+                      		""");
 
         // WHEN
         var actual = loggingConstraintHandlerProvider.isResponsible(constraint);
 
         // THEN
         assertTrue(actual);
+    }
+
+    @Test
+    void when_constraintHasWrongMessageKey_then_returnFalse() throws JsonProcessingException {
+        // GIVEN
+        var constraint = MAPPER.readTree("""
+                      		{
+                  "id": "log",
+                  "messageTest": "You are using SAPL for protection of database."
+                }
+                      		""");
+
+        // WHEN
+        var actual = loggingConstraintHandlerProvider.isResponsible(constraint);
+
+        // THEN
+        assertFalse(actual);
+    }
+
+    @Test
+    void when_constraintHasWrongLogKey_then_returnFalse() throws JsonProcessingException {
+        // GIVEN
+        var constraint = MAPPER.readTree("""
+                      		{
+                  "id": "logTest",
+                  "message": "You are using SAPL for protection of database."
+                }
+                      		""");
+
+        // WHEN
+        var actual = loggingConstraintHandlerProvider.isResponsible(constraint);
+
+        // THEN
+        assertFalse(actual);
     }
 
     @Test
@@ -65,11 +98,11 @@ class LoggingConstraintHandlerProviderTest {
     void when_constraintIsResponsible_then_returnFalse() throws JsonProcessingException {
         // GIVEN
         var constraintNotValid = MAPPER.readTree("""
-                          		{
+                      		{
                   "idTest": "log",
                   "message": "You are using SAPL for protection of database."
                 }
-                          		""");
+                      		""");
 
         // WHEN
         var actual = loggingConstraintHandlerProvider.isResponsible(constraintNotValid);
@@ -82,16 +115,16 @@ class LoggingConstraintHandlerProviderTest {
     void when_constraintIsResponsible_then_getHandler() throws JsonProcessingException {
         // GIVEN
         var constraint = MAPPER.readTree("""
-                    		{
+                 		{
                   "id": "log",
                   "message": "You are using SAPL for protection of database."
                 }
-                  				""");
-
+                			""");
         // WHEN
         var actual = loggingConstraintHandlerProvider.getHandler(constraint);
 
         // THEN
         assertTrue(Runnable.class.isInstance(actual));
+        actual.run();
     }
 }

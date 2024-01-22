@@ -40,7 +40,6 @@ import org.mockito.Answers;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.BasicQuery;
 import org.springframework.data.mongodb.core.query.Query;
@@ -59,12 +58,12 @@ import io.sapl.springdatacommon.handlers.QueryManipulationObligationProvider;
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatacommon.sapl.utils.ConstraintHandlerUtils;
 import io.sapl.springdatamongoreactive.sapl.database.MethodInvocationForTesting;
-import io.sapl.springdatamongoreactive.sapl.database.MongoDbRepositoryTest;
 import io.sapl.springdatamongoreactive.sapl.database.TestUser;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+@SuppressWarnings("rawtypes") // mocking of generic types
 class MongoMethodNameQueryManipulationEnforcementPointTest {
 
     static final ObjectMapper MAPPER                        = new ObjectMapper();
@@ -141,7 +140,6 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
     }
 
     @Test
-    @SuppressWarnings("rawtypes")
     void when_thereAreConditionsInTheDecision_then_enforce() {
         try (MockedConstruction<QueryManipulationObligationProvider> mongoQueryManipulationObligationProviderMockedConstruction = mockConstruction(
                 QueryManipulationObligationProvider.class)) {
@@ -215,7 +213,6 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
     }
 
     @Test
-    @SuppressWarnings("rawtypes")
     void when_decisionIsNotPermit_then_throwAccessDeniedException() {
         try (MockedConstruction<QueryManipulationObligationProvider> mongoQueryManipulationObligationProviderMockedConstruction = mockConstruction(
                 QueryManipulationObligationProvider.class)) {
@@ -258,7 +255,6 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
     }
 
     @Test
-    @SuppressWarnings("rawtypes")
     void when_mongoQueryManipulationObligationIsResponsibleIsFalse_then_proceedWithoutQueryManipulation() {
         try (MockedConstruction<QueryManipulationObligationProvider> mongoQueryManipulationObligationProviderMockedConstruction = mockConstruction(
                 QueryManipulationObligationProvider.class)) {
@@ -325,7 +321,6 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
     }
 
     @Test
-    @SuppressWarnings("rawtypes")
     void when_mongoQueryManipulationObligationIsResponsibleIsFalseAndReturnTypeIsMono_then_proceedWithoutQueryManipulation() {
         try (MockedConstruction<QueryManipulationObligationProvider> mongoQueryManipulationObligationProviderMockedConstruction = mockConstruction(
                 QueryManipulationObligationProvider.class)) {
@@ -392,7 +387,6 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
     }
 
     @Test
-    @SuppressWarnings("rawtypes")
     void when_mongoQueryManipulationObligationIsResponsibleIsFalseAndReturnTypeIsMono_then_throwThrowable() {
         try (MockedConstruction<QueryManipulationObligationProvider> mongoQueryManipulationObligationProviderMockedConstruction = mockConstruction(
                 QueryManipulationObligationProvider.class)) {

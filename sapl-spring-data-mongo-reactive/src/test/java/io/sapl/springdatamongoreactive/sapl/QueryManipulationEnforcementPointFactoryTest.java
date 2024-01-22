@@ -40,6 +40,7 @@ import io.sapl.springdatamongoreactive.sapl.database.TestUser;
 import io.sapl.springdatamongoreactive.sapl.queries.enforcement.MongoAnnotationQueryManipulationEnforcementPoint;
 import io.sapl.springdatamongoreactive.sapl.queries.enforcement.MongoMethodNameQueryManipulationEnforcementPoint;
 
+@SuppressWarnings("rawtypes") // mocking of generic types
 @SpringBootTest(classes = QueryManipulationEnforcementPointFactory.class)
 class QueryManipulationEnforcementPointFactoryTest {
 
@@ -55,8 +56,7 @@ class QueryManipulationEnforcementPointFactoryTest {
     @Test
     void createMongoAnnotationQueryManipulationEnforcementPoint() {
 
-        try (@SuppressWarnings("rawtypes")
-        MockedConstruction<MongoAnnotationQueryManipulationEnforcementPoint> mongoAnnotationQueryManipulationEnforcementPointMockedConstruction = mockConstruction(
+        try (MockedConstruction<MongoAnnotationQueryManipulationEnforcementPoint> mongoAnnotationQueryManipulationEnforcementPointMockedConstruction = mockConstruction(
                 MongoAnnotationQueryManipulationEnforcementPoint.class)) {
 
             // GIVEN
@@ -77,8 +77,7 @@ class QueryManipulationEnforcementPointFactoryTest {
     @Test
     void createMongoMethodNameQueryManipulationEnforcementPoint() {
 
-        try (@SuppressWarnings("rawtypes")
-        MockedConstruction<MongoMethodNameQueryManipulationEnforcementPoint> mongoMethodNameQueryManipulationEnforcementPointMockedConstruction = mockConstruction(
+        try (MockedConstruction<MongoMethodNameQueryManipulationEnforcementPoint> mongoMethodNameQueryManipulationEnforcementPointMockedConstruction = mockConstruction(
                 MongoMethodNameQueryManipulationEnforcementPoint.class)) {
 
             // GIVEN
@@ -99,8 +98,7 @@ class QueryManipulationEnforcementPointFactoryTest {
     @Test
     void createProceededDataFilterEnforcementPoint() {
 
-        try (@SuppressWarnings("rawtypes")
-        MockedConstruction<ProceededDataFilterEnforcementPoint> proceededDataFilterEnforcementPointMockedConstruction = mockConstruction(
+        try (MockedConstruction<ProceededDataFilterEnforcementPoint> proceededDataFilterEnforcementPointMockedConstruction = mockConstruction(
                 ProceededDataFilterEnforcementPoint.class)) {
 
             // GIVEN

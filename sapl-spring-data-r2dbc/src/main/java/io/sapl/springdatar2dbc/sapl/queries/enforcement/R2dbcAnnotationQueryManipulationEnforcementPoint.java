@@ -20,12 +20,10 @@ package io.sapl.springdatar2dbc.sapl.queries.enforcement;
 import static io.sapl.springdatacommon.sapl.utils.ConstraintHandlerUtils.getAdvice;
 import static io.sapl.springdatacommon.sapl.utils.ConstraintHandlerUtils.getObligations;
 
-import java.util.Objects;
 import java.util.function.Function;
 
 import org.springframework.security.access.AccessDeniedException;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -37,9 +35,8 @@ import io.sapl.springdatacommon.handlers.QueryManipulationObligationProvider;
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementPoint;
 import io.sapl.springdatacommon.sapl.queries.enforcement.QueryAnnotationParameterResolver;
-import io.sapl.springdatacommon.sapl.utils.Utilities;
+import io.sapl.springdatacommon.sapl.utils.HandleProceedingData;
 import io.sapl.springdatar2dbc.sapl.QueryManipulationExecutor;
-import lombok.SneakyThrows;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -119,8 +116,6 @@ public class R2dbcAnnotationQueryManipulationEnforcementPoint<T> implements Quer
      * @return objects from the database that were queried with the manipulated
      *         query.
      */
-    @SneakyThrows
-    @SuppressWarnings("unchecked")
     private Flux<T> retrieveData(ArrayNode obligations, String query) {
 
         if (queryManipulationObligationProvider.isResponsible(obligations, R2DBC_QUERY_MANIPULATION_TYPE)) {
@@ -131,17 +126,9 @@ public class R2dbcAnnotationQueryManipulationEnforcementPoint<T> implements Quer
             var manipulatedCondition             = enforceQueryManipulation(query, condition);
 
             return queryManipulationExecutor.execute(manipulatedCondition, enforcementData.getDomainType())
-                    .map(dataManipulationHandler.toDomainObject());
+                    .map(dataManipulationHandler.toDomainObject(true));
         } else {
-
-            var returnClass  = enforcementData.getMethodInvocation().getMethod().getReturnType();
-            var returnValues = enforcementData.getMethodInvocation().proceed();
-
-            if (Utilities.isMono(returnClass)) {
-                return Flux.from((Mono<T>) Objects.requireNonNull(returnValues));
-            }
-
-            return (Flux<T>) returnValues;
+            return HandleProceedingData.proceed(enforcementData);
         }
     }
 

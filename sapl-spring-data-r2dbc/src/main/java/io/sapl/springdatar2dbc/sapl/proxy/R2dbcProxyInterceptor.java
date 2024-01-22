@@ -38,9 +38,9 @@ import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatacommon.sapl.utils.Utilities;
 import io.sapl.springdatar2dbc.sapl.QueryManipulationEnforcementPointFactory;
 import lombok.SneakyThrows;
-import reactor.core.publisher.Flux;
 
 import static io.sapl.springdatar2dbc.sapl.utils.annotation.AnnotationUtilities.*;
+import static io.sapl.springdatacommon.sapl.utils.Utilities.convertReturnTypeIfNecessary;
 
 /**
  * This service is the gathering point of all SaplEnforcementPoints for the
@@ -79,7 +79,7 @@ public class R2dbcProxyInterceptor<T> implements MethodInterceptor {
         this.enforcementData = new QueryManipulationEnforcementData<>(null, beanFactory, null, pdp, null);
     }
 
-    @SneakyThrows
+    @SneakyThrows // Throwable by proceed() method, ClassNotFoundException
     public Object invoke(MethodInvocation methodInvocation) {
 
         var repositoryMethod = methodInvocation.getMethod();
@@ -145,37 +145,7 @@ public class R2dbcProxyInterceptor<T> implements MethodInterceptor {
         return methodInvocation.proceed();
     }
 
-    /**
-     * To avoid duplicate code and for simplicity, fluxes were used in all
-     * EnforcementPoints, even if the database method expects a mono. Therefore, at
-     * this point it must be checked here what the return type is and transformed
-     * accordingly. In addition, the case that a non-reactive type, such as a list
-     * or collection, is expected is also covered.
-     *
-     * @param databaseObjects     are the already manipulated objects, which are
-     *                            queried with the manipulated query.
-     * @param returnClassOfMethod is the type which the database method expects as
-     *                            return type.
-     * @return the manipulated objects transformed to the correct type accordingly.
-     */
-    @SneakyThrows
-    private Object convertReturnTypeIfNecessary(Flux<T> databaseObjects, Class<?> returnClassOfMethod) {
-        if (Utilities.isFlux(returnClassOfMethod)) {
-            return databaseObjects;
-        }
-
-        if (Utilities.isMono(returnClassOfMethod)) {
-            return databaseObjects.next();
-        }
-
-        if (Utilities.isListOrCollection(returnClassOfMethod)) {
-            return databaseObjects.collectList().toFuture().get();
-        }
-
-        throw new ClassNotFoundException("Return type of method not supported: " + returnClassOfMethod);
-    }
-
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked") // casting domain type from Class<?> to Class<T>
     private Class<T> extractDomainType(Class<?> repository) throws ClassNotFoundException {
         Type[] repositoryTypes = repository.getGenericInterfaces();
 

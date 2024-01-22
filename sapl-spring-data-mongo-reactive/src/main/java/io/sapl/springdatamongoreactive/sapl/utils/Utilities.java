@@ -15,18 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatamongoreactive.sapl.database.repositoryerror;
+package io.sapl.springdatamongoreactive.sapl.utils;
 
-import io.sapl.springdatamongoreactive.sapl.utils.annotation.SaplProtectedMongoReactive;
-import org.bson.types.ObjectId;
+import lombok.experimental.UtilityClass;
 
-import io.sapl.springdatamongoreactive.sapl.database.TestUser;
-import reactor.core.publisher.Flux;
+@UtilityClass
+public class Utilities {
 
-public interface RepositoryNotFoundExceptionTest
-        extends ReactiveMongoRepositoryNotFoundExceptionTest<TestUser, ObjectId> {
-
-    @SaplProtectedMongoReactive
-    Flux<TestUser> findAllByFirstname(String firstname);
+    public static final String MONGO_QUERY_CREATOR_NAME = "org.springframework.data.mongodb.repository.query.MongoQueryCreator";
 
 }
