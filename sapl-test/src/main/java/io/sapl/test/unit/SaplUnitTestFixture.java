@@ -17,10 +17,6 @@
  */
 package io.sapl.test.unit;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.test.SaplTestException;
@@ -29,8 +25,8 @@ import io.sapl.test.coverage.api.CoverageAPIFactory;
 import io.sapl.test.lang.TestSaplInterpreter;
 import io.sapl.test.steps.GivenStep;
 import io.sapl.test.steps.WhenStep;
-import io.sapl.test.utils.ClasspathHelper;
-import reactor.core.Exceptions;
+import io.sapl.test.utils.DocumentHelper;
+import java.util.function.Supplier;
 
 public class SaplUnitTestFixture extends SaplTestFixtureTemplate {
 
@@ -39,7 +35,7 @@ public class SaplUnitTestFixture extends SaplTestFixtureTemplate {
 
             Probably you forgot to call ".setSaplDocumentName("")\"""";
 
-    private final String saplDocumentName;
+    private final Supplier<SAPL> documentRetriever;
 
     /**
      * Fixture for constructing a unit test case
@@ -53,52 +49,34 @@ public class SaplUnitTestFixture extends SaplTestFixtureTemplate {
      *                         configure a relative path like
      *                         {@code "yourSpecialDirectory/policies/myPolicy.sapl"}
      */
-    public SaplUnitTestFixture(String saplDocumentName) {
-        this.saplDocumentName = saplDocumentName;
+    public SaplUnitTestFixture(final String saplDocumentName) {
+        this(saplDocumentName, true);
+    }
+
+    public SaplUnitTestFixture(final String input, final boolean isFileInput) {
+        this.documentRetriever = () -> {
+            if (input == null || input.isEmpty()) {
+                throw new SaplTestException(ERROR_MESSAGE_MISSING_SAPL_DOCUMENT_NAME);
+            }
+            return isFileInput ? DocumentHelper.readSaplDocument(input, getSaplInterpreter())
+                    : DocumentHelper.readSaplDocumentFromInputString(input, getSaplInterpreter());
+        };
     }
 
     @Override
     public GivenStep constructTestCaseWithMocks() {
-        if (this.saplDocumentName == null || this.saplDocumentName.isEmpty()) {
-            throw new SaplTestException(ERROR_MESSAGE_MISSING_SAPL_DOCUMENT_NAME);
-        }
-        return StepBuilder.newBuilderAtGivenStep(readSaplDocument(), this.attributeCtx, this.functionCtx,
+        return StepBuilder.newBuilderAtGivenStep(documentRetriever.get(), this.attributeCtx, this.functionCtx,
                 this.variables);
     }
 
     @Override
     public WhenStep constructTestCase() {
-        if (this.saplDocumentName == null || this.saplDocumentName.isEmpty()) {
-            throw new SaplTestException(ERROR_MESSAGE_MISSING_SAPL_DOCUMENT_NAME);
-        }
-        return StepBuilder.newBuilderAtWhenStep(readSaplDocument(), this.attributeCtx, this.functionCtx,
+        return StepBuilder.newBuilderAtWhenStep(documentRetriever.get(), this.attributeCtx, this.functionCtx,
                 this.variables);
     }
 
-    private SAPL readSaplDocument() {
-        String filename = constructFileEnding(this.saplDocumentName);
-
-        SAPLInterpreter interpreter = new TestSaplInterpreter(
-                CoverageAPIFactory.constructCoverageHitRecorder(resolveCoverageBaseDir()));
-
-        return interpreter.parse(findFileOnClasspath(filename));
-    }
-
-    private String constructFileEnding(String filename) {
-        if (this.saplDocumentName.endsWith(".sapl")) {
-            return filename;
-        } else {
-            return filename + ".sapl";
-        }
-    }
-
-    private String findFileOnClasspath(String filename) {
-        Path path = ClasspathHelper.findPathOnClasspath(getClass().getClassLoader(), filename);
-        try {
-            return Files.readString(path);
-        } catch (IOException e) {
-            throw Exceptions.propagate(e);
-        }
+    private SAPLInterpreter getSaplInterpreter() {
+        return new TestSaplInterpreter(CoverageAPIFactory.constructCoverageHitRecorder(resolveCoverageBaseDir()));
     }
 
 }

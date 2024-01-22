@@ -110,6 +110,10 @@
 		<module>sapl-ide</module>
 		<module>sapl-web</module>
 		<module>sapl-test</module>
+		<module>sapl-test-junit</module>
+		<module>sapl-test-lang</module>
+		<module>sapl-test-ide</module>
+		<module>sapl-test-web</module>
 		<module>sapl-coverage-api</module>
 		<module>sapl-maven-plugin</module>
 		<module>sapl-jwt</module>
@@ -435,6 +439,12 @@
 									src/main/java/io/sapl/grammar/web/SAPLWebSetup.java</exclude>
 								<exclude>
 									src/main/java/io/sapl/grammar/web/SAPLWebModule.java</exclude>
+								<exclude>
+									src/main/java/io/sapl/test/grammar/web/SAPLTestWebSetup.java</exclude>
+								<exclude>
+									src/main/java/io/sapl/test/grammar/web/SAPLTestWebModule.java</exclude>
+								<exclude>model/generated/SAPLTest.ecore</exclude>
+								<exclude>model/generated/SAPLTest.genmodel</exclude>
 								<exclude>src/asciidoc/sapl-grammar.ebnf</exclude>
 							</excludes>
 						</licenseSet>

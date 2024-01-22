@@ -34,6 +34,7 @@ public class TransformFilesToESM {
 
     private static final String FRONTEND_FOLDER_PATH      = "/META-INF/frontend/";
     private static final String SAPL_MODE_FILENAME        = "sapl-mode.js";
+    private static final String SAPL_TEST_MODE_FILENAME   = "sapl-test-mode.js";
     private static final String XTEXT_CODEMIRROR_FILENAME = "xtext-codemirror.js";
 
     /**
@@ -47,6 +48,7 @@ public class TransformFilesToESM {
         var targetFolderPath = classPathDir + FRONTEND_FOLDER_PATH;
 
         convertFileToESM(targetFolderPath + SAPL_MODE_FILENAME, SaplModeConverter::convertToESM);
+        convertFileToESM(targetFolderPath + SAPL_TEST_MODE_FILENAME, SaplModeConverter::convertToESM);
         convertFileToESM(targetFolderPath + XTEXT_CODEMIRROR_FILENAME, XtextCodemirrorConverter::convertToESM);
     }
 
