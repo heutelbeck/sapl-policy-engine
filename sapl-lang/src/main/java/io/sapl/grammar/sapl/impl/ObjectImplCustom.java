@@ -20,7 +20,6 @@ package io.sapl.grammar.sapl.impl;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.stream.IntStream;
 
 import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
@@ -68,12 +67,16 @@ public class ObjectImplCustom extends ObjectImpl {
             var result       = Val.JSON.objectNode();
             var tracedValues = new HashMap<String, Traced>();
             // omit undefined fields
-            IntStream.range(0, values.length).forEach(idx -> {
+            for (var idx = 0; idx < values.length; idx++) {
                 var key   = keys.get(idx);
                 var value = ((Val) values[idx]);
+                if (value.isError()) {
+                    // propagate errors
+                    return value.withTrace(Object.class, tracedValues);
+                }
                 value.ifDefined(val -> result.set(key, val));
                 tracedValues.put(key, value);
-            });
+            }
             return Val.of(result).withTrace(Object.class, tracedValues);
         });
     }

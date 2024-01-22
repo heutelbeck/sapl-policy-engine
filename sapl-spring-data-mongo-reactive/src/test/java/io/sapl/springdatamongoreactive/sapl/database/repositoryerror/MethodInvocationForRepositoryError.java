@@ -36,7 +36,7 @@ public class MethodInvocationForRepositoryError implements MethodInvocation {
     @Override
     public Method getMethod() {
         try {
-            return RepositoryNotFoundExceptionTest.class.getMethod(methodName,
+            return RepositoryNotFoundException.class.getMethod(methodName,
                     argumentClasses.toArray(new Class[argumentClasses.size()]));
         } catch (NoSuchMethodException e) {
             throw new RuntimeException(e);

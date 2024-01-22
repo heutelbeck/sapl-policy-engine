@@ -1,0 +1,206 @@
+/*
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+grammar io.sapl.test.^grammar.SAPLTest with org.eclipse.xtext.common.Terminals
+
+generate sapltest "http://www.sapl.io/test/grammar/SAPLTest"
+
+import "http://www.eclipse.org/emf/2002/Ecore" as ecore
+
+SAPLTest:
+    (testSuites+=TestSuite)+;
+
+// Terminals
+
+terminal JSONNUMBER returns ecore::EBigDecimal: // Definition according to JSON standard  Unary operator for negation/plus prefix
+	('0' | ('1'..'9') DIGIT*) ('.' DIGIT+)? (('E' | 'e') ('+' | '-')? DIGIT+)? ;
+
+terminal fragment DIGIT:
+	('0'..'9') ;
+
+// Enums
+
+enum CombiningAlgorithmEnum:
+    DENY_OVERRIDES='deny-overrides' | PERMIT_OVERRIDES='permit-overrides' | ONLY_ONE_APPLICABLE='only-one-applicable' | DENY_UNLESS_PERMIT='deny-unless-permit' | PERMIT_UNLESS_DENY='permit-unless-deny';
+
+enum AuthorizationDecisionMatcherType:
+    OBLIGATION='obligation' | ADVICE='advice';
+
+enum FunctionLibrary:
+	FILTER='FilterFunctionLibrary' | LOGGING='LoggingFunctionLibrary' | STANDARD='StandardFunctionLibrary' | TEMPORAL='TemporalFunctionLibrary';
+
+enum AuthorizationDecisionType:
+	PERMIT='permit' | DENY='deny' | INDETERMINATE='indeterminate' | NOT_APPLICABLE='notApplicable';
+
+// Matchers
+JsonArrayMatcher: '[' matchers+=JsonNodeMatcher (',' matchers+=JsonNodeMatcher)* ']';
+
+JsonObjectMatcherPair: key=STRING 'is' matcher=JsonNodeMatcher;
+
+JsonObjectMatcher: '{' members+=JsonObjectMatcherPair ('and' members+=JsonObjectMatcherPair)* '}';
+
+JsonNodeMatcher:
+    {IsJsonNull} 'null' |
+    {IsJsonText} 'text' (matcher=StringOrStringMatcher)? |
+    {IsJsonNumber} 'number' (number=JSONNUMBER)? |
+    {IsJsonBoolean} 'boolean' (literal=BooleanLiteral)? |
+    {IsJsonArray} 'array' ('where' matcher=JsonArrayMatcher)? |
+    {IsJsonObject} 'object' ('where' matcher=JsonObjectMatcher)?;
+
+StringOrStringMatcher:
+    {PlainString} text=STRING | StringMatcher;
+
+ValMatcher:
+    {AnyVal} 'any' |
+    {ValWithValue} value=Value |
+    {ValWithMatcher} 'matching' matcher=JsonNodeMatcher |
+    {ValWithError} 'with' 'error' (error=StringOrStringMatcher)?;
+
+DefaultObjectMatcher:
+    {ObjectWithExactMatch} 'equals' equalTo=Value |
+    {ObjectWithMatcher} 'matching' matcher=JsonNodeMatcher;
+
+ExtendedObjectMatcher:
+    DefaultObjectMatcher |
+    {ObjectWithKeyValueMatcher} 'containing' 'key' key=STRING ('with' 'value' 'matching' matcher=JsonNodeMatcher)?;
+
+AuthorizationDecisionMatcher:
+    {AnyDecision} 'any' |
+    {IsDecision} 'is' decision=AuthorizationDecisionType |
+    {HasObligationOrAdvice} 'with' type=AuthorizationDecisionMatcherType (matcher=ExtendedObjectMatcher)? |
+    {HasResource} 'with' 'resource' (matcher=DefaultObjectMatcher)?;
+
+StringMatcher:
+    {StringIsNull} 'null' |
+    {StringIsBlank} 'blank' |
+    {StringIsEmpty} 'empty' |
+    {StringIsNullOrEmpty} 'null-or-empty' |
+    {StringIsNullOrBlank} 'null-or-blank' |
+    {StringIsEqualWithCompressedWhiteSpace} 'equal' 'to' value=STRING 'with' 'compressed' 'whitespace' |
+    {StringIsEqualIgnoringCase} 'equal' 'to' value=STRING 'case-insensitive' |
+    {StringMatchesRegex} 'with' 'regex' regex=STRING |
+    {StringStartsWith} 'starting' 'with' prefix=STRING (caseInsensitive?='case-insensitive')? |
+    {StringEndsWith} 'ending' 'with' postfix=STRING (caseInsensitive?='case-insensitive')? |
+    {StringContains} 'containing' text=STRING (caseInsensitive?='case-insensitive')? |
+    {StringContainsInOrder} 'containing' 'stream' substrings+=STRING (',' substrings+=STRING)* 'in' 'order' |
+    {StringWithLength} 'with' 'length' length=JSONNUMBER;
+
+//SAPL Value Definition
+
+Value:
+	Object | Array | NumberLiteral | StringLiteral | BooleanLiteral | NullLiteral | UndefinedLiteral;
+
+Object returns Value:
+	{Object} '{' (members+=Pair (',' members+=Pair)*)? '}' ;
+
+Pair:
+	key=STRING ':' value=Value;
+
+Array returns Value:
+	{Array} '[' (items+=Value (',' items+=Value)*)? ']' ;
+
+BooleanLiteral returns Value:
+	  {TrueLiteral} 'true'
+	| {FalseLiteral} 'false' ;
+
+StringLiteral returns Value:
+	{StringLiteral} string=STRING ;
+
+NumberLiteral returns Value:
+	{NumberLiteral} number=JSONNUMBER ;
+
+NullLiteral returns Value:
+    {NullLiteral} 'null' ;
+
+UndefinedLiteral returns Value:
+    {UndefinedLiteral} 'undefined' ;
+
+//Step Definition
+
+WhenStep:
+     'when' authorizationSubscription=AuthorizationSubscription;
+
+AuthorizationSubscription:
+	'subject' subject=Value 'attempts' 'action' action=Value 'on' 'resource' resource=Value ('with' 'environment' environment=Value)?;
+
+GivenStep:
+	{Function} 'function' name=STRING ('parameters' 'matching' parameters=FunctionParameters)? 'returns' returnValue=Value ('called' timesCalled=NumericAmount)? |
+	{FunctionInvokedOnce} 'function' name=STRING 'returns' 'stream' returnValue+=Value (',' returnValue+=Value)* |
+	{Attribute} 'attribute' name=STRING ('returns' returnValue+=Value (',' returnValue+=Value)* ('with' 'timing' timing=Duration)?)? |
+	{AttributeWithParameters} 'attribute' name=STRING 'with' 'parent' 'value' parentMatcher=ValMatcher ('and' 'parameters' parameters+=ValMatcher (',' parameters+=ValMatcher)+)? 'returns' returnValue=Value |
+	{VirtualTime} 'virtual-time';
+
+FunctionParameters:
+    matchers+=ValMatcher (',' matchers+=ValMatcher)*;
+
+NumericAmount:
+    {Once} 'once' |
+    {Multiple} amount=JSONNUMBER 'times';
+
+Duration: duration=STRING;
+
+Expectation:
+	{SingleExpect} decision=AuthorizationDecision |
+	{SingleExpectWithMatcher} 'decision' matchers+=AuthorizationDecisionMatcher (',' matchers+=AuthorizationDecisionMatcher)* |
+	{TestException} 'exception' |
+	{RepeatedExpect} ('-' expectSteps+=ExpectOrAdjustmentStep)+;
+
+ExpectOrAdjustmentStep:
+    ExpectStep | AdjustmentStep;
+
+ExpectStep returns ExpectOrAdjustmentStep:
+	{Next} expectedDecision=AuthorizationDecisionType amount=NumericAmount |
+	{NextWithDecision} expectedDecision=AuthorizationDecision |
+	{NextWithMatcher} 'decision' matcher+=AuthorizationDecisionMatcher (',' matcher+=AuthorizationDecisionMatcher)* |
+	{NoEvent} 'no-event' 'for' duration=Duration;
+
+AdjustmentStep returns ExpectOrAdjustmentStep:
+    {AttributeAdjustment} 'let' attribute=STRING 'return' returnValue=Value |
+	{Await} 'wait' duration=Duration;
+
+AuthorizationDecision:
+    decision=AuthorizationDecisionType ('with' 'obligations' obligations+=Value (',' obligations+=Value)*)? ('with' 'resource' resource=Value)? ('with' 'advice' advice+=Value (',' advice+=Value)*)?;
+
+//TestCase and TestSuite
+
+TestSuite:
+    UnitTestSuite | IntegrationTestSuite;
+
+UnitTestSuite:
+	'test' policyName=STRING '{'
+		(testCases+=TestCase)+
+	'}';
+
+IntegrationTestSuite:
+    'test' 'policies' configuration=PolicyResolverConfig
+    ('using' 'variables' pdpVariables=Object)?
+    ('with' combiningAlgorithmDefined?='combining-algorithm' combiningAlgorithm=CombiningAlgorithmEnum)?
+    '{'
+        (testCases+=TestCase)+
+    '}';
+
+PolicyResolverConfig:
+    {PoliciesByIdentifier} 'with' 'identifier' identifier=STRING |
+    {PoliciesByInputString} ('-' policies+=STRING)+ ('with' 'pdp' 'configuration' pdpConfiguration=STRING)?;
+
+TestCase:
+    'scenario' name=STRING ('with' 'environment' environment=Object)? ('register' ('-' registrations+=FixtureRegistration)+)? ('given' ('-' givenSteps+=GivenStep)+)? whenStep=WhenStep 'then' 'expect' expectation=Expectation';';
+
+FixtureRegistration:
+    {Pip} 'PIP' fqn=STRING |
+    {CustomFunctionLibrary} 'custom' 'library' fqn=STRING |
+    {SaplFunctionLibrary} 'library' library=FunctionLibrary;

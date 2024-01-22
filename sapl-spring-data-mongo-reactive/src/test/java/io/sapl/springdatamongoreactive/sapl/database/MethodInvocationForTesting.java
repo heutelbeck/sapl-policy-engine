@@ -36,7 +36,7 @@ public class MethodInvocationForTesting implements MethodInvocation {
     @Override
     public Method getMethod() {
         try {
-            return MongoDbRepositoryTest.class.getMethod(methodName,
+            return ReactiveMongoTestUserRepository.class.getMethod(methodName,
                     argumentClasses.toArray(new Class[argumentClasses.size()]));
         } catch (NoSuchMethodException e) {
             throw new RuntimeException(e);
