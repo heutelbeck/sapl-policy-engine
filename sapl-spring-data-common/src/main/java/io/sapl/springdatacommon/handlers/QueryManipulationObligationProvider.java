@@ -33,7 +33,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
  */
 public class QueryManipulationObligationProvider {
 
-    private final static ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     /**
      * Extracts the query CONDITION of an obligation to apply the the corresponding

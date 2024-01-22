@@ -78,38 +78,22 @@ public class AnnotationUtilities {
 
                 @Override
                 public String subject() {
-                    if (enforceMongoReactive.subject() != null) {
-                        return enforceMongoReactive.subject();
-                    } else {
-                        return "";
-                    }
+                    return checkForNullValue(enforceMongoReactive.subject());
                 }
 
                 @Override
                 public String action() {
-                    if (enforceMongoReactive.action() != null) {
-                        return enforceMongoReactive.action();
-                    } else {
-                        return "";
-                    }
+                    return checkForNullValue(enforceMongoReactive.action());
                 }
 
                 @Override
                 public String resource() {
-                    if (enforceMongoReactive.resource() != null) {
-                        return enforceMongoReactive.resource();
-                    } else {
-                        return "";
-                    }
+                    return checkForNullValue(enforceMongoReactive.resource());
                 }
 
                 @Override
                 public String environment() {
-                    if (enforceMongoReactive.environment() != null) {
-                        return enforceMongoReactive.environment();
-                    } else {
-                        return "";
-                    }
+                    return checkForNullValue(enforceMongoReactive.environment());
                 }
 
                 @Override
@@ -123,5 +107,9 @@ public class AnnotationUtilities {
             };
         }
         return null;
+    }
+
+    private String checkForNullValue(String value) {
+        return value == null ? "" : value;
     }
 }

@@ -54,9 +54,15 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 
     @Override
     public Flux<PrpUpdateEvent> getUpdates() {
-        var seedIndex      = new ImmutableFileIndex(this.watchDir, interpreter);
-        var initialEvent   = seedIndex.getUpdateEvent();
-        var monitoringFlux = FileMonitorUtil.monitorDirectory(watchDir, file -> file.getName().endsWith(SAPL_SUFFIX));
+        var seedIndex    = new ImmutableFileIndex(this.watchDir, interpreter);
+        var initialEvent = seedIndex.getUpdateEvent();
+        // If the predicate filters inside the monitorDirectory by suffix, then no
+        // sub-folders are monitored.
+        // I do not know why. But putting a filter after the monitorDirectory solves the
+        // issue.
+        var monitoringFlux = FileMonitorUtil.monitorDirectory(watchDir, file -> true)
+                .filter(event -> event.file() != null)
+                .filter(event -> event.file().getAbsolutePath().endsWith(SAPL_SUFFIX));
         log.debug("Initial event: {}", initialEvent);
         return Mono.just(initialEvent).concatWith(directoryMonitor(monitoringFlux, seedIndex));
     }

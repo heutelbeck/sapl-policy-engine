@@ -67,6 +67,9 @@ Look up [here][github-fork-guide] how to create a fork and [here][github-fork-pr
 
 Once all required pipelines execute, tests pass and the changes are approved, the pull request will be merged by a maintainer.
 
+We use SonarCloud for static analysis of your code. To avoid issues on 
+SonarCloud, you can use [SonarLint][sonarlint] in your IDE to keep your code clean.
+
 #### Code Style
 
 Maintaining a consistent code style is crucial for our project's readability.
@@ -100,3 +103,4 @@ We strive to achieve a test coverage of at least 95%. Use the integrated tools o
 [eclipse-formatter-definition]: https://help.eclipse.org/latest/index.jsp?topic=%2Forg.eclipse.jdt.doc.user%2Freference%2Fpreferences%2Fjava%2Fcodestyle%2Fref-preferences-formatter.htm
 [github-fork-pr-guide]: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork
 [github-fork-guide]: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo
+[sonarlint]: https://www.sonarsource.com/products/sonarlint/

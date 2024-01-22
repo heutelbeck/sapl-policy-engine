@@ -22,7 +22,6 @@ import java.util.function.Function;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.security.access.AccessDeniedException;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -46,7 +45,7 @@ import reactor.core.publisher.Mono;
  * @param <T> is the domain type.
  */
 public class MongoMethodNameQueryManipulationEnforcementPoint<T> implements QueryManipulationEnforcementPoint<T> {
-    private final static String MONGO_QUERY_MANIPULATION = "mongoQueryManipulation";
+    private static final String MONGO_QUERY_MANIPULATION = "mongoQueryManipulation";
 
     private final QueryManipulationObligationProvider mongoQueryManipulationObligationProvider = new QueryManipulationObligationProvider();
     private final LoggingConstraintHandlerProvider    loggingConstraintHandlerProvider         = new LoggingConstraintHandlerProvider();
@@ -108,7 +107,7 @@ public class MongoMethodNameQueryManipulationEnforcementPoint<T> implements Quer
      * @param conditions are the query conditions of the {@link Decision}
      * @return the queried data from the database.
      */
-    private Flux<T> executeMongoQueryManipulation(JsonNode conditions) {
+    private Flux<T> executeMongoQueryManipulation(ArrayNode conditions) {
         var query = saplPartTreeCriteriaCreator.createManipulatedQuery(conditions);
 
         return reactiveMongoTemplate.find(query, enforcementData.getDomainType());

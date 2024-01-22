@@ -1,5 +1,5 @@
 #
-# Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+# Copyright © 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -79,8 +79,7 @@ jobs:
     - name: Get PR Details
       run: |
         echo "PR=$(cut -d ',' -f 1 pr_data.csv)" >> $GITHUB_ENV
-        echo "BRANCH=$(cut -d ',' -f 2 pr_data.csv)" >> $GITHUB_ENV
-        echo "BASE=$(cut -d ',' -f 3 pr_data.csv)" >> $GITHUB_ENV
+        echo "BASE=$(cut -d ',' -f 2 pr_data.csv)" >> $GITHUB_ENV
         
     - name: Analyse with SonarCloud
       env:
@@ -93,7 +92,6 @@ jobs:
         -Dsonar.projectKey=heutelbeck_sapl-policy-engine
         -Dsonar.java.spotbugs.reportPaths=target/spotbugsXml.xml
         -Dsonar.pullrequest.key=${PR}
-        -Dsonar.pullrequest.branch=${BRANCH}
         -Dsonar.pullrequest.base=${BASE}
 
     - name: Clean up local repository before caching

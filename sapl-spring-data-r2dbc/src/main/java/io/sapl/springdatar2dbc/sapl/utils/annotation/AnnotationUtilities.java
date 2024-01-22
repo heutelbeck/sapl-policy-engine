@@ -78,38 +78,22 @@ public class AnnotationUtilities {
 
                 @Override
                 public String subject() {
-                    if (enforceR2dbc.subject() != null) {
-                        return enforceR2dbc.subject();
-                    } else {
-                        return "";
-                    }
+                    return checkForNullValue(enforceR2dbc.subject());
                 }
 
                 @Override
                 public String action() {
-                    if (enforceR2dbc.action() != null) {
-                        return enforceR2dbc.action();
-                    } else {
-                        return "";
-                    }
+                    return checkForNullValue(enforceR2dbc.action());
                 }
 
                 @Override
                 public String resource() {
-                    if (enforceR2dbc.resource() != null) {
-                        return enforceR2dbc.resource();
-                    } else {
-                        return "";
-                    }
+                    return checkForNullValue(enforceR2dbc.resource());
                 }
 
                 @Override
                 public String environment() {
-                    if (enforceR2dbc.environment() != null) {
-                        return enforceR2dbc.environment();
-                    } else {
-                        return "";
-                    }
+                    return checkForNullValue(enforceR2dbc.environment());
                 }
 
                 @Override
@@ -123,5 +107,9 @@ public class AnnotationUtilities {
             };
         }
         return null;
+    }
+
+    private String checkForNullValue(String value) {
+        return value == null ? "" : value;
     }
 }

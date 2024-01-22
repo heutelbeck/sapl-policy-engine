@@ -144,7 +144,10 @@ public class PartTreeToSqlQueryStringConverter {
      * @return the transformed list as string.
      */
     private String createSqlArgumentArray(Object arg) {
-        List<?> arguments = (List<?>) arg;
+        List<?> arguments = null;
+        if (arg instanceof List) {
+            arguments = (List<?>) arg;
+        }
 
         var arrayList = new ArrayList<String>();
 

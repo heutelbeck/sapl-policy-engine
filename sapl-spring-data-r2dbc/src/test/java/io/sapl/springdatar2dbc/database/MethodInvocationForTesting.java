@@ -60,6 +60,6 @@ public class MethodInvocationForTesting implements MethodInvocation {
 
     @Override
     public AccessibleObject getStaticPart() {
-        return null;
+        throw new InternalError();
     }
 }

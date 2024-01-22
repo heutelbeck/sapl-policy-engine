@@ -19,6 +19,7 @@ package io.sapl.springdatamongoreactive.sapl.utils;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
@@ -28,6 +29,7 @@ import org.springframework.data.repository.query.parser.Part;
 import org.springframework.data.repository.query.parser.PartTree;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.springdatamongoreactive.sapl.OperatorMongoDB;
 import lombok.experimental.UtilityClass;
@@ -80,12 +82,12 @@ public class SaplConditionOperation {
      * Here the functionality of {@link BasicQuery} is used to create
      * {@link SaplCondition} objects. It is assumed that the conditions from the
      * {@link io.sapl.api.pdp.Decision} have the correct structured form of a
-     * mongodb condition.
+     * mongodb condition, which is mongodb query language.
      *
      * @param conditions are the conditions of the {@link io.sapl.api.pdp.Decision}
      * @return list of {@link SaplCondition}
      */
-    public List<SaplCondition> jsonNodeToSaplConditions(JsonNode conditions) {
+    public List<SaplCondition> jsonNodeToSaplConditions(ArrayNode conditions) {
         BasicQuery basicQuery = null;
 
         for (JsonNode condition : conditions) {
@@ -104,6 +106,12 @@ public class SaplConditionOperation {
             return saplConditions;
         }
 
+        convertBasicQueryToSaplConditions(basicQuery, saplConditions);
+
+        return saplConditions;
+    }
+
+    private void convertBasicQueryToSaplConditions(BasicQuery basicQuery, List<SaplCondition> saplConditions) {
         basicQuery.getQueryObject().forEach((String field, Object val) -> {
             if (val instanceof List<?> list) {
                 for (Object object : list) {
@@ -121,8 +129,6 @@ public class SaplConditionOperation {
                 }
             }
         });
-
-        return saplConditions;
     }
 
     /**
@@ -219,7 +225,7 @@ public class SaplConditionOperation {
         return domainTypes;
     }
 
-    private void addNewSaplCondition(List<SaplCondition> saplConditions, String field, Document doc,
+    private void addNewSaplCondition(Collection<SaplCondition> saplConditions, String field, Document doc,
             String conjunction) {
         var operator = OperatorMongoDB.getOperatorByKeyword(doc.keySet().toArray()[0].toString());
         var value    = doc.values().toArray()[0];

@@ -29,7 +29,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.repository.query.parser.PartTree;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.springdatamongoreactive.sapl.utils.SaplCondition;
 import io.sapl.springdatamongoreactive.sapl.utils.SaplConditionOperation;
@@ -73,7 +73,7 @@ public class SaplPartTreeCriteriaCreator<T> {
      *                   {@link io.sapl.api.pdp.Decision}
      * @return a manipulated {@link Query}
      */
-    public Query createManipulatedQuery(JsonNode conditions) {
+    public Query createManipulatedQuery(ArrayNode conditions) {
         // Converts Parameters of the repository method to SaplConditions for further
         // operations.
         var saplParametersFromMethod = SaplConditionOperation.methodToSaplConditions(args, repositoryMethod,
