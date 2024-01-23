@@ -81,21 +81,21 @@ class TestAttributeContextTests {
     void getCodeTemplatesWithPrefixReturnsAllKnownFunctions() {
         var                context   = new TestAttributeContext();
         Collection<String> functions = context.getEnvironmentAttributeCodeTemplates();
-        assertThat(functions, hasItems("clock.now", "clock.millis", "clock.ticker"));
+        assertThat(functions, hasItems("clock.now>", "clock.millis>", "clock.ticker>"));
     }
 
     @Test
     void getAllFullyQualifiedFunctionsReturnsAllKnownFunctions() {
         var                context   = new TestAttributeContext();
         Collection<String> functions = context.getAllFullyQualifiedFunctions();
-        assertThat(functions, hasItems("clock.now", "clock.millis", "clock.ticker"));
+        assertThat(functions, hasItems("clock.now>", "clock.millis>", "clock.ticker>"));
     }
 
     @Test
     void getDocumentedAttributeCodeTemplatesReturnsAllKnownDocumentedCodeTemplates() {
         var                 context   = new TestAttributeContext();
         Map<String, String> functions = context.getDocumentedAttributeCodeTemplates();
-        assertThat(functions, IsMapContaining.hasEntry("clock.now", "documentation"));
+        assertThat(functions, IsMapContaining.hasEntry("<clock.now>", "documentation"));
     }
 
 }
