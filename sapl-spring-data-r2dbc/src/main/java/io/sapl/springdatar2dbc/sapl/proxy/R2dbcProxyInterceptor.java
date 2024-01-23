@@ -17,11 +17,16 @@
  */
 package io.sapl.springdatar2dbc.sapl.proxy;
 
+import static io.sapl.springdatacommon.sapl.utils.Utilities.convertReturnTypeIfNecessary;
+import static io.sapl.springdatar2dbc.sapl.utils.annotation.AnnotationUtilities.convertToEnforce;
+import static io.sapl.springdatar2dbc.sapl.utils.annotation.AnnotationUtilities.hasAnnotationEnforce;
+import static io.sapl.springdatar2dbc.sapl.utils.annotation.AnnotationUtilities.hasAnnotationQuery;
+import static io.sapl.springdatar2dbc.sapl.utils.annotation.AnnotationUtilities.hasAnnotationSaplProtected;
+
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Objects;
 
-import io.sapl.springdatar2dbc.sapl.utils.annotation.EnforceR2dbc;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.BeanFactory;
@@ -37,10 +42,8 @@ import io.sapl.springdatacommon.handlers.AuthorizationSubscriptionHandlerProvide
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatacommon.sapl.utils.Utilities;
 import io.sapl.springdatar2dbc.sapl.QueryManipulationEnforcementPointFactory;
+import io.sapl.springdatar2dbc.sapl.utils.annotation.EnforceR2dbc;
 import lombok.SneakyThrows;
-
-import static io.sapl.springdatar2dbc.sapl.utils.annotation.AnnotationUtilities.*;
-import static io.sapl.springdatacommon.sapl.utils.Utilities.convertReturnTypeIfNecessary;
 
 /**
  * This service is the gathering point of all SaplEnforcementPoints for the

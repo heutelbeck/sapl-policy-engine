@@ -27,11 +27,11 @@ import org.springframework.security.access.AccessDeniedException;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
+import io.sapl.springdatacommon.handlers.DataManipulationHandler;
+import io.sapl.springdatacommon.handlers.LoggingConstraintHandlerProvider;
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementPoint;
 import io.sapl.springdatacommon.sapl.utils.HandleProceedingData;
-import io.sapl.springdatacommon.handlers.DataManipulationHandler;
-import io.sapl.springdatacommon.handlers.LoggingConstraintHandlerProvider;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

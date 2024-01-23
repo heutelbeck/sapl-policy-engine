@@ -26,20 +26,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
-import io.sapl.prp.PolicyRetrievalPoint;
-import io.sapl.prp.PolicyRetrievalResult;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-
 import java.util.List;
 import java.util.stream.Stream;
+
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -47,12 +47,11 @@ import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
+import io.sapl.prp.PolicyRetrievalPoint;
+import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.coverage.api.CoverageHitRecorder;
 import io.sapl.test.lang.TestSaplInterpreter;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import reactor.test.StepVerifier;
 
 class ClasspathPolicyRetrievalPointTests {

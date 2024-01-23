@@ -18,17 +18,19 @@
 
 package io.sapl.test.dsl.lang;
 
-import io.sapl.test.SaplTestException;
-import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
-import io.sapl.test.grammar.SAPLTestStandaloneSetup;
-import io.sapl.test.grammar.sapltest.SAPLTest;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+
 import org.apache.commons.io.IOUtils;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.common.util.WrappedException;
 import org.eclipse.xtext.resource.XtextResourceSet;
+
+import io.sapl.test.SaplTestException;
+import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
+import io.sapl.test.grammar.SAPLTestStandaloneSetup;
+import io.sapl.test.grammar.sapltest.SAPLTest;
 
 public final class DefaultSaplTestInterpreter implements SaplTestInterpreter {
     private static final String DUMMY_RESOURCE_URI = "test:/test1.sapltest";

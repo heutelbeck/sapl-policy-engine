@@ -27,7 +27,10 @@ import static com.spotify.hamcrest.jackson.JsonMatchers.jsonObject;
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonText;
 import static org.hamcrest.Matchers.is;
 
+import org.hamcrest.Matcher;
+
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sapltest.FalseLiteral;
 import io.sapl.test.grammar.sapltest.IsJsonArray;
@@ -41,7 +44,6 @@ import io.sapl.test.grammar.sapltest.PlainString;
 import io.sapl.test.grammar.sapltest.StringMatcher;
 import io.sapl.test.grammar.sapltest.TrueLiteral;
 import lombok.RequiredArgsConstructor;
-import org.hamcrest.Matcher;
 
 @RequiredArgsConstructor
 class JsonNodeMatcherInterpreter {

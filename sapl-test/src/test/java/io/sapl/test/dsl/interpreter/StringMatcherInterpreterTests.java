@@ -24,6 +24,21 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
+import java.util.List;
+
+import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.ParserUtil;
 import io.sapl.test.grammar.sapltest.StringContains;
@@ -41,19 +56,6 @@ import io.sapl.test.grammar.sapltest.StringMatchesRegex;
 import io.sapl.test.grammar.sapltest.StringStartsWith;
 import io.sapl.test.grammar.sapltest.StringWithLength;
 import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
-import java.math.BigDecimal;
-import java.util.List;
-import org.hamcrest.Matcher;
-import org.hamcrest.Matchers;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class StringMatcherInterpreterTests {

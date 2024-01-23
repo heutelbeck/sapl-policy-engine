@@ -17,8 +17,6 @@
  */
 package io.sapl.test.integration;
 
-import io.sapl.test.SaplTestException;
-import io.sapl.test.utils.DocumentHelper;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -26,17 +24,18 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
+import io.sapl.test.SaplTestException;
 import io.sapl.test.utils.ClasspathHelper;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import io.sapl.test.utils.DocumentHelper;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;

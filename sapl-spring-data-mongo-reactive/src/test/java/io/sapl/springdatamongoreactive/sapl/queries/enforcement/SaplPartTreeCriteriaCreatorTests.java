@@ -33,12 +33,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
-import org.mockito.MockedStatic;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.convert.MongoWriter;
@@ -48,10 +44,8 @@ import org.springframework.data.mongodb.repository.query.ConvertingParameterAcce
 import org.springframework.data.mongodb.repository.query.MongoParameterAccessor;
 import org.springframework.data.repository.query.parser.Part;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.springdatamongoreactive.sapl.OperatorMongoDB;
 import io.sapl.springdatamongoreactive.sapl.database.MethodInvocationForTesting;

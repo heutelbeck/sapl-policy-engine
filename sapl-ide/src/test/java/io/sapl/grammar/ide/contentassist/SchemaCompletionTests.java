@@ -163,11 +163,62 @@ class SchemaCompletionTests extends CompletionTests {
     }
 
     @Test
+    void testCompletion_PolicyBody_suggestSchemaPathsAfterDot() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    policy "test" deny where var foo = 1 schema {
+                      "properties": {
+                        "name": {
+                          "type": "object",
+                          "properties": {
+                            "firstname": {"type": "string"}
+                          }
+                        },
+                        "age": {"type": "number"}
+                      }
+                    };
+                    foo.""";
+
+            String cursor = "foo.";
+            it.setModel(policy);
+            it.setLine(11);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("foo.age", "foo.name", "foo.name.firstname");
+                assertProposalsSimple(expected, completionList);
+                var unwanted = List.of("filter.blacken");
+                assertDoesNotContainProposals(unwanted, completionList);
+            });
+        });
+    }
+
+    @Test
     void testCompletion_PolicyBody_getNestedSchemaFromEnvironmentVariable() {
         testCompletion((TestCompletionConfiguration it) -> {
             String policy = "policy \"test\" permit where var bar = 5; var foo = \"test\" schema schema_with_additional_keywords; foo";
             it.setModel(policy);
             it.setColumn(policy.length());
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("foo.subject.age", "foo.subject.name", "foo.subject.name.firstname");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_PolicyBody_getNestedSchemaFromEnvironmentVariable2() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    policy "test" permit where
+                    var foo = "test" schema schema_with_additional_keywords;
+                    foo
+                    var foobar = 1;""";
+            String cursor = "foo";
+            it.setModel(policy);
+            it.setLine(2);
+            it.setColumn(cursor.length());
+
             it.setAssertCompletionList(completionList -> {
                 var expected = List.of("foo.subject.age", "foo.subject.name", "foo.subject.name.firstname");
                 assertProposalsSimple(expected, completionList);
@@ -306,7 +357,7 @@ class SchemaCompletionTests extends CompletionTests {
             it.setModel(policy);
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("subject.name", "subject.age");
+                var expected = List.of("subject", "subject.age", "subject.name", "subject.name.firstname");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -347,6 +398,51 @@ class SchemaCompletionTests extends CompletionTests {
             it.setAssertCompletionList(completionList -> {
                 var expected = List.of("action");
                 assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_SuggestSchemaFromPDPScopedVariable_for_AuthzElement_with_idsteps() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "subject schema general_schema policy \"test\" permit where subject.name";
+            it.setModel(policy);
+            it.setColumn(policy.length());
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("subject.name", "subject.name.firstname");
+                assertProposalsSimple(expected, completionList);
+                var unwanted = List.of("var", "filter.blacken");
+                assertDoesNotContainProposals(unwanted, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_SuggestSchemaFromPDPScopedVariable_for_AuthzElement_with_idsteps_with_trailing_dot() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "subject schema general_schema policy \"test\" permit where subject.name.";
+            it.setModel(policy);
+            it.setColumn(policy.length());
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("subject.name", "subject.name.firstname");
+                assertProposalsSimple(expected, completionList);
+                var unwanted = List.of("var", "filter.blacken");
+                assertDoesNotContainProposals(unwanted, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_SuggestSchemaFromPDPScopedVariable_for_AuthzElement_with_incomplete_id_step() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = "subject schema general_schema policy \"test\" permit where subject.a";
+            it.setModel(policy);
+            it.setColumn(policy.length());
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("subject.age");
+                assertProposalsSimple(expected, completionList);
+                var unwanted = List.of("var", "filter.blacken");
+                assertDoesNotContainProposals(unwanted, completionList);
             });
         });
     }
@@ -655,6 +751,28 @@ class SchemaCompletionTests extends CompletionTests {
 
             it.setAssertCompletionList(completionList -> {
                 var expected = List.of("foo", "foo.name");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_proposal_contains_space() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    subject schema {
+                    "properties":
+                        {
+                         "first name": {"type": "string"}}
+                        }
+                    policy "test" deny where subject
+                    """;
+            String cursor = "policy \"test\" deny where subject";
+            it.setModel(policy);
+            it.setLine(5);
+            it.setColumn(cursor.length());
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("subject.'first name'");
                 assertProposalsSimple(expected, completionList);
             });
         });

@@ -24,11 +24,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
-import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.sapltest.AuthorizationSubscription;
-import io.sapl.test.grammar.sapltest.TestCase;
-import io.sapl.test.steps.ExpectStep;
-import io.sapl.test.steps.WhenStep;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,6 +31,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import io.sapl.test.SaplTestException;
+import io.sapl.test.grammar.sapltest.AuthorizationSubscription;
+import io.sapl.test.grammar.sapltest.TestCase;
+import io.sapl.test.steps.ExpectStep;
+import io.sapl.test.steps.WhenStep;
 
 @ExtendWith(MockitoExtension.class)
 class DefaultExpectStepConstructorTests {

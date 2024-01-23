@@ -23,12 +23,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.sapl.test.SaplTestException;
-import io.sapl.test.dsl.ParserUtil;
-import io.sapl.test.grammar.sapltest.Multiple;
-import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import java.math.BigDecimal;
 import java.util.stream.Stream;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,6 +34,11 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import io.sapl.test.SaplTestException;
+import io.sapl.test.dsl.ParserUtil;
+import io.sapl.test.grammar.sapltest.Multiple;
+import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 
 @ExtendWith(MockitoExtension.class)
 class MultipleInterpreterTests {

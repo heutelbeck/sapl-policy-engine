@@ -29,7 +29,6 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.sapl.springdatacommon.sapl.Enforce;
 import org.aopalliance.intercept.MethodInvocation;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,8 +38,9 @@ import org.springframework.beans.factory.BeanFactory;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
 import io.sapl.springdatacommon.handlers.AuthorizationSubscriptionHandlerProvider;
-import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementPoint;
+import io.sapl.springdatacommon.sapl.Enforce;
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
+import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementPoint;
 import io.sapl.springdatamongoreactive.sapl.QueryManipulationEnforcementPointFactory;
 import io.sapl.springdatamongoreactive.sapl.database.MethodInvocationForTesting;
 import io.sapl.springdatamongoreactive.sapl.database.TestUser;

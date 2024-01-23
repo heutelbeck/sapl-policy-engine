@@ -17,8 +17,8 @@
  */
 package io.sapl.springdatamongoreactive.sapl.queries.enforcement;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;

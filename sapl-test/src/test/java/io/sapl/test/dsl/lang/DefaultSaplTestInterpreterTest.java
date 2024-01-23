@@ -27,17 +27,13 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.inject.Injector;
-import io.sapl.test.SaplTestException;
-import io.sapl.test.TestHelper;
-import io.sapl.test.grammar.SAPLTestStandaloneSetup;
-import io.sapl.test.grammar.sapltest.SAPLTest;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.commons.io.IOUtils;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.common.util.WrappedException;
@@ -50,6 +46,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.google.inject.Injector;
+
+import io.sapl.test.SaplTestException;
+import io.sapl.test.TestHelper;
+import io.sapl.test.grammar.SAPLTestStandaloneSetup;
+import io.sapl.test.grammar.sapltest.SAPLTest;
 
 @ExtendWith(MockitoExtension.class)
 class DefaultSaplTestInterpreterTests {

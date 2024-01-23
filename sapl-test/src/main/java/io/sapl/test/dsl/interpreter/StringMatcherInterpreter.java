@@ -35,6 +35,8 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.Matchers.startsWithIgnoringCase;
 import static org.hamcrest.Matchers.stringContainsInOrder;
 
+import org.hamcrest.Matcher;
+
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sapltest.StringContains;
 import io.sapl.test.grammar.sapltest.StringContainsInOrder;
@@ -50,7 +52,6 @@ import io.sapl.test.grammar.sapltest.StringMatcher;
 import io.sapl.test.grammar.sapltest.StringMatchesRegex;
 import io.sapl.test.grammar.sapltest.StringStartsWith;
 import io.sapl.test.grammar.sapltest.StringWithLength;
-import org.hamcrest.Matcher;
 
 class StringMatcherInterpreter {
     Matcher<? super String> getHamcrestStringMatcher(final StringMatcher stringMatcher) {

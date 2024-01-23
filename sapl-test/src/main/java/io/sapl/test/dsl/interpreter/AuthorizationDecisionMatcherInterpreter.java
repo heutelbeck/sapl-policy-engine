@@ -30,7 +30,10 @@ import static io.sapl.hamcrest.Matchers.isNotApplicable;
 import static io.sapl.hamcrest.Matchers.isPermit;
 import static org.hamcrest.Matchers.is;
 
+import org.hamcrest.Matcher;
+
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sapltest.AnyDecision;
@@ -45,7 +48,6 @@ import io.sapl.test.grammar.sapltest.ObjectWithExactMatch;
 import io.sapl.test.grammar.sapltest.ObjectWithKeyValueMatcher;
 import io.sapl.test.grammar.sapltest.ObjectWithMatcher;
 import lombok.RequiredArgsConstructor;
-import org.hamcrest.Matcher;
 
 @RequiredArgsConstructor
 class AuthorizationDecisionMatcherInterpreter {

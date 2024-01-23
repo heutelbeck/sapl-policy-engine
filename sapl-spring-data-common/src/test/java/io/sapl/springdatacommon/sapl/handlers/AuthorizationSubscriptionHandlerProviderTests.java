@@ -30,7 +30,6 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.sapl.springdatacommon.sapl.Enforce;
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -38,12 +37,14 @@ import org.mockito.MockedConstruction;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.boot.test.context.SpringBootTest;
+
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.springdatacommon.database.R2dbcMethodInvocation;
 import io.sapl.springdatacommon.database.R2dbcPersonRepository;
 import io.sapl.springdatacommon.database.TestClass;
 import io.sapl.springdatacommon.handlers.AuthorizationSubscriptionHandlerProvider;
 import io.sapl.springdatacommon.handlers.EnforceAnnotationHandler;
+import io.sapl.springdatacommon.sapl.Enforce;
 
 @SpringBootTest(classes = AuthorizationSubscriptionHandlerProvider.class)
 class AuthorizationSubscriptionHandlerProviderTests {

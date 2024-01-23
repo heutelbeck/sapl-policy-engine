@@ -38,7 +38,6 @@ import org.mockito.Mockito;
 import org.springframework.security.access.AccessDeniedException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
@@ -46,14 +45,14 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
-import io.sapl.springdatacommon.database.R2dbcMethodInvocation;
 import io.sapl.springdatacommon.database.MongoReactiveMethodInvocation;
 import io.sapl.springdatacommon.database.Person;
+import io.sapl.springdatacommon.database.R2dbcMethodInvocation;
 import io.sapl.springdatacommon.database.Role;
 import io.sapl.springdatacommon.database.User;
+import io.sapl.springdatacommon.handlers.DataManipulationHandler;
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatacommon.sapl.queries.enforcement.ProceededDataFilterEnforcementPoint;
-import io.sapl.springdatacommon.handlers.DataManipulationHandler;
 import io.sapl.springdatacommon.sapl.utils.ConstraintHandlerUtils;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
@@ -83,7 +82,7 @@ class ProceededDataFilterEnforcementPointTests {
     EmbeddedPolicyDecisionPoint pdpMock;
 
     @BeforeAll
-    public static void beforeAll() throws JsonMappingException, JsonProcessingException {
+    public static void beforeAll() throws JsonProcessingException {
         OBLIGATIONS_R2DBC = MAPPER.readValue("""
                     		[
                   {

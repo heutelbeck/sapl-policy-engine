@@ -28,10 +28,26 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.TestHelper;
@@ -43,19 +59,6 @@ import io.sapl.test.grammar.sapltest.StringLiteral;
 import io.sapl.test.grammar.sapltest.TrueLiteral;
 import io.sapl.test.grammar.sapltest.UndefinedLiteral;
 import io.sapl.test.grammar.sapltest.Value;
-import java.math.BigDecimal;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class ValueInterpreterTests {

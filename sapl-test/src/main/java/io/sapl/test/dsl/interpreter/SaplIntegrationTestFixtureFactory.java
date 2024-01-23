@@ -18,8 +18,9 @@
 
 package io.sapl.test.dsl.interpreter;
 
-import io.sapl.test.integration.SaplIntegrationTestFixture;
 import java.util.Collection;
+
+import io.sapl.test.integration.SaplIntegrationTestFixture;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
