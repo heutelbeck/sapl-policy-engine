@@ -38,7 +38,6 @@ import org.mockito.Mockito;
 import org.springframework.security.access.AccessDeniedException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
@@ -83,7 +82,7 @@ class ProceededDataFilterEnforcementPointTests {
     EmbeddedPolicyDecisionPoint pdpMock;
 
     @BeforeAll
-    public static void beforeAll() throws JsonMappingException, JsonProcessingException {
+    public static void beforeAll() throws JsonProcessingException {
         OBLIGATIONS_R2DBC = MAPPER.readValue("""
                     		[
                   {

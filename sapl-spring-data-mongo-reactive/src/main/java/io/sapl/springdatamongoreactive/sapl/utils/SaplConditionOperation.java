@@ -129,17 +129,16 @@ public class SaplConditionOperation {
         return basicQuery;
     }
 
-    private void handleListsOfBasicQuery(List<SaplCondition> saplConditions, List<?> list) {
+    private void handleListsOfBasicQuery(List<SaplCondition> saplConditions, Iterable<?> list) {
         for (Object object : list) {
             if (object instanceof Document doc) {
-                doc.forEach((String field, Object value) -> {
-                    convertDocumentToSaplCondition(saplConditions, field, value, "Or");
-                });
+                doc.forEach((String field, Object value) -> convertDocumentToSaplCondition(saplConditions, field, value,
+                        "Or"));
             }
         }
     }
 
-    private void convertDocumentToSaplCondition(List<SaplCondition> saplConditions, String field, Object value,
+    private void convertDocumentToSaplCondition(Collection<SaplCondition> saplConditions, String field, Object value,
             String conjunction) {
         if (value instanceof Document doc) {
             addNewSaplCondition(saplConditions, field, doc, conjunction);
