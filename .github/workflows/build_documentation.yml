@@ -23,6 +23,9 @@ on:
     branches: [master]
     paths: ["sapl-documentation/**",".github/build_documentation.yml"]
 
+permissions:
+  contents: read
+
 jobs:
   build:
 
