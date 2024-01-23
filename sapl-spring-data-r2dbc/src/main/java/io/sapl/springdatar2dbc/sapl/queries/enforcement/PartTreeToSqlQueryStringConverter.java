@@ -180,7 +180,10 @@ public class PartTreeToSqlQueryStringConverter {
      * @return created {@link SqlCondition}.
      */
     @SneakyThrows // NoSuchFieldException
-    private <T> SqlCondition and(Part part, Object argument, Class<T> domainType) {
+    public <T> SqlCondition and(Part part, Object argument, Class<T> domainType) {
+        if (argument == null) {
+            throw new NullPointerException("The appropriate argument is missing for this part of the method. ");
+        }
         var operator  = OperatorR2dbc.valueOf(part.getType().name());
         var fieldType = domainType.getDeclaredField(part.getProperty().toDotPath()).getType();
 

@@ -21,7 +21,6 @@ import static io.sapl.springdatacommon.sapl.utils.Utilities.CONDITIONS;
 import static io.sapl.springdatacommon.sapl.utils.Utilities.TYPE;
 
 import java.util.Objects;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -57,10 +56,12 @@ public class QueryManipulationObligationProvider {
      * @param obligations which contains all obligations.
      * @return correct obligation.
      */
-    public JsonNode getObligation(ArrayNode obligations, String queryType) {
-        for (JsonNode obligation : obligations) {
+    public JsonNode getObligation(Iterable<JsonNode> obligations, String queryType) {
+        var iterator = obligations.iterator();
+        while (iterator.hasNext()) {
+            var obligation = iterator.next();
             if (obligation != null && obligation.isObject()) {
-                JsonNode type = obligation.get(TYPE);
+                var type = obligation.get(TYPE);
                 if (!Objects.isNull(type) && type.isTextual() && queryType.equals(type.asText())) {
                     return obligation;
                 }
@@ -77,9 +78,11 @@ public class QueryManipulationObligationProvider {
      * @return true if an obligation can be applied.
      */
     public boolean isResponsible(ArrayNode obligations, String queryType) {
-        for (JsonNode obligation : obligations) {
+        var iterator = obligations.iterator();
+        while (iterator.hasNext()) {
+            var obligation = iterator.next();
             if (obligation != null && obligation.isObject()) {
-                JsonNode type = obligation.get(TYPE);
+                var type = obligation.get(TYPE);
                 if (!Objects.isNull(type) && type.isTextual() && queryType.equals(type.asText())) {
                     return true;
                 }
