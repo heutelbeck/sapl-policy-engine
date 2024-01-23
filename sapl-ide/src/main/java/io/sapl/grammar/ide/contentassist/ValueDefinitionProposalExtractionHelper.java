@@ -412,14 +412,14 @@ public class ValueDefinitionProposalExtractionHelper {
                 var stepsString        = combineKeystepsFromBasicEnvironmentAttribute(basicEnvironmentAttribute);
                 var allSchemaTemplates = getAttributeSchemaTemplates(stepsString);
                 var sb                 = new StringBuilder();
-                sb.append("<");
+                sb.append('<');
                 for (int i = 0; i < stepsString.size(); i++) {
                     String step = stepsString.get(i);
                     sb.append(step);
                     if (i < stepsString.size() - 1)
-                        sb.append(".");
+                        sb.append('.');
                     else
-                        sb.append(">");
+                        sb.append('>');
                 }
                 var elementName = sb.toString();
                 var proposals   = constructProposals(elementName, allSchemaTemplates);
