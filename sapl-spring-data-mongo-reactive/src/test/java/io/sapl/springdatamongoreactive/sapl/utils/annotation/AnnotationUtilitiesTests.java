@@ -17,7 +17,7 @@
  */
 package io.sapl.springdatamongoreactive.sapl.utils.annotation;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.lang.annotation.Annotation;
 

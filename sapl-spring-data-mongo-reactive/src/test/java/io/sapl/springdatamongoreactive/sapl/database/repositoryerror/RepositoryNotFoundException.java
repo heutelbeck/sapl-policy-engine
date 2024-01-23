@@ -17,10 +17,10 @@
  */
 package io.sapl.springdatamongoreactive.sapl.database.repositoryerror;
 
-import io.sapl.springdatamongoreactive.sapl.utils.annotation.SaplProtectedMongoReactive;
 import org.bson.types.ObjectId;
 
 import io.sapl.springdatamongoreactive.sapl.database.TestUser;
+import io.sapl.springdatamongoreactive.sapl.utils.annotation.SaplProtectedMongoReactive;
 import reactor.core.publisher.Flux;
 
 public interface RepositoryNotFoundException extends ReactiveMongoRepositoryNotFoundException<TestUser, ObjectId> {

@@ -37,10 +37,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
-import io.sapl.springdatacommon.handlers.DataManipulationHandler;
 import io.sapl.springdatacommon.database.Person;
 import io.sapl.springdatacommon.database.Role;
 import io.sapl.springdatacommon.database.User;
+import io.sapl.springdatacommon.handlers.DataManipulationHandler;
 import io.sapl.springdatacommon.sapl.utils.ConstraintHandlerUtils;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;

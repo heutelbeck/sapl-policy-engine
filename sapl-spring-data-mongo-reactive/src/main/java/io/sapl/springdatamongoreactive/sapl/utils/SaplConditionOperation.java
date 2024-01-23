@@ -20,9 +20,9 @@ package io.sapl.springdatamongoreactive.sapl.utils;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Iterator;
 
 import org.apache.commons.lang3.StringUtils;
 import org.bson.Document;
@@ -31,6 +31,7 @@ import org.springframework.data.repository.query.parser.Part;
 import org.springframework.data.repository.query.parser.PartTree;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.springdatamongoreactive.sapl.OperatorMongoDB;
 import lombok.experimental.UtilityClass;
 
@@ -88,13 +89,13 @@ public class SaplConditionOperation {
      * @return list of {@link SaplCondition}
      */
     public List<SaplCondition> jsonNodeToSaplConditions(Iterable<JsonNode> conditions) {
-    	BasicQuery initialBasicQuery = null;
-        var saplConditions = new ArrayList<SaplCondition>();
+        BasicQuery initialBasicQuery = null;
+        var        saplConditions    = new ArrayList<SaplCondition>();
 
-    	if (!conditions.iterator().hasNext()) {
-    		return saplConditions;
-    	}
-    	
+        if (!conditions.iterator().hasNext()) {
+            return saplConditions;
+        }
+
         var basicQuery = convertJsonNodeToBasicQuery(initialBasicQuery, conditions);
 
         convertBasicQueryToSaplConditions(basicQuery, saplConditions);
@@ -105,40 +106,41 @@ public class SaplConditionOperation {
     private void convertBasicQueryToSaplConditions(BasicQuery basicQuery, List<SaplCondition> saplConditions) {
         basicQuery.getQueryObject().forEach((String field, Object val) -> {
             if (val instanceof List<?> list) {
-            	handleListsOfBasicQuery(saplConditions, list);
+                handleListsOfBasicQuery(saplConditions, list);
             } else {
-            	convertDocumentToSaplCondition(saplConditions, field, val, "And");
+                convertDocumentToSaplCondition(saplConditions, field, val, "And");
             }
         });
     }
-    
+
     private BasicQuery convertJsonNodeToBasicQuery(BasicQuery basicQuery, Iterable<JsonNode> conditions) {
-    	Iterator<JsonNode> iterator = conditions.iterator();
+        Iterator<JsonNode> iterator = conditions.iterator();
         while (iterator.hasNext()) {
-        	var condition = iterator.next();
-	        if (basicQuery == null) {
-	            basicQuery = new BasicQuery(condition.asText());
-	        } else {
-	            var query           = new BasicQuery(condition.asText());
-	            var finalBasicQuery = basicQuery;
-	            query.getQueryObject().forEach((ke, va) -> finalBasicQuery.getQueryObject().append(ke, va));
-	        }
+            var condition = iterator.next();
+            if (basicQuery == null) {
+                basicQuery = new BasicQuery(condition.asText());
+            } else {
+                var query           = new BasicQuery(condition.asText());
+                var finalBasicQuery = basicQuery;
+                query.getQueryObject().forEach((ke, va) -> finalBasicQuery.getQueryObject().append(ke, va));
+            }
         }
-        
+
         return basicQuery;
     }
-    
+
     private void handleListsOfBasicQuery(List<SaplCondition> saplConditions, List<?> list) {
         for (Object object : list) {
             if (object instanceof Document doc) {
                 doc.forEach((String field, Object value) -> {
-                	convertDocumentToSaplCondition(saplConditions, field, value, "Or");
+                    convertDocumentToSaplCondition(saplConditions, field, value, "Or");
                 });
             }
         }
     }
-    
-    private void convertDocumentToSaplCondition(List<SaplCondition> saplConditions, String field, Object value, String conjunction) {
+
+    private void convertDocumentToSaplCondition(List<SaplCondition> saplConditions, String field, Object value,
+            String conjunction) {
         if (value instanceof Document doc) {
             addNewSaplCondition(saplConditions, field, doc, conjunction);
         }

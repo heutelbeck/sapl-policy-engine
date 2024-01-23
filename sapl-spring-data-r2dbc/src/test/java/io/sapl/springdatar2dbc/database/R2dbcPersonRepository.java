@@ -20,12 +20,12 @@ package io.sapl.springdatar2dbc.database;
 import java.util.List;
 import java.util.stream.Stream;
 
-import io.sapl.springdatar2dbc.sapl.utils.annotation.EnforceR2dbc;
-import io.sapl.springdatar2dbc.sapl.utils.annotation.SaplProtectedR2dbc;
 import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.r2dbc.repository.R2dbcRepository;
 import org.springframework.stereotype.Repository;
 
+import io.sapl.springdatar2dbc.sapl.utils.annotation.EnforceR2dbc;
+import io.sapl.springdatar2dbc.sapl.utils.annotation.SaplProtectedR2dbc;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

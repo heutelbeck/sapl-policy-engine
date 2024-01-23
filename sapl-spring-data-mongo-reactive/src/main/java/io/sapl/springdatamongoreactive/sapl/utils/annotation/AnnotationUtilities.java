@@ -17,12 +17,13 @@
  */
 package io.sapl.springdatamongoreactive.sapl.utils.annotation;
 
-import io.sapl.springdatacommon.sapl.Enforce;
-import lombok.experimental.UtilityClass;
-import org.springframework.data.mongodb.repository.Query;
-
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+
+import org.springframework.data.mongodb.repository.Query;
+
+import io.sapl.springdatacommon.sapl.Enforce;
+import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class AnnotationUtilities {
