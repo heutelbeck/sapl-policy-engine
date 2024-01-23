@@ -18,6 +18,8 @@
 
 package io.sapl.test.dsl.interfaces;
 
+import java.util.List;
+
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.grammar.sapltest.FixtureRegistration;
 import io.sapl.test.grammar.sapltest.GivenStep;
@@ -27,7 +29,6 @@ import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.steps.VerifyStep;
 import io.sapl.test.steps.WhenStep;
-import java.util.List;
 
 public interface StepConstructor {
     SaplTestFixture constructTestFixture(List<FixtureRegistration> fixtureRegistrations, TestSuite testSuite);

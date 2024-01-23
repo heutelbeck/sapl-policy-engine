@@ -79,7 +79,7 @@ class AuthorizationSubscriptionItemsCompletionTests extends CompletionTests {
             it.setModel(policy);
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
-                var expectedProposals = List.of("clock.now", "clock.ticker", "clock.millis");
+                var expectedProposals = List.of("<clock.now>", "<clock.ticker>", "<clock.millis>");
                 assertProposalsSimple(expectedProposals, completionList);
             });
         });
@@ -92,7 +92,7 @@ class AuthorizationSubscriptionItemsCompletionTests extends CompletionTests {
             it.setModel(policy);
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
-                var expectedProposals = List.of("clock.now", "clock.ticker", "clock.millis");
+                var expectedProposals = List.of("<clock.now>", "<clock.ticker>", "<clock.millis>");
                 assertProposalsSimple(expectedProposals, completionList);
             });
         });

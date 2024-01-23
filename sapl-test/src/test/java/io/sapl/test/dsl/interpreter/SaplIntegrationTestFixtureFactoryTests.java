@@ -20,9 +20,11 @@ package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
-import io.sapl.test.integration.SaplIntegrationTestFixture;
 import java.util.Collections;
+
 import org.junit.jupiter.api.Test;
+
+import io.sapl.test.integration.SaplIntegrationTestFixture;
 
 class SaplIntegrationTestFixtureFactoryTests {
 

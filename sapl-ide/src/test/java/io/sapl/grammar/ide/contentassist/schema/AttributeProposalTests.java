@@ -17,12 +17,11 @@
  */
 package io.sapl.grammar.ide.contentassist.schema;
 
-import java.util.List;
-
+import io.sapl.grammar.ide.contentassist.CompletionTests;
 import org.eclipse.xtext.testing.TestCompletionConfiguration;
 import org.junit.jupiter.api.Test;
 
-import io.sapl.grammar.ide.contentassist.CompletionTests;
+import java.util.List;
 
 class AttributeProposalTests extends CompletionTests {
 
@@ -30,84 +29,360 @@ class AttributeProposalTests extends CompletionTests {
     void testCompletion_PolicyBody_attribute_without_import() {
 
         testCompletion((TestCompletionConfiguration it) -> {
-            var policy = """
-                    policy "test" deny where ;
-                    var foo = subject.|<temperatur""";
+            String policy = """
+                    policy "test" deny where
+                    subject.<""";
 
-            var cursor = "var foo = subject.|<temperatur";
+            String cursor = "subject.<";
             it.setModel(policy);
             it.setLine(1);
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("temperature.mean(a1, a2)>", "temperature.mean(a1, a2)>.period",
-                        "temperature.mean(a1, a2)>.value", "temperature.now()>", "temperature.now()>.unit",
-                        "temperature.now()>.value", "temperature.predicted(a2)>");
+                var expected = List.of("<temperature.now>.unit", "<temperature.mean(a1, a2)>.value");
                 assertProposalsSimple(expected, completionList);
             });
         });
     }
 
     @Test
-    void testCompletion_PolicyBody_attribute_assigned_to_variable_with_alias_import() {
+    void testCompletion_PolicyBody_attribute_without_import2() {
 
         testCompletion((TestCompletionConfiguration it) -> {
-            var policy = """
-                    import temperature as temp
-                    policy "test" deny where var foo = subject.<temp.mean(a1, a2)>;
-                    foo""";
+            String policy = """
+                    policy "test" deny where
+                    subject.<
+                    var bar = 2;""";
 
-            var cursor = "foo";
-            it.setModel(policy);
-            it.setLine(2);
-            it.setColumn(cursor.length());
-
-            it.setAssertCompletionList(completionList -> {
-                var expected = List.of("foo", "foo.period", "foo.value");
-                assertProposalsSimple(expected, completionList);
-            });
-        });
-    }
-
-    @Test
-    void testCompletion_PolicyBody_variable_assigned_attribute_without_import() {
-
-        testCompletion((TestCompletionConfiguration it) -> {
-            var policy = """
-                    policy "test" deny where var foo = subject.<temperature.mean(a1, a2)>;
-                    fo""";
-
-            var cursor = "fo";
+            String cursor = "subject.<";
             it.setModel(policy);
             it.setLine(1);
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("foo", "foo.period", "foo.value");
+                var expected = List.of("<temperature.now>.unit", "<temperature.mean(a1, a2)>.value");
                 assertProposalsSimple(expected, completionList);
             });
         });
     }
 
     @Test
-    void testCompletion_PolicyBody_variable_assigned_function_with_alias_import() {
+    void testCompletion_PolicyBody_attribute_without_import3() {
 
         testCompletion((TestCompletionConfiguration it) -> {
-            var policy = """
-                    import schemaTest as test
-                    policy "test" deny where var foo = test.dog();
-                    fo""";
+            String policy = """
+                    policy "test" deny where
+                    subject.""";
 
-            var cursor = "fo";
+            String cursor = "subject.";
             it.setModel(policy);
-            it.setLine(2);
+            it.setLine(1);
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("foo.race");
-                assertProposalsSimple(expected, completionList);
-                var unwanted = List.of("foo.name");
+                var unwanted = List.of("<temperature.now>.unit", "<temperature.mean(a1, a2)>.value");
                 assertDoesNotContainProposals(unwanted, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_PolicyBody_attribute_without_import4() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    policy "test" deny where
+                    subject.
+                    var bar = 1;""";
+
+            String cursor = "subject.";
+            it.setModel(policy);
+            it.setLine(1);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var unwanted = List.of("<temperature.now>.unit", "<temperature.mean(a1, a2)>.value");
+                assertDoesNotContainProposals(unwanted, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_PolicyBody_attribute_without_import5() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    policy "test" deny where
+                    var foo = 1;
+                    foo.<""";
+
+            String cursor = "foo.<";
+            it.setModel(policy);
+            it.setLine(2);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("<temperature.now>.unit", "<temperature.mean(a1, a2)>.value");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_PolicyBody_attribute_without_import6() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    policy "test" deny where
+                    var foo = 1;
+                    foo.<
+                    var bar = 2;""";
+
+            String cursor = "foo.<";
+            it.setModel(policy);
+            it.setLine(2);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("<temperature.now>.unit", "<temperature.mean(a1, a2)>.value");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_PolicyBody_attribute_without_import7() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    policy "test" deny where
+                    var foo = 1;
+                    subject.""";
+
+            String cursor = "foo.";
+            it.setModel(policy);
+            it.setLine(2);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var unwanted = List.of("<temperature.now>.unit", "<temperature.mean(a1, a2)>.value");
+                assertDoesNotContainProposals(unwanted, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_PolicyBody_attribute_without_import8() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    policy "test" deny where
+                    var foo = 1;
+                    foo.
+                    var bar = 1;""";
+
+            String cursor = "foo.";
+            it.setModel(policy);
+            it.setLine(2);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var unwanted = List.of("<temperature.now>.unit", "<temperature.mean(a1, a2)>.value");
+                assertDoesNotContainProposals(unwanted, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_PolicyBody_attribute_without_import9() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    subject schema general_schema
+                    policy "test" deny where
+                    subject
+                    var foo = 1;""";
+
+            String cursor = "subject";
+            it.setModel(policy);
+            it.setLine(2);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var unwanted = List.of("<temperature.now>.unit", "<temperature.mean(a1, a2)>.value");
+                assertDoesNotContainProposals(unwanted, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_PolicyBody_attribute_without_import_assigned_to_variable() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    policy "test" deny where
+                    var foo = <temperature.now()>;
+                    fo""";
+
+            String cursor = "fo";
+            it.setModel(policy);
+            it.setLine(2);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("foo.unit");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_PolicyBody_attribute_without_import_assigned_to_variable2() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    policy "test" deny where
+                    var foo = <temperature.now()>;
+                    fo
+                    var bar = 1;""";
+
+            String cursor = "fo";
+            it.setModel(policy);
+            it.setLine(2);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("foo.unit");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_PolicyBody_attribute_with_function_import_assigned_to_variable() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    import temperature.now
+                    policy "test" deny where
+                    var foo = <now>;
+                    fo""";
+
+            String cursor = "fo";
+            it.setModel(policy);
+            it.setLine(3);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("foo.unit");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_PolicyBody_attribute_with_alias_import() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    import temperature as abc
+                    policy "test" deny where
+                    var foo = <ab""";
+
+            String cursor = "var foo = <ab";
+            it.setModel(policy);
+            it.setLine(2);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("<abc.mean(a1, a2)>", "<abc.now>", "<abc.predicted(a2)>");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_PolicyBody_attribute_with_alias_import2() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    import temperature as abc
+                    policy "test" deny where
+                    <ab""";
+
+            String cursor = "<ab";
+            it.setModel(policy);
+            it.setLine(2);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("<abc.mean(a1, a2)>", "<abc.now>", "<abc.predicted(a2)>");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_PolicyBody_attribute_with_alias_import3() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    import temperature as abc
+                    policy "test" deny where
+                    <abc.now>""";
+
+            String cursor = "<abc.now>";
+            it.setModel(policy);
+            it.setLine(2);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("<abc.now>.unit", "<abc.now>.value");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_PolicyBody_attribute_with_library_import_assigned_to_variable() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    import temperature as temp
+                    policy "test" deny where
+                    var foo = <temp.now()>;
+                    fo""";
+
+            String cursor = "fo";
+            it.setModel(policy);
+            it.setLine(3);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("foo.unit");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_PolicyBody_attribute_with_wildcard_import_assigned_to_variable() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    import temperature.*
+                    policy "test" deny where
+                    var foo = <now>;
+                    fo""";
+
+            String cursor = "fo";
+            it.setModel(policy);
+            it.setLine(3);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("foo.unit");
+                assertProposalsSimple(expected, completionList);
             });
         });
     }
@@ -116,62 +391,40 @@ class AttributeProposalTests extends CompletionTests {
     void testCompletion_PolicyBody_attribute() {
 
         testCompletion((TestCompletionConfiguration it) -> {
-            var policy = """
+            String policy = """
                     policy "test" deny where
-                    var foo = subject.<temperature""";
+                    var foo = 1;
+                    foo.<temperature""";
 
-            var cursor = "var foo = subject.<temperature";
+            String cursor = "foo.<temperature";
             it.setModel(policy);
-            it.setLine(1);
+            it.setLine(2);
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("temperature.mean(a1, a2)>", "temperature.mean(a1, a2)>.period",
-                        "temperature.mean(a1, a2)>.value", "temperature.now()>", "temperature.now()>.unit",
-                        "temperature.now()>.value", "temperature.predicted(a2)>");
+                var expected = List.of("<temperature.now>.unit");
                 assertProposalsSimple(expected, completionList);
             });
         });
     }
 
     @Test
-    void testCompletion_PolicyBody_attribute_not_suggest_out_of_scope() {
+    void testCompletion_PolicyBody_attribute2() {
 
         testCompletion((TestCompletionConfiguration it) -> {
-            var policy = """
+            String policy = """
                     policy "test" deny where
-                    foo
-                    var foo = subject.<temperature""";
+                    <temperature.now>.""";
 
-            var cursor = "foo";
+            String cursor = "<temperature.now>.";
             it.setModel(policy);
             it.setLine(1);
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var unwanted = List.of("temperature.mean(a1, a2)>", "temperature.mean(a1, a2)>.period");
-                assertDoesNotContainProposals(unwanted, completionList);
+                var expected = List.of("<temperature.now>.unit");
+                assertProposalsSimple(expected, completionList);
             });
         });
     }
-
-    @Test
-    void testCompletion_PolicyBody_attribute_does_not_exist() {
-
-        testCompletion((TestCompletionConfiguration it) -> {
-            var policy = """
-                    policy "test" deny where
-                    var foo = subject.<temperature.max>""";
-
-            var cursor = "var foo = subject.<temperature.max>";
-            it.setModel(policy);
-            it.setLine(1);
-            it.setColumn(cursor.length());
-
-            it.setAssertCompletionList(completionList -> {
-                assertProposalsSimple(List.of(), completionList);
-            });
-        });
-    }
-
 }

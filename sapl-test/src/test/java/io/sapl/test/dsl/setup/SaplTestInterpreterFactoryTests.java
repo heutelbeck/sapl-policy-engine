@@ -20,8 +20,9 @@ package io.sapl.test.dsl.setup;
 
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
-import io.sapl.test.dsl.lang.DefaultSaplTestInterpreter;
 import org.junit.jupiter.api.Test;
+
+import io.sapl.test.dsl.lang.DefaultSaplTestInterpreter;
 
 class SaplTestInterpreterFactoryTests {
 

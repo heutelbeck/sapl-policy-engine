@@ -25,15 +25,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.test.SaplTestException;
-import io.sapl.test.dsl.ParserUtil;
-import io.sapl.test.grammar.sapltest.AuthorizationSubscription;
-import io.sapl.test.grammar.sapltest.StringLiteral;
-import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Stream;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,6 +39,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import io.sapl.api.interpreter.Val;
+import io.sapl.test.SaplTestException;
+import io.sapl.test.dsl.ParserUtil;
+import io.sapl.test.grammar.sapltest.AuthorizationSubscription;
+import io.sapl.test.grammar.sapltest.StringLiteral;
+import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 
 @ExtendWith(MockitoExtension.class)
 class AuthorizationSubscriptionInterpreterTests {

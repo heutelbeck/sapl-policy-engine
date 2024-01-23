@@ -18,6 +18,8 @@
 
 package io.sapl.test.dsl.setup;
 
+import org.assertj.core.api.Assertions;
+
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.TestNode;
@@ -26,7 +28,6 @@ import io.sapl.test.grammar.sapltest.TestSuite;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.assertj.core.api.Assertions;
 
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class TestCase implements TestNode, Runnable {

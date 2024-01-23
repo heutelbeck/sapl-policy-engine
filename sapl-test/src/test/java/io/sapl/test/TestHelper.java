@@ -20,8 +20,8 @@ package io.sapl.test;
 import static org.mockito.Mockito.when;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.function.Supplier;
+
 import org.eclipse.emf.common.util.BasicEList;
 import org.eclipse.emf.common.util.EList;
 

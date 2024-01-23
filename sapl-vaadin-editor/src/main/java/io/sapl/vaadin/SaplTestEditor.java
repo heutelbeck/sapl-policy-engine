@@ -17,16 +17,18 @@
  */
 package io.sapl.vaadin;
 
+import java.io.Serial;
+import java.util.ArrayList;
+import java.util.List;
+
 import com.vaadin.flow.component.ClientCallable;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.dependency.NpmPackage;
 import com.vaadin.flow.dom.Element;
+
 import elemental.json.JsonArray;
 import elemental.json.JsonObject;
-import java.io.Serial;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * An editor component for SAPLTest documents supporting code-completion,
