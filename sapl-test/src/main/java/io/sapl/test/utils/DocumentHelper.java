@@ -17,9 +17,10 @@
  */
 package io.sapl.test.utils;
 
+import java.nio.file.Files;
+
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.SAPLInterpreter;
-import java.nio.file.Files;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 

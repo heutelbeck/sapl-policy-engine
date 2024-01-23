@@ -18,6 +18,8 @@
 
 package io.sapl.test.dsl.setup;
 
+import java.util.List;
+
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.grammar.sapltest.IntegrationTestSuite;
@@ -26,7 +28,6 @@ import io.sapl.test.grammar.sapltest.PoliciesByInputString;
 import io.sapl.test.grammar.sapltest.SAPLTest;
 import io.sapl.test.grammar.sapltest.TestSuite;
 import io.sapl.test.grammar.sapltest.UnitTestSuite;
-import java.util.List;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 

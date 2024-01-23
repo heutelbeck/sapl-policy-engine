@@ -26,15 +26,17 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
-import io.sapl.test.utils.ClasspathHelper;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
+
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
+
+import io.sapl.test.utils.ClasspathHelper;
 
 class TestDiscoveryHelperTests {
 

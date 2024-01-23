@@ -22,13 +22,13 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 
-import io.sapl.test.SaplTestException;
-import io.sapl.test.SaplTestFixture;
-import io.sapl.test.utils.DocumentHelper;
-
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
+
+import io.sapl.test.SaplTestException;
+import io.sapl.test.SaplTestFixture;
+import io.sapl.test.utils.DocumentHelper;
 
 class SaplUnitTestFixtureTests {
 

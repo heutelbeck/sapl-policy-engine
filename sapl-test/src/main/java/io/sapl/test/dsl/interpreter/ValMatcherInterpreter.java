@@ -23,6 +23,8 @@ import static io.sapl.hamcrest.Matchers.val;
 import static io.sapl.hamcrest.Matchers.valError;
 import static org.hamcrest.CoreMatchers.is;
 
+import org.hamcrest.Matcher;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sapltest.AnyVal;
@@ -33,7 +35,6 @@ import io.sapl.test.grammar.sapltest.ValWithError;
 import io.sapl.test.grammar.sapltest.ValWithMatcher;
 import io.sapl.test.grammar.sapltest.ValWithValue;
 import lombok.RequiredArgsConstructor;
-import org.hamcrest.Matcher;
 
 @RequiredArgsConstructor
 class ValMatcherInterpreter {
