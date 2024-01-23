@@ -77,7 +77,7 @@ public class QueryManipulationObligationProvider {
      * @param obligations are the obligations of a {@link io.sapl.api.pdp.Decision}
      * @return true if an obligation can be applied.
      */
-    public boolean isResponsible(ArrayNode obligations, String queryType) {
+    public boolean isResponsible(Iterable<JsonNode> obligations, String queryType) {
         var iterator = obligations.iterator();
         while (iterator.hasNext()) {
             var obligation = iterator.next();

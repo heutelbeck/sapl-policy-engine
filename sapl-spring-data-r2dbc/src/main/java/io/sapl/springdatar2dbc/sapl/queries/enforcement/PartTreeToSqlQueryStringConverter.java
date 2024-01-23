@@ -179,7 +179,7 @@ public class PartTreeToSqlQueryStringConverter {
      * @param domainType is the domain type.
      * @return created {@link SqlCondition}.
      */
-    @SneakyThrows // NoSuchFieldException
+    @SneakyThrows // NoSuchFieldException, NullPointerException
     public <T> SqlCondition and(Part part, Object argument, Class<T> domainType) {
         if (argument == null) {
             throw new NullPointerException("The appropriate argument is missing for this part of the method. ");

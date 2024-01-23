@@ -19,7 +19,6 @@ package io.sapl.springdatar2dbc.sapl.database.repositoryerror;
 
 import io.sapl.springdatar2dbc.database.Person;
 import io.sapl.springdatar2dbc.sapl.utils.annotation.SaplProtectedR2dbc;
-
 import reactor.core.publisher.Flux;
 
 public interface RepositoryNotFoundException extends R2dbcRepositoryNotFoundException<Person, Integer> {

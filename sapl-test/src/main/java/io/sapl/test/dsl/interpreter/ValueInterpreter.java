@@ -18,8 +18,13 @@
 
 package io.sapl.test.dsl.interpreter;
 
+import java.util.Collections;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sapltest.Array;
@@ -31,9 +36,6 @@ import io.sapl.test.grammar.sapltest.StringLiteral;
 import io.sapl.test.grammar.sapltest.TrueLiteral;
 import io.sapl.test.grammar.sapltest.UndefinedLiteral;
 import io.sapl.test.grammar.sapltest.Value;
-import java.util.Collections;
-import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor

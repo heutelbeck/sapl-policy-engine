@@ -17,19 +17,21 @@
  */
 package io.sapl.test.junit;
 
-import io.sapl.test.SaplTestException;
-import io.sapl.test.dsl.setup.BaseTestAdapter;
-import io.sapl.test.dsl.setup.TestCase;
-import io.sapl.test.dsl.setup.TestContainer;
-import io.sapl.test.dsl.interfaces.TestNode;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DynamicContainer;
 import org.junit.jupiter.api.DynamicNode;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
+
+import io.sapl.test.SaplTestException;
+import io.sapl.test.dsl.interfaces.TestNode;
+import io.sapl.test.dsl.setup.BaseTestAdapter;
+import io.sapl.test.dsl.setup.TestCase;
+import io.sapl.test.dsl.setup.TestContainer;
 
 public class JUnitTests extends BaseTestAdapter<DynamicContainer> {
 

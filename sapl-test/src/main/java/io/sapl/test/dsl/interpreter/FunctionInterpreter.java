@@ -18,6 +18,8 @@
 
 package io.sapl.test.dsl.interpreter;
 
+import org.hamcrest.Matcher;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.Imports;
 import io.sapl.test.SaplTestException;
@@ -28,7 +30,6 @@ import io.sapl.test.grammar.sapltest.Once;
 import io.sapl.test.mocking.function.models.FunctionParameters;
 import io.sapl.test.steps.GivenOrWhenStep;
 import lombok.RequiredArgsConstructor;
-import org.hamcrest.Matcher;
 
 @RequiredArgsConstructor
 class FunctionInterpreter {

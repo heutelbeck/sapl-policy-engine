@@ -20,9 +20,9 @@ package io.sapl.springdatamongoreactive.sapl.utils;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Iterator;
 
 import org.apache.commons.lang3.StringUtils;
 import org.bson.Document;
@@ -31,6 +31,7 @@ import org.springframework.data.repository.query.parser.Part;
 import org.springframework.data.repository.query.parser.PartTree;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.springdatamongoreactive.sapl.OperatorMongoDB;
 import lombok.experimental.UtilityClass;
 
@@ -88,14 +89,13 @@ public class SaplConditionOperation {
      * @return list of {@link SaplCondition}
      */
     public List<SaplCondition> jsonNodeToSaplConditions(Iterable<JsonNode> conditions) {
-        BasicQuery initialBasicQuery = null;
-        var        saplConditions    = new ArrayList<SaplCondition>();
+        var saplConditions = new ArrayList<SaplCondition>();
 
         if (!conditions.iterator().hasNext()) {
             return saplConditions;
         }
 
-        var basicQuery = convertJsonNodeToBasicQuery(initialBasicQuery, conditions);
+        var basicQuery = convertJsonNodeToBasicQuery(conditions);
 
         convertBasicQueryToSaplConditions(basicQuery, saplConditions);
 
@@ -103,17 +103,20 @@ public class SaplConditionOperation {
     }
 
     private void convertBasicQueryToSaplConditions(BasicQuery basicQuery, List<SaplCondition> saplConditions) {
-        basicQuery.getQueryObject().forEach((String field, Object val) -> {
-            if (val instanceof List<?> list) {
-                handleListsOfBasicQuery(saplConditions, list);
-            } else {
-                convertDocumentToSaplCondition(saplConditions, field, val, "And");
-            }
-        });
+        if (basicQuery != null) {
+            basicQuery.getQueryObject().forEach((String field, Object val) -> {
+                if (val instanceof List<?> list) {
+                    handleListsOfBasicQuery(saplConditions, list);
+                } else {
+                    convertDocumentToSaplCondition(saplConditions, field, val, "And");
+                }
+            });
+        }
     }
 
-    private BasicQuery convertJsonNodeToBasicQuery(BasicQuery basicQuery, Iterable<JsonNode> conditions) {
-        Iterator<JsonNode> iterator = conditions.iterator();
+    private BasicQuery convertJsonNodeToBasicQuery(Iterable<JsonNode> conditions) {
+        Iterator<JsonNode> iterator   = conditions.iterator();
+        BasicQuery         basicQuery = null;
         while (iterator.hasNext()) {
             var condition = iterator.next();
             if (basicQuery == null) {
@@ -122,7 +125,6 @@ public class SaplConditionOperation {
                 var query           = new BasicQuery(condition.asText());
                 var finalBasicQuery = basicQuery;
                 query.getQueryObject().forEach((ke, va) -> finalBasicQuery.getQueryObject().append(ke, va));
-                basicQuery = finalBasicQuery;
             }
         }
 
@@ -133,9 +135,7 @@ public class SaplConditionOperation {
         Iterator<?> iterator = list.iterator();
         while (iterator.hasNext()) {
             if (iterator.next() instanceof Document doc) {
-                doc.forEach((String field, Object value) -> {
-                    convertDocumentToSaplCondition(saplConditions, field, value, "Or");
-                });
+                doc.forEach((String field, Object value) -> convertDocumentToSaplCondition(saplConditions, field, value, "Or"));
             }
         }
     }

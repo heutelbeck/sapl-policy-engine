@@ -18,7 +18,6 @@
 package io.sapl.springdatacommon.database;
 
 import java.lang.reflect.AccessibleObject;
-import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 

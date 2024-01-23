@@ -55,7 +55,7 @@ class TestFunctionContext implements FunctionContext {
         availableLibraries.put("filter", Set.of("blacken", "remove", "replace"));
         availableLibraries.put("standard", Set.of("length", "numberToString"));
         availableLibraries.put("time", Set.of("after", "before", "between"));
-        availableLibraries.put("schemaTest", Set.of("person", "dog", "food"));
+        availableLibraries.put("schemaTest", Set.of("person", "dog", "food", "location"));
     }
 
     @Override
@@ -94,14 +94,14 @@ class TestFunctionContext implements FunctionContext {
     public List<String> getCodeTemplates() {
         return List.of("filter.blacken", "filter.remove", "filter.replace", "standard.length",
                 "standard.numberToString", "time.after", "time.before", "time.between", "schemaTest.person()",
-                "schemaTest.dog()", "schemaTest.food(String species)");
+                "schemaTest.dog()", "schemaTest.food(String species)", "schemaTest.location()");
     }
 
     @Override
     public Collection<String> getAllFullyQualifiedFunctions() {
         return List.of("filter.blacken", "filter.remove", "filter.replace", "standard.length",
                 "standard.numberToString", "time.after", "time.before", "time.between", "schemaTest.person()",
-                "schemaTest.dog(), schemaTest.food(String species)");
+                "schemaTest.dog()", "schemaTest.food(String species)", "schemaTest.location()");
     }
 
     @Override
@@ -116,4 +116,13 @@ class TestFunctionContext implements FunctionContext {
         schemas.put("schemaTest.dog", DOG_SCHEMA);
         return schemas;
     }
+
+    @Override
+    public Map<String, String> getFunctionSchemaPaths() {
+        var schemaPaths = new HashMap<String, String>();
+        schemaPaths.put("schemaTest.location", "src/test/resources/geographical_location_schema.json");
+        schemaPaths.put("schemaTest.person", "src/test/resources/person.json");
+        return schemaPaths;
+    }
+
 }

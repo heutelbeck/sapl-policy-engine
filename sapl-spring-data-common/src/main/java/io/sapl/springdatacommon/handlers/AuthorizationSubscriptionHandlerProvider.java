@@ -17,7 +17,6 @@
  */
 package io.sapl.springdatacommon.handlers;
 
-import io.sapl.springdatacommon.sapl.Enforce;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
@@ -27,6 +26,7 @@ import org.springframework.util.Assert;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.springdatacommon.sapl.Enforce;
 
 /**
  * This service takes care of obtaining the AuthorizationSubscription to execute

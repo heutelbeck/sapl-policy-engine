@@ -18,8 +18,9 @@
 
 package io.sapl.test.dsl.interfaces;
 
-import io.sapl.test.grammar.sapltest.SAPLTest;
 import java.io.InputStream;
+
+import io.sapl.test.grammar.sapltest.SAPLTest;
 
 public interface SaplTestInterpreter {
     SAPLTest loadAsResource(InputStream inputStream);

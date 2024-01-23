@@ -32,6 +32,7 @@ import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.repository.core.support.AbstractRepositoryMetadata;
 import org.springframework.data.repository.query.parser.PartTree;
 import org.springframework.util.ReflectionUtils;
+
 import io.sapl.springdatamongoreactive.sapl.utils.Utilities;
 import lombok.SneakyThrows;
 
