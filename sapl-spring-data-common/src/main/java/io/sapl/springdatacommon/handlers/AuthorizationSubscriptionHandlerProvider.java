@@ -64,10 +64,9 @@ public class AuthorizationSubscriptionHandlerProvider {
     private final BeanFactory              beanFactory;
     private final EnforceAnnotationHandler enforceAnnotationHandler;
 
-    public AuthorizationSubscriptionHandlerProvider(BeanFactory beanFactory,
-            EnforceAnnotationHandler enforceAnnotationHandler) {
+    public AuthorizationSubscriptionHandlerProvider(BeanFactory beanFactory) {
         this.beanFactory              = beanFactory;
-        this.enforceAnnotationHandler = enforceAnnotationHandler;
+        this.enforceAnnotationHandler = new EnforceAnnotationHandler(beanFactory);
     }
 
     /**

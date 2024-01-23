@@ -44,15 +44,13 @@ import lombok.SneakyThrows;
 /**
  * This service is responsible for processing the {@link Enforce} annotation.
  */
-@Service
 public class EnforceAnnotationHandler {
 
     private final BeanFactory               beanFactory;
-    private MethodInvocation                methodInvocation;
     private final SpelExpressionParser      parser  = new SpelExpressionParser();
     private final StandardEvaluationContext context = new StandardEvaluationContext();
 
-    EnforceAnnotationHandler(BeanFactory beanFactory) {
+    public EnforceAnnotationHandler(BeanFactory beanFactory) {
         this.beanFactory = beanFactory;
     }
 
@@ -70,9 +68,7 @@ public class EnforceAnnotationHandler {
             return null;
         }
 
-        this.methodInvocation = methodInvocation;
-
-        return enforceAnnotationValueToAuthorizationSubscription(enforceAnnotation);
+        return enforceAnnotationValueToAuthorizationSubscription(enforceAnnotation, methodInvocation);
     }
 
     /**
@@ -101,14 +97,14 @@ public class EnforceAnnotationHandler {
      *                          annotation.
      * @return new {@link AuthorizationSubscription}.
      */
-    private AuthorizationSubscription enforceAnnotationValueToAuthorizationSubscription(Enforce enforceAnnotation) {
+    private AuthorizationSubscription enforceAnnotationValueToAuthorizationSubscription(Enforce enforceAnnotation, MethodInvocation methodInvocation) {
         var subject     = enforceAnnotationValueResolver(enforceAnnotation.subject(),
-                enforceAnnotation.staticClasses());
-        var action      = enforceAnnotationValueResolver(enforceAnnotation.action(), enforceAnnotation.staticClasses());
+                enforceAnnotation.staticClasses(), methodInvocation);
+        var action      = enforceAnnotationValueResolver(enforceAnnotation.action(), enforceAnnotation.staticClasses(), methodInvocation);
         var resource    = enforceAnnotationValueResolver(enforceAnnotation.resource(),
-                enforceAnnotation.staticClasses());
+                enforceAnnotation.staticClasses(), methodInvocation);
         var environment = enforceAnnotationValueResolver(enforceAnnotation.environment(),
-                enforceAnnotation.staticClasses());
+                enforceAnnotation.staticClasses(), methodInvocation);
 
         return AuthorizationSubscription.of(subject, action, resource, environment);
     }
@@ -129,23 +125,23 @@ public class EnforceAnnotationHandler {
      * @return the resolved final value of the corresponding attribute of an
      *         {@link AuthorizationSubscription}.
      */
-    private Object enforceAnnotationValueResolver(String annotationValue, Class<?>[] staticClasses) {
+    private Object enforceAnnotationValueResolver(String annotationValue, Class<?>[] staticClasses, MethodInvocation methodInvocation) {
 
         if (annotationValue.startsWith("T(")) {
-            return getObjectByStaticClassWhenValueStartsWithLetterT(annotationValue);
+            return getObjectByStaticClassWhenValueStartsWithLetterT(annotationValue, methodInvocation);
         }
 
         if (annotationValue.startsWith("#") && annotationValue.contains("(") && annotationValue.contains(")")
                 && staticClasses.length != 0) {
-            return getObjectByStaticClassWhenValueStartsWithHash(annotationValue, staticClasses);
+            return getObjectByStaticClassWhenValueStartsWithHash(annotationValue, staticClasses, methodInvocation);
         }
 
         if (annotationValue.startsWith("#")) {
-            return parseMethodParameterInEvaluationContext(annotationValue);
+            return parseMethodParameterInEvaluationContext(annotationValue, methodInvocation);
         }
 
         if (annotationValue.startsWith("@")) {
-            return getObjectByBeanWhenValueStartsWithAt(annotationValue);
+            return getObjectByBeanWhenValueStartsWithAt(annotationValue, methodInvocation);
         }
 
         if (annotationValue.trim().startsWith("{") && annotationValue.trim().endsWith("}")) {
@@ -176,7 +172,7 @@ public class EnforceAnnotationHandler {
      *                        annotation.
      * @return the value of the method parameter.
      */
-    private String parseMethodParameterInEvaluationContext(String annotationValue) {
+    private String parseMethodParameterInEvaluationContext(String annotationValue, MethodInvocation methodInvocation) {
         setMethodParameterInEvaluationContext(context, methodInvocation);
 
         try {
@@ -197,10 +193,10 @@ public class EnforceAnnotationHandler {
      *      parameter 'staticClasses' contains the corresponding static class. The
      *      value from the {@link EvaluationContext} is extracted.
      */
-    private Object getObjectByStaticClassWhenValueStartsWithHash(String annotationValue, Class<?>[] staticClasses) {
+    private Object getObjectByStaticClassWhenValueStartsWithHash(String annotationValue, Class<?>[] staticClasses,  MethodInvocation methodInvocation) {
         var methodName = StringUtils.substringBetween(annotationValue, "#", "(");
 
-        return findMethodAndParseExpression(methodName, staticClasses, annotationValue);
+        return findMethodAndParseExpression(methodName, staticClasses, annotationValue, methodInvocation);
     }
 
     /**
@@ -213,7 +209,7 @@ public class EnforceAnnotationHandler {
      *      value from the {@link EvaluationContext} is extracted.
      */
     @SneakyThrows // NoSuchMethodException
-    private Object findMethodAndParseExpression(String methodName, Class<?>[] staticClasses, String annotationValue) {
+    private Object findMethodAndParseExpression(String methodName, Class<?>[] staticClasses, String annotationValue, MethodInvocation methodInvocation) {
         for (Class<?> clazz : staticClasses) {
             var methods = clazz.getDeclaredMethods();
 
@@ -244,7 +240,7 @@ public class EnforceAnnotationHandler {
      *                        annotation.
      * @return the value returned by the static class method.
      */
-    private Object getObjectByStaticClassWhenValueStartsWithLetterT(String annotationValue) {
+    private Object getObjectByStaticClassWhenValueStartsWithLetterT(String annotationValue, MethodInvocation methodInvocation) {
         setMethodParameterInEvaluationContext(context, methodInvocation);
 
         return parser.parseExpression(annotationValue).getValue(context, Object.class);
@@ -259,7 +255,7 @@ public class EnforceAnnotationHandler {
      *                        annotation.
      * @return the value returned by the bean.
      */
-    private Object getObjectByBeanWhenValueStartsWithAt(String annotationValue) {
+    private Object getObjectByBeanWhenValueStartsWithAt(String annotationValue, MethodInvocation methodInvocation) {
         setMethodParameterInEvaluationContext(context, methodInvocation);
         context.setBeanResolver(new BeanFactoryResolver(this.beanFactory));
         var expression = parser.parseExpression(annotationValue);

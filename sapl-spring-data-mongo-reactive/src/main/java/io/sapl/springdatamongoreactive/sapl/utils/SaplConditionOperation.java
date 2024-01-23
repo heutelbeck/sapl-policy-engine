@@ -21,6 +21,8 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Iterator;
 
 import org.apache.commons.lang3.StringUtils;
 import org.bson.Document;
@@ -29,8 +31,6 @@ import org.springframework.data.repository.query.parser.Part;
 import org.springframework.data.repository.query.parser.PartTree;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-
 import io.sapl.springdatamongoreactive.sapl.OperatorMongoDB;
 import lombok.experimental.UtilityClass;
 
@@ -87,24 +87,15 @@ public class SaplConditionOperation {
      * @param conditions are the conditions of the {@link io.sapl.api.pdp.Decision}
      * @return list of {@link SaplCondition}
      */
-    public List<SaplCondition> jsonNodeToSaplConditions(ArrayNode conditions) {
-        BasicQuery basicQuery = null;
-
-        for (JsonNode condition : conditions) {
-            if (basicQuery == null) {
-                basicQuery = new BasicQuery(condition.asText());
-            } else {
-                var query           = new BasicQuery(condition.asText());
-                var finalBasicQuery = basicQuery;
-                query.getQueryObject().forEach((ke, va) -> finalBasicQuery.getQueryObject().append(ke, va));
-            }
-        }
-
+    public List<SaplCondition> jsonNodeToSaplConditions(Iterable<JsonNode> conditions) {
+    	BasicQuery initialBasicQuery = null;
         var saplConditions = new ArrayList<SaplCondition>();
 
-        if (basicQuery == null) {
-            return saplConditions;
-        }
+    	if (!conditions.iterator().hasNext()) {
+    		return saplConditions;
+    	}
+    	
+        var basicQuery = convertJsonNodeToBasicQuery(initialBasicQuery, conditions);
 
         convertBasicQueryToSaplConditions(basicQuery, saplConditions);
 
@@ -114,21 +105,43 @@ public class SaplConditionOperation {
     private void convertBasicQueryToSaplConditions(BasicQuery basicQuery, List<SaplCondition> saplConditions) {
         basicQuery.getQueryObject().forEach((String field, Object val) -> {
             if (val instanceof List<?> list) {
-                for (Object object : list) {
-                    if (object instanceof Document doc) {
-                        doc.forEach((String field2, Object val2) -> {
-                            if (val2 instanceof Document docu) {
-                                addNewSaplCondition(saplConditions, field2, docu, "Or");
-                            }
-                        });
-                    }
-                }
+            	handleListsOfBasicQuery(saplConditions, list);
             } else {
-                if (val instanceof Document d) {
-                    addNewSaplCondition(saplConditions, field, d, "And");
-                }
+            	convertDocumentToSaplCondition(saplConditions, field, val, "And");
             }
         });
+    }
+    
+    private BasicQuery convertJsonNodeToBasicQuery(BasicQuery basicQuery, Iterable<JsonNode> conditions) {
+    	Iterator<JsonNode> iterator = conditions.iterator();
+        while (iterator.hasNext()) {
+        	var condition = iterator.next();
+	        if (basicQuery == null) {
+	            basicQuery = new BasicQuery(condition.asText());
+	        } else {
+	            var query           = new BasicQuery(condition.asText());
+	            var finalBasicQuery = basicQuery;
+	            query.getQueryObject().forEach((ke, va) -> finalBasicQuery.getQueryObject().append(ke, va));
+	        }
+        }
+        
+        return basicQuery;
+    }
+    
+    private void handleListsOfBasicQuery(List<SaplCondition> saplConditions, List<?> list) {
+        for (Object object : list) {
+            if (object instanceof Document doc) {
+                doc.forEach((String field, Object value) -> {
+                	convertDocumentToSaplCondition(saplConditions, field, value, "Or");
+                });
+            }
+        }
+    }
+    
+    private void convertDocumentToSaplCondition(List<SaplCondition> saplConditions, String field, Object value, String conjunction) {
+        if (value instanceof Document doc) {
+            addNewSaplCondition(saplConditions, field, doc, conjunction);
+        }
     }
 
     /**
@@ -225,7 +238,7 @@ public class SaplConditionOperation {
         return domainTypes;
     }
 
-    private void addNewSaplCondition(Collection<SaplCondition> saplConditions, String field, Document doc,
+    private void addNewSaplCondition(Collection<SaplCondition> saplConditions, String field, Map<String, Object> doc,
             String conjunction) {
         var operator = OperatorMongoDB.getOperatorByKeyword(doc.keySet().toArray()[0].toString());
         var value    = doc.values().toArray()[0];
