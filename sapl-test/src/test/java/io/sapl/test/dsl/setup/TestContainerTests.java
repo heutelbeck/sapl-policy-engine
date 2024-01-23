@@ -20,9 +20,11 @@ package io.sapl.test.dsl.setup;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import io.sapl.test.dsl.interfaces.TestNode;
 import java.util.Collections;
+
 import org.junit.jupiter.api.Test;
+
+import io.sapl.test.dsl.interfaces.TestNode;
 
 class TestContainerTests {
 

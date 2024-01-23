@@ -22,9 +22,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.sapl.test.SaplTestException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import io.sapl.test.SaplTestException;
 
 class ReflectionHelperTests {
     protected ReflectionHelper reflectionHelper;

@@ -18,6 +18,8 @@
 
 package io.sapl.test.dsl.interpreter;
 
+import java.util.List;
+
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.grammar.sapltest.CustomFunctionLibrary;
@@ -25,7 +27,6 @@ import io.sapl.test.grammar.sapltest.FixtureRegistration;
 import io.sapl.test.grammar.sapltest.Pip;
 import io.sapl.test.grammar.sapltest.SaplFunctionLibrary;
 import io.sapl.test.grammar.sapltest.TestSuite;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 

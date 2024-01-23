@@ -24,17 +24,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
-import io.sapl.test.SaplTestException;
-import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
-import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
-import io.sapl.test.dsl.interfaces.StepConstructor;
-import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
-import io.sapl.test.grammar.sapltest.SAPLTest;
-import io.sapl.test.utils.DocumentHelper;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.stream.Stream;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,6 +38,14 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import io.sapl.test.SaplTestException;
+import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
+import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
+import io.sapl.test.dsl.interfaces.StepConstructor;
+import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
+import io.sapl.test.grammar.sapltest.SAPLTest;
+import io.sapl.test.utils.DocumentHelper;
 
 @ExtendWith(MockitoExtension.class)
 class BaseTestAdapterTests {

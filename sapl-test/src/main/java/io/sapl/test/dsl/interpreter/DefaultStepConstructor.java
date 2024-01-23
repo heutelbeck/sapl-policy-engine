@@ -18,7 +18,10 @@
 
 package io.sapl.test.dsl.interpreter;
 
+import java.util.List;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
 import io.sapl.test.dsl.interfaces.StepConstructor;
@@ -31,7 +34,6 @@ import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.steps.VerifyStep;
 import io.sapl.test.steps.WhenStep;
-import java.util.List;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 

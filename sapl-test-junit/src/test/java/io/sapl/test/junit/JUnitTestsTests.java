@@ -27,19 +27,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
-import io.sapl.test.SaplTestException;
-import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
-import io.sapl.test.dsl.setup.SaplTestInterpreterFactory;
-import io.sapl.test.dsl.setup.TestCase;
-import io.sapl.test.dsl.setup.TestContainer;
-import io.sapl.test.dsl.interfaces.TestNode;
-import io.sapl.test.dsl.setup.TestProvider;
-import io.sapl.test.dsl.setup.TestProviderFactory;
-import io.sapl.test.grammar.sapltest.SAPLTest;
-import io.sapl.test.utils.DocumentHelper;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DynamicContainer;
@@ -52,6 +43,17 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import io.sapl.test.SaplTestException;
+import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
+import io.sapl.test.dsl.interfaces.TestNode;
+import io.sapl.test.dsl.setup.SaplTestInterpreterFactory;
+import io.sapl.test.dsl.setup.TestCase;
+import io.sapl.test.dsl.setup.TestContainer;
+import io.sapl.test.dsl.setup.TestProvider;
+import io.sapl.test.dsl.setup.TestProviderFactory;
+import io.sapl.test.grammar.sapltest.SAPLTest;
+import io.sapl.test.utils.DocumentHelper;
 
 @ExtendWith(MockitoExtension.class)
 class JUnitTestsTests {
