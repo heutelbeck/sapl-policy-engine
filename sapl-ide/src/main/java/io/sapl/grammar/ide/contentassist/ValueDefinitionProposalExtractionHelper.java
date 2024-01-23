@@ -17,39 +17,27 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
-import org.eclipse.emf.ecore.EObject;
-import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
-import org.eclipse.xtext.nodemodel.INode;
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-
 import com.google.common.collect.Iterables;
-
 import io.sapl.grammar.ide.contentassist.schema.SchemaProposals;
-import io.sapl.grammar.sapl.AttributeFinderStep;
-import io.sapl.grammar.sapl.BasicFunction;
-import io.sapl.grammar.sapl.BasicIdentifier;
-import io.sapl.grammar.sapl.Condition;
-import io.sapl.grammar.sapl.Expression;
-import io.sapl.grammar.sapl.KeyStep;
-import io.sapl.grammar.sapl.PolicyBody;
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.grammar.sapl.SaplFactory;
-import io.sapl.grammar.sapl.Statement;
-import io.sapl.grammar.sapl.ValueDefinition;
+import io.sapl.grammar.sapl.*;
 import io.sapl.grammar.sapl.impl.util.FunctionUtil;
 import io.sapl.grammar.sapl.impl.util.ImportsUtil;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import lombok.RequiredArgsConstructor;
+import org.eclipse.emf.ecore.EObject;
+import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
+import org.eclipse.xtext.nodemodel.ICompositeNode;
+import org.eclipse.xtext.nodemodel.ILeafNode;
+import org.eclipse.xtext.nodemodel.INode;
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
 
 @RequiredArgsConstructor
 public class ValueDefinitionProposalExtractionHelper {
@@ -72,18 +60,64 @@ public class ValueDefinitionProposalExtractionHelper {
         return getBodyProposals(proposalType, currentOffset, policyBody, model);
     }
 
-    public List<String> getAttributeProposals() {
+    public ContentAssistContext getContextWithFullPrefix(int offset, boolean forAttribute) {
+
+        var model = context.getCurrentModel();
+        if (getPolicyBody(model) == null)
+            return context;
+
+        List<String> tokens = new LinkedList<>();
+        addOldPrefixToTokens(context.getPrefix(), tokens);
+
+        var rootNode = context.getRootNode();
+        if (shouldReturnOriginalContext(offset))
+            return context;
+
+        int indexOfCurrentNode = findIndexOfCurrentNode(rootNode, offset);
+        var currentNode        = NodeModelUtils.findLeafNodeAtOffset(rootNode, indexOfCurrentNode);
+        var previousNode       = NodeModelUtils.findLeafNodeAtOffset(rootNode, indexOfCurrentNode - 1);
+
+        if (lastCharacterBeforeCursorIsBlank(previousNode))
+            return context;
+
+        if (isNodeBeforeCursorFirstNode(rootNode, indexOfCurrentNode, currentNode)) {
+            String newPrefix = getNewPrefix(currentNode.getText());
+            return context.copy().setPrefix(newPrefix).toContext();
+        }
+
+        String newPrefix;
+
+        if (forAttribute) {
+            newPrefix = computeNewPrefix(rootNode, currentNode, tokens);
+        } else {
+            addTokensUntilDelimiter(rootNode, tokens, currentNode);
+            newPrefix = getNewPrefix(tokens);
+        }
+        newPrefix = newPrefix.trim();
+
+        return context.copy().setPrefix(newPrefix).toContext();
+    }
+
+    public List<String> getFunctionProposals() {
+
         var proposals       = new LinkedList<String>();
         var schemaProposals = new SchemaProposals(variablesAndCombinatorSource);
-        var allSchemas      = attributeContext.getAttributeSchemas();
+        var allSchemas      = functionContext.getFunctionSchemas();
+        var allSchemaPaths  = functionContext.getFunctionSchemaPaths();
+        for (var path : allSchemaPaths.entrySet()) {
+            String schema = fetchSchemaFromPath(path.getValue());
+            if (!schema.isEmpty()) {
+                allSchemas.put(path.getKey(), schema);
+            }
+        }
         for (var entry : allSchemas.entrySet()) {
-            var paths = schemaProposals.schemaTemplatesForAttributes(entry.getValue());
+            var paths = schemaProposals.schemaTemplatesForFunctions(entry.getValue());
             for (var path : paths) {
-                if (!"".equals(path)) {
-                    var    fun              = entry.getKey();
-                    var    allTemplates     = attributeContext.getAttributeCodeTemplates();
-                    String fullFunctionName = getFullFunctionName(fun, allTemplates);
-                    var    proposal         = String.join(".", fullFunctionName, path);
+                var    fun              = entry.getKey();
+                var    allTemplates     = functionContext.getCodeTemplates();
+                String fullFunctionName = getFullFunctionName(fun, allTemplates);
+                if (!fullFunctionName.isBlank()) {
+                    var proposal = String.join(".", fullFunctionName, path);
                     proposals.add(proposal);
                 }
             }
@@ -91,25 +125,158 @@ public class ValueDefinitionProposalExtractionHelper {
         return proposals;
     }
 
-    public List<String> getFunctionProposals() {
-        var proposals       = new LinkedList<String>();
-        var schemaProposals = new SchemaProposals(variablesAndCombinatorSource);
-        var allSchemas      = functionContext.getFunctionSchemas();
+    public List<String> getAttributeProposals() {
+        List<String> proposals       = new LinkedList<>();
+        List<String> allTemplates    = new LinkedList<>();
+        var          schemaProposals = new SchemaProposals(variablesAndCombinatorSource);
+        var          allSchemas      = attributeContext.getAttributeSchemas();
+
+        allTemplates.addAll(attributeContext.getAttributeCodeTemplates());
+        allTemplates.addAll(attributeContext.getEnvironmentAttributeCodeTemplates());
+
         for (var entry : allSchemas.entrySet()) {
-            var paths = schemaProposals.schemaTemplatesForFunctions(entry.getValue());
+            var paths = schemaProposals.schemaTemplatesForAttributes(entry.getValue());
             for (var path : paths) {
-                if (!"".equals(path)) {
-                    var    fun              = entry.getKey();
-                    var    allTemplates     = functionContext.getCodeTemplates();
-                    String fullFunctionName = getFullFunctionName(fun, allTemplates);
-                    if (!fullFunctionName.isBlank()) {
-                        var proposal = String.join(".", fullFunctionName, path);
-                        proposals.add(proposal);
-                    }
-                }
+                var fun              = entry.getKey();
+                var fullFunctionName = getFullFunctionName(fun, allTemplates);
+                var proposal         = String.join(".", fullFunctionName, path);
+                proposals.add(proposal);
             }
         }
         return proposals;
+    }
+
+    private static Collection<String> constructProposals(String elementName, Iterable<String> templates) {
+        Collection<String> proposals = new HashSet<>();
+        if (Iterables.isEmpty(templates))
+            return proposals;
+        for (var template : templates) {
+            String proposal;
+            if (!template.startsWith("."))
+                proposal = elementName.concat(".").concat(template);
+            else
+                proposal = elementName.concat(template);
+            proposals.add(proposal);
+        }
+        return proposals;
+    }
+
+    private static int getValueDefinitionOffset(EObject statement) {
+        INode valueDefinitionNode = NodeModelUtils.getNode(statement);
+        return valueDefinitionNode.getOffset();
+    }
+
+    private static PolicyBody getPolicyBody(EObject model) {
+        // try to move up to the policy body
+        if (model.eContainer() instanceof Condition) {
+            return TreeNavigationHelper.goToFirstParent(model, PolicyBody.class);
+        } else {
+            return TreeNavigationHelper.goToLastParent(model, PolicyBody.class);
+        }
+    }
+
+    private String computeNewPrefix(INode rootNode, INode currentNode, List<String> tokens) {
+        String currentNodeText = currentNode.getText();
+        if (!context.getPrefix().equals(currentNodeText)) {
+            if ("|<".equals(currentNodeText)) {
+                tokens.add("<");
+            } else {
+                var req2 = (">").equals(currentNodeText);
+                if (!currentNodeText.isBlank() && !req2) {
+                    tokens.add(currentNodeText);
+                } else {
+                    var prevNodeOffset = currentNode.getEndOffset() - currentNode.getTotalLength();
+                    currentNode = NodeModelUtils.findLeafNodeAtOffset(rootNode, prevNodeOffset - 1);
+                }
+            }
+        }
+        if (tokens.isEmpty() || !"<".equals(tokens.get(0))) {
+            addTokensUntilDelimiter(rootNode, tokens, currentNode);
+        }
+        return getNewPrefix(tokens);
+    }
+
+    private void addOldPrefixToTokens(String oldPrefix, List<String> tokens) {
+        if (!oldPrefix.isBlank()) {
+            tokens.add(context.getPrefix());
+        }
+    }
+
+    private String getNewPrefix(String text) {
+        var newPrefix = text;
+        if (newPrefix.startsWith("|<")) {
+            newPrefix = newPrefix.replaceFirst("\\|<", "<");
+        }
+        return newPrefix;
+    }
+
+    private String getNewPrefix(List<String> tokens) {
+        var sb = new StringBuilder(tokens.size());
+        for (int j = tokens.size() - 1; j >= 0; j--) {
+            sb.append(tokens.get(j));
+        }
+        return getNewPrefix(sb.toString());
+    }
+
+    private boolean shouldReturnOriginalContext(int offset) {
+        INode prevNode;
+        int   offsetOfPrevNode;
+        var   rootNode       = context.getRootNode();
+        var   currentNode    = NodeModelUtils.findLeafNodeAtOffset(rootNode, offset);
+        var   lastNode       = NodeModelUtils.findLeafNodeAtOffset(rootNode, offset - 1);
+        var   lengthLastNode = lastNode.getLength();
+        if (!".".equals(lastNode.getText()) && !"<".equals(lastNode.getText())) {
+            offsetOfPrevNode = offset - 1;
+        } else if (currentNode != null && !".".equals(lastNode.getText())) {
+            offsetOfPrevNode = offset - lengthLastNode - 1;
+        } else
+            offsetOfPrevNode = offset - 1;
+        prevNode = NodeModelUtils.findLeafNodeAtOffset(context.getRootNode(), offsetOfPrevNode);
+        return prevNode.getText().isBlank() || ";".equals(prevNode.getText());
+    }
+
+    private boolean lastCharacterBeforeCursorIsBlank(INode currentNode) {
+        return currentNode.getText().isBlank();
+    }
+
+    private int findIndexOfCurrentNode(INode rootNode, int offset) {
+        int   i           = offset;
+        INode currentNode = NodeModelUtils.findLeafNodeAtOffset(rootNode, offset);
+
+        while (currentNode == null) {
+            i--;
+            currentNode = NodeModelUtils.findLeafNodeAtOffset(rootNode, i);
+        }
+
+        return i;
+    }
+
+    private void addTokensUntilDelimiter(INode rootNode, List<String> tokens, INode leafNode) {
+        String tokenText;
+        String lastChar;
+        var    currentNode = leafNode;
+        currentNode = NodeModelUtils.findLeafNodeAtOffset(rootNode, currentNode.getEndOffset() - 1);
+        tokenText   = NodeModelUtils.getTokenText(currentNode);
+        var req1 = currentNode.getEndOffset() == context.getOffset();
+        var req2 = context.getPrefix().equals(tokenText);
+        if (!tokenText.isBlank() && !(req1 && req2))
+            tokens.add(tokenText);
+        do {
+            currentNode = NodeModelUtils.findLeafNodeAtOffset(rootNode,
+                    currentNode.getEndOffset() - currentNode.getLength() - 1);
+            tokenText   = NodeModelUtils.getTokenText(currentNode);
+            if (!tokenText.isBlank() && currentNode.getEndOffset() != this.context.getOffset())
+                tokens.add(tokenText);
+            else
+                break;
+            lastChar = NodeModelUtils.findLeafNodeAtOffset(rootNode, currentNode.getTotalOffset() - 1).getText();
+        } while (!lastChar.isBlank() && !"<".equals(tokenText) && !"|<".equals(tokenText));
+    }
+
+    private boolean isNodeBeforeCursorFirstNode(ICompositeNode rootNode, int indexOfCurrentNode,
+            ILeafNode currentNode) {
+        return NodeModelUtils.findLeafNodeAtOffset(rootNode, indexOfCurrentNode - currentNode.getTotalLength())
+                .getText().isBlank();
     }
 
     private String getFullFunctionName(String fun, Iterable<String> allTemplates) {
@@ -123,35 +290,15 @@ public class ValueDefinitionProposalExtractionHelper {
         return fullFunctionName;
     }
 
-    private static Collection<String> constructProposals(String elementName, Iterable<String> templates) {
-        Collection<String> proposals = new HashSet<>();
-        if (Iterables.isEmpty(templates))
-            return proposals;
-        for (var template : templates) {
-            if (template.isBlank())
-                continue;
-            String proposal;
-            if (!template.startsWith("."))
-                proposal = elementName.concat(".").concat(template);
-            else
-                proposal = elementName.concat(template);
-            proposals.add(proposal);
+    private static String fetchSchemaFromPath(String path) {
+        String schema;
+        Path   file = Paths.get(path);
+        try {
+            schema = Files.readString(file);
+        } catch (IOException e) {
+            return "";
         }
-        return proposals;
-    }
-
-    private static int getValueDefinitionOffset(ValueDefinition valueDefinition) {
-        INode valueDefinitionNode = NodeModelUtils.getNode(valueDefinition);
-        return valueDefinitionNode.getOffset();
-    }
-
-    private static PolicyBody getPolicyBody(EObject model) {
-        // try to move up to the policy body
-        if (model.eContainer() instanceof Condition) {
-            return TreeNavigationHelper.goToFirstParent(model, PolicyBody.class);
-        } else {
-            return TreeNavigationHelper.goToLastParent(model, PolicyBody.class);
-        }
+        return schema;
     }
 
     private Collection<String> getPreambleSchemaProposals() {
@@ -196,18 +343,24 @@ public class ValueDefinitionProposalExtractionHelper {
 
             List<String> currentProposals;
             if (proposalType == ProposalType.SCHEMA)
-                currentProposals = getSchemaFromStatement(currentOffset, valueDefStatement, model);
+                currentProposals = getSchemaFromValueDefinitionStatement(currentOffset, valueDefStatement, model);
             else
                 currentProposals = getValueFromStatement(currentOffset, valueDefStatement);
 
             proposals.addAll(currentProposals);
+        } else {
+            List<String> currentProposals;
+            if (proposalType == ProposalType.SCHEMA) {
+                currentProposals = getSchemaFromConditionStatement(currentOffset, model);
+                proposals.addAll(currentProposals);
+            }
         }
         return proposals;
     }
 
     private List<String> getValueFromStatement(int currentOffset, ValueDefinition statement) {
         List<String> valueList             = new ArrayList<>();
-        int          valueDefinitionOffset = getValueDefinitionOffset(statement);
+        var          valueDefinitionOffset = getValueDefinitionOffset(statement);
 
         if (currentOffset > valueDefinitionOffset) {
             String valueDefinitionName = statement.getName();
@@ -216,55 +369,93 @@ public class ValueDefinitionProposalExtractionHelper {
         return valueList;
     }
 
-    private List<String> getSchemaFromStatement(int currentOffset, ValueDefinition statement, EObject model) {
+    private List<String> getSchemaFromValueDefinitionStatement(int currentOffset, ValueDefinition statement,
+            EObject model) {
+        var valueDefinitionOffset = getValueDefinitionOffset(statement);
+        if (currentOffset <= valueDefinitionOffset)
+            return new LinkedList<>();
+
         List<String> proposalTemplates;
-        List<String> functionSchemaTemplates  = List.of();
-        List<String> attributeSchemaTemplates = List.of();
-        int          valueDefinitionOffset    = getValueDefinitionOffset(statement);
+        List<String> allTemplates        = new LinkedList<>();
+        var          schemaVarExpression = statement.getSchemaVarExpression();
+        var          policyBody          = getPolicyBody(model);
 
-        var schemaVarExpression = statement.getSchemaVarExpression();
-
-        // try to move up to the policy body
-        if (model instanceof Condition) {
-            model = TreeNavigationHelper.goToFirstParent(model, PolicyBody.class);
-        }
-
-        // look up all defined variables in the policy
-        if (model instanceof PolicyBody policyBody) {
-            // iterate through defined statements which are either conditions or
-            // variables
-            for (var aStatement : policyBody.getStatements()) {
-                // add any encountered valuable to the list of proposals
-                if (currentOffset > valueDefinitionOffset && aStatement instanceof ValueDefinition valueDefinition) {
-                    if (valueDefinition.getEval() instanceof BasicIdentifier basicExpression) {
-                        // A function or attribute is assigned to a variable name. Proposals for the
-                        // variable name.
-                        var stepsString = combineKeystepsFromBasicIdentifier(basicExpression);
-                        var identifier  = basicExpression.getIdentifier();
-                        functionSchemaTemplates  = getFunctionSchemaTemplates(stepsString, identifier);
-                        attributeSchemaTemplates = getAttributeSchemaTemplates(stepsString);
-                    } else if (valueDefinition.getEval() instanceof BasicFunction basicFunction) {
-                        // Proposals for a function name
-                        var identifier  = basicFunction.getFsteps().get(0);
-                        var stepsString = combineFstepsFromBasicFunction(basicFunction);
-                        functionSchemaTemplates = getFunctionSchemaTemplates(stepsString, identifier);
-                    } else {
-                        break;
-                    }
-                }
+        for (var aStatement : policyBody.getStatements()) {
+            var statementOffset = getValueDefinitionOffset(aStatement);
+            if (currentOffset > statementOffset && aStatement instanceof ValueDefinition valueDefinition) {
+                var aStatementName     = valueDefinition.getName();
+                var allSchemaTemplates = getAllSchemaTemplates(valueDefinition);
+                var proposals          = constructProposals(aStatementName, allSchemaTemplates);
+                allTemplates.addAll(proposals);
             }
         }
         proposalTemplates = getProposalTemplates(statement, schemaVarExpression);
-
-        var valueDefinitionName = statement.getName();
-        var allTemplates        = new LinkedList<>(functionSchemaTemplates);
-        allTemplates.addAll(attributeSchemaTemplates);
-        var functionTemplates = constructProposals(valueDefinitionName, allTemplates);
-        proposalTemplates.addAll(functionTemplates);
-        proposalTemplates.addAll(functionSchemaTemplates);
-        proposalTemplates.addAll(attributeSchemaTemplates);
+        proposalTemplates.addAll(allTemplates);
 
         return proposalTemplates;
+    }
+
+    private List<String> getSchemaFromConditionStatement(int currentOffset, EObject model) {
+
+        List<String> allTemplates = new LinkedList<>();
+        var          policyBody   = getPolicyBody(model);
+
+        for (var aStatement : policyBody.getStatements()) {
+            var statementOffset = getValueDefinitionOffset(aStatement);
+            if (currentOffset > statementOffset && aStatement instanceof ValueDefinition valueDefinition) {
+                var aStatementName     = valueDefinition.getName();
+                var allSchemaTemplates = getAllSchemaTemplates(valueDefinition);
+                var proposals          = constructProposals(aStatementName, allSchemaTemplates);
+                allTemplates.addAll(proposals);
+            } else if (currentOffset > statementOffset && ((Condition) aStatement)
+                    .getExpression() instanceof BasicEnvironmentAttribute basicEnvironmentAttribute) {
+                var stepsString        = combineKeystepsFromBasicEnvironmentAttribute(basicEnvironmentAttribute);
+                var allSchemaTemplates = getAttributeSchemaTemplates(stepsString);
+                var sb                 = new StringBuilder();
+                sb.append('<');
+                for (int i = 0; i < stepsString.size(); i++) {
+                    String step = stepsString.get(i);
+                    sb.append(step);
+                    if (i < stepsString.size() - 1)
+                        sb.append('.');
+                    else
+                        sb.append('>');
+                }
+                var elementName = sb.toString();
+                var proposals   = constructProposals(elementName, allSchemaTemplates);
+                allTemplates.addAll(proposals);
+            }
+        }
+        return allTemplates;
+    }
+
+    private List<String> getAllSchemaTemplates(ValueDefinition valueDefinition) {
+        List<String> allTemplates             = new LinkedList<>();
+        List<String> functionSchemaTemplates  = List.of();
+        List<String> attributeSchemaTemplates = List.of();
+        if (valueDefinition.getEval() instanceof BasicIdentifier basicIdentifier) {
+            // A function or attribute is assigned to a variable name. Proposals for the
+            // variable name.
+            var stepsString = combineKeystepsFromBasicIdentifier(basicIdentifier);
+            var identifier  = basicIdentifier.getIdentifier();
+            functionSchemaTemplates  = getFunctionSchemaTemplates(stepsString, identifier);
+            attributeSchemaTemplates = getAttributeSchemaTemplates(stepsString);
+        } else if (valueDefinition.getEval() instanceof BasicFunction basicFunction) {
+            // Proposals for a function name
+            String       identifier;
+            List<String> stepsString;
+            identifier              = basicFunction.getFsteps().get(0);
+            stepsString             = combineFstepsFromBasicFunction(basicFunction);
+            functionSchemaTemplates = getFunctionSchemaTemplates(stepsString, identifier);
+
+        } else if (valueDefinition.getEval() instanceof BasicEnvironmentAttribute basicEnvironmentAttribute) {
+            var stepsString = combineKeystepsFromBasicEnvironmentAttribute(basicEnvironmentAttribute);
+            attributeSchemaTemplates = getAttributeSchemaTemplates(stepsString);
+
+        }
+        allTemplates.addAll(functionSchemaTemplates);
+        allTemplates.addAll(attributeSchemaTemplates);
+        return allTemplates;
     }
 
     private List<String> getFunctionSchemaTemplates(List<String> stepsString, String identifier) {
@@ -272,7 +463,15 @@ public class ValueDefinitionProposalExtractionHelper {
         var          imports        = ImportsUtil.fetchImports(getSapl(), attributeContext, functionContext);
         var          name           = getFunctionName(stepsString, identifier, imports);
         var          absName        = FunctionUtil.resolveAbsoluteFunctionName(name, imports);
-        var          functionSchema = functionContext.getFunctionSchemas().get(absName);
+        var          allSchemas     = functionContext.getFunctionSchemas();
+        var          allSchemaPaths = functionContext.getFunctionSchemaPaths();
+        for (var path : allSchemaPaths.entrySet()) {
+            String schema = fetchSchemaFromPath(path.getValue());
+            if (!schema.isEmpty()) {
+                allSchemas.put(path.getKey(), schema);
+            }
+        }
+        var functionSchema = allSchemas.get(absName);
         functionSchemaTemplates = new SchemaProposals(variablesAndCombinatorSource)
                 .schemaTemplatesFromJson(functionSchema);
         return functionSchemaTemplates;
@@ -305,22 +504,23 @@ public class ValueDefinitionProposalExtractionHelper {
         var stepsString = new LinkedList<String>();
         var steps       = basicIdentifier.getSteps();
         for (var step : steps) {
-            if (step instanceof KeyStep keyStep) {
-                stepsString.add(keyStep.getId());
-            } else {
-                // step is AttributeFinderStep
-                var idSteps = ((AttributeFinderStep) step).getIdSteps();
-                stepsString.addAll(idSteps);
-            }
+            var keyStep = (KeyStep) step;
+            stepsString.add(keyStep.getId());
         }
         return stepsString;
     }
 
+    private List<String> combineKeystepsFromBasicEnvironmentAttribute(
+            BasicEnvironmentAttribute basicEnvironmentAttribute) {
+        var steps = basicEnvironmentAttribute.getIdSteps();
+        return new LinkedList<>(steps);
+    }
+
     private List<String> combineFstepsFromBasicFunction(BasicFunction basicFunction) {
         var stepsString = new LinkedList<String>();
-        basicFunction.getFsteps().remove(0);
-        var fsteps = basicFunction.getFsteps();
-        stepsString.add(String.join(".", fsteps));
+        var fSteps      = new LinkedList<>(basicFunction.getFsteps());
+        fSteps.remove(0);
+        stepsString.add(String.join(".", fSteps));
         return stepsString;
     }
 

@@ -574,35 +574,39 @@ A policy set contains an ordered set of connected policies.
 
 ==== Policy Structure
 
-A SAPL policy consists of optional *imports*,  a *name*, an *entitlement* specification, an optional *target expression*, an optional *body* with one or more statements, and optional sections for *obligation*, *advice*, and *transformation*. An example of a simple policy is:
+A SAPL policy consists of optional *imports*, optional *schemas* for authorization subscription elements,  a *name*, an *entitlement* specification, an optional *target expression*, an optional *body* with one or more statements, and optional sections for *obligation*, *advice*, and *transformation*. An example of a simple policy is:
 
 [source]
 .Sample SAPL Policy
 ----
 import filter as filter <1>
+subject schema aSubjectSchema <2>
 
-policy "test_policy" <2>
-permit <3>
-	subject.id == "anId" | action == "anAction" <4> 
+policy "test_policy" <3>
+permit <4>
+	subject.id == "anId" | action == "anAction" <5>
 where 
 	var variable = "anAttribute";
-	subject.attribute == variable; <5>
+	subject.attribute == variable; <6>
+    var foo = true schema {"type": "boolean"} <7>
 obligation
-	"logging:log_access" <6>
+	"logging:log_access" <8>
 advice
-	"logging:inform_admin" <7>
+	"logging:inform_admin" <9>
 transform
-	resource.content |- filter.blacken <8>
+	resource.content |- filter.blacken <10>
 	
 ----
 <1> Imports (optional)
-<2> Name
-<3> Entitlement
-<4> Target Expression (optional)
-<5> Body (optional)
-<6> Obligation (optional)
-<7> Advice (optional)
-<8> Transformation (optional)
+<2> Schemas (optional)
+<3> Name
+<4> Entitlement
+<5> Target Expression (optional)
+<6> Body (optional)
+<7> Schemas (optional)
+<8> Obligation (optional)
+<9> Advice (optional)
+<10> Transformation (optional)
 
 
 ==== Policy Set Structure
@@ -662,6 +666,10 @@ policy "sample"
 ...
 ----
 
+=== Schemas for Authorization Subscription Attributes
+
+SAPL offers the possibility to predefine the structure of an attribute of the authorization subscription using a JSON schema. The attribute name is followed by the keyword `schema` and the schema expression. The schema expression must evaluate to a valid JSON schema.
+
 === SAPL Policy
 
 [[policy]]
@@ -720,7 +728,7 @@ If the body is missing (or does not contain any condition statement), the policy
 
 [[value-assignment]]
 
-A variable assignment starts with the keyword `var`, followed by an identifier under which the assigned value should be available, followed by `=` and an expression.
+A variable assignment starts with the keyword `var`, followed by an identifier under which the assigned value should be available, followed by `=` and an expression. The assignment can be followed by the optional keyword `schema` and one or more schema expressions separated by `,`. The schema expression(s) must evaluate to a valid JSON schema.
 
 After a variable assignment, the result of evaluating the expression can be used in later conditions within the same policy under the specified name. This is useful because it allows to execute time-consuming calculations or requests to external attribute stores only once, and the result can be used in multiple expressions. Additionally, it can make policies shorter and improve readability.
 

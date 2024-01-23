@@ -34,7 +34,7 @@ class FunctionProposalTests extends CompletionTests {
                     policy "test" deny where var foo = schemaTest.person();
                     schemaTe""";
 
-            String cursor = "foo";
+            String cursor = "schemaTe";
             it.setModel(policy);
             it.setLine(1);
             it.setColumn(cursor.length());
@@ -111,6 +111,53 @@ class FunctionProposalTests extends CompletionTests {
     }
 
     @Test
+    void testCompletion_PolicyBody_two_variables_assigned_function_with_alias_import() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    import schemaTest as test
+                    policy "test" deny where var foo = test.dog();
+                    var bar = test.dog();
+                    ba""";
+
+            String cursor = "ba";
+            it.setModel(policy);
+            it.setLine(3);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("bar.race");
+                assertProposalsSimple(expected, completionList);
+                var unwanted = List.of("bar.name");
+                assertDoesNotContainProposals(unwanted, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_PolicyBody_two_variables_assigned_function_with_alias_import_and_trailing_dot() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    import schemaTest as test
+                    policy "test" deny where var foo = test.dog();
+                    foo.""";
+
+            String cursor = "foo.";
+            it.setModel(policy);
+            it.setLine(2);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("foo.race");
+                assertProposalsSimple(expected, completionList);
+                var unwanted = List.of("foo.name", "filter.blacken");
+                assertDoesNotContainProposals(unwanted, completionList);
+            });
+        });
+    }
+
+    @Test
     void testCompletion_PolicyBody_function() {
 
         testCompletion((TestCompletionConfiguration it) -> {
@@ -159,15 +206,15 @@ class FunctionProposalTests extends CompletionTests {
                     policy "test" deny where
                     var foo = schemaTest.cat""";
 
-            String cursor = "var foo = schemaTest";
+            String cursor = "var foo = schemaTest.cat";
             it.setModel(policy);
             it.setLine(1);
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("schemaTest.dog()", "schemaTest.dog().race", "schemaTest.food(String species)",
+                var unwanted = List.of("schemaTest.dog()", "schemaTest.dog().race", "schemaTest.food(String species)",
                         "schemaTest.person()", "schemaTest.person().name");
-                assertProposalsSimple(expected, completionList);
+                assertDoesNotContainProposals(unwanted, completionList);
             });
         });
     }
@@ -180,7 +227,7 @@ class FunctionProposalTests extends CompletionTests {
                     policy "test" deny where
                     var foo = schemaTest.dog""";
 
-            String cursor = "var foo = schemaTest";
+            String cursor = "var foo = schemaTest.dog";
             it.setModel(policy);
             it.setLine(1);
             it.setColumn(cursor.length());
@@ -232,4 +279,92 @@ class FunctionProposalTests extends CompletionTests {
             });
         });
     }
+
+    @Test
+    void testCompletion_function_assignment_schema_from_path() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    policy "test" deny where
+                    var foo = schemaTest.locatio""";
+
+            String cursor = "var foo = schemaTest.locatio";
+            it.setModel(policy);
+            it.setLine(1);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("schemaTest.location()", "schemaTest.location().latitude",
+                        "schemaTest.location().latitude.maximum");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_function_schema_from_path() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    policy "test" deny where
+                    schemaTest.locatio""";
+
+            String cursor = "schemaTest.locatio";
+            it.setModel(policy);
+            it.setLine(1);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("schemaTest.location()", "schemaTest.location().latitude",
+                        "schemaTest.location().latitude.maximum");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_variable_no_unrelated_suggestions_after_dot() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    policy "test" deny where var foo = schemaTest.location();
+                    foo.""";
+
+            String cursor = "foo.";
+            it.setModel(policy);
+            it.setLine(1);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("foo.latitude", "foo.latitude.maximum");
+                assertProposalsSimple(expected, completionList);
+                var unwanted = List.of("clock.millis>", "filter.blacken");
+                assertDoesNotContainProposals(unwanted, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_variable_no_import_suggestions_after_dot() {
+
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    import schemaTest as test
+                    policy "test" deny where var foo = test.person();
+                    foo.""";
+
+            String cursor = "foo.";
+            it.setModel(policy);
+            it.setLine(2);
+            it.setColumn(cursor.length());
+
+            it.setAssertCompletionList(completionList -> {
+                var expected = List.of("foo.name");
+                assertProposalsSimple(expected, completionList);
+                var unwanted = List.of("test.name");
+                assertDoesNotContainProposals(unwanted, completionList);
+            });
+        });
+    }
+
 }
