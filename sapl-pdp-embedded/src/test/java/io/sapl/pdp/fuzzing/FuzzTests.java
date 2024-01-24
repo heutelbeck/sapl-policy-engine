@@ -24,6 +24,7 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.pdp.PolicyDecisionPointFactory;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import reactor.test.StepVerifier;
 
@@ -49,68 +50,67 @@ public class FuzzTests {
 
     @FuzzTest(maxExecutions = 10000L)
     public void decideWithFuzzedSubscriptionTests(FuzzedDataProvider data) {
-        var asciiString      = data.consumeAsciiString(100);
-        var asciiStringParts = splitStringIntoThreeParts(asciiString);
+        var asciiString        = data.consumeAsciiString(100);
+        var fuzzedSubscription = generateFuzzedSubscriptionFor(asciiString);
 
-        decideWithFuzzedSubscriptionDenyOverrides(asciiStringParts);
-        decideWithFuzzedSubscriptionDenyUnlessPermit(asciiStringParts);
-        decideWithFuzzedSubscriptionPermitUnlessDeny(asciiStringParts);
-        decideWithFuzzedSubscriptionPermitOverrides(asciiStringParts);
-        decideWithFuzzedSubscriptionOnlyOneApplicable(asciiStringParts);
+        decideWithFuzzedSubscriptionDenyOverrides(fuzzedSubscription);
+        decideWithFuzzedSubscriptionDenyUnlessPermit(fuzzedSubscription);
+        decideWithFuzzedSubscriptionPermitUnlessDeny(fuzzedSubscription);
+        decideWithFuzzedSubscriptionPermitOverrides(fuzzedSubscription);
+        decideWithFuzzedSubscriptionOnlyOneApplicable(fuzzedSubscription);
     }
 
-    public void decideWithFuzzedSubscriptionDenyOverrides(String... asciiStringParts) {
-        assertFuzzedSubscriptionReturns(pdpDenyOverrides, asciiStringParts, AuthorizationDecision.NOT_APPLICABLE);
+    public void decideWithFuzzedSubscriptionDenyOverrides(AuthorizationSubscription fuzzedSubscription) {
+        assertFuzzedSubscriptionReturns(pdpDenyOverrides, fuzzedSubscription, AuthorizationDecision.NOT_APPLICABLE);
     }
 
-    public void decideWithFuzzedSubscriptionDenyUnlessPermit(String... asciiStringParts) {
-        assertFuzzedSubscriptionReturns(pdpDenyUnlessPermit, asciiStringParts, AuthorizationDecision.DENY);
+    public void decideWithFuzzedSubscriptionDenyUnlessPermit(AuthorizationSubscription fuzzedSubscription) {
+        assertFuzzedSubscriptionReturns(pdpDenyUnlessPermit, fuzzedSubscription, AuthorizationDecision.DENY);
     }
 
-    public void decideWithFuzzedSubscriptionPermitUnlessDeny(String... asciiStringParts) {
-        assertFuzzedSubscriptionReturns(pdpPermitUnlessDeny, asciiStringParts, AuthorizationDecision.PERMIT);
+    public void decideWithFuzzedSubscriptionPermitUnlessDeny(AuthorizationSubscription fuzzedSubscription) {
+        assertFuzzedSubscriptionReturns(pdpPermitUnlessDeny, fuzzedSubscription, AuthorizationDecision.PERMIT);
     }
 
-    public void decideWithFuzzedSubscriptionPermitOverrides(String... asciiStringParts) {
-        assertFuzzedSubscriptionReturns(pdpPermitOverrides, asciiStringParts, AuthorizationDecision.NOT_APPLICABLE);
+    public void decideWithFuzzedSubscriptionPermitOverrides(AuthorizationSubscription fuzzedSubscription) {
+        assertFuzzedSubscriptionReturns(pdpPermitOverrides, fuzzedSubscription, AuthorizationDecision.NOT_APPLICABLE);
     }
 
-    public void decideWithFuzzedSubscriptionOnlyOneApplicable(String... asciiStringParts) {
-        assertFuzzedSubscriptionReturns(pdpOnlyOneApplicable, asciiStringParts, AuthorizationDecision.NOT_APPLICABLE);
+    public void decideWithFuzzedSubscriptionOnlyOneApplicable(AuthorizationSubscription fuzzedSubscription) {
+        assertFuzzedSubscriptionReturns(pdpOnlyOneApplicable, fuzzedSubscription, AuthorizationDecision.NOT_APPLICABLE);
     }
 
-    public String[] splitStringIntoThreeParts(String input) {
-        String[] result = new String[3];
-
-        if (input == null || input.isEmpty()) {
-            result[0] = "";
-            result[1] = "";
-            result[2] = "";
-            return result;
+    public AuthorizationSubscription generateFuzzedSubscriptionFor(String input) {
+        if (StringUtils.isEmpty(input)) {
+            return emptyAuthorizationSubscription();
         }
 
         int length = input.length();
+
         if (length < 3) {
-            result[0] = input;
-            return result;
+            return subjectOnlyAuthorizationSubscription(input);
         }
+
         int partLength = length / 3;
 
-        String part1 = input.substring(0, partLength);
-        String part2 = input.substring(partLength, 2 * partLength);
-        String part3 = input.substring(2 * partLength);
+        String subject  = input.substring(0, partLength);
+        String action   = input.substring(partLength, 2 * partLength);
+        String resource = input.substring(2 * partLength);
 
-        result[0] = part1;
-        result[1] = part2;
-        result[2] = part3;
-
-        return result;
+        return AuthorizationSubscription.of(subject, action, resource);
     }
 
-    public void assertFuzzedSubscriptionReturns(PolicyDecisionPoint pdp, String[] asciiStringParts,
+    private AuthorizationSubscription subjectOnlyAuthorizationSubscription(String input) {
+        return AuthorizationSubscription.of(input, "", "");
+    }
+
+    private AuthorizationSubscription emptyAuthorizationSubscription() {
+        return AuthorizationSubscription.of("", "", "");
+    }
+
+    public void assertFuzzedSubscriptionReturns(PolicyDecisionPoint pdp, AuthorizationSubscription fuzzedSubscription,
             AuthorizationDecision expectedAuthorizationDecision) {
-        var subscription = AuthorizationSubscription.of(asciiStringParts[0], asciiStringParts[1], asciiStringParts[2]);
-        StepVerifier.create(pdp.decide(subscription)).expectNext(expectedAuthorizationDecision).verifyComplete();
+        StepVerifier.create(pdp.decide(fuzzedSubscription)).expectNext(expectedAuthorizationDecision).verifyComplete();
     }
 
     public PolicyDecisionPoint buildPDPWithConfiguration(String configuration) throws InitializationException {
