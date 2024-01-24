@@ -39,7 +39,7 @@ public class FuzzTests {
     private PolicyDecisionPoint pdpOnlyOneApplicable;
 
     @BeforeEach
-    void setup() {
+    void setup() throws InitializationException {
         pdpDenyOverrides     = buildPDPWithConfiguration("/pdp-configurations/deny-overrides-configuration");
         pdpDenyUnlessPermit  = buildPDPWithConfiguration("/pdp-configurations/deny-unless-permit-configuration");
         pdpPermitUnlessDeny  = buildPDPWithConfiguration("/pdp-configurations/permit-unless-deny-configuration");
@@ -113,11 +113,7 @@ public class FuzzTests {
         StepVerifier.create(pdp.decide(subscription)).expectNext(expectedAuthorizationDecision).verifyComplete();
     }
 
-    public PolicyDecisionPoint buildPDPWithConfiguration(String configuration) {
-        try {
-            return PolicyDecisionPointFactory.resourcesPolicyDecisionPoint(configuration);
-        } catch (InitializationException e) {
-            throw new RuntimeException(e);
-        }
+    public PolicyDecisionPoint buildPDPWithConfiguration(String configuration) throws InitializationException {
+        return PolicyDecisionPointFactory.resourcesPolicyDecisionPoint(configuration);
     }
 }
