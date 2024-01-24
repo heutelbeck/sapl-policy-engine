@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import org.eclipse.emf.common.util.EList;
+import org.eclipse.emf.ecore.util.EcoreUtil;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.functions.SchemaValidationLibrary;
@@ -36,18 +37,34 @@ import io.sapl.grammar.sapl.impl.util.MatchingUtil;
 import io.sapl.interpreter.DocumentEvaluationResult;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
 
-/**
- *
- */
-/**
- *
- */
 public class SAPLImplCustom extends SAPLImpl {
 
     @Override
     public Mono<Val> matches() {
-        return MatchingUtil.matches(getImplicitTargetExpression(), this);
+        // this does not use the implicit expression to not disrupt hit recording with
+        // the test tools
+        return Mono.zip(this.policyElement.matches(), schemasMatch()).map(this::and);
+    }
+
+    private Mono<Val> schemasMatch() {
+        return MatchingUtil.matches(getSchemaPredicateExpression(), this);
+    }
+
+    private Val and(Tuple2<Val, Val> matches) {
+        var elementMatch = matches.getT1();
+        var schemaMatch  = matches.getT2();
+
+        if (schemaMatch.isError()) {
+            return schemaMatch;
+        }
+
+        if (elementMatch.isError()) {
+            return elementMatch;
+        }
+
+        return Val.of(elementMatch.getBoolean() && schemaMatch.getBoolean());
     }
 
     @Override
@@ -156,7 +173,7 @@ public class SAPLImplCustom extends SAPLImpl {
         var arguments = SaplFactory.eINSTANCE.createArguments();
         var args      = arguments.getArgs();
         args.add(identifier);
-        args.add(schema.getSchemaExpression());
+        args.add(EcoreUtil.copy(schema.getSchemaExpression()));
 
         function.setArguments(arguments);
         return function;

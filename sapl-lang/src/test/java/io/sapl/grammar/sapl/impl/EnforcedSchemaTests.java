@@ -27,13 +27,12 @@ import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
-import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.SchemaValidationLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
+import io.sapl.grammar.sapl.impl.util.MatchingUtil;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.SimpleFunctionLibrary;
@@ -43,7 +42,6 @@ import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import lombok.SneakyThrows;
 
 public class EnforcedSchemaTests {
-    private static final JsonNodeFactory        JSON        = JsonNodeFactory.instance;
     private static final ObjectMapper           MAPPER      = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT);
     private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
@@ -58,6 +56,40 @@ public class EnforcedSchemaTests {
         functionContext.loadLibrary(SchemaValidationLibrary.class);
         functionContext.loadLibrary(FilterFunctionLibrary.class);
         functionContext.loadLibrary(StandardFunctionLibrary.class);
+    }
+
+    @Test
+    void when_noEnforcementAndNoTarget_then_matches() throws JsonProcessingException {
+        var authzSubscription = """
+                {
+                    "subject"  : "willi",
+                    "action"   : "eat",
+                    "resource" : "ice cream"
+                }
+                """;
+        var document          = """
+                policy "test"
+                permit
+                """;
+
+        assertMatchEvaluation(authzSubscription, document, true);
+    }
+
+    @Test
+    void when_noEnforcementButWithTarget_then_matches() throws JsonProcessingException {
+        var authzSubscription = """
+                {
+                    "subject"  : "willi",
+                    "action"   : "eat",
+                    "resource" : "ice cream"
+                }
+                """;
+        var document          = """
+                policy "test"
+                permit true
+                """;
+
+        assertMatchEvaluation(authzSubscription, document, true);
     }
 
     @Test
@@ -80,20 +112,262 @@ public class EnforcedSchemaTests {
                 policy "test"
                 permit
                 """;
-        var match             = matches(authzSubscription, document);
 
-        assertThat(match.isBoolean()).isTrue();
-        assertThat(match.getBoolean()).isTrue();
+        assertMatchEvaluation(authzSubscription, document, true);
+    }
+
+    @Test
+    void when_enforcedSubjectSchemaAndValidSubjectButTargetNoMatch_then_noMatch() throws JsonProcessingException {
+        var authzSubscription = """
+                {
+                    "subject"  : "willi",
+                    "action"   : "eat",
+                    "resource" : "ice cream"
+                }
+                """;
+        var document          = """
+                subject     enforced schema {
+                                                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                                                "$id": "https://example.com/product.schema.json",
+                                                "title": "Schema for Subject",
+                                                "description": "A Subject is just a String",
+                                                "type": "string"
+                                            }
+                policy "test"
+                permit false
+                """;
+
+        assertMatchEvaluation(authzSubscription, document, false);
+    }
+
+    @Test
+    void when_schemaError_then_error() throws JsonProcessingException {
+        var authzSubscription = """
+                {
+                    "subject"  : "willi",
+                    "action"   : "eat",
+                    "resource" : "ice cream"
+                }
+                """;
+        var document          = """
+                subject     enforced schema {
+                                                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                                                "$id": "https://example.com/product.schema.json",
+                                                "title": "Schema for Subject",
+                                                "description": "A Subject is just a String",
+                                                "type": 1/0
+                                            }
+                policy "test"
+                permit 1/0
+                """;
+
+        assertMatchError(authzSubscription, document);
+    }
+
+    @Test
+    void when_elementError_then_error() throws JsonProcessingException {
+        var authzSubscription = """
+                {
+                    "subject"  : "willi",
+                    "action"   : "eat",
+                    "resource" : "ice cream"
+                }
+                """;
+        var document          = """
+                subject     enforced schema {
+                                                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                                                "$id": "https://example.com/product.schema.json",
+                                                "title": "Schema for Subject",
+                                                "description": "A Subject is just a String",
+                                                "type": "string"
+                                            }
+                policy "test"
+                permit 1/0
+                """;
+
+        assertMatchError(authzSubscription, document);
+    }
+
+    @Test
+    void when_enforcedSubjectAndActionSchemaAndValidSubjectAndAction_then_bothMustMatch()
+            throws JsonProcessingException {
+        var bothMatchSubscription      = """
+                {
+                    "subject"  : "willi",
+                    "action"   : 123,
+                    "resource" : "ice cream"
+                }
+                """;
+        var actionNoMatchSubscription  = """
+                {
+                    "subject"  : "willi",
+                    "action"   : true,
+                    "resource" : "ice cream"
+                }
+                """;
+        var subjectNoMatchSubscription = """
+                {
+                    "subject"  : 987,
+                    "action"   : 123,
+                    "resource" : "ice cream"
+                }
+                """;
+        var document                   = """
+                subject     enforced schema {
+                                                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                                                "$id": "https://example.com/product.schema.json",
+                                                "title": "Schema for Subject",
+                                                "description": "A Subject is just a String",
+                                                "type": "string"
+                                            }
+                action      enforced schema {
+                                                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                                                "$id": "https://example.com/product.schema.json",
+                                                "title": "Schema for Action",
+                                                "description": "An action is just a number",
+                                                "type": "number"
+                                            }
+                policy "test"
+                permit
+                """;
+
+        assertMatchEvaluation(bothMatchSubscription, document, true);
+        assertMatchEvaluation(actionNoMatchSubscription, document, false);
+        assertMatchEvaluation(subjectNoMatchSubscription, document, false);
+    }
+
+    @Test
+    void when_enforcedSubjectSchemaAndInvalidSubject_then_notMatching() throws JsonProcessingException {
+        var authzSubscription = """
+                {
+                    "subject"  : 123,
+                    "action"   : "eat",
+                    "resource" : "ice cream"
+                }
+                """;
+        var document          = """
+                subject     enforced schema {
+                                                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                                                "$id": "https://example.com/product.schema.json",
+                                                "title": "Schema for Subject",
+                                                "description": "A Subject is just a String",
+                                                "type": "string"
+                                            }
+                policy "test"
+                permit true
+                """;
+
+        assertMatchEvaluation(authzSubscription, document, false);
+    }
+
+    @Test
+    void when_nonEnforcedSubjectSchemaAndInvalidSubject_then_matching() throws JsonProcessingException {
+        var authzSubscription = """
+                {
+                    "subject"  : 123,
+                    "action"   : "eat",
+                    "resource" : "ice cream"
+                }
+                """;
+        var document          = """
+                subject     schema {
+                                       "$schema": "https://json-schema.org/draft/2020-12/schema",
+                                       "$id": "https://example.com/product.schema.json",
+                                       "title": "Schema for Subject",
+                                       "description": "A Subject is just a String",
+                                       "type": "string"
+                                   }
+                policy "test"
+                permit
+                """;
+        assertMatchEvaluation(authzSubscription, document, true);
+    }
+
+    @Test
+    void when_enforcedSubjectTwoSchemasSchema_then_bothVersionsMatch() throws JsonProcessingException {
+        var document = """
+                subject     enforced schema {
+                                                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                                                "$id": "https://example.com/product.schema.json",
+                                                "title": "Schema for Subject",
+                                                "description": "A Subject is just a String",
+                                                "type": "string"
+                                            }
+                subject     enforced schema {
+                                                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                                                "$id": "https://example.com/product.schema.json",
+                                                "title": "Schema for Subject",
+                                                "description": "A Subject is just a number",
+                                                "type": "number"
+                                            }
+                policy "test"
+                permit
+                """;
+
+        var authzSubscriptionString = """
+                {
+                    "subject"  : "willi",
+                    "action"   : "eat",
+                    "resource" : "ice cream"
+                }
+                """;
+        var authzSubscriptionNumber = """
+                {
+                    "subject"  : 123,
+                    "action"   : "eat",
+                    "resource" : "ice cream"
+                }
+                """;
+        var authzSubscriptionNull   = """
+                {
+                    "subject"  : null,
+                    "action"   : "eat",
+                    "resource" : "ice cream"
+                }
+                """;
+
+        assertMatchEvaluation(authzSubscriptionString, document, true);
+        assertMatchEvaluation(authzSubscriptionNumber, document, true);
+        assertMatchEvaluation(authzSubscriptionNull, document, false);
     }
 
     @SneakyThrows
-    private static Val matches(String subscription, String document) {
+    private static void assertMatchEvaluation(String subscription, String document, boolean expected) {
         var authzSubscription = MAPPER.readValue(subscription, AuthorizationSubscription.class);
         var sapl              = INTERPRETER.parse(document);
-        return sapl.matches().contextWrite(ctx -> AuthorizationContext.setVariables(ctx, Map.of()))
+        var match             = sapl.matches().contextWrite(ctx -> AuthorizationContext.setVariables(ctx, Map.of()))
                 .contextWrite(ctx -> AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription))
                 .contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx, attributeContext))
                 .contextWrite(ctx -> AuthorizationContext.setFunctionContext(ctx, functionContext)).block();
+
+        assertThat(match.getBoolean()).isEqualTo(expected);
+
+        var implicitMatch = MatchingUtil.matches(sapl.getImplicitTargetExpression(), sapl)
+                .contextWrite(ctx -> AuthorizationContext.setVariables(ctx, Map.of()))
+                .contextWrite(ctx -> AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription))
+                .contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx, attributeContext))
+                .contextWrite(ctx -> AuthorizationContext.setFunctionContext(ctx, functionContext)).block();
+
+        assertThat(implicitMatch.getBoolean()).isEqualTo(expected);
     }
 
+    @SneakyThrows
+    private static void assertMatchError(String subscription, String document) {
+        var authzSubscription = MAPPER.readValue(subscription, AuthorizationSubscription.class);
+        var sapl              = INTERPRETER.parse(document);
+        var match             = sapl.matches().contextWrite(ctx -> AuthorizationContext.setVariables(ctx, Map.of()))
+                .contextWrite(ctx -> AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription))
+                .contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx, attributeContext))
+                .contextWrite(ctx -> AuthorizationContext.setFunctionContext(ctx, functionContext)).block();
+
+        assertThat(match.isError()).isTrue();
+
+        var implicitMatch = MatchingUtil.matches(sapl.getImplicitTargetExpression(), sapl)
+                .contextWrite(ctx -> AuthorizationContext.setVariables(ctx, Map.of()))
+                .contextWrite(ctx -> AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription))
+                .contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx, attributeContext))
+                .contextWrite(ctx -> AuthorizationContext.setFunctionContext(ctx, functionContext)).block();
+
+        assertThat(implicitMatch.isError()).isTrue();
+    }
 }

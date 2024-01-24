@@ -18,13 +18,17 @@
 package io.sapl.functions;
 
 import static io.sapl.functions.SchemaValidationLibrary.isCompliant;
-import static io.sapl.hamcrest.Matchers.*;
+import static io.sapl.hamcrest.Matchers.val;
+import static io.sapl.hamcrest.Matchers.valError;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.networknt.schema.JsonSchemaException;
 
 import io.sapl.api.interpreter.Val;
 
@@ -76,5 +80,14 @@ class SchemaValidationLibraryTests {
     void when_subjectIsError_then_errorPropagates() throws JsonProcessingException {
         var result = isCompliant(Val.error("test"), Val.ofJson(VALID_SCHEMA));
         assertThat(result, is(valError("test")));
+    }
+
+    @Test
+    void when_schemaException_then_returnFalse() throws JsonProcessingException {
+        var validationSubject = spy(Val.NULL);
+        when(validationSubject.get()).thenThrow(new JsonSchemaException("test"));
+
+        var result = isCompliant(validationSubject, Val.ofJson(VALID_SCHEMA));
+        assertThat(result, is(val(false)));
     }
 }

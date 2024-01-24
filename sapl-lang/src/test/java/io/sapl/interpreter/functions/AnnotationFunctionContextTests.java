@@ -267,6 +267,13 @@ class AnnotationFunctionContextTests {
     }
 
     @Test
+    void badParameterChemaDetected() throws InitializationException {
+        var context         = new AnnotationFunctionContext(
+                () -> List.of(new AnnotationFunctionContextTests.AnnotationLibrary()), List::of);
+        assertThat(context.evaluate("annotation.schemaFromBadJson", Val.of("123")), valError());
+    }
+
+    @Test
     void schemaPathIsReturned() throws InitializationException {
         var context         = new AnnotationFunctionContext(
                 () -> List.of(new AnnotationFunctionContextTests.AnnotationLibrary()), List::of);
@@ -425,6 +432,11 @@ class AnnotationFunctionContextTests {
 
         @Function(schema = PERSON_SCHEMA)
         public static Val schemaFromJson() {
+            return Val.of(true);
+        }
+
+        @Function()
+        public static Val schemaFromBadJson(@Schema("][}{") Val param) {
             return Val.of(true);
         }
 
