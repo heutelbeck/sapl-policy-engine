@@ -19,17 +19,10 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 
-import org.eclipse.emf.common.util.BasicEList;
-
 import io.sapl.api.interpreter.Val;
-import io.sapl.functions.SchemaValidationLibrary;
-import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.PolicySet;
-import io.sapl.grammar.sapl.SaplFactory;
-import io.sapl.grammar.sapl.Schema;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DocumentEvaluationResult;
 import io.sapl.interpreter.PolicySetDecision;
@@ -39,21 +32,6 @@ import reactor.core.publisher.Flux;
 public class PolicySetImplCustom extends PolicySetImpl {
 
     private static final String NAMES_NOT_UNIQUE_ERROR = "Inconsistent policy set. Names of policies in set are not unique.";
-
-    @Override
-    public Expression getTargetExpression() {
-        var explicitTargetExpression = super.getTargetExpression();
-
-        return explicitTargetExpression;
-    }
-
-    private Expression schemaPredicate(Schema schema) {
-        var function = SaplFactory.eINSTANCE.createBasicFunction();
-        var fSteps   = function.getFsteps();
-        fSteps.add(SchemaValidationLibrary.NAME);
-        fSteps.add("isCompliantWithSchema");
-        return function;
-    }
 
     /**
      * Evaluates the body of the policy set within the given evaluation context and

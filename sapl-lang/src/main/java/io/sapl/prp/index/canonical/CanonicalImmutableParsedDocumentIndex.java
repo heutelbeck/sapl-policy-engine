@@ -126,7 +126,7 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
 
     private DisjunctiveFormula retainTarget(SAPL sapl) {
         try {
-            var                targetExpression = sapl.getPolicyElement().getTargetExpression();
+            var                targetExpression = sapl.getImplicitTargetExpression();
             DisjunctiveFormula targetFormula;
             if (targetExpression == null) {
                 targetFormula = new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
