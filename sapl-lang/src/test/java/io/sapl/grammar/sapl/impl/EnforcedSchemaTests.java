@@ -41,7 +41,7 @@ import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import lombok.SneakyThrows;
 
-public class EnforcedSchemaTests {
+class EnforcedSchemaTests {
     private static final ObjectMapper           MAPPER      = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT);
     private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();

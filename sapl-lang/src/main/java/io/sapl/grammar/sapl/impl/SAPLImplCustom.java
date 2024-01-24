@@ -119,15 +119,14 @@ public class SAPLImplCustom extends SAPLImpl {
         var keywordPredicates    = new ArrayList<Expression>(4);
         for (var expressionByKeyword : expressionsByKeyword.entrySet()) {
             keywordPredicates.add(inBraces(concatenateExpressionsWithOperator(expressionByKeyword.getValue(),
-                    () -> SaplFactory.eINSTANCE.createEagerOr())));
+                    SaplFactory.eINSTANCE::createEagerOr)));
         }
         if (keywordPredicates.isEmpty()) {
             var value = SaplFactory.eINSTANCE.createBasicValue();
             value.setValue(SaplFactory.eINSTANCE.createTrueLiteral());
             return value;
         }
-        return inBraces(
-                concatenateExpressionsWithOperator(keywordPredicates, () -> SaplFactory.eINSTANCE.createEagerAnd()));
+        return inBraces(concatenateExpressionsWithOperator(keywordPredicates, SaplFactory.eINSTANCE::createEagerAnd));
     }
 
     private static Map<String, List<Expression>> collectEnforcedSchemaExpressionsByKeyword(EList<Schema> schemas) {

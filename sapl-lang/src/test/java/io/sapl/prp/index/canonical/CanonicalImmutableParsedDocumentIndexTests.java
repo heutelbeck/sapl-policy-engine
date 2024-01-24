@@ -348,7 +348,6 @@ class CanonicalImmutableParsedDocumentIndexTests {
         assertTrue(result.getMatchingDocuments().contains(document));
     }
 
-    
     @Test
     void testUpdateFunctionCtx() {
         // given
