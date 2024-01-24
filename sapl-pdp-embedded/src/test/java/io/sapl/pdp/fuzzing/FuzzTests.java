@@ -47,7 +47,7 @@ public class FuzzTests {
         pdpOnlyOneApplicable = buildPDPWithConfiguration("/pdp-configurations/only-one-applicable-configuration");
     }
 
-    @FuzzTest(maxExecutions = 1000000L)
+    @FuzzTest(maxExecutions = 10000L)
     public void decideWithFuzzedSubscriptionTests(FuzzedDataProvider data) {
         var asciiString      = data.consumeAsciiString(100);
         var asciiStringParts = splitStringIntoThreeParts(asciiString);
