@@ -104,6 +104,12 @@
 			<artifactId>json-unit-assertj</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>com.code-intelligence</groupId>
+			<artifactId>jazzer-junit</artifactId>
+			<scope>test</scope>
+			<version>0.22.1</version>
+		</dependency>
 	</dependencies>
 
 </project>
