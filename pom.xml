@@ -424,6 +424,7 @@
 								<exclude>**/*.xtendbin</exclude>
 								<exclude>**/*._trace</exclude>
 								<exclude>**/README</exclude>
+								<exclude>.clusterfuzzlite/**</exclude>
 								<exclude>node_modules/**</exclude>
 								<exclude>frontend/**</exclude>
 								<exclude>src/test/resources/**</exclude>
