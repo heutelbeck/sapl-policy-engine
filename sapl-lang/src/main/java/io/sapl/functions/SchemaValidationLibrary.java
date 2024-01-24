@@ -19,7 +19,6 @@ package io.sapl.functions;
 
 import com.networknt.schema.JsonSchemaException;
 import com.networknt.schema.JsonSchemaFactory;
-import com.networknt.schema.SchemaValidatorsConfig;
 import com.networknt.schema.SpecVersion;
 
 import io.sapl.api.functions.Function;
@@ -49,13 +48,6 @@ public class SchemaValidationLibrary {
     private static final JsonSchemaFactory SCHEMA_FACTORY = JsonSchemaFactory
             .getInstance(SpecVersion.VersionFlag.V202012);
 
-    private static final SchemaValidatorsConfig VALIDATION_CONFIG = new SchemaValidatorsConfig();
-
-    static {
-        VALIDATION_CONFIG.setTypeLoose(false);
-        VALIDATION_CONFIG.setFailFast(true);
-    }
-
     @Function(docs = ISCOMPLIANTWITHSCHEMA_VAL_DOC, schema = RETURNS_BOOLEAN)
     public static Val isCompliant(Val validationSubject, @JsonObject Val schema) {
         if (validationSubject.isError()) {
@@ -67,7 +59,7 @@ public class SchemaValidationLibrary {
         }
 
         try {
-            var validator = SCHEMA_FACTORY.getSchema(schema.getJsonNode(), VALIDATION_CONFIG);
+            var validator = SCHEMA_FACTORY.getSchema(schema.getJsonNode());
             var messages  = validator.validate(validationSubject.get());
             return Val.of(messages.isEmpty());
         } catch (JsonSchemaException e) {
