@@ -20,12 +20,12 @@
  */
 package io.sapl.test.grammar.validation;
 
-import java.time.format.DateTimeParseException;
-
-import org.eclipse.xtext.validation.Check;
-
 import io.sapl.test.grammar.sapltest.Duration;
 import io.sapl.test.grammar.sapltest.Multiple;
+import io.sapl.test.grammar.sapltest.TestCase;
+import io.sapl.test.grammar.sapltest.VirtualTime;
+import java.time.format.DateTimeParseException;
+import org.eclipse.xtext.validation.Check;
 
 /**
  * This class contains custom validation rules.
@@ -36,7 +36,8 @@ import io.sapl.test.grammar.sapltest.Multiple;
 public class SAPLTestValidator extends AbstractSAPLTestValidator {
     protected static final String MSG_INVALID_JAVA_DURATION = "Duration is not a valid Java Duration";
 
-    protected static final String MSG_INVALID_MULTIPLE_AMOUNT = "Amount needs to be a natural number larger than 1";
+    protected static final String MSG_INVALID_MULTIPLE_AMOUNT                  = "Amount needs to be a natural number larger than 1";
+    protected static final String MSG_TESTCASE_WITH_MORE_THAN_ONE_VIRTUAL_TIME = "TestCase contains more than one virtual-time declaration";
 
     /**
      * Duration string needs to represent a valid Java Duration
@@ -69,6 +70,18 @@ public class SAPLTestValidator extends AbstractSAPLTestValidator {
         }
         if (!isValid) {
             error(MSG_INVALID_MULTIPLE_AMOUNT, multiple, null);
+        }
+    }
+
+    /**
+     * TestCase may contain virtual-time only once
+     *
+     * @param testCase a testcase instance
+     */
+    @Check
+    public void testCaseMayContainVirtualTimeOnlyOnce(final TestCase testCase) {
+        if (testCase.getGivenSteps().stream().filter(VirtualTime.class::isInstance).count() > 1) {
+            error(MSG_TESTCASE_WITH_MORE_THAN_ONE_VIRTUAL_TIME, testCase, null);
         }
     }
 }
