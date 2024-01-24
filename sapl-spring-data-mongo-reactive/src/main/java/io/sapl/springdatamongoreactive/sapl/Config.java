@@ -15,8 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatamongoreactive.sapl.database.repositoryerror;
+package io.sapl.springdatamongoreactive.sapl;
 
-public interface R2dbcRepositoryNotFoundExceptionTests<T, ID> {
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
 
+@Configuration
+@ComponentScan(basePackages = "io.sapl.springdatacommon")
+public class Config {
 }

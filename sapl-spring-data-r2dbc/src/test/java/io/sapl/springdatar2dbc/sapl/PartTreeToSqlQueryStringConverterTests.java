@@ -39,6 +39,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.platform.commons.util.ReflectionUtils;
 import org.mockito.Answers;
 import org.springframework.beans.factory.BeanFactory;
+import org.springframework.data.repository.query.parser.Part;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
@@ -93,6 +94,17 @@ class PartTreeToSqlQueryStringConverterTests {
         // THEN
         assertThrows(NoSuchElementException.class,
                 () -> PartTreeToSqlQueryStringConverter.createSqlBaseQuery(enforcementData));
+    }
+
+    @Test
+    void when_partOfPartTreeHasNoArgument_then_throwNullPointerException() {
+        // GIVEN
+        Part part = new Part("firstname", Person.class);
+
+        // WHEN
+
+        // THEN
+        assertThrows(NullPointerException.class, () -> PartTreeToSqlQueryStringConverter.and(part, null, Person.class));
     }
 
     @Test

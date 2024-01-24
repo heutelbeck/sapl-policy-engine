@@ -17,7 +17,12 @@
  */
 package io.sapl.springdatar2dbc.sapl.proxy;
 
-import java.lang.reflect.Method;
+import static io.sapl.springdatacommon.sapl.utils.Utilities.convertReturnTypeIfNecessary;
+import static io.sapl.springdatar2dbc.sapl.utils.annotation.AnnotationUtilities.convertToEnforce;
+import static io.sapl.springdatar2dbc.sapl.utils.annotation.AnnotationUtilities.hasAnnotationEnforce;
+import static io.sapl.springdatar2dbc.sapl.utils.annotation.AnnotationUtilities.hasAnnotationQuery;
+import static io.sapl.springdatar2dbc.sapl.utils.annotation.AnnotationUtilities.hasAnnotationSaplProtected;
+
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Objects;
@@ -25,19 +30,20 @@ import java.util.Objects;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.BeanFactory;
+import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.data.r2dbc.repository.Query;
+import org.springframework.data.r2dbc.repository.R2dbcRepository;
+import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.stereotype.Service;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.springdatacommon.handlers.AuthorizationSubscriptionHandlerProvider;
-import io.sapl.springdatacommon.sapl.Enforce;
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
-import io.sapl.springdatacommon.sapl.SaplProtected;
 import io.sapl.springdatacommon.sapl.utils.Utilities;
 import io.sapl.springdatar2dbc.sapl.QueryManipulationEnforcementPointFactory;
+import io.sapl.springdatar2dbc.sapl.utils.annotation.EnforceR2dbc;
 import lombok.SneakyThrows;
-import reactor.core.publisher.Flux;
 
 /**
  * This service is the gathering point of all SaplEnforcementPoints for the
@@ -66,6 +72,9 @@ public class R2dbcProxyInterceptor<T> implements MethodInterceptor {
     private final QueryManipulationEnforcementData<T>      enforcementData;
     private final QueryManipulationEnforcementPointFactory factory;
 
+    private static final String REACTIVE_CRUD_REPOSITORY_PATH = "org.springframework.data.mongodb.repository.ReactiveMongoRepository";
+    private static final String R2DBC_REPOSITORY_PATH         = "org.springframework.data.r2dbc.repository.R2dbcRepository";
+
     public R2dbcProxyInterceptor(AuthorizationSubscriptionHandlerProvider authSubHandler, BeanFactory beanFactory,
             PolicyDecisionPoint pdp, QueryManipulationEnforcementPointFactory factory) {
         this.authSubHandler  = authSubHandler;
@@ -73,7 +82,7 @@ public class R2dbcProxyInterceptor<T> implements MethodInterceptor {
         this.enforcementData = new QueryManipulationEnforcementData<>(null, beanFactory, null, pdp, null);
     }
 
-    @SneakyThrows
+    @SneakyThrows // Throwable by proceed() method, ClassNotFoundException
     public Object invoke(MethodInvocation methodInvocation) {
 
         var repositoryMethod = methodInvocation.getMethod();
@@ -83,7 +92,9 @@ public class R2dbcProxyInterceptor<T> implements MethodInterceptor {
                 || hasAnnotationEnforce(repositoryMethod)) {
 
             var returnClassOfMethod = Objects.requireNonNull(repositoryMethod).getReturnType();
-            var authSub             = this.authSubHandler.getAuthSub(repository, methodInvocation);
+            var enforceR2dbc        = AnnotationUtils.findAnnotation(repositoryMethod, EnforceR2dbc.class);
+            var enforceAnnotation   = convertToEnforce(enforceR2dbc);
+            var authSub             = this.authSubHandler.getAuthSub(repository, methodInvocation, enforceAnnotation);
 
             if (authSub == null) {
                 throw new IllegalStateException(
@@ -137,87 +148,21 @@ public class R2dbcProxyInterceptor<T> implements MethodInterceptor {
         return methodInvocation.proceed();
     }
 
-    /**
-     * To avoid duplicate code and for simplicity, fluxes were used in all
-     * EnforcementPoints, even if the database method expects a mono. Therefore, at
-     * this point it must be checked here what the return type is and transformed
-     * accordingly. In addition, the case that a non-reactive type, such as a list
-     * or collection, is expected is also covered.
-     *
-     * @param databaseObjects     are the already manipulated objects, which are
-     *                            queried with the manipulated query.
-     * @param returnClassOfMethod is the type which the database method expects as
-     *                            return type.
-     * @return the manipulated objects transformed to the correct type accordingly.
-     */
-    @SneakyThrows
-    private Object convertReturnTypeIfNecessary(Flux<T> databaseObjects, Class<?> returnClassOfMethod) {
-        if (Utilities.isFlux(returnClassOfMethod)) {
-            return databaseObjects;
-        }
-
-        if (Utilities.isMono(returnClassOfMethod)) {
-            return databaseObjects.next();
-        }
-
-        if (Utilities.isListOrCollection(returnClassOfMethod)) {
-            return databaseObjects.collectList().toFuture().get();
-        }
-
-        throw new ClassNotFoundException("Return type of method not supported: " + returnClassOfMethod);
-    }
-
-    @SuppressWarnings("unchecked")
-    private Class<T> extractDomainType(Class<?> repository) {
+    @SuppressWarnings("unchecked") // casting domain type from Class<?> to Class<T>
+    private Class<T> extractDomainType(Class<?> repository) throws ClassNotFoundException {
         Type[] repositoryTypes = repository.getGenericInterfaces();
 
-        if (repositoryTypes[0] instanceof ParameterizedType type
-                && type.getActualTypeArguments()[0] instanceof Class<?> clazz) {
-            return (Class<T>) clazz;
+        for (Type interfaceType : repositoryTypes) {
+            if (interfaceType instanceof ParameterizedType type
+                    && type.getActualTypeArguments()[0] instanceof Class<?> clazz
+                    && (interfaceType.getTypeName().contains(R2DBC_REPOSITORY_PATH)
+                            || interfaceType.getTypeName().contains(REACTIVE_CRUD_REPOSITORY_PATH))) {
+                return (Class<T>) clazz;
+            }
         }
 
-        throw new ClassCastException("If the repository [" + repository
-                + "] implements several interfaces, the first interface must correspond to the "
-                + "reactive interface of Spring Data (R2dbcRepository, ReactiveCrudRepository). ");
+        throw new ClassNotFoundException("The " + R2dbcRepository.class + " or " + ReactiveCrudRepository.class
+                + " could not be found as an extension of the " + repository);
     }
 
-    /**
-     * Checks whether a method has a {@link Query} annotation.
-     *
-     * @param method is the method to be checked.
-     * @return true, if method has a {@link Query} annotation.
-     */
-    private boolean hasAnnotationQuery(Method method) {
-        return method.isAnnotationPresent(Query.class);
-    }
-
-    /**
-     * Checks whether a method has a {@link SaplProtected} annotation.
-     *
-     * @param method is the method to be checked.
-     * @return true, if method has a {@link SaplProtected} annotation.
-     */
-    private boolean hasAnnotationSaplProtected(Method method) {
-        return method.isAnnotationPresent(SaplProtected.class);
-    }
-
-    /**
-     * Checks whether a method has a {@link SaplProtected} annotation.
-     *
-     * @param clazz is the class to be checked.
-     * @return true, if method has a {@link SaplProtected} annotation.
-     */
-    private boolean hasAnnotationSaplProtected(Class<?> clazz) {
-        return clazz.isAnnotationPresent(SaplProtected.class);
-    }
-
-    /**
-     * Checks whether a method has a {@link Enforce} annotation.
-     *
-     * @param method is the method to be checked.
-     * @return true, if method has a {@link Enforce} annotation.
-     */
-    private boolean hasAnnotationEnforce(Method method) {
-        return method.isAnnotationPresent(Enforce.class);
-    }
 }

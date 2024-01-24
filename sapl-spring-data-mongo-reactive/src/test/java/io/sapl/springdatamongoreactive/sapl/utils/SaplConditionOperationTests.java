@@ -28,28 +28,54 @@ import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.springdatamongoreactive.sapl.OperatorMongoDB;
 
 class SaplConditionOperationTests {
 
     static final ObjectMapper MAPPER = new ObjectMapper();
-    static JsonNode           mongoQueryManipulation;
-    static JsonNode           mongoQueryManipulationOrPart;
-    static JsonNode           conditions;
-    static JsonNode           conditionsWithOrPart;
-    static JsonNode           notValidConditions;
+    static JsonNode           MONGO_QUERY_MANIPULATION;
+    static JsonNode           MONGO_QUERY_MANIPULATION_OR_PART;
+    static ArrayNode          CONDITIONS;
+    static ArrayNode          CONDITIONS_WITH_OR_PART;
+    static JsonNode           NOT_VALID_CONDITIONS;
 
     @BeforeAll
     public static void setUp() throws JsonProcessingException {
-        mongoQueryManipulation       = MAPPER.readTree(
-                "{\"type\":\"mongoQueryManipulation\",\"conditions\":[\"{'age': {'gt': 30 }}\", \"{'firstname':  {'$in': ['Cathrin', 'Aaron']}}\"]}");
-        mongoQueryManipulationOrPart = MAPPER.readTree(
-                "{\"type\":\"mongoQueryManipulation\",\"conditions\":[\"{ 'age' : { '$lt' : 40}, '$or' : [{ 'firstname' : {'$eq': 'Aaron'}}]}\"]}");
-        conditions                   = mongoQueryManipulation.get("conditions");
-        conditionsWithOrPart         = mongoQueryManipulationOrPart.get("conditions");
-        notValidConditions           = MAPPER.readTree("[\"{'fieldNotValid': {'gt': 30 }}\"]");
+        MONGO_QUERY_MANIPULATION         = MAPPER.readTree("""
+                    		{
+                  "type": "mongoQueryManipulation",
+                  "conditions": [
+                        "{'age': {'gt': 30 }}",
+                        "{'firstname':  {'$in': ['Cathrin', 'Aaron']}}"
+                    ]
+                }
+                    		""");
+        MONGO_QUERY_MANIPULATION_OR_PART = MAPPER.readTree("""
+                 		{
+                  "type": "mongoQueryManipulation",
+                  "conditions": [
+                    "{ 'age' : { '$lt' : 40}, '$or' : [{ 'firstname' : {'$eq': 'Aaron'}}]}"
+                  ]
+                }
+                 		""");
+        CONDITIONS                       = MAPPER.readValue("""
+                 		   [
+                 "{'age': {'gt': 30 }}",
+                 "{'firstname':  {'$in': ['Cathrin', 'Aaron']}}"
+                ]
+                 		""", ArrayNode.class);
+        CONDITIONS_WITH_OR_PART          = MAPPER.readValue("""
+                [
+                       "{ 'age' : { '$lt' : 40}, '$or' : [{ 'firstname' : {'$eq': 'Aaron'}}]}"
+                     ]
+                """, ArrayNode.class);
+        NOT_VALID_CONDITIONS             = MAPPER.readValue("""
+                 		[
+                  "{'fieldNotValid': {'gt': 30 }}"
+                ]
+                 		""", ArrayNode.class);
     }
 
     @Test
@@ -60,7 +86,7 @@ class SaplConditionOperationTests {
         expected.add(new SaplCondition("firstname", "Aaron", OperatorMongoDB.SIMPLE_PROPERTY, "or"));
 
         // WHEN
-        var actualSaplConditions = SaplConditionOperation.jsonNodeToSaplConditions(conditionsWithOrPart);
+        var actualSaplConditions = SaplConditionOperation.jsonNodeToSaplConditions(CONDITIONS_WITH_OR_PART);
 
         // THEN
         assertTwoSaplConditions(actualSaplConditions.get(0), expected.get(0));
@@ -75,7 +101,7 @@ class SaplConditionOperationTests {
         expected.add(new SaplCondition("firstname", List.of("Cathrin", "Aaron"), OperatorMongoDB.IN, "and"));
 
         // WHEN
-        var actualSaplConditions = SaplConditionOperation.jsonNodeToSaplConditions(conditions);
+        var actualSaplConditions = SaplConditionOperation.jsonNodeToSaplConditions(CONDITIONS);
 
         // THEN
         assertTwoSaplConditions(actualSaplConditions.get(0), expected.get(0));
@@ -88,7 +114,7 @@ class SaplConditionOperationTests {
         ArrayList<SaplCondition> expected = new ArrayList<>();
 
         // WHEN
-        var actualSaplConditions = SaplConditionOperation.jsonNodeToSaplConditions(JsonNodeFactory.instance.nullNode());
+        var actualSaplConditions = SaplConditionOperation.jsonNodeToSaplConditions(MAPPER.createArrayNode());
 
         // THEN
         assertEquals(actualSaplConditions, expected);

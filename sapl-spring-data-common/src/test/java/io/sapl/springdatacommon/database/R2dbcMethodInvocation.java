@@ -26,7 +26,7 @@ import org.aopalliance.intercept.MethodInvocation;
 import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
-public class MethodInvocationForTesting implements MethodInvocation {
+public class R2dbcMethodInvocation implements MethodInvocation {
 
     String              methodName;
     ArrayList<Class<?>> argumentClasses;
@@ -60,6 +60,6 @@ public class MethodInvocationForTesting implements MethodInvocation {
 
     @Override
     public AccessibleObject getStaticPart() {
-        return null;
+        throw new InternalError();
     }
 }

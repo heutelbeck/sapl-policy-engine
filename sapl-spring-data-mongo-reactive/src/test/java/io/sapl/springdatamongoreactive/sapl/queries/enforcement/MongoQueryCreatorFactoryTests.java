@@ -52,12 +52,12 @@ import org.springframework.data.repository.query.parser.Part;
 import org.springframework.data.repository.query.parser.PartTree;
 
 import io.sapl.springdatamongoreactive.sapl.database.MethodInvocationForTesting;
-import io.sapl.springdatamongoreactive.sapl.database.MongoDbRepositoryTests;
+import io.sapl.springdatamongoreactive.sapl.database.ReactiveMongoTestUserRepository;
 import io.sapl.springdatamongoreactive.sapl.database.TestUser;
 
 class MongoQueryCreatorFactoryTests {
 
-    private MongoDbRepositoryTests repositoryTest = mock(MongoDbRepositoryTests.class);
+    private ReactiveMongoTestUserRepository repositoryTest = mock(ReactiveMongoTestUserRepository.class);
 
     private ReactiveMongoTemplate reactiveMongoTemplateSpy = mock(ReactiveMongoTemplate.class,
             Answers.RETURNS_DEEP_STUBS);

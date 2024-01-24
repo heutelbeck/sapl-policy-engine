@@ -36,7 +36,7 @@ public class MethodInvocationForRepositoryError implements MethodInvocation {
     @Override
     public Method getMethod() {
         try {
-            return RepositoryNotFoundExceptionTests.class.getMethod(methodName,
+            return RepositoryNotFoundException.class.getMethod(methodName,
                     argumentClasses.toArray(new Class[argumentClasses.size()]));
         } catch (NoSuchMethodException e) {
             throw new RuntimeException(e);
@@ -60,6 +60,6 @@ public class MethodInvocationForRepositoryError implements MethodInvocation {
 
     @Override
     public AccessibleObject getStaticPart() {
-        return null;
+        throw new InternalError();
     }
 }

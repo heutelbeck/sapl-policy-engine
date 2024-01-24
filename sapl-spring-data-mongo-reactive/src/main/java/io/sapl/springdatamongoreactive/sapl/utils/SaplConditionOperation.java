@@ -19,7 +19,10 @@ package io.sapl.springdatamongoreactive.sapl.utils;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.bson.Document;
@@ -80,15 +83,42 @@ public class SaplConditionOperation {
      * Here the functionality of {@link BasicQuery} is used to create
      * {@link SaplCondition} objects. It is assumed that the conditions from the
      * {@link io.sapl.api.pdp.Decision} have the correct structured form of a
-     * mongodb condition.
+     * mongodb condition, which is mongodb query language.
      *
      * @param conditions are the conditions of the {@link io.sapl.api.pdp.Decision}
      * @return list of {@link SaplCondition}
      */
-    public List<SaplCondition> jsonNodeToSaplConditions(JsonNode conditions) {
-        BasicQuery basicQuery = null;
+    public List<SaplCondition> jsonNodeToSaplConditions(Iterable<JsonNode> conditions) {
+        var saplConditions = new ArrayList<SaplCondition>();
 
-        for (JsonNode condition : conditions) {
+        if (!conditions.iterator().hasNext()) {
+            return saplConditions;
+        }
+
+        var basicQuery = convertJsonNodeToBasicQuery(conditions);
+
+        convertBasicQueryToSaplConditions(basicQuery, saplConditions);
+
+        return saplConditions;
+    }
+
+    private void convertBasicQueryToSaplConditions(BasicQuery basicQuery, List<SaplCondition> saplConditions) {
+        if (basicQuery != null) {
+            basicQuery.getQueryObject().forEach((String field, Object val) -> {
+                if (val instanceof List<?> list) {
+                    handleListsOfBasicQuery(saplConditions, list);
+                } else {
+                    convertDocumentToSaplCondition(saplConditions, field, val, "And");
+                }
+            });
+        }
+    }
+
+    private BasicQuery convertJsonNodeToBasicQuery(Iterable<JsonNode> conditions) {
+        Iterator<JsonNode> iterator   = conditions.iterator();
+        BasicQuery         basicQuery = null;
+        while (iterator.hasNext()) {
+            var condition = iterator.next();
             if (basicQuery == null) {
                 basicQuery = new BasicQuery(condition.asText());
             } else {
@@ -98,26 +128,23 @@ public class SaplConditionOperation {
             }
         }
 
-        var saplConditions = new ArrayList<SaplCondition>();
+        return basicQuery;
+    }
 
-        if (basicQuery == null) {
-            return saplConditions;
-        }
-
-        basicQuery.getQueryObject().forEach((field, val) -> {
-            if (val instanceof ArrayList arrayList) {
-                for (Object object : arrayList) {
-                    if (object instanceof Document doc) {
-                        doc.forEach((ke, va) -> addNewSaplCondition(saplConditions, ke, va, "Or"));
-                    }
-                }
-
-            } else {
-                addNewSaplCondition(saplConditions, field, val, "And");
+    private void handleListsOfBasicQuery(Collection<SaplCondition> saplConditions, Iterable<?> list) {
+        Iterator<?> iterator = list.iterator();
+        while (iterator.hasNext()) {
+            if (iterator.next() instanceof Document doc) {
+                doc.forEach((String field, Object value) -> convertDocumentToSaplCondition(saplConditions, field, value, "Or"));
             }
-        });
+        }
+    }
 
-        return saplConditions;
+    private void convertDocumentToSaplCondition(Collection<SaplCondition> saplConditions, String field, Object value,
+            String conjunction) {
+        if (value instanceof Document doc) {
+            addNewSaplCondition(saplConditions, field, doc, conjunction);
+        }
     }
 
     /**
@@ -150,7 +177,7 @@ public class SaplConditionOperation {
      * @return the index at which the keyword occurs.
      */
     private int getIndexIfSourceContainsAnyKeyword(String methodName) {
-        return StringUtils.indexOfAny(methodName, new String[] { "OrderBy" });
+        return StringUtils.indexOf(methodName, "OrderBy");
     }
 
     /**
@@ -214,14 +241,11 @@ public class SaplConditionOperation {
         return domainTypes;
     }
 
-    private List<SaplCondition> addNewSaplCondition(List<SaplCondition> saplConditions, String field, Object val,
+    private void addNewSaplCondition(Collection<SaplCondition> saplConditions, String field, Map<String, Object> doc,
             String conjunction) {
-        var doc      = (Document) val;
         var operator = OperatorMongoDB.getOperatorByKeyword(doc.keySet().toArray()[0].toString());
         var value    = doc.values().toArray()[0];
 
         saplConditions.add(new SaplCondition(field, value, operator, conjunction));
-
-        return saplConditions;
     }
 }

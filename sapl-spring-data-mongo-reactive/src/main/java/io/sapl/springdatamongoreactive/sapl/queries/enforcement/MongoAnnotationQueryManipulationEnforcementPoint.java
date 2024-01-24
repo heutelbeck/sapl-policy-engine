@@ -17,7 +17,6 @@
  */
 package io.sapl.springdatamongoreactive.sapl.queries.enforcement;
 
-import java.util.Objects;
 import java.util.function.Function;
 
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
@@ -25,6 +24,7 @@ import org.springframework.data.mongodb.core.query.BasicQuery;
 import org.springframework.security.access.AccessDeniedException;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -36,7 +36,7 @@ import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementPoint;
 import io.sapl.springdatacommon.sapl.queries.enforcement.QueryAnnotationParameterResolver;
 import io.sapl.springdatacommon.sapl.utils.ConstraintHandlerUtils;
-import lombok.SneakyThrows;
+import io.sapl.springdatacommon.sapl.utils.HandleProceedingData;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -120,9 +120,7 @@ public class MongoAnnotationQueryManipulationEnforcementPoint<T> implements Quer
      * @return objects from the database that were queried with the manipulated
      *         query.
      */
-    @SneakyThrows
-    @SuppressWarnings("unchecked")
-    private Flux<T> retrieveData(JsonNode obligations, BasicQuery annotationQuery) {
+    private Flux<T> retrieveData(ArrayNode obligations, BasicQuery annotationQuery) {
         if (queryManipulationObligationProvider.isResponsible(obligations, MONGO_QUERY_MANIPULATION)) {
             var mongoQueryManipulationObligation = queryManipulationObligationProvider.getObligation(obligations,
                     MONGO_QUERY_MANIPULATION);
@@ -132,12 +130,7 @@ public class MongoAnnotationQueryManipulationEnforcementPoint<T> implements Quer
 
             return reactiveMongoTemplate.find(query, enforcementData.getDomainType());
         } else {
-
-            if (enforcementData.getMethodInvocation().getMethod().getReturnType().equals(Mono.class)) {
-                return Flux.from((Mono<T>) Objects.requireNonNull(enforcementData.getMethodInvocation().proceed()));
-            }
-
-            return (Flux<T>) enforcementData.getMethodInvocation().proceed();
+            return HandleProceedingData.proceed(enforcementData);
         }
     }
 

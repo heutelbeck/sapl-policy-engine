@@ -28,16 +28,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.r2dbc.repository.support.R2dbcRepositoryFactoryBean;
 
-import io.sapl.springdatar2dbc.database.R2dbcPersonRepository;
-
 @SpringBootTest(classes = R2dbcPostProcessor.class)
 class R2dbcPostProcessorTests {
 
     @Autowired
     R2dbcPostProcessor r2dbcPostProcessor;
-
-    @MockBean
-    R2dbcPersonRepository r2DbcPersonRepositoryMock;
 
     @MockBean
     R2dbcCustomizer r2dbcCustomizerMock;

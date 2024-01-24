@@ -15,27 +15,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatamongoreactive.sapl.queries.enforcement;
+package io.sapl.springdatamongoreactive.sapl;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import java.lang.reflect.InvocationTargetException;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
-class ReflectedMongoQueryCreatorTests {
+@SpringBootTest(classes = Config.class)
+class ConfigTests {
+
+    @Autowired
+    Config config;
 
     @Test
-    void when_getDeclaredConstructor_then_returnRealMongoQueryCreatorConstructor() {
+    void when_applicationStarted_then_configBeanShouldHaveBeenCreated() {
         // GIVEN
-        var reflectedMongoQueryCreator = new ReflectedMongoQueryCreator();
 
         // WHEN
 
         // THEN
-        assertThrows(InvocationTargetException.class, () -> reflectedMongoQueryCreator
-                .getDeclaredConstructor(String.class, String.class, String.class, String.class));
-
+        assertNotNull(config);
     }
 
 }

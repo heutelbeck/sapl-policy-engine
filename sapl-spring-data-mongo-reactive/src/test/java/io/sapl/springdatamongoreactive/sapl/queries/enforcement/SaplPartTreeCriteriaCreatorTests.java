@@ -33,11 +33,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
-import org.mockito.MockedStatic;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.convert.MongoWriter;
@@ -47,8 +44,8 @@ import org.springframework.data.mongodb.repository.query.ConvertingParameterAcce
 import org.springframework.data.mongodb.repository.query.MongoParameterAccessor;
 import org.springframework.data.repository.query.parser.Part;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.springdatamongoreactive.sapl.OperatorMongoDB;
 import io.sapl.springdatamongoreactive.sapl.database.MethodInvocationForTesting;
@@ -58,24 +55,14 @@ import io.sapl.springdatamongoreactive.sapl.utils.SaplConditionOperation;
 
 class SaplPartTreeCriteriaCreatorTests {
 
-    ReactiveMongoTemplate reactiveMongoTemplateMock;
+    ReactiveMongoTemplate reactiveMongoTemplateMock = mock(ReactiveMongoTemplate.class);
 
-    static MockedStatic<SaplConditionOperation> saplConditionOperationMockedStatic;
-
-    @BeforeEach
-    public void beforeEach() {
-        reactiveMongoTemplateMock          = mock(ReactiveMongoTemplate.class);
-        saplConditionOperationMockedStatic = mockStatic(SaplConditionOperation.class);
-    }
-
-    @AfterEach
-    public void afterEach() {
-        saplConditionOperationMockedStatic.close();
-    }
+    static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Test
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked") // generic types in arguments of methods that are mocked
     void when_policyDecisionContainsQueryManipulationConditions_then_createManipulatedQuery() {
+        var saplConditionOperationMockedStatic = mockStatic(SaplConditionOperation.class);
 
         try (MockedConstruction<MongoQueryCreatorFactory> mockedConstruction = mockConstruction(
                 MongoQueryCreatorFactory.class)) {
@@ -91,7 +78,7 @@ class SaplPartTreeCriteriaCreatorTests {
             var mongoWriter = mock(MongoWriter.class);
             var delegate    = mock(MongoParameterAccessor.class);
 
-            var conditions                     = JsonNodeFactory.instance.objectNode();
+            var conditions                     = MAPPER.createArrayNode();
             var expectedMethodSaplConditions   = new ArrayList<>(
                     List.of(new SaplCondition("age", 40, OperatorMongoDB.BEFORE, "And")));
             var expectedJsonNodeSaplConditions = new ArrayList<>(
@@ -123,7 +110,7 @@ class SaplPartTreeCriteriaCreatorTests {
                     .when(() -> SaplConditionOperation.toModifiedMethodName(anyString(), any(List.class)))
                     .thenReturn("findAllByAgeBeforeAndIdAndFirstname");
             saplConditionOperationMockedStatic
-                    .when(() -> SaplConditionOperation.jsonNodeToSaplConditions(any(JsonNode.class)))
+                    .when(() -> SaplConditionOperation.jsonNodeToSaplConditions(any(ArrayNode.class)))
                     .thenReturn(expectedJsonNodeSaplConditions);
 
             var actualResult = saplPartTreeCriteriaCreator.createManipulatedQuery(conditions);
@@ -139,13 +126,15 @@ class SaplPartTreeCriteriaCreatorTests {
             saplConditionOperationMockedStatic
                     .verify(() -> SaplConditionOperation.toModifiedMethodName(anyString(), any(List.class)), times(1));
             saplConditionOperationMockedStatic
-                    .verify(() -> SaplConditionOperation.jsonNodeToSaplConditions(any(JsonNode.class)), times(1));
+                    .verify(() -> SaplConditionOperation.jsonNodeToSaplConditions(any(ArrayNode.class)), times(1));
         }
+        saplConditionOperationMockedStatic.close();
     }
 
     @Test
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked") // generic types in arguments of methods that are mocked
     void when_policyDecisionContainsQueryManipulationWithOrCondition_then_createManipulatedQuery() {
+        var saplConditionOperationMockedStatic = mockStatic(SaplConditionOperation.class);
 
         try (MockedConstruction<MongoQueryCreatorFactory> mockedConstruction = mockConstruction(
                 MongoQueryCreatorFactory.class)) {
@@ -161,7 +150,7 @@ class SaplPartTreeCriteriaCreatorTests {
             var mongoWriter = mock(MongoWriter.class);
             var delegate    = mock(MongoParameterAccessor.class);
 
-            var conditions                     = JsonNodeFactory.instance.objectNode();
+            var conditions                     = MAPPER.createArrayNode();
             var expectedMethodSaplConditions   = new ArrayList<>(
                     List.of(new SaplCondition("age", 40, OperatorMongoDB.BEFORE, "And")));
             var expectedJsonNodeSaplConditions = new ArrayList<>(
@@ -188,7 +177,7 @@ class SaplPartTreeCriteriaCreatorTests {
                     .when(() -> SaplConditionOperation.toModifiedMethodName(anyString(), any(List.class)))
                     .thenReturn("findAllByAgeBeforeOrFirstname");
             saplConditionOperationMockedStatic
-                    .when(() -> SaplConditionOperation.jsonNodeToSaplConditions(any(JsonNode.class)))
+                    .when(() -> SaplConditionOperation.jsonNodeToSaplConditions(any(ArrayNode.class)))
                     .thenReturn(expectedJsonNodeSaplConditions);
 
             var actualResult = saplPartTreeCriteriaCreator.createManipulatedQuery(conditions);
@@ -203,8 +192,9 @@ class SaplPartTreeCriteriaCreatorTests {
             saplConditionOperationMockedStatic
                     .verify(() -> SaplConditionOperation.toModifiedMethodName(anyString(), any(List.class)), times(1));
             saplConditionOperationMockedStatic
-                    .verify(() -> SaplConditionOperation.jsonNodeToSaplConditions(any(JsonNode.class)), times(1));
+                    .verify(() -> SaplConditionOperation.jsonNodeToSaplConditions(any(ArrayNode.class)), times(1));
         }
+        saplConditionOperationMockedStatic.close();
     }
 
 }

@@ -39,6 +39,7 @@ import io.sapl.springdatar2dbc.database.Person;
 import io.sapl.springdatar2dbc.sapl.queries.enforcement.R2dbcAnnotationQueryManipulationEnforcementPoint;
 import io.sapl.springdatar2dbc.sapl.queries.enforcement.R2dbcMethodNameQueryManipulationEnforcementPoint;
 
+@SuppressWarnings("rawtypes") // mocking of generic types
 @SpringBootTest(classes = QueryManipulationEnforcementPointFactory.class)
 class QueryManipulationEnforcementPointFactoryTests {
 
@@ -51,8 +52,7 @@ class QueryManipulationEnforcementPointFactoryTests {
     @Test
     void createR2dbcAnnotationQueryManipulationEnforcementPoint() {
 
-        try (@SuppressWarnings("rawtypes")
-        MockedConstruction<R2dbcAnnotationQueryManipulationEnforcementPoint> mongoAnnotationQueryManipulationEnforcementPointMockedConstruction = Mockito
+        try (MockedConstruction<R2dbcAnnotationQueryManipulationEnforcementPoint> mongoAnnotationQueryManipulationEnforcementPointMockedConstruction = Mockito
                 .mockConstruction(R2dbcAnnotationQueryManipulationEnforcementPoint.class)) {
 
             QueryManipulationEnforcementPointFactory queryManipulationEnforcementPointFactory = new QueryManipulationEnforcementPointFactory();
@@ -77,8 +77,7 @@ class QueryManipulationEnforcementPointFactoryTests {
     @Test
     void createR2dbcMethodNameQueryManipulationEnforcementPoint() {
 
-        try (@SuppressWarnings("rawtypes")
-        MockedConstruction<R2dbcMethodNameQueryManipulationEnforcementPoint> mongoMethodNameQueryManipulationEnforcementPointMockedConstruction = Mockito
+        try (MockedConstruction<R2dbcMethodNameQueryManipulationEnforcementPoint> mongoMethodNameQueryManipulationEnforcementPointMockedConstruction = Mockito
                 .mockConstruction(R2dbcMethodNameQueryManipulationEnforcementPoint.class)) {
             QueryManipulationEnforcementPointFactory queryManipulationEnforcementPointFactory = new QueryManipulationEnforcementPointFactory();
 
@@ -102,8 +101,7 @@ class QueryManipulationEnforcementPointFactoryTests {
     @Test
     void createProceededDataFilterEnforcementPoint() {
 
-        try (@SuppressWarnings("rawtypes")
-        MockedConstruction<ProceededDataFilterEnforcementPoint> proceededDataFilterEnforcementPointMockedConstruction = Mockito
+        try (MockedConstruction<ProceededDataFilterEnforcementPoint> proceededDataFilterEnforcementPointMockedConstruction = Mockito
                 .mockConstruction(ProceededDataFilterEnforcementPoint.class)) {
             QueryManipulationEnforcementPointFactory queryManipulationEnforcementPointFactory = new QueryManipulationEnforcementPointFactory();
 
