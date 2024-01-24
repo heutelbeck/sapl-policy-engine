@@ -172,9 +172,4 @@ class MockingFunctionContextTests {
         assertThat(this.ctx.getFunctionSchemas()).isEmpty();
     }
 
-    @Test
-    void test_getFunctionSchemaPaths_isEmpty() {
-        assertThat(this.ctx.getFunctionSchemaPaths()).isEmpty();
-    }
-
 }

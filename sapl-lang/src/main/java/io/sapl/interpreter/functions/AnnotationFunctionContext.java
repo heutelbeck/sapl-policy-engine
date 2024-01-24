@@ -28,6 +28,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
@@ -49,18 +55,21 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AnnotationFunctionContext implements FunctionContext {
 
-    private static final int    VAR_ARGS                                       = -1;
-    private static final String UNKNOWN_FUNCTION_ERROR                         = "Unknown function %s";
-    private static final String ILLEGAL_NUMBER_OF_PARAMETERS_ERROR             = "Illegal number of parameters. Function expected %d but got %d";
-    private static final String CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION_ERROR = "Provided class has no @FunctionLibrary annotation.";
-    private static final String ILLEGAL_PARAMETER_FOR_IMPORT_ERROR             = "Function has parameters that are not a Val. Cannot be loaded. Type was: %s.";
-    private static final String ILLEGAL_RETURN_TYPE_FOR_IMPORT_ERROR           = "Function does not return a Val. Cannot be loaded. Type was: %s.";
-    private static final String MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED        = "Function has both a schema and a schemaPath annotation. Multiple schema annotations are not allowed.";
+    private static final String       INVALID_SCHEMA_DEFINITION                      = "Invalid schema definition found. This only validated JSON syntax, not compliance with JSONSchema specification";
+    private static final int          VAR_ARGS                                       = -1;
+    private static final String       UNKNOWN_FUNCTION_ERROR                         = "Unknown function %s";
+    private static final String       ILLEGAL_NUMBER_OF_PARAMETERS_ERROR             = "Illegal number of parameters. Function expected %d but got %d";
+    private static final String       CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION_ERROR = "Provided class has no @FunctionLibrary annotation.";
+    private static final String       ILLEGAL_PARAMETER_FOR_IMPORT_ERROR             = "Function has parameters that are not a Val. Cannot be loaded. Type was: %s.";
+    private static final String       ILLEGAL_RETURN_TYPE_FOR_IMPORT_ERROR           = "Function does not return a Val. Cannot be loaded. Type was: %s.";
+    private static final String       MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED        = "Function has both a schema and a schemaPath annotation. Multiple schema annotations are not allowed.";
+    private static final ObjectMapper MAPPER                                         = new ObjectMapper();
 
-    private final Collection<LibraryDocumentation> documentation = new LinkedList<>();
-    private final Map<String, FunctionMetadata>    functions     = new HashMap<>();
-    private final Map<String, Collection<String>>  libraries     = new HashMap<>();
+    private final Collection<LibraryDocumentation> documentation = new ConcurrentLinkedQueue<>();
+    private final Map<String, FunctionMetadata>    functions     = new ConcurrentHashMap<>();
+    private final Map<String, Collection<String>>  libraries     = new ConcurrentHashMap<>();
 
+    // TODO: take concurrency into account
     private List<String> codeTemplateCache;
 
     /**
@@ -220,10 +229,23 @@ public class AnnotationFunctionContext implements FunctionContext {
 
         var funSchema       = funAnnotation.schema();
         var funPathToSchema = funAnnotation.pathToSchema();
-
         if (!funSchema.isEmpty() && !funPathToSchema.isEmpty())
             throw new InitializationException(MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED);
 
+        if (!funPathToSchema.isEmpty()) {
+            // TODO: load from file/resource and fail on load error with
+            // InitializationException
+        }
+
+        JsonNode processedSchemaDefinition = null;
+        if (!funSchema.isEmpty()) {
+            try {
+                processedSchemaDefinition = MAPPER.readValue(funSchema, JsonNode.class);
+            } catch (JsonProcessingException e) {
+                throw new InitializationException(INVALID_SCHEMA_DEFINITION, e);
+            }
+        }
+        
         if (!Val.class.isAssignableFrom(method.getReturnType()))
             throw new InitializationException(ILLEGAL_RETURN_TYPE_FOR_IMPORT_ERROR, method.getReturnType().getName());
 
@@ -237,8 +259,7 @@ public class AnnotationFunctionContext implements FunctionContext {
             }
         }
 
-        FunctionMetadata funMeta = new FunctionMetadata(libName, funName, funSchema, funPathToSchema, library,
-                parameters, method);
+        var funMeta = new FunctionMetadata(libName, funName, processedSchemaDefinition, library, parameters, method);
         functions.put(funMeta.fullyQualifiedName(), funMeta);
         libMeta.documentation.put(funMeta.getDocumentationCodeTemplate(), funAnnotation.docs());
 
@@ -284,9 +305,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 
         String functionName;
 
-        String functionSchema;
-
-        String functionPathToSchema;
+        JsonNode functionSchema;
 
         Object library;
 
@@ -339,21 +358,12 @@ public class AnnotationFunctionContext implements FunctionContext {
     }
 
     @Override
-    public Map<String, String> getFunctionSchemas() {
-        var schemas = new HashMap<String, String>();
+    public Map<String, JsonNode> getFunctionSchemas() {
+        var schemas = new HashMap<String, JsonNode>();
         for (var entry : functions.entrySet()) {
             schemas.put(entry.getKey(), entry.getValue().functionSchema);
         }
         return schemas;
-    }
-
-    @Override
-    public Map<String, String> getFunctionSchemaPaths() {
-        var schemaPaths = new HashMap<String, String>();
-        for (var entry : functions.entrySet()) {
-            schemaPaths.put(entry.getKey(), entry.getValue().functionPathToSchema);
-        }
-        return schemaPaths;
     }
 
     @Override

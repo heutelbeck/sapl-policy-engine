@@ -37,7 +37,9 @@ import java.util.function.Function;
 
 import org.reactivestreams.Publisher;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
@@ -65,12 +67,18 @@ public class AnnotationAttributeContext implements AttributeContext {
     static final String NO_POLICY_INFORMATION_POINT_ANNOTATION_ERROR            = "Provided class has no @PolicyInformationPoint annotation.";
     static final String UNKNOWN_ATTRIBUTE_ERROR                                 = "Unknown attribute %s";
     static final String RETURN_TYPE_MUST_BE_FLUX_OF_VALUES_ERROR                = "The return type of an attribute finder must be Flux<Val>. Was: %s";
+    static final String MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED                 = "Attribute has both a schema and a schemaPath annotation. Multiple schema annotations are not allowed.";
+    static final String INVALID_SCHEMA_DEFINITION                               = "Invalid schema definition for attribute found. This only validated JSON syntax, not compliance with JSONSchema specification";
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final Map<String, Set<String>> attributeNamesByPipName = new HashMap<>();
 
     private final Map<String, Collection<AttributeFinderMetadata>> attributeMetadataByAttributeName = new HashMap<>();
 
     private final Collection<PolicyInformationPointDocumentation> pipDocumentations = new LinkedList<>();
+
+    // TODO: take concurrency into account
 
     private List<String> functionsCache;
 
@@ -394,8 +402,24 @@ public class AnnotationAttributeContext implements AttributeContext {
         if (attributeName.isBlank())
             attributeName = method.getName();
 
-        var metadata        = metadataOf(policyInformationPoint, method, pipName, attributeName, attributeSchema,
-                attributePathToSchema, isEnvironmentAttribute);
+        if (!attributeSchema.isEmpty() && !attributePathToSchema.isEmpty())
+            throw new InitializationException(MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED);
+
+        if (!attributePathToSchema.isEmpty()) {
+            // TODO: load from file/resource and fail on load error with
+            // InitializationException
+        }
+
+        JsonNode processedSchemaDefinition = null;
+        if (!attributeSchema.isEmpty()) {
+            try {
+                processedSchemaDefinition = MAPPER.readValue(attributeSchema, JsonNode.class);
+            } catch (JsonProcessingException e) {
+                throw new InitializationException(INVALID_SCHEMA_DEFINITION, e);
+            }
+        }
+        var metadata        = metadataOf(policyInformationPoint, method, pipName, attributeName,
+                processedSchemaDefinition, isEnvironmentAttribute);
         var name            = metadata.fullyQualifiedName();
         var namedAttributes = attributeMetadataByAttributeName.computeIfAbsent(name, k -> new ArrayList<>());
         assertNoNameCollision(namedAttributes, metadata);
@@ -429,7 +453,7 @@ public class AnnotationAttributeContext implements AttributeContext {
     }
 
     private AttributeFinderMetadata metadataOf(Object policyInformationPoint, Method method, String pipName,
-            String attributeName, String functionSchema, String functionPathToSchema, boolean isEnvironmentAttribute)
+            String attributeName, JsonNode functionSchema, boolean isEnvironmentAttribute)
             throws InitializationException {
 
         assertValidReturnType(method);
@@ -451,7 +475,7 @@ public class AnnotationAttributeContext implements AttributeContext {
         if (parameterUnderInspection < parameterCount && parameterTypeIsArrayOfVal(method, parameterUnderInspection)) {
             if (parameterUnderInspection + 1 == parameterCount)
                 return new AttributeFinderMetadata(policyInformationPoint, method, pipName, attributeName,
-                        functionSchema, functionPathToSchema, isEnvironmentAttribute, requiresVariables, true, 0);
+                        functionSchema, isEnvironmentAttribute, requiresVariables, true, 0);
             else
                 throw new InitializationException("The method " + method.getName()
                         + " has an array of Val as a parameter, which indicates a variable number of arguments."
@@ -469,8 +493,7 @@ public class AnnotationAttributeContext implements AttributeContext {
             }
         }
         return new AttributeFinderMetadata(policyInformationPoint, method, pipName, attributeName, functionSchema,
-                functionPathToSchema, isEnvironmentAttribute, requiresVariables, false,
-                numberOfInnerAttributeParameters);
+                isEnvironmentAttribute, requiresVariables, false, numberOfInnerAttributeParameters);
     }
 
     private void assertFirstParameterIsVal(Method method) throws InitializationException {
@@ -577,8 +600,8 @@ public class AnnotationAttributeContext implements AttributeContext {
     }
 
     @Override
-    public Map<String, String> getAttributeSchemas() {
-        var schemas = new HashMap<String, String>();
+    public Map<String, JsonNode> getAttributeSchemas() {
+        var schemas = new HashMap<String, JsonNode>();
         for (var entry : attributeMetadataByAttributeName.entrySet()) {
             for (var attribute : entry.getValue()) {
                 if (!attribute.environmentAttribute) {

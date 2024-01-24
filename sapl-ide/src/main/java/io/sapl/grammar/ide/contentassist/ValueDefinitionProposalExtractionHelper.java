@@ -17,15 +17,14 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import com.google.common.collect.Iterables;
-import io.sapl.grammar.ide.contentassist.schema.SchemaProposals;
-import io.sapl.grammar.sapl.*;
-import io.sapl.grammar.sapl.impl.util.FunctionUtil;
-import io.sapl.grammar.sapl.impl.util.ImportsUtil;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.pdp.config.VariablesAndCombinatorSource;
-import lombok.RequiredArgsConstructor;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
@@ -33,11 +32,26 @@ import org.eclipse.xtext.nodemodel.ILeafNode;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.*;
+import com.google.common.collect.Iterables;
+
+import io.sapl.grammar.ide.contentassist.schema.SchemaProposals;
+import io.sapl.grammar.sapl.BasicEnvironmentAttribute;
+import io.sapl.grammar.sapl.BasicFunction;
+import io.sapl.grammar.sapl.BasicIdentifier;
+import io.sapl.grammar.sapl.Condition;
+import io.sapl.grammar.sapl.Expression;
+import io.sapl.grammar.sapl.KeyStep;
+import io.sapl.grammar.sapl.PolicyBody;
+import io.sapl.grammar.sapl.SAPL;
+import io.sapl.grammar.sapl.SaplFactory;
+import io.sapl.grammar.sapl.Statement;
+import io.sapl.grammar.sapl.ValueDefinition;
+import io.sapl.grammar.sapl.impl.util.FunctionUtil;
+import io.sapl.grammar.sapl.impl.util.ImportsUtil;
+import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.pdp.config.VariablesAndCombinatorSource;
+import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class ValueDefinitionProposalExtractionHelper {
@@ -103,13 +117,6 @@ public class ValueDefinitionProposalExtractionHelper {
         var proposals       = new LinkedList<String>();
         var schemaProposals = new SchemaProposals(variablesAndCombinatorSource);
         var allSchemas      = functionContext.getFunctionSchemas();
-        var allSchemaPaths  = functionContext.getFunctionSchemaPaths();
-        for (var path : allSchemaPaths.entrySet()) {
-            String schema = fetchSchemaFromPath(path.getValue());
-            if (!schema.isEmpty()) {
-                allSchemas.put(path.getKey(), schema);
-            }
-        }
         for (var entry : allSchemas.entrySet()) {
             var paths = schemaProposals.schemaTemplatesForFunctions(entry.getValue());
             for (var path : paths) {
@@ -290,17 +297,6 @@ public class ValueDefinitionProposalExtractionHelper {
         return fullFunctionName;
     }
 
-    private static String fetchSchemaFromPath(String path) {
-        String schema;
-        Path   file = Paths.get(path);
-        try {
-            schema = Files.readString(file);
-        } catch (IOException e) {
-            return "";
-        }
-        return schema;
-    }
-
     private Collection<String> getPreambleSchemaProposals() {
         return new SchemaProposals(variablesAndCombinatorSource).getVariableNamesAsTemplates();
     }
@@ -464,14 +460,7 @@ public class ValueDefinitionProposalExtractionHelper {
         var          name           = getFunctionName(stepsString, identifier, imports);
         var          absName        = FunctionUtil.resolveAbsoluteFunctionName(name, imports);
         var          allSchemas     = functionContext.getFunctionSchemas();
-        var          allSchemaPaths = functionContext.getFunctionSchemaPaths();
-        for (var path : allSchemaPaths.entrySet()) {
-            String schema = fetchSchemaFromPath(path.getValue());
-            if (!schema.isEmpty()) {
-                allSchemas.put(path.getKey(), schema);
-            }
-        }
-        var functionSchema = allSchemas.get(absName);
+        var          functionSchema = allSchemas.get(absName);
         functionSchemaTemplates = new SchemaProposals(variablesAndCombinatorSource)
                 .schemaTemplatesFromJson(functionSchema);
         return functionSchemaTemplates;

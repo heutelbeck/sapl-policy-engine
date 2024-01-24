@@ -56,7 +56,7 @@ public class SchemaProposals {
     }
 
     private Flux<String> getCodeTemplates(Val v) {
-        return Flux.fromIterable(schemaTemplatesFromJson(v.getText()));
+        return Flux.fromIterable(schemaTemplatesFromJson(v.get()));
     }
 
     private Map<String, JsonNode> getAllVariablesAsMap() {
@@ -67,15 +67,15 @@ public class SchemaProposals {
         return variablesAndCombinatorSource.getVariables().map(v -> v.orElse(Map.of()));
     }
 
-    public List<String> schemaTemplatesForFunctions(String functionSchema) {
+    public List<String> schemaTemplatesForFunctions(JsonNode functionSchema) {
         return new SchemaParser(getAllVariablesAsMap()).generatePaths(functionSchema);
     }
 
-    public List<String> schemaTemplatesForAttributes(String attributeSchema) {
+    public List<String> schemaTemplatesForAttributes(JsonNode attributeSchema) {
         return new SchemaParser(getAllVariablesAsMap()).generatePaths(attributeSchema);
     }
 
-    public List<String> schemaTemplatesFromJson(String schema) {
+    public List<String> schemaTemplatesFromJson(JsonNode schema) {
         var paths = new SchemaParser(getAllVariablesAsMap()).generatePaths(schema);
         return paths.stream().map(this::removeUnwantedKeywordsFromPath).toList();
     }

@@ -274,14 +274,6 @@ class AnnotationFunctionContextTests {
     }
 
     @Test
-    void schemaPathIsReturned() throws InitializationException {
-        var context         = new AnnotationFunctionContext(
-                () -> List.of(new AnnotationFunctionContextTests.AnnotationLibrary()), List::of);
-        var functionSchemas = context.getFunctionSchemaPaths();
-        assertThat(functionSchemas, hasEntry("annotation.schemaFromFile", "schemas/person_schema.json"));
-    }
-
-    @Test
     void schemaIsNotReturned() throws InitializationException {
         var context         = new AnnotationFunctionContext(
                 () -> List.of(new AnnotationFunctionContextTests.AnnotationLibrary()), List::of);

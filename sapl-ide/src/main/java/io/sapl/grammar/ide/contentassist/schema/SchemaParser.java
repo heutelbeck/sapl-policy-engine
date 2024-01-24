@@ -44,16 +44,9 @@ public class SchemaParser {
             "required", "title", "type");
     private final Map<String, JsonNode>     variables;
 
-    public List<String> generatePaths(String schema) {
+    public List<String> generatePaths(JsonNode schema) {
 
-        JsonNode schemaNode;
-        try {
-            schemaNode = MAPPER.readTree(schema);
-        } catch (Exception e) {
-            return new LinkedList<>();
-        }
-
-        var jsonPaths = getJsonPaths(schemaNode, "", schemaNode, 0);
+        var jsonPaths = getJsonPaths(schema, "", schema, 0);
         jsonPaths.removeIf(s -> s.startsWith("$defs"));
         jsonPaths.removeIf(String::isBlank);
         jsonPaths.removeIf(RESERVED_KEYWORDS::contains);

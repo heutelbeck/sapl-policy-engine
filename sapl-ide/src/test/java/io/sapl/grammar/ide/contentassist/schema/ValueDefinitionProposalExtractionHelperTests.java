@@ -25,7 +25,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
@@ -42,21 +41,11 @@ class ValueDefinitionProposalExtractionHelperTests {
     @Test
     void noEnvironmentVariablesReturnsEmptyList() {
 
-        final String PERSON_SCHEMA = """
-                {
-                  "type": "object",
-                  "properties": {
-                	"name": { "type": "string" }
-                  }
-                }
-                """;
-
         var source = mock(VariablesAndCombinatorSource.class);
         when(source.getVariables()).thenReturn(Flux.just(Optional.ofNullable(new HashMap<>())));
 
         var functionCtx = mock(FunctionContext.class);
         when(functionCtx.getCodeTemplates()).thenReturn(List.of());
-        when(functionCtx.getFunctionSchemas()).thenReturn(Map.of("schemaTest.person", PERSON_SCHEMA));
 
         var attributeCtx = mock(AttributeContext.class);
 
