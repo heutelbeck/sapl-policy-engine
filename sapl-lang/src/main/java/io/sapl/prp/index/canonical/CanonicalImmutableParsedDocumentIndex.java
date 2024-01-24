@@ -125,20 +125,16 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
     }
 
     private DisjunctiveFormula retainTarget(SAPL sapl) {
-        try {
-            var                targetExpression = sapl.getImplicitTargetExpression();
-            DisjunctiveFormula targetFormula;
-            if (targetExpression == null) {
-                targetFormula = new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
-            } else {
-                var imports = ImportsUtil.fetchImports(sapl, attributeCtx, functionCtx);
-                targetFormula = TreeWalker.walk(targetExpression, imports);
-            }
-
-            return targetFormula;
-        } catch (PolicyEvaluationException e) {
-            return new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
+        var                targetExpression = sapl.getImplicitTargetExpression();
+        DisjunctiveFormula targetFormula;
+        if (targetExpression == null) {
+            targetFormula = new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
+        } else {
+            var imports = ImportsUtil.fetchImports(sapl, attributeCtx, functionCtx);
+            targetFormula = TreeWalker.walk(targetExpression, imports);
         }
+
+        return targetFormula;
     }
 
 }
