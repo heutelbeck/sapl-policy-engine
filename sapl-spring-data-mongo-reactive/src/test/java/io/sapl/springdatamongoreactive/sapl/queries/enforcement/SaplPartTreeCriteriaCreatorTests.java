@@ -45,8 +45,6 @@ import org.springframework.data.mongodb.repository.query.ConvertingParameterAcce
 import org.springframework.data.mongodb.repository.query.MongoParameterAccessor;
 import org.springframework.data.repository.query.parser.Part;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
@@ -202,8 +200,7 @@ class SaplPartTreeCriteriaCreatorTests {
 
     @Test
     @SuppressWarnings("unchecked") // generic types in arguments of methods that are mocked
-    void when_policyDecisionContainsQueryManipulationWithParameterNotFittingToManipulatedQuery_then_throwIllegalStateException()
-            throws JsonMappingException, JsonProcessingException {
+    void when_policyDecisionContainsQueryManipulationWithParameterNotFittingToManipulatedQuery_then_throwIllegalStateException() {
         var saplConditionOperationMockedStatic = mockStatic(SaplConditionOperation.class);
 
         try (MockedConstruction<MongoQueryCreatorFactory> mockedConstruction = mockConstruction(
@@ -249,8 +246,8 @@ class SaplPartTreeCriteriaCreatorTests {
             // THEN
             var thrown = assertThrows(IllegalStateException.class,
                     () -> saplPartTreeCriteriaCreator.createManipulatedQuery(conditions));
-            assertEquals(thrown.getMessage(),
-                    "The parameters specified in the policy do not appear to match the desired changes to the query.");
+            assertEquals(
+                    "The parameters specified in the policy do not appear to match the desired changes to the query.", thrown.getMessage());
 
         }
         saplConditionOperationMockedStatic.close();
