@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package io.sapl.test.dsl.lang;
+package io.sapl.test.dsl.setup;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,7 +32,7 @@ import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
 import io.sapl.test.grammar.SAPLTestStandaloneSetup;
 import io.sapl.test.grammar.sapltest.SAPLTest;
 
-public final class DefaultSaplTestInterpreter implements SaplTestInterpreter {
+class DefaultSaplTestInterpreter implements SaplTestInterpreter {
     private static final String DUMMY_RESOURCE_URI = "test:/test1.sapltest";
 
     @Override
