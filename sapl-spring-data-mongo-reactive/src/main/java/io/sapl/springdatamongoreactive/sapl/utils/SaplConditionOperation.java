@@ -135,7 +135,8 @@ public class SaplConditionOperation {
         Iterator<?> iterator = list.iterator();
         while (iterator.hasNext()) {
             if (iterator.next() instanceof Document doc) {
-                doc.forEach((String field, Object value) -> convertDocumentToSaplCondition(saplConditions, field, value, "Or"));
+                doc.forEach((String field, Object value) -> convertDocumentToSaplCondition(saplConditions, field, value,
+                        "Or"));
             }
         }
     }

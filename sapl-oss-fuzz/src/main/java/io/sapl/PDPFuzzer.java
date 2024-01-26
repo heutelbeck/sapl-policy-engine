@@ -27,6 +27,8 @@ import reactor.test.StepVerifier;
 
 /**
  * PDPFuzzer for .clusterfuzzlite
+ * This class is compiled as part of the clean install so that all necessary dependencies are taken into account.
+ * This class uses the same logic as FuzzTests.java in the sapl-pdp-embedded project.
  */
 public class PDPFuzzer {
     public static String[] splitStringIntoThreeParts(String input) {
@@ -94,9 +96,9 @@ public class PDPFuzzer {
     }
 
     public static void assertFuzzedSubscriptionReturns(PolicyDecisionPoint pdp, FuzzedDataProvider data,
-            AuthorizationDecision expectedAuthorizationDecision) {
-        var asciiString  = data.consumeAsciiString(100);
-        var result       = splitStringIntoThreeParts(asciiString);
+                                                       AuthorizationDecision expectedAuthorizationDecision) {
+        var asciiString = data.consumeAsciiString(100);
+        var result = splitStringIntoThreeParts(asciiString);
         var subscription = AuthorizationSubscription.of(result[0], result[1], result[2]);
 
         StepVerifier.create(pdp.decide(subscription)).expectNext(expectedAuthorizationDecision).verifyComplete();
