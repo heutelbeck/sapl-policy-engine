@@ -1,0 +1,11 @@
+#This file is required to use the python scripts for local testing.
+homepage: "https://github.com/heutelbeck/sapl-policy-engine"
+language: jvm
+primary_contact: "dheutelbeck@ftk.de"
+main_repo: "https://github.com/heutelbeck/sapl-policy-engine"
+auto_ccs:
+  - "dheutelbeck@ftk.de"
+fuzzing_engines:
+  - libfuzzer
+sanitizers:
+  - address

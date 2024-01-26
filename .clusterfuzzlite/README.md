@@ -1,3 +1,11 @@
-Clusterfuzzlite uses images which have JDK 15 installed, this project needs atleast JDK 17.
-That's why our tests are run with the JUnit-Integration (which uses libfuzzer
-under the hood as well as Clusterfuzzlite does).
+# SAPL Clusterfuzzlite
+
+This folder is used to integrate SAPL with Project [Clusterfuzzlite](https://google.github.io/clusterfuzzlite/).
+
+However, this integration is not used because **Clusterfuzzlite uses** Docker images, which use **JDK15**. 
+
+**SAPL requires** at least **JDK17**. **JDK21 would be ideal**.
+
+For this reason, the project uses its own tests using JUnit. (which uses libfuzzer
+under the hood as well as Clusterfuzzlite does). For more information on the fuzzing method used, see here [Jazzer](https://github.com/CodeIntelligenceTesting/jazzer)
+

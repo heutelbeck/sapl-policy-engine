@@ -1,0 +1,9 @@
+policy "policy 1"
+permit
+    action == "read"
+where
+    subject == "willi";
+    time.dayOfWeek(<time.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
+
+
+
