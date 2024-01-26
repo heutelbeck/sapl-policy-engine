@@ -61,6 +61,24 @@
 			<artifactId>xtext-antlr-generator</artifactId>
 			<optional>true</optional>
 		</dependency>
+		<!-- Testing -->
+		<dependency>
+			<groupId>org.eclipse.xtext</groupId>
+			<artifactId>org.eclipse.xtext.testing</artifactId>
+			<version>${xtext.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.xtext</groupId>
+			<artifactId>org.eclipse.xtext.xbase.testing</artifactId>
+			<version>${xtext.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 	<build>
 		<plugins>
