@@ -30,7 +30,6 @@ import org.junit.platform.commons.util.AnnotationUtils;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.expression.Expression;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
@@ -50,7 +49,6 @@ class EnforceAnnotationHandlerTests {
     BeanFactory beanFactory;
 
     BeanFactory beanFactoryMock = mock(BeanFactory.class);
-    Expression  expressionMock  = mock(Expression.class);
 
     EnforceAnnotationHandler enforceAnnotationHandler = new EnforceAnnotationHandler(beanFactoryMock);
 

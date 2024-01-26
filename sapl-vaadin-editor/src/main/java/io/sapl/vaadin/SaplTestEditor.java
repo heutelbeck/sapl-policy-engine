@@ -36,8 +36,8 @@ import elemental.json.JsonObject;
  */
 @Tag("sapl-test-editor")
 @JsModule("./sapl-test-editor.js")
-@NpmPackage(value = "jquery", version = "3.4.1")
-@NpmPackage(value = "codemirror", version = "5.52.2")
+@NpmPackage(value = "jquery", version = "3.7.1")
+@NpmPackage(value = "codemirror", version = "5.65.16")
 public class SaplTestEditor extends BaseEditor {
 
     @Serial

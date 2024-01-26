@@ -57,8 +57,6 @@ class AuthorizationSubscriptionHandlerProviderTests {
             .of("method", "", "", "test");
     private final AuthorizationSubscription actionAndResourceAuthSub                 = AuthorizationSubscription.of("",
             "find_all_by_firstname_reactive_r2dbc_repository", "resource", "");
-    private final AuthorizationSubscription subjectAndEnvironmentAuthSub             = AuthorizationSubscription
-            .of("subject", "", "", "environment");
     private final MethodInvocation          methodInvocation                         = new R2dbcMethodInvocation(
             "findAllByFirstname", new ArrayList<>(List.of(String.class)), null, null);
     private final MethodInvocation          methodInvocationWithoutEnforceAnnotation = new R2dbcMethodInvocation(

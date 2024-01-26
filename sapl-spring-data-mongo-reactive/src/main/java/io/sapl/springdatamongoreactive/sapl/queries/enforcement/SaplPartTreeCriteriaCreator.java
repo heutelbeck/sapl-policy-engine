@@ -101,6 +101,11 @@ public class SaplPartTreeCriteriaCreator<T> {
 
         var criteria = buildCriteria(manipulatedPartTree, allParametersValueAsObjects);
 
+        if (criteria == null) {
+            throw new IllegalStateException(
+                    "The parameters specified in the policy do not appear to match the desired changes to the query.");
+        }
+
         return createNewQuery(criteria);
     }
 

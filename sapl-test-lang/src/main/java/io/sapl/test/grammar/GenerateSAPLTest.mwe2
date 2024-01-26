@@ -33,7 +33,7 @@ Workflow {
        				name = "sapl-test-ide"
    				}
 				runtimeTest = {
-					enabled = false
+					enabled = true
 				}
                 web = {
 					name = "sapl-test-web"
@@ -65,6 +65,7 @@ Workflow {
 				// composedCheck = "org.eclipse.xtext.validation.NamesAreUniqueValidator"
 			}
 			junitSupport = {
+			    generateStub = false
 				junitVersion = "5"
 			}
             webSupport = SAPLWebIntegrationFragment {

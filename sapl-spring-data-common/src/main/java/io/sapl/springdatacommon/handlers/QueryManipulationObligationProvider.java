@@ -61,7 +61,7 @@ public class QueryManipulationObligationProvider {
         var iterator = obligations.iterator();
         while (iterator.hasNext()) {
             var obligation = iterator.next();
-            return obligationIsFine(obligation, queryType) == true ? obligation : NULL_NODE;
+            return obligationIsFine(obligation, queryType) ? obligation : NULL_NODE;
 
         }
         return NULL_NODE;
@@ -84,11 +84,9 @@ public class QueryManipulationObligationProvider {
     }
 
     private boolean obligationIsFine(JsonNode obligation, String queryType) {
-        if (!obligation.isNull()) {
-            if (obligation.isObject()) {
-                var type = obligation.get(TYPE);
-                return (!Objects.isNull(type) && type.isTextual() && queryType.equals(type.asText()));
-            }
+        if (!obligation.isNull() && obligation.isObject()) {
+            var type = obligation.get(TYPE);
+            return (!Objects.isNull(type) && type.isTextual() && queryType.equals(type.asText()));
         }
         return false;
     }

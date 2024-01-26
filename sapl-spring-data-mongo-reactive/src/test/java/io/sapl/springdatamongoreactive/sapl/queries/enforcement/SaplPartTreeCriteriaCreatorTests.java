@@ -18,6 +18,7 @@
 package io.sapl.springdatamongoreactive.sapl.queries.enforcement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -44,6 +45,8 @@ import org.springframework.data.mongodb.repository.query.ConvertingParameterAcce
 import org.springframework.data.mongodb.repository.query.MongoParameterAccessor;
 import org.springframework.data.repository.query.parser.Part;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
@@ -193,6 +196,62 @@ class SaplPartTreeCriteriaCreatorTests {
                     .verify(() -> SaplConditionOperation.toModifiedMethodName(anyString(), any(List.class)), times(1));
             saplConditionOperationMockedStatic
                     .verify(() -> SaplConditionOperation.jsonNodeToSaplConditions(any(ArrayNode.class)), times(1));
+        }
+        saplConditionOperationMockedStatic.close();
+    }
+
+    @Test
+    @SuppressWarnings("unchecked") // generic types in arguments of methods that are mocked
+    void when_policyDecisionContainsQueryManipulationWithParameterNotFittingToManipulatedQuery_then_throwIllegalStateException()
+            throws JsonMappingException, JsonProcessingException {
+        var saplConditionOperationMockedStatic = mockStatic(SaplConditionOperation.class);
+
+        try (MockedConstruction<MongoQueryCreatorFactory> mockedConstruction = mockConstruction(
+                MongoQueryCreatorFactory.class)) {
+
+            // GIVEN
+            var methodInvocation = new MethodInvocationForTesting("findAllByAgeBefore",
+                    new ArrayList<>(List.of(int.class)), new ArrayList<>(List.of(40)), null);
+
+            var criteria1      = Criteria.where("age").lt(40);
+            var criteriaOrPart = new Criteria("firstname").is("Aaron");
+            var critWithOr     = criteria1.orOperator(criteriaOrPart);
+
+            var mongoWriter = mock(MongoWriter.class);
+            var delegate    = mock(MongoParameterAccessor.class);
+
+            var conditions                   = MAPPER.createArrayNode();
+            var expectedMethodSaplConditions = new ArrayList<>(
+                    List.of(new SaplCondition("age", 40, OperatorMongoDB.BEFORE, "And")));
+
+            var saplPartTreeCriteriaCreator = new SaplPartTreeCriteriaCreator<>(reactiveMongoTemplateMock,
+                    methodInvocation, TestUser.class);
+
+            var mongoQueryCreatorFactoryMock = mockedConstruction.constructed().get(0);
+
+            // WHEN
+            when(mongoQueryCreatorFactoryMock.create(any(Part.class), any(Iterator.class))).thenReturn(criteria1);
+            when(mongoQueryCreatorFactoryMock.or(eq(criteria1), any(Criteria.class))).thenReturn(critWithOr);
+            when(mongoQueryCreatorFactoryMock.getConvertingParameterAccessor())
+                    .thenReturn(new ConvertingParameterAccessor(mongoWriter, delegate));
+            when(mongoQueryCreatorFactoryMock.getConvertingParameterAccessor().getSort())
+                    .thenReturn(Sort.by(List.of()));
+            saplConditionOperationMockedStatic.when(() -> SaplConditionOperation
+                    .methodToSaplConditions(any(Object[].class), any(Method.class), any(Class.class)))
+                    .thenReturn(expectedMethodSaplConditions);
+            saplConditionOperationMockedStatic
+                    .when(() -> SaplConditionOperation.toModifiedMethodName(anyString(), any(List.class)))
+                    .thenReturn("findAllByAgeBeforeOrFirstnameAndIdAfter");
+            saplConditionOperationMockedStatic
+                    .when(() -> SaplConditionOperation.jsonNodeToSaplConditions(any(ArrayNode.class)))
+                    .thenReturn(new ArrayList<>());
+
+            // THEN
+            var thrown = assertThrows(IllegalStateException.class,
+                    () -> saplPartTreeCriteriaCreator.createManipulatedQuery(conditions));
+            assertEquals(thrown.getMessage(),
+                    "The parameters specified in the policy do not appear to match the desired changes to the query.");
+
         }
         saplConditionOperationMockedStatic.close();
     }

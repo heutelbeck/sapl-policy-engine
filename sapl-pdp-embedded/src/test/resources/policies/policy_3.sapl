@@ -1,2 +1,2 @@
-policy "policy 2"
+policy "policy 3"
 deny action == "write"
