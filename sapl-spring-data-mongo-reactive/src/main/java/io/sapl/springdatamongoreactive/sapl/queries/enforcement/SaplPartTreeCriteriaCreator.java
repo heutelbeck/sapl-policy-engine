@@ -109,7 +109,7 @@ public class SaplPartTreeCriteriaCreator<T> {
         return createNewQuery(criteria);
     }
 
-    private Query createNewQuery(@Nullable Criteria criteria) {
+    private Query createNewQuery(Criteria criteria) {
         return new Query(criteria).with(mongoQueryCreatorFactory.getConvertingParameterAccessor().getSort());
     }
 

@@ -72,8 +72,8 @@ public class MongoProxyInterceptor<T> implements MethodInterceptor {
     private final QueryManipulationEnforcementData<T>      enforcementData;
     private final QueryManipulationEnforcementPointFactory factory;
 
-    private static final String REACTIVE_MONGO_REPOSITORY_PATH = "org.springframework.data.repository.reactive.ReactiveCrudRepository";
-    private static final String REACTIVE_CRUD_REPOSITORY_PATH  = "org.springframework.data.mongodb.repository.ReactiveMongoRepository";
+    private static final String REACTIVE_MONGO_REPOSITORY_PATH = "org.springframework.data.mongodb.repository.ReactiveMongoRepository";
+    private static final String REACTIVE_CRUD_REPOSITORY_PATH  = "org.springframework.data.repository.reactive.ReactiveCrudRepository";
 
     public MongoProxyInterceptor(AuthorizationSubscriptionHandlerProvider authSubHandler, BeanFactory beanFactory,
             PolicyDecisionPoint pdp, QueryManipulationEnforcementPointFactory factory) {

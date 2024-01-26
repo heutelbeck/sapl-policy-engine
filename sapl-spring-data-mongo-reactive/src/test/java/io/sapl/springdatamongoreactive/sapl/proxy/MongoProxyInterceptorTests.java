@@ -43,6 +43,7 @@ import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementPoint;
 import io.sapl.springdatamongoreactive.sapl.QueryManipulationEnforcementPointFactory;
 import io.sapl.springdatamongoreactive.sapl.database.MethodInvocationForTesting;
+import io.sapl.springdatamongoreactive.sapl.database.MethodInvocationForTestingWithReactiveMongoRepository;
 import io.sapl.springdatamongoreactive.sapl.database.TestUser;
 import io.sapl.springdatamongoreactive.sapl.database.repositoryerror.MethodInvocationForRepositoryError;
 import reactor.core.publisher.Flux;
@@ -130,6 +131,37 @@ class MongoProxyInterceptorTests {
         var authSub                   = AuthorizationSubscription.of("subject", "permitTest", "resource",
                 "environment");
         var mongoMethodInvocationTest = new MethodInvocationForTesting("findAllByFirstname",
+                new ArrayList<>(List.of(String.class)), null, null);
+
+        // WHEN
+        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class), any(Enforce.class)))
+                .thenReturn(authSub);
+        when(factoryMock
+                .createMongoMethodNameQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class)))
+                .thenReturn(queryManipulationEnforcementPointMock);
+        when(queryManipulationEnforcementPointMock.enforce()).thenReturn(data);
+
+        var proxyMongoHandler = new MongoProxyInterceptor<>(authSubHandlerMock, beanFactoryMock, pdpMock, factoryMock);
+        var result            = (Flux<TestUser>) proxyMongoHandler.invoke(mongoMethodInvocationTest);
+
+        // THEN
+        StepVerifier.create(result).expectNext(aaron).expectNext(brian).expectNext(cathrin).verifyComplete();
+
+        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class),
+                any(Enforce.class));
+        verify(factoryMock, never())
+                .createMongoAnnotationQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class));
+        verify(factoryMock, times(1))
+                .createMongoMethodNameQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class));
+    }
+    
+    @Test
+    void when_repositoryMethodIsQueryMethodAndRepositoryIsReactiveMongoRepository_then_callMongoMethodNameQueryManipulationEnforcementPoint() {
+
+        // GIVEN
+        var authSub                   = AuthorizationSubscription.of("subject", "permitTest", "resource",
+                "environment");
+        var mongoMethodInvocationTest = new MethodInvocationForTestingWithReactiveMongoRepository("findAllByFirstname",
                 new ArrayList<>(List.of(String.class)), null, null);
 
         // WHEN
@@ -315,5 +347,5 @@ class MongoProxyInterceptorTests {
                 "The interface org.springframework.data.mongodb.repository.ReactiveMongoRepository or interface org.springframework.data.repository.reactive.ReactiveCrudRepository could not be found as an extension of the interface io.sapl.springdatamongoreactive.sapl.database.repositoryerror.RepositoryNotFoundException",
                 thrown.getMessage());
     }
-
+    
 }
