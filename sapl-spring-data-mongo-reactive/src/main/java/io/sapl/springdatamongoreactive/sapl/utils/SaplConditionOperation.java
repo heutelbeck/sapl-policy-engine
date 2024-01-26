@@ -91,52 +91,40 @@ public class SaplConditionOperation {
     public List<SaplCondition> jsonNodeToSaplConditions(Iterable<JsonNode> conditions) {
         var saplConditions = new ArrayList<SaplCondition>();
 
-        if (!conditions.iterator().hasNext()) {
+        var iterator = conditions.iterator();
+
+        if (!iterator.hasNext()) {
             return saplConditions;
         }
 
-        var basicQuery = convertJsonNodeToBasicQuery(conditions);
+        while (iterator.hasNext()) {
 
-        convertBasicQueryToSaplConditions(basicQuery, saplConditions);
+            var value = iterator.next();
+
+            var baseQuery = new BasicQuery(value.asText());
+
+            convertBasicQueryToSaplConditions(baseQuery, saplConditions);
+
+        }
 
         return saplConditions;
     }
 
     private void convertBasicQueryToSaplConditions(BasicQuery basicQuery, List<SaplCondition> saplConditions) {
-        if (basicQuery != null) {
-            basicQuery.getQueryObject().forEach((String field, Object val) -> {
-                if (val instanceof List<?> list) {
-                    handleListsOfBasicQuery(saplConditions, list);
-                } else {
-                    convertDocumentToSaplCondition(saplConditions, field, val, "And");
-                }
-            });
-        }
-    }
-
-    private BasicQuery convertJsonNodeToBasicQuery(Iterable<JsonNode> conditions) {
-        Iterator<JsonNode> iterator   = conditions.iterator();
-        BasicQuery         basicQuery = null;
-        while (iterator.hasNext()) {
-            var condition = iterator.next();
-            if (basicQuery == null) {
-                basicQuery = new BasicQuery(condition.asText());
+        basicQuery.getQueryObject().forEach((String field, Object val) -> {
+            if (val instanceof List<?> list) {
+                handleListsOfBasicQuery(saplConditions, list);
             } else {
-                var query           = new BasicQuery(condition.asText());
-                var finalBasicQuery = basicQuery;
-                query.getQueryObject().forEach((ke, va) -> finalBasicQuery.getQueryObject().append(ke, va));
+                convertDocumentToSaplCondition(saplConditions, field, val, "And");
             }
-        }
-
-        return basicQuery;
+        });
     }
 
     private void handleListsOfBasicQuery(Collection<SaplCondition> saplConditions, Iterable<?> list) {
         Iterator<?> iterator = list.iterator();
         while (iterator.hasNext()) {
-            if (iterator.next() instanceof Document doc) {
-                doc.forEach((String field, Object value) -> convertDocumentToSaplCondition(saplConditions, field, value, "Or"));
-            }
+            ((Document) iterator.next()).forEach(
+                    (String field, Object value) -> convertDocumentToSaplCondition(saplConditions, field, value, "Or"));
         }
     }
 
@@ -144,6 +132,8 @@ public class SaplConditionOperation {
             String conjunction) {
         if (value instanceof Document doc) {
             addNewSaplCondition(saplConditions, field, doc, conjunction);
+        } else {
+            addNewSaplCondition(saplConditions, field, value);
         }
     }
 
@@ -247,5 +237,9 @@ public class SaplConditionOperation {
         var value    = doc.values().toArray()[0];
 
         saplConditions.add(new SaplCondition(field, value, operator, conjunction));
+    }
+
+    private void addNewSaplCondition(Collection<SaplCondition> saplConditions, String field, Object value) {
+        saplConditions.add(new SaplCondition(field, value, OperatorMongoDB.SIMPLE_PROPERTY, "Or"));
     }
 }

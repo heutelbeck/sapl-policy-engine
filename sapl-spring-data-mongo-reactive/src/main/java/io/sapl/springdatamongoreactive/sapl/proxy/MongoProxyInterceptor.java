@@ -146,11 +146,8 @@ public class MongoProxyInterceptor<T> implements MethodInterceptor {
              * are converted to filters and applied to the received data. The filtered data
              * is then returned.
              */
-            if (!Utilities.isMethodNameValid(repositoryMethod.getName()) && !hasAnnotationQuery(repositoryMethod)) {
-                var filterEnforcementPoint = factory.createProceededDataFilterEnforcementPoint(enforcementData);
-
-                return convertReturnTypeIfNecessary(filterEnforcementPoint.enforce(), returnClassOfMethod);
-            }
+            var filterEnforcementPoint = factory.createProceededDataFilterEnforcementPoint(enforcementData);
+            return convertReturnTypeIfNecessary(filterEnforcementPoint.enforce(), returnClassOfMethod);
         }
 
         /*
@@ -162,14 +159,13 @@ public class MongoProxyInterceptor<T> implements MethodInterceptor {
 
     @SuppressWarnings("unchecked") // casting domain type from Class<?> to Class<T>
     private Class<T> extractDomainType(Class<?> repository) throws ClassNotFoundException {
-        Type[] repositoryTypes = repository.getGenericInterfaces();
+        var repositoryTypes = repository.getGenericInterfaces();
 
         for (Type interfaceType : repositoryTypes) {
-            if (interfaceType instanceof ParameterizedType type
-                    && type.getActualTypeArguments()[0] instanceof Class<?> clazz
-                    && (interfaceType.getTypeName().contains(REACTIVE_MONGO_REPOSITORY_PATH)
-                            || interfaceType.getTypeName().contains(REACTIVE_CRUD_REPOSITORY_PATH))) {
-                return (Class<T>) clazz;
+            if ((interfaceType.getTypeName().contains(REACTIVE_MONGO_REPOSITORY_PATH)
+                    || interfaceType.getTypeName().contains(REACTIVE_CRUD_REPOSITORY_PATH))) {
+                var parameterizedType = (ParameterizedType) interfaceType;
+                return (Class<T>) parameterizedType.getActualTypeArguments()[0];
             }
         }
 

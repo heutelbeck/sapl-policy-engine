@@ -99,9 +99,12 @@ public class SaplPartTreeCriteriaCreator<T> {
             allParametersValueAsObjects.add(parameter.value());
         }
 
-        @Nullable
         var criteria = buildCriteria(manipulatedPartTree, allParametersValueAsObjects);
 
+        return createNewQuery(criteria);
+    }
+
+    private Query createNewQuery(@Nullable Criteria criteria) {
         return new Query(criteria).with(mongoQueryCreatorFactory.getConvertingParameterAccessor().getSort());
     }
 

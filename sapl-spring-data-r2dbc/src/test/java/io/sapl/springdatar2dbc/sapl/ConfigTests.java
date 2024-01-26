@@ -15,17 +15,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatamongoreactive.sapl.database.repositoryerror;
+package io.sapl.springdatar2dbc.sapl;
 
-import org.bson.types.ObjectId;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import io.sapl.springdatamongoreactive.sapl.database.TestUser;
-import io.sapl.springdatamongoreactive.sapl.utils.annotation.SaplProtectedMongoReactive;
-import reactor.core.publisher.Flux;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
-@SaplProtectedMongoReactive
-public interface RepositoryNotFoundException extends ReactiveMongoRepositoryNotFoundException<TestUser, ObjectId> {
+@SpringBootTest(classes = Config.class)
+class ConfigTests {
 
-    Flux<TestUser> findAllByFirstname(String firstname);
+    @Autowired
+    Config config;
+
+    @Test
+    void when_applicationStarted_then_configBeanShouldHaveBeenCreated() {
+        // GIVEN
+
+        // WHEN
+
+        // THEN
+        assertNotNull(config);
+    }
 
 }

@@ -15,17 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatamongoreactive.sapl.database.repositoryerror;
+package io.sapl.springdatar2dbc.database;
 
-import org.bson.types.ObjectId;
+import org.springframework.data.r2dbc.repository.Query;
+import org.springframework.data.repository.reactive.ReactiveCrudRepository;
+import org.springframework.stereotype.Repository;
 
-import io.sapl.springdatamongoreactive.sapl.database.TestUser;
-import io.sapl.springdatamongoreactive.sapl.utils.annotation.SaplProtectedMongoReactive;
+import io.sapl.springdatar2dbc.sapl.utils.annotation.SaplProtectedR2dbc;
 import reactor.core.publisher.Flux;
 
-@SaplProtectedMongoReactive
-public interface RepositoryNotFoundException extends ReactiveMongoRepositoryNotFoundException<TestUser, ObjectId> {
+@Repository
+public interface R2dbcPersonRepositoryWithCrudRepository extends ReactiveCrudRepository<Person, Integer> {
 
-    Flux<TestUser> findAllByFirstname(String firstname);
-
+    @SaplProtectedR2dbc
+    @Query("SELECT * FROM testUser WHERE age = (:age) AND id = (:id)")
+    Flux<Person> findAllUsersTest(int age, String id);
 }

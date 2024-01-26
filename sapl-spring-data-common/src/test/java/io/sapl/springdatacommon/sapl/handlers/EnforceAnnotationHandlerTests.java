@@ -21,7 +21,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
-
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +30,7 @@ import org.junit.platform.commons.util.AnnotationUtils;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-
+import org.springframework.expression.Expression;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
@@ -51,6 +50,7 @@ class EnforceAnnotationHandlerTests {
     BeanFactory beanFactory;
 
     BeanFactory beanFactoryMock = mock(BeanFactory.class);
+    Expression  expressionMock  = mock(Expression.class);
 
     EnforceAnnotationHandler enforceAnnotationHandler = new EnforceAnnotationHandler(beanFactoryMock);
 
@@ -82,6 +82,49 @@ class EnforceAnnotationHandlerTests {
 
         // THEN
         assertNull(result);
+    }
+
+    @Test
+    void when_methodHasNoMethodReferenceWithHashButStaticClass_then_returnAuthSub() {
+        // GIVEN
+        var expectedResult    = AuthorizationSubscription.of("test", "test", "setResource", "test");
+        var methodInvocation  = new R2dbcMethodInvocation("findByIdAfterAndFirstname",
+                new ArrayList<>(List.of(int.class, String.class)), null, null);
+        var enforceAnnotation = getEnforceAnnotation(methodInvocation.getMethod());
+
+        // WHEN
+        var result = enforceAnnotationHandler.enforceAnnotation(methodInvocation, enforceAnnotation);
+
+        // THEN
+        assertEquals(expectedResult, result);
+    }
+
+    @Test
+    void when_methodHasNoMethodReferenceWithHashAndNoStaticClass_then_returnAuthSub() {
+        // GIVEN
+        var methodInvocation = new R2dbcMethodInvocation("findByIdBeforeAndFirstname",
+                new ArrayList<>(List.of(int.class, String.class)), null, null);
+
+        var enforceAnnotation = getEnforceAnnotation(methodInvocation.getMethod());
+        // WHEN
+
+        // THEN
+        assertThrows(NullPointerException.class,
+                () -> enforceAnnotationHandler.enforceAnnotation(methodInvocation, enforceAnnotation));
+    }
+
+    @Test
+    void when_methodHasAnMethodReferenceButNoStaticClass_then_throwNoSuchMethodException() {
+        // GIVEN
+        var methodInvocation  = new R2dbcMethodInvocation("findAllByAgeAfterAndId",
+                new ArrayList<>(List.of(int.class, int.class)), new ArrayList<>(List.of(18, 123)), null);
+        var enforceAnnotation = getEnforceAnnotation(methodInvocation.getMethod());
+
+        // WHEN
+
+        // THEN
+        assertThrows(NoSuchMethodException.class,
+                () -> enforceAnnotationHandler.enforceAnnotation(methodInvocation, enforceAnnotation));
     }
 
     @Test
