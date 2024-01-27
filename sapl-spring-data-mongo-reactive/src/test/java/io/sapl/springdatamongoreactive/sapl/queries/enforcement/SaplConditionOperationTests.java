@@ -87,7 +87,24 @@ class SaplConditionOperationTests {
             assertTwoSaplConditions(expectedResult.get(i), actualResult.get(i));
         }
     }
+    
+    @Test
+    void when_methodIsQueryMethodAndNameIsFindAll_then_convertToSaplConditions() {
+        // GIVEN
+        var methodInvocation = new MethodInvocationForTesting("findAll",
+                new ArrayList<>(List.of()), new ArrayList<>(List.of()), null);
+        var method           = methodInvocation.getMethod();
+        var saplConditions   = List.of(new SaplCondition("firstname", "Aaron", OperatorMongoDB.SIMPLE_PROPERTY, "And"),
+                new SaplCondition("age", 22, OperatorMongoDB.BEFORE, "And"));
 
+        // WHEN
+        var actualResult = SaplConditionOperation.toModifiedMethodName(method.getName(), saplConditions);
+
+        // THEN
+        assertEquals("findAllByFirstnameIsAndAgeIsBefore", actualResult);
+    }
+
+    
     @Test
     void when_classIsStaticUtilityClass_then_instantiateThisTestForCoverageReasonsOfConstructor() {
         assertThrows(InvocationTargetException.class, () -> {

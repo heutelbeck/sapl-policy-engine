@@ -21,11 +21,10 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.annotation.Nullable;
-
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.CriteriaDefinition;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.repository.query.parser.PartTree;
 
@@ -78,6 +77,8 @@ public class SaplPartTreeCriteriaCreator<T> {
         // operations.
         var saplParametersFromMethod = SaplConditionOperation.methodToSaplConditions(args, repositoryMethod,
                 domainType);
+        
+     //   ^(findAll|readAll|getAll|queryAll|searchAll|streamAll)
 
         // Converts the conditions from the corresponding policy into SaplConditions for
         // further operations.
@@ -109,7 +110,7 @@ public class SaplPartTreeCriteriaCreator<T> {
         return createNewQuery(criteria);
     }
 
-    private Query createNewQuery(Criteria criteria) {
+    private Query createNewQuery(CriteriaDefinition criteria) {
         return new Query(criteria).with(mongoQueryCreatorFactory.getConvertingParameterAccessor().getSort());
     }
 
@@ -124,7 +125,7 @@ public class SaplPartTreeCriteriaCreator<T> {
      *                            {@link io.sapl.api.pdp.Decision}.
      * @return a new {@link Criteria}.
      */
-    private Criteria buildCriteria(PartTree manipulatedPartTree, List<Object> parameters) {
+    private CriteriaDefinition buildCriteria(PartTree manipulatedPartTree, List<Object> parameters) {
 
         Criteria base     = null;
         var      iterator = parameters.iterator();

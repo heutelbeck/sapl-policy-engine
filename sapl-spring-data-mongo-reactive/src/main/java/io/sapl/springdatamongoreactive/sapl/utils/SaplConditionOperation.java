@@ -31,7 +31,6 @@ import org.springframework.data.repository.query.parser.Part;
 import org.springframework.data.repository.query.parser.PartTree;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.springdatamongoreactive.sapl.OperatorMongoDB;
 import lombok.experimental.UtilityClass;
 
@@ -41,6 +40,8 @@ import lombok.experimental.UtilityClass;
  */
 @UtilityClass
 public class SaplConditionOperation {
+	
+	private static final List<String> FIND_ALL_KEYWORDS = List.of("findAll", "readAll", "getAll", "queryAll", "searchAll", "streamAll");
 
     /**
      * The entry method of this utility class and is responsible for translating the
@@ -147,17 +148,17 @@ public class SaplConditionOperation {
      * @return modified method name.
      */
     public String toModifiedMethodName(String methodName, List<SaplCondition> saplConditions) {
-        int    index = getIndexIfSourceContainsAnyKeyword(methodName);
-        String modifiedMethodName;
-
+        int 	index 			  = getIndexIfSourceContainsAnyKeyword(methodName);
+        boolean findAllMethodType = isMethodOneOfTheFindAllMethods(methodName);
+        
         if (index == -1) {
-            modifiedMethodName = methodName + creatModifyingMethodNamePart(saplConditions);
+        	methodName = methodName + creatModifyingMethodNamePart(saplConditions, findAllMethodType);
         } else {
-            modifiedMethodName = methodName.substring(0, index) + creatModifyingMethodNamePart(saplConditions)
+        	methodName = methodName.substring(0, index) + creatModifyingMethodNamePart(saplConditions, findAllMethodType)
                     + methodName.substring(index);
         }
 
-        return modifiedMethodName;
+        return methodName;
     }
 
     /**
@@ -178,18 +179,29 @@ public class SaplConditionOperation {
      *                       {@link io.sapl.api.pdp.Decision}.
      * @return the modifying method name part.
      */
-    private String creatModifyingMethodNamePart(Iterable<SaplCondition> saplConditions) {
+    private String creatModifyingMethodNamePart(List<SaplCondition> saplConditions, boolean findAllMethodType) {
         var creatModifyingPart = new StringBuilder();
 
-        for (SaplCondition saplCondition : saplConditions) {
+        for (int i = 0; i < saplConditions.size(); i++) {
 
-            creatModifyingPart.append(saplCondition.conjunction())
-                    .append(saplCondition.field().substring(0, 1).toUpperCase())
-                    .append(saplCondition.field().substring(1))
-                    .append(saplCondition.operator().getMethodNameBasedKeywords().stream().findFirst().orElseThrow());
+        	if (i == 0 && findAllMethodType) {
+                creatModifyingPart.append("By")
+	                .append(saplConditions.get(i).field().substring(0, 1).toUpperCase())
+	                .append(saplConditions.get(i).field().substring(1))
+	                .append(saplConditions.get(i).operator().getMethodNameBasedKeywords().stream().findFirst().orElseThrow());
+        	} else {
+            	appendSaplCondition(creatModifyingPart, saplConditions.get(i));
+        	}
         }
 
         return creatModifyingPart.toString();
+    }
+    
+    private void appendSaplCondition(StringBuilder saplConditionsBuilder, SaplCondition saplCondition) {
+    	saplConditionsBuilder.append(saplCondition.conjunction())
+	        .append(saplCondition.field().substring(0, 1).toUpperCase())
+	        .append(saplCondition.field().substring(1))
+	        .append(saplCondition.operator().getMethodNameBasedKeywords().stream().findFirst().orElseThrow());
     }
 
     /**
@@ -241,5 +253,9 @@ public class SaplConditionOperation {
 
     private void addNewSaplCondition(Collection<SaplCondition> saplConditions, String field, Object value) {
         saplConditions.add(new SaplCondition(field, value, OperatorMongoDB.SIMPLE_PROPERTY, "Or"));
+    }
+    
+    private boolean isMethodOneOfTheFindAllMethods(String methodName) {
+    	return FIND_ALL_KEYWORDS.stream().anyMatch(keyword -> keyword.equals(methodName));
     }
 }

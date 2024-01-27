@@ -131,7 +131,7 @@ class SaplPartTreeCriteriaCreatorTests {
         }
         saplConditionOperationMockedStatic.close();
     }
-
+    
     @Test
     @SuppressWarnings("unchecked") // generic types in arguments of methods that are mocked
     void when_policyDecisionContainsQueryManipulationWithOrCondition_then_createManipulatedQuery() {
