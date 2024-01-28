@@ -26,14 +26,18 @@ import java.util.Map;
 import java.util.Set;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
+import lombok.SneakyThrows;
 import reactor.core.publisher.Flux;
 
 class TestAttributeContext implements AttributeContext {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final Map<String, Set<String>> availableLibraries;
 
@@ -126,10 +130,11 @@ class TestAttributeContext implements AttributeContext {
     }
 
     @Override
-    public Map<String, String> getAttributeSchemas() {
-        var schemas = new HashMap<String, String>();
-        schemas.put("temperature.now", TEMP_NOW_SCHEMA);
-        schemas.put("temperature.mean", TEMP_MEAN_SCHEMA);
+    @SneakyThrows
+    public Map<String, JsonNode> getAttributeSchemas() {
+        var schemas = new HashMap<String, JsonNode>();
+        schemas.put("temperature.now", MAPPER.readValue(TEMP_NOW_SCHEMA, JsonNode.class));
+        schemas.put("temperature.mean", MAPPER.readValue(TEMP_MEAN_SCHEMA, JsonNode.class));
         return schemas;
     }
 
