@@ -17,6 +17,7 @@
  */
 package io.sapl.interpreter.functions;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
@@ -69,7 +70,6 @@ public class AnnotationFunctionContext implements FunctionContext {
     private final Map<String, FunctionMetadata>    functions     = new ConcurrentHashMap<>();
     private final Map<String, Collection<String>>  libraries     = new ConcurrentHashMap<>();
 
-    // TODO: take concurrency into account
     private List<String> codeTemplateCache;
 
     /**
@@ -232,12 +232,15 @@ public class AnnotationFunctionContext implements FunctionContext {
         if (!funSchema.isEmpty() && !funPathToSchema.isEmpty())
             throw new InitializationException(MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED);
 
+        JsonNode processedSchemaDefinition = null;
         if (!funPathToSchema.isEmpty()) {
-            // TODO: load from file/resource and fail on load error with
-            // InitializationException
+            try (var is = library.getClass().getClassLoader().getResourceAsStream(funPathToSchema)) {
+                MAPPER.readValue(is, JsonNode.class);
+            } catch (IOException e) {
+                throw new InitializationException("Error loading schema from resources.", e);
+            }
         }
 
-        JsonNode processedSchemaDefinition = null;
         if (!funSchema.isEmpty()) {
             try {
                 processedSchemaDefinition = MAPPER.readValue(funSchema, JsonNode.class);
@@ -245,7 +248,7 @@ public class AnnotationFunctionContext implements FunctionContext {
                 throw new InitializationException(INVALID_SCHEMA_DEFINITION, e);
             }
         }
-        
+
         if (!Val.class.isAssignableFrom(method.getReturnType()))
             throw new InitializationException(ILLEGAL_RETURN_TYPE_FOR_IMPORT_ERROR, method.getReturnType().getName());
 

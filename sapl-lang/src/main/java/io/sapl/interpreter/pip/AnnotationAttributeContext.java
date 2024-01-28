@@ -17,6 +17,7 @@
  */
 package io.sapl.interpreter.pip;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -405,12 +406,16 @@ public class AnnotationAttributeContext implements AttributeContext {
         if (!attributeSchema.isEmpty() && !attributePathToSchema.isEmpty())
             throw new InitializationException(MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED);
 
+        JsonNode processedSchemaDefinition = null;
         if (!attributePathToSchema.isEmpty()) {
-            // TODO: load from file/resource and fail on load error with
-            // InitializationException
+            try (var is = policyInformationPoint.getClass().getClassLoader()
+                    .getResourceAsStream(attributePathToSchema)) {
+                MAPPER.readValue(is, JsonNode.class);
+            } catch (IOException e) {
+                throw new InitializationException("Error loading schema from resources.", e);
+            }
         }
 
-        JsonNode processedSchemaDefinition = null;
         if (!attributeSchema.isEmpty()) {
             try {
                 processedSchemaDefinition = MAPPER.readValue(attributeSchema, JsonNode.class);

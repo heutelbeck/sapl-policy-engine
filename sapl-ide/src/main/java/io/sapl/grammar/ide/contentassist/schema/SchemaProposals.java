@@ -56,7 +56,11 @@ public class SchemaProposals {
     }
 
     private Flux<String> getCodeTemplates(Val v) {
-        return Flux.fromIterable(schemaTemplatesFromJson(v.get()));
+        if (v.isDefined()) {
+            return Flux.fromIterable(schemaTemplatesFromJson(v.get()));
+        } else {
+            return Flux.empty();
+        }
     }
 
     private Map<String, JsonNode> getAllVariablesAsMap() {

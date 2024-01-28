@@ -54,6 +54,7 @@ import reactor.test.StepVerifier;
 import reactor.util.context.Context;
 
 class AnnotationAttributeContextTests {
+    private final static ObjectMapper MAPPER = new ObjectMapper();
 
     @Test
     void when_classHasNoAnnotation_fail() {
@@ -908,7 +909,8 @@ class AnnotationAttributeContextTests {
 
         var context         = new AnnotationAttributeContext(() -> List.of(pip), List::of);
         var functionSchemas = context.getAttributeSchemas();
-        assertThat(functionSchemas, hasEntry("test.attributeWithAnnotation", PERSON_SCHEMA));
+        assertThat(functionSchemas,
+                hasEntry("test.attributeWithAnnotation", MAPPER.readValue(PERSON_SCHEMA, JsonNode.class)));
 
         var validExpression = ParserUtil.expression("<test.envAttribute({\"name\": \"Joe\"})>");
         var expected        = new ObjectMapper().readTree("{\"name\": \"Joe\"}\")>");

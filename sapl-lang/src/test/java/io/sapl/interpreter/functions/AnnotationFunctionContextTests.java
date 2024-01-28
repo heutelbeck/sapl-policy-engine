@@ -39,6 +39,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.functions.Function;
@@ -54,6 +55,8 @@ import io.sapl.interpreter.InitializationException;
 import lombok.NoArgsConstructor;
 
 class AnnotationFunctionContextTests {
+
+    private final static ObjectMapper MAPPER = new ObjectMapper();
 
     @Test
     void failToInitializeNonFunctionLibraryAnnotatedClass() {
@@ -83,7 +86,7 @@ class AnnotationFunctionContextTests {
 
     @Test
     void givenNoLibrariesWhenListingFunctionForALibraryCollectionIsEmpty() {
-        assertThat(new AnnotationFunctionContext().providedFunctionsOfLibrary(null), empty());
+        assertThat(new AnnotationFunctionContext().providedFunctionsOfLibrary("unknown"), empty());
     }
 
     @Test
@@ -250,15 +253,15 @@ class AnnotationFunctionContextTests {
     }
 
     @Test
-    void schemaIsReturned() throws InitializationException {
-        final String PERSON_SCHEMA = """
+    void schemaIsReturned() throws InitializationException, JsonProcessingException {
+        final JsonNode PERSON_SCHEMA = MAPPER.readValue("""
                 {  "$schema": "http://json-schema.org/draft-07/schema#",
                   "$id": "https://example.com/schemas/regions",
                   "type": "object",
                   "properties": {
                   "name": { "type": "string" }
                   }
-                }""";
+                }""", JsonNode.class);
 
         var context         = new AnnotationFunctionContext(
                 () -> List.of(new AnnotationFunctionContextTests.AnnotationLibrary()), List::of);
