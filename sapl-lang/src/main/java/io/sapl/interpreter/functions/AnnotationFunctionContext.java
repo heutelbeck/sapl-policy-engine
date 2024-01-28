@@ -17,7 +17,6 @@
  */
 package io.sapl.interpreter.functions;
 
-import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
@@ -32,9 +31,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
@@ -43,6 +40,7 @@ import io.sapl.api.functions.StaticFunctionLibrarySupplier;
 import io.sapl.api.interpreter.ExpressionArgument;
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.InitializationException;
+import io.sapl.interpreter.SchemaLoadingUtil;
 import io.sapl.interpreter.pip.LibraryEntryMetadata;
 import io.sapl.interpreter.validation.IllegalParameterType;
 import io.sapl.interpreter.validation.ParameterTypeValidator;
@@ -56,16 +54,13 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AnnotationFunctionContext implements FunctionContext {
 
-    private static final String       ERROR_LOADING_SCHEMA_FROM_RESOURCES            = "Error loading schema from resources.";
-    private static final String       INVALID_SCHEMA_DEFINITION                      = "Invalid schema definition found. This only validated JSON syntax, not compliance with JSONSchema specification";
-    private static final int          VAR_ARGS                                       = -1;
-    private static final String       UNKNOWN_FUNCTION_ERROR                         = "Unknown function %s";
-    private static final String       ILLEGAL_NUMBER_OF_PARAMETERS_ERROR             = "Illegal number of parameters. Function expected %d but got %d";
-    private static final String       CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION_ERROR = "Provided class has no @FunctionLibrary annotation.";
-    private static final String       ILLEGAL_PARAMETER_FOR_IMPORT_ERROR             = "Function has parameters that are not a Val. Cannot be loaded. Type was: %s.";
-    private static final String       ILLEGAL_RETURN_TYPE_FOR_IMPORT_ERROR           = "Function does not return a Val. Cannot be loaded. Type was: %s.";
-    private static final String       MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED        = "Function has both a schema and a schemaPath annotation. Multiple schema annotations are not allowed.";
-    private static final ObjectMapper MAPPER                                         = new ObjectMapper();
+    private static final int    VAR_ARGS                                       = -1;
+    private static final String UNKNOWN_FUNCTION_ERROR                         = "Unknown function %s";
+    private static final String ILLEGAL_NUMBER_OF_PARAMETERS_ERROR             = "Illegal number of parameters. Function expected %d but got %d";
+    private static final String CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION_ERROR = "Provided class has no @FunctionLibrary annotation.";
+    private static final String ILLEGAL_PARAMETER_FOR_IMPORT_ERROR             = "Function has parameters that are not a Val. Cannot be loaded. Type was: %s.";
+    private static final String ILLEGAL_RETURN_TYPE_FOR_IMPORT_ERROR           = "Function does not return a Val. Cannot be loaded. Type was: %s.";
+    private static final String MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED        = "Function has both a schema and a schemaPath annotation. Multiple schema annotations are not allowed.";
 
     private final Collection<LibraryDocumentation> documentation = new ConcurrentLinkedQueue<>();
     private final Map<String, FunctionMetadata>    functions     = new ConcurrentHashMap<>();
@@ -235,11 +230,11 @@ public class AnnotationFunctionContext implements FunctionContext {
 
         JsonNode processedSchemaDefinition = null;
         if (!funPathToSchema.isEmpty()) {
-            processedSchemaDefinition = loadSchemaFromResource(method, funPathToSchema);
+            processedSchemaDefinition = SchemaLoadingUtil.loadSchemaFromResource(method, funPathToSchema);
         }
 
         if (!funSchema.isEmpty()) {
-            processedSchemaDefinition = loadSchemaFromString(funSchema);
+            processedSchemaDefinition = SchemaLoadingUtil.loadSchemaFromString(funSchema);
         }
 
         if (!Val.class.isAssignableFrom(method.getReturnType()))
@@ -260,26 +255,6 @@ public class AnnotationFunctionContext implements FunctionContext {
         libMeta.documentation.put(funMeta.getDocumentationCodeTemplate(), funAnnotation.docs());
 
         libraries.get(libName).add(funName);
-    }
-
-    private JsonNode loadSchemaFromString(String attributeSchema) throws InitializationException {
-        try {
-            return MAPPER.readValue(attributeSchema, JsonNode.class);
-        } catch (JsonProcessingException e) {
-            throw new InitializationException(INVALID_SCHEMA_DEFINITION, e);
-        }
-    }
-
-    private JsonNode loadSchemaFromResource(Method method, String attributePathToSchema)
-            throws InitializationException {
-        try (var is = method.getDeclaringClass().getClassLoader().getResourceAsStream(attributePathToSchema)) {
-            if (is == null) {
-                throw new IOException("Schema file not found " + attributePathToSchema);
-            }
-            return MAPPER.readValue(is, JsonNode.class);
-        } catch (IOException e) {
-            throw new InitializationException(ERROR_LOADING_SCHEMA_FROM_RESOURCES, e);
-        }
     }
 
     private void assertMethodIsStatic(Method method) throws InitializationException {

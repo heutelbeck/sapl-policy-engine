@@ -67,8 +67,7 @@ public class ValueDefinitionProposalExtractionHelper {
         if (policyBody == null)
             return new HashSet<>();
 
-        var proposals = getBodyProposals(proposalType, currentOffset, policyBody, model);
-        return proposals;
+        return getBodyProposals(proposalType, currentOffset, policyBody, model);
     }
 
     public ContentAssistContext getContextWithFullPrefix(int offset, boolean forAttribute) {

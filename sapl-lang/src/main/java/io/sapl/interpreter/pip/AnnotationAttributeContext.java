@@ -17,7 +17,6 @@
  */
 package io.sapl.interpreter.pip;
 
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -38,9 +37,7 @@ import java.util.function.Function;
 
 import org.reactivestreams.Publisher;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
@@ -51,6 +48,7 @@ import io.sapl.api.pip.PolicyInformationPointSupplier;
 import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.interpreter.InitializationException;
+import io.sapl.interpreter.SchemaLoadingUtil;
 import io.sapl.interpreter.validation.ParameterTypeValidator;
 import lombok.NoArgsConstructor;
 import reactor.core.publisher.Flux;
@@ -62,7 +60,6 @@ import reactor.core.publisher.Flux;
 @NoArgsConstructor
 public class AnnotationAttributeContext implements AttributeContext {
 
-    private static final String ERROR_LOADING_SCHEMA_FROM_RESOURCES                     = "Error loading schema from resources.";
     static final String         FIRST_PARAMETER_NOT_PRESENT_S_ERROR                     = "Argument missing. First parameter of the method '%s' must be a Val for taking in the left-hand argument, but no argument was present.";
     static final String         FIRST_PARAMETER_S_UNEXPECTED_S_ERROR                    = "First parameter of the method %s has an unexpected type. Was expecting a Val but got %s.";
     static final String         A_PIP_WITH_THE_NAME_S_HAS_ALREADY_BEEN_REGISTERED_ERROR = "A PIP with the name '%s' has already been registered.";
@@ -71,8 +68,6 @@ public class AnnotationAttributeContext implements AttributeContext {
     static final String         RETURN_TYPE_MUST_BE_FLUX_OF_VALUES_ERROR                = "The return type of an attribute finder must be Flux<Val>. Was: %s";
     static final String         MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED                 = "Attribute has both a schema and a schemaPath annotation. Multiple schema annotations are not allowed.";
     static final String         INVALID_SCHEMA_DEFINITION                               = "Invalid schema definition for attribute found. This only validated JSON syntax, not compliance with JSONSchema specification";
-
-    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final Map<String, Set<String>> attributeNamesByPipName = new HashMap<>();
 
@@ -407,11 +402,11 @@ public class AnnotationAttributeContext implements AttributeContext {
 
         JsonNode processedSchemaDefinition = null;
         if (!attributePathToSchema.isEmpty()) {
-            processedSchemaDefinition = loadSchemaFromResource(method, attributePathToSchema);
+            processedSchemaDefinition = SchemaLoadingUtil.loadSchemaFromResource(method, attributePathToSchema);
         }
 
         if (!attributeSchema.isEmpty()) {
-            processedSchemaDefinition = loadSchemaFromString(attributeSchema);
+            processedSchemaDefinition = SchemaLoadingUtil.loadSchemaFromString(attributeSchema);
         }
         var metadata        = metadataOf(policyInformationPoint, method, pipName, attributeName,
                 processedSchemaDefinition, isEnvironmentAttribute);
@@ -421,26 +416,6 @@ public class AnnotationAttributeContext implements AttributeContext {
         namedAttributes.add(metadata);
         attributeNamesByPipName.get(pipName).add(attributeName);
         pipDocumentation.documentation.put(metadata.getDocumentationCodeTemplate(), documentation);
-    }
-
-    private JsonNode loadSchemaFromString(String attributeSchema) throws InitializationException {
-        try {
-            return MAPPER.readValue(attributeSchema, JsonNode.class);
-        } catch (JsonProcessingException e) {
-            throw new InitializationException(INVALID_SCHEMA_DEFINITION, e);
-        }
-    }
-
-    private JsonNode loadSchemaFromResource(Method method, String attributePathToSchema)
-            throws InitializationException {
-        try (var is = method.getDeclaringClass().getClassLoader().getResourceAsStream(attributePathToSchema)) {
-            if (is == null) {
-                throw new IOException("Schema file not found " + attributePathToSchema);
-            }
-            return MAPPER.readValue(is, JsonNode.class);
-        } catch (IOException e) {
-            throw new InitializationException(ERROR_LOADING_SCHEMA_FROM_RESOURCES, e);
-        }
     }
 
     private void assertMethodIsStatic(Method method) throws InitializationException {
