@@ -239,9 +239,8 @@ public class AnnotationFunctionContext implements FunctionContext {
                 if (is == null) {
                     throw new IOException("Schema file not found " + funPathToSchema);
                 }
-                MAPPER.readValue(is, JsonNode.class);
+                processedSchemaDefinition = MAPPER.readValue(is, JsonNode.class);
             } catch (IOException e) {
-                e.printStackTrace();
                 throw new InitializationException(ERROR_LOADING_SCHEMA_FROM_RESOURCES, e);
             }
         }

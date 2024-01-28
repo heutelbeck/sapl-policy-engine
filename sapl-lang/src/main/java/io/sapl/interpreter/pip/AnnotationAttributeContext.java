@@ -80,8 +80,6 @@ public class AnnotationAttributeContext implements AttributeContext {
 
     private final Collection<PolicyInformationPointDocumentation> pipDocumentations = new LinkedList<>();
 
-    // TODO: take concurrency into account
-
     private List<String> functionsCache;
 
     private List<String> templatesCacheEnvironment;
@@ -409,22 +407,11 @@ public class AnnotationAttributeContext implements AttributeContext {
 
         JsonNode processedSchemaDefinition = null;
         if (!attributePathToSchema.isEmpty()) {
-            try (var is = method.getDeclaringClass().getClassLoader().getResourceAsStream(attributePathToSchema)) {
-                if (is == null) {
-                    throw new IOException("Schema file not found " + attributePathToSchema);
-                }
-                MAPPER.readValue(is, JsonNode.class);
-            } catch (IOException e) {
-                throw new InitializationException(ERROR_LOADING_SCHEMA_FROM_RESOURCES, e);
-            }
+            processedSchemaDefinition = loadSchemaFromResource(method, attributePathToSchema);
         }
 
         if (!attributeSchema.isEmpty()) {
-            try {
-                processedSchemaDefinition = MAPPER.readValue(attributeSchema, JsonNode.class);
-            } catch (JsonProcessingException e) {
-                throw new InitializationException(INVALID_SCHEMA_DEFINITION, e);
-            }
+            processedSchemaDefinition = loadSchemaFromString(attributeSchema);
         }
         var metadata        = metadataOf(policyInformationPoint, method, pipName, attributeName,
                 processedSchemaDefinition, isEnvironmentAttribute);
@@ -434,6 +421,26 @@ public class AnnotationAttributeContext implements AttributeContext {
         namedAttributes.add(metadata);
         attributeNamesByPipName.get(pipName).add(attributeName);
         pipDocumentation.documentation.put(metadata.getDocumentationCodeTemplate(), documentation);
+    }
+
+    private JsonNode loadSchemaFromString(String attributeSchema) throws InitializationException {
+        try {
+            return MAPPER.readValue(attributeSchema, JsonNode.class);
+        } catch (JsonProcessingException e) {
+            throw new InitializationException(INVALID_SCHEMA_DEFINITION, e);
+        }
+    }
+
+    private JsonNode loadSchemaFromResource(Method method, String attributePathToSchema)
+            throws InitializationException {
+        try (var is = method.getDeclaringClass().getClassLoader().getResourceAsStream(attributePathToSchema)) {
+            if (is == null) {
+                throw new IOException("Schema file not found " + attributePathToSchema);
+            }
+            return MAPPER.readValue(is, JsonNode.class);
+        } catch (IOException e) {
+            throw new InitializationException(ERROR_LOADING_SCHEMA_FROM_RESOURCES, e);
+        }
     }
 
     private void assertMethodIsStatic(Method method) throws InitializationException {
