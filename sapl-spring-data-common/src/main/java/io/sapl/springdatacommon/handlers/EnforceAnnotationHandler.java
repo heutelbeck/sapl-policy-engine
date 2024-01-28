@@ -26,7 +26,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.context.expression.BeanFactoryResolver;
 import org.springframework.expression.EvaluationContext;
-import org.springframework.expression.EvaluationException;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
@@ -36,6 +35,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.util.regex.Pattern;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.springdatacommon.sapl.Enforce;
 import lombok.SneakyThrows;
@@ -133,8 +133,7 @@ public class EnforceAnnotationHandler {
             return getObjectByStaticClassWhenValueStartsWithLetterT(annotationValue, methodInvocation);
         }
 
-        if (annotationValue.startsWith("#") && annotationValue.contains("(") && annotationValue.contains(")")
-                && staticClasses.length != 0) {
+        if (referenceMethod(annotationValue) && staticClasses.length > 0) {
             return getObjectByStaticClassWhenValueStartsWithHash(annotationValue, staticClasses, methodInvocation);
         }
 
@@ -146,11 +145,23 @@ public class EnforceAnnotationHandler {
             return getObjectByBeanWhenValueStartsWithAt(annotationValue, methodInvocation);
         }
 
-        if (annotationValue.trim().startsWith("{") && annotationValue.trim().endsWith("}")) {
+        if (referenceJsonString(annotationValue)) {
             return buildJsonNodeByString(annotationValue);
         }
 
         return annotationValue;
+    }
+
+    private boolean referenceJsonString(String jsonString) {
+        var pattern = Pattern.compile("\\{.*\\}", Pattern.CASE_INSENSITIVE);
+        var matcher = pattern.matcher(jsonString);
+        return matcher.matches();
+    }
+
+    private boolean referenceMethod(String methodAsString) {
+        var pattern = Pattern.compile("^#.*\\(.*\\)$", Pattern.CASE_INSENSITIVE);
+        var matcher = pattern.matcher(methodAsString);
+        return matcher.matches();
     }
 
     /**
@@ -177,12 +188,7 @@ public class EnforceAnnotationHandler {
     private String parseMethodParameterInEvaluationContext(String annotationValue, MethodInvocation methodInvocation) {
         setMethodParameterInEvaluationContext(context, methodInvocation);
 
-        try {
-            return parser.parseExpression(annotationValue).getValue(context, String.class);
-        } catch (EvaluationException ignore) {
-            return null;
-        }
-
+        return parser.parseExpression(annotationValue).getValue(context, String.class);
     }
 
     /**

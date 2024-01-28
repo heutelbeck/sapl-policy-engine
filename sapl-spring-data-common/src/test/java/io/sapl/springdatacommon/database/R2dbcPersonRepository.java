@@ -42,6 +42,9 @@ public interface R2dbcPersonRepository
             TestClass.class })
     Flux<Person> findAllByAgeAfterAndFirstname(int age, String firstname);
 
+    @Enforce(subject = "#setResource('field', #firstname)")
+    Flux<Person> findAllByAgeAfterAndId(int age, int id);
+
     Flux<Person> findAllByAgeAfter(int age);
 
     @Enforce(subject = "#firstname", action = "general_protection_reactive_r2dbc_repository", resource = "T(io.sapl.springdatacommon.database.TestClass).setResource(#firstname, 'test value')", environment = "{\"testNode\":\"testValue\"}", staticClasses = {})
@@ -58,6 +61,13 @@ public interface R2dbcPersonRepository
     @Enforce(subject = "test", action = "test", resource = "#setResource('field', #firstname)", environment = "test", staticClasses = {
             R2dbcTestService.class })
     Flux<Person> findByIdAfter(String id);
+
+    @Enforce(subject = "test", action = "test", resource = "setResource", environment = "test", staticClasses = {
+            TestClass.class })
+    Flux<Person> findByIdAfterAndFirstname(int id, String firstname);
+
+    @Enforce(subject = "#setResource('field', #firstname)", action = "asdst", resource = "setResource", environment = "test", staticClasses = {})
+    Flux<Person> findByIdBeforeAndFirstname(int id, String firstname);
 
     @Enforce(subject = "test", action = "test", resource = "#methodNotExist('field', #firstname)", environment = "test", staticClasses = {
             TestClass.class })
