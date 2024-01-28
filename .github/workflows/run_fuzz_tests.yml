@@ -20,6 +20,6 @@ jobs:
           cache: maven
       - name: Build with Maven
         run: |
+          mvn clean install -DskipTests
           cd ./sapl-pdp-embedded
-          mvn clean install
           mvn test -Prun_fuzz_tests
