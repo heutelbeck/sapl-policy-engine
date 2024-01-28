@@ -38,7 +38,7 @@ import reactor.core.publisher.Flux;
 @RequiredArgsConstructor
 public class SchemaProposals {
 
-    private static final Collection<String>    unwantedPathKeywords = Set.of("java\\.?");
+    private static final Collection<String>    UNWANTED_PATH_KEYWORDS = Set.of("java\\.?");
     private final VariablesAndCombinatorSource variablesAndCombinatorSource;
 
     public List<String> getVariableNamesAsTemplates() {
@@ -50,16 +50,16 @@ public class SchemaProposals {
 
     public List<String> getCodeTemplates(Expression expression) {
         return getAllVariables().next()
-                .flatMap(vars -> expression.evaluate().contextWrite(ctx -> AuthorizationContext.setVariables(ctx, vars))
-                        .flatMap(this::getCodeTemplates).filter(StringUtils::isNotBlank).collectList())
+                .flatMap(vars -> expression.evaluate().next()
+                        .contextWrite(ctx -> AuthorizationContext.setVariables(ctx, vars)).map(this::getCodeTemplates))
                 .block();
     }
 
-    private Flux<String> getCodeTemplates(Val v) {
+    private List<String> getCodeTemplates(Val v) {
         if (v.isDefined()) {
-            return Flux.fromIterable(schemaTemplatesFromJson(v.get()));
+            return schemaTemplatesFromJson(v.get());
         } else {
-            return Flux.empty();
+            return List.of();
         }
     }
 
@@ -68,7 +68,7 @@ public class SchemaProposals {
     }
 
     private Flux<Map<String, JsonNode>> getAllVariables() {
-        return variablesAndCombinatorSource.getVariables().map(v -> v.orElse(Map.of()));
+        return variablesAndCombinatorSource.getVariables().map(v -> v.orElse(Map.of())).defaultIfEmpty(Map.of());
     }
 
     public List<String> schemaTemplatesForFunctions(JsonNode functionSchema) {
@@ -81,12 +81,12 @@ public class SchemaProposals {
 
     public List<String> schemaTemplatesFromJson(JsonNode schema) {
         var paths = new SchemaParser(getAllVariablesAsMap()).generatePaths(schema);
-        return paths.stream().map(this::removeUnwantedKeywordsFromPath).toList();
+        return paths.stream().map(this::removeUnwantedKeywordsFromPath).filter(StringUtils::isNotBlank).toList();
     }
 
     private String removeUnwantedKeywordsFromPath(String path) {
         var alteredPath = path;
-        for (String keyword : unwantedPathKeywords) {
+        for (String keyword : UNWANTED_PATH_KEYWORDS) {
             alteredPath = alteredPath.replaceAll(keyword, "");
         }
         return alteredPath;
