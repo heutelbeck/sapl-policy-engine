@@ -17,6 +17,7 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -120,7 +121,14 @@ class TestFunctionContext implements FunctionContext {
         var schemas = new HashMap<String, JsonNode>();
         schemas.put("schemaTest.person", MAPPER.readValue(PERSON_SCHEMA, JsonNode.class));
         schemas.put("schemaTest.dog", MAPPER.readValue(DOG_SCHEMA, JsonNode.class));
+        schemas.put("schemaTest.location", schemaFromResource("geographical_location_schema.json"));
         return schemas;
+    }
+
+    private JsonNode schemaFromResource(String resourcePath) throws IOException {
+        try (var is = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
+            return MAPPER.readValue(is, JsonNode.class);
+        }
     }
 
 }
