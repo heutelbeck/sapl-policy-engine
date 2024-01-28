@@ -97,7 +97,7 @@ public class AuthorizationSubscriptionHandlerProvider {
         if (annotationBased != null && staticBeanBased != null) {
             return mergeTwoAuthSubs(annotationBased, staticBeanBased);
         } else {
-            return staticBeanBased;
+            return annotationBased != null ? annotationBased : staticBeanBased;
         }
     }
 
@@ -110,7 +110,7 @@ public class AuthorizationSubscriptionHandlerProvider {
      * @return the found AuthorizationSubscription.
      */
     private AuthorizationSubscription getAuthorizationSubscriptionByBean(String methodName, String repoName) {
-        AuthorizationSubscription authorizationSubscription;
+        AuthorizationSubscription authorizationSubscription = null;
         try {
             var bean = methodName + repoName;
             authorizationSubscription = (AuthorizationSubscription) beanFactory.getBean(bean);

@@ -21,9 +21,9 @@ import io.sapl.springdatar2dbc.database.Person;
 import io.sapl.springdatar2dbc.sapl.utils.annotation.SaplProtectedR2dbc;
 import reactor.core.publisher.Flux;
 
+@SaplProtectedR2dbc
 public interface RepositoryNotFoundException extends R2dbcRepositoryNotFoundException<Person, Integer> {
 
-    @SaplProtectedR2dbc
     Flux<Person> findAllByFirstname(String firstname);
 
 }

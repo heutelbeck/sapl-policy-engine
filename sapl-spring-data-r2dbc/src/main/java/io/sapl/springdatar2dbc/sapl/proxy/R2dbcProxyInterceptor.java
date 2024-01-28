@@ -26,7 +26,6 @@ import static io.sapl.springdatar2dbc.sapl.utils.annotation.AnnotationUtilities.
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Objects;
-
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.BeanFactory;
@@ -72,7 +71,7 @@ public class R2dbcProxyInterceptor<T> implements MethodInterceptor {
     private final QueryManipulationEnforcementData<T>      enforcementData;
     private final QueryManipulationEnforcementPointFactory factory;
 
-    private static final String REACTIVE_CRUD_REPOSITORY_PATH = "org.springframework.data.mongodb.repository.ReactiveMongoRepository";
+    private static final String REACTIVE_CRUD_REPOSITORY_PATH = "org.springframework.data.repository.reactive.ReactiveCrudRepository";
     private static final String R2DBC_REPOSITORY_PATH         = "org.springframework.data.r2dbc.repository.R2dbcRepository";
 
     public R2dbcProxyInterceptor(AuthorizationSubscriptionHandlerProvider authSubHandler, BeanFactory beanFactory,
@@ -133,12 +132,8 @@ public class R2dbcProxyInterceptor<T> implements MethodInterceptor {
              * apply. The requested method is executed and the corresponding condition from
              * the obligation are applied to the received data.
              */
-            if (!Utilities.isMethodNameValid(repositoryMethod.getName()) && !hasAnnotationQuery(repositoryMethod)) {
-                var filterEnforcementPoint = factory.createProceededDataFilterEnforcementPoint(enforcementData);
-
-                return convertReturnTypeIfNecessary(filterEnforcementPoint.enforce(), returnClassOfMethod);
-            }
-
+            var filterEnforcementPoint = factory.createProceededDataFilterEnforcementPoint(enforcementData);
+            return convertReturnTypeIfNecessary(filterEnforcementPoint.enforce(), returnClassOfMethod);
         }
 
         /*
@@ -150,14 +145,13 @@ public class R2dbcProxyInterceptor<T> implements MethodInterceptor {
 
     @SuppressWarnings("unchecked") // casting domain type from Class<?> to Class<T>
     private Class<T> extractDomainType(Class<?> repository) throws ClassNotFoundException {
-        Type[] repositoryTypes = repository.getGenericInterfaces();
+        var repositoryTypes = repository.getGenericInterfaces();
 
         for (Type interfaceType : repositoryTypes) {
-            if (interfaceType instanceof ParameterizedType type
-                    && type.getActualTypeArguments()[0] instanceof Class<?> clazz
-                    && (interfaceType.getTypeName().contains(R2DBC_REPOSITORY_PATH)
-                            || interfaceType.getTypeName().contains(REACTIVE_CRUD_REPOSITORY_PATH))) {
-                return (Class<T>) clazz;
+            if ((interfaceType.getTypeName().contains(R2DBC_REPOSITORY_PATH)
+                    || interfaceType.getTypeName().contains(REACTIVE_CRUD_REPOSITORY_PATH))) {
+                var parameterizedType = (ParameterizedType) interfaceType;
+                return (Class<T>) parameterizedType.getActualTypeArguments()[0];
             }
         }
 

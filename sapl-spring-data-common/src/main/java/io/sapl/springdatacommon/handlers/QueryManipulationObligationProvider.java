@@ -32,7 +32,8 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
  */
 public class QueryManipulationObligationProvider {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER    = new ObjectMapper();
+    private static final JsonNode     NULL_NODE = JsonNodeFactory.instance.nullNode();
 
     /**
      * Extracts the query CONDITION of an obligation to apply the the corresponding
@@ -42,7 +43,7 @@ public class QueryManipulationObligationProvider {
      * @return all query CONDITIONS.
      */
     public ArrayNode getConditions(JsonNode obligation) {
-        if (obligation.has(CONDITIONS) && obligation.get(CONDITIONS).isArray() && !obligation.get(CONDITIONS).isNull()
+        if (obligation.has(CONDITIONS) && obligation.get(CONDITIONS).isArray()
                 && !obligation.get(CONDITIONS).isEmpty()) {
             return (ArrayNode) obligation.get(CONDITIONS);
         }
@@ -60,14 +61,10 @@ public class QueryManipulationObligationProvider {
         var iterator = obligations.iterator();
         while (iterator.hasNext()) {
             var obligation = iterator.next();
-            if (obligation != null && obligation.isObject()) {
-                var type = obligation.get(TYPE);
-                if (!Objects.isNull(type) && type.isTextual() && queryType.equals(type.asText())) {
-                    return obligation;
-                }
-            }
+            return obligationIsFine(obligation, queryType) ? obligation : NULL_NODE;
+
         }
-        return JsonNodeFactory.instance.nullNode();
+        return NULL_NODE;
     }
 
     /**
@@ -81,12 +78,15 @@ public class QueryManipulationObligationProvider {
         var iterator = obligations.iterator();
         while (iterator.hasNext()) {
             var obligation = iterator.next();
-            if (obligation != null && obligation.isObject()) {
-                var type = obligation.get(TYPE);
-                if (!Objects.isNull(type) && type.isTextual() && queryType.equals(type.asText())) {
-                    return true;
-                }
-            }
+            return obligationIsFine(obligation, queryType);
+        }
+        return false;
+    }
+
+    private boolean obligationIsFine(JsonNode obligation, String queryType) {
+        if (!obligation.isNull() && obligation.isObject()) {
+            var type = obligation.get(TYPE);
+            return (!Objects.isNull(type) && type.isTextual() && queryType.equals(type.asText()));
         }
         return false;
     }

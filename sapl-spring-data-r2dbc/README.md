@@ -41,7 +41,7 @@ To protect a method with SAPL, this method must be marked with the following ann
 
 ```java
 @SaplProtectedR2dbc
-Flux<Person> findAllByAgeAfter(Integer age);
+public Flux<Person> findAllByAgeAfter(Integer age);
 ```
 
 Alternatively, the user-defined repository can also be marked, so that all methods from the user-defined repository are marked.  
@@ -66,8 +66,10 @@ The ``@EnforceR2dbc`` annotation can be used to create a complete ``Authorizatio
     environment = "T(io.sapl.springdatar2dbcdemo.demo.repository.ClassForAnnotation)" +
                   ".setEnvironment(#firstnameContains)",
     staticClasses = {ClassForAnnotation.class})
-Flux<Person> findAllByAgeAfterAndFirstnameContaining(int age, String firstnameContains);
+public Flux<Person> findAllByAgeAfterAndFirstnameContaining(int age, String firstnameContains);
 ```
+
+If the annotation ``EnforceR2dbc`` is used, the annotation ``SaplProtectedR2dbc`` does not also have to be used, as the method is also marked with the annotation ``EnforceR2dbc``. 
 
 ##### Static class with method
 The individual attributes of the annotation can be filled with paths that point to static classes within the corresponding project. This requires a special operator ``T``, which is placed in front of the path within the value. The path itself is enclosed in round brackets. This is followed by the name of the desired method from the corresponding static class with suitable parameters. The environment attribute uses this functionality. The static class with the name ``ClassForAnnotation`` and its method ``setEnvironment`` with a parameter of type ``String`` can also be seen at this point. The operator ``T`` is a key element and initiates the use of SpEL. 
