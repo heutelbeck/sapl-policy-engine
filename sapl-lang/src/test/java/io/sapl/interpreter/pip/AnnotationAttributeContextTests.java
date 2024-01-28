@@ -1067,7 +1067,7 @@ class AnnotationAttributeContextTests {
         PolicyInformationPointSupplier pips = () -> List.of(new PIP());
         assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(pips, List::of));
     }
-    
+
     @Test
     void when_resourcesSchemaLoadError_then_fail() throws InitializationException {
 
@@ -1086,7 +1086,7 @@ class AnnotationAttributeContextTests {
         PolicyInformationPointSupplier pips = () -> List.of(new PIP());
         assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(pips, List::of));
     }
-    
+
     @Test
     void when_multipleSchemaSources_then_fail() throws InitializationException {
 

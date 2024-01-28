@@ -409,8 +409,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 
         JsonNode processedSchemaDefinition = null;
         if (!attributePathToSchema.isEmpty()) {
-            try (var is = method.getDeclaringClass().getClassLoader()
-                    .getResourceAsStream(attributePathToSchema)) {
+            try (var is = method.getDeclaringClass().getClassLoader().getResourceAsStream(attributePathToSchema)) {
                 if (is == null) {
                     throw new IOException("Schema file not found " + attributePathToSchema);
                 }

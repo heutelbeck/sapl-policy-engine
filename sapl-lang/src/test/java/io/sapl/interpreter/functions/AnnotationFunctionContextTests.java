@@ -414,6 +414,7 @@ class AnnotationFunctionContextTests {
         }
         assertDoesNotThrow(() -> new AnnotationFunctionContext(List::of, () -> List.of(Lib.class)));
     }
+
     @Test
     void when_badResourceSchema_then_fail() {
         @FunctionLibrary
@@ -424,7 +425,8 @@ class AnnotationFunctionContextTests {
             }
         }
         assertThatThrownBy(() -> new AnnotationFunctionContext(List::of, () -> List.of(Lib.class)))
-        .isInstanceOf(InitializationException.class);    }
+                .isInstanceOf(InitializationException.class);
+    }
 
     @FunctionLibrary(name = MockLibrary.LIBRARY_NAME, description = MockLibrary.LIBRARY_DOC)
     public static class MockLibrary {
