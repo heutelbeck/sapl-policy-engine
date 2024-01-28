@@ -60,14 +60,14 @@ import reactor.core.publisher.Flux;
 @NoArgsConstructor
 public class AnnotationAttributeContext implements AttributeContext {
 
-    static final String         FIRST_PARAMETER_NOT_PRESENT_S_ERROR                     = "Argument missing. First parameter of the method '%s' must be a Val for taking in the left-hand argument, but no argument was present.";
-    static final String         FIRST_PARAMETER_S_UNEXPECTED_S_ERROR                    = "First parameter of the method %s has an unexpected type. Was expecting a Val but got %s.";
-    static final String         A_PIP_WITH_THE_NAME_S_HAS_ALREADY_BEEN_REGISTERED_ERROR = "A PIP with the name '%s' has already been registered.";
-    static final String         NO_POLICY_INFORMATION_POINT_ANNOTATION_ERROR            = "Provided class has no @PolicyInformationPoint annotation.";
-    static final String         UNKNOWN_ATTRIBUTE_ERROR                                 = "Unknown attribute %s";
-    static final String         RETURN_TYPE_MUST_BE_FLUX_OF_VALUES_ERROR                = "The return type of an attribute finder must be Flux<Val>. Was: %s";
-    static final String         MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED                 = "Attribute has both a schema and a schemaPath annotation. Multiple schema annotations are not allowed.";
-    static final String         INVALID_SCHEMA_DEFINITION                               = "Invalid schema definition for attribute found. This only validated JSON syntax, not compliance with JSONSchema specification";
+    static final String FIRST_PARAMETER_NOT_PRESENT_S_ERROR                     = "Argument missing. First parameter of the method '%s' must be a Val for taking in the left-hand argument, but no argument was present.";
+    static final String FIRST_PARAMETER_S_UNEXPECTED_S_ERROR                    = "First parameter of the method %s has an unexpected type. Was expecting a Val but got %s.";
+    static final String A_PIP_WITH_THE_NAME_S_HAS_ALREADY_BEEN_REGISTERED_ERROR = "A PIP with the name '%s' has already been registered.";
+    static final String NO_POLICY_INFORMATION_POINT_ANNOTATION_ERROR            = "Provided class has no @PolicyInformationPoint annotation.";
+    static final String UNKNOWN_ATTRIBUTE_ERROR                                 = "Unknown attribute %s";
+    static final String RETURN_TYPE_MUST_BE_FLUX_OF_VALUES_ERROR                = "The return type of an attribute finder must be Flux<Val>. Was: %s";
+    static final String MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED                 = "Attribute has both a schema and a schemaPath annotation. Multiple schema annotations are not allowed.";
+    static final String INVALID_SCHEMA_DEFINITION                               = "Invalid schema definition for attribute found. This only validated JSON syntax, not compliance with JSONSchema specification";
 
     private final Map<String, Set<String>> attributeNamesByPipName = new HashMap<>();
 
