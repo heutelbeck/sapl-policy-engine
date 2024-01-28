@@ -24,9 +24,13 @@ import static io.sapl.api.pdp.AuthorizationDecision.PERMIT;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,6 +38,7 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -107,6 +112,11 @@ class DefaultSAPLInterpreterTests {
 
     private static Map<String, JsonNode> variables;
 
+    private static final String LRI = "\u2066";
+    private static final String RLO = "\u202E";
+    private static final String PDI = "\u2069";
+    private static final String RLI = "\u2067";
+
     @BeforeAll
     static void beforeAll() throws JsonProcessingException, InitializationException {
         authzSubscription = MAPPER.readValue(AUTHZ_SUBSCRIPTION_JSON, AuthorizationSubscription.class);
@@ -117,7 +127,6 @@ class DefaultSAPLInterpreterTests {
         functionCtx.loadLibrary(FilterFunctionLibrary.class);
         functionCtx.loadLibrary(StandardFunctionLibrary.class);
         variables = new HashMap<String, JsonNode>();
-
     }
 
     @Test
@@ -133,8 +142,9 @@ class DefaultSAPLInterpreterTests {
     }
 
     @Test
-    void brokenInputStreamTest() {
+    void brokenInputStreamTest() throws IOException {
         var brokenInputStream = mock(InputStream.class);
+        when(brokenInputStream.readAllBytes()).thenReturn(new byte[] { 0 });
         assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(brokenInputStream));
     }
 
@@ -415,4 +425,35 @@ class DefaultSAPLInterpreterTests {
 				.expectNext(expected).verifyComplete();
 	}
 
+	@Test
+	void trojanSourceRegexBalancedTest() {
+		var bidiBalancedText = "we find the phrase '" + RLI + "INTERNATIONALIZATION ACTIVITY" + PDI + "' 5 times on the page.";
+        // false as the input is well formed
+		assertFalse(bidiBalancedText.matches(DefaultSAPLInterpreter.TROJAN_SOURCE_DETECTION_RGX));
+	}
+
+	@Test
+    void analyzeTrojanSourceTest() {
+		// @formatter:off
+		/*
+		 * Some unicode aware text editors may display this string as:
+		 *
+		 * policy
+		 *  "important policy"
+		 * permit
+		 * 	action.java.name == "criticalAction"
+		 * 	/*restrict access*\/
+		 * 	where ("ROLE_ADMIN" in subject..authority)
+		 *
+		 * However, the actual string in memory has the "where" clause commented out completely.
+		 */
+		// @formatter:on
+        final var policyWithTrojanSource = "policy \"important policy\" permit"
+                + "		action.java.name == \"criticalAction\"" + "/*" + RLO + LRI
+                + "where (\"ROLE_ADMIN\" in subject..authority);" + PDI + LRI + "restrict access*/";
+
+        assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyWithTrojanSource));
+        assertTrue(policyWithTrojanSource.matches(DefaultSAPLInterpreter.TROJAN_SOURCE_DETECTION_RGX));
+        assertFalse(INTERPRETER.analyze(policyWithTrojanSource).isValid());
+    }
 }

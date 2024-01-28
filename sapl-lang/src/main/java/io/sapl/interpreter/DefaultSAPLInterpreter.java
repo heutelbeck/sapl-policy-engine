@@ -23,6 +23,8 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.eclipse.emf.common.util.Diagnostic;
 import org.eclipse.emf.common.util.URI;
@@ -62,19 +64,47 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
     private static final Injector INJECTOR = new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();
 
-    @Override
-    public SAPL parse(String saplDefinition) {
-        return parse(new ByteArrayInputStream(saplDefinition.getBytes(StandardCharsets.UTF_8)));
-    }
+    protected static final String TROJAN_SOURCE_DETECTION_RGX =
+    // @formatter:off
+    	    "(?m)" +
+    	    "(" +
+    	        // Single quotes or double quotes with special characters
+    	        "^[^\\n]*['\\\"][^\\n]*[\\u2066-\\u2068\\u202A-\\u202E][^'\\\"\\u2069\\u202C\\n]*['\\\"][^\\n]*$" +
+
+    	        // Comments within /* or //
+    	        "|^[^\\n]*(?:/\\*|//)[^\\n]*[\\u2066-\\u2068\\u202A-\\u202E][^'\\\"\\u2069\\u202C\\n]*(?:\\*/|\\n)$" +
+    	    ")";
+    // @formatter:on
+
+    private static final Pattern TROJAN_SOURCE_DETECTION_PATTERN = Pattern.compile(TROJAN_SOURCE_DETECTION_RGX);
 
     @Override
-    public SAPL parse(InputStream saplInputStream) {
-        var sapl       = loadAsResource(saplInputStream);
+    public SAPL parse(String saplDefinition) {
+        if (checkForTrojanSource(saplDefinition)) {
+            throw new PolicyEvaluationException(composeReason("indications of trojan source input detected"));
+        }
+
+        var sapl       = loadAsResource(new ByteArrayInputStream(saplDefinition.getBytes(StandardCharsets.UTF_8)));
         var diagnostic = Diagnostician.INSTANCE.validate(sapl);
         if (diagnostic.getSeverity() == Diagnostic.OK)
             return sapl;
 
         throw new PolicyEvaluationException(composeReason(diagnostic));
+    }
+
+    @Override
+    public SAPL parse(InputStream saplInputStream) {
+        String inputAsString;
+        try {
+            inputAsString = inputStreamToString(saplInputStream);
+        } catch (IOException e) {
+            throw new PolicyEvaluationException(composeReason("error reading sapl inputstream"), e);
+        }
+        return parse(inputAsString);
+    }
+
+    private String composeReason(String s) {
+        return String.format("SAPL Validation Error: [%s]", s);
     }
 
     private String composeReason(Diagnostic diagnostic) {
@@ -149,4 +179,12 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
         return (SAPL) resource.getContents().get(0);
     }
 
+    private static boolean checkForTrojanSource(String input) {
+        Matcher matcher = TROJAN_SOURCE_DETECTION_PATTERN.matcher(input);
+        return matcher.matches();
+    }
+
+    private static String inputStreamToString(InputStream inputStream) throws IOException {
+        return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+    }
 }
