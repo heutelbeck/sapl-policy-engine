@@ -1,4 +1,4 @@
-name: Fuzz Test
+name: Run Fuzz Tests
 
 on:
   push:
@@ -19,4 +19,6 @@ jobs:
           distribution: 'temurin'
           cache: maven
       - name: Build with Maven
-        run: mvn test -P run_fuzz_tests
+        run: |
+          cd ./sapl-pdp-embedded
+          mvn test -Prun_fuzz_tests
