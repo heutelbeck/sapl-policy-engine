@@ -17,34 +17,37 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
+import java.util.Map;
+import java.util.function.UnaryOperator;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
-import io.sapl.grammar.ide.contentassist.filesystem.FileSystemVariablesAndCombinatorSource;
 import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.pdp.config.VariablesAndCombinatorSource;
+import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
+import io.sapl.pdp.config.PDPConfiguration;
+import io.sapl.pdp.config.PDPConfigurationProvider;
+import reactor.core.publisher.Flux;
 
 @ComponentScan
 @Configuration
 class SAPLIdeSpringTestConfiguration {
 
     @Bean
-    FunctionContext functionContext() {
-        return new TestFunctionContext();
-    }
-
-    @Bean
-    AttributeContext attributeContext() {
-        return new TestAttributeContext();
-    }
-
-    @Bean
-    public VariablesAndCombinatorSource variablesAndCombinatorSource() throws InitializationException {
-        String configPath = "src/test/resources";
-        return new FileSystemVariablesAndCombinatorSource(configPath);
+    PDPConfigurationProvider pdpConfiguration() throws InitializationException {
+        var attributeContext              = new TestAttributeContext();
+        var functionContext               = new TestFunctionContext();
+        var staticPlaygroundConfiguration = new PDPConfiguration(attributeContext, functionContext, Map.of(),
+                CombiningAlgorithmFactory.getCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES),
+                UnaryOperator.identity(), UnaryOperator.identity());
+        return new PDPConfigurationProvider() {
+            @Override
+            public Flux<PDPConfiguration> pdpConfiguration() {
+                return Flux.just(staticPlaygroundConfiguration);
+            }
+        };
     }
 
 }

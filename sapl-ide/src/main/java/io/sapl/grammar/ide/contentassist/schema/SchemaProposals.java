@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -31,28 +30,24 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.context.AuthorizationContext;
-import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import lombok.RequiredArgsConstructor;
-import reactor.core.publisher.Flux;
 
 @RequiredArgsConstructor
 public class SchemaProposals {
 
-    private static final Collection<String>    UNWANTED_PATH_KEYWORDS = Set.of("java\\.?");
-    private final VariablesAndCombinatorSource variablesAndCombinatorSource;
+    private static final Collection<String> UNWANTED_PATH_KEYWORDS = Set.of("java\\.?");
+    private final Map<String, JsonNode>     variables;
 
     public List<String> getVariableNamesAsTemplates() {
-        var variablesMap = getAllVariablesAsMap();
+        var variablesMap = variables;
         var result       = new ArrayList<String>(variablesMap.size());
         result.addAll(variablesMap.keySet());
         return result;
     }
 
     public List<String> getCodeTemplates(Expression expression) {
-        return getAllVariables().next()
-                .flatMap(vars -> expression.evaluate().next()
-                        .contextWrite(ctx -> AuthorizationContext.setVariables(ctx, vars)).map(this::getCodeTemplates))
-                .block();
+        return expression.evaluate().contextWrite(ctx -> AuthorizationContext.setVariables(ctx, variables))
+                .map(this::getCodeTemplates).blockFirst();
     }
 
     private List<String> getCodeTemplates(Val v) {
@@ -63,24 +58,16 @@ public class SchemaProposals {
         }
     }
 
-    private Map<String, JsonNode> getAllVariablesAsMap() {
-        return Optional.ofNullable(getAllVariables().blockFirst()).orElse(Map.of());
-    }
-
-    private Flux<Map<String, JsonNode>> getAllVariables() {
-        return variablesAndCombinatorSource.getVariables().map(v -> v.orElse(Map.of())).defaultIfEmpty(Map.of());
-    }
-
     public List<String> schemaTemplatesForFunctions(JsonNode functionSchema) {
-        return new SchemaParser(getAllVariablesAsMap()).generatePaths(functionSchema);
+        return new SchemaParser(variables).generatePaths(functionSchema);
     }
 
     public List<String> schemaTemplatesForAttributes(JsonNode attributeSchema) {
-        return new SchemaParser(getAllVariablesAsMap()).generatePaths(attributeSchema);
+        return new SchemaParser(variables).generatePaths(attributeSchema);
     }
 
     public List<String> schemaTemplatesFromJson(JsonNode schema) {
-        var paths = new SchemaParser(getAllVariablesAsMap()).generatePaths(schema);
+        var paths = new SchemaParser(variables).generatePaths(schema);
         return paths.stream().map(this::removeUnwantedKeywordsFromPath).filter(StringUtils::isNotBlank).toList();
     }
 

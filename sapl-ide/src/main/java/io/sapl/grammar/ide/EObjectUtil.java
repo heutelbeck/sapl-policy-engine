@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.testutil;
+package io.sapl.grammar.ide;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
@@ -24,7 +24,7 @@ import org.eclipse.emf.ecore.EStructuralFeature;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Utility to log eObjects to the console.
+ * Utiltiy to log eObjects to the console.
  */
 @Slf4j
 public class EObjectUtil {
