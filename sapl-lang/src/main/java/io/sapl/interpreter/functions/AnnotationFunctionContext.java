@@ -235,22 +235,11 @@ public class AnnotationFunctionContext implements FunctionContext {
 
         JsonNode processedSchemaDefinition = null;
         if (!funPathToSchema.isEmpty()) {
-            try (var is = method.getDeclaringClass().getClassLoader().getResourceAsStream(funPathToSchema)) {
-                if (is == null) {
-                    throw new IOException("Schema file not found " + funPathToSchema);
-                }
-                processedSchemaDefinition = MAPPER.readValue(is, JsonNode.class);
-            } catch (IOException e) {
-                throw new InitializationException(ERROR_LOADING_SCHEMA_FROM_RESOURCES, e);
-            }
+            processedSchemaDefinition = loadSchemaFromResource(method, funPathToSchema);
         }
 
         if (!funSchema.isEmpty()) {
-            try {
-                processedSchemaDefinition = MAPPER.readValue(funSchema, JsonNode.class);
-            } catch (JsonProcessingException e) {
-                throw new InitializationException(INVALID_SCHEMA_DEFINITION, e);
-            }
+            processedSchemaDefinition = loadSchemaFromString(funSchema);
         }
 
         if (!Val.class.isAssignableFrom(method.getReturnType()))
@@ -271,6 +260,26 @@ public class AnnotationFunctionContext implements FunctionContext {
         libMeta.documentation.put(funMeta.getDocumentationCodeTemplate(), funAnnotation.docs());
 
         libraries.get(libName).add(funName);
+    }
+
+    private JsonNode loadSchemaFromString(String attributeSchema) throws InitializationException {
+        try {
+            return MAPPER.readValue(attributeSchema, JsonNode.class);
+        } catch (JsonProcessingException e) {
+            throw new InitializationException(INVALID_SCHEMA_DEFINITION, e);
+        }
+    }
+
+    private JsonNode loadSchemaFromResource(Method method, String attributePathToSchema)
+            throws InitializationException {
+        try (var is = method.getDeclaringClass().getClassLoader().getResourceAsStream(attributePathToSchema)) {
+            if (is == null) {
+                throw new IOException("Schema file not found " + attributePathToSchema);
+            }
+            return MAPPER.readValue(is, JsonNode.class);
+        } catch (IOException e) {
+            throw new InitializationException(ERROR_LOADING_SCHEMA_FROM_RESOURCES, e);
+        }
     }
 
     private void assertMethodIsStatic(Method method) throws InitializationException {
