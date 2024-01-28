@@ -123,6 +123,9 @@
 						<version>3.1.0</version>
 
 						<configuration>
+							<environmentVariables>
+								<JAZZER_FUZZ>1</JAZZER_FUZZ>
+							</environmentVariables>
 							<excludes>
 								<exclude>none</exclude>
 							</excludes>
