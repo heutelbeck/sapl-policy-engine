@@ -50,9 +50,7 @@ import io.sapl.grammar.sapl.impl.util.FunctionUtil;
 import io.sapl.grammar.sapl.impl.util.ImportsUtil;
 import io.sapl.pdp.config.PDPConfiguration;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 @RequiredArgsConstructor
 public class ValueDefinitionProposalExtractionHelper {
 
@@ -70,7 +68,6 @@ public class ValueDefinitionProposalExtractionHelper {
             return new HashSet<>();
 
         var proposals = getBodyProposals(proposalType, currentOffset, policyBody, model);
-        log.error("proposals = {}", proposals);
         return proposals;
     }
 
