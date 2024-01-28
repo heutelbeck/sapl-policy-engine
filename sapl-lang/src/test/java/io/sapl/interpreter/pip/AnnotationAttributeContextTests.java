@@ -41,6 +41,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
+import io.sapl.api.pip.PolicyInformationPointSupplier;
 import io.sapl.api.validation.Bool;
 import io.sapl.api.validation.Schema;
 import io.sapl.api.validation.Text;
@@ -1046,6 +1047,63 @@ class AnnotationAttributeContextTests {
 
         var actualTemplates = sut.getDocumentedAttributeCodeTemplates();
         assertThat(actualTemplates, hasEntry(pipName, pipDescription));
+    }
+
+    @Test
+    void when_nonJsonSchem_then_fail() throws InitializationException {
+
+        final String pipName        = "test";
+        final String pipDescription = "description";
+
+        @PolicyInformationPoint(name = pipName, description = pipDescription)
+        class PIP {
+
+            @EnvironmentAttribute(schema = "][")
+            public Flux<Val> empty() {
+                return Flux.empty();
+            }
+        }
+
+        PolicyInformationPointSupplier pips = () -> List.of(new PIP());
+        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(pips, List::of));
+    }
+    
+    @Test
+    void when_resourcesSchemaLoadError_then_fail() throws InitializationException {
+
+        final String pipName        = "test";
+        final String pipDescription = "description";
+
+        @PolicyInformationPoint(name = pipName, description = pipDescription)
+        class PIP {
+
+            @EnvironmentAttribute(pathToSchema = "/i_do_not_exist.json")
+            public Flux<Val> empty() {
+                return Flux.empty();
+            }
+        }
+
+        PolicyInformationPointSupplier pips = () -> List.of(new PIP());
+        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(pips, List::of));
+    }
+    
+    @Test
+    void when_multipleSchemaSources_then_fail() throws InitializationException {
+
+        final String pipName        = "test";
+        final String pipDescription = "description";
+
+        @PolicyInformationPoint(name = pipName, description = pipDescription)
+        class PIP {
+
+            @EnvironmentAttribute(schema = "{}", pathToSchema = "/i_do_not_exist.json")
+            public Flux<Val> empty() {
+                return Flux.empty();
+            }
+        }
+
+        PolicyInformationPointSupplier pips = () -> List.of(new PIP());
+        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(pips, List::of));
     }
 
 }

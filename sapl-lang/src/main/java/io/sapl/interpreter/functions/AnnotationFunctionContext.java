@@ -56,6 +56,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AnnotationFunctionContext implements FunctionContext {
 
+    private static final String       ERROR_LOADING_SCHEMA_FROM_RESOURCES            = "Error loading schema from resources.";
     private static final String       INVALID_SCHEMA_DEFINITION                      = "Invalid schema definition found. This only validated JSON syntax, not compliance with JSONSchema specification";
     private static final int          VAR_ARGS                                       = -1;
     private static final String       UNKNOWN_FUNCTION_ERROR                         = "Unknown function %s";
@@ -234,10 +235,14 @@ public class AnnotationFunctionContext implements FunctionContext {
 
         JsonNode processedSchemaDefinition = null;
         if (!funPathToSchema.isEmpty()) {
-            try (var is = library.getClass().getClassLoader().getResourceAsStream(funPathToSchema)) {
+            try (var is = method.getDeclaringClass().getClassLoader().getResourceAsStream(funPathToSchema)) {
+                if (is == null) {
+                    throw new IOException("Schema file not found " + funPathToSchema);
+                }
                 MAPPER.readValue(is, JsonNode.class);
             } catch (IOException e) {
-                throw new InitializationException("Error loading schema from resources.", e);
+                e.printStackTrace();
+                throw new InitializationException(ERROR_LOADING_SCHEMA_FROM_RESOURCES, e);
             }
         }
 

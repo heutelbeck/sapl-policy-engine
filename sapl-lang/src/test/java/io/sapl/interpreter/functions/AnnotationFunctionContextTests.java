@@ -29,7 +29,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -376,6 +376,55 @@ class AnnotationFunctionContextTests {
         assertThatThrownBy(() -> new AnnotationFunctionContext(List::of, () -> List.of(Lib.class)))
                 .isInstanceOf(InitializationException.class);
     }
+
+    @Test
+    void when_nonJsonSchema_then_failLoading() {
+        @FunctionLibrary
+        class Lib {
+            @Function(schema = "][")
+            public static Val helloTest() {
+                return Val.of("Hello");
+            }
+        }
+        assertThatThrownBy(() -> new AnnotationFunctionContext(List::of, () -> List.of(Lib.class)))
+                .isInstanceOf(InitializationException.class);
+    }
+
+    @Test
+    void when_nonExistingResourceSchema_then_failLoading() {
+        @FunctionLibrary
+        class Lib {
+            @Function(pathToSchema = "/I_do_not_exist.json")
+            public static Val helloTest() {
+                return Val.of("Hello");
+            }
+        }
+        assertThatThrownBy(() -> new AnnotationFunctionContext(List::of, () -> List.of(Lib.class)))
+                .isInstanceOf(InitializationException.class);
+    }
+
+    @Test
+    void when_existingResourceSchema_then_load() {
+        @FunctionLibrary
+        class Lib {
+            @Function(pathToSchema = "schemas/person_schema.json")
+            public static Val helloTest() {
+                return Val.of("Hello");
+            }
+        }
+        assertDoesNotThrow(() -> new AnnotationFunctionContext(List::of, () -> List.of(Lib.class)));
+    }
+    @Test
+    void when_badResourceSchema_then_fail() {
+        @FunctionLibrary
+        class Lib {
+            @Function(pathToSchema = "schemas/bad_schema.json")
+            public static Val helloTest() {
+                return Val.of("Hello");
+            }
+        }
+        assertThatThrownBy(() -> new AnnotationFunctionContext(List::of, () -> List.of(Lib.class)))
+        .isInstanceOf(InitializationException.class);    }
 
     @FunctionLibrary(name = MockLibrary.LIBRARY_NAME, description = MockLibrary.LIBRARY_DOC)
     public static class MockLibrary {
