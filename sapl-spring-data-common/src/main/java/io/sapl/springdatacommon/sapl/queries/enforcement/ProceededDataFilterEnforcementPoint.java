@@ -27,10 +27,11 @@ import org.springframework.security.access.AccessDeniedException;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
-import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementPoint;
 import io.sapl.springdatacommon.handlers.DataManipulationHandler;
 import io.sapl.springdatacommon.handlers.LoggingConstraintHandlerProvider;
+import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
+import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementPoint;
+import io.sapl.springdatacommon.sapl.utils.HandleProceedingData;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -76,7 +77,6 @@ public class ProceededDataFilterEnforcementPoint<T> implements QueryManipulation
      *
      * @return database objects that may have been filtered and/or transformed.
      */
-    @SuppressWarnings("unchecked")
     public Function<AuthorizationDecision, Flux<T>> enforceDecision() {
         return decision -> {
             var decisionIsPermit = Decision.PERMIT == decision.getDecision();
@@ -89,12 +89,7 @@ public class ProceededDataFilterEnforcementPoint<T> implements QueryManipulation
             } else {
                 var obligations = getObligations(decision);
 
-                Flux<T> data;
-                try {
-                    data = (Flux<T>) enforcementData.getMethodInvocation().proceed();
-                } catch (Throwable e) {
-                    throw new ClassCastException("Return type not supported: " + e.getMessage());
-                }
+                Flux<T> data = HandleProceedingData.proceed(enforcementData);
 
                 return dataManipulationHandler.manipulate(obligations).apply(data);
             }

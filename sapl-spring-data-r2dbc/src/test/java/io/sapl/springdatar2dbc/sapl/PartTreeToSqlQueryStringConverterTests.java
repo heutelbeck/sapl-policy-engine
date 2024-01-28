@@ -39,6 +39,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.platform.commons.util.ReflectionUtils;
 import org.mockito.Answers;
 import org.springframework.beans.factory.BeanFactory;
+import org.springframework.data.repository.query.parser.Part;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
@@ -81,7 +82,7 @@ class PartTreeToSqlQueryStringConverterTests {
     }
 
     @Test
-    void when_partTreeHasNoOrPartAtAll_then_throwIllegalStateException() {
+    void when_partTreeHasNoOrPartAtAll_then_throwNoSuchElementException() {
         // GIVEN
         var enforcementData = new QueryManipulationEnforcementData<>(methodInvocationMock, beanFactoryMock,
                 Person.class, pdpMock, authSubPermit);
@@ -93,6 +94,32 @@ class PartTreeToSqlQueryStringConverterTests {
         // THEN
         assertThrows(NoSuchElementException.class,
                 () -> PartTreeToSqlQueryStringConverter.createSqlBaseQuery(enforcementData));
+    }
+
+    @Test
+    void when_operatorRequiresArrayOfArgumentsButItIsNoArray_then_throwIllegalStateException() {
+        // GIVEN
+        var enforcementData = new QueryManipulationEnforcementData<>(methodInvocationMock, beanFactoryMock,
+                Person.class, pdpMock, authSubPermit);
+
+        // WHEN
+        when(methodInvocationMock.getMethod().getName()).thenReturn("findAllByFirstnameIn");
+        when(methodInvocationMock.getArguments()).thenReturn(new Object[] { "Aaron" });
+
+        // THEN
+        assertThrows(IllegalStateException.class,
+                () -> PartTreeToSqlQueryStringConverter.createSqlBaseQuery(enforcementData));
+    }
+
+    @Test
+    void when_partOfPartTreeHasNoArgument_then_throwNullPointerException() {
+        // GIVEN
+        Part part = new Part("firstname", Person.class);
+
+        // WHEN
+
+        // THEN
+        assertThrows(NullPointerException.class, () -> PartTreeToSqlQueryStringConverter.and(part, null, Person.class));
     }
 
     @Test
@@ -123,7 +150,7 @@ class PartTreeToSqlQueryStringConverterTests {
                         "age >= 30 OR firstname = 'Aaron'"),
                 arguments("streamAllByAgeBetweenAndFirstname", new Object[] { List.of(1, 30), "Aaron" },
                         "age BETWEEN (1, 30) AND firstname = 'Aaron'"),
-                arguments("streamAllByFirstnameIsNotIn", new Object[] { List.of("Aaron", "Brian", "Cathrin") },
+                arguments("streamAllByFirstnameIsNotIn", new Object[] { List.of("Aaron", 123, "Brian", "Cathrin") },
                         "firstname NIN ('Aaron', 'Brian', 'Cathrin')"));
     }
 }

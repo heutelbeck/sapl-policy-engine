@@ -15,8 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatamongoreactive.sapl.database.repositoryerror;
+package io.sapl.springdatamongoreactive.sapl.database;
 
-public interface R2dbcRepositoryNotFoundExceptionTests<T, ID> {
+import org.bson.types.ObjectId;
+import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
+import org.springframework.stereotype.Repository;
 
+import io.sapl.springdatamongoreactive.sapl.utils.annotation.EnforceMongoReactive;
+import reactor.core.publisher.Flux;
+
+@Repository
+public interface MongoReactiveRepositoryWithReactiveMongoRepository extends ReactiveMongoRepository<TestUser, ObjectId> {
+
+    @EnforceMongoReactive(subject = "subject", action = "general_protection_reactive_mongo_repository", resource = "resource", environment = "environment")
+    Flux<TestUser> findAllByFirstname(String firstname);
 }

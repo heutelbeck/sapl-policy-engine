@@ -26,15 +26,16 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.context.expression.BeanFactoryResolver;
 import org.springframework.expression.EvaluationContext;
-import org.springframework.expression.EvaluationException;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
-import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.util.regex.Pattern;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.springdatacommon.sapl.Enforce;
 import lombok.SneakyThrows;
@@ -42,15 +43,13 @@ import lombok.SneakyThrows;
 /**
  * This service is responsible for processing the {@link Enforce} annotation.
  */
-@Service
 public class EnforceAnnotationHandler {
 
     private final BeanFactory               beanFactory;
-    private MethodInvocation                methodInvocation;
     private final SpelExpressionParser      parser  = new SpelExpressionParser();
     private final StandardEvaluationContext context = new StandardEvaluationContext();
 
-    EnforceAnnotationHandler(BeanFactory beanFactory) {
+    public EnforceAnnotationHandler(BeanFactory beanFactory) {
         this.beanFactory = beanFactory;
     }
 
@@ -63,16 +62,12 @@ public class EnforceAnnotationHandler {
      *                         {@link org.aopalliance.intercept.MethodInterceptor}
      * @return the found AuthorizationSubscription.
      */
-    public AuthorizationSubscription enforceAnnotation(MethodInvocation methodInvocation) {
-        if (Arrays.stream(methodInvocation.getMethod().getAnnotations())
-                .noneMatch(annotation -> annotation.annotationType().equals(Enforce.class))) {
+    public AuthorizationSubscription enforceAnnotation(MethodInvocation methodInvocation, Enforce enforceAnnotation) {
+        if (enforceAnnotation == null) {
             return null;
         }
 
-        this.methodInvocation = methodInvocation;
-        var enforceAnnotationValue = methodInvocation.getMethod().getAnnotation(Enforce.class);
-
-        return enforceAnnotationValueToAuthorizationSubscription(enforceAnnotationValue);
+        return enforceAnnotationValueToAuthorizationSubscription(enforceAnnotation, methodInvocation);
     }
 
     /**
@@ -101,14 +96,16 @@ public class EnforceAnnotationHandler {
      *                          annotation.
      * @return new {@link AuthorizationSubscription}.
      */
-    private AuthorizationSubscription enforceAnnotationValueToAuthorizationSubscription(Enforce enforceAnnotation) {
-        var subject     = enforceAnnotationValueResolver(enforceAnnotation.subject(),
-                enforceAnnotation.staticClasses());
-        var action      = enforceAnnotationValueResolver(enforceAnnotation.action(), enforceAnnotation.staticClasses());
+    private AuthorizationSubscription enforceAnnotationValueToAuthorizationSubscription(Enforce enforceAnnotation,
+            MethodInvocation methodInvocation) {
+        var subject     = enforceAnnotationValueResolver(enforceAnnotation.subject(), enforceAnnotation.staticClasses(),
+                methodInvocation);
+        var action      = enforceAnnotationValueResolver(enforceAnnotation.action(), enforceAnnotation.staticClasses(),
+                methodInvocation);
         var resource    = enforceAnnotationValueResolver(enforceAnnotation.resource(),
-                enforceAnnotation.staticClasses());
+                enforceAnnotation.staticClasses(), methodInvocation);
         var environment = enforceAnnotationValueResolver(enforceAnnotation.environment(),
-                enforceAnnotation.staticClasses());
+                enforceAnnotation.staticClasses(), methodInvocation);
 
         return AuthorizationSubscription.of(subject, action, resource, environment);
     }
@@ -129,30 +126,42 @@ public class EnforceAnnotationHandler {
      * @return the resolved final value of the corresponding attribute of an
      *         {@link AuthorizationSubscription}.
      */
-    private Object enforceAnnotationValueResolver(String annotationValue, Class<?>[] staticClasses) {
+    private Object enforceAnnotationValueResolver(String annotationValue, Class<?>[] staticClasses,
+            MethodInvocation methodInvocation) {
 
         if (annotationValue.startsWith("T(")) {
-            return getObjectByStaticClassWhenValueStartsWithLetterT(annotationValue);
+            return getObjectByStaticClassWhenValueStartsWithLetterT(annotationValue, methodInvocation);
         }
 
-        if (annotationValue.startsWith("#") && annotationValue.contains("(") && annotationValue.contains(")")
-                && staticClasses.length != 0) {
-            return getObjectByStaticClassWhenValueStartsWithHash(annotationValue, staticClasses);
+        if (referenceMethod(annotationValue) && staticClasses.length > 0) {
+            return getObjectByStaticClassWhenValueStartsWithHash(annotationValue, staticClasses, methodInvocation);
         }
 
         if (annotationValue.startsWith("#")) {
-            return parseMethodParameterInEvaluationContext(annotationValue);
+            return parseMethodParameterInEvaluationContext(annotationValue, methodInvocation);
         }
 
         if (annotationValue.startsWith("@")) {
-            return getObjectByBeanWhenValueStartsWithAt(annotationValue);
+            return getObjectByBeanWhenValueStartsWithAt(annotationValue, methodInvocation);
         }
 
-        if (annotationValue.trim().startsWith("{") && annotationValue.trim().endsWith("}")) {
+        if (referenceJsonString(annotationValue)) {
             return buildJsonNodeByString(annotationValue);
         }
 
         return annotationValue;
+    }
+
+    private boolean referenceJsonString(String jsonString) {
+        var pattern = Pattern.compile("\\{.*\\}", Pattern.CASE_INSENSITIVE);
+        var matcher = pattern.matcher(jsonString);
+        return matcher.matches();
+    }
+
+    private boolean referenceMethod(String methodAsString) {
+        var pattern = Pattern.compile("^#.*\\(.*\\)$", Pattern.CASE_INSENSITIVE);
+        var matcher = pattern.matcher(methodAsString);
+        return matcher.matches();
     }
 
     /**
@@ -160,8 +169,10 @@ public class EnforceAnnotationHandler {
      *
      * @param jsonString is the json string.
      * @return the converted JsonNode.
+     * @throws JsonProcessingException
+     * @throws JsonMappingException
      */
-    @SneakyThrows
+    @SneakyThrows // throws JsonMappingException, JsonProcessingException
     private JsonNode buildJsonNodeByString(Object jsonString) {
         var objectMapper = new ObjectMapper().enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
         return objectMapper.readTree(jsonString.toString());
@@ -174,15 +185,10 @@ public class EnforceAnnotationHandler {
      *                        annotation.
      * @return the value of the method parameter.
      */
-    private String parseMethodParameterInEvaluationContext(String annotationValue) {
+    private String parseMethodParameterInEvaluationContext(String annotationValue, MethodInvocation methodInvocation) {
         setMethodParameterInEvaluationContext(context, methodInvocation);
 
-        try {
-            return parser.parseExpression(annotationValue).getValue(context, String.class);
-        } catch (EvaluationException ignore) {
-            return null;
-        }
-
+        return parser.parseExpression(annotationValue).getValue(context, String.class);
     }
 
     /**
@@ -195,11 +201,11 @@ public class EnforceAnnotationHandler {
      *      parameter 'staticClasses' contains the corresponding static class. The
      *      value from the {@link EvaluationContext} is extracted.
      */
-    @SneakyThrows
-    private Object getObjectByStaticClassWhenValueStartsWithHash(String annotationValue, Class<?>[] staticClasses) {
+    private Object getObjectByStaticClassWhenValueStartsWithHash(String annotationValue, Class<?>[] staticClasses,
+            MethodInvocation methodInvocation) {
         var methodName = StringUtils.substringBetween(annotationValue, "#", "(");
 
-        return findMethodAndParseExpression(methodName, staticClasses, annotationValue);
+        return findMethodAndParseExpression(methodName, staticClasses, annotationValue, methodInvocation);
     }
 
     /**
@@ -211,8 +217,9 @@ public class EnforceAnnotationHandler {
      *      parameter 'staticClasses' contains the corresponding static class. The
      *      value from the {@link EvaluationContext} is extracted.
      */
-    @SneakyThrows
-    private Object findMethodAndParseExpression(String methodName, Class<?>[] staticClasses, String annotationValue) {
+    @SneakyThrows // NoSuchMethodException
+    private Object findMethodAndParseExpression(String methodName, Class<?>[] staticClasses, String annotationValue,
+            MethodInvocation methodInvocation) {
         for (Class<?> clazz : staticClasses) {
             var methods = clazz.getDeclaredMethods();
 
@@ -243,7 +250,8 @@ public class EnforceAnnotationHandler {
      *                        annotation.
      * @return the value returned by the static class method.
      */
-    private Object getObjectByStaticClassWhenValueStartsWithLetterT(String annotationValue) {
+    private Object getObjectByStaticClassWhenValueStartsWithLetterT(String annotationValue,
+            MethodInvocation methodInvocation) {
         setMethodParameterInEvaluationContext(context, methodInvocation);
 
         return parser.parseExpression(annotationValue).getValue(context, Object.class);
@@ -258,7 +266,7 @@ public class EnforceAnnotationHandler {
      *                        annotation.
      * @return the value returned by the bean.
      */
-    private Object getObjectByBeanWhenValueStartsWithAt(String annotationValue) {
+    private Object getObjectByBeanWhenValueStartsWithAt(String annotationValue, MethodInvocation methodInvocation) {
         setMethodParameterInEvaluationContext(context, methodInvocation);
         context.setBeanResolver(new BeanFactoryResolver(this.beanFactory));
         var expression = parser.parseExpression(annotationValue);

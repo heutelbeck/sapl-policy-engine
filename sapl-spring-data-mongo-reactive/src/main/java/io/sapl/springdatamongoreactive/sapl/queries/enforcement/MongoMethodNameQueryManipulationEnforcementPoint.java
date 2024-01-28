@@ -17,13 +17,12 @@
  */
 package io.sapl.springdatamongoreactive.sapl.queries.enforcement;
 
-import java.util.Objects;
 import java.util.function.Function;
 
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.security.access.AccessDeniedException;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -34,7 +33,7 @@ import io.sapl.springdatacommon.handlers.QueryManipulationObligationProvider;
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementPoint;
 import io.sapl.springdatacommon.sapl.utils.ConstraintHandlerUtils;
-import lombok.SneakyThrows;
+import io.sapl.springdatacommon.sapl.utils.HandleProceedingData;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -46,13 +45,14 @@ import reactor.core.publisher.Mono;
  * @param <T> is the domain type.
  */
 public class MongoMethodNameQueryManipulationEnforcementPoint<T> implements QueryManipulationEnforcementPoint<T> {
+    private static final String MONGO_QUERY_MANIPULATION = "mongoQueryManipulation";
+
     private final QueryManipulationObligationProvider mongoQueryManipulationObligationProvider = new QueryManipulationObligationProvider();
     private final LoggingConstraintHandlerProvider    loggingConstraintHandlerProvider         = new LoggingConstraintHandlerProvider();
     private final SaplPartTreeCriteriaCreator<T>      saplPartTreeCriteriaCreator;
     private final ReactiveMongoTemplate               reactiveMongoTemplate;
     private final DataManipulationHandler<T>          dataManipulationHandler;
     private final QueryManipulationEnforcementData<T> enforcementData;
-    private String                                    mongoQueryManipulation                   = "mongoQueryManipulation";
 
     public MongoMethodNameQueryManipulationEnforcementPoint(QueryManipulationEnforcementData<T> enforcementData) {
         this.enforcementData             = new QueryManipulationEnforcementData<>(enforcementData.getMethodInvocation(),
@@ -107,7 +107,7 @@ public class MongoMethodNameQueryManipulationEnforcementPoint<T> implements Quer
      * @param conditions are the query conditions of the {@link Decision}
      * @return the queried data from the database.
      */
-    private Flux<T> executeMongoQueryManipulation(JsonNode conditions) {
+    private Flux<T> executeMongoQueryManipulation(ArrayNode conditions) {
         var query = saplPartTreeCriteriaCreator.createManipulatedQuery(conditions);
 
         return reactiveMongoTemplate.find(query, enforcementData.getDomainType());
@@ -121,23 +121,16 @@ public class MongoMethodNameQueryManipulationEnforcementPoint<T> implements Quer
      * @return objects from the database that were queried with the manipulated
      *         query.
      */
-    @SneakyThrows
-    @SuppressWarnings("unchecked")
-    private Flux<T> retrieveData(JsonNode obligations) {
-        if (mongoQueryManipulationObligationProvider.isResponsible(obligations, mongoQueryManipulation)) {
+    private Flux<T> retrieveData(ArrayNode obligations) {
+        if (mongoQueryManipulationObligationProvider.isResponsible(obligations, MONGO_QUERY_MANIPULATION)) {
             var mongoQueryManipulationObligation = mongoQueryManipulationObligationProvider.getObligation(obligations,
-                    mongoQueryManipulation);
+                    MONGO_QUERY_MANIPULATION);
             var conditions                       = mongoQueryManipulationObligationProvider
                     .getConditions(mongoQueryManipulationObligation);
 
             return executeMongoQueryManipulation(conditions);
         } else {
-
-            if (enforcementData.getMethodInvocation().getMethod().getReturnType().equals(Mono.class)) {
-                return Flux.from((Mono<T>) Objects.requireNonNull(enforcementData.getMethodInvocation().proceed()));
-            }
-
-            return (Flux<T>) enforcementData.getMethodInvocation().proceed();
+            return HandleProceedingData.proceed(enforcementData);
         }
     }
 }

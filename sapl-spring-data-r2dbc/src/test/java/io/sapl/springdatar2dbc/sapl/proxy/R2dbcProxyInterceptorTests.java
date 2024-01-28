@@ -39,18 +39,22 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
 import io.sapl.springdatacommon.handlers.AuthorizationSubscriptionHandlerProvider;
+import io.sapl.springdatacommon.sapl.Enforce;
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatacommon.sapl.queries.enforcement.ProceededDataFilterEnforcementPoint;
 import io.sapl.springdatar2dbc.database.MethodInvocationForTesting;
+import io.sapl.springdatar2dbc.database.MethodInvocationForTestingWithCrudRepository;
 import io.sapl.springdatar2dbc.database.Person;
 import io.sapl.springdatar2dbc.database.Role;
 import io.sapl.springdatar2dbc.sapl.QueryManipulationEnforcementPointFactory;
+import io.sapl.springdatar2dbc.sapl.database.repositoryerror.MethodInvocationForRepositoryError;
 import io.sapl.springdatar2dbc.sapl.queries.enforcement.R2dbcAnnotationQueryManipulationEnforcementPoint;
 import io.sapl.springdatar2dbc.sapl.queries.enforcement.R2dbcMethodNameQueryManipulationEnforcementPoint;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+@SuppressWarnings("unchecked") // mocking of generic types
 class R2dbcProxyInterceptorTests {
 
     final Person malinda = new Person(1, "Malinda", "Perrot", 53, Role.ADMIN, true);
@@ -68,7 +72,6 @@ class R2dbcProxyInterceptorTests {
     EmbeddedPolicyDecisionPoint                              pdpMock;
 
     @BeforeEach
-    @SuppressWarnings("unchecked")
     void beforeEach() {
         authSubHandlerMock = mock(AuthorizationSubscriptionHandlerProvider.class);
         factoryMock        = mock(QueryManipulationEnforcementPointFactory.class);
@@ -91,7 +94,8 @@ class R2dbcProxyInterceptorTests {
         // WHEN
         when(pdpMock.decide(any(AuthorizationSubscription.class)))
                 .thenReturn(Flux.just(new AuthorizationDecision(Decision.PERMIT)));
-        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class))).thenReturn(null);
+        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class), any(Enforce.class)))
+                .thenReturn(null);
         var proxyR2dbcHandler = new R2dbcProxyInterceptor<>(authSubHandlerMock, beanFactoryMock, pdpMock, factoryMock);
 
         IllegalStateException thrown = assertThrows(IllegalStateException.class,
@@ -102,19 +106,18 @@ class R2dbcProxyInterceptorTests {
                 thrown.getMessage());
 
         // THEN
-        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class));
+        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class), any());
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void when_repositoryMethodHasAnnotationQuery_then_callAnnotationQueryEnforcementPoint() {
         // GIVEN
         var authSub              = AuthorizationSubscription.of("subject", "permitTest", "resource", "environment");
-        var methodInvocationMock = new MethodInvocationForTesting("findAllUsersTest",
+        var methodInvocationMock = new MethodInvocationForTestingWithCrudRepository("findAllUsersTest",
                 new ArrayList<>(List.of(int.class, String.class)), null, null);
 
         // WHEN
-        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class))).thenReturn(authSub);
+        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class), any())).thenReturn(authSub);
         when(factoryMock
                 .createR2dbcAnnotationQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class)))
                 .thenReturn(r2dbcAnnotationQueryManipulationEnforcementPointMock);
@@ -126,17 +129,14 @@ class R2dbcProxyInterceptorTests {
         // THEN
         StepVerifier.create(result).expectNext(malinda).expectNext(emerson).expectNext(yul).verifyComplete();
 
-        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class));
+        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class), any());
         verify(factoryMock, times(1))
                 .createR2dbcAnnotationQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class));
         verify(factoryMock, never())
                 .createR2dbcMethodNameQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class));
-        verify(factoryMock, never())
-                .createProceededDataFilterEnforcementPoint(any(QueryManipulationEnforcementData.class));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void when_repositoryMethodIsQueryMethod_then_callMongoMethodNameQueryManipulationEnforcementPoint() {
         // GIVEN
         var authSub              = AuthorizationSubscription.of("subject", "permitTest", "resource", "environment");
@@ -144,7 +144,8 @@ class R2dbcProxyInterceptorTests {
                 new ArrayList<>(List.of(String.class)), null, null);
 
         // WHEN
-        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class))).thenReturn(authSub);
+        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class), any(Enforce.class)))
+                .thenReturn(authSub);
         when(factoryMock
                 .createR2dbcMethodNameQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class)))
                 .thenReturn(r2dbcMethodNameQueryManipulationEnforcementPointMock);
@@ -156,17 +157,15 @@ class R2dbcProxyInterceptorTests {
         // THEN
         StepVerifier.create(result).expectNext(malinda).expectNext(emerson).expectNext(yul).verifyComplete();
 
-        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class));
+        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class),
+                any(Enforce.class));
         verify(factoryMock, never())
                 .createR2dbcAnnotationQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class));
         verify(factoryMock, times(1))
                 .createR2dbcMethodNameQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class));
-        verify(factoryMock, never())
-                .createProceededDataFilterEnforcementPoint(any(QueryManipulationEnforcementData.class));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void when_repositoryMethodIsQueryMethod_then_callProceededDataFilterEnforcementPoint() {
         // GIVEN
         var authSub              = AuthorizationSubscription.of("subject", "permitTest", "resource", "environment");
@@ -174,7 +173,7 @@ class R2dbcProxyInterceptorTests {
                 new ArrayList<>(List.of(int.class)), null, null);
 
         // WHEN
-        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class))).thenReturn(authSub);
+        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class), any())).thenReturn(authSub);
         when(factoryMock.createProceededDataFilterEnforcementPoint(any(QueryManipulationEnforcementData.class)))
                 .thenReturn(proceededDataFilterEnforcementPointMock);
         when(proceededDataFilterEnforcementPointMock.enforce()).thenReturn(data);
@@ -185,17 +184,14 @@ class R2dbcProxyInterceptorTests {
         // THEN
         StepVerifier.create(result).expectNext(malinda).expectNext(emerson).expectNext(yul).verifyComplete();
 
-        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class));
+        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class), any());
         verify(factoryMock, never())
                 .createR2dbcAnnotationQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class));
         verify(factoryMock, never())
                 .createR2dbcMethodNameQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class));
-        verify(factoryMock, times(1))
-                .createProceededDataFilterEnforcementPoint(any(QueryManipulationEnforcementData.class));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void when_repositoryMethodIsQueryMethodAndReturnTypeIsMono_then_callMongoMethodNameQueryManipulationEnforcementPoint() {
         // GIVEN
         var authSub              = AuthorizationSubscription.of("subject", "permitTest", "resource", "environment");
@@ -203,7 +199,7 @@ class R2dbcProxyInterceptorTests {
                 null, null);
 
         // WHEN
-        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class))).thenReturn(authSub);
+        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class), any())).thenReturn(authSub);
         when(factoryMock
                 .createR2dbcMethodNameQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class)))
                 .thenReturn(r2dbcMethodNameQueryManipulationEnforcementPointMock);
@@ -215,17 +211,14 @@ class R2dbcProxyInterceptorTests {
         // THEN
         StepVerifier.create(result).expectNext(malinda).verifyComplete();
 
-        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class));
+        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class), any());
         verify(factoryMock, never())
                 .createR2dbcAnnotationQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class));
         verify(factoryMock, times(1))
                 .createR2dbcMethodNameQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class));
-        verify(factoryMock, never())
-                .createProceededDataFilterEnforcementPoint(any(QueryManipulationEnforcementData.class));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void when_repositoryMethodIsQueryMethodAndReturnTypeIsList_then_callMongoMethodNameQueryManipulationEnforcementPoint() {
 
         // GIVEN
@@ -234,7 +227,7 @@ class R2dbcProxyInterceptorTests {
                 new ArrayList<>(List.of(int.class)), null, null);
 
         // WHEN
-        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class))).thenReturn(authSub);
+        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class), any())).thenReturn(authSub);
         when(factoryMock
                 .createR2dbcMethodNameQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class)))
                 .thenReturn(r2dbcMethodNameQueryManipulationEnforcementPointMock);
@@ -246,17 +239,14 @@ class R2dbcProxyInterceptorTests {
         // THEN
         assertEquals(result.get(0), malinda);
 
-        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class));
+        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class), any());
         verify(factoryMock, never())
                 .createR2dbcAnnotationQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class));
         verify(factoryMock, times(1))
                 .createR2dbcMethodNameQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class));
-        verify(factoryMock, never())
-                .createProceededDataFilterEnforcementPoint(any(QueryManipulationEnforcementData.class));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void when_repositoryMethodIsQueryMethodAndReturnTypeIsStream_then_throwNotImplementedError() {
 
         // GIVEN
@@ -265,7 +255,7 @@ class R2dbcProxyInterceptorTests {
                 new ArrayList<>(List.of(int.class)), null, null);
 
         // WHEN
-        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class))).thenReturn(authSub);
+        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class), any())).thenReturn(authSub);
         when(factoryMock
                 .createR2dbcMethodNameQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class)))
                 .thenReturn(r2dbcMethodNameQueryManipulationEnforcementPointMock);
@@ -279,17 +269,14 @@ class R2dbcProxyInterceptorTests {
 
         assertEquals("Return type of method not supported: interface java.util.stream.Stream", thrown.getMessage());
 
-        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class));
+        verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class), any());
         verify(factoryMock, never())
                 .createR2dbcAnnotationQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class));
         verify(factoryMock, times(1))
                 .createR2dbcMethodNameQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class));
-        verify(factoryMock, never())
-                .createProceededDataFilterEnforcementPoint(any(QueryManipulationEnforcementData.class));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void when_repositoryMethodHasNoSaplProtectedAnnotation_then_proceedMethodCall() {
         // GIVEN
         var authSub              = AuthorizationSubscription.of("subject", "permitTest", "resource", "environment");
@@ -297,7 +284,8 @@ class R2dbcProxyInterceptorTests {
                 new ArrayList<>(List.of(int.class)), null, Flux.just(emerson));
 
         // WHEN
-        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class))).thenReturn(authSub);
+        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class), any(Enforce.class)))
+                .thenReturn(authSub);
         when(factoryMock.createProceededDataFilterEnforcementPoint(any(QueryManipulationEnforcementData.class)))
                 .thenReturn(proceededDataFilterEnforcementPointMock);
         when(proceededDataFilterEnforcementPointMock.enforce()).thenReturn(data);
@@ -308,12 +296,34 @@ class R2dbcProxyInterceptorTests {
         // THEN
         StepVerifier.create(result).expectNext(emerson).verifyComplete();
 
-        verify(authSubHandlerMock, never()).getAuthSub(any(Class.class), any(MethodInvocation.class));
+        verify(authSubHandlerMock, never()).getAuthSub(any(Class.class), any(MethodInvocation.class),
+                any(Enforce.class));
         verify(factoryMock, never())
                 .createR2dbcAnnotationQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class));
         verify(factoryMock, never())
                 .createR2dbcMethodNameQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class));
-        verify(factoryMock, never())
-                .createProceededDataFilterEnforcementPoint(any(QueryManipulationEnforcementData.class));
+    }
+
+    @Test
+    void when_customRepositoryDoesNotExtendSpringDataRepository_then_throwClassCastException() {
+
+        // GIVEN
+        var authSub                            = AuthorizationSubscription.of("subject", "permitTest", "resource",
+                "environment");
+        var methodInvocationForRepositoryError = new MethodInvocationForRepositoryError("findAllByFirstname",
+                new ArrayList<>(List.of(String.class)), null, null);
+
+        // WHEN
+        when(authSubHandlerMock.getAuthSub(any(Class.class), any(MethodInvocation.class), any())).thenReturn(authSub);
+
+        var proxyMongoHandler = new R2dbcProxyInterceptor<>(authSubHandlerMock, beanFactoryMock, pdpMock, factoryMock);
+
+        // THEN
+        ClassNotFoundException thrown = assertThrows(ClassNotFoundException.class,
+                () -> proxyMongoHandler.invoke(methodInvocationForRepositoryError));
+
+        assertEquals(
+                "The interface org.springframework.data.r2dbc.repository.R2dbcRepository or interface org.springframework.data.repository.reactive.ReactiveCrudRepository could not be found as an extension of the interface io.sapl.springdatar2dbc.sapl.database.repositoryerror.RepositoryNotFoundException",
+                thrown.getMessage());
     }
 }

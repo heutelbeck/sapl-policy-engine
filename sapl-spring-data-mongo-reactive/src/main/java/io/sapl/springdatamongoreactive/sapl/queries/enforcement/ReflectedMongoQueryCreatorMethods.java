@@ -17,6 +17,7 @@
  */
 package io.sapl.springdatamongoreactive.sapl.queries.enforcement;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Iterator;
 
@@ -33,7 +34,7 @@ public class ReflectedMongoQueryCreatorMethods {
     private Method andMethod;
     private Method orMethod;
 
-    @SneakyThrows
+    @SneakyThrows // throws NoSuchMethodException, SecurityException
     public void initializeMethods(Object mongoQueryCreatorInstance) {
         this.mongoQueryCreatorInstance = mongoQueryCreatorInstance;
 
@@ -59,8 +60,12 @@ public class ReflectedMongoQueryCreatorMethods {
      * @param part     is a part of a PartTree.
      * @param iterator is an iterator built from all parameters.
      * @return a new {@link Criteria}.
+     * @throws InvocationTargetException
+     * @throws IllegalArgumentException
+     * @throws IllegalAccessException
      */
-    @SneakyThrows
+    @SneakyThrows // throws IllegalAccessException, IllegalArgumentException,
+                  // InvocationTargetException
     public Criteria create(Part part, Iterator<Object> iterator) {
         return (Criteria) createMethod.invoke(this.mongoQueryCreatorInstance, part, iterator);
     }
@@ -78,7 +83,8 @@ public class ReflectedMongoQueryCreatorMethods {
      * @param iterator is an iterator built from all parameters.
      * @return a new {@link Criteria}.
      */
-    @SneakyThrows
+    @SneakyThrows // throws IllegalAccessException, IllegalArgumentException,
+                  // InvocationTargetException
     public Criteria and(Part part, Criteria base, Iterator<Object> iterator) {
         return (Criteria) andMethod.invoke(this.mongoQueryCreatorInstance, part, base, iterator);
     }
@@ -94,7 +100,8 @@ public class ReflectedMongoQueryCreatorMethods {
      * @param criteria is an iterator built from all parameters.
      * @return a new {@link Criteria}.
      */
-    @SneakyThrows
+    @SneakyThrows // throws IllegalAccessException, IllegalArgumentException,
+                  // InvocationTargetException
     public Criteria or(Criteria base, Criteria criteria) {
         return (Criteria) orMethod.invoke(this.mongoQueryCreatorInstance, base, criteria);
     }

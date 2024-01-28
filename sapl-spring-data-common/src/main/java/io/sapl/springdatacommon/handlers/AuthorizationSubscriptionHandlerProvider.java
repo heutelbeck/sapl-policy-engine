@@ -26,7 +26,7 @@ import org.springframework.util.Assert;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
-import lombok.SneakyThrows;
+import io.sapl.springdatacommon.sapl.Enforce;
 
 /**
  * This service takes care of obtaining the AuthorizationSubscription to execute
@@ -64,10 +64,9 @@ public class AuthorizationSubscriptionHandlerProvider {
     private final BeanFactory              beanFactory;
     private final EnforceAnnotationHandler enforceAnnotationHandler;
 
-    public AuthorizationSubscriptionHandlerProvider(BeanFactory beanFactory,
-            EnforceAnnotationHandler enforceAnnotationHandler) {
+    public AuthorizationSubscriptionHandlerProvider(BeanFactory beanFactory) {
         this.beanFactory              = beanFactory;
-        this.enforceAnnotationHandler = enforceAnnotationHandler;
+        this.enforceAnnotationHandler = new EnforceAnnotationHandler(beanFactory);
     }
 
     /**
@@ -81,12 +80,12 @@ public class AuthorizationSubscriptionHandlerProvider {
      *                         {@link org.aopalliance.intercept.MethodInterceptor}
      * @return the found AuthorizationSubscription
      */
-    @SneakyThrows
-    public AuthorizationSubscription getAuthSub(Class<?> repoClass, MethodInvocation methodInvocation) {
+    public AuthorizationSubscription getAuthSub(Class<?> repoClass, MethodInvocation methodInvocation,
+            Enforce enforceAnnotation) {
 
         Assert.isTrue(repoClass.isInterface(), "Repository is no interface.");
 
-        var annotationBased = enforceAnnotationHandler.enforceAnnotation(methodInvocation);
+        var annotationBased = enforceAnnotationHandler.enforceAnnotation(methodInvocation, enforceAnnotation);
 
         if (annotationBased != null && authSubIsComplete(annotationBased)) {
             return annotationBased;
@@ -98,7 +97,7 @@ public class AuthorizationSubscriptionHandlerProvider {
         if (annotationBased != null && staticBeanBased != null) {
             return mergeTwoAuthSubs(annotationBased, staticBeanBased);
         } else {
-            return staticBeanBased;
+            return annotationBased != null ? annotationBased : staticBeanBased;
         }
     }
 
@@ -120,7 +119,7 @@ public class AuthorizationSubscriptionHandlerProvider {
             try {
                 authorizationSubscription = (AuthorizationSubscription) beanFactory.getBean(bean);
             } catch (NoSuchBeanDefinitionException er) {
-                return authorizationSubscription;
+                return null;
             }
         }
         return authorizationSubscription;

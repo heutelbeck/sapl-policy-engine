@@ -59,10 +59,6 @@ public class PartTreeToSqlQueryStringConverter {
 
             var partsIterator = node.iterator();
 
-            if (!partsIterator.hasNext()) { // Don't know if this check is necessary, hard to test or to test at all.
-                throw new IllegalStateException(String.format("No part found in PartTree %s", partTree));
-            }
-
             var currentOrPart = new ArrayList<SqlCondition>();
             currentOrPart.add(and(partsIterator.next(), argumentIterator.next(), domainType));
 
@@ -148,6 +144,10 @@ public class PartTreeToSqlQueryStringConverter {
      * @return the transformed list as string.
      */
     private String createSqlArgumentArray(Object arg) {
+        if (!(arg instanceof List)) {
+            throw new IllegalStateException("Operator requires array of arguments.");
+        }
+
         List<?> arguments = (List<?>) arg;
 
         var arrayList = new ArrayList<String>();
@@ -180,8 +180,11 @@ public class PartTreeToSqlQueryStringConverter {
      * @param domainType is the domain type.
      * @return created {@link SqlCondition}.
      */
-    @SneakyThrows
-    private <T> SqlCondition and(Part part, Object argument, Class<T> domainType) {
+    @SneakyThrows // NoSuchFieldException, NullPointerException
+    public <T> SqlCondition and(Part part, Object argument, Class<T> domainType) {
+        if (argument == null) {
+            throw new NullPointerException("The appropriate argument is missing for this part of the method. ");
+        }
         var operator  = OperatorR2dbc.valueOf(part.getType().name());
         var fieldType = domainType.getDeclaredField(part.getProperty().toDotPath()).getType();
 

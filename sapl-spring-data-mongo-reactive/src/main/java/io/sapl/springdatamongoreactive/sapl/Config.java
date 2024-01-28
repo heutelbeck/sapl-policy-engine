@@ -15,17 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatamongoreactive.sapl.database.repositoryerror;
+package io.sapl.springdatamongoreactive.sapl;
 
-import org.bson.types.ObjectId;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
 
-import io.sapl.springdatacommon.sapl.SaplProtected;
-import io.sapl.springdatamongoreactive.sapl.database.TestUser;
-import reactor.core.publisher.Flux;
-
-public interface RepositoryNotFoundExceptionTests extends R2dbcRepositoryNotFoundExceptionTests<TestUser, ObjectId> {
-
-    @SaplProtected
-    Flux<TestUser> findAllByFirstname(String firstname);
-
+@Configuration
+@ComponentScan(basePackages = "io.sapl.springdatacommon")
+public class Config {
 }

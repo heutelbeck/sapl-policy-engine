@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -30,25 +31,25 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.aopalliance.intercept.MethodInvocation;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
+import org.mockito.MockedConstruction;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.springdatacommon.database.MethodInvocationForTesting;
+import io.sapl.springdatacommon.database.R2dbcMethodInvocation;
 import io.sapl.springdatacommon.database.R2dbcPersonRepository;
 import io.sapl.springdatacommon.database.TestClass;
 import io.sapl.springdatacommon.handlers.AuthorizationSubscriptionHandlerProvider;
 import io.sapl.springdatacommon.handlers.EnforceAnnotationHandler;
+import io.sapl.springdatacommon.sapl.Enforce;
 
 @SpringBootTest(classes = AuthorizationSubscriptionHandlerProvider.class)
 class AuthorizationSubscriptionHandlerProviderTests {
-
-    AuthorizationSubscriptionHandlerProvider authorizationSubscriptionHandlerProvider;
 
     private final AuthorizationSubscription generalProtectionR2dbcPersonRepository   = AuthorizationSubscription
             .of("general", "general_protection_reactive_r2dbc_repository", "resource", "test");
@@ -56,40 +57,39 @@ class AuthorizationSubscriptionHandlerProviderTests {
             .of("method", "", "", "test");
     private final AuthorizationSubscription actionAndResourceAuthSub                 = AuthorizationSubscription.of("",
             "find_all_by_firstname_reactive_r2dbc_repository", "resource", "");
-    private final MethodInvocation          methodInvocation                         = new MethodInvocationForTesting(
+    private final MethodInvocation          methodInvocation                         = new R2dbcMethodInvocation(
             "findAllByFirstname", new ArrayList<>(List.of(String.class)), null, null);
-    private final MethodInvocation          methodInvocationWithoutEnforceAnnotation = new MethodInvocationForTesting(
+    private final MethodInvocation          methodInvocationWithoutEnforceAnnotation = new R2dbcMethodInvocation(
             "findAllByAge", new ArrayList<>(List.of(int.class)), null, null);
 
     @Mock
     BeanFactory beanFactoryMock;
 
-    @MockBean
-    EnforceAnnotationHandler enforceAnnotationHandlerMock;
+    @Mock
+    Enforce enforceAnnotationMock;
 
-    @BeforeEach
-    void beforeEach() {
-        authorizationSubscriptionHandlerProvider = new AuthorizationSubscriptionHandlerProvider(beanFactoryMock,
-                enforceAnnotationHandlerMock);
-    }
+    @Mock
+    EnforceAnnotationHandler enforceAnnotationHandlerMock;
 
     @Test
     void when_classIsNoRepository_then_throwException() {
         // GIVEN
+        var authorizationSubscriptionHandlerProvider = new AuthorizationSubscriptionHandlerProvider(beanFactoryMock);
 
         // WHEN
-        assertThrows(IllegalArgumentException.class,
-                () -> authorizationSubscriptionHandlerProvider.getAuthSub(TestClass.class, methodInvocation));
+        assertThrows(IllegalArgumentException.class, () -> authorizationSubscriptionHandlerProvider
+                .getAuthSub(TestClass.class, methodInvocation, enforceAnnotationMock));
 
         // THEN
-        verify(enforceAnnotationHandlerMock, times(0)).enforceAnnotation(any(MethodInvocation.class));
+        verify(enforceAnnotationHandlerMock, times(0)).enforceAnnotation(any(MethodInvocation.class),
+                any(Enforce.class));
         verify(beanFactoryMock, times(0)).getBean(anyString());
     }
 
     @Test
     void when_annotationIsAvailableButNotCompleteAndBeanIsAvailable1_then_getAuthSub() {
         // GIVEN
-        var methodInvocationForTesting = new MethodInvocationForTesting("findAllByFirstname",
+        var methodInvocationForTesting = new R2dbcMethodInvocation("findAllByFirstname",
                 new ArrayList<>(List.of(String.class)), null, null);
         var correctAuthSub             = AuthorizationSubscription.of("method",
                 "find_all_by_firstname_reactive_r2dbc_repository", "resource", "test");
@@ -97,23 +97,33 @@ class AuthorizationSubscriptionHandlerProviderTests {
                 "find_all_by_firstname_reactive_r2dbc_repository", "resource", "");
 
         // WHEN
-        when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class))).thenReturn(annotationAuthSub);
-        when(beanFactoryMock.getBean("findAllByFirstnameR2dbcPersonRepository")).thenReturn(subjectAndEnvAuthSub);
+        try (MockedConstruction<EnforceAnnotationHandler> enforceAnnotationHandlerMockConstruction = mockConstruction(
+                EnforceAnnotationHandler.class)) {
+            var authorizationSubscriptionHandlerProvider = new AuthorizationSubscriptionHandlerProvider(
+                    beanFactoryMock);
+            var enforceAnnotationHandlerMock             = enforceAnnotationHandlerMockConstruction.constructed()
+                    .get(0);
 
-        var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
-                methodInvocationForTesting);
+            when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class), any(Enforce.class)))
+                    .thenReturn(annotationAuthSub);
+            when(beanFactoryMock.getBean("findAllByFirstnameR2dbcPersonRepository")).thenReturn(subjectAndEnvAuthSub);
 
-        // THEN
-        compareTwoAuthSubs(correctAuthSub, resultAuthSub);
+            var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
+                    methodInvocationForTesting, enforceAnnotationMock);
 
-        verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(methodInvocationForTesting);
-        verify(beanFactoryMock, times(1)).getBean("findAllByFirstnameR2dbcPersonRepository");
+            // THEN
+            compareTwoAuthSubs(correctAuthSub, resultAuthSub);
+
+            verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(methodInvocationForTesting,
+                    enforceAnnotationMock);
+            verify(beanFactoryMock, times(1)).getBean("findAllByFirstnameR2dbcPersonRepository");
+        }
     }
 
     @Test
     void when_annotationIsAvailableButNotCompleteAndBeanIsAvailable2_then_getAuthSub() {
         // GIVEN
-        var methodInvocationForTesting = new MethodInvocationForTesting("findAllByFirstname",
+        var methodInvocationForTesting = new R2dbcMethodInvocation("findAllByFirstname",
                 new ArrayList<>(List.of(String.class)), null, null);
         var correctAuthSub             = AuthorizationSubscription.of("",
                 "find_all_by_firstname_reactive_r2dbc_repository", "resource", "environment");
@@ -121,71 +131,348 @@ class AuthorizationSubscriptionHandlerProviderTests {
                 "find_all_by_firstname_reactive_r2dbc_repository", "", "environment");
 
         // WHEN
-        when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class))).thenReturn(annotationAuthSub);
-        when(beanFactoryMock.getBean("findAllByFirstnameR2dbcPersonRepository")).thenReturn(actionAndResourceAuthSub);
+        try (MockedConstruction<EnforceAnnotationHandler> enforceAnnotationHandlerMockConstruction = mockConstruction(
+                EnforceAnnotationHandler.class)) {
+            var authorizationSubscriptionHandlerProvider = new AuthorizationSubscriptionHandlerProvider(
+                    beanFactoryMock);
+            var enforceAnnotationHandlerMock             = enforceAnnotationHandlerMockConstruction.constructed()
+                    .get(0);
 
-        var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
-                methodInvocationForTesting);
+            when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class), any(Enforce.class)))
+                    .thenReturn(annotationAuthSub);
+            when(beanFactoryMock.getBean("findAllByFirstnameR2dbcPersonRepository"))
+                    .thenReturn(actionAndResourceAuthSub);
 
-        // THEN
-        compareTwoAuthSubs(correctAuthSub, resultAuthSub);
+            var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
+                    methodInvocationForTesting, enforceAnnotationMock);
 
-        verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(methodInvocationForTesting);
-        verify(beanFactoryMock, times(1)).getBean("findAllByFirstnameR2dbcPersonRepository");
+            // THEN
+            compareTwoAuthSubs(correctAuthSub, resultAuthSub);
+
+            verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(methodInvocationForTesting,
+                    enforceAnnotationMock);
+            verify(beanFactoryMock, times(1)).getBean("findAllByFirstnameR2dbcPersonRepository");
+        }
     }
 
     @Test
     void when_annotationIsAvailableButNotCompleteAndBeanIsAvailable3_then_getAuthSub() {
         // GIVEN
         var correctAuthSub    = AuthorizationSubscription.of("method",
-                "find_all_by_firstname_reactive_r2dbc_repository", "resource", "test");
-        var annotationAuthSub = AuthorizationSubscription.of("method", "", "", "test");
+                "find_all_by_firstname_reactive_r2dbc_repository", "resource", "");
+        var annotationAuthSub = AuthorizationSubscription.of("method", "", "", JsonNodeFactory.instance.nullNode());
 
         // WHEN
-        when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class))).thenReturn(annotationAuthSub);
-        when(beanFactoryMock.getBean("findAllByFirstnameR2dbcPersonRepository")).thenReturn(actionAndResourceAuthSub);
-        var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
-                methodInvocation);
+        try (MockedConstruction<EnforceAnnotationHandler> enforceAnnotationHandlerMockConstruction = mockConstruction(
+                EnforceAnnotationHandler.class)) {
+            var authorizationSubscriptionHandlerProvider = new AuthorizationSubscriptionHandlerProvider(
+                    beanFactoryMock);
+            var enforceAnnotationHandlerMock             = enforceAnnotationHandlerMockConstruction.constructed()
+                    .get(0);
 
-        // THEN
-        compareTwoAuthSubs(correctAuthSub, resultAuthSub);
-        verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(any(MethodInvocation.class));
-        verify(beanFactoryMock, times(1)).getBean(anyString());
+            when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class), any(Enforce.class)))
+                    .thenReturn(annotationAuthSub);
+            when(beanFactoryMock.getBean("findAllByFirstnameR2dbcPersonRepository"))
+                    .thenReturn(actionAndResourceAuthSub);
+            var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
+                    methodInvocation, enforceAnnotationMock);
+
+            // THEN
+            compareTwoAuthSubs(correctAuthSub, resultAuthSub);
+            verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(any(MethodInvocation.class),
+                    any(Enforce.class));
+            verify(beanFactoryMock, times(1)).getBean(anyString());
+        }
     }
 
     @Test
-    void when_annotationIsAvailableAndAuthSubIsComplete_then_getAuthSub() {
+    void when_annotationIsAvailableButNotCompleteAndBeanIsAvailable4_then_getAuthSub() {
         // GIVEN
-        var correctAuthSub = AuthorizationSubscription.of("method", "find_all_by_firstname_reactive_r2dbc_repository",
-                "resource", "test");
+        var methodInvocationForTesting = new R2dbcMethodInvocation("findAllByFirstname",
+                new ArrayList<>(List.of(String.class)), null, null);
+        var correctAuthSub             = AuthorizationSubscription.of("", "", "subject", "environment");
+        var annotationAuthSub          = AuthorizationSubscription.of("", "", "subject", "environment");
 
         // WHEN
-        when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class))).thenReturn(correctAuthSub);
-        var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
-                methodInvocation);
+        try (MockedConstruction<EnforceAnnotationHandler> enforceAnnotationHandlerMockConstruction = mockConstruction(
+                EnforceAnnotationHandler.class)) {
+            var authorizationSubscriptionHandlerProvider = new AuthorizationSubscriptionHandlerProvider(
+                    beanFactoryMock);
+            var enforceAnnotationHandlerMock             = enforceAnnotationHandlerMockConstruction.constructed()
+                    .get(0);
 
-        // THEN
-        compareTwoAuthSubs(correctAuthSub, resultAuthSub);
-        verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(any(MethodInvocation.class));
-        verify(beanFactoryMock, times(0)).getBean(anyString());
+            when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class), any(Enforce.class)))
+                    .thenReturn(annotationAuthSub);
+            when(beanFactoryMock.getBean("findAllByFirstnameR2dbcPersonRepository"))
+                    .thenReturn(AuthorizationSubscription.of("", "", "", ""));
+
+            var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
+                    methodInvocationForTesting, enforceAnnotationMock);
+
+            // THEN
+            compareTwoAuthSubs(correctAuthSub, resultAuthSub);
+
+            verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(methodInvocationForTesting,
+                    enforceAnnotationMock);
+            verify(beanFactoryMock, times(1)).getBean("findAllByFirstnameR2dbcPersonRepository");
+        }
     }
 
     @Test
-    void when_noAnnotationButSpecificBeanForRepositoryIsAvailable_then_getAuthSub() {
+    void when_annotationIsAvailableButNotCompleteAndBeanIsAvailable5_then_getAuthSub() {
         // GIVEN
-        var correctAuthSub = AuthorizationSubscription.of("method", "", "", "test");
+        var methodInvocationForTesting = new R2dbcMethodInvocation("findAllByFirstname",
+                new ArrayList<>(List.of(String.class)), null, null);
+        var correctAuthSub             = AuthorizationSubscription.of("subject", "action", "resource", "environment");
+        var annotationAuthSub          = AuthorizationSubscription.of("subject", "action", "resource", "environment");
 
         // WHEN
-        when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class))).thenReturn(null);
-        when(beanFactoryMock.getBean("findAllByAgeR2dbcPersonRepository")).thenReturn(subjectAndEnvAuthSub);
+        try (MockedConstruction<EnforceAnnotationHandler> enforceAnnotationHandlerMockConstruction = mockConstruction(
+                EnforceAnnotationHandler.class)) {
+            var authorizationSubscriptionHandlerProvider = new AuthorizationSubscriptionHandlerProvider(
+                    beanFactoryMock);
+            var enforceAnnotationHandlerMock             = enforceAnnotationHandlerMockConstruction.constructed()
+                    .get(0);
 
-        var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
-                methodInvocationWithoutEnforceAnnotation);
+            when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class), any(Enforce.class)))
+                    .thenReturn(annotationAuthSub);
+            when(beanFactoryMock.getBean("findAllByFirstnameR2dbcPersonRepository"))
+                    .thenReturn(AuthorizationSubscription.of("", "", "", ""));
 
-        // THEN
-        compareTwoAuthSubs(correctAuthSub, resultAuthSub);
-        verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(any(MethodInvocation.class));
-        verify(beanFactoryMock, times(1)).getBean(anyString());
+            var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
+                    methodInvocationForTesting, enforceAnnotationMock);
+
+            // THEN
+            compareTwoAuthSubs(correctAuthSub, resultAuthSub);
+
+            verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(methodInvocationForTesting,
+                    enforceAnnotationMock);
+        }
+    }
+
+    @Test
+    void when_annotationIsAvailableButNotCompleteAndBeanIsAvailable6_then_getAuthSub() {
+        // GIVEN
+        var methodInvocationForTesting = new R2dbcMethodInvocation("findAllByFirstname",
+                new ArrayList<>(List.of(String.class)), null, null);
+        var correctAuthSub             = AuthorizationSubscription.of("", "", "", "");
+        var annotationAuthSub          = AuthorizationSubscription.of("", "", "", "");
+
+        // WHEN
+        try (MockedConstruction<EnforceAnnotationHandler> enforceAnnotationHandlerMockConstruction = mockConstruction(
+                EnforceAnnotationHandler.class)) {
+            var authorizationSubscriptionHandlerProvider = new AuthorizationSubscriptionHandlerProvider(
+                    beanFactoryMock);
+            var enforceAnnotationHandlerMock             = enforceAnnotationHandlerMockConstruction.constructed()
+                    .get(0);
+
+            when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class), any(Enforce.class)))
+                    .thenReturn(annotationAuthSub);
+            when(beanFactoryMock.getBean("findAllByFirstnameR2dbcPersonRepository"))
+                    .thenReturn(AuthorizationSubscription.of("", "", "", ""));
+
+            var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
+                    methodInvocationForTesting, enforceAnnotationMock);
+
+            // THEN
+            compareTwoAuthSubs(correctAuthSub, resultAuthSub);
+
+            verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(methodInvocationForTesting,
+                    enforceAnnotationMock);
+            verify(beanFactoryMock, times(1)).getBean("findAllByFirstnameR2dbcPersonRepository");
+        }
+    }
+
+    @Test
+    void when_annotationIsAvailableButNotCompleteAndBeanIsAvailable7_then_getAuthSub() {
+        // GIVEN
+        var methodInvocationForTesting = new R2dbcMethodInvocation("findAllByFirstname",
+                new ArrayList<>(List.of(String.class)), null, null);
+        var correctAuthSub             = AuthorizationSubscription.of("subject", "action", "", "");
+        var annotationAuthSub          = AuthorizationSubscription.of("subject", "action", "", "");
+
+        // WHEN
+        try (MockedConstruction<EnforceAnnotationHandler> enforceAnnotationHandlerMockConstruction = mockConstruction(
+                EnforceAnnotationHandler.class)) {
+            var authorizationSubscriptionHandlerProvider = new AuthorizationSubscriptionHandlerProvider(
+                    beanFactoryMock);
+            var enforceAnnotationHandlerMock             = enforceAnnotationHandlerMockConstruction.constructed()
+                    .get(0);
+
+            when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class), any(Enforce.class)))
+                    .thenReturn(annotationAuthSub);
+            when(beanFactoryMock.getBean("findAllByFirstnameR2dbcPersonRepository"))
+                    .thenReturn(AuthorizationSubscription.of("", "", "", ""));
+
+            var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
+                    methodInvocationForTesting, enforceAnnotationMock);
+
+            // THEN
+            compareTwoAuthSubs(correctAuthSub, resultAuthSub);
+
+            verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(methodInvocationForTesting,
+                    enforceAnnotationMock);
+            verify(beanFactoryMock, times(1)).getBean("findAllByFirstnameR2dbcPersonRepository");
+        }
+    }
+
+    @Test
+    void when_annotationIsAvailableButNotCompleteAndBeanIsAvailable8_then_getAuthSub() {
+        // GIVEN
+        var methodInvocationForTesting = new R2dbcMethodInvocation("findAllByFirstname",
+                new ArrayList<>(List.of(String.class)), null, null);
+        var correctAuthSub             = AuthorizationSubscription.of("", "", "", "environment");
+        var annotationAuthSub          = AuthorizationSubscription.of("", "", "", "environment");
+
+        // WHEN
+        try (MockedConstruction<EnforceAnnotationHandler> enforceAnnotationHandlerMockConstruction = mockConstruction(
+                EnforceAnnotationHandler.class)) {
+            var authorizationSubscriptionHandlerProvider = new AuthorizationSubscriptionHandlerProvider(
+                    beanFactoryMock);
+            var enforceAnnotationHandlerMock             = enforceAnnotationHandlerMockConstruction.constructed()
+                    .get(0);
+
+            when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class), any(Enforce.class)))
+                    .thenReturn(annotationAuthSub);
+            when(beanFactoryMock.getBean("findAllByFirstnameR2dbcPersonRepository"))
+                    .thenReturn(AuthorizationSubscription.of("", "", "", ""));
+
+            var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
+                    methodInvocationForTesting, enforceAnnotationMock);
+
+            // THEN
+            compareTwoAuthSubs(correctAuthSub, resultAuthSub);
+
+            verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(methodInvocationForTesting,
+                    enforceAnnotationMock);
+            verify(beanFactoryMock, times(1)).getBean("findAllByFirstnameR2dbcPersonRepository");
+        }
+    }
+
+    @Test
+    void when_annotationIsAvailableButNotCompleteAndBeanIsAvailable9_then_getAuthSub() {
+        // GIVEN
+        var methodInvocationForTesting = new R2dbcMethodInvocation("findAllByFirstname",
+                new ArrayList<>(List.of(String.class)), null, null);
+        var correctAuthSub             = AuthorizationSubscription.of("subject", "action", "resource", "");
+        var annotationAuthSub          = AuthorizationSubscription.of("subject", "action", "resource", "");
+
+        // WHEN
+        try (MockedConstruction<EnforceAnnotationHandler> enforceAnnotationHandlerMockConstruction = mockConstruction(
+                EnforceAnnotationHandler.class)) {
+            var authorizationSubscriptionHandlerProvider = new AuthorizationSubscriptionHandlerProvider(
+                    beanFactoryMock);
+            var enforceAnnotationHandlerMock             = enforceAnnotationHandlerMockConstruction.constructed()
+                    .get(0);
+
+            when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class), any(Enforce.class)))
+                    .thenReturn(annotationAuthSub);
+            when(beanFactoryMock.getBean("findAllByFirstnameR2dbcPersonRepository"))
+                    .thenReturn(AuthorizationSubscription.of("", "", "", ""));
+
+            var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
+                    methodInvocationForTesting, enforceAnnotationMock);
+
+            // THEN
+            compareTwoAuthSubs(correctAuthSub, resultAuthSub);
+
+            verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(methodInvocationForTesting,
+                    enforceAnnotationMock);
+            verify(beanFactoryMock, times(1)).getBean("findAllByFirstnameR2dbcPersonRepository");
+        }
+    }
+
+    @Test
+    void when_annotationIsAvailableButNotCompleteAndBeanIsAvailable10_then_getAuthSub() {
+        // GIVEN
+        var methodInvocationForTesting = new R2dbcMethodInvocation("findAllByFirstname",
+                new ArrayList<>(List.of(String.class)), null, null);
+        var correctAuthSub             = AuthorizationSubscription.of("", "", "", "environment");
+        var annotationAuthSub          = AuthorizationSubscription.of("", "", "", "environment");
+
+        // WHEN
+        try (MockedConstruction<EnforceAnnotationHandler> enforceAnnotationHandlerMockConstruction = mockConstruction(
+                EnforceAnnotationHandler.class)) {
+            var authorizationSubscriptionHandlerProvider = new AuthorizationSubscriptionHandlerProvider(
+                    beanFactoryMock);
+            var enforceAnnotationHandlerMock             = enforceAnnotationHandlerMockConstruction.constructed()
+                    .get(0);
+
+            when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class), any(Enforce.class)))
+                    .thenReturn(annotationAuthSub);
+            when(beanFactoryMock.getBean("findAllByFirstnameR2dbcPersonRepository"))
+                    .thenReturn(AuthorizationSubscription.of("", "", "", ""));
+
+            var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
+                    methodInvocationForTesting, enforceAnnotationMock);
+
+            // THEN
+            compareTwoAuthSubs(correctAuthSub, resultAuthSub);
+
+            verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(methodInvocationForTesting,
+                    enforceAnnotationMock);
+            verify(beanFactoryMock, times(1)).getBean("findAllByFirstnameR2dbcPersonRepository");
+        }
+    }
+
+    @Test
+    void when_annotationIsAvailableButNotCompleteAndBeanIsAvailable11_then_getAuthSub() {
+        // GIVEN
+        var methodInvocationForTesting = new R2dbcMethodInvocation("findAllByFirstname",
+                new ArrayList<>(List.of(String.class)), null, null);
+        var correctAuthSub             = AuthorizationSubscription.of("", "action", "", "");
+        var annotationAuthSub          = AuthorizationSubscription.of("", "action", "", "");
+
+        // WHEN
+        try (MockedConstruction<EnforceAnnotationHandler> enforceAnnotationHandlerMockConstruction = mockConstruction(
+                EnforceAnnotationHandler.class)) {
+            var authorizationSubscriptionHandlerProvider = new AuthorizationSubscriptionHandlerProvider(
+                    beanFactoryMock);
+            var enforceAnnotationHandlerMock             = enforceAnnotationHandlerMockConstruction.constructed()
+                    .get(0);
+
+            when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class), any(Enforce.class)))
+                    .thenReturn(annotationAuthSub);
+            when(beanFactoryMock.getBean("findAllByFirstnameR2dbcPersonRepository"))
+                    .thenReturn(AuthorizationSubscription.of("", "", "", ""));
+
+            var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
+                    methodInvocationForTesting, enforceAnnotationMock);
+
+            // THEN
+            compareTwoAuthSubs(correctAuthSub, resultAuthSub);
+
+            verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(methodInvocationForTesting,
+                    enforceAnnotationMock);
+            verify(beanFactoryMock, times(1)).getBean("findAllByFirstnameR2dbcPersonRepository");
+        }
+    }
+
+    @Test
+    void when_annotationIsAvailableButNotCompleteAndBeanIsNull_then_getAuthSub() {
+        // GIVEN
+        var annotationAuthSub = AuthorizationSubscription.of("method", "", "", JsonNodeFactory.instance.nullNode());
+
+        // WHEN
+        try (MockedConstruction<EnforceAnnotationHandler> enforceAnnotationHandlerMockConstruction = mockConstruction(
+                EnforceAnnotationHandler.class)) {
+            var authorizationSubscriptionHandlerProvider = new AuthorizationSubscriptionHandlerProvider(
+                    beanFactoryMock);
+            var enforceAnnotationHandlerMock             = enforceAnnotationHandlerMockConstruction.constructed()
+                    .get(0);
+
+            when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class), any(Enforce.class)))
+                    .thenReturn(annotationAuthSub);
+            when(beanFactoryMock.getBean(anyString())).thenReturn(null);
+            var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
+                    methodInvocation, enforceAnnotationMock);
+
+            // THEN
+            assertEquals(resultAuthSub, annotationAuthSub);
+            verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(any(MethodInvocation.class),
+                    any(Enforce.class));
+            verify(beanFactoryMock, times(1)).getBean(anyString());
+        }
     }
 
     @Test
@@ -195,25 +482,90 @@ class AuthorizationSubscriptionHandlerProviderTests {
                 "resource", "test");
 
         // WHEN
-        when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class))).thenReturn(null);
-        when(beanFactoryMock.getBean(anyString())).thenAnswer(ans -> {
-            if (ans.getArgument(0).equals("findAllByFirstnameR2dbcPersonRepository")) {
-                throw new NoSuchBeanDefinitionException("No such bean.");
-            }
+        try (MockedConstruction<EnforceAnnotationHandler> enforceAnnotationHandlerMockConstruction = mockConstruction(
+                EnforceAnnotationHandler.class)) {
+            var authorizationSubscriptionHandlerProvider = new AuthorizationSubscriptionHandlerProvider(
+                    beanFactoryMock);
+            var enforceAnnotationHandlerMock             = enforceAnnotationHandlerMockConstruction.constructed()
+                    .get(0);
 
-            if (ans.getArgument(0).equals("generalProtectionR2dbcPersonRepository")) {
-                return generalProtectionR2dbcPersonRepository;
-            }
+            when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class), any(Enforce.class)))
+                    .thenReturn(null);
+            when(beanFactoryMock.getBean(anyString())).thenAnswer(ans -> {
+                if (ans.getArgument(0).equals("findAllByFirstnameR2dbcPersonRepository")) {
+                    throw new NoSuchBeanDefinitionException("No such bean.");
+                }
 
-            return null;
-        });
-        var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
-                methodInvocation);
+                if (ans.getArgument(0).equals("generalProtectionR2dbcPersonRepository")) {
+                    return generalProtectionR2dbcPersonRepository;
+                }
 
-        // THEN
-        compareTwoAuthSubs(correctAuthSub, resultAuthSub);
-        verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(any(MethodInvocation.class));
-        verify(beanFactoryMock, times(2)).getBean(anyString());
+                return null;
+            });
+            var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
+                    methodInvocation, enforceAnnotationMock);
+
+            // THEN
+            compareTwoAuthSubs(correctAuthSub, resultAuthSub);
+            verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(any(MethodInvocation.class),
+                    any(Enforce.class));
+            verify(beanFactoryMock, times(2)).getBean(anyString());
+        }
+    }
+
+    @Test
+    void when_noAnnotationButSpecificBeanForRepositoryIsAvailable_then_getAuthSub() {
+        // GIVEN
+        var correctAuthSub = AuthorizationSubscription.of("method", "", "", "test");
+
+        // WHEN
+        try (MockedConstruction<EnforceAnnotationHandler> enforceAnnotationHandlerMockConstruction = mockConstruction(
+                EnforceAnnotationHandler.class)) {
+            var authorizationSubscriptionHandlerProvider = new AuthorizationSubscriptionHandlerProvider(
+                    beanFactoryMock);
+            var enforceAnnotationHandlerMock             = enforceAnnotationHandlerMockConstruction.constructed()
+                    .get(0);
+
+            when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class), any(Enforce.class)))
+                    .thenReturn(null);
+            when(beanFactoryMock.getBean("findAllByAgeR2dbcPersonRepository")).thenReturn(subjectAndEnvAuthSub);
+
+            var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
+                    methodInvocationWithoutEnforceAnnotation, enforceAnnotationMock);
+
+            // THEN
+            compareTwoAuthSubs(correctAuthSub, resultAuthSub);
+            verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(any(MethodInvocation.class),
+                    any(Enforce.class));
+            verify(beanFactoryMock, times(1)).getBean(anyString());
+        }
+    }
+
+    @Test
+    void when_annotationIsAvailableAndAuthSubIsComplete_then_getAuthSub() {
+        // GIVEN
+        var correctAuthSub = AuthorizationSubscription.of("method", "find_all_by_firstname_reactive_r2dbc_repository",
+                "resource", "test");
+
+        // WHEN
+        try (MockedConstruction<EnforceAnnotationHandler> enforceAnnotationHandlerMockConstruction = mockConstruction(
+                EnforceAnnotationHandler.class)) {
+            var authorizationSubscriptionHandlerProvider = new AuthorizationSubscriptionHandlerProvider(
+                    beanFactoryMock);
+            var enforceAnnotationHandlerMock             = enforceAnnotationHandlerMockConstruction.constructed()
+                    .get(0);
+
+            when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class), any(Enforce.class)))
+                    .thenReturn(correctAuthSub);
+            var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
+                    methodInvocation, enforceAnnotationMock);
+
+            // THEN
+            compareTwoAuthSubs(correctAuthSub, resultAuthSub);
+            verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(any(MethodInvocation.class),
+                    any(Enforce.class));
+            verify(beanFactoryMock, times(0)).getBean(anyString());
+        }
     }
 
     @Test
@@ -221,26 +573,36 @@ class AuthorizationSubscriptionHandlerProviderTests {
         // GIVEN
 
         // WHEN
-        when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class))).thenReturn(null);
-        when(beanFactoryMock.getBean(anyString())).thenAnswer(ans -> {
-            if (ans.getArgument(0).equals("findAllByFirstnameR2dbcPersonRepository")) {
-                throw new NoSuchBeanDefinitionException("No such bean.");
-            }
+        try (MockedConstruction<EnforceAnnotationHandler> enforceAnnotationHandlerMockConstruction = mockConstruction(
+                EnforceAnnotationHandler.class)) {
+            var authorizationSubscriptionHandlerProvider = new AuthorizationSubscriptionHandlerProvider(
+                    beanFactoryMock);
+            var enforceAnnotationHandlerMock             = enforceAnnotationHandlerMockConstruction.constructed()
+                    .get(0);
 
-            if (ans.getArgument(0).equals("generalProtectionR2dbcPersonRepository")) {
-                throw new NoSuchBeanDefinitionException("No such bean.");
-            }
+            when(enforceAnnotationHandlerMock.enforceAnnotation(any(MethodInvocation.class), any(Enforce.class)))
+                    .thenReturn(null);
+            when(beanFactoryMock.getBean(anyString())).thenAnswer(ans -> {
+                if (ans.getArgument(0).equals("findAllByFirstnameR2dbcPersonRepository")) {
+                    throw new NoSuchBeanDefinitionException("No such bean.");
+                }
 
-            return null;
-        });
-        var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
-                methodInvocation);
+                if (ans.getArgument(0).equals("generalProtectionR2dbcPersonRepository")) {
+                    throw new NoSuchBeanDefinitionException("No such bean.");
+                }
 
-        // THEN
+                return null;
+            });
+            var resultAuthSub = authorizationSubscriptionHandlerProvider.getAuthSub(R2dbcPersonRepository.class,
+                    methodInvocation, enforceAnnotationMock);
 
-        assertNull(resultAuthSub);
-        verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(any(MethodInvocation.class));
-        verify(beanFactoryMock, times(2)).getBean(anyString());
+            // THEN
+
+            assertNull(resultAuthSub);
+            verify(enforceAnnotationHandlerMock, times(1)).enforceAnnotation(any(MethodInvocation.class),
+                    any(Enforce.class));
+            verify(beanFactoryMock, times(2)).getBean(anyString());
+        }
     }
 
     private void compareTwoAuthSubs(AuthorizationSubscription first, AuthorizationSubscription second) {

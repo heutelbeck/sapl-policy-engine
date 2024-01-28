@@ -20,12 +20,11 @@ package io.sapl.springdatar2dbc.sapl.queries.enforcement;
 import static io.sapl.springdatacommon.sapl.utils.ConstraintHandlerUtils.getAdvice;
 import static io.sapl.springdatacommon.sapl.utils.ConstraintHandlerUtils.getObligations;
 
-import java.util.Objects;
 import java.util.function.Function;
 
 import org.springframework.security.access.AccessDeniedException;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -36,8 +35,8 @@ import io.sapl.springdatacommon.handlers.QueryManipulationObligationProvider;
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementPoint;
 import io.sapl.springdatacommon.sapl.queries.enforcement.QueryAnnotationParameterResolver;
+import io.sapl.springdatacommon.sapl.utils.HandleProceedingData;
 import io.sapl.springdatar2dbc.sapl.QueryManipulationExecutor;
-import lombok.SneakyThrows;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -117,9 +116,7 @@ public class R2dbcAnnotationQueryManipulationEnforcementPoint<T> implements Quer
      * @return objects from the database that were queried with the manipulated
      *         query.
      */
-    @SneakyThrows
-    @SuppressWarnings("unchecked")
-    private Flux<T> retrieveData(JsonNode obligations, String query) {
+    private Flux<T> retrieveData(ArrayNode obligations, String query) {
 
         if (queryManipulationObligationProvider.isResponsible(obligations, R2DBC_QUERY_MANIPULATION_TYPE)) {
             var r2dbcQueryManipulationObligation = queryManipulationObligationProvider.getObligation(obligations,
@@ -129,14 +126,9 @@ public class R2dbcAnnotationQueryManipulationEnforcementPoint<T> implements Quer
             var manipulatedCondition             = enforceQueryManipulation(query, condition);
 
             return queryManipulationExecutor.execute(manipulatedCondition, enforcementData.getDomainType())
-                    .map(dataManipulationHandler.toDomainObject());
+                    .map(dataManipulationHandler.toDomainObject(true));
         } else {
-
-            if (enforcementData.getMethodInvocation().getMethod().getReturnType().equals(Mono.class)) {
-                return Flux.from((Mono<T>) Objects.requireNonNull(enforcementData.getMethodInvocation().proceed()));
-            }
-
-            return (Flux<T>) enforcementData.getMethodInvocation().proceed();
+            return HandleProceedingData.proceed(enforcementData);
         }
     }
 
@@ -150,7 +142,7 @@ public class R2dbcAnnotationQueryManipulationEnforcementPoint<T> implements Quer
      * @param condition are the query conditions from the {@link Decision}.
      * @return the manipulated query.
      */
-    private String enforceQueryManipulation(String query, JsonNode condition) {
+    private String enforceQueryManipulation(String query, ArrayNode condition) {
         return manipulateQuery(query, condition);
     }
 
@@ -165,8 +157,8 @@ public class R2dbcAnnotationQueryManipulationEnforcementPoint<T> implements Quer
      * @param condition are the query conditions from the {@link Decision}.
      * @return the manipulated query.
      */
-    private String manipulateQuery(String query, JsonNode condition) {
-        var conditionObligationAsString = condition.asText();
+    private String manipulateQuery(String query, ArrayNode condition) {
+        var conditionObligationAsString = condition.get(0).asText();
 
         if (query.toLowerCase().contains(" where ")) {
             var indexWithoutWhere = query.toLowerCase().indexOf(" where ");

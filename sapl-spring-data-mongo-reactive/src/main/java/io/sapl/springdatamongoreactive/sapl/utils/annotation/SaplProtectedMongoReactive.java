@@ -15,27 +15,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatamongoreactive.sapl.utils;
+package io.sapl.springdatamongoreactive.sapl.utils.annotation;
 
-import org.bson.types.ObjectId;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import org.springframework.stereotype.Component;
 
-public class OidObjectMapper extends ObjectMapper {
+import io.sapl.springdatacommon.sapl.SaplProtected;
 
-    /**
-     *
-     */
-    private static final long serialVersionUID = -1238167469457710403L;
-
-    /**
-     * A modified ObjectMapper to handle {@link ObjectId}s.
-     */
-    public OidObjectMapper() {
-        var module = new SimpleModule("OidModule");
-        module.addSerializer(ObjectId.class, new OidSerializer());
-        this.registerModule(module);
-    }
-
+@Component
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ ElementType.METHOD, ElementType.TYPE })
+@SaplProtected
+public @interface SaplProtectedMongoReactive {
 }

@@ -32,7 +32,7 @@ public enum OperatorR2dbc {
     AFTER(false, List.of(">")), NOT_LIKE(false, List.of("NOT LIKE")), LIKE(false, List.of("LIKE")),
     NOT_IN(true, List.of("NIN")), IN(true, List.of("IN")), REGEX(false, List.of("LIKE")),
     EXISTS(false, List.of("EXISTS")), NEGATING_SIMPLE_PROPERTY(false, List.of("<>", "!=")),
-    SIMPLE_PROPERTY(false, List.of("="));
+    SIMPLE_PROPERTY(false, List.of("=")), CONTAINING(false, List.of("LIKE"));
 
     /**
      * Creates a new {@link Part.Type} using the given keyword, number of arguments

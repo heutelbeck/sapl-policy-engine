@@ -17,12 +17,13 @@
  */
 package io.sapl.springdatacommon.handlers;
 
-import static io.sapl.springdatacommon.sapl.utils.Utilities.CONDITION;
+import static io.sapl.springdatacommon.sapl.utils.Utilities.CONDITIONS;
 import static io.sapl.springdatacommon.sapl.utils.Utilities.TYPE;
 
 import java.util.Objects;
-
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 /**
@@ -31,19 +32,22 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
  */
 public class QueryManipulationObligationProvider {
 
+    private static final ObjectMapper MAPPER    = new ObjectMapper();
+    private static final JsonNode     NULL_NODE = JsonNodeFactory.instance.nullNode();
+
     /**
      * Extracts the query CONDITION of an obligation to apply the the corresponding
      * QueryManipulation.
      *
-     * @param obligation which contains query CONDITION.
-     * @return all query CONDITION.
+     * @param obligation which contains query CONDITIONS.
+     * @return all query CONDITIONS.
      */
-    public JsonNode getConditions(JsonNode obligation) {
-        if (obligation.has(CONDITION) && obligation.get(CONDITION).isArray() && !obligation.get(CONDITION).isNull()
-                && !obligation.get(CONDITION).isEmpty()) {
-            return obligation.get(CONDITION);
+    public ArrayNode getConditions(JsonNode obligation) {
+        if (obligation.has(CONDITIONS) && obligation.get(CONDITIONS).isArray()
+                && !obligation.get(CONDITIONS).isEmpty()) {
+            return (ArrayNode) obligation.get(CONDITIONS);
         }
-        return JsonNodeFactory.instance.nullNode();
+        return MAPPER.createArrayNode();
     }
 
     /**
@@ -53,16 +57,14 @@ public class QueryManipulationObligationProvider {
      * @param obligations which contains all obligations.
      * @return correct obligation.
      */
-    public JsonNode getObligation(JsonNode obligations, String queryType) {
-        for (JsonNode obligation : obligations) {
-            if (obligation != null && obligation.isObject()) {
-                JsonNode type = obligation.get(TYPE);
-                if (!Objects.isNull(type) && type.isTextual() && queryType.equals(type.asText())) {
-                    return obligation;
-                }
-            }
+    public JsonNode getObligation(Iterable<JsonNode> obligations, String queryType) {
+        var iterator = obligations.iterator();
+        while (iterator.hasNext()) {
+            var obligation = iterator.next();
+            return obligationIsFine(obligation, queryType) ? obligation : NULL_NODE;
+
         }
-        return JsonNodeFactory.instance.nullNode();
+        return NULL_NODE;
     }
 
     /**
@@ -72,14 +74,19 @@ public class QueryManipulationObligationProvider {
      * @param obligations are the obligations of a {@link io.sapl.api.pdp.Decision}
      * @return true if an obligation can be applied.
      */
-    public boolean isResponsible(JsonNode obligations, String queryType) {
-        for (JsonNode obligation : obligations) {
-            if (obligation != null && obligation.isObject()) {
-                JsonNode type = obligation.get(TYPE);
-                if (!Objects.isNull(type) && type.isTextual() && queryType.equals(type.asText())) {
-                    return true;
-                }
-            }
+    public boolean isResponsible(Iterable<JsonNode> obligations, String queryType) {
+        var iterator = obligations.iterator();
+        while (iterator.hasNext()) {
+            var obligation = iterator.next();
+            return obligationIsFine(obligation, queryType);
+        }
+        return false;
+    }
+
+    private boolean obligationIsFine(JsonNode obligation, String queryType) {
+        if (!obligation.isNull() && obligation.isObject()) {
+            var type = obligation.get(TYPE);
+            return (!Objects.isNull(type) && type.isTextual() && queryType.equals(type.asText()));
         }
         return false;
     }

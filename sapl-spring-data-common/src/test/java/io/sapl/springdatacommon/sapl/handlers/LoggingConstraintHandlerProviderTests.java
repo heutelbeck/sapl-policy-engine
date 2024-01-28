@@ -31,19 +31,57 @@ class LoggingConstraintHandlerProviderTests {
 
     LoggingConstraintHandlerProvider loggingConstraintHandlerProvider = new LoggingConstraintHandlerProvider();
 
-    final ObjectMapper objectMapper = new ObjectMapper();
+    static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Test
     void when_constraintIsResponsible_then_returnTrue() throws JsonProcessingException {
         // GIVEN
-        var constraint = objectMapper
-                .readTree("{\"id\": \"log\",\"message\": \"You are using SAPL for protection of database.\"}");
+        var constraint = MAPPER.readTree("""
+                      		{
+                  "id": "log",
+                  "message": "You are using SAPL for protection of database."
+                }
+                      		""");
 
         // WHEN
         var actual = loggingConstraintHandlerProvider.isResponsible(constraint);
 
         // THEN
         assertTrue(actual);
+    }
+
+    @Test
+    void when_constraintHasWrongMessageKey_then_returnFalse() throws JsonProcessingException {
+        // GIVEN
+        var constraint = MAPPER.readTree("""
+                      		{
+                  "id": "log",
+                  "messageTest": "You are using SAPL for protection of database."
+                }
+                      		""");
+
+        // WHEN
+        var actual = loggingConstraintHandlerProvider.isResponsible(constraint);
+
+        // THEN
+        assertFalse(actual);
+    }
+
+    @Test
+    void when_constraintHasWrongLogKey_then_returnFalse() throws JsonProcessingException {
+        // GIVEN
+        var constraint = MAPPER.readTree("""
+                      		{
+                  "id": "logTest",
+                  "message": "You are using SAPL for protection of database."
+                }
+                      		""");
+
+        // WHEN
+        var actual = loggingConstraintHandlerProvider.isResponsible(constraint);
+
+        // THEN
+        assertFalse(actual);
     }
 
     @Test
@@ -60,8 +98,12 @@ class LoggingConstraintHandlerProviderTests {
     @Test
     void when_constraintIsResponsible_then_returnFalse() throws JsonProcessingException {
         // GIVEN
-        var constraintNotValid = objectMapper
-                .readTree("{\"idTest\": \"log\",\"message\": \"You are using SAPL for protection of database.\"}");
+        var constraintNotValid = MAPPER.readTree("""
+                      		{
+                  "idTest": "log",
+                  "message": "You are using SAPL for protection of database."
+                }
+                      		""");
 
         // WHEN
         var actual = loggingConstraintHandlerProvider.isResponsible(constraintNotValid);
@@ -73,13 +115,17 @@ class LoggingConstraintHandlerProviderTests {
     @Test
     void when_constraintIsResponsible_then_getHandler() throws JsonProcessingException {
         // GIVEN
-        var constraint = objectMapper
-                .readTree("{\"id\": \"log\",\"message\": \"You are using SAPL for protection of database.\"}");
-
+        var constraint = MAPPER.readTree("""
+                 		{
+                  "id": "log",
+                  "message": "You are using SAPL for protection of database."
+                }
+                			""");
         // WHEN
         var actual = loggingConstraintHandlerProvider.getHandler(constraint);
 
         // THEN
         assertTrue(Runnable.class.isInstance(actual));
+        actual.run();
     }
 }

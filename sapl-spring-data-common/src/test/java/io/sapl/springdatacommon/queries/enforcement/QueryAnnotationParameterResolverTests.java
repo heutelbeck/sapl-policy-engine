@@ -29,7 +29,8 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.util.ReflectionUtils;
 
-import io.sapl.springdatacommon.database.MethodInvocationForTesting;
+import io.sapl.springdatacommon.database.MongoReactiveMethodInvocation;
+import io.sapl.springdatacommon.database.R2dbcMethodInvocation;
 import io.sapl.springdatacommon.sapl.queries.enforcement.QueryAnnotationParameterResolver;
 
 class QueryAnnotationParameterResolverTests {
@@ -37,7 +38,7 @@ class QueryAnnotationParameterResolverTests {
     @Test
     void resolveBoundedMethodParametersAndAnnotationParameters() {
         // GIVEN
-        var r2dbcMethodInvocationTest = new MethodInvocationForTesting("findAllUsersTest",
+        var r2dbcMethodInvocationTest = new R2dbcMethodInvocation("findAllUsersTest",
                 new ArrayList<>(List.of(int.class, String.class)), new ArrayList<>(List.of(30, "2")), null);
         var expected                  = "SELECT * FROM testUser WHERE age = 30 AND id = '2'";
 
@@ -47,6 +48,40 @@ class QueryAnnotationParameterResolverTests {
 
         // THEN
         assertEquals(expected, actual);
+    }
+
+    @Test
+    void when_resolveBoundedMethodParametersAndAnnotationParametersAreStrings_then_resolveQuery() {
+        // GIVEN
+        var expectedResult   = "{'firstname':  {'$in': [ 'Aaron' ]}}";
+        var methodInvocation = new MongoReactiveMethodInvocation("findAllUsersTest",
+                new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of("Aaron")), null);
+        var method           = methodInvocation.getMethod();
+        var args             = methodInvocation.getArguments();
+
+        // WHEN
+        var result = QueryAnnotationParameterResolver.resolveBoundedMethodParametersAndAnnotationParameters(method,
+                args, false);
+
+        // THEN
+        assertEquals(expectedResult, result);
+    }
+
+    @Test
+    void when_resolveBoundedMethodParametersAndAnnotationParametersAreNoStrings_then_resolveQuery() {
+        // GIVEN
+        var expectedResult   = "{'age':  {'$in': [ 22 ]}}";
+        var methodInvocation = new MongoReactiveMethodInvocation("findAllByAge", new ArrayList<>(List.of(int.class)),
+                new ArrayList<>(List.of(22)), null);
+        var method           = methodInvocation.getMethod();
+        var args             = methodInvocation.getArguments();
+
+        // WHEN
+        var result = QueryAnnotationParameterResolver.resolveBoundedMethodParametersAndAnnotationParameters(method,
+                args, false);
+
+        // THEN
+        assertEquals(expectedResult, result);
     }
 
     @Test

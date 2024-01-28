@@ -25,7 +25,7 @@ import reactor.core.publisher.Flux;
 
 public class R2dbcEntityTemplateExecutor {
 
-    private R2dbcEntityTemplate r2dbcEntityTemplate;
+    private final R2dbcEntityTemplate r2dbcEntityTemplate;
 
     public R2dbcEntityTemplateExecutor(R2dbcEntityTemplate r2dbcEntityTemplate) {
         this.r2dbcEntityTemplate = r2dbcEntityTemplate;
