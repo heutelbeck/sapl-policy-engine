@@ -88,7 +88,6 @@ Workflow {
 //				aceVersion = "1.2.6"
 				requireJsVersion = "2.2.0"
 				requireJsTextVersion = "2.0.15"
-				jQueryVersion = "3.7.1"
 				framework = "CodeMirror" // Orion, CodeMirror, Ace
 				generateJettyLauncher = false
 				generateJsHighlighting = true // overwrites file on every run
