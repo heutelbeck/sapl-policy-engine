@@ -25,7 +25,8 @@ import io.sapl.springdatamongoreactive.sapl.utils.annotation.EnforceMongoReactiv
 import reactor.core.publisher.Flux;
 
 @Repository
-public interface MongoReactiveRepositoryWithReactiveMongoRepository extends ReactiveMongoRepository<TestUser, ObjectId> {
+public interface MongoReactiveRepositoryWithReactiveMongoRepository
+        extends ReactiveMongoRepository<TestUser, ObjectId> {
 
     @EnforceMongoReactive(subject = "subject", action = "general_protection_reactive_mongo_repository", resource = "resource", environment = "environment")
     Flux<TestUser> findAllByFirstname(String firstname);

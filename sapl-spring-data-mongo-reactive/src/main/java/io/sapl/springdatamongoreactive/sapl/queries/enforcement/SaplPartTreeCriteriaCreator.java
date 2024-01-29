@@ -77,8 +77,8 @@ public class SaplPartTreeCriteriaCreator<T> {
         // operations.
         var saplParametersFromMethod = SaplConditionOperation.methodToSaplConditions(args, repositoryMethod,
                 domainType);
-        
-     //   ^(findAll|readAll|getAll|queryAll|searchAll|streamAll)
+
+        // ^(findAll|readAll|getAll|queryAll|searchAll|streamAll)
 
         // Converts the conditions from the corresponding policy into SaplConditions for
         // further operations.
