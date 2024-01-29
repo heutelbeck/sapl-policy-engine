@@ -154,7 +154,7 @@ class MongoProxyInterceptorTests {
         verify(factoryMock, times(1))
                 .createMongoMethodNameQueryManipulationEnforcementPoint(any(QueryManipulationEnforcementData.class));
     }
-    
+
     @Test
     void when_repositoryMethodIsQueryMethodAndRepositoryIsReactiveMongoRepository_then_callMongoMethodNameQueryManipulationEnforcementPoint() {
 
@@ -347,5 +347,5 @@ class MongoProxyInterceptorTests {
                 "The interface org.springframework.data.mongodb.repository.ReactiveMongoRepository or interface org.springframework.data.repository.reactive.ReactiveCrudRepository could not be found as an extension of the interface io.sapl.springdatamongoreactive.sapl.database.repositoryerror.RepositoryNotFoundException",
                 thrown.getMessage());
     }
-    
+
 }
