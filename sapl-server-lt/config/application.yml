@@ -214,6 +214,10 @@ server:
       key-password: changeme
       key-alias: netty
 
+# Set the time between keep-alive frames in seconds. These messages are required to avoid that an inactive tcp connection
+# is dropped by a firewall or other network components. The default vlaue 0 disables keep-alive messages.
+# io.sapl.server-lt.keep-alive: 15
+
 # Rsocket configuration
 spring.rsocket.server:
    address: localhost
