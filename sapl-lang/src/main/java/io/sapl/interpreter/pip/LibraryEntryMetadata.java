@@ -23,13 +23,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntFunction;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 public interface LibraryEntryMetadata {
 
     String getLibraryName();
 
     String getFunctionName();
 
-    String getFunctionSchema();
+    JsonNode getFunctionSchema();
 
     String getCodeTemplate();
 

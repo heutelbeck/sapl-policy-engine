@@ -80,6 +80,8 @@ public class SaplPartTreeCriteriaCreator<T> {
 
         // ^(findAll|readAll|getAll|queryAll|searchAll|streamAll)
 
+        // ^(findAll|readAll|getAll|queryAll|searchAll|streamAll)
+
         // Converts the conditions from the corresponding policy into SaplConditions for
         // further operations.
         var saplParametersFromObligation = SaplConditionOperation.jsonNodeToSaplConditions(conditions);

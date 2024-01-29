@@ -88,5 +88,4 @@ public interface ReactiveMongoTestUserRepository
 
     @SaplProtectedMongoReactive
     Stream<TestUser> findAllByAgeLessThan(int age);
-
 }

@@ -321,6 +321,34 @@ class CanonicalImmutableParsedDocumentIndexTests {
     }
 
     @Test
+    void testUpdateFunctionCtxNoTargetNoSchema() {
+        // given
+        List<Update> updates = new ArrayList<>();
+
+        String definition = "policy \"p_0\" permit";
+        SAPL   document   = interpreter.parse(definition);
+        updates.add(new Update(Type.PUBLISH, document, definition));
+
+        PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
+        ImmutableParsedDocumentIndex updatedIndex   = emptyIndex.apply(prpUpdateEvent);
+
+        // when
+        PolicyRetrievalResult result = updatedIndex.retrievePolicies().contextWrite(ctx -> {
+            ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+            ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+            ctx = AuthorizationContext.setVariables(ctx, variables);
+            ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
+            return ctx;
+        }).block();
+
+        // then
+        assertNotNull(result);
+        assertFalse(result.isErrorsInTarget());
+        assertThat(result.getMatchingDocuments(), hasSize(1));
+        assertTrue(result.getMatchingDocuments().contains(document));
+    }
+
+    @Test
     void testUpdateFunctionCtx() {
         // given
         List<Update> updates = new ArrayList<>();

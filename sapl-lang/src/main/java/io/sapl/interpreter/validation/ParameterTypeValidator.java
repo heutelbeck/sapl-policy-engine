@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Set;
 import java.util.function.Function;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
@@ -119,9 +120,11 @@ public class ParameterTypeValidator {
         var schema = schemaAnnotation.value();
         if ("".equals(schema))
             return true;
-        var nodeVal   = Val.of(node);
-        var schemaVal = Val.of(schema);
-        return SchemaValidationLibrary.isCompliantWithSchema(nodeVal, schemaVal).getBoolean();
+        try {
+            return SchemaValidationLibrary.isCompliant(Val.of(node), Val.ofJson(schema)).getBoolean();
+        } catch (JsonProcessingException e) {
+            return false;
+        }
     }
 
     private static boolean hasNoValidationAnnotations(Parameter parameterType) {
