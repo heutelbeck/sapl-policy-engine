@@ -27,7 +27,8 @@ import org.eclipse.xtext.ui.label.DefaultEObjectLabelProvider;
 /**
  * Provides labels for EObjects.
  *
- * See https://www.eclipse.org/Xtext/documentation/310_eclipse_support.html#label-provider
+ * See
+ * https://www.eclipse.org/Xtext/documentation/310_eclipse_support.html#label-provider
  */
 public class SAPLLabelProvider extends DefaultEObjectLabelProvider {
 
