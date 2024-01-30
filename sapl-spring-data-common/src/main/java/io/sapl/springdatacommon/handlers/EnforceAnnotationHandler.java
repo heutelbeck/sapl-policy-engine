@@ -159,7 +159,8 @@ public class EnforceAnnotationHandler {
     }
 
     private boolean referenceMethod(String methodAsString) {
-        var pattern = Pattern.compile("^#.*\\(.*\\)$", Pattern.CASE_INSENSITIVE);
+        var pattern = Pattern.compile("^#.{1,50}\\(.{0,50}\\)$", Pattern.CASE_INSENSITIVE); // e.g. #testMethod(123,
+                                                                                            // 'argument')
         var matcher = pattern.matcher(methodAsString);
         return matcher.matches();
     }

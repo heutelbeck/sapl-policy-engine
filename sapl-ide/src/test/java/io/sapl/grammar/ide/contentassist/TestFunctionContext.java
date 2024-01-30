@@ -17,6 +17,7 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -24,11 +25,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.functions.LibraryDocumentation;
+import lombok.SneakyThrows;
 
 class TestFunctionContext implements FunctionContext {
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final Map<String, Set<String>> availableLibraries;
 
@@ -110,19 +116,19 @@ class TestFunctionContext implements FunctionContext {
     }
 
     @Override
-    public Map<String, String> getFunctionSchemas() {
-        var schemas = new HashMap<String, String>();
-        schemas.put("schemaTest.person", PERSON_SCHEMA);
-        schemas.put("schemaTest.dog", DOG_SCHEMA);
+    @SneakyThrows
+    public Map<String, JsonNode> getFunctionSchemas() {
+        var schemas = new HashMap<String, JsonNode>();
+        schemas.put("schemaTest.person", MAPPER.readValue(PERSON_SCHEMA, JsonNode.class));
+        schemas.put("schemaTest.dog", MAPPER.readValue(DOG_SCHEMA, JsonNode.class));
+        schemas.put("schemaTest.location", schemaFromResource("geographical_location_schema.json"));
         return schemas;
     }
 
-    @Override
-    public Map<String, String> getFunctionSchemaPaths() {
-        var schemaPaths = new HashMap<String, String>();
-        schemaPaths.put("schemaTest.location", "src/test/resources/geographical_location_schema.json");
-        schemaPaths.put("schemaTest.person", "src/test/resources/person.json");
-        return schemaPaths;
+    private JsonNode schemaFromResource(String resourcePath) throws IOException {
+        try (var is = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
+            return MAPPER.readValue(is, JsonNode.class);
+        }
     }
 
 }

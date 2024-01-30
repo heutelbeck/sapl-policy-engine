@@ -131,7 +131,7 @@ class SaplPartTreeCriteriaCreatorTests {
         }
         saplConditionOperationMockedStatic.close();
     }
-    
+
     @Test
     @SuppressWarnings("unchecked") // generic types in arguments of methods that are mocked
     void when_policyDecisionContainsQueryManipulationWithOrCondition_then_createManipulatedQuery() {
@@ -247,10 +247,10 @@ class SaplPartTreeCriteriaCreatorTests {
             var thrown = assertThrows(IllegalStateException.class,
                     () -> saplPartTreeCriteriaCreator.createManipulatedQuery(conditions));
             assertEquals(
-                    "The parameters specified in the policy do not appear to match the desired changes to the query.", thrown.getMessage());
-
+                    "The parameters specified in the policy do not appear to match the desired changes to the query.",
+                    thrown.getMessage());
+            saplConditionOperationMockedStatic.close();
         }
-        saplConditionOperationMockedStatic.close();
     }
 
 }
