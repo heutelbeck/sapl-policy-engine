@@ -34,11 +34,17 @@ import org.eclipse.xtext.ide.editor.contentassist.ContentAssistEntry;
 import org.eclipse.xtext.ide.editor.contentassist.IIdeContentProposalAcceptor;
 import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
 
+import com.google.common.base.Strings;
+
 import io.sapl.grammar.sapl.Import;
 import io.sapl.grammar.sapl.LibraryImport;
+import io.sapl.grammar.sapl.PolicyBody;
+import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.SaplPackage;
+import io.sapl.grammar.sapl.Statement;
+import io.sapl.grammar.sapl.ValueDefinition;
 import io.sapl.grammar.sapl.WildcardImport;
 import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
@@ -49,11 +55,13 @@ import io.sapl.pdp.config.PDPConfigurationProvider;
  */
 public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
-    private final Collection<String> unwantedKeywords = Set.of("null", "undefined", "true", "false");
+    private static final Collection<String> BLACKLIST_OF_KEYWORD_PROPOSALS = Set.of("null", "undefined", "true",
+            "false");
 
-    private final Collection<String> allowedKeywords = Set.of("as");
+    private static final Collection<String> AUTHORIRIZATION_SUBSCRIPTION_VARIABLE_NAME_PROPOSALS = Set.of("subject",
+            "action", "resource", "environment");
 
-    private final Collection<String> authzSubProposals = Set.of("subject", "action", "resource", "environment");
+    private static final int MINIMUM_KEYWORD_LENGTH = 3;
 
     private PDPConfigurationProvider pdpConfigurationProvider;
 
@@ -63,21 +71,33 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         }
     }
 
+    /**
+     * Here SPAL filters out very short and blacklisted keywords.
+     */
+    @Override
+    protected boolean filterKeyword(final Keyword keyword, final ContentAssistContext context) {
+        var keywordValue = keyword.getValue();
+        if ((keywordValue.length() < MINIMUM_KEYWORD_LENGTH) || BLACKLIST_OF_KEYWORD_PROPOSALS.contains(keywordValue)) {
+            return false;
+        } else {
+            return super.filterKeyword(keyword, context);
+        }
+    }
+
+    /*
+     * This method is responsible for creating proposals based on grammar keywords.
+     * XText calls it for any potential keyword to be used.
+     */
     @Override
     protected void _createProposals(Keyword keyword, ContentAssistContext context,
             IIdeContentProposalAcceptor acceptor) {
-        lazyLoadDependencies();
-
-        String keyValue = keyword.getValue();
-
-        // remove all short keywords unless they are explicitly allowed
-        if (!allowedKeywords.contains(keyValue) && (keyValue.length() < 3)) {
-            return;
-        }
-
+        // NOOP just call super. Filtering is done in filterKeywords.
         super._createProposals(keyword, context, acceptor);
     }
 
+    /*
+     * This method generates the more domain specific recommendations for SAPL.
+     */
     @Override
     protected void _createProposals(final Assignment assignment, final ContentAssistContext context,
             final IIdeContentProposalAcceptor acceptor) {
@@ -87,6 +107,11 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         var parserRuleName   = parserRule.getName().toLowerCase();
         var feature          = assignment.getFeature().toLowerCase();
         var pdpConfiguration = pdpConfigurationProvider.pdpConfiguration().blockFirst();
+
+        System.out.println("Request for proposals:");
+        System.out.println("parserRuleName: " + parserRuleName);
+        System.out.println("feature       : " + feature);
+        System.out.println("getOperator   : " + assignment.getOperator());
 
         switch (parserRuleName) {
         case "import" -> {
@@ -120,12 +145,73 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         super._createProposals(assignment, context, acceptor);
     }
 
+    /*
+     * This method generates proposals for an initial identifier
+     * 
+     * Should return: subscription variables, previously defined variable names in
+     * the document, names of environment variables
+     */
+    private void handleBasicIdentifierProposals(String feature, ContentAssistContext context,
+            IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
+        addSimpleProposals(AUTHORIRIZATION_SUBSCRIPTION_VARIABLE_NAME_PROPOSALS, context, acceptor, pdpConfiguration);
+        addSimpleProposals(pdpConfiguration.variables().keySet(), context, acceptor, pdpConfiguration);
+        addSimpleProposals(findVariableNamesInSetHeader(context.getRootModel()), context, acceptor, pdpConfiguration);
+        addSimpleProposals(findVariableNamesInStatementsBeforeCurrentOnesInPolicyBody(context.getCurrentModel()),
+                context, acceptor, pdpConfiguration);
+    }
+
+    /*
+     * Extracts all ValueDefinitions from a potential policy set and returns the
+     * variable names.
+     */
+    private static Collection<String> findVariableNamesInSetHeader(EObject root) {
+        var variableNames = new ArrayList<String>();
+        if (root instanceof SAPL sapl && sapl.getPolicyElement() instanceof PolicySet policySet) {
+            for (var valueDefinition : policySet.getValueDefinitions()) {
+                addVariableNameToCollection(valueDefinition, variableNames);
+            }
+        }
+        return variableNames;
+    }
+
+    /*
+     * Extracts all ValueDefinitions from the current policy body in order and stops
+     * when it finds the statement where the cursor currently resides in. All
+     * variable names on the way are returned.
+     */
+    private static Collection<String> findVariableNamesInStatementsBeforeCurrentOnesInPolicyBody(EObject current) {
+        var variableNames = new ArrayList<String>();
+
+        var currentStatement = TreeNavigationHelper.goToFirstParent(current, Statement.class);
+        if (currentStatement == null)
+            return variableNames;
+
+        var policyBody = TreeNavigationHelper.goToFirstParent(current, PolicyBody.class);
+        if (policyBody == null)
+            return variableNames;
+
+        for (var statement : policyBody.getStatements()) {
+            if (statement == currentStatement) {
+                break;
+            }
+            if (statement instanceof ValueDefinition valueDefinition) {
+                addVariableNameToCollection(valueDefinition, variableNames);
+            }
+        }
+        return variableNames;
+    }
+
+    private static void addVariableNameToCollection(ValueDefinition valueDefinition, Collection<String> variableNames) {
+        var variableName = valueDefinition.getName();
+        if (!Strings.isNullOrEmpty(variableName)) {
+            variableNames.add(variableName);
+        }
+    }
+
     private void handleStepProposals(String feature, ContentAssistContext context, IIdeContentProposalAcceptor acceptor,
             PDPConfiguration pdpConfiguration) {
-
         if ("idsteps".equals(feature))
             addProposalsForAttributeStepsIfPresent(context, acceptor, pdpConfiguration);
-
     }
 
     private void handleImportProposals(String feature, ContentAssistContext context,
@@ -168,11 +254,12 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         var model = context.getCurrentModel();
 
         if ("subscriptionelement".equals(feature)) {
-            addSimpleProposals(authzSubProposals, context, acceptor, pdpConfiguration);
+            addSimpleProposals(AUTHORIRIZATION_SUBSCRIPTION_VARIABLE_NAME_PROPOSALS, context, acceptor,
+                    pdpConfiguration);
             return;
         }
 
-        // Feature is schemaexpression
+        // Feature is schema expression
         var validSchemas = getValidSchemas(context, model, pdpConfiguration);
         addSimpleProposals(validSchemas, context, acceptor, pdpConfiguration);
 
@@ -219,7 +306,9 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             // add variables to list of proposals
             addSimpleProposals(definedValues, context, acceptor, pdpConfiguration);
             // add authorization subscriptions proposals
-            addSimpleProposals(authzSubProposals, context, acceptor, pdpConfiguration);
+            addSimpleProposals(AUTHORIRIZATION_SUBSCRIPTION_VARIABLE_NAME_PROPOSALS, context, acceptor,
+                    pdpConfiguration);
+            return;
         }
 
         if ("steps".equals(feature)) {
@@ -232,8 +321,13 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
             addProposalsWithImportsForTemplates(templates, context, acceptor, pdpConfiguration);
             addProposalsForAttributeStepsIfPresent(context, acceptor, pdpConfiguration);
+            return;
         }
 
+        if ("identifier".equals(feature)) {
+            handleBasicIdentifierProposals(feature, context, acceptor, pdpConfiguration);
+            return;
+        }
     }
 
     private void addDocumentationToImportProposals(Collection<String> proposals, ContentAssistContext context,
@@ -373,19 +467,9 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             entry.setDescription("policy name");
             acceptor.accept(entry, 0);
         } else if ("body".equals(feature)) {
-            addSimpleProposals(authzSubProposals, context, acceptor, pdpConfiguration);
+            addSimpleProposals(AUTHORIRIZATION_SUBSCRIPTION_VARIABLE_NAME_PROPOSALS, context, acceptor,
+                    pdpConfiguration);
         }
-    }
-
-    @Override
-    protected boolean filterKeyword(final Keyword keyword, final ContentAssistContext context) {
-        var keyValue = keyword.getValue();
-
-        // remove unwanted technical terms
-        if (unwantedKeywords.contains(keyValue))
-            return false;
-
-        return super.filterKeyword(keyword, context);
     }
 
     private void addSimpleProposals(final Collection<String> proposals, final ContentAssistContext context,

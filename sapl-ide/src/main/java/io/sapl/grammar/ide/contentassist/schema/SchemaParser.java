@@ -32,9 +32,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
-import lombok.RequiredArgsConstructor;
+import lombok.experimental.UtilityClass;
 
-@RequiredArgsConstructor
+@UtilityClass
 public class SchemaParser {
 
     private static final int                MAX_DEPTH         = 20;
@@ -42,15 +42,14 @@ public class SchemaParser {
     private static final Collection<String> RESERVED_KEYWORDS = Set.of("$schema", "$id", "additionalProperties",
             "allOf", "anyOf", "dependentRequired", "description", "enum", "format", "items", "oneOf", "properties",
             "required", "title", "type");
-    private final Map<String, JsonNode>     variables;
 
-    public List<String> generatePaths(JsonNode schema) {
+    public static List<String> generatePaths(JsonNode schema, Map<String, JsonNode> variables) {
 
-        var jsonPaths = getJsonPaths(schema, "", schema, 0);
+        var jsonPaths = getJsonPaths(schema, "", schema, 0, variables);
         jsonPaths.removeIf(s -> s.startsWith("$defs"));
         jsonPaths.removeIf(String::isBlank);
         jsonPaths.removeIf(RESERVED_KEYWORDS::contains);
-        jsonPaths.replaceAll(this::encloseWithQuotationMarksIfContainsSpace);
+        jsonPaths.replaceAll(SchemaParser::encloseWithQuotationMarksIfContainsSpace);
         return jsonPaths;
     }
 
@@ -116,7 +115,8 @@ public class SchemaParser {
         return paths;
     }
 
-    private List<String> getJsonPaths(JsonNode jsonNode, String parentPath, final JsonNode originalSchema, int depth) {
+    private static List<String> getJsonPaths(JsonNode jsonNode, String parentPath, final JsonNode originalSchema,
+            int depth, Map<String, JsonNode> variables) {
 
         Collection<String> paths = new HashSet<>();
 
@@ -126,12 +126,12 @@ public class SchemaParser {
 
         if (jsonNode != null && jsonNode.isObject()) {
             if (propertyIsArray(jsonNode)) {
-                paths = handleArray(jsonNode, parentPath, originalSchema, depth);
+                paths = handleArray(jsonNode, parentPath, originalSchema, depth, variables);
             } else {
-                paths.addAll(constructPathFromNonArrayProperty(jsonNode, parentPath, originalSchema, depth));
+                paths.addAll(constructPathFromNonArrayProperty(jsonNode, parentPath, originalSchema, depth, variables));
             }
         } else if (jsonNode != null && jsonNode.isArray()) {
-            paths.addAll(constructPathsFromArray(jsonNode, parentPath, originalSchema, depth));
+            paths.addAll(constructPathsFromArray(jsonNode, parentPath, originalSchema, depth, variables));
         } else {
             paths.add(parentPath);
         }
@@ -139,33 +139,34 @@ public class SchemaParser {
         return new ArrayList<>(paths);
     }
 
-    private Collection<String> handleArray(JsonNode jsonNode, String parentPath, JsonNode originalSchema, int depth) {
+    private static Collection<String> handleArray(JsonNode jsonNode, String parentPath, JsonNode originalSchema,
+            int depth, Map<String, JsonNode> variables) {
         Collection<String> paths = new HashSet<>();
         var                items = jsonNode.get("items");
         if (items != null) {
             if (items.isArray())
-                paths.addAll(constructPathsFromArray(items, parentPath, originalSchema, depth));
+                paths.addAll(constructPathsFromArray(items, parentPath, originalSchema, depth, variables));
             else
-                paths.addAll(constructPathFromNonArrayProperty(items, parentPath, originalSchema, depth));
+                paths.addAll(constructPathFromNonArrayProperty(items, parentPath, originalSchema, depth, variables));
         } else
             paths.add(parentPath);
         return paths;
     }
 
-    private Collection<String> constructPathsFromArray(JsonNode jsonNode, String parentPath, JsonNode originalSchema,
-            int depth) {
+    private static Collection<String> constructPathsFromArray(JsonNode jsonNode, String parentPath,
+            JsonNode originalSchema, int depth, Map<String, JsonNode> variables) {
         Collection<String> paths = new HashSet<>();
 
         for (int i = 0; i < jsonNode.size(); i++) {
             var childNode   = jsonNode.get(i);
             var currentPath = parentPath.isEmpty() ? "" : parentPath;
-            paths.addAll(getJsonPaths(childNode, currentPath, originalSchema, depth));
+            paths.addAll(getJsonPaths(childNode, currentPath, originalSchema, depth, variables));
         }
         return paths;
     }
 
-    private Collection<String> constructPathFromNonArrayProperty(JsonNode jsonNode, String parentPath,
-            JsonNode originalSchema, int depth) {
+    private static Collection<String> constructPathFromNonArrayProperty(JsonNode jsonNode, String parentPath,
+            JsonNode originalSchema, int depth, Map<String, JsonNode> variables) {
         Collection<String> paths = new HashSet<>();
 
         JsonNode     childNode;
@@ -180,7 +181,7 @@ public class SchemaParser {
             childNode = jsonNode.get(fieldName);
 
             if ("$ref".equals(fieldName)) {
-                childNode   = handleReferences(originalSchema, childNode);
+                childNode   = handleReferences(originalSchema, childNode, variables);
                 currentPath = parentPath;
             } else if ("enum".equals(fieldName)) {
                 enumPaths   = handleEnum(jsonNode, parentPath);
@@ -193,14 +194,15 @@ public class SchemaParser {
             } else {
                 currentPath = parentPath.isEmpty() ? fieldName : parentPath + "." + fieldName;
             }
-            paths.addAll(getJsonPaths(childNode, currentPath, originalSchema, depth));
+            paths.addAll(getJsonPaths(childNode, currentPath, originalSchema, depth, variables));
             paths.addAll(enumPaths);
         }
 
         return paths;
     }
 
-    private JsonNode handleReferences(JsonNode originalSchema, JsonNode childNode) {
+    private static JsonNode handleReferences(JsonNode originalSchema, JsonNode childNode,
+            Map<String, JsonNode> variables) {
         JsonNode refNode;
         if (childNode.textValue().startsWith("#"))
             refNode = getReferencedNodeFromSameDocument(originalSchema, childNode.textValue());
@@ -210,7 +212,7 @@ public class SchemaParser {
         return refNode;
     }
 
-    private String encloseWithQuotationMarksIfContainsSpace(String s) {
+    private static String encloseWithQuotationMarksIfContainsSpace(String s) {
         if (s.contains(" ")) {
             return "'" + s + "'";
         }

@@ -35,8 +35,7 @@ class SchemaProposalsTests {
 
     @Test
     void noEnvironmentVariablesReturnsEmptyList() {
-        var proposals = new SchemaProposals(Map.of());
-        var variables = proposals.getVariableNamesAsTemplates();
+        var variables = SchemaProposals.getVariableNamesAsTemplates(Map.of());
         assertThat(variables, is(empty()));
     }
 
@@ -47,9 +46,8 @@ class SchemaProposalsTests {
         var vars     = new HashMap<String, JsonNode>();
         vars.put("variableName", nullNode);
 
-        var proposals = new SchemaProposals(vars);
-        var actual    = proposals.getVariableNamesAsTemplates();
-        var expected  = List.of("variableName");
+        var actual   = SchemaProposals.getVariableNamesAsTemplates(vars);
+        var expected = List.of("variableName");
         assertThat(actual, equalTo(expected));
     }
 }

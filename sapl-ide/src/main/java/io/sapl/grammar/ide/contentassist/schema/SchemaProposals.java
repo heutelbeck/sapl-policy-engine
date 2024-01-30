@@ -30,45 +30,36 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.context.AuthorizationContext;
-import lombok.RequiredArgsConstructor;
+import lombok.experimental.UtilityClass;
 
-@RequiredArgsConstructor
+@UtilityClass
 public class SchemaProposals {
 
     private static final Collection<String> UNWANTED_PATH_KEYWORDS = Set.of("java\\.?");
-    private final Map<String, JsonNode>     variables;
 
-    public List<String> getVariableNamesAsTemplates() {
-        var variablesMap = variables;
-        var result       = new ArrayList<String>(variablesMap.size());
-        result.addAll(variablesMap.keySet());
+    public List<String> getVariableNamesAsTemplates(Map<String, JsonNode> variables) {
+        var result = new ArrayList<String>(variables.size());
+        result.addAll(variables.keySet());
         return result;
     }
 
-    public List<String> getCodeTemplates(Expression expression) {
+    public List<String> getCodeTemplates(Expression expression, Map<String, JsonNode> variables) {
         return expression.evaluate().contextWrite(ctx -> AuthorizationContext.setVariables(ctx, variables))
-                .map(this::getCodeTemplates).blockFirst();
+                .map(schema -> getCodeTemplates(schema, variables)).blockFirst();
     }
 
-    private List<String> getCodeTemplates(Val v) {
+    private List<String> getCodeTemplates(Val v, Map<String, JsonNode> variables) {
         if (v.isDefined()) {
-            return schemaTemplatesFromJson(v.get());
+            return schemaTemplatesFromJson(v.get(), variables);
         } else {
             return List.of();
         }
     }
 
-    public List<String> schemaTemplatesForFunctions(JsonNode functionSchema) {
-        return new SchemaParser(variables).generatePaths(functionSchema);
-    }
-
-    public List<String> schemaTemplatesForAttributes(JsonNode attributeSchema) {
-        return new SchemaParser(variables).generatePaths(attributeSchema);
-    }
-
-    public List<String> schemaTemplatesFromJson(JsonNode schema) {
-        var paths = new SchemaParser(variables).generatePaths(schema);
-        return paths.stream().map(this::removeUnwantedKeywordsFromPath).filter(StringUtils::isNotBlank).toList();
+    public List<String> schemaTemplatesFromJson(JsonNode schema, Map<String, JsonNode> variables) {
+        var paths = SchemaParser.generatePaths(schema, variables);
+        return paths.stream().map(SchemaProposals::removeUnwantedKeywordsFromPath).filter(StringUtils::isNotBlank)
+                .toList();
     }
 
     private String removeUnwantedKeywordsFromPath(String path) {

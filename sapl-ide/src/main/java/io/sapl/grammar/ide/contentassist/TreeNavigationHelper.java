@@ -19,14 +19,13 @@ package io.sapl.grammar.ide.contentassist;
 
 import org.eclipse.emf.ecore.EObject;
 
+import lombok.experimental.UtilityClass;
+
 /**
  * Helper class that contains methods to navigate the ecore model.
  */
+@UtilityClass
 public final class TreeNavigationHelper {
-
-    private TreeNavigationHelper() {
-
-    }
 
     /**
      * Moves up the model tree and returns the closest parent that matches the given
