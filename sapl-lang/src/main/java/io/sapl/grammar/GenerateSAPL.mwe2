@@ -44,7 +44,7 @@ Workflow {
 				eclipsePlugin = {
 				    enabled = true
 				    name = "sapl_eclipse_ui"
-				    root = "eclipse-plugin/sapl-eclipse-ui"
+				    root = "${rootPath}/eclipse-plugin/sapl-eclipse-ui"
 				}
 				web = {
 					name = "sapl-web"			
