@@ -44,7 +44,6 @@ Workflow {
 				eclipsePlugin = {
 				    enabled = true
 				    name = "sapl_eclipse_ui"
-					overwriteSrc = true
 				}
 				web = {
 					name = "sapl-web"			
