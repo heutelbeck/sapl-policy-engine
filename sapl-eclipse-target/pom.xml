@@ -27,7 +27,7 @@
 	</parent>
 
 	<artifactId>sapl-eclipse-target</artifactId>
-	<name>TODO</name>
+	<name>SAPL Eclipse target</name>
 	<packaging>eclipse-target-definition</packaging>
 
 	<dependencies>

@@ -27,6 +27,7 @@
 	</parent>
 	<artifactId>sapl-eclipse-repository</artifactId>
 	<packaging>eclipse-repository</packaging>
+	<name>SAPL Eclipse update site</name>
 
 	<build>
 		<pluginManagement>

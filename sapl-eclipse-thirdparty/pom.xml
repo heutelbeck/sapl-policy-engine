@@ -29,6 +29,7 @@
     </parent>
 
     <artifactId>sapl-eclipse-thirdparty</artifactId>
+    <name>SAPL Eclipse thirdparty dependencies</name>
     <packaging>bundle</packaging>
 
     <dependencies>
