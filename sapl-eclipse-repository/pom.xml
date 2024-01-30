@@ -76,7 +76,7 @@
 	<dependencies>
 		<dependency>
 			<groupId>io.sapl</groupId>
-			<artifactId>sapl_eclipse_ui</artifactId>
+			<artifactId>sapl-eclipse-ui</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>

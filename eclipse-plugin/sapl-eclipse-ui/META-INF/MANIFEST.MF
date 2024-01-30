@@ -1,10 +1,10 @@
 Manifest-Version: 1.0
-Automatic-Module-Name: sapl_eclipse_ui
+Automatic-Module-Name: sapl-eclipse-ui
 Bundle-ManifestVersion: 2
 Bundle-Name: sapl-ui
 Bundle-Vendor: My Company
 Bundle-Version: 3.0.0.qualifier
-Bundle-SymbolicName: sapl_eclipse_ui; singleton:=true
+Bundle-SymbolicName: sapl-eclipse-ui; singleton:=true
 Bundle-ActivationPolicy: lazy
 Require-Bundle: sapl-lang,
  sapl-ide,

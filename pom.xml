@@ -135,7 +135,7 @@
 		<module>sapl-spring-data-r2dbc</module>
 		<module>sapl-spring-data-mongo-reactive</module>		
 		<module>sapl-spring-data-common</module>
-		<module>sapl_eclipse_ui</module>
+		<module>eclipse-plugin/sapl-eclipse-ui</module>
 		<module>sapl-eclipse-target</module>
 		<module>sapl-eclipse-thirdparty</module>
 		<module>sapl-eclipse-feature</module>
